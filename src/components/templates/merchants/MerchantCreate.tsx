@@ -19,6 +19,7 @@ type MerchantCreateTemplateProps = {
   fetchIconAction: MerchantIconStateAction;
   ledgerId: string;
   ledgerName: string;
+  returnTo?: string | null;
   tags: MerchantTag[];
 };
 
@@ -27,6 +28,7 @@ export function MerchantCreateTemplate({
   fetchIconAction,
   ledgerId,
   ledgerName,
+  returnTo = null,
   tags,
 }: MerchantCreateTemplateProps) {
   const create = useMerchantsActionState(createMerchantAction, {
@@ -35,10 +37,14 @@ export function MerchantCreateTemplate({
 
   return (
     <SettingsPageLayout
-      back={{
-        href: routePaths.merchants,
-        label: merchantPageMessages.backToMerchants,
-      }}
+      back={
+        returnTo
+          ? { href: returnTo, label: merchantPageMessages.back }
+          : {
+              href: routePaths.merchants,
+              label: merchantPageMessages.backToMerchants,
+            }
+      }
       subtitle={merchantPageMessages.createSubtitle(ledgerName)}
       title={merchantText.create}
     >
@@ -48,6 +54,7 @@ export function MerchantCreateTemplate({
           fetchIconAction={fetchIconAction}
           ledgerId={ledgerId}
           pending={create.pending}
+          returnTo={returnTo}
           tags={tags}
         />
       </SectionCard>

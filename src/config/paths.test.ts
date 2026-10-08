@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   merchantResultValues,
+  merchantsNewHref,
   merchantsResultHref,
   accountResultValues,
+  accountsCreateHref,
   accountsResultHref,
   ledgerSwitchResultValues,
   ledgersResultHref,
@@ -11,6 +13,7 @@ import {
   transactionEditPagePath,
   transactionResultValues,
   transactionsMonthHref,
+  transactionsNewHref,
   transactionsResultHref,
   transactionsSearchHref,
 } from "./paths";
@@ -99,5 +102,33 @@ describe("merchant paths", () => {
     expect(merchantsResultHref(merchantResultValues.updated)).toBe(
       "/merchants?result=updated",
     );
+  });
+});
+
+describe("transaction setup paths", () => {
+  it("生成带页签的记一笔路由", () => {
+    expect(transactionsNewHref("transfer")).toBe(
+      "/transactions/new?type=transfer",
+    );
+  });
+
+  it("生成带 returnTo 的商家新增路由", () => {
+    expect(merchantsNewHref(transactionsNewHref("expense"))).toBe(
+      "/merchants/new?returnTo=%2Ftransactions%2Fnew%3Ftype%3Dexpense",
+    );
+  });
+
+  it("没有 returnTo 时商家新增路由不带参数", () => {
+    expect(merchantsNewHref()).toBe("/merchants/new");
+  });
+
+  it("生成打开新增弹框并带 returnTo 的账户路由", () => {
+    expect(accountsCreateHref(transactionsNewHref("income"))).toBe(
+      "/accounts?create=1&returnTo=%2Ftransactions%2Fnew%3Ftype%3Dincome",
+    );
+  });
+
+  it("没有 returnTo 时账户路由只带打开新增弹框参数", () => {
+    expect(accountsCreateHref()).toBe("/accounts?create=1");
   });
 });

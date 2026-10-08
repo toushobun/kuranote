@@ -69,4 +69,22 @@ describe("useClearQueryParam", () => {
       { scroll: false },
     );
   });
+
+  it("一次清除多个参数并保留其他参数", () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/accounts?create=1&returnTo=%2Ftransactions%2Fnew&tag=one#list",
+    );
+    const { result } = renderHook(() =>
+      useClearQueryParam("create", "returnTo"),
+    );
+
+    result.current();
+
+    expect(replaceMock).toHaveBeenCalledExactlyOnceWith(
+      "/accounts?tag=one#list",
+      { scroll: false },
+    );
+  });
 });

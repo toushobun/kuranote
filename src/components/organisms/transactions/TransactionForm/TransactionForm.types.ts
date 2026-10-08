@@ -53,6 +53,8 @@ export type TransactionFormProps = {
     offset: number,
   ) => Promise<TransactionSearchPage>;
   onSubmitDisabledChange?: (disabled: boolean) => void;
+  // 新建记账时缺少账户 / 商家的添加入口；不传时不显示提示卡片（编辑记账）。
+  setupHrefs?: { account: string; merchant: string };
   submitLabel?: string;
   title?: string;
   transactionItemSpecialStatusEnabled?: boolean;

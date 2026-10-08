@@ -1,3 +1,5 @@
+import type { TransactionRecordType } from "types/transactions";
+
 export const routePaths = {
   accounts: "/accounts",
   authCallback: "/auth/callback",
@@ -114,6 +116,10 @@ export function transactionsSearchHref(query: string) {
   return routeWithQuery(routePaths.transactionsSearch, { q: query });
 }
 
+export function transactionsNewHref(type: TransactionRecordType) {
+  return routeWithQuery(routePaths.transactionsNew, { type });
+}
+
 export function transactionEditHref(
   transactionRecordId: string,
   returnTo?: string | null,
@@ -145,12 +151,26 @@ export function ledgerSettingsResultHref(
   return `${ledgerSettingsHref(ledgerId)}?${searchParams.toString()}`;
 }
 
+// 账户管理页通过该参数打开新增账户弹框，打开后由页面清除，避免刷新时重复打开。
+export const accountsCreateDialogParam = "create";
+
+export function accountsCreateHref(returnTo?: string | null) {
+  return routeWithQuery(routePaths.accounts, {
+    [accountsCreateDialogParam]: "1",
+    returnTo,
+  });
+}
+
 export function accountsResultHref(result: AccountResultValue) {
   return routeWithQuery(routePaths.accounts, { result });
 }
 
 export function merchantsResultHref(result: MerchantResultValue) {
   return routeWithQuery(routePaths.merchants, { result });
+}
+
+export function merchantsNewHref(returnTo?: string | null) {
+  return routeWithQuery(routePaths.merchantsNew, { returnTo });
 }
 
 export function merchantEditHref(merchantId: string) {

@@ -25,7 +25,12 @@ import Typography from "@mui/material/Typography";
 import Link from "next/link";
 
 import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
-import { routePaths } from "config/paths";
+import {
+  accountsCreateHref,
+  merchantsNewHref,
+  routePaths,
+  transactionsNewHref,
+} from "config/paths";
 import { getAmountDecimalPlaces } from "utils/transactionAmountInput";
 import {
   DeleteConfirmationDialog,
@@ -276,6 +281,16 @@ export function TransactionPermissionDenied({
   );
 }
 
+// 添加账户 / 商家后带着当前页签返回记一笔。
+function newTransactionSetupHrefs(type: TransactionType) {
+  const returnTo = transactionsNewHref(type);
+
+  return {
+    account: accountsCreateHref(returnTo),
+    merchant: merchantsNewHref(returnTo),
+  };
+}
+
 function NewTransactionFormView({
   accountOptions,
   action,
@@ -334,6 +349,7 @@ function NewTransactionFormView({
           loadRefundGroupItemsAction={loadRefundGroupItemsAction}
           loadRefundMoreGroupsAction={loadRefundMoreGroupsAction}
           loadRefundSearchPageAction={loadRefundSearchPageAction}
+          setupHrefs={newTransactionSetupHrefs("expense")}
           transactionItemSpecialStatusEnabled={
             transactionItemSpecialStatusEnabled
           }
@@ -357,6 +373,7 @@ function NewTransactionFormView({
           loadRefundGroupItemsAction={loadRefundGroupItemsAction}
           loadRefundMoreGroupsAction={loadRefundMoreGroupsAction}
           loadRefundSearchPageAction={loadRefundSearchPageAction}
+          setupHrefs={newTransactionSetupHrefs("income")}
           transactionItemSpecialStatusEnabled={
             transactionItemSpecialStatusEnabled
           }
@@ -369,6 +386,7 @@ function NewTransactionFormView({
         <TransferTransactionForm
           action={formAction}
           accountOptions={accountOptions}
+          addAccountHref={accountsCreateHref(transactionsNewHref("transfer"))}
           errorMessage={activeErrorMessage}
           formId="new-transfer-transaction-form"
           hideHeader

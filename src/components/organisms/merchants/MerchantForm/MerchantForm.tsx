@@ -19,6 +19,8 @@ type MerchantFormProps = {
   fetchIconAction: MerchantIconStateAction;
   ledgerId: string;
   pending?: boolean;
+  // 新增成功或取消后返回的站内路径（例如记一笔），由服务端再次校验。
+  returnTo?: string | null;
   tags?: MerchantTag[];
 };
 
@@ -27,12 +29,16 @@ export function MerchantForm({
   fetchIconAction,
   ledgerId,
   pending = false,
+  returnTo = null,
   tags = [],
 }: MerchantFormProps) {
   const details = useMerchantDetails();
 
   return (
     <Stack component="form" action={action} spacing={2.5}>
+      {returnTo ? (
+        <input name="returnTo" readOnly type="hidden" value={returnTo} />
+      ) : null}
       <MerchantDetailsFields
         fetchIconAction={fetchIconAction}
         ledgerId={ledgerId}
@@ -48,7 +54,7 @@ export function MerchantForm({
         <Button
           component={Link}
           fullWidth
-          href={routePaths.merchants}
+          href={returnTo ?? routePaths.merchants}
           sx={{ borderRadius: `${designTokens.radius.full}px` }}
           variant="outlined"
         >

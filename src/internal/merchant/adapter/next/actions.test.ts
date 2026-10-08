@@ -354,6 +354,28 @@ describe("Merchant Server Actions", () => {
     expect(mocks.createMerchant).not.toHaveBeenCalled();
   });
 
+  it.each([
+    {
+      expected: "/transactions/new?type=expense",
+      name: "合法 returnTo 时返回来源页面",
+      returnTo: "/transactions/new?type=expense",
+    },
+    {
+      expected: "/merchants?result=created",
+      name: "站外 returnTo 时维持跳回商家列表",
+      returnTo: "https://evil.example.com",
+    },
+    {
+      expected: "/merchants?result=created",
+      name: "协议相对 returnTo 时维持跳回商家列表",
+      returnTo: "//evil.example.com",
+    },
+  ])("新增商家成功后$name", async ({ expected, returnTo }) => {
+    await expect(
+      runAction(createMerchant, merchantForm({ returnTo })),
+    ).rejects.toThrow(`NEXT_REDIRECT:${expected}`);
+  });
+
   it("商家操作成功后按流程导航或返回 inline 状态", async () => {
     for (const [action, path] of [
       [createMerchant, "/merchants?result=created"],

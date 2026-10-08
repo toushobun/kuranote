@@ -1,5 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
+import {
+  accountsCreateHref,
+  merchantsNewHref,
+  transactionsNewHref,
+} from "config/paths";
+
 import { TransactionForm } from "./TransactionForm";
 
 const accountOptions = [
@@ -168,5 +174,35 @@ export const EmptyOptions: Story = {
     accountOptions: [],
     categoryOptions: [],
     merchantOptions: [],
+  },
+};
+
+const setupHrefs = {
+  account: accountsCreateHref(transactionsNewHref("expense")),
+  merchant: merchantsNewHref(transactionsNewHref("expense")),
+};
+
+export const MissingAccountAndMerchant: Story = {
+  name: "缺少账户和商家（提示卡片）",
+  args: {
+    accountOptions: [],
+    merchantOptions: [],
+    setupHrefs,
+  },
+};
+
+export const MissingMerchant: Story = {
+  name: "只缺商家（提示卡片）",
+  args: {
+    merchantOptions: [],
+    setupHrefs,
+  },
+};
+
+export const MissingAccount: Story = {
+  name: "只缺账户（提示卡片）",
+  args: {
+    accountOptions: [],
+    setupHrefs,
   },
 };

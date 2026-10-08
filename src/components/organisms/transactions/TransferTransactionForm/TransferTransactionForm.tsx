@@ -54,6 +54,8 @@ import {
   TransactionSelectionValue,
   transactionSelectionSelectSx,
 } from "../TransactionSelectionValue/TransactionSelectionValue";
+import { TransactionSetupHintCard } from "../TransactionSetupHintCard/TransactionSetupHintCard";
+import { getTransferTransactionSetupHint } from "../TransactionSetupHintCard/transactionSetupHint";
 
 const maxNoteLength = 2000;
 
@@ -66,6 +68,8 @@ type TransferFieldErrors = {
 type TransferTransactionFormProps = {
   action: (formData: FormData) => void | Promise<void>;
   accountOptions: TransactionAccountOption[];
+  // 新建转账时账户不足的添加入口；不传时不显示提示卡片（编辑记账）。
+  addAccountHref?: string;
   errorMessage?: string | null;
   formId?: string;
   hideHeader?: boolean;
@@ -82,6 +86,7 @@ type TransferTransactionFormProps = {
 export function TransferTransactionForm({
   action,
   accountOptions,
+  addAccountHref,
   errorMessage,
   formId,
   hideHeader = false,
@@ -202,9 +207,11 @@ export function TransferTransactionForm({
     }
   }
 
-  const accountHelperText = hasTooFewAccounts
-    ? "请先新增至少两个账户。"
-    : undefined;
+  const setupHint = addAccountHref
+    ? getTransferTransactionSetupHint(accountOptions.length)
+    : null;
+  const accountHelperText =
+    hasTooFewAccounts && !setupHint ? "请先新增至少两个账户。" : undefined;
   const effectiveSubmitLabel =
     submitLabel ?? (initialValues ? "保存修改" : "保存转账");
 
@@ -228,6 +235,13 @@ export function TransferTransactionForm({
           <Alert severity="warning">转出账户和转入账户不能相同。</Alert>
         ) : isDifferentCurrency ? (
           <Alert severity="warning">暂不支持不同币种之间的转账。</Alert>
+        ) : null}
+
+        {setupHint && addAccountHref ? (
+          <TransactionSetupHintCard
+            addAccountHref={addAccountHref}
+            hint={setupHint}
+          />
         ) : null}
 
         <input name="type" readOnly type="hidden" value="transfer" />

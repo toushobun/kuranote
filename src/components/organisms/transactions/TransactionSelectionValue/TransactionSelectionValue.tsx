@@ -16,6 +16,8 @@ type TransactionSelectionTone =
 type TransactionSelectionValueProps = {
   icon: ReactNode;
   iconLabel?: string;
+  // 没有可选项时以灰色占位文字显示。
+  muted?: boolean;
   text: string;
   tone: TransactionSelectionTone;
 };
@@ -23,6 +25,7 @@ type TransactionSelectionValueProps = {
 export function TransactionSelectionValue({
   icon,
   iconLabel,
+  muted = false,
   text,
   tone,
 }: TransactionSelectionValueProps) {
@@ -31,7 +34,7 @@ export function TransactionSelectionValue({
       <IconBadge label={iconLabel} size="sm" sx={selectionIconSx[tone]}>
         {icon}
       </IconBadge>
-      <Typography noWrap sx={selectionPrimarySx}>
+      <Typography noWrap sx={[selectionPrimarySx, muted && selectionMutedSx]}>
         {text}
       </Typography>
     </Stack>
@@ -81,6 +84,11 @@ const selectionPrimarySx = {
   fontSize: "1rem",
   fontWeight: 900,
   minWidth: 0,
+};
+
+const selectionMutedSx = {
+  color: "text.disabled",
+  fontWeight: 700,
 };
 
 const selectionIconSx: Record<TransactionSelectionTone, object> = {

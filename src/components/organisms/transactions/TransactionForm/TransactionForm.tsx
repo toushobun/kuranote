@@ -15,9 +15,12 @@ import Typography from "@mui/material/Typography";
 
 import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { routePaths } from "config/paths";
+import { transactionSetupHintMessages } from "config/transactionMessages";
 import { TransactionDateTimePicker } from "molecules/transactions/TransactionDateTimePicker";
 import { TransactionFormHeader } from "organisms/transactions/TransactionFormHeader/TransactionFormHeader";
 import { getMerchantInitial } from "utils/merchants";
+import { TransactionSetupHintCard } from "../TransactionSetupHintCard/TransactionSetupHintCard";
+import { getNormalTransactionSetupHint } from "../TransactionSetupHintCard/transactionSetupHint";
 import { TransactionItemPickerDrawer } from "../TransactionItemPickerDrawer/TransactionItemPickerDrawer";
 import { TransactionItemsSection } from "../TransactionItemsSection/TransactionItemsSection";
 import { TransactionSummarySection } from "../TransactionSummarySection/TransactionSummarySection";
@@ -61,6 +64,7 @@ export function TransactionForm({
   refundPickerView,
   reimbursementPickerView,
   onSubmitDisabledChange,
+  setupHrefs,
   submitLabel = "保存记账",
   title = "新增记账",
   transactionItemSpecialStatusEnabled = false,
@@ -147,6 +151,16 @@ export function TransactionForm({
     onSubmitDisabledChange,
   });
 
+  // 只有传入添加入口（新建记账）时才显示缺少账户 / 商家的提示卡片。
+  const setupHint = setupHrefs
+    ? getNormalTransactionSetupHint({
+        accountCount: accountOptions.length,
+        merchantCount: merchantOptions.length,
+      })
+    : null;
+  const hasNoMerchant = merchantOptions.length === 0;
+  const hasNoAccount = accountOptions.length === 0;
+
   return (
     <form id={formId} action={action} onSubmit={handleSubmit}>
       <Stack spacing={0} sx={transactionFormStackSx}>
@@ -163,6 +177,13 @@ export function TransactionForm({
 
         {errorMessage ? <Alert severity="error">{errorMessage}</Alert> : null}
         {linkNotice ? <Alert severity="info">{linkNotice}</Alert> : null}
+        {setupHint && setupHrefs ? (
+          <TransactionSetupHintCard
+            addAccountHref={setupHrefs.account}
+            addMerchantHref={setupHrefs.merchant}
+            hint={setupHint}
+          />
+        ) : null}
 
         <input
           name="timeZoneOffsetMinutes"
@@ -188,12 +209,12 @@ export function TransactionForm({
         <Box ref={merchantFieldRef} sx={selectionFieldGroupSx}>
           <SectionTitle>商家</SectionTitle>
           <TextField
-            disabled={merchantOptions.length === 0}
+            disabled={hasNoMerchant}
             error={!!fieldErrors.merchant}
             fullWidth
             helperText={
               fieldErrors.merchant ??
-              (merchantOptions.length === 0 ? "请先新增商家。" : undefined)
+              (hasNoMerchant && !setupHint ? "请先新增商家。" : undefined)
             }
             label="商家"
             name="merchantId"
@@ -206,7 +227,13 @@ export function TransactionForm({
                 renderValue: () => (
                   <TransactionSelectionValue
                     icon={<StorefrontRoundedIcon fontSize="small" />}
-                    text={selectedMerchant?.name ?? "选择商家"}
+                    muted={hasNoMerchant}
+                    text={
+                      selectedMerchant?.name ??
+                      (hasNoMerchant
+                        ? transactionSetupHintMessages.emptyMerchant
+                        : "选择商家")
+                    }
                     tone="merchant"
                   />
                 ),
@@ -242,12 +269,12 @@ export function TransactionForm({
         <Box ref={accountFieldRef} sx={selectionFieldGroupSx}>
           <SectionTitle>付款账户</SectionTitle>
           <TextField
-            disabled={accountOptions.length === 0}
+            disabled={hasNoAccount}
             error={!!fieldErrors.account}
             fullWidth
             helperText={
               fieldErrors.account ??
-              (accountOptions.length === 0 ? "请先新增账户。" : undefined)
+              (hasNoAccount && !setupHint ? "请先新增账户。" : undefined)
             }
             label="账户"
             name="accountId"
@@ -260,10 +287,13 @@ export function TransactionForm({
                 renderValue: () => (
                   <TransactionSelectionValue
                     icon={<AccountBalanceWalletRoundedIcon fontSize="small" />}
+                    muted={hasNoAccount}
                     text={
                       selectedAccount
                         ? `${selectedAccount.name}（${selectedAccount.currency}）`
-                        : "选择账户"
+                        : hasNoAccount
+                          ? transactionSetupHintMessages.emptyAccount
+                          : "选择账户"
                     }
                     tone="account"
                   />

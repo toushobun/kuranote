@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
+import { accountsCreateHref, transactionsNewHref } from "config/paths";
+
 import { TransferTransactionForm } from "./TransferTransactionForm";
 
 const jpyAccount1 = {
@@ -113,5 +115,23 @@ export const EditDifferentCurrency: Story = {
       transferAmount: "2000",
       note: "",
     },
+  },
+};
+
+const addAccountHref = accountsCreateHref(transactionsNewHref("transfer"));
+
+export const SetupHintNoAccounts: Story = {
+  name: "新建转账 · 没有账户（提示卡片）",
+  args: {
+    accountOptions: [],
+    addAccountHref,
+  },
+};
+
+export const SetupHintOneAccount: Story = {
+  name: "新建转账 · 只有 1 个账户（提示卡片）",
+  args: {
+    accountOptions: [jpyAccount1],
+    addAccountHref,
   },
 };

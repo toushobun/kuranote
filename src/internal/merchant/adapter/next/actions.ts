@@ -31,6 +31,7 @@ import {
 import { createErrorState } from "internal/shared/adapter/next/actionState";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
+import { getSafeNextPath } from "lib/navigation/safeNextPath";
 import type {
   MerchantActionState,
   MerchantIconStateAction,
@@ -84,7 +85,11 @@ export const createMerchant: MerchantStateAction =
     }
 
     revalidateMerchantMutation();
-    redirect(merchantsResultHref(merchantResultValues.created));
+    // 从记一笔等页面进入时，新增成功后返回来源页面。
+    redirect(
+      getSafeNextPath(formData.get("returnTo")) ??
+        merchantsResultHref(merchantResultValues.created),
+    );
   };
 
 export const fetchMerchantIcon: MerchantIconStateAction =
