@@ -97,6 +97,7 @@ export const Submitting: Story = {
   args: {
     actions: {
       ...createLedgerSetupWizardStoryActions(filledProgress),
+      abandonSetup: async () => ({}),
       completeSetup: () => new Promise(() => {}),
     },
   },

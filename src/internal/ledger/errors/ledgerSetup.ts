@@ -1,4 +1,7 @@
 export const ledgerSetupErrorCodes = {
+  ownerRequired: "setup_owner_required",
+  hasMembers: "setup_has_members",
+  hasTransactions: "setup_has_transactions",
   accountNameDuplicate: "setup_account_name_duplicate",
   currencyMismatch: "setup_currency_mismatch",
   draftInvalid: "setup_draft_invalid",
@@ -15,6 +18,10 @@ export type LedgerSetupErrorCode =
   (typeof ledgerSetupErrorCodes)[keyof typeof ledgerSetupErrorCodes];
 
 export const ledgerSetupErrorMessages: Record<LedgerSetupErrorCode, string> = {
+  [ledgerSetupErrorCodes.ownerRequired]: "只有账本所有者可以放弃创建。",
+  [ledgerSetupErrorCodes.hasMembers]:
+    "该账本已有其他成员或邀请，无法放弃创建。",
+  [ledgerSetupErrorCodes.hasTransactions]: "该账本已有交易数据，无法放弃创建。",
   [ledgerSetupErrorCodes.accountNameDuplicate]:
     "同一类型下已有同名账户，请修改账户名称。",
   [ledgerSetupErrorCodes.currencyMismatch]:
@@ -41,6 +48,7 @@ export const ledgerSetupLoadErrorMessages = {
 
 /** 创建中账本写入查询失败时的文案。 */
 export const ledgerSetupWriteErrorMessages = {
+  abandonFailed: "放弃创建失败，请稍后重试。",
   basicInfoUpdateFailed: "账本基本信息保存失败，请稍后重试。",
   completeFailed: "账本创建完成失败，请稍后重试。",
   createFailed: "账本创建失败，请稍后重试。",

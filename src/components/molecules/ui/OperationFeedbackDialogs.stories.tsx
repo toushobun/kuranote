@@ -139,3 +139,20 @@ export const ActionPrompt: Story = {
     />
   ),
 };
+
+export const ActionPromptDisabled: Story = {
+  name: "提示操作处理中",
+  render: () => (
+    <ActionPromptDialog
+      disabled
+      description="正在处理，请稍候。"
+      onClose={() => {}}
+      onPrimary={() => {}}
+      onSecondary={() => {}}
+      open
+      primaryLabel="继续创建"
+      secondaryLabel="稍后再说"
+      title="稍后再继续？"
+    />
+  ),
+};

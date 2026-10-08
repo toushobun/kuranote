@@ -23,6 +23,7 @@ import { designTokens } from "theme/theme";
 import { typographyStyles } from "theme/typographyTokens";
 import type { DashboardViewData } from "types/dashboard";
 import type {
+  LedgerSetupAbandonAction,
   LedgerSetupInProgressSummary,
   LedgerSetupWizardLauncherActions,
 } from "types/ledgers";
@@ -70,6 +71,8 @@ export function DashboardTemplate({
   return (
     <DashboardContentFrame>
       <DashboardHeroPanel
+        abandonAction={setupWizardActions.wizard.abandonSetup}
+        onAbandoned={setupWizard.closeWizard}
         balance={monthSummary.balance}
         continueSetup={continueSetup}
         expense={monthSummary.expense}
@@ -129,6 +132,8 @@ function DashboardContentFrame({ children }: { children: ReactNode }) {
 }
 
 function DashboardHeroPanel({
+  abandonAction,
+  onAbandoned,
   balance,
   continueSetup,
   expense,
@@ -136,6 +141,8 @@ function DashboardHeroPanel({
   income,
   onOpenSetupWizard,
 }: {
+  abandonAction: LedgerSetupAbandonAction;
+  onAbandoned: () => void;
   balance: string;
   continueSetup: LedgerSetupInProgressSummary | null;
   expense: string;
@@ -152,6 +159,8 @@ function DashboardHeroPanel({
 
       {continueSetup ? (
         <LedgerSetupContinueCard
+          abandonAction={abandonAction}
+          onAbandoned={onAbandoned}
           onContinue={onOpenSetupWizard}
           setup={continueSetup}
         />

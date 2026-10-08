@@ -287,6 +287,7 @@ export function DeleteConfirmationDialog({
 
 export type ActionPromptDialogProps = {
   description?: ReactNode;
+  disabled?: boolean;
   /** 标题上方的图标，显示在主题色圆形底座中。 */
   icon?: ReactNode;
   /** 点击背景或按 Esc 时调用；应等同于不改变现状的选项。 */
@@ -305,6 +306,7 @@ export type ActionPromptDialogProps = {
  */
 export function ActionPromptDialog({
   description,
+  disabled = false,
   icon,
   onClose,
   onPrimary,
@@ -323,7 +325,7 @@ export function ActionPromptDialog({
       aria-labelledby={titleId}
       fullWidth
       maxWidth="xs"
-      onClose={onClose}
+      onClose={disabled ? undefined : onClose}
       open={open}
       slotProps={{ paper: { sx: dialogPaperSx } }}
     >
@@ -348,10 +350,11 @@ export function ActionPromptDialog({
         ) : null}
       </DialogContent>
       <DialogActions sx={promptActionsSx}>
-        <PrimaryActionButton fullWidth onClick={onPrimary}>
+        <PrimaryActionButton disabled={disabled} fullWidth onClick={onPrimary}>
           {primaryLabel}
         </PrimaryActionButton>
         <Button
+          disabled={disabled}
           fullWidth
           onClick={onSecondary}
           sx={promptSecondaryButtonSx}

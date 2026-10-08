@@ -40,6 +40,8 @@ import {
 } from "molecules/ui/OperationFeedbackDialogs";
 import { InlineHint } from "molecules/ui/InlineHint/InlineHint";
 import { getLedgerSetupProgressSummary } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupProgressSummary";
+import { LedgerSetupAbandonButton } from "organisms/ledgers/LedgerSetupAbandonButton/LedgerSetupAbandonButton";
+import type { LedgerSetupAbandonAction } from "types/ledgers";
 import { LedgerSetupWizardLauncher } from "organisms/ledgers/LedgerSetupWizardLauncher/LedgerSetupWizardLauncher";
 import { useLedgerSetupWizardLauncher } from "organisms/ledgers/LedgerSetupWizardLauncher/useLedgerSetupWizardLauncher";
 import {
@@ -189,6 +191,8 @@ export function LedgersTemplate({
             ))}
             {setupInProgress ? (
               <LedgerSetupInProgressItem
+                abandonAction={setupWizardActions.wizard.abandonSetup}
+                onAbandoned={setupWizard.closeWizard}
                 onContinue={() => setupWizard.openWizard("resume")}
                 setup={setupInProgress}
               />
@@ -328,15 +332,20 @@ function LedgerListItem({
 }
 
 /**
- * 创建中账本：不能切换使用，也不进入账本设置，只提供「继续创建」打开向导。
+ * 创建中账本：不能切换使用或进入设置，提供「继续创建」与「放弃创建」。
  */
 function LedgerSetupInProgressItem({
+  abandonAction,
+  onAbandoned,
   onContinue,
   setup,
 }: {
+  abandonAction: LedgerSetupAbandonAction;
+  onAbandoned: () => void;
   onContinue: () => void;
   setup: LedgerSetupInProgressSummary;
 }) {
+  const [busy, setBusy] = useState(false);
   const progress = getLedgerSetupProgressSummary(setup.step);
 
   return (
@@ -369,6 +378,7 @@ function LedgerSetupInProgressItem({
         </Stack>
 
         <Button
+          disabled={busy}
           aria-label={ledgerSetupEntryMessages.continueLedger(setup.name)}
           endIcon={<ChevronRightRoundedIcon />}
           onClick={onContinue}
@@ -377,6 +387,13 @@ function LedgerSetupInProgressItem({
         >
           {ledgerSetupEntryMessages.continue}
         </Button>
+        <LedgerSetupAbandonButton
+          onBusyChange={setBusy}
+          action={abandonAction}
+          ledgerId={setup.id}
+          ledgerName={setup.name}
+          onSuccess={onAbandoned}
+        />
       </Stack>
     </DataItemCard>
   );

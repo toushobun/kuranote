@@ -60,5 +60,5 @@ export async function loadLedgerSetupInProgressSummary(): Promise<LedgerSetupInP
       dependencies,
     ).ledger.setupService.getCurrentUserSetup();
 
-  return setup ? { name: setup.name, step: setup.step } : null;
+  return setup ? { id: setup.id, name: setup.name, step: setup.step } : null;
 }

@@ -325,3 +325,25 @@ export async function loadLedgerSetupWizardView(): Promise<LedgerSetupWizardView
     );
   }
 }
+
+/** 放弃创建仅由页面交互调用，不新增 HTTP 路由。 */
+export async function abandonLedgerSetup(
+  input: unknown,
+): Promise<import("types/actions").ActionState> {
+  try {
+    const ledgerId = parseLedgerId(input);
+    if (!ledgerId) throw createNotFoundError();
+    const dependencies = await createServerRequestDependencies();
+    await createRequestContainer(dependencies).ledger.setupService.abandon(
+      ledgerId,
+    );
+    revalidateLedgerMutation();
+    return {};
+  } catch (error) {
+    return createActionErrorState(
+      error,
+      ledgerSetupWriteErrorMessages.abandonFailed,
+      "[ledger] ledger setup abandon action failed unexpectedly",
+    );
+  }
+}

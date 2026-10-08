@@ -30,6 +30,7 @@ import {
 import {
   AppError,
   AuthenticationError,
+  AuthorizationError,
   ConflictError,
   NotFoundError,
   ValidationError,
@@ -47,6 +48,7 @@ export type SaveLedgerSetupDraftCommand = {
 };
 
 export type LedgerSetupService = {
+  abandon(ledgerId: string): Promise<void>;
   /**
    * 完成创建：按数据库中的草稿与代码模板生成 payload，在同一事务内写入默认数据，
    * 将账本标记为已完成并切换为当前账本。
@@ -81,11 +83,16 @@ function toAppError(code: LedgerSetupRpcErrorCode): AppError {
 
   const message = ledgerSetupErrorMessages[code];
 
+  if (code === ledgerSetupErrorCodes.ownerRequired)
+    return new AuthorizationError(code, message);
+
   if (code === ledgerSetupErrorCodes.notFound) {
     return new NotFoundError(code, message);
   }
 
   if (
+    code === ledgerSetupErrorCodes.hasMembers ||
+    code === ledgerSetupErrorCodes.hasTransactions ||
     code === ledgerSetupErrorCodes.currencyMismatch ||
     code === ledgerSetupErrorCodes.inProgressExists ||
     code === ledgerSetupErrorCodes.notInProgress ||
@@ -128,6 +135,24 @@ export function createLedgerSetupService({
   }
 
   return {
+    async abandon(ledgerId) {
+      if (!currentUserId)
+        throw new AuthenticationError(
+          ledgerCreateErrorCodes.authRequired,
+          ledgerCreateErrorMessages[ledgerCreateErrorCodes.authRequired],
+        );
+      const target =
+        await ledgerSetupRepository.findAbandonmentTarget(ledgerId);
+      if (!target) throw toAppError(ledgerSetupErrorCodes.notFound);
+      if (target.ownerUserId !== currentUserId)
+        throw new AuthorizationError(
+          ledgerSetupErrorCodes.ownerRequired,
+          ledgerSetupErrorMessages[ledgerSetupErrorCodes.ownerRequired],
+        );
+      if (target.setupStatus !== "in_progress" || target.isArchived)
+        throw toAppError(ledgerSetupErrorCodes.notInProgress);
+      await ledgerSetupRepository.abandon(ledgerId);
+    },
     async complete(ledgerId) {
       const setup = await findSetup();
 

@@ -275,7 +275,7 @@ describe("ConfirmationDialog", () => {
 });
 
 describe("ActionPromptDialog", () => {
-  function renderPrompt() {
+  function renderPrompt(disabled = false) {
     const handlers = {
       onClose: vi.fn(),
       onPrimary: vi.fn(),
@@ -286,6 +286,7 @@ describe("ActionPromptDialog", () => {
       <ThemeProvider theme={theme}>
         <ActionPromptDialog
           {...handlers}
+          disabled={disabled}
           description="进度已保存。"
           icon={<span data-testid="prompt-icon" />}
           open
@@ -326,6 +327,18 @@ describe("ActionPromptDialog", () => {
     expect(handlers.onPrimary).toHaveBeenCalledTimes(1);
     expect(handlers.onSecondary).toHaveBeenCalledTimes(1);
     expect(handlers.onClose).toHaveBeenCalledTimes(1);
+  });
+  it("处理中禁用两个操作并阻止 Esc 关闭", () => {
+    const handlers = renderPrompt(true);
+    for (const name of ["继续创建", "稍后再说"]) {
+      const button = screen.getByRole("button", { name });
+      expect(button).toBeDisabled();
+      fireEvent.click(button);
+    }
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    expect(handlers.onPrimary).not.toHaveBeenCalled();
+    expect(handlers.onSecondary).not.toHaveBeenCalled();
+    expect(handlers.onClose).not.toHaveBeenCalled();
   });
 });
 

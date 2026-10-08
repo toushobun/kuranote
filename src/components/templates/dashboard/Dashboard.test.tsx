@@ -148,7 +148,11 @@ describe("DashboardTemplate", () => {
     const { container, setupWizardActions } = renderDashboard(
       {
         data: createNoLedgerDashboardViewData(),
-        setupInProgress: { name: "我们家", step: 2 },
+        setupInProgress: {
+          id: "00000000-0000-4000-8000-000000000001",
+          name: "我们家",
+          step: 2,
+        },
       },
       createLedgerSetupProgressFixture({ name: "我们家", step: 2 }),
     );
@@ -189,7 +193,11 @@ describe("DashboardTemplate", () => {
     renderDashboard(
       {
         data: createNoLedgerDashboardViewData(),
-        setupInProgress: { name: "我们家", step: 2 },
+        setupInProgress: {
+          id: "00000000-0000-4000-8000-000000000001",
+          name: "我们家",
+          step: 2,
+        },
       },
       createLedgerSetupProgressFixture({ name: "我们家", step: 2 }),
     );
@@ -201,7 +209,13 @@ describe("DashboardTemplate", () => {
   });
 
   it("有已完成账本时不显示继续创建卡片", () => {
-    renderDashboard({ setupInProgress: { name: "我们家", step: 2 } });
+    renderDashboard({
+      setupInProgress: {
+        id: "00000000-0000-4000-8000-000000000001",
+        name: "我们家",
+        step: 2,
+      },
+    });
 
     expect(screen.getByText("早呀，今天也好好记录")).toBeInTheDocument();
     expect(

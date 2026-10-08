@@ -14,6 +14,9 @@ import {
   ledgerInviteErrorMessages,
   ledgerPlaceholderMemberErrorCodes,
   ledgerPlaceholderMemberErrorMessages,
+  ledgerSetupErrorCodes,
+  ledgerSetupErrorMessages,
+  ledgerSetupWriteErrorMessages,
   ledgerSettingsErrorCodes,
   ledgerSettingsErrorMessages,
 } from "internal/ledger";
@@ -44,6 +47,34 @@ function appThatThrows(error: unknown) {
 
 describe("errorHandlingMiddleware", () => {
   it.each([
+    [
+      new AuthorizationError(
+        ledgerSetupErrorCodes.ownerRequired,
+        ledgerSetupErrorMessages[ledgerSetupErrorCodes.ownerRequired],
+      ),
+      403,
+    ],
+    [
+      new ConflictError(
+        ledgerSetupErrorCodes.hasMembers,
+        ledgerSetupErrorMessages[ledgerSetupErrorCodes.hasMembers],
+      ),
+      409,
+    ],
+    [
+      new ConflictError(
+        ledgerSetupErrorCodes.hasTransactions,
+        ledgerSetupErrorMessages[ledgerSetupErrorCodes.hasTransactions],
+      ),
+      409,
+    ],
+    [
+      new RepositoryError(
+        "ledger_setup_abandon_failed",
+        ledgerSetupWriteErrorMessages.abandonFailed,
+      ),
+      500,
+    ],
     [
       new ConflictError(
         accountErrorCodes.nameDuplicate,

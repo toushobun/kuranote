@@ -68,6 +68,7 @@ export const SetupInProgress: Story = {
   name: "有创建中账本",
   args: {
     setupInProgress: {
+      id: "00000000-0000-4000-8000-000000000001",
       name: setupProgress.setup.name,
       step: setupProgress.setup.step,
     },

@@ -34,6 +34,7 @@ describe("ledgerSetupLoadErrorMessages", () => {
 describe("ledgerSetupWriteErrorMessages", () => {
   it("返回创建中账本写入失败提示", () => {
     expect(ledgerSetupWriteErrorMessages).toEqual({
+      abandonFailed: "放弃创建失败，请稍后重试。",
       basicInfoUpdateFailed: "账本基本信息保存失败，请稍后重试。",
       completeFailed: "账本创建完成失败，请稍后重试。",
       createFailed: "账本创建失败，请稍后重试。",

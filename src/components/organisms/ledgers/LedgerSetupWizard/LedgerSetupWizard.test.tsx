@@ -1,3 +1,7 @@
+import {
+  openLedgerSetupAbandonConfirm,
+  confirmLedgerSetupAbandon,
+} from "test/ledgerSetupAbandon";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -165,7 +169,7 @@ describe("LedgerSetupWizard", () => {
 
       const prompt = screen.getByRole("dialog", { name: "稍后再继续？" });
       expect(prompt).toHaveAccessibleDescription(
-        "目前的进度已保存。账本会显示为「创建中」，你可以随时回来继续完成。",
+        "目前的进度已保存。账本会显示为「创建中」，你可以随时回来继续完成。 放弃创建",
       );
       expect(onClose).not.toHaveBeenCalled();
     });
@@ -237,5 +241,25 @@ describe("LedgerSetupWizard", () => {
         screen.queryByRole("dialog", { name: "稍后再继续？" }),
       ).not.toBeInTheDocument();
     });
+  });
+});
+
+describe("LedgerSetupWizard 放弃创建", () => {
+  it("关闭确认中放弃并二次确认，成功后关闭向导", async () => {
+    const { abandonSetup, onClose } = renderLedgerSetupWizard({
+      progress: createLedgerSetupProgressFixture(),
+    });
+    clickCloseWizard();
+    const confirm = await openLedgerSetupAbandonConfirm("家庭账本");
+    expect(onClose).not.toHaveBeenCalled();
+    confirmLedgerSetupAbandon(confirm);
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+    expect(abandonSetup).toHaveBeenCalledOnce();
+  });
+  it("完成写入后的邀请步骤不出现放弃入口", async () => {
+    await renderLedgerSetupWizardAtInviteStep();
+    expect(
+      screen.queryByRole("button", { name: "放弃创建" }),
+    ).not.toBeInTheDocument();
   });
 });

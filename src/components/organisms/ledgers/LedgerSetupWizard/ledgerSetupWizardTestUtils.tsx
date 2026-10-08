@@ -16,6 +16,7 @@ import {
 import type {
   LedgerInviteStateAction,
   LedgerPlaceholderMemberStateAction,
+  LedgerSetupAbandonAction,
   LedgerSetupBasicInfoStateAction,
   LedgerSetupCompleteAction,
   LedgerSetupDraftSaveAction,
@@ -63,6 +64,7 @@ export function createLedgerSetupWizardActionMocks({
   const defaults = createDefaultActionMocks(progress);
   // 显式传入 undefined 时沿用默认 mock。
   return {
+    abandonSetup: overrides.abandonSetup ?? defaults.abandonSetup,
     completeSetup: overrides.completeSetup ?? defaults.completeSetup,
     createInvite: overrides.createInvite ?? defaults.createInvite,
     loadInviteMembers:
@@ -76,6 +78,7 @@ export function createLedgerSetupWizardActionMocks({
 
 function createDefaultActionMocks(progress: LedgerSetupProgress | null) {
   return {
+    abandonSetup: vi.fn<LedgerSetupAbandonAction>(async () => ({})),
     completeSetup: vi.fn<LedgerSetupCompleteAction>(async () => ({
       completed: true,
     })),
