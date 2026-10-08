@@ -447,4 +447,67 @@ describe("AccountsTemplate", () => {
       expect(screen.getByRole("status")).toHaveTextContent("保存成功");
     });
   });
+
+  describe("通过参数打开新增弹框", () => {
+    const returnTo = "/transactions/new?type=expense";
+
+    function renderWithCreateParam(
+      props: Partial<React.ComponentProps<typeof AccountsTemplate>> = {},
+    ) {
+      window.history.replaceState(
+        null,
+        "",
+        `/accounts?create=1&returnTo=${encodeURIComponent(returnTo)}`,
+      );
+      return renderWithUserTheme(
+        <AccountsTemplate
+          {...baseProps}
+          openCreateDialog
+          returnTo={returnTo}
+          {...props}
+        />,
+      );
+    }
+
+    function getReturnToInput() {
+      return document.querySelector<HTMLInputElement>('input[name="returnTo"]');
+    }
+
+    it("带参数进入时打开新增弹框并清除参数", () => {
+      renderWithCreateParam();
+
+      expect(
+        screen.getByRole("heading", { name: "新增账户" }),
+      ).toBeInTheDocument();
+      expect(routerReplaceMock).toHaveBeenCalledWith(
+        `/accounts?returnTo=${encodeURIComponent(returnTo)}`,
+        { scroll: false },
+      );
+    });
+
+    it("新增表单提交合法的 returnTo", () => {
+      renderWithCreateParam();
+
+      expect(getReturnToInput()).toHaveValue(returnTo);
+    });
+
+    it("没有 returnTo 时不提交返回路径", () => {
+      renderWithCreateParam({ returnTo: null });
+
+      expect(getReturnToInput()).toBeNull();
+    });
+
+    it("没有管理权限时不打开新增弹框", () => {
+      renderWithCreateParam({ canManageAccounts: false });
+
+      expect(screen.queryByRole("heading", { name: "新增账户" })).toBeNull();
+    });
+
+    it("不带参数时不打开新增弹框也不清除参数", () => {
+      renderWithUserTheme(<AccountsTemplate {...baseProps} />);
+
+      expect(screen.queryByRole("heading", { name: "新增账户" })).toBeNull();
+      expect(routerReplaceMock).not.toHaveBeenCalled();
+    });
+  });
 });

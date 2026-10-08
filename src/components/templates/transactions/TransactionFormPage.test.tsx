@@ -30,6 +30,7 @@ vi.mock("organisms/transactions/TransactionForm/TransactionForm", () => ({
     initialValues,
     initialType,
     onSubmitDisabledChange,
+    setupHrefs,
     transactionItemSpecialStatusEnabled,
   }: {
     action: (formData: FormData) => void | Promise<void>;
@@ -40,6 +41,7 @@ vi.mock("organisms/transactions/TransactionForm/TransactionForm", () => ({
     };
     initialType?: "expense" | "income";
     onSubmitDisabledChange?: (disabled: boolean) => void;
+    setupHrefs?: { account: string; merchant: string };
     transactionItemSpecialStatusEnabled?: boolean;
   }): ReactNode => {
     const [isItemPickerOpen, setIsItemPickerOpen] = useState(false);
@@ -59,7 +61,10 @@ vi.mock("organisms/transactions/TransactionForm/TransactionForm", () => ({
     if (initialValues) {
       return (
         <form action={action} id={formId}>
-          <div data-testid={`transaction-form-${type}`}>
+          <div
+            data-add-account-href={setupHrefs?.account}
+            data-testid={`transaction-form-${type}`}
+          >
             <input aria-label={`${label}编辑临时输入`} defaultValue="" />
             <input aria-label={`${label}转换临时输入`} defaultValue="" />
             <input name="type" type="hidden" value={type} />
@@ -69,7 +74,11 @@ vi.mock("organisms/transactions/TransactionForm/TransactionForm", () => ({
       );
     }
     return (
-      <div data-testid={`transaction-form-${type}`}>
+      <div
+        data-add-account-href={setupHrefs?.account}
+        data-add-merchant-href={setupHrefs?.merchant}
+        data-testid={`transaction-form-${type}`}
+      >
         <input aria-label={`${label}临时输入`} defaultValue="" />
         <input name="type" type="hidden" value={type} />
         {itemPicker}
@@ -82,17 +91,23 @@ vi.mock(
   "organisms/transactions/TransferTransactionForm/TransferTransactionForm",
   () => ({
     TransferTransactionForm: ({
+      addAccountHref,
       errorMessage,
       formId,
       initialValues,
     }: {
+      addAccountHref?: string;
       errorMessage: string | null;
       formId?: string;
       initialValues?: { transferAmount: string };
     }): ReactNode => {
       if (formId?.startsWith("edit-")) {
         return (
-          <form data-testid="transfer-transaction-form" id={formId}>
+          <form
+            data-add-account-href={addAccountHref}
+            data-testid="transfer-transaction-form"
+            id={formId}
+          >
             <input aria-label="转账编辑临时输入" defaultValue="" />
             <input aria-label="转账转换临时输入" defaultValue="" />
             <input
@@ -104,7 +119,10 @@ vi.mock(
         );
       }
       return (
-        <div data-testid="transfer-transaction-form">
+        <div
+          data-add-account-href={addAccountHref}
+          data-testid="transfer-transaction-form"
+        >
           <input aria-label="转账临时输入" defaultValue="" />
           {errorMessage ? <div role="alert">{errorMessage}</div> : null}
         </div>
@@ -336,6 +354,32 @@ describe("\u65B0\u589E\u8BB0\u8D26\u9875\u9762", () => {
         within(activePanel).getByRole("region", { name: "特殊状态" }),
       ).toBeInTheDocument();
     });
+    it("各页签的添加账户 / 商家入口带着对应页签的 returnTo", () => {
+      const { container } = render(<NewTransactionTemplate {...baseProps} />);
+      const expenseForm = within(container).getByTestId(
+        "transaction-form-expense",
+      );
+      expect(expenseForm).toHaveAttribute(
+        "data-add-account-href",
+        "/accounts?create=1&returnTo=%2Ftransactions%2Fnew%3Ftype%3Dexpense",
+      );
+      expect(expenseForm).toHaveAttribute(
+        "data-add-merchant-href",
+        "/merchants/new?returnTo=%2Ftransactions%2Fnew%3Ftype%3Dexpense",
+      );
+      expect(
+        within(container).getByTestId("transaction-form-income"),
+      ).toHaveAttribute(
+        "data-add-merchant-href",
+        "/merchants/new?returnTo=%2Ftransactions%2Fnew%3Ftype%3Dincome",
+      );
+      expect(
+        within(container).getByTestId("transfer-transaction-form"),
+      ).toHaveAttribute(
+        "data-add-account-href",
+        "/accounts?create=1&returnTo=%2Ftransactions%2Fnew%3Ftype%3Dtransfer",
+      );
+    });
     it("initialType=income 时收支 tab 对应收入表单", () => {
       const { container } = render(
         <NewTransactionTemplate {...baseProps} initialType="income" />,
@@ -443,6 +487,17 @@ describe("EditTransactionTemplate", () => {
       transactionItemSpecialStatusEnabled: false,
     };
   }
+  it("编辑页不传入添加账户 / 商家入口", () => {
+    const { container } = renderWithTheme(
+      <EditTransactionTemplate {...createProps()} />,
+    );
+    for (const form of [
+      within(container).getByTestId("transaction-form-expense"),
+      within(container).getByTestId("transfer-transaction-form"),
+    ]) {
+      expect(form).not.toHaveAttribute("data-add-account-href");
+    }
+  });
   it("普通编辑页默认显示编辑记账标题", () => {
     const { container } = renderWithTheme(
       <EditTransactionTemplate {...createProps()} />,

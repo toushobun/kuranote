@@ -30,3 +30,8 @@ export function isSafeNextPath(value: string) {
     return false;
   }
 }
+
+// 取出合法的站内跳转路径；不是字符串或校验失败时返回 null，由调用方决定默认跳转。
+export function getSafeNextPath(value: unknown): string | null {
+  return typeof value === "string" && isSafeNextPath(value) ? value : null;
+}

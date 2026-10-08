@@ -438,3 +438,55 @@ describe("TransferTransactionForm", () => {
     expect(getSaveButton(container)).toHaveProperty("disabled", false);
   });
 });
+
+describe("TransferTransactionForm 账户不足提示", () => {
+  const addAccountHref =
+    "/accounts?create=1&returnTo=%2Ftransactions%2Fnew%3Ftype%3Dtransfer";
+
+  function renderSetupForm(
+    accountOptions: React.ComponentProps<
+      typeof TransferTransactionForm
+    >["accountOptions"],
+  ) {
+    const view = renderForm({
+      accountOptions,
+      addAccountHref,
+      hideHeader: true,
+    });
+    return {
+      ...view,
+      links: within(view.container).queryAllByRole("link"),
+      region: within(view.container).queryByRole("region"),
+    };
+  }
+
+  it("没有账户时提示还差两个账户", () => {
+    const { container, links, region } = renderSetupForm([]);
+
+    expect(region).toHaveAccessibleName("还差两个账户");
+    expect(region).toHaveTextContent("转账需要至少两个账户");
+    expect(links.map((link) => link.textContent)).toEqual(["添加账户"]);
+    expect(links[0]).toHaveAttribute("href", addAccountHref);
+    expect(within(container).queryByText("请先新增至少两个账户。")).toBeNull();
+    expect(
+      within(container).getByRole("button", { name: "保存转账" }),
+    ).toBeDisabled();
+  });
+
+  it("只有一个账户时提示还差一个账户", () => {
+    const { container, region } = renderSetupForm([jpyAccount1]);
+
+    expect(region).toHaveAccessibleName("还差一个账户");
+    expect(region).toHaveTextContent("转账需要至少两个账户");
+    expect(
+      within(container).getByRole("button", { name: "保存转账" }),
+    ).toBeDisabled();
+  });
+
+  it("有两个以上账户时不显示提示", () => {
+    const { links, region } = renderSetupForm([jpyAccount1, jpyAccount2]);
+
+    expect(region).toBeNull();
+    expect(links).toEqual([]);
+  });
+});

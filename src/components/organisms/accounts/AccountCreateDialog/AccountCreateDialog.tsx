@@ -17,6 +17,7 @@ type AccountCreateDialogProps = {
   onClose: () => void;
   open: boolean;
   placeholderHolderOptions?: AccountPlaceholderHolderOption[];
+  returnTo?: string | null;
 };
 
 export function AccountCreateDialog({
@@ -26,6 +27,7 @@ export function AccountCreateDialog({
   onClose,
   open,
   placeholderHolderOptions = [],
+  returnTo = null,
 }: AccountCreateDialogProps) {
   return (
     <AccountFormDialogShell
@@ -39,6 +41,7 @@ export function AccountCreateDialog({
         holderOptions={holderOptions}
         onCancel={onClose}
         placeholderHolderOptions={placeholderHolderOptions}
+        returnTo={returnTo}
       />
     </AccountFormDialogShell>
   );

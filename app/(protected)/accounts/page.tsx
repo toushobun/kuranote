@@ -1,10 +1,11 @@
-import { accountResultValues } from "config/paths";
+import { accountResultValues, accountsCreateDialogParam } from "config/paths";
 import {
   archiveAccount,
   createAccount,
   updateAccount,
 } from "internal/account/adapter/next/actions";
 import { loadAccountsView } from "internal/account/adapter/next/loadAccountsView";
+import { getSafeNextPath } from "lib/navigation/safeNextPath";
 import {
   AccountsTemplate,
   type AccountSaveResult,
@@ -22,13 +23,19 @@ function getAccountSaveResult(
 export default async function AccountsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ result?: string }>;
+  searchParams: Promise<{
+    [accountsCreateDialogParam]?: string;
+    result?: string;
+    returnTo?: string;
+  }>;
 }) {
   const params = await searchParams;
   const view = await loadAccountsView();
 
   return (
     <AccountsTemplate
+      openCreateDialog={params[accountsCreateDialogParam] === "1"}
+      returnTo={getSafeNextPath(params.returnTo)}
       saveResult={getAccountSaveResult(params.result)}
       {...view}
       archiveAccountAction={archiveAccount}

@@ -118,6 +118,31 @@ describe("Account Server Actions", () => {
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/accounts");
   });
 
+  it.each([
+    {
+      expected: "/transactions/new?type=transfer",
+      name: "合法 returnTo 时返回来源页面",
+      returnTo: "/transactions/new?type=transfer",
+    },
+    {
+      expected: "/accounts?result=created",
+      name: "站外 returnTo 时维持跳回账户页面",
+      returnTo: "https://evil.example.com",
+    },
+    {
+      expected: "/accounts?result=created",
+      name: "协议相对 returnTo 时维持跳回账户页面",
+      returnTo: "//evil.example.com",
+    },
+  ])("创建账户成功后$name", async ({ expected, returnTo }) => {
+    const formData = createFormData();
+    formData.set("returnTo", returnTo);
+
+    await expect(createAccount({}, formData)).rejects.toThrow(
+      `NEXT_REDIRECT:${expected}`,
+    );
+  });
+
   it("更新账户成功后跳回账户页面", async () => {
     const formData = createFormData();
     formData.set("accountId", accountId);

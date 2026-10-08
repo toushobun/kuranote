@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { MerchantStateAction } from "types/merchants";
 
@@ -6,15 +7,7 @@ import { MerchantCreateTemplate } from "./MerchantCreate";
 
 describe("MerchantCreateTemplate", () => {
   it("显示与列表页一致的新增页标题、面包屑与返回入口", () => {
-    render(
-      <MerchantCreateTemplate
-        createMerchantAction={vi.fn(async () => ({}))}
-        fetchIconAction={vi.fn(async () => ({}))}
-        ledgerId="ledger-1"
-        ledgerName="家庭账本"
-        tags={[]}
-      />,
-    );
+    renderMerchantCreate();
 
     const heading = screen.getByRole("heading", { name: "新增商家" });
     const breadcrumb = screen.getByText(/新增商家 · 家庭账本/);
@@ -29,28 +22,51 @@ describe("MerchantCreateTemplate", () => {
   });
 
   it("提交新增商家表单", async () => {
-    const createMerchantAction = vi.fn<MerchantStateAction>(async () => ({}));
-    render(
-      <MerchantCreateTemplate
-        createMerchantAction={createMerchantAction}
-        fetchIconAction={vi.fn(async () => ({}))}
-        ledgerId="ledger-1"
-        ledgerName="家庭账本"
-        tags={[]}
-      />,
-    );
+    const formData = await submitMerchantCreate();
 
-    fireEvent.change(screen.getByLabelText(/商家名称/), {
-      target: { value: "Amazon" },
-    });
-    fireEvent.change(screen.getByLabelText("商家网址"), {
-      target: { value: "https://www.amazon.co.jp" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "保存商家" }));
-
-    await waitFor(() => expect(createMerchantAction).toHaveBeenCalledOnce());
-    const formData = createMerchantAction.mock.calls[0]?.[1];
     expect(formData?.get("name")).toBe("Amazon");
     expect(formData?.get("websiteUrl")).toBe("https://www.amazon.co.jp");
+    expect(formData?.get("returnTo")).toBeNull();
+  });
+
+  it("从记一笔进入时提交 returnTo", async () => {
+    const returnTo = "/transactions/new?type=expense";
+
+    const formData = await submitMerchantCreate({ returnTo });
+
+    expect(formData?.get("returnTo")).toBe(returnTo);
   });
 });
+
+function renderMerchantCreate(
+  props: Partial<ComponentProps<typeof MerchantCreateTemplate>> = {},
+) {
+  return render(
+    <MerchantCreateTemplate
+      createMerchantAction={vi.fn(async () => ({}))}
+      fetchIconAction={vi.fn(async () => ({}))}
+      ledgerId="ledger-1"
+      ledgerName="家庭账本"
+      tags={[]}
+      {...props}
+    />,
+  );
+}
+
+async function submitMerchantCreate(
+  props: Partial<ComponentProps<typeof MerchantCreateTemplate>> = {},
+) {
+  const createMerchantAction = vi.fn<MerchantStateAction>(async () => ({}));
+  renderMerchantCreate({ createMerchantAction, ...props });
+
+  fireEvent.change(screen.getByLabelText(/商家名称/), {
+    target: { value: "Amazon" },
+  });
+  fireEvent.change(screen.getByLabelText("商家网址"), {
+    target: { value: "https://www.amazon.co.jp" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "保存商家" }));
+
+  await waitFor(() => expect(createMerchantAction).toHaveBeenCalledOnce());
+  return createMerchantAction.mock.calls[0]?.[1];
+}

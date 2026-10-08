@@ -566,6 +566,93 @@ describe("TransactionForm", () => {
       container.querySelector<HTMLInputElement>('input[name="type"]');
     expect(typeInput?.value).toBe("expense");
   });
+  describe("缺少账户或商家提示", () => {
+    const setupHrefs = {
+      account:
+        "/accounts?create=1&returnTo=%2Ftransactions%2Fnew%3Ftype%3Dexpense",
+      merchant:
+        "/merchants/new?returnTo=%2Ftransactions%2Fnew%3Ftype%3Dexpense",
+    };
+    function renderSetupForm({
+      accounts = accountOptions,
+      merchants = merchantOptions,
+    }: {
+      accounts?: typeof accountOptions;
+      merchants?: typeof merchantOptions;
+    }) {
+      const view = renderForm({
+        accountOptions: accounts,
+        merchantOptions: merchants,
+        setupHrefs,
+      });
+      return {
+        ...view,
+        getHintLinkTexts: (name: string) =>
+          within(within(view.container).getByRole("region", { name }))
+            .getAllByRole("link")
+            .map((link) => link.textContent),
+        saveButton: within(view.container).getByRole("button", {
+          name: "保存记账",
+        }),
+      };
+    }
+    function expectNoLegacyHelperText(container: HTMLElement) {
+      expect(within(container).queryByText("请先新增商家。")).toBeNull();
+      expect(within(container).queryByText("请先新增账户。")).toBeNull();
+    }
+    it("账户和商家都没有时显示两项提示且保存禁用", () => {
+      const { container, getHintLinkTexts, saveButton } = renderSetupForm({
+        accounts: [],
+        merchants: [],
+      });
+      expect(getHintLinkTexts("还差一点准备")).toEqual([
+        "添加账户",
+        "添加商家",
+      ]);
+      expect(
+        within(container).getByRole("link", { name: "添加账户" }),
+      ).toHaveAttribute("href", setupHrefs.account);
+      expect(
+        within(container).getByRole("link", { name: "添加商家" }),
+      ).toHaveAttribute("href", setupHrefs.merchant);
+      expectNoLegacyHelperText(container);
+      expect(getCombobox(container, "商家")).toHaveTextContent("暂无商家");
+      expect(getCombobox(container, "账户")).toHaveTextContent("暂无账户");
+      expect(saveButton).toBeDisabled();
+    });
+    it("只缺商家时只提示添加商家且保存禁用", () => {
+      const { container, getHintLinkTexts, saveButton } = renderSetupForm({
+        merchants: [],
+      });
+      expect(getHintLinkTexts("还差一个商家")).toEqual(["添加商家"]);
+      expectNoLegacyHelperText(container);
+      expect(saveButton).toBeDisabled();
+    });
+    it("只缺账户时只提示添加账户且保存禁用", () => {
+      const { container, getHintLinkTexts, saveButton } = renderSetupForm({
+        accounts: [],
+      });
+      expect(getHintLinkTexts("还差一个账户")).toEqual(["添加账户"]);
+      expectNoLegacyHelperText(container);
+      expect(saveButton).toBeDisabled();
+    });
+    it("账户和商家都有时不显示提示", () => {
+      const { container } = renderSetupForm({});
+      expect(within(container).queryByRole("region")).toBeNull();
+      expect(
+        within(container).queryByRole("link", { name: "添加账户" }),
+      ).toBeNull();
+    });
+    it("未传入添加入口时（编辑记账）不显示提示并保留原有字段说明", () => {
+      const { container } = renderForm({
+        accountOptions: [],
+        merchantOptions: [],
+      });
+      expect(within(container).queryByRole("region")).toBeNull();
+      expect(within(container).getByText("请先新增商家。")).toBeInTheDocument();
+      expect(within(container).getByText("请先新增账户。")).toBeInTheDocument();
+    });
+  });
 });
 describe("TransactionForm \u7F16\u8F91\u7C7B\u578B\u5207\u6362", () => {
   const accountOptions = [

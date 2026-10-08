@@ -6,7 +6,7 @@ import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 
 import { CreateButton } from "atoms/ui/CreateButton";
 import { accountPageMessages } from "config/accountMessages";
-import { routePaths } from "config/paths";
+import { accountsCreateDialogParam, routePaths } from "config/paths";
 import {
   FailureFeedbackDialog,
   SuccessFeedbackDialog,
@@ -52,7 +52,10 @@ type AccountsTemplateProps = {
   initialErrorMessage?: string | null;
   holderOptions: AccountHolderOption[];
   ledgerName: string;
+  // 通过 query 参数进入时直接打开新增账户弹框。
+  openCreateDialog?: boolean;
   placeholderHolderOptions?: AccountPlaceholderHolderOption[];
+  returnTo?: string | null;
   saveResult?: AccountSaveResult | null;
   updateAccountAction: AccountStateAction;
 };
@@ -71,12 +74,16 @@ export function AccountsTemplate({
   initialErrorKey = null,
   initialErrorMessage = null,
   holderOptions,
+  openCreateDialog = false,
   placeholderHolderOptions = [],
+  returnTo = null,
   saveResult = null,
   updateAccountAction,
 }: AccountsTemplateProps) {
   const [selectedType, setSelectedType] = useState<AccountTypeFilter>("all");
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(
+    openCreateDialog && canManageAccounts,
+  );
   const [errorFeedbacks, setErrorFeedbacks] = useState<ErrorFeedback[]>([]);
   const errorFeedbackIdRef = useRef(0);
   const enqueuedErrorKeysRef = useRef(new Set<string>());
@@ -98,6 +105,13 @@ export function AccountsTemplate({
     initialAccountActionState,
   );
   const clearResultParam = useClearQueryParam("result");
+  const clearCreateDialogParam = useClearQueryParam(accountsCreateDialogParam);
+
+  useEffect(() => {
+    // 弹框已按参数打开，清除参数避免刷新后重复打开。
+    if (openCreateDialog) clearCreateDialogParam();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 清除函数每次渲染都会重新生成，只跟随参数变化执行。
+  }, [openCreateDialog]);
 
   useEffect(() => {
     const actionStates = [
@@ -233,6 +247,7 @@ export function AccountsTemplate({
           onClose={() => setIsCreateDialogOpen(false)}
           placeholderHolderOptions={placeholderHolderOptions}
           open={isCreateDialogOpen}
+          returnTo={returnTo}
         />
       ) : null}
       {errorFeedbacks.map((feedback, index) => (

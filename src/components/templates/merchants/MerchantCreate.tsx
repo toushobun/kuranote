@@ -19,6 +19,7 @@ type MerchantCreateTemplateProps = {
   fetchIconAction: MerchantIconStateAction;
   ledgerId: string;
   ledgerName: string;
+  returnTo?: string | null;
   tags: MerchantTag[];
 };
 
@@ -27,6 +28,7 @@ export function MerchantCreateTemplate({
   fetchIconAction,
   ledgerId,
   ledgerName,
+  returnTo = null,
   tags,
 }: MerchantCreateTemplateProps) {
   const create = useMerchantsActionState(createMerchantAction, {
@@ -48,6 +50,7 @@ export function MerchantCreateTemplate({
           fetchIconAction={fetchIconAction}
           ledgerId={ledgerId}
           pending={create.pending}
+          returnTo={returnTo}
           tags={tags}
         />
       </SectionCard>
