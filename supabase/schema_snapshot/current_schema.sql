@@ -836,6 +836,29 @@ COMMENT ON FUNCTION "public"."assign_ledger_member_default_display_color"() IS '
 
 
 
+CREATE OR REPLACE FUNCTION "public"."backfill_merchant_favicon_urls"() RETURNS integer
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+    v_count integer;
+begin
+    update public.merchant m
+       set icon_url = public.merchant_favicon_url(m.website_url)
+     where m.website_url is not null
+       and m.icon_url is null
+       and m.icon_fetch_status = 'none'
+       and public.merchant_favicon_url(m.website_url) is not null;
+
+    get diagnostics v_count = row_count;
+    return v_count;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."backfill_merchant_favicon_urls"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."bootstrap_ledger_owner_member"("p_ledger_id" "uuid", "p_user_id" "uuid") RETURNS "void"
     LANGUAGE "plpgsql"
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -1125,6 +1148,7 @@ begin
             ledger_id,
             name,
             website_url,
+            icon_url,
             sort_order,
             created_by,
             updated_by
@@ -1132,6 +1156,7 @@ begin
             p_ledger_id,
             btrim(v_item.v ->> 'name'),
             v_item.v ->> 'websiteUrl',
+            v_item.v ->> 'iconUrl',
             v_item.ordinality - 1,
             v_user_id,
             v_user_id
@@ -4781,6 +4806,36 @@ $$;
 ALTER FUNCTION "public"."lock_ledger_placeholder_management"("p_ledger_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."merchant_favicon_url"("p_website_url" "text") RETURNS "text"
+    LANGUAGE "sql" IMMUTABLE PARALLEL SAFE
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $_$
+    select 'https://www.google.com/s2/favicons?domain_url='
+        || replace(
+               replace(
+                   regexp_replace(
+                       lower(origin_match[1]),
+                       '^(https://[^:]+):443$|^(http://[^:]+):80$',
+                       '\1\2'
+                   ),
+                   ':',
+                   '%3A'
+               ),
+               '/',
+               '%2F'
+           )
+        || '&sz=128'
+    from regexp_match(
+        btrim(p_website_url),
+        '^(https?://[A-Za-z0-9.-]+(?::[0-9]{1,5})?)(?:[/?#]|$)',
+        'i'
+    ) origin_match;
+$_$;
+
+
+ALTER FUNCTION "public"."merchant_favicon_url"("p_website_url" "text") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."normalize_ledger_placeholder_name"("p_display_name" "text") RETURNS "text"
     LANGUAGE "plpgsql" IMMUTABLE
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -8034,7 +8089,10 @@ begin
             using errcode = '22023', detail = 'ledger_setup_payload_invalid';
     end if;
 
-    -- 商家：名称长度、官网 URL（https、长度）、别名与标签引用；名称（忽略大小写）不重复。
+    -- 商家：名称长度、官网 URL（https、长度）、头像地址、别名与标签引用；名称（忽略大小写）不重复。
+    -- 头像地址（iconUrl）为 null，或必须等于按该商家 websiteUrl 生成的 Google favicon 地址：
+    -- 即以 https://www.google.com/s2/favicons? 开头、domain_url 为官网 origin，
+    -- 与 getReusableMerchantIconUrl 认可的地址格式一致；无官网时只能为 null。
     if exists (
            select 1
            from jsonb_array_elements(p_payload -> 'merchants') m(v)
@@ -8048,6 +8106,11 @@ begin
                       m.v ->> 'websiteUrl' !~ '^https://'
                       or length(m.v ->> 'websiteUrl') > 2048
                   )
+              )
+              or jsonb_typeof(m.v -> 'iconUrl') not in ('string', 'null')
+              or (
+                  jsonb_typeof(m.v -> 'iconUrl') = 'string'
+                  and (m.v ->> 'iconUrl') is distinct from public.merchant_favicon_url(m.v ->> 'websiteUrl')
               )
               or jsonb_typeof(m.v -> 'tagKeys') is distinct from 'array'
               or jsonb_typeof(m.v -> 'aliases') is distinct from 'array'
@@ -10692,6 +10755,10 @@ REVOKE ALL ON FUNCTION "public"."assign_ledger_member_default_display_color"() F
 
 
 
+REVOKE ALL ON FUNCTION "public"."backfill_merchant_favicon_urls"() FROM PUBLIC;
+
+
+
 REVOKE ALL ON FUNCTION "public"."bootstrap_ledger_owner_member"("p_ledger_id" "uuid", "p_user_id" "uuid") FROM PUBLIC;
 
 
@@ -10959,6 +11026,10 @@ REVOKE ALL ON FUNCTION "public"."lock_current_user_setup_ledger"("p_ledger_id" "
 
 
 REVOKE ALL ON FUNCTION "public"."lock_ledger_placeholder_management"("p_ledger_id" "uuid") FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."merchant_favicon_url"("p_website_url" "text") FROM PUBLIC;
 
 
 

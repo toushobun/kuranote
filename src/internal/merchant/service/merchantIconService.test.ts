@@ -14,6 +14,7 @@ import {
   RepositoryError,
   ValidationError,
 } from "internal/shared/errors/appError";
+import { buildMerchantFaviconUrl } from "utils/merchants";
 
 const publicLookup = vi.fn(async () => [
   { address: "142.250.196.36", family: 4 },
@@ -56,8 +57,22 @@ describe("createMerchantIconService", () => {
       url: expect.stringContaining("https://www.google.com/s2/favicons"),
     });
     const requestedUrl = String(vi.mocked(fetchImpl).mock.calls[0]?.[0]);
-    expect(requestedUrl).toContain("https://www.google.com/s2/favicons");
-    expect(requestedUrl).toContain("domain_url=https%3A%2F%2Fexample.com");
+    expect(requestedUrl).toBe(
+      buildMerchantFaviconUrl("https://example.com/path"),
+    );
+  });
+
+  it("共用规则生成的头像地址可通过可复用头像地址校验", () => {
+    for (const websiteUrl of [
+      "https://example.com",
+      "https://www.example.co.jp/shop/path?q=1",
+      "http://example.com:8080/",
+    ]) {
+      const iconUrl = buildMerchantFaviconUrl(websiteUrl);
+
+      expect(iconUrl).not.toBeNull();
+      expect(getReusableMerchantIconUrl(websiteUrl, iconUrl)).toBe(iconUrl);
+    }
   });
 
   it("允许跳转到 Google favicon 静态资源域并返回最终地址", async () => {

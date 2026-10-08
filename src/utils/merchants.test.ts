@@ -6,12 +6,36 @@ import {
 } from "@/test/mocks/merchants";
 
 import {
+  buildMerchantFaviconUrl,
   filterMerchantsByKeyword,
   getMerchantInitial,
   getWebsiteDisplayDomain,
   normalizeSearchText,
   resolveMerchantDisplayName,
 } from "utils/merchants";
+
+describe("buildMerchantFaviconUrl", () => {
+  it("有官网时生成 Google favicon 请求地址", () => {
+    expect(buildMerchantFaviconUrl("https://example.com")).toBe(
+      "https://www.google.com/s2/favicons?domain_url=https%3A%2F%2Fexample.com&sz=128",
+    );
+  });
+
+  it("带路径与查询参数的官网只取 origin", () => {
+    expect(
+      buildMerchantFaviconUrl("https://www.skylark.co.jp/gusto/?from=top#menu"),
+    ).toBe(
+      "https://www.google.com/s2/favicons?domain_url=https%3A%2F%2Fwww.skylark.co.jp&sz=128",
+    );
+  });
+
+  it("无官网或官网无效时返回 null", () => {
+    expect(buildMerchantFaviconUrl(null)).toBeNull();
+    expect(buildMerchantFaviconUrl("")).toBeNull();
+    expect(buildMerchantFaviconUrl("ftp://example.com")).toBeNull();
+    expect(buildMerchantFaviconUrl("not a url")).toBeNull();
+  });
+});
 
 describe("getMerchantInitial", () => {
   it("英文商家名返回大写首字母", () => {

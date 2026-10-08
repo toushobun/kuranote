@@ -10,9 +10,8 @@ import {
   RepositoryError,
   ValidationError,
 } from "internal/shared/errors/appError";
-import { parseWebsiteUrl } from "utils/merchants";
+import { buildMerchantFaviconUrl, parseWebsiteUrl } from "utils/merchants";
 
-const faviconProviderOrigin = "https://www.google.com";
 const faviconProviderHostname = "www.google.com";
 const faviconRedirectHostnames = new Set([
   "t0.gstatic.com",
@@ -175,7 +174,8 @@ export function createMerchantIconService({
 
   async function fetchIcon(websiteUrl: string): Promise<MerchantIcon> {
     const parsedWebsiteUrl = parseWebsiteUrl(websiteUrl);
-    if (!parsedWebsiteUrl) {
+    const faviconUrl = buildMerchantFaviconUrl(websiteUrl);
+    if (!parsedWebsiteUrl || !faviconUrl) {
       throw new ValidationError(
         merchantErrorCodes.websiteUrlInvalid,
         getMerchantErrorMessage(merchantErrorCodes.websiteUrlInvalid),
@@ -191,10 +191,7 @@ export function createMerchantIconService({
     }
     await requirePublicHostname(website.hostname);
 
-    const domainUrl = `${website.protocol}//${website.hostname}`;
-    let requestUrl = new URL("/s2/favicons", faviconProviderOrigin);
-    requestUrl.searchParams.set("domain_url", domainUrl);
-    requestUrl.searchParams.set("sz", "128");
+    let requestUrl = new URL(faviconUrl);
     const signal = AbortSignal.timeout(timeoutMs);
 
     for (

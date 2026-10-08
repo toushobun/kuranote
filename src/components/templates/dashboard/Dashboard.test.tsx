@@ -139,7 +139,7 @@ describe("DashboardTemplate", () => {
       screen.getByTestId("dashboard-no-ledger-recent-illustration-slot"),
     ).toBeInTheDocument();
 
-    // 「创建第一个账本」打开创建账本向导（不再链接到 /ledgers/new）。
+    // 「创建第一个账本」打开创建账本向导。
     fireEvent.click(createLedgerButton);
     expect(setupWizardActions.loadWizard).toHaveBeenCalledTimes(1);
   });

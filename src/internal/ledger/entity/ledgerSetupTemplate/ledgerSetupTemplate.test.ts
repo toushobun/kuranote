@@ -212,6 +212,19 @@ describe.each(registeredLedgerSetupTemplates.map((t) => [t.currency, t]))(
       }
     });
 
+    it("官网 origin 可由数据库侧 merchant_favicon_url 按相同结果提取", () => {
+      // 数据库侧只从 URL 开头提取小写 ASCII 主机名生成头像地址，
+      // 模板官网需满足该形式，否则完成写入时 iconUrl 校验会不一致。
+      for (const { websiteUrl } of template.merchants) {
+        if (websiteUrl !== null) {
+          expect(websiteUrl).toMatch(/^https:\/\/[a-z0-9.-]+(?:[/?#]|$)/);
+          expect(websiteUrl.startsWith(`${new URL(websiteUrl).origin}`)).toBe(
+            true,
+          );
+        }
+      }
+    });
+
     it("条数不超过完成写入的上限", () => {
       expect(template.merchantTags.length).toBeLessThanOrEqual(
         ledgerSetupLimits.maxMerchantTags,
