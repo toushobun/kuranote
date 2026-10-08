@@ -9,6 +9,8 @@ import {
 } from "@/test/mocks/dashboard";
 import { createLedgerSetupWizardLauncherActionMocks } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardTestUtils";
 import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
+import { createLedgerSetupProgressFixture } from "test/mocks/ledgerSetup";
+import type { LedgerSetupProgress } from "types/ledgers";
 import { designTokens, theme } from "theme/theme";
 
 import { DashboardTemplate } from "./Dashboard";
@@ -17,10 +19,14 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
 }));
 
+const inProgressNotice = "你有一个账本还没创建完，请先继续创建。";
+
 function renderDashboard(
   props: Partial<ComponentProps<typeof DashboardTemplate>> = {},
+  progress: LedgerSetupProgress | null = null,
 ) {
-  const setupWizardActions = createLedgerSetupWizardLauncherActionMocks();
+  const setupWizardActions =
+    createLedgerSetupWizardLauncherActionMocks(progress);
   const view = render(
     <ThemeProvider theme={theme}>
       <ConfirmDialogTestProviders>
@@ -139,10 +145,13 @@ describe("DashboardTemplate", () => {
   });
 
   it("无已完成账本且有创建中账本时显示继续创建卡片与新的欢迎语", async () => {
-    const { container, setupWizardActions } = renderDashboard({
-      data: createNoLedgerDashboardViewData(),
-      setupInProgress: { name: "我们家", step: 2 },
-    });
+    const { container, setupWizardActions } = renderDashboard(
+      {
+        data: createNoLedgerDashboardViewData(),
+        setupInProgress: { name: "我们家", step: 2 },
+      },
+      createLedgerSetupProgressFixture({ name: "我们家", step: 2 }),
+    );
 
     expect(screen.getByText("你的账本还差一点")).toBeInTheDocument();
     expect(
@@ -167,11 +176,28 @@ describe("DashboardTemplate", () => {
     // 其余区块保持无账本空状态。
     expect(screen.getByText("等待创建账本")).toBeInTheDocument();
 
+    // 「继续创建」：恢复该账本，不显示「还没创建完」提示。
     fireEvent.click(within(card).getByRole("button", { name: "继续创建" }));
     expect(setupWizardActions.loadWizard).toHaveBeenCalledTimes(1);
+    const dialog = await screen.findByRole("dialog", { name: "创建账本" });
     expect(
-      await screen.findByRole("dialog", { name: "创建账本" }),
-    ).toBeInTheDocument();
+      within(dialog).queryByText(inProgressNotice),
+    ).not.toBeInTheDocument();
+  });
+
+  it("有创建中账本时「创建第一个账本」打开该账本的向导并提示", async () => {
+    renderDashboard(
+      {
+        data: createNoLedgerDashboardViewData(),
+        setupInProgress: { name: "我们家", step: 2 },
+      },
+      createLedgerSetupProgressFixture({ name: "我们家", step: 2 }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "创建第一个账本" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "创建账本" });
+    expect(within(dialog).getByText(inProgressNotice)).toBeInTheDocument();
   });
 
   it("有已完成账本时不显示继续创建卡片", () => {

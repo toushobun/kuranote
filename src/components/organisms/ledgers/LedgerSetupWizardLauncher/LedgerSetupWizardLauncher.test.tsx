@@ -34,7 +34,8 @@ function LauncherHarness({
 
   return (
     <>
-      <button onClick={launcher.openWizard}>打开</button>
+      <button onClick={() => launcher.openWizard("create")}>打开</button>
+      <button onClick={() => launcher.openWizard("resume")}>继续</button>
       <LedgerSetupWizardLauncher launcher={launcher} />
     </>
   );
@@ -160,7 +161,7 @@ describe("LedgerSetupWizardLauncher", () => {
     expect(routerRefreshMock).not.toHaveBeenCalled();
   });
 
-  it("已有创建中账本时恢复到上次的步骤并显示提示", async () => {
+  it("以创建意图打开且已有创建中账本时，恢复到上次的步骤并显示提示", async () => {
     const progress = createLedgerSetupProgressFixture({ step: 3 });
     renderLauncher(createLedgerSetupWizardLauncherActionMocks(progress));
 
@@ -171,6 +172,37 @@ describe("LedgerSetupWizardLauncher", () => {
       within(dialog).getByText("你有一个账本还没创建完，请先继续创建。"),
     ).toBeInTheDocument();
     expect(getCurrentStepItem()).toHaveTextContent("商家");
+  });
+
+  it("以继续意图打开时恢复到上次的步骤，不显示提示", async () => {
+    const progress = createLedgerSetupProgressFixture({ step: 3 });
+    renderLauncher(createLedgerSetupWizardLauncherActionMocks(progress));
+
+    fireEvent.click(screen.getByRole("button", { name: "继续" }));
+
+    const dialog = await findWizardDialog();
+    expect(getCurrentStepItem()).toHaveTextContent("商家");
+    expect(
+      within(dialog).queryByText("你有一个账本还没创建完，请先继续创建。"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("读取失败后重试沿用原来的打开意图", async () => {
+    const progress = createLedgerSetupProgressFixture({ step: 3 });
+    const actions = createLedgerSetupWizardLauncherActionMocks(progress);
+    actions.loadWizard.mockResolvedValueOnce({ error: "失败" });
+    renderLauncher(actions);
+
+    fireEvent.click(screen.getByRole("button", { name: "继续" }));
+    const errorDialog = await screen.findByRole("dialog", {
+      name: "创建账本向导读取失败",
+    });
+    fireEvent.click(within(errorDialog).getByRole("button", { name: "重试" }));
+
+    const dialog = await findWizardDialog();
+    expect(
+      within(dialog).queryByText("你有一个账本还没创建完，请先继续创建。"),
+    ).not.toBeInTheDocument();
   });
 
   it("关闭向导后刷新页面", async () => {

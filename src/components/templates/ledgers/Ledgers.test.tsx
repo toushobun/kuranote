@@ -14,7 +14,10 @@ import {
   currentLedgerErrorMessages,
   type LedgerWithMemberCount,
 } from "internal/ledger";
-import { createLedgerSetupWizardLauncherActionMocks } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardTestUtils";
+import {
+  createLedgerSetupWizardLauncherActionMocks,
+  getCurrentStepItem,
+} from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardTestUtils";
 import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
 import { createLedgerSetupProgressFixture } from "test/mocks/ledgerSetup";
 import { designTokens, theme } from "theme/theme";
@@ -67,7 +70,7 @@ function renderTemplate(
   );
 }
 
-/** 有创建中账本时的渲染：「新增账本」「继续创建」都打开该账本的向导。 */
+/** 有创建中账本时的渲染：「新增账本」「继续创建」都打开该账本的向导（只有「新增账本」提示）。 */
 function renderWithSetupInProgress() {
   const progress = createLedgerSetupProgressFixture({
     name: "爸妈账本",
@@ -132,16 +135,17 @@ describe("LedgersTemplate", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("点击「继续创建」打开该账本的向导并提示", async () => {
+  it("点击「继续创建」打开该账本的向导，不显示提示", async () => {
     const setupWizardActions = renderWithSetupInProgress();
 
     fireEvent.click(screen.getByRole("button", { name: "继续创建爸妈账本" }));
 
     const dialog = await screen.findByRole("dialog", { name: "创建账本" });
     expect(setupWizardActions.loadWizard).toHaveBeenCalledTimes(1);
+    expect(getCurrentStepItem()).toHaveTextContent("账户");
     expect(
-      within(dialog).getByText("你有一个账本还没创建完，请先继续创建。"),
-    ).toBeInTheDocument();
+      within(dialog).queryByText("你有一个账本还没创建完，请先继续创建。"),
+    ).not.toBeInTheDocument();
   });
 
   it("有创建中账本时「新增账本」同样打开该账本的向导并提示", async () => {

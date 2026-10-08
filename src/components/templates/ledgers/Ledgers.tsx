@@ -110,7 +110,7 @@ export function LedgersTemplate({
   const enqueuedErrorKeysRef = useRef(new Set<string>());
   const errorFeedbackIdRef = useRef(0);
   const clearResultParam = useClearQueryParam("result");
-  // 「新增账本」「继续创建」共用：已有创建中账本时向导恢复到该账本并提示。
+  // 「新增账本」「继续创建」共用：已有创建中账本时向导恢复到该账本，从「新增账本」打开时提示。
   const setupWizard = useLedgerSetupWizardLauncher(setupWizardActions);
 
   useEffect(() => {
@@ -151,7 +151,7 @@ export function LedgersTemplate({
     <SettingsPageLayout
       action={
         <CreateButton
-          onClick={setupWizard.openWizard}
+          onClick={() => setupWizard.openWizard("create")}
           size="small"
           sx={settingsPageActionButtonSx}
         >
@@ -169,7 +169,7 @@ export function LedgersTemplate({
         {currentLedger ? (
           <CurrentLedgerCard ledger={currentLedger} />
         ) : (
-          <LedgersEmptyCard onCreate={setupWizard.openWizard} />
+          <LedgersEmptyCard onCreate={() => setupWizard.openWizard("create")} />
         )}
 
         <Stack spacing={1}>
@@ -189,7 +189,7 @@ export function LedgersTemplate({
             ))}
             {setupInProgress ? (
               <LedgerSetupInProgressItem
-                onContinue={setupWizard.openWizard}
+                onContinue={() => setupWizard.openWizard("resume")}
                 setup={setupInProgress}
               />
             ) : null}

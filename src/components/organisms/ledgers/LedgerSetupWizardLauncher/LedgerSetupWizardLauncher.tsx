@@ -33,14 +33,14 @@ type LedgerSetupWizardLauncherProps = {
 /**
  * 首页与账本管理页共用的「打开创建账本向导」弹框：读取中、读取失败与向导本身。
  * 入口按钮调用 useLedgerSetupWizardLauncher 的 openWizard。
- * 已有创建中账本时向导恢复到上次的步骤，并在顶部提示条说明。
+ * 已有创建中账本时向导恢复到上次的步骤；从「新增账本」等创建入口打开时在顶部提示条说明。
  */
 export function LedgerSetupWizardLauncher({
   launcher,
 }: LedgerSetupWizardLauncherProps) {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
-  const { cancel, closeWizard, openWizard, state, wizardActions } = launcher;
+  const { cancel, closeWizard, retry, state, wizardActions } = launcher;
 
   return (
     <>
@@ -49,7 +49,11 @@ export function LedgerSetupWizardLauncher({
           actions={wizardActions}
           defaultRootCategoryNames={state.view.defaultRootCategoryNames}
           defaults={state.view.defaults}
-          initialNotice={state.view.progress ? inProgressNotice : null}
+          initialNotice={
+            state.intent === "create" && state.view.progress
+              ? inProgressNotice
+              : null
+          }
           onClose={closeWizard}
           open
           progress={state.view.progress}
@@ -81,7 +85,7 @@ export function LedgerSetupWizardLauncher({
           {state.status === "error" ? (
             <ErrorState
               action={
-                <Button onClick={openWizard} variant="outlined">
+                <Button onClick={retry} variant="outlined">
                   {messages.retry}
                 </Button>
               }

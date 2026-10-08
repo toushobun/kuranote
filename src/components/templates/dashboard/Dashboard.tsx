@@ -75,14 +75,14 @@ export function DashboardTemplate({
         expense={monthSummary.expense}
         hasLedger={hasLedger}
         income={monthSummary.income}
-        onOpenSetupWizard={setupWizard.openWizard}
+        onOpenSetupWizard={() => setupWizard.openWizard("resume")}
       />
 
       <DashboardMonthSummaryCard
         accounts={accountSummaries}
         hasLedger={hasLedger}
         monthLabel={monthLabel}
-        onCreateLedger={setupWizard.openWizard}
+        onCreateLedger={() => setupWizard.openWizard("create")}
       />
 
       <DashboardQuickActions hasLedger={hasLedger} />
