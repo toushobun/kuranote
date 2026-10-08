@@ -280,6 +280,8 @@ describe("createLedgerSetupService.complete", () => {
               { alias: "网飞", locale: "zh" },
               { alias: "ネットフリックス", locale: "ja" },
             ],
+            iconUrl:
+              "https://www.google.com/s2/favicons?domain_url=https%3A%2F%2Fwww.netflix.com&sz=128",
             name: "Netflix",
             tagKeys: ["subscription"],
             websiteUrl: "https://www.netflix.com/jp/",

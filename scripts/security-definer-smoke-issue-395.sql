@@ -544,6 +544,7 @@ as $$
             {
                 "name": "Amazon",
                 "websiteUrl": "https://www.amazon.co.jp/",
+                "iconUrl": "https://www.google.com/s2/favicons?domain_url=https%3A%2F%2Fwww.amazon.co.jp&sz=128",
                 "tagKeys": ["ecommerce", "subscription"],
                 "aliases": [
                     {"alias": "亚马逊", "locale": "zh"},
@@ -553,6 +554,7 @@ as $$
             {
                 "name": "水道局",
                 "websiteUrl": null,
+                "iconUrl": null,
                 "tagKeys": [],
                 "aliases": [{"alias": "自来水", "locale": "zh"}]
             }
@@ -703,6 +705,24 @@ begin
         jsonb_set(pg_temp.completion_payload(), '{merchants,0,tagKeys}', '["ecommerce", "ecommerce"]'::jsonb),
         jsonb_set(pg_temp.completion_payload(), '{merchants,1,name}', '" amazon "'::jsonb),
         jsonb_set(pg_temp.completion_payload(), '{merchants,0,websiteUrl}', '"http://www.amazon.co.jp/"'::jsonb),
+        -- 头像地址：非 Google 地址、http、domain 与官网不一致、无官网却有头像、非字符串。
+        jsonb_set(
+            pg_temp.completion_payload(),
+            '{merchants,0,iconUrl}',
+            '"https://evil.example/s2/favicons?domain_url=https%3A%2F%2Fwww.amazon.co.jp&sz=128"'::jsonb
+        ),
+        jsonb_set(
+            pg_temp.completion_payload(),
+            '{merchants,0,iconUrl}',
+            '"http://www.google.com/s2/favicons?domain_url=https%3A%2F%2Fwww.amazon.co.jp&sz=128"'::jsonb
+        ),
+        jsonb_set(
+            pg_temp.completion_payload(),
+            '{merchants,0,iconUrl}',
+            '"https://www.google.com/s2/favicons?domain_url=https%3A%2F%2Fwww.rakuten.co.jp&sz=128"'::jsonb
+        ),
+        jsonb_set(pg_temp.completion_payload(), '{merchants,1,iconUrl}', '"https://www.google.com/s2/favicons?domain_url=https%3A%2F%2Fwww.amazon.co.jp&sz=128"'::jsonb),
+        jsonb_set(pg_temp.completion_payload(), '{merchants,0,iconUrl}', '1'::jsonb),
         jsonb_set(pg_temp.completion_payload(), '{merchants,0,aliases,1,alias}', '"亚马逊"'::jsonb),
         jsonb_set(pg_temp.completion_payload(), '{merchants,0,aliases,0,locale}', '"z"'::jsonb),
         jsonb_set(pg_temp.completion_payload(), '{merchantTags,1,key}', '"ecommerce"'::jsonb),
@@ -817,18 +837,26 @@ begin
         raise exception 'complete_ledger_setup merchant tags smoke test failed';
     end if;
 
+    -- 头像地址按 payload 写入；抓取状态列与手动新增一致，保持默认值。
     select id
       into v_amazon_id
       from public.merchant
      where ledger_id = v_setup_ledger_id
        and name = 'Amazon'
-       and website_url = 'https://www.amazon.co.jp/';
+       and website_url = 'https://www.amazon.co.jp/'
+       and icon_url = 'https://www.google.com/s2/favicons?domain_url=https%3A%2F%2Fwww.amazon.co.jp&sz=128'
+       and icon_fetch_status = 'none'
+       and icon_fetched_at is null;
 
     if v_amazon_id is null
        or (select count(*) from public.merchant where ledger_id = v_setup_ledger_id) <> 2
        or not exists (
            select 1 from public.merchant
-           where ledger_id = v_setup_ledger_id and name = '水道局' and website_url is null
+           where ledger_id = v_setup_ledger_id
+             and name = '水道局'
+             and website_url is null
+             and icon_url is null
+             and icon_fetch_status = 'none'
        )
        or (
            select count(*)
@@ -915,6 +943,119 @@ begin
        or exists (select 1 from public.merchant where ledger_id = v_skip_ledger_id)
        or exists (select 1 from public.merchant_tags where ledger_id = v_skip_ledger_id) then
         raise exception 'complete_ledger_setup skipped smoke test failed';
+    end if;
+end;
+$$;
+
+-- 商家头像（实施拆分第 10 项）：数据库侧地址规则与回填范围。
+do $$
+declare
+    v_owner_id uuid := '39500000-0000-4000-8000-000000000031';
+    v_ledger_id uuid;
+    v_expected_count integer;
+    v_backfilled_count integer;
+begin
+    -- 与 TypeScript 侧 buildMerchantFaviconUrl 的结果一致：只取 origin，主机名小写，省略默认端口。
+    if public.merchant_favicon_url('https://www.amazon.co.jp/')
+           is distinct from 'https://www.google.com/s2/favicons?domain_url=https%3A%2F%2Fwww.amazon.co.jp&sz=128'
+       or public.merchant_favicon_url(' https://www.skylark.co.jp/gusto/?from=top#menu ')
+           is distinct from 'https://www.google.com/s2/favicons?domain_url=https%3A%2F%2Fwww.skylark.co.jp&sz=128'
+       or public.merchant_favicon_url('HTTP://Example.COM:80/path')
+           is distinct from 'https://www.google.com/s2/favicons?domain_url=http%3A%2F%2Fexample.com&sz=128'
+       or public.merchant_favicon_url('https://example.com:8443')
+           is distinct from 'https://www.google.com/s2/favicons?domain_url=https%3A%2F%2Fexample.com%3A8443&sz=128'
+       or public.merchant_favicon_url(null) is not null
+       or public.merchant_favicon_url('ftp://example.com/') is not null
+       or public.merchant_favicon_url('https://user@example.com/') is not null
+       or public.merchant_favicon_url('https://例え.jp/') is not null then
+        raise exception 'merchant_favicon_url smoke test failed';
+    end if;
+
+    -- 地址生成与回填函数不对客户端开放。
+    if has_function_privilege('authenticated', 'public.merchant_favicon_url(text)', 'execute')
+       or has_function_privilege('anon', 'public.merchant_favicon_url(text)', 'execute')
+       or has_function_privilege('authenticated', 'public.backfill_merchant_favicon_urls()', 'execute')
+       or has_function_privilege('anon', 'public.backfill_merchant_favicon_urls()', 'execute') then
+        raise exception 'merchant favicon function privileges smoke test failed';
+    end if;
+
+    perform pg_temp.create_test_user(v_owner_id, 'merchant-icon-owner@example.invalid');
+    perform pg_temp.sign_in(v_owner_id);
+    v_ledger_id := public.create_ledger_setup('Icon Ledger', 'JPY', 'Icon Owner', 'sky');
+    perform public.complete_ledger_setup(
+        v_ledger_id,
+        '{"accounts": [], "merchantTags": [], "merchants": [], "specialStatusEnabled": false}'::jsonb
+    );
+
+    insert into public.merchant (
+        ledger_id, name, website_url, icon_url, icon_fetch_status, created_by, updated_by
+    ) values
+        (v_ledger_id, 'Backfill Target', 'https://www.lawson.co.jp/index.html', null, 'none', v_owner_id, v_owner_id),
+        (v_ledger_id, 'No Website', null, null, 'none', v_owner_id, v_owner_id),
+        (
+            v_ledger_id,
+            'Has Icon',
+            'https://www.sej.co.jp/',
+            'https://t1.gstatic.com/faviconV2?url=https://www.sej.co.jp&size=128',
+            'none',
+            v_owner_id,
+            v_owner_id
+        ),
+        (v_ledger_id, 'Fetch Failed', 'https://www.family.co.jp/', null, 'failed', v_owner_id, v_owner_id),
+        (v_ledger_id, 'Unsupported Website', 'https://例え.jp/', null, 'none', v_owner_id, v_owner_id);
+
+    -- 本事务内其他测试数据（如既有创建流程写入的默认商家）也可能符合条件，期望值按全表计算。
+    select count(*)
+      into v_expected_count
+      from public.merchant m
+     where m.website_url is not null
+       and m.icon_url is null
+       and m.icon_fetch_status = 'none'
+       and public.merchant_favicon_url(m.website_url) is not null;
+
+    -- 与 migration 相同，以无登录身份执行。
+    perform pg_catalog.set_config('request.jwt.claim.sub', '', true);
+    v_backfilled_count := public.backfill_merchant_favicon_urls();
+
+    if v_expected_count < 1
+       or v_backfilled_count is distinct from v_expected_count
+       or (select count(*) from public.merchant where ledger_id = v_ledger_id) <> 5
+       or not exists (
+           select 1 from public.merchant
+           where ledger_id = v_ledger_id
+             and name = 'Backfill Target'
+             and icon_url = 'https://www.google.com/s2/favicons?domain_url=https%3A%2F%2Fwww.lawson.co.jp&sz=128'
+             and icon_fetch_status = 'none'
+             and icon_fetched_at is null
+       )
+       or not exists (
+           select 1 from public.merchant
+           where ledger_id = v_ledger_id and name = 'No Website' and icon_url is null
+       )
+       or not exists (
+           select 1 from public.merchant
+           where ledger_id = v_ledger_id
+             and name = 'Has Icon'
+             and icon_url = 'https://t1.gstatic.com/faviconV2?url=https://www.sej.co.jp&size=128'
+       )
+       or not exists (
+           select 1 from public.merchant
+           where ledger_id = v_ledger_id
+             and name = 'Fetch Failed'
+             and icon_url is null
+             and icon_fetch_status = 'failed'
+       )
+       or not exists (
+           select 1 from public.merchant
+           where ledger_id = v_ledger_id and name = 'Unsupported Website' and icon_url is null
+       ) then
+        raise exception 'backfill_merchant_favicon_urls smoke test failed: expected %, got %',
+            v_expected_count, v_backfilled_count;
+    end if;
+
+    -- 再次执行不会再修改任何商家。
+    if public.backfill_merchant_favicon_urls() <> 0 then
+        raise exception 'backfill_merchant_favicon_urls must be idempotent';
     end if;
 end;
 $$;

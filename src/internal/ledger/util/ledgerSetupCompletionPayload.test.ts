@@ -6,6 +6,7 @@ import {
   createDefaultLedgerSetupDraft,
   resolveLedgerSetupDraft,
 } from "internal/ledger/util/ledgerSetupDraft";
+import { buildMerchantFaviconUrl } from "utils/merchants";
 
 const jpyTemplate = getLedgerSetupTemplate("JPY");
 const jpyDraft = createDefaultLedgerSetupDraft("JPY");
@@ -47,6 +48,8 @@ describe("buildLedgerSetupCompletionPayload", () => {
             { alias: "Prime Video", locale: "en" },
             { alias: "亚马逊Prime", locale: "zh" },
           ],
+          iconUrl:
+            "https://www.google.com/s2/favicons?domain_url=https%3A%2F%2Fwww.amazon.co.jp&sz=128",
           name: "Amazon",
           tagKeys: ["ecommerce", "subscription"],
           websiteUrl: "https://www.amazon.co.jp/",
@@ -57,6 +60,7 @@ describe("buildLedgerSetupCompletionPayload", () => {
             { alias: "水道代", locale: "ja" },
             { alias: "上下水道", locale: "ja" },
           ],
+          iconUrl: null,
           name: "水道局",
           tagKeys: ["utilities"],
           websiteUrl: null,
@@ -85,6 +89,25 @@ describe("buildLedgerSetupCompletionPayload", () => {
       "订阅服务",
     ]);
     expect(payload.specialStatusEnabled).toBe(false);
+  });
+
+  it("每个商家的头像地址按官网 origin 生成，无官网时为 null", () => {
+    const payload = buildLedgerSetupCompletionPayload(
+      {
+        ...jpyDraft,
+        merchants: {
+          selectedKeys: (jpyTemplate?.merchants ?? []).map(({ key }) => key),
+          skipped: false,
+        },
+      },
+      jpyTemplate,
+    );
+
+    expect(payload.merchants.length).toBeGreaterThan(0);
+    for (const { iconUrl, websiteUrl } of payload.merchants) {
+      expect(iconUrl).toBe(buildMerchantFaviconUrl(websiteUrl));
+      expect(iconUrl === null).toBe(websiteUrl === null);
+    }
   });
 
   it("跳过账户与商家时不写入任何账户、商家与标签", () => {
