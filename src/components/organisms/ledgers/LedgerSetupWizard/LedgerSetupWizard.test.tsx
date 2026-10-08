@@ -169,7 +169,7 @@ describe("LedgerSetupWizard", () => {
 
       const prompt = screen.getByRole("dialog", { name: "稍后再继续？" });
       expect(prompt).toHaveAccessibleDescription(
-        "目前的进度已保存。账本会显示为「创建中」，你可以随时回来继续完成。 放弃创建",
+        "目前的进度已保存。账本会显示为「创建中」，你可以随时回来继续完成。",
       );
       expect(onClose).not.toHaveBeenCalled();
     });

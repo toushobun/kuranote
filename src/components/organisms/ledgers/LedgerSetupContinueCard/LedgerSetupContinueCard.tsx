@@ -8,14 +8,16 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
 import { LedgerSetupAbandonButton } from "organisms/ledgers/LedgerSetupAbandonButton/LedgerSetupAbandonButton";
-import type { LedgerSetupAbandonAction } from "types/ledgers";
 import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { SoftCard } from "atoms/ui/SoftCard";
 import { ledgerSetupEntryMessages } from "config/ledgerSetupMessages";
 import { getLedgerSetupProgressSummary } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupProgressSummary";
 import { designTokens } from "theme/theme";
 import { typographyStyles } from "theme/typographyTokens";
-import type { LedgerSetupInProgressSummary } from "types/ledgers";
+import type {
+  LedgerSetupAbandonAction,
+  LedgerSetupInProgressSummary,
+} from "types/ledgers";
 
 const messages = ledgerSetupEntryMessages;
 

@@ -41,7 +41,6 @@ import {
 import { InlineHint } from "molecules/ui/InlineHint/InlineHint";
 import { getLedgerSetupProgressSummary } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupProgressSummary";
 import { LedgerSetupAbandonButton } from "organisms/ledgers/LedgerSetupAbandonButton/LedgerSetupAbandonButton";
-import type { LedgerSetupAbandonAction } from "types/ledgers";
 import { LedgerSetupWizardLauncher } from "organisms/ledgers/LedgerSetupWizardLauncher/LedgerSetupWizardLauncher";
 import { useLedgerSetupWizardLauncher } from "organisms/ledgers/LedgerSetupWizardLauncher/useLedgerSetupWizardLauncher";
 import {
@@ -57,6 +56,7 @@ import { designTokens } from "theme/theme";
 import { typographyStyles } from "theme/typographyTokens";
 import type { ServerAction } from "types/actions";
 import type {
+  LedgerSetupAbandonAction,
   LedgerSetupInProgressSummary,
   LedgerSetupWizardLauncherActions,
 } from "types/ledgers";

@@ -105,11 +105,11 @@ export type LedgerSetupWizardView = LedgerCreateDefaults & {
   progress: LedgerSetupProgress | null;
 };
 
-/** 向导各步骤调用的 Server Action。后续步骤在此追加。 */
 export type LedgerSetupAbandonAction = (input: {
   ledgerId: string;
 }) => Promise<ActionState>;
 
+/** 向导各步骤调用的 Server Action。后续步骤在此追加。 */
 export type LedgerSetupWizardActions = {
   abandonSetup: LedgerSetupAbandonAction;
   /** 第 5 步完成创建：写入默认数据并切换为当前账本。 */

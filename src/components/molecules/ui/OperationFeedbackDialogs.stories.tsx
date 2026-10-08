@@ -1,5 +1,7 @@
 import BookmarkRoundedIcon from "@mui/icons-material/BookmarkRounded";
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import { ledgerSetupAbandonMessages } from "config/ledgerSetupMessages";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { UserThemeProvider } from "theme/UserThemeProvider";
 
@@ -124,10 +126,17 @@ export const CustomConfirmation: Story = {
 };
 
 export const ActionPrompt: Story = {
-  name: "主按钮 + 文字按钮提示",
+  name: "带附加操作的提示",
   render: () => (
     <ActionPromptDialog
       description="目前的进度已保存。账本会显示为「创建中」，你可以随时回来继续完成。"
+      extraAction={
+        <Box sx={{ mt: 1 }}>
+          <Button color="error" onClick={() => undefined}>
+            {ledgerSetupAbandonMessages.abandon}
+          </Button>
+        </Box>
+      }
       icon={<BookmarkRoundedIcon />}
       onClose={() => undefined}
       onPrimary={() => undefined}

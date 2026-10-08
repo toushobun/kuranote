@@ -149,21 +149,19 @@ export function LedgerSetupWizard({
 
       <ActionPromptDialog
         disabled={wizard.busy}
-        description={
-          <>
-            {closeConfirmMessages.description}
-            {wizard.progress && (
-              <Box sx={{ mt: 1 }}>
-                <LedgerSetupAbandonButton
-                  onBusyChange={wizard.setBusy}
-                  action={actions.abandonSetup}
-                  ledgerId={wizard.progress.setup.id}
-                  ledgerName={wizard.progress.setup.name}
-                  onSuccess={wizard.closeLater}
-                />
-              </Box>
-            )}
-          </>
+        description={closeConfirmMessages.description}
+        extraAction={
+          wizard.progress && (
+            <Box sx={{ mt: 1 }}>
+              <LedgerSetupAbandonButton
+                onBusyChange={wizard.setBusy}
+                action={actions.abandonSetup}
+                ledgerId={wizard.progress.setup.id}
+                ledgerName={wizard.progress.setup.name}
+                onSuccess={wizard.closeLater}
+              />
+            </Box>
+          )
         }
         icon={<BookmarkRoundedIcon />}
         onClose={wizard.continueSetup}

@@ -275,7 +275,7 @@ describe("ConfirmationDialog", () => {
 });
 
 describe("ActionPromptDialog", () => {
-  function renderPrompt(disabled = false) {
+  function renderPrompt(disabled = false, extraAction?: ReactNode) {
     const handlers = {
       onClose: vi.fn(),
       onPrimary: vi.fn(),
@@ -287,6 +287,7 @@ describe("ActionPromptDialog", () => {
         <ActionPromptDialog
           {...handlers}
           disabled={disabled}
+          extraAction={extraAction}
           description="进度已保存。"
           icon={<span data-testid="prompt-icon" />}
           open
@@ -315,6 +316,16 @@ describe("ActionPromptDialog", () => {
     expect(screen.getByRole("button", { name: "稍后再说" })).toHaveClass(
       "MuiButton-text",
     );
+  });
+
+  it("附加操作可独立点击且不进入无障碍说明", () => {
+    const onExtra = vi.fn();
+    renderPrompt(false, <button onClick={onExtra}>附加操作</button>);
+    expect(screen.getByRole("dialog")).toHaveAccessibleDescription(
+      "进度已保存。",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "附加操作" }));
+    expect(onExtra).toHaveBeenCalledOnce();
   });
 
   it("主按钮、文字按钮与 Esc 分别触发各自回调", () => {
