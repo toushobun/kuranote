@@ -29,6 +29,34 @@ describe("MerchantCreateTemplate", () => {
     expect(formData?.get("returnTo")).toBeNull();
   });
 
+  it("没有 returnTo 时取消与返回链接回到商家管理", () => {
+    renderMerchantCreate();
+
+    expect(screen.getByRole("link", { name: "取消" })).toHaveAttribute(
+      "href",
+      "/merchants",
+    );
+    expect(screen.getByRole("link", { name: "返回商家管理" })).toHaveAttribute(
+      "href",
+      "/merchants",
+    );
+  });
+
+  it("带 returnTo 时取消与返回链接回到记一笔", () => {
+    const returnTo = "/transactions/new?type=expense";
+    renderMerchantCreate({ returnTo });
+
+    expect(screen.getByRole("link", { name: "取消" })).toHaveAttribute(
+      "href",
+      returnTo,
+    );
+    expect(screen.getByRole("link", { name: "返回" })).toHaveAttribute(
+      "href",
+      returnTo,
+    );
+    expect(screen.queryByRole("link", { name: "返回商家管理" })).toBeNull();
+  });
+
   it("从记一笔进入时提交 returnTo", async () => {
     const returnTo = "/transactions/new?type=expense";
 

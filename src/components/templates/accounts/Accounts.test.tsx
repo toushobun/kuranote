@@ -15,9 +15,10 @@ import { UserThemeProvider } from "theme/UserThemeProvider";
 import { AccountsTemplate } from "./Accounts";
 
 const routerReplaceMock = vi.hoisted(() => vi.fn());
+const routerPushMock = vi.hoisted(() => vi.fn());
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: routerReplaceMock }),
+  useRouter: () => ({ push: routerPushMock, replace: routerReplaceMock }),
 }));
 
 afterEach(() => {
@@ -473,16 +474,51 @@ describe("AccountsTemplate", () => {
       return document.querySelector<HTMLInputElement>('input[name="returnTo"]');
     }
 
+    function cancelCreateDialog() {
+      fireEvent.click(screen.getByRole("button", { name: "取消" }));
+    }
+
+    async function reopenCreateDialogFromButton(container: HTMLElement) {
+      await waitFor(() =>
+        expect(screen.queryByRole("heading", { name: "新增账户" })).toBeNull(),
+      );
+      fireEvent.click(
+        within(container).getByRole("button", { name: "新增账户" }),
+      );
+      expect(
+        screen.getByRole("heading", { name: "新增账户" }),
+      ).toBeInTheDocument();
+    }
+
     it("带参数进入时打开新增弹框并清除参数", () => {
       renderWithCreateParam();
 
       expect(
         screen.getByRole("heading", { name: "新增账户" }),
       ).toBeInTheDocument();
-      expect(routerReplaceMock).toHaveBeenCalledWith(
-        `/accounts?returnTo=${encodeURIComponent(returnTo)}`,
-        { scroll: false },
-      );
+      expect(routerReplaceMock).toHaveBeenCalledExactlyOnceWith("/accounts", {
+        scroll: false,
+      });
+    });
+
+    it("未保存直接关闭时回到 returnTo", () => {
+      renderWithCreateParam();
+
+      cancelCreateDialog();
+
+      expect(routerPushMock).toHaveBeenCalledExactlyOnceWith(returnTo);
+    });
+
+    it("关闭后从页面按钮再次新增时不带 returnTo，关闭也不再跳转", async () => {
+      const { container } = renderWithCreateParam();
+      cancelCreateDialog();
+      routerPushMock.mockClear();
+
+      await reopenCreateDialogFromButton(container);
+
+      expect(getReturnToInput()).toBeNull();
+      cancelCreateDialog();
+      expect(routerPushMock).not.toHaveBeenCalled();
     });
 
     it("新增表单提交合法的 returnTo", () => {
@@ -491,10 +527,12 @@ describe("AccountsTemplate", () => {
       expect(getReturnToInput()).toHaveValue(returnTo);
     });
 
-    it("没有 returnTo 时不提交返回路径", () => {
+    it("没有 returnTo 时不提交返回路径，关闭时停留在账户页", () => {
       renderWithCreateParam({ returnTo: null });
 
       expect(getReturnToInput()).toBeNull();
+      cancelCreateDialog();
+      expect(routerPushMock).not.toHaveBeenCalled();
     });
 
     it("没有管理权限时不打开新增弹框", () => {
@@ -508,6 +546,20 @@ describe("AccountsTemplate", () => {
 
       expect(screen.queryByRole("heading", { name: "新增账户" })).toBeNull();
       expect(routerReplaceMock).not.toHaveBeenCalled();
+    });
+
+    it("只带 returnTo 不带打开参数时，按钮打开的弹框不带 returnTo", () => {
+      const { container } = renderWithUserTheme(
+        <AccountsTemplate {...baseProps} returnTo={returnTo} />,
+      );
+
+      fireEvent.click(
+        within(container).getByRole("button", { name: "新增账户" }),
+      );
+
+      expect(getReturnToInput()).toBeNull();
+      cancelCreateDialog();
+      expect(routerPushMock).not.toHaveBeenCalled();
     });
   });
 });

@@ -37,10 +37,14 @@ export function MerchantCreateTemplate({
 
   return (
     <SettingsPageLayout
-      back={{
-        href: routePaths.merchants,
-        label: merchantPageMessages.backToMerchants,
-      }}
+      back={
+        returnTo
+          ? { href: returnTo, label: merchantPageMessages.back }
+          : {
+              href: routePaths.merchants,
+              label: merchantPageMessages.backToMerchants,
+            }
+      }
       subtitle={merchantPageMessages.createSubtitle(ledgerName)}
       title={merchantText.create}
     >
