@@ -23,6 +23,7 @@ import { validateLedgerSetupBasicInfoForm } from "internal/ledger/schema/ledgerS
 import { createErrorState } from "internal/shared/adapter/next/actionState";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError, NotFoundError } from "internal/shared/errors/appError";
+import type { ActionState } from "types/actions";
 import type {
   CompleteLedgerSetupInput,
   LedgerSetupBasicInfoActionState,
@@ -327,9 +328,7 @@ export async function loadLedgerSetupWizardView(): Promise<LedgerSetupWizardView
 }
 
 /** 放弃创建仅由页面交互调用，不新增 HTTP 路由。 */
-export async function abandonLedgerSetup(
-  input: unknown,
-): Promise<import("types/actions").ActionState> {
+export async function abandonLedgerSetup(input: unknown): Promise<ActionState> {
   try {
     const ledgerId = parseLedgerId(input);
     if (!ledgerId) throw createNotFoundError();

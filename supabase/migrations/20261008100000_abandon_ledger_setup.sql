@@ -89,7 +89,8 @@ begin
     end if;
 
     -- 仅放弃创建 RPC 在锁定与校验后打开；不改变 RLS 或一般管理权限。
-    if tg_op = 'DELETE' and public.ledger_setup_abandonment_allows_delete(v_ledger_id) then
+    if tg_table_name = 'ledger' and tg_op = 'DELETE'
+       and public.ledger_setup_abandonment_allows_delete(v_ledger_id) then
         return old;
     end if;
 
@@ -202,88 +203,6 @@ begin
 end;
 $$;
 
-CREATE OR REPLACE FUNCTION "public"."enforce_merchant_alias_management_permission"() RETURNS "trigger"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'pg_catalog', 'pg_temp'
-    AS $$
-declare
-    v_merchant_id uuid;
-    v_ledger_id uuid;
-begin
-    if auth.uid() is null then
-        if tg_op = 'DELETE' then
-            return old;
-        end if;
-        return new;
-    end if;
-
-    v_merchant_id := case when tg_op = 'DELETE' then old.merchant_id else new.merchant_id end;
-
-    select m.ledger_id
-      into v_ledger_id
-      from public.merchant m
-     where m.id = v_merchant_id;
-
-    if tg_op = 'INSERT' and public.ledger_setup_completion_allows_insert(v_ledger_id) then
-        return new;
-    end if;
-
-    -- 仅放弃创建 RPC 在锁定与校验后打开；不改变 RLS 或一般管理权限。
-    if tg_op = 'DELETE' and public.ledger_setup_abandonment_allows_delete(v_ledger_id) then
-        return old;
-    end if;
-
-    if v_ledger_id is null or not public.current_user_can_manage_ledger(v_ledger_id) then
-        raise exception 'permission_denied' using errcode = '42501';
-    end if;
-
-    if tg_op = 'DELETE' then
-        return old;
-    end if;
-    return new;
-end;
-$$;
-
-CREATE OR REPLACE FUNCTION "public"."enforce_merchant_tag_link_management_permission"() RETURNS "trigger"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'pg_catalog', 'pg_temp'
-    AS $$
-declare
-    v_merchant_id uuid;
-    v_ledger_id uuid;
-begin
-    if auth.uid() is null then
-        return case when tg_op = 'DELETE' then old else new end;
-    end if;
-
-    v_merchant_id := case
-        when tg_op = 'DELETE' then old.merchant_id
-        else new.merchant_id
-    end;
-
-    select m.ledger_id into v_ledger_id
-    from public.merchant m
-    where m.id = v_merchant_id;
-
-    if tg_op = 'INSERT' and public.ledger_setup_completion_allows_insert(v_ledger_id) then
-        return new;
-    end if;
-
-    -- 仅放弃创建 RPC 在锁定与校验后打开；不改变 RLS 或一般管理权限。
-    if tg_op = 'DELETE' and public.ledger_setup_abandonment_allows_delete(v_ledger_id) then
-        return old;
-    end if;
-
-    if v_ledger_id is null
-       or not public.current_user_can_manage_ledger(v_ledger_id) then
-        raise exception 'permission_denied'
-            using errcode = '42501', detail = 'permission_denied';
-    end if;
-
-    return case when tg_op = 'DELETE' then old else new end;
-end;
-$$;
-
 -- 放弃创建与完成写入使用同一个 ledger 行锁，后到者重新检查状态。
 create or replace function public.abandon_ledger_setup(p_ledger_id uuid)
 returns void
@@ -324,16 +243,7 @@ begin
         raise exception 'ledger_setup_not_in_progress' using errcode = '55000', detail = 'ledger_setup_not_in_progress';
     end if;
     perform set_config('app.ledger_setup_abandonment_ledger_id', p_ledger_id::text, true);
-    -- 草稿在 ledger.setup_draft；清理可能残留的初始化数据，按子表到父表顺序。
-    delete from public.budget where ledger_id = p_ledger_id;
-    delete from public.account_holder where account_id in (select id from public.account where ledger_id = p_ledger_id);
-    delete from public.account where ledger_id = p_ledger_id;
-    delete from public.merchant_tag_links where merchant_id in (select id from public.merchant where ledger_id = p_ledger_id);
-    delete from public.merchant_alias where merchant_id in (select id from public.merchant where ledger_id = p_ledger_id);
-    delete from public.merchant where ledger_id = p_ledger_id;
-    delete from public.merchant_tags where ledger_id = p_ledger_id;
-    delete from public.category where ledger_id = p_ledger_id and parent_id is not null;
-    delete from public.category where ledger_id = p_ledger_id;
+    -- 草稿随 ledger 本体删除；只清理创建阶段实际写入的成员设置与 owner 成员。
     delete from public.ledger_member_display_setting where ledger_id = p_ledger_id;
     delete from public.ledger_member where ledger_id = p_ledger_id;
     delete from public.ledger where id = p_ledger_id;

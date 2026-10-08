@@ -289,7 +289,7 @@ migration 在新增 CHECK 之前，把残留的匿名待接受邀请（`placehol
 
 稳定 detail：`auth_required`、`ledger_setup_not_found`、`ledger_setup_owner_required`、`ledger_setup_not_in_progress`、`ledger_setup_has_members`、`ledger_setup_has_transactions`。Repository 精确转换为认证、授权、未找到或状态冲突异常。
 
-清理时设置事务内 `app.ledger_setup_abandonment_ledger_id`，结束立即清空。内部函数 `ledger_setup_abandonment_allows_delete(uuid)` 只接受同一 ID、当前 owner、未归档 in_progress，撤销所有客户端执行权限。管理、成员、商家别名与商家标签关联 trigger 仅增加 DELETE 放行分支；RLS、`current_user_can_manage_ledger`、`current_user_can_write_ledger` 不变，客户端仍无法直接 DELETE ledger。外键逐表处理见 [数据库结构维护](database-schema.md)。
+清理时设置事务内 `app.ledger_setup_abandonment_ledger_id`，结束立即清空。内部函数 `ledger_setup_abandonment_allows_delete(uuid)` 只接受同一 ID、当前 owner、未归档 in_progress，撤销所有客户端执行权限。仅为 ledger 本体与 ledger_member 的管理 trigger 增加 DELETE 放行分支；不改写商家相关 trigger；RLS、`current_user_can_manage_ledger`、`current_user_can_write_ledger` 不变，客户端仍无法直接 DELETE ledger。外键逐表处理见 [数据库结构维护](database-schema.md)。
 
 ## 自动化检查
 

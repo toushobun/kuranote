@@ -136,22 +136,14 @@ export function createLedgerSetupService({
 
   return {
     async abandon(ledgerId) {
-      if (!currentUserId)
-        throw new AuthenticationError(
-          ledgerCreateErrorCodes.authRequired,
-          ledgerCreateErrorMessages[ledgerCreateErrorCodes.authRequired],
-        );
-      const target =
-        await ledgerSetupRepository.findAbandonmentTarget(ledgerId);
-      if (!target) throw toAppError(ledgerSetupErrorCodes.notFound);
-      if (target.ownerUserId !== currentUserId)
-        throw new AuthorizationError(
-          ledgerSetupErrorCodes.ownerRequired,
-          ledgerSetupErrorMessages[ledgerSetupErrorCodes.ownerRequired],
-        );
-      if (target.setupStatus !== "in_progress" || target.isArchived)
-        throw toAppError(ledgerSetupErrorCodes.notInProgress);
-      await ledgerSetupRepository.abandon(ledgerId);
+      const setup = await findSetup();
+      if (!setup || setup.id !== ledgerId) {
+        throw toAppError(ledgerSetupErrorCodes.notFound);
+      }
+      const result = await ledgerSetupRepository.abandon(ledgerId);
+      if (!result.ok) {
+        throw toAppError(result.code);
+      }
     },
     async complete(ledgerId) {
       const setup = await findSetup();

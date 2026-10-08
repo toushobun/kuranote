@@ -20,17 +20,6 @@ import {
   type StoredLedgerSetupDraft,
 } from "internal/ledger/schema/ledgerSetupDraft";
 import type { LedgerSetupCompletionPayload } from "internal/ledger/util/ledgerSetupCompletionPayload";
-import {
-  AuthenticationError,
-  AuthorizationError,
-  ConflictError,
-  NotFoundError,
-} from "internal/shared/errors/appError";
-import {
-  ledgerCreateErrorCodes,
-  ledgerCreateErrorMessages,
-} from "internal/ledger/errors/ledgerCreate";
-import { ledgerSetupErrorMessages } from "internal/ledger/errors/ledgerSetup";
 import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
@@ -94,6 +83,9 @@ const ledgerSetupRpcErrorMap = {
   ledger_setup_draft_currency_mismatch: ledgerSetupErrorCodes.currencyMismatch,
   ledger_setup_draft_invalid: ledgerSetupErrorCodes.draftInvalid,
   ledger_setup_draft_too_large: ledgerSetupErrorCodes.draftTooLarge,
+  ledger_setup_owner_required: ledgerSetupErrorCodes.ownerRequired,
+  ledger_setup_has_members: ledgerSetupErrorCodes.hasMembers,
+  ledger_setup_has_transactions: ledgerSetupErrorCodes.hasTransactions,
   ledger_setup_in_progress_exists: ledgerSetupErrorCodes.inProgressExists,
   ledger_setup_not_found: ledgerSetupErrorCodes.notFound,
   ledger_setup_not_in_progress: ledgerSetupErrorCodes.notInProgress,
@@ -106,12 +98,7 @@ const ledgerSetupRpcErrorMap = {
  * owner 与创建中状态由数据库按 auth.uid() 校验。
  */
 export interface LedgerSetupRepository {
-  abandon(ledgerId: string): Promise<void>;
-  findAbandonmentTarget(ledgerId: string): Promise<{
-    ownerUserId: string;
-    setupStatus: string;
-    isArchived: boolean;
-  } | null>;
+  abandon(ledgerId: string): Promise<LedgerSetupWriteResult>;
   complete(input: CompleteLedgerSetupInput): Promise<LedgerSetupWriteResult>;
   create(input: CreateLedgerInput): Promise<CreateLedgerSetupResult>;
   /** userId 为当前登录用户，用于读取其在该账本中的显示名与个性色。 */
@@ -129,64 +116,25 @@ export function createSupabaseLedgerSetupRepository(
   logger: Logger,
 ): LedgerSetupRepository {
   return {
-    async findAbandonmentTarget(ledgerId) {
-      const { data, error } = await supabase
-        .from("ledger")
-        .select("owner_user_id, setup_status, is_archived")
-        .eq("id", ledgerId)
-        .maybeSingle();
-      if (error) {
-        logger.error("[ledger] failed to load abandonment target", {
-          databaseCode: error.code,
-          ledgerId,
-        });
-        throw toRepositoryError(
-          "ledger_setup_load_failed",
-          ledgerSetupLoadErrorMessages.loadFailed,
-        );
-      }
-      return data
-        ? {
-            ownerUserId: data.owner_user_id,
-            setupStatus: data.setup_status,
-            isArchived: data.is_archived,
-          }
-        : null;
-    },
     async abandon(ledgerId) {
       const { error } = await supabase.rpc("abandon_ledger_setup", {
         p_ledger_id: ledgerId,
       });
-      if (!error) return;
-      if (error.details === "auth_required")
-        throw new AuthenticationError(
-          ledgerCreateErrorCodes.authRequired,
-          ledgerCreateErrorMessages[ledgerCreateErrorCodes.authRequired],
+      if (error) {
+        const code = findRpcBusinessError(error, ledgerSetupRpcErrorMap);
+        if (code) return { code, ok: false };
+
+        logger.error("[ledger] failed to abandon ledger setup", {
+          databaseCode: error.code,
+          ledgerId,
+        });
+        throw toRepositoryError(
+          "ledger_setup_abandon_failed",
+          ledgerSetupWriteErrorMessages.abandonFailed,
         );
-      const code = findRpcBusinessError(error, {
-        ledger_setup_owner_required: ledgerSetupErrorCodes.ownerRequired,
-        ledger_setup_not_found: ledgerSetupErrorCodes.notFound,
-        ledger_setup_not_in_progress: ledgerSetupErrorCodes.notInProgress,
-        ledger_setup_has_members: ledgerSetupErrorCodes.hasMembers,
-        ledger_setup_has_transactions: ledgerSetupErrorCodes.hasTransactions,
-      });
-      if (code) {
-        const ErrorClass =
-          code === ledgerSetupErrorCodes.ownerRequired
-            ? AuthorizationError
-            : code === ledgerSetupErrorCodes.notFound
-              ? NotFoundError
-              : ConflictError;
-        throw new ErrorClass(code, ledgerSetupErrorMessages[code]);
       }
-      logger.error("[ledger] failed to abandon ledger setup", {
-        databaseCode: error.code,
-        ledgerId,
-      });
-      throw toRepositoryError(
-        "ledger_setup_abandon_failed",
-        ledgerSetupWriteErrorMessages.abandonFailed,
-      );
+
+      return { ok: true };
     },
     async complete({ ledgerId, payload }) {
       const { error } = await supabase.rpc("complete_ledger_setup", {

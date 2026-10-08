@@ -18,6 +18,7 @@ import { createLedgerSetupService } from "internal/ledger/service/ledgerSetupSer
 import { createDefaultLedgerSetupDraft } from "internal/ledger/util/ledgerSetupDraft";
 import {
   AuthenticationError,
+  AuthorizationError,
   ConflictError,
   NotFoundError,
   ValidationError,
@@ -55,8 +56,7 @@ function createRepository(
   overrides: Partial<LedgerSetupRepository> = {},
 ): LedgerSetupRepository {
   return {
-    abandon: vi.fn(async () => {}),
-    findAbandonmentTarget: vi.fn(async () => null),
+    abandon: vi.fn(async () => ({ ok: true as const })),
     complete: vi.fn(async () => ({ ok: true as const })),
     create: vi.fn(async () => ({ ledgerId, ok: true as const })),
     findCurrentUserSetupLedger: vi.fn(async () => null),
@@ -582,40 +582,30 @@ describe("createLedgerSetupService.updateBasicInfo", () => {
 });
 
 describe("createLedgerSetupService.abandon", () => {
-  const target = {
-    ownerUserId: userId,
-    setupStatus: "in_progress",
-    isArchived: false,
-  };
-  it("再次判断 owner 与状态后放弃创建", async () => {
+  const record = createRecord({});
+  it("仅允许放弃当前用户的创建中账本", async () => {
     const repository = createRepository({
-      findAbandonmentTarget: vi.fn(async () => target),
+      findCurrentUserSetupLedger: vi.fn(async () => record),
     });
     await createLedgerSetupService({
       currentUserId: userId,
       ledgerSetupRepository: repository,
     }).abandon(ledgerId);
+    expect(repository.findCurrentUserSetupLedger).toHaveBeenCalledWith(userId);
     expect(repository.abandon).toHaveBeenCalledWith(ledgerId);
   });
   it.each([
-    ["未登录", null, target, "AuthenticationError"],
-    ["不存在", userId, null, "NotFoundError"],
+    ["未登录", null, record, "AuthenticationError"],
+    ["没有自己的创建中账本", userId, null, "NotFoundError"],
     [
-      "不是 owner",
+      "目标不是自己的创建中账本",
       userId,
-      { ...target, ownerUserId: "other" },
-      "AuthorizationError",
+      { ...record, id: "other" },
+      "NotFoundError",
     ],
-    [
-      "已完成",
-      userId,
-      { ...target, setupStatus: "completed" },
-      "ConflictError",
-    ],
-    ["已归档", userId, { ...target, isArchived: true }, "ConflictError"],
   ])("%s时不调用删除 RPC", async (_label, currentUserId, row, name) => {
     const repository = createRepository({
-      findAbandonmentTarget: vi.fn(async () => row),
+      findCurrentUserSetupLedger: vi.fn(async () => row),
     });
     await expect(
       createLedgerSetupService({
@@ -625,24 +615,54 @@ describe("createLedgerSetupService.abandon", () => {
     ).rejects.toMatchObject({ name });
     expect(repository.abandon).not.toHaveBeenCalled();
     if (!currentUserId)
-      expect(repository.findAbandonmentTarget).not.toHaveBeenCalled();
+      expect(repository.findCurrentUserSetupLedger).not.toHaveBeenCalled();
   });
-  it("保留 RPC 重新检查状态时的竞争错误", async () => {
-    const error = new ConflictError(
+  it.each([
+    [
+      ledgerCreateErrorCodes.authRequired,
+      AuthenticationError,
+      ledgerCreateErrorMessages[ledgerCreateErrorCodes.authRequired],
+    ],
+    [
+      ledgerSetupErrorCodes.ownerRequired,
+      AuthorizationError,
+      ledgerSetupErrorMessages[ledgerSetupErrorCodes.ownerRequired],
+    ],
+    [
+      ledgerSetupErrorCodes.notFound,
+      NotFoundError,
+      ledgerSetupErrorMessages[ledgerSetupErrorCodes.notFound],
+    ],
+    [
       ledgerSetupErrorCodes.notInProgress,
+      ConflictError,
       ledgerSetupErrorMessages[ledgerSetupErrorCodes.notInProgress],
-    );
-    const repository = createRepository({
-      findAbandonmentTarget: vi.fn(async () => target),
-      abandon: vi.fn(async () => {
-        throw error;
-      }),
-    });
-    await expect(
-      createLedgerSetupService({
+    ],
+    [
+      ledgerSetupErrorCodes.hasMembers,
+      ConflictError,
+      ledgerSetupErrorMessages[ledgerSetupErrorCodes.hasMembers],
+    ],
+    [
+      ledgerSetupErrorCodes.hasTransactions,
+      ConflictError,
+      ledgerSetupErrorMessages[ledgerSetupErrorCodes.hasTransactions],
+    ],
+  ] as const)(
+    "RPC 复核返回 %s 时转换为对应应用错误",
+    async (code, ErrorClass, message) => {
+      const repository = createRepository({
+        findCurrentUserSetupLedger: vi.fn(async () => record),
+        abandon: vi.fn(async () => ({ code, ok: false as const })),
+      });
+      const error = await createLedgerSetupService({
         currentUserId: userId,
         ledgerSetupRepository: repository,
-      }).abandon(ledgerId),
-    ).rejects.toBe(error);
-  });
+      })
+        .abandon(ledgerId)
+        .catch((e: unknown) => e);
+      expect(error).toBeInstanceOf(ErrorClass);
+      expect(error).toMatchObject({ code, message });
+    },
+  );
 });

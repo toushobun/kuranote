@@ -36,17 +36,6 @@ values (pg_temp.lid(1), pg_temp.uid(1), 'owner', 'active', now()),
        (pg_temp.lid(2), pg_temp.uid(1), 'owner', 'active', now());
 update public.app_user set current_ledger_id = pg_temp.lid(2) where id = pg_temp.uid(1);
 
--- 模拟历史残留初始化数据；正常向导完成前不会创建这些业务行。
-select public.initialize_ledger_default_categories(pg_temp.lid(1), pg_temp.uid(1));
-insert into public.account(id, ledger_id, name, type, currency) values(pg_temp.lid(10), pg_temp.lid(1), '现金', 'cash', 'JPY');
-insert into public.account_holder(account_id, ledger_id, user_id, role) values(pg_temp.lid(10), pg_temp.lid(1), pg_temp.uid(1), 'owner');
-insert into public.merchant(id, ledger_id, name) values(pg_temp.lid(11), pg_temp.lid(1), '商家');
-insert into public.merchant_alias(merchant_id, alias) values(pg_temp.lid(11), '别名');
-insert into public.merchant_tags(id, ledger_id, name, icon) values(pg_temp.lid(12), pg_temp.lid(1), '标签', '🍽️');
-insert into public.merchant_tag_links(merchant_id, tag_id) values(pg_temp.lid(11), pg_temp.lid(12));
-insert into public.budget(ledger_id, category_id, budget_month, amount)
-select pg_temp.lid(1), id, date '2026-10-01', 100 from public.category where ledger_id = pg_temp.lid(1) and parent_id is null limit 1;
-
 select ok(not has_function_privilege('anon', 'public.abandon_ledger_setup(uuid)', 'execute'), 'anon 无执行权限');
 select ok(not has_function_privilege('service_role', 'public.abandon_ledger_setup(uuid)', 'execute'), 'service_role 无执行权限');
 select ok(has_function_privilege('authenticated', 'public.abandon_ledger_setup(uuid)', 'execute'), '仅 authenticated 可执行');
@@ -112,15 +101,6 @@ reset role;
 select is((select count(*) from public.ledger where id = pg_temp.lid(1)), 0::bigint, '账本及草稿已删除');
 select is((select count(*) from public.ledger_member where ledger_id = pg_temp.lid(1)), 0::bigint, '成员已清理');
 select is((select count(*) from public.ledger_member_display_setting where ledger_id = pg_temp.lid(1)), 0::bigint, '显示设置已清理');
-select is((select count(*) from public.account where ledger_id = pg_temp.lid(1)), 0::bigint, '账户已清理');
-select is((select count(*) from public.account_holder where ledger_id = pg_temp.lid(1)), 0::bigint, '持有人已清理');
-select is((select count(*) from public.account_name_scope where account_id = pg_temp.lid(10)), 0::bigint, '名称投影已清理');
-select is((select count(*) from public.category where ledger_id = pg_temp.lid(1)), 0::bigint, '分类已清理');
-select is((select count(*) from public.budget where ledger_id = pg_temp.lid(1)), 0::bigint, '预算已清理');
-select is((select count(*) from public.merchant where ledger_id = pg_temp.lid(1)), 0::bigint, '商家已清理');
-select is((select count(*) from public.merchant_alias where merchant_id = pg_temp.lid(11)), 0::bigint, '别名已清理');
-select is((select count(*) from public.merchant_tag_links where merchant_id = pg_temp.lid(11)), 0::bigint, '标签关联已清理');
-select is((select count(*) from public.merchant_tags where ledger_id = pg_temp.lid(1)), 0::bigint, '标签已清理');
 select is((select current_ledger_id from public.app_user where id = pg_temp.uid(1)), pg_temp.lid(2), 'current_ledger_id 不受影响');
 select is(current_setting('app.ledger_setup_abandonment_ledger_id', true), '', '清理事务标记');
 set local role authenticated;

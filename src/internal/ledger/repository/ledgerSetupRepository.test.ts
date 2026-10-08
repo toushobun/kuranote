@@ -407,23 +407,26 @@ describe("createSupabaseLedgerSetupRepository.complete", () => {
 describe("createSupabaseLedgerSetupRepository.abandon", () => {
   it("调用放弃创建 RPC", async () => {
     const { repository, supabase } = createRepository();
-    await expect(repository.abandon(ledgerId)).resolves.toBeUndefined();
+    await expect(repository.abandon(ledgerId)).resolves.toEqual({ ok: true });
     expect(supabase.rpc).toHaveBeenCalledWith("abandon_ledger_setup", {
       p_ledger_id: ledgerId,
     });
   });
   it.each([
-    ["auth_required", "AuthenticationError"],
-    ["ledger_setup_owner_required", "AuthorizationError"],
-    ["ledger_setup_not_found", "NotFoundError"],
-    ["ledger_setup_not_in_progress", "ConflictError"],
-    ["ledger_setup_has_members", "ConflictError"],
-    ["ledger_setup_has_transactions", "ConflictError"],
-  ])("精确转换业务 detail %s", async (details, name) => {
+    ["auth_required", ledgerCreateErrorCodes.authRequired],
+    ["ledger_setup_owner_required", ledgerSetupErrorCodes.ownerRequired],
+    ["ledger_setup_not_found", ledgerSetupErrorCodes.notFound],
+    ["ledger_setup_not_in_progress", ledgerSetupErrorCodes.notInProgress],
+    ["ledger_setup_has_members", ledgerSetupErrorCodes.hasMembers],
+    ["ledger_setup_has_transactions", ledgerSetupErrorCodes.hasTransactions],
+  ])("精确转换业务 detail %s", async (details, code) => {
     const { repository } = createRepository({
       error: { details, message: "private" },
     });
-    await expect(repository.abandon(ledgerId)).rejects.toMatchObject({ name });
+    await expect(repository.abandon(ledgerId)).resolves.toEqual({
+      code,
+      ok: false,
+    });
   });
   it("不按 message 猜测业务错误且不泄露数据库信息", async () => {
     const { repository, logger } = createRepository({
@@ -434,39 +437,5 @@ describe("createSupabaseLedgerSetupRepository.abandon", () => {
       message: ledgerSetupWriteErrorMessages.abandonFailed,
     });
     expect(logger.error).toHaveBeenCalled();
-  });
-});
-
-describe("createSupabaseLedgerSetupRepository.findAbandonmentTarget", () => {
-  it("读取目标账本状态与 owner", async () => {
-    const row = {
-      owner_user_id: userId,
-      setup_status: "in_progress",
-      is_archived: false,
-    };
-    const { repository, supabase } = createRepository({}, [{ data: row }]);
-    await expect(repository.findAbandonmentTarget(ledgerId)).resolves.toEqual({
-      ownerUserId: userId,
-      setupStatus: "in_progress",
-      isArchived: false,
-    });
-    expect(supabase.queries[0].table).toBe("ledger");
-  });
-  it("读取不到返回 null", async () => {
-    const { repository } = createRepository({}, [{ data: null }]);
-    await expect(
-      repository.findAbandonmentTarget(ledgerId),
-    ).resolves.toBeNull();
-  });
-  it("读取失败抛出安全错误", async () => {
-    const { repository } = createRepository({}, [
-      { error: { message: "private" } },
-    ]);
-    await expect(
-      repository.findAbandonmentTarget(ledgerId),
-    ).rejects.toMatchObject({
-      name: "RepositoryError",
-      message: ledgerSetupLoadErrorMessages.loadFailed,
-    });
   });
 });

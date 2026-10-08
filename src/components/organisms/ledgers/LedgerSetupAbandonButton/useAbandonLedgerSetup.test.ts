@@ -44,7 +44,7 @@ describe("useAbandonLedgerSetup", () => {
     expect(action).not.toHaveBeenCalled();
     expect(result.current.pending).toBe(false);
   });
-  it("等待确认期间阻止重复操作", async () => {
+  it("等待确认期间不显示处理中且阻止重复操作", async () => {
     let resolve!: (value: boolean) => void;
     confirm.mockReturnValue(
       new Promise<boolean>((done) => {
@@ -56,7 +56,7 @@ describe("useAbandonLedgerSetup", () => {
     act(() => {
       operation = result.current.abandon();
     });
-    expect(result.current.pending).toBe(true);
+    expect(result.current.pending).toBe(false);
     await act(() => result.current.abandon());
     expect(confirm).toHaveBeenCalledOnce();
     await act(async () => {

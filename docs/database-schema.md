@@ -84,14 +84,14 @@ npm run db:schema:snapshot:check
 
 核对所有引用 `ledger(id)` 的外键：
 
-| 表                                                                | 删除行为 | 放弃创建时处理                                                                                                                              |
-| ----------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| account、budget、category、merchant、merchant_tags                | RESTRICT | 先清理 budget、account_holder、merchant_tag_links、merchant_alias，再清理对应父表；category 先子后父；account_name_scope 随 account CASCADE |
-| ledger_member_display_setting、ledger_member                      | RESTRICT | 按此顺序显式清理                                                                                                                            |
-| ledger_placeholder_member                                         | RESTRICT | 任意占位成员存在即拒绝                                                                                                                      |
-| ledger_invite                                                     | CASCADE  | 任意邀请存在即拒绝（包括历史邀请）                                                                                                          |
-| transaction_record                                                | RESTRICT | 存在交易即拒绝；同时检查 transaction_item（通过 record 关联账本）                                                                           |
-| transaction_item_refund_link、transaction_item_reimbursement_link | CASCADE  | 存在关联即拒绝，不允许隐式清理交易                                                                                                          |
-| app_user.current_ledger_id                                        | SET NULL | 不更新指针；若异常数据指向创建中账本则拒绝                                                                                                  |
+| 表                                                                | 删除行为 | 放弃创建时处理                                                               |
+| ----------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------- |
+| account、budget、category、merchant、merchant_tags                | RESTRICT | 创建阶段不写入这些业务表，不主动清理；异常关联由 RESTRICT 拒绝删除并整体回滚 |
+| ledger_member_display_setting、ledger_member                      | RESTRICT | 按此顺序显式清理                                                             |
+| ledger_placeholder_member                                         | RESTRICT | 任意占位成员存在即拒绝                                                       |
+| ledger_invite                                                     | CASCADE  | 任意邀请存在即拒绝（包括历史邀请）                                           |
+| transaction_record                                                | RESTRICT | 存在交易即拒绝；同时检查 transaction_item（通过 record 关联账本）            |
+| transaction_item_refund_link、transaction_item_reimbursement_link | CASCADE  | 存在关联即拒绝，不允许隐式清理交易                                           |
+| app_user.current_ledger_id                                        | SET NULL | 不更新指针；若异常数据指向创建中账本则拒绝                                   |
 
-普通创建流程不会写入业务数据；RPC 同时处理可能残留的初始化数据，整个清理事务失败时全部回滚。新增 ledger 外键时必须同步审查此 RPC 和行为测试。
+创建阶段只写入账本、owner 成员与显示设置；完成创建在同一事务内写入业务数据，失败整体回滚，因此放弃创建无需清理业务表。整个清理事务失败时全部回滚。新增 ledger 外键时必须同步审查此 RPC 和行为测试。

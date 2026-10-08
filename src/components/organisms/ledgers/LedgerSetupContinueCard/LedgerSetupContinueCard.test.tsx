@@ -78,7 +78,7 @@ describe("LedgerSetupContinueCard 放弃创建", () => {
     );
     const continueButton = screen.getByRole("button", { name: "继续创建" });
     const dialog = await openLedgerSetupAbandonConfirm("我们家");
-    expect(continueButton).toBeDisabled();
+    expect(continueButton).toBeEnabled();
     confirmLedgerSetupAbandon(dialog);
     await waitFor(() => expect(onAbandoned).toHaveBeenCalledOnce());
     expect(action).toHaveBeenCalledWith({ ledgerId: "ledger" });

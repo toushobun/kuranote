@@ -51,7 +51,7 @@ describe("LedgerSetupAbandonButton", () => {
     });
     fireEvent.click(within(dialog).getByRole("button", { name: "放弃创建" }));
     expect(
-      screen.getByRole("progressbar", { name: "正在放弃创建" }),
+      await screen.findByRole("progressbar", { name: "正在放弃创建" }),
     ).toBeInTheDocument();
     await waitFor(() => expect(action).toHaveBeenCalledOnce());
     await act(async () => resolve({ error: "无法放弃", errorKey: "first" }));

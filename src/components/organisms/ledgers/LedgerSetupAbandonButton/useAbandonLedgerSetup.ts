@@ -24,7 +24,6 @@ export function useAbandonLedgerSetup({
   async function abandon() {
     if (locked.current) return;
     locked.current = true;
-    setPending(true);
     setError(null);
     try {
       if (
@@ -38,6 +37,7 @@ export function useAbandonLedgerSetup({
         }))
       )
         return;
+      setPending(true);
       const result = await action({ ledgerId });
       if (result.error) setError(result.error);
       else onSuccess();
