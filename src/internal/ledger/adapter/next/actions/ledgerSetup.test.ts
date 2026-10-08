@@ -37,6 +37,7 @@ import type {
 import {
   completeLedgerSetup,
   loadLedgerSetupInviteMembers,
+  loadLedgerSetupWizardView,
   saveLedgerSetupDraft,
   submitLedgerSetupBasicInfo,
 } from "./ledgerSetup";
@@ -45,9 +46,11 @@ const mocks = vi.hoisted(() => ({
   complete: vi.fn(),
   create: vi.fn(),
   createDependencies: vi.fn(),
+  getCreateDefaults: vi.fn(),
   getCurrentLedgerContext: vi.fn(),
   getCurrentUserSetup: vi.fn(),
   getTemplate: vi.fn(),
+  listDefaultRootCategoryNames: vi.fn(),
   listPendingInvites: vi.fn(),
   listUnclaimedPlaceholders: vi.fn(),
   revalidateLedgerMutation: vi.fn(),
@@ -71,6 +74,7 @@ vi.mock("internal/container", () => ({
   createRequestContainer: () => ({
     ledger: {
       inviteService: { listPending: mocks.listPendingInvites },
+      service: { getCreateDefaults: mocks.getCreateDefaults },
       placeholderMemberService: {
         listUnclaimed: mocks.listUnclaimedPlaceholders,
       },
@@ -79,6 +83,7 @@ vi.mock("internal/container", () => ({
         create: mocks.create,
         getCurrentUserSetup: mocks.getCurrentUserSetup,
         getTemplate: mocks.getTemplate,
+        listDefaultRootCategoryNames: mocks.listDefaultRootCategoryNames,
         saveDraft: mocks.saveDraft,
         updateBasicInfo: mocks.updateBasicInfo,
       },
@@ -660,5 +665,80 @@ describe("loadLedgerSetupInviteMembers", () => {
       "NEXT_REDIRECT:/login",
     );
     expect(mocks.listPendingInvites).not.toHaveBeenCalled();
+  });
+});
+
+describe("loadLedgerSetupWizardView", () => {
+  const defaults = {
+    baseCurrency: "JPY",
+    displayColor: "amber" as const,
+    displayName: "淞文",
+    ledgerName: "家庭账本",
+  };
+  const defaultRootCategoryNames = ["💰 工资收入", "🍽️ 饮食"];
+
+  beforeEach(() => {
+    mocks.getCreateDefaults.mockResolvedValue({ defaults });
+    mocks.listDefaultRootCategoryNames.mockResolvedValue(
+      defaultRootCategoryNames,
+    );
+    mocks.getTemplate.mockReturnValue(progress.template);
+  });
+
+  it("返回打开向导所需的默认值、创建中账本进度与默认大分类", async () => {
+    mocks.getCurrentUserSetup.mockResolvedValue(progress.setup);
+
+    await expect(loadLedgerSetupWizardView()).resolves.toEqual({
+      view: { defaultRootCategoryNames, defaults, progress },
+    });
+    expect(mocks.revalidateLedgerMutation).not.toHaveBeenCalled();
+  });
+
+  it("没有创建中账本时进度为 null", async () => {
+    mocks.getCurrentUserSetup.mockResolvedValue(null);
+
+    await expect(loadLedgerSetupWizardView()).resolves.toEqual({
+      view: { defaultRootCategoryNames, defaults, progress: null },
+    });
+  });
+
+  it("应用错误时返回其安全文案", async () => {
+    const error = createSetupError(ledgerSetupErrorCodes.notFound);
+    mocks.getCurrentUserSetup.mockRejectedValue(error);
+
+    expectErrorState(await loadLedgerSetupWizardView(), error.message);
+  });
+
+  it("未知异常记录安全日志并返回读取失败的通用提示", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    mocks.getCurrentUserSetup.mockRejectedValue(
+      new Error("database unavailable"),
+    );
+
+    expectErrorState(
+      await loadLedgerSetupWizardView(),
+      ledgerSetupLoadErrorMessages.loadFailed,
+    );
+    expect(consoleError).toHaveBeenCalledWith(
+      "[ledger] ledger setup wizard load action failed unexpectedly",
+      { errorName: "Error" },
+    );
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain(
+      "database unavailable",
+    );
+    consoleError.mockRestore();
+  });
+
+  it("登录跳转保持原有 Next.js 控制流", async () => {
+    mocks.getCurrentLedgerContext.mockRejectedValueOnce(
+      new Error("NEXT_REDIRECT:/login"),
+    );
+
+    await expect(loadLedgerSetupWizardView()).rejects.toThrow(
+      "NEXT_REDIRECT:/login",
+    );
+    expect(mocks.getCurrentUserSetup).not.toHaveBeenCalled();
   });
 });

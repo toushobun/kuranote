@@ -6,6 +6,7 @@ import { UserThemeProvider } from "theme/UserThemeProvider";
 import type {
   LedgerSetupInviteMembers,
   LedgerSetupProgress,
+  LedgerSetupWizardLauncherActions,
 } from "types/ledgers";
 
 import type { LedgerSetupWizardActions } from "./ledgerSetupWizardStepTypes";
@@ -63,3 +64,24 @@ export const ledgerSetupWizardStoryArgs = {
   onClose: () => {},
   open: true,
 };
+
+/**
+ * 打开向导的入口（首页 / 账本管理页）Story 共用：打开时立即返回指定进度的向导数据，
+ * 向导内各 Server Action 同 createLedgerSetupWizardStoryActions。
+ */
+export function createLedgerSetupWizardLauncherStoryActions(
+  progress: LedgerSetupProgress | null = null,
+): LedgerSetupWizardLauncherActions {
+  return {
+    loadWizard: async () => ({
+      view: {
+        defaultRootCategoryNames: [
+          ...ledgerSetupWizardStoryArgs.defaultRootCategoryNames,
+        ],
+        defaults: ledgerSetupWizardStoryArgs.defaults,
+        progress,
+      },
+    }),
+    wizard: createLedgerSetupWizardStoryActions(progress),
+  };
+}

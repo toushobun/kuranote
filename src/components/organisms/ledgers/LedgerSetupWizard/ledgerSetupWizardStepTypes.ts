@@ -2,29 +2,12 @@ import type { ComponentType } from "react";
 
 import type { LedgerBasicInfoValues } from "organisms/ledgers/LedgerBasicInfoFields/LedgerBasicInfoFields";
 import type {
-  LedgerInviteStateAction,
-  LedgerPlaceholderMemberActions,
-  LedgerSetupBasicInfoStateAction,
-  LedgerSetupCompleteAction,
-  LedgerSetupDraftSaveAction,
-  LedgerSetupInviteMembersLoadAction,
   LedgerSetupProgress,
+  LedgerSetupWizardActions,
 } from "types/ledgers";
 
-/** 向导各步骤调用的 Server Action。后续步骤在此追加。 */
-export type LedgerSetupWizardActions = {
-  /** 第 5 步完成创建：写入默认数据并切换为当前账本。 */
-  completeSetup: LedgerSetupCompleteAction;
-  /** 第 6 步邀请成员（与账本设置页相同的邀请写入，成功后不跳转页面）。 */
-  createInvite: LedgerInviteStateAction;
-  /** 第 6 步读取新账本的待邀请成员与待接受邀请。 */
-  loadInviteMembers: LedgerSetupInviteMembersLoadAction;
-  /** 第 6 步待邀请成员的改名 / 删除（与账本设置页相同）。 */
-  placeholderMemberActions: LedgerPlaceholderMemberActions;
-  /** 第 2 步以后保存草稿与 setup_step。 */
-  saveDraft: LedgerSetupDraftSaveAction;
-  submitBasicInfo: LedgerSetupBasicInfoStateAction;
-};
+// 入口页（服务端）组装 Action 时也需要该类型，定义放在 types/ledgers。
+export type { LedgerSetupWizardActions };
 
 /**
  * 完成页显示的统计。完成写入成功时由骨架按确认一览的数据保存，

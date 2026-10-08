@@ -22,6 +22,7 @@ import type {
   LedgerSetupInviteMembers,
   LedgerSetupInviteMembersLoadAction,
   LedgerSetupProgress,
+  LedgerSetupWizardViewLoadAction,
 } from "types/ledgers";
 
 import { LedgerSetupWizard } from "./LedgerSetupWizard";
@@ -86,6 +87,27 @@ function createDefaultActionMocks(progress: LedgerSetupProgress | null) {
     },
     saveDraft: createSaveDraftMock(progress ?? undefined),
     submitBasicInfo: vi.fn<LedgerSetupBasicInfoStateAction>(async () => ({})),
+  };
+}
+
+/**
+ * 打开向导的入口（LedgerSetupWizardLauncher）使用的 Action mock：
+ * 打开时读取向导数据立即成功并返回指定进度，向导内各 Action 同 createLedgerSetupWizardActionMocks。
+ */
+export function createLedgerSetupWizardLauncherActionMocks(
+  progress: LedgerSetupProgress | null = null,
+) {
+  return {
+    loadWizard: vi.fn<LedgerSetupWizardViewLoadAction>(async () => ({
+      view: {
+        defaultRootCategoryNames: [
+          ...ledgerSetupDefaultRootCategoryNamesFixture,
+        ],
+        defaults: ledgerSetupWizardTestDefaults,
+        progress,
+      },
+    })),
+    wizard: createLedgerSetupWizardActionMocks({ progress }),
   };
 }
 

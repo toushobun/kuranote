@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import { createDashboardAccountSummary } from "@/test/mocks/dashboard";
 
@@ -22,19 +22,20 @@ describe("DashboardMonthSummaryCard", () => {
   });
 
   it("无账本时显示创建账本入口并保留插图位", () => {
+    const onCreateLedger = vi.fn();
     render(
       <DashboardMonthSummaryCard
         accounts={[]}
         hasLedger={false}
         monthLabel="2026年5月"
+        onCreateLedger={onCreateLedger}
       />,
     );
 
     expect(screen.getByText("等待创建账本")).toBeTruthy();
     expect(screen.getByText("还没有账本，暂时无法显示账户余额")).toBeTruthy();
-    expect(
-      screen.getByRole("link", { name: "创建第一个账本" }),
-    ).toHaveAttribute("href", "/ledgers/new");
+    fireEvent.click(screen.getByRole("button", { name: "创建第一个账本" }));
+    expect(onCreateLedger).toHaveBeenCalledTimes(1);
     expect(
       screen.getByTestId("dashboard-no-ledger-account-illustration-slot"),
     ).toBeTruthy();

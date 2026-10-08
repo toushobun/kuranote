@@ -161,11 +161,21 @@ export const ledgerSetupCompleteMessages = {
   title: "一切就绪！",
 } as const;
 
-/** 仅非生产环境可访问的向导预览页（#395 实施拆分第 8 项移除）。 */
-export const ledgerSetupPreviewPageMessages = {
-  description:
-    "仅供验收创建账本向导，正式入口切换后移除。关闭向导后可以重新打开。",
-  loading: "创建账本向导预览加载中",
-  open: "打开创建账本向导",
-  title: "创建账本向导预览",
+/** 打开向导的入口（首页「继续创建」、账本管理页「创建中」条目）。 */
+export const ledgerSetupEntryMessages = {
+  close: "关闭",
+  continue: "继续创建",
+  continueCardTitle: (ledgerName: string) => `「${ledgerName}」还没创建完`,
+  continueLedger: (ledgerName: string) => `继续创建${ledgerName}`,
+  dashboardSubtitle: "完成创建后，就可以开始记录家庭收支了",
+  dashboardTitle: "你的账本还差一点",
+  inProgressLabel: "创建中",
+  loadErrorTitle: "创建账本向导读取失败",
+  loading: "正在打开创建账本向导",
+  progress: (step: number, stepLabel: string) =>
+    `进行到第 ${step} 步 · ${stepLabel}`,
+  progressLabel: "创建进度",
+  retry: "重试",
+  stepCount: (step: number, stepCount: number) =>
+    `第 ${step} / ${stepCount} 步`,
 } as const;

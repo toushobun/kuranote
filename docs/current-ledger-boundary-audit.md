@@ -134,7 +134,7 @@ Parent：#380
   - 创建记账忽略客户端伪造的 `ledgerId`。
 - `src/internal/cache/currentLedger.test.ts`
   - 固化所有依赖 current ledger 的刷新路径。
-- `src/internal/ledger/adapter/next/actions/ledgerCreate.test.ts`
+- `src/internal/ledger/adapter/next/actions/ledgerSetup.test.ts`（创建账本向导完成创建；原 `/ledgers/new` 的 `ledgerCreate.test.ts` 已随旧页面移除）
 - `src/internal/ledger/adapter/next/actions/currentLedger.test.ts`
 - `src/internal/ledger/adapter/next/actions/ledgerInvite.test.ts`
   - 三条 current ledger 变化路径统一使用完整刷新范围。

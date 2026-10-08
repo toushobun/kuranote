@@ -9,6 +9,8 @@ import { createRequestContainer } from "internal/container";
 import { updateCurrentLedger } from "internal/ledger/adapter/next/actions/currentLedger";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { getCurrentLedgerContext } from "internal/ledger/adapter/next/currentLedger";
+import { ledgerSetupWizardLauncherActions } from "internal/ledger/adapter/next/ledgerSetupWizardLauncherActions";
+import { loadLedgerSetupInProgressSummary } from "internal/ledger/adapter/next/loadLedgerSetupWizard";
 import { LedgersActionStateTemplate } from "templates/ledgers/LedgersActionState";
 
 function getLedgerSwitchResult(
@@ -38,9 +40,12 @@ export default async function LedgersRoute({
 
   const dependencies = await createServerRequestDependencies();
   const container = createRequestContainer(dependencies);
-  const memberCountByLedgerId = await container.ledger.service.getMemberCounts(
-    ledgers.map((ledger) => ledger.id),
-  );
+  const [memberCountByLedgerId, setupInProgress] = await Promise.all([
+    container.ledger.service.getMemberCounts(
+      ledgers.map((ledger) => ledger.id),
+    ),
+    loadLedgerSetupInProgressSummary(),
+  ]);
   const ledgersWithMemberCount = ledgers.map((ledger) => ({
     ...ledger,
     memberCount: memberCountByLedgerId.get(ledger.id) ?? 0,
@@ -50,6 +55,8 @@ export default async function LedgersRoute({
     <LedgersActionStateTemplate
       currentLedgerId={currentLedger.id}
       ledgers={ledgersWithMemberCount}
+      setupInProgress={setupInProgress}
+      setupWizardActions={ledgerSetupWizardLauncherActions}
       switchResult={getLedgerSwitchResult(resolvedSearchParams.result)}
       updateCurrentLedgerAction={updateCurrentLedger}
     />

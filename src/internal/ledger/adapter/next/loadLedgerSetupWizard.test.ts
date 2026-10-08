@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createLedgerSetupProgressFixture } from "test/mocks/ledgerSetup";
 
 import {
+  loadLedgerSetupInProgressSummary,
   loadLedgerSetupWizard,
   readLedgerSetupProgress,
 } from "./loadLedgerSetupWizard";
@@ -116,5 +117,31 @@ describe("loadLedgerSetupWizard", () => {
     );
 
     await expect(loadLedgerSetupWizard()).rejects.toThrow("categories failed");
+  });
+});
+
+describe("loadLedgerSetupInProgressSummary", () => {
+  it("只返回创建中账本的名称与步骤，不读取模板与默认分类", async () => {
+    await expect(loadLedgerSetupInProgressSummary()).resolves.toEqual({
+      name: progress.setup.name,
+      step: progress.setup.step,
+    });
+    expect(mocks.getTemplate).not.toHaveBeenCalled();
+    expect(mocks.listDefaultRootCategoryNames).not.toHaveBeenCalled();
+    expect(mocks.getCreateDefaults).not.toHaveBeenCalled();
+  });
+
+  it("没有创建中账本时返回 null", async () => {
+    mocks.getCurrentUserSetup.mockResolvedValue(null);
+
+    await expect(loadLedgerSetupInProgressSummary()).resolves.toBeNull();
+  });
+
+  it("读取失败时不吞掉异常", async () => {
+    mocks.getCurrentUserSetup.mockRejectedValue(new Error("load failed"));
+
+    await expect(loadLedgerSetupInProgressSummary()).rejects.toThrow(
+      "load failed",
+    );
   });
 });
