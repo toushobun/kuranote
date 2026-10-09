@@ -283,6 +283,14 @@ migration 在新增 CHECK 之前，把残留的匿名待接受邀请（`placehol
 
 完成写入的放行方式：写入业务数据时账本仍为 in_progress，`current_user_can_manage_ledger` / `current_user_can_write_ledger` 不放宽。`complete_ledger_setup` 校验 owner 与创建中状态后，把事务内 GUC `app.ledger_setup_completion_ledger_id` 设为该账本 ID，权限 trigger 只对「INSERT + 同一账本 + 当前用户自己的创建中账本」放行；业务数据写完立即清空，再以 `app.allow_ledger_setup_update` 标记 completed。payload 由 Service 根据数据库中的草稿与代码模板生成；owner 直接调用 RPC 时最多向自己的账本写入普通数据，与完成后手动添加等价。
 
+## Issue #875：放弃创建
+
+`abandon_ledger_setup(uuid)` 固定 `search_path = pg_catalog, pg_temp`，仅授予 authenticated；撤销 PUBLIC、anon、service_role 的执行权限。身份取自 `auth.uid()`，先锁定 ledger 行，再检查 active owner、未归档 in_progress、无其他成员（包含 removed / invited）、无占位成员、无任何邀请、无交易及关联；与完成写入串行化。
+
+稳定 detail：`auth_required`、`ledger_setup_not_found`、`ledger_setup_not_in_progress`、`ledger_setup_has_members`、`ledger_setup_has_transactions`。Repository 精确映射稳定业务码，由 Service 转换为认证、未找到或状态冲突异常。非 owner、已归档与不存在统一返回 `ledger_setup_not_found`，锁与权限校验复用 `lock_current_user_setup_ledger`。
+
+清理时设置事务内 `app.ledger_setup_abandonment_ledger_id`，结束立即清空。内部函数 `ledger_setup_abandonment_allows_delete(uuid)` 只接受同一 ID、当前 owner、未归档 in_progress，撤销所有客户端执行权限。仅为 ledger 本体与 ledger_member 的管理 trigger 增加 DELETE 放行分支；不改写商家相关 trigger；RLS、`current_user_can_manage_ledger`、`current_user_can_write_ledger` 不变，客户端仍无法直接 DELETE ledger。外键逐表处理见 [数据库结构维护](database-schema.md)。
+
 ## 自动化检查
 
 `npm run db:security-definer:check` 同时检查：

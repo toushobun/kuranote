@@ -24,6 +24,7 @@ const setupProgress = createLedgerSetupProgressFixture({
   step: 3,
 });
 const setupInProgress: LedgerSetupInProgressSummary = {
+  id: "00000000-0000-4000-8000-000000000001",
   name: setupProgress.setup.name,
   step: setupProgress.setup.step,
 };

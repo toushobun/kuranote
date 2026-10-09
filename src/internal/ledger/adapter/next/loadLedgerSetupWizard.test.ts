@@ -121,8 +121,9 @@ describe("loadLedgerSetupWizard", () => {
 });
 
 describe("loadLedgerSetupInProgressSummary", () => {
-  it("只返回创建中账本的名称与步骤，不读取模板与默认分类", async () => {
+  it("只返回创建中账本的 ID、名称与步骤，不读取模板与默认分类", async () => {
     await expect(loadLedgerSetupInProgressSummary()).resolves.toEqual({
+      id: progress.setup.id,
       name: progress.setup.name,
       step: progress.setup.step,
     });

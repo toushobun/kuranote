@@ -1,3 +1,4 @@
+import Box from "@mui/material/Box";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import {
@@ -68,6 +69,7 @@ export const SetupInProgress: Story = {
   name: "有创建中账本",
   args: {
     setupInProgress: {
+      id: "00000000-0000-4000-8000-000000000001",
       name: setupProgress.setup.name,
       step: setupProgress.setup.step,
     },
@@ -75,6 +77,18 @@ export const SetupInProgress: Story = {
     setupWizardActions:
       createLedgerSetupWizardLauncherStoryActions(setupProgress),
   },
+};
+
+export const SetupInProgressMobile: Story = {
+  ...SetupInProgress,
+  name: "创建中账本（360px 手机宽度）",
+  decorators: [
+    (Story) => (
+      <Box sx={{ width: 360, maxWidth: "100%" }}>
+        <Story />
+      </Box>
+    ),
+  ],
 };
 
 export const SwitchSucceeded: Story = {

@@ -403,3 +403,38 @@ describe("createSupabaseLedgerSetupRepository.complete", () => {
     );
   });
 });
+
+describe("createSupabaseLedgerSetupRepository.abandon", () => {
+  it("调用放弃创建 RPC", async () => {
+    const { repository, supabase } = createRepository();
+    await expect(repository.abandon(ledgerId)).resolves.toEqual({ ok: true });
+    expect(supabase.rpc).toHaveBeenCalledWith("abandon_ledger_setup", {
+      p_ledger_id: ledgerId,
+    });
+  });
+  it.each([
+    ["auth_required", ledgerCreateErrorCodes.authRequired],
+    ["ledger_setup_not_found", ledgerSetupErrorCodes.notFound],
+    ["ledger_setup_not_in_progress", ledgerSetupErrorCodes.notInProgress],
+    ["ledger_setup_has_members", ledgerSetupErrorCodes.hasMembers],
+    ["ledger_setup_has_transactions", ledgerSetupErrorCodes.hasTransactions],
+  ])("精确转换业务 detail %s", async (details, code) => {
+    const { repository } = createRepository({
+      error: { details, message: "private" },
+    });
+    await expect(repository.abandon(ledgerId)).resolves.toEqual({
+      code,
+      ok: false,
+    });
+  });
+  it("不按 message 猜测业务错误且不泄露数据库信息", async () => {
+    const { repository, logger } = createRepository({
+      error: { code: "XX000", message: "ledger_setup_not_found" },
+    });
+    await expect(repository.abandon(ledgerId)).rejects.toMatchObject({
+      name: "RepositoryError",
+      message: ledgerSetupWriteErrorMessages.abandonFailed,
+    });
+    expect(logger.error).toHaveBeenCalled();
+  });
+});

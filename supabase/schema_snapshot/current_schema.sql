@@ -35,6 +35,38 @@ CREATE TYPE "public"."transaction_item_special_status" AS ENUM (
 
 ALTER TYPE "public"."transaction_item_special_status" OWNER TO "postgres";
 
+
+CREATE OR REPLACE FUNCTION "public"."abandon_ledger_setup"("p_ledger_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+    v_ledger public.ledger;
+begin
+    v_ledger := public.lock_current_user_setup_ledger(p_ledger_id);
+    if exists (select 1 from public.ledger_member where ledger_id = p_ledger_id and user_id <> v_ledger.owner_user_id)
+       or exists (select 1 from public.ledger_placeholder_member where ledger_id = p_ledger_id)
+       or exists (select 1 from public.ledger_invite where ledger_id = p_ledger_id) then
+        raise exception 'ledger_setup_has_members' using errcode = '55000', detail = 'ledger_setup_has_members';
+    end if;
+    if exists (select 1 from public.transaction_record where ledger_id = p_ledger_id)
+       or exists (select 1 from public.transaction_item where ledger_id = p_ledger_id)
+       or exists (select 1 from public.transaction_item_refund_link where ledger_id = p_ledger_id)
+       or exists (select 1 from public.transaction_item_reimbursement_link where ledger_id = p_ledger_id) then
+        raise exception 'ledger_setup_has_transactions' using errcode = '55000', detail = 'ledger_setup_has_transactions';
+    end if;
+    perform set_config('app.ledger_setup_abandonment_ledger_id', p_ledger_id::text, true);
+    -- 草稿随 ledger 本体删除；只清理创建阶段实际写入的成员设置与 owner 成员。
+    delete from public.ledger_member_display_setting where ledger_id = p_ledger_id;
+    delete from public.ledger_member where ledger_id = p_ledger_id;
+    delete from public.ledger where id = p_ledger_id;
+    perform set_config('app.ledger_setup_abandonment_ledger_id', '', true);
+end;
+$$;
+
+
+ALTER FUNCTION "public"."abandon_ledger_setup"("p_ledger_id" "uuid") OWNER TO "postgres";
+
 SET default_tablespace = '';
 
 SET default_table_access_method = "heap";
@@ -2857,6 +2889,12 @@ begin
         return new;
     end if;
 
+    -- 仅放弃创建 RPC 在锁定与校验后打开；不改变 RLS 或一般管理权限。
+    if tg_table_name = 'ledger' and tg_op = 'DELETE'
+       and public.ledger_setup_abandonment_allows_delete(v_ledger_id) then
+        return old;
+    end if;
+
     if v_ledger_id is null or not public.current_user_can_manage_ledger(v_ledger_id) then
         raise exception 'permission_denied' using errcode = '42501';
     end if;
@@ -2951,6 +2989,11 @@ begin
        and new.removed_at is null
        and new.removed_by is null then
         return new;
+    end if;
+
+    -- 仅放弃创建 RPC 在锁定与校验后打开；不改变 RLS 或一般管理权限。
+    if tg_op = 'DELETE' and public.ledger_setup_abandonment_allows_delete(v_ledger_id) then
+        return old;
     end if;
 
     if not public.current_user_can_manage_ledger(v_ledger_id) then
@@ -4082,6 +4125,19 @@ $$;
 
 
 ALTER FUNCTION "public"."ledger_default_categories"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."ledger_setup_abandonment_allows_delete"("p_ledger_id" "uuid") RETURNS boolean
+    LANGUAGE "sql" STABLE
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+    select p_ledger_id::text = nullif(current_setting('app.ledger_setup_abandonment_ledger_id', true), '')
+       and exists (select 1 from public.ledger l where l.id = p_ledger_id
+           and l.owner_user_id = auth.uid() and l.setup_status = 'in_progress' and not l.is_archived);
+$$;
+
+
+ALTER FUNCTION "public"."ledger_setup_abandonment_allows_delete"("p_ledger_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."ledger_setup_completion_allows_insert"("p_ledger_id" "uuid") RETURNS boolean
@@ -10717,6 +10773,11 @@ GRANT USAGE ON SCHEMA "public" TO "service_role";
 
 
 
+REVOKE ALL ON FUNCTION "public"."abandon_ledger_setup"("p_ledger_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."abandon_ledger_setup"("p_ledger_id" "uuid") TO "authenticated";
+
+
+
 GRANT SELECT,INSERT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."ledger_member" TO "authenticated";
 GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."ledger_member" TO "service_role";
 
@@ -10981,6 +11042,10 @@ REVOKE ALL ON FUNCTION "public"."ledger_active_member_display_name_exists"("p_le
 
 
 REVOKE ALL ON FUNCTION "public"."ledger_default_categories"() FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."ledger_setup_abandonment_allows_delete"("p_ledger_id" "uuid") FROM PUBLIC;
 
 
 

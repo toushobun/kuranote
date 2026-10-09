@@ -40,6 +40,7 @@ import {
 } from "molecules/ui/OperationFeedbackDialogs";
 import { InlineHint } from "molecules/ui/InlineHint/InlineHint";
 import { getLedgerSetupProgressSummary } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupProgressSummary";
+import { LedgerSetupAbandonButton } from "organisms/ledgers/LedgerSetupAbandonButton/LedgerSetupAbandonButton";
 import { LedgerSetupWizardLauncher } from "organisms/ledgers/LedgerSetupWizardLauncher/LedgerSetupWizardLauncher";
 import { useLedgerSetupWizardLauncher } from "organisms/ledgers/LedgerSetupWizardLauncher/useLedgerSetupWizardLauncher";
 import {
@@ -55,6 +56,7 @@ import { designTokens } from "theme/theme";
 import { typographyStyles } from "theme/typographyTokens";
 import type { ServerAction } from "types/actions";
 import type {
+  LedgerSetupAbandonAction,
   LedgerSetupInProgressSummary,
   LedgerSetupWizardLauncherActions,
 } from "types/ledgers";
@@ -189,6 +191,8 @@ export function LedgersTemplate({
             ))}
             {setupInProgress ? (
               <LedgerSetupInProgressItem
+                abandonAction={setupWizardActions.wizard.abandonSetup}
+                onAbandoned={setupWizard.closeWizard}
                 onContinue={() => setupWizard.openWizard("resume")}
                 setup={setupInProgress}
               />
@@ -328,15 +332,20 @@ function LedgerListItem({
 }
 
 /**
- * 创建中账本：不能切换使用，也不进入账本设置，只提供「继续创建」打开向导。
+ * 创建中账本：不能切换使用或进入设置，提供「继续创建」与「放弃创建」。
  */
 function LedgerSetupInProgressItem({
+  abandonAction,
+  onAbandoned,
   onContinue,
   setup,
 }: {
+  abandonAction: LedgerSetupAbandonAction;
+  onAbandoned: () => void;
   onContinue: () => void;
   setup: LedgerSetupInProgressSummary;
 }) {
+  const [busy, setBusy] = useState(false);
   const progress = getLedgerSetupProgressSummary(setup.step);
 
   return (
@@ -346,37 +355,50 @@ function LedgerSetupInProgressItem({
       disablePadding
       sx={inProgressItemCardSx}
     >
-      <Stack direction="row" spacing={1.25} sx={inProgressItemContentSx}>
-        <Box sx={inProgressItemIconBoxSx}>
-          <MenuBookRoundedIcon fontSize="small" />
-        </Box>
+      <Stack spacing={0.5} sx={{ p: dataItemCardPadding }}>
+        <Stack direction="row" spacing={1.25} sx={inProgressItemContentSx}>
+          <Box sx={inProgressItemIconBoxSx}>
+            <MenuBookRoundedIcon fontSize="small" />
+          </Box>
 
-        <Stack spacing={0.35} sx={{ flex: 1, minWidth: 0 }}>
-          <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
-            <Typography component="p" noWrap sx={ledgerItemNameSx}>
-              {setup.name}
+          <Stack spacing={0.35} sx={{ flex: 1, minWidth: 0 }}>
+            <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
+              <Typography component="p" noWrap sx={ledgerItemNameSx}>
+                {setup.name}
+              </Typography>
+              <Chip
+                label={ledgerSetupEntryMessages.inProgressLabel}
+                size="small"
+                sx={inProgressChipSx}
+              />
+            </Stack>
+
+            <Typography color="text.secondary" variant="body2">
+              {progress.description}
             </Typography>
-            <Chip
-              label={ledgerSetupEntryMessages.inProgressLabel}
-              size="small"
-              sx={inProgressChipSx}
-            />
           </Stack>
 
-          <Typography color="text.secondary" variant="body2">
-            {progress.description}
-          </Typography>
+          <Button
+            disabled={busy}
+            aria-label={ledgerSetupEntryMessages.continueLedger(setup.name)}
+            endIcon={<ChevronRightRoundedIcon />}
+            onClick={onContinue}
+            size="small"
+            sx={continueButtonSx}
+          >
+            {ledgerSetupEntryMessages.continue}
+          </Button>
         </Stack>
-
-        <Button
-          aria-label={ledgerSetupEntryMessages.continueLedger(setup.name)}
-          endIcon={<ChevronRightRoundedIcon />}
-          onClick={onContinue}
-          size="small"
-          sx={continueButtonSx}
-        >
-          {ledgerSetupEntryMessages.continue}
-        </Button>
+        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+          <LedgerSetupAbandonButton
+            size="small"
+            onBusyChange={setBusy}
+            action={abandonAction}
+            ledgerId={setup.id}
+            ledgerName={setup.name}
+            onSuccess={onAbandoned}
+          />
+        </Box>
       </Stack>
     </DataItemCard>
   );
@@ -657,8 +679,6 @@ const inProgressItemCardSx = {
 
 const inProgressItemContentSx = {
   alignItems: "center",
-  minHeight: 76,
-  p: dataItemCardPadding,
   "& > :not(:last-child)": {
     opacity: 0.8,
   },

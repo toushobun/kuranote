@@ -40,6 +40,7 @@ export function createLedgerSetupWizardStoryActions(
   });
 
   return {
+    abandonSetup: async () => ({}),
     completeSetup: async () => ({ completed: true }),
     createInvite: async () => ({}),
     loadInviteMembers: async () => ({ members: inviteMembers }),

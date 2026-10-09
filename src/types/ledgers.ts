@@ -105,8 +105,13 @@ export type LedgerSetupWizardView = LedgerCreateDefaults & {
   progress: LedgerSetupProgress | null;
 };
 
+export type LedgerSetupAbandonAction = (input: {
+  ledgerId: string;
+}) => Promise<ActionState>;
+
 /** 向导各步骤调用的 Server Action。后续步骤在此追加。 */
 export type LedgerSetupWizardActions = {
+  abandonSetup: LedgerSetupAbandonAction;
   /** 第 5 步完成创建：写入默认数据并切换为当前账本。 */
   completeSetup: LedgerSetupCompleteAction;
   /** 第 6 步邀请成员（与账本设置页相同的邀请写入，成功后不跳转页面）。 */
@@ -135,7 +140,10 @@ export type LedgerSetupWizardLauncherActions = {
 };
 
 /** 首页「继续创建」卡片与账本管理页「创建中」条目显示的创建中账本摘要。 */
-export type LedgerSetupInProgressSummary = Pick<LedgerSetup, "name" | "step">;
+export type LedgerSetupInProgressSummary = Pick<
+  LedgerSetup,
+  "id" | "name" | "step"
+>;
 
 export type LedgerSetupBasicInfoActionState = ActionState & {
   /** 提交成功，或已存在创建中账本时，重新读取的最新进度。 */

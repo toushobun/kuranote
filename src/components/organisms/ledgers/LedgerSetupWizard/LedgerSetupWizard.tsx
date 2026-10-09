@@ -11,6 +11,7 @@ import Typography from "@mui/material/Typography";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useId } from "react";
 
+import { LedgerSetupAbandonButton } from "organisms/ledgers/LedgerSetupAbandonButton/LedgerSetupAbandonButton";
 import { ledgerSetupWizardMessages } from "config/ledgerSetupMessages";
 import { ActionPromptDialog } from "molecules/ui/OperationFeedbackDialogs";
 import { StepProgress } from "molecules/ui/StepProgress/StepProgress";
@@ -147,7 +148,21 @@ export function LedgerSetupWizard({
       </Dialog>
 
       <ActionPromptDialog
+        disabled={wizard.busy}
         description={closeConfirmMessages.description}
+        extraAction={
+          wizard.progress && (
+            <Box sx={{ mt: 1 }}>
+              <LedgerSetupAbandonButton
+                onBusyChange={wizard.setBusy}
+                action={actions.abandonSetup}
+                ledgerId={wizard.progress.setup.id}
+                ledgerName={wizard.progress.setup.name}
+                onSuccess={wizard.closeLater}
+              />
+            </Box>
+          )
+        }
         icon={<BookmarkRoundedIcon />}
         onClose={wizard.continueSetup}
         onPrimary={wizard.continueSetup}

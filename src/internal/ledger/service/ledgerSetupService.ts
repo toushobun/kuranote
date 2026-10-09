@@ -47,6 +47,7 @@ export type SaveLedgerSetupDraftCommand = {
 };
 
 export type LedgerSetupService = {
+  abandon(ledgerId: string): Promise<void>;
   /**
    * 完成创建：按数据库中的草稿与代码模板生成 payload，在同一事务内写入默认数据，
    * 将账本标记为已完成并切换为当前账本。
@@ -86,6 +87,8 @@ function toAppError(code: LedgerSetupRpcErrorCode): AppError {
   }
 
   if (
+    code === ledgerSetupErrorCodes.hasMembers ||
+    code === ledgerSetupErrorCodes.hasTransactions ||
     code === ledgerSetupErrorCodes.currencyMismatch ||
     code === ledgerSetupErrorCodes.inProgressExists ||
     code === ledgerSetupErrorCodes.notInProgress ||
@@ -128,6 +131,16 @@ export function createLedgerSetupService({
   }
 
   return {
+    async abandon(ledgerId) {
+      const setup = await findSetup();
+      if (!setup || setup.id !== ledgerId) {
+        throw toAppError(ledgerSetupErrorCodes.notFound);
+      }
+      const result = await ledgerSetupRepository.abandon(ledgerId);
+      if (!result.ok) {
+        throw toAppError(result.code);
+      }
+    },
     async complete(ledgerId) {
       const setup = await findSetup();
 

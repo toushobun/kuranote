@@ -4,6 +4,7 @@ import {
   renameLedgerPlaceholderMember,
 } from "internal/ledger/adapter/next/actions/ledgerPlaceholderMember";
 import {
+  abandonLedgerSetup,
   completeLedgerSetup,
   loadLedgerSetupInviteMembers,
   loadLedgerSetupWizardView,
@@ -20,6 +21,7 @@ export const ledgerSetupWizardLauncherActions: LedgerSetupWizardLauncherActions 
   {
     loadWizard: loadLedgerSetupWizardView,
     wizard: {
+      abandonSetup: abandonLedgerSetup,
       completeSetup: completeLedgerSetup,
       // 不使用账本设置页的 createLedgerInvite：它成功后会跳转到账本设置页。
       createInvite: createLedgerSetupInvite,

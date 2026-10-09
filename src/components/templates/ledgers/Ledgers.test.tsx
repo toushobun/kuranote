@@ -1,8 +1,13 @@
 import {
+  openLedgerSetupAbandonConfirm,
+  confirmLedgerSetupAbandon,
+} from "test/ledgerSetupAbandon";
+import {
   cleanup,
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
@@ -79,7 +84,11 @@ function renderWithSetupInProgress() {
   const setupWizardActions =
     createLedgerSetupWizardLauncherActionMocks(progress);
   renderTemplate({
-    setupInProgress: { name: progress.setup.name, step: progress.setup.step },
+    setupInProgress: {
+      id: "00000000-0000-4000-8000-000000000001",
+      name: progress.setup.name,
+      step: progress.setup.step,
+    },
     setupWizardActions,
   });
   return setupWizardActions;
@@ -281,5 +290,16 @@ describe("LedgersTemplate", () => {
       within(container).getAllByRole("button", { name: /新增账本/ })[1],
     );
     expect(defaultProps.setupWizardActions.loadWizard).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("LedgersTemplate 放弃创建", () => {
+  it("创建中条目提供二次确认的放弃操作", async () => {
+    const actions = renderWithSetupInProgress();
+    const dialog = await openLedgerSetupAbandonConfirm("爸妈账本");
+    confirmLedgerSetupAbandon(dialog);
+    await waitFor(() =>
+      expect(actions.wizard.abandonSetup).toHaveBeenCalledOnce(),
+    );
   });
 });

@@ -83,6 +83,8 @@ const ledgerSetupRpcErrorMap = {
   ledger_setup_draft_currency_mismatch: ledgerSetupErrorCodes.currencyMismatch,
   ledger_setup_draft_invalid: ledgerSetupErrorCodes.draftInvalid,
   ledger_setup_draft_too_large: ledgerSetupErrorCodes.draftTooLarge,
+  ledger_setup_has_members: ledgerSetupErrorCodes.hasMembers,
+  ledger_setup_has_transactions: ledgerSetupErrorCodes.hasTransactions,
   ledger_setup_in_progress_exists: ledgerSetupErrorCodes.inProgressExists,
   ledger_setup_not_found: ledgerSetupErrorCodes.notFound,
   ledger_setup_not_in_progress: ledgerSetupErrorCodes.notInProgress,
@@ -91,10 +93,11 @@ const ledgerSetupRpcErrorMap = {
 } as const satisfies Readonly<Record<string, LedgerSetupRpcErrorCode>>;
 
 /**
- * 创建中账本的读写。所有操作都经由 SECURITY DEFINER RPC，
+ * 创建中账本的读写。向导写入经由 SECURITY DEFINER RPC，
  * owner 与创建中状态由数据库按 auth.uid() 校验。
  */
 export interface LedgerSetupRepository {
+  abandon(ledgerId: string): Promise<LedgerSetupWriteResult>;
   complete(input: CompleteLedgerSetupInput): Promise<LedgerSetupWriteResult>;
   create(input: CreateLedgerInput): Promise<CreateLedgerSetupResult>;
   /** userId 为当前登录用户，用于读取其在该账本中的显示名与个性色。 */
@@ -112,6 +115,26 @@ export function createSupabaseLedgerSetupRepository(
   logger: Logger,
 ): LedgerSetupRepository {
   return {
+    async abandon(ledgerId) {
+      const { error } = await supabase.rpc("abandon_ledger_setup", {
+        p_ledger_id: ledgerId,
+      });
+      if (error) {
+        const code = findRpcBusinessError(error, ledgerSetupRpcErrorMap);
+        if (code) return { code, ok: false };
+
+        logger.error("[ledger] failed to abandon ledger setup", {
+          databaseCode: error.code,
+          ledgerId,
+        });
+        throw toRepositoryError(
+          "ledger_setup_abandon_failed",
+          ledgerSetupWriteErrorMessages.abandonFailed,
+        );
+      }
+
+      return { ok: true };
+    },
     async complete({ ledgerId, payload }) {
       const { error } = await supabase.rpc("complete_ledger_setup", {
         p_ledger_id: ledgerId,

@@ -35,6 +35,7 @@ import type {
 } from "types/ledgers";
 
 import {
+  abandonLedgerSetup,
   completeLedgerSetup,
   loadLedgerSetupInviteMembers,
   loadLedgerSetupWizardView,
@@ -43,6 +44,7 @@ import {
 } from "./ledgerSetup";
 
 const mocks = vi.hoisted(() => ({
+  abandon: vi.fn(),
   complete: vi.fn(),
   create: vi.fn(),
   createDependencies: vi.fn(),
@@ -79,6 +81,7 @@ vi.mock("internal/container", () => ({
         listUnclaimed: mocks.listUnclaimedPlaceholders,
       },
       setupService: {
+        abandon: mocks.abandon,
         complete: mocks.complete,
         create: mocks.create,
         getCurrentUserSetup: mocks.getCurrentUserSetup,
@@ -740,5 +743,48 @@ describe("loadLedgerSetupWizardView", () => {
       "NEXT_REDIRECT:/login",
     );
     expect(mocks.getCurrentUserSetup).not.toHaveBeenCalled();
+  });
+});
+
+describe("abandonLedgerSetup", () => {
+  it("成功后刷新首页与账本页的共用缓存清单", async () => {
+    await expect(
+      abandonLedgerSetup({ ledgerId: ledgerSetupFixtureId }),
+    ).resolves.toEqual({});
+    expect(mocks.abandon).toHaveBeenCalledWith(ledgerSetupFixtureId);
+    expect(mocks.revalidateLedgerMutation).toHaveBeenCalledOnce();
+  });
+  it("非法 ID 返回 inline 失败态", async () => {
+    expect(await abandonLedgerSetup({ ledgerId: "invalid" })).toMatchObject({
+      error: ledgerSetupErrorMessages[ledgerSetupErrorCodes.notFound],
+      errorKey: expect.any(String),
+    });
+    expect(mocks.abandon).not.toHaveBeenCalled();
+  });
+  it("目标不存在或不可访问时保留安全文案且不刷新", async () => {
+    mocks.abandon.mockRejectedValue(
+      new NotFoundError(
+        ledgerSetupErrorCodes.notFound,
+        ledgerSetupErrorMessages[ledgerSetupErrorCodes.notFound],
+      ),
+    );
+    expect(
+      await abandonLedgerSetup({ ledgerId: ledgerSetupFixtureId }),
+    ).toMatchObject({
+      error: ledgerSetupErrorMessages[ledgerSetupErrorCodes.notFound],
+      errorKey: expect.any(String),
+    });
+    expect(mocks.revalidateLedgerMutation).not.toHaveBeenCalled();
+  });
+  it("未知异常返回安全文案", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.abandon.mockRejectedValue(new Error("private"));
+    expect(
+      await abandonLedgerSetup({ ledgerId: ledgerSetupFixtureId }),
+    ).toMatchObject({
+      error: ledgerSetupWriteErrorMessages.abandonFailed,
+      errorKey: expect.any(String),
+    });
+    log.mockRestore();
   });
 });

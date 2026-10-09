@@ -275,7 +275,7 @@ describe("ConfirmationDialog", () => {
 });
 
 describe("ActionPromptDialog", () => {
-  function renderPrompt() {
+  function renderPrompt(disabled = false, extraAction?: ReactNode) {
     const handlers = {
       onClose: vi.fn(),
       onPrimary: vi.fn(),
@@ -286,6 +286,8 @@ describe("ActionPromptDialog", () => {
       <ThemeProvider theme={theme}>
         <ActionPromptDialog
           {...handlers}
+          disabled={disabled}
+          extraAction={extraAction}
           description="进度已保存。"
           icon={<span data-testid="prompt-icon" />}
           open
@@ -316,6 +318,16 @@ describe("ActionPromptDialog", () => {
     );
   });
 
+  it("附加操作可独立点击且不进入无障碍说明", () => {
+    const onExtra = vi.fn();
+    renderPrompt(false, <button onClick={onExtra}>附加操作</button>);
+    expect(screen.getByRole("dialog")).toHaveAccessibleDescription(
+      "进度已保存。",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "附加操作" }));
+    expect(onExtra).toHaveBeenCalledOnce();
+  });
+
   it("主按钮、文字按钮与 Esc 分别触发各自回调", () => {
     const handlers = renderPrompt();
 
@@ -326,6 +338,18 @@ describe("ActionPromptDialog", () => {
     expect(handlers.onPrimary).toHaveBeenCalledTimes(1);
     expect(handlers.onSecondary).toHaveBeenCalledTimes(1);
     expect(handlers.onClose).toHaveBeenCalledTimes(1);
+  });
+  it("处理中禁用两个操作并阻止 Esc 关闭", () => {
+    const handlers = renderPrompt(true);
+    for (const name of ["继续创建", "稍后再说"]) {
+      const button = screen.getByRole("button", { name });
+      expect(button).toBeDisabled();
+      fireEvent.click(button);
+    }
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    expect(handlers.onPrimary).not.toHaveBeenCalled();
+    expect(handlers.onSecondary).not.toHaveBeenCalled();
+    expect(handlers.onClose).not.toHaveBeenCalled();
   });
 });
 

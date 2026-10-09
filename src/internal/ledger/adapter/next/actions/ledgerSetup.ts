@@ -23,6 +23,7 @@ import { validateLedgerSetupBasicInfoForm } from "internal/ledger/schema/ledgerS
 import { createErrorState } from "internal/shared/adapter/next/actionState";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError, NotFoundError } from "internal/shared/errors/appError";
+import type { ActionState } from "types/actions";
 import type {
   CompleteLedgerSetupInput,
   LedgerSetupBasicInfoActionState,
@@ -322,6 +323,26 @@ export async function loadLedgerSetupWizardView(): Promise<LedgerSetupWizardView
       error,
       ledgerSetupLoadErrorMessages.loadFailed,
       "[ledger] ledger setup wizard load action failed unexpectedly",
+    );
+  }
+}
+
+/** 放弃创建仅由页面交互调用，不新增 HTTP 路由。 */
+export async function abandonLedgerSetup(input: unknown): Promise<ActionState> {
+  try {
+    const ledgerId = parseLedgerId(input);
+    if (!ledgerId) throw createNotFoundError();
+    const dependencies = await createServerRequestDependencies();
+    await createRequestContainer(dependencies).ledger.setupService.abandon(
+      ledgerId,
+    );
+    revalidateLedgerMutation();
+    return {};
+  } catch (error) {
+    return createActionErrorState(
+      error,
+      ledgerSetupWriteErrorMessages.abandonFailed,
+      "[ledger] ledger setup abandon action failed unexpectedly",
     );
   }
 }

@@ -1,29 +1,41 @@
+"use client";
+
+import { useState } from "react";
 import MenuBookRoundedIcon from "@mui/icons-material/MenuBookRounded";
 import Box from "@mui/material/Box";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
+import { LedgerSetupAbandonButton } from "organisms/ledgers/LedgerSetupAbandonButton/LedgerSetupAbandonButton";
 import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { SoftCard } from "atoms/ui/SoftCard";
 import { ledgerSetupEntryMessages } from "config/ledgerSetupMessages";
 import { getLedgerSetupProgressSummary } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupProgressSummary";
 import { designTokens } from "theme/theme";
 import { typographyStyles } from "theme/typographyTokens";
-import type { LedgerSetupInProgressSummary } from "types/ledgers";
+import type {
+  LedgerSetupAbandonAction,
+  LedgerSetupInProgressSummary,
+} from "types/ledgers";
 
 const messages = ledgerSetupEntryMessages;
 
 type LedgerSetupContinueCardProps = {
+  abandonAction: LedgerSetupAbandonAction;
+  onAbandoned: () => void;
   onContinue: () => void;
   setup: LedgerSetupInProgressSummary;
 };
 
 /** 首页「继续创建」卡片：当前没有已完成账本、但有创建中账本时显示。 */
 export function LedgerSetupContinueCard({
+  abandonAction,
+  onAbandoned,
   onContinue,
   setup,
 }: LedgerSetupContinueCardProps) {
+  const [busy, setBusy] = useState(false);
   const progress = getLedgerSetupProgressSummary(setup.step);
   const title = messages.continueCardTitle(setup.name);
 
@@ -57,9 +69,16 @@ export function LedgerSetupContinueCard({
           </Typography>
         </Stack>
 
-        <PrimaryActionButton fullWidth onClick={onContinue}>
+        <PrimaryActionButton disabled={busy} fullWidth onClick={onContinue}>
           {messages.continue}
         </PrimaryActionButton>
+        <LedgerSetupAbandonButton
+          onBusyChange={setBusy}
+          action={abandonAction}
+          ledgerId={setup.id}
+          ledgerName={setup.name}
+          onSuccess={onAbandoned}
+        />
       </Stack>
     </SoftCard>
   );
