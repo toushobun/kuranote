@@ -13,7 +13,7 @@ import { typographyStyles } from "theme/typographyTokens";
 
 const memberLoadingRows = 3;
 
-// 与 LedgerSettings 结构一致：基础信息、特殊状态设置、成员、底部操作栏。
+// 与 LedgerSettings 结构一致：基础信息、特殊状态设置、成员、危险操作占位、底部操作栏。
 export default function LedgerSettingsLoadingPage() {
   return (
     <Box
@@ -68,6 +68,8 @@ export default function LedgerSettingsLoadingPage() {
               </Stack>
             </SoftCard>
           </Stack>
+
+          <Skeleton height={110} sx={roundedSkeletonSx} variant="rounded" />
 
           <Stack direction="row" spacing={1.5}>
             <Skeleton height={44} sx={{ flex: 1 }} variant="rounded" />

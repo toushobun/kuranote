@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { ledgerSettingsResultValues, routePaths } from "config/paths";
 import { createRequestContainer } from "internal/container";
 import { canManageMembers } from "internal/ledger";
+import { deleteLedger } from "internal/ledger/adapter/next/actions/ledgerDeletion";
 import { createLedgerInvite } from "internal/ledger/adapter/next/actions/ledgerInvite";
 import {
   deleteLedgerPlaceholderMember,
@@ -52,25 +53,33 @@ export default async function LedgerSettingsRoute({
   const container = createRequestContainer(dependencies);
   // 邀请与 token 只对管理者读取；其他 active 成员只读占位摘要。
   const canManage = canManageMembers(ledger.currentUserRole);
+  let deletionImpact;
   let settingsView;
   let pendingInvites;
   let placeholderMembers;
 
   try {
-    [settingsView, pendingInvites, placeholderMembers] = await Promise.all([
-      container.ledger.settingsService.getView({
-        currentLedger,
-        ledger,
-        userId,
-      }),
-      canManage
-        ? container.ledger.inviteService.listPending({ ledgerId, userId })
-        : Promise.resolve([]),
-      container.ledger.placeholderMemberService.listUnclaimed({
-        ledgerId,
-        userId,
-      }),
-    ]);
+    [settingsView, pendingInvites, placeholderMembers, deletionImpact] =
+      await Promise.all([
+        container.ledger.settingsService.getView({
+          currentLedger,
+          ledger,
+          userId,
+        }),
+        canManage
+          ? container.ledger.inviteService.listPending({ ledgerId, userId })
+          : Promise.resolve([]),
+        container.ledger.placeholderMemberService.listUnclaimed({
+          ledgerId,
+          userId,
+        }),
+        ledger.currentUserRole === "owner"
+          ? container.ledger.settingsService.getDeletionImpact({
+              ledgerId,
+              userId,
+            })
+          : Promise.resolve(undefined),
+      ]);
   } catch (error) {
     // 用户可能在 currentLedger 快照取得后被移出账本，保持旧行为并在页面边界友好跳转。
     if (error instanceof AuthorizationError) {
@@ -86,6 +95,8 @@ export default async function LedgerSettingsRoute({
     <LedgerInvitePendingProvider pendingInvites={view.pendingInvites}>
       <LedgerSettingsActionStateTemplate
         {...view}
+        deletionImpact={deletionImpact}
+        deleteLedgerAction={deleteLedger}
         inviteAction={createLedgerInvite}
         placeholderMemberActions={
           canManage
