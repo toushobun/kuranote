@@ -415,3 +415,121 @@ describe("createSupabaseLedgerSettingsRepository.updateMemberSettings", () => {
     });
   });
 });
+
+describe("createSupabaseLedgerSettingsRepository.deleteLedger", () => {
+  it.each([
+    "auth_required",
+    "ledger_invalid",
+    "ledger_delete_forbidden",
+    "ledger_delete_not_completed",
+  ])("按稳定 detail 映射 %s", async (code) => {
+    const supabase = createSupabaseMock({
+      rpcResponse: {
+        error: { code: "42501", details: code, message: "原始错误" },
+      },
+    });
+    const repository = createSupabaseLedgerSettingsRepository(
+      supabase.client as never,
+    );
+    await expect(repository.deleteLedger(ledgerId)).resolves.toEqual({
+      ok: false,
+      code,
+    });
+    expect(supabase.client.rpc).toHaveBeenCalledWith("delete_ledger", {
+      p_ledger_id: ledgerId,
+    });
+  });
+  it("成功返回写入结果", async () => {
+    const supabase = createSupabaseMock();
+    await expect(
+      createSupabaseLedgerSettingsRepository(
+        supabase.client as never,
+      ).deleteLedger(ledgerId),
+    ).resolves.toEqual({ ok: true });
+  });
+  it("不从 message 猜测业务码且隐藏原始数据库错误", async () => {
+    const supabase = createSupabaseMock({
+      rpcResponse: {
+        error: {
+          code: "XX000",
+          details: "SQL secret",
+          message: "ledger_delete_forbidden",
+        },
+      },
+    });
+    await expect(
+      createSupabaseLedgerSettingsRepository(
+        supabase.client as never,
+      ).deleteLedger(ledgerId),
+    ).rejects.toMatchObject({
+      code: "ledger_delete_failed",
+      message: "账本删除失败，请稍后重试。",
+    });
+  });
+  it("读取目标时区分不存在与数据库失败", async () => {
+    const supabase = createSupabaseMock({
+      queryResponses: [{ data: null }, { error: { code: "XX000" } }],
+    });
+    const repository = createSupabaseLedgerSettingsRepository(
+      supabase.client as never,
+    );
+    await expect(repository.getDeletionTarget(ledgerId)).resolves.toBeNull();
+    await expect(repository.getDeletionTarget(ledgerId)).rejects.toBeInstanceOf(
+      RepositoryError,
+    );
+  });
+  it("统计包含归档数据并合并成员和占位成员", async () => {
+    const supabase = createSupabaseMock({
+      queryResponses: [
+        { count: 8 },
+        { count: 3 },
+        { count: 2 },
+        { data: [{ display_name: "宝宝" }] },
+        {
+          data: [
+            { user_id: userId, role: "owner" },
+            { user_id: otherUserId, role: "member" },
+          ],
+        },
+        {
+          data: [
+            { id: userId, display_name: "本人" },
+            { id: otherUserId, display_name: "家人" },
+          ],
+        },
+        { data: [] },
+      ],
+    });
+    const repository = createSupabaseLedgerSettingsRepository(
+      supabase.client as never,
+    );
+    await expect(
+      repository.getDeletionImpact(ledgerId, userId),
+    ).resolves.toEqual({
+      itemCount: 8,
+      accountCount: 3,
+      merchantCount: 2,
+      memberNames: ["家人", "宝宝"],
+    });
+    expect(supabase.queries[0].calls).toContainEqual({
+      method: "select",
+      args: ["id", { count: "exact", head: true }],
+    });
+  });
+  it("计数查询失败不伪装成零数据", async () => {
+    const supabase = createSupabaseMock({
+      queryResponses: [
+        { error: { code: "XX000" } },
+        {},
+        {},
+        { data: [] },
+        { data: [] },
+      ],
+    });
+    await expect(
+      createSupabaseLedgerSettingsRepository(
+        supabase.client as never,
+      ).getDeletionImpact(ledgerId, userId),
+    ).rejects.toBeInstanceOf(RepositoryError);
+  });
+});

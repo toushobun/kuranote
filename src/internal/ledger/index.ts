@@ -88,3 +88,5 @@ export {
   canViewLedger,
   canWriteTransaction,
 } from "internal/ledger/service/ledgerPermissions";
+
+export type { LedgerDeletionImpact } from "./entity/ledgerDeletion";

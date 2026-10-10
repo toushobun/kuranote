@@ -1,3 +1,4 @@
+import type { LedgerDeletionImpact } from "internal/ledger/entity/ledgerDeletion";
 import type { QueryData } from "@supabase/supabase-js";
 
 import type { CurrentLedgerRole } from "internal/ledger/entity/currentLedger";
@@ -5,6 +6,7 @@ import { ledgerSetupStatuses } from "internal/ledger/entity/ledgerSetup";
 import {
   ledgerSettingsErrorCodes,
   ledgerSettingsLoadErrorMessages,
+  ledgerSettingsErrorMessages,
   ledgerSettingsWriteErrorMessages,
   type LedgerSettingsErrorCode,
 } from "internal/ledger/errors/ledgerSettings";
@@ -45,7 +47,10 @@ export type LedgerSettingsWriteResult =
   | { ok: true }
   | { ok: false; code: LedgerSettingsErrorCode };
 
-const memberSettingsRpcErrorMap = {
+const ledgerSettingsRpcErrorMap = {
+  ledger_invalid: ledgerSettingsErrorCodes.ledgerInvalid,
+  ledger_delete_forbidden: ledgerSettingsErrorCodes.deleteForbidden,
+  ledger_delete_not_completed: ledgerSettingsErrorCodes.deleteNotCompleted,
   auth_required: ledgerSettingsErrorCodes.authRequired,
   display_color_invalid: ledgerSettingsErrorCodes.displayColorInvalid,
   display_name_placeholder_conflict:
@@ -73,6 +78,15 @@ function findLedgerBaseSettingsErrorCode(
 }
 
 export interface LedgerSettingsRepository {
+  getDeletionTarget(
+    ledgerId: string,
+  ): Promise<{ name: string; ownerUserId: string; setupStatus: string } | null>;
+  getDeletionImpact(
+    ledgerId: string,
+    ownerUserId: string,
+  ): Promise<LedgerDeletionImpact>;
+  deleteLedger(ledgerId: string): Promise<LedgerSettingsWriteResult>;
+
   getMemberRole(
     ledgerId: string,
     userId: string,
@@ -113,6 +127,99 @@ export function createSupabaseLedgerSettingsRepository(
   },
 ): LedgerSettingsRepository {
   return {
+    async getDeletionTarget(ledgerId) {
+      const { data, error } = await supabase
+        .from("ledger")
+        .select("name, owner_user_id, setup_status")
+        .eq("id", ledgerId)
+        .maybeSingle();
+      if (error) {
+        logger.error("[ledger] deletion target load failed", {
+          databaseCode: error.code,
+        });
+        throw toRepositoryError(
+          ledgerSettingsErrorCodes.deleteImpactFailed,
+          ledgerSettingsErrorMessages[
+            ledgerSettingsErrorCodes.deleteImpactFailed
+          ],
+        );
+      }
+      return data
+        ? {
+            name: data.name,
+            ownerUserId: data.owner_user_id,
+            setupStatus: data.setup_status,
+          }
+        : null;
+    },
+    async getDeletionImpact(ledgerId, ownerUserId) {
+      const [items, accounts, merchants, placeholders, members] =
+        await Promise.all([
+          supabase
+            .from("transaction_item")
+            .select("id", { count: "exact", head: true })
+            .eq("ledger_id", ledgerId),
+          supabase
+            .from("account")
+            .select("id", { count: "exact", head: true })
+            .eq("ledger_id", ledgerId),
+          supabase
+            .from("merchant")
+            .select("id", { count: "exact", head: true })
+            .eq("ledger_id", ledgerId),
+          supabase
+            .from("ledger_placeholder_member")
+            .select("display_name")
+            .eq("ledger_id", ledgerId)
+            .is("claimed_by", null),
+          this.listActiveMembers(ledgerId),
+        ]);
+      for (const result of [items, accounts, merchants, placeholders]) {
+        if (result.error) {
+          logger.error("[ledger] deletion impact load failed", {
+            databaseCode: result.error.code,
+          });
+          throw toRepositoryError(
+            ledgerSettingsErrorCodes.deleteImpactFailed,
+            ledgerSettingsErrorMessages[
+              ledgerSettingsErrorCodes.deleteImpactFailed
+            ],
+          );
+        }
+      }
+      return {
+        itemCount: items.count ?? 0,
+        accountCount: accounts.count ?? 0,
+        merchantCount: merchants.count ?? 0,
+        memberNames: [
+          ...members
+            .filter((member) => member.userId !== ownerUserId)
+            .map((member) => member.displayName ?? "未命名用户"),
+          ...(placeholders.data ?? []).map((member) => member.display_name),
+        ],
+      };
+    },
+    async deleteLedger(ledgerId) {
+      const { error } = await supabase.rpc("delete_ledger", {
+        p_ledger_id: ledgerId,
+      });
+      if (error) {
+        const code = findRpcBusinessError(error, ledgerSettingsRpcErrorMap);
+        if (code) return { ok: false, code };
+        const conflict = toConcurrentModificationError(
+          error,
+          logger,
+          "delete_ledger",
+        );
+        if (conflict) throw conflict;
+        logger.error("[ledger] deletion failed", { databaseCode: error.code });
+        throw toRepositoryError(
+          ledgerSettingsErrorCodes.deleteFailed,
+          ledgerSettingsErrorMessages[ledgerSettingsErrorCodes.deleteFailed],
+        );
+      }
+      return { ok: true };
+    },
     async getMemberRole(ledgerId, userId) {
       const { data, error } = await supabase
         .from("ledger_member")
@@ -303,7 +410,7 @@ export function createSupabaseLedgerSettingsRepository(
       });
 
       if (error) {
-        const code = findRpcBusinessError(error, memberSettingsRpcErrorMap);
+        const code = findRpcBusinessError(error, ledgerSettingsRpcErrorMap);
         if (!code) {
           const conflict = toConcurrentModificationError(
             error,
