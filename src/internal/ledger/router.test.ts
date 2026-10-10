@@ -41,6 +41,17 @@ const headers = {
   origin: "https://kuranote.example",
 };
 
+function createSettingsService(
+  update = vi.fn(),
+): RequestContainer["ledger"]["settingsService"] {
+  return {
+    getDeletionImpact: vi.fn(),
+    deleteLedger: vi.fn(),
+    getView: vi.fn(),
+    update,
+  };
+}
+
 function createContainer(overrides: Partial<RequestContainer["ledger"]> = {}) {
   return {
     account: {} as RequestContainer["account"],
@@ -68,7 +79,7 @@ function createContainer(overrides: Partial<RequestContainer["ledger"]> = {}) {
         getCreateDefaults: vi.fn(),
         getMemberCounts: vi.fn(),
       },
-      settingsService: { getView: vi.fn(), update: vi.fn() },
+      settingsService: createSettingsService(),
       setupService: {} as RequestContainer["ledger"]["setupService"],
       ...overrides,
     },
@@ -165,7 +176,7 @@ describe("ledger router", () => {
   it("更新账本设置时传递规范化参数并刷新对应设置页", async () => {
     const update = vi.fn();
     const app = createApp(
-      createContainer({ settingsService: { getView: vi.fn(), update } }),
+      createContainer({ settingsService: createSettingsService(update) }),
     );
 
     const response = await app.request(
@@ -197,7 +208,7 @@ describe("ledger router", () => {
   it("账本设置输入无效时返回 400 且不调用 Service 或缓存失效", async () => {
     const update = vi.fn();
     const app = createApp(
-      createContainer({ settingsService: { getView: vi.fn(), update } }),
+      createContainer({ settingsService: createSettingsService(update) }),
     );
 
     const response = await app.request(

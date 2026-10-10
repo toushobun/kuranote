@@ -1,3 +1,4 @@
+import type { LedgerDeletionImpact } from "internal/ledger/entity/ledgerDeletion";
 import type { CurrentLedger } from "internal/ledger/entity/currentLedger";
 import {
   ledgerSettingsErrorCodes,
@@ -50,6 +51,16 @@ export type UpdateLedgerSettingsInput =
     };
 
 export type LedgerSettingsService = {
+  getDeletionImpact(input: {
+    ledgerId: string;
+    userId: string;
+  }): Promise<LedgerDeletionImpact>;
+  deleteLedger(input: {
+    ledgerId: string;
+    userId: string;
+    confirmationName: string;
+  }): Promise<void>;
+
   getView(input: GetLedgerSettingsViewInput): Promise<LedgerSettingsView>;
   update(input: UpdateLedgerSettingsInput): Promise<void>;
 };
@@ -60,11 +71,13 @@ function toAppError(code: LedgerSettingsErrorCode): AppError {
   switch (code) {
     case ledgerSettingsErrorCodes.authRequired:
       return new AuthenticationError(code, message);
+    case ledgerSettingsErrorCodes.deleteForbidden:
     case ledgerSettingsErrorCodes.permissionDenied:
       return new AuthorizationError(code, message);
     case ledgerSettingsErrorCodes.ledgerInvalid:
     case ledgerSettingsErrorCodes.memberInvalid:
       return new NotFoundError(code, message);
+    case ledgerSettingsErrorCodes.deleteNameMismatch:
     case ledgerSettingsErrorCodes.currencyInvalid:
     case ledgerSettingsErrorCodes.displayColorInvalid:
     case ledgerSettingsErrorCodes.displayNameRequired:
@@ -75,6 +88,7 @@ function toAppError(code: LedgerSettingsErrorCode): AppError {
       return new ValidationError(code, message);
     case ledgerSettingsErrorCodes.displayNamePlaceholderConflict:
     case ledgerSettingsErrorCodes.specialStatusHasActiveItems:
+    case ledgerSettingsErrorCodes.deleteNotCompleted:
     case ledgerSettingsErrorCodes.updateFailed:
       return new ConflictError(code, message);
     default:
@@ -99,7 +113,28 @@ function normalizeDisplayColor(
 export function createLedgerSettingsService({
   ledgerSettingsRepository,
 }: LedgerSettingsServiceDependencies): LedgerSettingsService {
+  async function requireDeletionOwner(ledgerId: string, userId: string) {
+    const target = await ledgerSettingsRepository.getDeletionTarget(ledgerId);
+    if (!target) throw toAppError(ledgerSettingsErrorCodes.ledgerInvalid);
+    const role = await ledgerSettingsRepository.getMemberRole(ledgerId, userId);
+    if (role !== "owner" || target.ownerUserId !== userId)
+      throw toAppError(ledgerSettingsErrorCodes.deleteForbidden);
+    if (target.setupStatus !== "completed")
+      throw toAppError(ledgerSettingsErrorCodes.deleteNotCompleted);
+    return target;
+  }
   return {
+    async getDeletionImpact({ ledgerId, userId }) {
+      await requireDeletionOwner(ledgerId, userId);
+      return ledgerSettingsRepository.getDeletionImpact(ledgerId, userId);
+    },
+    async deleteLedger({ ledgerId, userId, confirmationName }) {
+      const target = await requireDeletionOwner(ledgerId, userId);
+      if (confirmationName !== target.name)
+        throw toAppError(ledgerSettingsErrorCodes.deleteNameMismatch);
+      const result = await ledgerSettingsRepository.deleteLedger(ledgerId);
+      if (!result.ok) throw toAppError(result.code);
+    },
     async getView({ currentLedger, ledger, userId }) {
       const members = await ledgerSettingsRepository.listActiveMembers(
         ledger.id,

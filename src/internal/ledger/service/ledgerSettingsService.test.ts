@@ -30,6 +30,18 @@ const currentLedger: CurrentLedger = {
 
 function createService(overrides: Partial<LedgerSettingsRepository> = {}) {
   const ledgerSettingsRepository: LedgerSettingsRepository = {
+    getDeletionTarget: vi.fn().mockResolvedValue({
+      name: "家庭账本",
+      ownerUserId: userId,
+      setupStatus: "completed",
+    }),
+    getDeletionImpact: vi.fn().mockResolvedValue({
+      itemCount: 0,
+      accountCount: 0,
+      merchantCount: 0,
+      memberNames: [],
+    }),
+    deleteLedger: vi.fn().mockResolvedValue({ ok: true }),
     getMemberRole: vi.fn().mockResolvedValue("owner"),
     isLedgerActive: vi.fn().mockResolvedValue(true),
     listActiveMembers: vi.fn().mockResolvedValue([]),
@@ -321,5 +333,91 @@ describe("createLedgerSettingsService.update — member 意图", () => {
     expect(
       ledgerSettingsRepository.updateMemberSettings,
     ).not.toHaveBeenCalled();
+  });
+});
+
+describe("createLedgerSettingsService.deleteLedger", () => {
+  const input = { ledgerId, userId, confirmationName: "家庭账本" };
+  it("所有者确认账本名后调用删除 RPC", async () => {
+    const { service, ledgerSettingsRepository } = createService();
+    await service.deleteLedger(input);
+    expect(ledgerSettingsRepository.deleteLedger).toHaveBeenCalledWith(
+      ledgerId,
+    );
+  });
+  it.each(["admin", "member", "viewer", null])(
+    "拒绝非 active owner：%s",
+    async (role) => {
+      const { service, ledgerSettingsRepository } = createService({
+        getMemberRole: vi.fn().mockResolvedValue(role),
+      });
+      await expect(service.deleteLedger(input)).rejects.toMatchObject({
+        code: "ledger_delete_forbidden",
+      });
+      expect(ledgerSettingsRepository.deleteLedger).not.toHaveBeenCalled();
+      await expect(service.getDeletionImpact(input)).rejects.toBeInstanceOf(
+        AuthorizationError,
+      );
+    },
+  );
+  it("成员角色伪为 owner 但账本归属不同仍被拒绝", async () => {
+    const { service } = createService({
+      getDeletionTarget: vi.fn().mockResolvedValue({
+        name: "家庭账本",
+        ownerUserId: otherUserId,
+        setupStatus: "completed",
+      }),
+    });
+    await expect(service.deleteLedger(input)).rejects.toBeInstanceOf(
+      AuthorizationError,
+    );
+  });
+  it("账本不存在返回未找到", async () => {
+    const { service } = createService({
+      getDeletionTarget: vi.fn().mockResolvedValue(null),
+    });
+    await expect(service.deleteLedger(input)).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+  });
+  it("创建中的账本返回冲突", async () => {
+    const { service } = createService({
+      getDeletionTarget: vi.fn().mockResolvedValue({
+        name: "家庭账本",
+        ownerUserId: userId,
+        setupStatus: "in_progress",
+      }),
+    });
+    await expect(service.deleteLedger(input)).rejects.toBeInstanceOf(
+      ConflictError,
+    );
+  });
+  it.each(["家庭账本 ", " 家庭账本", "", "家庭帳本"])(
+    "严格匹配输入而不规范化：%s",
+    async (confirmationName) => {
+      const { service, ledgerSettingsRepository } = createService();
+      await expect(
+        service.deleteLedger({ ...input, confirmationName }),
+      ).rejects.toMatchObject({ code: "ledger_delete_name_mismatch" });
+      expect(ledgerSettingsRepository.deleteLedger).not.toHaveBeenCalled();
+    },
+  );
+  it("把 RPC 竞争后的权限错误映射为应用错误", async () => {
+    const { service } = createService({
+      deleteLedger: vi
+        .fn()
+        .mockResolvedValue({ ok: false, code: "ledger_delete_forbidden" }),
+    });
+    await expect(service.deleteLedger(input)).rejects.toBeInstanceOf(
+      AuthorizationError,
+    );
+  });
+  it("只有完成权限检查后读取删除影响", async () => {
+    const { service, ledgerSettingsRepository } = createService();
+    await service.getDeletionImpact(input);
+    expect(ledgerSettingsRepository.getDeletionImpact).toHaveBeenCalledWith(
+      ledgerId,
+      userId,
+    );
   });
 });

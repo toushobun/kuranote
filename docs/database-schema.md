@@ -95,3 +95,26 @@ npm run db:schema:snapshot:check
 | app_user.current_ledger_id                                        | SET NULL | 不更新指针；现有约束只允许指向已完成账本，创建中账本无法成为当前账本         |
 
 创建阶段只写入账本、owner 成员与显示设置；完成创建在同一事务内写入业务数据，失败整体回滚，因此放弃创建无需清理业务表。整个清理事务失败时全部回滚。新增 ledger 外键时必须同步审查此 RPC 和行为测试。
+
+## Issue #890：删除已有账本
+
+`delete_ledger(uuid)` 在一个事务内硬删除已完成账本，仅允许账本 `owner_user_id` 对应的 active owner 成员操作。先 `FOR UPDATE` 锁住 ledger 行，拒绝未登录、越权、不存在和创建中的账本。客户端仍无 ledger DELETE 权限。
+
+删除前显式更新所有 `app_user.current_ledger_id` 指向该账本的用户（不只调用者）：从该用户其他 `active` 成员记录中选择未归档、`completed` 账本，按 `joined_at DESC NULLS LAST, created_at DESC, ledger_id ASC` 排序取第一项，没有则置空。既有 `validate_app_user_current_ledger` 原样验证新指针，不依赖外键 SET NULL。
+
+以下依赖以全部 migrations 回放后的实际 `pg_constraint` 和 schema snapshot 为准；所有表均显式清理，不依赖隐式级联：
+
+| 删除顺序 | 表                                                                | 外键与处理                                                                                                                                                 |
+| -------- | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1        | transaction_item_refund_link、transaction_item_reimbursement_link | ledger CASCADE；指向明细 RESTRICT。先清关联，删除时跳过本次目标账本的状态重算                                                                              |
+| 2        | transaction_item、transaction_record                              | 明细到 record / account / category 为 RESTRICT；record 到 ledger / merchant 为 RESTRICT。含普通交易、转账、已撤销交易与余额调整记录                        |
+| 3        | budget                                                            | ledger / category RESTRICT                                                                                                                                 |
+| 4        | account_holder、account_name_scope、account                       | holder 到 account / placeholder 为 RESTRICT；name_scope 到 account 为 CASCADE；account 到 ledger 为 RESTRICT。先清持有人和名称投影，再清账户，包含归档账户 |
+| 5        | merchant_alias、merchant_tag_links、merchant、merchant_tags       | alias 到 merchant 为 RESTRICT；tag_links 两端 CASCADE；merchant / tags 到 ledger 为 RESTRICT。先清别名和关联，再清商家及标签                               |
+| 6        | category                                                          | ledger / parent 为 RESTRICT；先小分类再大分类                                                                                                              |
+| 7        | ledger_invite、ledger_placeholder_member                          | invite 到 ledger 为 CASCADE、到 placeholder 为 RESTRICT；placeholder 到 ledger 为 RESTRICT。先删除全部邀请（含历史邀请），再删除全部占位成员（含已认领）   |
+| 8        | ledger_member_display_setting、ledger_member、ledger              | 前两表到 ledger 为 RESTRICT；最后清理账本本体                                                                                                              |
+
+`ledger_deletion_context` 是内部授权上下文表，主键为当前事务 ID，记录已由 RPC 校验的账本与用户。它启用 RLS 且没有客户端 policy，撤销 PUBLIC / anon / authenticated / service_role 的全部权限，不作为业务数据暴露，不增加外键。RPC 在事务内写入并在结束时清除，失败自动回滚。仅伪造 `app.deleting_ledger_id` 无法放行删除；详见 [安全函数规范](security-definer-functions.md)。
+
+删除中任一步失败，数据、当前账本指针和上下文一起回滚。新增直接或间接账本外键时，必须同步审查删除顺序、权限及副作用触发器，并补充 `supabase/tests/database/delete_ledger.test.sql`。

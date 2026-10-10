@@ -17,6 +17,9 @@ function createRepository(
   isLedgerActive: boolean,
 ): LedgerSettingsRepository {
   return {
+    getDeletionTarget: vi.fn(),
+    getDeletionImpact: vi.fn(),
+    deleteLedger: vi.fn(),
     getMemberRole: vi.fn().mockResolvedValue(role),
     isLedgerActive: vi.fn().mockResolvedValue(isLedgerActive),
     listActiveMembers: vi.fn(),

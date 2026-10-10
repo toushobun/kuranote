@@ -9,11 +9,13 @@ import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import PaletteRoundedIcon from "@mui/icons-material/PaletteRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
+import WarningRoundedIcon from "@mui/icons-material/WarningRounded";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
 import MenuItem from "@mui/material/MenuItem";
+import { alpha } from "@mui/material/styles";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
@@ -22,14 +24,18 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { SoftCard } from "atoms/ui/SoftCard";
+import { ledgerDeletionMessages } from "config/ledgerDeletionMessages";
 import { ledgerSettingsPageMessages } from "config/ledgerMessages";
 import { routePaths } from "config/paths";
+import type { LedgerDeletionImpact } from "internal/ledger";
 import { ListRowButton } from "molecules/ui/ListRowButton";
 import {
   FailureFeedbackDialog,
   SuccessFeedbackDialog,
 } from "molecules/ui/OperationFeedbackDialogs";
 import { AccountFormDialogShell } from "organisms/accounts/AccountFormDialogShell/AccountFormDialogShell";
+import { LedgerDeletion } from "organisms/ledgers/LedgerDeletion/LedgerDeletion";
+import type { DeleteLedgerAction } from "organisms/ledgers/LedgerDeletion/useLedgerDeletion";
 import { LedgerInviteEntry } from "organisms/ledgers/LedgerInviteEntry/LedgerInviteEntry";
 import { LedgerSpecialStatusSetting } from "organisms/ledgers/LedgerSpecialStatusSetting/LedgerSpecialStatusSetting";
 import {
@@ -61,6 +67,8 @@ type ErrorFeedback = {
 };
 
 type LedgerSettingsTemplateProps = LedgerSettingsView & {
+  deletionImpact?: LedgerDeletionImpact;
+  deleteLedgerAction?: DeleteLedgerAction;
   errorKey?: string | null;
   errorMessage: string | null;
   inviteAction: LedgerInviteStateAction;
@@ -73,6 +81,8 @@ type LedgerSettingsTemplateProps = LedgerSettingsView & {
 
 export function LedgerSettingsTemplate({
   canEditLedger,
+  deletionImpact,
+  deleteLedgerAction,
   currentUser,
   errorKey = null,
   errorMessage,
@@ -251,6 +261,27 @@ export function LedgerSettingsTemplate({
           </SoftCard>
         </SettingsSection>
 
+        {ledger.currentUserRole === "owner" &&
+        deletionImpact &&
+        deleteLedgerAction ? (
+          <SettingsSection title={ledgerDeletionMessages.section} danger>
+            <SoftCard
+              sx={{
+                ...sectionCardSx,
+                border: "1px solid",
+                borderColor: "error.light",
+                bgcolor: (theme) => alpha(theme.palette.error.main, 0.04),
+              }}
+            >
+              <LedgerDeletion
+                ledger={ledger}
+                impact={deletionImpact}
+                action={deleteLedgerAction}
+              />
+            </SoftCard>
+          </SettingsSection>
+        ) : null}
+
         <Stack direction="row" spacing={1.5} sx={actionBarSx}>
           <Button
             component={Link}
@@ -305,13 +336,29 @@ export function LedgerSettingsTemplate({
 function SettingsSection({
   children,
   title,
+  danger = false,
 }: {
   children: ReactNode;
   title: string;
+  danger?: boolean;
 }) {
   return (
     <Stack component="section" spacing={0.9}>
-      <Typography component="h2" sx={sectionTitleSx}>
+      <Typography
+        component="h2"
+        sx={{
+          ...sectionTitleSx,
+          ...(danger
+            ? {
+                color: "error.main",
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+              }
+            : {}),
+        }}
+      >
+        {danger && <WarningRoundedIcon />}
         {title}
       </Typography>
       {children}

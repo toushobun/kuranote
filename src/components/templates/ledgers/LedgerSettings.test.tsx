@@ -8,6 +8,7 @@ import {
 import { type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { ledgerDeletionFixture } from "test/ledgerDeletion";
 import { UserThemeProvider } from "theme/UserThemeProvider";
 import type { LedgerSettingsView } from "types/ledgers";
 
@@ -297,4 +298,26 @@ describe("LedgerSettingsTemplate", () => {
       expect(screen.getByRole("button", { name: /^邀请成员/ })).toBeDisabled();
     });
   });
+});
+
+describe("LedgerSettingsTemplate 危险操作", () => {
+  it.each(["owner", "admin", "member", "viewer"] as const)(
+    "仅 owner 显示危险区：%s",
+    (role) => {
+      renderWithUserTheme(
+        <LedgerSettingsTemplate
+          {...view}
+          ledger={{ ...view.ledger, currentUserRole: role }}
+          deletionImpact={ledgerDeletionFixture.impact}
+          deleteLedgerAction={async () => ({})}
+          errorMessage={null}
+          inviteAction={inviteAction}
+          updateLedgerSettingsAction={async () => {}}
+        />,
+      );
+      expect(Boolean(screen.queryByRole("heading", { name: "危险操作" }))).toBe(
+        role === "owner",
+      );
+    },
+  );
 });
