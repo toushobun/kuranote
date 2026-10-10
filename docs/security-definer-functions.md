@@ -330,3 +330,13 @@ migration 在新增 CHECK 之前，把残留的匿名待接受邀请（`placehol
 - [ ] owner 与 EXECUTE 权限符合调用方需求，未扩大权限。
 - [ ] RPC 签名、业务逻辑和 RLS 语义未因安全配置调整而改变。
 - [ ] 已运行静态检查、schema snapshot check、migration dry-run 和受影响 RPC 烟雾测试。
+
+## Issue #890：删除已有账本
+
+- `delete_ledger(uuid)` 为 SECURITY DEFINER，固定 `search_path = pg_catalog, pg_temp`，仅授予 authenticated；撤销 PUBLIC、anon、service_role。用户只取 `auth.uid()`，先锁账本行，再校验 `owner_user_id`、active owner 成员与 completed 状态。业务错误通过 detail 精确返回：`auth_required`、`ledger_invalid`、`ledger_delete_forbidden`、`ledger_delete_not_completed`。Repository 复用设置模块 RPC 映射表，Service 另行校验权限与确认名称，并转换应用错误。
+- RPC 写入内部 `ledger_deletion_context`（事务 ID、账本 ID、用户 ID），同时设置事务内 `app.deleting_ledger_id`。`ledger_deletion_allows_delete(uuid)` 固定 search_path，撤销所有应用角色执行权限，同时校验 GUC、当前事务的授权上下文、当前用户与账本 owner / completed 状态。上下文表 RLS 开启、无客户端 policy、无应用角色权限；调用者无法仅靠伪造 GUC 获得放行。删除结束立即清除上下文与 GUC，异常整体回滚。
+- `enforce_ledger_management_permission`、`enforce_ledger_member_management_permission`、`enforce_merchant_alias_management_permission`、`enforce_merchant_tag_link_management_permission`、`enforce_transaction_child_permission`、`enforce_transaction_record_permission` 只新增 DELETE 放行分支，严格限于上述上下文的目标账本。成员删除后仍需删除 ledger，因此授权由事务内已验证的上下文保留，不依赖已删除的成员行。
+- `guard_balance_adjustment_item` 的 DELETE 分支允许清理目标账本的余额调整明细；`recalculate_refund_link_target_status` / `recalculate_reimbursement_link_target_status` 在本次 DELETE 时跳过派生状态重算；`refresh_account_name_scope` 跳过持有人删除引发的名称投影重建，投影随后显式删除。原 SECURITY INVOKER 函数保持身份不变，先检查 `current_user = 'postgres'`，避免普通调用求值无 EXECUTE 权限的内部函数。INSERT / UPDATE 行为不变。
+- `validate_linked_transaction_item_mutation` 保持不变：先删除全部 link 后才删明细，因此无需放宽冻结规则。余额变更由业务 RPC 显式执行，没有明细 DELETE 余额同步触发器；账户随后删除，不做余额 UPDATE。仅针对 UPDATE 的身份、特殊状态、交易撤销等保护保持不变。
+- `current_user_can_manage_ledger`、`current_user_can_write_ledger`、RLS、客户端 ledger DELETE 权限均不变。当前账本指针先主动切换，沿用 `validate_app_user_current_ledger` 校验。
+- pgTAP 覆盖完整数据清理、权限、状态、当前账本切换与置空、其他账本隔离、直接 DELETE、伪造标记与上下文拒绝，以及末尾失败时原子回滚。外键清单及顺序见 [数据库结构维护](database-schema.md)。
