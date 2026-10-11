@@ -48,6 +48,7 @@ function createService(
       accountCount: 0,
       merchantCount: 0,
       memberNames: [],
+      placeholderNames: [],
     }),
     deleteLedger: vi.fn().mockResolvedValue({ ok: true }),
     getMemberRole: vi.fn().mockResolvedValue("owner"),

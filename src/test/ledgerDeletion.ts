@@ -13,6 +13,7 @@ export const ledgerDeletionFixture = {
     merchantCount: 32,
     pendingInviteCount: 1,
     memberNames: ["妈妈", "宝宝"],
+    placeholderNames: [],
   } satisfies LedgerDeletionImpact,
 };
 export const emptyLedgerDeletionImpact: LedgerDeletionImpact = {
@@ -21,6 +22,7 @@ export const emptyLedgerDeletionImpact: LedgerDeletionImpact = {
   merchantCount: 0,
   pendingInviteCount: 0,
   memberNames: [],
+  placeholderNames: [],
 };
 /** 立即返回指定影响统计的读取 Action，供测试与 Story 复用。 */
 export function loadLedgerDeletionImpactWith(

@@ -2,6 +2,7 @@
 
 import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import GroupOutlinedIcon from "@mui/icons-material/GroupOutlined";
+import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
 import LinkOffRoundedIcon from "@mui/icons-material/LinkOffRounded";
 import LightbulbOutlinedIcon from "@mui/icons-material/LightbulbOutlined";
 import { alpha } from "@mui/material/styles";
@@ -64,6 +65,14 @@ export function LedgerDeletion({
           {
             icon: GroupOutlinedIcon,
             text: messages.members(impact.memberNames),
+          },
+        ]
+      : []),
+    ...(impact?.placeholderNames.length
+      ? [
+          {
+            icon: PersonOutlineRoundedIcon,
+            text: messages.placeholders(impact.placeholderNames),
           },
         ]
       : []),

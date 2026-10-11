@@ -478,7 +478,7 @@ describe("createSupabaseLedgerSettingsRepository.deleteLedger", () => {
       RepositoryError,
     );
   });
-  it("统计包含归档数据并合并成员和占位成员", async () => {
+  it("统计包含归档数据并分开返回成员和待邀请成员", async () => {
     const supabase = createSupabaseMock({
       queryResponses: [
         { count: 8 },
@@ -510,7 +510,8 @@ describe("createSupabaseLedgerSettingsRepository.deleteLedger", () => {
       itemCount: 8,
       accountCount: 3,
       merchantCount: 2,
-      memberNames: [null, "宝宝"],
+      memberNames: [null],
+      placeholderNames: ["宝宝"],
     });
     expect(supabase.queries[0].calls).toContainEqual({
       method: "select",

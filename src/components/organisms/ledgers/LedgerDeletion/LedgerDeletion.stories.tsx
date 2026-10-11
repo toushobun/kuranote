@@ -47,6 +47,16 @@ export const FirstWithoutMembers: Story = {
   args: { loadImpact: loadLedgerDeletionImpactWith(emptyLedgerDeletionImpact) },
   play: FirstWithMembers.play,
 };
+export const FirstWithPlaceholders: Story = {
+  name: "第一步·有待邀请成员",
+  args: {
+    loadImpact: loadLedgerDeletionImpactWith({
+      ...ledgerDeletionFixture.impact,
+      placeholderNames: ["爷爷"],
+    }),
+  },
+  play: FirstWithMembers.play,
+};
 export const FirstLoading: Story = {
   name: "第一步·读取中",
   args: { loadImpact: () => new Promise(() => {}) },

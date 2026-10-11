@@ -191,12 +191,12 @@ export function createSupabaseLedgerSettingsRepository(
         itemCount: items.count ?? 0,
         accountCount: accounts.count ?? 0,
         merchantCount: merchants.count ?? 0,
-        memberNames: [
-          ...members
-            .filter((member) => member.userId !== ownerUserId)
-            .map((member) => member.displayName),
-          ...(placeholders.data ?? []).map((member) => member.display_name),
-        ],
+        memberNames: members
+          .filter((member) => member.userId !== ownerUserId)
+          .map((member) => member.displayName),
+        placeholderNames: (placeholders.data ?? []).map(
+          (member) => member.display_name,
+        ),
       };
     },
     async deleteLedger(ledgerId) {

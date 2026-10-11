@@ -67,7 +67,7 @@ describe("LedgerDeletion", () => {
     const dialog = within(await screen.findByRole("dialog"));
     expect(await dialog.findByText("此操作无法撤销")).toBeInTheDocument();
     expect(
-      dialog.queryByText(/条明细|个账户|个商家|位成员|邀请链接/),
+      dialog.queryByText(/条明细|个账户|个商家|位成员|位待邀请成员|邀请链接/),
     ).not.toBeInTheDocument();
   });
   it("没有显示名的成员使用界面回退名", async () => {
@@ -80,6 +80,23 @@ describe("LedgerDeletion", () => {
     );
     expect(
       await screen.findByText(/2 位成员（未命名用户、宝宝）/),
+    ).toBeInTheDocument();
+  });
+  it("待邀请成员单独显示且不计入成员数", async () => {
+    setup(
+      undefined,
+      loadLedgerDeletionImpactWith({
+        ...emptyLedgerDeletionImpact,
+        memberNames: ["妈妈"],
+        placeholderNames: ["宝宝", "爷爷"],
+      }),
+    );
+    const dialog = within(await screen.findByRole("dialog"));
+    expect(
+      await dialog.findByText(/^1 位成员（妈妈）将被移出/),
+    ).toBeInTheDocument();
+    expect(
+      dialog.getByText("2 位待邀请成员（宝宝、爷爷）将一并删除"),
     ).toBeInTheDocument();
   });
   it("打开弹层时才按账本读取影响，读取中显示加载且不可继续", async () => {
