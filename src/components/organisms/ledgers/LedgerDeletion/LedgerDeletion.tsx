@@ -5,7 +5,7 @@ import GroupOutlinedIcon from "@mui/icons-material/GroupOutlined";
 import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
 import LinkOffRoundedIcon from "@mui/icons-material/LinkOffRounded";
 import LightbulbOutlinedIcon from "@mui/icons-material/LightbulbOutlined";
-import { alpha } from "@mui/material/styles";
+import { alpha, type Theme } from "@mui/material/styles";
 import WarningRoundedIcon from "@mui/icons-material/WarningRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
@@ -24,6 +24,7 @@ import { ledgerDeletionMessages as messages } from "config/ledgerDeletionMessage
 import { routePaths } from "config/paths";
 import { FailureFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
 import { designTokens } from "theme/theme";
+import { typographyStyles } from "theme/typographyTokens";
 import type { LoadLedgerDeletionImpactAction } from "types/ledgers";
 import {
   useLedgerDeletion,
@@ -87,7 +88,7 @@ export function LedgerDeletion({
         <DeleteOutlineRoundedIcon color="error" />
         <Box sx={{ flex: 1 }}>
           <Typography sx={{ fontWeight: 700 }}>{messages.title}</Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" sx={secondaryTextSx}>
             {messages.description}
           </Typography>
         </Box>
@@ -154,7 +155,7 @@ export function LedgerDeletion({
                 id={titleId}
                 component="h2"
                 variant="h6"
-                sx={{ textAlign: "center" }}
+                sx={dialogTitleSx}
               >
                 {messages.impactTitle(ledger.name)}
               </Typography>
@@ -166,7 +167,7 @@ export function LedgerDeletion({
                   sx={{ alignItems: "center", justifyContent: "center" }}
                 >
                   <CircularProgress aria-hidden size={20} />
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" sx={secondaryTextSx}>
                     {messages.impactLoading}
                   </Typography>
                 </Stack>
@@ -243,12 +244,19 @@ export function LedgerDeletion({
                 id={titleId}
                 component="h2"
                 variant="h6"
-                sx={{ textAlign: "center" }}
+                sx={dialogTitleSx}
               >
                 {messages.confirmationTitle}
               </Typography>
-              <Typography>
-                {messages.confirmationDescription(ledger.name)}
+              <Typography sx={{ textAlign: "center" }}>
+                {messages.confirmationDescription.before}
+                <Box
+                  component="strong"
+                  sx={{ fontWeight: typographyStyles.cardTitle.fontWeight }}
+                >
+                  {messages.confirmationDescription.ledgerName(ledger.name)}
+                </Box>
+                {messages.confirmationDescription.after}
               </Typography>
               <TextField
                 autoFocus
@@ -275,7 +283,7 @@ export function LedgerDeletion({
                 disabled={!flow.matched || flow.pending}
                 color="error"
                 variant="contained"
-                sx={{ minHeight: 48 }}
+                sx={flow.pending ? pendingDeleteButtonSx : { minHeight: 48 }}
                 fullWidth
                 startIcon={
                   flow.pending ? (
@@ -289,8 +297,7 @@ export function LedgerDeletion({
                 <Typography
                   role="status"
                   variant="body2"
-                  color="text.secondary"
-                  sx={{ textAlign: "center" }}
+                  sx={{ ...secondaryTextSx, textAlign: "center" }}
                 >
                   {messages.pendingHint}
                 </Typography>
@@ -313,3 +320,20 @@ export function LedgerDeletion({
     </>
   );
 }
+
+// 当前 MUI 版本下 Typography 的 color prop 不生效，统一用 sx 指定。
+const secondaryTextSx = { color: "text.secondary" } as const;
+
+const dialogTitleSx = {
+  ...typographyStyles.cardTitle,
+  textAlign: "center",
+} as const;
+
+// 提交中仍禁用，但保持淡红而不是 MUI 默认的灰色禁用样式。
+const pendingDeleteButtonSx = {
+  minHeight: 48,
+  "&.Mui-disabled": {
+    bgcolor: (theme: Theme) => alpha(theme.palette.error.main, 0.5),
+    color: "error.contrastText",
+  },
+} as const;

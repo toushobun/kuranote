@@ -24,8 +24,12 @@ export const ledgerDeletionMessages = {
   continue: "继续删除",
   cancel: "取消",
   confirmationTitle: "请输入账本名确认删除",
-  confirmationDescription: (name: string) =>
-    `输入「${name}」以确认永久删除此账本。`,
+  // 账本名单独加粗，因此拆成前缀、账本名、后缀三段。
+  confirmationDescription: {
+    before: "输入",
+    ledgerName: (name: string) => `「${name}」`,
+    after: "以确认永久删除此账本。",
+  },
   nameLabel: "账本名",
   matched: "账本名已匹配",
   permanentDelete: "永久删除",

@@ -1,3 +1,4 @@
+import { alpha } from "@mui/material/styles";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import {
@@ -5,6 +6,7 @@ import {
   emptyLedgerDeletionImpact,
   loadLedgerDeletionImpactWith,
 } from "test/ledgerDeletion";
+import { theme } from "theme/theme";
 import { LedgerDeletion } from "./LedgerDeletion";
 
 const meta = {
@@ -87,5 +89,12 @@ export const Pending: Story = {
   play: async ({ canvasElement }) => {
     const page = await open(canvasElement, 2, true);
     await userEvent.click(page.getByRole("button", { name: "永久删除" }));
+    // 提交中保持淡红禁用按钮并显示转圈，而不是默认灰色禁用样式。
+    const pending = await page.findByRole("button", { name: "正在删除…" });
+    await expect(pending).toBeDisabled();
+    await expect(within(pending).getByRole("progressbar")).toBeVisible();
+    await expect(getComputedStyle(pending).backgroundColor).toBe(
+      alpha(theme.palette.error.main, 0.5),
+    );
   },
 };

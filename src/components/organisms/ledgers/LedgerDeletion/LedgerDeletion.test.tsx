@@ -6,7 +6,11 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import type { ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
+import { alpha, hexToRgb, ThemeProvider } from "@mui/material/styles";
+import { theme } from "theme/theme";
+import { typographyStyles } from "theme/typographyTokens";
 import { UserThemeProvider } from "theme/UserThemeProvider";
 import {
   emptyLedgerDeletionImpact,
@@ -18,19 +22,25 @@ import type { LoadLedgerDeletionImpactAction } from "types/ledgers";
 import { LedgerDeletion } from "./LedgerDeletion";
 import type { DeleteLedgerAction } from "./useLedgerDeletion";
 
+// 与应用一致注入 MUI 主题，样式断言才能对照项目 token。
+function renderDeletion(ui: ReactElement) {
+  return render(
+    <ThemeProvider theme={theme}>
+      <UserThemeProvider>{ui}</UserThemeProvider>
+    </ThemeProvider>,
+  );
+}
 function setup(
   action: DeleteLedgerAction = vi.fn(async () => ({})),
   loadImpact: LoadLedgerDeletionImpactAction = loadLedgerDeletionImpactWith(),
   isCurrent = true,
 ) {
-  render(
-    <UserThemeProvider>
-      <LedgerDeletion
-        ledger={{ ...ledgerDeletionFixture.ledger, isCurrent }}
-        action={action}
-        loadImpact={loadImpact}
-      />
-    </UserThemeProvider>,
+  renderDeletion(
+    <LedgerDeletion
+      ledger={{ ...ledgerDeletionFixture.ledger, isCurrent }}
+      action={action}
+      loadImpact={loadImpact}
+    />,
   );
   fireEvent.click(screen.getByRole("button", { name: "删除" }));
   return action;
@@ -182,5 +192,50 @@ describe("LedgerDeletion", () => {
     );
     expect(await screen.findByRole("alert")).toHaveTextContent("删除失败测试");
     expect(screen.getByRole("button", { name: "永久删除" })).toBeEnabled();
+  });
+  describe("视觉样式", () => {
+    it("入口说明使用次要文字颜色", () => {
+      renderDeletion(
+        <LedgerDeletion
+          ledger={ledgerDeletionFixture.ledger}
+          action={vi.fn()}
+          loadImpact={loadLedgerDeletionImpactWith()}
+        />,
+      );
+      expect(
+        getComputedStyle(screen.getByText(/永久删除此账本及其中的全部/)).color,
+      ).toBe(hexToRgb(theme.palette.text.secondary));
+    });
+    it("两步标题使用区块标题字重，第二步账本名单独加粗", async () => {
+      setup();
+      const fontWeight = String(typographyStyles.cardTitle.fontWeight);
+      expect(
+        getComputedStyle(
+          await screen.findByRole("heading", { name: "删除「我们家」？" }),
+        ).fontWeight,
+      ).toBe(fontWeight);
+      await secondStep();
+      expect(
+        getComputedStyle(
+          screen.getByRole("heading", { name: "请输入账本名确认删除" }),
+        ).fontWeight,
+      ).toBe(fontWeight);
+      const ledgerName = screen.getByText("「我们家」");
+      expect(ledgerName.tagName).toBe("STRONG");
+      expect(ledgerName.parentElement).toHaveTextContent(
+        "输入「我们家」以确认永久删除此账本。",
+      );
+    });
+    it("提交中按钮保持淡红并显示转圈", async () => {
+      setup(vi.fn(() => new Promise<ActionState>(() => {})));
+      await secondStep("我们家");
+      fireEvent.click(screen.getByRole("button", { name: "永久删除" }));
+      const button = await screen.findByRole("button", { name: "正在删除…" });
+      expect(button).toBeDisabled();
+      expect(within(button).getByRole("progressbar")).toBeInTheDocument();
+      expect(getComputedStyle(button).backgroundColor).toBe(
+        alpha(theme.palette.error.main, 0.5),
+      );
+    });
   });
 });
