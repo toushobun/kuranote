@@ -8,8 +8,11 @@ export const ledgerDeletionMessages = {
   items: (count: number) => `${count.toLocaleString()} 条明细`,
   accounts: (count: number) => `${count.toLocaleString()} 个账户`,
   merchants: (count: number) => `${count.toLocaleString()} 个商家`,
-  members: (names: string[]) =>
-    `${names.length} 位成员（${names.join("、")}）将被移出，并失去此账本的全部数据`,
+  members: (names: (string | null)[]) =>
+    `${names.length} 位成员（${names.map((name) => name ?? "未命名用户").join("、")}）将被移出，并失去此账本的全部数据`,
+  impactLoading: "正在读取删除影响…",
+  // 网络中断等无法拿到 Action 结果时的界面兜底；业务失败文案由服务端返回。
+  impactUnavailable: "删除影响读取失败，请稍后重试。",
   invitations: "未接受的邀请链接将失效",
   irreversible: "此操作无法撤销",
   backup: "删除前建议先导出数据备份",

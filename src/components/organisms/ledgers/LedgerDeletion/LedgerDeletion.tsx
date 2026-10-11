@@ -21,9 +21,9 @@ import Link from "next/link";
 import { useId } from "react";
 import { ledgerDeletionMessages as messages } from "config/ledgerDeletionMessages";
 import { routePaths } from "config/paths";
-import type { LedgerDeletionImpact } from "internal/ledger";
 import { FailureFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
 import { designTokens } from "theme/theme";
+import type { LoadLedgerDeletionImpactAction } from "types/ledgers";
 import {
   useLedgerDeletion,
   type DeleteLedgerAction,
@@ -31,25 +31,35 @@ import {
 
 export function LedgerDeletion({
   ledger,
-  impact,
   action,
+  loadImpact,
 }: {
   ledger: { id: string; name: string; isCurrent: boolean };
-  impact: LedgerDeletionImpact;
   action: DeleteLedgerAction;
+  loadImpact: LoadLedgerDeletionImpactAction;
 }) {
-  const flow = useLedgerDeletion(action, ledger.name);
+  const flow = useLedgerDeletion({
+    action,
+    ledgerId: ledger.id,
+    ledgerName: ledger.name,
+    loadImpact,
+  });
   const titleId = useId();
-  const counts = [
-    impact.itemCount > 0 ? messages.items(impact.itemCount) : null,
-    impact.accountCount > 0 ? messages.accounts(impact.accountCount) : null,
-    impact.merchantCount > 0 ? messages.merchants(impact.merchantCount) : null,
-  ].filter((part) => part !== null);
+  const impact = flow.impact;
+  const counts = impact
+    ? [
+        impact.itemCount > 0 ? messages.items(impact.itemCount) : null,
+        impact.accountCount > 0 ? messages.accounts(impact.accountCount) : null,
+        impact.merchantCount > 0
+          ? messages.merchants(impact.merchantCount)
+          : null,
+      ].filter((part) => part !== null)
+    : [];
   const impactRows = [
     ...(counts.length
       ? [{ icon: ReceiptLongRoundedIcon, text: messages.counts(counts) }]
       : []),
-    ...(impact.memberNames.length
+    ...(impact?.memberNames.length
       ? [
           {
             icon: GroupOutlinedIcon,
@@ -57,7 +67,9 @@ export function LedgerDeletion({
           },
         ]
       : []),
-    { icon: LinkOffRoundedIcon, text: messages.invitations },
+    ...(impact?.pendingInviteCount
+      ? [{ icon: LinkOffRoundedIcon, text: messages.invitations }]
+      : []),
     { icon: WarningRoundedIcon, text: messages.irreversible },
   ];
   return (
@@ -137,24 +149,40 @@ export function LedgerDeletion({
               >
                 {messages.impactTitle(ledger.name)}
               </Typography>
-              <Stack
-                component="ul"
-                spacing={1.5}
-                sx={{ p: 0, m: 0, listStyle: "none" }}
-              >
-                {impactRows.map(({ icon: Icon, text }) => (
-                  <Stack
-                    component="li"
-                    direction="row"
-                    spacing={1.5}
-                    key={text}
-                    sx={{ alignItems: "flex-start" }}
-                  >
-                    <Icon sx={{ color: "text.secondary", flexShrink: 0 }} />
-                    <Typography variant="body2">{text}</Typography>
-                  </Stack>
-                ))}
-              </Stack>
+              {flow.impactLoading ? (
+                <Stack
+                  role="status"
+                  direction="row"
+                  spacing={1.5}
+                  sx={{ alignItems: "center", justifyContent: "center" }}
+                >
+                  <CircularProgress aria-hidden size={20} />
+                  <Typography variant="body2" color="text.secondary">
+                    {messages.impactLoading}
+                  </Typography>
+                </Stack>
+              ) : flow.impactError ? (
+                <Alert severity="error">{flow.impactError}</Alert>
+              ) : (
+                <Stack
+                  component="ul"
+                  spacing={1.5}
+                  sx={{ p: 0, m: 0, listStyle: "none" }}
+                >
+                  {impactRows.map(({ icon: Icon, text }) => (
+                    <Stack
+                      component="li"
+                      direction="row"
+                      spacing={1.5}
+                      key={text}
+                      sx={{ alignItems: "flex-start" }}
+                    >
+                      <Icon sx={{ color: "text.secondary", flexShrink: 0 }} />
+                      <Typography variant="body2">{text}</Typography>
+                    </Stack>
+                  ))}
+                </Stack>
+              )}
               <Alert
                 severity="warning"
                 icon={<LightbulbOutlinedIcon />}
@@ -185,6 +213,7 @@ export function LedgerDeletion({
                 variant="contained"
                 sx={{ minHeight: 48 }}
                 onClick={flow.next}
+                disabled={!impact}
                 fullWidth
               >
                 {messages.continue}

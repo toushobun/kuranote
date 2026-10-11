@@ -5,6 +5,7 @@ import {
   ledgerSettingsErrorMessages,
   type LedgerSettingsErrorCode,
 } from "internal/ledger/errors/ledgerSettings";
+import type { LedgerInviteRepository } from "internal/ledger/repository/ledgerInviteRepository";
 import type {
   LedgerSettingsRepository,
   UpdateLedgerBaseSettingsInput,
@@ -27,6 +28,7 @@ import {
 import type { LedgerSettingsView } from "internal/ledger/service/read/ledgerSettingsView";
 
 export type LedgerSettingsServiceDependencies = {
+  ledgerInviteRepository: Pick<LedgerInviteRepository, "listPending">;
   ledgerSettingsRepository: LedgerSettingsRepository;
 };
 
@@ -111,6 +113,7 @@ function normalizeDisplayColor(
  * Router middleware。
  */
 export function createLedgerSettingsService({
+  ledgerInviteRepository,
   ledgerSettingsRepository,
 }: LedgerSettingsServiceDependencies): LedgerSettingsService {
   async function requireDeletionOwner(ledgerId: string, userId: string) {
@@ -126,7 +129,13 @@ export function createLedgerSettingsService({
   return {
     async getDeletionImpact({ ledgerId, userId }) {
       await requireDeletionOwner(ledgerId, userId);
-      return ledgerSettingsRepository.getDeletionImpact(ledgerId, userId);
+      const [impact, invites] = await Promise.all([
+        ledgerSettingsRepository.getDeletionImpact(ledgerId, userId),
+        ledgerInviteRepository.listPending(ledgerId),
+      ]);
+      if (!invites.ok)
+        throw toAppError(ledgerSettingsErrorCodes.deleteImpactFailed);
+      return { ...impact, pendingInviteCount: invites.invites.length };
     },
     async deleteLedger({ ledgerId, userId, confirmationName }) {
       const target = await requireDeletionOwner(ledgerId, userId);

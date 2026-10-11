@@ -27,7 +27,6 @@ import { SoftCard } from "atoms/ui/SoftCard";
 import { ledgerDeletionMessages } from "config/ledgerDeletionMessages";
 import { ledgerSettingsPageMessages } from "config/ledgerMessages";
 import { routePaths } from "config/paths";
-import type { LedgerDeletionImpact } from "internal/ledger";
 import { ListRowButton } from "molecules/ui/ListRowButton";
 import {
   FailureFeedbackDialog,
@@ -57,6 +56,7 @@ import {
   type LedgerPlaceholderMemberActions,
   type LedgerSettingsMember,
   type LedgerSettingsView,
+  type LoadLedgerDeletionImpactAction,
 } from "types/ledgers";
 
 export type LedgerSettingsSaveResult = "updated";
@@ -67,8 +67,8 @@ type ErrorFeedback = {
 };
 
 type LedgerSettingsTemplateProps = LedgerSettingsView & {
-  deletionImpact?: LedgerDeletionImpact;
   deleteLedgerAction?: DeleteLedgerAction;
+  loadDeletionImpactAction?: LoadLedgerDeletionImpactAction;
   errorKey?: string | null;
   errorMessage: string | null;
   inviteAction: LedgerInviteStateAction;
@@ -81,8 +81,8 @@ type LedgerSettingsTemplateProps = LedgerSettingsView & {
 
 export function LedgerSettingsTemplate({
   canEditLedger,
-  deletionImpact,
   deleteLedgerAction,
+  loadDeletionImpactAction,
   currentUser,
   errorKey = null,
   errorMessage,
@@ -262,8 +262,8 @@ export function LedgerSettingsTemplate({
         </SettingsSection>
 
         {ledger.currentUserRole === "owner" &&
-        deletionImpact &&
-        deleteLedgerAction ? (
+        deleteLedgerAction &&
+        loadDeletionImpactAction ? (
           <SettingsSection title={ledgerDeletionMessages.section} danger>
             <SoftCard
               sx={{
@@ -275,8 +275,8 @@ export function LedgerSettingsTemplate({
             >
               <LedgerDeletion
                 ledger={ledger}
-                impact={deletionImpact}
                 action={deleteLedgerAction}
+                loadImpact={loadDeletionImpactAction}
               />
             </SoftCard>
           </SettingsSection>

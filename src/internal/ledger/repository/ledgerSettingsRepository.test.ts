@@ -494,7 +494,7 @@ describe("createSupabaseLedgerSettingsRepository.deleteLedger", () => {
         {
           data: [
             { id: userId, display_name: "本人" },
-            { id: otherUserId, display_name: "家人" },
+            { id: otherUserId, display_name: null },
           ],
         },
         { data: [] },
@@ -503,13 +503,14 @@ describe("createSupabaseLedgerSettingsRepository.deleteLedger", () => {
     const repository = createSupabaseLedgerSettingsRepository(
       supabase.client as never,
     );
+    // 没有显示名时原样返回 null，由界面决定回退文案。
     await expect(
       repository.getDeletionImpact(ledgerId, userId),
     ).resolves.toEqual({
       itemCount: 8,
       accountCount: 3,
       merchantCount: 2,
-      memberNames: ["家人", "宝宝"],
+      memberNames: [null, "宝宝"],
     });
     expect(supabase.queries[0].calls).toContainEqual({
       method: "select",

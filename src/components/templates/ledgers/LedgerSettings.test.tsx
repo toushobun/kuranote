@@ -8,7 +8,7 @@ import {
 import { type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ledgerDeletionFixture } from "test/ledgerDeletion";
+import { loadLedgerDeletionImpactWith } from "test/ledgerDeletion";
 import { UserThemeProvider } from "theme/UserThemeProvider";
 import type { LedgerSettingsView } from "types/ledgers";
 
@@ -308,7 +308,7 @@ describe("LedgerSettingsTemplate 危险操作", () => {
         <LedgerSettingsTemplate
           {...view}
           ledger={{ ...view.ledger, currentUserRole: role }}
-          deletionImpact={ledgerDeletionFixture.impact}
+          loadDeletionImpactAction={loadLedgerDeletionImpactWith()}
           deleteLedgerAction={async () => ({})}
           errorMessage={null}
           inviteAction={inviteAction}

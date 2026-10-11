@@ -1,12 +1,17 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { deleteLedger } from "./ledgerDeletion";
-import { AuthorizationError } from "internal/shared/errors/appError";
+import { deleteLedger, loadLedgerDeletionImpact } from "./ledgerDeletion";
+import {
+  AuthorizationError,
+  RepositoryError,
+} from "internal/shared/errors/appError";
+import { emptyLedgerDeletionImpact } from "test/ledgerDeletion";
 import { routePaths } from "config/paths";
 
 const mocks = vi.hoisted(() => ({
   dependencies: vi.fn(),
   remove: vi.fn(),
+  impact: vi.fn(),
   revalidate: vi.fn(),
   redirect: vi.fn(() => {
     throw new Error("NEXT_REDIRECT");
@@ -18,7 +23,12 @@ vi.mock("internal/shared/context/createServerRequestDependencies", () => ({
 }));
 vi.mock("internal/container", () => ({
   createRequestContainer: () => ({
-    ledger: { settingsService: { deleteLedger: mocks.remove } },
+    ledger: {
+      settingsService: {
+        deleteLedger: mocks.remove,
+        getDeletionImpact: mocks.impact,
+      },
+    },
   }),
 }));
 vi.mock("internal/ledger/adapter/next/revalidateLedger", () => ({
@@ -37,6 +47,7 @@ beforeEach(() => {
     auth: { isAuthenticated: true, userId: "owner" },
   });
   mocks.remove.mockResolvedValue(undefined);
+  mocks.impact.mockResolvedValue(emptyLedgerDeletionImpact);
 });
 describe("deleteLedger", () => {
   it("非法输入返回 inline 错误且不调用 Service", async () => {
@@ -84,5 +95,37 @@ describe("deleteLedger", () => {
     });
     expect(mocks.revalidate).toHaveBeenCalled();
     expect(mocks.redirect).toHaveBeenCalledWith(routePaths.dashboard);
+  });
+});
+describe("loadLedgerDeletionImpact", () => {
+  it("非法账本 ID 返回 inline 错误且不调用 Service", async () => {
+    expect(await loadLedgerDeletionImpact("bad")).toEqual({
+      error: "账本指定不正确。",
+      errorKey: expect.any(String),
+    });
+    expect(mocks.impact).not.toHaveBeenCalled();
+  });
+  it("成功时返回影响统计", async () => {
+    expect(await loadLedgerDeletionImpact(ledgerId)).toEqual({
+      impact: emptyLedgerDeletionImpact,
+    });
+    expect(mocks.impact).toHaveBeenCalledWith({ ledgerId, userId: "owner" });
+  });
+  it("Service 失败时返回安全文案而不抛出", async () => {
+    mocks.impact.mockRejectedValue(
+      new RepositoryError("ledger_delete_impact_failed", "读取失败"),
+    );
+    expect(await loadLedgerDeletionImpact(ledgerId)).toEqual({
+      error: "读取失败",
+      errorKey: expect.any(String),
+    });
+  });
+  it("未知错误返回影响读取的兜底文案", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.impact.mockRejectedValue(new Error("SQL secret"));
+    expect(await loadLedgerDeletionImpact(ledgerId)).toMatchObject({
+      error: "删除影响读取失败，请稍后重试。",
+    });
+    log.mockRestore();
   });
 });

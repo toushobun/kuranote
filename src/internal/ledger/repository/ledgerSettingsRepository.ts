@@ -84,7 +84,7 @@ export interface LedgerSettingsRepository {
   getDeletionImpact(
     ledgerId: string,
     ownerUserId: string,
-  ): Promise<LedgerDeletionImpact>;
+  ): Promise<Omit<LedgerDeletionImpact, "pendingInviteCount">>;
   deleteLedger(ledgerId: string): Promise<LedgerSettingsWriteResult>;
 
   getMemberRole(
@@ -194,7 +194,7 @@ export function createSupabaseLedgerSettingsRepository(
         memberNames: [
           ...members
             .filter((member) => member.userId !== ownerUserId)
-            .map((member) => member.displayName ?? "未命名用户"),
+            .map((member) => member.displayName),
           ...(placeholders.data ?? []).map((member) => member.display_name),
         ],
       };

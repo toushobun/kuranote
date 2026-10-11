@@ -1,15 +1,20 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import {
   ledgerDeletionFixture,
   emptyLedgerDeletionImpact,
+  loadLedgerDeletionImpactWith,
 } from "test/ledgerDeletion";
 import { LedgerDeletion } from "./LedgerDeletion";
 
 const meta = {
   title: "Organisms/Ledgers/LedgerDeletion",
   component: LedgerDeletion,
-  args: { ...ledgerDeletionFixture, action: async () => ({}) },
+  args: {
+    ledger: ledgerDeletionFixture.ledger,
+    action: async () => ({}),
+    loadImpact: loadLedgerDeletionImpactWith(),
+  },
 } satisfies Meta<typeof LedgerDeletion>;
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -18,10 +23,11 @@ async function open(canvasElement: HTMLElement, step = 1, matched = false) {
     within(canvasElement).getByRole("button", { name: "删除" }),
   );
   const page = within(canvasElement.ownerDocument.body);
-  if (step === 2)
-    await userEvent.click(
-      await page.findByRole("button", { name: "继续删除" }),
-    );
+  if (step === 2) {
+    const next = await page.findByRole("button", { name: "继续删除" });
+    await waitFor(() => expect(next).toBeEnabled());
+    await userEvent.click(next);
+  }
   if (matched)
     await userEvent.type(
       await page.findByRole("textbox", { name: "账本名" }),
@@ -38,7 +44,19 @@ export const FirstWithMembers: Story = {
 };
 export const FirstWithoutMembers: Story = {
   name: "第一步·无成员",
-  args: { impact: emptyLedgerDeletionImpact },
+  args: { loadImpact: loadLedgerDeletionImpactWith(emptyLedgerDeletionImpact) },
+  play: FirstWithMembers.play,
+};
+export const FirstLoading: Story = {
+  name: "第一步·读取中",
+  args: { loadImpact: () => new Promise(() => {}) },
+  play: FirstWithMembers.play,
+};
+export const FirstLoadFailed: Story = {
+  name: "第一步·读取失败",
+  args: {
+    loadImpact: async () => ({ error: "删除影响读取失败，请稍后重试。" }),
+  },
   play: FirstWithMembers.play,
 };
 export const SecondEmpty: Story = {

@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { ledgerDeletionFixture } from "test/ledgerDeletion";
+import { loadLedgerDeletionImpactWith } from "test/ledgerDeletion";
 import { LedgerInvitePendingProvider } from "organisms/ledgers/LedgerInvitePendingContext/LedgerInvitePendingContext";
 import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import { UserThemeProvider } from "theme/UserThemeProvider";
@@ -134,7 +134,7 @@ export const MemberReadonly: Story = {
 export const DangerSection: Story = {
   name: "所有者·危险操作",
   args: {
-    deletionImpact: ledgerDeletionFixture.impact,
+    loadDeletionImpactAction: loadLedgerDeletionImpactWith(),
     deleteLedgerAction: async () => ({}),
   },
 };
