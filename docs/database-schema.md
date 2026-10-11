@@ -98,7 +98,7 @@ npm run db:schema:snapshot:check
 
 ## Issue #890：删除已有账本
 
-`delete_ledger(uuid)` 在一个事务内硬删除已完成账本，仅允许账本 `owner_user_id` 对应的 active owner 成员操作。先 `FOR UPDATE` 锁住 ledger 行，拒绝未登录、越权、不存在和创建中的账本。客户端仍无 ledger DELETE 权限。
+`delete_ledger(uuid)` 在一个事务内硬删除已完成账本，仅允许账本 `owner_user_id` 对应的 active owner 成员操作。先 `FOR UPDATE` 锁住 ledger 行，拒绝未登录、越权、不存在和创建中的账本；非成员与不存在同样返回 `ledger_invalid`。客户端仍无 ledger DELETE 权限。
 
 删除前显式更新所有 `app_user.current_ledger_id` 指向该账本的用户（不只调用者）：从该用户其他 `active` 成员记录中选择未归档、`completed` 账本，按 `joined_at DESC NULLS LAST, created_at DESC, ledger_id ASC` 排序取第一项，没有则置空。既有 `validate_app_user_current_ledger` 原样验证新指针，不依赖外键 SET NULL。
 
@@ -115,6 +115,6 @@ npm run db:schema:snapshot:check
 | 7        | ledger_invite、ledger_placeholder_member                          | invite 到 ledger 为 CASCADE、到 placeholder 为 RESTRICT；placeholder 到 ledger 为 RESTRICT。先删除全部邀请（含历史邀请），再删除全部占位成员（含已认领）   |
 | 8        | ledger_member_display_setting、ledger_member、ledger              | 前两表到 ledger 为 RESTRICT；最后清理账本本体                                                                                                              |
 
-`ledger_deletion_context` 是内部授权上下文表，主键为当前事务 ID，记录已由 RPC 校验的账本与用户。它启用 RLS 且没有客户端 policy，撤销 PUBLIC / anon / authenticated / service_role 的全部权限，不作为业务数据暴露，不增加外键。RPC 在事务内写入并在结束时清除，失败自动回滚。仅伪造 `app.deleting_ledger_id` 无法放行删除；详见 [安全函数规范](security-definer-functions.md)。
+`ledger_deletion_context` 是内部授权上下文表，主键为当前事务 ID，记录已由 RPC 校验的账本与用户。它启用 RLS 且没有客户端 policy，撤销 PUBLIC / anon / authenticated / service_role 的全部权限，不作为业务数据暴露，不增加外键。RPC 在事务内写入并在结束时清除，失败自动回滚。客户端无法写入该表，因此无法伪造放行；详见 [安全函数规范](security-definer-functions.md)。
 
 删除中任一步失败，数据、当前账本指针和上下文一起回滚。新增直接或间接账本外键时，必须同步审查删除顺序、权限及副作用触发器，并补充 `supabase/tests/database/delete_ledger.test.sql`。

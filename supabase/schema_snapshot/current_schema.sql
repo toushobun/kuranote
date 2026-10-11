@@ -2791,7 +2791,9 @@ begin
         raise exception 'auth_required' using errcode = '42501', detail = 'auth_required';
     end if;
     select * into v_ledger from public.ledger where id = p_ledger_id for update;
-    if not found then
+    -- 非 active 成员与不存在同样处理，不暴露账本是否存在。
+    if not found
+       or not public.current_user_has_ledger_role(p_ledger_id, array['owner', 'admin', 'member', 'viewer']::text[]) then
         raise exception 'ledger_invalid' using errcode = 'P0002', detail = 'ledger_invalid';
     end if;
     if v_ledger.owner_user_id <> v_user_id
@@ -2803,7 +2805,6 @@ begin
     end if;
 
     insert into public.ledger_deletion_context values (pg_current_xact_id(), p_ledger_id, v_user_id);
-    perform set_config('app.deleting_ledger_id', p_ledger_id::text, true);
     update public.app_user u set current_ledger_id = (
         select lm.ledger_id from public.ledger_member lm
         join public.ledger l on l.id = lm.ledger_id
@@ -2835,7 +2836,6 @@ begin
     delete from public.ledger_member where ledger_id = p_ledger_id;
     delete from public.ledger where id = p_ledger_id;
     delete from public.ledger_deletion_context where transaction_id = pg_current_xact_id();
-    perform set_config('app.deleting_ledger_id', '', true);
 end;
 $$;
 
@@ -3187,13 +3187,8 @@ declare
     v_expected_special_status public.transaction_item_special_status;
     v_special_status_is_derived boolean := false;
 begin
-    -- 仅 delete_ledger（定义者 postgres）内放行；嵌套 if 保证普通客户端不调用无权限的放行函数。
-    if tg_op = 'DELETE' then
-        if current_user = 'postgres' then
-            if public.ledger_deletion_allows_delete(old.ledger_id) then
-                return old;
-            end if;
-        end if;
+    if tg_op = 'DELETE' and public.ledger_deletion_allows_delete(old.ledger_id) then
+        return old;
     end if;
     if auth.uid() is null then
         if tg_op = 'DELETE' then
@@ -3306,13 +3301,8 @@ CREATE OR REPLACE FUNCTION "public"."enforce_transaction_record_permission"() RE
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 begin
-    -- 仅 delete_ledger（定义者 postgres）内放行；嵌套 if 保证普通客户端不调用无权限的放行函数。
-    if tg_op = 'DELETE' then
-        if current_user = 'postgres' then
-            if public.ledger_deletion_allows_delete(old.ledger_id) then
-                return old;
-            end if;
-        end if;
+    if tg_op = 'DELETE' and public.ledger_deletion_allows_delete(old.ledger_id) then
+        return old;
     end if;
     if auth.uid() is null then
         if tg_op = 'DELETE' then
@@ -3562,13 +3552,8 @@ CREATE OR REPLACE FUNCTION "public"."guard_balance_adjustment_item"() RETURNS "t
     AS $$
 declare v_type text;
 begin
-    -- 仅 delete_ledger（定义者 postgres）内放行；嵌套 if 保证普通客户端不调用无权限的放行函数。
-    if tg_op = 'DELETE' then
-        if current_user = 'postgres' then
-            if public.ledger_deletion_allows_delete(old.ledger_id) then
-                return old;
-            end if;
-        end if;
+    if tg_op = 'DELETE' and public.ledger_deletion_allows_delete(old.ledger_id) then
+        return old;
     end if;
  select type into v_type from public.transaction_record where id=coalesce(new.transaction_record_id,old.transaction_record_id);
  if v_type='balance_adjustment' then
@@ -4235,8 +4220,7 @@ CREATE OR REPLACE FUNCTION "public"."ledger_deletion_allows_delete"("p_ledger_id
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
-    select p_ledger_id::text = nullif(current_setting('app.deleting_ledger_id', true), '')
-       and exists (
+    select exists (
            select 1 from public.ledger_deletion_context c
            join public.ledger l on l.id = c.ledger_id
            where c.transaction_id = pg_current_xact_id()
@@ -5283,13 +5267,8 @@ CREATE OR REPLACE FUNCTION "public"."recalculate_refund_link_target_status"() RE
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 begin
-    -- 仅 delete_ledger（定义者 postgres）内放行；嵌套 if 保证普通客户端不调用无权限的放行函数。
-    if tg_op = 'DELETE' then
-        if current_user = 'postgres' then
-            if public.ledger_deletion_allows_delete(old.ledger_id) then
-                return old;
-            end if;
-        end if;
+    if tg_op = 'DELETE' and public.ledger_deletion_allows_delete(old.ledger_id) then
+        return old;
     end if;
     if tg_op in ('DELETE', 'UPDATE') then
         perform public.recalculate_transaction_item_settlement_status(
@@ -5325,13 +5304,8 @@ CREATE OR REPLACE FUNCTION "public"."recalculate_reimbursement_link_target_statu
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 begin
-    -- 仅 delete_ledger（定义者 postgres）内放行；嵌套 if 保证普通客户端不调用无权限的放行函数。
-    if tg_op = 'DELETE' then
-        if current_user = 'postgres' then
-            if public.ledger_deletion_allows_delete(old.ledger_id) then
-                return old;
-            end if;
-        end if;
+    if tg_op = 'DELETE' and public.ledger_deletion_allows_delete(old.ledger_id) then
+        return old;
     end if;
     if tg_op in ('DELETE', 'UPDATE') then
         perform public.recalculate_transaction_item_settlement_status(
@@ -5556,13 +5530,8 @@ CREATE OR REPLACE FUNCTION "public"."refresh_account_name_scope"() RETURNS "trig
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 begin
-    -- 仅 delete_ledger（定义者 postgres）内放行；嵌套 if 保证普通客户端不调用无权限的放行函数。
-    if tg_op = 'DELETE' then
-        if current_user = 'postgres' then
-            if public.ledger_deletion_allows_delete(old.ledger_id) then
-                return old;
-            end if;
-        end if;
+    if tg_op = 'DELETE' and public.ledger_deletion_allows_delete(old.ledger_id) then
+        return old;
     end if;
     if tg_table_name = 'account' then
         perform public.sync_account_name_scope(new.id);
@@ -11215,6 +11184,7 @@ REVOKE ALL ON FUNCTION "public"."ledger_default_categories"() FROM PUBLIC;
 
 
 REVOKE ALL ON FUNCTION "public"."ledger_deletion_allows_delete"("p_ledger_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."ledger_deletion_allows_delete"("p_ledger_id" "uuid") TO "authenticated";
 
 
 

@@ -66,28 +66,27 @@ update public.merchant set is_archived=true,archived_at=now() where id=pg_temp.i
 select ok(not has_function_privilege('anon','public.delete_ledger(uuid)','execute'),'anon 不可执行');
 select ok(not has_function_privilege('service_role','public.delete_ledger(uuid)','execute'),'service_role 不可执行');
 select ok(has_function_privilege('authenticated','public.delete_ledger(uuid)','execute'),'authenticated 可执行');
-select ok(not has_function_privilege('authenticated','public.ledger_deletion_allows_delete(uuid)','execute'),'内部放行函数不暴露');
+select ok(has_function_privilege('authenticated','public.ledger_deletion_allows_delete(uuid)','execute'),'放行函数可供 authenticated 触发器调用');
+select ok(not has_function_privilege('anon','public.ledger_deletion_allows_delete(uuid)','execute'),'anon 不可执行放行函数');
 select is(pg_temp.remove(),'42501:auth_required','未登录拒绝');
 select pg_temp.act(2);
 set local role authenticated;
 select is(pg_temp.remove(),'42501:ledger_delete_forbidden','普通成员拒绝');
 select pg_temp.act(3);
 select is(pg_temp.remove(),'42501:ledger_delete_forbidden','admin 拒绝');
+select pg_temp.act(4);
+select is(pg_temp.remove(11),'P0002:ledger_invalid','非成员与不存在同样拒绝');
 select pg_temp.act(1);
 select is(pg_temp.remove(99),'P0002:ledger_invalid','不存在拒绝');
 select is(pg_temp.remove(16),'55000:ledger_delete_not_completed','创建中拒绝');
 -- 无 DELETE 授权或 RLS 过滤都视为拒绝，以账本仍存在为准。
 do $$ begin perform pg_temp.err(format('delete from public.ledger where id=%L',pg_temp.id(10))); end $$;
 select is((select count(*) from public.ledger where id=pg_temp.id(10)),1::bigint,'客户端直接 DELETE 无法删除账本');
-select set_config('app.deleting_ledger_id',pg_temp.id(10)::text,true);
-do $$ begin perform pg_temp.err(format('delete from public.ledger where id=%L',pg_temp.id(10))); end $$;
-select is((select count(*) from public.ledger where id=pg_temp.id(10)),1::bigint,'伪造标记无法直接删账本');
 select is(pg_temp.err(format('insert into public.ledger_deletion_context values(pg_current_xact_id(),%L,%L)',pg_temp.id(10),pg_temp.id(1))),'42501:','客户端无法伪造授权上下文');
 do $$ begin perform pg_temp.err(format('delete from public.transaction_item where id=%L',pg_temp.id(73))); end $$;
-select is((select count(*) from public.transaction_item where id=pg_temp.id(73)),1::bigint,'伪造标记无法删除余额调整明细');
+select is((select count(*) from public.transaction_item where id=pg_temp.id(73)),1::bigint,'无授权上下文时无法删除余额调整明细');
+select ok(not public.ledger_deletion_allows_delete(pg_temp.id(10)),'owner 直接调用放行函数在无授权上下文时返回 false');
 reset role;
-select ok(not public.ledger_deletion_allows_delete(pg_temp.id(10)),'只有 GUC 没有授权上下文时放行失败');
-select set_config('app.deleting_ledger_id','',true);
 -- 整个事务回滚验证：在最后一步制造拒绝，先前清理和指针修改必须全部恢复。
 create function pg_temp.reject_delete() returns trigger language plpgsql as $$ begin raise exception 'test_rollback'; end; $$;
 create trigger test_delete_rollback before delete on public.ledger for each row execute function pg_temp.reject_delete();
@@ -110,7 +109,6 @@ select is((select count(*) from public.ledger where id=pg_temp.id(10)),0::bigint
 select is((select count(*) from public.merchant_alias where merchant_id=pg_temp.id(40)),0::bigint,'商家别名删除');
 select is((select count(*) from public.merchant_tag_links where merchant_id=pg_temp.id(40)),0::bigint,'商家标签关联删除');
 select is((select count(*) from public.ledger_deletion_context),0::bigint,'成功清除上下文');
-select is(current_setting('app.deleting_ledger_id',true),'','成功清除事务标记');
 select is((select count(*) from public.account where ledger_id=pg_temp.id(10)),0::bigint,'account 关联数据清零');
 select is((select count(*) from public.account_holder where ledger_id=pg_temp.id(10)),0::bigint,'account_holder 关联数据清零');
 select is((select count(*) from public.account_name_scope where ledger_id=pg_temp.id(10)),0::bigint,'account_name_scope 关联数据清零');
