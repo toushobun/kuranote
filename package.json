@@ -17,7 +17,8 @@
     "db:schema:snapshot:check": "bash scripts/check-schema-snapshot.sh",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "check": "tsc --noEmit && eslint . && prettier . --check && npm test"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
