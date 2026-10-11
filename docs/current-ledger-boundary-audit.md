@@ -1,4 +1,4 @@
-> **状态：已完成。** 本文记录的是重构前的边界盘点，文中 `src/internal/actions`、`loaders`、`services` 等路径属于历史来源，不再是当前代码位置。当前后端模块归属以 Issue #468、`docs/AI_RULES.md` 和各业务模块目录为准。
+> **状态：已完成。** 本文记录的是重构前的边界盘点，文中 `src/internal/actions`、`loaders`、`services` 等路径属于历史来源，不再是当前代码位置。当前后端模块归属以 Issue #468、`docs/backend-rules.md` 和各业务模块目录为准。
 
 # Current ledger 数据边界审计
 
