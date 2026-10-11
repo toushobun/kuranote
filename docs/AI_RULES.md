@@ -18,7 +18,7 @@
 > `src/internal/<module>/index.ts` 是模块公共契约入口，Router 与 `basePath` 只在 `moduleRegistry.ts` 集中登记。`src/internal/` 外部代码只能通过模块根入口或模块内 `adapter/next/**` 访问业务模块，不得深度导入 Controller、Service、Repository、Schema、errors、entity 或 util 等实现文件。
 > 前端与后端相关的核心行为约束均已整理在本文件与 `docs/backend-rules.md` 中，无需每次强制读取 #1 / #90 / #468。
 
-`AGENTS.md`（Codex）与 `CLAUDE.md`（Claude Code）只保留指向本文件的最小说明，二者内容必须保持一致（仅工具名与文件名不同），由 `agentInstructions.test.ts` 校验。新增或修改 AI Agent 行为规则一律写入本文件，不得回退到在 `AGENTS.md` / `CLAUDE.md` 中堆叠规则。
+`AGENTS.md`（Codex）与 `CLAUDE.md`（Claude Code）只保留指向本文件的最小说明，二者内容必须保持一致（仅工具名与文件名不同），由 `agentInstructions.test.ts` 校验。新增或修改通用 AI Agent 行为规则统一写入本文件；后端架构模型与统一错误处理的专属规则统一维护在 `docs/backend-rules.md`。不得回退到在 `AGENTS.md` / `CLAUDE.md` 中堆叠规则。
 
 ## CodeGraph
 
