@@ -3,6 +3,10 @@ import { redirect } from "next/navigation";
 import { ledgerSettingsResultValues, routePaths } from "config/paths";
 import { createRequestContainer } from "internal/container";
 import { canManageMembers } from "internal/ledger";
+import {
+  deleteLedger,
+  loadLedgerDeletionImpact,
+} from "internal/ledger/adapter/next/actions/ledgerDeletion";
 import { createLedgerInvite } from "internal/ledger/adapter/next/actions/ledgerInvite";
 import {
   deleteLedgerPlaceholderMember,
@@ -86,6 +90,8 @@ export default async function LedgerSettingsRoute({
     <LedgerInvitePendingProvider pendingInvites={view.pendingInvites}>
       <LedgerSettingsActionStateTemplate
         {...view}
+        deleteLedgerAction={deleteLedger}
+        loadDeletionImpactAction={loadLedgerDeletionImpact}
         inviteAction={createLedgerInvite}
         placeholderMemberActions={
           canManage

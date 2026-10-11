@@ -48,6 +48,47 @@ function appThatThrows(error: unknown) {
 describe("errorHandlingMiddleware", () => {
   it.each([
     [
+      new AuthorizationError(
+        ledgerSettingsErrorCodes.deleteForbidden,
+        ledgerSettingsErrorMessages[ledgerSettingsErrorCodes.deleteForbidden],
+      ),
+      403,
+    ],
+    [
+      new ConflictError(
+        ledgerSettingsErrorCodes.deleteNotCompleted,
+        ledgerSettingsErrorMessages[
+          ledgerSettingsErrorCodes.deleteNotCompleted
+        ],
+      ),
+      409,
+    ],
+    [
+      new ValidationError(
+        ledgerSettingsErrorCodes.deleteNameMismatch,
+        ledgerSettingsErrorMessages[
+          ledgerSettingsErrorCodes.deleteNameMismatch
+        ],
+      ),
+      400,
+    ],
+    [
+      new RepositoryError(
+        ledgerSettingsErrorCodes.deleteFailed,
+        ledgerSettingsErrorMessages[ledgerSettingsErrorCodes.deleteFailed],
+      ),
+      500,
+    ],
+    [
+      new RepositoryError(
+        ledgerSettingsErrorCodes.deleteImpactFailed,
+        ledgerSettingsErrorMessages[
+          ledgerSettingsErrorCodes.deleteImpactFailed
+        ],
+      ),
+      500,
+    ],
+    [
       new ConflictError(
         ledgerSetupErrorCodes.hasMembers,
         ledgerSetupErrorMessages[ledgerSetupErrorCodes.hasMembers],

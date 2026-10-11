@@ -1,6 +1,7 @@
 import type {
   CurrentLedgerRole,
   LedgerCreateDefaults,
+  LedgerDeletionImpact,
   LedgerPlaceholderMemberSummary,
   LedgerSetup,
   LedgerSetupDraft,
@@ -86,6 +87,14 @@ export const ledgerInviteRoleLabels: Record<LedgerInviteRole, string> = {
 };
 
 export type CurrentLedgerActionState = ActionState;
+
+export type LedgerDeletionImpactState = ActionState & {
+  impact?: LedgerDeletionImpact;
+};
+
+export type LoadLedgerDeletionImpactAction = (
+  ledgerId: string,
+) => Promise<LedgerDeletionImpactState>;
 
 export type CurrentLedgerStateAction = (
   previousState: CurrentLedgerActionState,

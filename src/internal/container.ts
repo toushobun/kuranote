@@ -389,6 +389,7 @@ export function createRequestContainer(
           placeholderMemberService: getLedgerPlaceholderMemberService(),
           service: createLedgerService({ ledgerRepository }),
           settingsService: createLedgerSettingsService({
+            ledgerInviteRepository,
             ledgerSettingsRepository: getLedgerSettingsRepository(),
           }),
           setupService: createLedgerSetupService({

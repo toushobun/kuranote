@@ -8,6 +8,11 @@ import {
 } from "internal/ledger/errors/ledgerPlaceholderMember";
 
 export const ledgerSettingsErrorCodes = {
+  deleteForbidden: "ledger_delete_forbidden",
+  deleteNotCompleted: "ledger_delete_not_completed",
+  deleteNameMismatch: "ledger_delete_name_mismatch",
+  deleteFailed: "ledger_delete_failed",
+  deleteImpactFailed: "ledger_delete_impact_failed",
   authRequired: "auth_required",
   currencyInvalid: "currency_invalid",
   displayColorInvalid: "display_color_invalid",
@@ -31,6 +36,13 @@ export const ledgerSettingsErrorMessages: Record<
   LedgerSettingsErrorCode,
   string
 > = {
+  [ledgerSettingsErrorCodes.deleteForbidden]: "只有账本所有者可以删除此账本。",
+  [ledgerSettingsErrorCodes.deleteNotCompleted]: "创建中的账本请使用放弃创建。",
+  [ledgerSettingsErrorCodes.deleteNameMismatch]:
+    "输入的账本名不一致，请重新确认。",
+  [ledgerSettingsErrorCodes.deleteFailed]: "账本删除失败，请稍后重试。",
+  [ledgerSettingsErrorCodes.deleteImpactFailed]:
+    "删除影响读取失败，请稍后重试。",
   [ledgerSettingsErrorCodes.authRequired]:
     ledgerCreateErrorMessages[ledgerCreateErrorCodes.authRequired],
   [ledgerSettingsErrorCodes.currencyInvalid]:
