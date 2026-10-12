@@ -184,7 +184,7 @@ export function TransactionRefundCandidateList({
                   ? `${candidate.parentCategoryName} / ${candidate.categoryName}`
                   : candidate.categoryName}
               </Typography>
-              <Typography color="text.secondary" variant="caption">
+              <Typography color="textSecondary" variant="caption">
                 原始金额 {currencySymbol}
                 {formatNumber(candidate.amount, candidate.accountCurrency)}
               </Typography>
@@ -198,7 +198,7 @@ export function TransactionRefundCandidateList({
                 )}
               </Typography>
               {!isReimbursement && Number(candidate.refundedAmount) > 0 ? (
-                <Typography color="text.secondary" variant="caption">
+                <Typography color="textSecondary" variant="caption">
                   已退款 {currencySymbol}
                   {formatNumber(
                     candidate.refundedAmount,

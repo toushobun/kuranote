@@ -76,7 +76,7 @@ function LedgerSetupMerchantsStepContent(
           <Typography component="h3" sx={titleSx}>
             {ledgerSetupMerchantsMessages.title}
           </Typography>
-          <Typography color="text.secondary" variant="body2">
+          <Typography color="textSecondary" variant="body2">
             {ledgerSetupMerchantsMessages.description}
           </Typography>
           {checklist ? (

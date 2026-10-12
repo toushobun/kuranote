@@ -48,7 +48,7 @@ export function LedgerSetupBasicInfoStep(props: LedgerSetupWizardStepProps) {
           <Typography component="h3" sx={titleSx}>
             {ledgerSetupBasicInfoMessages.title}
           </Typography>
-          <Typography color="text.secondary" variant="body2">
+          <Typography color="textSecondary" variant="body2">
             {ledgerSetupBasicInfoMessages.description}
           </Typography>
         </Stack>

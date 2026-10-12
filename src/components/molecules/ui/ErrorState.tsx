@@ -20,11 +20,11 @@ export function ErrorState({
   return (
     <SectionCard role="alert" sx={{ borderColor: "error.light" }}>
       <Stack spacing={2}>
-        <Typography color="error.main" variant="h6" sx={{ fontWeight: 700 }}>
+        <Typography color="error" variant="h6" sx={{ fontWeight: 700 }}>
           {title}
         </Typography>
         {description ? (
-          <Typography color="text.secondary">{description}</Typography>
+          <Typography color="textSecondary">{description}</Typography>
         ) : null}
         {action ? <Box>{action}</Box> : null}
       </Stack>

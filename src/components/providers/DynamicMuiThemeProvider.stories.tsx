@@ -56,7 +56,7 @@ function DynamicMuiOverlayPreview({
       >
         <Stack spacing={1.5}>
           <Typography variant="h6">{token.name}</Typography>
-          <Typography color="text.secondary" variant="body2">
+          <Typography color="textSecondary" variant="body2">
             这个 story 用于确认 overlay 组件（Dialog / Drawer / Menu /
             Popover）的背景已通过 styleOverrides 固定为基础 paper，并与
             background.paper（用户主题 card）保持区分。
@@ -114,7 +114,7 @@ function SurfaceSwatch({
       <Typography sx={{ fontWeight: "fontWeightBold" }} variant="caption">
         {label}
       </Typography>
-      <Typography color="text.secondary" variant="caption">
+      <Typography color="textSecondary" variant="caption">
         {description} / {value}
       </Typography>
     </Stack>
@@ -144,7 +144,7 @@ function OverlaySurface({ overlay }: { overlay: OverlayKind }) {
       >
         <DialogTitle>确认删除记录</DialogTitle>
         <DialogContent>
-          <Typography color="text.secondary" variant="body2">
+          <Typography color="textSecondary" variant="body2">
             Dialog 背景应保持基础 paper，不使用普通卡片色。
           </Typography>
         </DialogContent>
@@ -213,7 +213,7 @@ function OverlaySurface({ overlay }: { overlay: OverlayKind }) {
     >
       <Box sx={{ maxWidth: 240, p: 2 }}>
         <Typography sx={{ fontWeight: "fontWeightBold" }}>补充说明</Typography>
-        <Typography color="text.secondary" variant="body2">
+        <Typography color="textSecondary" variant="body2">
           Popover 背景应保持基础 paper，避免被卡片 token 无意污染。
         </Typography>
       </Box>

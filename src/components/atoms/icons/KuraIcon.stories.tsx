@@ -37,7 +37,7 @@ export const AllIcons: Story = {
           }}
         >
           <KuraIcon name={name} size="lg" />
-          <Typography color="text.secondary" variant="caption">
+          <Typography color="textSecondary" variant="caption">
             {kuraIconRegistry[name].label}
           </Typography>
         </Box>

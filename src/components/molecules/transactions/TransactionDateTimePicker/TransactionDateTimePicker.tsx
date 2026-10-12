@@ -206,7 +206,7 @@ export function TransactionDateTimePicker({
     <>
       <Box>
         <Typography
-          color="text.primary"
+          color="textPrimary"
           sx={{ fontSize: "0.8125rem", fontWeight: 800, mb: 0.75, px: 0.25 }}
           variant="body2"
         >

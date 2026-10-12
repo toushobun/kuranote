@@ -104,7 +104,7 @@ export function EmojiIconField({
           </Box>
           <Stack spacing={0.5} sx={{ flex: 1, minWidth: 0 }}>
             <Typography sx={{ fontWeight: 700 }}>选择一个 Emoji</Typography>
-            <Typography color="text.secondary" variant="body2">
+            <Typography color="textSecondary" variant="body2">
               {helperText}
             </Typography>
           </Stack>
@@ -223,7 +223,7 @@ export function EmojiIconField({
               </Box>
             ) : (
               <Typography
-                color="text.secondary"
+                color="textSecondary"
                 sx={{ py: 4, textAlign: "center" }}
               >
                 没有找到匹配的图标。

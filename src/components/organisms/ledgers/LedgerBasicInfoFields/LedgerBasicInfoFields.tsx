@@ -174,7 +174,7 @@ export function LedgerBasicInfoFields({
             />
           ))}
         </Stack>
-        <Typography color="text.secondary" variant="body2">
+        <Typography color="textSecondary" variant="body2">
           {ledgerBasicInfoFieldMessages.colorHelper}
         </Typography>
       </Stack>
@@ -213,7 +213,7 @@ function BasicInfoField({
       )}
       {children}
       {helperText ? (
-        <Typography color="text.secondary" variant="body2">
+        <Typography color="textSecondary" variant="body2">
           {helperText}
         </Typography>
       ) : null}

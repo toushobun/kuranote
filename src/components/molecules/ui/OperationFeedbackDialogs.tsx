@@ -89,7 +89,7 @@ function FeedbackDialog({
         <AlertTitle sx={dialogTitleSx}>{title}</AlertTitle>
         {description ? (
           <Typography
-            color="text.secondary"
+            color="textSecondary"
             component="p"
             sx={dialogDescriptionSx}
           >
@@ -221,7 +221,7 @@ export function ConfirmationDialog({
         </DialogTitle>
         {description ? (
           <Typography
-            color="text.secondary"
+            color="textSecondary"
             component="div"
             id={descriptionId}
             sx={confirmationDescriptionSx}
@@ -343,7 +343,7 @@ export function ActionPromptDialog({
         </DialogTitle>
         {description ? (
           <Typography
-            color="text.secondary"
+            color="textSecondary"
             component="div"
             id={descriptionId}
             sx={confirmationDescriptionSx}

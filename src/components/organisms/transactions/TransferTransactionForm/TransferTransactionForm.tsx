@@ -535,7 +535,7 @@ function SummaryRow({
       spacing={2}
       sx={{ alignItems: "center", justifyContent: "space-between" }}
     >
-      <Typography color="text.secondary" sx={summaryLabelSx}>
+      <Typography color="textSecondary" sx={summaryLabelSx}>
         {label}
       </Typography>
       <Typography

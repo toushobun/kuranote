@@ -81,11 +81,11 @@ function LedgerSetupAccountsStepContent(
           <Typography component="h3" sx={titleSx}>
             {ledgerSetupAccountsMessages.title}
           </Typography>
-          <Typography color="text.secondary" variant="body2">
+          <Typography color="textSecondary" variant="body2">
             {ledgerSetupAccountsMessages.description}
           </Typography>
           {step.limitReached ? (
-            <Typography color="warning.main" role="status" variant="body2">
+            <Typography color="warning" role="status" variant="body2">
               {ledgerSetupAccountsMessages.limitReached(
                 ledgerSetupLimits.maxAccounts,
               )}

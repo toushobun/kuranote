@@ -33,7 +33,7 @@ export function CalendarGrid({
       {messages.weekdays.map((weekday) => (
         <Typography
           key={weekday}
-          color="text.secondary"
+          color="textSecondary"
           role="columnheader"
           sx={{ alignSelf: "center", fontSize: 11, textAlign: "center" }}
         >

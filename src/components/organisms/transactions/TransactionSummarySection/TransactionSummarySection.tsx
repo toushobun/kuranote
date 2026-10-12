@@ -118,7 +118,7 @@ function SummaryRow({
       sx={{ alignItems: "center", justifyContent: "space-between" }}
     >
       <Typography
-        color={muted ? "text.disabled" : "text.secondary"}
+        color={muted ? "textDisabled" : "textSecondary"}
         sx={summaryLabelSx}
       >
         {label}

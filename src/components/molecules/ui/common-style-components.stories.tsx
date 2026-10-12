@@ -74,7 +74,7 @@ function ComponentGallery() {
             </IconBadge>
             <Stack spacing={0.25}>
               <Typography sx={{ fontWeight: 900 }}>共通信息卡片</Typography>
-              <Typography color="text.secondary" variant="body2">
+              <Typography color="textSecondary" variant="body2">
                 使用 KuraNote token 的卡片、图标底座和文字层级。
               </Typography>
             </Stack>

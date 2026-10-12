@@ -71,7 +71,7 @@ export function GroupedIconPicker({
           </Box>
           <Typography
             id={`${id}-helper`}
-            color="text.secondary"
+            color="textSecondary"
             variant="body2"
             sx={{ flex: 1 }}
           >

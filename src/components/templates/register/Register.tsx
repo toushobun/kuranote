@@ -64,7 +64,7 @@ export function RegisterTemplate({
           <Typography component="h1" variant="h4" sx={{ fontWeight: 700 }}>
             KuraNote
           </Typography>
-          <Typography color="text.secondary" sx={{ mt: 1, mb: 4 }}>
+          <Typography color="textSecondary" sx={{ mt: 1, mb: 4 }}>
             创建账号后开始使用记账功能
           </Typography>
 
@@ -83,10 +83,7 @@ export function RegisterTemplate({
             turnstileSiteKey={turnstileSiteKey}
           />
 
-          <Typography
-            color="text.secondary"
-            sx={{ mt: 3, textAlign: "center" }}
-          >
+          <Typography color="textSecondary" sx={{ mt: 3, textAlign: "center" }}>
             已有账号？ <Link href={loginHref}>登录</Link>
           </Typography>
         </Paper>

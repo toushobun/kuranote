@@ -45,7 +45,7 @@ export function TransactionSetupHintCard({
           <Typography component="h2" sx={titleSx}>
             {hint.title}
           </Typography>
-          <Typography color="text.secondary" variant="body2">
+          <Typography color="textSecondary" variant="body2">
             {hint.description}
           </Typography>
         </Stack>

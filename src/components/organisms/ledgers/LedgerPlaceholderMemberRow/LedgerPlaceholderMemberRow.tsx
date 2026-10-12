@@ -50,7 +50,7 @@ export function LedgerPlaceholderMemberRow({
       avatarSx={avatarSx}
       onClick={onClick}
       subtitle={
-        <Typography color="text.secondary" noWrap variant="body2">
+        <Typography color="textSecondary" noWrap variant="body2">
           {subtitle}
         </Typography>
       }

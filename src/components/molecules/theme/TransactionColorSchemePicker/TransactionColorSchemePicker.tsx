@@ -74,7 +74,7 @@ export function TransactionColorSchemePicker({
           <Typography component="h3" sx={pickerTitleSx}>
             {pickerText.title}
           </Typography>
-          <Typography color="text.secondary" sx={pickerDescriptionSx}>
+          <Typography color="textSecondary" sx={pickerDescriptionSx}>
             {pickerText.description}
           </Typography>
         </Box>

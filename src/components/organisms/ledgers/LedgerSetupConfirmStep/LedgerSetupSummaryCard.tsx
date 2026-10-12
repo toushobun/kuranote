@@ -67,7 +67,7 @@ export function LedgerSetupSummaryCard({
           ) : null}
         </Stack>
         {description ? (
-          <Typography color="text.secondary" variant="body2">
+          <Typography color="textSecondary" variant="body2">
             {description}
           </Typography>
         ) : null}

@@ -112,7 +112,7 @@ export function TransactionRefundLinkPicker({
           </Button>
         </Stack>
       ) : (
-        <Typography color="text.secondary" variant="caption">
+        <Typography color="textSecondary" variant="caption">
           退款关联不受剩余可核销额度限制；请选择与收款账户一致的候选支出。
         </Typography>
       )}
@@ -154,7 +154,7 @@ export function TransactionRefundLinkPicker({
                 timeGroupView={timeGroupView}
               />
             ) : (
-              <Typography color="text.secondary">
+              <Typography color="textSecondary">
                 支出明细加载失败，请稍后重试。
               </Typography>
             )
@@ -186,7 +186,7 @@ function AllocationLine({
   value: string;
 }) {
   return (
-    <Typography color="text.secondary" variant="caption">
+    <Typography color="textSecondary" variant="caption">
       {label} {getCurrencySymbol(currency)}
       {formatNumber(value, currency)}
     </Typography>

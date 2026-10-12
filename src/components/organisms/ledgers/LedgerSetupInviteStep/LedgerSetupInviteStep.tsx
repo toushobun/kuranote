@@ -74,7 +74,7 @@ function LedgerSetupInviteStepContent({
           <Typography component="h3" sx={titleSx}>
             {messages.title}
           </Typography>
-          <Typography color="text.secondary" variant="body2">
+          <Typography color="textSecondary" variant="body2">
             {messages.description}
           </Typography>
         </Stack>
@@ -110,7 +110,7 @@ function LedgerSetupInviteStepContent({
           </LedgerInvitePendingProvider>
         )}
 
-        <Typography color="text.secondary" variant="body2">
+        <Typography color="textSecondary" variant="body2">
           {placeholderMemberText.notMemberNote}
         </Typography>
       </Stack>

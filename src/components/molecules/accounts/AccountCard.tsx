@@ -89,7 +89,7 @@ export function AccountCard({
                   />
                 ))
               ) : (
-                <Typography color="text.secondary" variant="body2">
+                <Typography color="textSecondary" variant="body2">
                   未设置持有人
                 </Typography>
               )}

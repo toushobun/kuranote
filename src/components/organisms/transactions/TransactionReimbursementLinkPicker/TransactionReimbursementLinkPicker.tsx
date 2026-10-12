@@ -112,7 +112,7 @@ export function TransactionReimbursementLinkPicker({
           </Button>
         </Stack>
       ) : (
-        <Typography color="text.secondary" variant="caption">
+        <Typography color="textSecondary" variant="caption">
           可选择一条处于报销流程中的支出；已结清或核销结余后仍可继续关联。
         </Typography>
       )}
@@ -154,7 +154,7 @@ export function TransactionReimbursementLinkPicker({
                 timeGroupView={timeGroupView}
               />
             ) : (
-              <Typography color="text.secondary">
+              <Typography color="textSecondary">
                 报销候选支出加载失败，请稍后重试。
               </Typography>
             )
@@ -186,7 +186,7 @@ function AllocationLine({
   value: string;
 }) {
   return (
-    <Typography color="text.secondary" variant="caption">
+    <Typography color="textSecondary" variant="caption">
       {label} {getCurrencySymbol(currency)}
       {formatNumber(value, currency)}
     </Typography>

@@ -290,7 +290,7 @@ export function TransactionItemPickerDrawer({
         />
 
         {filteredCategoryOptions.length === 0 ? (
-          <Typography color="text.secondary">请先新增分类。</Typography>
+          <Typography color="textSecondary">请先新增分类。</Typography>
         ) : (
           <>
             <SectionLabel>常用快捷</SectionLabel>
@@ -331,7 +331,7 @@ export function TransactionItemPickerDrawer({
             >
               {displayedGroups.length === 0 ? (
                 <Box sx={emptySearchSx}>
-                  <Typography color="text.secondary" variant="body2">
+                  <Typography color="textSecondary" variant="body2">
                     没有匹配的小分类
                   </Typography>
                 </Box>

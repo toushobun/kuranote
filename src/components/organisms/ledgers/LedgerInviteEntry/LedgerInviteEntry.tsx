@@ -150,7 +150,7 @@ export function LedgerInviteEntry({
         disabled={!canInvite}
         onClick={() => openNewDraft()}
         subtitle={
-          <Typography color="text.secondary" noWrap variant="body2">
+          <Typography color="textSecondary" noWrap variant="body2">
             {canInvite
               ? placeholderMemberText.inviteEntrySubtitle
               : placeholderMemberText.inviteEntryReadOnlySubtitle}
@@ -193,7 +193,7 @@ export function LedgerInviteEntry({
           </DialogTitle>
           <DialogContent>
             <Stack spacing={2} sx={{ pt: 0.5 }}>
-              <Typography color="text.secondary" variant="body2">
+              <Typography color="textSecondary" variant="body2">
                 {draftPlaceholderId
                   ? placeholderMemberText.generateInviteDescription
                   : placeholderMemberText.inviteDialogDescription}
@@ -301,7 +301,7 @@ export function LedgerInviteEntry({
                 </>
               ) : (
                 <>
-                  <Typography color="text.secondary" variant="body2">
+                  <Typography color="textSecondary" variant="body2">
                     {canInvite
                       ? "邀请链接暂不可读取，请刷新页面后重试。"
                       : "仅管理员或所有者可以查看邀请链接和二维码。"}
@@ -353,7 +353,7 @@ export function LedgerInviteEntry({
         <form action={formAction}>
           <DialogTitle>确认撤销邀请？</DialogTitle>
           <DialogContent>
-            <Typography color="text.secondary" variant="body2">
+            <Typography color="textSecondary" variant="body2">
               撤销后，已发送的邀请链接将立即失效，且无法恢复。
             </Typography>
             <input name="intent" type="hidden" value="revoke" />
@@ -424,7 +424,7 @@ export function LedgerInviteEntry({
 function DetailLine({ label, value }: { label: string; value: string }) {
   return (
     <Stack direction="row" sx={{ justifyContent: "space-between" }}>
-      <Typography color="text.secondary" variant="body2">
+      <Typography color="textSecondary" variant="body2">
         {label}
       </Typography>
       <Typography sx={{ fontWeight: 700 }} variant="body2">

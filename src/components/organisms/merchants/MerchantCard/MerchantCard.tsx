@@ -135,17 +135,13 @@ export function MerchantCard({
               {merchant.website_url}
             </Link>
           ) : (
-            <Typography color="text.secondary" sx={{ mt: 0.5 }} variant="body2">
+            <Typography color="textSecondary" sx={{ mt: 0.5 }} variant="body2">
               网址未设置
             </Typography>
           )}
 
           {merchant.note ? (
-            <Typography
-              color="text.secondary"
-              sx={{ mt: 0.35 }}
-              variant="body2"
-            >
+            <Typography color="textSecondary" sx={{ mt: 0.35 }} variant="body2">
               {merchant.note}
             </Typography>
           ) : null}

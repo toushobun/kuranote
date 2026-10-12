@@ -31,6 +31,6 @@ export const DashedBorder: Story = {
   name: "虚线边框（空状态用）",
   args: {
     sx: { p: 3, borderStyle: "dashed" },
-    children: <Typography color="text.secondary">暂无内容</Typography>,
+    children: <Typography color="textSecondary">暂无内容</Typography>,
   },
 };

@@ -68,7 +68,7 @@ export function ProfileAccountLinking({
             <Box sx={providerTextSx}>
               <Typography variant="body2">{text.google}</Typography>
               <Typography
-                color="text.secondary"
+                color="textSecondary"
                 sx={statusTextSx}
                 variant="caption"
               >
@@ -109,7 +109,7 @@ export function ProfileAccountLinking({
             )}
           </Stack>
           {unlinkDisabledReason ? (
-            <Typography color="text.secondary" variant="caption">
+            <Typography color="textSecondary" variant="caption">
               {unlinkDisabledReason}
             </Typography>
           ) : null}

@@ -94,7 +94,7 @@ export function AccountFields({
                       return (
                         selectedOption?.label ?? (
                           <Typography
-                            color="text.secondary"
+                            color="textSecondary"
                             component="span"
                             sx={{ fontWeight: 400 }}
                           >

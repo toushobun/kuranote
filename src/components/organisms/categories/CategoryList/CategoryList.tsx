@@ -138,7 +138,7 @@ function CategoryRowItem({
             </Typography>
             {childCount !== undefined ? (
               <Typography
-                color="text.secondary"
+                color="textSecondary"
                 sx={{ lineHeight: 1.4 }}
                 variant="body2"
               >
@@ -409,7 +409,7 @@ export function CategoryList({
                             </SortableList>
                           ) : (
                             <Typography
-                              color="text.secondary"
+                              color="textSecondary"
                               sx={{
                                 borderTop: 1,
                                 borderColor: "divider",

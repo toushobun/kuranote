@@ -22,7 +22,7 @@ export function LoadingState({
           {title}
         </Typography>
         {description ? (
-          <Typography color="text.secondary">{description}</Typography>
+          <Typography color="textSecondary">{description}</Typography>
         ) : null}
       </Stack>
     </SectionCard>
