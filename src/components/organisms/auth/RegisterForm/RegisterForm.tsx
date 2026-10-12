@@ -249,7 +249,7 @@ export function RegisterForm(props: RegisterFormProps) {
 
       {isFieldsLocked ? (
         <Box sx={{ display: "grid", gap: 2 }}>
-          <Typography color="text.secondary" variant="body2">
+          <Typography color="textSecondary" variant="body2">
             {registerFormMessages.otpInstruction}
             {cooldownSeconds > 0
               ? ` ${registerFormMessages.getResendCooldownText(cooldownSeconds)}`
@@ -289,7 +289,7 @@ export function RegisterForm(props: RegisterFormProps) {
               slotProps={shrinkInputLabelSlotProps}
             />
             {submitOtpState.remainingAttempts !== undefined ? (
-              <Typography color="text.secondary" variant="body2">
+              <Typography color="textSecondary" variant="body2">
                 {registerFormMessages.getRemainingAttemptsText(
                   submitOtpState.remainingAttempts,
                 )}

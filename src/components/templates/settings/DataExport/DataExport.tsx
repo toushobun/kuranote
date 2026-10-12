@@ -40,7 +40,7 @@ export function DataExportTemplate({
               {messages.scopeTitle}
             </Typography>
             {[messages.scope, messages.format, messages.empty].map((text) => (
-              <Typography key={text} color="text.secondary" variant="body2">
+              <Typography key={text} color="textSecondary" variant="body2">
                 {text}
               </Typography>
             ))}

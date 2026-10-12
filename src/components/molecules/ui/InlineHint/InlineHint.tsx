@@ -34,7 +34,7 @@ export function InlineHint({ children, variant = "filled" }: InlineHintProps) {
           fontSize: 22,
         }}
       />
-      <Typography color="text.secondary" variant="body2">
+      <Typography color="textSecondary" variant="body2">
         {children}
       </Typography>
     </Stack>

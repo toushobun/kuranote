@@ -88,7 +88,7 @@ export function LedgerDeletion({
         <DeleteOutlineRoundedIcon color="error" />
         <Box sx={{ flex: 1 }}>
           <Typography sx={{ fontWeight: 700 }}>{messages.title}</Typography>
-          <Typography variant="body2" sx={secondaryTextSx}>
+          <Typography variant="body2" color="textSecondary">
             {messages.description}
           </Typography>
         </Box>
@@ -167,7 +167,7 @@ export function LedgerDeletion({
                   sx={{ alignItems: "center", justifyContent: "center" }}
                 >
                   <CircularProgress aria-hidden size={20} />
-                  <Typography variant="body2" sx={secondaryTextSx}>
+                  <Typography variant="body2" color="textSecondary">
                     {messages.impactLoading}
                   </Typography>
                 </Stack>
@@ -297,7 +297,8 @@ export function LedgerDeletion({
                 <Typography
                   role="status"
                   variant="body2"
-                  sx={{ ...secondaryTextSx, textAlign: "center" }}
+                  color="textSecondary"
+                  sx={{ textAlign: "center" }}
                 >
                   {messages.pendingHint}
                 </Typography>
@@ -320,9 +321,6 @@ export function LedgerDeletion({
     </>
   );
 }
-
-// 当前 MUI 版本下 Typography 的 color prop 不生效，统一用 sx 指定。
-const secondaryTextSx = { color: "text.secondary" } as const;
 
 const dialogTitleSx = {
   ...typographyStyles.cardTitle,

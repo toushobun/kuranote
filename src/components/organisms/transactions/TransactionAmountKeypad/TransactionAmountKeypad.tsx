@@ -194,7 +194,7 @@ export function TransactionAmountKeypad({
             </Button>
           </Box>
           {expressionText ? (
-            <Typography color="text.secondary" variant="caption">
+            <Typography color="textSecondary" variant="caption">
               {expressionText}
             </Typography>
           ) : null}

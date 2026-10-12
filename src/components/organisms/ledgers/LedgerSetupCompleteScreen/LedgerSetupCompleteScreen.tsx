@@ -52,10 +52,10 @@ export function LedgerSetupCompleteScreen({
             <Typography component="h2" id={titleId} sx={titleSx}>
               {messages.title}
             </Typography>
-            <Typography color="text.secondary" sx={descriptionSx}>
+            <Typography color="textSecondary" sx={descriptionSx}>
               {messages.description(completion.ledgerName)}
             </Typography>
-            <Typography color="text.secondary" sx={descriptionSx}>
+            <Typography color="textSecondary" sx={descriptionSx}>
               {messages.hint}
             </Typography>
           </Stack>

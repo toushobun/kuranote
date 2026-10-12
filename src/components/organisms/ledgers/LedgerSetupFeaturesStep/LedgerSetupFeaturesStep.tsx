@@ -65,7 +65,7 @@ function LedgerSetupFeaturesStepContent(
           <Typography component="h3" sx={titleSx}>
             {ledgerSetupFeaturesMessages.title}
           </Typography>
-          <Typography color="text.secondary" variant="body2">
+          <Typography color="textSecondary" variant="body2">
             {ledgerSetupFeaturesMessages.description}
           </Typography>
         </Stack>

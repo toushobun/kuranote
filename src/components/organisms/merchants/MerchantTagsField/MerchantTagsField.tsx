@@ -33,7 +33,7 @@ export function MerchantTagsField({
       <Typography component="span" sx={{ fontWeight: 700 }}>
         {merchantText.tagsLabel}
       </Typography>
-      <Typography color="text.secondary" variant="body2">
+      <Typography color="textSecondary" variant="body2">
         {merchantText.tagsHelper}
       </Typography>
       {tags.length > 0 ? (
@@ -77,7 +77,7 @@ export function MerchantTagsField({
           })}
         </Stack>
       ) : (
-        <Typography color="text.secondary" variant="body2">
+        <Typography color="textSecondary" variant="body2">
           {merchantText.tagsEmpty}
         </Typography>
       )}

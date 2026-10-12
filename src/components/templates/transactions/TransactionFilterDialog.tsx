@@ -199,7 +199,7 @@ export function TransactionFilterDialog({
 
             {filterOptions.transactionItemSpecialStatusEnabled ? (
               <Stack spacing={0.75}>
-                <Typography color="text.secondary" variant="body2">
+                <Typography color="textSecondary" variant="body2">
                   特殊状态
                 </Typography>
                 <Stack direction="row" sx={{ flexWrap: "wrap", gap: 1 }}>

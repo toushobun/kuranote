@@ -64,7 +64,7 @@ export function LedgerSpecialStatusSetting({
         {state === "loading" ? (
           <Stack aria-live="polite" direction="row" role="status" sx={stateSx}>
             <CircularProgress size={22} />
-            <Typography color="text.secondary" variant="body2">
+            <Typography color="textSecondary" variant="body2">
               正在加载功能设置…
             </Typography>
           </Stack>
@@ -93,7 +93,7 @@ export function LedgerSpecialStatusSetting({
               </Box>
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography sx={titleSx}>启用特殊状态</Typography>
-                <Typography color="text.secondary" variant="body2">
+                <Typography color="textSecondary" variant="body2">
                   标记待报销支出，报销 / 退款到账时在收入页完成关联。
                 </Typography>
               </Box>
@@ -134,13 +134,13 @@ export function LedgerSpecialStatusSetting({
                 ))}
               </Stack>
             ) : disabledDescription ? (
-              <Typography color="text.secondary" variant="body2">
+              <Typography color="textSecondary" variant="body2">
                 {disabledDescription}
               </Typography>
             ) : null}
 
             {!canEdit ? (
-              <Typography color="text.secondary" variant="caption">
+              <Typography color="textSecondary" variant="caption">
                 只有管理员或所有者可以修改此设置。
               </Typography>
             ) : null}

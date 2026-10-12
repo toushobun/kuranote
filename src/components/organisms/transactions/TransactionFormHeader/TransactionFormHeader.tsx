@@ -63,7 +63,7 @@ export function TransactionFormHeader({
       </Stack>
       {ledgerName ? (
         <Typography
-          color="text.secondary"
+          color="textSecondary"
           sx={{ ...typographyStyles.body, textAlign: "center" }}
           variant="body2"
         >

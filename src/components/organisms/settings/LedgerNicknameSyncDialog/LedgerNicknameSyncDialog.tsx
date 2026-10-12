@@ -61,7 +61,7 @@ export function LedgerNicknameSyncDialog({
       <DialogTitle id={titleId}>{text.title}</DialogTitle>
       <DialogContent>
         <Stack spacing={1.25}>
-          <Typography color="text.secondary" variant="body2">
+          <Typography color="textSecondary" variant="body2">
             {text.description(displayName)}
           </Typography>
           <Stack direction="row" spacing={1}>

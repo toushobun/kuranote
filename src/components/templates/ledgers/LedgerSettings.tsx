@@ -445,7 +445,7 @@ function MemberRow({
         onClick={onClick}
         subtitle={
           member.email ? (
-            <Typography color="text.secondary" noWrap variant="body2">
+            <Typography color="textSecondary" noWrap variant="body2">
               {member.email}
             </Typography>
           ) : null

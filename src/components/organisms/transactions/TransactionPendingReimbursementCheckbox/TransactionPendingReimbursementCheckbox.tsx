@@ -29,7 +29,7 @@ export function TransactionPendingReimbursementCheckbox({
         label="待报销"
         sx={labelSx}
       />
-      <Typography color="text.secondary" variant="caption">
+      <Typography color="textSecondary" variant="caption">
         退款或报销核销完成后，将自动更新结算状态。
       </Typography>
     </Stack>

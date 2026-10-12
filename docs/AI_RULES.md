@@ -182,6 +182,7 @@ Review（包括 review 他人 PR、自查 diff、处理 review 意见）的核�
 
 - 颜色、间距、圆角、阴影、字体大小必须优先来自 MUI theme token，禁止大量散落的 hard-coded 值（例如 `color: "#333"`、`padding: "12px"`）。
 - `sx` 可以使用，但应优先引用 theme token（如 `spacing`、`palette`、`shape` 等）。
+- MUI 9 已移除 Typography 等组件的 system props，`<Typography color="text.secondary">` 这类点路径 `color` 不会生成任何颜色（#894）。Typography 的 `color` 只使用 `textPrimary` / `textSecondary` / `textDisabled` 或 palette 名称（`primary`、`error`、`success` 等）；其他颜色写进 `sx={{ color: "..." }}`。该规则由 ESLint `no-restricted-syntax` 校验。
 - 实现圆角时以 [docs/theme.md](theme.md) 的"圆角层级"一节为权威参照，必须从其中定义的 6 档 token 里选择，禁止裸数字或新增档位。
 - 面向用户显示的文案不得硬编码散落在多个组件中，至少集中到模块级常量文件统一管理。
 - 自定义 `sx` 中使用 `"&:hover"` 时必须包一层 `"@media (hover: hover)"`，避免触屏设备没有 `mouseleave` 事件，点击后 hover 样式卡住不消失；`:active`、`:focus-visible` 不受此问题影响，不需要同样处理。参考写法见 `src/components/molecules/transactions/TransactionDateTimePicker/DateTimeSettingRows.tsx` 的 `settingRowSx`：

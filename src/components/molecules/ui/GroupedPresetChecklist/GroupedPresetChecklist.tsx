@@ -132,7 +132,7 @@ function ChecklistGroup({
           <Typography component="h4" sx={groupNameSx}>
             {group.name}
           </Typography>
-          <Typography color="text.secondary" variant="body2">
+          <Typography color="textSecondary" variant="body2">
             {messages.groupSelectedCount(selectedCount, total)}
           </Typography>
         </Box>

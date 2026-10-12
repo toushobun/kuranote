@@ -303,7 +303,7 @@ function LedgerListItem({
             {ledger.name}
           </Typography>
 
-          <Typography color="text.secondary" variant="body2">
+          <Typography color="textSecondary" variant="body2">
             成员 {ledger.memberCount} 人 · {ledger.baseCurrency} ·{" "}
             {roleLabelMap[ledger.currentUserRole]}
           </Typography>
@@ -373,7 +373,7 @@ function LedgerSetupInProgressItem({
               />
             </Stack>
 
-            <Typography color="text.secondary" variant="body2">
+            <Typography color="textSecondary" variant="body2">
               {progress.description}
             </Typography>
           </Stack>
@@ -449,7 +449,7 @@ function LedgersEmptyCard({ onCreate }: { onCreate: () => void }) {
           <Typography component="p" sx={emptyTitleSx}>
             你还没有任何账本
           </Typography>
-          <Typography color="text.secondary" variant="body2">
+          <Typography color="textSecondary" variant="body2">
             创建第一个账本后，就可以开始整理家庭记录。
           </Typography>
         </Stack>
@@ -475,7 +475,7 @@ function LedgerMetaItem({
   return (
     <Stack direction="row" spacing={0.35} sx={ledgerMetaItemSx}>
       <Icon sx={metaIconSx} />
-      <Typography color="text.secondary" variant="body2" sx={metaTextSx}>
+      <Typography color="textSecondary" variant="body2" sx={metaTextSx}>
         <Box component="span" sx={metaLabelSx}>
           {label}
         </Box>{" "}

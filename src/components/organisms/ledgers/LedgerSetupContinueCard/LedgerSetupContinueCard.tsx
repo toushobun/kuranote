@@ -50,7 +50,7 @@ export function LedgerSetupContinueCard({
             <Typography component="h2" sx={titleSx}>
               {title}
             </Typography>
-            <Typography color="text.secondary" variant="body2">
+            <Typography color="textSecondary" variant="body2">
               {progress.description}
             </Typography>
           </Stack>
@@ -64,7 +64,7 @@ export function LedgerSetupContinueCard({
             value={Math.round(progress.ratio * 100)}
             variant="determinate"
           />
-          <Typography color="text.secondary" sx={stepCountSx}>
+          <Typography color="textSecondary" sx={stepCountSx}>
             {progress.stepCountText}
           </Typography>
         </Stack>

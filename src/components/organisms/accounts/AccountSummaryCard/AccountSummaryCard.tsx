@@ -59,7 +59,7 @@ export function AccountSummaryCard({
     <DataItemCard>
       <Stack spacing={1.5}>
         <Stack spacing={0.6}>
-          <Typography color="text.secondary" variant="body2">
+          <Typography color="textSecondary" variant="body2">
             账户总余额
           </Typography>
           <Stack direction="row" spacing={0.6} sx={{ alignItems: "center" }}>
@@ -101,7 +101,7 @@ export function AccountSummaryCard({
             </IconButton>
           </Stack>
           {hasForeignCurrencyAccounts ? (
-            <Typography color="text.secondary" variant="caption">
+            <Typography color="textSecondary" variant="caption">
               外币账户未计入总余额，暂不支持汇率换算。
             </Typography>
           ) : null}
@@ -168,7 +168,7 @@ function SummaryMetric({
         {icon}
       </Stack>
       <Stack spacing={0.2}>
-        <Typography color="text.secondary" variant="caption">
+        <Typography color="textSecondary" variant="caption">
           {label}
         </Typography>
         <Typography sx={{ fontWeight: 900 }}>{value}</Typography>

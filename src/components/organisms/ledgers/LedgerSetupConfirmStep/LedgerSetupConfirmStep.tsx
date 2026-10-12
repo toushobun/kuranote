@@ -90,7 +90,7 @@ function LedgerSetupConfirmStepContent({
           <Typography component="h3" sx={titleSx}>
             {messages.title}
           </Typography>
-          <Typography color="text.secondary" variant="body2">
+          <Typography color="textSecondary" variant="body2">
             {messages.description(basicInfo.ledgerName)}
           </Typography>
         </Stack>

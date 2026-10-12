@@ -98,7 +98,7 @@ export function AccountHolderCheckboxGroup({
                 ))}
               </>
             ) : (
-              <Typography color="text.secondary" variant="body2">
+              <Typography color="textSecondary" variant="body2">
                 暂无可选持有人
               </Typography>
             )}
@@ -106,7 +106,7 @@ export function AccountHolderCheckboxGroup({
           {hasPlaceholderOptions ? (
             <Stack spacing={0.75}>
               <Typography
-                color="text.secondary"
+                color="textSecondary"
                 id="account-placeholder-holder-label"
                 variant="body2"
                 sx={placeholderGroupLabelSx}
@@ -140,7 +140,7 @@ export function AccountHolderCheckboxGroup({
       <Divider />
       <Stack direction="row" spacing={1} sx={holderHelperSx}>
         <LightbulbOutlinedIcon fontSize="small" />
-        <Typography color="text.secondary" variant="body2">
+        <Typography color="textSecondary" variant="body2">
           {hasAnyOptions
             ? hasPreservedOptions
               ? "持有人用于标识该账户的主要使用者，最多选择 1 个；非活跃持有人会在保存时保留。"

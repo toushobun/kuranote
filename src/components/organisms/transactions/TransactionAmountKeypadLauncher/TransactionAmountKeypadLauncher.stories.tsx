@@ -33,7 +33,7 @@ function LauncherDemo() {
           placeholder="0"
           value={memo}
         />
-        <Typography color="text.secondary" variant="body2">
+        <Typography color="textSecondary" variant="body2">
           当前金额：{amount}
         </Typography>
       </Stack>
@@ -66,7 +66,7 @@ function BottomNavigationOverlapDemo() {
           placeholder="0"
           value={amount}
         />
-        <Typography color="text.secondary" variant="body2">
+        <Typography color="textSecondary" variant="body2">
           打开计算器后，面板应贴底显示并覆盖底部导航。
         </Typography>
       </Stack>
@@ -93,19 +93,19 @@ function BottomNavigationOverlapDemo() {
             py: 0.75,
           }}
         >
-          <Typography color="text.secondary" variant="caption">
+          <Typography color="textSecondary" variant="caption">
             首页
           </Typography>
-          <Typography color="text.secondary" variant="caption">
+          <Typography color="textSecondary" variant="caption">
             明细
           </Typography>
-          <Typography color="text.secondary" variant="caption">
+          <Typography color="textSecondary" variant="caption">
             追加
           </Typography>
-          <Typography color="text.secondary" variant="caption">
+          <Typography color="textSecondary" variant="caption">
             统计
           </Typography>
-          <Typography color="text.secondary" variant="caption">
+          <Typography color="textSecondary" variant="caption">
             设置
           </Typography>
         </Stack>

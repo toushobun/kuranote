@@ -37,7 +37,7 @@ export function StatisticsTemplate({
         subtitle={
           <Stack spacing={0.5}>
             <span>当前账本：{ledgerName}</span>
-            <Typography color="text.secondary" variant="body2">
+            <Typography color="textSecondary" variant="body2">
               按月份整理收支、分类和商家，让家庭账本一眼看清。
             </Typography>
           </Stack>
@@ -60,7 +60,7 @@ export function StatisticsTemplate({
             >
               {monthLabel}
             </Typography>
-            <Typography color="text.secondary" variant="caption">
+            <Typography color="textSecondary" variant="caption">
               月度收支概览
             </Typography>
           </Stack>
@@ -130,7 +130,7 @@ function SummaryCard({
 }) {
   return (
     <Stack sx={summaryCardSx}>
-      <Typography color="text.secondary" sx={{ fontSize: 12, fontWeight: 800 }}>
+      <Typography color="textSecondary" sx={{ fontSize: 12, fontWeight: 800 }}>
         {label}
       </Typography>
       <Typography
@@ -189,7 +189,7 @@ function RankingSection({
           ))}
         </Stack>
       ) : (
-        <Typography color="text.secondary" sx={{ mt: 2 }}>
+        <Typography color="textSecondary" sx={{ mt: 2 }}>
           {emptyDescription}
         </Typography>
       )}
@@ -225,7 +225,7 @@ function RankingRow({
             <Typography noWrap sx={{ fontWeight: 800 }}>
               {item.name}
             </Typography>
-            <Typography color="text.secondary" variant="body2">
+            <Typography color="textSecondary" variant="body2">
               {item.transactionCount} 笔 · 占比 {percentage}%
             </Typography>
           </Stack>

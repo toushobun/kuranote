@@ -45,7 +45,7 @@ export function LoginTemplate({
           <Typography component="h1" variant="h4" sx={{ fontWeight: 700 }}>
             KuraNote
           </Typography>
-          <Typography color="text.secondary" sx={{ mt: 1, mb: 4 }}>
+          <Typography color="textSecondary" sx={{ mt: 1, mb: 4 }}>
             登录后开始使用记账功能
           </Typography>
 
@@ -58,10 +58,7 @@ export function LoginTemplate({
 
           <LoginForm action={action} defaultEmail={defaultEmail} />
 
-          <Typography
-            color="text.secondary"
-            sx={{ mt: 3, textAlign: "center" }}
-          >
+          <Typography color="textSecondary" sx={{ mt: 3, textAlign: "center" }}>
             还没有账号？ <Link href={registerHref}>注册</Link>
           </Typography>
         </Paper>

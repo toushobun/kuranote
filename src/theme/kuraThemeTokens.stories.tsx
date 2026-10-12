@@ -71,7 +71,7 @@ function ColorChip({ label, value }: { label: string; value: string }) {
       <Typography variant="caption" sx={{ fontWeight: 700 }}>
         {label}
       </Typography>
-      <Typography color="text.secondary" variant="caption">
+      <Typography color="textSecondary" variant="caption">
         {value}
       </Typography>
     </Stack>
@@ -158,7 +158,7 @@ function RadiusScaleList() {
           <Typography variant="caption" sx={{ fontWeight: 800 }}>
             {radiusKey} · {designTokens.radius[radiusKey]}px
           </Typography>
-          <Typography color="text.secondary" variant="caption">
+          <Typography color="textSecondary" variant="caption">
             {description}
           </Typography>
         </Stack>

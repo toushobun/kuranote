@@ -20,7 +20,7 @@ function TypographyTokensPreview() {
             p: 2,
           }}
         >
-          <Typography color="text.secondary" variant="caption">
+          <Typography color="textSecondary" variant="caption">
             {item.label}
           </Typography>
           <Typography sx={item.style}>{item.sample}</Typography>

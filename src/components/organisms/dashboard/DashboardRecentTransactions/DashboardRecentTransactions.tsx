@@ -78,7 +78,7 @@ export function DashboardRecentTransactions({
           </Stack>
         ) : (
           <Typography
-            color="text.secondary"
+            color="textSecondary"
             sx={{ py: 4, textAlign: "center" }}
             variant="body2"
           >

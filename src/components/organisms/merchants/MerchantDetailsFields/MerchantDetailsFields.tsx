@@ -101,7 +101,7 @@ export function MerchantDetailsFields({
               {statusContent.text}
             </Typography>
           </Stack>
-          <Typography color="text.secondary" variant="body2">
+          <Typography color="textSecondary" variant="body2">
             {merchantText.websiteHelper}
           </Typography>
         </Stack>

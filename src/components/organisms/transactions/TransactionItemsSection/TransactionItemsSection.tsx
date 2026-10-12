@@ -65,7 +65,7 @@ export function TransactionItemsSection({
         <Box sx={itemsCardSx}>
           {itemSummaries.length === 0 ? (
             <Typography
-              color={fieldError ? "error" : "text.secondary"}
+              color={fieldError ? "error" : "textSecondary"}
               variant="body2"
               sx={{ px: 1.25, py: 1.5 }}
             >

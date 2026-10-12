@@ -140,7 +140,7 @@ export function LedgerInviteTemplate({
                   ? "你已经加入该账本"
                   : "邀请你加入账本"}
             </Typography>
-            <Typography color="text.secondary">
+            <Typography color="textSecondary">
               {isInvalid
                 ? "该邀请链接已经失效，请联系管理员重新发送邀请。"
                 : isAlreadyMember
@@ -165,7 +165,7 @@ export function LedgerInviteTemplate({
                   </Typography>
                 </Stack>
                 <LedgerInviteRoleRow role={preview.inviteRole ?? "member"} />
-                <Typography color="text.secondary" variant="body2">
+                <Typography color="textSecondary" variant="body2">
                   {inviteRoleDescriptions[preview.inviteRole ?? "member"]}
                 </Typography>
                 {identityName ? (

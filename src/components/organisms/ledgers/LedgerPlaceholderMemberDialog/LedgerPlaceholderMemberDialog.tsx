@@ -122,7 +122,7 @@ export function LedgerPlaceholderMemberDialog({
                   <SubmitButton label={text.renameSave} pending={renaming} />
                 </Stack>
               ) : (
-                <Typography color="text.secondary" variant="body2">
+                <Typography color="textSecondary" variant="body2">
                   {text.readOnlyNote}
                 </Typography>
               )}
@@ -138,7 +138,7 @@ export function LedgerPlaceholderMemberDialog({
                     </Typography>
                     {invite ? (
                       <>
-                        <Typography color="text.secondary" variant="body2">
+                        <Typography color="textSecondary" variant="body2">
                           {`${text.statusLinkPending} · ${ledgerInviteRoleLabels[invite.role]} · ${formatInviteCreatedAt(invite.createdAt)}`}
                         </Typography>
                         <Button
@@ -153,7 +153,7 @@ export function LedgerPlaceholderMemberDialog({
                       </>
                     ) : (
                       <>
-                        <Typography color="text.secondary" variant="body2">
+                        <Typography color="textSecondary" variant="body2">
                           {text.generateInviteDescription}
                         </Typography>
                         <Button
@@ -223,7 +223,7 @@ function NotMemberNote() {
   return (
     <Stack direction="row" spacing={0.75} sx={noteSx}>
       <InfoOutlinedIcon fontSize="small" />
-      <Typography color="text.secondary" variant="body2">
+      <Typography color="textSecondary" variant="body2">
         {text.notMemberNote}
       </Typography>
     </Stack>

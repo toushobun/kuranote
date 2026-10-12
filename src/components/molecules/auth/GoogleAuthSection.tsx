@@ -74,7 +74,7 @@ export function GoogleAuthSection({
           </Box>
 
           <Divider>
-            <Typography color="text.secondary" variant="body2">
+            <Typography color="textSecondary" variant="body2">
               或
             </Typography>
           </Divider>

@@ -36,7 +36,7 @@ export function MerchantDisplayNameEditor({
         <Typography component="h2" variant="subtitle1" sx={{ fontWeight: 900 }}>
           {merchantText.preferredTitle}
         </Typography>
-        <Typography color="text.secondary" variant="body2">
+        <Typography color="textSecondary" variant="body2">
           {merchantText.preferredHelper}
         </Typography>
       </Stack>
@@ -90,7 +90,7 @@ export function MerchantDisplayNameEditor({
         </Button>
         <input name="merchantId" type="hidden" value={merchant.id} />
       </Stack>
-      <Typography color="text.secondary" variant="caption" sx={{ px: 0.5 }}>
+      <Typography color="textSecondary" variant="caption" sx={{ px: 0.5 }}>
         {merchantText.aliasHelper}
       </Typography>
     </Stack>

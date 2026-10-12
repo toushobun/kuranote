@@ -65,7 +65,7 @@ export function ProfilePasswordDialog({
           <DialogTitle id={titleId}>{text.title}</DialogTitle>
           <DialogContent>
             <Stack spacing={2}>
-              <Typography color="text.secondary" variant="body2">
+              <Typography color="textSecondary" variant="body2">
                 {text.description(email)}
               </Typography>
               <Button
@@ -87,11 +87,7 @@ export function ProfilePasswordDialog({
               </Button>
               {dialog.otpSent ? (
                 <>
-                  <Typography
-                    color="success.main"
-                    role="status"
-                    variant="body2"
-                  >
+                  <Typography color="success" role="status" variant="body2">
                     {dialog.sentMessage}
                   </Typography>
                   <TextField

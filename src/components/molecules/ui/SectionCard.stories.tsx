@@ -22,7 +22,7 @@ export const Default: Story = {
     <SectionCard sx={{ maxWidth: 420 }}>
       <Stack spacing={0.75}>
         <Typography sx={{ fontWeight: 900 }}>本月概览</Typography>
-        <Typography color="text.secondary" variant="body2">
+        <Typography color="textSecondary" variant="body2">
           用于承载页面中的独立信息区块。
         </Typography>
       </Stack>
@@ -36,7 +36,7 @@ export const WithAction: Story = {
     <SectionCard sx={{ maxWidth: 420 }}>
       <Stack spacing={1.5}>
         <Typography sx={{ fontWeight: 900 }}>家庭账本</Typography>
-        <Typography color="text.secondary" variant="body2">
+        <Typography color="textSecondary" variant="body2">
           当前共有 3 位成员共同记账。
         </Typography>
         <Button size="small" variant="outlined">

@@ -44,7 +44,7 @@ describe("PageHeader", () => {
         subtitle={
           <Stack spacing={0.5}>
             <span>当前账本：家庭账本</span>
-            <Typography color="text.secondary" variant="body2">
+            <Typography color="textSecondary" variant="body2">
               按月份整理收支、分类和商家，让家庭账本一眼看清。
             </Typography>
           </Stack>

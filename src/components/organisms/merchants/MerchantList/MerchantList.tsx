@@ -87,7 +87,7 @@ export function MerchantList({
         <Typography component="h2" variant="h5" sx={{ fontWeight: 900 }}>
           {isFilteredEmpty ? "没有找到匹配的商家" : "还没有商家"}
         </Typography>
-        <Typography color="text.secondary">
+        <Typography color="textSecondary">
           {isFilteredEmpty
             ? keyword.trim()
               ? tagFiltered
