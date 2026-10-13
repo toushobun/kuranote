@@ -9,7 +9,7 @@ import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { routePaths } from "config/paths";
 import { EmptyState } from "molecules/ui/EmptyState";
@@ -88,11 +88,6 @@ export function TransactionsTemplate({
   const router = useRouter();
   const clearResultParam = useClearQueryParam("result");
 
-  useEffect(() => {
-    if (activeSaveResult) {
-      window.scrollTo({ top: 0 });
-    }
-  }, [activeSaveResult]);
   const {
     activeFilterChips,
     appliedFilterKey,
