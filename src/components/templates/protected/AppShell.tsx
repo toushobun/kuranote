@@ -12,6 +12,8 @@ import { DynamicMuiThemeProvider } from "providers/DynamicMuiThemeProvider";
 import { UserThemeProvider, useUserTheme } from "theme/UserThemeProvider";
 import { getUserThemeCssVariables } from "theme/userThemeCssVariables";
 
+import { useScrollTopOnPathnameChange } from "./useScrollTopOnPathnameChange";
+
 type AppShellProps = {
   canWriteTransactions?: boolean;
   children: ReactNode;
@@ -46,6 +48,7 @@ function AppShellContent({
   children,
 }: Pick<AppShellProps, "canWriteTransactions" | "children">) {
   const { themeKey, transactionColorScheme } = useUserTheme();
+  useScrollTopOnPathnameChange();
   const cssVariables = getUserThemeCssVariables(
     themeKey,
     transactionColorScheme,
