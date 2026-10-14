@@ -339,21 +339,15 @@ export function createLinkedTransactionEditService({
           ],
         );
       }
-      if (
-        accountChanged &&
-        linkedItems.some(hasRefundLink) &&
-        oldAccount?.currency !== newAccount?.currency
-      ) {
+      const currencyChanged =
+        accountChanged && oldAccount?.currency !== newAccount?.currency;
+      if (currencyChanged && linkedItems.some(hasRefundLink)) {
         throw new ValidationError(
           transactionErrorCodes.refundLinkInvalid,
           transactionLinkedEditErrorMessages.refundCurrencyMismatch,
         );
       }
-      if (
-        accountChanged &&
-        linkedItems.some(hasReimbursementLink) &&
-        oldAccount?.currency !== newAccount?.currency
-      ) {
+      if (currencyChanged && linkedItems.some(hasReimbursementLink)) {
         throw new ValidationError(
           transactionErrorCodes.reimbursementLinkInvalid,
           transactionLinkedEditErrorMessages.reimbursementCurrencyMismatch,
