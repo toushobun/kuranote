@@ -4,7 +4,7 @@
 
 Issue #551 为避免退款 / 报销关系与交易金额不一致，曾冻结已关联交易的编辑。Issue #598 建立退款、报销基础能力，Issue #606 将两者统一为“收入侧单目标”模型，Issue #605 又解除核销上限并引入 `reimbursement_surplus`。在这些规则稳定后，Issue #574 将整体冻结替换为受控、可确认、原子化且具备并发保护的编辑流程。
 
-本文记录 #574 最终落地方案。金额、统计和 Picker 规则继续以 [`issue-605-unlimited-offset-and-surplus.md`](./issue-605-unlimited-offset-and-surplus.md) 为准；退款单目标建模与退款同账户约束继续以 [`issue-606-refund-link-single-target.md`](./issue-606-refund-link-single-target.md) 为准。
+本文记录 #574 最终落地方案。金额、统计和 Picker 规则继续以 [`issue-605-unlimited-offset-and-surplus.md`](./issue-605-unlimited-offset-and-surplus.md) 为准；退款单目标建模与同币种约束（#899 已放宽原同账户限制）以 [`issue-606-refund-link-single-target.md`](./issue-606-refund-link-single-target.md) 为准。
 
 ## 最终编辑边界
 
@@ -15,7 +15,7 @@ Issue #551 为避免退款 / 报销关系与交易金额不一致，曾冻结已
 - 仍有关联时不能删除明细或整笔交易，必须先解除关联。
 - 已进入报销流程的母项不能取消待报销标记，也不能把派生的 `reimbursed` / `reimbursement_surplus` 当作普通字段任意写入。
 - 分类或收支类型变化会破坏“支出作为目标、收入作为返款来源”的语义时，拒绝保存并提示先解除关联。
-- 退款收入与目标支出必须保持同账户；报销收入允许切换账户，但新旧账户币种必须一致。
+- 退款与报销关联明细均允许切换账户，但必须与关联对方账户币种一致（#899 已放宽退款同账户限制）。
 
 数据库仍保留触发器、RPC 校验和 RLS 防线，不能通过绕过编辑页直接制造不一致数据。
 

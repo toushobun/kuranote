@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import type { ReactNode } from "react";
 import { useEffect } from "react";
-import { screen, userEvent, within } from "storybook/test";
+import { expect, screen, userEvent, within } from "storybook/test";
 
 import { createTransactionListItem } from "@/test/mocks/transactions";
 
@@ -15,7 +15,16 @@ const meta = {
 
 export default meta;
 type Story = StoryObj<typeof meta>;
-export const Default: Story = {};
+export const Default: Story = {
+  name: "未关联（同币种账户可退款）",
+  play: async ({ canvasElement }) => {
+    await expect(
+      within(canvasElement).getByText(
+        "退款关联不受剩余可核销额度限制；请选择与收款账户币种一致的候选支出。",
+      ),
+    ).toBeVisible();
+  },
+};
 
 export const NetIncomeDifference: Story = {
   name: "退款金额包含净收益差额",
@@ -23,7 +32,7 @@ export const NetIncomeDifference: Story = {
     refundAmount: "1500",
     value: {
       accountCurrency: "JPY",
-      accountId: "account-1",
+      accountId: "credit-card-jpy",
       amount: "1200",
       categoryName: "午餐",
       id: "refund-item-1",
@@ -89,7 +98,7 @@ const refundSearchPage = {
     createTransactionListItem({
       categoryItems: [
         {
-          accountId: "account-1",
+          accountId: "credit-card-jpy",
           amount: "1200",
           categoryName: "午餐",
           categoryType: "expense",

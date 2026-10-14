@@ -8,7 +8,10 @@ import {
   NotFoundError,
   ValidationError,
 } from "internal/shared/errors/appError";
-import { transactionErrorCodes } from "internal/transaction/errors";
+import {
+  transactionErrorCodes,
+  transactionLinkedEditErrorMessages,
+} from "internal/transaction/errors";
 import {
   createSupabaseLinkedTransactionItemRepository,
   type UpdateLinkedTransactionEditInput,
@@ -211,14 +214,15 @@ describe("LinkedTransactionItemRepository", () => {
     });
   });
 
-  it("退款账户不一致映射为 refundLinkInvalid ValidationError", async () => {
+  it("退款币种不一致映射为 refundLinkInvalid ValidationError", async () => {
     const { repository } = createRepository({
-      rpcResult: rpcFailure("refund_account_mismatch", "22023"),
+      rpcResult: rpcFailure("refund_currency_mismatch", "22023"),
     });
 
     await expect(repository.update(updateInput)).rejects.toMatchObject({
       code: transactionErrorCodes.refundLinkInvalid,
       name: ValidationError.name,
+      message: transactionLinkedEditErrorMessages.refundCurrencyMismatch,
     });
   });
 

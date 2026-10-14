@@ -339,10 +339,14 @@ export function createLinkedTransactionEditService({
           ],
         );
       }
-      if (accountChanged && linkedItems.some(hasRefundLink)) {
+      if (
+        accountChanged &&
+        linkedItems.some(hasRefundLink) &&
+        oldAccount?.currency !== newAccount?.currency
+      ) {
         throw new ValidationError(
           transactionErrorCodes.refundLinkInvalid,
-          transactionLinkedEditErrorMessages.refundAccountMismatch,
+          transactionLinkedEditErrorMessages.refundCurrencyMismatch,
         );
       }
       if (

@@ -507,6 +507,13 @@ export function useTransactionForm({
     }
   }
 
+  function hasCurrencyMismatch(
+    candidate: TransactionRefundCandidate | null | undefined,
+    currency: string | undefined,
+  ): boolean {
+    return Boolean(candidate && candidate.accountCurrency !== currency);
+  }
+
   function handleAccountChange(accountId: string) {
     markEditDirty?.();
     setSelectedAccountId(accountId);
@@ -516,12 +523,13 @@ export function useTransactionForm({
     setItemsByType((current) => ({
       ...current,
       income: current.income.map((item) => {
-        const hasInvalidRefundCandidate = Boolean(
-          item.refundCandidate && item.refundCandidate.accountId !== accountId,
+        const hasInvalidRefundCandidate = hasCurrencyMismatch(
+          item.refundCandidate,
+          nextAccount?.currency,
         );
-        const hasInvalidReimbursementCandidate = Boolean(
-          item.reimbursementCandidate &&
-          item.reimbursementCandidate.accountCurrency !== nextAccount?.currency,
+        const hasInvalidReimbursementCandidate = hasCurrencyMismatch(
+          item.reimbursementCandidate,
+          nextAccount?.currency,
         );
         if (!hasInvalidRefundCandidate && !hasInvalidReimbursementCandidate) {
           return item;
@@ -554,16 +562,12 @@ export function useTransactionForm({
     }));
 
     let nextNotice: string | null = null;
-    if (
-      pickerRefundCandidate &&
-      pickerRefundCandidate.accountId !== accountId
-    ) {
+    if (hasCurrencyMismatch(pickerRefundCandidate, nextAccount?.currency)) {
       setPickerRefundCandidate(null);
-      nextNotice = "账户已变更，请重新选择退款明细。";
+      nextNotice = "账户币种已变更，请重新选择退款明细。";
     }
     if (
-      pickerReimbursementCandidate &&
-      pickerReimbursementCandidate.accountCurrency !== nextAccount?.currency
+      hasCurrencyMismatch(pickerReimbursementCandidate, nextAccount?.currency)
     ) {
       setPickerReimbursementCandidate(null);
       nextNotice = "账户币种已变更，请重新选择报销明细。";
@@ -669,9 +673,9 @@ export function useTransactionForm({
     setPickerRefundCandidate: (
       candidate: TransactionRefundCandidate | null,
     ) => {
-      if (candidate && candidate.accountId !== selectedAccountId) {
+      if (hasCurrencyMismatch(candidate, selectedAccount?.currency)) {
         setPickerRefundCandidate(null);
-        setLinkNotice("退款明细必须与收款账户一致，请重新选择。");
+        setLinkNotice("退款明细必须与收款账户币种一致，请重新选择。");
         return;
       }
       setPickerRefundCandidate(candidate);
@@ -681,10 +685,7 @@ export function useTransactionForm({
     setPickerReimbursementCandidate: (
       candidate: TransactionRefundCandidate | null,
     ) => {
-      if (
-        candidate &&
-        candidate.accountCurrency !== selectedAccount?.currency
-      ) {
+      if (hasCurrencyMismatch(candidate, selectedAccount?.currency)) {
         setPickerReimbursementCandidate(null);
         setLinkNotice("报销明细必须与收款账户币种一致，请重新选择。");
         return;

@@ -497,10 +497,10 @@ describe("LinkedTransactionEditService", () => {
     expect(updateEdit).not.toHaveBeenCalled();
   });
 
-  it("退款关联不允许切换账户", async () => {
+  it("退款关联切换账户时拒绝不同币种", async () => {
     const { service } = createService(createIncomeView("refund"));
     const input = incomeInput({
-      accountId: sameCurrencyAccountId,
+      accountId: otherCurrencyAccountId,
       items: [
         {
           amount: 100,
@@ -518,6 +518,32 @@ describe("LinkedTransactionEditService", () => {
       name: ValidationError.name,
     });
   });
+
+  it.each([sameCurrencyAccountId, otherCurrencyAccountId])(
+    "退款目标切换账户时按币种校验：%s",
+    async (accountId) => {
+      const { service, updateEdit } = createService(createTargetView("refund"));
+      const input = targetInput({
+        accountId,
+        expectedUpdatedAtByItemId: { [linkedItemId]: updatedAt },
+      });
+      if (accountId === otherCurrencyAccountId) {
+        await expect(
+          service.updateNormal(currentLedger, input),
+        ).rejects.toMatchObject({
+          code: transactionErrorCodes.refundLinkInvalid,
+        });
+        expect(updateEdit).not.toHaveBeenCalled();
+      } else {
+        await service.updateNormal(currentLedger, input);
+        expect(updateEdit).toHaveBeenCalledWith(
+          expect.objectContaining({
+            itemUpdates: [expect.objectContaining({ accountId })],
+          }),
+        );
+      }
+    },
+  );
 
   it("报销关联切换账户时拒绝不同币种", async () => {
     const { service } = createService(createIncomeView());
@@ -547,24 +573,35 @@ describe("LinkedTransactionEditService", () => {
     });
   });
 
-  it("报销关联允许同币种账户并在确认后保存", async () => {
-    const { service, updateEdit } = createService(createIncomeView());
-    const input = incomeInput({
-      accountId: sameCurrencyAccountId,
-      confirmSync: true,
-      expectedUpdatedAtByItemId: { [linkedItemId]: updatedAt },
-    });
-
-    await service.updateNormal(currentLedger, input);
-
-    expect(updateEdit).toHaveBeenCalledWith(
-      expect.objectContaining({
-        itemUpdates: [
-          expect.objectContaining({ accountId: sameCurrencyAccountId }),
+  it.each(["refund", "reimbursement"] as const)(
+    "%s 关联允许同币种账户并在确认后保存",
+    async (role) => {
+      const { service, updateEdit } = createService(createIncomeView(role));
+      const input = incomeInput({
+        accountId: sameCurrencyAccountId,
+        items: [
+          {
+            amount: 100,
+            categoryId: incomeCategoryId,
+            id: linkedItemId,
+            ...(role === "refund"
+              ? { refundedItemId: targetItemId }
+              : { reimbursementItemId: targetItemId }),
+          },
         ],
-      }),
-    );
-  });
+        confirmSync: true,
+        expectedUpdatedAtByItemId: { [linkedItemId]: updatedAt },
+      });
+      await service.updateNormal(currentLedger, input);
+      expect(updateEdit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          itemUpdates: [
+            expect.objectContaining({ accountId: sameCurrencyAccountId }),
+          ],
+        }),
+      );
+    },
+  );
 
   it("关联收入改成支出分类时要求先解除关联", async () => {
     const { service } = createService(createIncomeView());
