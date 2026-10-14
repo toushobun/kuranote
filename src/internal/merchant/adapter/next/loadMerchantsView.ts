@@ -11,11 +11,12 @@ export async function loadMerchantsView(input: {
   const currentLedger = await getCurrentLedgerOrRedirect();
   const dependencies = await createServerRequestDependencies();
   const validTagId = z.string().uuid().safeParse(input.tagId);
-  const merchant = createRequestContainer(dependencies).merchant;
-  const view = await merchant.service.list({
-    keyword: input.keyword ?? "",
-    ledgerId: currentLedger.id,
-    tagId: validTagId.success ? validTagId.data : null,
-  });
+  const view = await createRequestContainer(dependencies).merchant.service.list(
+    {
+      keyword: input.keyword ?? "",
+      ledgerId: currentLedger.id,
+      tagId: validTagId.success ? validTagId.data : null,
+    },
+  );
   return { ...view, ledgerId: currentLedger.id };
 }

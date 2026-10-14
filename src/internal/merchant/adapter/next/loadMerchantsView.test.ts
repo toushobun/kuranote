@@ -7,7 +7,6 @@ const mocks = vi.hoisted(() => ({
   createServerRequestDependencies: vi.fn(),
   getCurrentLedgerOrRedirect: vi.fn(),
   list: vi.fn(),
-  loadPresets: vi.fn(),
 }));
 
 vi.mock("internal/container", () => ({
@@ -37,33 +36,17 @@ describe("loadMerchantsView", () => {
       tags: [],
     });
     mocks.createRequestContainer.mockReturnValue({
-      merchant: {
-        service: { list: mocks.list },
-        presetService: { load: mocks.loadPresets },
-      },
+      merchant: { service: { list: mocks.list } },
     });
   });
 
   it("校验标签 UUID 后直接调用请求级 Merchant Service", async () => {
-    expect(
-      await loadMerchantsView({ keyword: "LIFE", tagId }),
-    ).not.toHaveProperty("presetOptions");
-    expect(mocks.loadPresets).not.toHaveBeenCalled();
+    await loadMerchantsView({ keyword: "LIFE", tagId });
     expect(mocks.list).toHaveBeenCalledWith({
       keyword: "LIFE",
       ledgerId,
       tagId,
     });
-  });
-
-  it("非管理成员不读取预设添加上下文", async () => {
-    mocks.list.mockResolvedValue({
-      canManageMerchants: false,
-      merchants: [],
-      tags: [],
-    });
-    expect(await loadMerchantsView({})).not.toHaveProperty("presetOptions");
-    expect(mocks.loadPresets).not.toHaveBeenCalled();
   });
 
   it("忽略非法标签查询参数", async () => {
