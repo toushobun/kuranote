@@ -9,7 +9,10 @@ import {
   transactionAmountMessages,
   type TransactionLinkKind,
 } from "utils/transactionMessages";
-import { hasBusinessNetAmountOffset } from "utils/transactions";
+import {
+  hasBusinessNetAmountOffset,
+  hasLinkCandidateCurrencyMismatch,
+} from "utils/transactions";
 
 import type { CategoryPickerGroup } from "./TransactionForm.types";
 
@@ -118,14 +121,6 @@ export function formatSignedCurrencyAmount(value: string, currency?: string) {
 
 export function isValidMoneyText(value: string, currency?: string) {
   return isValidTransactionAmountText(value, { currency });
-}
-
-// 退款 / 报销关联的候选必须与收款账户币种一致；账户未选择时视为不一致。
-export function hasLinkCandidateCurrencyMismatch(
-  candidate: TransactionRefundCandidate | null | undefined,
-  currency: string | undefined,
-): boolean {
-  return Boolean(candidate && candidate.accountCurrency !== currency);
 }
 
 // 按固定顺序（退款 → 报销）返回与账户币种不一致的关联种类。

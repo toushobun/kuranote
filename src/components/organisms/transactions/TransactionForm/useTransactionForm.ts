@@ -27,6 +27,7 @@ import {
   formatDateTimeLocalInputValue,
   getNowDateTimeLocalValue,
   hasBusinessNetAmountOffset,
+  hasLinkCandidateCurrencyMismatch,
   splitDateTimeLocalValue,
 } from "utils/transactions";
 
@@ -41,7 +42,6 @@ import type {
 import {
   buildCategoryPickerGroups,
   getCurrencyMismatchedLinkKinds,
-  hasLinkCandidateCurrencyMismatch,
   isValidMoneyText,
 } from "./TransactionForm.utils";
 

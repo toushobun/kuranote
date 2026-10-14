@@ -13,7 +13,6 @@ import Link from "next/link";
 import { transactionEditHref } from "config/paths";
 import { TransactionRow } from "molecules/transactions/TransactionRow";
 import { userThemeCardBorder } from "theme/userThemeCardSx";
-import { hasLinkCandidateCurrencyMismatch } from "../TransactionForm/TransactionForm.utils";
 import type {
   TransactionDateGroup,
   TransactionListItem,
@@ -25,6 +24,7 @@ import {
   formatDateLabel,
   formatNumber,
   getDateLabelRefreshDelayMs,
+  hasLinkCandidateCurrencyMismatch,
 } from "utils/transactions";
 
 type TransactionGroupListProps = {
