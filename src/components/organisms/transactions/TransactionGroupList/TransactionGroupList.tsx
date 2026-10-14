@@ -6,18 +6,21 @@ import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import Radio from "@mui/material/Radio";
 import Stack from "@mui/material/Stack";
+import type { Theme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
 
 import { transactionEditHref } from "config/paths";
 import { TransactionRow } from "molecules/transactions/TransactionRow";
 import { userThemeCardBorder } from "theme/userThemeCardSx";
+import { hasLinkCandidateCurrencyMismatch } from "../TransactionForm/TransactionForm.utils";
 import type {
   TransactionDateGroup,
   TransactionListItem,
   TransactionRefundCandidate,
 } from "types/transactions";
 import { getCurrencySymbol } from "utils/currency";
+import { transactionLinkMessages } from "utils/transactionMessages";
 import {
   formatDateLabel,
   formatNumber,
@@ -30,6 +33,7 @@ type TransactionGroupListProps = {
   onSelectReimbursementItem?: (item: TransactionRefundCandidate) => void;
   refundSelectionMode?: boolean;
   reimbursementSelectionMode?: boolean;
+  selectableCurrency?: string;
   selectedRefundItemId?: string | null;
   selectedReimbursementItemId?: string | null;
   showSummary?: boolean;
@@ -41,6 +45,7 @@ export function TransactionGroupList({
   onSelectReimbursementItem,
   refundSelectionMode = false,
   reimbursementSelectionMode = false,
+  selectableCurrency,
   selectedRefundItemId = null,
   selectedReimbursementItemId = null,
   showSummary = true,
@@ -96,6 +101,7 @@ export function TransactionGroupList({
               <TransactionRefundCandidateList
                 items={group.items}
                 onSelect={onSelectReimbursementItem}
+                selectableCurrency={selectableCurrency}
                 selectedId={selectedReimbursementItemId}
                 selectionKind="reimbursement"
               />
@@ -103,6 +109,7 @@ export function TransactionGroupList({
               <TransactionRefundCandidateList
                 items={group.items}
                 onSelect={onSelectRefundItem}
+                selectableCurrency={selectableCurrency}
                 selectedId={selectedRefundItemId}
               />
             ) : (
@@ -124,11 +131,14 @@ export function TransactionGroupList({
 export function TransactionRefundCandidateList({
   items,
   onSelect,
+  selectableCurrency,
   selectedId = null,
   selectionKind = "refund",
 }: {
   items: TransactionListItem[];
   onSelect: (item: TransactionRefundCandidate) => void;
+  // 指定时，与该币种不一致的候选置灰且不可选择。
+  selectableCurrency?: string;
   selectedId?: string | null;
   selectionKind?: "refund" | "reimbursement";
 }) {
@@ -165,10 +175,19 @@ export function TransactionRefundCandidateList({
       {candidates.map((candidate, index) => {
         const selected = selectedId === candidate.id;
         const currencySymbol = getCurrencySymbol(candidate.accountCurrency);
+        const currencyMismatchReason =
+          selectableCurrency !== undefined &&
+          hasLinkCandidateCurrencyMismatch(candidate, selectableCurrency)
+            ? transactionLinkMessages.candidateCurrencyMismatchReason(
+                selectableCurrency,
+              )
+            : null;
+        const isCurrencyMismatched = currencyMismatchReason !== null;
         return (
           <ButtonBase
             aria-label={`${isReimbursement ? "选择报销明细" : "选择退款明细"} ${candidate.categoryName}`}
             aria-pressed={selected}
+            disabled={isCurrencyMismatched}
             key={candidate.id}
             onClick={() => onSelect(candidate)}
             sx={{
@@ -177,7 +196,11 @@ export function TransactionRefundCandidateList({
                 index === candidates.length - 1 ? "none" : userThemeCardBorder,
             }}
           >
-            <Radio checked={selected} tabIndex={-1} />
+            <Radio
+              checked={selected}
+              disabled={isCurrencyMismatched}
+              tabIndex={-1}
+            />
             <Stack sx={{ flex: 1, minWidth: 0, textAlign: "left" }}>
               <Typography sx={{ fontWeight: 800 }} variant="body2">
                 {candidate.parentCategoryName
@@ -188,6 +211,11 @@ export function TransactionRefundCandidateList({
                 原始金额 {currencySymbol}
                 {formatNumber(candidate.amount, candidate.accountCurrency)}
               </Typography>
+              {currencyMismatchReason ? (
+                <Typography color="textSecondary" variant="caption">
+                  {currencyMismatchReason}
+                </Typography>
+              ) : null}
             </Stack>
             <Stack sx={{ alignItems: "flex-end" }}>
               <Typography sx={{ fontWeight: 900 }} variant="body2">
@@ -276,6 +304,9 @@ const refundCandidateSx = {
   px: 0.75,
   py: 0.75,
   width: "100%",
+  "&.Mui-disabled": {
+    opacity: (theme: Theme) => theme.palette.action.disabledOpacity,
+  },
 };
 
 function getGroupSummaryText(group: TransactionDateGroup) {

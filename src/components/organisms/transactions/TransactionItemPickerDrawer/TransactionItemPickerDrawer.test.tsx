@@ -1,4 +1,10 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -103,12 +109,13 @@ describe("TransactionItemPickerDrawer", () => {
     expect(onCategoryToggle).toHaveBeenCalledWith("traffic-train");
   });
 
-  it("收入明细在特殊状态开启时渲染报销单选入口", () => {
+  function renderIncomeDrawer(linkNotice?: string | null) {
     render(
       <TransactionItemPickerDrawer
         categoryGroups={[incomeGroup]}
         filteredCategoryOptions={[incomeCategory]}
         frequentCategoryIds={[]}
+        linkNotice={linkNotice}
         onAmountChange={vi.fn()}
         onCategoryToggle={vi.fn()}
         onClose={vi.fn()}
@@ -124,11 +131,28 @@ describe("TransactionItemPickerDrawer", () => {
         specialStatusEnabled
       />,
     );
+  }
+
+  it("收入明细在特殊状态开启时渲染报销单选入口", () => {
+    renderIncomeDrawer();
 
     expect(screen.getByText("报销关联")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "选择报销明细" }),
     ).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("关联提示在抽屉内显示，不被遮罩挡住", () => {
+    renderIncomeDrawer("退款明细必须与收款账户币种一致，请重新选择。");
+
+    const drawerPaper = screen
+      .getByText("退款关联")
+      .closest(".MuiDrawer-paper");
+    expect(drawerPaper).not.toBeNull();
+    expect(
+      within(drawerPaper as HTMLElement).getByRole("alert"),
+    ).toHaveTextContent("退款明细必须与收款账户币种一致，请重新选择。");
   });
 
   it("既有待报销母项保持勾选且不可修改", () => {

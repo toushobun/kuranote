@@ -376,6 +376,7 @@ export function TransactionForm({
       <TransactionItemPickerDrawer
         categoryGroups={categoryGroups}
         frequentCategoryIds={frequentCategoryIds}
+        linkNotice={linkNotice}
         filteredCategoryOptions={allNormalCategoryOptions}
         editingItemId={editingItemId}
         onAmountChange={handlePickerAmountChange}

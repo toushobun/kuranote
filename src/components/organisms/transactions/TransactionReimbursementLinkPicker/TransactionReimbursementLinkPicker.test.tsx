@@ -1,6 +1,7 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { searchLinkPickerCandidates } from "@/test/linkPicker";
 import { createTransactionListItem } from "@/test/mocks/transactions";
 
 import { TransactionReimbursementLinkPicker } from "./TransactionReimbursementLinkPicker";
@@ -145,14 +146,10 @@ describe("TransactionReimbursementLinkPicker", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "选择报销明细" }));
-    fireEvent.click(screen.getByRole("tab", { name: "搜索" }));
-    const input = screen.getByLabelText("搜索关键词");
-    fireEvent.change(input, { target: { value: "饮食" } });
-    fireEvent.submit(input.closest("form") as HTMLFormElement);
-
-    await waitFor(() => {
-      expect(loadSearchPageAction).toHaveBeenCalledWith("饮食", 0);
+    await searchLinkPickerCandidates({
+      loadSearchPageAction,
+      openButtonName: "选择报销明细",
+      query: "饮食",
     });
 
     const firstButton = await screen.findByRole("button", {
@@ -176,5 +173,38 @@ describe("TransactionReimbursementLinkPicker", () => {
     expect(onChange).toHaveBeenCalledWith(
       expect.objectContaining({ id: "reimbursement-item-2" }),
     );
+  });
+
+  it("与收款账户币种不一致的候选置灰且不可选择", async () => {
+    const loadSearchPageAction = vi.fn(async () => searchPage);
+    const onChange = vi.fn();
+    render(
+      <TransactionReimbursementLinkPicker
+        accountCurrency="USD"
+        incomeAmount="1000"
+        loadSearchPageAction={loadSearchPageAction}
+        onChange={onChange}
+        value={null}
+      />,
+    );
+
+    await searchLinkPickerCandidates({
+      loadSearchPageAction,
+      openButtonName: "选择报销明细",
+      query: "饮食",
+    });
+
+    const button = await screen.findByRole("button", {
+      name: "选择报销明细 午餐",
+    });
+    expect(button).toBeDisabled();
+    expect(
+      screen.getAllByText("与收款账户币种（USD）不一致，不可选择"),
+    ).toHaveLength(2);
+
+    fireEvent.click(button);
+    expect(button).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(screen.getByRole("button", { name: "完成" }));
+    expect(onChange).toHaveBeenCalledWith(null);
   });
 });

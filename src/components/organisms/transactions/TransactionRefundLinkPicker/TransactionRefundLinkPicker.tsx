@@ -25,6 +25,8 @@ import { getCurrencySymbol } from "utils/currency";
 import { formatNumber } from "utils/transactions";
 
 type TransactionRefundLinkPickerProps = {
+  // 收款账户币种；与之不一致的候选置灰且不可选择。
+  accountCurrency?: string;
   loadGroupItemsAction?: (
     groupKey: string,
     offset: number,
@@ -47,6 +49,7 @@ const emptySearchPage: TransactionSearchPage = {
 };
 
 export function TransactionRefundLinkPicker({
+  accountCurrency,
   loadGroupItemsAction,
   loadMoreGroupsAction,
   loadSearchPageAction,
@@ -150,6 +153,7 @@ export function TransactionRefundLinkPicker({
                 loadMoreGroupsAction={loadMoreGroupsAction}
                 onSelectRefundItem={setDraftValue}
                 refundSelectionMode
+                selectableCurrency={accountCurrency}
                 selectedRefundItemId={draftValue?.id ?? null}
                 timeGroupView={timeGroupView}
               />
@@ -167,6 +171,7 @@ export function TransactionRefundLinkPicker({
               onClose={close}
               onSelectRefundItem={setDraftValue}
               refundSelectionMode
+              selectableCurrency={accountCurrency}
               selectedRefundItemId={draftValue?.id ?? null}
             />
           )}

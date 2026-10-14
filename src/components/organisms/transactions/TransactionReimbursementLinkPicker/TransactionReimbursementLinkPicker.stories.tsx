@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { screen, userEvent, within } from "storybook/test";
+import { expect, screen, userEvent, within } from "storybook/test";
 
 import { createTransactionListItem } from "@/test/mocks/transactions";
 
@@ -73,5 +73,30 @@ export const SingleSelectSearch: Story = {
     await userEvent.click(await screen.findByRole("tab", { name: "搜索" }));
     await userEvent.type(screen.getByLabelText("搜索关键词"), "午餐{Enter}");
     await screen.findByRole("button", { name: "选择报销明细 午餐" });
+  },
+};
+
+export const CurrencyMismatchedCandidates: Story = {
+  name: "与收款账户币种不一致的候选置灰",
+  args: {
+    accountCurrency: "USD",
+    incomeAmount: "1000",
+    loadSearchPageAction: async () => reimbursementSearchPage,
+  },
+  parameters: {
+    viewport: { defaultViewport: "mobile2" },
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      within(canvasElement).getByRole("button", { name: "选择报销明细" }),
+    );
+    await userEvent.click(await screen.findByRole("tab", { name: "搜索" }));
+    await userEvent.type(screen.getByLabelText("搜索关键词"), "午餐{Enter}");
+    await expect(
+      await screen.findByRole("button", { name: "选择报销明细 午餐" }),
+    ).toBeDisabled();
+    await expect(
+      screen.getByText("与收款账户币种（USD）不一致，不可选择"),
+    ).toBeVisible();
   },
 };

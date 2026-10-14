@@ -374,7 +374,7 @@ describe("TransactionForm", () => {
     openSheet(container);
     addItemViaSheet(container, "餐饮", "286");
     addItemViaSheet(container, "日用品", "45");
-    expect(within(container).getByText("消费明细（2）")).toBeInTheDocument();
+    expect(within(container).getByText("收支明细（2）")).toBeInTheDocument();
     expect(within(container).getByText("本次合计")).toBeInTheDocument();
     expect(within(container).getByText("合计 - 331")).toBeInTheDocument();
   });
@@ -395,7 +395,7 @@ describe("TransactionForm", () => {
       target: { value: "320" },
     });
     fireEvent.click(screen.getByRole("button", { name: "保存修改" }));
-    expect(within(container).getByText("消费明细（1）")).toBeInTheDocument();
+    expect(within(container).getByText("收支明细（1）")).toBeInTheDocument();
     expect(
       container.querySelector('button[aria-label="编辑明细 1 金额"]'),
     ).toHaveTextContent("320");

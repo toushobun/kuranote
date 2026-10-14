@@ -378,4 +378,55 @@ describe("TransactionRefundCandidateList", () => {
       }),
     );
   });
+
+  it.each([
+    { label: "退款", name: "选择退款明细 服装", selectionKind: "refund" },
+    {
+      label: "报销",
+      name: "选择报销明细 服装",
+      selectionKind: "reimbursement",
+    },
+  ] as const)(
+    "$label候选与收款账户币种不一致时置灰且不可选择",
+    ({ name, selectionKind }) => {
+      const onSelect = vi.fn();
+
+      render(
+        <TransactionRefundCandidateList
+          items={[createRefundRecord("0", "100")]}
+          onSelect={onSelect}
+          selectableCurrency="JPY"
+          selectionKind={selectionKind}
+        />,
+      );
+
+      const button = screen.getByRole("button", { name });
+      expect(button).toBeDisabled();
+      expect(screen.getByRole("radio")).toBeDisabled();
+      expect(
+        screen.getByText("与收款账户币种（JPY）不一致，不可选择"),
+      ).toBeInTheDocument();
+
+      fireEvent.click(button);
+      expect(onSelect).not.toHaveBeenCalled();
+    },
+  );
+
+  it("候选与收款账户币种一致时可以选择", () => {
+    const onSelect = vi.fn();
+
+    render(
+      <TransactionRefundCandidateList
+        items={[createRefundRecord("0", "100")]}
+        onSelect={onSelect}
+        selectableCurrency="USD"
+      />,
+    );
+
+    expect(screen.queryByText(/不可选择/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "选择退款明细 服装" }));
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "refund-item-1" }),
+    );
+  });
 });

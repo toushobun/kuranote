@@ -54,7 +54,7 @@ describe("TransactionItemsSection", () => {
       hasCategoryOptions: false,
     });
 
-    expect(screen.getByText("消费明细")).toBeInTheDocument();
+    expect(screen.getByText("收支明细")).toBeInTheDocument();
     expect(screen.getByText("请至少添加一条明细。")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "添加明细" })).toBeDisabled();
 
@@ -62,10 +62,17 @@ describe("TransactionItemsSection", () => {
     expect(props.onOpenSheet).not.toHaveBeenCalled();
   });
 
+  it("收入类型下标题同样显示收支明细", () => {
+    renderSection({ itemSummaries, selectedType: "income" });
+
+    expect(screen.getByText("收支明细（2）")).toBeInTheDocument();
+    expect(screen.queryByText(/收入明细|消费明细/)).not.toBeInTheDocument();
+  });
+
   it("显示分类、未选择状态、金额和合计，并打开对应明细", () => {
     const props = renderSection({ itemSummaries });
 
-    expect(screen.getByText("消费明细（2）")).toBeInTheDocument();
+    expect(screen.getByText("收支明细（2）")).toBeInTheDocument();
     expect(screen.getByText(/大分类.*餐饮/)).toBeInTheDocument();
     expect(screen.getByText(/小分类.*午餐/)).toBeInTheDocument();
     expect(screen.getByText("请选择分类")).toBeInTheDocument();

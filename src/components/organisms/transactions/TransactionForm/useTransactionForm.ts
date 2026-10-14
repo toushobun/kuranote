@@ -9,7 +9,11 @@ import type {
   TransactionRefundCandidate,
   TransactionType,
 } from "types/transactions";
-import { transactionFormValidationMessages } from "utils/transactionMessages";
+import {
+  transactionFormValidationMessages,
+  transactionLinkMessages,
+  type TransactionLinkKind,
+} from "utils/transactionMessages";
 import { getAmountDecimalPlaces } from "utils/transactionAmountInput";
 import {
   resolveTransactionBusinessStatus,
@@ -36,6 +40,8 @@ import type {
 } from "./TransactionForm.types";
 import {
   buildCategoryPickerGroups,
+  getCurrencyMismatchedLinkKinds,
+  hasLinkCandidateCurrencyMismatch,
   isValidMoneyText,
 } from "./TransactionForm.utils";
 
@@ -507,38 +513,41 @@ export function useTransactionForm({
     }
   }
 
-  function hasCurrencyMismatch(
-    candidate: TransactionRefundCandidate | null | undefined,
-    currency: string | undefined,
-  ): boolean {
-    return Boolean(candidate && candidate.accountCurrency !== currency);
-  }
-
   function handleAccountChange(accountId: string) {
     markEditDirty?.();
     setSelectedAccountId(accountId);
     const nextAccount = accountOptions.find(
       (account) => account.id === accountId,
     );
+    const pickerMismatchedKinds = getCurrencyMismatchedLinkKinds(
+      {
+        refundCandidate: pickerRefundCandidate,
+        reimbursementCandidate: pickerReimbursementCandidate,
+      },
+      nextAccount?.currency,
+    );
+    // 明细中已加入的关联与抽屉暂存的关联统一收集，任何一处被清除都要提示。
+    const clearedKinds = new Set<TransactionLinkKind>([
+      ...pickerMismatchedKinds,
+      ...itemsByType.income.flatMap((item) =>
+        getCurrencyMismatchedLinkKinds(item, nextAccount?.currency),
+      ),
+    ]);
     setItemsByType((current) => ({
       ...current,
       income: current.income.map((item) => {
-        const hasInvalidRefundCandidate = hasCurrencyMismatch(
-          item.refundCandidate,
+        const mismatchedKinds = getCurrencyMismatchedLinkKinds(
+          item,
           nextAccount?.currency,
         );
-        const hasInvalidReimbursementCandidate = hasCurrencyMismatch(
-          item.reimbursementCandidate,
-          nextAccount?.currency,
-        );
-        if (!hasInvalidRefundCandidate && !hasInvalidReimbursementCandidate) {
+        if (mismatchedKinds.length === 0) {
           return item;
         }
 
-        const refundCandidate = hasInvalidRefundCandidate
+        const refundCandidate = mismatchedKinds.includes("refund")
           ? null
           : (item.refundCandidate ?? null);
-        const reimbursementCandidate = hasInvalidReimbursementCandidate
+        const reimbursementCandidate = mismatchedKinds.includes("reimbursement")
           ? null
           : (item.reimbursementCandidate ?? null);
         return {
@@ -561,18 +570,20 @@ export function useTransactionForm({
       }),
     }));
 
-    let nextNotice: string | null = null;
-    if (hasCurrencyMismatch(pickerRefundCandidate, nextAccount?.currency)) {
+    if (pickerMismatchedKinds.includes("refund")) {
       setPickerRefundCandidate(null);
-      nextNotice = "账户币种已变更，请重新选择退款明细。";
     }
-    if (
-      hasCurrencyMismatch(pickerReimbursementCandidate, nextAccount?.currency)
-    ) {
+    if (pickerMismatchedKinds.includes("reimbursement")) {
       setPickerReimbursementCandidate(null);
-      nextNotice = "账户币种已变更，请重新选择报销明细。";
     }
-    setLinkNotice(nextNotice);
+    const orderedClearedKinds = (["refund", "reimbursement"] as const).filter(
+      (kind) => clearedKinds.has(kind),
+    );
+    setLinkNotice(
+      orderedClearedKinds.length > 0
+        ? transactionLinkMessages.accountCurrencyChanged(orderedClearedKinds)
+        : null,
+    );
 
     if (fieldErrors.account) {
       setFieldErrors((current) => ({ ...current, account: undefined }));
@@ -673,9 +684,13 @@ export function useTransactionForm({
     setPickerRefundCandidate: (
       candidate: TransactionRefundCandidate | null,
     ) => {
-      if (hasCurrencyMismatch(candidate, selectedAccount?.currency)) {
+      if (
+        hasLinkCandidateCurrencyMismatch(candidate, selectedAccount?.currency)
+      ) {
         setPickerRefundCandidate(null);
-        setLinkNotice("退款明细必须与收款账户币种一致，请重新选择。");
+        setLinkNotice(
+          transactionLinkMessages.candidateCurrencyMismatch("refund"),
+        );
         return;
       }
       setPickerRefundCandidate(candidate);
@@ -685,9 +700,13 @@ export function useTransactionForm({
     setPickerReimbursementCandidate: (
       candidate: TransactionRefundCandidate | null,
     ) => {
-      if (hasCurrencyMismatch(candidate, selectedAccount?.currency)) {
+      if (
+        hasLinkCandidateCurrencyMismatch(candidate, selectedAccount?.currency)
+      ) {
         setPickerReimbursementCandidate(null);
-        setLinkNotice("报销明细必须与收款账户币种一致，请重新选择。");
+        setLinkNotice(
+          transactionLinkMessages.candidateCurrencyMismatch("reimbursement"),
+        );
         return;
       }
       setPickerReimbursementCandidate(candidate);

@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { searchLinkPickerCandidates } from "@/test/linkPicker";
 import { createTransactionListItem } from "@/test/mocks/transactions";
 
 import { TransactionRefundLinkPicker } from "./TransactionRefundLinkPicker";
@@ -154,18 +155,14 @@ describe("TransactionRefundLinkPicker", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "选择退款明细" }));
-    fireEvent.click(screen.getByRole("tab", { name: "搜索" }));
-    const input = screen.getByLabelText("搜索关键词");
-    fireEvent.change(input, { target: { value: "咖啡" } });
-    fireEvent.submit(input.closest("form") as HTMLFormElement);
-
-    await waitFor(() => {
-      expect(loadSearchPageAction).toHaveBeenCalledWith("咖啡", 0);
-      expect(
-        screen.getByRole("button", { name: "选择退款明细 午餐" }),
-      ).toBeInTheDocument();
+    await searchLinkPickerCandidates({
+      loadSearchPageAction,
+      openButtonName: "选择退款明细",
+      query: "咖啡",
     });
+    expect(
+      await screen.findByRole("button", { name: "选择退款明细 午餐" }),
+    ).toBeInTheDocument();
 
     rerender(
       <TransactionRefundLinkPicker
@@ -255,5 +252,38 @@ describe("TransactionRefundLinkPicker", () => {
       await screen.findByRole("button", { name: "选择退款明细 午餐" }),
     ).toBeInTheDocument();
     expect(loadSearchPageAction).toHaveBeenNthCalledWith(2, "7930", 0);
+  });
+
+  it("与收款账户币种不一致的候选置灰且不可选择", async () => {
+    const loadSearchPageAction = vi.fn(async () => searchPage);
+    const onChange = vi.fn();
+    render(
+      <TransactionRefundLinkPicker
+        accountCurrency="USD"
+        loadSearchPageAction={loadSearchPageAction}
+        onChange={onChange}
+        refundAmount="1000"
+        value={null}
+      />,
+    );
+
+    await searchLinkPickerCandidates({
+      loadSearchPageAction,
+      openButtonName: "选择退款明细",
+      query: "咖啡",
+    });
+
+    const button = await screen.findByRole("button", {
+      name: "选择退款明细 午餐",
+    });
+    expect(button).toBeDisabled();
+    expect(
+      screen.getByText("与收款账户币种（USD）不一致，不可选择"),
+    ).toBeInTheDocument();
+
+    fireEvent.click(button);
+    expect(button).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(screen.getByRole("button", { name: "完成" }));
+    expect(onChange).toHaveBeenCalledWith(null);
   });
 });

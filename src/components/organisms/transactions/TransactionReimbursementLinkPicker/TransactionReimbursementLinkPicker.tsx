@@ -25,6 +25,8 @@ import { getCurrencySymbol } from "utils/currency";
 import { formatNumber } from "utils/transactions";
 
 type TransactionReimbursementLinkPickerProps = {
+  // 收款账户币种；与之不一致的候选置灰且不可选择。
+  accountCurrency?: string;
   incomeAmount?: string;
   loadGroupItemsAction?: (
     groupKey: string,
@@ -47,6 +49,7 @@ const emptySearchPage: TransactionSearchPage = {
 };
 
 export function TransactionReimbursementLinkPicker({
+  accountCurrency,
   incomeAmount = "0",
   loadGroupItemsAction,
   loadMoreGroupsAction,
@@ -150,6 +153,7 @@ export function TransactionReimbursementLinkPicker({
                 loadMoreGroupsAction={loadMoreGroupsAction}
                 onSelectReimbursementItem={setDraftValue}
                 reimbursementSelectionMode
+                selectableCurrency={accountCurrency}
                 selectedReimbursementItemId={draftValue?.id ?? null}
                 timeGroupView={timeGroupView}
               />
@@ -167,6 +171,7 @@ export function TransactionReimbursementLinkPicker({
               onClose={close}
               onSelectReimbursementItem={setDraftValue}
               reimbursementSelectionMode
+              selectableCurrency={accountCurrency}
               selectedReimbursementItemId={draftValue?.id ?? null}
             />
           )}
