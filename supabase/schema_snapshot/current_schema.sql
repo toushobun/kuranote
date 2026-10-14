@@ -634,7 +634,6 @@ CREATE OR REPLACE FUNCTION "public"."apply_transaction_item_links"("p_ledger_id"
     AS $$
 declare
     v_income_amount numeric(14,2);
-    v_income_account_id uuid;
     v_income_category_type text;
     v_income_currency text;
     v_reimbursement_target_id uuid;
@@ -645,7 +644,6 @@ declare
     v_refund_target_id uuid;
     v_refund_target_type text;
     v_refund_target_currency text;
-    v_refund_target_account_id uuid;
     v_refund_amount numeric(14,2);
     v_special_status_enabled boolean;
 begin
@@ -681,8 +679,8 @@ begin
             using errcode = '22023', detail = 'special_status_invalid';
     end if;
 
-    select ti.amount, ti.account_id, c.type, a.currency
-    into v_income_amount, v_income_account_id, v_income_category_type, v_income_currency
+    select ti.amount, c.type, a.currency
+    into v_income_amount, v_income_category_type, v_income_currency
     from public.transaction_item ti
     join public.transaction_record tr
       on tr.id = ti.transaction_record_id
@@ -803,8 +801,8 @@ begin
                 using errcode = '22023', detail = 'refund_allocation_invalid';
         end if;
 
-        select c.type, a.currency, ti.account_id
-        into v_refund_target_type, v_refund_target_currency, v_refund_target_account_id
+        select c.type, a.currency
+        into v_refund_target_type, v_refund_target_currency
         from public.transaction_item ti
         join public.transaction_record tr
           on tr.id = ti.transaction_record_id
@@ -828,11 +826,6 @@ begin
         if v_refund_target_currency is distinct from v_income_currency then
             raise exception 'refund_currency_mismatch'
                 using errcode = '22023', detail = 'refund_currency_mismatch';
-        end if;
-
-        if v_refund_target_account_id is distinct from v_income_account_id then
-            raise exception 'refund_account_mismatch'
-                using errcode = '22023', detail = 'refund_account_mismatch';
         end if;
 
         if exists (
@@ -8584,32 +8577,29 @@ begin
                 using errcode = '22023', detail = 'account_invalid';
         end if;
 
-        if v_is_refund_income and exists (
-            select 1
-            from public.transaction_item_refund_link link
-            join public.transaction_item target_item
-              on target_item.id = link.refunded_item_id
-             and target_item.ledger_id = link.ledger_id
-            where link.ledger_id = old.ledger_id
-              and link.refund_income_item_id = old.id
-              and target_item.account_id is distinct from new.account_id
-        ) then
-            raise exception 'refund_account_mismatch'
-                using errcode = '22023', detail = 'refund_account_mismatch';
-        end if;
-
-        if v_is_refund_target and exists (
-            select 1
-            from public.transaction_item_refund_link link
-            join public.transaction_item income_item
-              on income_item.id = link.refund_income_item_id
-             and income_item.ledger_id = link.ledger_id
-            where link.ledger_id = old.ledger_id
-              and link.refunded_item_id = old.id
-              and income_item.account_id is distinct from new.account_id
-        ) then
-            raise exception 'refund_account_mismatch'
-                using errcode = '22023', detail = 'refund_account_mismatch';
+        if (v_is_refund_income or v_is_refund_target)
+           and exists (
+               select 1
+               from public.transaction_item_refund_link link
+               join public.transaction_item counterpart_item
+                 on counterpart_item.id = case
+                     when link.refund_income_item_id = old.id
+                     then link.refunded_item_id
+                     else link.refund_income_item_id
+                 end
+                and counterpart_item.ledger_id = link.ledger_id
+               join public.account counterpart_account
+                 on counterpart_account.id = counterpart_item.account_id
+                and counterpart_account.ledger_id = counterpart_item.ledger_id
+               where link.ledger_id = old.ledger_id
+                 and (
+                     link.refund_income_item_id = old.id
+                     or link.refunded_item_id = old.id
+                 )
+                 and counterpart_account.currency is distinct from v_new_account_currency
+           ) then
+            raise exception 'refund_currency_mismatch'
+                using errcode = '22023', detail = 'refund_currency_mismatch';
         end if;
 
         if (v_is_reimbursement_income or v_is_reimbursement_target)

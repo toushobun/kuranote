@@ -290,7 +290,6 @@ const transactionRpcErrorCodes = [
   "income_link_conflict",
   "refunded_item_invalid",
   "refund_currency_mismatch",
-  "refund_account_mismatch",
   "refund_allocation_invalid",
   "reimbursement_currency_mismatch",
   "income_links_create_only",
@@ -455,13 +454,6 @@ export function createSupabaseTransactionRepository(
       throw new ValidationError(
         transactionErrorCodes.refundLinkInvalid,
         transactionWriteErrorMessages.refundCurrencyMismatch,
-      );
-    }
-
-    if (rpcErrorCode === "refund_account_mismatch") {
-      throw new ValidationError(
-        transactionErrorCodes.refundLinkInvalid,
-        transactionWriteErrorMessages.refundAccountMismatch,
       );
     }
 

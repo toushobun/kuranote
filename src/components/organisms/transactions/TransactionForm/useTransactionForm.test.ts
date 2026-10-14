@@ -487,7 +487,19 @@ describe("useTransactionForm", () => {
     });
   });
 
-  it("首次选择跨账户退款候选时立即拒绝并提示重新选择", () => {
+  it("同币种跨账户退款候选可以选择且切换账户后保留", () => {
+    const { result } = renderTransactionFormHook({
+      initialValues: createInitialValues(),
+    });
+    const candidate = { ...refundCandidate, accountId: "account-2" };
+    act(() => result.current.setPickerRefundCandidate(candidate));
+    expect(result.current.pickerRefundCandidate).toEqual(candidate);
+    act(() => result.current.handleAccountChange("account-2"));
+    expect(result.current.pickerRefundCandidate).toEqual(candidate);
+    expect(result.current.linkNotice).toBeNull();
+  });
+
+  it("首次选择跨币种退款候选时立即拒绝并提示重新选择", () => {
     const { result } = renderTransactionFormHook({
       initialValues: createInitialValues(),
     });
@@ -495,12 +507,13 @@ describe("useTransactionForm", () => {
     act(() =>
       result.current.setPickerRefundCandidate({
         ...refundCandidate,
-        accountId: "account-2",
+        accountId: "account-3",
+        accountCurrency: "USD",
       }),
     );
 
     expect(result.current.pickerRefundCandidate).toBeNull();
-    expect(result.current.linkNotice).toContain("账户一致");
+    expect(result.current.linkNotice).toContain("币种一致");
   });
 
   it("切换收款账户后清空不匹配的退款候选", () => {
@@ -511,11 +524,11 @@ describe("useTransactionForm", () => {
     act(() => result.current.setPickerRefundCandidate(refundCandidate));
     expect(result.current.pickerRefundCandidate).toEqual(refundCandidate);
 
-    act(() => result.current.handleAccountChange("account-2"));
+    act(() => result.current.handleAccountChange("account-3"));
 
-    expect(result.current.selectedAccountId).toBe("account-2");
+    expect(result.current.selectedAccountId).toBe("account-3");
     expect(result.current.pickerRefundCandidate).toBeNull();
-    expect(result.current.linkNotice).toContain("账户已变更");
+    expect(result.current.linkNotice).toContain("币种已变更");
   });
 
   it("切换付款账户后清空币种不匹配的报销候选", () => {
@@ -558,7 +571,7 @@ describe("useTransactionForm", () => {
     expect(result.current.pickerReimbursementCandidate).toBeNull();
   });
 
-  it("退款收入因账户变化解除关联时清理业务净额", () => {
+  it("退款收入因币种变化解除关联时清理业务净额", () => {
     const { result } = renderTransactionFormHook({
       initialValues: {
         ...createInitialValues(),
@@ -583,6 +596,11 @@ describe("useTransactionForm", () => {
 
     expect(result.current.businessTotalAmount).toBe("0");
     act(() => result.current.handleAccountChange("account-2"));
+    expect(result.current.itemSummaries[0]?.refundCandidate).toEqual(
+      refundCandidate,
+    );
+    expect(result.current.businessTotalAmount).toBe("0");
+    act(() => result.current.handleAccountChange("account-3"));
 
     expect(result.current.itemSummaries[0]).toMatchObject({
       amount: "200",

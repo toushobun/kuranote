@@ -87,7 +87,7 @@ const linkedEditRpcErrorCodes = [
   transactionErrorCodes.noteTooLong,
   transactionErrorCodes.specialStatusInvalid,
   transactionErrorCodes.incomeLinkCategoryInvalid,
-  "refund_account_mismatch",
+  "refund_currency_mismatch",
   "reimbursement_currency_mismatch",
   "linked_transaction_edit_forbidden",
 ] as const;
@@ -186,10 +186,10 @@ export function createSupabaseLinkedTransactionItemRepository(
         transactionLinkedEditErrorMessages.linkBroken,
       );
     }
-    if (rpcErrorCode === "refund_account_mismatch") {
+    if (rpcErrorCode === "refund_currency_mismatch") {
       throw new ValidationError(
         transactionErrorCodes.refundLinkInvalid,
-        transactionLinkedEditErrorMessages.refundAccountOrCurrencyMismatch,
+        transactionLinkedEditErrorMessages.refundCurrencyMismatch,
       );
     }
     if (rpcErrorCode === "reimbursement_currency_mismatch") {

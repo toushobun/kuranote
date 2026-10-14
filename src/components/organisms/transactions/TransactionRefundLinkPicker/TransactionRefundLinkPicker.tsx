@@ -113,7 +113,7 @@ export function TransactionRefundLinkPicker({
         </Stack>
       ) : (
         <Typography color="textSecondary" variant="caption">
-          退款关联不受剩余可核销额度限制；请选择与收款账户一致的候选支出。
+          退款关联不受剩余可核销额度限制；请选择与收款账户币种一致的候选支出。
         </Typography>
       )}
       <Button

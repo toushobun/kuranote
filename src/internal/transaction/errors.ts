@@ -117,7 +117,6 @@ export const transactionWriteErrorMessages = {
   itemsInvalid: "交易明细不正确，请确认后重试。",
   linkedEditForbidden: "已有关联报销或退款的交易暂不能修改或作废。",
   merchantInvalid: "商家信息不正确，请确认后重试。",
-  refundAccountMismatch: "退款收入与支出明细必须使用同一账户。",
   refundAllocationInvalid: "退款金额不正确，请重新选择退款明细。",
   refundCurrencyMismatch: "退款收入与支出明细的账户币种必须一致。",
   refundedItemInvalid: "退款关联的支出明细无效，请重新选择。",
@@ -167,10 +166,8 @@ export const transactionLinkedEditErrorMessages = {
   itemsInvalid: "交易明细不正确，请刷新页面后重试。",
   itemVersionConflict: "交易明细已被其他操作更新，请刷新后重试。",
   linkBroken: "分类或收支类型会破坏现有退款 / 报销关联。",
-  refundAccountMismatch:
-    "退款关联要求收入与目标支出使用同一账户，请先解除关联后再修改账户。",
-  refundAccountOrCurrencyMismatch:
-    "退款关联要求收入与目标支出使用同一账户和币种。",
+  refundCurrencyMismatch:
+    "退款收入与目标支出的账户币种必须一致，请选择相同币种的账户。",
   reimbursementCurrencyMismatch:
     "报销收入与目标支出的账户币种必须一致，请选择相同币种的账户。",
   reimbursementTargetCurrencyMismatch: "报销收入与目标支出的账户币种必须一致。",

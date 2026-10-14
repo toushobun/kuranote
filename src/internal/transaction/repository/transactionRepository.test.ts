@@ -1199,6 +1199,22 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
         );
       },
     );
+    it("更新退款关联时币种不一致转换为安全校验错误", async () => {
+      const { repository } = createRepositoryWithRpcError({
+        code: "22023",
+        databaseError: "refund_currency_mismatch",
+      });
+      await expect(
+        repository.updateNormal({
+          ...normalInput,
+          transactionRecordId: "00000000-0000-4000-8000-000000009999",
+        }),
+      ).rejects.toMatchObject({
+        name: ValidationError.name,
+        code: transactionErrorCodes.refundLinkInvalid,
+        message: transactionWriteErrorMessages.refundCurrencyMismatch,
+      });
+    });
     it.each([
       "reimbursement_amount_mismatch",
       "refunded_item_special_status_conflict",
