@@ -4,6 +4,7 @@ import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
+import Chip from "@mui/material/Chip";
 import Collapse from "@mui/material/Collapse";
 import Divider from "@mui/material/Divider";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -37,7 +38,13 @@ export type GroupedPresetChecklistMessages = {
   /** 分组三态复选框的无障碍名称，需包含分组名。 */
   groupCheckboxLabel: (groupName: string) => string;
   /** 分组名下方的已选数量，例如「已选 3 / 5 家」。 */
-  groupSelectedCount: (selected: number, total: number) => string;
+  groupSelectedCount: (
+    selected: number,
+    total: number,
+    added: number,
+  ) => string;
+  /** 禁用且已勾选项目右侧的小标记；未提供时不显示标记。 */
+  added?: string;
   /** 展开区域顶部的「全选」。 */
   selectAll: string;
   /** 展开区域顶部的「全不选」。 */
@@ -46,6 +53,8 @@ export type GroupedPresetChecklistMessages = {
 
 export type GroupedPresetChecklistProps = {
   disabled?: boolean;
+  /** 已添加的项目：已勾选、不可取消、不计入本次选择。 */
+  disabledKeys?: readonly string[];
   groups: readonly GroupedPresetChecklistGroup[];
   items: readonly GroupedPresetChecklistItem[];
   messages: GroupedPresetChecklistMessages;
@@ -61,6 +70,7 @@ export type GroupedPresetChecklistProps = {
  */
 export function GroupedPresetChecklist({
   disabled = false,
+  disabledKeys,
   groups,
   items,
   messages,
@@ -68,6 +78,7 @@ export function GroupedPresetChecklist({
   selectedKeys,
 }: GroupedPresetChecklistProps) {
   const checklist = useGroupedPresetChecklist({
+    disabledKeys,
     groups,
     items,
     onChange,
@@ -82,6 +93,7 @@ export function GroupedPresetChecklist({
           <ChecklistGroup
             {...row}
             disabled={disabled}
+            disabledSet={checklist.disabledSet}
             messages={messages}
             onSetItemsChecked={checklist.setItemsChecked}
             onToggleExpanded={checklist.toggleExpanded}
@@ -94,6 +106,8 @@ export function GroupedPresetChecklist({
 }
 
 type ChecklistGroupProps = {
+  addedCount: number;
+  disabledSet: ReadonlySet<string>;
   disabled: boolean;
   expanded: boolean;
   group: GroupedPresetChecklistGroup;
@@ -106,6 +120,8 @@ type ChecklistGroupProps = {
 };
 
 function ChecklistGroup({
+  addedCount,
+  disabledSet,
   disabled,
   expanded,
   group,
@@ -117,9 +133,12 @@ function ChecklistGroup({
   selectedSet,
 }: ChecklistGroupProps) {
   const panelId = useId();
-  const total = items.length;
-  const allSelected = total > 0 && selectedCount === total;
-  const itemKeys = items.map(({ key }) => key);
+  const total = items.length - addedCount;
+  const allSelected =
+    (total > 0 && selectedCount === total) || (total === 0 && addedCount > 0);
+  const itemKeys = items
+    .filter(({ key }) => !disabledSet.has(key))
+    .map(({ key }) => key);
 
   return (
     <Box aria-label={group.name} component="section">
@@ -133,7 +152,7 @@ function ChecklistGroup({
             {group.name}
           </Typography>
           <Typography color="textSecondary" variant="body2">
-            {messages.groupSelectedCount(selectedCount, total)}
+            {messages.groupSelectedCount(selectedCount, total, addedCount)}
           </Typography>
         </Box>
         <Checkbox
@@ -171,7 +190,7 @@ function ChecklistGroup({
         <Box sx={panelSx}>
           <Stack direction="row" sx={panelActionsSx}>
             <Button
-              disabled={disabled || allSelected}
+              disabled={disabled || total === 0 || allSelected}
               onClick={() => onSetItemsChecked(itemKeys, true)}
               size="small"
               sx={panelActionButtonSx}
@@ -191,8 +210,10 @@ function ChecklistGroup({
           </Stack>
           {items.map((item) => (
             <ChecklistItemRow
-              checked={selectedSet.has(item.key)}
-              disabled={disabled}
+              added={disabledSet.has(item.key)}
+              addedLabel={messages.added}
+              checked={disabledSet.has(item.key) || selectedSet.has(item.key)}
+              disabled={disabled || disabledSet.has(item.key)}
               item={item}
               key={item.key}
               onSetItemsChecked={onSetItemsChecked}
@@ -205,6 +226,8 @@ function ChecklistGroup({
 }
 
 type ChecklistItemRowProps = {
+  added: boolean;
+  addedLabel?: string;
   checked: boolean;
   disabled: boolean;
   item: GroupedPresetChecklistItem;
@@ -213,6 +236,8 @@ type ChecklistItemRowProps = {
 
 // 勾选单个项目时只有该项目（及其他分组中的同一项目）的行重新渲染。
 const ChecklistItemRow = memo(function ChecklistItemRow({
+  added,
+  addedLabel,
   checked,
   disabled,
   item,
@@ -230,18 +255,31 @@ const ChecklistItemRow = memo(function ChecklistItemRow({
         />
       }
       label={
-        <Box component="span" sx={itemLabelSx}>
-          <Box component="span" sx={itemNameSx}>
-            {item.name}
-          </Box>
-          {item.secondaryText ? (
-            <Box component="span" sx={itemSecondarySx}>
-              {item.secondaryText}
+        <Box component="span" sx={itemContentSx}>
+          <Box component="span" sx={itemLabelSx}>
+            <Box component="span" sx={itemNameSx}>
+              {item.name}
             </Box>
+            {item.secondaryText ? (
+              <Box
+                component="span"
+                sx={[itemSecondarySx, added && addedTextSx]}
+              >
+                {item.secondaryText}
+              </Box>
+            ) : null}
+          </Box>
+          {added && addedLabel ? (
+            <Chip
+              component="span"
+              label={addedLabel}
+              size="small"
+              sx={addedTextSx}
+            />
           ) : null}
         </Box>
       }
-      sx={itemRowSx}
+      sx={[itemRowSx, added && addedItemRowSx]}
     />
   );
 });
@@ -319,10 +357,12 @@ const itemRowSx = {
   width: "100%",
   "& .MuiFormControlLabel-label": {
     minWidth: 0,
+    width: "100%",
   },
 };
 
 const itemLabelSx = {
+  flex: 1,
   display: "flex",
   flexDirection: "column",
 };
@@ -336,4 +376,16 @@ const itemSecondarySx = {
   color: "text.secondary",
   fontSize: 12,
   overflowWrap: "anywhere",
+};
+
+const itemContentSx = {
+  display: "flex",
+  alignItems: "center",
+  gap: 1,
+  width: "100%",
+};
+const addedTextSx = { color: "text.disabled" };
+const addedItemRowSx = {
+  bgcolor: "action.disabledBackground",
+  borderRadius: `${designTokens.radius.item}px`,
 };

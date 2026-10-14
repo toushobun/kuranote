@@ -1,12 +1,7 @@
 "use client";
 
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Dialog from "@mui/material/Dialog";
-import IconButton from "@mui/material/IconButton";
-import { useTheme } from "@mui/material/styles";
-import useMediaQuery from "@mui/material/useMediaQuery";
 
 import { ledgerSetupEntryMessages } from "config/ledgerSetupMessages";
 import {
@@ -14,11 +9,9 @@ import {
   ledgerSetupErrorMessages,
 } from "internal/ledger";
 import { ErrorState } from "molecules/ui/ErrorState";
+import { WizardDialog } from "molecules/ui/WizardDialog/WizardDialog";
 import { LoadingState } from "molecules/ui/LoadingState";
-import {
-  getLedgerSetupWizardPaperSx,
-  LedgerSetupWizard,
-} from "organisms/ledgers/LedgerSetupWizard/LedgerSetupWizard";
+import { LedgerSetupWizard } from "organisms/ledgers/LedgerSetupWizard/LedgerSetupWizard";
 
 import type { useLedgerSetupWizardLauncher } from "./useLedgerSetupWizardLauncher";
 
@@ -38,8 +31,6 @@ type LedgerSetupWizardLauncherProps = {
 export function LedgerSetupWizardLauncher({
   launcher,
 }: LedgerSetupWizardLauncherProps) {
-  const theme = useTheme();
-  const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const { cancel, closeWizard, retry, state, wizardActions } = launcher;
 
   return (
@@ -60,27 +51,15 @@ export function LedgerSetupWizardLauncher({
         />
       ) : null}
 
-      <Dialog
-        fullScreen={fullScreen}
-        fullWidth
-        maxWidth={false}
+      <WizardDialog
+        closeLabel={messages.close}
+        closeAlignment="start"
+        ariaLabel={
+          state.status === "error" ? messages.loadErrorTitle : messages.loading
+        }
         onClose={cancel}
         open={state.status === "loading" || state.status === "error"}
-        slotProps={{
-          paper: {
-            "aria-label":
-              state.status === "error"
-                ? messages.loadErrorTitle
-                : messages.loading,
-            sx: getLedgerSetupWizardPaperSx(fullScreen),
-          },
-        }}
       >
-        <Box sx={headerSx}>
-          <IconButton aria-label={messages.close} onClick={cancel}>
-            <CloseRoundedIcon />
-          </IconButton>
-        </Box>
         <Box sx={bodySx}>
           {state.status === "error" ? (
             <ErrorState
@@ -96,17 +75,10 @@ export function LedgerSetupWizardLauncher({
             <LoadingState description={null} title={messages.loading} />
           )}
         </Box>
-      </Dialog>
+      </WizardDialog>
     </>
   );
 }
-
-const headerSx = {
-  display: "flex",
-  flexShrink: 0,
-  pt: "calc(8px + env(safe-area-inset-top))",
-  px: { xs: 1, sm: 2 },
-};
 
 const bodySx = {
   px: { xs: 2, sm: 3 },

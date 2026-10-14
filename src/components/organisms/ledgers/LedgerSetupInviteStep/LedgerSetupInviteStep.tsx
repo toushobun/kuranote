@@ -13,7 +13,7 @@ import { LoadingState } from "molecules/ui/LoadingState";
 import { WizardActionBar } from "molecules/ui/WizardActionBar/WizardActionBar";
 import { LedgerInviteEntry } from "organisms/ledgers/LedgerInviteEntry/LedgerInviteEntry";
 import { LedgerInvitePendingProvider } from "organisms/ledgers/LedgerInvitePendingContext/LedgerInvitePendingContext";
-import { LedgerSetupStepLayout } from "organisms/ledgers/LedgerSetupWizard/LedgerSetupStepLayout";
+import { WizardStepLayout } from "molecules/ui/WizardDialog/WizardStepLayout";
 import type { LedgerSetupWizardStepProps } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardStepTypes";
 import { designTokens } from "theme/theme";
 import { typographyStyles } from "theme/typographyTokens";
@@ -55,7 +55,7 @@ function LedgerSetupInviteStepContent({
   const step = useLedgerSetupInviteStep({ actions, ledgerId });
 
   return (
-    <LedgerSetupStepLayout
+    <WizardStepLayout
       actions={
         <WizardActionBar
           next={{
@@ -114,7 +114,7 @@ function LedgerSetupInviteStepContent({
           {placeholderMemberText.notMemberNote}
         </Typography>
       </Stack>
-    </LedgerSetupStepLayout>
+    </WizardStepLayout>
   );
 }
 

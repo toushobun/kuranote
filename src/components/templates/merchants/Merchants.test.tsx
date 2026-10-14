@@ -19,6 +19,8 @@ import { SuccessFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
 import { dragSortable, dropSortable, mockSortableRects } from "test/sortable";
 import { hasUseClientDirective } from "test/clientBoundary";
 
+import { createMerchantPresetOptions } from "test/mocks/merchantPresets";
+
 import { MerchantsTemplate } from "./Merchants";
 
 vi.mock("molecules/ui/OperationFeedbackDialogs", { spy: true });
@@ -39,6 +41,8 @@ const tagAction = async () => ({});
 const reorderAction = async () => ({});
 
 const baseProps = {
+  loadPresetsAction: async () => ({ options: createMerchantPresetOptions() }),
+  addPresetsAction: async () => ({}),
   setPreferredMerchantAliasAction: async () => ({ success: "显示名切换成功" }),
   archiveAction: tagAction,
   createAction: tagAction,
@@ -139,11 +143,11 @@ describe("MerchantsTemplate", () => {
       within(container).getByText("管理常用商家和头像信息"),
     ).toBeInTheDocument();
     expect(within(container).queryByText(/当前账本/)).not.toBeInTheDocument();
-    const createLink = within(container).getByRole("link", {
+    const createLink = within(container).getByRole("button", {
       name: "新增商家",
     });
 
-    expect(createLink).toHaveAttribute("href", "/merchants/new");
+    expect(createLink).not.toHaveAttribute("href");
     expect(createLink).toHaveClass("MuiButton-sizeSmall");
     expect(
       Number.parseFloat(getComputedStyle(createLink).borderRadius),
@@ -711,5 +715,51 @@ describe("MerchantsTemplate 显示名切换", () => {
       screen.getByRole("button", { name: "LIFE超市是当前展示名" }),
     ).toHaveAttribute("aria-pressed", "true");
     expect(alias).toBeEnabled();
+  });
+});
+
+describe("商家管理预设入口", () => {
+  it("点击新增先显示底部弹层，选择预设后才读取并打开列表", async () => {
+    const loadPresetsAction = vi.fn(baseProps.loadPresetsAction);
+    render(
+      <MerchantsTemplate
+        {...baseProps}
+        loadPresetsAction={loadPresetsAction}
+      />,
+    );
+    expect(loadPresetsAction).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "新增商家" }));
+    expect(loadPresetsAction).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: /从预设添加/ }));
+    await screen.findByRole("button", { name: "全部选择" });
+    expect(loadPresetsAction).toHaveBeenCalledOnce();
+    expect(
+      screen.getByRole("dialog", { name: "从预设添加商家" }),
+    ).toBeInTheDocument();
+  });
+  it("没有管理权限时不显示新增入口", () => {
+    render(<MerchantsTemplate {...baseProps} canManageMerchants={false} />);
+    expect(
+      screen.queryByRole("button", { name: "新增商家" }),
+    ).not.toBeInTheDocument();
+  });
+  it("预设新增沿用成功反馈，关闭时清除结果与计数参数", () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/merchants?result=presets-added&count=2&q=brand",
+    );
+    render(
+      <MerchantsTemplate
+        {...baseProps}
+        saveResult="presets-added"
+        presetAddedCount={2}
+      />,
+    );
+    expect(screen.getByText("已添加 2 个商家")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "关闭" }));
+    expect(replace).toHaveBeenCalledWith("/merchants?q=brand", {
+      scroll: false,
+    });
   });
 });

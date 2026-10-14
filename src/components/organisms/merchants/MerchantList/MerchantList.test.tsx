@@ -24,12 +24,13 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const baseProps = { createHref: "/merchants/new", ledgerId: "ledger-1" };
+const baseProps = { onCreate: () => {}, ledgerId: "ledger-1" };
 
 describe("MerchantList", () => {
   it("没有商家时显示完整空状态和新增入口", () => {
+    const onCreate = vi.fn();
     const { container } = render(
-      <MerchantList {...baseProps} merchants={[]} />,
+      <MerchantList {...baseProps} onCreate={onCreate} merchants={[]} />,
     );
 
     expect(within(container).getByText("还没有商家")).toBeInTheDocument();
@@ -41,9 +42,12 @@ describe("MerchantList", () => {
       "src",
       "/assets/kura-merchant-empty/merchant_empty_amber_warmth.png",
     );
-    expect(
-      within(container).getByRole("link", { name: "添加第一个商家" }),
-    ).toHaveAttribute("href", "/merchants/new");
+    const createButton = within(container).getByRole("button", {
+      name: "添加第一个商家",
+    });
+    expect(createButton).not.toHaveAttribute("href");
+    fireEvent.click(createButton);
+    expect(onCreate).toHaveBeenCalledOnce();
   });
 
   it("有商家时只显示卡片列表", () => {

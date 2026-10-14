@@ -42,19 +42,25 @@ const items: GroupedPresetChecklistItem[] = [
 
 const messages: GroupedPresetChecklistMessages = {
   groupCheckboxLabel: (name) => `选择${name}全部`,
-  groupSelectedCount: (selected, total) => `已选 ${selected} / ${total} 个`,
+  added: "已添加",
+  groupSelectedCount: (selected, total, added) =>
+    `已选 ${selected} / ${total} 个${added ? ` · 已添加 ${added} 个` : ""}`,
   selectAll: "全选",
   selectNone: "全不选",
 };
 
 /** 受控渲染：内部保存勾选状态，并返回 onChange spy。 */
-function renderChecklist(initialSelectedKeys: string[] = []) {
+function renderChecklist(
+  initialSelectedKeys: string[] = [],
+  disabledKeys: string[] = [],
+) {
   const onChange = vi.fn<(keys: string[]) => void>();
 
   function Harness() {
     const [selectedKeys, setSelectedKeys] = useState(initialSelectedKeys);
     return (
       <GroupedPresetChecklist
+        disabledKeys={disabledKeys}
         groups={groups}
         items={items}
         messages={messages}
@@ -208,5 +214,42 @@ describe("GroupedPresetChecklist", () => {
     expect(getGroupCheckbox("水果")).toBeDisabled();
     expect(getChecklistItemCheckbox("水果", "苹果")).toBeDisabled();
     expect(within(fruit).getByRole("button", { name: "全选" })).toBeDisabled();
+  });
+});
+
+describe("GroupedPresetChecklist 已添加项目", () => {
+  it("已添加项目勾选禁用并显示标记，分组计数只统计可添加项目", () => {
+    const { onChange } = renderChecklist(["apple"], ["apple"]);
+    const group = toggleChecklistGroup("水果");
+    expect(getChecklistItemCheckbox("水果", "苹果")).toBeChecked();
+    expect(getChecklistItemCheckbox("水果", "苹果")).toBeDisabled();
+    expect(within(group).getByText("已添加")).toBeInTheDocument();
+    expect(
+      within(group).getByText("已选 0 / 2 个 · 已添加 1 个"),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      within(group).getByRole("checkbox", { name: "选择水果全部" }),
+    );
+    expect(onChange).toHaveBeenLastCalledWith(["banana", "cherry"]);
+    fireEvent.click(within(group).getByRole("button", { name: "全不选" }));
+    expect(onChange).toHaveBeenLastCalledWith([]);
+    expect(getChecklistItemCheckbox("水果", "苹果")).toBeChecked();
+  });
+  it("整个分组已添加时分组复选框勾选禁用，两种批量按钮均禁用", () => {
+    renderChecklist([], ["apple", "banana", "cherry"]);
+    const group = toggleChecklistGroup("水果");
+    expect(
+      within(group).getByRole("checkbox", { name: "选择水果全部" }),
+    ).toBeChecked();
+    expect(
+      within(group).getByRole("checkbox", { name: "选择水果全部" }),
+    ).toBeDisabled();
+    expect(within(group).getByRole("button", { name: "全选" })).toBeDisabled();
+    expect(
+      within(group).getByRole("button", { name: "全不选" }),
+    ).toBeDisabled();
+    expect(
+      within(group).getByText("已选 0 / 0 个 · 已添加 3 个"),
+    ).toBeInTheDocument();
   });
 });

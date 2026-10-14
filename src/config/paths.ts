@@ -42,6 +42,7 @@ export const accountResultValues = {
 } as const;
 
 export const merchantResultValues = {
+  presetsAdded: "presets-added",
   archived: "archived",
   created: "created",
   updated: "updated",
@@ -165,8 +166,14 @@ export function accountsResultHref(result: AccountResultValue) {
   return routeWithQuery(routePaths.accounts, { result });
 }
 
-export function merchantsResultHref(result: MerchantResultValue) {
-  return routeWithQuery(routePaths.merchants, { result });
+export function merchantsResultHref(
+  result: MerchantResultValue,
+  count?: number,
+) {
+  return routeWithQuery(routePaths.merchants, {
+    result,
+    count: count === undefined ? undefined : String(count),
+  });
 }
 
 export function merchantsNewHref(returnTo?: string | null) {

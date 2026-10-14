@@ -27,7 +27,7 @@ const meta = {
   title: "Organisms/Merchants/MerchantList",
   component: MerchantList,
   args: {
-    createHref: "/merchants/new",
+    onCreate: () => {},
     ledgerId: "ledger-1",
     merchants,
   },
@@ -43,7 +43,7 @@ export const Default: Story = {
 export const Empty: Story = {
   name: "空列表",
   args: {
-    createHref: "/merchants/new",
+    onCreate: () => {},
     ledgerId: "ledger-1",
     merchants: [],
   },

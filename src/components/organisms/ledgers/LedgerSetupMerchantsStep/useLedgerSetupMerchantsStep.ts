@@ -2,38 +2,12 @@
 
 import { useMemo, useState } from "react";
 
-import type { LedgerSetupDraft, LedgerSetupTemplate } from "internal/ledger";
-import type {
-  GroupedPresetChecklistGroup,
-  GroupedPresetChecklistItem,
-} from "molecules/ui/GroupedPresetChecklist/GroupedPresetChecklist";
+import type { LedgerSetupDraft } from "internal/ledger";
+import { getPresetSelection } from "molecules/ui/GroupedPresetChecklist/presetSelection";
 import type { LedgerSetupWizardStepProps } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardStepTypes";
 import { useLedgerSetupDraftSave } from "organisms/ledgers/LedgerSetupWizard/useLedgerSetupDraftSave";
 import type { LedgerSetupProgress } from "types/ledgers";
-import { getWebsiteDisplayDomain } from "utils/merchants";
-
-/** 将模板转换为两层勾选的分组（商家标签，按 sortOrder）与项目（商家，副文字为官网域名）。 */
-function buildMerchantChecklist(template: LedgerSetupTemplate) {
-  const groups: GroupedPresetChecklistGroup[] = [...template.merchantTags]
-    .sort((a, b) => a.sortOrder - b.sortOrder)
-    .map((tag) => ({
-      icon: tag.icon,
-      itemKeys: template.merchants
-        .filter(({ tagKeys }) => tagKeys.includes(tag.key))
-        .map(({ key }) => key),
-      key: tag.key,
-      name: tag.name,
-    }));
-  const items: GroupedPresetChecklistItem[] = template.merchants.map(
-    (merchant) => ({
-      key: merchant.key,
-      name: merchant.name,
-      secondaryText: getWebsiteDisplayDomain(merchant.websiteUrl) ?? undefined,
-    }),
-  );
-
-  return { groups, items };
-}
+import { buildMerchantChecklist } from "utils/merchantPresets";
 
 type UseLedgerSetupMerchantsStepOptions = Omit<
   LedgerSetupWizardStepProps,
@@ -60,7 +34,8 @@ export function useLedgerSetupMerchantsStep(
 
   // 勾选以商家为单位存储，多标签商家只算一次。
   const selectedCount = selectedKeys.length;
-  const allSelected = !!checklist && selectedCount === checklist.items.length;
+  const selection = getPresetSelection(checklist?.items ?? [], selectedKeys);
+  const allSelected = selection.allSelected;
 
   function save(
     direction: "next" | "previous",
@@ -102,7 +77,7 @@ export function useLedgerSetupMerchantsStep(
     },
     toggleAll() {
       if (!checklist) return;
-      setSelectedKeys(allSelected ? [] : checklist.items.map(({ key }) => key));
+      setSelectedKeys(selection.toggleAllKeys);
     },
   };
 }

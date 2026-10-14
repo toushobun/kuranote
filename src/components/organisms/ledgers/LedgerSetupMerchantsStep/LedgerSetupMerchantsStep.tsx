@@ -1,5 +1,6 @@
 "use client";
 
+import { presetChecklistToggleAllButtonSx } from "molecules/ui/GroupedPresetChecklist/presetChecklistStyles";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -12,7 +13,7 @@ import { EmptyState } from "molecules/ui/EmptyState";
 import { GroupedPresetChecklist } from "molecules/ui/GroupedPresetChecklist/GroupedPresetChecklist";
 import { ActionFailureFeedback } from "molecules/ui/OperationFeedbackDialogs";
 import { WizardActionBar } from "molecules/ui/WizardActionBar/WizardActionBar";
-import { LedgerSetupStepLayout } from "organisms/ledgers/LedgerSetupWizard/LedgerSetupStepLayout";
+import { WizardStepLayout } from "molecules/ui/WizardDialog/WizardStepLayout";
 import type { LedgerSetupWizardStepProps } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardStepTypes";
 import { typographyStyles } from "theme/typographyTokens";
 import type { LedgerSetupProgress } from "types/ledgers";
@@ -41,7 +42,7 @@ function LedgerSetupMerchantsStepContent(
   const { checklist } = step;
 
   return (
-    <LedgerSetupStepLayout
+    <WizardStepLayout
       actions={
         <WizardActionBar
           next={{
@@ -84,7 +85,7 @@ function LedgerSetupMerchantsStepContent(
               disabled={step.isSaving}
               onClick={step.toggleAll}
               size="small"
-              sx={toggleAllButtonSx}
+              sx={presetChecklistToggleAllButtonSx}
               variant="text"
             >
               {step.allSelected
@@ -115,7 +116,7 @@ function LedgerSetupMerchantsStepContent(
         state={step.failureState}
         title={ledgerSetupWizardMessages.saveErrorTitle}
       />
-    </LedgerSetupStepLayout>
+    </WizardStepLayout>
   );
 }
 
@@ -123,11 +124,4 @@ const titleSx = {
   ...typographyStyles.cardTitle,
   fontSize: 20,
   fontWeight: 900,
-};
-
-const toggleAllButtonSx = {
-  alignSelf: "flex-end",
-  color: "var(--user-theme-action-text)",
-  fontWeight: 800,
-  minHeight: 40,
 };

@@ -1,3 +1,5 @@
+import { createMerchantPresetRepository } from "internal/merchant/repository/merchantPresetRepository";
+import { createMerchantPresetService } from "internal/merchant/service/merchantPresetService";
 import { createAccountExportQueryService } from "internal/account/service/accountExportQueryService";
 import { createMerchantExportQueryService } from "internal/merchant/service/merchantExportQueryService";
 import { createTransactionExportQueryService } from "internal/transaction/service/transactionExportQueryService";
@@ -101,6 +103,7 @@ export type RequestContainer = {
     ): ReturnType<typeof createDataImportExecutionService>;
   };
   readonly merchant: {
+    readonly presetService: ReturnType<typeof createMerchantPresetService>;
     readonly service: ReturnType<typeof createMerchantService>;
   };
   readonly statistics: {
@@ -409,14 +412,22 @@ export function createRequestContainer(
 
     get merchant() {
       if (!merchantContainer) {
+        const service = createMerchantService({
+          currentUserId: dependencies.auth.isAuthenticated
+            ? dependencies.auth.userId
+            : null,
+          ledgerAccessService: getLedgerAccessService(),
+          logger: dependencies.logger,
+          merchantRepository: getMerchantRepository(),
+        });
         merchantContainer = {
-          service: createMerchantService({
-            currentUserId: dependencies.auth.isAuthenticated
-              ? dependencies.auth.userId
-              : null,
-            ledgerAccessService: getLedgerAccessService(),
-            logger: dependencies.logger,
-            merchantRepository: getMerchantRepository(),
+          service,
+          presetService: createMerchantPresetService({
+            merchantService: service,
+            repository: createMerchantPresetRepository(
+              dependencies.supabase,
+              dependencies.logger,
+            ),
           }),
         };
       }

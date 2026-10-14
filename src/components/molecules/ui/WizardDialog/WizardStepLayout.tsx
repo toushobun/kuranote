@@ -1,17 +1,14 @@
 import DialogContent from "@mui/material/DialogContent";
 import type { ReactNode } from "react";
 
-type LedgerSetupStepLayoutProps = {
+type WizardStepLayoutProps = {
   /** 底部固定操作栏，通常为 WizardActionBar。 */
   actions: ReactNode;
   children: ReactNode;
 };
 
 /** 向导步骤的布局：可滚动的内容区 + 底部固定操作栏。内容区底部预留留白，避免贴住操作栏。 */
-export function LedgerSetupStepLayout({
-  actions,
-  children,
-}: LedgerSetupStepLayoutProps) {
+export function WizardStepLayout({ actions, children }: WizardStepLayoutProps) {
   return (
     <>
       <DialogContent sx={contentSx}>{children}</DialogContent>

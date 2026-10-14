@@ -10,7 +10,7 @@ import {
 } from "config/ledgerSetupMessages";
 import { ActionFailureFeedback } from "molecules/ui/OperationFeedbackDialogs";
 import { WizardActionBar } from "molecules/ui/WizardActionBar/WizardActionBar";
-import { LedgerSetupStepLayout } from "organisms/ledgers/LedgerSetupWizard/LedgerSetupStepLayout";
+import { WizardStepLayout } from "molecules/ui/WizardDialog/WizardStepLayout";
 import type { LedgerSetupWizardStepProps } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardStepTypes";
 import { useLedgerSetupDraftSave } from "organisms/ledgers/LedgerSetupWizard/useLedgerSetupDraftSave";
 import { LedgerSpecialStatusSetting } from "organisms/ledgers/LedgerSpecialStatusSetting/LedgerSpecialStatusSetting";
@@ -43,7 +43,7 @@ function LedgerSetupFeaturesStepContent(
   const nextDraft = { ...draft, features: { specialStatusEnabled } };
 
   return (
-    <LedgerSetupStepLayout
+    <WizardStepLayout
       actions={
         <WizardActionBar
           next={{
@@ -82,7 +82,7 @@ function LedgerSetupFeaturesStepContent(
         state={draftSave.failureState}
         title={ledgerSetupWizardMessages.saveErrorTitle}
       />
-    </LedgerSetupStepLayout>
+    </WizardStepLayout>
   );
 }
 

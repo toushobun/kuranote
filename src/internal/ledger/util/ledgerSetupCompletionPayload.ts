@@ -37,9 +37,22 @@ export function buildLedgerSetupCompletionPayload(
         type,
       }));
 
-  const selectedKeys = new Set(
-    draft.merchants.skipped ? [] : draft.merchants.selectedKeys,
-  );
+  return {
+    accounts,
+    ...buildLedgerSetupMerchantPayload(
+      draft.merchants.skipped ? [] : draft.merchants.selectedKeys,
+      template,
+    ),
+    specialStatusEnabled: draft.features.specialStatusEnabled,
+  };
+}
+
+/** 向导与商家预设添加共用服务端模板 payload，不接收客户端商家资料。 */
+export function buildLedgerSetupMerchantPayload(
+  keys: readonly string[],
+  template: LedgerSetupTemplate | null,
+): Pick<LedgerSetupCompletionPayload, "merchantTags" | "merchants"> {
+  const selectedKeys = new Set(keys);
   const merchants = (template?.merchants ?? []).filter(({ key }) =>
     selectedKeys.has(key),
   );
@@ -50,7 +63,6 @@ export function buildLedgerSetupCompletionPayload(
     .map(({ icon, key, name }) => ({ icon, key, name }));
 
   return {
-    accounts,
     merchantTags,
     merchants: merchants.map(({ aliases, name, tagKeys, websiteUrl }) => ({
       aliases: aliases.map(({ alias, locale }) => ({ alias, locale })),
@@ -59,6 +71,5 @@ export function buildLedgerSetupCompletionPayload(
       tagKeys: [...tagKeys],
       websiteUrl,
     })),
-    specialStatusEnabled: draft.features.specialStatusEnabled,
   };
 }

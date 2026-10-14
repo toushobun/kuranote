@@ -32,6 +32,9 @@ export const merchantErrorCodes = {
   merchantSetInvalid: "merchant_set_invalid",
   merchantTagSetInvalid: "merchant_tag_set_invalid",
   merchantTagUpdateFailed: "merchant_tag_update_failed",
+  merchantPresetInvalid: "merchant_preset_invalid",
+  merchantPresetAddFailed: "merchant_preset_add_failed",
+  merchantPresetLoadFailed: "merchant_preset_load_failed",
   nameRequired: "name_required",
   nameTooLong: "name_too_long",
   noteTooLong: "note_too_long",
@@ -44,6 +47,7 @@ export type MerchantErrorCode =
   (typeof merchantErrorCodes)[keyof typeof merchantErrorCodes];
 
 export type MerchantValidationErrorCode =
+  | typeof merchantErrorCodes.merchantPresetInvalid
   | typeof merchantErrorCodes.aliasInvalid
   | typeof merchantErrorCodes.aliasRequired
   | typeof merchantErrorCodes.aliasTooLong
@@ -60,6 +64,8 @@ export type MerchantValidationErrorCode =
   | typeof merchantErrorCodes.websiteUrlInvalid;
 
 export type MerchantActionErrorCode =
+  | typeof merchantErrorCodes.merchantPresetLoadFailed
+  | typeof merchantErrorCodes.merchantPresetAddFailed
   | MerchantValidationErrorCode
   | typeof merchantErrorCodes.aliasArchiveFailed
   | typeof merchantErrorCodes.aliasCreateFailed
@@ -81,6 +87,9 @@ export type MerchantActionErrorCode =
   | typeof merchantErrorCodes.updateFailed;
 
 const merchantActionErrorCodeSet = new Set<string>([
+  merchantErrorCodes.merchantPresetInvalid,
+  merchantErrorCodes.merchantPresetAddFailed,
+  merchantErrorCodes.merchantPresetLoadFailed,
   merchantErrorCodes.aliasArchiveFailed,
   merchantErrorCodes.aliasCreateFailed,
   merchantErrorCodes.aliasInvalid,
@@ -116,6 +125,12 @@ const merchantActionErrorCodeSet = new Set<string>([
 ]);
 
 export const merchantErrorMessages: Record<MerchantErrorCode, string> = {
+  [merchantErrorCodes.merchantPresetInvalid]:
+    "预设商家已更新或与账本币种不一致，请重新打开后选择。",
+  [merchantErrorCodes.merchantPresetLoadFailed]:
+    "预设商家读取失败，请稍后重试。",
+  [merchantErrorCodes.merchantPresetAddFailed]:
+    "预设商家添加失败，请稍后重试。",
   [merchantErrorCodes.aliasArchiveFailed]: "商家别名归档失败，请稍后重试。",
   [merchantErrorCodes.aliasCreateFailed]:
     "商家别名新增失败。请确认别名是否重复，或稍后重试。",
