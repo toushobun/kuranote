@@ -1,3 +1,4 @@
+import type { MerchantPresetOptions } from "internal/merchant";
 import type { ActionState } from "types/actions";
 
 export type MerchantActionState = ActionState;
@@ -62,3 +63,8 @@ export type MerchantReorderAction = (
 ) => Promise<MerchantActionState>;
 
 export type MerchantPresetStateAction = MerchantStateAction;
+
+export type MerchantPresetLoadState = MerchantActionState & {
+  options?: MerchantPresetOptions;
+};
+export type MerchantPresetLoadAction = () => Promise<MerchantPresetLoadState>;

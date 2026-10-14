@@ -1,4 +1,5 @@
 import { getLedgerSetupTemplate } from "internal/ledger";
+import { buildMerchantChecklist } from "utils/merchantPresets";
 import type { MerchantPresetOptions } from "internal/merchant";
 
 /** 测试与 Story 只从真实模板截取少量商家，避免另外维护示例商家数据。 */
@@ -9,10 +10,11 @@ export function createMerchantPresetOptions(): MerchantPresetOptions {
   return {
     currency: source.currency,
     addedKeys: [],
-    template: {
+    templateVersion: source.version,
+    ...buildMerchantChecklist({
       ...source,
       merchants,
       merchantTags: source.merchantTags.filter(({ key }) => keys.has(key)),
-    },
+    }),
   };
 }

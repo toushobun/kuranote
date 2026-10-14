@@ -22,7 +22,7 @@ import { ledgerSetupLimits } from "internal/ledger";
 import { ActionFailureFeedback } from "molecules/ui/OperationFeedbackDialogs";
 import { WizardActionBar } from "molecules/ui/WizardActionBar/WizardActionBar";
 import { LedgerSetupAccountAddSheet } from "organisms/ledgers/LedgerSetupAccountAddSheet/LedgerSetupAccountAddSheet";
-import { LedgerSetupStepLayout } from "organisms/ledgers/LedgerSetupWizard/LedgerSetupStepLayout";
+import { WizardStepLayout } from "molecules/ui/WizardDialog/WizardStepLayout";
 import type { LedgerSetupWizardStepProps } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardStepTypes";
 import { designTokens } from "theme/theme";
 import { typographyStyles } from "theme/typographyTokens";
@@ -51,7 +51,7 @@ function LedgerSetupAccountsStepContent(
   const step = useLedgerSetupAccountsStep(props);
 
   return (
-    <LedgerSetupStepLayout
+    <WizardStepLayout
       actions={
         <WizardActionBar
           next={{
@@ -161,7 +161,7 @@ function LedgerSetupAccountsStepContent(
         state={step.failureState}
         title={ledgerSetupWizardMessages.saveErrorTitle}
       />
-    </LedgerSetupStepLayout>
+    </WizardStepLayout>
   );
 }
 

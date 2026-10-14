@@ -41,7 +41,7 @@ const tagAction = async () => ({});
 const reorderAction = async () => ({});
 
 const baseProps = {
-  presetOptions: createMerchantPresetOptions(),
+  loadPresetsAction: async () => ({ options: createMerchantPresetOptions() }),
   addPresetsAction: async () => ({}),
   setPreferredMerchantAliasAction: async () => ({ success: "显示名切换成功" }),
   archiveAction: tagAction,
@@ -719,10 +719,20 @@ describe("MerchantsTemplate 显示名切换", () => {
 });
 
 describe("商家管理预设入口", () => {
-  it("点击新增先显示底部弹层，选择预设后打开弹框", () => {
-    render(<MerchantsTemplate {...baseProps} />);
+  it("点击新增先显示底部弹层，选择预设后才读取并打开列表", async () => {
+    const loadPresetsAction = vi.fn(baseProps.loadPresetsAction);
+    render(
+      <MerchantsTemplate
+        {...baseProps}
+        loadPresetsAction={loadPresetsAction}
+      />,
+    );
+    expect(loadPresetsAction).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "新增商家" }));
+    expect(loadPresetsAction).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: /从预设添加/ }));
+    await screen.findByRole("button", { name: "全部选择" });
+    expect(loadPresetsAction).toHaveBeenCalledOnce();
     expect(
       screen.getByRole("dialog", { name: "从预设添加商家" }),
     ).toBeInTheDocument();

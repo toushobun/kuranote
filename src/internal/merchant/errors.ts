@@ -34,6 +34,7 @@ export const merchantErrorCodes = {
   merchantTagUpdateFailed: "merchant_tag_update_failed",
   merchantPresetInvalid: "merchant_preset_invalid",
   merchantPresetAddFailed: "merchant_preset_add_failed",
+  merchantPresetLoadFailed: "merchant_preset_load_failed",
   nameRequired: "name_required",
   nameTooLong: "name_too_long",
   noteTooLong: "note_too_long",
@@ -63,6 +64,7 @@ export type MerchantValidationErrorCode =
   | typeof merchantErrorCodes.websiteUrlInvalid;
 
 export type MerchantActionErrorCode =
+  | typeof merchantErrorCodes.merchantPresetLoadFailed
   | typeof merchantErrorCodes.merchantPresetAddFailed
   | MerchantValidationErrorCode
   | typeof merchantErrorCodes.aliasArchiveFailed
@@ -87,6 +89,7 @@ export type MerchantActionErrorCode =
 const merchantActionErrorCodeSet = new Set<string>([
   merchantErrorCodes.merchantPresetInvalid,
   merchantErrorCodes.merchantPresetAddFailed,
+  merchantErrorCodes.merchantPresetLoadFailed,
   merchantErrorCodes.aliasArchiveFailed,
   merchantErrorCodes.aliasCreateFailed,
   merchantErrorCodes.aliasInvalid,
@@ -124,6 +127,8 @@ const merchantActionErrorCodeSet = new Set<string>([
 export const merchantErrorMessages: Record<MerchantErrorCode, string> = {
   [merchantErrorCodes.merchantPresetInvalid]:
     "预设商家已更新或与账本币种不一致，请重新打开后选择。",
+  [merchantErrorCodes.merchantPresetLoadFailed]:
+    "预设商家读取失败，请稍后重试。",
   [merchantErrorCodes.merchantPresetAddFailed]:
     "预设商家添加失败，请稍后重试。",
   [merchantErrorCodes.aliasArchiveFailed]: "商家别名归档失败，请稍后重试。",

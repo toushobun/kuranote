@@ -14,6 +14,8 @@ export const merchantPresetMessages = {
   submitting: "添加中…",
   success: (count: number) => `已添加 ${count} 个商家`,
   failureTitle: "添加失败",
+  loading: "正在读取预设商家…",
+  loadFailureTitle: "读取失败",
   noTemplate: {
     title: "暂无该币种的预设商家",
     description: "可以先手动添加商家",

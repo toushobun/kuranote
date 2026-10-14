@@ -53,8 +53,6 @@ export type GroupedPresetChecklistMessages = {
 
 export type GroupedPresetChecklistProps = {
   disabled?: boolean;
-  /** 提交时锁定展开；默认保留向导可展开查看的既有行为。 */
-  lockExpansion?: boolean;
   /** 已添加的项目：已勾选、不可取消、不计入本次选择。 */
   disabledKeys?: readonly string[];
   groups: readonly GroupedPresetChecklistGroup[];
@@ -72,7 +70,6 @@ export type GroupedPresetChecklistProps = {
  */
 export function GroupedPresetChecklist({
   disabled = false,
-  lockExpansion = false,
   disabledKeys,
   groups,
   items,
@@ -95,7 +92,6 @@ export function GroupedPresetChecklist({
           {index > 0 ? <Divider /> : null}
           <ChecklistGroup
             {...row}
-            lockExpansion={lockExpansion}
             disabled={disabled}
             disabledSet={checklist.disabledSet}
             messages={messages}
@@ -110,7 +106,6 @@ export function GroupedPresetChecklist({
 }
 
 type ChecklistGroupProps = {
-  lockExpansion: boolean;
   addedCount: number;
   disabledSet: ReadonlySet<string>;
   disabled: boolean;
@@ -125,7 +120,6 @@ type ChecklistGroupProps = {
 };
 
 function ChecklistGroup({
-  lockExpansion,
   addedCount,
   disabledSet,
   disabled,
@@ -149,12 +143,7 @@ function ChecklistGroup({
   return (
     <Box aria-label={group.name} component="section">
       {/* 点击行的任意位置展开 / 收起；键盘操作通过右侧的展开按钮。 */}
-      <Box
-        onClick={() => {
-          if (!lockExpansion) onToggleExpanded(group.key);
-        }}
-        sx={groupRowSx}
-      >
+      <Box onClick={() => onToggleExpanded(group.key)} sx={groupRowSx}>
         <Box aria-hidden sx={groupIconSx}>
           {group.icon}
         </Box>
@@ -179,7 +168,6 @@ function ChecklistGroup({
         />
         {/* 点击事件冒泡到行，由行统一切换展开状态。 */}
         <IconButton
-          disabled={lockExpansion}
           aria-controls={expanded ? panelId : undefined}
           aria-expanded={expanded}
           aria-label={group.name}
@@ -267,21 +255,15 @@ const ChecklistItemRow = memo(function ChecklistItemRow({
         />
       }
       label={
-        <Box
-          component="span"
-          sx={{ display: "flex", alignItems: "center", gap: 1, width: "100%" }}
-        >
-          <Box component="span" sx={{ ...itemLabelSx, flex: 1 }}>
+        <Box component="span" sx={itemContentSx}>
+          <Box component="span" sx={itemLabelSx}>
             <Box component="span" sx={itemNameSx}>
               {item.name}
             </Box>
             {item.secondaryText ? (
               <Box
                 component="span"
-                sx={{
-                  ...itemSecondarySx,
-                  ...(added ? { color: "text.disabled" } : {}),
-                }}
+                sx={[itemSecondarySx, added && addedTextSx]}
               >
                 {item.secondaryText}
               </Box>
@@ -292,20 +274,12 @@ const ChecklistItemRow = memo(function ChecklistItemRow({
               component="span"
               label={addedLabel}
               size="small"
-              sx={{ color: "text.disabled" }}
+              sx={addedTextSx}
             />
           ) : null}
         </Box>
       }
-      sx={{
-        ...itemRowSx,
-        ...(added
-          ? {
-              bgcolor: "action.disabledBackground",
-              borderRadius: `${designTokens.radius.item}px`,
-            }
-          : {}),
-      }}
+      sx={[itemRowSx, added && addedItemRowSx]}
     />
   );
 });
@@ -388,6 +362,7 @@ const itemRowSx = {
 };
 
 const itemLabelSx = {
+  flex: 1,
   display: "flex",
   flexDirection: "column",
 };
@@ -401,4 +376,16 @@ const itemSecondarySx = {
   color: "text.secondary",
   fontSize: 12,
   overflowWrap: "anywhere",
+};
+
+const itemContentSx = {
+  display: "flex",
+  alignItems: "center",
+  gap: 1,
+  width: "100%",
+};
+const addedTextSx = { color: "text.disabled" };
+const addedItemRowSx = {
+  bgcolor: "action.disabledBackground",
+  borderRadius: `${designTokens.radius.item}px`,
 };

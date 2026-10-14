@@ -20,12 +20,20 @@ export const AlreadyAdded: Story = {
   args: {
     options: {
       ...createMerchantPresetOptions(),
-      addedKeys: [createMerchantPresetOptions().template!.merchants[0]!.key],
+      addedKeys: [createMerchantPresetOptions().items[0]!.key],
     },
   },
 };
 export const NoTemplate: Story = {
-  args: { options: { currency: "USD", template: null, addedKeys: [] } },
+  args: {
+    options: {
+      currency: "USD",
+      templateVersion: null,
+      groups: [],
+      items: [],
+      addedKeys: [],
+    },
+  },
 };
 
 export const Submitting: Story = {

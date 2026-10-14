@@ -252,23 +252,4 @@ describe("GroupedPresetChecklist 已添加项目", () => {
       within(group).getByText("已选 0 / 0 个 · 已添加 3 个"),
     ).toBeInTheDocument();
   });
-  it("提交锁定时不可展开或收起分组", () => {
-    render(
-      <GroupedPresetChecklist
-        disabled
-        lockExpansion
-        groups={groups}
-        items={items}
-        messages={messages}
-        onChange={vi.fn()}
-        selectedKeys={[]}
-      />,
-    );
-    expect(getChecklistGroupExpandButton("水果")).toBeDisabled();
-    fireEvent.click(getChecklistGroup("水果").querySelector("div")!);
-    expect(getChecklistGroupExpandButton("水果")).toHaveAttribute(
-      "aria-expanded",
-      "false",
-    );
-  });
 });

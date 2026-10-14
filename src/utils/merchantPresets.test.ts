@@ -3,7 +3,6 @@ import { getLedgerSetupTemplate } from "internal/ledger";
 import {
   buildMerchantChecklist,
   getAddedMerchantPresetKeys,
-  getMerchantMatchNames,
 } from "./merchantPresets";
 
 describe("merchantPresets", () => {
@@ -34,14 +33,5 @@ describe("merchantPresets", () => {
     expect(
       getAddedMerchantPresetKeys(template, [merchant.name.toLowerCase()]),
     ).toContain(merchant.key);
-  });
-  it("导入上下文共用正式名、展示名、别名去重入口", () => {
-    expect(
-      getMerchantMatchNames({
-        name: "Brand",
-        display_name: "Alias",
-        aliases: [{ alias: "Alias" }, { alias: "Other" }],
-      }),
-    ).toEqual(["Brand", "Alias", "Other"]);
   });
 });

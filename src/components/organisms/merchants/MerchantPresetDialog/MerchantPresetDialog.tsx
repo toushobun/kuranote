@@ -1,16 +1,12 @@
 "use client";
 
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
-import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Dialog from "@mui/material/Dialog";
-import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { useTheme } from "@mui/material/styles";
-import useMediaQuery from "@mui/material/useMediaQuery";
 import Link from "next/link";
 import { useId } from "react";
+import { WizardDialog } from "molecules/ui/WizardDialog/WizardDialog";
+import { presetChecklistToggleAllButtonSx } from "molecules/ui/GroupedPresetChecklist/presetChecklistStyles";
 
 import { merchantPresetMessages as messages } from "config/merchantPresetMessages";
 import { routePaths } from "config/paths";
@@ -19,8 +15,7 @@ import { EmptyState } from "molecules/ui/EmptyState";
 import { GroupedPresetChecklist } from "molecules/ui/GroupedPresetChecklist/GroupedPresetChecklist";
 import { ActionFailureFeedback } from "molecules/ui/OperationFeedbackDialogs";
 import { WizardActionBar } from "molecules/ui/WizardActionBar/WizardActionBar";
-import { LedgerSetupStepLayout } from "organisms/ledgers/LedgerSetupWizard/LedgerSetupStepLayout";
-import { getLedgerSetupWizardPaperSx } from "organisms/ledgers/LedgerSetupWizard/LedgerSetupWizard";
+import { WizardStepLayout } from "molecules/ui/WizardDialog/WizardStepLayout";
 import type { MerchantPresetStateAction } from "types/merchants";
 import { useMerchantPresetDialog } from "./useMerchantPresetDialog";
 
@@ -36,8 +31,6 @@ export function MerchantPresetDialog({
   options,
   onClose,
 }: MerchantPresetDialogProps) {
-  const fullScreen = useMediaQuery(useTheme().breakpoints.down("sm"));
-  const titleId = useId();
   const formId = useId();
   const dialog = useMerchantPresetDialog(options, action);
   const pending = dialog.submission.pending;
@@ -46,42 +39,14 @@ export function MerchantPresetDialog({
   }
   return (
     <>
-      <Dialog
-        aria-labelledby={titleId}
-        fullScreen={fullScreen}
-        fullWidth
-        maxWidth={false}
+      <WizardDialog
+        title={messages.title}
+        closeLabel={messages.close}
+        disabled={pending}
         onClose={requestClose}
         open
-        slotProps={{ paper: { sx: getLedgerSetupWizardPaperSx(fullScreen) } }}
       >
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: "40px 1fr 40px",
-            alignItems: "center",
-            p: 1,
-            borderBottom: "1px solid",
-            borderColor: "divider",
-          }}
-        >
-          <IconButton
-            aria-label={messages.close}
-            disabled={pending}
-            onClick={requestClose}
-          >
-            <CloseRoundedIcon />
-          </IconButton>
-          <Typography
-            component="h2"
-            id={titleId}
-            variant="subtitle1"
-            sx={{ fontWeight: 900, textAlign: "center" }}
-          >
-            {messages.title}
-          </Typography>
-        </Box>
-        <LedgerSetupStepLayout
+        <WizardStepLayout
           actions={
             <WizardActionBar
               previous={{
@@ -117,12 +82,7 @@ export function MerchantPresetDialog({
                   }
                   onClick={dialog.toggleAll}
                   size="small"
-                  sx={{
-                    alignSelf: "flex-end",
-                    color: "var(--user-theme-action-text)",
-                    fontWeight: 800,
-                    minHeight: 40,
-                  }}
+                  sx={presetChecklistToggleAllButtonSx}
                 >
                   {dialog.selection.allSelected
                     ? messages.selectNone
@@ -130,7 +90,6 @@ export function MerchantPresetDialog({
                 </Button>
                 <GroupedPresetChecklist
                   disabled={pending}
-                  lockExpansion={pending}
                   disabledKeys={options.addedKeys}
                   groups={dialog.checklist.groups}
                   items={dialog.checklist.items}
@@ -155,8 +114,8 @@ export function MerchantPresetDialog({
               />
             )}
           </Stack>
-        </LedgerSetupStepLayout>
-      </Dialog>
+        </WizardStepLayout>
+      </WizardDialog>
       <ActionFailureFeedback
         state={dialog.submission.state}
         title={messages.failureTitle}

@@ -72,7 +72,7 @@ const meta = {
   title: "Templates/Merchants/MerchantsTemplate",
   component: MerchantsTemplate,
   args: {
-    presetOptions: createMerchantPresetOptions(),
+    loadPresetsAction: async () => ({ options: createMerchantPresetOptions() }),
     addPresetsAction: async () => ({}),
     setPreferredMerchantAliasAction: async () => ({
       success: "显示名切换成功",

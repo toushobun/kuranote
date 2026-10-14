@@ -1,7 +1,10 @@
-import type { LedgerSetupTemplate } from "internal/ledger";
+import type { buildMerchantChecklist } from "utils/merchantPresets";
 
-export type MerchantPresetOptions = {
+/** 预设弹框的展示数据；完整模板和写入资料保留在服务端。 */
+export type MerchantPresetOptions = ReturnType<
+  typeof buildMerchantChecklist
+> & {
   addedKeys: string[];
   currency: string;
-  template: LedgerSetupTemplate | null;
+  templateVersion: number | null;
 };

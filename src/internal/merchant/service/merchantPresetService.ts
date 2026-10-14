@@ -14,7 +14,10 @@ import {
 } from "internal/merchant/schema/merchantPreset";
 import type { MerchantService } from "internal/merchant/service/merchantService";
 import { ValidationError } from "internal/shared/errors/appError";
-import { getAddedMerchantPresetKeys } from "utils/merchantPresets";
+import {
+  buildMerchantChecklist,
+  getAddedMerchantPresetKeys,
+} from "utils/merchantPresets";
 
 export interface MerchantPresetService {
   load(ledgerId: string): Promise<MerchantPresetOptions>;
@@ -28,7 +31,7 @@ export function createMerchantPresetService({
   merchantService: Pick<MerchantService, "assertCanManage">;
   repository: MerchantPresetRepository;
 }): MerchantPresetService {
-  async function load(ledgerId: string): Promise<MerchantPresetOptions> {
+  async function loadContext(ledgerId: string) {
     await merchantService.assertCanManage({ ledgerId });
     const currency = await repository.getCurrency(ledgerId);
     const template = getLedgerSetupTemplate(currency);
@@ -41,9 +44,19 @@ export function createMerchantPresetService({
     return { currency, template, addedKeys };
   }
   return {
-    load,
+    async load(ledgerId) {
+      const { currency, template, addedKeys } = await loadContext(ledgerId);
+      return {
+        currency,
+        templateVersion: template?.version ?? null,
+        ...(template
+          ? buildMerchantChecklist(template)
+          : { groups: [], items: [] }),
+        addedKeys,
+      };
+    },
     async add(ledgerId, input) {
-      const options = await load(ledgerId);
+      const options = await loadContext(ledgerId);
       const parsed = merchantPresetInputSchema.safeParse(input);
       const { template } = options;
       if (

@@ -16,9 +16,8 @@ import { useState } from "react";
 import { CreateButton } from "atoms/ui/CreateButton";
 import { merchantPageMessages, merchantText } from "config/merchantText";
 import { merchantPresetMessages } from "config/merchantPresetMessages";
-import type { MerchantPresetOptions } from "internal/merchant";
 import { MerchantAddSheet } from "organisms/merchants/MerchantAddSheet/MerchantAddSheet";
-import { MerchantPresetDialog } from "organisms/merchants/MerchantPresetDialog/MerchantPresetDialog";
+import { MerchantPresetLauncher } from "organisms/merchants/MerchantPresetLauncher/MerchantPresetLauncher";
 import { routePaths } from "config/paths";
 import { InlineHint } from "molecules/ui/InlineHint/InlineHint";
 import { SuccessFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
@@ -35,6 +34,7 @@ import { useClearQueryParam } from "templates/useClearQueryParam";
 import { designTokens } from "theme/theme";
 import type {
   Merchant,
+  MerchantPresetLoadAction,
   MerchantTag,
   MerchantStateAction,
   MerchantTagReorderAction,
@@ -45,7 +45,7 @@ import type {
 import { useMerchantDisplayNameListAction } from "./useMerchantDisplayNameListAction";
 
 export type MerchantsTemplateProps = {
-  presetOptions?: MerchantPresetOptions | null;
+  loadPresetsAction?: MerchantPresetLoadAction;
   addPresetsAction?: MerchantStateAction;
   presetAddedCount?: number;
   archiveAction: MerchantTagStateAction;
@@ -67,7 +67,7 @@ export type MerchantsTemplateProps = {
 type TagManagementView = "filter" | "management" | "closing";
 
 export function MerchantsTemplate({
-  presetOptions = null,
+  loadPresetsAction,
   addPresetsAction,
   presetAddedCount = 0,
   archiveAction,
@@ -325,7 +325,6 @@ export function MerchantsTemplate({
         >
           <MerchantList
             canManageMerchants={canManageMerchants}
-            createHref={routePaths.merchantsNew}
             onCreate={() => setAddView("sheet")}
             keyword={keyword}
             ledgerId={ledgerId}
@@ -343,11 +342,11 @@ export function MerchantsTemplate({
       />
       {addView === "preset" &&
       canManageMerchants &&
-      presetOptions &&
+      loadPresetsAction &&
       addPresetsAction ? (
-        <MerchantPresetDialog
+        <MerchantPresetLauncher
           action={addPresetsAction}
-          options={presetOptions}
+          loadAction={loadPresetsAction}
           onClose={() => setAddView(null)}
         />
       ) : null}

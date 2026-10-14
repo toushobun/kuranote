@@ -1,21 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { MerchantPresetOptions } from "internal/merchant";
 import { getPresetSelection } from "molecules/ui/GroupedPresetChecklist/presetSelection";
 import { useMerchantsActionState } from "templates/merchants/useMerchantsActionState";
 import type { MerchantPresetStateAction } from "types/merchants";
-import { buildMerchantChecklist } from "utils/merchantPresets";
 
 export function useMerchantPresetDialog(
   options: MerchantPresetOptions,
   action: MerchantPresetStateAction,
 ) {
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
-  const checklist = useMemo(
-    () => (options.template ? buildMerchantChecklist(options.template) : null),
-    [options.template],
-  );
+  const checklist = options.templateVersion === null ? null : options;
   const selection = getPresetSelection(
     checklist?.items ?? [],
     selectedKeys,
@@ -23,10 +19,14 @@ export function useMerchantPresetDialog(
   );
   const submission = useMerchantsActionState(action, { operation: "create" });
   function submit(formData: FormData) {
-    if (submission.pending || selection.keys.length === 0 || !options.template)
+    if (
+      submission.pending ||
+      selection.keys.length === 0 ||
+      options.templateVersion === null
+    )
       return;
     formData.set("currency", options.currency);
-    formData.set("templateVersion", String(options.template.version));
+    formData.set("templateVersion", String(options.templateVersion));
     for (const key of selection.keys) formData.append("selectedKeys", key);
     submission.action(formData);
   }

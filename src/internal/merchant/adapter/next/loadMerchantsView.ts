@@ -17,8 +17,5 @@ export async function loadMerchantsView(input: {
     ledgerId: currentLedger.id,
     tagId: validTagId.success ? validTagId.data : null,
   });
-  const presetOptions = view.canManageMerchants
-    ? await merchant.presetService.load(currentLedger.id)
-    : null;
-  return { ...view, presetOptions, ledgerId: currentLedger.id };
+  return { ...view, ledgerId: currentLedger.id };
 }

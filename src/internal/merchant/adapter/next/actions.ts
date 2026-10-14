@@ -1,7 +1,10 @@
 "use server";
 
 import { parseMerchantPresetForm } from "internal/merchant/schema/merchantPreset";
-import type { MerchantPresetStateAction } from "types/merchants";
+import type {
+  MerchantPresetLoadAction,
+  MerchantPresetStateAction,
+} from "types/merchants";
 
 import { redirect } from "next/navigation";
 
@@ -378,4 +381,23 @@ export const addMerchantPresets: MerchantPresetStateAction =
     }
     revalidateMerchantMutation();
     redirect(merchantsResultHref(merchantResultValues.presetsAdded, count));
+  };
+
+/** 打开预设弹框时才读取，不向客户端发送完整模板。 */
+export const loadMerchantPresets: MerchantPresetLoadAction =
+  async function loadMerchantPresets() {
+    const { currentLedger } = await requireCurrentUserAndLedger();
+    try {
+      const dependencies = await createServerRequestDependencies();
+      const options = await createRequestContainer(
+        dependencies,
+      ).merchant.presetService.load(currentLedger.id);
+      return { options };
+    } catch (error) {
+      return actionErrorState(
+        error,
+        merchantErrorCodes.merchantPresetLoadFailed,
+        "load presets",
+      );
+    }
   };

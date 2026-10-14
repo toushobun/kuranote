@@ -4,7 +4,6 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import Link from "next/link";
 
 import { merchantText } from "config/merchantText";
 import { merchantEditHref } from "config/paths";
@@ -22,7 +21,6 @@ import { MerchantCard } from "../MerchantCard/MerchantCard";
 
 type MerchantListProps = {
   canManageMerchants?: boolean;
-  createHref: string;
   onCreate?: () => void;
   keyword?: string;
   ledgerId: string;
@@ -34,7 +32,6 @@ type MerchantListProps = {
 
 export function MerchantList({
   canManageMerchants = true,
-  createHref,
   onCreate,
   keyword = "",
   ledgerId,
@@ -102,8 +99,6 @@ export function MerchantList({
         </Typography>
         {canManageMerchants && !isFilteredEmpty ? (
           <Button
-            component={onCreate ? "button" : Link}
-            href={onCreate ? undefined : createHref}
             onClick={onCreate}
             size="large"
             sx={{

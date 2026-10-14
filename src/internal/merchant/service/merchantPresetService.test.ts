@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from "vitest";
 import { getLedgerSetupTemplate } from "internal/ledger";
+import { buildMerchantChecklist } from "utils/merchantPresets";
 import { createMerchantPresetService } from "./merchantPresetService";
 import {
   AuthorizationError,
@@ -89,11 +90,47 @@ describe("merchantPresetService", () => {
     expect(repository.getCurrency).not.toHaveBeenCalled();
     expect(repository.add).not.toHaveBeenCalled();
   });
+  it("加载仅返回币种、版本、勾选列表与已添加 key，不返回写入资料", async () => {
+    const { service, merchantService } = setup("JPY", [
+      preset.aliases[0]!.alias.toUpperCase(),
+    ]);
+    const options = await service.load("ledger");
+    expect(options).toEqual({
+      currency: "JPY",
+      templateVersion: template.version,
+      ...buildMerchantChecklist(template),
+      addedKeys: expect.arrayContaining([preset.key]),
+    });
+    expect(Object.keys(options).sort()).toEqual([
+      "addedKeys",
+      "currency",
+      "groups",
+      "items",
+      "templateVersion",
+    ]);
+    expect(JSON.stringify(options)).not.toContain('"aliases"');
+    expect(merchantService.assertCanManage).toHaveBeenCalledWith({
+      ledgerId: "ledger",
+    });
+  });
+  it("加载同样校验管理权限，拒绝后不读取数据", async () => {
+    const { service, repository, merchantService } = setup();
+    merchantService.assertCanManage.mockRejectedValue(
+      new AuthorizationError("permission_denied", "没有管理商家的权限"),
+    );
+    await expect(service.load("ledger")).rejects.toBeInstanceOf(
+      AuthorizationError,
+    );
+    expect(repository.getCurrency).not.toHaveBeenCalled();
+    expect(repository.listExistingNames).not.toHaveBeenCalled();
+  });
   it("没有模板时返回空模板选项", async () => {
     await expect(setup("USD").service.load("ledger")).resolves.toEqual({
       currency: "USD",
       addedKeys: [],
-      template: null,
+      templateVersion: null,
+      groups: [],
+      items: [],
     });
   });
 });

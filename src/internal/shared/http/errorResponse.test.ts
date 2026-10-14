@@ -48,6 +48,13 @@ function appThatThrows(error: unknown) {
 describe("errorHandlingMiddleware", () => {
   it.each([
     [
+      new RepositoryError(
+        merchantErrorCodes.merchantPresetLoadFailed,
+        merchantErrorMessages.merchant_preset_load_failed,
+      ),
+      500,
+    ],
+    [
       new ValidationError(
         merchantErrorCodes.merchantPresetInvalid,
         merchantErrorMessages.merchant_preset_invalid,

@@ -32,7 +32,7 @@ describe("MerchantPresetDialog", () => {
   it("初始数量为零，添加按钮禁用；全部选择排除已添加且只提交去重 key", async () => {
     const action = vi.fn<MerchantPresetStateAction>().mockResolvedValue({});
     const options = createMerchantPresetOptions();
-    options.addedKeys = [options.template!.merchants[0]!.key];
+    options.addedKeys = [options.items[0]!.key];
     renderDialog(action, options);
     expect(
       screen.getByRole("button", { name: "添加 0 个商家" }),
@@ -42,13 +42,13 @@ describe("MerchantPresetDialog", () => {
     await waitFor(() => expect(action).toHaveBeenCalledTimes(1));
     const form = action.mock.calls[0]![1];
     expect(form.getAll("selectedKeys")).toEqual(
-      options.template!.merchants.slice(1).map(({ key }) => key),
+      options.items.slice(1).map(({ key }) => key),
     );
     expect(form.get("currency")).toBe("JPY");
     expect(form.get("templateVersion")).toBe("1");
     expect(form.get("name")).toBeNull();
   });
-  it("提交期间按钮、列表、展开与关闭全部锁定，禁止重复提交", async () => {
+  it("提交期间按钮、勾选与关闭锁定，仍可展开查看，禁止重复提交", async () => {
     let resolve!: (value: MerchantActionState) => void;
     const action = vi.fn<MerchantPresetStateAction>(
       () =>
@@ -65,9 +65,15 @@ describe("MerchantPresetDialog", () => {
     expect(screen.getByRole("button", { name: "添加中…" })).toBeDisabled();
     expect(
       screen.getByRole("button", {
-        name: options.template!.merchantTags[0]!.name,
+        name: options.groups[0]!.name,
       }),
-    ).toBeDisabled();
+    ).toBeEnabled();
+    fireEvent.click(
+      screen.getByRole("button", { name: options.groups[0]!.name }),
+    );
+    expect(
+      screen.getByRole("button", { name: options.groups[0]!.name }),
+    ).toHaveAttribute("aria-expanded", "true");
     for (const box of screen.getAllByRole("checkbox"))
       expect(box).toBeDisabled();
     fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
@@ -75,7 +81,13 @@ describe("MerchantPresetDialog", () => {
     await act(async () => resolve({}));
   });
   it("无模板显示空状态与现有手动新增地址", () => {
-    renderDialog(undefined, { currency: "USD", template: null, addedKeys: [] });
+    renderDialog(undefined, {
+      currency: "USD",
+      templateVersion: null,
+      groups: [],
+      items: [],
+      addedKeys: [],
+    });
     expect(screen.getByText("暂无该币种的预设商家")).toBeInTheDocument();
     expect(screen.getByText("可以先手动添加商家")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "手动添加" })).toHaveAttribute(

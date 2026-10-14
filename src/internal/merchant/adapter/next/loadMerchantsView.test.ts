@@ -30,11 +30,6 @@ describe("loadMerchantsView", () => {
     vi.clearAllMocks();
     mocks.getCurrentLedgerOrRedirect.mockResolvedValue({ id: ledgerId });
     mocks.createServerRequestDependencies.mockResolvedValue({});
-    mocks.loadPresets.mockResolvedValue({
-      currency: "JPY",
-      template: null,
-      addedKeys: [],
-    });
     mocks.list.mockResolvedValue({
       canManageMerchants: true,
       merchants: [],
@@ -50,7 +45,10 @@ describe("loadMerchantsView", () => {
   });
 
   it("校验标签 UUID 后直接调用请求级 Merchant Service", async () => {
-    await loadMerchantsView({ keyword: "LIFE", tagId });
+    expect(
+      await loadMerchantsView({ keyword: "LIFE", tagId }),
+    ).not.toHaveProperty("presetOptions");
+    expect(mocks.loadPresets).not.toHaveBeenCalled();
     expect(mocks.list).toHaveBeenCalledWith({
       keyword: "LIFE",
       ledgerId,
@@ -64,7 +62,7 @@ describe("loadMerchantsView", () => {
       merchants: [],
       tags: [],
     });
-    expect((await loadMerchantsView({})).presetOptions).toBeNull();
+    expect(await loadMerchantsView({})).not.toHaveProperty("presetOptions");
     expect(mocks.loadPresets).not.toHaveBeenCalled();
   });
 

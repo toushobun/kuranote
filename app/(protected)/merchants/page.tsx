@@ -1,6 +1,7 @@
 import { merchantResultValues } from "config/paths";
 import {
   addMerchantPresets,
+  loadMerchantPresets,
   archiveMerchantTag,
   createMerchantTag,
   reorderMerchantTags,
@@ -30,7 +31,7 @@ export default async function MerchantsPage({
   return (
     <MerchantsTemplate
       addPresetsAction={addMerchantPresets}
-      presetOptions={view.presetOptions}
+      loadPresetsAction={loadMerchantPresets}
       presetAddedCount={
         Number.isSafeInteger(Number(params.count)) && Number(params.count) >= 0
           ? Number(params.count)

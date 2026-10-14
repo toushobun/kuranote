@@ -79,8 +79,9 @@ describe("merchantPresetRepository", () => {
     const { repository } = setup({
       queryResponses: [{ error: { message: "private SQL" } }],
     });
-    await expect(repository.listExistingNames("ledger")).rejects.toBeInstanceOf(
-      RepositoryError,
-    );
+    await expect(repository.listExistingNames("ledger")).rejects.toMatchObject({
+      code: "merchant_preset_load_failed",
+      message: "预设商家读取失败，请稍后重试。",
+    });
   });
 });

@@ -8,6 +8,7 @@ import {
   merchantWriteErrorMessages,
 } from "internal/merchant/errors";
 import {
+  AuthorizationError,
   ConflictError,
   RepositoryError,
   ValidationError,
@@ -16,6 +17,7 @@ import type { MerchantActionState, MerchantStateAction } from "types/merchants";
 
 const mocks = vi.hoisted(() => ({
   addPresets: vi.fn(),
+  loadPresets: vi.fn(),
   archiveAlias: vi.fn(),
   archiveMerchant: vi.fn(),
   archiveTag: vi.fn(),
@@ -51,6 +53,7 @@ vi.mock("internal/shared/context/createServerRequestDependencies", () => ({
 
 import {
   addMerchantPresets,
+  loadMerchantPresets,
   archiveMerchant,
   archiveMerchantAlias,
   archiveMerchantTag,
@@ -115,7 +118,7 @@ beforeEach(() => {
   mocks.createServerRequestDependencies.mockResolvedValue({});
   mocks.createRequestContainer.mockReturnValue({
     merchant: {
-      presetService: { add: mocks.addPresets },
+      presetService: { add: mocks.addPresets, load: mocks.loadPresets },
       service: {
         archiveAlias: mocks.archiveAlias,
         archiveMerchant: mocks.archiveMerchant,
@@ -616,6 +619,53 @@ describe("addMerchantPresets", () => {
       await addMerchantPresets({}, presetForm()),
       merchantErrorMessages.merchant_preset_add_failed,
     );
+    spy.mockRestore();
+  });
+});
+
+describe("loadMerchantPresets", () => {
+  it("按登录用户当前账本读取精简选项，不写入、刷新或导航", async () => {
+    const options = {
+      currency: "JPY",
+      templateVersion: 1,
+      groups: [],
+      items: [],
+      addedKeys: [],
+    };
+    mocks.loadPresets.mockResolvedValue(options);
+    expect(await loadMerchantPresets()).toEqual({ options });
+    expect(mocks.loadPresets).toHaveBeenCalledWith(ledgerId);
+    expect(mocks.addPresets).not.toHaveBeenCalled();
+    expect(mocks.revalidateMerchantMutation).not.toHaveBeenCalled();
+    expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+  it("无管理权限时返回安全失败状态，不导航", async () => {
+    mocks.loadPresets.mockRejectedValue(
+      new AuthorizationError(
+        merchantErrorCodes.permissionDenied,
+        merchantErrorMessages.permission_denied,
+      ),
+    );
+    expectErrorState(
+      await loadMerchantPresets(),
+      merchantErrorMessages.permission_denied,
+    );
+    expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+  it("数据库读取失败和未知异常均不泄露内部信息", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mocks.loadPresets.mockRejectedValueOnce(
+      new RepositoryError(
+        merchantErrorCodes.merchantPresetLoadFailed,
+        merchantErrorMessages.merchant_preset_load_failed,
+      ),
+    );
+    mocks.loadPresets.mockRejectedValueOnce(new Error("private SQL"));
+    const first = await loadMerchantPresets();
+    const second = await loadMerchantPresets();
+    expectErrorState(first, merchantErrorMessages.merchant_preset_load_failed);
+    expectErrorState(second, merchantErrorMessages.merchant_preset_load_failed);
+    expect(first.errorKey).not.toBe(second.errorKey);
     spy.mockRestore();
   });
 });

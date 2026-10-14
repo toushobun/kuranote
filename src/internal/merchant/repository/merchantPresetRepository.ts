@@ -31,7 +31,12 @@ export function createMerchantPresetRepository(
   supabase: AuthenticatedSupabaseClient,
   logger: Logger,
 ): MerchantPresetRepository {
-  function fail(error: RpcErrorLike | null): never {
+  function fail(
+    error: RpcErrorLike | null,
+    fallback:
+      | typeof merchantErrorCodes.merchantPresetLoadFailed
+      | typeof merchantErrorCodes.merchantPresetAddFailed = merchantErrorCodes.merchantPresetLoadFailed,
+  ): never {
     const code = findRpcBusinessError(error, {
       auth_required: merchantErrorCodes.authRequired,
       permission_denied: merchantErrorCodes.permissionDenied,
@@ -44,10 +49,7 @@ export function createMerchantPresetRepository(
     if (code === merchantErrorCodes.merchantPresetInvalid)
       throw new ValidationError(code, merchantErrorMessages[code]);
     logger.error("[merchant] preset repository operation failed", { error });
-    throw toRepositoryError(
-      merchantErrorCodes.merchantPresetAddFailed,
-      merchantErrorMessages[merchantErrorCodes.merchantPresetAddFailed],
-    );
+    throw toRepositoryError(fallback, merchantErrorMessages[fallback]);
   }
   return {
     async getCurrency(ledgerId) {
@@ -90,11 +92,12 @@ export function createMerchantPresetRepository(
       const { data, error } = await supabase.rpc("add_merchant_presets", {
         p_ledger_id: ledgerId,
         p_currency: currency,
+        // 补齐空账户与特殊状态字段，以复用 validate_ledger_setup_completion_payload。
         p_payload: { accounts: [], specialStatusEnabled: false, ...payload },
       });
-      if (error) fail(error);
+      if (error) fail(error, merchantErrorCodes.merchantPresetAddFailed);
       if (typeof data !== "number" || !Number.isSafeInteger(data) || data < 0)
-        fail(null);
+        fail(null, merchantErrorCodes.merchantPresetAddFailed);
       return data;
     },
   };

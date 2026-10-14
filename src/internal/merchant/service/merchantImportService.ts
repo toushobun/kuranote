@@ -1,4 +1,3 @@
-import { getMerchantMatchNames } from "utils/merchantPresets";
 import { defaultMerchantTagEmoji } from "config/merchantTagEmojis";
 import type { MerchantService } from "internal/merchant/service/merchantService";
 
@@ -41,7 +40,11 @@ function toImportEntry(
 ): MerchantImportEntry {
   return {
     id: merchant.id,
-    matchNames: getMerchantMatchNames(merchant),
+    matchNames: [
+      merchant.name,
+      merchant.display_name,
+      ...merchant.aliases.map((alias) => alias.alias),
+    ].filter((name, index, names) => names.indexOf(name) === index),
     tagIds: merchant.tags.map((tag) => tag.id),
   };
 }

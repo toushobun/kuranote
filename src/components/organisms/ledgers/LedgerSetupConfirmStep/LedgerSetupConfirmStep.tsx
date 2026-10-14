@@ -17,7 +17,7 @@ import {
 } from "config/ledgerSetupMessages";
 import { ActionFailureFeedback } from "molecules/ui/OperationFeedbackDialogs";
 import { WizardActionBar } from "molecules/ui/WizardActionBar/WizardActionBar";
-import { LedgerSetupStepLayout } from "organisms/ledgers/LedgerSetupWizard/LedgerSetupStepLayout";
+import { WizardStepLayout } from "molecules/ui/WizardDialog/WizardStepLayout";
 import type { LedgerSetupWizardStepProps } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardStepTypes";
 import { designTokens } from "theme/theme";
 import { themeColorTokens } from "theme/themeColorTokens";
@@ -66,7 +66,7 @@ function LedgerSetupConfirmStepContent({
   const colorToken = themeColorTokens[basicInfo.displayColor];
 
   return (
-    <LedgerSetupStepLayout
+    <WizardStepLayout
       actions={
         <WizardActionBar
           next={{
@@ -209,7 +209,7 @@ function LedgerSetupConfirmStepContent({
         state={step.failureState}
         title={messages.completeErrorTitle}
       />
-    </LedgerSetupStepLayout>
+    </WizardStepLayout>
   );
 }
 

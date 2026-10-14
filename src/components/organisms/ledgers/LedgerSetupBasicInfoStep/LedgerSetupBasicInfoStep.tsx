@@ -11,7 +11,7 @@ import {
 import { ActionFailureFeedback } from "molecules/ui/OperationFeedbackDialogs";
 import { WizardActionBar } from "molecules/ui/WizardActionBar/WizardActionBar";
 import { LedgerBasicInfoFields } from "organisms/ledgers/LedgerBasicInfoFields/LedgerBasicInfoFields";
-import { LedgerSetupStepLayout } from "organisms/ledgers/LedgerSetupWizard/LedgerSetupStepLayout";
+import { WizardStepLayout } from "molecules/ui/WizardDialog/WizardStepLayout";
 import type { LedgerSetupWizardStepProps } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardStepTypes";
 import { designTokens } from "theme/theme";
 import { typographyStyles } from "theme/typographyTokens";
@@ -29,7 +29,7 @@ export function LedgerSetupBasicInfoStep(props: LedgerSetupWizardStepProps) {
     useLedgerSetupBasicInfoStep(props);
 
   return (
-    <LedgerSetupStepLayout
+    <WizardStepLayout
       actions={
         <WizardActionBar
           next={{
@@ -61,7 +61,7 @@ export function LedgerSetupBasicInfoStep(props: LedgerSetupWizardStepProps) {
         state={actionState}
         title={ledgerSetupBasicInfoMessages.errorTitle}
       />
-    </LedgerSetupStepLayout>
+    </WizardStepLayout>
   );
 }
 

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   addMerchantPresets: vi.fn(),
+  loadMerchantPresets: vi.fn(),
   archiveMerchantTag: vi.fn(),
   createMerchantTag: vi.fn(),
   loadMerchantsView: vi.fn(),
@@ -15,6 +16,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("internal/merchant/adapter/next/actions", () => ({
   addMerchantPresets: mocks.addMerchantPresets,
+  loadMerchantPresets: mocks.loadMerchantPresets,
   archiveMerchantTag: mocks.archiveMerchantTag,
   createMerchantTag: mocks.createMerchantTag,
   setPreferredMerchantAlias: mocks.setPreferredMerchantAlias,
@@ -76,6 +78,7 @@ describe("MerchantsPage", () => {
     });
     const element = result as ReactElement<Record<string, unknown>>;
     expect(element.props).toMatchObject({
+      loadPresetsAction: mocks.loadMerchantPresets,
       archiveAction: mocks.archiveMerchantTag,
       canManageMerchants: true,
       createAction: mocks.createMerchantTag,

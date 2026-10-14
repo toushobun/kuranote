@@ -22,21 +22,6 @@ export function buildMerchantChecklist(template: LedgerSetupTemplate) {
   };
 }
 
-/** 名称与别名的匹配入口；导入与预设添加共用忽略大小写的名称集合。 */
-export function getMerchantMatchNames(merchant: {
-  name: string;
-  display_name: string;
-  aliases: readonly { alias: string }[];
-}) {
-  return [
-    ...new Set([
-      merchant.name,
-      merchant.display_name,
-      ...merchant.aliases.map(({ alias }) => alias),
-    ]),
-  ];
-}
-
 export function getAddedMerchantPresetKeys(
   template: LedgerSetupTemplate,
   existingNames: readonly string[],
