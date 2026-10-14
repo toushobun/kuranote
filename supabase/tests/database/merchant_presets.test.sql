@@ -1,6 +1,6 @@
 begin;
 set local search_path = public, extensions;
-select plan(26);
+select plan(33);
 
 insert into public.ledger (id, name, base_currency, owner_user_id, created_by, updated_by)
 values ('87800000-0000-4000-8000-000000000001', '预设添加测试', 'JPY', '00000000-0000-4000-8000-000000000031', '00000000-0000-4000-8000-000000000031', '00000000-0000-4000-8000-000000000031');
@@ -68,6 +68,27 @@ update public.merchant_tags set is_archived = true, archived_at = now(), archive
 set local role authenticated;
 select is(pg_temp.add(array['Third'], 'OTHER'), 1, '已归档同名标签视为不存在');
 select is((select count(*) from public.merchant_tags where ledger_id = '87800000-0000-4000-8000-000000000001' and lower(name) = 'other' and is_archived = false), 1::bigint, '归档标签不恢复，只创建新的有效标签');
+
+-- 归档商家和移除别名均等同删除，不阻止预设重新添加。
+reset role;
+update public.merchant set is_archived = true, archived_at = now(), archived_by = '00000000-0000-4000-8000-000000000031'
+where id = '87810000-0000-4000-8000-000000000001';
+set local role authenticated;
+select is(pg_temp.add(array['eXISTING']), 1, '已归档同名商家允许从预设重新添加');
+select is((select count(*) from public.merchant where ledger_id = '87800000-0000-4000-8000-000000000001' and lower(name) = 'existing'), 2::bigint, '保留归档记录并创建新商家，不恢复原记录');
+select is((select count(*) from public.merchant where ledger_id = '87800000-0000-4000-8000-000000000001' and lower(name) = 'existing' and is_archived = false), 1::bigint, '重新添加只有一个有效同名商家');
+select is(pg_temp.add(array['KNOWN_ALIAS']), 1, '归档商家的有效残留别名不参与判重');
+
+reset role;
+update public.merchant_alias set is_archived = true, is_preferred = false, archived_at = now(), archived_by = '00000000-0000-4000-8000-000000000031'
+where alias = 'New_alias' and merchant_id in (select id from public.merchant where ledger_id = '87800000-0000-4000-8000-000000000001');
+insert into public.merchant_alias(merchant_id, alias, is_archived, archived_at, archived_by, created_by, updated_by)
+select id, 'Removed_alias', true, now(), '00000000-0000-4000-8000-000000000031', '00000000-0000-4000-8000-000000000031', '00000000-0000-4000-8000-000000000031'
+from public.merchant where ledger_id = '87800000-0000-4000-8000-000000000001' and name = 'New';
+set local role authenticated;
+select is(pg_temp.add(array['NEW_ALIAS']), 1, '预设正式名匹配已移除别名时仍可添加');
+select is(pg_temp.add(array['Removed']), 1, '预设别名匹配已移除别名时仍可添加');
+select is((select count(*) from public.merchant_alias a join public.merchant m on m.id = a.merchant_id where m.ledger_id = '87800000-0000-4000-8000-000000000001' and m.name = 'New' and a.is_archived = true), 2::bigint, '移除的别名保持归档，不补充或恢复原商家资料');
 
 reset role;
 create function pg_temp.reject_alias() returns trigger language plpgsql as $$ begin if new.alias = 'Fail_alias' then raise exception 'test_atomic_failure'; end if; return new; end; $$;

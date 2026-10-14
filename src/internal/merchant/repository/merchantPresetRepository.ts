@@ -62,12 +62,13 @@ export function createMerchantPresetRepository(
       return data.base_currency;
     },
     async listExistingNames(ledgerId) {
-      // 归档商家仍属账本已有数据；名称与所有别名都参与判重。
+      // 归档等同删除；仅按有效商家和有效别名判重，允许从预设重新添加。
       const merchants = await readAllPages(async (offset, limit) => {
         const { data, error } = await supabase
           .from("merchant")
           .select("name")
           .eq("ledger_id", ledgerId)
+          .eq("is_archived", false)
           .order("id")
           .range(offset, offset + limit - 1);
         if (error) fail(error);
@@ -76,8 +77,10 @@ export function createMerchantPresetRepository(
       const aliases = await readAllPages(async (offset, limit) => {
         const { data, error } = await supabase
           .from("merchant_alias")
-          .select("alias, merchant!inner(ledger_id)")
+          .select("alias, merchant!inner(ledger_id, is_archived)")
           .eq("merchant.ledger_id", ledgerId)
+          .eq("is_archived", false)
+          .eq("merchant.is_archived", false)
           .order("id")
           .range(offset, offset + limit - 1);
         if (error) fail(error);

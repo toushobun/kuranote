@@ -49,11 +49,12 @@ begin
     perform public.validate_ledger_setup_completion_payload(p_payload);
 
     for v_item in select value from jsonb_array_elements(p_payload -> 'merchants') loop
-        -- 所有现有商家名称 / 别名（含展示别名）均参与判重，已存在的资料完全不修改。
+        -- 仅有效商家与有效别名参与判重，归档等同删除；已存在的资料完全不修改。
         if exists (
             select 1
               from public.merchant m
              where m.ledger_id = p_ledger_id
+               and m.is_archived = false
                and exists (
                    select 1
                      from (
@@ -65,6 +66,7 @@ begin
                        or exists (
                            select 1 from public.merchant_alias a
                             where a.merchant_id = m.id
+                              and a.is_archived = false
                               and lower(btrim(a.alias)) = lower(btrim(preset.name))
                        )
                )
