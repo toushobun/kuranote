@@ -8,6 +8,8 @@ import type {
   TransactionRefundCandidate,
 } from "types/transactions";
 
+import { transactionLinkMessages } from "utils/transactionMessages";
+
 import { useTransactionForm } from "./useTransactionForm";
 
 const mocks = vi.hoisted(() => ({ markEditDirty: vi.fn() }));
@@ -609,5 +611,94 @@ describe("useTransactionForm", () => {
     });
     expect(result.current.itemSummaries[0]?.businessNetAmount).toBeUndefined();
     expect(result.current.businessTotalAmount).toBeNull();
+  });
+
+  describe("明细中已加入的关联因币种切换", () => {
+    const linkCases = [
+      {
+        candidate: refundCandidate,
+        field: "refundCandidate",
+        kind: "refund",
+        label: "退款",
+      },
+      {
+        candidate: reimbursementCandidate,
+        field: "reimbursementCandidate",
+        kind: "reimbursement",
+        label: "报销",
+      },
+    ] as const;
+
+    function renderWithLinkedIncomeItems(
+      items: Partial<
+        Record<(typeof linkCases)[number]["field"], TransactionRefundCandidate>
+      >[],
+      transactionRecordId?: string,
+    ) {
+      return renderTransactionFormHook({
+        initialValues: {
+          ...createInitialValues(),
+          items: items.map((links) => ({
+            amount: "200",
+            categoryId: "income-category",
+            ...links,
+          })),
+          transactionRecordId,
+        },
+      });
+    }
+
+    it.each(
+      linkCases.flatMap((linkCase) => [
+        { ...linkCase, scene: "新建", transactionRecordId: undefined },
+        { ...linkCase, scene: "编辑", transactionRecordId: "record-1" },
+      ]),
+    )(
+      "$scene表单中$label关联因币种不一致被清除时显示提示",
+      ({ candidate, field, kind, transactionRecordId }) => {
+        const { result } = renderWithLinkedIncomeItems(
+          [{ [field]: candidate }],
+          transactionRecordId,
+        );
+
+        act(() => result.current.handleAccountChange("account-3"));
+
+        expect(result.current.itemSummaries[0]?.[field]).toBeNull();
+        expect(result.current.linkNotice).toBe(
+          transactionLinkMessages.accountCurrencyChanged([kind]),
+        );
+      },
+    );
+
+    it.each(linkCases)(
+      "同币种切换账户时保留$label关联且不提示",
+      ({ candidate, field }) => {
+        const { result } = renderWithLinkedIncomeItems([
+          { [field]: candidate },
+        ]);
+
+        act(() => result.current.handleAccountChange("account-2"));
+
+        expect(result.current.itemSummaries[0]?.[field]).toEqual(candidate);
+        expect(result.current.linkNotice).toBeNull();
+      },
+    );
+
+    it("退款和报销关联同时被清除时提示中列出两者", () => {
+      const { result } = renderWithLinkedIncomeItems([
+        { refundCandidate },
+        { reimbursementCandidate },
+      ]);
+
+      act(() => result.current.handleAccountChange("account-3"));
+
+      expect(result.current.linkNotice).toBe(
+        transactionLinkMessages.accountCurrencyChanged([
+          "refund",
+          "reimbursement",
+        ]),
+      );
+      expect(result.current.linkNotice).toContain("退款、报销");
+    });
   });
 });

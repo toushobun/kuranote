@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { createRef } from "react";
+import { expect, within } from "storybook/test";
 
 import { transactionSpecialStatuses } from "internal/transaction";
 import type { TransactionItemSummary } from "../TransactionForm/TransactionForm.types";
@@ -109,6 +110,11 @@ export const RefundIncome: Story = {
     ],
     selectedType: "income",
     signedTotalAmount: "+200",
+  },
+  play: async ({ canvasElement }) => {
+    await expect(
+      within(canvasElement).getByText("收支明细（1）"),
+    ).toBeVisible();
   },
 };
 

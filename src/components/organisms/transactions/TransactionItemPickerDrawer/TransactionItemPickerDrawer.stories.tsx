@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { userEvent, within } from "storybook/test";
+import { expect, userEvent, within } from "storybook/test";
 
 import type { TransactionCategoryOption } from "types/transactions";
 
@@ -94,6 +94,22 @@ export const Expanded: Story = {
     const body = within(canvasElement.ownerDocument.body);
     await userEvent.click(
       await body.findByRole("button", { name: "选择更多分类" }),
+    );
+  },
+};
+
+export const IncomeLinkNotice: Story = {
+  name: "收入明细显示关联提示",
+  args: {
+    linkNotice: "退款明细必须与收款账户币种一致，请重新选择。",
+    pickerCategoryId: "income-salary",
+    pickerSpecialStatus: null,
+    selectedCategoryGroup: categoryGroups[categoryGroups.length - 1],
+  },
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    await expect(await body.findByRole("alert")).toHaveTextContent(
+      "退款明细必须与收款账户币种一致，请重新选择。",
     );
   },
 };

@@ -9,7 +9,10 @@ import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/Transac
 import { TransactionOriginalAmount } from "atoms/transactions/TransactionOriginalAmount";
 import { designTokens } from "theme/theme";
 import { userThemeCardBorderSx } from "theme/userThemeCardSx";
-import { transactionAmountMessages } from "utils/transactionMessages";
+import {
+  transactionAmountMessages,
+  transactionItemsSectionMessages,
+} from "utils/transactionMessages";
 import type { TransactionType } from "types/transactions";
 import { resolveTransactionBusinessStatus } from "internal/transaction";
 import { getLinkedEditExpectedUpdatedAtFieldName } from "internal/transaction/adapter/next/linkedEditInput";
@@ -58,7 +61,7 @@ export function TransactionItemsSection({
     <Box ref={itemsFieldRef} sx={sectionCardSx}>
       <Stack spacing={1}>
         <Typography variant="subtitle1" sx={titleSx}>
-          {selectedType === "income" ? "收入明细" : "消费明细"}
+          {transactionItemsSectionMessages.title}
           {itemSummaries.length > 0 ? `（${itemSummaries.length}）` : ""}
         </Typography>
 

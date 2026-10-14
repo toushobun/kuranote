@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { TransactionListItem } from "types/transactions";
+import type {
+  TransactionListItem,
+  TransactionRefundCandidate,
+} from "types/transactions";
 
 import {
   addTransactionAmount,
@@ -20,6 +23,7 @@ import {
   getCurrentMonthRange,
   getDateLabelRefreshDelayMs,
   hasBusinessNetAmountOffset,
+  hasLinkCandidateCurrencyMismatch,
   getMonthBounds,
   getNowDateTimeLocalValue,
   groupTransactionItemsByDate,
@@ -151,6 +155,17 @@ describe("transactions utils", () => {
     expect(hasBusinessNetAmountOffset("500", undefined)).toBe(false);
     expect(hasBusinessNetAmountOffset("500", "500.00")).toBe(false);
     expect(hasBusinessNetAmountOffset("500", "300")).toBe(true);
+  });
+
+  it("关联候选与账户币种不一致或账户未选择时判定为币种不一致", () => {
+    const candidate = {
+      accountCurrency: "JPY",
+    } as TransactionRefundCandidate;
+
+    expect(hasLinkCandidateCurrencyMismatch(null, "USD")).toBe(false);
+    expect(hasLinkCandidateCurrencyMismatch(candidate, "JPY")).toBe(false);
+    expect(hasLinkCandidateCurrencyMismatch(candidate, "USD")).toBe(true);
+    expect(hasLinkCandidateCurrencyMismatch(candidate, undefined)).toBe(true);
   });
 
   it("转账不计入收入/支出汇总", () => {

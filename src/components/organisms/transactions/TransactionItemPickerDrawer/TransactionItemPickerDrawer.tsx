@@ -5,6 +5,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import KeyboardArrowRightRoundedIcon from "@mui/icons-material/KeyboardArrowRightRounded";
 import KeyboardArrowUpRoundedIcon from "@mui/icons-material/KeyboardArrowUpRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
@@ -47,6 +48,8 @@ type TransactionItemPickerDrawerProps = {
   editingItemId?: number | null;
   filteredCategoryOptions: TransactionCategoryOption[];
   frequentCategoryIds: string[];
+  // 退款 / 报销关联提示；抽屉打开时表单顶部的提示会被遮罩挡住，因此在抽屉内同步显示。
+  linkNotice?: string | null;
   onAmountChange: (amount: string) => void;
   onCategoryToggle: (categoryId: string) => void;
   onClose: () => void;
@@ -99,6 +102,7 @@ export function TransactionItemPickerDrawer({
   editingItemId = null,
   filteredCategoryOptions,
   frequentCategoryIds,
+  linkNotice = null,
   onAmountChange,
   onCategoryToggle,
   onClose,
@@ -431,7 +435,13 @@ export function TransactionItemPickerDrawer({
         incomeLinksEnabled &&
         selectedCategoryType === "income" ? (
           <>
+            {linkNotice ? (
+              <Alert severity="info" sx={{ mt: 1.5 }}>
+                {linkNotice}
+              </Alert>
+            ) : null}
             <TransactionRefundLinkPicker
+              accountCurrency={selectedAccountCurrency}
               loadGroupItemsAction={loadRefundGroupItemsAction}
               loadMoreGroupsAction={loadRefundMoreGroupsAction}
               loadSearchPageAction={loadRefundSearchPageAction}
@@ -441,6 +451,7 @@ export function TransactionItemPickerDrawer({
               value={pickerRefundCandidate}
             />
             <TransactionReimbursementLinkPicker
+              accountCurrency={selectedAccountCurrency}
               incomeAmount={pickerAmount}
               loadGroupItemsAction={loadReimbursementGroupItemsAction}
               loadMoreGroupsAction={loadReimbursementMoreGroupsAction}

@@ -107,3 +107,36 @@ export const RefundCandidateStates: Story = {
     />
   ),
 };
+
+const currencyMismatchedCandidateItems: TransactionListItem[] = [
+  ...refundCandidateItems,
+  {
+    ...refundCandidateItems[0],
+    account_currency: "JPY",
+    account_name: "现金",
+    categoryItems: [
+      {
+        accountId: "00000000-0000-4000-8000-000000008002",
+        amount: "1200",
+        categoryName: "午餐",
+        categoryType: "expense",
+        id: "jpy-item",
+        parentCategoryName: "餐饮",
+        refundedAmount: "0",
+        remainingRefundableAmount: "1200",
+      },
+    ],
+    id: "record-jpy",
+  },
+];
+
+export const CurrencyMismatchedCandidates: Story = {
+  name: "与收款账户币种不一致的候选置灰",
+  render: () => (
+    <TransactionRefundCandidateList
+      items={currencyMismatchedCandidateItems}
+      onSelect={() => undefined}
+      selectableCurrency="USD"
+    />
+  ),
+};
