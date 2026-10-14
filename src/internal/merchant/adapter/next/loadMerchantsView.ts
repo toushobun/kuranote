@@ -11,12 +11,14 @@ export async function loadMerchantsView(input: {
   const currentLedger = await getCurrentLedgerOrRedirect();
   const dependencies = await createServerRequestDependencies();
   const validTagId = z.string().uuid().safeParse(input.tagId);
-  const view = await createRequestContainer(dependencies).merchant.service.list(
-    {
-      keyword: input.keyword ?? "",
-      ledgerId: currentLedger.id,
-      tagId: validTagId.success ? validTagId.data : null,
-    },
-  );
-  return { ...view, ledgerId: currentLedger.id };
+  const merchant = createRequestContainer(dependencies).merchant;
+  const view = await merchant.service.list({
+    keyword: input.keyword ?? "",
+    ledgerId: currentLedger.id,
+    tagId: validTagId.success ? validTagId.data : null,
+  });
+  const presetOptions = view.canManageMerchants
+    ? await merchant.presetService.load(currentLedger.id)
+    : null;
+  return { ...view, presetOptions, ledgerId: currentLedger.id };
 }

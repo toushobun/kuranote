@@ -1,5 +1,8 @@
 "use server";
 
+import { parseMerchantPresetForm } from "internal/merchant/schema/merchantPreset";
+import type { MerchantPresetStateAction } from "types/merchants";
+
 import { redirect } from "next/navigation";
 
 import { merchantResultValues, merchantsResultHref } from "config/paths";
@@ -352,4 +355,27 @@ export const reorderMerchants: MerchantReorderAction =
     }
     revalidateMerchantMutation();
     return {};
+  };
+
+export const addMerchantPresets: MerchantPresetStateAction =
+  async function addMerchantPresets(_previousState, formData) {
+    const { currentLedger } = await requireCurrentUserAndLedger();
+    const input = parseMerchantPresetForm(formData);
+    if (!input)
+      return validationErrorState(merchantErrorCodes.merchantPresetInvalid);
+    let count: number;
+    try {
+      const dependencies = await createServerRequestDependencies();
+      count = await createRequestContainer(
+        dependencies,
+      ).merchant.presetService.add(currentLedger.id, input);
+    } catch (error) {
+      return actionErrorState(
+        error,
+        merchantErrorCodes.merchantPresetAddFailed,
+        "add presets",
+      );
+    }
+    revalidateMerchantMutation();
+    redirect(merchantsResultHref(merchantResultValues.presetsAdded, count));
   };

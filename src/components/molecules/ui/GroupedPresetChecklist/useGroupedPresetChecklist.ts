@@ -8,6 +8,7 @@ import type {
 } from "./GroupedPresetChecklist";
 
 type UseGroupedPresetChecklistOptions = {
+  disabledKeys?: readonly string[];
   groups: readonly GroupedPresetChecklistGroup[];
   items: readonly GroupedPresetChecklistItem[];
   onChange: (selectedKeys: string[]) => void;
@@ -19,6 +20,7 @@ type UseGroupedPresetChecklistOptions = {
  * 因此同一项目出现在多个分组时勾选状态自然联动。
  */
 export function useGroupedPresetChecklist({
+  disabledKeys = [],
   groups,
   items,
   onChange,
@@ -41,12 +43,16 @@ export function useGroupedPresetChecklist({
     );
   }, [groups, items]);
 
-  const selectedSet = useMemo(() => new Set(selectedKeys), [selectedKeys]);
+  const disabledSet = useMemo(() => new Set(disabledKeys), [disabledKeys]);
+  const selectedSet = useMemo(
+    () => new Set(selectedKeys.filter((key) => !disabledSet.has(key))),
+    [selectedKeys, disabledSet],
+  );
 
   // 回调读取最新的勾选与 onChange，使回调保持稳定，memo 化的行在勾选未变化时不重新渲染。
-  const latestRef = useRef({ items, onChange, selectedSet });
+  const latestRef = useRef({ items, onChange, selectedSet, disabledSet });
   useLayoutEffect(() => {
-    latestRef.current = { items, onChange, selectedSet };
+    latestRef.current = { items, onChange, selectedSet, disabledSet };
   });
 
   /** 将 keys 全部设为 checked。输出按 items 的顺序排列，保证结果稳定。 */
@@ -55,15 +61,20 @@ export function useGroupedPresetChecklist({
       const latest = latestRef.current;
       const next = new Set(latest.selectedSet);
       for (const key of keys) {
+        if (latest.disabledSet.has(key)) continue;
         if (checked) {
           next.add(key);
         } else {
           next.delete(key);
         }
       }
-      latest.onChange(
-        latest.items.filter(({ key }) => next.has(key)).map(({ key }) => key),
-      );
+      latest.onChange([
+        ...new Set(
+          latest.items
+            .filter(({ key }) => next.has(key) && !latest.disabledSet.has(key))
+            .map(({ key }) => key),
+        ),
+      ]);
     },
     [],
   );
@@ -87,10 +98,13 @@ export function useGroupedPresetChecklist({
         expanded: expandedKeys.has(group.key),
         group,
         items: groupItemList,
+        addedCount: groupItemList.filter(({ key }) => disabledSet.has(key))
+          .length,
         selectedCount: groupItemList.filter(({ key }) => selectedSet.has(key))
           .length,
       };
     }),
+    disabledSet,
     selectedSet,
     setItemsChecked,
     toggleExpanded,

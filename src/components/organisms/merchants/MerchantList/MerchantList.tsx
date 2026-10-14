@@ -23,6 +23,7 @@ import { MerchantCard } from "../MerchantCard/MerchantCard";
 type MerchantListProps = {
   canManageMerchants?: boolean;
   createHref: string;
+  onCreate?: () => void;
   keyword?: string;
   ledgerId: string;
   merchants: Merchant[];
@@ -34,6 +35,7 @@ type MerchantListProps = {
 export function MerchantList({
   canManageMerchants = true,
   createHref,
+  onCreate,
   keyword = "",
   ledgerId,
   merchants,
@@ -100,8 +102,9 @@ export function MerchantList({
         </Typography>
         {canManageMerchants && !isFilteredEmpty ? (
           <Button
-            component={Link}
-            href={createHref}
+            component={onCreate ? "button" : Link}
+            href={onCreate ? undefined : createHref}
+            onClick={onCreate}
             size="large"
             sx={{
               borderRadius: `${designTokens.radius.full}px`,

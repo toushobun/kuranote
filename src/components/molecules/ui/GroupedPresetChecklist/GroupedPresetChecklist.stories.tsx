@@ -97,3 +97,18 @@ export const PartiallySelected: Story = {
   name: "部分选中",
   args: { selectedKeys: ["aeon", "amazon", "netflix"] },
 };
+
+export const AlreadyAdded: Story = {
+  args: {
+    disabledKeys: ["aeon", "seiyu", "life", "amazon"],
+    selectedKeys: ["rakuten"],
+    messages: {
+      added: "已添加",
+      groupCheckboxLabel: (name) => `选择「${name}」的全部项目`,
+      groupSelectedCount: (selected, total, added) =>
+        `已选 ${selected} / ${total} 家${added ? ` · 已添加 ${added} 家` : ""}`,
+      selectAll: "全选",
+      selectNone: "全不选",
+    },
+  },
+};

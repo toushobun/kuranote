@@ -1,5 +1,6 @@
 import { merchantResultValues } from "config/paths";
 import {
+  addMerchantPresets,
   archiveMerchantTag,
   createMerchantTag,
   reorderMerchantTags,
@@ -13,7 +14,12 @@ import { MerchantsTemplate } from "templates/merchants/Merchants";
 export default async function MerchantsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; tagId?: string; result?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    tagId?: string;
+    result?: string;
+    count?: string;
+  }>;
 }) {
   const params = await searchParams;
   const view = await loadMerchantsView({
@@ -23,6 +29,13 @@ export default async function MerchantsPage({
 
   return (
     <MerchantsTemplate
+      addPresetsAction={addMerchantPresets}
+      presetOptions={view.presetOptions}
+      presetAddedCount={
+        Number.isSafeInteger(Number(params.count)) && Number(params.count) >= 0
+          ? Number(params.count)
+          : 0
+      }
       archiveAction={archiveMerchantTag}
       canManageMerchants={view.canManageMerchants}
       createAction={createMerchantTag}
@@ -31,6 +44,7 @@ export default async function MerchantsPage({
       merchants={view.merchants}
       setPreferredMerchantAliasAction={setPreferredMerchantAlias}
       saveResult={
+        params.result === merchantResultValues.presetsAdded ||
         params.result === merchantResultValues.created ||
         params.result === merchantResultValues.updated ||
         params.result === merchantResultValues.archived

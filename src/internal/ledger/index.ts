@@ -44,6 +44,7 @@ export type {
   LedgerSetupDraftAccount,
 } from "internal/ledger/schema/ledgerSetupDraft";
 export {
+  getLedgerSetupTemplate,
   ledgerSetupAccountTypes,
   type LedgerSetupAccountType,
   type LedgerSetupMerchantTagTemplate,
@@ -90,3 +91,5 @@ export {
 } from "internal/ledger/service/ledgerPermissions";
 
 export type { LedgerDeletionImpact } from "./entity/ledgerDeletion";
+
+export { buildLedgerSetupMerchantPayload } from "internal/ledger/util/ledgerSetupCompletionPayload";

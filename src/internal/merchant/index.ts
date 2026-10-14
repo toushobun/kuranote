@@ -16,3 +16,5 @@ export type {
 } from "internal/merchant/service/merchantImportService";
 export type { MerchantExportSummary } from "internal/merchant/entity/merchantExportSummary";
 export type { MerchantExportQueryService } from "internal/merchant/service/merchantExportQueryService";
+
+export type { MerchantPresetOptions } from "internal/merchant/entity/merchantPresetOptions";

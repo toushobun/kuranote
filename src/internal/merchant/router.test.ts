@@ -87,7 +87,7 @@ function createApp(
       dataImport: {} as RequestContainer["dataImport"],
       dataExport: {} as RequestContainer["dataExport"],
       ledger: {} as RequestContainer["ledger"],
-      merchant: { service },
+      merchant: { service, presetService: { load: vi.fn(), add: vi.fn() } },
       statistics: {} as RequestContainer["statistics"],
       transaction: {} as RequestContainer["transaction"],
       user: {} as RequestContainer["user"],

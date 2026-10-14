@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   createServerRequestDependencies: vi.fn(),
   getCurrentLedgerOrRedirect: vi.fn(),
   list: vi.fn(),
+  loadPresets: vi.fn(),
 }));
 
 vi.mock("internal/container", () => ({
@@ -29,6 +30,11 @@ describe("loadMerchantsView", () => {
     vi.clearAllMocks();
     mocks.getCurrentLedgerOrRedirect.mockResolvedValue({ id: ledgerId });
     mocks.createServerRequestDependencies.mockResolvedValue({});
+    mocks.loadPresets.mockResolvedValue({
+      currency: "JPY",
+      template: null,
+      addedKeys: [],
+    });
     mocks.list.mockResolvedValue({
       canManageMerchants: true,
       merchants: [],
@@ -36,7 +42,10 @@ describe("loadMerchantsView", () => {
       tags: [],
     });
     mocks.createRequestContainer.mockReturnValue({
-      merchant: { service: { list: mocks.list } },
+      merchant: {
+        service: { list: mocks.list },
+        presetService: { load: mocks.loadPresets },
+      },
     });
   });
 
@@ -47,6 +56,16 @@ describe("loadMerchantsView", () => {
       ledgerId,
       tagId,
     });
+  });
+
+  it("非管理成员不读取预设添加上下文", async () => {
+    mocks.list.mockResolvedValue({
+      canManageMerchants: false,
+      merchants: [],
+      tags: [],
+    });
+    expect((await loadMerchantsView({})).presetOptions).toBeNull();
+    expect(mocks.loadPresets).not.toHaveBeenCalled();
   });
 
   it("忽略非法标签查询参数", async () => {

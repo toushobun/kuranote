@@ -48,6 +48,20 @@ function appThatThrows(error: unknown) {
 describe("errorHandlingMiddleware", () => {
   it.each([
     [
+      new ValidationError(
+        merchantErrorCodes.merchantPresetInvalid,
+        merchantErrorMessages.merchant_preset_invalid,
+      ),
+      400,
+    ],
+    [
+      new RepositoryError(
+        merchantErrorCodes.merchantPresetAddFailed,
+        merchantErrorMessages.merchant_preset_add_failed,
+      ),
+      500,
+    ],
+    [
       new AuthorizationError(
         ledgerSettingsErrorCodes.deleteForbidden,
         ledgerSettingsErrorMessages[ledgerSettingsErrorCodes.deleteForbidden],

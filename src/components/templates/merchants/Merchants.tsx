@@ -15,6 +15,10 @@ import { useState } from "react";
 
 import { CreateButton } from "atoms/ui/CreateButton";
 import { merchantPageMessages, merchantText } from "config/merchantText";
+import { merchantPresetMessages } from "config/merchantPresetMessages";
+import type { MerchantPresetOptions } from "internal/merchant";
+import { MerchantAddSheet } from "organisms/merchants/MerchantAddSheet/MerchantAddSheet";
+import { MerchantPresetDialog } from "organisms/merchants/MerchantPresetDialog/MerchantPresetDialog";
 import { routePaths } from "config/paths";
 import { InlineHint } from "molecules/ui/InlineHint/InlineHint";
 import { SuccessFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
@@ -41,6 +45,9 @@ import type {
 import { useMerchantDisplayNameListAction } from "./useMerchantDisplayNameListAction";
 
 export type MerchantsTemplateProps = {
+  presetOptions?: MerchantPresetOptions | null;
+  addPresetsAction?: MerchantStateAction;
+  presetAddedCount?: number;
   archiveAction: MerchantTagStateAction;
   canManageMerchants?: boolean;
   createAction: MerchantTagStateAction;
@@ -48,7 +55,7 @@ export type MerchantsTemplateProps = {
   ledgerId: string;
   merchants: Merchant[];
   setPreferredMerchantAliasAction: MerchantStateAction;
-  saveResult?: "archived" | "created" | "updated" | null;
+  saveResult?: "archived" | "created" | "updated" | "presets-added" | null;
   selectedTag: MerchantTag | null;
   tagFilterError: string | null;
   tags: MerchantTag[];
@@ -60,6 +67,9 @@ export type MerchantsTemplateProps = {
 type TagManagementView = "filter" | "management" | "closing";
 
 export function MerchantsTemplate({
+  presetOptions = null,
+  addPresetsAction,
+  presetAddedCount = 0,
   archiveAction,
   canManageMerchants = true,
   createAction,
@@ -75,10 +85,11 @@ export function MerchantsTemplate({
   reorderMerchantsAction,
   updateAction,
 }: MerchantsTemplateProps) {
+  const [addView, setAddView] = useState<"sheet" | "preset" | null>(null);
   const setPreferred = useMerchantDisplayNameListAction(
     setPreferredMerchantAliasAction,
   );
-  const clearResultParam = useClearQueryParam("result");
+  const clearResultParam = useClearQueryParam("result", "count");
   const [isSaveSuccessOpen, setIsSaveSuccessOpen] = useState(
     saveResult !== null,
   );
@@ -124,7 +135,7 @@ export function MerchantsTemplate({
         action={
           canManageMerchants ? (
             <CreateButton
-              href={routePaths.merchantsNew}
+              onClick={() => setAddView("sheet")}
               size="small"
               sx={settingsPageActionButtonSx}
             >
@@ -315,6 +326,7 @@ export function MerchantsTemplate({
           <MerchantList
             canManageMerchants={canManageMerchants}
             createHref={routePaths.merchantsNew}
+            onCreate={() => setAddView("sheet")}
             keyword={keyword}
             ledgerId={ledgerId}
             merchants={merchants}
@@ -324,15 +336,32 @@ export function MerchantsTemplate({
           />
         </Box>
       </SettingsPageLayout>
+      <MerchantAddSheet
+        open={addView === "sheet" && canManageMerchants}
+        onClose={() => setAddView(null)}
+        onPreset={() => setAddView("preset")}
+      />
+      {addView === "preset" &&
+      canManageMerchants &&
+      presetOptions &&
+      addPresetsAction ? (
+        <MerchantPresetDialog
+          action={addPresetsAction}
+          options={presetOptions}
+          onClose={() => setAddView(null)}
+        />
+      ) : null}
       <MerchantDisplayNameFeedback state={setPreferred.state} />
       <SuccessFeedbackDialog
         bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
         onClose={closeSaveSuccessDialog}
         open={isSaveSuccessOpen}
         title={
-          saveResult === "archived"
-            ? merchantText.archiveSuccess
-            : merchantText.saveSuccess
+          saveResult === "presets-added"
+            ? merchantPresetMessages.success(presetAddedCount)
+            : saveResult === "archived"
+              ? merchantText.archiveSuccess
+              : merchantText.saveSuccess
         }
       />
     </>

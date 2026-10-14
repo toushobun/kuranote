@@ -7,6 +7,8 @@ import {
 } from "@/test/mocks/merchants";
 import { merchantErrorCodes, merchantErrorMessages } from "internal/merchant";
 
+import { createMerchantPresetOptions } from "test/mocks/merchantPresets";
+
 import { MerchantsTemplate } from "./Merchants";
 
 const tagAction = async () => ({});
@@ -70,6 +72,8 @@ const meta = {
   title: "Templates/Merchants/MerchantsTemplate",
   component: MerchantsTemplate,
   args: {
+    presetOptions: createMerchantPresetOptions(),
+    addPresetsAction: async () => ({}),
     setPreferredMerchantAliasAction: async () => ({
       success: "显示名切换成功",
     }),
@@ -140,4 +144,8 @@ export const SaveSuccess: Story = {
 export const ArchiveSuccess: Story = {
   name: "归档成功反馈",
   args: { saveResult: "archived" },
+};
+
+export const PresetsAdded: Story = {
+  args: { saveResult: "presets-added", presetAddedCount: 3 },
 };
