@@ -195,7 +195,7 @@ export function createSupabaseLinkedTransactionItemRepository(
     if (rpcErrorCode === "reimbursement_currency_mismatch") {
       throw new ValidationError(
         transactionErrorCodes.reimbursementLinkInvalid,
-        transactionLinkedEditErrorMessages.reimbursementTargetCurrencyMismatch,
+        transactionLinkedEditErrorMessages.reimbursementCurrencyMismatch,
       );
     }
     if (rpcErrorCode === "linked_transaction_edit_forbidden") {

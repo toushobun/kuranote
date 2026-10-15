@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, userEvent, within } from "storybook/test";
 
 import type { TransactionCategoryOption } from "types/transactions";
+import { transactionLinkMessages } from "utils/transactionMessages";
 
 import type { CategoryPickerGroup } from "../TransactionForm/TransactionForm.types";
 import { TransactionItemPickerDrawer } from "./TransactionItemPickerDrawer";
@@ -110,6 +111,22 @@ export const IncomeLinkNotice: Story = {
     const body = within(canvasElement.ownerDocument.body);
     await expect(await body.findByRole("alert")).toHaveTextContent(
       "退款明细必须与收款账户币种一致，请重新选择。",
+    );
+  },
+};
+
+export const IncomeLinkAccountRequiredNotice: Story = {
+  name: "未选账户时选择关联候选的提示",
+  args: {
+    linkNotice: transactionLinkMessages.candidateAccountRequired("refund"),
+    pickerCategoryId: "income-salary",
+    pickerSpecialStatus: null,
+    selectedCategoryGroup: categoryGroups[categoryGroups.length - 1],
+  },
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    await expect(await body.findByRole("alert")).toHaveTextContent(
+      "请先选择账户，再选择退款明细。",
     );
   },
 };

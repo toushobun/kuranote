@@ -213,6 +213,18 @@ describe("TransactionForm", () => {
       within(container).getByRole("button", { name: "选择记账时间" }),
     ).toHaveTextContent("09:08:07");
   });
+  it.each(["expense", "income"] as const)(
+    "账户栏标题统一显示为「账户」：%s",
+    (initialType) => {
+      const { container } = renderForm({ initialType });
+      expect(
+        within(container).getByText("账户", {
+          selector: ".MuiTypography-subtitle1",
+        }),
+      ).toBeInTheDocument();
+      expect(within(container).queryByText("付款账户")).toBeNull();
+    },
+  );
   it("账户选项中显示币种", () => {
     const { container } = renderForm();
     fireEvent.mouseDown(getCombobox(container, "账户"));
