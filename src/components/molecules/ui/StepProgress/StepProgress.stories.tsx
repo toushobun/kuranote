@@ -1,7 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { UserThemeProvider } from "theme/UserThemeProvider";
-
 import { StepProgress } from "./StepProgress";
 
 const meta = {
@@ -9,11 +7,9 @@ const meta = {
   component: StepProgress,
   decorators: [
     (Story) => (
-      <UserThemeProvider>
-        <div style={{ maxWidth: 420 }}>
-          <Story />
-        </div>
-      </UserThemeProvider>
+      <div style={{ maxWidth: 420 }}>
+        <Story />
+      </div>
     ),
   ],
   args: {

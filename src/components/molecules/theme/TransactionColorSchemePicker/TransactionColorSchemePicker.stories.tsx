@@ -1,7 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { UserThemeProvider } from "theme/UserThemeProvider";
-
 import { TransactionColorSchemePicker } from "./TransactionColorSchemePicker";
 
 const meta = {
@@ -9,11 +7,9 @@ const meta = {
   component: TransactionColorSchemePicker,
   decorators: [
     (Story) => (
-      <UserThemeProvider>
-        <div style={{ maxWidth: 360, padding: 16 }}>
-          <Story />
-        </div>
-      </UserThemeProvider>
+      <div style={{ maxWidth: 360, padding: 16 }}>
+        <Story />
+      </div>
     ),
   ],
   args: {
@@ -35,11 +31,7 @@ export const Default: Story = {
 
 export const ExpenseRed: Story = {
   name: "支出红 / 收入绿",
-  decorators: [
-    (Story) => (
-      <UserThemeProvider initialTransactionColorScheme="expense_red_income_green">
-        <Story />
-      </UserThemeProvider>
-    ),
-  ],
+  parameters: {
+    userTheme: { initialTransactionColorScheme: "expense_red_income_green" },
+  },
 };

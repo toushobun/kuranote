@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
-import { UserThemeProvider } from "theme/UserThemeProvider";
 
 import { DestructiveSubmitButton } from "./DestructiveSubmitButton";
 
@@ -10,13 +9,11 @@ const meta = {
   component: DestructiveSubmitButton,
   decorators: [
     (Story) => (
-      <UserThemeProvider>
-        <ConfirmDialogProvider>
-          <form onSubmit={(event) => event.preventDefault()}>
-            <Story />
-          </form>
-        </ConfirmDialogProvider>
-      </UserThemeProvider>
+      <ConfirmDialogProvider>
+        <form onSubmit={(event) => event.preventDefault()}>
+          <Story />
+        </form>
+      </ConfirmDialogProvider>
     ),
   ],
   args: {

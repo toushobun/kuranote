@@ -3,7 +3,6 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { loadLedgerDeletionImpactWith } from "test/ledgerDeletion";
 import { LedgerInvitePendingProvider } from "organisms/ledgers/LedgerInvitePendingContext/LedgerInvitePendingContext";
 import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
-import { UserThemeProvider } from "theme/UserThemeProvider";
 
 import { LedgerSettingsTemplate } from "./LedgerSettings";
 
@@ -12,13 +11,11 @@ const meta = {
   component: LedgerSettingsTemplate,
   decorators: [
     (Story, { args }) => (
-      <UserThemeProvider>
-        <ConfirmDialogProvider>
-          <LedgerInvitePendingProvider pendingInvites={args.pendingInvites}>
-            <Story />
-          </LedgerInvitePendingProvider>
-        </ConfirmDialogProvider>
-      </UserThemeProvider>
+      <ConfirmDialogProvider>
+        <LedgerInvitePendingProvider pendingInvites={args.pendingInvites}>
+          <Story />
+        </LedgerInvitePendingProvider>
+      </ConfirmDialogProvider>
     ),
   ],
   args: {

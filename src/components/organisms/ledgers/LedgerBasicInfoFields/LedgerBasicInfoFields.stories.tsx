@@ -1,8 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useState } from "react";
 
-import { UserThemeProvider } from "theme/UserThemeProvider";
-
 import {
   LedgerBasicInfoFields,
   type LedgerBasicInfoValues,
@@ -11,13 +9,6 @@ import {
 const meta = {
   title: "Organisms/Ledgers/LedgerBasicInfoFields",
   component: LedgerBasicInfoFields,
-  decorators: [
-    (Story) => (
-      <UserThemeProvider>
-        <Story />
-      </UserThemeProvider>
-    ),
-  ],
   args: {
     onChange: () => {},
     values: {

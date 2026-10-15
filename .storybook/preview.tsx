@@ -1,19 +1,30 @@
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import type { Preview } from "@storybook/nextjs-vite";
-import type { CSSProperties, ReactNode } from "react";
+import type { ComponentProps, CSSProperties, ReactNode } from "react";
 
 import { defaultUserThemeCssVariables } from "../src/theme/userThemeCssVariables";
 import { theme } from "../src/theme/theme";
+import { UserThemeProvider } from "../src/theme/UserThemeProvider";
+
+// Story 通过 parameters.userTheme 指定初始主题 / 收支配色；未指定时使用默认主题。
+type UserThemeParameters = Omit<
+  ComponentProps<typeof UserThemeProvider>,
+  "children"
+>;
 
 const preview: Preview = {
   decorators: [
-    (Story): ReactNode => (
+    (Story, { parameters }): ReactNode => (
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <div style={defaultUserThemeCssVariables as CSSProperties}>
-          <Story />
-        </div>
+        <UserThemeProvider
+          {...(parameters.userTheme as UserThemeParameters | undefined)}
+        >
+          <div style={defaultUserThemeCssVariables as CSSProperties}>
+            <Story />
+          </div>
+        </UserThemeProvider>
       </ThemeProvider>
     ),
   ],

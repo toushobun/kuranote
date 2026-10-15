@@ -2,7 +2,6 @@ import type { Decorator } from "@storybook/nextjs-vite";
 
 import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import { ledgerSetupDefaultRootCategoryNamesFixture } from "test/mocks/ledgerSetup";
-import { UserThemeProvider } from "theme/UserThemeProvider";
 import type {
   LedgerSetupInviteMembers,
   LedgerSetupProgress,
@@ -11,14 +10,12 @@ import type {
 
 import type { LedgerSetupWizardActions } from "./ledgerSetupWizardStepTypes";
 
-/** 创建账本向导各 Story 共用的 Provider（用户主题与确认对话框）。 */
+/** 创建账本向导各 Story 共用的 Provider（确认对话框）。 */
 export const ledgerSetupWizardStoryDecorators: Decorator[] = [
   (Story) => (
-    <UserThemeProvider>
-      <ConfirmDialogProvider>
-        <Story />
-      </ConfirmDialogProvider>
-    </UserThemeProvider>
+    <ConfirmDialogProvider>
+      <Story />
+    </ConfirmDialogProvider>
   ),
 ];
 

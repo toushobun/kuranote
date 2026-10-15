@@ -19,11 +19,9 @@ const meta = {
   args: { label: ledgerSetupCompleteMessages.illustrationLabel },
   decorators: [
     (Story) => (
-      <UserThemeProvider>
-        <Box sx={storyContainerSx}>
-          <Story />
-        </Box>
-      </UserThemeProvider>
+      <Box sx={storyContainerSx}>
+        <Story />
+      </Box>
     ),
   ],
 } satisfies Meta<typeof LedgerSetupCompleteIllustration>;

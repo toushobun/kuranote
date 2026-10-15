@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { userErrorMessages, type UserThemeKey } from "internal/user";
-import { UserThemeProvider } from "theme/UserThemeProvider";
 import type { ThemeKeyActionState } from "types/user";
 
 import { SettingsPreferencesTemplate } from "./SettingsPreferences";
@@ -9,13 +8,9 @@ import { SettingsPreferencesTemplate } from "./SettingsPreferences";
 const meta = {
   title: "Templates/Settings/SettingsPreferencesTemplate",
   component: SettingsPreferencesTemplate,
-  decorators: [
-    (Story) => (
-      <UserThemeProvider initialThemeKey="emeraldMorning">
-        <Story />
-      </UserThemeProvider>
-    ),
-  ],
+  parameters: {
+    userTheme: { initialThemeKey: "emeraldMorning" },
+  },
   args: {
     updateThemeKeyAction: async (
       _state: ThemeKeyActionState,

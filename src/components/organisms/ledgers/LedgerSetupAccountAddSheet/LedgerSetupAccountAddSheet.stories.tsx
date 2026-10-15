@@ -2,20 +2,12 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { userEvent, within } from "storybook/test";
 
 import { ledgerSetupTemplateFixture } from "test/mocks/ledgerSetup";
-import { UserThemeProvider } from "theme/UserThemeProvider";
 
 import { LedgerSetupAccountAddSheet } from "./LedgerSetupAccountAddSheet";
 
 const meta = {
   title: "Organisms/Ledgers/LedgerSetupAccountAddSheet",
   component: LedgerSetupAccountAddSheet,
-  decorators: [
-    (Story) => (
-      <UserThemeProvider>
-        <Story />
-      </UserThemeProvider>
-    ),
-  ],
   args: {
     accounts: [
       { name: "现金", type: "cash" },

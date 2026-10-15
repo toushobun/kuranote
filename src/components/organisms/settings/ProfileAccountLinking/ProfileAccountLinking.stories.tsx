@@ -2,7 +2,6 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import { SettingsEntryGroupCard } from "organisms/settings/SettingsEntryList/SettingsEntryList";
-import { UserThemeProvider } from "theme/UserThemeProvider";
 import {
   failedLinkGoogleIdentityAction,
   failedUnlinkGoogleIdentityAction,
@@ -21,13 +20,11 @@ const meta = {
   component: ProfileAccountLinking,
   decorators: [
     (Story) => (
-      <UserThemeProvider>
-        <ConfirmDialogProvider>
-          <SettingsEntryGroupCard label="账号安全">
-            <Story />
-          </SettingsEntryGroupCard>
-        </ConfirmDialogProvider>
-      </UserThemeProvider>
+      <ConfirmDialogProvider>
+        <SettingsEntryGroupCard label="账号安全">
+          <Story />
+        </SettingsEntryGroupCard>
+      </ConfirmDialogProvider>
     ),
   ],
   args: {

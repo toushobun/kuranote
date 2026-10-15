@@ -23,11 +23,9 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <UserThemeProvider>
-        <Box sx={storyContainerSx}>
-          <Story />
-        </Box>
-      </UserThemeProvider>
+      <Box sx={storyContainerSx}>
+        <Story />
+      </Box>
     ),
   ],
 } satisfies Meta<typeof TransactionSearchIllustration>;

@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { UserThemeProvider } from "theme/UserThemeProvider";
 import {
   failedChangePasswordAction,
   rateLimitedPasswordChangeOtpAction,
@@ -13,13 +12,6 @@ import { ProfilePasswordDialog } from "./ProfilePasswordDialog";
 const meta = {
   title: "Organisms/Settings/ProfilePasswordDialog",
   component: ProfilePasswordDialog,
-  decorators: [
-    (Story) => (
-      <UserThemeProvider>
-        <Story />
-      </UserThemeProvider>
-    ),
-  ],
   args: {
     changePasswordAction: succeededChangePasswordAction,
     email: "user@example.com",

@@ -7,7 +7,6 @@ import {
   ledgerInviteErrorMessages,
 } from "internal/ledger";
 import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
-import { UserThemeProvider } from "theme/UserThemeProvider";
 import type { LedgerInviteStateAction } from "types/ledgers";
 
 import { LedgerInviteEntry } from "./LedgerInviteEntry";
@@ -34,16 +33,14 @@ type LedgerInviteEntryArgs = ComponentProps<typeof LedgerInviteEntry>;
 
 function renderEntry(args: LedgerInviteEntryArgs) {
   return (
-    <UserThemeProvider>
-      <ConfirmDialogProvider>
-        {/* 只有管理者能读取待接受邀请；普通成员只看到待邀请成员摘要。 */}
-        <LedgerInvitePendingProvider
-          pendingInvites={args.canInvite ? [boundInvite] : []}
-        >
-          <LedgerInviteEntry {...args} />
-        </LedgerInvitePendingProvider>
-      </ConfirmDialogProvider>
-    </UserThemeProvider>
+    <ConfirmDialogProvider>
+      {/* 只有管理者能读取待接受邀请；普通成员只看到待邀请成员摘要。 */}
+      <LedgerInvitePendingProvider
+        pendingInvites={args.canInvite ? [boundInvite] : []}
+      >
+        <LedgerInviteEntry {...args} />
+      </LedgerInvitePendingProvider>
+    </ConfirmDialogProvider>
   );
 }
 

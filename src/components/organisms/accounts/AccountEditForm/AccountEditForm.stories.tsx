@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
-import { UserThemeProvider } from "theme/UserThemeProvider";
 
 import { createPlaceholderAccountHolder } from "test/mocks/accountHolders";
 
@@ -35,11 +34,9 @@ const meta: Meta<typeof AccountEditForm> = {
   component: AccountEditForm,
   decorators: [
     (Story) => (
-      <UserThemeProvider>
-        <ConfirmDialogProvider>
-          <Story />
-        </ConfirmDialogProvider>
-      </UserThemeProvider>
+      <ConfirmDialogProvider>
+        <Story />
+      </ConfirmDialogProvider>
     ),
   ],
   title: "Organisms/Accounts/AccountEditForm",
