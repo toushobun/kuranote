@@ -69,6 +69,11 @@ select dblink_exec(
             '57485000-0000-4000-8000-000000000001',
             '57485000-0000-4000-8000-000000000002'
         );
+        delete from public.transaction_payment
+        where transaction_record_id in (
+            '57484000-0000-4000-8000-000000000001',
+            '57484000-0000-4000-8000-000000000002'
+        );
         delete from public.transaction_record
         where id in (
             '57484000-0000-4000-8000-000000000001',
@@ -106,11 +111,9 @@ select dblink_exec(
                 '00000000-0000-4000-8000-000000000031'
             );
 
-        insert into public.transaction_item (
-            id, ledger_id, transaction_record_id, account_id, category_id,
-            amount, discount_amount, balance_delta, sort_order,
-            special_status, created_by, updated_by, created_at, updated_at
-        ) values
+        perform tests.insert_normal_transaction_items(jsonb_agg(item))
+        from (
+            values
             (
                 '57485000-0000-4000-8000-000000000001',
                 '00000000-0000-4000-8000-000000000032',
@@ -136,7 +139,10 @@ select dblink_exec(
                 '00000000-0000-4000-8000-000000000031',
                 '2090-01-01 00:00:00+00',
                 '2090-01-01 00:00:00+00'
-            );
+            )
+        ) item(
+            id, ledger_id, transaction_record_id, account_id, category_id, amount, discount_amount, balance_delta, sort_order, special_status, created_by, updated_by, created_at, updated_at
+        );
 
         perform public.apply_transaction_item_links(
             '00000000-0000-4000-8000-000000000032',
@@ -188,7 +194,7 @@ select dblink_send_query(
     'issue574_account_edit',
     $edit$
     with edited as materialized (
-        select public.update_linked_transaction_item(
+        select tests.update_linked_transaction_item(
             '00000000-0000-4000-8000-000000000032',
             '57484000-0000-4000-8000-000000000002',
             '57485000-0000-4000-8000-000000000002',
@@ -325,6 +331,11 @@ select dblink_exec(
         where id in (
             '57485000-0000-4000-8000-000000000001',
             '57485000-0000-4000-8000-000000000002'
+        );
+        delete from public.transaction_payment
+        where transaction_record_id in (
+            '57484000-0000-4000-8000-000000000001',
+            '57484000-0000-4000-8000-000000000002'
         );
         delete from public.transaction_record
         where id in (

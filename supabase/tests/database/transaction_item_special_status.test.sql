@@ -176,11 +176,8 @@ from public.transaction_record source_record
 cross join generate_series(1, 8) sequence_number
 where source_record.id = '00000000-0000-4000-8000-000000009001';
 
-insert into public.transaction_item (
-    id, ledger_id, transaction_record_id, account_id, category_id,
-    amount, discount_amount, balance_delta, sort_order,
-    created_by, updated_by, special_status
-)
+select tests.insert_normal_transaction_items(jsonb_agg(item))
+from (
 values
     (
         '59840000-0000-4000-8000-000000000001',
@@ -269,7 +266,10 @@ values
         '00000000-0000-4000-8000-000000000031',
         '00000000-0000-4000-8000-000000000031',
         null
-    );
+    )
+) item(
+    id, ledger_id, transaction_record_id, account_id, category_id, amount, discount_amount, balance_delta, sort_order, created_by, updated_by, special_status
+);
 
 select lives_ok(
     $$
@@ -497,8 +497,7 @@ select throws_ok(
 select lives_ok(
     $$
         update public.transaction_item
-        set amount = 71,
-            balance_delta = -71
+        set amount = 71
         where id = '59840000-0000-4000-8000-000000000003'
     $$,
     '无关联普通明细仍可直接编辑'
@@ -511,6 +510,12 @@ select lives_ok(
     $$,
     '无关联普通明细仍可直接删除'
 );
+
+-- 直接 DML 绕过 RPC 不会同步付款明细（提交时由延迟校验拒绝）；上面只验证冻结触发器，这里清理该记录。
+delete from public.transaction_payment
+where transaction_record_id = '59830000-0000-4000-8000-000000000003';
+delete from public.transaction_record
+where id = '59830000-0000-4000-8000-000000000003';
 
 insert into public.transaction_item_refund_link (
     ledger_id, refunded_item_id, refund_income_item_id,
@@ -565,7 +570,7 @@ select throws_ok(
                 'categoryId', '00000000-0000-4000-8000-000000005021',
                 'specialStatus', 'reimbursed'
             )),
-            '00000000-0000-4000-8000-000000000043',
+            jsonb_build_array(jsonb_build_object('accountId', '00000000-0000-4000-8000-000000000043')),
             '00000000-0000-4000-8000-000000001001',
             null
         )
@@ -588,7 +593,7 @@ select lives_ok(
                 'categoryId', '00000000-0000-4000-8000-000000005021',
                 'specialStatus', null
             )),
-            '00000000-0000-4000-8000-000000000043',
+            jsonb_build_array(jsonb_build_object('accountId', '00000000-0000-4000-8000-000000000043')),
             '00000000-0000-4000-8000-000000001001',
             null
         )
@@ -609,7 +614,7 @@ select lives_ok(
                 'categoryId', '00000000-0000-4000-8000-000000005002',
                 'specialStatus', null
             )),
-            '00000000-0000-4000-8000-000000000043',
+            jsonb_build_array(jsonb_build_object('accountId', '00000000-0000-4000-8000-000000000043')),
             '00000000-0000-4000-8000-000000001001',
             null
         )

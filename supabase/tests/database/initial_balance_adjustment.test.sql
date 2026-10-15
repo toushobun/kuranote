@@ -11,9 +11,9 @@ select is((select count(*) from public.account a where a.ledger_id = '00000000-0
       and tr.transaction_at = a.created_at
 ) <> 1), 0::bigint, '种子账户初始余额均有对应记录');
 select is((select count(*) from public.account a where a.ledger_id = '00000000-0000-4000-8000-000000000032' and a.current_balance <> (
-    select coalesce(sum(ti.balance_delta), 0) from public.transaction_item ti
-    join public.transaction_record tr on tr.id = ti.transaction_record_id
-    where ti.account_id = a.id and tr.status = 'active'
+    select coalesce(sum(m.balance_delta), 0) from public.transaction_account_movement m
+    join public.transaction_record tr on tr.id = m.transaction_record_id
+    where m.account_id = a.id and tr.status = 'active'
 )), 0::bigint, '种子账户余额等于有效流水总和且没有翻倍');
 
 insert into public.ledger(id,name,base_currency,owner_user_id,created_by,updated_by)

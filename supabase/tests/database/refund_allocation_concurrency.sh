@@ -52,6 +52,7 @@ delete from public.transaction_item where id in (
   '${target_id}', '${income_a_id}', '${income_b_id}',
   '${mixed_target_id}', '${mixed_refund_income_id}', '${mixed_reimbursement_income_id}'
 );
+select tests.sync_normal_transaction_payments(array['${expense_record_id}', '${income_record_id}']::uuid[]);
 set local session_replication_role = replica;
 update public.ledger set transaction_item_special_status_enabled = '${old_enabled}'::boolean where id = '${ledger_id}';
 set local session_replication_role = origin;
@@ -71,10 +72,10 @@ cleanup() {
 }
 trap cleanup EXIT
 
-read -r ledger_id account_id expense_record_id expense_category_id income_record_id income_category_id user_id old_enabled < <(
+read -r ledger_id account_id expense_record_id expense_category_id income_record_id income_account_id income_category_id user_id old_enabled < <(
   psql_in_db -A -t -F ' ' -c "
     select e.ledger_id, e.account_id, e.transaction_record_id, ec.id,
-           i.transaction_record_id, ic.id, e.created_by,
+           i.transaction_record_id, i.account_id, ic.id, e.created_by,
            l.transaction_item_special_status_enabled
     from public.transaction_item e
     join public.category ec on ec.id = e.category_id and ec.ledger_id = e.ledger_id and ec.type = 'expense'
@@ -97,17 +98,20 @@ fi
 psql_in_db >/dev/null <<SQL
 begin;
 update public.ledger set transaction_item_special_status_enabled = true where id = '${ledger_id}';
-insert into public.transaction_item (
+-- 同一记录的明细保持同一付款账户（#911 过渡期镜像）。
+select tests.insert_normal_transaction_items(jsonb_agg(item))
+from (values
+  ('${target_id}', '${ledger_id}', '${expense_record_id}', '${account_id}', '${expense_category_id}', 100, 0, -100, null, 5791, null, '${user_id}', '${user_id}'),
+  ('${income_a_id}', '${ledger_id}', '${income_record_id}', '${income_account_id}', '${income_category_id}', 60, 0, 60, null, 5792, null, '${user_id}', '${user_id}'),
+  ('${income_b_id}', '${ledger_id}', '${income_record_id}', '${income_account_id}', '${income_category_id}', 60, 0, 60, null, 5793, null, '${user_id}', '${user_id}'),
+  ('${mixed_target_id}', '${ledger_id}', '${expense_record_id}', '${account_id}', '${expense_category_id}', 100, 0, -100, null, 5794, 'pending_reimbursement', '${user_id}', '${user_id}'),
+  ('${mixed_refund_income_id}', '${ledger_id}', '${income_record_id}', '${income_account_id}', '${income_category_id}', 60, 0, 60, null, 5795, null, '${user_id}', '${user_id}'),
+  ('${mixed_reimbursement_income_id}', '${ledger_id}', '${income_record_id}', '${income_account_id}', '${income_category_id}', 60, 0, 60, null, 5796, null, '${user_id}', '${user_id}')
+) item(
   id, ledger_id, transaction_record_id, account_id, category_id, amount,
   discount_amount, balance_delta, note, sort_order, special_status,
   created_by, updated_by
-) values
-  ('${target_id}', '${ledger_id}', '${expense_record_id}', '${account_id}', '${expense_category_id}', 100, 0, -100, null, 5791, null, '${user_id}', '${user_id}'),
-  ('${income_a_id}', '${ledger_id}', '${income_record_id}', '${account_id}', '${income_category_id}', 60, 0, 60, null, 5792, null, '${user_id}', '${user_id}'),
-  ('${income_b_id}', '${ledger_id}', '${income_record_id}', '${account_id}', '${income_category_id}', 60, 0, 60, null, 5793, null, '${user_id}', '${user_id}'),
-  ('${mixed_target_id}', '${ledger_id}', '${expense_record_id}', '${account_id}', '${expense_category_id}', 100, 0, -100, null, 5794, 'pending_reimbursement', '${user_id}', '${user_id}'),
-  ('${mixed_refund_income_id}', '${ledger_id}', '${income_record_id}', '${account_id}', '${income_category_id}', 60, 0, 60, null, 5795, null, '${user_id}', '${user_id}'),
-  ('${mixed_reimbursement_income_id}', '${ledger_id}', '${income_record_id}', '${account_id}', '${income_category_id}', 60, 0, 60, null, 5796, null, '${user_id}', '${user_id}');
+);
 commit;
 SQL
 

@@ -26,11 +26,8 @@ from public.transaction_record source_record
 cross join generate_series(1, 4) sequence_number
 where source_record.id = '00000000-0000-4000-8000-000000009001';
 
-insert into public.transaction_item (
-    id, ledger_id, transaction_record_id, account_id, category_id,
-    amount, discount_amount, balance_delta, sort_order,
-    created_by, updated_by, created_at, updated_at, special_status
-)
+select tests.insert_normal_transaction_items(jsonb_agg(item))
+from (
 values
     (
         '57491000-0000-4000-8000-000000000001',
@@ -79,7 +76,10 @@ values
         '00000000-0000-4000-8000-000000000031',
         '2090-01-01 00:00:00+00', '2090-01-01 00:00:00+00',
         null
-    );
+    )
+) item(
+    id, ledger_id, transaction_record_id, account_id, category_id, amount, discount_amount, balance_delta, sort_order, created_by, updated_by, created_at, updated_at, special_status
+);
 
 select lives_ok(
     $$
@@ -177,10 +177,11 @@ select lives_ok(
                     'expectedUpdatedAt', (select updated_at from public.transaction_item
                                           where id = '57491000-0000-4000-8000-000000000003'),
                     'amount', 30,
-                    'accountId', '00000000-0000-4000-8000-000000000043',
                     'categoryId', '00000000-0000-4000-8000-000000005002'
                 )
-            )
+            ),
+            jsonb_build_array(jsonb_build_object('accountId', '00000000-0000-4000-8000-000000000043')),
+            null
         )
     $$,
     '完整编辑 RPC 原子更新已关联报销收入'
@@ -227,7 +228,7 @@ select lives_ok(
                     'categoryId', '00000000-0000-4000-8000-000000005002'
                 )
             ),
-            '00000000-0000-4000-8000-000000000043',
+            jsonb_build_array(jsonb_build_object('accountId', '00000000-0000-4000-8000-000000000043')),
             (select merchant_id from public.transaction_record
              where id = '57490000-0000-4000-8000-000000000004'),
             '解除退款关联'
@@ -273,10 +274,11 @@ select lives_ok(
                     'expectedUpdatedAt', (select updated_at from public.transaction_item
                                           where id = '57491000-0000-4000-8000-000000000001'),
                     'amount', 70,
-                    'accountId', '00000000-0000-4000-8000-000000000043',
                     'categoryId', '00000000-0000-4000-8000-000000005021'
                 )
-            )
+            ),
+            jsonb_build_array(jsonb_build_object('accountId', '00000000-0000-4000-8000-000000000043')),
+            null
         )
     $$,
     '客户端一通过完整编辑 RPC 修改母项 base 金额'
@@ -325,10 +327,11 @@ select throws_ok(
                     'transactionItemId', '57491000-0000-4000-8000-000000000001',
                     'expectedUpdatedAt', '2000-01-01 00:00:00+00',
                     'amount', 90,
-                    'accountId', '00000000-0000-4000-8000-000000000043',
                     'categoryId', '00000000-0000-4000-8000-000000005021'
                 )
-            )
+            ),
+            jsonb_build_array(jsonb_build_object('accountId', '00000000-0000-4000-8000-000000000043')),
+            null
         )
     $$,
     'P0001',
@@ -366,10 +369,11 @@ select lives_ok(
                     'expectedUpdatedAt', (select updated_at from public.transaction_item
                                           where id = '57491000-0000-4000-8000-000000000001'),
                     'amount', 50,
-                    'accountId', '00000000-0000-4000-8000-000000000043',
                     'categoryId', '00000000-0000-4000-8000-000000005021'
                 )
-            )
+            ),
+            jsonb_build_array(jsonb_build_object('accountId', '00000000-0000-4000-8000-000000000043')),
+            null
         )
     $$,
     '母项 base 金额可继续减到关联总额以下'
@@ -405,10 +409,11 @@ select lives_ok(
                     'expectedUpdatedAt', (select updated_at from public.transaction_item
                                           where id = '57491000-0000-4000-8000-000000000001'),
                     'amount', 120,
-                    'accountId', '00000000-0000-4000-8000-000000000043',
                     'categoryId', '00000000-0000-4000-8000-000000005021'
                 )
-            )
+            ),
+            jsonb_build_array(jsonb_build_object('accountId', '00000000-0000-4000-8000-000000000043')),
+            null
         )
     $$,
     '母项 base 金额再次增大时允许反向回落'

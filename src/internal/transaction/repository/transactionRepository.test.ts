@@ -204,7 +204,7 @@ describe("TransactionRepository", () => {
     const { repository, rpc } = createRepository();
     await repository.createNormal(normalInput);
     expect(rpc).toHaveBeenCalledWith("create_transaction", {
-      p_account_id: accountId,
+      p_payments: [{ accountId }],
       p_items: [
         {
           ...normalInput.items[0],
@@ -313,7 +313,7 @@ describe("TransactionRepository", () => {
       1,
       "update_transaction",
       expect.objectContaining({
-        p_account_id: accountId,
+        p_payments: [{ accountId }],
         p_items: [
           {
             ...normalInput.items[0],
@@ -352,7 +352,7 @@ describe("TransactionRepository", () => {
       1,
       "convert_transaction_type_with_special_status",
       expect.objectContaining({
-        p_account_id: accountId,
+        p_payments: [{ accountId }],
         p_from_account_id: null,
         p_target_type: "income",
         p_to_account_id: null,
@@ -363,7 +363,7 @@ describe("TransactionRepository", () => {
       2,
       "convert_transaction_type_with_special_status",
       expect.objectContaining({
-        p_account_id: null,
+        p_payments: null,
         p_from_account_id: accountId,
         p_items: null,
         p_target_type: "transfer",

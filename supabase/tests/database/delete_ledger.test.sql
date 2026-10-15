@@ -48,10 +48,11 @@ insert into public.category(id,ledger_id,parent_id,type,name) values(pg_temp.id(
 insert into public.budget(ledger_id,category_id,budget_month,amount) values(pg_temp.id(10),pg_temp.id(51),'2026-10-01',1000);
 insert into public.transaction_record(id,ledger_id,type,transaction_at,merchant_id,created_by)
 select pg_temp.id(n),pg_temp.id(10),'normal',now(),pg_temp.id(40),pg_temp.id(2) from generate_series(60,62) n;
-insert into public.transaction_item(id,ledger_id,transaction_record_id,account_id,category_id,amount,balance_delta,special_status)
-values(pg_temp.id(70),pg_temp.id(10),pg_temp.id(60),pg_temp.id(30),pg_temp.id(51),100,-100,'pending_reimbursement'),
-(pg_temp.id(71),pg_temp.id(10),pg_temp.id(61),pg_temp.id(30),pg_temp.id(53),40,40,null),
-(pg_temp.id(72),pg_temp.id(10),pg_temp.id(62),pg_temp.id(30),pg_temp.id(53),20,20,null);
+select tests.insert_normal_transaction_items(jsonb_agg(item)) from (
+values(pg_temp.id(70),pg_temp.id(10),pg_temp.id(60),pg_temp.id(30),pg_temp.id(51),100,'pending_reimbursement'),
+(pg_temp.id(71),pg_temp.id(10),pg_temp.id(61),pg_temp.id(30),pg_temp.id(53),40,null),
+(pg_temp.id(72),pg_temp.id(10),pg_temp.id(62),pg_temp.id(30),pg_temp.id(53),20,null)
+) item(id,ledger_id,transaction_record_id,account_id,category_id,amount,special_status);
 insert into public.transaction_item_reimbursement_link(ledger_id,target_expense_item_id,reimbursement_income_item_id,reimbursement_amount)
 values(pg_temp.id(10),pg_temp.id(70),pg_temp.id(71),40);
 insert into public.transaction_item_refund_link(ledger_id,refunded_item_id,refund_income_item_id,refund_amount)
@@ -94,12 +95,14 @@ set local role authenticated;
 select matches(pg_temp.remove(),'^P0001:','末尾失败时 RPC 拒绝');
 reset role;
 select is((select count(*) from public.transaction_item where ledger_id=pg_temp.id(10)),4::bigint,'失败回滚全部明细');
+select is((select count(*) from public.transaction_payment where ledger_id=pg_temp.id(10)),3::bigint,'失败回滚全部付款明细');
 select is((select current_ledger_id from public.app_user where id=pg_temp.id(2)),pg_temp.id(10),'失败回滚成员当前账本');
 select is((select count(*) from public.ledger_deletion_context),0::bigint,'失败不残留上下文');
 drop trigger test_delete_rollback on public.ledger;
 set local role authenticated;
 select is(pg_temp.remove(),'ok','owner 删除包含关联、余额调整、成员和归档数据的账本成功');
 reset role;
+select lives_ok('set constraints public.validate_transaction_record_payments immediate','删除后付款明细延迟校验通过');
 select is((select current_ledger_id from public.app_user where id=pg_temp.id(1)),pg_temp.id(12),'owner 选择最近加入的未归档已完成账本');
 select is((select current_ledger_id from public.app_user where id=pg_temp.id(2)),pg_temp.id(12),'其他成员按自己的加入顺序切换');
 select is((select current_ledger_id from public.app_user where id=pg_temp.id(3)),null::uuid,'没有有效候选的成员置空');
@@ -116,6 +119,7 @@ select is((select count(*) from public.budget where ledger_id=pg_temp.id(10)),0:
 select is((select count(*) from public.category where ledger_id=pg_temp.id(10)),0::bigint,'category 关联数据清零');
 select is((select count(*) from public.merchant where ledger_id=pg_temp.id(10)),0::bigint,'merchant 关联数据清零');
 select is((select count(*) from public.merchant_tags where ledger_id=pg_temp.id(10)),0::bigint,'merchant_tags 关联数据清零');
+select is((select count(*) from public.transaction_payment where ledger_id=pg_temp.id(10)),0::bigint,'transaction_payment 关联数据清零');
 select is((select count(*) from public.transaction_item where ledger_id=pg_temp.id(10)),0::bigint,'transaction_item 关联数据清零');
 select is((select count(*) from public.transaction_record where ledger_id=pg_temp.id(10)),0::bigint,'transaction_record 关联数据清零');
 select is((select count(*) from public.transaction_item_refund_link where ledger_id=pg_temp.id(10)),0::bigint,'transaction_item_refund_link 关联数据清零');

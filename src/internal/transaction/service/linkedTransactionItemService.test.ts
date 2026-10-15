@@ -74,8 +74,9 @@ function createService(options?: {
   return { linkedRepository, service };
 }
 
+const accountId = "00000000-0000-4000-8000-000000000043";
+
 const updateInput = {
-  accountId: "00000000-0000-4000-8000-000000000043",
   amount: 80,
   categoryId: "00000000-0000-4000-8000-000000005021",
   expectedUpdatedAt: updatedAt,
@@ -85,9 +86,9 @@ const updateInput = {
 };
 
 const updateEditInput = {
+  accountId,
   itemUpdates: [
     {
-      accountId: updateInput.accountId,
       amount: 80,
       categoryId: updateInput.categoryId,
       expectedUpdatedAt: updatedAt,

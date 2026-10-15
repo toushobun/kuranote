@@ -28,7 +28,6 @@ export type LinkedTransactionItemEditSnapshot = {
 };
 
 export type UpdateLinkedTransactionItemInput = {
-  accountId: string;
   amount: number;
   categoryId: string;
   expectedUpdatedAt: string;
@@ -38,6 +37,7 @@ export type UpdateLinkedTransactionItemInput = {
 };
 
 export type UpdateLinkedTransactionEditInput = {
+  accountId: string;
   itemUpdates: Array<
     Omit<UpdateLinkedTransactionItemInput, "ledgerId" | "transactionRecordId">
   >;
@@ -256,7 +256,6 @@ export function createSupabaseLinkedTransactionItemRepository(
 
     async update(input) {
       const { error } = await supabase.rpc("update_linked_transaction_item", {
-        p_account_id: input.accountId,
         p_amount: input.amount,
         p_category_id: input.categoryId,
         p_expected_updated_at: input.expectedUpdatedAt,
@@ -275,10 +274,13 @@ export function createSupabaseLinkedTransactionItemRepository(
 
     async updateEdit(input) {
       const { error } = await supabase.rpc("update_linked_transaction_edit", {
+        // 记录版本由 #834 子 Issue 2 接入；NULL 时 RPC 只做明细级版本校验。
+        p_expected_record_updated_at: null,
         p_item_updates: input.itemUpdates,
         p_ledger_id: input.ledgerId,
         p_merchant_id: input.merchantId,
         p_note: input.note,
+        p_payments: [{ accountId: input.accountId }],
         p_transaction_at: input.transactionAt,
         p_transaction_record_id: input.transactionRecordId,
       });

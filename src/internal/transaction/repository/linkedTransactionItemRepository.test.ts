@@ -78,7 +78,6 @@ function rpcFailure(details: string, code = "P0001") {
 }
 
 const updateInput: UpdateLinkedTransactionItemInput = {
-  accountId,
   amount: 80,
   categoryId,
   expectedUpdatedAt: updatedAt,
@@ -88,9 +87,9 @@ const updateInput: UpdateLinkedTransactionItemInput = {
 };
 
 const updateEditInput: UpdateLinkedTransactionEditInput = {
+  accountId,
   itemUpdates: [
     {
-      accountId,
       amount: 80,
       categoryId,
       expectedUpdatedAt: updatedAt,
@@ -126,7 +125,6 @@ describe("LinkedTransactionItemRepository", () => {
     await repository.update(updateInput);
 
     expect(rpc).toHaveBeenCalledWith("update_linked_transaction_item", {
-      p_account_id: accountId,
       p_amount: 80,
       p_category_id: categoryId,
       p_expected_updated_at: updatedAt,
@@ -136,16 +134,18 @@ describe("LinkedTransactionItemRepository", () => {
     });
   });
 
-  it("完整编辑 RPC 在一次调用中传递明细修改和交易头字段", async () => {
+  it("完整编辑 RPC 在一次调用中传递明细修改、交易头字段与单账户付款明细", async () => {
     const { repository, rpc } = createRepository();
 
     await repository.updateEdit(updateEditInput);
 
     expect(rpc).toHaveBeenCalledWith("update_linked_transaction_edit", {
+      p_expected_record_updated_at: null,
       p_item_updates: updateEditInput.itemUpdates,
       p_ledger_id: ledgerId,
       p_merchant_id: merchantId,
       p_note: "编辑备注",
+      p_payments: [{ accountId }],
       p_transaction_at: "2026-08-21T01:30:00.000Z",
       p_transaction_record_id: transactionRecordId,
     });

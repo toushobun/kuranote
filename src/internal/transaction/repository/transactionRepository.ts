@@ -531,12 +531,12 @@ export function createSupabaseTransactionRepository(
       const rpcParams =
         input.targetType === "transfer"
           ? {
-              p_account_id: null,
               p_from_account_id: input.accountId,
               p_items: null,
               p_ledger_id: input.ledgerId,
               p_merchant_id: null,
               p_note: input.note,
+              p_payments: null,
               p_target_type: "transfer" as const,
               p_to_account_id: input.transferTargetAccountId,
               p_transaction_at: input.transactionAt,
@@ -544,12 +544,12 @@ export function createSupabaseTransactionRepository(
               p_transfer_amount: input.transferAmount,
             }
           : {
-              p_account_id: input.accountId,
               p_from_account_id: null,
               p_items: toTransactionRpcItems(input.items),
               p_ledger_id: input.ledgerId,
               p_merchant_id: input.merchantId,
               p_note: input.note,
+              p_payments: toTransactionRpcPayments(input.accountId),
               p_target_type: input.targetType,
               p_to_account_id: null,
               p_transaction_at: input.transactionAt,
@@ -575,11 +575,11 @@ export function createSupabaseTransactionRepository(
 
     async createNormal(input) {
       const { error } = await supabase.rpc("create_transaction", {
-        p_account_id: input.accountId,
         p_items: toTransactionRpcItems(input.items),
         p_ledger_id: input.ledgerId,
         p_merchant_id: input.merchantId,
         p_note: input.note,
+        p_payments: toTransactionRpcPayments(input.accountId),
         p_transaction_at: input.transactionAt,
         p_type: input.type,
       });
@@ -1088,11 +1088,11 @@ export function createSupabaseTransactionRepository(
 
     async updateNormal(input) {
       const { error } = await supabase.rpc("update_transaction", {
-        p_account_id: input.accountId,
         p_items: toTransactionRpcItems(input.items),
         p_ledger_id: input.ledgerId,
         p_merchant_id: input.merchantId,
         p_note: input.note,
+        p_payments: toTransactionRpcPayments(input.accountId),
         p_transaction_at: input.transactionAt,
         p_transaction_record_id: input.transactionRecordId,
         p_type: input.type,
@@ -1166,6 +1166,11 @@ export function createSupabaseTransactionRepository(
       }
     },
   };
+}
+
+// 单账户付款明细：不传金额，由 RPC 按明细推导（#911 过渡期）。
+function toTransactionRpcPayments(accountId: string) {
+  return [{ accountId }];
 }
 
 function toTransactionRpcItems(items: TransactionItemInput[]) {

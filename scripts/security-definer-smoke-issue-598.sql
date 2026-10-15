@@ -192,7 +192,7 @@ begin
             v_expense_category_id,
             100,
             0,
-            -100,
+            null,
             0,
             'pending_reimbursement',
             v_user_id,
@@ -206,12 +206,24 @@ begin
             v_income_category_id,
             40,
             0,
-            40,
+            null,
             0,
             null,
             v_user_id,
             v_user_id
         );
+
+    -- 普通记录的余额来自付款明细（#911），关联的币种校验也读取付款账户。
+    perform public.replace_transaction_payments(
+        v_ledger_id,
+        record_id,
+        pg_catalog.jsonb_build_array(pg_catalog.jsonb_build_object('accountId', v_account_id)),
+        v_user_id
+    )
+    from pg_catalog.unnest(array[
+        '59894000-0000-4000-8000-000000000001',
+        '59894000-0000-4000-8000-000000000002'
+    ]::uuid[]) record_id;
 
     -- 先覆盖报销路径：部分核销、冻结防线、开关关闭防线与受控清理。
     perform public.apply_transaction_item_links(

@@ -87,11 +87,8 @@ cross join (values
     ('55194000-0000-4000-8000-000000000005'::uuid, '2026-11-15 12:00:00+00'::timestamptz, '收支相抵记录')
 ) values_to_insert(id, transaction_at, title);
 
-insert into public.transaction_item (
-    id, ledger_id, transaction_record_id, account_id, category_id,
-    amount, discount_amount, balance_delta, note, sort_order,
-    special_status, created_by, updated_by
-)
+select tests.insert_normal_transaction_items(jsonb_agg(item))
+from (
 select
     values_to_insert.id,
     context.ledger_id,
@@ -156,7 +153,10 @@ cross join (values
         500::numeric,
         null
     )
-) values_to_insert(id, record_id, category_type, amount, special_status);
+) values_to_insert(id, record_id, category_type, amount, special_status)
+) item(
+    id, ledger_id, transaction_record_id, account_id, category_id, amount, discount_amount, balance_delta, note, sort_order, special_status, created_by, updated_by
+);
 
 insert into public.transaction_item_reimbursement_link (
     ledger_id, target_expense_item_id,

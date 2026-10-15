@@ -107,6 +107,12 @@ select dblink_exec(
                 '59892000-0000-4000-8000-000000000002',
                 '59892000-0000-4000-8000-000000000003'
             );
+            delete from public.transaction_payment
+            where transaction_record_id in (
+                '59893000-0000-4000-8000-000000000001',
+                '59893000-0000-4000-8000-000000000002',
+                '59893000-0000-4000-8000-000000000003'
+            );
             delete from public.transaction_record
             where id in (
                 '59893000-0000-4000-8000-000000000001',
@@ -126,14 +132,15 @@ select dblink_exec(
                 ('59893000-0000-4000-8000-000000000002', v_ledger_id, 'normal', 'active', '2026-08-18 05:00:00+00', v_merchant_id, 'PR6 并发退款', v_user_id, v_user_id),
                 ('59893000-0000-4000-8000-000000000003', v_ledger_id, 'normal', 'active', '2026-08-18 06:00:00+00', v_merchant_id, 'PR6 并发报销', v_user_id, v_user_id);
 
-            insert into public.transaction_item (
-                id, ledger_id, transaction_record_id, account_id, category_id,
-                amount, discount_amount, balance_delta, sort_order,
-                special_status, created_by, updated_by
-            ) values
+            perform tests.insert_normal_transaction_items(jsonb_agg(item))
+            from (
+                values
                 ('59892000-0000-4000-8000-000000000001', v_ledger_id, '59893000-0000-4000-8000-000000000001', v_account_id, v_expense_category_id, 100, 0, -100, 0, 'pending_reimbursement', v_user_id, v_user_id),
                 ('59892000-0000-4000-8000-000000000002', v_ledger_id, '59893000-0000-4000-8000-000000000002', v_account_id, v_income_category_id, 60, 0, 60, 0, null, v_user_id, v_user_id),
-                ('59892000-0000-4000-8000-000000000003', v_ledger_id, '59893000-0000-4000-8000-000000000003', v_account_id, v_income_category_id, 60, 0, 60, 0, null, v_user_id, v_user_id);
+                ('59892000-0000-4000-8000-000000000003', v_ledger_id, '59893000-0000-4000-8000-000000000003', v_account_id, v_income_category_id, 60, 0, 60, 0, null, v_user_id, v_user_id)
+            ) item(
+                id, ledger_id, transaction_record_id, account_id, category_id, amount, discount_amount, balance_delta, sort_order, special_status, created_by, updated_by
+            );
         end
         $remote$;
         $setup$,
@@ -316,6 +323,12 @@ select dblink_exec(
                 '59892000-0000-4000-8000-000000000001',
                 '59892000-0000-4000-8000-000000000002',
                 '59892000-0000-4000-8000-000000000003'
+            );
+            delete from public.transaction_payment
+            where transaction_record_id in (
+                '59893000-0000-4000-8000-000000000001',
+                '59893000-0000-4000-8000-000000000002',
+                '59893000-0000-4000-8000-000000000003'
             );
             delete from public.transaction_record
             where id in (

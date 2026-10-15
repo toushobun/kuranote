@@ -236,7 +236,7 @@ select
     category_id,
     amount,
     0,
-    case when transaction_type = 'income' then amount else -amount end,
+    null,
     null,
     0,
     '00000000-0000-4000-8000-000000000031',
@@ -249,20 +249,22 @@ set
     account_id = excluded.account_id,
     category_id = excluded.category_id,
     amount = excluded.amount,
-    balance_delta = excluded.balance_delta,
     updated_by = excluded.updated_by,
     updated_at = excluded.updated_at;
 
--- 初始余额已包含在交易明细中，只汇总有效交易，避免重复累加。
+select tests.sync_normal_transaction_payments();
+
+-- 初始余额已包含在交易中，只汇总有效交易，避免重复累加。
+-- 普通记录取付款明细，转账 / 余额调整取明细（transaction_account_movement）。
 with account_balance_deltas as (
     select
         a.id as account_id,
-        (coalesce(sum(ti.balance_delta) filter (where tr.status = 'active'), 0)::numeric(14,2)) - a.current_balance as balance_delta
+        (coalesce(sum(m.balance_delta) filter (where tr.status = 'active'), 0)::numeric(14,2)) - a.current_balance as balance_delta
     from public.account a
-    left join public.transaction_item ti
-        on ti.account_id = a.id
-       and ti.ledger_id = a.ledger_id
-    left join public.transaction_record tr on tr.id = ti.transaction_record_id
+    left join public.transaction_account_movement m
+        on m.account_id = a.id
+       and m.ledger_id = a.ledger_id
+    left join public.transaction_record tr on tr.id = m.transaction_record_id
     where a.ledger_id = '00000000-0000-4000-8000-000000000032'
     group by a.id, a.current_balance
 )

@@ -26,11 +26,8 @@ from public.transaction_record source_record
 cross join generate_series(1, 5) sequence_number
 where source_record.id = '00000000-0000-4000-8000-000000009001';
 
-insert into public.transaction_item (
-    id, ledger_id, transaction_record_id, account_id, category_id,
-    amount, discount_amount, balance_delta, sort_order,
-    created_by, updated_by, special_status
-)
+select tests.insert_normal_transaction_items(jsonb_agg(item))
+from (
 select
     ('60594000-0000-4000-8000-' || lpad(item.sequence_number::text, 12, '0'))::uuid,
     '00000000-0000-4000-8000-000000000032'::uuid,
@@ -54,7 +51,10 @@ from (
         (3, 'income', 60::numeric, null),
         (4, 'income', 100::numeric, null),
         (5, 'expense', 100::numeric, 'pending_reimbursement')
-) as item(sequence_number, category_type, amount, special_status);
+) as item(sequence_number, category_type, amount, special_status)
+) item(
+    id, ledger_id, transaction_record_id, account_id, category_id, amount, discount_amount, balance_delta, sort_order, created_by, updated_by, special_status
+);
 
 select lives_ok(
     $$

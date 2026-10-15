@@ -679,7 +679,7 @@ begin
             using errcode = '22023', detail = 'special_status_invalid';
     end if;
 
-    select ti.amount, c.type, a.currency
+    select ti.amount, c.type, public.transaction_record_currency(ti.ledger_id, ti.transaction_record_id)
     into v_income_amount, v_income_category_type, v_income_currency
     from public.transaction_item ti
     join public.transaction_record tr
@@ -689,9 +689,6 @@ begin
     join public.category c
       on c.id = ti.category_id
      and c.ledger_id = ti.ledger_id
-    join public.account a
-      on a.id = ti.account_id
-     and a.ledger_id = ti.ledger_id
     where ti.id = p_income_item_id
       and ti.ledger_id = p_ledger_id;
 
@@ -706,7 +703,7 @@ begin
     end if;
 
     if v_reimbursement_target_id is not null then
-        select ti.special_status, c.type, a.currency
+        select ti.special_status, c.type, public.transaction_record_currency(ti.ledger_id, ti.transaction_record_id)
         into
             v_reimbursement_target_status,
             v_reimbursement_target_type,
@@ -719,9 +716,6 @@ begin
         join public.category c
           on c.id = ti.category_id
          and c.ledger_id = ti.ledger_id
-        join public.account a
-          on a.id = ti.account_id
-         and a.ledger_id = ti.ledger_id
         where ti.ledger_id = p_ledger_id
           and ti.id = v_reimbursement_target_id
         for update of ti, tr;
@@ -801,7 +795,7 @@ begin
                 using errcode = '22023', detail = 'refund_allocation_invalid';
         end if;
 
-        select c.type, a.currency
+        select c.type, public.transaction_record_currency(ti.ledger_id, ti.transaction_record_id)
         into v_refund_target_type, v_refund_target_currency
         from public.transaction_item ti
         join public.transaction_record tr
@@ -811,9 +805,6 @@ begin
         join public.category c
           on c.id = ti.category_id
          and c.ledger_id = ti.ledger_id
-        join public.account a
-          on a.id = ti.account_id
-         and a.ledger_id = ti.ledger_id
         where ti.ledger_id = p_ledger_id
           and ti.id = v_refund_target_id
         for update of ti, tr;
@@ -1338,7 +1329,7 @@ $$;
 ALTER FUNCTION "public"."complete_ledger_setup"("p_ledger_id" "uuid", "p_payload" "jsonb") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."convert_transaction_type"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text" DEFAULT NULL::"text", "p_account_id" "uuid" DEFAULT NULL::"uuid", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_items" "jsonb" DEFAULT NULL::"jsonb", "p_from_account_id" "uuid" DEFAULT NULL::"uuid", "p_to_account_id" "uuid" DEFAULT NULL::"uuid", "p_transfer_amount" numeric DEFAULT NULL::numeric) RETURNS "uuid"
+CREATE OR REPLACE FUNCTION "public"."convert_transaction_type"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text" DEFAULT NULL::"text", "p_payments" "jsonb" DEFAULT NULL::"jsonb", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_items" "jsonb" DEFAULT NULL::"jsonb", "p_from_account_id" "uuid" DEFAULT NULL::"uuid", "p_to_account_id" "uuid" DEFAULT NULL::"uuid", "p_transfer_amount" numeric DEFAULT NULL::numeric) RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -1364,7 +1355,7 @@ begin
         p_target_type,
         p_transaction_at,
         p_note,
-        p_account_id,
+        p_payments,
         p_merchant_id,
         p_items,
         p_from_account_id,
@@ -1375,22 +1366,22 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."convert_transaction_type"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) OWNER TO "postgres";
+ALTER FUNCTION "public"."convert_transaction_type"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."convert_transaction_type_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text" DEFAULT NULL::"text", "p_account_id" "uuid" DEFAULT NULL::"uuid", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_items" "jsonb" DEFAULT NULL::"jsonb", "p_from_account_id" "uuid" DEFAULT NULL::"uuid", "p_to_account_id" "uuid" DEFAULT NULL::"uuid", "p_transfer_amount" numeric DEFAULT NULL::numeric) RETURNS "uuid"
+CREATE OR REPLACE FUNCTION "public"."convert_transaction_type_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text" DEFAULT NULL::"text", "p_payments" "jsonb" DEFAULT NULL::"jsonb", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_items" "jsonb" DEFAULT NULL::"jsonb", "p_from_account_id" "uuid" DEFAULT NULL::"uuid", "p_to_account_id" "uuid" DEFAULT NULL::"uuid", "p_transfer_amount" numeric DEFAULT NULL::numeric) RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_user_id uuid := auth.uid();
     v_record public.transaction_record;
-    v_old_item public.transaction_item;
+    v_account_id uuid;
+    v_account_delta numeric(14,2);
     v_new_item jsonb;
     v_item_amount numeric(14,2);
     v_item_category_id uuid;
     v_item_category_type text;
-    v_balance_delta numeric(14,2);
     v_sort_order integer := 0;
     v_target_record_type text;
     v_old_account_ids uuid[];
@@ -1399,7 +1390,6 @@ declare
     v_locked_account_count integer := 0;
     v_from_account public.account;
     v_to_account public.account;
-    v_normal_account public.account;
     v_locked_account public.account;
 begin
     if v_user_id is null then
@@ -1440,11 +1430,12 @@ begin
         raise exception 'transaction_type_not_changed' using errcode = '22023';
     end if;
 
-    select array_agg(distinct ti.account_id order by ti.account_id)
+    -- 普通记录的账户来自付款明细，转账来自明细。
+    select array_agg(distinct m.account_id order by m.account_id)
     into v_old_account_ids
-    from public.transaction_item ti
-    where ti.transaction_record_id = p_transaction_record_id
-      and ti.ledger_id = p_ledger_id;
+    from public.transaction_account_movement m
+    where m.transaction_record_id = p_transaction_record_id
+      and m.ledger_id = p_ledger_id;
 
     if coalesce(array_length(v_old_account_ids, 1), 0) = 0 then
         raise exception 'transaction_items_invalid' using errcode = '22023';
@@ -1465,9 +1456,7 @@ begin
 
         v_new_account_ids := array[p_from_account_id, p_to_account_id];
     else
-        if p_account_id is null then
-            raise exception 'account_invalid' using errcode = '22023';
-        end if;
+        v_new_account_ids := public.transaction_payment_account_ids(p_ledger_id, p_payments);
 
         if p_merchant_id is null or not exists (
             select 1 from public.merchant m
@@ -1502,8 +1491,6 @@ begin
                 raise exception 'category_invalid' using errcode = '22023';
             end if;
         end loop;
-
-        v_new_account_ids := array[p_account_id];
     end if;
 
     v_all_account_ids := array(
@@ -1519,7 +1506,7 @@ begin
         where a.id = any(v_all_account_ids)
           and a.ledger_id = p_ledger_id
         order by a.id
-        for update
+        for no key update
     loop
         v_locked_account_count := v_locked_account_count + 1;
 
@@ -1528,9 +1515,6 @@ begin
         end if;
         if v_locked_account.id = p_to_account_id then
             v_to_account := v_locked_account;
-        end if;
-        if v_locked_account.id = p_account_id then
-            v_normal_account := v_locked_account;
         end if;
     end loop;
 
@@ -1550,26 +1534,28 @@ begin
         if v_from_account.currency <> v_to_account.currency then
             raise exception 'transfer_currency_invalid' using errcode = '22023';
         end if;
-    else
-        if v_normal_account.id is null or v_normal_account.is_archived then
-            raise exception 'account_invalid' using errcode = '22023';
-        end if;
     end if;
 
-    for v_old_item in
-        select *
-        from public.transaction_item ti
-        where ti.transaction_record_id = p_transaction_record_id
-          and ti.ledger_id = p_ledger_id
-        order by ti.sort_order, ti.id
+    -- 记录类型改变之前按账户回滚旧余额（普通记录取付款明细，转账取明细）。
+    for v_account_id, v_account_delta in
+        select m.account_id, sum(m.balance_delta)
+        from public.transaction_account_movement m
+        where m.transaction_record_id = p_transaction_record_id
+          and m.ledger_id = p_ledger_id
+        group by m.account_id
+        order by m.account_id
     loop
         perform public.apply_account_balance_delta(
             p_ledger_id,
-            v_old_item.account_id,
-            -v_old_item.balance_delta,
+            v_account_id,
+            -v_account_delta,
             v_user_id
         );
     end loop;
+
+    delete from public.transaction_payment p
+    where p.transaction_record_id = p_transaction_record_id
+      and p.ledger_id = p_ledger_id;
 
     delete from public.transaction_item ti
     where ti.transaction_record_id = p_transaction_record_id
@@ -1661,11 +1647,6 @@ begin
                 raise exception 'category_invalid' using errcode = '22023';
             end if;
 
-            v_balance_delta := case
-                when v_item_category_type = 'expense' then -v_item_amount
-                else v_item_amount
-            end;
-
             insert into public.transaction_item (
                 ledger_id,
                 transaction_record_id,
@@ -1681,32 +1662,40 @@ begin
             ) values (
                 p_ledger_id,
                 p_transaction_record_id,
-                p_account_id,
+                v_new_account_ids[1],
                 v_item_category_id,
                 v_item_amount,
                 0,
-                v_balance_delta,
+                null,
                 null,
                 v_sort_order,
                 v_user_id,
                 v_user_id
             );
 
-            perform public.apply_account_balance_delta(p_ledger_id, p_account_id, v_balance_delta, v_user_id);
             v_sort_order := v_sort_order + 1;
         end loop;
 
+        perform public.replace_transaction_payments(
+            p_ledger_id,
+            p_transaction_record_id,
+            p_payments,
+            v_user_id
+        );
     end if;
+
+    set constraints public.validate_transaction_record_payments immediate;
+    set constraints public.validate_transaction_record_payments deferred;
 
     return p_transaction_record_id;
 end;
 $$;
 
 
-ALTER FUNCTION "public"."convert_transaction_type_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) OWNER TO "postgres";
+ALTER FUNCTION "public"."convert_transaction_type_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."convert_transaction_type_with_special_status"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text" DEFAULT NULL::"text", "p_account_id" "uuid" DEFAULT NULL::"uuid", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_items" "jsonb" DEFAULT NULL::"jsonb", "p_from_account_id" "uuid" DEFAULT NULL::"uuid", "p_to_account_id" "uuid" DEFAULT NULL::"uuid", "p_transfer_amount" numeric DEFAULT NULL::numeric) RETURNS "uuid"
+CREATE OR REPLACE FUNCTION "public"."convert_transaction_type_with_special_status"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text" DEFAULT NULL::"text", "p_payments" "jsonb" DEFAULT NULL::"jsonb", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_items" "jsonb" DEFAULT NULL::"jsonb", "p_from_account_id" "uuid" DEFAULT NULL::"uuid", "p_to_account_id" "uuid" DEFAULT NULL::"uuid", "p_transfer_amount" numeric DEFAULT NULL::numeric) RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -1719,7 +1708,7 @@ begin
         p_target_type,
         p_transaction_at,
         p_note,
-        p_account_id,
+        p_payments,
         p_merchant_id,
         p_items,
         p_from_account_id,
@@ -1734,7 +1723,7 @@ begin
             p_target_type,
             p_transaction_at,
             p_items,
-            p_account_id,
+            p_payments,
             p_merchant_id,
             p_note
         );
@@ -1745,7 +1734,7 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."convert_transaction_type_with_special_status"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) OWNER TO "postgres";
+ALTER FUNCTION "public"."convert_transaction_type_with_special_status"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[] DEFAULT '{}'::"uuid"[], "p_placeholder_id" "uuid" DEFAULT NULL::"uuid") RETURNS "uuid"
@@ -2421,7 +2410,7 @@ $$;
 ALTER FUNCTION "public"."create_merchant_with_tags"("p_ledger_id" "uuid", "p_name" "text", "p_website_url" "text", "p_icon_url" "text", "p_note" "text", "p_tag_ids" "uuid"[]) OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
+CREATE OR REPLACE FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -2462,7 +2451,7 @@ begin
         p_type,
         p_transaction_at,
         p_items,
-        p_account_id,
+        p_payments,
         p_merchant_id,
         p_note
     );
@@ -2470,10 +2459,10 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") OWNER TO "postgres";
+ALTER FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_note" "text") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."create_transaction_locked_impl"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
+CREATE OR REPLACE FUNCTION "public"."create_transaction_locked_impl"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -2486,8 +2475,11 @@ declare
     v_item_category_id uuid;
     v_item_category_type text;
     v_item_special_status public.transaction_item_special_status;
-    v_balance_delta numeric(14,2);
     v_sort_order integer := 0;
+    v_mirror_account_id uuid;
+    v_transaction_item_ids uuid[] := array[]::uuid[];
+    v_item_payloads jsonb[] := array[]::jsonb[];
+    v_item_index integer;
 begin
     if v_user_id is null then
         raise exception 'not_authenticated' using errcode = '28000';
@@ -2509,14 +2501,7 @@ begin
         raise exception 'items_invalid' using errcode = '22023';
     end if;
 
-    if not exists (
-        select 1 from public.account a
-        where a.id = p_account_id
-          and a.ledger_id = p_ledger_id
-          and a.is_archived = false
-    ) then
-        raise exception 'account_invalid' using errcode = '22023';
-    end if;
+    v_mirror_account_id := (public.transaction_payment_account_ids(p_ledger_id, p_payments))[1];
 
     if p_merchant_id is not null and not exists (
         select 1 from public.merchant m
@@ -2570,41 +2555,48 @@ begin
                 using errcode = '22023', detail = 'special_status_invalid';
         end if;
 
-        v_balance_delta := case
-            when v_item_category_type = 'expense' then -v_item_amount
-            else v_item_amount
-        end;
-
         insert into public.transaction_item (
             ledger_id, transaction_record_id, account_id, category_id, amount,
             discount_amount, balance_delta, note, sort_order, special_status,
             created_by, updated_by
         ) values (
-            p_ledger_id, v_transaction_record_id, p_account_id,
-            v_item_category_id, v_item_amount, 0, v_balance_delta, null,
+            p_ledger_id, v_transaction_record_id, v_mirror_account_id,
+            v_item_category_id, v_item_amount, 0, null, null,
             v_sort_order, v_item_special_status, v_user_id, v_user_id
         ) returning id into v_transaction_item_id;
 
-        perform public.apply_transaction_item_links(
-            p_ledger_id,
-            v_transaction_item_id,
-            v_item,
-            v_user_id
-        );
-
-        perform public.apply_account_balance_delta(
-            p_ledger_id, p_account_id, v_balance_delta, v_user_id
-        );
-
+        v_transaction_item_ids := array_append(v_transaction_item_ids, v_transaction_item_id);
+        v_item_payloads := array_append(v_item_payloads, v_item);
         v_sort_order := v_sort_order + 1;
     end loop;
+
+    -- 关联的币种校验读取付款账户，所以先写付款明细（并更新余额），再建立关联。
+    perform public.replace_transaction_payments(
+        p_ledger_id,
+        v_transaction_record_id,
+        p_payments,
+        v_user_id
+    );
+
+    for v_item_index in 1..coalesce(array_length(v_transaction_item_ids, 1), 0)
+    loop
+        perform public.apply_transaction_item_links(
+            p_ledger_id,
+            v_transaction_item_ids[v_item_index],
+            v_item_payloads[v_item_index],
+            v_user_id
+        );
+    end loop;
+
+    set constraints public.validate_transaction_record_payments immediate;
+    set constraints public.validate_transaction_record_payments deferred;
 
     return v_transaction_record_id;
 end;
 $$;
 
 
-ALTER FUNCTION "public"."create_transaction_locked_impl"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") OWNER TO "postgres";
+ALTER FUNCTION "public"."create_transaction_locked_impl"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_note" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
@@ -2913,6 +2905,7 @@ begin
     -- 先删除关联，避免冻结校验；关联状态重算在本次 DELETE 内精确跳过。
     delete from public.transaction_item_refund_link where ledger_id = p_ledger_id;
     delete from public.transaction_item_reimbursement_link where ledger_id = p_ledger_id;
+    delete from public.transaction_payment where ledger_id = p_ledger_id;
     delete from public.transaction_item where ledger_id = p_ledger_id;
     delete from public.transaction_record where ledger_id = p_ledger_id;
     delete from public.budget where ledger_id = p_ledger_id;
@@ -6066,6 +6059,152 @@ $$;
 ALTER FUNCTION "public"."reorder_merchants"("p_ledger_id" "uuid", "p_merchant_ids" "uuid"[]) OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."replace_transaction_payments"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_payments" "jsonb", "p_user_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+    v_payment_index integer;
+    v_account_id uuid;
+    v_amount numeric;
+    v_delta numeric(14,2);
+    v_new_account_ids uuid[];
+    v_new_deltas numeric(14,2)[] := array[]::numeric(14,2)[];
+    v_old_account_ids uuid[];
+    v_old_deltas numeric(14,2)[];
+    v_all_account_ids uuid[];
+    v_locked_account_count integer;
+begin
+    v_new_account_ids := public.transaction_payment_account_ids(p_ledger_id, p_payments);
+
+    if array_length(v_new_account_ids, 1) = 1 then
+        -- 单账户不提交金额：余额变动 = Σ收入明细 − Σ支出明细，与逐条明细 ±金额 的合计一致。
+        select coalesce(sum(case when c.type = 'income' then ti.amount else -ti.amount end), 0)
+        into v_delta
+        from public.transaction_item ti
+        join public.category c
+          on c.id = ti.category_id
+         and c.ledger_id = ti.ledger_id
+        where ti.transaction_record_id = p_transaction_record_id
+          and ti.ledger_id = p_ledger_id;
+
+        v_new_deltas := array[v_delta];
+    else
+        -- 多账户：每行必须提交金额，全部记为支出。
+        for v_payment_index in 0..array_length(v_new_account_ids, 1) - 1
+        loop
+            begin
+                v_amount := nullif(p_payments -> v_payment_index ->> 'amount', '')::numeric;
+            exception when invalid_text_representation then
+                raise exception 'amount_invalid'
+                    using errcode = '22023', detail = 'amount_invalid';
+            end;
+
+            if v_amount is null then
+                raise exception 'payment_amount_required'
+                    using errcode = '22023', detail = 'payment_amount_required';
+            end if;
+
+            if v_amount < 0 or v_amount <> round(v_amount, 2) or v_amount >= 1e12 then
+                raise exception 'amount_invalid'
+                    using errcode = '22023', detail = 'amount_invalid';
+            end if;
+
+            v_new_deltas := array_append(v_new_deltas, (-v_amount)::numeric(14,2));
+        end loop;
+    end if;
+
+    select
+        coalesce(array_agg(p.account_id order by p.account_id), array[]::uuid[]),
+        coalesce(array_agg(p.balance_delta order by p.account_id), array[]::numeric(14,2)[])
+    into v_old_account_ids, v_old_deltas
+    from public.transaction_payment p
+    where p.transaction_record_id = p_transaction_record_id
+      and p.ledger_id = p_ledger_id;
+
+    -- 锁顺序：调用方已锁 ledger（需要时）→ record → item / 关联目标；这里按 UUID 一次性锁「旧 ∪ 新」账户。
+    -- 使用 FOR NO KEY UPDATE：与余额 UPDATE 本身的锁等级一致，不与明细 / 付款明细外键检查的
+    -- KEY SHARE 冲突，避免「先写明细、后锁账户」的两个事务交叉等待。
+    v_all_account_ids := array(
+        select distinct account_id
+        from unnest(v_old_account_ids || v_new_account_ids) as account_id
+        order by account_id
+    );
+
+    perform 1
+    from public.account a
+    where a.ledger_id = p_ledger_id
+      and a.id = any(v_all_account_ids)
+    order by a.id
+    for no key update;
+    get diagnostics v_locked_account_count = row_count;
+
+    -- 新账户必须属于本账本且未归档；旧账户已归档时与现状一致，整笔不可编辑。
+    if v_locked_account_count <> coalesce(array_length(v_all_account_ids, 1), 0)
+       or exists (
+           select 1
+           from public.account a
+           where a.ledger_id = p_ledger_id
+             and a.id = any(v_all_account_ids)
+             and a.is_archived
+       ) then
+        raise exception 'account_invalid'
+            using errcode = '22023', detail = 'account_invalid';
+    end if;
+
+    delete from public.transaction_payment p
+    where p.transaction_record_id = p_transaction_record_id
+      and p.ledger_id = p_ledger_id;
+
+    insert into public.transaction_payment (
+        ledger_id, transaction_record_id, account_id, amount, balance_delta,
+        sort_order, created_by
+    )
+    select
+        p_ledger_id,
+        p_transaction_record_id,
+        new_payment.account_id,
+        abs(new_payment.balance_delta),
+        new_payment.balance_delta,
+        (new_payment.ordinality - 1)::integer,
+        p_user_id
+    from unnest(v_new_account_ids, v_new_deltas)
+        with ordinality as new_payment(account_id, balance_delta, ordinality);
+
+    -- 过渡期：明细 account_id 是首个付款账户的只读镜像。
+    update public.transaction_item ti
+    set account_id = v_new_account_ids[1]
+    where ti.transaction_record_id = p_transaction_record_id
+      and ti.ledger_id = p_ledger_id
+      and ti.account_id is distinct from v_new_account_ids[1];
+
+    for v_account_id, v_delta in
+        select movement.account_id, sum(movement.balance_delta)
+        from (
+            select account_id, balance_delta
+            from unnest(v_new_account_ids, v_new_deltas) as n(account_id, balance_delta)
+            union all
+            select account_id, -balance_delta
+            from unnest(v_old_account_ids, v_old_deltas) as o(account_id, balance_delta)
+        ) movement
+        group by movement.account_id
+        having sum(movement.balance_delta) <> 0
+        order by movement.account_id
+    loop
+        perform public.apply_account_balance_delta(
+            p_ledger_id,
+            v_account_id,
+            v_delta,
+            p_user_id
+        );
+    end loop;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."replace_transaction_payments"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_payments" "jsonb", "p_user_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."revoke_ledger_invite"("p_ledger_id" "uuid", "p_invite_id" "uuid") RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -6318,6 +6457,76 @@ $$;
 
 
 ALTER FUNCTION "public"."sync_account_name_scope"("p_account_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."transaction_payment_account_ids"("p_ledger_id" "uuid", "p_payments" "jsonb") RETURNS "uuid"[]
+    LANGUAGE "plpgsql" STABLE
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+    v_payment jsonb;
+    v_account_id uuid;
+    v_account_ids uuid[] := array[]::uuid[];
+begin
+    if jsonb_typeof(p_payments) is distinct from 'array'
+       or jsonb_array_length(p_payments) = 0 then
+        raise exception 'payment_required'
+            using errcode = '22023', detail = 'payment_required';
+    end if;
+
+    for v_payment in select value from jsonb_array_elements(p_payments)
+    loop
+        begin
+            v_account_id := nullif(v_payment ->> 'accountId', '')::uuid;
+        exception when invalid_text_representation then
+            v_account_id := null;
+        end;
+
+        if v_account_id is null or not exists (
+            select 1
+            from public.account a
+            where a.id = v_account_id
+              and a.ledger_id = p_ledger_id
+              and a.is_archived = false
+        ) then
+            raise exception 'account_invalid'
+                using errcode = '22023', detail = 'account_invalid';
+        end if;
+
+        if v_account_id = any(v_account_ids) then
+            raise exception 'payment_account_duplicate'
+                using errcode = '22023', detail = 'payment_account_duplicate';
+        end if;
+
+        v_account_ids := array_append(v_account_ids, v_account_id);
+    end loop;
+
+    return v_account_ids;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."transaction_payment_account_ids"("p_ledger_id" "uuid", "p_payments" "jsonb") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."transaction_record_currency"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid") RETURNS "text"
+    LANGUAGE "sql" STABLE
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+    -- 普通记录取付款账户（不变量保证同币种），转账 / 余额调整取明细账户。
+    select a.currency
+    from public.transaction_account_movement m
+    join public.account a
+      on a.id = m.account_id
+     and a.ledger_id = m.ledger_id
+    where m.ledger_id = p_ledger_id
+      and m.transaction_record_id = p_transaction_record_id
+    order by m.sort_order, m.account_id
+    limit 1;
+$$;
+
+
+ALTER FUNCTION "public"."transaction_record_currency"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."update_account_with_balance_adjustment"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[], "p_target_balance" numeric DEFAULT NULL::numeric, "p_adjustment_note" "text" DEFAULT NULL::"text", "p_placeholder_id" "uuid" DEFAULT NULL::"uuid") RETURNS "uuid"
@@ -6891,7 +7100,7 @@ $$;
 ALTER FUNCTION "public"."update_ledger_setup_basic_info"("p_ledger_id" "uuid", "p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."update_linked_transaction_edit"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_merchant_id" "uuid", "p_note" "text", "p_item_updates" "jsonb") RETURNS "void"
+CREATE OR REPLACE FUNCTION "public"."update_linked_transaction_edit"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_merchant_id" "uuid", "p_note" "text", "p_item_updates" "jsonb", "p_payments" "jsonb", "p_expected_record_updated_at" timestamp with time zone DEFAULT NULL::timestamp with time zone) RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -6901,7 +7110,7 @@ declare
     v_transaction_item_id uuid;
     v_expected_updated_at timestamptz;
     v_amount numeric;
-    v_account_id uuid;
+    v_record_updated_at timestamptz;
     v_category_id uuid;
 begin
     if v_user_id is null then
@@ -6954,6 +7163,33 @@ begin
             using errcode = '22023', detail = 'merchant_invalid';
     end if;
 
+    -- 锁顺序：ledger → record（并校验记录版本）→ 明细 / 关联目标 → 账户（付款替换内）。
+    perform 1
+    from public.ledger ledger_row
+    where ledger_row.id = p_ledger_id
+    for update;
+
+    select tr.updated_at
+    into v_record_updated_at
+    from public.transaction_record tr
+    where tr.id = p_transaction_record_id
+      and tr.ledger_id = p_ledger_id
+      and tr.status = 'active'
+      and tr.type = 'normal'
+    for update;
+
+    if not found then
+        raise exception 'transaction_not_found'
+            using errcode = '22023', detail = 'transaction_not_found';
+    end if;
+
+    -- 未提交记录版本时（直接调用 RPC）只做明细级版本校验。
+    if p_expected_record_updated_at is not null
+       and v_record_updated_at is distinct from p_expected_record_updated_at then
+        raise exception 'transaction_item_version_conflict'
+            using errcode = 'P0001', detail = 'transaction_item_version_conflict';
+    end if;
+
     for v_item in
         select value
         from pg_catalog.jsonb_array_elements(p_item_updates)
@@ -6970,7 +7206,6 @@ begin
             v_expected_updated_at :=
                 nullif(v_item ->> 'expectedUpdatedAt', '')::timestamptz;
             v_amount := nullif(v_item ->> 'amount', '')::numeric;
-            v_account_id := nullif(v_item ->> 'accountId', '')::uuid;
             v_category_id := nullif(v_item ->> 'categoryId', '')::uuid;
         exception
             when invalid_text_representation
@@ -6985,7 +7220,6 @@ begin
         if v_transaction_item_id is null
            or v_expected_updated_at is null
            or v_amount is null
-           or v_account_id is null
            or v_category_id is null then
             raise exception 'linked_edit_items_invalid'
                 using errcode = '22023', detail = 'linked_edit_items_invalid';
@@ -6997,10 +7231,17 @@ begin
             v_transaction_item_id,
             v_expected_updated_at,
             v_amount,
-            v_account_id,
             v_category_id
         );
     end loop;
+
+    -- 明细金额变化会改变 Σ明细，付款明细必须在同一事务内整组替换。
+    perform public.replace_transaction_payments(
+        p_ledger_id,
+        p_transaction_record_id,
+        p_payments,
+        v_user_id
+    );
 
     update public.transaction_record tr
     set
@@ -7018,19 +7259,20 @@ begin
         raise exception 'transaction_not_found'
             using errcode = '22023', detail = 'transaction_not_found';
     end if;
+
+    set constraints public.validate_transaction_record_payments immediate;
+    set constraints public.validate_transaction_record_payments deferred;
 end;
 $$;
 
 
-ALTER FUNCTION "public"."update_linked_transaction_edit"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_merchant_id" "uuid", "p_note" "text", "p_item_updates" "jsonb") OWNER TO "postgres";
+ALTER FUNCTION "public"."update_linked_transaction_edit"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_merchant_id" "uuid", "p_note" "text", "p_item_updates" "jsonb", "p_payments" "jsonb", "p_expected_record_updated_at" timestamp with time zone) OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."update_linked_transaction_item"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_account_id" "uuid", "p_category_id" "uuid") RETURNS "void"
+CREATE OR REPLACE FUNCTION "public"."update_linked_transaction_item"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_category_id" "uuid") RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
-declare
-    v_old_account_id uuid;
 begin
     if auth.uid() is null then
         raise exception 'not_authenticated'
@@ -7094,49 +7336,23 @@ begin
     order by record_row.id
     for update;
 
-    select item.account_id
-    into v_old_account_id
-    from public.transaction_item item
-    where item.ledger_id = p_ledger_id
-      and item.transaction_record_id = p_transaction_record_id
-      and item.id = p_transaction_item_id;
-
-    perform 1
-    from public.account account_row
-    where account_row.ledger_id = p_ledger_id
-      and account_row.id = any(array[v_old_account_id, p_account_id]::uuid[])
-    order by account_row.id
-    for update;
-
-    if v_old_account_id is not null
-       and not exists (
-           select 1
-           from public.account old_account
-           where old_account.ledger_id = p_ledger_id
-             and old_account.id = v_old_account_id
-             and old_account.is_archived = false
-       ) then
-        raise exception 'account_invalid'
-            using errcode = '22023', detail = 'account_invalid';
-    end if;
-
+    -- 余额与账户锁由记录级的付款明细替换处理（update_linked_transaction_edit）。
     perform public.update_linked_transaction_item_locked_impl(
         p_ledger_id,
         p_transaction_record_id,
         p_transaction_item_id,
         p_expected_updated_at,
         p_amount,
-        p_account_id,
         p_category_id
     );
 end;
 $$;
 
 
-ALTER FUNCTION "public"."update_linked_transaction_item"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_account_id" "uuid", "p_category_id" "uuid") OWNER TO "postgres";
+ALTER FUNCTION "public"."update_linked_transaction_item"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_category_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."update_linked_transaction_item_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_account_id" "uuid", "p_category_id" "uuid") RETURNS "void"
+CREATE OR REPLACE FUNCTION "public"."update_linked_transaction_item_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_category_id" "uuid") RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -7144,8 +7360,6 @@ declare
     v_user_id uuid := auth.uid();
     v_item public.transaction_item;
     v_category_type text;
-    v_old_balance_delta numeric(14,2);
-    v_new_balance_delta numeric(14,2);
     v_reimbursement_target_id uuid;
     v_refund_target_id uuid;
     v_is_reimbursement_target boolean;
@@ -7285,24 +7499,7 @@ begin
             using errcode = '22023', detail = 'income_link_category_invalid';
     end if;
 
-    if not exists (
-        select 1
-        from public.account a
-        where a.id = p_account_id
-          and a.ledger_id = p_ledger_id
-          and a.is_archived = false
-    ) then
-        raise exception 'account_invalid'
-            using errcode = '22023', detail = 'account_invalid';
-    end if;
-
-    -- 复用触发器中的最终一致性校验：退款要求同账户，报销只要求同币种。
-    v_old_balance_delta := v_item.balance_delta;
-    v_new_balance_delta := case
-        when v_category_type = 'expense' then -p_amount
-        else p_amount
-    end;
-
+    -- 退款 / 报销都只要求同币种（#899），由付款明细的记录级延迟校验保证。
     if (v_is_reimbursement_income or v_is_refund_income) and p_amount <= 0 then
         raise exception 'amount_invalid'
             using errcode = '22023', detail = 'amount_invalid';
@@ -7312,36 +7509,12 @@ begin
     perform set_config('kuranote.reimbursement_link_flow', 'on', true);
 
     update public.transaction_item item
-    set account_id = p_account_id,
-        category_id = p_category_id,
+    set category_id = p_category_id,
         amount = p_amount,
-        balance_delta = v_new_balance_delta,
         updated_by = v_user_id,
         updated_at = now()
     where item.ledger_id = p_ledger_id
       and item.id = p_transaction_item_id;
-
-    if v_item.account_id is distinct from p_account_id then
-        perform public.apply_account_balance_delta(
-            p_ledger_id,
-            v_item.account_id,
-            -v_old_balance_delta,
-            v_user_id
-        );
-        perform public.apply_account_balance_delta(
-            p_ledger_id,
-            p_account_id,
-            v_new_balance_delta,
-            v_user_id
-        );
-    else
-        perform public.apply_account_balance_delta(
-            p_ledger_id,
-            p_account_id,
-            v_new_balance_delta - v_old_balance_delta,
-            v_user_id
-        );
-    end if;
 
     if v_is_reimbursement_income then
         update public.transaction_item_reimbursement_link link
@@ -7375,7 +7548,7 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."update_linked_transaction_item_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_account_id" "uuid", "p_category_id" "uuid") OWNER TO "postgres";
+ALTER FUNCTION "public"."update_linked_transaction_item_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_category_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."update_merchant_with_tags"("p_ledger_id" "uuid", "p_merchant_id" "uuid", "p_name" "text", "p_website_url" "text", "p_icon_url" "text", "p_note" "text", "p_tag_ids" "uuid"[]) RETURNS boolean
@@ -7453,7 +7626,7 @@ $$;
 ALTER FUNCTION "public"."update_merchant_with_tags"("p_ledger_id" "uuid", "p_merchant_id" "uuid", "p_name" "text", "p_website_url" "text", "p_icon_url" "text", "p_note" "text", "p_tag_ids" "uuid"[]) OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
+CREATE OR REPLACE FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -7495,7 +7668,7 @@ begin
         p_type,
         p_transaction_at,
         p_items,
-        p_account_id,
+        p_payments,
         p_merchant_id,
         p_note
     );
@@ -7503,10 +7676,10 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") OWNER TO "postgres";
+ALTER FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_note" "text") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."update_transaction_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
+CREATE OR REPLACE FUNCTION "public"."update_transaction_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -7526,7 +7699,7 @@ declare
     v_item_category_type text;
     v_item_special_status public.transaction_item_special_status;
     v_transaction_item_id uuid;
-    v_balance_delta numeric(14,2);
+    v_mirror_account_id uuid;
     v_sort_order integer := 0;
     v_is_income_link_edit_request boolean;
 begin
@@ -7552,14 +7725,7 @@ begin
 
     v_is_income_link_edit_request := p_type = 'income';
 
-    if not exists (
-        select 1 from public.account a
-        where a.id = p_account_id
-          and a.ledger_id = p_ledger_id
-          and a.is_archived = false
-    ) then
-        raise exception 'account_invalid' using errcode = '22023';
-    end if;
+    v_mirror_account_id := (public.transaction_payment_account_ids(p_ledger_id, p_payments))[1];
 
     if p_merchant_id is not null and not exists (
         select 1 from public.merchant m
@@ -7635,13 +7801,6 @@ begin
         v_existing_item_ids := array_append(
             v_existing_item_ids,
             v_existing_item.id
-        );
-
-        perform public.apply_account_balance_delta(
-            p_ledger_id,
-            v_existing_item.account_id,
-            -v_existing_item.balance_delta,
-            v_user_id
         );
 
         if exists (
@@ -7726,11 +7885,6 @@ begin
                 using errcode = '22023', detail = 'income_link_category_invalid';
         end if;
 
-        v_balance_delta := case
-            when v_item_category_type = 'expense' then -v_item_amount
-            else v_item_amount
-        end;
-
         if v_transaction_item_id is not null and (
             not (v_transaction_item_id = any(v_existing_item_ids))
             or v_transaction_item_id = any(v_used_item_ids)
@@ -7756,11 +7910,11 @@ begin
             ) values (
                 p_ledger_id,
                 p_transaction_record_id,
-                p_account_id,
+                v_mirror_account_id,
                 v_item_category_id,
                 v_item_amount,
                 0,
-                v_balance_delta,
+                null,
                 null,
                 v_sort_order,
                 v_item_special_status,
@@ -7769,11 +7923,11 @@ begin
             ) returning id into v_transaction_item_id;
         else
             update public.transaction_item ti
-            set account_id = p_account_id,
+            set account_id = v_mirror_account_id,
                 category_id = v_item_category_id,
                 amount = v_item_amount,
                 discount_amount = 0,
-                balance_delta = v_balance_delta,
+                balance_delta = null,
                 note = null,
                 sort_order = v_sort_order,
                 special_status = v_item_special_status,
@@ -7791,13 +7945,6 @@ begin
         );
         v_item_payloads := array_append(v_item_payloads, v_item);
 
-        perform public.apply_account_balance_delta(
-            p_ledger_id,
-            p_account_id,
-            v_balance_delta,
-            v_user_id
-        );
-
         v_sort_order := v_sort_order + 1;
     end loop;
 
@@ -7805,6 +7952,14 @@ begin
     where ti.transaction_record_id = p_transaction_record_id
       and ti.ledger_id = p_ledger_id
       and not (ti.id = any(v_used_item_ids));
+
+    -- 余额只由付款明细决定：按账户差额更新；关联的币种校验读取付款账户，所以先于关联执行。
+    perform public.replace_transaction_payments(
+        p_ledger_id,
+        p_transaction_record_id,
+        p_payments,
+        v_user_id
+    );
 
     v_item_count := coalesce(array_length(v_transaction_item_ids, 1), 0);
     if v_item_count > 0 then
@@ -7819,12 +7974,15 @@ begin
         end loop;
     end if;
 
+    set constraints public.validate_transaction_record_payments immediate;
+    set constraints public.validate_transaction_record_payments deferred;
+
     return p_transaction_record_id;
 end;
 $$;
 
 
-ALTER FUNCTION "public"."update_transaction_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") OWNER TO "postgres";
+ALTER FUNCTION "public"."update_transaction_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_note" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
@@ -8458,7 +8616,6 @@ declare
     v_is_refund_target boolean;
     v_is_refund_income boolean;
     v_new_category_type text;
-    v_new_account_currency text;
     v_controlled_link_edit boolean :=
         coalesce(current_setting('kuranote.income_link_edit_flow', true) = 'on', false)
         or coalesce(
@@ -8509,7 +8666,6 @@ begin
     end if;
 
     if new.amount is not distinct from old.amount
-       and new.account_id is not distinct from old.account_id
        and new.category_id is not distinct from old.category_id then
         return new;
     end if;
@@ -8561,70 +8717,6 @@ begin
            and v_new_category_type is distinct from 'income' then
             raise exception 'income_link_category_invalid'
                 using errcode = '22023', detail = 'income_link_category_invalid';
-        end if;
-    end if;
-
-    if new.account_id is distinct from old.account_id then
-        select a.currency
-        into v_new_account_currency
-        from public.account a
-        where a.id = new.account_id
-          and a.ledger_id = new.ledger_id
-          and a.is_archived = false;
-
-        if v_new_account_currency is null then
-            raise exception 'account_invalid'
-                using errcode = '22023', detail = 'account_invalid';
-        end if;
-
-        if (v_is_refund_income or v_is_refund_target)
-           and exists (
-               select 1
-               from public.transaction_item_refund_link link
-               join public.transaction_item counterpart_item
-                 on counterpart_item.id = case
-                     when link.refund_income_item_id = old.id
-                     then link.refunded_item_id
-                     else link.refund_income_item_id
-                 end
-                and counterpart_item.ledger_id = link.ledger_id
-               join public.account counterpart_account
-                 on counterpart_account.id = counterpart_item.account_id
-                and counterpart_account.ledger_id = counterpart_item.ledger_id
-               where link.ledger_id = old.ledger_id
-                 and (
-                     link.refund_income_item_id = old.id
-                     or link.refunded_item_id = old.id
-                 )
-                 and counterpart_account.currency is distinct from v_new_account_currency
-           ) then
-            raise exception 'refund_currency_mismatch'
-                using errcode = '22023', detail = 'refund_currency_mismatch';
-        end if;
-
-        if (v_is_reimbursement_income or v_is_reimbursement_target)
-           and exists (
-               select 1
-               from public.transaction_item_reimbursement_link link
-               join public.transaction_item counterpart_item
-                 on counterpart_item.id = case
-                     when link.reimbursement_income_item_id = old.id
-                     then link.target_expense_item_id
-                     else link.reimbursement_income_item_id
-                 end
-                and counterpart_item.ledger_id = link.ledger_id
-               join public.account counterpart_account
-                 on counterpart_account.id = counterpart_item.account_id
-                and counterpart_account.ledger_id = counterpart_item.ledger_id
-               where link.ledger_id = old.ledger_id
-                 and (
-                     link.reimbursement_income_item_id = old.id
-                     or link.target_expense_item_id = old.id
-                 )
-                 and counterpart_account.currency is distinct from v_new_account_currency
-           ) then
-            raise exception 'reimbursement_currency_mismatch'
-                using errcode = '22023', detail = 'reimbursement_currency_mismatch';
         end if;
     end if;
 
@@ -8698,6 +8790,11 @@ begin
         raise exception 'transaction_item_category_required' using errcode = '23514';
     end if;
 
+    -- 普通记录的余额来自付款明细，明细不再保存 balance_delta。
+    if (v_record_type = 'normal') = (new.balance_delta is not null) then
+        raise exception 'transaction_item_balance_delta_invalid' using errcode = '23514';
+    end if;
+
     return new;
 end;
 $$;
@@ -8719,7 +8816,7 @@ declare
     v_income_currency text;
     v_income_record_status text;
 begin
-    select c.type, a.currency, tr.status, ti.special_status
+    select c.type, public.transaction_record_currency(ti.ledger_id, ti.transaction_record_id), tr.status, ti.special_status
     into
         v_target_category_type,
         v_target_currency,
@@ -8732,13 +8829,10 @@ begin
     join public.category c
       on c.id = ti.category_id
      and c.ledger_id = ti.ledger_id
-    join public.account a
-      on a.id = ti.account_id
-     and a.ledger_id = ti.ledger_id
     where ti.id = new.target_expense_item_id
       and ti.ledger_id = new.ledger_id;
 
-    select c.type, a.currency, tr.status
+    select c.type, public.transaction_record_currency(ti.ledger_id, ti.transaction_record_id), tr.status
     into v_income_category_type, v_income_currency, v_income_record_status
     from public.transaction_item ti
     join public.transaction_record tr
@@ -8747,9 +8841,6 @@ begin
     join public.category c
       on c.id = ti.category_id
      and c.ledger_id = ti.ledger_id
-    join public.account a
-      on a.id = ti.account_id
-     and a.ledger_id = ti.ledger_id
     where ti.id = new.reimbursement_income_item_id
       and ti.ledger_id = new.ledger_id;
 
@@ -8938,6 +9029,178 @@ $$;
 ALTER FUNCTION "public"."validate_transaction_record"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."validate_transaction_record_payments"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+    v_record_ids uuid[];
+    v_record_id uuid;
+    v_record public.transaction_record;
+    v_currency text;
+    v_payment_count integer;
+    v_payment_delta_total numeric;
+    v_payment_currency_count integer;
+    v_payments_all_outflow boolean;
+    v_payment_account_id uuid;
+    v_item_delta_total numeric;
+    v_has_non_expense_item boolean;
+begin
+    if tg_table_name = 'transaction_record' then
+        v_record_ids := array[new.id];
+    elsif tg_op = 'DELETE' then
+        v_record_ids := array[old.transaction_record_id];
+    elsif tg_op = 'UPDATE' then
+        v_record_ids := array[old.transaction_record_id, new.transaction_record_id];
+    else
+        v_record_ids := array[new.transaction_record_id];
+    end if;
+
+    for v_record_id in select distinct unnest(v_record_ids)
+    loop
+        select * into v_record
+        from public.transaction_record tr
+        where tr.id = v_record_id;
+
+        -- 记录已被删除（例如删除账本）时无需检查。
+        continue when not found;
+
+        select
+            count(*)::integer,
+            coalesce(sum(p.balance_delta), 0),
+            count(distinct a.currency)::integer,
+            coalesce(bool_and(p.balance_delta = -p.amount), true),
+            min(p.account_id::text)::uuid
+        into
+            v_payment_count,
+            v_payment_delta_total,
+            v_payment_currency_count,
+            v_payments_all_outflow,
+            v_payment_account_id
+        from public.transaction_payment p
+        join public.account a
+          on a.id = p.account_id
+         and a.ledger_id = p.ledger_id
+        where p.transaction_record_id = v_record.id
+          and p.ledger_id = v_record.ledger_id;
+
+        if v_record.type <> 'normal' then
+            if v_payment_count > 0 then
+                raise exception 'payment_record_type_invalid'
+                    using errcode = '22023', detail = 'payment_record_type_invalid';
+            end if;
+            continue;
+        end if;
+
+        if v_payment_count = 0 then
+            if v_record.status = 'active' then
+                raise exception 'payment_required'
+                    using errcode = '22023', detail = 'payment_required';
+            end if;
+            continue;
+        end if;
+
+        select
+            coalesce(sum(case when c.type = 'income' then ti.amount else -ti.amount end), 0),
+            coalesce(bool_or(c.type is distinct from 'expense'), false)
+        into v_item_delta_total, v_has_non_expense_item
+        from public.transaction_item ti
+        left join public.category c
+          on c.id = ti.category_id
+         and c.ledger_id = ti.ledger_id
+        where ti.transaction_record_id = v_record.id
+          and ti.ledger_id = v_record.ledger_id;
+
+        if v_payment_delta_total <> v_item_delta_total then
+            raise exception 'payment_total_mismatch'
+                using errcode = '22023', detail = 'payment_total_mismatch';
+        end if;
+
+        if v_payment_count > 1
+           and (v_has_non_expense_item or not v_payments_all_outflow) then
+            raise exception 'payment_multi_account_not_allowed'
+                using errcode = '22023', detail = 'payment_multi_account_not_allowed';
+        end if;
+
+        if v_payment_currency_count > 1 then
+            raise exception 'payment_currency_mismatch'
+                using errcode = '22023', detail = 'payment_currency_mismatch';
+        end if;
+
+        v_currency := public.transaction_record_currency(v_record.ledger_id, v_record.id);
+
+        if exists (
+            select 1
+            from public.transaction_item ti
+            join public.transaction_item_refund_link link
+              on link.ledger_id = ti.ledger_id
+             and (link.refund_income_item_id = ti.id or link.refunded_item_id = ti.id)
+            join public.transaction_item counterpart
+              on counterpart.ledger_id = link.ledger_id
+             and counterpart.id = case
+                 when link.refund_income_item_id = ti.id then link.refunded_item_id
+                 else link.refund_income_item_id
+             end
+            where ti.transaction_record_id = v_record.id
+              and ti.ledger_id = v_record.ledger_id
+              and public.transaction_record_currency(
+                  counterpart.ledger_id,
+                  counterpart.transaction_record_id
+              ) is distinct from v_currency
+        ) then
+            raise exception 'refund_currency_mismatch'
+                using errcode = '22023', detail = 'refund_currency_mismatch';
+        end if;
+
+        if exists (
+            select 1
+            from public.transaction_item ti
+            join public.transaction_item_reimbursement_link link
+              on link.ledger_id = ti.ledger_id
+             and (
+                 link.reimbursement_income_item_id = ti.id
+                 or link.target_expense_item_id = ti.id
+             )
+            join public.transaction_item counterpart
+              on counterpart.ledger_id = link.ledger_id
+             and counterpart.id = case
+                 when link.reimbursement_income_item_id = ti.id
+                 then link.target_expense_item_id
+                 else link.reimbursement_income_item_id
+             end
+            where ti.transaction_record_id = v_record.id
+              and ti.ledger_id = v_record.ledger_id
+              and public.transaction_record_currency(
+                  counterpart.ledger_id,
+                  counterpart.transaction_record_id
+              ) is distinct from v_currency
+        ) then
+            raise exception 'reimbursement_currency_mismatch'
+                using errcode = '22023', detail = 'reimbursement_currency_mismatch';
+        end if;
+
+        -- 过渡期（#834 子 Issue 4 解除）：付款明细恰好 1 行，明细 account_id 是它的镜像。
+        -- 明细 balance_delta 为 NULL 由 validate_transaction_item_category_shape 立即校验。
+        if v_payment_count <> 1 or exists (
+            select 1
+            from public.transaction_item ti
+            where ti.transaction_record_id = v_record.id
+              and ti.ledger_id = v_record.ledger_id
+              and ti.account_id is distinct from v_payment_account_id
+        ) then
+            raise exception 'payment_transition_invalid'
+                using errcode = '22023', detail = 'payment_transition_invalid';
+        end if;
+    end loop;
+
+    return null;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."validate_transaction_record_payments"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."void_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -9108,6 +9371,8 @@ declare
     v_amount_delta_match_count integer := 0;
     v_distinct_amount_count integer := 0;
     v_balance_delta_total numeric(14,2) := 0;
+    v_account_id uuid;
+    v_account_delta numeric(14,2);
 begin
     if v_user_id is null then
         raise exception 'not_authenticated' using errcode = '28000';
@@ -9134,13 +9399,14 @@ begin
     from public.account a
     where a.ledger_id = p_ledger_id
       and a.id in (
-          select distinct ti.account_id
-          from public.transaction_item ti
-          where ti.transaction_record_id = p_transaction_record_id
-            and ti.ledger_id = p_ledger_id
+          -- 普通记录的账户来自付款明细，转账 / 余额调整来自明细。
+          select m.account_id
+          from public.transaction_account_movement m
+          where m.transaction_record_id = p_transaction_record_id
+            and m.ledger_id = p_ledger_id
       )
     order by a.id
-    for update;
+    for no key update;
 
     if v_record.type = 'balance_adjustment' and exists (
         select 1 from public.transaction_item ti join public.account a on a.id=ti.account_id and a.ledger_id=ti.ledger_id
@@ -9202,18 +9468,29 @@ begin
         for update
     loop
         v_item_count := v_item_count + 1;
-
-        perform public.apply_account_balance_delta(
-            p_ledger_id,
-            v_item.account_id,
-            -v_item.balance_delta,
-            v_user_id
-        );
     end loop;
 
     if v_item_count = 0 then
         raise exception 'transaction_item_invalid' using errcode = '22023';
     end if;
+
+    -- 按账户回滚余额；普通记录的付款明细与明细一样保留供追溯。
+    -- 余额为 0 的账户也调用一次，保持「含已归档账户的记录不可删除」。
+    for v_account_id, v_account_delta in
+        select m.account_id, sum(m.balance_delta)
+        from public.transaction_account_movement m
+        where m.transaction_record_id = p_transaction_record_id
+          and m.ledger_id = p_ledger_id
+        group by m.account_id
+        order by m.account_id
+    loop
+        perform public.apply_account_balance_delta(
+            p_ledger_id,
+            v_account_id,
+            -v_account_delta,
+            v_user_id
+        );
+    end loop;
 
     update public.transaction_record tr
     set
@@ -9555,7 +9832,7 @@ CREATE TABLE IF NOT EXISTS "public"."transaction_item" (
     "category_id" "uuid",
     "amount" numeric(14,2) DEFAULT 0 NOT NULL,
     "discount_amount" numeric(14,2) DEFAULT 0 NOT NULL,
-    "balance_delta" numeric(14,2) DEFAULT 0 NOT NULL,
+    "balance_delta" numeric(14,2),
     "note" "text",
     "sort_order" integer DEFAULT 0 NOT NULL,
     "created_by" "uuid",
@@ -9573,35 +9850,23 @@ CREATE TABLE IF NOT EXISTS "public"."transaction_item" (
 ALTER TABLE "public"."transaction_item" OWNER TO "postgres";
 
 
-CREATE TABLE IF NOT EXISTS "public"."transaction_item_refund_link" (
+CREATE TABLE IF NOT EXISTS "public"."transaction_payment" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "ledger_id" "uuid" NOT NULL,
-    "refunded_item_id" "uuid" NOT NULL,
-    "refund_income_item_id" "uuid" NOT NULL,
-    "refund_amount" numeric(14,2) NOT NULL,
+    "transaction_record_id" "uuid" NOT NULL,
+    "account_id" "uuid" NOT NULL,
+    "amount" numeric(14,2) NOT NULL,
+    "balance_delta" numeric(14,2) NOT NULL,
+    "sort_order" integer DEFAULT 0 NOT NULL,
     "created_by" "uuid",
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    CONSTRAINT "transaction_item_refund_link_different_items_check" CHECK (("refunded_item_id" <> "refund_income_item_id")),
-    CONSTRAINT "transaction_item_refund_link_refund_amount_check" CHECK (("refund_amount" > (0)::numeric))
+    CONSTRAINT "transaction_payment_amount_check" CHECK (("amount" >= (0)::numeric)),
+    CONSTRAINT "transaction_payment_delta_matches_amount_check" CHECK (("abs"("balance_delta") = "amount")),
+    CONSTRAINT "transaction_payment_sort_order_check" CHECK (("sort_order" >= 0))
 );
 
 
-ALTER TABLE "public"."transaction_item_refund_link" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."transaction_item_reimbursement_link" (
-    "ledger_id" "uuid" NOT NULL,
-    "target_expense_item_id" "uuid" NOT NULL,
-    "reimbursement_income_item_id" "uuid" NOT NULL,
-    "reimbursement_amount" numeric(14,2) NOT NULL,
-    "created_by" "uuid",
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    CONSTRAINT "transaction_item_reimbursement_link_amount_check" CHECK (("reimbursement_amount" > (0)::numeric)),
-    CONSTRAINT "transaction_item_reimbursement_link_different_items_check" CHECK (("target_expense_item_id" <> "reimbursement_income_item_id"))
-);
-
-
-ALTER TABLE "public"."transaction_item_reimbursement_link" OWNER TO "postgres";
+ALTER TABLE "public"."transaction_payment" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."transaction_record" (
@@ -9634,6 +9899,62 @@ CREATE TABLE IF NOT EXISTS "public"."transaction_record" (
 
 
 ALTER TABLE "public"."transaction_record" OWNER TO "postgres";
+
+
+CREATE OR REPLACE VIEW "public"."transaction_account_movement" WITH ("security_invoker"='true') AS
+ SELECT "p"."ledger_id",
+    "p"."transaction_record_id",
+    "p"."account_id",
+    "p"."amount",
+    "p"."balance_delta",
+    "p"."sort_order"
+   FROM ("public"."transaction_payment" "p"
+     JOIN "public"."transaction_record" "tr" ON ((("tr"."id" = "p"."transaction_record_id") AND ("tr"."ledger_id" = "p"."ledger_id"))))
+  WHERE ("tr"."type" = 'normal'::"text")
+UNION ALL
+ SELECT "ti"."ledger_id",
+    "ti"."transaction_record_id",
+    "ti"."account_id",
+    "ti"."amount",
+    "ti"."balance_delta",
+    "ti"."sort_order"
+   FROM ("public"."transaction_item" "ti"
+     JOIN "public"."transaction_record" "tr" ON ((("tr"."id" = "ti"."transaction_record_id") AND ("tr"."ledger_id" = "ti"."ledger_id"))))
+  WHERE ("tr"."type" = ANY (ARRAY['transfer'::"text", 'balance_adjustment'::"text"]));
+
+
+ALTER VIEW "public"."transaction_account_movement" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."transaction_item_refund_link" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "ledger_id" "uuid" NOT NULL,
+    "refunded_item_id" "uuid" NOT NULL,
+    "refund_income_item_id" "uuid" NOT NULL,
+    "refund_amount" numeric(14,2) NOT NULL,
+    "created_by" "uuid",
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "transaction_item_refund_link_different_items_check" CHECK (("refunded_item_id" <> "refund_income_item_id")),
+    CONSTRAINT "transaction_item_refund_link_refund_amount_check" CHECK (("refund_amount" > (0)::numeric))
+);
+
+
+ALTER TABLE "public"."transaction_item_refund_link" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."transaction_item_reimbursement_link" (
+    "ledger_id" "uuid" NOT NULL,
+    "target_expense_item_id" "uuid" NOT NULL,
+    "reimbursement_income_item_id" "uuid" NOT NULL,
+    "reimbursement_amount" numeric(14,2) NOT NULL,
+    "created_by" "uuid",
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "transaction_item_reimbursement_link_amount_check" CHECK (("reimbursement_amount" > (0)::numeric)),
+    CONSTRAINT "transaction_item_reimbursement_link_different_items_check" CHECK (("target_expense_item_id" <> "reimbursement_income_item_id"))
+);
+
+
+ALTER TABLE "public"."transaction_item_reimbursement_link" OWNER TO "postgres";
 
 
 CREATE OR REPLACE VIEW "public"."transaction_item_with_refund" WITH ("security_invoker"='true') AS
@@ -9866,6 +10187,16 @@ ALTER TABLE ONLY "public"."transaction_item_reimbursement_link"
 
 
 
+ALTER TABLE ONLY "public"."transaction_payment"
+    ADD CONSTRAINT "transaction_payment_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."transaction_payment"
+    ADD CONSTRAINT "transaction_payment_record_account_unique" UNIQUE ("transaction_record_id", "account_id");
+
+
+
 ALTER TABLE ONLY "public"."transaction_record"
     ADD CONSTRAINT "transaction_record_id_ledger_id_unique" UNIQUE ("id", "ledger_id");
 
@@ -10084,6 +10415,14 @@ CREATE INDEX "transaction_item_special_status_idx" ON "public"."transaction_item
 
 
 
+CREATE INDEX "transaction_payment_account_idx" ON "public"."transaction_payment" USING "btree" ("ledger_id", "account_id", "transaction_record_id");
+
+
+
+CREATE INDEX "transaction_payment_record_idx" ON "public"."transaction_payment" USING "btree" ("transaction_record_id", "sort_order", "id");
+
+
+
 CREATE INDEX "transaction_record_active_expense_income_idx" ON "public"."transaction_record" USING "btree" ("ledger_id", "transaction_at" DESC, "id" DESC) WHERE (("status" = 'active'::"text") AND ("type" = ANY (ARRAY['expense'::"text", 'income'::"text"])));
 
 
@@ -10256,7 +10595,7 @@ CREATE OR REPLACE TRIGGER "merchant_tags_require_management_permission" BEFORE I
 
 
 
-CREATE OR REPLACE TRIGGER "transaction_item_freeze_linked_mutation" BEFORE UPDATE OF "amount", "account_id", "category_id" ON "public"."transaction_item" FOR EACH ROW EXECUTE FUNCTION "public"."validate_linked_transaction_item_mutation"();
+CREATE OR REPLACE TRIGGER "transaction_item_freeze_linked_mutation" BEFORE UPDATE OF "amount", "category_id" ON "public"."transaction_item" FOR EACH ROW EXECUTE FUNCTION "public"."validate_linked_transaction_item_mutation"();
 
 
 
@@ -10288,7 +10627,7 @@ CREATE OR REPLACE TRIGGER "transaction_item_set_updated_at" BEFORE UPDATE ON "pu
 
 
 
-CREATE OR REPLACE TRIGGER "transaction_item_validate_category_shape" BEFORE INSERT OR UPDATE OF "ledger_id", "transaction_record_id", "category_id" ON "public"."transaction_item" FOR EACH ROW EXECUTE FUNCTION "public"."validate_transaction_item_category_shape"();
+CREATE OR REPLACE TRIGGER "transaction_item_validate_category_shape" BEFORE INSERT OR UPDATE OF "ledger_id", "transaction_record_id", "category_id", "balance_delta" ON "public"."transaction_item" FOR EACH ROW EXECUTE FUNCTION "public"."validate_transaction_item_category_shape"();
 
 
 
@@ -10325,6 +10664,18 @@ CREATE OR REPLACE TRIGGER "transaction_record_set_updated_at" BEFORE UPDATE ON "
 
 
 CREATE OR REPLACE TRIGGER "transaction_record_validate" BEFORE INSERT OR UPDATE ON "public"."transaction_record" FOR EACH ROW EXECUTE FUNCTION "public"."validate_transaction_record"();
+
+
+
+CREATE CONSTRAINT TRIGGER "validate_transaction_record_payments" AFTER INSERT OR DELETE OR UPDATE OF "amount", "category_id", "transaction_record_id", "account_id" ON "public"."transaction_item" DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION "public"."validate_transaction_record_payments"();
+
+
+
+CREATE CONSTRAINT TRIGGER "validate_transaction_record_payments" AFTER INSERT OR DELETE OR UPDATE ON "public"."transaction_payment" DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION "public"."validate_transaction_record_payments"();
+
+
+
+CREATE CONSTRAINT TRIGGER "validate_transaction_record_payments" AFTER UPDATE OF "type", "status" ON "public"."transaction_record" DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION "public"."validate_transaction_record_payments"();
 
 
 
@@ -10693,6 +11044,21 @@ ALTER TABLE ONLY "public"."transaction_item"
 
 
 
+ALTER TABLE ONLY "public"."transaction_payment"
+    ADD CONSTRAINT "transaction_payment_account_same_ledger_fk" FOREIGN KEY ("account_id", "ledger_id") REFERENCES "public"."account"("id", "ledger_id") ON DELETE RESTRICT;
+
+
+
+ALTER TABLE ONLY "public"."transaction_payment"
+    ADD CONSTRAINT "transaction_payment_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."app_user"("id");
+
+
+
+ALTER TABLE ONLY "public"."transaction_payment"
+    ADD CONSTRAINT "transaction_payment_record_same_ledger_fk" FOREIGN KEY ("transaction_record_id", "ledger_id") REFERENCES "public"."transaction_record"("id", "ledger_id") ON DELETE RESTRICT;
+
+
+
 ALTER TABLE ONLY "public"."transaction_record"
     ADD CONSTRAINT "transaction_record_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."app_user"("id");
 
@@ -10975,6 +11341,15 @@ CREATE POLICY "transaction_item_update_authorized" ON "public"."transaction_item
 
 
 
+ALTER TABLE "public"."transaction_payment" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "transaction_payment_select_active_record" ON "public"."transaction_payment" FOR SELECT TO "authenticated" USING (("public"."current_user_is_active_ledger_member"("ledger_id") AND (EXISTS ( SELECT 1
+   FROM "public"."transaction_record" "tr"
+  WHERE (("tr"."id" = "transaction_payment"."transaction_record_id") AND ("tr"."ledger_id" = "transaction_payment"."ledger_id") AND ("tr"."status" = 'active'::"text"))))));
+
+
+
 ALTER TABLE "public"."transaction_record" ENABLE ROW LEVEL SECURITY;
 
 
@@ -11068,17 +11443,17 @@ GRANT ALL ON FUNCTION "public"."complete_ledger_setup"("p_ledger_id" "uuid", "p_
 
 
 
-REVOKE ALL ON FUNCTION "public"."convert_transaction_type"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."convert_transaction_type"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."convert_transaction_type"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."convert_transaction_type"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) TO "authenticated";
 
 
 
-REVOKE ALL ON FUNCTION "public"."convert_transaction_type_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) FROM PUBLIC;
+REVOKE ALL ON FUNCTION "public"."convert_transaction_type_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) FROM PUBLIC;
 
 
 
-REVOKE ALL ON FUNCTION "public"."convert_transaction_type_with_special_status"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."convert_transaction_type_with_special_status"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."convert_transaction_type_with_special_status"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."convert_transaction_type_with_special_status"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_target_type" "text", "p_transaction_at" timestamp with time zone, "p_note" "text", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_items" "jsonb", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_transfer_amount" numeric) TO "authenticated";
 
 
 
@@ -11137,12 +11512,12 @@ GRANT ALL ON FUNCTION "public"."create_merchant_with_tags"("p_ledger_id" "uuid",
 
 
 
-REVOKE ALL ON FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_note" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_note" "text") TO "authenticated";
 
 
 
-REVOKE ALL ON FUNCTION "public"."create_transaction_locked_impl"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") FROM PUBLIC;
+REVOKE ALL ON FUNCTION "public"."create_transaction_locked_impl"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_note" "text") FROM PUBLIC;
 
 
 
@@ -11399,6 +11774,10 @@ GRANT ALL ON FUNCTION "public"."reorder_merchants"("p_ledger_id" "uuid", "p_merc
 
 
 
+REVOKE ALL ON FUNCTION "public"."replace_transaction_payments"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_payments" "jsonb", "p_user_id" "uuid") FROM PUBLIC;
+
+
+
 REVOKE ALL ON FUNCTION "public"."revoke_ledger_invite"("p_ledger_id" "uuid", "p_invite_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."revoke_ledger_invite"("p_ledger_id" "uuid", "p_invite_id" "uuid") TO "authenticated";
 
@@ -11415,6 +11794,14 @@ GRANT ALL ON FUNCTION "public"."set_merchant_preferred_alias"("p_ledger_id" "uui
 
 
 REVOKE ALL ON FUNCTION "public"."sync_account_name_scope"("p_account_id" "uuid") FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."transaction_payment_account_ids"("p_ledger_id" "uuid", "p_payments" "jsonb") FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."transaction_record_currency"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid") FROM PUBLIC;
 
 
 
@@ -11448,17 +11835,17 @@ GRANT ALL ON FUNCTION "public"."update_ledger_setup_basic_info"("p_ledger_id" "u
 
 
 
-REVOKE ALL ON FUNCTION "public"."update_linked_transaction_edit"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_merchant_id" "uuid", "p_note" "text", "p_item_updates" "jsonb") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."update_linked_transaction_edit"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_merchant_id" "uuid", "p_note" "text", "p_item_updates" "jsonb") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."update_linked_transaction_edit"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_merchant_id" "uuid", "p_note" "text", "p_item_updates" "jsonb", "p_payments" "jsonb", "p_expected_record_updated_at" timestamp with time zone) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."update_linked_transaction_edit"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_merchant_id" "uuid", "p_note" "text", "p_item_updates" "jsonb", "p_payments" "jsonb", "p_expected_record_updated_at" timestamp with time zone) TO "authenticated";
 
 
 
-REVOKE ALL ON FUNCTION "public"."update_linked_transaction_item"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_account_id" "uuid", "p_category_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."update_linked_transaction_item"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_account_id" "uuid", "p_category_id" "uuid") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."update_linked_transaction_item"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_category_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."update_linked_transaction_item"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_category_id" "uuid") TO "authenticated";
 
 
 
-REVOKE ALL ON FUNCTION "public"."update_linked_transaction_item_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_account_id" "uuid", "p_category_id" "uuid") FROM PUBLIC;
+REVOKE ALL ON FUNCTION "public"."update_linked_transaction_item_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_category_id" "uuid") FROM PUBLIC;
 
 
 
@@ -11467,12 +11854,12 @@ GRANT ALL ON FUNCTION "public"."update_merchant_with_tags"("p_ledger_id" "uuid",
 
 
 
-REVOKE ALL ON FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_note" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_note" "text") TO "authenticated";
 
 
 
-REVOKE ALL ON FUNCTION "public"."update_transaction_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_account_id" "uuid", "p_merchant_id" "uuid", "p_note" "text") FROM PUBLIC;
+REVOKE ALL ON FUNCTION "public"."update_transaction_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_note" "text") FROM PUBLIC;
 
 
 
@@ -11509,6 +11896,10 @@ REVOKE ALL ON FUNCTION "public"."validate_transaction_item_reimbursement_link"()
 
 
 REVOKE ALL ON FUNCTION "public"."validate_transaction_item_special_status"() FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."validate_transaction_record_payments"() FROM PUBLIC;
 
 
 
@@ -11598,6 +11989,19 @@ GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_item" 
 
 
 
+GRANT SELECT ON TABLE "public"."transaction_payment" TO "authenticated";
+
+
+
+GRANT SELECT,INSERT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."transaction_record" TO "authenticated";
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_record" TO "service_role";
+
+
+
+GRANT SELECT ON TABLE "public"."transaction_account_movement" TO "authenticated";
+
+
+
 GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_item_refund_link" TO "anon";
 GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_item_refund_link" TO "authenticated";
 GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_item_refund_link" TO "service_role";
@@ -11607,11 +12011,6 @@ GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_item_r
 GRANT REFERENCES,TRIGGER,MAINTAIN ON TABLE "public"."transaction_item_reimbursement_link" TO "anon";
 GRANT SELECT,REFERENCES,TRIGGER,MAINTAIN ON TABLE "public"."transaction_item_reimbursement_link" TO "authenticated";
 GRANT REFERENCES,TRIGGER,MAINTAIN ON TABLE "public"."transaction_item_reimbursement_link" TO "service_role";
-
-
-
-GRANT SELECT,INSERT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."transaction_record" TO "authenticated";
-GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_record" TO "service_role";
 
 
 

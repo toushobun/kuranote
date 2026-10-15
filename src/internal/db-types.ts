@@ -20,7 +20,8 @@ export type TransactionItemDbRow = {
   category_id: string | null;
   amount: string;
   business_net_amount?: string;
-  balance_delta?: string;
+  // 普通记录为 NULL（余额来自 transaction_payment，#911）。
+  balance_delta?: string | null;
   note?: string | null;
   special_status?: TransactionSpecialStatusStorageValue | null;
   refunded_amount?: string;
@@ -117,4 +118,17 @@ export type LedgerInviteDbRow = {
   revoked_by: string | null;
   role: string;
   token_hash: string;
+};
+
+// 从本地 Supabase 生成的 transaction_payment 行类型。
+export type TransactionPaymentDbRow = {
+  account_id: string;
+  amount: number;
+  balance_delta: number;
+  created_at: string;
+  created_by: string | null;
+  id: string;
+  ledger_id: string;
+  sort_order: number;
+  transaction_record_id: string;
 };

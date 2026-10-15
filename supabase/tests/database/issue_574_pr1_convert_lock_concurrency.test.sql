@@ -33,6 +33,8 @@ begin
             '57494000-0000-4000-8000-000000000001',
             '57494000-0000-4000-8000-000000000002'
         );
+        delete from public.transaction_payment
+        where transaction_record_id = '57493000-0000-4000-8000-000000000001';
         delete from public.transaction_record
         where id = '57493000-0000-4000-8000-000000000001';
 
@@ -129,7 +131,12 @@ begin
             'income',
             '2099-03-10 00:01:00+00'::timestamptz,
             'Issue 574 PR1 类型转换 ledger-first',
-            '00000000-0000-4000-8000-000000000043',
+            jsonb_build_array(
+                jsonb_build_object(
+                    'accountId',
+                    '00000000-0000-4000-8000-000000000043'
+                )
+            ),
             '00000000-0000-4000-8000-000000001013',
             jsonb_build_array(
                 jsonb_build_object(
@@ -234,6 +241,8 @@ begin
             '57494000-0000-4000-8000-000000000001',
             '57494000-0000-4000-8000-000000000002'
         );
+        delete from public.transaction_payment
+        where transaction_record_id = '57493000-0000-4000-8000-000000000001';
         delete from public.transaction_record
         where id = '57493000-0000-4000-8000-000000000001';
         $cleanup$

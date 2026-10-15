@@ -264,12 +264,12 @@ create index transaction_payment_account_idx
 
 ```text
 ledger（需要时）→ transaction_record（稳定顺序）→ transaction_item / 关联目标（稳定顺序）
-  → account（旧付款账户 ∪ 新付款账户，按 UUID 一次性 FOR UPDATE）
+  → account（旧付款账户 ∪ 新付款账户，按 UUID 一次性 FOR NO KEY UPDATE，理由见 3.9）
 ```
 
 | 流程                                           | 余额处理                                                                                                                                                                                                                                                                                                                                      |
 | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 创建                                           | 校验 payload → 写 record → 写明细与关联 → 按 UUID 锁账户 → 写付款明细 → 按账户聚合 `balance_delta`，以 UUID 顺序调用 `apply_account_balance_delta`。                                                                                                                                                                                          |
+| 创建                                           | 校验 payload → 写 record → 写明细 → 按 UUID 锁账户 → 写付款明细 → 按账户聚合 `balance_delta`，以 UUID 顺序调用 `apply_account_balance_delta` → 建立关联（关联的币种校验读取付款账户，见 3.9）。                                                                                                                                               |
 | 编辑（`update_transaction`）                   | 锁 record → 锁明细 / 关联目标 → 读旧付款明细 → 按 UUID 锁「旧 ∪ 新」账户 → 旧账户中有已归档的就拒绝（`account_invalid`，与现在「含归档账户不可编辑」一致）→ 删除旧付款明细、写入新付款明细（整组替换；付款行没有外部引用）→ 每个账户算 `Σ新 balance_delta − Σ旧 balance_delta`，只对非 0 差额按 UUID 顺序调用 `apply_account_balance_delta`。 |
 | 删除（`void_transaction`）                     | 锁 record → 按 UUID 锁付款账户 → 每行回滚 `-balance_delta` → 标记 `deleted`，付款明细保留。转账 / 余额调整路径不变。                                                                                                                                                                                                                          |
 | 类型转换（normal ⇄ transfer）                  | 现在已按 UUID 锁「旧 ∪ 新」账户，只需把普通记录一侧的账户集合改为付款明细。normal → transfer：回滚并删除付款明细，再按现有逻辑写转账明细。transfer → normal：删除转账明细，按 `p_payments` 写付款明细。`_with_special_status` 内部对 `update_transaction` 的第二次调用改为透传 `p_payments`。                                                 |
@@ -299,6 +299,19 @@ ledger（需要时）→ transaction_record（稳定顺序）→ transaction_ite
 - **migration 不做回填。** 生产环境没有数据（Issue 评论第 2 点）。`supabase db reset` 先回放 migrations 再执行 seed，所以 migration 回填对 seed 无效。为了让已有本地库（未 reset）不至于在第一次编辑时报 `payment_required`，子 Issue 1 的 migration **附带**一段幂等的 `insert … select`：按普通记录的明细账户，生成「每笔一行、`balance_delta = Σ明细 ±金额`」的付款明细（已有付款明细的记录跳过），生产环境上为空操作。
 - **`supabase/seed.sql`：** 子 Issue 1 给每笔普通记录显式插入一行付款明细，明细的 `balance_delta` 改为 NULL（过渡期内 `account_id` 保持镜像）。子 Issue 4 删除明细中的 `account_id`，并新增 1～2 笔多账户示例（例如 Amazon「礼品卡 + 信用卡」、医院「我的账户 + 妻子账户」），供人工验收使用。
 - **pgTAP（`supabase/tests/database/*.test.sql`）：** 约 30 个文件直接 `insert into public.transaction_item`。子 Issue 1 新增共享 helper（例如测试 schema 中的 `tests.insert_normal_transaction(...)`），一次写入 record、明细、付款明细，各文件改为调用它，不各自复制插入语句（AI_RULES 的复用规则同样适用于测试代码）。涉及延迟约束的断言显式执行 `set constraints … immediate`。
+
+### 3.9 子 Issue 1 实现注记（#911）
+
+实现时对本节以上内容做了以下补充，理由逐条记录：
+
+- **账户锁用 `FOR NO KEY UPDATE`。** 写明细（过渡期镜像 `account_id`）和付款明细时，外键检查会对账户行取 `KEY SHARE`。显式 `FOR UPDATE` 与 `KEY SHARE` 冲突：两个事务在 A、B 之间反向切换付款账户时，各自先写明细取得对方要锁的账户的 `KEY SHARE`，再按 UUID 加 `FOR UPDATE`，会互相等待而死锁（`transaction_payment_account_lock_concurrency.sh` 在 `FOR UPDATE` 下可复现）。`FOR NO KEY UPDATE` 与余额 `UPDATE` 本身的锁等级相同，不与 `KEY SHARE` 冲突，按 UUID 一次性取得即可。类型转换与删除的账户锁一并改为 `FOR NO KEY UPDATE`。
+- **创建 / 编辑先写付款明细再建关联。** 关联的币种校验改为看付款账户（`transaction_record_currency`），所以付款明细必须先于 `apply_transaction_item_links` 写入。这与现有 `update_transaction` 的顺序相同（先处理余额、再建关联）；建关联的路径都先持有 ledger 锁，账户锁与关联目标锁之间不会形成交叉等待。
+- **过渡期 `transaction_item.account_id` 保持 NOT NULL。** 过渡期内每条普通明细都写镜像，改为 nullable 只会让读取方的类型变成可空，与本期「行为不变」无关。改为 nullable 与最终状态约束一起移到子 Issue 4。`balance_delta` 已改为 nullable 并去掉默认值。
+- **明细 `balance_delta` 的形态由 `validate_transaction_item_category_shape` 立即校验**（`23514`，`transaction_item_balance_delta_invalid`）：普通记录必须为 NULL，转账 / 余额调整必须非空。3.2 表中 `payment_transition_invalid` 只负责「恰好 1 行」和「明细账户镜像等于付款账户」，因此延迟触发器在 `transaction_item` 上额外监听 `account_id`。
+- **新增内部函数 `transaction_payment_account_ids(p_ledger_id, p_payments)`**：解析付款账户（`payment_required` / `account_invalid` / `payment_account_duplicate`），创建 / 编辑 / 类型转换（取镜像账户、确定锁集合）与 `replace_transaction_payments` 共用，不各自复制解析逻辑。多账户缺金额为 `payment_amount_required`，金额格式错误为 `amount_invalid`。
+- **`p_expected_record_updated_at` 默认 NULL，NULL 时只做明细级版本校验。** 记录版本要等子 Issue 2 由 Service 传入；本期 Repository 传 NULL，已关联编辑仍由每条明细的 `expectedUpdatedAt` 保护。直接调用 RPC 的一方不传时也只是放弃记录级乐观锁，不影响数据一致性。
+- **Repository 输入类型本期不改。** `CreateNormalTransactionInput` 等仍为 `accountId`，Repository 内部转换为 `p_payments: [{ accountId }]`；导入经同一 Repository，不需要改动。`payments` 类型随子 Issue 2 的 `TransactionPayment` 一起引入。已关联编辑的 Repository 输入把 `accountId` 从明细移到记录级（RPC 签名要求）。
+- **测试 helper 放在 `supabase/seeds/test_helpers.sql`（`tests` schema）。** pgTAP 与本地 seed 都依赖 seed 数据，`db reset` / `supabase start` 会先加载它；不进入 migrations。提供 `tests.insert_normal_transaction_items(jsonb)`（按 `transaction_item` 列名直接写明细并补齐付款明细）、`tests.sync_normal_transaction_payments(uuid[])`、`tests.current_transaction_payments(uuid)`，以及按旧参数经 `update_linked_transaction_edit` 提交的 `tests.update_linked_transaction_item(...)`。seed 中的普通明细 `balance_delta` 改为 NULL，并调用 `tests.sync_normal_transaction_payments()` 生成付款明细。
 
 ## 4. 受影响的 RPC / Service / UI 清单
 
