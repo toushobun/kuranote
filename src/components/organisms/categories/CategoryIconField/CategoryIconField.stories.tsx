@@ -1,20 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useState } from "react";
 import { userEvent, within } from "storybook/test";
-import { UserThemeProvider } from "theme/UserThemeProvider";
 
 import { CategoryIconField } from "./CategoryIconField";
 
 const meta = {
   title: "Organisms/Categories/CategoryIconField",
   component: CategoryIconField,
-  decorators: [
-    (Story) => (
-      <UserThemeProvider>
-        <Story />
-      </UserThemeProvider>
-    ),
-  ],
   args: { onChange: () => {}, value: "🍜" },
   render: function CategoryIconFieldStory() {
     const [value, setValue] = useState("🍜");

@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { UserThemeProvider } from "theme/UserThemeProvider";
 import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import { BalanceAdjustmentEditForm } from "./BalanceAdjustmentEditForm";
 const meta = {
@@ -7,11 +6,9 @@ const meta = {
   title: "Organisms/Transactions/BalanceAdjustmentEditForm",
   decorators: [
     (Story) => (
-      <UserThemeProvider>
-        <ConfirmDialogProvider>
-          <Story />
-        </ConfirmDialogProvider>
-      </UserThemeProvider>
+      <ConfirmDialogProvider>
+        <Story />
+      </ConfirmDialogProvider>
     ),
   ],
   args: {

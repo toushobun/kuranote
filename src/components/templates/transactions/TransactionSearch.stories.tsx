@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { UserThemeProvider } from "theme/UserThemeProvider";
 import type { TransactionListItem } from "types/transactions";
 
 import { TransactionSearchTemplate } from "./TransactionSearch";
@@ -33,13 +32,6 @@ const longTextItem = createStoryItem({
 const meta = {
   title: "Templates/Transactions/TransactionSearchTemplate",
   component: TransactionSearchTemplate,
-  decorators: [
-    (Story) => (
-      <UserThemeProvider>
-        <Story />
-      </UserThemeProvider>
-    ),
-  ],
   args: {
     errorMessage: null,
     initialPage: {

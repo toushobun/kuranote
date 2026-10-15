@@ -2,7 +2,6 @@ import BookmarkRoundedIcon from "@mui/icons-material/BookmarkRounded";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { UserThemeProvider } from "theme/UserThemeProvider";
 
 import {
   ActionPromptDialog,
@@ -15,13 +14,6 @@ import {
 
 const meta = {
   title: "Molecules/UI/OperationFeedbackDialogs",
-  decorators: [
-    (Story) => (
-      <UserThemeProvider>
-        <Story />
-      </UserThemeProvider>
-    ),
-  ],
 } satisfies Meta;
 
 export default meta;

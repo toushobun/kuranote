@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import type { CSSProperties } from "react";
 
-import { UserThemeProvider } from "theme/UserThemeProvider";
 import { getUserThemeCssVariables } from "theme/userThemeCssVariables";
 import { userThemeKeys, userThemeTokens } from "theme/userThemeTokens";
 import type {
@@ -361,13 +360,6 @@ function createThemePreviewStyle(themeKey: (typeof userThemeKeys)[number]) {
 const meta = {
   title: "Templates/Transactions/TransactionsTemplate",
   component: TransactionsTemplate,
-  decorators: [
-    (Story) => (
-      <UserThemeProvider>
-        <Story />
-      </UserThemeProvider>
-    ),
-  ],
   args: {
     errorMessage: null,
     loadGroupItemsAction,

@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { UserThemeProvider } from "theme/UserThemeProvider";
 import {
   familyLedgerId,
   failedDisplayNameAction,
@@ -13,13 +12,6 @@ import { ProfileNicknameDialog } from "./ProfileNicknameDialog";
 const meta = {
   title: "Organisms/Settings/ProfileNicknameDialog",
   component: ProfileNicknameDialog,
-  decorators: [
-    (Story) => (
-      <UserThemeProvider>
-        <Story />
-      </UserThemeProvider>
-    ),
-  ],
   args: {
     action: succeededDisplayNameAction,
     currentDisplayName: "淞文",

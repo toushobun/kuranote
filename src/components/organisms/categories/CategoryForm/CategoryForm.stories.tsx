@@ -1,19 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, userEvent, within } from "storybook/test";
-import { UserThemeProvider } from "theme/UserThemeProvider";
 
 import { CategoryForm } from "./CategoryForm";
 
 const meta = {
   title: "Organisms/Categories/CategoryForm",
   component: CategoryForm,
-  decorators: [
-    (Story) => (
-      <UserThemeProvider>
-        <Story />
-      </UserThemeProvider>
-    ),
-  ],
   args: {
     createCategoryAction: async () => {},
     parentOptions: [

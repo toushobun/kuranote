@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { UserThemeProvider } from "theme/UserThemeProvider";
 import {
   failedDisplayNameAction,
   familyLedgerId,
@@ -21,13 +20,6 @@ import { SettingsProfileTemplate } from "./SettingsProfile";
 const meta = {
   title: "Templates/Settings/SettingsProfileTemplate",
   component: SettingsProfileTemplate,
-  decorators: [
-    (Story) => (
-      <UserThemeProvider>
-        <Story />
-      </UserThemeProvider>
-    ),
-  ],
   args: {
     changePasswordAction: succeededChangePasswordAction,
     currentLedgerId: familyLedgerId,

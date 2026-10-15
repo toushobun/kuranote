@@ -5,19 +5,11 @@ import {
 } from "config/categoryEmojis";
 import { useState } from "react";
 import { expect, userEvent, within } from "storybook/test";
-import { UserThemeProvider } from "theme/UserThemeProvider";
 import { GroupedIconPicker } from "./GroupedIconPicker";
 
 const meta = {
   title: "Molecules/UI/GroupedIconPicker",
   component: GroupedIconPicker,
-  decorators: [
-    (Story) => (
-      <UserThemeProvider>
-        <Story />
-      </UserThemeProvider>
-    ),
-  ],
   args: {
     fieldLabel: "记录图标",
     helperText: "选择用于记录的图标。",

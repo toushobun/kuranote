@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { UserThemeProvider } from "theme/UserThemeProvider";
 import type { AccountHolderOption, Account } from "types/accounts";
 
 import { AccountsTemplate } from "./Accounts";
@@ -53,13 +52,6 @@ const accounts: Account[] = [
 const meta = {
   title: "Templates/Accounts/AccountsTemplate",
   component: AccountsTemplate,
-  decorators: [
-    (Story) => (
-      <UserThemeProvider>
-        <Story />
-      </UserThemeProvider>
-    ),
-  ],
   args: {
     accounts,
     archiveAccountAction: async () => ({}),

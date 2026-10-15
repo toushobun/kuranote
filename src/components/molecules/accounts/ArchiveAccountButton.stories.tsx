@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
-import { UserThemeProvider } from "theme/UserThemeProvider";
 
 import { ArchiveAccountButton } from "./ArchiveAccountButton";
 
@@ -10,11 +9,9 @@ const meta = {
   component: ArchiveAccountButton,
   decorators: [
     (Story) => (
-      <UserThemeProvider>
-        <ConfirmDialogProvider>
-          <Story />
-        </ConfirmDialogProvider>
-      </UserThemeProvider>
+      <ConfirmDialogProvider>
+        <Story />
+      </ConfirmDialogProvider>
     ),
   ],
 } satisfies Meta<typeof ArchiveAccountButton>;

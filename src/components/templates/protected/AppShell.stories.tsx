@@ -54,4 +54,8 @@ export const UserTheme: Story = {
   args: {
     themeKey: "lavenderDream",
   },
+  // 全局 decorator 的 UserThemeProvider 与 AppShell 内部主题保持一致，避免 <html> 被重置为默认主题。
+  parameters: {
+    userTheme: { initialThemeKey: "lavenderDream" },
+  },
 };
