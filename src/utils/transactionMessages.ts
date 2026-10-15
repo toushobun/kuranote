@@ -28,6 +28,10 @@ export const transactionItemsSectionMessages = {
   title: "收支明细",
 } as const;
 
+export const transactionAccountSectionMessages = {
+  title: "账户",
+} as const;
+
 const transactionLinkKindLabels = {
   refund: "退款",
   reimbursement: "报销",
@@ -35,11 +39,18 @@ const transactionLinkKindLabels = {
 
 export type TransactionLinkKind = keyof typeof transactionLinkKindLabels;
 
+function formatLinkKindLabels(kinds: readonly TransactionLinkKind[]) {
+  return kinds.map((kind) => transactionLinkKindLabels[kind]).join("、");
+}
+
 export const transactionLinkMessages = {
   accountCurrencyChanged: (kinds: readonly TransactionLinkKind[]) =>
-    `账户币种已变更，已清除币种不一致的${kinds
-      .map((kind) => transactionLinkKindLabels[kind])
-      .join("、")}关联，请重新选择。`,
+    `账户币种已变更，已清除币种不一致的${formatLinkKindLabels(kinds)}关联，请重新选择。`,
+  // 已保存的关联不能在普通保存中解除（#574），切换到其他币种账户前需先解除关联。
+  savedLinkCurrencyLocked: (kinds: readonly TransactionLinkKind[]) =>
+    `该明细已关联${formatLinkKindLabels(kinds)}，账户需与原支出币种一致；如需更换为其他币种的账户，请先解除关联。`,
+  candidateAccountRequired: (kind: TransactionLinkKind) =>
+    `请先选择账户，再选择${transactionLinkKindLabels[kind]}明细。`,
   candidateCurrencyMismatch: (kind: TransactionLinkKind) =>
     `${transactionLinkKindLabels[kind]}明细必须与收款账户币种一致，请重新选择。`,
   candidateCurrencyMismatchReason: (currency: string) =>

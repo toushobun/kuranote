@@ -19,6 +19,7 @@ import { transactionSetupHintMessages } from "config/transactionMessages";
 import { TransactionDateTimePicker } from "molecules/transactions/TransactionDateTimePicker";
 import { TransactionFormHeader } from "organisms/transactions/TransactionFormHeader/TransactionFormHeader";
 import { getMerchantInitial } from "utils/merchants";
+import { transactionAccountSectionMessages } from "utils/transactionMessages";
 import { TransactionSetupHintCard } from "../TransactionSetupHintCard/TransactionSetupHintCard";
 import { getNormalTransactionSetupHint } from "../TransactionSetupHintCard/transactionSetupHint";
 import { TransactionItemPickerDrawer } from "../TransactionItemPickerDrawer/TransactionItemPickerDrawer";
@@ -267,7 +268,7 @@ export function TransactionForm({
         </Box>
 
         <Box ref={accountFieldRef} sx={selectionFieldGroupSx}>
-          <SectionTitle>付款账户</SectionTitle>
+          <SectionTitle>{transactionAccountSectionMessages.title}</SectionTitle>
           <TextField
             disabled={hasNoAccount}
             error={!!fieldErrors.account}

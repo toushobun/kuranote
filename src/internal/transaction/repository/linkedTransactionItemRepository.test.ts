@@ -234,6 +234,7 @@ describe("LinkedTransactionItemRepository", () => {
     await expect(repository.update(updateInput)).rejects.toMatchObject({
       code: transactionErrorCodes.reimbursementLinkInvalid,
       name: ValidationError.name,
+      message: transactionLinkedEditErrorMessages.reimbursementCurrencyMismatch,
     });
   });
 });

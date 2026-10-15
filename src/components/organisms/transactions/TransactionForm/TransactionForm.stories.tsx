@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { expect, userEvent, within } from "storybook/test";
 
 import {
   accountsCreateHref,
@@ -160,6 +161,63 @@ export const EditIncomeMode: Story = {
     },
     submitLabel: "保存修改",
     title: "编辑记账",
+  },
+};
+
+const usdAccount = {
+  id: "00000000-0000-4000-8000-000000000047",
+  name: "美元账户",
+  currency: "USD",
+};
+
+export const EditIncomeWithSavedRefundLink: Story = {
+  name: "编辑已保存退款关联的收入并切换为其他币种账户",
+  args: {
+    accountOptions: [...accountOptions, usdAccount],
+    formId: "edit-transaction-form",
+    initialValues: {
+      accountId: "00000000-0000-4000-8000-000000000045",
+      items: [
+        {
+          amount: "500",
+          categoryId: "00000000-0000-4000-8000-000000005074",
+          expectedUpdatedAt: "2026-06-05T03:20:10.000Z",
+          id: "00000000-0000-4000-8000-000000008001",
+          refundCandidate: {
+            accountCurrency: "JPY",
+            accountId: "00000000-0000-4000-8000-000000000045",
+            amount: "1200",
+            categoryName: "餐饮",
+            id: "00000000-0000-4000-8000-000000008002",
+            parentCategoryName: "食材/调料",
+            refundedAmount: "500",
+            remainingRefundableAmount: "700",
+            transactionAt: "2026-06-01T03:20:10.000Z",
+            transactionRecordId: "00000000-0000-4000-8000-000000009004",
+          },
+        },
+      ],
+      merchantId: "00000000-0000-4000-8000-000000001001",
+      note: "",
+      transactionAt: "2026-06-05T03:20:10.000Z",
+      transactionRecordId: "00000000-0000-4000-8000-000000009003",
+      type: "income",
+    },
+    submitLabel: "保存修改",
+    title: "编辑记账",
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const body = within(canvasElement.ownerDocument.body);
+    await userEvent.click(canvas.getByRole("combobox", { name: "账户" }));
+    await userEvent.click(
+      await body.findByRole("option", { name: "美元账户（USD）" }),
+    );
+    await expect(
+      await canvas.findByText(
+        "该明细已关联退款，账户需与原支出币种一致；如需更换为其他币种的账户，请先解除关联。",
+      ),
+    ).toBeInTheDocument();
   },
 };
 

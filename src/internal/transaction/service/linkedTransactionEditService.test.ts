@@ -515,6 +515,8 @@ describe("LinkedTransactionEditService", () => {
       service.updateNormal(currentLedger, input),
     ).rejects.toMatchObject({
       code: transactionErrorCodes.refundLinkInvalid,
+      message:
+        "该明细已关联退款，账户需与原支出币种一致；如需更换为其他币种的账户，请先解除关联。",
       name: ValidationError.name,
     });
   });
@@ -553,6 +555,8 @@ describe("LinkedTransactionEditService", () => {
       service.updateNormal(currentLedger, input),
     ).rejects.toMatchObject({
       code: transactionErrorCodes.reimbursementLinkInvalid,
+      message:
+        "该明细已关联报销，账户需与原支出币种一致；如需更换为其他币种的账户，请先解除关联。",
       name: ValidationError.name,
     });
   });
