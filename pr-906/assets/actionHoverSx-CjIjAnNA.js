@@ -1,0 +1,1 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";var t,n=e((()=>{t={"&:focus-visible":{backgroundColor:`action.hover`},"@media (hover: hover)":{"&:hover":{backgroundColor:`action.hover`}}}}));export{n,t};

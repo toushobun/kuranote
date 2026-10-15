@@ -1,0 +1,3 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";import{t}from"./jsx-runtime-Dwpk6tgA.js";import{n,t as r}from"./ConfirmDialogProvider-BPjXtPT-.js";import{n as i,t as a}from"./ArchiveAccountButton-B1Gl_TGm.js";var o,s,c,l;e((()=>{o=t(),n(),i(),s={title:`Molecules/Accounts/ArchiveAccountButton`,component:a,decorators:[e=>(0,o.jsx)(r,{children:(0,o.jsx)(e,{})})]},c={name:`归档按钮`},c.parameters={...c.parameters,docs:{...c.parameters?.docs,source:{originalSource:`{
+  name: "归档按钮"
+}`,...c.parameters?.docs?.source}}},l=[`Default`]}))();export{c as Default,l as __namedExportsOrder,s as default};
