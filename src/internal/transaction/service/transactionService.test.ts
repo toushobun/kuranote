@@ -432,9 +432,16 @@ describe("TransactionService", () => {
   });
 
   it("member 可以修改自己创建的交易", async () => {
-    const { repository, service } = createService("member");
+    const { accountQueryService, repository, service } =
+      createService("member");
     await service.updateNormal({ ...normalInput, transactionRecordId });
     expect(repository.updateNormal).toHaveBeenCalledOnce();
+    expect(
+      accountQueryService.listTransactionOptions,
+    ).toHaveBeenCalledExactlyOnceWith({
+      ledgerId,
+      userId,
+    });
   });
 
   it("普通交易引用已归档账户时服务端拒绝绕过页面编辑", async () => {
@@ -474,6 +481,7 @@ describe("TransactionService", () => {
       name: ValidationError.name,
     });
     expect(repository.updateNormal).not.toHaveBeenCalled();
+    expect(accountQueryService.listTransactionOptions).toHaveBeenCalledOnce();
   });
 
   it("member 不能修改他人创建的交易", async () => {
@@ -551,6 +559,12 @@ describe("TransactionService", () => {
       name: ValidationError.name,
     });
     expect(repository.updateTransfer).not.toHaveBeenCalled();
+    expect(
+      accountQueryService.listTransactionOptions,
+    ).toHaveBeenCalledExactlyOnceWith({
+      ledgerId,
+      userId,
+    });
   });
 
   it.each(["owner", "admin"] as const)(
@@ -721,7 +735,7 @@ describe("付款明细校验（create / update / convert）", () => {
       },
       transactionRepository: repository,
     });
-    return { repository, service };
+    return { accountQueryService, repository, service };
   }
 
   const multiAccountPayments = [
@@ -729,18 +743,30 @@ describe("付款明细校验（create / update / convert）", () => {
     { accountId: secondAccountId, amount: "700" },
   ];
 
-  it("新建交易时合法的多账户付款明细透传给 Repository", async () => {
-    const { repository, service } = createMultiAccountService();
-    const input = {
-      ...normalInput,
-      items: [{ ...normalInput.items[0], amount: 1200 }],
-      payments: multiAccountPayments,
-    };
+  it.each(["createNormal", "updateNormal", "convert"] as const)(
+    "%s 只查询一次账户选项并透传合法多账户付款明细",
+    async (method) => {
+      const { accountQueryService, repository, service } =
+        createMultiAccountService();
+      const input = {
+        ...normalInput,
+        items: [{ ...normalInput.items[0], amount: 1200 }],
+        payments: multiAccountPayments,
+        targetType: "expense" as const,
+        transactionRecordId,
+      };
 
-    await service.createNormal(input);
+      await service[method](input);
 
-    expect(repository.createNormal).toHaveBeenCalledWith(input);
-  });
+      expect(repository[method]).toHaveBeenCalledWith(input);
+      expect(
+        accountQueryService.listTransactionOptions,
+      ).toHaveBeenCalledExactlyOnceWith({
+        ledgerId,
+        userId,
+      });
+    },
+  );
 
   it("新建交易时付款合计与支出明细合计不一致被拒绝", async () => {
     const { repository, service } = createMultiAccountService();
@@ -888,20 +914,6 @@ describe("付款明细校验（create / update / convert）", () => {
       name: ValidationError.name,
     });
     expect(repository.createNormal).not.toHaveBeenCalled();
-  });
-
-  it("编辑交易时校验付款明细后再透传给 Repository", async () => {
-    const { repository, service } = createMultiAccountService();
-    const input = {
-      ...normalInput,
-      items: [{ ...normalInput.items[0], amount: 1200 }],
-      payments: multiAccountPayments,
-      transactionRecordId,
-    };
-
-    await service.updateNormal(input);
-
-    expect(repository.updateNormal).toHaveBeenCalledWith(input);
   });
 
   it("类型转换为普通交易时校验付款明细", async () => {

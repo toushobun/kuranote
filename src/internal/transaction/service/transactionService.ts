@@ -11,7 +11,7 @@ import {
   canWriteTransaction,
 } from "internal/ledger";
 import type { CurrentLedger } from "internal/ledger";
-import type { AccountQueryService } from "internal/account";
+import type { AccountQueryService, AccountSummary } from "internal/account";
 import type { CategoryQueryService } from "internal/category";
 import {
   requireActiveLedgerMemberRole,
@@ -323,19 +323,14 @@ export function createTransactionService({
     }
   }
 
-  async function requireActiveTransactionAccounts(input: {
+  function requireActiveTransactionAccounts(input: {
     accountIds: string[];
+    accountOptions: AccountSummary[];
     existingAccountIds: string[];
-    ledgerId: string;
   }) {
-    const userId = requireTransactionUserId(currentUserId);
-    const accountOptions = await accountQueryService.listTransactionOptions({
-      ledgerId: input.ledgerId,
-      userId,
-    });
     const accountIds = [...input.accountIds, ...input.existingAccountIds];
 
-    if (!areAccountIdsAvailable(accountIds, accountOptions)) {
+    if (!areAccountIdsAvailable(accountIds, input.accountOptions)) {
       throw new ValidationError(
         transactionErrorCodes.accountInvalid,
         transactionValidationErrorMessages[
@@ -351,28 +346,23 @@ export function createTransactionService({
    * 约束触发器一致（docs/design/issue-834-split-payment.md 3.2）。
    */
   async function requireValidTransactionPayments(input: {
+    accountOptions: AccountSummary[];
     items: CreateNormalTransactionInput["items"];
     ledgerId: string;
     payments: TransactionPayment[];
   }) {
     const userId = requireTransactionUserId(currentUserId);
-    const [accountOptions, categories] = await Promise.all([
-      accountQueryService.listTransactionOptions({
-        ledgerId: input.ledgerId,
-        userId,
-      }),
-      categoryQueryService.findSummariesByIds({
-        categoryIds: [...new Set(input.items.map((item) => item.categoryId))],
-        ledgerId: input.ledgerId,
-        userId,
-      }),
-    ]);
+    const categories = await categoryQueryService.findSummariesByIds({
+      categoryIds: [...new Set(input.items.map((item) => item.categoryId))],
+      ledgerId: input.ledgerId,
+      userId,
+    });
     const categoryTypeById = new Map(
       categories.map((category) => [category.id, category.type]),
     );
 
     const result = validateTransactionPayments({
-      accountOptions,
+      accountOptions: input.accountOptions,
       items: input.items.map((item) => ({
         amount: item.amount,
         categoryType: categoryTypeById.get(item.categoryId) ?? null,
@@ -410,7 +400,14 @@ export function createTransactionService({
       );
       if (input.targetType !== "transfer") {
         await validateSpecialStatuses(input);
+        const accountOptions = await accountQueryService.listTransactionOptions(
+          {
+            ledgerId: input.ledgerId,
+            userId: requireTransactionUserId(currentUserId),
+          },
+        );
         await requireValidTransactionPayments({
+          accountOptions,
           items: input.items,
           ledgerId: input.ledgerId,
           payments: input.payments,
@@ -426,7 +423,12 @@ export function createTransactionService({
     async createNormal(input) {
       await requireWritePermission(input.ledgerId);
       await validateSpecialStatuses(input);
+      const accountOptions = await accountQueryService.listTransactionOptions({
+        ledgerId: input.ledgerId,
+        userId: requireTransactionUserId(currentUserId),
+      });
       await requireValidTransactionPayments({
+        accountOptions,
         items: input.items,
         ledgerId: input.ledgerId,
         payments: input.payments,
@@ -571,7 +573,12 @@ export function createTransactionService({
         input.transactionRecordId,
       );
       await validateSpecialStatuses(input);
+      const accountOptions = await accountQueryService.listTransactionOptions({
+        ledgerId: input.ledgerId,
+        userId: requireTransactionUserId(currentUserId),
+      });
       await requireValidTransactionPayments({
+        accountOptions,
         items: input.items,
         ledgerId: input.ledgerId,
         payments: input.payments,
@@ -580,12 +587,12 @@ export function createTransactionService({
         input.ledgerId,
         [input.transactionRecordId],
       );
-      await requireActiveTransactionAccounts({
+      requireActiveTransactionAccounts({
         accountIds: input.payments.map((payment) => payment.accountId),
+        accountOptions,
         existingAccountIds: existingPayments.map(
           (payment) => payment.account_id,
         ),
-        ledgerId: input.ledgerId,
       });
       try {
         await transactionRepository.updateNormal(input);
@@ -625,10 +632,14 @@ export function createTransactionService({
         input.ledgerId,
         [input.transactionRecordId],
       );
-      await requireActiveTransactionAccounts({
-        accountIds: [input.accountId, input.transferTargetAccountId],
-        existingAccountIds: existingItems.map((item) => item.account_id),
+      const accountOptions = await accountQueryService.listTransactionOptions({
         ledgerId: input.ledgerId,
+        userId: requireTransactionUserId(currentUserId),
+      });
+      requireActiveTransactionAccounts({
+        accountIds: [input.accountId, input.transferTargetAccountId],
+        accountOptions,
+        existingAccountIds: existingItems.map((item) => item.account_id),
       });
       try {
         await transactionRepository.updateTransfer(input);
