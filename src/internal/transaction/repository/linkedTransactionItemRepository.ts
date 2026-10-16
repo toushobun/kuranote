@@ -27,20 +27,14 @@ export type LinkedTransactionItemEditSnapshot = {
   updatedAt: string;
 };
 
-export type UpdateLinkedTransactionItemInput = {
-  amount: number;
-  categoryId: string;
-  expectedUpdatedAt: string;
-  ledgerId: string;
-  transactionItemId: string;
-  transactionRecordId: string;
-};
-
 export type UpdateLinkedTransactionEditInput = {
   accountId: string;
-  itemUpdates: Array<
-    Omit<UpdateLinkedTransactionItemInput, "ledgerId" | "transactionRecordId">
-  >;
+  itemUpdates: Array<{
+    amount: number;
+    categoryId: string;
+    expectedUpdatedAt: string;
+    transactionItemId: string;
+  }>;
   ledgerId: string;
   merchantId: string;
   note: string | null;
@@ -53,7 +47,6 @@ export interface LinkedTransactionItemRepository {
     ledgerId: string,
     transactionItemId: string,
   ): Promise<LinkedTransactionItemEditSnapshot | null>;
-  update(input: UpdateLinkedTransactionItemInput): Promise<void>;
   updateEdit(input: UpdateLinkedTransactionEditInput): Promise<void>;
 }
 
@@ -252,24 +245,6 @@ export function createSupabaseLinkedTransactionItemRepository(
         transactionRecordId: row.transaction_record_id,
         updatedAt: row.updated_at,
       };
-    },
-
-    async update(input) {
-      const { error } = await supabase.rpc("update_linked_transaction_item", {
-        p_amount: input.amount,
-        p_category_id: input.categoryId,
-        p_expected_updated_at: input.expectedUpdatedAt,
-        p_ledger_id: input.ledgerId,
-        p_transaction_item_id: input.transactionItemId,
-        p_transaction_record_id: input.transactionRecordId,
-      });
-      if (error) {
-        throwRpcError(error, {
-          ledgerId: input.ledgerId,
-          transactionItemId: input.transactionItemId,
-          transactionRecordId: input.transactionRecordId,
-        });
-      }
     },
 
     async updateEdit(input) {

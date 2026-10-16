@@ -75,6 +75,11 @@ select ok(
     and not has_function_privilege('authenticated', 'public.validate_transaction_record_payments()', 'execute'),
     '付款明细内部函数不可由客户端直接调用'
 );
+select ok(
+    not has_function_privilege('authenticated', 'public.update_linked_transaction_item(uuid,uuid,uuid,timestamptz,numeric,uuid)', 'execute')
+    and has_function_privilege('authenticated', 'public.update_linked_transaction_edit(uuid,uuid,timestamptz,uuid,text,jsonb,jsonb,timestamptz)', 'execute'),
+    '旧的已关联明细入口不再开放给客户端，只能经记录级 update_linked_transaction_edit 调用'
+);
 
 set local role authenticated;
 select set_config(

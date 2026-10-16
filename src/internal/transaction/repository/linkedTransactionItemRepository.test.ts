@@ -15,7 +15,6 @@ import {
 import {
   createSupabaseLinkedTransactionItemRepository,
   type UpdateLinkedTransactionEditInput,
-  type UpdateLinkedTransactionItemInput,
 } from "internal/transaction/repository/linkedTransactionItemRepository";
 
 const ledgerId = "00000000-0000-4000-8000-000000000032";
@@ -77,15 +76,6 @@ function rpcFailure(details: string, code = "P0001") {
   };
 }
 
-const updateInput: UpdateLinkedTransactionItemInput = {
-  amount: 80,
-  categoryId,
-  expectedUpdatedAt: updatedAt,
-  ledgerId,
-  transactionItemId,
-  transactionRecordId,
-};
-
 const updateEditInput: UpdateLinkedTransactionEditInput = {
   accountId,
   itemUpdates: [
@@ -119,21 +109,6 @@ describe("LinkedTransactionItemRepository", () => {
     });
   });
 
-  it("原子编辑 RPC 传递新值和 expectedUpdatedAt", async () => {
-    const { repository, rpc } = createRepository();
-
-    await repository.update(updateInput);
-
-    expect(rpc).toHaveBeenCalledWith("update_linked_transaction_item", {
-      p_amount: 80,
-      p_category_id: categoryId,
-      p_expected_updated_at: updatedAt,
-      p_ledger_id: ledgerId,
-      p_transaction_item_id: transactionItemId,
-      p_transaction_record_id: transactionRecordId,
-    });
-  });
-
   it("完整编辑 RPC 在一次调用中传递明细修改、交易头字段与单账户付款明细", async () => {
     const { repository, rpc } = createRepository();
 
@@ -162,23 +137,12 @@ describe("LinkedTransactionItemRepository", () => {
     });
   });
 
-  it("updated_at 不一致映射为稳定 ConflictError", async () => {
-    const { repository } = createRepository({
-      rpcResult: rpcFailure("transaction_item_version_conflict"),
-    });
-
-    await expect(repository.update(updateInput)).rejects.toMatchObject({
-      code: "update_invalid",
-      name: ConflictError.name,
-    });
-  });
-
   it("数据库未认证错误映射为 AuthenticationError", async () => {
     const { repository } = createRepository({
       rpcResult: rpcFailure("not_authenticated", "28000"),
     });
 
-    await expect(repository.update(updateInput)).rejects.toBeInstanceOf(
+    await expect(repository.updateEdit(updateEditInput)).rejects.toBeInstanceOf(
       AuthenticationError,
     );
   });
@@ -188,7 +152,7 @@ describe("LinkedTransactionItemRepository", () => {
       rpcResult: rpcFailure("ledger_forbidden", "42501"),
     });
 
-    await expect(repository.update(updateInput)).rejects.toBeInstanceOf(
+    await expect(repository.updateEdit(updateEditInput)).rejects.toBeInstanceOf(
       AuthorizationError,
     );
   });
@@ -198,7 +162,7 @@ describe("LinkedTransactionItemRepository", () => {
       rpcResult: rpcFailure("transaction_not_found", "22023"),
     });
 
-    await expect(repository.update(updateInput)).rejects.toBeInstanceOf(
+    await expect(repository.updateEdit(updateEditInput)).rejects.toBeInstanceOf(
       NotFoundError,
     );
   });
@@ -208,7 +172,7 @@ describe("LinkedTransactionItemRepository", () => {
       rpcResult: rpcFailure(transactionErrorCodes.accountInvalid, "22023"),
     });
 
-    await expect(repository.update(updateInput)).rejects.toMatchObject({
+    await expect(repository.updateEdit(updateEditInput)).rejects.toMatchObject({
       code: transactionErrorCodes.accountInvalid,
       name: ValidationError.name,
     });
@@ -219,7 +183,7 @@ describe("LinkedTransactionItemRepository", () => {
       rpcResult: rpcFailure("refund_currency_mismatch", "22023"),
     });
 
-    await expect(repository.update(updateInput)).rejects.toMatchObject({
+    await expect(repository.updateEdit(updateEditInput)).rejects.toMatchObject({
       code: transactionErrorCodes.refundLinkInvalid,
       name: ValidationError.name,
       message: transactionLinkedEditErrorMessages.refundCurrencyMismatch,
@@ -231,7 +195,7 @@ describe("LinkedTransactionItemRepository", () => {
       rpcResult: rpcFailure("reimbursement_currency_mismatch", "22023"),
     });
 
-    await expect(repository.update(updateInput)).rejects.toMatchObject({
+    await expect(repository.updateEdit(updateEditInput)).rejects.toMatchObject({
       code: transactionErrorCodes.reimbursementLinkInvalid,
       name: ValidationError.name,
       message: transactionLinkedEditErrorMessages.reimbursementCurrencyMismatch,

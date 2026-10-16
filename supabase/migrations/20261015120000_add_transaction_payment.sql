@@ -2195,8 +2195,9 @@ $$;
 
 revoke all on function public.update_linked_transaction_edit(uuid, uuid, timestamptz, uuid, text, jsonb, jsonb, timestamptz) from public, anon, authenticated, service_role;
 grant execute on function public.update_linked_transaction_edit(uuid, uuid, timestamptz, uuid, text, jsonb, jsonb, timestamptz) to authenticated;
+-- 只改明细金额、不处理付款明细，单独调用改金额必然在提交时 payment_total_mismatch，不再作为公开入口。
+-- 仅由 update_linked_transaction_edit（SECURITY DEFINER，以所有者执行）在内部调用。
 revoke all on function public.update_linked_transaction_item(uuid, uuid, uuid, timestamptz, numeric, uuid) from public, anon, authenticated, service_role;
-grant execute on function public.update_linked_transaction_item(uuid, uuid, uuid, timestamptz, numeric, uuid) to authenticated;
 revoke all on function public.update_linked_transaction_item_locked_impl(uuid, uuid, uuid, timestamptz, numeric, uuid) from public, anon, authenticated, service_role;
 
 -- ============================================================

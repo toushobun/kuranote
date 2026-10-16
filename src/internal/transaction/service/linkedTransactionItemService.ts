@@ -17,7 +17,6 @@ import type {
   LinkedTransactionItemEditSnapshot,
   LinkedTransactionItemRepository,
   UpdateLinkedTransactionEditInput,
-  UpdateLinkedTransactionItemInput,
 } from "internal/transaction/repository/linkedTransactionItemRepository";
 
 export type LinkedTransactionItemServiceDependencies = {
@@ -33,7 +32,6 @@ export interface LinkedTransactionItemService {
     transactionItemId: string;
     transactionRecordId: string;
   }): Promise<LinkedTransactionItemEditSnapshot>;
-  update(input: UpdateLinkedTransactionItemInput): Promise<void>;
   updateEdit(input: UpdateLinkedTransactionEditInput): Promise<void>;
 }
 
@@ -107,14 +105,6 @@ export function createLinkedTransactionItemService({
         );
       }
       return snapshot;
-    },
-
-    async update(input) {
-      await requireModificationPermission(
-        input.ledgerId,
-        input.transactionRecordId,
-      );
-      await linkedTransactionItemRepository.update(input);
     },
 
     async updateEdit(input) {

@@ -11841,7 +11841,6 @@ GRANT ALL ON FUNCTION "public"."update_linked_transaction_edit"("p_ledger_id" "u
 
 
 REVOKE ALL ON FUNCTION "public"."update_linked_transaction_item"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_category_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."update_linked_transaction_item"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_category_id" "uuid") TO "authenticated";
 
 
 
