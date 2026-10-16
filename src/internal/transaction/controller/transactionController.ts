@@ -35,7 +35,12 @@ export const createTransactionHandler = async (
       transferTargetAccountId: input.transferTargetAccountId,
     });
   } else {
-    await service.createNormal(input);
+    // JSON API 本期仍是单账户；payments 的多账户解析只在表单入口实现（3.4 过渡期）。
+    const { accountId, ...transaction } = input;
+    await service.createNormal({
+      ...transaction,
+      payments: [{ accountId, amount: null }],
+    });
   }
   revalidateTransactionMutation();
   return c.json({ ok: true as const }, 201);
@@ -69,9 +74,14 @@ export const updateTransactionHandler = async (
         ledgerId: input.ledgerId,
         userId,
       });
+    const { accountId, ...transaction } = input;
     await container.transaction.linkedTransactionEditService.updateNormal(
       currentLedger,
-      { ...input, transactionRecordId },
+      {
+        ...transaction,
+        payments: [{ accountId, amount: null }],
+        transactionRecordId,
+      },
     );
   }
   revalidateTransactionMutation();
@@ -85,10 +95,19 @@ export const convertTransactionHandler = async (
   }>,
 ) => {
   requireAuthenticatedUserId(c.get("requestDependencies").auth);
-  await c.get("container").transaction.service.convert({
-    ...c.req.valid("json"),
-    transactionRecordId: c.req.valid("param").transactionRecordId,
-  });
+  const input = c.req.valid("json");
+  const transactionRecordId = c.req.valid("param").transactionRecordId;
+  const service = c.get("container").transaction.service;
+  if (input.targetType === "transfer") {
+    await service.convert({ ...input, transactionRecordId });
+  } else {
+    const { accountId, ...transaction } = input;
+    await service.convert({
+      ...transaction,
+      payments: [{ accountId, amount: null }],
+      transactionRecordId,
+    });
+  }
   revalidateTransactionMutation();
   return c.json({ ok: true as const }, 200);
 };

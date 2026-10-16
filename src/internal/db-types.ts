@@ -11,6 +11,16 @@ export type TransactionRecordDbRow = {
   note: string | null;
   created_by?: string | null;
   created_at: string;
+  updated_at?: string;
+};
+
+// 从本地 Supabase 生成的 transaction_payment 行类型。金额字段与 TransactionItemDbRow 一样用 string。
+export type TransactionPaymentDbRow = {
+  account_id: string;
+  amount: string;
+  balance_delta: string;
+  sort_order: number;
+  transaction_record_id: string;
 };
 
 export type TransactionItemDbRow = {

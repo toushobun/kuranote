@@ -17,9 +17,10 @@ import {
   transactionWriteErrorMessages,
 } from "internal/transaction/errors";
 import { findRpcErrorCode } from "internal/transaction/repository/rpcError";
+import type { TransactionPayment } from "internal/transaction/entity/transactionPayment";
+import { toTransactionPaymentRpcPayload } from "internal/transaction/util/transactionPaymentRpcPayload";
 
 export type LinkedTransactionItemEditSnapshot = {
-  accountId: string;
   amount: string;
   categoryId: string;
   transactionItemId: string;
@@ -28,7 +29,7 @@ export type LinkedTransactionItemEditSnapshot = {
 };
 
 export type UpdateLinkedTransactionEditInput = {
-  accountId: string;
+  expectedRecordUpdatedAt?: string;
   itemUpdates: Array<{
     amount: number;
     categoryId: string;
@@ -38,6 +39,7 @@ export type UpdateLinkedTransactionEditInput = {
   ledgerId: string;
   merchantId: string;
   note: string | null;
+  payments: TransactionPayment[];
   transactionAt: string;
   transactionRecordId: string;
 };
@@ -51,7 +53,6 @@ export interface LinkedTransactionItemRepository {
 }
 
 type LinkedTransactionItemRow = {
-  account_id: string;
   amount: number | string;
   category_id: string | null;
   id: string;
@@ -83,6 +84,12 @@ const linkedEditRpcErrorCodes = [
   "refund_currency_mismatch",
   "reimbursement_currency_mismatch",
   "linked_transaction_edit_forbidden",
+  transactionErrorCodes.paymentAccountDuplicate,
+  transactionErrorCodes.paymentAmountRequired,
+  transactionErrorCodes.paymentCurrencyMismatch,
+  transactionErrorCodes.paymentMultiAccountNotAllowed,
+  transactionErrorCodes.paymentTotalMismatch,
+  transactionErrorCodes.paymentTransitionInvalid,
 ] as const;
 
 type LinkedEditLogContext = {
@@ -197,6 +204,42 @@ export function createSupabaseLinkedTransactionItemRepository(
         transactionLinkedEditErrorMessages.itemNotEditable,
       );
     }
+    if (rpcErrorCode === transactionErrorCodes.paymentAccountDuplicate) {
+      throw new ValidationError(
+        rpcErrorCode,
+        transactionWriteErrorMessages.paymentAccountDuplicate,
+      );
+    }
+    if (rpcErrorCode === transactionErrorCodes.paymentTotalMismatch) {
+      throw new ValidationError(
+        rpcErrorCode,
+        transactionWriteErrorMessages.paymentTotalMismatch,
+      );
+    }
+    if (rpcErrorCode === transactionErrorCodes.paymentMultiAccountNotAllowed) {
+      throw new ValidationError(
+        rpcErrorCode,
+        transactionWriteErrorMessages.paymentMultiAccountNotAllowed,
+      );
+    }
+    if (rpcErrorCode === transactionErrorCodes.paymentCurrencyMismatch) {
+      throw new ValidationError(
+        rpcErrorCode,
+        transactionWriteErrorMessages.paymentCurrencyMismatch,
+      );
+    }
+    if (rpcErrorCode === transactionErrorCodes.paymentAmountRequired) {
+      throw new ValidationError(
+        rpcErrorCode,
+        transactionWriteErrorMessages.paymentAmountRequired,
+      );
+    }
+    if (rpcErrorCode === transactionErrorCodes.paymentTransitionInvalid) {
+      throw new ValidationError(
+        rpcErrorCode,
+        transactionWriteErrorMessages.paymentTransitionInvalid,
+      );
+    }
     if (
       rpcErrorCode === "transaction_at_invalid" ||
       rpcErrorCode === "linked_edit_items_invalid" ||
@@ -217,9 +260,7 @@ export function createSupabaseLinkedTransactionItemRepository(
     async findEditSnapshot(ledgerId, transactionItemId) {
       const { data, error } = await supabase
         .from("transaction_item")
-        .select(
-          "id, transaction_record_id, account_id, category_id, amount, updated_at",
-        )
+        .select("id, transaction_record_id, category_id, amount, updated_at")
         .eq("ledger_id", ledgerId)
         .eq("id", transactionItemId)
         .maybeSingle();
@@ -238,7 +279,6 @@ export function createSupabaseLinkedTransactionItemRepository(
       const row = data as LinkedTransactionItemRow;
       if (!row.category_id) return null;
       return {
-        accountId: row.account_id,
         amount: String(row.amount),
         categoryId: row.category_id,
         transactionItemId: row.id,
@@ -249,13 +289,12 @@ export function createSupabaseLinkedTransactionItemRepository(
 
     async updateEdit(input) {
       const { error } = await supabase.rpc("update_linked_transaction_edit", {
-        // 记录版本由 #834 子 Issue 2 接入；NULL 时 RPC 只做明细级版本校验。
-        p_expected_record_updated_at: null,
+        p_expected_record_updated_at: input.expectedRecordUpdatedAt ?? null,
         p_item_updates: input.itemUpdates,
         p_ledger_id: input.ledgerId,
         p_merchant_id: input.merchantId,
         p_note: input.note,
-        p_payments: [{ accountId: input.accountId }],
+        p_payments: toTransactionPaymentRpcPayload(input.payments),
         p_transaction_at: input.transactionAt,
         p_transaction_record_id: input.transactionRecordId,
       });

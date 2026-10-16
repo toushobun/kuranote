@@ -48,7 +48,6 @@ type ReimbursementLinkRow = {
 };
 
 type LinkedItemRow = {
-  account_id: string;
   amount: string;
   category_id: string | null;
   id: string;
@@ -60,6 +59,11 @@ type LinkedItemRow = {
 type TransactionAtRow = {
   id: string;
   transaction_at: string;
+};
+
+type FirstPaymentAccountRow = {
+  account_id: string;
+  transaction_record_id: string;
 };
 
 export function createSupabaseTransactionIncomeLinkRepository(
@@ -128,7 +132,7 @@ export function createSupabaseTransactionIncomeLinkRepository(
           : await supabase
               .from("transaction_item_with_refund")
               .select(
-                "id, transaction_record_id, account_id, category_id, amount, refunded_amount, reimbursement_amount",
+                "id, transaction_record_id, category_id, amount, refunded_amount, reimbursement_amount",
               )
               .eq("ledger_id", ledgerId)
               .in("id", linkedItemIds);
@@ -145,20 +149,40 @@ export function createSupabaseTransactionIncomeLinkRepository(
       const transactionRecordIds = [
         ...new Set(refundedItems.map((item) => item.transaction_record_id)),
       ];
-      const recordResult =
+      const [recordResult, paymentResult] =
         transactionRecordIds.length === 0
-          ? { data: [] as TransactionAtRow[], error: null }
-          : await supabase
-              .from("transaction_record")
-              .select("id, transaction_at")
-              .eq("ledger_id", ledgerId)
-              .eq("status", "active")
-              .in("id", transactionRecordIds);
+          ? [
+              { data: [] as TransactionAtRow[], error: null },
+              { data: [] as FirstPaymentAccountRow[], error: null },
+            ]
+          : await Promise.all([
+              supabase
+                .from("transaction_record")
+                .select("id, transaction_at")
+                .eq("ledger_id", ledgerId)
+                .eq("status", "active")
+                .in("id", transactionRecordIds),
+              // 关联对方（普通记录）的账户改读付款明细：首个付款账户即可代表
+              // 记录币种（不变量保证同笔记录的付款账户同币种）。
+              supabase
+                .from("transaction_payment")
+                .select("account_id, transaction_record_id")
+                .eq("ledger_id", ledgerId)
+                .in("transaction_record_id", transactionRecordIds)
+                .order("sort_order", { ascending: true }),
+            ]);
 
       if (recordResult.error) {
         throwLoadError(
           "failed to load linked transaction records",
           recordResult.error.code,
+          ledgerId,
+        );
+      }
+      if (paymentResult.error) {
+        throwLoadError(
+          "failed to load linked transaction payments",
+          paymentResult.error.code,
           ledgerId,
         );
       }
@@ -169,9 +193,23 @@ export function createSupabaseTransactionIncomeLinkRepository(
           record.transaction_at,
         ]),
       );
+      const firstAccountIdByRecordId = new Map<string, string>();
+      for (const payment of (paymentResult.data ??
+        []) as FirstPaymentAccountRow[]) {
+        if (!firstAccountIdByRecordId.has(payment.transaction_record_id)) {
+          firstAccountIdByRecordId.set(
+            payment.transaction_record_id,
+            payment.account_id,
+          );
+        }
+      }
       const linkedItemById = new Map(
         refundedItems.flatMap((item) => {
-          const linkedItem = buildLinkedItem(item, transactionAtByRecordId);
+          const linkedItem = buildLinkedItem(
+            item,
+            transactionAtByRecordId,
+            firstAccountIdByRecordId,
+          );
           return linkedItem ? [[linkedItem.id, linkedItem] as const] : [];
         }),
       );
@@ -222,12 +260,14 @@ export function createSupabaseTransactionIncomeLinkRepository(
 function buildLinkedItem(
   item: LinkedItemRow,
   transactionAtByRecordId: Map<string, string>,
+  firstAccountIdByRecordId: Map<string, string>,
 ): TransactionIncomeLinkedItem | null {
   const transactionAt = transactionAtByRecordId.get(item.transaction_record_id);
-  if (!transactionAt || !item.category_id) return null;
+  const accountId = firstAccountIdByRecordId.get(item.transaction_record_id);
+  if (!transactionAt || !item.category_id || !accountId) return null;
 
   return {
-    accountId: item.account_id,
+    accountId,
     amount: item.amount,
     categoryId: item.category_id,
     id: item.id,

@@ -37,10 +37,10 @@ describe("\u4EA4\u6613\u521B\u5EFA\u6821\u9A8C", () => {
       expect(validateTransactionForm(createFormData())).toEqual({
         ok: true,
         value: {
-          accountId,
           items: [{ amount: 1200, categoryId }],
           merchantId,
           note: "测试记录",
+          payments: [{ accountId, amount: null }],
           transactionAt: "2026-06-04T01:30:05.000Z",
           type: "expense",
         },
@@ -89,10 +89,10 @@ describe("\u4EA4\u6613\u521B\u5EFA\u6821\u9A8C", () => {
       ).toEqual({
         ok: true,
         value: {
-          accountId,
           items: [{ amount: 0, categoryId }],
           merchantId,
           note: "测试记录",
+          payments: [{ accountId, amount: null }],
           transactionAt: "2026-06-04T01:30:05.000Z",
           type: "expense",
         },
@@ -114,13 +114,13 @@ describe("\u4EA4\u6613\u521B\u5EFA\u6821\u9A8C", () => {
       expect(validateTransactionForm(formData)).toEqual({
         ok: true,
         value: {
-          accountId,
           items: [
             { amount: 1200, categoryId },
             { amount: 45, categoryId: secondCategoryId },
           ],
           merchantId,
           note: "测试记录",
+          payments: [{ accountId, amount: null }],
           transactionAt: "2026-06-04T01:30:05.000Z",
           type: "expense",
         },
@@ -413,10 +413,10 @@ describe("validateConvertTransactionTypeForm", () => {
     expect(validateConvertTransactionTypeForm(createNormalFormData())).toEqual({
       ok: true,
       value: {
-        accountId,
         items: [{ amount: 1200, categoryId }],
         merchantId,
         note: "转换记录",
+        payments: [{ accountId, amount: null }],
         transactionAt: "2026-06-04T01:30:05.000Z",
         transactionRecordId,
         type: "expense",
@@ -433,10 +433,10 @@ describe("validateConvertTransactionTypeForm", () => {
     ).toEqual({
       ok: true,
       value: {
-        accountId,
         items: [{ amount: 1200, categoryId }],
         merchantId,
         note: "转换记录",
+        payments: [{ accountId, amount: null }],
         transactionAt: "2026-06-04T01:30:05.000Z",
         transactionRecordId,
         type: "income",
@@ -508,13 +508,13 @@ describe("\u4EA4\u6613\u8868\u5355\u8FB9\u754C\u6821\u9A8C", () => {
       expect(result).toEqual({
         ok: true,
         value: {
-          accountId,
           items: [
             { amount: 1200, categoryId },
             { amount: 0, categoryId: secondCategoryId },
           ],
           merchantId,
           note: "测试备注",
+          payments: [{ accountId, amount: null }],
           transactionAt: "2026-06-05T03:20:10.000Z",
           type: "expense",
         },
@@ -629,13 +629,13 @@ describe("\u4EA4\u6613\u8868\u5355\u8FB9\u754C\u6821\u9A8C", () => {
       expect(validateUpdateTransactionForm(formData)).toEqual({
         ok: true,
         value: {
-          accountId,
           items: [
             { amount: 1200, categoryId },
             { amount: 45, categoryId: secondCategoryId },
           ],
           merchantId,
           note: "测试备注",
+          payments: [{ accountId, amount: null }],
           transactionAt: "2026-06-05T03:20:10.000Z",
           transactionRecordId,
           type: "expense",
@@ -875,10 +875,10 @@ describe("validateUpdateTransactionForm", () => {
     expect(validateUpdateTransactionForm(createFormData())).toEqual({
       ok: true,
       value: {
-        accountId,
         items: [{ amount: 1200, categoryId }],
         merchantId,
         note: "测试记录",
+        payments: [{ accountId, amount: null }],
         transactionAt: "2026-06-04T01:30:05.000Z",
         transactionRecordId,
         type: "expense",
@@ -891,10 +891,10 @@ describe("validateUpdateTransactionForm", () => {
     ).toEqual({
       ok: true,
       value: {
-        accountId,
         items: [{ amount: 1200, categoryId }],
         merchantId,
         note: "测试记录",
+        payments: [{ accountId, amount: null }],
         transactionAt: "2026-06-04T01:30:05.000Z",
         transactionRecordId,
         type: "income",
@@ -918,6 +918,130 @@ describe("validateUpdateTransactionForm", () => {
     ).toEqual({
       error: "update_invalid",
       ok: false,
+    });
+  });
+});
+
+describe("付款明细表单解析", () => {
+  const accountId1 = "00000000-0000-4000-8000-000000000051";
+  const accountId2 = "00000000-0000-4000-8000-000000000052";
+  const categoryId = "00000000-0000-4000-8000-000000000101";
+  const merchantId = "00000000-0000-4000-8000-000000001001";
+
+  function createMultiAccountFormData(overrides: {
+    paymentAccountId?: string[];
+    paymentAmount?: string[];
+  }) {
+    const formData = new FormData();
+    formData.set("type", "expense");
+    formData.set("transactionAt", "2026-06-04T10:30:05");
+    formData.set("timeZoneOffsetMinutes", "-540");
+    formData.set("accountId", accountId1);
+    formData.append("itemCategoryId", categoryId);
+    formData.append("itemAmount", "120");
+    formData.set("merchantId", merchantId);
+    formData.set("note", "共同支付");
+    for (const value of overrides.paymentAccountId ?? [
+      accountId1,
+      accountId2,
+    ]) {
+      formData.append("paymentAccountId", value);
+    }
+    for (const value of overrides.paymentAmount ?? ["50", "70"]) {
+      formData.append("paymentAmount", value);
+    }
+    return formData;
+  }
+
+  it("没有 paymentAccountId 字段时沿用 accountId 作为单账户", () => {
+    const formData = new FormData();
+    formData.set("type", "expense");
+    formData.set("transactionAt", "2026-06-04T10:30:05");
+    formData.set("timeZoneOffsetMinutes", "-540");
+    formData.set("accountId", accountId1);
+    formData.append("itemCategoryId", categoryId);
+    formData.append("itemAmount", "120");
+    formData.set("merchantId", merchantId);
+    formData.set("note", "单账户");
+
+    expect(validateTransactionForm(formData)).toMatchObject({
+      ok: true,
+      value: { payments: [{ accountId: accountId1, amount: null }] },
+    });
+  });
+
+  it("解析 paymentAccountId[] / paymentAmount[] 为多账户付款明细", () => {
+    const formData = createMultiAccountFormData({});
+
+    expect(validateTransactionForm(formData)).toMatchObject({
+      ok: true,
+      value: {
+        payments: [
+          { accountId: accountId1, amount: "50" },
+          { accountId: accountId2, amount: "70" },
+        ],
+      },
+    });
+  });
+
+  it("多账户金额为空时返回 paymentAmountRequired", () => {
+    const formData = createMultiAccountFormData({
+      paymentAmount: ["50", ""],
+    });
+
+    expect(validateTransactionForm(formData)).toEqual({
+      error: transactionErrorCodes.paymentAmountRequired,
+      ok: false,
+    });
+  });
+
+  it("多账户金额格式不正确时返回 amountInvalid", () => {
+    const formData = createMultiAccountFormData({
+      paymentAmount: ["50", "abc"],
+    });
+
+    expect(validateTransactionForm(formData)).toEqual({
+      error: transactionErrorCodes.amountInvalid,
+      ok: false,
+    });
+  });
+
+  it("只有一个 paymentAccountId 时返回 accountInvalid", () => {
+    const formData = createMultiAccountFormData({
+      paymentAccountId: [accountId1],
+      paymentAmount: ["120"],
+    });
+
+    expect(validateTransactionForm(formData)).toEqual({
+      error: transactionErrorCodes.accountInvalid,
+      ok: false,
+    });
+  });
+
+  it("paymentAccountId 与 paymentAmount 数量不一致时返回 accountInvalid", () => {
+    const formData = createMultiAccountFormData({
+      paymentAmount: ["50"],
+    });
+
+    expect(validateTransactionForm(formData)).toEqual({
+      error: transactionErrorCodes.accountInvalid,
+      ok: false,
+    });
+  });
+
+  it("允许多账户金额为 0 元的行", () => {
+    const formData = createMultiAccountFormData({
+      paymentAmount: ["0", "120"],
+    });
+
+    expect(validateTransactionForm(formData)).toMatchObject({
+      ok: true,
+      value: {
+        payments: [
+          { accountId: accountId1, amount: "0" },
+          { accountId: accountId2, amount: "120" },
+        ],
+      },
     });
   });
 });

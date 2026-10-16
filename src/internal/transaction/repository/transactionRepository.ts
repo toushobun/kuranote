@@ -13,8 +13,10 @@ import type {
   CategorySummaryDbRow,
   LedgerMemberDisplaySettingDbRow,
   TransactionItemDbRow,
+  TransactionPaymentDbRow,
   TransactionRecordDbRow,
 } from "internal/db-types";
+import type { TransactionPayment } from "internal/transaction/entity/transactionPayment";
 import {
   transactionAccessErrorMessages,
   transactionErrorCodes,
@@ -38,6 +40,7 @@ import type {
 } from "internal/transaction/schema";
 import { balanceAdjustmentErrorMessages } from "internal/transaction/errors";
 import { findRpcErrorCode } from "internal/transaction/repository/rpcError";
+import { toTransactionPaymentRpcPayload } from "internal/transaction/util/transactionPaymentRpcPayload";
 import { isThemeColorKey } from "theme/themeColorTokens";
 import { chunkArray } from "utils/collections";
 
@@ -68,12 +71,20 @@ type TransactionItemRepositoryRow = Omit<
   reimbursement_amount?: number | string | null;
 };
 
+type TransactionPaymentRepositoryRow = Omit<
+  TransactionPaymentDbRow,
+  "amount" | "balance_delta"
+> & {
+  amount: number | string;
+  balance_delta: number | string;
+};
+
 export type CreateNormalTransactionInput = {
-  accountId: string;
   items: TransactionItemInput[];
   ledgerId: string;
   merchantId: string;
   note: string | null;
+  payments: TransactionPayment[];
   transactionAt: string;
   type: TransactionType;
 };
@@ -208,6 +219,11 @@ export interface TransactionFormRepository {
     transactionRecordIds: string[],
     page?: { offset: number; limit: number },
   ): Promise<TransactionItemDbRow[]>;
+  listPayments(
+    ledgerId: string,
+    transactionRecordIds: string[],
+    page?: { offset: number; limit: number },
+  ): Promise<TransactionPaymentDbRow[]>;
   loadFrequentCategoryCounts(
     input: FrequentCategoryHistoryQuery,
   ): Promise<FrequentCategoryCount[]>;
@@ -295,6 +311,12 @@ const transactionRpcErrorCodes = [
   "income_links_create_only",
   "linked_transaction_edit_forbidden",
   "reimbursement_link_exists",
+  transactionErrorCodes.paymentAccountDuplicate,
+  transactionErrorCodes.paymentAmountRequired,
+  transactionErrorCodes.paymentCurrencyMismatch,
+  transactionErrorCodes.paymentMultiAccountNotAllowed,
+  transactionErrorCodes.paymentTotalMismatch,
+  transactionErrorCodes.paymentTransitionInvalid,
 ] as const;
 
 export function createSupabaseTransactionRepository(
@@ -499,6 +521,48 @@ export function createSupabaseTransactionRepository(
       );
     }
 
+    if (rpcErrorCode === transactionErrorCodes.paymentAccountDuplicate) {
+      throw new ValidationError(
+        rpcErrorCode,
+        transactionWriteErrorMessages.paymentAccountDuplicate,
+      );
+    }
+
+    if (rpcErrorCode === transactionErrorCodes.paymentTotalMismatch) {
+      throw new ValidationError(
+        rpcErrorCode,
+        transactionWriteErrorMessages.paymentTotalMismatch,
+      );
+    }
+
+    if (rpcErrorCode === transactionErrorCodes.paymentMultiAccountNotAllowed) {
+      throw new ValidationError(
+        rpcErrorCode,
+        transactionWriteErrorMessages.paymentMultiAccountNotAllowed,
+      );
+    }
+
+    if (rpcErrorCode === transactionErrorCodes.paymentCurrencyMismatch) {
+      throw new ValidationError(
+        rpcErrorCode,
+        transactionWriteErrorMessages.paymentCurrencyMismatch,
+      );
+    }
+
+    if (rpcErrorCode === transactionErrorCodes.paymentAmountRequired) {
+      throw new ValidationError(
+        rpcErrorCode,
+        transactionWriteErrorMessages.paymentAmountRequired,
+      );
+    }
+
+    if (rpcErrorCode === transactionErrorCodes.paymentTransitionInvalid) {
+      throw new ValidationError(
+        rpcErrorCode,
+        transactionWriteErrorMessages.paymentTransitionInvalid,
+      );
+    }
+
     if (error.code === "22023") {
       throw new ValidationError(
         rpcErrorCode ?? "transaction_invalid",
@@ -549,7 +613,7 @@ export function createSupabaseTransactionRepository(
               p_ledger_id: input.ledgerId,
               p_merchant_id: input.merchantId,
               p_note: input.note,
-              p_payments: toTransactionRpcPayments(input.accountId),
+              p_payments: toTransactionPaymentRpcPayload(input.payments),
               p_target_type: input.targetType,
               p_to_account_id: null,
               p_transaction_at: input.transactionAt,
@@ -579,7 +643,7 @@ export function createSupabaseTransactionRepository(
         p_ledger_id: input.ledgerId,
         p_merchant_id: input.merchantId,
         p_note: input.note,
-        p_payments: toTransactionRpcPayments(input.accountId),
+        p_payments: toTransactionPaymentRpcPayload(input.payments),
         p_transaction_at: input.transactionAt,
         p_type: input.type,
       });
@@ -672,7 +736,7 @@ export function createSupabaseTransactionRepository(
       const { data, error } = await supabase
         .from("transaction_record")
         .select(
-          "id, type, transaction_at, merchant_id, note, created_by, created_at",
+          "id, type, transaction_at, merchant_id, note, created_by, created_at, updated_at",
         )
         .eq("id", transactionRecordId)
         .eq("ledger_id", ledgerId)
@@ -803,6 +867,50 @@ export function createSupabaseTransactionRepository(
         .flat()
         .map((row) =>
           toTransactionItemDbRow(row as TransactionItemRepositoryRow),
+        );
+    },
+
+    async listPayments(ledgerId, transactionRecordIds, page) {
+      const uniqueIds = [...new Set(transactionRecordIds)];
+      if (uniqueIds.length === 0) return [];
+
+      // 分块方式与 listItems 相同，避免 `in.(...)` 的 id 列表过长被网关拒绝。
+      const idChunks = page
+        ? [uniqueIds]
+        : chunkArray(uniqueIds, itemQueryRecordIdChunkSize);
+      const chunkRows = await Promise.all(
+        idChunks.map(async (ids) => {
+          let query = supabase
+            .from("transaction_payment")
+            .select(
+              "transaction_record_id, account_id, amount, balance_delta, sort_order",
+            )
+            .eq("ledger_id", ledgerId)
+            .in("transaction_record_id", ids)
+            .order("sort_order", { ascending: true })
+            .order("id", { ascending: true });
+          if (page) {
+            query = query.range(page.offset, page.offset + page.limit - 1);
+          }
+          const { data, error } = await query;
+          if (error) {
+            logger.error("[transaction] failed to load transaction payments", {
+              databaseCode: error.code,
+              ledgerId,
+            });
+            throw toRepositoryError(
+              "transaction_payments_load_failed",
+              transactionLoadErrorMessages.paymentsLoadFailed,
+            );
+          }
+          return data ?? [];
+        }),
+      );
+
+      return chunkRows
+        .flat()
+        .map((row) =>
+          toTransactionPaymentDbRow(row as TransactionPaymentRepositoryRow),
         );
     },
 
@@ -1092,7 +1200,7 @@ export function createSupabaseTransactionRepository(
         p_ledger_id: input.ledgerId,
         p_merchant_id: input.merchantId,
         p_note: input.note,
-        p_payments: toTransactionRpcPayments(input.accountId),
+        p_payments: toTransactionPaymentRpcPayload(input.payments),
         p_transaction_at: input.transactionAt,
         p_transaction_record_id: input.transactionRecordId,
         p_type: input.type,
@@ -1168,11 +1276,6 @@ export function createSupabaseTransactionRepository(
   };
 }
 
-// 单账户付款明细：不传金额，由 RPC 按明细推导（#911 过渡期）。
-function toTransactionRpcPayments(accountId: string) {
-  return [{ accountId }];
-}
-
 function toTransactionRpcItems(items: TransactionItemInput[]) {
   return items.map((item) => ({
     amount: item.amount,
@@ -1213,6 +1316,18 @@ function toTransactionItemDbRow({
       : {
           reimbursement_amount: toTransactionAmountText(reimbursementAmount),
         }),
+  };
+}
+
+function toTransactionPaymentDbRow({
+  amount,
+  balance_delta: balanceDelta,
+  ...row
+}: TransactionPaymentRepositoryRow): TransactionPaymentDbRow {
+  return {
+    ...row,
+    amount: toTransactionAmountText(amount),
+    balance_delta: toTransactionAmountText(balanceDelta),
   };
 }
 

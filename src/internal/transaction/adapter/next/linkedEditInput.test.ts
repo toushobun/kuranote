@@ -130,4 +130,28 @@ describe("parseLinkedEditActionInput", () => {
 
     expect(parseLinkedEditActionInput(formData, [firstItemId])).toBeNull();
   });
+
+  it("解析记录版本字段（#834 子 Issue 2 记录级乐观锁）", () => {
+    const formData = new FormData();
+    formData.set("expectedRecordUpdatedAt", "2026-08-20T12:00:00.000Z");
+
+    expect(parseLinkedEditActionInput(formData, [firstItemId])).toEqual({
+      confirmSync: false,
+      expectedRecordUpdatedAt: "2026-08-20T12:00:00.000Z",
+      expectedUpdatedAtByItemId: {},
+    });
+  });
+
+  it("未提交记录版本字段时不包含该字段", () => {
+    const result = parseLinkedEditActionInput(new FormData(), [firstItemId]);
+    expect(result).not.toBeNull();
+    expect(result).not.toHaveProperty("expectedRecordUpdatedAt");
+  });
+
+  it("记录版本字段格式不正确时拒绝", () => {
+    const formData = new FormData();
+    formData.set("expectedRecordUpdatedAt", "2026-08-20T12:00:00");
+
+    expect(parseLinkedEditActionInput(formData, [firstItemId])).toBeNull();
+  });
 });

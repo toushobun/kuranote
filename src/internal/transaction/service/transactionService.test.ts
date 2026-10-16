@@ -43,6 +43,7 @@ function createRepository(
     findUserSummaries: vi.fn().mockResolvedValue([]),
     listActiveMemberIds: vi.fn().mockResolvedValue([]),
     listItems: vi.fn().mockResolvedValue([]),
+    listPayments: vi.fn().mockResolvedValue([]),
     listRecords: vi.fn().mockResolvedValue([]),
     loadGroupSummaries: vi.fn().mockResolvedValue([]),
     updateNormal: vi.fn(),
@@ -64,11 +65,13 @@ function createService(
       accounts: [],
       showRecorder: false,
     }),
-    listTransactionOptions: vi
-      .fn()
-      .mockResolvedValue([
-        { currency: "JPY", id: normalInput.accountId, name: "现金" },
-      ]),
+    listTransactionOptions: vi.fn().mockResolvedValue([
+      {
+        currency: "JPY",
+        id: normalInput.payments[0].accountId,
+        name: "现金",
+      },
+    ]),
   };
 
   return {
@@ -105,7 +108,6 @@ function createService(
 }
 
 const normalInput = {
-  accountId: "00000000-0000-4000-8000-000000000045",
   items: [
     {
       amount: 1200,
@@ -115,6 +117,9 @@ const normalInput = {
   ledgerId,
   merchantId: "00000000-0000-4000-8000-000000001001",
   note: null,
+  payments: [
+    { accountId: "00000000-0000-4000-8000-000000000045", amount: null },
+  ],
   transactionAt: "2026-06-04T01:00:00.000Z",
   type: "expense" as const,
 };
@@ -364,7 +369,13 @@ describe("TransactionService", () => {
     const service = createTransactionService({
       accountQueryService: {
         getTransactionContext: vi.fn(),
-        listTransactionOptions: vi.fn(),
+        listTransactionOptions: vi.fn().mockResolvedValue([
+          {
+            currency: "JPY",
+            id: normalInput.payments[0].accountId,
+            name: "现金",
+          },
+        ]),
       },
       categoryQueryService: {
         findSummariesByIds: vi.fn().mockResolvedValue([
@@ -421,22 +432,28 @@ describe("TransactionService", () => {
   });
 
   it("member 可以修改自己创建的交易", async () => {
-    const { repository, service } = createService("member");
+    const { accountQueryService, repository, service } =
+      createService("member");
     await service.updateNormal({ ...normalInput, transactionRecordId });
     expect(repository.updateNormal).toHaveBeenCalledOnce();
+    expect(
+      accountQueryService.listTransactionOptions,
+    ).toHaveBeenCalledExactlyOnceWith({
+      ledgerId,
+      userId,
+    });
   });
 
   it("普通交易引用已归档账户时服务端拒绝绕过页面编辑", async () => {
     const archivedAccountId = "00000000-0000-4000-8000-000000000046";
     const replacementAccountId = "00000000-0000-4000-8000-000000000047";
     const repository = createRepository({
-      listItems: vi.fn().mockResolvedValue([
+      listPayments: vi.fn().mockResolvedValue([
         {
           account_id: archivedAccountId,
           amount: "1234.56",
           balance_delta: "-1234.56",
-          category_id: normalInput.items[0].categoryId,
-          note: null,
+          sort_order: 0,
           transaction_record_id: transactionRecordId,
         },
       ]),
@@ -456,7 +473,7 @@ describe("TransactionService", () => {
     await expect(
       service.updateNormal({
         ...normalInput,
-        accountId: replacementAccountId,
+        payments: [{ accountId: replacementAccountId, amount: null }],
         transactionRecordId,
       }),
     ).rejects.toMatchObject({
@@ -464,6 +481,7 @@ describe("TransactionService", () => {
       name: ValidationError.name,
     });
     expect(repository.updateNormal).not.toHaveBeenCalled();
+    expect(accountQueryService.listTransactionOptions).toHaveBeenCalledOnce();
   });
 
   it("member 不能修改他人创建的交易", async () => {
@@ -492,7 +510,7 @@ describe("TransactionService", () => {
     const repository = createRepository({
       listItems: vi.fn().mockResolvedValue([
         {
-          account_id: normalInput.accountId,
+          account_id: normalInput.payments[0].accountId,
           amount: "1200",
           balance_delta: "-1200",
           category_id: null,
@@ -541,6 +559,12 @@ describe("TransactionService", () => {
       name: ValidationError.name,
     });
     expect(repository.updateTransfer).not.toHaveBeenCalled();
+    expect(
+      accountQueryService.listTransactionOptions,
+    ).toHaveBeenCalledExactlyOnceWith({
+      ledgerId,
+      userId,
+    });
   });
 
   it.each(["owner", "admin"] as const)(
@@ -662,6 +686,261 @@ describe("TransactionService", () => {
   });
 });
 
+describe("付款明细校验（create / update / convert）", () => {
+  const secondAccountId = "00000000-0000-4000-8000-000000000048";
+
+  function createMultiAccountService(options?: {
+    accountOptions?: Array<{ currency: string; id: string; name: string }>;
+    repository?: ReturnType<typeof createRepository>;
+  }) {
+    const repository = options?.repository ?? createRepository();
+    const accountQueryService = {
+      getTransactionContext: vi.fn().mockResolvedValue({
+        accountColorById: new Map(),
+        accounts: [],
+        showRecorder: false,
+      }),
+      listTransactionOptions: vi.fn().mockResolvedValue(
+        options?.accountOptions ?? [
+          {
+            currency: "JPY",
+            id: normalInput.payments[0].accountId,
+            name: "现金",
+          },
+          { currency: "JPY", id: secondAccountId, name: "储蓄账户" },
+        ],
+      ),
+    };
+    const categoryQueryService = {
+      findSummariesByIds: vi.fn().mockResolvedValue([
+        {
+          id: normalInput.items[0].categoryId,
+          name: "餐饮",
+          parent_id: null,
+          type: "expense" as const,
+        },
+      ]),
+      listActiveSummaries: vi.fn(),
+    };
+    const service = createTransactionService({
+      accountQueryService,
+      categoryQueryService,
+      currentUserId: userId,
+      ledgerAccessService: {
+        getActiveMemberRole: vi.fn().mockResolvedValue("member" as const),
+      },
+      merchantQueryService: {
+        findSummariesByIds: vi.fn().mockResolvedValue([]),
+        listActiveOptions: vi.fn(),
+      },
+      transactionRepository: repository,
+    });
+    return { accountQueryService, repository, service };
+  }
+
+  const multiAccountPayments = [
+    { accountId: normalInput.payments[0].accountId, amount: "500" },
+    { accountId: secondAccountId, amount: "700" },
+  ];
+
+  it.each(["createNormal", "updateNormal", "convert"] as const)(
+    "%s 只查询一次账户选项并透传合法多账户付款明细",
+    async (method) => {
+      const { accountQueryService, repository, service } =
+        createMultiAccountService();
+      const input = {
+        ...normalInput,
+        items: [{ ...normalInput.items[0], amount: 1200 }],
+        payments: multiAccountPayments,
+        targetType: "expense" as const,
+        transactionRecordId,
+      };
+
+      await service[method](input);
+
+      expect(repository[method]).toHaveBeenCalledWith(input);
+      expect(
+        accountQueryService.listTransactionOptions,
+      ).toHaveBeenCalledExactlyOnceWith({
+        ledgerId,
+        userId,
+      });
+    },
+  );
+
+  it("新建交易时付款合计与支出明细合计不一致被拒绝", async () => {
+    const { repository, service } = createMultiAccountService();
+
+    await expect(
+      service.createNormal({
+        ...normalInput,
+        items: [{ ...normalInput.items[0], amount: 1200 }],
+        payments: [
+          { accountId: normalInput.payments[0].accountId, amount: "500" },
+          { accountId: secondAccountId, amount: "600" },
+        ],
+      }),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.paymentTotalMismatch,
+      name: ValidationError.name,
+    });
+    expect(repository.createNormal).not.toHaveBeenCalled();
+  });
+
+  it("新建交易时重复付款账户被拒绝", async () => {
+    const { repository, service } = createMultiAccountService();
+
+    await expect(
+      service.createNormal({
+        ...normalInput,
+        items: [{ ...normalInput.items[0], amount: 1200 }],
+        payments: [
+          { accountId: normalInput.payments[0].accountId, amount: "600" },
+          { accountId: normalInput.payments[0].accountId, amount: "600" },
+        ],
+      }),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.paymentAccountDuplicate,
+      name: ValidationError.name,
+    });
+    expect(repository.createNormal).not.toHaveBeenCalled();
+  });
+
+  it("新建交易时含收入明细的记录拒绝多账户付款", async () => {
+    const incomeCategoryId = "00000000-0000-4000-8000-000000005099";
+    const repository = createRepository();
+    const categoryQueryService = {
+      findSummariesByIds: vi.fn().mockResolvedValue([
+        {
+          id: normalInput.items[0].categoryId,
+          name: "餐饮",
+          parent_id: null,
+          type: "expense" as const,
+        },
+        {
+          id: incomeCategoryId,
+          name: "返款",
+          parent_id: null,
+          type: "income" as const,
+        },
+      ]),
+      listActiveSummaries: vi.fn(),
+    };
+    const accountQueryService = {
+      getTransactionContext: vi.fn().mockResolvedValue({
+        accountColorById: new Map(),
+        accounts: [],
+        showRecorder: false,
+      }),
+      listTransactionOptions: vi.fn().mockResolvedValue([
+        {
+          currency: "JPY",
+          id: normalInput.payments[0].accountId,
+          name: "现金",
+        },
+        { currency: "JPY", id: secondAccountId, name: "储蓄账户" },
+      ]),
+    };
+    const mixedService = createTransactionService({
+      accountQueryService,
+      categoryQueryService,
+      currentUserId: userId,
+      ledgerAccessService: {
+        getActiveMemberRole: vi.fn().mockResolvedValue("member" as const),
+      },
+      merchantQueryService: {
+        findSummariesByIds: vi.fn().mockResolvedValue([]),
+        listActiveOptions: vi.fn(),
+      },
+      transactionRepository: repository,
+    });
+
+    await expect(
+      mixedService.createNormal({
+        ...normalInput,
+        items: [
+          { ...normalInput.items[0], amount: 500 },
+          { amount: 700, categoryId: incomeCategoryId },
+        ],
+        payments: multiAccountPayments,
+        type: "income",
+      }),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.paymentMultiAccountNotAllowed,
+      name: ValidationError.name,
+    });
+    expect(repository.createNormal).not.toHaveBeenCalled();
+  });
+
+  it("新建交易时付款账户币种不一致被拒绝", async () => {
+    const { repository, service } = createMultiAccountService({
+      accountOptions: [
+        {
+          currency: "JPY",
+          id: normalInput.payments[0].accountId,
+          name: "现金",
+        },
+        { currency: "USD", id: secondAccountId, name: "美元账户" },
+      ],
+    });
+
+    await expect(
+      service.createNormal({
+        ...normalInput,
+        items: [{ ...normalInput.items[0], amount: 1200 }],
+        payments: multiAccountPayments,
+      }),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.paymentCurrencyMismatch,
+      name: ValidationError.name,
+    });
+    expect(repository.createNormal).not.toHaveBeenCalled();
+  });
+
+  it("新建交易时多账户缺少金额被拒绝", async () => {
+    const { repository, service } = createMultiAccountService();
+
+    await expect(
+      service.createNormal({
+        ...normalInput,
+        items: [{ ...normalInput.items[0], amount: 1200 }],
+        payments: [
+          { accountId: normalInput.payments[0].accountId, amount: "500" },
+          { accountId: secondAccountId, amount: null },
+        ],
+      }),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.paymentAmountRequired,
+      name: ValidationError.name,
+    });
+    expect(repository.createNormal).not.toHaveBeenCalled();
+  });
+
+  it("类型转换为普通交易时校验付款明细", async () => {
+    const { repository, service } = createMultiAccountService();
+
+    await expect(
+      service.convert({
+        items: [{ ...normalInput.items[0], amount: 1200 }],
+        ledgerId,
+        merchantId: normalInput.merchantId,
+        note: null,
+        payments: [
+          { accountId: normalInput.payments[0].accountId, amount: "500" },
+          { accountId: secondAccountId, amount: "600" },
+        ],
+        targetType: "expense",
+        transactionAt: normalInput.transactionAt,
+        transactionRecordId,
+      }),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.paymentTotalMismatch,
+      name: ValidationError.name,
+    });
+    expect(repository.convert).not.toHaveBeenCalled();
+  });
+});
+
 describe("特殊状态功能开关", () => {
   it("账本关闭特殊状态时拒绝特殊状态写入", async () => {
     const repository = createRepository({
@@ -743,11 +1022,12 @@ describe("余额调整编辑和撤销", () => {
         type: "balance_adjustment",
         created_by: userId,
       }),
-      listItems: vi
-        .fn()
-        .mockResolvedValue([
-          { account_id: normalInput.accountId, balance_delta: "2500" },
-        ]),
+      listItems: vi.fn().mockResolvedValue([
+        {
+          account_id: normalInput.payments[0].accountId,
+          balance_delta: "2500",
+        },
+      ]),
     });
   }
   const editInput = {

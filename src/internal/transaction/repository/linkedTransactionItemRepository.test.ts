@@ -43,7 +43,6 @@ function createRepository(options?: {
   const query = createQuery(
     options?.queryResult ?? {
       data: {
-        account_id: accountId,
         amount: "120.00",
         category_id: categoryId,
         id: transactionItemId,
@@ -77,7 +76,6 @@ function rpcFailure(details: string, code = "P0001") {
 }
 
 const updateEditInput: UpdateLinkedTransactionEditInput = {
-  accountId,
   itemUpdates: [
     {
       amount: 80,
@@ -89,6 +87,7 @@ const updateEditInput: UpdateLinkedTransactionEditInput = {
   ledgerId,
   merchantId,
   note: "编辑备注",
+  payments: [{ accountId, amount: null }],
   transactionAt: "2026-08-21T01:30:00.000Z",
   transactionRecordId,
 };
@@ -100,7 +99,6 @@ describe("LinkedTransactionItemRepository", () => {
     await expect(
       repository.findEditSnapshot(ledgerId, transactionItemId),
     ).resolves.toEqual({
-      accountId,
       amount: "120.00",
       categoryId,
       transactionItemId,
@@ -124,6 +122,32 @@ describe("LinkedTransactionItemRepository", () => {
       p_transaction_at: "2026-08-21T01:30:00.000Z",
       p_transaction_record_id: transactionRecordId,
     });
+  });
+
+  it("多账户付款明细透传金额并提交记录版本到 RPC", async () => {
+    const secondAccountId = "00000000-0000-4000-8000-000000000044";
+    const recordUpdatedAt = "2026-08-20T12:00:00.000Z";
+    const { repository, rpc } = createRepository();
+
+    await repository.updateEdit({
+      ...updateEditInput,
+      expectedRecordUpdatedAt: recordUpdatedAt,
+      payments: [
+        { accountId, amount: "500" },
+        { accountId: secondAccountId, amount: "700" },
+      ],
+    });
+
+    expect(rpc).toHaveBeenCalledWith(
+      "update_linked_transaction_edit",
+      expect.objectContaining({
+        p_expected_record_updated_at: recordUpdatedAt,
+        p_payments: [
+          { accountId, amount: "500" },
+          { accountId: secondAccountId, amount: "700" },
+        ],
+      }),
+    );
   });
 
   it("完整编辑 RPC 的并发冲突继续映射为 ConflictError", async () => {
@@ -201,4 +225,39 @@ describe("LinkedTransactionItemRepository", () => {
       message: transactionLinkedEditErrorMessages.reimbursementCurrencyMismatch,
     });
   });
+
+  it.each([
+    [
+      "payment_account_duplicate",
+      transactionErrorCodes.paymentAccountDuplicate,
+    ],
+    ["payment_total_mismatch", transactionErrorCodes.paymentTotalMismatch],
+    [
+      "payment_multi_account_not_allowed",
+      transactionErrorCodes.paymentMultiAccountNotAllowed,
+    ],
+    [
+      "payment_currency_mismatch",
+      transactionErrorCodes.paymentCurrencyMismatch,
+    ],
+    ["payment_amount_required", transactionErrorCodes.paymentAmountRequired],
+    [
+      "payment_transition_invalid",
+      transactionErrorCodes.paymentTransitionInvalid,
+    ],
+  ] as const)(
+    "数据库付款明细错误 %s 转换为安全的 ValidationError",
+    async (databaseError, expectedCode) => {
+      const { repository } = createRepository({
+        rpcResult: rpcFailure(databaseError, "22023"),
+      });
+
+      await expect(
+        repository.updateEdit(updateEditInput),
+      ).rejects.toMatchObject({
+        code: expectedCode,
+        name: ValidationError.name,
+      });
+    },
+  );
 });

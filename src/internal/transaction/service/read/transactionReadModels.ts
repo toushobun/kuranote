@@ -1,6 +1,7 @@
 import type { BalanceAdjustmentEditInitialValues } from "internal/transaction/entity/balanceAdjustment";
 import type { CategoryType } from "internal/category";
 import type { MerchantSummary } from "internal/merchant";
+import type { TransactionPayment } from "internal/transaction/entity/transactionPayment";
 import type { TransactionGroupBy } from "internal/transaction/entity/transactionGrouping";
 import type { TransactionType } from "internal/transaction/entity/transactionType";
 import type {
@@ -145,6 +146,7 @@ export type EditTransactionView = TransactionFormOptions & {
     | TransferEditInitialValues
     | {
         accountId: string;
+        payments: TransactionPayment[];
         items: {
           amount: string;
           businessNetAmount?: string;

@@ -6,17 +6,21 @@ import {
 import {
   transactionErrorCodes,
   transactionLinkedEditErrorMessages,
+  transactionPaymentValidationErrorMessages,
   transactionTargetErrorMessages,
   transactionValidationErrorMessages,
 } from "internal/transaction/errors";
+import type { TransactionPayment } from "internal/transaction/entity/transactionPayment";
 import type { UpdateNormalTransactionInput } from "internal/transaction/repository/transactionRepository";
 import type { LinkedTransactionItemService } from "internal/transaction/service/linkedTransactionItemService";
 import type { EditTransactionView } from "internal/transaction/service/read/transactionReadModels";
 import type { TransactionService } from "internal/transaction/service/transactionService";
 import { toRefundMinorUnits } from "internal/transaction/util/refundAllocation";
+import { validateTransactionPayments } from "internal/transaction/util/validateTransactionPayments";
 
 export type LinkedTransactionEditInput = UpdateNormalTransactionInput & {
   confirmSync: boolean;
+  expectedRecordUpdatedAt?: string;
   expectedUpdatedAtByItemId: Readonly<Record<string, string>>;
 };
 
@@ -86,6 +90,31 @@ function sameAmount(left: string | number, right: string | number): boolean {
   const leftUnits = toRefundMinorUnits(left);
   const rightUnits = toRefundMinorUnits(right);
   return leftUnits !== null && rightUnits !== null && leftUnits === rightUnits;
+}
+
+function samePaymentAmount(left: string | null, right: string | null) {
+  if (left === null || right === null) return left === right;
+  return sameAmount(left, right);
+}
+
+/**
+ * 付款明细是否发生变化：账户集合、顺序、金额任一不同都算变化（已决事项第
+ * 5 条）。单账户（length === 1）时金额由 RPC 推导、不是独立输入，不参与
+ * 比较，否则「已持久化金额」与「表单留空（null）」会被误判为变化。
+ */
+function samePayments(
+  existing: readonly TransactionPayment[],
+  submitted: readonly TransactionPayment[],
+): boolean {
+  if (existing.length !== submitted.length) return false;
+  return existing.every((payment, index) => {
+    const candidate = submitted[index];
+    if (!candidate || payment.accountId !== candidate.accountId) {
+      return false;
+    }
+    if (existing.length === 1) return true;
+    return samePaymentAmount(payment.amount, candidate.amount);
+  });
 }
 
 function getNormalInitialValues(
@@ -221,8 +250,8 @@ function hasSiblingItemMutation(
   linkedItemIds: Set<string>,
   submittedById: Map<string, SubmittedItem>,
 ): boolean {
-  // 关联编辑 RPC 只更新关联明细；账户变化时不能把普通兄弟明细留在旧账户。
-  const accountChanged = input.accountId !== initial.accountId;
+  // 关联编辑 RPC 只更新关联明细；付款明细变化时不能把普通兄弟明细留在旧账户。
+  const paymentsChanged = !samePayments(initial.payments, input.payments);
   const currentIds = new Set(
     initial.items.flatMap((item) => (item.id ? [item.id] : [])),
   );
@@ -237,7 +266,7 @@ function hasSiblingItemMutation(
     if (
       submitted.categoryId !== current.categoryId ||
       !sameAmount(submitted.amount, current.amount) ||
-      accountChanged ||
+      paymentsChanged ||
       getSubmittedSpecialStatus(current, submitted) !== current.specialStatus ||
       (submitted.refundedItemId ?? null) !==
         (current.refundCandidate?.id ?? null) ||
@@ -324,23 +353,29 @@ export function createLinkedTransactionEditService({
         );
       }
 
-      const accountChanged = input.accountId !== initial.accountId;
-      const oldAccount = view.accountOptions.find(
-        (account) => account.id === initial.accountId,
-      );
-      const newAccount = view.accountOptions.find(
-        (account) => account.id === input.accountId,
-      );
-      if (accountChanged && !newAccount) {
+      const paymentsChanged = !samePayments(initial.payments, input.payments);
+      const paymentsResult = validateTransactionPayments({
+        accountOptions: view.accountOptions,
+        items: input.items.map((item) => ({
+          amount: item.amount,
+          categoryType: categoryTypeById.get(item.categoryId) ?? null,
+        })),
+        payments: input.payments,
+      });
+      if (!paymentsResult.ok) {
         throw new ValidationError(
-          transactionErrorCodes.accountInvalid,
-          transactionValidationErrorMessages[
-            transactionErrorCodes.accountInvalid
-          ],
+          paymentsResult.error,
+          transactionPaymentValidationErrorMessages[paymentsResult.error],
         );
       }
+      const oldAccount = view.accountOptions.find(
+        (account) => account.id === initial.payments[0]?.accountId,
+      );
+      const newAccount = view.accountOptions.find(
+        (account) => account.id === input.payments[0]?.accountId,
+      );
       const currencyChanged =
-        accountChanged && oldAccount?.currency !== newAccount?.currency;
+        paymentsChanged && oldAccount?.currency !== newAccount?.currency;
       if (currencyChanged && linkedItems.some(hasRefundLink)) {
         throw new ValidationError(
           transactionErrorCodes.refundLinkInvalid,
@@ -386,7 +421,7 @@ export function createLinkedTransactionEditService({
           throwUnlinkRequired();
         }
         if (
-          accountChanged ||
+          paymentsChanged ||
           categoryChanged ||
           !sameAmount(submitted.amount, existing.amount)
         ) {
@@ -442,11 +477,12 @@ export function createLinkedTransactionEditService({
       if (itemUpdates.length === 0 && !metadataChanged) return;
 
       await linkedTransactionItemService.updateEdit({
-        accountId: input.accountId,
+        expectedRecordUpdatedAt: input.expectedRecordUpdatedAt,
         itemUpdates,
         ledgerId: input.ledgerId,
         merchantId: input.merchantId,
         note: input.note,
+        payments: input.payments,
         transactionAt: input.transactionAt,
         transactionRecordId: input.transactionRecordId,
       });

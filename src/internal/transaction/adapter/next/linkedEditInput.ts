@@ -7,6 +7,7 @@ import { validateUpdateTransactionForm } from "internal/transaction/schema";
 
 export type LinkedEditActionInput = {
   confirmSync: boolean;
+  expectedRecordUpdatedAt?: string;
   expectedUpdatedAtByItemId: Readonly<Record<string, string>>;
 };
 
@@ -94,8 +95,22 @@ export function parseLinkedEditActionInput(
     expectedUpdatedAtByItemId[itemId] = value;
   }
 
+  // 记录版本：当前表单尚未提交此字段（#915 补充后才会有值），缺省时只做
+  // 明细级版本校验，与 RPC 默认行为一致。
+  const expectedRecordUpdatedAt = String(
+    formData.get("expectedRecordUpdatedAt") ?? "",
+  ).trim();
+  if (
+    expectedRecordUpdatedAt &&
+    (!offsetDateTimePattern.test(expectedRecordUpdatedAt) ||
+      !Number.isFinite(Date.parse(expectedRecordUpdatedAt)))
+  ) {
+    return null;
+  }
+
   return {
     confirmSync: confirmSyncText === "true",
+    ...(expectedRecordUpdatedAt ? { expectedRecordUpdatedAt } : {}),
     expectedUpdatedAtByItemId,
   };
 }

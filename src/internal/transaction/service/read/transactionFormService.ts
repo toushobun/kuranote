@@ -75,12 +75,19 @@ export async function getEditTransactionView(
     role: currentLedger.currentUserRole,
     userId: dependencies.currentUserId,
   });
-  const items = await dependencies.transactionRepository.listItems(
-    currentLedger.id,
-    [transactionRecordId],
-  );
+  const [items, payments] = await Promise.all([
+    dependencies.transactionRepository.listItems(currentLedger.id, [
+      transactionRecordId,
+    ]),
+    dependencies.transactionRepository.listPayments(currentLedger.id, [
+      transactionRecordId,
+    ]),
+  ]);
+  // 普通记录的付款账户来自 transaction_payment；转账 / 余额调整仍看明细账户。
   const hasArchivedAccount = !areAccountIdsAvailable(
-    items.map((item) => item.account_id),
+    record.type === "normal"
+      ? payments.map((payment) => payment.account_id)
+      : items.map((item) => item.account_id),
     options.accountOptions,
   );
   const currencyByAccountId = new Map(
@@ -189,7 +196,11 @@ export async function getEditTransactionView(
     canEdit,
     editRestriction,
     initialValues: {
-      accountId: items[0]?.account_id ?? "",
+      accountId: payments[0]?.account_id ?? "",
+      payments: payments.map((payment) => ({
+        accountId: payment.account_id,
+        amount: payment.amount,
+      })),
       items: items.map((item) => {
         const incomeLink = item.id
           ? incomeLinkByItemId.get(item.id)

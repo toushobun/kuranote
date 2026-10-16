@@ -97,6 +97,7 @@ function createIncomeView(
     editRestriction: "linked",
     initialValues: {
       accountId: oldAccountId,
+      payments: [{ accountId: oldAccountId, amount: null }],
       items: [
         {
           amount: "100",
@@ -135,6 +136,7 @@ function createTargetView(
     editRestriction: "linked",
     initialValues: {
       accountId: oldAccountId,
+      payments: [{ accountId: oldAccountId, amount: null }],
       items: [
         {
           amount: "300",
@@ -170,6 +172,7 @@ function createUnlinkedView(): EditTransactionView {
     editRestriction: null,
     initialValues: {
       accountId: oldAccountId,
+      payments: [{ accountId: oldAccountId, amount: null }],
       items: [
         {
           amount: "100",
@@ -230,7 +233,6 @@ function incomeInput(
   overrides: Partial<LinkedTransactionEditInput> = {},
 ): LinkedTransactionEditInput {
   return {
-    accountId: oldAccountId,
     confirmSync: false,
     expectedUpdatedAtByItemId: {},
     items: [
@@ -244,6 +246,7 @@ function incomeInput(
     ledgerId,
     merchantId,
     note: null,
+    payments: [{ accountId: oldAccountId, amount: null }],
     transactionAt,
     transactionRecordId,
     type: "income",
@@ -255,7 +258,6 @@ function targetInput(
   overrides: Partial<LinkedTransactionEditInput> = {},
 ): LinkedTransactionEditInput {
   return {
-    accountId: oldAccountId,
     confirmSync: false,
     expectedUpdatedAtByItemId: {},
     items: [
@@ -269,6 +271,7 @@ function targetInput(
     ledgerId,
     merchantId,
     note: null,
+    payments: [{ accountId: oldAccountId, amount: null }],
     transactionAt,
     transactionRecordId,
     type: "expense",
@@ -359,11 +362,11 @@ describe("LinkedTransactionEditService", () => {
     await service.updateNormal(currentLedger, input);
 
     expect(updateEdit).toHaveBeenCalledWith({
-      accountId: oldAccountId,
       itemUpdates: [],
       ledgerId,
       merchantId: otherMerchantId,
       note: "仅修改备注",
+      payments: [{ accountId: oldAccountId, amount: null }],
       transactionAt: "2026-08-21T01:30:00.000Z",
       transactionRecordId,
     });
@@ -418,7 +421,7 @@ describe("LinkedTransactionEditService", () => {
 
     expect(updateEdit).toHaveBeenCalledWith(
       expect.objectContaining({
-        accountId: oldAccountId,
+        payments: [{ accountId: oldAccountId, amount: null }],
         itemUpdates: [
           {
             amount: 120,
@@ -501,7 +504,7 @@ describe("LinkedTransactionEditService", () => {
   it("退款关联切换账户时拒绝不同币种", async () => {
     const { service } = createService(createIncomeView("refund"));
     const input = incomeInput({
-      accountId: otherCurrencyAccountId,
+      payments: [{ accountId: otherCurrencyAccountId, amount: null }],
       items: [
         {
           amount: 100,
@@ -527,7 +530,7 @@ describe("LinkedTransactionEditService", () => {
     async (accountId) => {
       const { service, updateEdit } = createService(createTargetView("refund"));
       const input = targetInput({
-        accountId,
+        payments: [{ accountId, amount: null }],
         expectedUpdatedAtByItemId: { [linkedItemId]: updatedAt },
       });
       if (accountId === otherCurrencyAccountId) {
@@ -540,7 +543,9 @@ describe("LinkedTransactionEditService", () => {
       } else {
         await service.updateNormal(currentLedger, input);
         expect(updateEdit).toHaveBeenCalledWith(
-          expect.objectContaining({ accountId }),
+          expect.objectContaining({
+            payments: [{ accountId, amount: null }],
+          }),
         );
       }
     },
@@ -548,7 +553,9 @@ describe("LinkedTransactionEditService", () => {
 
   it("报销关联切换账户时拒绝不同币种", async () => {
     const { service } = createService(createIncomeView());
-    const input = incomeInput({ accountId: otherCurrencyAccountId });
+    const input = incomeInput({
+      payments: [{ accountId: otherCurrencyAccountId, amount: null }],
+    });
 
     await expect(
       service.updateNormal(currentLedger, input),
@@ -566,7 +573,9 @@ describe("LinkedTransactionEditService", () => {
       (account) => account.id !== oldAccountId,
     );
     const { service } = createService(view);
-    const input = incomeInput({ accountId: otherCurrencyAccountId });
+    const input = incomeInput({
+      payments: [{ accountId: otherCurrencyAccountId, amount: null }],
+    });
 
     await expect(
       service.updateNormal(currentLedger, input),
@@ -581,7 +590,7 @@ describe("LinkedTransactionEditService", () => {
     async (role) => {
       const { service, updateEdit } = createService(createIncomeView(role));
       const input = incomeInput({
-        accountId: sameCurrencyAccountId,
+        payments: [{ accountId: sameCurrencyAccountId, amount: null }],
         items: [
           {
             amount: 100,
@@ -597,7 +606,9 @@ describe("LinkedTransactionEditService", () => {
       });
       await service.updateNormal(currentLedger, input);
       expect(updateEdit).toHaveBeenCalledWith(
-        expect.objectContaining({ accountId: sameCurrencyAccountId }),
+        expect.objectContaining({
+          payments: [{ accountId: sameCurrencyAccountId, amount: null }],
+        }),
       );
     },
   );
@@ -749,6 +760,101 @@ describe("LinkedTransactionEditService", () => {
     await expect(service.updateNormal(currentLedger, input)).rejects.toBe(
       conflict,
     );
+  });
+
+  describe("付款明细（多账户，Service 层用 mock 验证）", () => {
+    it("提交记录版本时透传给 Repository", async () => {
+      const { service, updateEdit } = createService(createIncomeView());
+      const recordUpdatedAt = "2026-08-20T12:00:00.000Z";
+      const input = incomeInput({
+        confirmSync: true,
+        expectedRecordUpdatedAt: recordUpdatedAt,
+        expectedUpdatedAtByItemId: { [linkedItemId]: updatedAt },
+        items: [
+          {
+            amount: 120,
+            categoryId: incomeCategoryId,
+            id: linkedItemId,
+            reimbursementItemId: targetItemId,
+          },
+        ],
+      });
+
+      await service.updateNormal(currentLedger, input);
+
+      expect(updateEdit).toHaveBeenCalledWith(
+        expect.objectContaining({ expectedRecordUpdatedAt: recordUpdatedAt }),
+      );
+    });
+
+    it("记录版本冲突时 Repository 的 ConflictError 原样冒泡", async () => {
+      const { linkedTransactionItemService, service } =
+        createService(createIncomeView());
+      const conflict = new ConflictError(
+        transactionErrorCodes.updateInvalid,
+        transactionLinkedEditErrorMessages.itemVersionConflict,
+      );
+      vi.mocked(linkedTransactionItemService.updateEdit).mockRejectedValueOnce(
+        conflict,
+      );
+      const input = incomeInput({
+        confirmSync: true,
+        expectedRecordUpdatedAt: "2026-08-19T00:00:00.000Z",
+        expectedUpdatedAtByItemId: { [linkedItemId]: updatedAt },
+        items: [
+          {
+            amount: 120,
+            categoryId: incomeCategoryId,
+            id: linkedItemId,
+            reimbursementItemId: targetItemId,
+          },
+        ],
+      });
+
+      await expect(service.updateNormal(currentLedger, input)).rejects.toBe(
+        conflict,
+      );
+    });
+
+    it("重复付款账户被拒绝，不调用保存 RPC", async () => {
+      const { service, updateEdit } = createService(createIncomeView());
+      const input = incomeInput({
+        confirmSync: true,
+        expectedUpdatedAtByItemId: { [linkedItemId]: updatedAt },
+        payments: [
+          { accountId: oldAccountId, amount: "50" },
+          { accountId: oldAccountId, amount: "50" },
+        ],
+      });
+
+      await expect(
+        service.updateNormal(currentLedger, input),
+      ).rejects.toMatchObject({
+        code: transactionErrorCodes.paymentAccountDuplicate,
+        name: ValidationError.name,
+      });
+      expect(updateEdit).not.toHaveBeenCalled();
+    });
+
+    it("多账户付款合计与支出明细不一致时拒绝", async () => {
+      const { service, updateEdit } = createService(createTargetView());
+      const input = targetInput({
+        confirmSync: true,
+        expectedUpdatedAtByItemId: { [linkedItemId]: updatedAt },
+        payments: [
+          { accountId: oldAccountId, amount: "100" },
+          { accountId: sameCurrencyAccountId, amount: "100" },
+        ],
+      });
+
+      await expect(
+        service.updateNormal(currentLedger, input),
+      ).rejects.toMatchObject({
+        code: transactionErrorCodes.paymentTotalMismatch,
+        name: ValidationError.name,
+      });
+      expect(updateEdit).not.toHaveBeenCalled();
+    });
   });
 
   describe("边界校验", () => {
