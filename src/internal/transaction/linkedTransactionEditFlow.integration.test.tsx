@@ -10,6 +10,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { UserThemeProvider } from "theme/UserThemeProvider";
 import { EditTransactionTemplate } from "templates/transactions/TransactionFormPage";
 import type { CurrentLedger } from "internal/ledger";
+import { ConflictError } from "internal/shared/errors/appError";
+import {
+  transactionErrorCodes,
+  transactionLinkedEditErrorMessages,
+} from "internal/transaction/errors";
 import { getTransactionActionModuleMocks } from "internal/transaction/adapter/next/actions.testUtils";
 import { updateTransaction } from "internal/transaction/adapter/next/actions";
 import {
@@ -31,6 +36,7 @@ const transactionRecordId = "57492000-0000-4000-8000-000000000001";
 const transactionItemId = "57492100-0000-4000-8000-000000000001";
 const targetItemId = "57492100-0000-4000-8000-000000000002";
 const accountId = "00000000-0000-4000-8000-000000000043";
+const otherAccountId = "00000000-0000-4000-8000-000000000044";
 const expenseCategoryId = "00000000-0000-4000-8000-000000005021";
 const incomeCategoryId = "00000000-0000-4000-8000-000000005002";
 const merchantId = "00000000-0000-4000-8000-000000001001";
@@ -44,7 +50,10 @@ const currentLedger: CurrentLedger = {
   name: "家庭账本",
 };
 
-const accountOptions = [{ currency: "JPY", id: accountId, name: "现金" }];
+const accountOptions = [
+  { currency: "JPY", id: accountId, name: "现金" },
+  { currency: "JPY", id: otherAccountId, name: "银行" },
+];
 const categoryOptions = [
   {
     id: expenseCategoryId,
@@ -139,12 +148,16 @@ function createView(side: "parent" | "child"): NormalEditView {
 
 function createScenario(side: "parent" | "child") {
   const view = createView(side);
-  const persisted = { amount: view.initialValues.items[0]?.amount ?? "0" };
+  const persisted = {
+    amount: view.initialValues.items[0]?.amount ?? "0",
+    payments: view.initialValues.payments,
+  };
   const updateEdit = vi.fn<LinkedTransactionItemService["updateEdit"]>(
     async (input) => {
       persisted.amount = String(
         input.itemUpdates[0]?.amount ?? persisted.amount,
       );
+      persisted.payments = input.payments;
     },
   );
   const linkedTransactionItemService = {
@@ -195,7 +208,7 @@ function createScenario(side: "parent" | "child") {
 function renderScenario(side: "parent" | "child") {
   const scenario = createScenario(side);
   const { initialValues, ...viewProps } = scenario.view;
-  render(
+  const { container } = render(
     <UserThemeProvider>
       <EditTransactionTemplate
         {...viewProps}
@@ -206,7 +219,12 @@ function renderScenario(side: "parent" | "child") {
       />
     </UserThemeProvider>,
   );
-  return scenario;
+  return { ...scenario, container };
+}
+
+async function submitForSyncConfirmation() {
+  fireEvent.click(screen.getByRole("button", { name: "保存修改" }));
+  return screen.findByRole("dialog", { name: "同步修改关联数据？" });
 }
 
 describe("Issue #574 已关联交易跨层编辑流程", () => {
@@ -236,10 +254,7 @@ describe("Issue #574 已关联交易跨层编辑流程", () => {
       target: { value: "80" },
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "保存修改" }));
-    const dialog = await screen.findByRole("dialog", {
-      name: "同步修改关联数据？",
-    });
+    const dialog = await submitForSyncConfirmation();
     expect(updateEdit).not.toHaveBeenCalled();
     expect(persisted.amount).toBe("40");
 
@@ -262,16 +277,98 @@ describe("Issue #574 已关联交易跨层编辑流程", () => {
     expect(persisted.amount).toBe("80");
   }, 15_000);
 
+  it("付款账户变化先返回确认冲突并在确认后保存成功", async () => {
+    const { persisted, updateEdit } = renderScenario("child");
+    fireEvent.mouseDown(screen.getByRole("combobox", { name: "账户" }));
+    fireEvent.click(await screen.findByRole("option", { name: /银行/ }));
+
+    const dialog = await submitForSyncConfirmation();
+    expect(serverMocks.linkedUpdateNormal).toHaveBeenCalledOnce();
+    expect(serverMocks.linkedUpdateNormal).toHaveBeenLastCalledWith(
+      currentLedger,
+      expect.objectContaining({
+        confirmSync: false,
+        payments: [{ accountId: otherAccountId, amount: null }],
+      }),
+    );
+    await expect(
+      serverMocks.linkedUpdateNormal.mock.results[0]?.value,
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.linkedSyncConfirmationRequired,
+      name: ConflictError.name,
+    });
+    expect(updateEdit).not.toHaveBeenCalled();
+    expect(persisted.payments).toEqual([{ accountId, amount: null }]);
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "同步修改" }));
+    await vi.waitFor(() => expect(updateEdit).toHaveBeenCalledOnce());
+
+    expect(serverMocks.linkedUpdateNormal).toHaveBeenCalledTimes(2);
+    expect(serverMocks.linkedUpdateNormal).toHaveBeenLastCalledWith(
+      currentLedger,
+      expect.objectContaining({ confirmSync: true }),
+    );
+    expect(updateEdit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payments: [{ accountId: otherAccountId, amount: null }],
+        itemUpdates: [
+          expect.objectContaining({
+            amount: 40,
+            expectedUpdatedAt,
+            transactionItemId,
+          }),
+        ],
+      }),
+    );
+    expect(persisted.payments).toEqual([
+      { accountId: otherAccountId, amount: null },
+    ]);
+    expect(persisted.amount).toBe("40");
+  }, 15_000);
+
+  it("记录版本冲突通过保存流程返回 ConflictError 并保留原数据", async () => {
+    const { action, container, persisted, updateEdit } =
+      renderScenario("child");
+    const form = container.querySelector<HTMLFormElement>(
+      "#edit-income-transaction-form",
+    );
+    if (!form) throw new Error("测试表单不存在");
+    const formData = new FormData(form);
+    const staleRecordUpdatedAt = "2026-08-19T00:00:00.000Z";
+    // 记录版本隐藏字段由 #915 补充，此处从 Action 入口验证跨层透传与冲突返回。
+    formData.set("expectedRecordUpdatedAt", staleRecordUpdatedAt);
+    formData.set("note", "修改后的备注");
+    const conflict = new ConflictError(
+      transactionErrorCodes.updateInvalid,
+      transactionLinkedEditErrorMessages.itemVersionConflict,
+    );
+    updateEdit.mockRejectedValueOnce(conflict);
+
+    const state = await action({}, formData);
+
+    expect(state).toMatchObject({
+      error: conflict.message,
+    });
+    expect(updateEdit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        expectedRecordUpdatedAt: staleRecordUpdatedAt,
+      }),
+    );
+    await expect(
+      serverMocks.linkedUpdateNormal.mock.results[0]?.value,
+    ).rejects.toBe(conflict);
+    expect(persisted.amount).toBe("40");
+    expect(persisted.payments).toEqual([{ accountId, amount: null }]);
+    expect(transactionActionModuleMocks.redirect).not.toHaveBeenCalled();
+  }, 15_000);
+
   it("取消确认后不会触发任何持久化写入", async () => {
     const { persisted, updateEdit } = renderScenario("child");
     fireEvent.change(screen.getByLabelText("明细 1 金额"), {
       target: { value: "80" },
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "保存修改" }));
-    const dialog = await screen.findByRole("dialog", {
-      name: "同步修改关联数据？",
-    });
+    const dialog = await submitForSyncConfirmation();
     fireEvent.click(within(dialog).getByRole("button", { name: "取消" }));
 
     expect(updateEdit).not.toHaveBeenCalled();
