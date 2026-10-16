@@ -241,6 +241,22 @@ describe("dataExportWorkbook", () => {
       },
     });
     expect(units).toHaveLength(3);
+    const incomeExpenseUnit = units.find(
+      (unit) => unit.kind === "incomeExpense",
+    );
+    if (incomeExpenseUnit?.kind !== "incomeExpense")
+      throw new Error("意外的单元");
+    expect(incomeExpenseUnit.group.items).toMatchObject([
+      {
+        accountName: "现金",
+        accountHolder: "小明",
+        accountType: "cash",
+        amount: 123.45,
+        billRef: "normal",
+        parentCategoryName: "饮食",
+        childCategoryName: "午餐",
+      },
+    ]);
   });
 
   it("引用缺失或转账方向无法判定时拒绝导出，而不是写出错误或空白数据", async () => {
