@@ -196,7 +196,6 @@ describe("Transaction Action 写入流程", () => {
     expect(mocks.updateNormal).toHaveBeenCalledWith(
       expect.objectContaining({ id: ledgerId }),
       expect.objectContaining({
-        accountId,
         ledgerId,
         items: [
           {
@@ -205,6 +204,7 @@ describe("Transaction Action 写入流程", () => {
             specialStatus: "pendingReimbursement",
           },
         ],
+        payments: [{ accountId, amount: null }],
         transactionRecordId,
         type: "expense",
       }),
@@ -335,6 +335,23 @@ describe("Transaction Action 写入流程", () => {
       }),
     );
     expect(mocks.updateTransfer).not.toHaveBeenCalled();
+  });
+  it("转账转换为普通交易时由 saveEditTransaction 调用 convert 并透传付款明细", async () => {
+    const formData = createNormalFormData({
+      sourceType: "transfer",
+      type: "expense",
+    });
+    await expect(saveEditTransaction({}, formData)).rejects.toThrow(
+      "NEXT_REDIRECT:/transactions?month=2026-06&result=updated",
+    );
+    expect(mocks.convert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ledgerId,
+        payments: [{ accountId, amount: null }],
+        targetType: "expense",
+        transactionRecordId,
+      }),
+    );
   });
   it("转账保持转账类型时由 saveEditTransaction 调用 updateTransfer", async () => {
     await expect(

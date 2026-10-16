@@ -74,12 +74,21 @@ describe("TransactionImportService", () => {
       type: "expense" as const,
     };
     await services.importService[method](input);
-    const { timeZoneOffsetMinutes: offset, ...transaction } = input;
+    const { accountId, timeZoneOffsetMinutes: offset, ...transaction } = input;
     expect(offset).toBe(-540);
-    expect(services[method]).toHaveBeenCalledExactlyOnceWith({
-      ...transaction,
-      transactionAt: "2025-12-31T15:30:15.000Z",
-    });
+    expect(services[method]).toHaveBeenCalledExactlyOnceWith(
+      method === "createNormal"
+        ? {
+            ...transaction,
+            payments: [{ accountId, amount: null }],
+            transactionAt: "2025-12-31T15:30:15.000Z",
+          }
+        : {
+            accountId,
+            ...transaction,
+            transactionAt: "2025-12-31T15:30:15.000Z",
+          },
+    );
     await expect(
       services.importService[method]({
         ...input,

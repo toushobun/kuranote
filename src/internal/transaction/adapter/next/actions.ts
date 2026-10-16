@@ -207,11 +207,11 @@ export async function convertTransactionType(
       });
     } else {
       await service.convert({
-        accountId: values.accountId,
         items: values.items,
         ledgerId: currentLedger.id,
         merchantId: values.merchantId,
         note: values.note,
+        payments: values.payments,
         targetType: values.targetType,
         transactionAt: values.transactionAt,
         transactionRecordId: values.transactionRecordId,

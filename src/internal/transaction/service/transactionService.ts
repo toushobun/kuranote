@@ -27,9 +27,12 @@ import {
 import {
   transactionAccessErrorMessages,
   transactionErrorCodes,
+  transactionPaymentValidationErrorMessages,
   transactionSpecialStatusErrorMessages,
   transactionValidationErrorMessages,
 } from "internal/transaction/errors";
+import type { TransactionPayment } from "internal/transaction/entity/transactionPayment";
+import { validateTransactionPayments } from "internal/transaction/util/validateTransactionPayments";
 import type {
   TransactionFilters,
   TransactionGroupBy,
@@ -322,23 +325,15 @@ export function createTransactionService({
 
   async function requireActiveTransactionAccounts(input: {
     accountIds: string[];
+    existingAccountIds: string[];
     ledgerId: string;
-    transactionRecordId: string;
   }) {
     const userId = requireTransactionUserId(currentUserId);
-    const [accountOptions, existingItems] = await Promise.all([
-      accountQueryService.listTransactionOptions({
-        ledgerId: input.ledgerId,
-        userId,
-      }),
-      transactionRepository.listItems(input.ledgerId, [
-        input.transactionRecordId,
-      ]),
-    ]);
-    const accountIds = [
-      ...input.accountIds,
-      ...existingItems.map((item) => item.account_id),
-    ];
+    const accountOptions = await accountQueryService.listTransactionOptions({
+      ledgerId: input.ledgerId,
+      userId,
+    });
+    const accountIds = [...input.accountIds, ...input.existingAccountIds];
 
     if (!areAccountIdsAvailable(accountIds, accountOptions)) {
       throw new ValidationError(
@@ -346,6 +341,48 @@ export function createTransactionService({
         transactionValidationErrorMessages[
           transactionErrorCodes.accountInvalid
         ],
+      );
+    }
+  }
+
+  /**
+   * create / update / convert 调用 Repository 前的第二道防线：账户去重、归档、
+   * 同币种、多行时全部为支出明细、付款合计 = 支出明细合计，规则与数据库延迟
+   * 约束触发器一致（docs/design/issue-834-split-payment.md 3.2）。
+   */
+  async function requireValidTransactionPayments(input: {
+    items: CreateNormalTransactionInput["items"];
+    ledgerId: string;
+    payments: TransactionPayment[];
+  }) {
+    const userId = requireTransactionUserId(currentUserId);
+    const [accountOptions, categories] = await Promise.all([
+      accountQueryService.listTransactionOptions({
+        ledgerId: input.ledgerId,
+        userId,
+      }),
+      categoryQueryService.findSummariesByIds({
+        categoryIds: [...new Set(input.items.map((item) => item.categoryId))],
+        ledgerId: input.ledgerId,
+        userId,
+      }),
+    ]);
+    const categoryTypeById = new Map(
+      categories.map((category) => [category.id, category.type]),
+    );
+
+    const result = validateTransactionPayments({
+      accountOptions,
+      items: input.items.map((item) => ({
+        amount: item.amount,
+        categoryType: categoryTypeById.get(item.categoryId) ?? null,
+      })),
+      payments: input.payments,
+    });
+    if (!result.ok) {
+      throw new ValidationError(
+        result.error,
+        transactionPaymentValidationErrorMessages[result.error],
       );
     }
   }
@@ -373,6 +410,11 @@ export function createTransactionService({
       );
       if (input.targetType !== "transfer") {
         await validateSpecialStatuses(input);
+        await requireValidTransactionPayments({
+          items: input.items,
+          ledgerId: input.ledgerId,
+          payments: input.payments,
+        });
       }
       try {
         await transactionRepository.convert(input);
@@ -384,6 +426,11 @@ export function createTransactionService({
     async createNormal(input) {
       await requireWritePermission(input.ledgerId);
       await validateSpecialStatuses(input);
+      await requireValidTransactionPayments({
+        items: input.items,
+        ledgerId: input.ledgerId,
+        payments: input.payments,
+      });
       try {
         await transactionRepository.createNormal(input);
       } catch (error) {
@@ -524,10 +571,21 @@ export function createTransactionService({
         input.transactionRecordId,
       );
       await validateSpecialStatuses(input);
-      await requireActiveTransactionAccounts({
-        accountIds: [input.accountId],
+      await requireValidTransactionPayments({
+        items: input.items,
         ledgerId: input.ledgerId,
-        transactionRecordId: input.transactionRecordId,
+        payments: input.payments,
+      });
+      const existingPayments = await transactionRepository.listPayments(
+        input.ledgerId,
+        [input.transactionRecordId],
+      );
+      await requireActiveTransactionAccounts({
+        accountIds: input.payments.map((payment) => payment.accountId),
+        existingAccountIds: existingPayments.map(
+          (payment) => payment.account_id,
+        ),
+        ledgerId: input.ledgerId,
       });
       try {
         await transactionRepository.updateNormal(input);
@@ -563,10 +621,14 @@ export function createTransactionService({
         input.ledgerId,
         input.transactionRecordId,
       );
+      const existingItems = await transactionRepository.listItems(
+        input.ledgerId,
+        [input.transactionRecordId],
+      );
       await requireActiveTransactionAccounts({
         accountIds: [input.accountId, input.transferTargetAccountId],
+        existingAccountIds: existingItems.map((item) => item.account_id),
         ledgerId: input.ledgerId,
-        transactionRecordId: input.transactionRecordId,
       });
       try {
         await transactionRepository.updateTransfer(input);

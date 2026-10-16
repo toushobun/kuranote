@@ -54,6 +54,7 @@ function createRepository(
     findActiveRecord: vi.fn().mockResolvedValue(null),
     loadFrequentCategoryCounts: vi.fn().mockResolvedValue([]),
     listItems: vi.fn().mockResolvedValue([]),
+    listPayments: vi.fn().mockResolvedValue([]),
     ...overrides,
   };
 }
@@ -128,6 +129,15 @@ function createLinkedDependencies({
         ...itemOverrides,
       },
     ]),
+    listPayments: vi.fn().mockResolvedValue([
+      {
+        account_id: accountId,
+        amount: "1000",
+        balance_delta: "-1000",
+        sort_order: 0,
+        transaction_record_id: transactionRecordId,
+      },
+    ]),
   };
 
   return {
@@ -188,6 +198,15 @@ describe("getEditTransactionView", () => {
           transaction_record_id: transactionRecordId,
         },
       ]),
+      listPayments: vi.fn().mockResolvedValue([
+        {
+          account_id: accountId,
+          amount: "1200.00",
+          balance_delta: "-1200.00",
+          sort_order: 0,
+          transaction_record_id: transactionRecordId,
+        },
+      ]),
     });
 
     const view = await getEditTransactionView(
@@ -201,6 +220,7 @@ describe("getEditTransactionView", () => {
       canEdit: false,
       initialValues: {
         accountId,
+        payments: [{ accountId, amount: "1200.00" }],
         items: [
           { amount: "1200", categoryId, specialStatus: "pendingReimbursement" },
         ],
@@ -240,6 +260,15 @@ describe("getEditTransactionView", () => {
           balance_delta: "-1234.56",
           category_id: categoryId,
           note: null,
+          transaction_record_id: transactionRecordId,
+        },
+      ]),
+      listPayments: vi.fn().mockResolvedValue([
+        {
+          account_id: accountId,
+          amount: "1234.56",
+          balance_delta: "-1234.56",
+          sort_order: 0,
           transaction_record_id: transactionRecordId,
         },
       ]),
@@ -384,6 +413,69 @@ describe("getEditTransactionView", () => {
     expect(permissionView).toMatchObject({
       canEdit: false,
       editRestriction: "permission",
+    });
+  });
+
+  it("多账户付款明细中任一账户已归档时整笔只读", async () => {
+    const secondAccountId = "00000000-0000-4000-8000-000000000047";
+    const repository = createRepository({
+      findActiveRecord: vi.fn().mockResolvedValue({
+        created_at: "2026-06-04T01:00:00.000Z",
+        created_by: userId,
+        id: transactionRecordId,
+        merchant_id: merchantId,
+        note: "共同支付",
+        transaction_at: "2026-06-04T01:30:05.000Z",
+        type: "normal",
+      }),
+      listItems: vi.fn().mockResolvedValue([
+        {
+          account_id: accountId,
+          amount: "1200.00",
+          balance_delta: null,
+          category_id: categoryId,
+          note: null,
+          transaction_record_id: transactionRecordId,
+        },
+      ]),
+      listPayments: vi.fn().mockResolvedValue([
+        {
+          account_id: accountId,
+          amount: "500.00",
+          balance_delta: "-500.00",
+          sort_order: 0,
+          transaction_record_id: transactionRecordId,
+        },
+        {
+          account_id: secondAccountId,
+          amount: "700.00",
+          balance_delta: "-700.00",
+          sort_order: 1,
+          transaction_record_id: transactionRecordId,
+        },
+      ]),
+    });
+    const dependencies = createDependencies(repository);
+    vi.mocked(
+      dependencies.accountQueryService.listTransactionOptions,
+    ).mockResolvedValue([{ currency: "JPY", id: accountId, name: "现金" }]);
+
+    const view = await getEditTransactionView(
+      dependencies,
+      currentLedger,
+      transactionRecordId,
+    );
+
+    expect(view).toMatchObject({
+      canEdit: false,
+      editRestriction: "archivedAccount",
+      initialValues: {
+        accountId,
+        payments: [
+          { accountId, amount: "500.00" },
+          { accountId: secondAccountId, amount: "700.00" },
+        ],
+      },
     });
   });
 

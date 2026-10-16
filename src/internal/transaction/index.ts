@@ -16,6 +16,7 @@ export {
   type TransactionRecordStorageType,
   type TransactionType,
 } from "internal/transaction/entity/transactionType";
+export type { TransactionPayment } from "internal/transaction/entity/transactionPayment";
 export {
   fromTransactionSpecialStatusStorageValue,
   resolveTransactionBusinessStatus,

@@ -103,7 +103,15 @@ describe("transactionRouter", () => {
       method: "POST",
     });
     expect(response.status).toBe(201);
-    expect(service.createNormal).toHaveBeenCalledWith(body);
+    expect(service.createNormal).toHaveBeenCalledWith({
+      items: body.items,
+      ledgerId: body.ledgerId,
+      merchantId: body.merchantId,
+      note: body.note,
+      payments: [{ accountId, amount: null }],
+      transactionAt: body.transactionAt,
+      type: body.type,
+    });
     expect(mocks.revalidateTransactionMutation).toHaveBeenCalledOnce();
   });
 
@@ -145,10 +153,16 @@ describe("transactionRouter", () => {
     expect(linkedTransactionEditService.updateNormal).toHaveBeenCalledWith(
       currentLedger,
       {
-        ...body,
         confirmSync: false,
         expectedUpdatedAtByItemId: {},
+        items: body.items,
+        ledgerId: body.ledgerId,
+        merchantId: body.merchantId,
+        note: body.note,
+        payments: [{ accountId, amount: null }],
+        transactionAt: body.transactionAt,
         transactionRecordId,
+        type: body.type,
       },
     );
     expect(service.updateNormal).not.toHaveBeenCalled();

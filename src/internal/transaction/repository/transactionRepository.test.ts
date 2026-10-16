@@ -90,11 +90,11 @@ describe("TransactionRepository", () => {
     expect(query.order).toHaveBeenCalledWith("id", { ascending: true });
   });
   const normalInput = {
-    accountId,
     items: [{ amount: 1200, categoryId }],
     ledgerId,
     merchantId,
     note: null,
+    payments: [{ accountId, amount: null }],
     transactionAt: "2026-06-04T01:00:00.000Z",
     type: "expense" as const,
   };
@@ -218,6 +218,26 @@ describe("TransactionRepository", () => {
       p_transaction_at: normalInput.transactionAt,
       p_type: "expense",
     });
+  });
+  it("多账户付款明细透传金额到原子 RPC", async () => {
+    const secondPaymentAccountId = "00000000-0000-4000-8000-000000000047";
+    const { repository, rpc } = createRepository();
+    await repository.createNormal({
+      ...normalInput,
+      payments: [
+        { accountId, amount: "500" },
+        { accountId: secondPaymentAccountId, amount: "700" },
+      ],
+    });
+    expect(rpc).toHaveBeenCalledWith(
+      "create_transaction",
+      expect.objectContaining({
+        p_payments: [
+          { accountId, amount: "500" },
+          { accountId: secondPaymentAccountId, amount: "700" },
+        ],
+      }),
+    );
   });
   it("退款收入将单一目标明细传给原子 RPC", async () => {
     const { repository, rpc } = createRepository();
@@ -578,6 +598,81 @@ describe("TransactionRepository", () => {
       "[transaction] failed to load transaction items",
       { databaseCode: "database_failure", ledgerId },
     );
+  });
+  it("付款明细按 sort_order 读取并转换金额为字符串", async () => {
+    const paymentQuery = createQuery({
+      data: [
+        {
+          account_id: accountId,
+          amount: 500,
+          balance_delta: -500,
+          sort_order: 0,
+          transaction_record_id: transactionRecordId,
+        },
+      ],
+      error: null,
+    });
+    const { repository } = createRepository({
+      queries: { transaction_payment: paymentQuery },
+    });
+    await expect(
+      repository.listPayments(ledgerId, [transactionRecordId]),
+    ).resolves.toEqual([
+      {
+        account_id: accountId,
+        amount: "500",
+        balance_delta: "-500",
+        sort_order: 0,
+        transaction_record_id: transactionRecordId,
+      },
+    ]);
+    expect(paymentQuery.select).toHaveBeenCalledWith(
+      "transaction_record_id, account_id, amount, balance_delta, sort_order",
+    );
+    expect(paymentQuery.eq).toHaveBeenCalledWith("ledger_id", ledgerId);
+    expect(paymentQuery.order).toHaveBeenCalledWith("sort_order", {
+      ascending: true,
+    });
+  });
+  it("付款明细记录 id 很多时按块查询", async () => {
+    const recordIds = Array.from(
+      { length: 250 },
+      (_, index) => `record-${index}`,
+    );
+    const paymentQuery = createQuery({ data: [], error: null });
+    const { repository } = createRepository({
+      queries: { transaction_payment: paymentQuery },
+    });
+    await repository.listPayments(ledgerId, recordIds);
+    const chunkSizes = vi
+      .mocked(paymentQuery.in)
+      .mock.calls.map(([, ids]) => (ids as string[]).length);
+    expect(chunkSizes).toEqual([100, 100, 50]);
+  });
+  it("付款明细查询失败时记录日志并抛出安全仓储错误", async () => {
+    const paymentQuery = createQuery({
+      data: null,
+      error: { code: "database_failure", message: "raw database details" },
+    });
+    const { logger, repository } = createRepository({
+      queries: { transaction_payment: paymentQuery },
+    });
+    await expect(
+      repository.listPayments(ledgerId, [transactionRecordId]),
+    ).rejects.toMatchObject({
+      code: "transaction_payments_load_failed",
+      message: transactionLoadErrorMessages.paymentsLoadFailed,
+      name: RepositoryError.name,
+    });
+    expect(logger.error).toHaveBeenCalledWith(
+      "[transaction] failed to load transaction payments",
+      { databaseCode: "database_failure", ledgerId },
+    );
+  });
+  it("空关联 ID 不发起付款明细查询", async () => {
+    const { from, repository } = createRepository();
+    await expect(repository.listPayments(ledgerId, [])).resolves.toEqual([]);
+    expect(from).not.toHaveBeenCalled();
   });
   it("常用分类通过一次 RPC 读取按月累计后的聚合计数", async () => {
     const rpc = vi.fn().mockResolvedValue({
@@ -1019,7 +1114,6 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
     "supabase/migrations/20260630020000_drop_transaction_item_stat_type.sql",
   );
   const normalInput = {
-    accountId: "00000000-0000-4000-8000-000000000045",
     items: [
       {
         amount: 1200,
@@ -1029,6 +1123,9 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
     ledgerId: "00000000-0000-4000-8000-000000000032",
     merchantId: "00000000-0000-4000-8000-000000001001",
     note: null,
+    payments: [
+      { accountId: "00000000-0000-4000-8000-000000000045", amount: null },
+    ],
     transactionAt: "2026-06-04T01:00:00.000Z",
     type: "expense" as const,
   };
@@ -1167,6 +1264,36 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
         "category_invalid",
         "category_invalid",
         transactionWriteErrorMessages.categoryInvalid,
+      ],
+      [
+        "payment_account_duplicate",
+        transactionErrorCodes.paymentAccountDuplicate,
+        transactionWriteErrorMessages.paymentAccountDuplicate,
+      ],
+      [
+        "payment_total_mismatch",
+        transactionErrorCodes.paymentTotalMismatch,
+        transactionWriteErrorMessages.paymentTotalMismatch,
+      ],
+      [
+        "payment_multi_account_not_allowed",
+        transactionErrorCodes.paymentMultiAccountNotAllowed,
+        transactionWriteErrorMessages.paymentMultiAccountNotAllowed,
+      ],
+      [
+        "payment_currency_mismatch",
+        transactionErrorCodes.paymentCurrencyMismatch,
+        transactionWriteErrorMessages.paymentCurrencyMismatch,
+      ],
+      [
+        "payment_amount_required",
+        transactionErrorCodes.paymentAmountRequired,
+        transactionWriteErrorMessages.paymentAmountRequired,
+      ],
+      [
+        "payment_transition_invalid",
+        transactionErrorCodes.paymentTransitionInvalid,
+        transactionWriteErrorMessages.paymentTransitionInvalid,
       ],
     ])(
       "数据库参数错误 %s 转换为安全的 ValidationError",

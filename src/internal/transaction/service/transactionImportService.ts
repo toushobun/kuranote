@@ -119,9 +119,11 @@ export function createTransactionImportService({
 
   return {
     async createNormal(input) {
-      const { timeZoneOffsetMinutes, ...transaction } = input;
+      const { accountId, timeZoneOffsetMinutes, ...transaction } = input;
       await service.createNormal({
         ...transaction,
+        // 导入格式仍是单账户；RPC 按明细推导金额（#911 过渡期，3.4）。
+        payments: [{ accountId, amount: null }],
         transactionAt: toImportTransactionTimestamp(
           input.transactionAt,
           timeZoneOffsetMinutes,

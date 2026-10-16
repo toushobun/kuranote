@@ -14,6 +14,7 @@ import {
   transactionTypes,
   type TransactionType,
 } from "internal/transaction/entity/transactionType";
+import type { TransactionPayment } from "internal/transaction/entity/transactionPayment";
 import {
   transactionWritableSpecialStatuses,
   type TransactionSpecialStatus,
@@ -27,6 +28,7 @@ import {
   parseOptionalTextField,
   parseOptionalUuidText,
   parseRequiredUuidField,
+  parseUuid,
   type ValidationResult,
   valid,
 } from "internal/shared/schema/formValidation";
@@ -41,7 +43,7 @@ const transactionRecordTypeValues = ["expense", "income", "transfer"] as const;
 export type TransactionFormValues = {
   type: TransactionType;
   transactionAt: string;
-  accountId: string;
+  payments: TransactionPayment[];
   items: TransactionFormItemValues[];
   merchantId: string;
   note: string | null;
@@ -208,6 +210,57 @@ function parseTransactionItems(
   return valid(items);
 }
 
+/**
+ * 普通记录的付款明细：没有 `paymentAccountId` 字段时沿用 `accountId`（单账户，
+ * 金额由 RPC 按明细推导）；有 `paymentAccountId[]` / `paymentAmount[]` 时解析为
+ * 多账户（≥ 2 行，金额必填、≥ 0、最多两位小数）。重复账户、币种、合计等业务
+ * 校验交给 Service 层的 `validateTransactionPayments`，这里只做结构解析。
+ */
+function parseTransactionPayments(
+  formData: FormData,
+  singleAccountId: string,
+): ValidationResult<TransactionPayment[], TransactionValidationErrorCode> {
+  const paymentAccountIdValues = formData.getAll("paymentAccountId");
+  if (paymentAccountIdValues.length === 0) {
+    return valid([{ accountId: singleAccountId, amount: null }]);
+  }
+
+  const paymentAmountValues = formData.getAll("paymentAmount");
+  if (
+    paymentAccountIdValues.length < 2 ||
+    paymentAccountIdValues.length !== paymentAmountValues.length
+  ) {
+    return invalid(transactionErrorCodes.accountInvalid);
+  }
+
+  const payments: TransactionPayment[] = [];
+  for (const [index, rawAccountId] of paymentAccountIdValues.entries()) {
+    const accountIdResult = parseUuid(
+      String(rawAccountId).trim(),
+      transactionErrorCodes.accountInvalid,
+    );
+    if (!accountIdResult.ok) return accountIdResult;
+
+    const rawAmount = paymentAmountValues[index];
+    if (String(rawAmount ?? "").trim().length === 0) {
+      return invalid(transactionErrorCodes.paymentAmountRequired);
+    }
+    const amountResult = parseMoneyAmount(rawAmount, {
+      allowNegative: false,
+      allowZero: true,
+      error: transactionErrorCodes.amountInvalid,
+    });
+    if (!amountResult.ok) return amountResult;
+
+    payments.push({
+      accountId: accountIdResult.value,
+      amount: String(amountResult.value),
+    });
+  }
+
+  return valid(payments);
+}
+
 export function validateTransactionForm(
   formData: FormData,
 ): ValidationResult<
@@ -327,11 +380,20 @@ export function validateTransactionForm(
     return noteResult;
   }
 
+  const paymentsResult = parseTransactionPayments(
+    formData,
+    accountIdResult.value,
+  );
+
+  if (!paymentsResult.ok) {
+    return paymentsResult;
+  }
+
   return valid({
-    accountId: accountIdResult.value,
     items: itemsResult.value,
     merchantId: merchantIdResult.value,
     note: noteResult.value,
+    payments: paymentsResult.value,
     transactionAt,
     type: typeResult.value,
   });

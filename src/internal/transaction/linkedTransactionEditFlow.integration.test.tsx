@@ -95,6 +95,7 @@ function createView(side: "parent" | "child"): NormalEditView {
     frequentCategoryIds: [],
     initialValues: {
       accountId,
+      payments: [{ accountId, amount: null }],
       items: [
         {
           amount: isParent ? "100" : "40",

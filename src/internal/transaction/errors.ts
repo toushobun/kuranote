@@ -18,6 +18,13 @@ export const transactionErrorCodes = {
   linkedVersionInvalid: "linked_version_invalid",
   merchantInvalid: "merchant_invalid",
   noteTooLong: "note_too_long",
+  // 付款明细（#834 子 Issue 2）：与数据库延迟约束触发器使用相同的稳定 code。
+  paymentAccountDuplicate: "payment_account_duplicate",
+  paymentAmountRequired: "payment_amount_required",
+  paymentCurrencyMismatch: "payment_currency_mismatch",
+  paymentMultiAccountNotAllowed: "payment_multi_account_not_allowed",
+  paymentTotalMismatch: "payment_total_mismatch",
+  paymentTransitionInvalid: "payment_transition_invalid",
   refundLinkInvalid: "refund_link_invalid",
   reimbursementLinkInvalid: "reimbursement_link_invalid",
   permissionDenied: "permission_denied",
@@ -36,10 +43,24 @@ export type TransactionValidationErrorCode =
   | typeof transactionErrorCodes.dateInvalid
   | typeof transactionErrorCodes.merchantInvalid
   | typeof transactionErrorCodes.noteTooLong
+  | typeof transactionErrorCodes.paymentAmountRequired
   | typeof transactionErrorCodes.refundLinkInvalid
   | typeof transactionErrorCodes.reimbursementLinkInvalid
   | typeof transactionErrorCodes.specialStatusInvalid
   | typeof transactionErrorCodes.typeInvalid;
+
+/**
+ * `validateTransactionPayments`（util/，纯函数）可能返回的错误码。
+ * 与 Repository 的 RPC 错误码映射共用同一组稳定 code。
+ */
+export type TransactionPaymentValidationErrorCode =
+  | typeof transactionErrorCodes.accountInvalid
+  | typeof transactionErrorCodes.amountInvalid
+  | typeof transactionErrorCodes.paymentAccountDuplicate
+  | typeof transactionErrorCodes.paymentAmountRequired
+  | typeof transactionErrorCodes.paymentCurrencyMismatch
+  | typeof transactionErrorCodes.paymentMultiAccountNotAllowed
+  | typeof transactionErrorCodes.paymentTotalMismatch;
 
 export type UpdateTransactionValidationErrorCode =
   | TransactionValidationErrorCode
@@ -54,6 +75,26 @@ export type TransactionServiceErrorCode =
   | typeof transactionErrorCodes.updateFailed
   | typeof transactionErrorCodes.voidFailed;
 
+/**
+ * 付款明细（#834 子 Issue 2）校验文案的唯一权威定义；
+ * 由 `transactionValidationErrorMessages`（Service 内 `validateTransactionPayments`
+ * 抛出）与 `transactionWriteErrorMessages`（Repository 映射数据库延迟约束错误码）
+ * 共同引用，不重复书写字面量。
+ */
+export const transactionPaymentMessages = {
+  [transactionErrorCodes.paymentAccountDuplicate]:
+    "同一笔记录不能重复选择相同账户。",
+  [transactionErrorCodes.paymentAmountRequired]:
+    "选择多个付款账户时，每个账户的金额都必须填写。",
+  [transactionErrorCodes.paymentCurrencyMismatch]: "付款账户的币种必须一致。",
+  [transactionErrorCodes.paymentMultiAccountNotAllowed]:
+    "含收入明细的记录只能选择一个付款账户。",
+  [transactionErrorCodes.paymentTotalMismatch]:
+    "付款金额合计必须等于支出明细合计。",
+  [transactionErrorCodes.paymentTransitionInvalid]:
+    "当前暂不支持保存多个付款账户，请稍后重试。",
+} as const;
+
 export const transactionValidationErrorMessages: Record<
   TransactionValidationErrorCode,
   string
@@ -64,11 +105,36 @@ export const transactionValidationErrorMessages: Record<
   [transactionErrorCodes.dateInvalid]: "发生时间不正确。",
   [transactionErrorCodes.merchantInvalid]: "商家指定不正确。",
   [transactionErrorCodes.noteTooLong]: "备注不能超过 2000 个字符。",
+  [transactionErrorCodes.paymentAmountRequired]:
+    transactionPaymentMessages[transactionErrorCodes.paymentAmountRequired],
   [transactionErrorCodes.refundLinkInvalid]: "退款金额必须大于 0。",
   [transactionErrorCodes.reimbursementLinkInvalid]: "报销目标明细不正确。",
   [transactionErrorCodes.specialStatusInvalid]:
     "特殊状态不正确；待报销只能用于支出明细，结清状态只能由有效退款或报销核销自动派生。",
   [transactionErrorCodes.typeInvalid]: "记账类型不正确。",
+};
+
+/** `validateTransactionPayments` 校验失败时的文案，供 Service 抛出 ValidationError 使用。 */
+export const transactionPaymentValidationErrorMessages: Record<
+  TransactionPaymentValidationErrorCode,
+  string
+> = {
+  [transactionErrorCodes.accountInvalid]:
+    transactionValidationErrorMessages[transactionErrorCodes.accountInvalid],
+  [transactionErrorCodes.amountInvalid]:
+    transactionValidationErrorMessages[transactionErrorCodes.amountInvalid],
+  [transactionErrorCodes.paymentAccountDuplicate]:
+    transactionPaymentMessages[transactionErrorCodes.paymentAccountDuplicate],
+  [transactionErrorCodes.paymentAmountRequired]:
+    transactionPaymentMessages[transactionErrorCodes.paymentAmountRequired],
+  [transactionErrorCodes.paymentCurrencyMismatch]:
+    transactionPaymentMessages[transactionErrorCodes.paymentCurrencyMismatch],
+  [transactionErrorCodes.paymentMultiAccountNotAllowed]:
+    transactionPaymentMessages[
+      transactionErrorCodes.paymentMultiAccountNotAllowed
+    ],
+  [transactionErrorCodes.paymentTotalMismatch]:
+    transactionPaymentMessages[transactionErrorCodes.paymentTotalMismatch],
 };
 
 /** 编辑 / 删除对象本身不正确时的文案。 */
@@ -118,6 +184,20 @@ export const transactionWriteErrorMessages = {
   itemsInvalid: "交易明细不正确，请确认后重试。",
   linkedEditForbidden: "已有关联报销或退款的交易暂不能修改或作废。",
   merchantInvalid: "商家信息不正确，请确认后重试。",
+  paymentAccountDuplicate:
+    transactionPaymentMessages[transactionErrorCodes.paymentAccountDuplicate],
+  paymentAmountRequired:
+    transactionPaymentMessages[transactionErrorCodes.paymentAmountRequired],
+  paymentCurrencyMismatch:
+    transactionPaymentMessages[transactionErrorCodes.paymentCurrencyMismatch],
+  paymentMultiAccountNotAllowed:
+    transactionPaymentMessages[
+      transactionErrorCodes.paymentMultiAccountNotAllowed
+    ],
+  paymentTotalMismatch:
+    transactionPaymentMessages[transactionErrorCodes.paymentTotalMismatch],
+  paymentTransitionInvalid:
+    transactionPaymentMessages[transactionErrorCodes.paymentTransitionInvalid],
   refundAllocationInvalid: "退款金额不正确，请重新选择退款明细。",
   refundCurrencyMismatch: "退款收入与支出明细的账户币种必须一致。",
   refundedItemInvalid: "退款关联的支出明细无效，请重新选择。",
@@ -152,6 +232,7 @@ export const transactionLoadErrorMessages = {
   itemsLoadFailed: "交易明细加载失败，请稍后重试。",
   linkedItemLoadFailed: "交易明细读取失败，请稍后重试。",
   membersLoadFailed: "账本成员加载失败，请稍后重试。",
+  paymentsLoadFailed: "付款明细加载失败，请稍后重试。",
   recordersLoadFailed: "交易记录人信息加载失败，请稍后重试。",
   recordLoadFailed: "交易记录读取失败，请稍后重试。",
   recordsLoadFailed: "交易记录加载失败，请稍后重试。",

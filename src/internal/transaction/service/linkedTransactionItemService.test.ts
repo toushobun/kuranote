@@ -23,7 +23,6 @@ function createLinkedRepository(
 ): LinkedTransactionItemRepository {
   return {
     findEditSnapshot: vi.fn().mockResolvedValue({
-      accountId: "00000000-0000-4000-8000-000000000043",
       amount: "120.00",
       categoryId: "00000000-0000-4000-8000-000000005021",
       transactionItemId,
@@ -76,7 +75,6 @@ function createService(options?: {
 const accountId = "00000000-0000-4000-8000-000000000043";
 
 const updateEditInput = {
-  accountId,
   itemUpdates: [
     {
       amount: 80,
@@ -88,6 +86,7 @@ const updateEditInput = {
   ledgerId,
   merchantId: "00000000-0000-4000-8000-000000001001",
   note: null,
+  payments: [{ accountId, amount: null }],
   transactionAt: "2026-08-21T01:30:00.000Z",
   transactionRecordId,
 };
@@ -159,7 +158,6 @@ describe("LinkedTransactionItemService", () => {
   it("编辑快照不属于请求交易时返回 NotFoundError", async () => {
     const linkedRepository = createLinkedRepository({
       findEditSnapshot: vi.fn().mockResolvedValue({
-        accountId: "00000000-0000-4000-8000-000000000043",
         amount: "120.00",
         categoryId: "00000000-0000-4000-8000-000000005021",
         transactionItemId,
