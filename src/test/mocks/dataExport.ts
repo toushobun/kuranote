@@ -43,24 +43,12 @@ export function createDataExportFixture(): DataExport {
         id: "normal",
         type: "normal",
         items: [
-          {
-            accountId: "cash",
-            categoryId: "lunch",
-            amount: "123.45",
-            balanceDelta: "-123.45",
-          },
-          {
-            accountId: "cash",
-            categoryId: "food",
-            amount: "50",
-            balanceDelta: "-50",
-          },
-          {
-            accountId: "cash",
-            categoryId: "salary",
-            amount: "10",
-            balanceDelta: "10",
-          },
+          { categoryId: "lunch", amount: "123.45" },
+          { categoryId: "food", amount: "50" },
+          { categoryId: "salary", amount: "10" },
+        ],
+        payments: [
+          { accountId: "cash", amount: "163.45", balanceDelta: "-163.45" },
         ],
       },
       {

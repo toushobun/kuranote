@@ -209,6 +209,14 @@ export interface TransactionContextRepository {
   listRecords(input: TransactionRecordQuery): Promise<TransactionRecordDbRow[]>;
 }
 
+export interface TransactionExportRepository extends TransactionContextRepository {
+  listPayments(
+    ledgerId: string,
+    transactionRecordIds: string[],
+    page?: { offset: number; limit: number },
+  ): Promise<TransactionPaymentDbRow[]>;
+}
+
 export interface TransactionFormRepository {
   findActiveRecord(
     ledgerId: string,

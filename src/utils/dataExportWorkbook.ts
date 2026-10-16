@@ -17,6 +17,20 @@ import { getAccountTypeLabel } from "utils/accounts";
 import { getCategoryDisplayName } from "utils/categoryNames";
 import { formatDateTimeLocalInputValue } from "utils/transactions";
 
+/** 「付款明细」sheet：导出专用，导入按 sheet 名识别，不认识的 sheet 会被忽略。 */
+const paymentDetailSheetName = "付款明细";
+
+const paymentDetailColumns: ImportColumnDef[] = [
+  { name: "账单关联", required: false },
+  { name: "日期", required: true },
+  { name: "账户", required: true },
+  { name: "账户币种", required: true },
+  { name: "账户持有人", required: false },
+  { name: "账户类型", required: true },
+  { name: "付款金额", required: true },
+  { name: "顺序", required: true },
+];
+
 export async function buildDataExportWorkbook(
   data: DataExport,
 ): Promise<ArrayBuffer> {
@@ -47,6 +61,10 @@ export async function buildDataExportWorkbook(
   const adjustment = createSheet(
     importSheetKindLabels.balanceAdjustment,
     balanceAdjustmentColumns,
+  );
+  const paymentDetail = createSheet(
+    paymentDetailSheetName,
+    paymentDetailColumns,
   );
   const accounts = new Map(
     data.accounts.map((account) => [account.id, account]),
@@ -117,6 +135,7 @@ export async function buildDataExportWorkbook(
         writeAccount(row, accounts.get(item.accountId));
       }
     } else {
+      if (record.payments.length === 0) throw new IncompleteDataExportError();
       const merchant = record.merchantId
         ? merchants.get(record.merchantId)
         : undefined;
@@ -145,8 +164,21 @@ export async function buildDataExportWorkbook(
             : "",
           金额: item.amount,
         });
-        writeAccount(row, accounts.get(item.accountId));
+        // 多账户记录的账户四列留空：填首个账户会误导重新导入的结果，
+        // 账户信息已经在「付款明细」sheet 中完整记录。
+        if (record.payments.length === 1) {
+          writeAccount(row, accounts.get(record.payments[0].accountId));
+        }
       }
+      record.payments.forEach((payment, index) => {
+        const row = paymentDetail.addRow({
+          账单关联: record.id,
+          日期: common.日期,
+          付款金额: payment.amount,
+          顺序: index + 1,
+        });
+        writeAccount(row, accounts.get(payment.accountId));
+      });
     }
   }
   return (await workbook.xlsx.writeBuffer()) as unknown as ArrayBuffer;

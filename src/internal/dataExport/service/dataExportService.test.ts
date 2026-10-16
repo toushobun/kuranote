@@ -58,8 +58,10 @@ describe("dataExportService", () => {
   });
   it("账户标识一次性交给账户查询服务，由其负责分批", async () => {
     const data = createDataExportFixture();
-    data.records[0].items = Array.from({ length: 201 }, (_, index) => ({
-      ...data.records[0].items[0],
+    const normal = data.records[0];
+    if (normal.type !== "normal") throw new Error("测试数据不正确");
+    normal.payments = Array.from({ length: 201 }, (_, index) => ({
+      ...normal.payments[0],
       accountId: `account-${index}`,
     }));
     const { service, accountQueryService } = setup(data);
