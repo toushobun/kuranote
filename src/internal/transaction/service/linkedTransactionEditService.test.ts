@@ -194,6 +194,21 @@ function createUnlinkedView(): EditTransactionView {
   };
 }
 
+function createMultiAccountTargetView() {
+  const view = createTargetView();
+  if (!("items" in view.initialValues)) throw new Error("测试数据不正确");
+  return {
+    ...view,
+    initialValues: {
+      ...view.initialValues,
+      payments: [
+        { accountId: oldAccountId, amount: "100" },
+        { accountId: sameCurrencyAccountId, amount: "200" },
+      ],
+    },
+  };
+}
+
 function createViewWithSibling(): EditTransactionView {
   const view = createIncomeView();
   if (!("items" in view.initialValues)) throw new Error("测试数据不正确");
@@ -281,6 +296,7 @@ function targetInput(
 
 function siblingInput(
   siblingOverrides: Partial<LinkedTransactionEditInput["items"][number]>,
+  overrides: Partial<LinkedTransactionEditInput> = {},
 ): LinkedTransactionEditInput {
   return incomeInput({
     confirmSync: true,
@@ -299,6 +315,7 @@ function siblingInput(
         ...siblingOverrides,
       },
     ],
+    ...overrides,
   });
 }
 
@@ -779,12 +796,7 @@ describe("LinkedTransactionEditService", () => {
         ],
       },
     ])("多账户支出母项$name时识别变化并直接保存", async ({ payments }) => {
-      const view = createTargetView();
-      if (!("items" in view.initialValues)) throw new Error("测试数据不正确");
-      view.initialValues.payments = [
-        { accountId: oldAccountId, amount: "100" },
-        { accountId: sameCurrencyAccountId, amount: "200" },
-      ];
+      const view = createMultiAccountTargetView();
       const { service, updateEdit, updateNormal } = createService(view);
       const input = targetInput({
         expectedUpdatedAtByItemId: { [linkedItemId]: updatedAt },
@@ -811,6 +823,43 @@ describe("LinkedTransactionEditService", () => {
         transactionAt,
         transactionRecordId,
       });
+      expect(updateNormal).not.toHaveBeenCalled();
+    });
+
+    it("多账户支出母项含普通兄弟明细时仅修改付款明细要求先解除关联", async () => {
+      const view = createMultiAccountTargetView();
+      const sibling = {
+        amount: 50,
+        categoryId: expenseCategoryId,
+        id: siblingItemId,
+      };
+      view.initialValues.items.push({
+        ...sibling,
+        amount: "50",
+        businessStatus: null,
+        refundCandidate: null,
+        reimbursementCandidate: null,
+        specialStatus: null,
+      });
+      view.initialValues.payments[0].amount = "150";
+      const { service, updateEdit, updateNormal } = createService(view);
+      const input = targetInput({
+        expectedUpdatedAtByItemId: { [linkedItemId]: updatedAt },
+        items: [...targetInput().items, sibling],
+        payments: [
+          { accountId: oldAccountId, amount: "175" },
+          { accountId: sameCurrencyAccountId, amount: "175" },
+        ],
+      });
+
+      await expect(
+        service.updateNormal(currentLedger, input),
+      ).rejects.toMatchObject({
+        code: transactionErrorCodes.linkedEditRequiresUnlink,
+        message: transactionLinkedEditErrorMessages.unsupportedSiblingEdit,
+        name: ValidationError.name,
+      });
+      expect(updateEdit).not.toHaveBeenCalled();
       expect(updateNormal).not.toHaveBeenCalled();
     });
 
@@ -956,6 +1005,25 @@ describe("LinkedTransactionEditService", () => {
         expect(updateEdit).not.toHaveBeenCalled();
       },
     );
+
+    it("存在普通兄弟明细时，仅付款明细发生变化也要求先解除关联", async () => {
+      const { service, updateEdit, updateNormal } = createService(
+        createViewWithSibling(),
+      );
+      const input = siblingInput(
+        {},
+        { payments: [{ accountId: sameCurrencyAccountId, amount: null }] },
+      );
+
+      await expect(
+        service.updateNormal(currentLedger, input),
+      ).rejects.toMatchObject({
+        code: transactionErrorCodes.linkedEditRequiresUnlink,
+        name: ValidationError.name,
+      });
+      expect(updateEdit).not.toHaveBeenCalled();
+      expect(updateNormal).not.toHaveBeenCalled();
+    });
 
     it("已结清母项原样回传派生状态时仍可同步修改金额", async () => {
       const { service, updateEdit } = createService(createSettledTargetView());
