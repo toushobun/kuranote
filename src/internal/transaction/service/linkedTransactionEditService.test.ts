@@ -763,6 +763,87 @@ describe("LinkedTransactionEditService", () => {
   });
 
   describe("付款明细（多账户，Service 层用 mock 验证）", () => {
+    it.each([
+      {
+        name: "仅重新分配付款金额且合计不变",
+        payments: [
+          { accountId: oldAccountId, amount: "150" },
+          { accountId: sameCurrencyAccountId, amount: "150" },
+        ],
+      },
+      {
+        name: "仅调换付款行顺序",
+        payments: [
+          { accountId: sameCurrencyAccountId, amount: "200" },
+          { accountId: oldAccountId, amount: "100" },
+        ],
+      },
+    ])("多账户支出母项$name时识别变化并直接保存", async ({ payments }) => {
+      const view = createTargetView();
+      if (!("items" in view.initialValues)) throw new Error("测试数据不正确");
+      view.initialValues.payments = [
+        { accountId: oldAccountId, amount: "100" },
+        { accountId: sameCurrencyAccountId, amount: "200" },
+      ];
+      const { service, updateEdit, updateNormal } = createService(view);
+      const input = targetInput({
+        expectedUpdatedAtByItemId: { [linkedItemId]: updatedAt },
+        payments,
+      });
+
+      await service.updateNormal(currentLedger, input);
+
+      expect(updateEdit).toHaveBeenCalledOnce();
+      expect(updateEdit).toHaveBeenCalledWith({
+        expectedRecordUpdatedAt: undefined,
+        itemUpdates: [
+          {
+            amount: 300,
+            categoryId: expenseCategoryId,
+            expectedUpdatedAt: updatedAt,
+            transactionItemId: linkedItemId,
+          },
+        ],
+        ledgerId,
+        merchantId,
+        note: null,
+        payments,
+        transactionAt,
+        transactionRecordId,
+      });
+      expect(updateNormal).not.toHaveBeenCalled();
+    });
+
+    it("付款账户换成同币种账户但未确认时返回确认冲突", async () => {
+      const { service, updateEdit } = createService(createIncomeView());
+      const input = incomeInput({
+        payments: [{ accountId: sameCurrencyAccountId, amount: null }],
+      });
+
+      await expect(
+        service.updateNormal(currentLedger, input),
+      ).rejects.toMatchObject({
+        code: transactionErrorCodes.linkedSyncConfirmationRequired,
+        name: ConflictError.name,
+      });
+      expect(updateEdit).not.toHaveBeenCalled();
+    });
+
+    it("单账户金额从 null 变成显式金额时不要求确认也不执行无效保存", async () => {
+      const { service, updateEdit, updateNormal } =
+        createService(createIncomeView());
+      const input = incomeInput({
+        payments: [{ accountId: oldAccountId, amount: "100" }],
+      });
+
+      await expect(
+        service.updateNormal(currentLedger, input),
+      ).resolves.toBeUndefined();
+
+      expect(updateEdit).not.toHaveBeenCalled();
+      expect(updateNormal).not.toHaveBeenCalled();
+    });
+
     it("提交记录版本时透传给 Repository", async () => {
       const { service, updateEdit } = createService(createIncomeView());
       const recordUpdatedAt = "2026-08-20T12:00:00.000Z";
