@@ -20,7 +20,8 @@ export type TransactionItemDbRow = {
   category_id: string | null;
   amount: string;
   business_net_amount?: string;
-  balance_delta?: string;
+  // 普通记录为 NULL（余额来自 transaction_payment，#911）。
+  balance_delta?: string | null;
   note?: string | null;
   special_status?: TransactionSpecialStatusStorageValue | null;
   refunded_amount?: string;

@@ -189,7 +189,7 @@ describe("createRequestContainer", () => {
       typeof container.transaction.linkedTransactionItemService.getEditSnapshot,
     ).toBe("function");
     expect(
-      typeof container.transaction.linkedTransactionItemService.update,
+      typeof container.transaction.linkedTransactionItemService.updateEdit,
     ).toBe("function");
     expect(
       typeof container.transaction.linkedTransactionEditService.updateNormal,

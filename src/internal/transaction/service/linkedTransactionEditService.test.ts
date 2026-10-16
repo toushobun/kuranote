@@ -359,6 +359,7 @@ describe("LinkedTransactionEditService", () => {
     await service.updateNormal(currentLedger, input);
 
     expect(updateEdit).toHaveBeenCalledWith({
+      accountId: oldAccountId,
       itemUpdates: [],
       ledgerId,
       merchantId: otherMerchantId,
@@ -417,9 +418,9 @@ describe("LinkedTransactionEditService", () => {
 
     expect(updateEdit).toHaveBeenCalledWith(
       expect.objectContaining({
+        accountId: oldAccountId,
         itemUpdates: [
           {
-            accountId: oldAccountId,
             amount: 120,
             categoryId: incomeCategoryId,
             expectedUpdatedAt: updatedAt,
@@ -539,9 +540,7 @@ describe("LinkedTransactionEditService", () => {
       } else {
         await service.updateNormal(currentLedger, input);
         expect(updateEdit).toHaveBeenCalledWith(
-          expect.objectContaining({
-            itemUpdates: [expect.objectContaining({ accountId })],
-          }),
+          expect.objectContaining({ accountId }),
         );
       }
     },
@@ -598,11 +597,7 @@ describe("LinkedTransactionEditService", () => {
       });
       await service.updateNormal(currentLedger, input);
       expect(updateEdit).toHaveBeenCalledWith(
-        expect.objectContaining({
-          itemUpdates: [
-            expect.objectContaining({ accountId: sameCurrencyAccountId }),
-          ],
-        }),
+        expect.objectContaining({ accountId: sameCurrencyAccountId }),
       );
     },
   );

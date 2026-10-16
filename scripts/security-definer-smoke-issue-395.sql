@@ -388,9 +388,10 @@ begin
     perform pg_temp.expect_error(
         'create_transaction',
         format(
-            'select public.create_transaction(%L, %L, now(), %L::jsonb, gen_random_uuid(), gen_random_uuid(), null)',
+            'select public.create_transaction(%L, %L, now(), %L::jsonb, %L::jsonb, gen_random_uuid(), null)',
             v_setup_ledger_id,
             'expense',
+            '[]',
             '[]'
         ),
         '42501',
@@ -900,7 +901,7 @@ begin
         'expense',
         pg_catalog.now(),
         jsonb_build_array(jsonb_build_object('amount', '100', 'categoryId', v_category_id::text)),
-        v_account_id,
+        jsonb_build_array(jsonb_build_object('accountId', v_account_id::text)),
         v_amazon_id,
         'Completed ledger smoke'
     );

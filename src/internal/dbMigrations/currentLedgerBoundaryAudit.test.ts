@@ -170,10 +170,16 @@ describe("current ledger 数据边界", () => {
     ]) {
       const functionSql = getFunctionSql(functionName);
 
-      expect(functionSql).toContain("a.ledger_id = p_ledger_id");
+      // 付款账户由共用的 transaction_payment_account_ids 按目标账本校验（#911）。
+      expect(functionSql).toContain(
+        "public.transaction_payment_account_ids(p_ledger_id, p_payments)",
+      );
       expect(functionSql).toContain("m.ledger_id = p_ledger_id");
       expect(functionSql).toContain("c.ledger_id = p_ledger_id");
     }
+    expect(getFunctionSql("transaction_payment_account_ids")).toContain(
+      "a.ledger_id = p_ledger_id",
+    );
   });
 
   it("转账和类型转换 RPC 只锁定目标账本内的账户", () => {

@@ -186,11 +186,8 @@ begin
         null
     from generate_series(1, p_count) value;
 
-    insert into public.transaction_item (
-        ledger_id, transaction_record_id, account_id, category_id,
-        amount, discount_amount, balance_delta, note, sort_order,
-        created_by, updated_by
-    )
+    perform tests.insert_normal_transaction_items(jsonb_agg(item))
+    from (
     select
         tr.ledger_id,
         tr.id,
@@ -212,7 +209,10 @@ begin
           select 1
           from public.transaction_item ti
           where ti.transaction_record_id = tr.id
-      );
+      )
+    ) item(
+        ledger_id, transaction_record_id, account_id, category_id, amount, discount_amount, balance_delta, note, sort_order, created_by, updated_by
+    );
 
     if p_status = 'deleted' then
         update public.transaction_record tr
@@ -248,6 +248,8 @@ reset role;
 delete from public.transaction_item where transaction_record_id in (
     select id from public.transaction_record where title = 'frequent category test'
 );
+delete from public.transaction_payment p using public.transaction_record tr
+where tr.id = p.transaction_record_id and tr.title = 'frequent category test';
 delete from public.transaction_record where title = 'frequent category test';
 select pg_temp.insert_frequent_category_items('2026-08-01 00:00:00+09', 12);
 select pg_temp.insert_frequent_category_items('2026-07-01 00:00:00+09', 15);
@@ -270,6 +272,8 @@ reset role;
 delete from public.transaction_item where transaction_record_id in (
     select id from public.transaction_record where title = 'frequent category test'
 );
+delete from public.transaction_payment p using public.transaction_record tr
+where tr.id = p.transaction_record_id and tr.title = 'frequent category test';
 delete from public.transaction_record where title = 'frequent category test';
 select pg_temp.insert_frequent_category_items('2026-08-01 00:00:00+09', 5);
 select pg_temp.insert_frequent_category_items('2026-07-01 00:00:00+09', 6);
@@ -293,6 +297,8 @@ reset role;
 delete from public.transaction_item where transaction_record_id in (
     select id from public.transaction_record where title = 'frequent category test'
 );
+delete from public.transaction_payment p using public.transaction_record tr
+where tr.id = p.transaction_record_id and tr.title = 'frequent category test';
 delete from public.transaction_record where title = 'frequent category test';
 select pg_temp.insert_frequent_category_items('2026-08-01 00:00:00+09', 10);
 select pg_temp.insert_frequent_category_items('2026-07-01 00:00:00+09', 8);
@@ -314,6 +320,8 @@ reset role;
 delete from public.transaction_item where transaction_record_id in (
     select id from public.transaction_record where title = 'frequent category test'
 );
+delete from public.transaction_payment p using public.transaction_record tr
+where tr.id = p.transaction_record_id and tr.title = 'frequent category test';
 delete from public.transaction_record where title = 'frequent category test';
 set local role authenticated;
 
@@ -364,6 +372,8 @@ reset role;
 delete from public.transaction_item where transaction_record_id in (
     select id from public.transaction_record where title = 'frequent category test'
 );
+delete from public.transaction_payment p using public.transaction_record tr
+where tr.id = p.transaction_record_id and tr.title = 'frequent category test';
 delete from public.transaction_record where title = 'frequent category test';
 select pg_temp.insert_frequent_category_items(
     '2026-08-01 00:00:00+09', 20, 'deleted', 'normal'

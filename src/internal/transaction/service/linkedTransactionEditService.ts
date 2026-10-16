@@ -414,7 +414,6 @@ export function createLinkedTransactionEditService({
           );
         }
         return {
-          accountId: input.accountId,
           amount: submitted.amount,
           categoryId: submitted.categoryId,
           expectedUpdatedAt,
@@ -443,6 +442,7 @@ export function createLinkedTransactionEditService({
       if (itemUpdates.length === 0 && !metadataChanged) return;
 
       await linkedTransactionItemService.updateEdit({
+        accountId: input.accountId,
         itemUpdates,
         ledgerId: input.ledgerId,
         merchantId: input.merchantId,

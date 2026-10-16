@@ -26,11 +26,8 @@ from public.transaction_record source_record
 cross join generate_series(1, 4) sequence_number
 where source_record.id = '00000000-0000-4000-8000-000000009001';
 
-insert into public.transaction_item (
-    id, ledger_id, transaction_record_id, account_id, category_id,
-    amount, discount_amount, balance_delta, sort_order,
-    created_by, updated_by, created_at, updated_at, special_status
-)
+select tests.insert_normal_transaction_items(jsonb_agg(item))
+from (
 values
     (
         '57420000-0000-4000-8000-000000000001',
@@ -79,7 +76,10 @@ values
         '00000000-0000-4000-8000-000000000031',
         '2090-01-01 00:00:00+00', '2090-01-01 00:00:00+00',
         null
-    );
+    )
+) item(
+    id, ledger_id, transaction_record_id, account_id, category_id, amount, discount_amount, balance_delta, sort_order, created_by, updated_by, created_at, updated_at, special_status
+);
 
 select lives_ok(
     $$
@@ -100,6 +100,7 @@ select lives_ok(
 update public.transaction_item
 set account_id = '00000000-0000-4000-8000-000000000042'
 where id = '57420000-0000-4000-8000-000000000004';
+select tests.sync_normal_transaction_payments(array['57410000-0000-4000-8000-000000000004'::uuid]);
 
 select throws_ok(
     $$select public.apply_transaction_item_links(
@@ -115,6 +116,7 @@ select throws_ok(
 update public.transaction_item
 set account_id = '00000000-0000-4000-8000-000000000044'
 where id = '57420000-0000-4000-8000-000000000004';
+select tests.sync_normal_transaction_payments(array['57410000-0000-4000-8000-000000000004'::uuid]);
 
 select lives_ok(
     $$
@@ -150,7 +152,7 @@ select set_config(
 
 select lives_ok(
     $$
-        select public.update_linked_transaction_item(
+        select tests.update_linked_transaction_item(
             '00000000-0000-4000-8000-000000000032',
             '57410000-0000-4000-8000-000000000002',
             '57420000-0000-4000-8000-000000000002',
@@ -196,7 +198,7 @@ select is(
 
 select lives_ok(
     $$
-        select public.update_linked_transaction_item(
+        select tests.update_linked_transaction_item(
             '00000000-0000-4000-8000-000000000032',
             '57410000-0000-4000-8000-000000000001',
             '57420000-0000-4000-8000-000000000001',
@@ -233,7 +235,7 @@ select is(
 
 select lives_ok(
     $$
-        select public.update_linked_transaction_item(
+        select tests.update_linked_transaction_item(
             '00000000-0000-4000-8000-000000000032',
             '57410000-0000-4000-8000-000000000001',
             '57420000-0000-4000-8000-000000000001',
@@ -259,7 +261,7 @@ select is(
 
 select lives_ok(
     $$
-        select public.update_linked_transaction_item(
+        select tests.update_linked_transaction_item(
             '00000000-0000-4000-8000-000000000032',
             '57410000-0000-4000-8000-000000000001',
             '57420000-0000-4000-8000-000000000001',
@@ -285,7 +287,7 @@ select is(
 
 select throws_ok(
     $$
-        select public.update_linked_transaction_item(
+        select tests.update_linked_transaction_item(
             '00000000-0000-4000-8000-000000000032',
             '57410000-0000-4000-8000-000000000001',
             '57420000-0000-4000-8000-000000000001',
@@ -302,7 +304,7 @@ select throws_ok(
 
 select throws_ok(
     $$
-        select public.update_linked_transaction_item(
+        select tests.update_linked_transaction_item(
             '00000000-0000-4000-8000-000000000032',
             '57410000-0000-4000-8000-000000000001',
             '57420000-0000-4000-8000-000000000001',
@@ -320,7 +322,7 @@ select throws_ok(
 
 select throws_ok(
     $$
-        select public.update_linked_transaction_item(
+        select tests.update_linked_transaction_item(
             '00000000-0000-4000-8000-000000000032',
             '57410000-0000-4000-8000-000000000002',
             '57420000-0000-4000-8000-000000000002',
@@ -338,7 +340,7 @@ select throws_ok(
 
 select throws_ok(
     $$
-        select public.update_linked_transaction_item(
+        select tests.update_linked_transaction_item(
             '00000000-0000-4000-8000-000000000032',
             '57410000-0000-4000-8000-000000000002',
             '57420000-0000-4000-8000-000000000002',
@@ -356,7 +358,7 @@ select throws_ok(
 
 select throws_ok(
     $$
-        select public.update_linked_transaction_item(
+        select tests.update_linked_transaction_item(
             '00000000-0000-4000-8000-000000000032',
             '57410000-0000-4000-8000-000000000004',
             '57420000-0000-4000-8000-000000000004',
@@ -386,7 +388,7 @@ select throws_ok(
 -- 收入和目标两侧都经过编辑 RPC，币种不同则由触发器拒绝。
 select throws_ok(
     format(
-        'select public.update_linked_transaction_item(%L, %L, %L, %L, %s, %L, %L)',
+        'select tests.update_linked_transaction_item(%L, %L, %L, %L, %s, %L, %L)',
         item.ledger_id, item.transaction_record_id, item.id, item.updated_at,
         item.amount, '00000000-0000-4000-8000-000000000042', item.category_id
     ),
@@ -402,7 +404,7 @@ where id in ('00000000-0000-4000-8000-000000000043', '00000000-0000-4000-8000-00
 
 select lives_ok(
     format(
-        'select public.update_linked_transaction_item(%L, %L, %L, %L, %s, %L, %L)',
+        'select tests.update_linked_transaction_item(%L, %L, %L, %L, %s, %L, %L)',
         item.ledger_id, item.transaction_record_id, item.id, item.updated_at,
         item.amount,
         case when item.id = '57420000-0000-4000-8000-000000000003'::uuid

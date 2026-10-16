@@ -27,20 +27,14 @@ export type LinkedTransactionItemEditSnapshot = {
   updatedAt: string;
 };
 
-export type UpdateLinkedTransactionItemInput = {
-  accountId: string;
-  amount: number;
-  categoryId: string;
-  expectedUpdatedAt: string;
-  ledgerId: string;
-  transactionItemId: string;
-  transactionRecordId: string;
-};
-
 export type UpdateLinkedTransactionEditInput = {
-  itemUpdates: Array<
-    Omit<UpdateLinkedTransactionItemInput, "ledgerId" | "transactionRecordId">
-  >;
+  accountId: string;
+  itemUpdates: Array<{
+    amount: number;
+    categoryId: string;
+    expectedUpdatedAt: string;
+    transactionItemId: string;
+  }>;
   ledgerId: string;
   merchantId: string;
   note: string | null;
@@ -53,7 +47,6 @@ export interface LinkedTransactionItemRepository {
     ledgerId: string,
     transactionItemId: string,
   ): Promise<LinkedTransactionItemEditSnapshot | null>;
-  update(input: UpdateLinkedTransactionItemInput): Promise<void>;
   updateEdit(input: UpdateLinkedTransactionEditInput): Promise<void>;
 }
 
@@ -254,31 +247,15 @@ export function createSupabaseLinkedTransactionItemRepository(
       };
     },
 
-    async update(input) {
-      const { error } = await supabase.rpc("update_linked_transaction_item", {
-        p_account_id: input.accountId,
-        p_amount: input.amount,
-        p_category_id: input.categoryId,
-        p_expected_updated_at: input.expectedUpdatedAt,
-        p_ledger_id: input.ledgerId,
-        p_transaction_item_id: input.transactionItemId,
-        p_transaction_record_id: input.transactionRecordId,
-      });
-      if (error) {
-        throwRpcError(error, {
-          ledgerId: input.ledgerId,
-          transactionItemId: input.transactionItemId,
-          transactionRecordId: input.transactionRecordId,
-        });
-      }
-    },
-
     async updateEdit(input) {
       const { error } = await supabase.rpc("update_linked_transaction_edit", {
+        // 记录版本由 #834 子 Issue 2 接入；NULL 时 RPC 只做明细级版本校验。
+        p_expected_record_updated_at: null,
         p_item_updates: input.itemUpdates,
         p_ledger_id: input.ledgerId,
         p_merchant_id: input.merchantId,
         p_note: input.note,
+        p_payments: [{ accountId: input.accountId }],
         p_transaction_at: input.transactionAt,
         p_transaction_record_id: input.transactionRecordId,
       });

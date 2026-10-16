@@ -26,11 +26,8 @@ from public.transaction_record source_record
 cross join generate_series(1, 11) sequence_number
 where source_record.id = '00000000-0000-4000-8000-000000009001';
 
-insert into public.transaction_item (
-    id, ledger_id, transaction_record_id, account_id, category_id,
-    amount, discount_amount, balance_delta, sort_order,
-    created_by, updated_by, special_status
-)
+select tests.insert_normal_transaction_items(jsonb_agg(item))
+from (
 select
     ('59880000-0000-4000-8000-' || lpad(item.sequence_number::text, 12, '0'))::uuid,
     '00000000-0000-4000-8000-000000000032'::uuid,
@@ -60,7 +57,10 @@ from (
         (9, 'income', 100::numeric, null),
         (10, 'income', 40::numeric, null),
         (11, 'income', 100::numeric, null)
-) as item(sequence_number, category_type, amount, special_status);
+) as item(sequence_number, category_type, amount, special_status)
+) item(
+    id, ledger_id, transaction_record_id, account_id, category_id, amount, discount_amount, balance_delta, sort_order, created_by, updated_by, special_status
+);
 
 select lives_ok(
     $$
@@ -220,6 +220,8 @@ select is(
     '收入失活前目标处于已结清状态'
 );
 
+-- ALTER TABLE 不允许存在挂起的触发器事件，先立即执行付款明细的延迟校验。
+set constraints public.validate_transaction_record_payments immediate;
 alter table public.transaction_record
 disable trigger transaction_record_prevent_linked_void;
 
@@ -252,6 +254,7 @@ select lives_ok(
 
 alter table public.transaction_record
 enable trigger transaction_record_prevent_linked_void;
+set constraints public.validate_transaction_record_payments deferred;
 
 select is(
     (select special_status from public.transaction_item
@@ -325,11 +328,8 @@ from public.transaction_record source_record
 cross join generate_series(12, 14) sequence_number
 where source_record.id = '00000000-0000-4000-8000-000000009001';
 
-insert into public.transaction_item (
-    id, ledger_id, transaction_record_id, account_id, category_id,
-    amount, discount_amount, balance_delta, sort_order,
-    created_by, updated_by, special_status
-)
+select tests.insert_normal_transaction_items(jsonb_agg(item))
+from (
 select
     ('59880000-0000-4000-8000-' || lpad(item.sequence_number::text, 12, '0'))::uuid,
     '00000000-0000-4000-8000-000000000032'::uuid,
@@ -351,7 +351,10 @@ from (
         (12, 'expense', 100::numeric, 'pending_reimbursement'),
         (13, 'expense', 100::numeric, 'pending_reimbursement'),
         (14, 'income', 100::numeric, null)
-) as item(sequence_number, category_type, amount, special_status);
+) as item(sequence_number, category_type, amount, special_status)
+) item(
+    id, ledger_id, transaction_record_id, account_id, category_id, amount, discount_amount, balance_delta, sort_order, created_by, updated_by, special_status
+);
 
 select lives_ok(
     $$

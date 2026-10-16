@@ -30,7 +30,6 @@ function createLinkedRepository(
       transactionRecordId,
       updatedAt,
     }),
-    update: vi.fn(),
     updateEdit: vi.fn(),
     ...overrides,
   };
@@ -74,22 +73,14 @@ function createService(options?: {
   return { linkedRepository, service };
 }
 
-const updateInput = {
-  accountId: "00000000-0000-4000-8000-000000000043",
-  amount: 80,
-  categoryId: "00000000-0000-4000-8000-000000005021",
-  expectedUpdatedAt: updatedAt,
-  ledgerId,
-  transactionItemId,
-  transactionRecordId,
-};
+const accountId = "00000000-0000-4000-8000-000000000043";
 
 const updateEditInput = {
+  accountId,
   itemUpdates: [
     {
-      accountId: updateInput.accountId,
       amount: 80,
-      categoryId: updateInput.categoryId,
+      categoryId: "00000000-0000-4000-8000-000000005021",
       expectedUpdatedAt: updatedAt,
       transactionItemId,
     },
@@ -114,14 +105,6 @@ describe("LinkedTransactionItemService", () => {
     ).resolves.toMatchObject({ updatedAt });
   });
 
-  it("有修改权限时调用原子 Repository", async () => {
-    const { linkedRepository, service } = createService();
-
-    await service.update(updateInput);
-
-    expect(linkedRepository.update).toHaveBeenCalledWith(updateInput);
-  });
-
   it("完整保存仍在 Service 层做权限校验后调用单事务 Repository", async () => {
     const { linkedRepository, service } = createService();
 
@@ -135,19 +118,19 @@ describe("LinkedTransactionItemService", () => {
       currentUserId: null,
     });
 
-    await expect(service.update(updateInput)).rejects.toBeInstanceOf(
+    await expect(service.updateEdit(updateEditInput)).rejects.toBeInstanceOf(
       AuthenticationError,
     );
-    expect(linkedRepository.update).not.toHaveBeenCalled();
+    expect(linkedRepository.updateEdit).not.toHaveBeenCalled();
   });
 
   it("viewer 不能调用关联编辑能力", async () => {
     const { linkedRepository, service } = createService({ role: "viewer" });
 
-    await expect(service.update(updateInput)).rejects.toBeInstanceOf(
+    await expect(service.updateEdit(updateEditInput)).rejects.toBeInstanceOf(
       AuthorizationError,
     );
-    expect(linkedRepository.update).not.toHaveBeenCalled();
+    expect(linkedRepository.updateEdit).not.toHaveBeenCalled();
   });
 
   it("目标交易已不存在时在调用关联 Repository 前返回 NotFoundError", async () => {
@@ -155,10 +138,10 @@ describe("LinkedTransactionItemService", () => {
       recordExists: false,
     });
 
-    await expect(service.update(updateInput)).rejects.toBeInstanceOf(
+    await expect(service.updateEdit(updateEditInput)).rejects.toBeInstanceOf(
       NotFoundError,
     );
-    expect(linkedRepository.update).not.toHaveBeenCalled();
+    expect(linkedRepository.updateEdit).not.toHaveBeenCalled();
   });
 
   it("member 不能修改其他成员创建的交易", async () => {
@@ -167,10 +150,10 @@ describe("LinkedTransactionItemService", () => {
       role: "member",
     });
 
-    await expect(service.update(updateInput)).rejects.toBeInstanceOf(
+    await expect(service.updateEdit(updateEditInput)).rejects.toBeInstanceOf(
       AuthorizationError,
     );
-    expect(linkedRepository.update).not.toHaveBeenCalled();
+    expect(linkedRepository.updateEdit).not.toHaveBeenCalled();
   });
 
   it("编辑快照不属于请求交易时返回 NotFoundError", async () => {
@@ -201,10 +184,10 @@ describe("LinkedTransactionItemService", () => {
       transactionLinkedEditErrorMessages.itemVersionConflict,
     );
     const linkedRepository = createLinkedRepository({
-      update: vi.fn().mockRejectedValue(conflict),
+      updateEdit: vi.fn().mockRejectedValue(conflict),
     });
     const { service } = createService({ linkedRepository });
 
-    await expect(service.update(updateInput)).rejects.toBe(conflict);
+    await expect(service.updateEdit(updateEditInput)).rejects.toBe(conflict);
   });
 });

@@ -33,11 +33,8 @@ cross join (values
 ) values_to_insert(id, transaction_at, title)
 where source_record.id = '00000000-0000-4000-8000-000000009001';
 
-insert into public.transaction_item (
-    id, ledger_id, transaction_record_id, account_id, category_id,
-    amount, discount_amount, balance_delta, sort_order,
-    created_by, updated_by, created_at, updated_at, special_status
-)
+select tests.insert_normal_transaction_items(jsonb_agg(item))
+from (
 values
     (
         '57441000-0000-4000-8000-000000000001',
@@ -62,7 +59,10 @@ values
         '00000000-0000-4000-8000-000000000031',
         '2090-01-01 00:00:00+00', '2090-01-01 00:00:00+00',
         null
-    );
+    )
+) item(
+    id, ledger_id, transaction_record_id, account_id, category_id, amount, discount_amount, balance_delta, sort_order, created_by, updated_by, created_at, updated_at, special_status
+);
 
 select public.apply_transaction_item_links(
     '00000000-0000-4000-8000-000000000032',
@@ -83,7 +83,7 @@ select set_config(
 
 select lives_ok(
     $$
-        select public.update_linked_transaction_item(
+        select tests.update_linked_transaction_item(
             '00000000-0000-4000-8000-000000000032',
             '57440000-0000-4000-8000-000000000002',
             '57441000-0000-4000-8000-000000000002',

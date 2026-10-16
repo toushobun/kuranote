@@ -223,7 +223,9 @@ begin
                 v_expense_category_id::text
             )
         ),
-        v_account_id,
+        pg_catalog.jsonb_build_array(
+            pg_catalog.jsonb_build_object('accountId', v_account_id::text)
+        ),
         v_merchant_id,
         'SECURITY DEFINER Smoke'
     )
@@ -248,9 +250,21 @@ begin
           and item.account_id = v_account_id
           and item.category_id = v_expense_category_id
           and item.amount = 12.34
-          and item.balance_delta = -12.34
+          and item.balance_delta is null
     ) then
         raise exception 'create_transaction item smoke test failed';
+    end if;
+
+    -- 普通记录的余额来自付款明细（#911）。
+    if not exists (
+        select 1
+        from public.transaction_payment payment
+        where payment.transaction_record_id = v_transaction_id
+          and payment.account_id = v_account_id
+          and payment.amount = 12.34
+          and payment.balance_delta = -12.34
+    ) then
+        raise exception 'create_transaction payment smoke test failed';
     end if;
 
     if not exists (

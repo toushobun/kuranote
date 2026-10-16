@@ -28,10 +28,11 @@ select throws_ok(
                     'transactionItemId', 'invalid-uuid',
                     'expectedUpdatedAt', '2090-01-01 00:00:00+00',
                     'amount', 100,
-                    'accountId', '00000000-0000-4000-8000-000000000043',
                     'categoryId', '00000000-0000-4000-8000-000000005021'
                 )
-            )
+            ),
+            jsonb_build_array(jsonb_build_object('accountId', '00000000-0000-4000-8000-000000000043')),
+            null
         )
     $$,
     '22023',
@@ -47,7 +48,9 @@ select lives_ok(
             '2099-03-01 00:00:00+00',
             '00000000-0000-4000-8000-000000001001',
             'PR2 编排 RPC 成功更新交易头',
-            '[]'::jsonb
+            '[]'::jsonb,
+            tests.current_transaction_payments('00000000-0000-4000-8000-000000009001'),
+            null
         )
     $$,
     '无明细变化时仍可在编排 RPC 内更新交易头字段'
@@ -71,7 +74,9 @@ select throws_ok(
             '2099-03-01 00:00:00+00',
             '00000000-0000-4000-8000-000000009999',
             null,
-            '[]'::jsonb
+            '[]'::jsonb,
+            tests.current_transaction_payments('00000000-0000-4000-8000-000000009001'),
+            null
         )
     $$,
     '22023',
@@ -87,7 +92,9 @@ select throws_ok(
             '2099-03-01 00:00:00+00',
             null::uuid,
             null,
-            '[]'::jsonb
+            '[]'::jsonb,
+            tests.current_transaction_payments('00000000-0000-4000-8000-000000009001'),
+            null
         )
     $$,
     '22023',
@@ -103,7 +110,9 @@ select throws_ok(
             null::timestamptz,
             '00000000-0000-4000-8000-000000001001',
             null,
-            '[]'::jsonb
+            '[]'::jsonb,
+            tests.current_transaction_payments('00000000-0000-4000-8000-000000009001'),
+            null
         )
     $$,
     '22023',
@@ -119,7 +128,9 @@ select throws_ok(
             '2099-03-01 00:00:00+00',
             '00000000-0000-4000-8000-000000001001',
             repeat('x', 2001),
-            '[]'::jsonb
+            '[]'::jsonb,
+            tests.current_transaction_payments('00000000-0000-4000-8000-000000009001'),
+            null
         )
     $$,
     '22023',
@@ -141,7 +152,9 @@ select throws_ok(
             '2099-03-01 00:00:00+00',
             '00000000-0000-4000-8000-000000001001',
             null,
-            '[]'::jsonb
+            '[]'::jsonb,
+            tests.current_transaction_payments('00000000-0000-4000-8000-000000009001'),
+            null
         )
     $$,
     '42501',
@@ -178,19 +191,19 @@ select throws_ok(
                         'transactionItemId', id,
                         'expectedUpdatedAt', updated_at,
                         'amount', amount + 1,
-                        'accountId', account_id,
                         'categoryId', category_id
                     ),
                     jsonb_build_object(
                         'transactionItemId', id,
                         'expectedUpdatedAt', updated_at,
                         'amount', -1,
-                        'accountId', account_id,
                         'categoryId', category_id
                     )
                 )
                 from item
-            )
+            ),
+            (select jsonb_build_array(jsonb_build_object('accountId', account_id)) from item),
+            null
         )
     $$,
     '22023',

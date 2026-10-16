@@ -47,7 +47,7 @@ where id = (select ledger_id from test_refund_edit_context);
 select is(
     position(
         'refundAllocations' in pg_get_functiondef(
-            'public.update_transaction_locked_impl(uuid,uuid,text,timestamp with time zone,jsonb,uuid,uuid,text)'::regprocedure
+            'public.update_transaction_locked_impl(uuid,uuid,text,timestamp with time zone,jsonb,jsonb,uuid,text)'::regprocedure
         )
     ),
     0,
@@ -57,16 +57,14 @@ select is(
 select ok(
     position(
         'refundedItemId' in pg_get_functiondef(
-            'public.update_transaction_locked_impl(uuid,uuid,text,timestamp with time zone,jsonb,uuid,uuid,text)'::regprocedure
+            'public.update_transaction_locked_impl(uuid,uuid,text,timestamp with time zone,jsonb,jsonb,uuid,text)'::regprocedure
         )
     ) > 0,
     'update_transaction 前置校验使用单目标 refundedItemId'
 );
 
-insert into public.transaction_item (
-    id, ledger_id, transaction_record_id, account_id, category_id, amount,
-    discount_amount, balance_delta, note, sort_order, created_by, updated_by
-)
+select tests.insert_normal_transaction_items(jsonb_agg(item))
+from (
 select
     values_to_insert.id,
     context.ledger_id,
@@ -84,7 +82,10 @@ from test_refund_edit_context context
 cross join (values
     ('57241000-0000-4000-8000-000000000001'::uuid, 100::numeric, 1),
     ('57241000-0000-4000-8000-000000000002'::uuid, 300::numeric, 2)
-) values_to_insert(id, amount, sort_order);
+) values_to_insert(id, amount, sort_order)
+) item(
+    id, ledger_id, transaction_record_id, account_id, category_id, amount, discount_amount, balance_delta, note, sort_order, created_by, updated_by
+);
 
 insert into public.transaction_record (
     id, ledger_id, type, status, transaction_at, merchant_id,
@@ -103,10 +104,8 @@ select
     user_id
 from test_refund_edit_context;
 
-insert into public.transaction_item (
-    id, ledger_id, transaction_record_id, account_id, category_id, amount,
-    discount_amount, balance_delta, note, sort_order, created_by, updated_by
-)
+select tests.insert_normal_transaction_items(jsonb_agg(item))
+from (
 select
     '57242000-0000-4000-8000-000000000002',
     ledger_id,
@@ -120,7 +119,10 @@ select
     0,
     user_id,
     user_id
-from test_refund_edit_context;
+from test_refund_edit_context
+) item(
+    id, ledger_id, transaction_record_id, account_id, category_id, amount, discount_amount, balance_delta, note, sort_order, created_by, updated_by
+);
 
 select public.apply_transaction_item_links(
     (select ledger_id from test_refund_edit_context),
@@ -155,7 +157,7 @@ select lives_ok(
                     'refundedItemId', '57241000-0000-4000-8000-000000000002'
                 )
             ),
-            (select account_id from test_refund_edit_context),
+            jsonb_build_array(jsonb_build_object('accountId', (select account_id from test_refund_edit_context))),
             (select merchant_id from test_refund_edit_context),
             '编辑后'
         )
@@ -212,7 +214,7 @@ select lives_ok(
                     'refundedItemId', '57241000-0000-4000-8000-000000000002'
                 )
             ),
-            (select account_id from test_refund_edit_context),
+            jsonb_build_array(jsonb_build_object('accountId', (select account_id from test_refund_edit_context))),
             (select merchant_id from test_refund_edit_context),
             '超额编辑'
         )
@@ -246,7 +248,7 @@ select lives_ok(
                     'categoryId', (select income_category_id from test_refund_edit_context)
                 )
             ),
-            (select account_id from test_refund_edit_context),
+            jsonb_build_array(jsonb_build_object('accountId', (select account_id from test_refund_edit_context))),
             (select merchant_id from test_refund_edit_context),
             '取消退款关联'
         )

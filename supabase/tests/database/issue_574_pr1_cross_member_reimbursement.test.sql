@@ -35,11 +35,8 @@ cross join (values
 ) values_to_insert(id, transaction_at, title, created_by)
 where source_record.id = '00000000-0000-4000-8000-000000009001';
 
-insert into public.transaction_item (
-    id, ledger_id, transaction_record_id, account_id, category_id,
-    amount, discount_amount, balance_delta, sort_order,
-    created_by, updated_by, created_at, updated_at, special_status
-)
+select tests.insert_normal_transaction_items(jsonb_agg(item))
+from (
 values
     (
         '57463000-0000-4000-8000-000000000001',
@@ -66,7 +63,10 @@ values
         '2000-01-02 00:01:00+00',
         '2000-01-02 00:01:00+00',
         null
-    );
+    )
+) item(
+    id, ledger_id, transaction_record_id, account_id, category_id, amount, discount_amount, balance_delta, sort_order, created_by, updated_by, created_at, updated_at, special_status
+);
 
 set local role authenticated;
 select set_config(
@@ -90,7 +90,7 @@ select lives_ok(
                     'reimbursementItemId', '57463000-0000-4000-8000-000000000001'
                 )
             ),
-            '00000000-0000-4000-8000-000000000043',
+            jsonb_build_array(jsonb_build_object('accountId', '00000000-0000-4000-8000-000000000043')),
             (
                 select merchant_id
                 from public.transaction_record
@@ -146,7 +146,7 @@ select lives_ok(
                     'categoryId', '00000000-0000-4000-8000-000000005002'
                 )
             ),
-            '00000000-0000-4000-8000-000000000043',
+            jsonb_build_array(jsonb_build_object('accountId', '00000000-0000-4000-8000-000000000043')),
             (
                 select merchant_id
                 from public.transaction_record

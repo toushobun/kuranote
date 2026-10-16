@@ -60,6 +60,8 @@ where id in (
   '${edit_target_id}', '${edit_income_id}', '${edit_new_income_id}',
   '${clear_target_id}', '${clear_income_id}', '${clear_new_income_id}'
 );
+delete from public.transaction_payment
+where transaction_record_id::text like '57431000-0000-4000-8000-%';
 delete from public.transaction_record
 where id::text like '57431000-0000-4000-8000-%';
 update public.account
@@ -97,17 +99,19 @@ from public.transaction_record source_record
 cross join generate_series(1, 6) sequence_number
 where source_record.id = '00000000-0000-4000-8000-000000009001';
 
-insert into public.transaction_item (
-  id, ledger_id, transaction_record_id, account_id, category_id,
-  amount, discount_amount, balance_delta, sort_order,
-  created_by, updated_by, created_at, updated_at, special_status
-) values
+select tests.insert_normal_transaction_items(jsonb_agg(item))
+from (values
   ('${edit_target_id}', '${ledger_id}', '57431000-0000-4000-8000-000000000001', '${account_id}', '${expense_category_id}', 100, 0, -100, 0, '${user_id}', '${user_id}', '2090-01-01', '2090-01-01', 'pending_reimbursement'),
   ('${edit_income_id}', '${ledger_id}', '57431000-0000-4000-8000-000000000002', '${account_id}', '${income_category_id}', 40, 0, 40, 0, '${user_id}', '${user_id}', '2090-01-01', '2090-01-01', null),
   ('${edit_new_income_id}', '${ledger_id}', '57431000-0000-4000-8000-000000000003', '${account_id}', '${income_category_id}', 30, 0, 30, 0, '${user_id}', '${user_id}', '2090-01-01', '2090-01-01', null),
   ('${clear_target_id}', '${ledger_id}', '57431000-0000-4000-8000-000000000004', '${account_id}', '${expense_category_id}', 100, 0, -100, 0, '${user_id}', '${user_id}', '2090-01-01', '2090-01-01', 'pending_reimbursement'),
   ('${clear_income_id}', '${ledger_id}', '57431000-0000-4000-8000-000000000005', '${account_id}', '${income_category_id}', 40, 0, 40, 0, '${user_id}', '${user_id}', '2090-01-01', '2090-01-01', null),
-  ('${clear_new_income_id}', '${ledger_id}', '57431000-0000-4000-8000-000000000006', '${account_id}', '${income_category_id}', 30, 0, 30, 0, '${user_id}', '${user_id}', '2090-01-01', '2090-01-01', null);
+  ('${clear_new_income_id}', '${ledger_id}', '57431000-0000-4000-8000-000000000006', '${account_id}', '${income_category_id}', 30, 0, 30, 0, '${user_id}', '${user_id}', '2090-01-01', '2090-01-01', null)
+) item(
+  id, ledger_id, transaction_record_id, account_id, category_id,
+  amount, discount_amount, balance_delta, sort_order,
+  created_by, updated_by, created_at, updated_at, special_status
+);
 
 select public.apply_transaction_item_links(
   '${ledger_id}', '${edit_income_id}',
@@ -136,7 +140,7 @@ begin;
 set application_name = 'issue_574_edit_a';
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"${user_id}","role":"authenticated"}', true);
-select public.update_linked_transaction_item(
+select tests.update_linked_transaction_item(
   '${ledger_id}',
   '57431000-0000-4000-8000-000000000002',
   '${edit_income_id}',
@@ -181,7 +185,7 @@ select public.update_transaction(
       'reimbursementItemId', '${edit_target_id}'
     )
   ),
-  '${account_id}',
+  jsonb_build_array(jsonb_build_object('accountId', '${account_id}')),
   '${merchant_id}',
   'Issue 574 PR1 并发新建关联'
 );
@@ -241,7 +245,7 @@ select public.update_transaction(
       'categoryId', '${income_category_id}'
     )
   ),
-  '${account_id}',
+  jsonb_build_array(jsonb_build_object('accountId', '${account_id}')),
   '${merchant_id}',
   'Issue 574 PR1 并发清关联'
 );
@@ -281,7 +285,7 @@ select public.update_transaction(
       'reimbursementItemId', '${clear_target_id}'
     )
   ),
-  '${account_id}',
+  jsonb_build_array(jsonb_build_object('accountId', '${account_id}')),
   '${merchant_id}',
   'Issue 574 PR1 并发新建关联'
 );

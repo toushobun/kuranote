@@ -80,11 +80,8 @@ cross join (values
     ('59890000-0000-4000-8000-000000000003'::uuid, '2026-08-18 03:00:00+00'::timestamptz, 'PR6 报销收入')
 ) fixture(id, transaction_at, title);
 
-insert into public.transaction_item (
-    id, ledger_id, transaction_record_id, account_id, category_id,
-    amount, discount_amount, balance_delta, sort_order, special_status,
-    created_by, updated_by
-)
+select tests.insert_normal_transaction_items(jsonb_agg(item))
+from (
 select
     fixture.id,
     context.ledger_id,
@@ -106,7 +103,10 @@ cross join (values
     ('59891000-0000-4000-8000-000000000001'::uuid, '59890000-0000-4000-8000-000000000001'::uuid, 'expense', 100::numeric, 'pending_reimbursement'),
     ('59891000-0000-4000-8000-000000000002'::uuid, '59890000-0000-4000-8000-000000000002'::uuid, 'income', 30::numeric, null),
     ('59891000-0000-4000-8000-000000000003'::uuid, '59890000-0000-4000-8000-000000000003'::uuid, 'income', 50::numeric, null)
-) fixture(id, record_id, category_type, amount, special_status);
+) fixture(id, record_id, category_type, amount, special_status)
+) item(
+    id, ledger_id, transaction_record_id, account_id, category_id, amount, discount_amount, balance_delta, sort_order, special_status, created_by, updated_by
+);
 
 select public.apply_transaction_item_links(
     (select ledger_id from issue_598_pr6_context),

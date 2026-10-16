@@ -82,11 +82,8 @@ cross join (values
     ('60521000-0000-4000-8000-000000000002'::uuid, '2099-01-15 13:00:00+00'::timestamptz, '超额报销收入')
 ) values_to_insert(id, transaction_at, title);
 
-insert into public.transaction_item (
-    id, ledger_id, transaction_record_id, account_id, category_id,
-    amount, discount_amount, balance_delta, note, sort_order,
-    special_status, created_by, updated_by
-)
+select tests.insert_normal_transaction_items(jsonb_agg(item))
+from (
 select
     values_to_insert.id,
     context.ledger_id,
@@ -123,7 +120,10 @@ cross join (values
         150::numeric,
         null
     )
-) values_to_insert(id, record_id, category_type, amount, special_status);
+) values_to_insert(id, record_id, category_type, amount, special_status)
+) item(
+    id, ledger_id, transaction_record_id, account_id, category_id, amount, discount_amount, balance_delta, note, sort_order, special_status, created_by, updated_by
+);
 
 select public.apply_transaction_item_links(
     context.ledger_id,

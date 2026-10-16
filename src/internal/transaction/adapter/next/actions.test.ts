@@ -28,7 +28,6 @@ const mocks = vi.hoisted(() => ({
   createTransfer: vi.fn(),
   getEditView: vi.fn(),
   linkedGetEditSnapshot: vi.fn(),
-  linkedUpdate: vi.fn(),
   linkedUpdateEdit: vi.fn(),
   updateNormal: vi.fn(),
   updateBalanceAdjustment: vi.fn(),
@@ -154,7 +153,6 @@ describe("Transaction Action 写入流程", () => {
         },
         linkedTransactionItemService: {
           getEditSnapshot: mocks.linkedGetEditSnapshot,
-          update: mocks.linkedUpdate,
           updateEdit: mocks.linkedUpdateEdit,
         },
         service: {

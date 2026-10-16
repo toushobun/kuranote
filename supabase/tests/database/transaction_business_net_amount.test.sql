@@ -90,11 +90,8 @@ cross join (values
     ('57300000-0000-4000-8000-000000000012'::uuid, '2026-08-08 02:00:00+00'::timestamptz, '部分报销收入')
 ) values_to_insert(id, transaction_at, title);
 
-insert into public.transaction_item (
-    id, ledger_id, transaction_record_id, account_id, category_id,
-    amount, discount_amount, balance_delta, note, sort_order,
-    special_status, created_by, updated_by
-)
+select tests.insert_normal_transaction_items(jsonb_agg(item))
+from (
 select
     values_to_insert.id,
     context.ledger_id,
@@ -132,7 +129,10 @@ cross join (values
     ('57310000-0000-4000-8000-000000000010'::uuid, '57300000-0000-4000-8000-000000000010'::uuid, 'expense', 120::numeric, 'pending_reimbursement'),
     ('57310000-0000-4000-8000-000000000012'::uuid, '57300000-0000-4000-8000-000000000011'::uuid, 'expense', 100::numeric, 'pending_reimbursement'),
     ('57310000-0000-4000-8000-000000000013'::uuid, '57300000-0000-4000-8000-000000000012'::uuid, 'income', 100::numeric, null)
-) values_to_insert(id, record_id, category_type, amount, special_status);
+) values_to_insert(id, record_id, category_type, amount, special_status)
+) item(
+    id, ledger_id, transaction_record_id, account_id, category_id, amount, discount_amount, balance_delta, note, sort_order, special_status, created_by, updated_by
+);
 
 insert into public.transaction_item_refund_link (
     ledger_id, refunded_item_id, refund_income_item_id, refund_amount, created_by
@@ -267,9 +267,14 @@ select is(
 );
 
 select is(
-    (select balance_delta from public.transaction_item where id = '57310000-0000-4000-8000-000000000002'),
+    (
+        select p.balance_delta
+        from public.transaction_payment p
+        join public.transaction_item ti on ti.transaction_record_id = p.transaction_record_id
+        where ti.id = '57310000-0000-4000-8000-000000000002'
+    ),
     -200::numeric,
-    '业务净额不会改写账户现金流'
+    '业务净额不会改写账户现金流（付款明细）'
 );
 
 insert into public.transaction_item_refund_link (
@@ -299,6 +304,8 @@ select is(
 
 -- 当前产品禁止作废已关联交易；测试中只绕过该入口保护以构造历史失效数据，
 -- 验证派生视图不会让失效关联继续影响业务净额。
+-- ALTER TABLE 不允许存在挂起的触发器事件，先立即执行付款明细的延迟校验。
+set constraints public.validate_transaction_record_payments immediate;
 alter table public.transaction_record
 disable trigger transaction_record_prevent_linked_void;
 
@@ -324,6 +331,7 @@ where id = '57300000-0000-4000-8000-000000000008';
 
 alter table public.transaction_record
 enable trigger transaction_record_prevent_linked_void;
+set constraints public.validate_transaction_record_payments deferred;
 
 select is(
     (select sum(business_net_amount) from public.transaction_item_with_refund where id in (

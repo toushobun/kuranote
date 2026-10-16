@@ -46,11 +46,8 @@ update public.ledger
 set transaction_item_special_status_enabled = true
 where id = (select ledger_id from test_refund_min_context);
 
-insert into public.transaction_item (
-    id, ledger_id, transaction_record_id, account_id, category_id, amount,
-    discount_amount, balance_delta, note, sort_order, special_status,
-    created_by, updated_by
-)
+select tests.insert_normal_transaction_items(jsonb_agg(item))
+from (
 select
     item.id,
     context.ledger_id,
@@ -69,12 +66,13 @@ from test_refund_min_context context
 cross join (values
     ('59830000-0000-4000-8000-000000000001'::uuid, 100::numeric, 1, 'pending_reimbursement'),
     ('59830000-0000-4000-8000-000000000002'::uuid, 100::numeric, 2, null)
-) item(id, amount, sort_order, special_status);
+) item(id, amount, sort_order, special_status)
+) item(
+    id, ledger_id, transaction_record_id, account_id, category_id, amount, discount_amount, balance_delta, note, sort_order, special_status, created_by, updated_by
+);
 
-insert into public.transaction_item (
-    id, ledger_id, transaction_record_id, account_id, category_id, amount,
-    discount_amount, balance_delta, note, sort_order, created_by, updated_by
-)
+select tests.insert_normal_transaction_items(jsonb_agg(item))
+from (
 select
     item.id,
     context.ledger_id,
@@ -93,7 +91,10 @@ cross join (values
     ('59840000-0000-4000-8000-000000000001'::uuid, 40::numeric, 1),
     ('59840000-0000-4000-8000-000000000002'::uuid, 150::numeric, 2),
     ('59840000-0000-4000-8000-000000000003'::uuid, 150::numeric, 3)
-) item(id, amount, sort_order);
+) item(id, amount, sort_order)
+) item(
+    id, ledger_id, transaction_record_id, account_id, category_id, amount, discount_amount, balance_delta, note, sort_order, created_by, updated_by
+);
 
 select lives_ok(
     $$
