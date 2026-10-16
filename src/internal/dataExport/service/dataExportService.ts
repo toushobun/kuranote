@@ -35,11 +35,17 @@ export function createDataExportService({
     async getData(input) {
       const records = await transactionQueryService.listAllForExport(input);
       const items = records.flatMap((record) => record.items);
+      // 普通记录的账户在付款明细上（#834 子 Issue 3），不在 items 上。
+      const accountIds = records.flatMap((record) =>
+        record.type === "normal"
+          ? record.payments.map((payment) => payment.accountId)
+          : record.items.map((item) => item.accountId),
+      );
       const [accounts, categories, merchants] = await Promise.all([
-        items.length > 0
+        accountIds.length > 0
           ? accountQueryService.findExportSummaries({
               ...input,
-              accountIds: [...new Set(items.map((item) => item.accountId))],
+              accountIds: [...new Set(accountIds)],
             })
           : Promise.resolve([]),
         loadReferences(

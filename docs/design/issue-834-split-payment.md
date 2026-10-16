@@ -323,6 +323,16 @@ ledger（需要时）→ transaction_record（稳定顺序）→ transaction_ite
 - **HTTP JSON API（`/transactions` 路由）本次不支持多账户。** `createTransactionRequestSchema` 等 zod schema 维持 `accountId` 字段不变（4.2 原表未提及这些路由，设计文档没有覆盖，这里补充说明而非变更文档结论）；`transactionController.ts` 在调用 Service 前把 `accountId` 适配为单账户 `payments: [{ accountId, amount: null }]`，用户可见行为与现状一致。多账户目前只能通过 Server Action 的 `paymentAccountId[]` / `paymentAmount[]` 表单字段提交（最终也会被 3.3 过渡期的单行限制拒绝）。
 - **`transactionImportService.ts` 的改动随本子 Issue 一起落地。** 见 4.2 表格对应行的更正说明：3.9 已记录 #911 把 Repository 输入类型改造推迟到本子 Issue，因此该适配实际在这里完成，而不是子 Issue 1。
 
+### 3.11 子 Issue 3 实现注记（#913）
+
+实现时对本节以上内容做了以下补充，理由逐条记录：
+
+- **`TransactionExportRecord` 按记录类型拆成判别联合（discriminated union），不是单一形状。** `type: "normal"` 的分支里 `items` 只保留 `categoryId` / `amount`，账户改由新增的 `payments: TransactionExportPayment[]` 表达；`type: "transfer" | "balance_adjustment"` 的分支里 `items` 保留原有的 `accountId` / `balanceDelta`。这样普通记录的 `items` 在类型层面就不可能再带账户字段，不依赖调用方自觉不读它；4.4 原表没有规定具体 TS 形状，这里补充说明。
+- **普通记录的 `items` 同时去掉了 `balanceDelta`，不只是 `accountId`。** 现有 `dataExportWorkbook.ts` 对普通记录从未读取 `items[].balanceDelta`（金额直接取 `items[].amount`，正负由分类的收入 / 支出类型决定），该字段在普通记录上完全是未使用的只读镜像，随 `accountId` 一并删除，避免保留一个无人读取的字段。转账 / 余额调整的 `items[].balanceDelta` 不变（用于判定转账方向、读取余额变更金额）。
+- **`transactionExportQueryService.ts` 的依赖类型新增 `TransactionExportRepository`（继承 `TransactionContextRepository`，补 `listPayments`），不是直接给 `TransactionContextRepository` 加方法。** `TransactionContextRepository` 同时被 `TransactionDashboardRepository`、`TransactionGroupRepository` 继承，直接加方法会让仪表盘、分组统计等与本子 Issue 无关的路径也被迫实现 `listPayments`，扩大改动范围；新增一个只给导出用的窄接口可以避免这一点，具体的 Supabase 实现（`createSupabaseTransactionRepository`）本身已经实现 `listPayments`（#911），结构上自动满足新接口，不需要改动。
+- **「付款明细」sheet 的「顺序」列取数组下标（从 1 开始），不是 `transaction_payment.sort_order` 原始值。** `TransactionExportRecord.payments` 按 4.2 的约定只保留 `accountId` / `amount` / `balanceDelta`，不携带 `sort_order`；`transactionExportQueryService` 读取的 `listPayments` 已经按 `sort_order` 升序排列，因此数组顺序本身就是录入顺序，「顺序」列直接取写出时的位置（第几行记成几）即可，不需要再额外携带原始 `sort_order` 整数。
+- **「付款明细」sheet 的列定义（`paymentDetailColumns`）和 sheet 名（`paymentDetailSheetName`）就近放在 `src/utils/dataExportWorkbook.ts` 模块内，不加入 `internal/dataImport` 的 `ImportSheetKind` / `importColumnsBySheetKind`。** 本 Issue明确不做导入支持，这个 sheet 对导入来说只是「名字不认识、忽略」的普通 sheet；放进 `ImportSheetKind` 会让导入侧看起来已经认识它，容易和后续「导入支持付款明细 sheet」Issue 的范围混淆。
+
 ## 4. 受影响的 RPC / Service / UI 清单
 
 下表列出现有引用 `transaction_item.account_id`（及普通记录的 `balance_delta`）的位置和改法。「子」列对应第 6 节的子 Issue 编号。

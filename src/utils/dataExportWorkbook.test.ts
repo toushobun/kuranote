@@ -64,12 +64,15 @@ describe("dataExportWorkbook", () => {
 
   it("余额变更保留正负金额，无持有人不设置字体颜色", async () => {
     const data = createDataExportFixture();
+    const adjustment = data.records[2];
+    if (adjustment.type !== "balance_adjustment")
+      throw new Error("测试数据不正确");
     data.records.push({
-      ...data.records[2],
+      ...adjustment,
       id: "positive",
       items: [
         {
-          ...data.records[2].items[0],
+          ...adjustment.items[0],
           accountId: "cash",
           balanceDelta: "7.00",
         },
@@ -89,6 +92,8 @@ describe("dataExportWorkbook", () => {
     async (balanceDelta) => {
       const data = createDataExportFixture();
       const record = data.records[2];
+      if (record.type !== "balance_adjustment")
+        throw new Error("测试数据不正确");
       record.note = "初始余额";
       record.items[0].balanceDelta = balanceDelta;
       record.items[0].amount = String(Math.abs(Number(balanceDelta)));
@@ -174,6 +179,86 @@ describe("dataExportWorkbook", () => {
     );
   });
 
+  it("普通记录按账户数写入「收支」与「付款明细」sheet：单账户照填账户列，多账户留空并逐行列出付款", async () => {
+    const data = createDataExportFixture();
+    const normal = data.records[0];
+    if (normal.type !== "normal") throw new Error("测试数据不正确");
+    data.records.push({
+      ...normal,
+      id: "multi",
+      items: [{ categoryId: "food", amount: "80" }],
+      payments: [
+        { accountId: "cash", amount: "50", balanceDelta: "-50" },
+        { accountId: "bank", amount: "30", balanceDelta: "-30" },
+      ],
+    });
+    const workbook = await loadWorkbook(data);
+
+    const incomeExpense = workbook.getWorksheet("收支")!;
+    // 单账户记录（3 条明细）+ 多账户记录（1 条明细）
+    expect(incomeExpense.rowCount).toBe(5);
+    expect(cell(incomeExpense, 5, "账单关联").value).toBe("multi");
+    expect(cell(incomeExpense, 5, "账户").value).toBeNull();
+    expect(cell(incomeExpense, 5, "账户币种").value).toBeNull();
+    expect(cell(incomeExpense, 5, "账户持有人").value).toBeNull();
+    expect(cell(incomeExpense, 5, "账户类型").value).toBeNull();
+    // 单账户记录仍照常填写账户四列。
+    expect(cell(incomeExpense, 2, "账户").value).toBe("现金");
+
+    const paymentDetail = workbook.getWorksheet("付款明细")!;
+    // 单账户记录（1 行付款）+ 多账户记录（2 行付款）
+    expect(paymentDetail.rowCount).toBe(4);
+    expect(cell(paymentDetail, 2, "账单关联").value).toBe("normal");
+    expect(cell(paymentDetail, 2, "账户").value).toBe("现金");
+    expect(cell(paymentDetail, 2, "付款金额").value).toBe("163.45");
+    expect(cell(paymentDetail, 2, "顺序").value).toBe(1);
+    expect(cell(paymentDetail, 3, "账单关联").value).toBe("multi");
+    expect(cell(paymentDetail, 3, "账户").value).toBe("现金");
+    expect(cell(paymentDetail, 3, "付款金额").value).toBe("50");
+    expect(cell(paymentDetail, 3, "顺序").value).toBe(1);
+    expect(cell(paymentDetail, 4, "账单关联").value).toBe("multi");
+    expect(cell(paymentDetail, 4, "账户").value).toBe("存款");
+    expect(cell(paymentDetail, 4, "付款金额").value).toBe("30");
+    expect(cell(paymentDetail, 4, "顺序").value).toBe(2);
+  });
+
+  it("导入会忽略「付款明细」sheet，不影响收支 / 转账 / 余额变更的导入结果", async () => {
+    const data = createDataExportFixture();
+    const normal = data.records[0];
+    if (normal.type !== "normal") throw new Error("测试数据不正确");
+    // 导入要求必须有二级分类，只保留有二级分类的明细，让记录能成功导入。
+    normal.items = normal.items.filter((item) => item.categoryId === "lunch");
+    const file = new File([await buildDataExportWorkbook(data)], "export.xlsx");
+
+    const { result, units } = await analyzeImportFile(file);
+
+    expect(result).toMatchObject({
+      ok: true,
+      summary: {
+        balanceAdjustmentCount: 1,
+        incomeExpenseCount: 1,
+        transferCount: 1,
+      },
+    });
+    expect(units).toHaveLength(3);
+    const incomeExpenseUnit = units.find(
+      (unit) => unit.kind === "incomeExpense",
+    );
+    if (incomeExpenseUnit?.kind !== "incomeExpense")
+      throw new Error("意外的单元");
+    expect(incomeExpenseUnit.group.items).toMatchObject([
+      {
+        accountName: "现金",
+        accountHolder: "小明",
+        accountType: "cash",
+        amount: 123.45,
+        billRef: "normal",
+        parentCategoryName: "饮食",
+        childCategoryName: "午餐",
+      },
+    ]);
+  });
+
   it("引用缺失或转账方向无法判定时拒绝导出，而不是写出错误或空白数据", async () => {
     const broken = (
       mutate: (data: ReturnType<typeof createDataExportFixture>) => void,
@@ -200,22 +285,34 @@ describe("dataExportWorkbook", () => {
     ).rejects.toMatchObject(error);
     await expect(
       broken((d) => {
-        d.records[1].items[0].balanceDelta = "0";
+        const transfer = d.records[1];
+        if (transfer.type !== "transfer") throw new Error("测试数据不正确");
+        transfer.items[0].balanceDelta = "0";
       }),
     ).rejects.toMatchObject(error);
     await expect(
       broken((d) => {
-        d.records[1].items = [];
+        const transfer = d.records[1];
+        if (transfer.type !== "transfer") throw new Error("测试数据不正确");
+        transfer.items = [];
+      }),
+    ).rejects.toMatchObject(error);
+    await expect(
+      broken((d) => {
+        const normal = d.records[0];
+        if (normal.type !== "normal") throw new Error("测试数据不正确");
+        normal.payments = [];
       }),
     ).rejects.toMatchObject(error);
   });
 
-  it("空账本也生成三个工作表，列名顺序复用导入定义且表头加粗填绿", async () => {
+  it("空账本也生成四个工作表，列名顺序复用导入定义且表头加粗填绿", async () => {
     const workbook = await loadWorkbook(createEmptyDataExport());
     expect(workbook.worksheets.map((sheet) => sheet.name)).toEqual([
       "收支",
       "转账",
       "余额变更",
+      "付款明细",
     ]);
     for (const kind of [
       "incomeExpense",
@@ -236,5 +333,25 @@ describe("dataExportWorkbook", () => {
         });
       });
     }
+    const paymentDetail = workbook.getWorksheet("付款明细")!;
+    expect(paymentDetail.rowCount).toBe(1);
+    expect((paymentDetail.getRow(1).values as string[]).slice(1)).toEqual([
+      "账单关联",
+      "日期",
+      "账户",
+      "账户币种",
+      "账户持有人",
+      "账户类型",
+      "付款金额",
+      "顺序",
+    ]);
+    paymentDetail.getRow(1).eachCell((header) => {
+      expect(header.font.bold).toBe(true);
+      expect(header.fill).toMatchObject({
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF92D050" },
+      });
+    });
   });
 });
