@@ -166,7 +166,7 @@ describe("dataExportWorkbook", () => {
     });
   });
 
-  it("三个工作表都导出账户类型的中文标签（含「其他」），列名与导入模板一致", async () => {
+  it("「收支」「转账」「余额变更」工作表都导出账户类型的中文标签（含「其他」），列名与导入模板一致", async () => {
     const workbook = await loadWorkbook();
     const transfer = workbook.getWorksheet("转账")!;
     expect(cell(workbook.getWorksheet("收支")!, 2, "账户类型").value).toBe(
