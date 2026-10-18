@@ -1,6 +1,7 @@
 // @vitest-environment node
 
 import ExcelJS from "exceljs";
+import { makeIncomeExpenseUnit } from "test/mocks/dataImport";
 import { describe, expect, it } from "vitest";
 
 import { parseExecuteDataImportBatchForm } from "internal/dataImport/adapter/next/formParser";
@@ -12,30 +13,10 @@ import {
 } from "internal/dataImport/schema";
 import { analyzeImportFile } from "internal/dataImport/util/analyzeImportFile";
 
-const incomeExpenseUnit: ImportExecutionUnit = {
-  group: {
-    items: [
-      {
-        accountCurrency: "JPY",
-        accountHolder: null,
-        accountName: "钱包",
-        accountType: "cash",
-        amount: 1200,
-        billRef: null,
-        childCategoryName: "食材",
-        merchantName: "超市",
-        merchantTag: null,
-        note: null,
-        parentCategoryName: "餐饮",
-        rowNumber: 2,
-        transactionAt: "2026-09-17 10:00:00",
-        transactionType: "expense",
-      },
-    ],
-    rowNumbers: [2],
-  },
-  kind: "incomeExpense",
-};
+const incomeExpenseUnit = makeIncomeExpenseUnit() as Extract<
+  ImportExecutionUnit,
+  { kind: "incomeExpense" }
+>;
 
 const transferUnit: ImportExecutionUnit = {
   kind: "transfer",
@@ -300,27 +281,13 @@ describe("parseExecuteDataImportBatchForm", () => {
               incomeExpenseUnit.group.items[0],
               {
                 ...incomeExpenseUnit.group.items[0],
-                accountName: "银行卡",
+                payments: [
+                  {
+                    ...incomeExpenseUnit.group.items[0].payments[0],
+                    accountName: "银行卡",
+                  },
+                ],
                 rowNumber: 3,
-              },
-            ],
-            rowNumbers: [2, 3],
-          },
-        },
-      ],
-    ],
-    [
-      "同组明细的交易类型不一致",
-      [
-        {
-          ...incomeExpenseUnit,
-          group: {
-            items: [
-              incomeExpenseUnit.group.items[0],
-              {
-                ...incomeExpenseUnit.group.items[0],
-                rowNumber: 3,
-                transactionType: "income",
               },
             ],
             rowNumbers: [2, 3],
@@ -434,13 +401,13 @@ describe("parseExecuteDataImportBatchForm", () => {
       buildFormData(units, "-540"),
     );
 
-    expect(units).toHaveLength(2);
+    expect(units).toHaveLength(1);
     expect(result.ok).toBe(true);
     // 「账户类型」填「-」时继承首行的值，服务端复核也要求同组类型一致。
     expect(
       units.flatMap((unit) =>
         unit.kind === "incomeExpense"
-          ? unit.group.items.map((item) => item.accountType)
+          ? unit.group.items.map((item) => item.payments[0].accountType)
           : [],
       ),
     ).toEqual(["cash", "cash", "cash"]);
@@ -457,7 +424,15 @@ describe("parseExecuteDataImportBatchForm", () => {
       group: {
         items: [
           { ...item, billRef: "A" },
-          { ...item, accountType: "bank", billRef: "A", rowNumber: 3 },
+          {
+            ...item,
+            payments: item.payments.map((payment) => ({
+              ...payment,
+              accountType: "bank",
+            })),
+            billRef: "A",
+            rowNumber: 3,
+          },
         ],
         rowNumbers: [2, 3],
       },

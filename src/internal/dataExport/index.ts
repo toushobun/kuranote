@@ -3,4 +3,5 @@ export type { DataExportService } from "internal/dataExport/service/dataExportSe
 export {
   dataExportErrorMessages,
   IncompleteDataExportError,
+  AccountSeparatorDataExportError,
 } from "internal/dataExport/errors";

@@ -2,6 +2,7 @@ import type { ImportExecutionUnit } from "internal/dataImport";
 import type {
   BalanceAdjustmentImportRow,
   IncomeExpenseImportRow,
+  ImportPaymentAccount,
   TransferImportRow,
 } from "internal/dataImport/entity/importRow";
 
@@ -34,10 +35,7 @@ export function makeIncomeExpenseUnit(
   overrides: Partial<IncomeExpenseImportRow> = {},
 ): ImportExecutionUnit {
   const item: IncomeExpenseImportRow = {
-    accountCurrency: "JPY",
-    accountHolder: null,
-    accountName: "钱包",
-    accountType: "cash",
+    payments: [makeImportPayment()],
     amount: 1200,
     billRef: null,
     childCategoryName: "食材",
@@ -137,5 +135,18 @@ export function makeBalanceAdjustmentTable(
         cells: headerRow.map((name) => values[name]),
       };
     }),
+  };
+}
+
+export function makeImportPayment(
+  overrides: Partial<ImportPaymentAccount> = {},
+): ImportPaymentAccount {
+  return {
+    accountCurrency: "JPY",
+    accountHolder: null,
+    accountName: "钱包",
+    accountType: "cash",
+    amount: null,
+    ...overrides,
   };
 }

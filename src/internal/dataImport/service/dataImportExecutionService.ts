@@ -587,12 +587,18 @@ export function createDataImportExecutionService({
 
       async function executeIncomeExpense(group: ImportTransactionGroup) {
         const first = group.items[0] as IncomeExpenseImportRow;
-        const { account, holderMissingName } = await resolveAccount({
-          currency: first.accountCurrency,
-          holderName: first.accountHolder,
-          name: first.accountName,
-          type: first.accountType,
-        });
+        const payments = [];
+        const holderMissingNames: string[] = [];
+        for (const source of first.payments) {
+          const { account, holderMissingName } = await resolveAccount({
+            currency: source.accountCurrency,
+            holderName: source.accountHolder,
+            name: source.accountName,
+            type: source.accountType,
+          });
+          payments.push({ accountId: account.id, amount: source.amount });
+          if (holderMissingName) holderMissingNames.push(holderMissingName);
+        }
         const merchant = await resolveMerchant(
           first.merchantName,
           first.merchantTag,
@@ -606,29 +612,38 @@ export function createDataImportExecutionService({
           });
           items.push({ amount: sourceItem.amount, categoryId: category.id });
         }
-        const totalAmount = group.items.reduce(
-          (sum, item) => sum + item.amount,
-          0,
-        );
+        const totalAmount =
+          group.items.reduce(
+            (sum, item) =>
+              sum +
+              (item.transactionType === "income" ? 1 : -1) *
+                Math.round(item.amount * 100),
+            0,
+          ) / 100;
         const input = {
-          accountId: account.id,
+          payments,
           items,
           ledgerId,
           merchantId: merchant.id,
           note: first.note,
           timeZoneOffsetMinutes,
           transactionAt: first.transactionAt,
-          type: first.transactionType,
+          type:
+            totalAmount > 0 ||
+            (totalAmount === 0 &&
+              group.items.every((item) => item.transactionType === "income"))
+              ? "income"
+              : "expense",
         } as const;
         const duplicate =
           await transactionImportService.hasPossibleNormalDuplicate({
             ...input,
-            totalAmount,
+            totalAmount: Math.abs(totalAmount),
           });
         await transactionImportService.createNormal(input);
         return {
           duplicate,
-          holderMissingNames: holderMissingName ? [holderMissingName] : [],
+          holderMissingNames,
         };
       }
 

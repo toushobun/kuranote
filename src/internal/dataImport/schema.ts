@@ -23,6 +23,7 @@ export const incomeExpenseColumns: ImportColumnDef[] = [
   { name: "账户币种", required: true },
   { name: "账户类型", required: true },
   { name: "金额", required: true },
+  { name: "付款金额", required: false },
   { name: "备注", required: false },
 ];
 
@@ -77,6 +78,7 @@ export const incomeExpenseSharedColumns = [
   "账户持有人",
   "账户币种",
   "账户类型",
+  "付款金额",
   "商家",
   "商家分类",
   "备注",

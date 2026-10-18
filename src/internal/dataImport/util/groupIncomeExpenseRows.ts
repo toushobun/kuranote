@@ -9,8 +9,8 @@ import {
   type IncomeExpenseSharedColumn,
 } from "internal/dataImport/schema";
 import type { IncomeExpenseSheetRow } from "internal/dataImport/util/parseIncomeExpenseSheet";
-import { parseAccountType } from "internal/dataImport/util/parseAccountType";
-import { parseHolderName } from "internal/dataImport/util/parseHolderName";
+import { parsePaymentAccounts } from "internal/dataImport/util/parsePaymentAccounts";
+import { validateImportPayments } from "internal/dataImport/util/validateImportPayments";
 import { parseImportDate } from "internal/dataImport/util/parseImportDate";
 
 export type GroupIncomeExpenseRowsResult = {
@@ -31,34 +31,26 @@ function normalizedSharedText(column: IncomeExpenseSharedColumn, text: string) {
 function resolveSharedFields(row: IncomeExpenseSheetRow) {
   const dateText = row.sharedTexts["日期"];
   const dateResult = parseImportDate(dateText);
-  // 走到这里的行已经在 parseIncomeExpenseSheet 里通过了账户持有人格式校验，
-  // 因此这里必定是 ok:true，取值时兜底 null 只是满足类型、不会实际触发。
-  const holderResult = parseHolderName(row.sharedTexts["账户持有人"]);
-  // 账户类型已在 parseIncomeExpenseSheet 里通过校验；账户类型参与账户匹配，
-  // 不能兜底为「其他」，前置校验失效时直接报错，避免误建同名账户。
-  const accountTypeResult = parseAccountType(
-    row.sharedTexts["账户类型"],
-    "账户类型",
-  );
-  if (!accountTypeResult.ok) {
-    throw new Error(accountTypeResult.message);
-  }
-
+  const result = parsePaymentAccounts(row.sharedTexts);
+  if (!result.ok) return result;
   return {
-    accountCurrency: row.sharedTexts["账户币种"].toUpperCase(),
-    accountHolder: holderResult.ok ? holderResult.value : null,
-    accountName: row.sharedTexts["账户"],
-    accountType: accountTypeResult.value,
-    merchantName: row.sharedTexts["商家"],
-    merchantTag: row.sharedTexts["商家分类"] || null,
-    note: row.sharedTexts["备注"] || null,
-    transactionAt: dateResult.ok ? dateResult.value : dateText,
+    ok: true as const,
+    value: {
+      payments: result.payments,
+      merchantName: row.sharedTexts["商家"],
+      merchantTag: row.sharedTexts["商家分类"] || null,
+      note: row.sharedTexts["备注"] || null,
+      transactionAt: dateResult.ok ? dateResult.value : dateText,
+    },
   };
 }
 
 function buildItem(
   row: IncomeExpenseSheetRow,
-  shared: ReturnType<typeof resolveSharedFields>,
+  shared: Extract<
+    ReturnType<typeof resolveSharedFields>,
+    { ok: true }
+  >["value"],
 ): IncomeExpenseImportRow {
   return {
     ...shared,
@@ -78,8 +70,7 @@ function buildItem(
  *   只由第一次出现的行（按文件顺序，与 `交易类型` 无关）提供真实值；后续行
  *   必须填字面 `-` 以继承首行的值，或者原样复述首行内容，除此之外的值都
  *   视为不一致，报告行错误且该行不参与合并。
- * - 用于合并出多笔交易 items 的分组按 `(账单关联, 交易类型)`：同一账单关联下
- *   不同交易类型的行分别合并为不同的交易，但共享同一份共享字段取值。
+ * - 同一账单关联合并成一笔交易，每条明细保留自己的收支类型。
  * - `账单关联` 为空的行各自独立成组，不受上述规则影响。
  */
 export function groupIncomeExpenseRows(
@@ -88,83 +79,105 @@ export function groupIncomeExpenseRows(
   const issues: ImportRowIssue[] = [];
   const groups: ImportTransactionGroup[] = [];
   const billRefFirstRow = new Map<string, IncomeExpenseSheetRow>();
-  const typeGroups = new Map<string, ImportTransactionGroup>();
+  const billGroups = new Map<string, ImportTransactionGroup>();
 
   for (const row of rows) {
-    if (row.billRef === null) {
-      const item = buildItem(row, resolveSharedFields(row));
-      groups.push({ items: [item], rowNumbers: [row.rowNumber] });
+    let firstRow =
+      row.billRef === null ? row : billRefFirstRow.get(row.billRef);
+    const billRef = row.billRef;
+    if (billRef !== null) {
+      if (!firstRow) {
+        const placeholderColumns = incomeExpenseSharedColumns.filter(
+          (column) => row.sharedTexts[column] === billRefPlaceholder,
+        );
+
+        if (placeholderColumns.length > 0) {
+          issues.push({
+            column: "账单关联",
+            kind: "row",
+            message:
+              incomeExpenseImportErrorMessages.billRefFirstRowPlaceholder(
+                billRef,
+                row.rowNumber,
+                placeholderColumns,
+              ),
+            rowNumber: row.rowNumber,
+            sheet: "incomeExpense",
+          });
+          continue;
+        }
+
+        billRefFirstRow.set(billRef, row);
+        firstRow = row;
+      } else {
+        const mismatchedColumns = incomeExpenseSharedColumns.filter(
+          (column) => {
+            const text = row.sharedTexts[column];
+            return (
+              text !== billRefPlaceholder &&
+              normalizedSharedText(column, text) !==
+                normalizedSharedText(column, firstRow!.sharedTexts[column])
+            );
+          },
+        );
+
+        if (mismatchedColumns.length > 0) {
+          issues.push({
+            column: "账单关联",
+            kind: "row",
+            message: incomeExpenseImportErrorMessages.billRefSharedMismatch(
+              billRef,
+              firstRow.rowNumber,
+              row.rowNumber,
+              mismatchedColumns,
+            ),
+            rowNumber: row.rowNumber,
+            sheet: "incomeExpense",
+          });
+          continue;
+        }
+      }
+    }
+
+    const groupKey = billRef;
+    const shared = resolveSharedFields(firstRow!);
+    if (!shared.ok) {
+      issues.push({
+        column: shared.column,
+        message: shared.message,
+        kind: "row",
+        rowNumber: row.rowNumber,
+        sheet: "incomeExpense",
+      });
       continue;
     }
+    const item = buildItem(row, shared.value);
+    const existingGroup =
+      groupKey === null ? undefined : billGroups.get(groupKey);
 
-    const billRef = row.billRef;
-    let firstRow = billRefFirstRow.get(billRef);
-
-    if (!firstRow) {
-      const placeholderColumns = incomeExpenseSharedColumns.filter(
-        (column) => row.sharedTexts[column] === billRefPlaceholder,
-      );
-
-      if (placeholderColumns.length > 0) {
-        issues.push({
-          column: "账单关联",
-          kind: "row",
-          message: incomeExpenseImportErrorMessages.billRefFirstRowPlaceholder(
-            billRef,
-            row.rowNumber,
-            placeholderColumns,
-          ),
-          rowNumber: row.rowNumber,
-          sheet: "incomeExpense",
-        });
-        continue;
-      }
-
-      billRefFirstRow.set(billRef, row);
-      firstRow = row;
-    } else {
-      const mismatchedColumns = incomeExpenseSharedColumns.filter((column) => {
-        const text = row.sharedTexts[column];
-        return (
-          text !== billRefPlaceholder &&
-          normalizedSharedText(column, text) !==
-            normalizedSharedText(column, firstRow!.sharedTexts[column])
-        );
-      });
-
-      if (mismatchedColumns.length > 0) {
-        issues.push({
-          column: "账单关联",
-          kind: "row",
-          message: incomeExpenseImportErrorMessages.billRefSharedMismatch(
-            billRef,
-            firstRow.rowNumber,
-            row.rowNumber,
-            mismatchedColumns,
-          ),
-          rowNumber: row.rowNumber,
-          sheet: "incomeExpense",
-        });
-        continue;
-      }
-    }
-
-    const typeKey = `${billRef} ${row.transactionType}`;
-    const item = buildItem(row, resolveSharedFields(firstRow));
-    const existingTypeGroup = typeGroups.get(typeKey);
-
-    if (existingTypeGroup) {
-      existingTypeGroup.items.push(item);
-      existingTypeGroup.rowNumbers.push(row.rowNumber);
+    if (existingGroup) {
+      existingGroup.items.push(item);
+      existingGroup.rowNumbers.push(row.rowNumber);
     } else {
       const group: ImportTransactionGroup = {
         items: [item],
         rowNumbers: [row.rowNumber],
       };
-      typeGroups.set(typeKey, group);
+      if (groupKey !== null) billGroups.set(groupKey, group);
       groups.push(group);
     }
   }
 
+  for (const group of groups) {
+    const message = validateImportPayments(group.items);
+    if (message)
+      issues.push({
+        kind: "row",
+        column: "付款金额",
+        message,
+        rowNumber: group.rowNumbers[0],
+        sheet: "incomeExpense",
+      });
+  }
   return { groups, issues };
 }

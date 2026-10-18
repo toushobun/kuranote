@@ -1,10 +1,15 @@
 import type { AccountType } from "internal/account";
 
-export type IncomeExpenseImportRow = {
+export type ImportPaymentAccount = {
   accountCurrency: string;
   accountHolder: string | null;
   accountName: string;
   accountType: AccountType;
+  amount: string | null;
+};
+
+export type IncomeExpenseImportRow = {
+  payments: ImportPaymentAccount[];
   amount: number;
   billRef: string | null;
   childCategoryName: string | null;

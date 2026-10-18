@@ -221,6 +221,7 @@ function FormatDescriptionCard() {
             messages.accountTypeColumnHint,
             messages.recorderColumnHint,
             messages.billRefHint,
+            messages.splitPaymentHint,
             messages.balanceAdjustmentHint,
           ].map((hint) => (
             <Typography

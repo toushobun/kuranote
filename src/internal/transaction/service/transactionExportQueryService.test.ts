@@ -136,8 +136,8 @@ describe("transactionExportQueryService", () => {
         note: "",
         items: [{ categoryId: "food", amount: "120" }],
         payments: [
-          { accountId: "me", amount: "50", balanceDelta: "-50" },
-          { accountId: "wife", amount: "70", balanceDelta: "-70" },
+          { accountId: "me", amount: "50" },
+          { accountId: "wife", amount: "70" },
         ],
       },
       {

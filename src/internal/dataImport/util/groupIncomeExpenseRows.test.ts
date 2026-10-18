@@ -20,6 +20,7 @@ function row(
     transactionType: "expense",
     ...rest,
     sharedTexts: {
+      付款金额: "",
       商家: "便利店",
       商家分类: "",
       日期: "2026-01-05 12:00:00",
@@ -36,6 +37,7 @@ function row(
 /** 组内后续行沿用首行共享字段的最简写法：所有共享字段填字面 `-`。 */
 function continuationSharedTexts(): Record<IncomeExpenseSharedColumn, string> {
   return {
+    付款金额: "-",
     商家: "-",
     商家分类: "-",
     日期: "-",
@@ -48,6 +50,59 @@ function continuationSharedTexts(): Record<IncomeExpenseSharedColumn, string> {
 }
 
 describe("groupIncomeExpenseRows", () => {
+  it("多账户付款金额沿用首行，后续行不一致时按行报错", () => {
+    const result = groupIncomeExpenseRows([
+      row({
+        billRef: "B",
+        amount: 10,
+        sharedTexts: {
+          账户: "现金；信用卡",
+          账户类型: "现金；信用卡",
+          付款金额: "10；10",
+        },
+      }),
+      row({
+        billRef: "B",
+        amount: 10,
+        rowNumber: 3,
+        sharedTexts: continuationSharedTexts(),
+      }),
+      row({
+        billRef: "B",
+        rowNumber: 4,
+        sharedTexts: { ...continuationSharedTexts(), 付款金额: "10；11" },
+      }),
+    ]);
+    expect(result.groups[0].items).toHaveLength(2);
+    expect(result.issues).toEqual([
+      expect.objectContaining({
+        rowNumber: 4,
+        column: "账单关联",
+        message: expect.stringContaining("付款金额 不一致"),
+      }),
+    ]);
+  });
+
+  it("多账户合计错误作为首行预览错误返回", () => {
+    const result = groupIncomeExpenseRows([
+      row({
+        amount: 20,
+        sharedTexts: {
+          账户: "现金；信用卡",
+          账户类型: "现金；信用卡",
+          付款金额: "10；11",
+        },
+      }),
+    ]);
+    expect(result.issues).toEqual([
+      expect.objectContaining({
+        rowNumber: 2,
+        column: "付款金额",
+        kind: "row",
+      }),
+    ]);
+  });
+
   it("账单关联为空的行各自独立成组", () => {
     const result = groupIncomeExpenseRows([
       row({ rowNumber: 2 }),
@@ -73,7 +128,7 @@ describe("groupIncomeExpenseRows", () => {
     expect(result.groups).toHaveLength(1);
     expect(result.groups[0].items).toHaveLength(2);
     expect(result.groups[0].rowNumbers).toEqual([2, 3]);
-    expect(result.groups[0].items[1].accountName).toBe("现金");
+    expect(result.groups[0].items[1].payments[0].accountName).toBe("现金");
     expect(result.groups[0].items[1].merchantName).toBe("便利店");
   });
 
@@ -95,10 +150,9 @@ describe("groupIncomeExpenseRows", () => {
         sharedTexts: { ...continuationSharedTexts(), 账户类型: "现金" },
       }),
     ]);
-    expect(result.groups[0].items.map((item) => item.accountType)).toEqual([
-      "bank",
-      "bank",
-    ]);
+    expect(
+      result.groups[0].items.map((item) => item.payments[0].accountType),
+    ).toEqual(["bank", "bank"]);
     expect(result.issues).toEqual([
       expect.objectContaining({
         message: expect.stringContaining("账户类型 不一致"),
@@ -107,10 +161,14 @@ describe("groupIncomeExpenseRows", () => {
     ]);
   });
 
-  it("未经前置校验的非法账户类型直接报错，不兜底为「其他」", () => {
-    expect(() =>
-      groupIncomeExpenseRows([row({ sharedTexts: { 账户类型: "储蓄卡" } })]),
-    ).toThrow("账户类型「储蓄卡」无法识别");
+  it("非法账户类型返回行错误，不兜底为其他", () => {
+    const result = groupIncomeExpenseRows([
+      row({ sharedTexts: { 账户类型: "储蓄卡" } }),
+    ]);
+    expect(result.issues[0]).toMatchObject({
+      rowNumber: 2,
+      column: "账户类型",
+    });
   });
 
   it("后续行原样复述首行内容（而非「-」）也允许合并", () => {
@@ -160,26 +218,18 @@ describe("groupIncomeExpenseRows", () => {
     ]);
 
     expect(result.issues).toEqual([]);
-    expect(result.groups).toHaveLength(2);
-
-    const incomeGroup = result.groups.find(
-      (group) => group.items[0].transactionType === "income",
-    )!;
-    const expenseGroup = result.groups.find(
-      (group) => group.items[0].transactionType === "expense",
-    )!;
-
-    expect(incomeGroup.items).toHaveLength(1);
-    expect(incomeGroup.items[0].parentCategoryName).toBe("工资收入");
-
-    expect(expenseGroup.items).toHaveLength(2);
-    expect(expenseGroup.items.map((item) => item.parentCategoryName)).toEqual([
-      "个税",
-      "社保",
+    expect(result.groups).toHaveLength(1);
+    expect(result.groups[0].items.map((item) => item.transactionType)).toEqual([
+      "income",
+      "expense",
+      "expense",
     ]);
-    expect(expenseGroup.items[0].merchantName).toBe("株式会社");
-    expect(expenseGroup.items[0].transactionAt).toBe("2026-08-29 00:46:21");
-    expect(expenseGroup.items[1].merchantName).toBe("株式会社");
+    expect(
+      result.groups[0].items.map((item) => item.parentCategoryName),
+    ).toEqual(["工资收入", "个税", "社保"]);
+    expect(
+      result.groups[0].items.every((item) => item.merchantName === "株式会社"),
+    ).toBe(true);
   });
 
   it("案例：后续行日期与首行不一致、也不是「-」时报告内容错误", () => {
@@ -292,7 +342,7 @@ describe("groupIncomeExpenseRows", () => {
     ]);
 
     expect(result.issues).toEqual([]);
-    expect(result.groups[0].items[1].accountHolder).toBe("鄧");
+    expect(result.groups[0].items[1].payments[0].accountHolder).toBe("鄧");
   });
 
   it("备注不一致时报告错误（备注属于共享字段）", () => {

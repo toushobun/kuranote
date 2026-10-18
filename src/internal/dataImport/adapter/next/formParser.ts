@@ -14,6 +14,7 @@ import {
   importNoteMaxLength,
   type ImportHolderMapping,
 } from "internal/dataImport/schema";
+import { validateImportPayments } from "internal/dataImport/util/validateImportPayments";
 import { parseImportAmount } from "internal/dataImport/util/parseImportAmount";
 import { parseImportDate } from "internal/dataImport/util/parseImportDate";
 import {
@@ -40,10 +41,20 @@ const transactionAtSchema = z
   .refine((value) => parseImportDate(value).ok);
 
 const incomeExpenseRowSchema = z.object({
-  accountCurrency: currencySchema,
-  accountHolder: holderSchema,
-  accountName: nameSchema,
-  accountType: accountTypeSchema,
+  payments: z
+    .array(
+      z.object({
+        accountCurrency: currencySchema,
+        accountHolder: holderSchema,
+        accountName: nameSchema,
+        accountType: accountTypeSchema,
+        amount: z
+          .string()
+          .refine((text) => parseImportAmount(text).ok)
+          .nullable(),
+      }),
+    )
+    .min(1),
   amount: amountSchema,
   billRef: z.string().max(200).nullable(),
   childCategoryName: nameSchema.nullable(),
@@ -72,21 +83,17 @@ const transferRowSchema = z.object({
 });
 
 /**
- * 同一交易组的所有明细必须共享账户、商家、日期、备注与交易类型（`groupIncomeExpenseRows`
+ * 同一交易组的所有明细必须共享账户、商家、日期、备注（`groupIncomeExpenseRows`
  * 保证浏览器端产出的分组满足这一点），且 rowNumbers 与明细一一对应。服务端只读取首条明细
  * 的共享字段，这里复核以免请求把不一致的明细并入同一笔交易。
  */
 const sharedGroupKeys = [
-  "accountCurrency",
-  "accountHolder",
-  "accountName",
-  "accountType",
+  "payments",
   "billRef",
   "merchantName",
   "merchantTag",
   "note",
   "transactionAt",
-  "transactionType",
 ] as const;
 
 function isConsistentGroup(group: {
@@ -95,11 +102,14 @@ function isConsistentGroup(group: {
 }) {
   const [first] = group.items;
   return (
+    group.items.length > 0 &&
     group.rowNumbers.length === group.items.length &&
     group.items.every(
       (item, index) =>
         item.rowNumber === group.rowNumbers[index] &&
-        sharedGroupKeys.every((key) => item[key] === first[key]),
+        sharedGroupKeys.every(
+          (key) => JSON.stringify(item[key]) === JSON.stringify(first[key]),
+        ),
     )
   );
 }
@@ -111,7 +121,17 @@ const executionUnitSchema = z.discriminatedUnion("kind", [
         items: z.array(incomeExpenseRowSchema).min(1),
         rowNumbers: z.array(rowNumberSchema).min(1),
       })
-      .refine(isConsistentGroup),
+      .refine(isConsistentGroup)
+      .refine(
+        (group) =>
+          group.items.length > 0 &&
+          group.items.every(
+            (item) =>
+              item.payments.length > 0 &&
+              (item.payments.length > 1 || item.payments[0].amount === null),
+          ) &&
+          validateImportPayments(group.items) === null,
+      ),
     kind: z.literal("incomeExpense"),
   }),
   z.object({ kind: z.literal("transfer"), row: transferRowSchema }),

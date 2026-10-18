@@ -1,4 +1,5 @@
 import { serverFallbackTimeZone } from "config/dateTime";
+import type { TransactionPayment } from "internal/transaction/entity/transactionPayment";
 import type { CurrentLedger } from "internal/ledger";
 import { ValidationError } from "internal/shared/errors/appError";
 import {
@@ -15,7 +16,7 @@ export type ImportTransactionItemInput = {
 };
 
 export type ImportNormalTransactionInput = {
-  accountId: string;
+  payments: TransactionPayment[];
   items: ImportTransactionItemInput[];
   ledgerId: string;
   merchantId: string;
@@ -119,11 +120,9 @@ export function createTransactionImportService({
 
   return {
     async createNormal(input) {
-      const { accountId, timeZoneOffsetMinutes, ...transaction } = input;
+      const { timeZoneOffsetMinutes, ...transaction } = input;
       await service.createNormal({
         ...transaction,
-        // 导入格式仍是单账户；RPC 按明细推导金额（#911 过渡期，3.4）。
-        payments: [{ accountId, amount: null }],
         transactionAt: toImportTransactionTimestamp(
           input.transactionAt,
           timeZoneOffsetMinutes,
@@ -175,7 +174,7 @@ export function createTransactionImportService({
         input.timeZoneOffsetMinutes,
       );
       const items = await loadDayItems(transactionAtIso, {
-        accountId: input.accountId,
+        accountId: input.payments[0].accountId,
         merchantId: input.merchantId,
         recordType: input.type,
       });

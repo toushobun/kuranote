@@ -1,8 +1,13 @@
+import {
+  paymentSeparator,
+  paymentSeparatorPattern,
+} from "config/dataImportExportFormat";
 import ExcelJS from "exceljs";
 
 import type { AccountExportSummary } from "internal/account";
 import {
   IncompleteDataExportError,
+  AccountSeparatorDataExportError,
   type DataExport,
 } from "internal/dataExport";
 import {
@@ -16,20 +21,6 @@ import { themeColorTokens } from "theme/themeColorTokens";
 import { getAccountTypeLabel } from "utils/accounts";
 import { getCategoryDisplayName } from "utils/categoryNames";
 import { formatDateTimeLocalInputValue } from "utils/transactions";
-
-/** 「付款明细」sheet：导出专用，导入按 sheet 名识别，不认识的 sheet 会被忽略。 */
-const paymentDetailSheetName = "付款明细";
-
-const paymentDetailColumns: ImportColumnDef[] = [
-  { name: "账单关联", required: false },
-  { name: "日期", required: true },
-  { name: "账户", required: true },
-  { name: "账户币种", required: true },
-  { name: "账户持有人", required: false },
-  { name: "账户类型", required: true },
-  { name: "付款金额", required: true },
-  { name: "顺序", required: true },
-];
 
 export async function buildDataExportWorkbook(
   data: DataExport,
@@ -55,16 +46,18 @@ export async function buildDataExportWorkbook(
   }
   const incomeExpense = createSheet(
     importSheetKindLabels.incomeExpense,
-    incomeExpenseColumns,
+    incomeExpenseColumns.filter(
+      (column) =>
+        column.name !== "付款金额" ||
+        data.records.some(
+          (record) => record.type === "normal" && record.payments.length > 1,
+        ),
+    ),
   );
   const transfer = createSheet(importSheetKindLabels.transfer, transferColumns);
   const adjustment = createSheet(
     importSheetKindLabels.balanceAdjustment,
     balanceAdjustmentColumns,
-  );
-  const paymentDetail = createSheet(
-    paymentDetailSheetName,
-    paymentDetailColumns,
   );
   const accounts = new Map(
     data.accounts.map((account) => [account.id, account]),
@@ -76,12 +69,19 @@ export async function buildDataExportWorkbook(
     data.merchants.map((merchant) => [merchant.id, merchant]),
   );
 
+  function requireExportAccount(account: AccountExportSummary | undefined) {
+    if (!account) throw new IncompleteDataExportError();
+    if (paymentSeparatorPattern.test(account.name))
+      throw new AccountSeparatorDataExportError();
+    return account;
+  }
+
   function writeAccount(
     row: ExcelJS.Row,
     account: AccountExportSummary | undefined,
     prefix = "",
   ) {
-    if (!account) throw new IncompleteDataExportError();
+    account = requireExportAccount(account);
     const accountColumn = `${prefix}账户`;
     row.getCell(accountColumn).value = account.name;
     row.getCell(`${accountColumn}币种`).value = account.currency;
@@ -139,7 +139,7 @@ export async function buildDataExportWorkbook(
       const merchant = record.merchantId
         ? merchants.get(record.merchantId)
         : undefined;
-      for (const item of record.items) {
+      for (const [index, item] of record.items.entries()) {
         const category = item.categoryId
           ? categories.get(item.categoryId)
           : undefined;
@@ -164,21 +164,36 @@ export async function buildDataExportWorkbook(
             : "",
           金额: item.amount,
         });
-        // 多账户记录的账户四列留空：填首个账户会误导重新导入的结果，
-        // 账户信息已经在「付款明细」sheet 中完整记录。
         if (record.payments.length === 1) {
           writeAccount(row, accounts.get(record.payments[0].accountId));
+        } else if (index > 0) {
+          for (const name of [
+            "账户",
+            "账户币种",
+            "账户持有人",
+            "账户类型",
+            "付款金额",
+          ])
+            row.getCell(name).value = "-";
+        } else {
+          const paymentAccounts = record.payments.map((payment) =>
+            requireExportAccount(accounts.get(payment.accountId)),
+          );
+          row.getCell("账户").value = paymentAccounts
+            .map((account) => account.name)
+            .join(paymentSeparator);
+          row.getCell("账户币种").value = paymentAccounts[0].currency;
+          row.getCell("账户持有人").value = paymentAccounts
+            .map((account) => account.holder?.name ?? "")
+            .join(paymentSeparator);
+          row.getCell("账户类型").value = paymentAccounts
+            .map((account) => getAccountTypeLabel(account.type))
+            .join(paymentSeparator);
+          row.getCell("付款金额").value = record.payments
+            .map((payment) => payment.amount)
+            .join(paymentSeparator);
         }
       }
-      record.payments.forEach((payment, index) => {
-        const row = paymentDetail.addRow({
-          账单关联: record.id,
-          日期: common.日期,
-          付款金额: payment.amount,
-          顺序: index + 1,
-        });
-        writeAccount(row, accounts.get(payment.accountId));
-      });
     }
   }
   return (await workbook.xlsx.writeBuffer()) as unknown as ArrayBuffer;

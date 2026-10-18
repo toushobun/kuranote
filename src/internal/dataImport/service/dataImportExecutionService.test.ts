@@ -35,6 +35,18 @@ import type { Logger } from "internal/shared/logging/logger";
 import type { TransactionImportService } from "internal/transaction";
 import { buildDataExportWorkbook } from "utils/dataExportWorkbook";
 
+async function executeUnits(
+  dependencies: ReturnType<typeof createDependencies>,
+  units: ReturnType<typeof unitsOf>,
+) {
+  return createDataImportExecutionService(dependencies).executeBatch({
+    ledgerId: "ledger-1",
+    userId: "user-1",
+    timeZoneOffsetMinutes: 0,
+    units,
+  });
+}
+
 function unitsOf(tables: ParsedTable[]) {
   return analyzeImportWorkbook(tables).units;
 }
@@ -231,7 +243,9 @@ describe("DataImportExecutionService", () => {
       expect(
         dependencies.transactionImportService.createNormal,
       ).toHaveBeenCalledWith(
-        expect.objectContaining({ accountId: "钱包-JPY" }),
+        expect.objectContaining({
+          payments: [{ accountId: "钱包-JPY", amount: null }],
+        }),
       );
       expect(
         dependencies.transactionImportService.createTransfer,
@@ -339,7 +353,11 @@ describe("DataImportExecutionService", () => {
       ).not.toHaveBeenCalled();
       expect(
         dependencies.transactionImportService.createNormal,
-      ).toHaveBeenCalledWith(expect.objectContaining({ accountId: "cash-1" }));
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          payments: [{ accountId: "cash-1", amount: null }],
+        }),
+      );
     });
 
     it("同一批次内只差大小写的新账户只创建一次，并使用首次出现的写法", async () => {
@@ -360,7 +378,9 @@ describe("DataImportExecutionService", () => {
       );
       expect(createNormal).toHaveBeenCalledTimes(2);
       for (const [input] of createNormal.mock.calls) {
-        expect(input).toMatchObject({ accountId: "account-Wallet" });
+        expect(input).toMatchObject({
+          payments: [{ accountId: "account-Wallet", amount: null }],
+        });
       }
     });
 
@@ -383,7 +403,9 @@ describe("DataImportExecutionService", () => {
         expect(
           dependencies.transactionImportService.createNormal,
         ).toHaveBeenCalledWith(
-          expect.objectContaining({ accountId: "account-cash" }),
+          expect.objectContaining({
+            payments: [{ accountId: "account-cash", amount: null }],
+          }),
         );
       },
     );
@@ -1228,7 +1250,9 @@ describe("持有人映射", () => {
     expect(
       dependencies.transactionImportService.createNormal,
     ).toHaveBeenCalledWith(
-      expect.objectContaining({ accountId: "account-existing" }),
+      expect.objectContaining({
+        payments: [{ accountId: "account-existing", amount: null }],
+      }),
     );
     expect(result.successCount).toBe(2);
   });
@@ -1626,7 +1650,7 @@ describe("待邀请成员映射", () => {
     expect(
       vi
         .mocked(dependencies.transactionImportService.createNormal)
-        .mock.calls.map(([input]) => input.accountId),
+        .mock.calls.map(([input]) => input.payments[0].accountId),
     ).toEqual(["account-p", "account-m", "account-none", "account-none"]);
     expect(result).toMatchObject({ holderMissingCount: 0, successCount: 4 });
   });
@@ -1752,7 +1776,7 @@ describe("账户类型参与账户匹配", () => {
   ) {
     return vi
       .mocked(dependencies.transactionImportService.createNormal)
-      .mock.calls.map(([input]) => input.accountId);
+      .mock.calls.map(([input]) => input.payments[0].accountId);
   }
 
   it("名称、持有人、币种、类型都相同时复用已有账户，类型不同时按行里的类型新建", async () => {
@@ -1854,63 +1878,170 @@ describe("账户类型参与账户匹配", () => {
     );
   });
 
-  it("导出文件原样再导入时，所有账户都按名称、持有人、币种、类型匹配回原账户，不新建账户", async () => {
-    const data = createDataExportFixture();
-    // 导入要求必须有二级分类，只保留有二级分类的明细，让每条记录都能成功导入。
-    data.records[0].items = data.records[0].items.filter(
-      (item) => item.categoryId === "lunch",
-    );
-    const file = new File([await buildDataExportWorkbook(data)], "export.xlsx");
-    const { result: validation, units } = await analyzeImportFile(file);
-    expect(validation.ok).toBe(true);
-
-    const dependencies = createDependencies();
-    const userIdByName: Record<string, string> = {
-      小明: "user-ming",
-      小红: "user-hong",
-    };
-    vi.mocked(dependencies.accountImportService.loadContext).mockResolvedValue({
-      accounts: data.accounts.map((account) => ({
-        currency: account.currency,
-        holder: account.holder
-          ? { kind: "member", userId: userIdByName[account.holder.name] }
-          : null,
-        id: account.id,
-        isArchived: false,
-        name: account.name,
-        type: account.type,
-      })),
-      holders: Object.entries(userIdByName).map(([displayName, userId]) => ({
-        displayName,
-        userId,
-      })),
-    });
-
-    const result = await createDataImportExecutionService(
-      dependencies,
-    ).executeBatch({
-      ledgerId: "ledger-1",
-      timeZoneOffsetMinutes: 0,
-      units,
-      userId: "user-1",
-    });
-
-    expect(result).toMatchObject({ failureCount: 0, successCount: 3 });
-    expect(
-      dependencies.accountImportService.createAccount,
-    ).not.toHaveBeenCalled();
-    const { createBalanceAdjustment, createNormal, createTransfer } = vi.mocked(
-      dependencies.transactionImportService,
-    );
-    expect(
-      [
-        ...createNormal.mock.calls.map(([input]) => input.accountId),
-        ...createTransfer.mock.calls.flatMap(([input]) => [
-          input.accountId,
-          input.transferTargetAccountId,
+  it.each(["2000；1500", "0；3500"])(
+    "多账户导入在 Service 层保留顺序及金额 %s，分别匹配持有人",
+    async (amounts) => {
+      const dependencies = createDependencies();
+      const units = unitsOf([
+        incomeTable([
+          incomeRow({
+            账户: "礼品卡；信用卡",
+            账户持有人: "；淞文",
+            账户类型: "其他；信用卡",
+            付款金额: amounts,
+            金额: "3500",
+          }),
         ]),
-        ...createBalanceAdjustment.mock.calls.map(([input]) => input.accountId),
-      ].sort(),
-    ).toEqual(["bank", "cash", "cash", "none"]);
-  });
+      ]);
+      expect(units).toHaveLength(1);
+      const result = await executeUnits(dependencies, units);
+      expect(result).toMatchObject({ successCount: 1, failureCount: 0 });
+      expect(
+        dependencies.accountImportService.createAccount,
+      ).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          name: "礼品卡",
+          holder: null,
+          type: "other",
+        }),
+      );
+      expect(
+        dependencies.accountImportService.createAccount,
+      ).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          name: "信用卡",
+          holder: { kind: "member", userId: "user-1" },
+          type: "credit_card",
+        }),
+      );
+      expect(
+        dependencies.transactionImportService.createNormal,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          payments: [
+            { accountId: "account-礼品卡", amount: amounts.split("；")[0] },
+            { accountId: "account-信用卡", amount: amounts.split("；")[1] },
+          ],
+        }),
+      );
+    },
+  );
+
+  it.each([
+    ["100", "30", "expense", 70],
+    ["30", "100", "income", 70],
+    ["30", "30", "expense", 0],
+  ] as const)(
+    "收支混合合并一笔并按净额查重：支出 %s 收入 %s",
+    async (expense, income, type, totalAmount) => {
+      const dependencies = createDependencies();
+      const units = unitsOf([
+        incomeTable([
+          incomeRow({ 账单关联: "B1", 交易类型: "收入", 金额: income }),
+          incomeRow({ 账单关联: "B1", 交易类型: "支出", 金额: expense }),
+        ]),
+      ]);
+      expect(units).toHaveLength(1);
+      const result = await executeUnits(dependencies, units);
+      expect(result.successCount).toBe(1);
+      expect(
+        dependencies.transactionImportService.createNormal,
+      ).toHaveBeenCalledOnce();
+      expect(
+        dependencies.transactionImportService.hasPossibleNormalDuplicate,
+      ).toHaveBeenCalledWith(expect.objectContaining({ type, totalAmount }));
+    },
+  );
+
+  it.each([false, true])(
+    "单/多账户导出文件原样导入时按名称、持有人、币种、类型匹配原账户（多账户=%s）",
+    async (multi) => {
+      const data = createDataExportFixture();
+      // 导入要求必须有二级分类，只保留有二级分类的明细，让每条记录都能成功导入。
+      data.records[0].items = data.records[0].items.filter(
+        (item) => item.categoryId === "lunch",
+      );
+      const normal = data.records[0];
+      if (normal.type !== "normal") throw new Error("测试数据不正确");
+      if (multi)
+        normal.payments = [
+          { accountId: "cash", amount: "100" },
+          { accountId: "bank", amount: "23.45" },
+        ];
+      const file = new File(
+        [await buildDataExportWorkbook(data)],
+        "export.xlsx",
+      );
+      const { result: validation, units } = await analyzeImportFile(file);
+      expect(validation.ok).toBe(true);
+
+      const dependencies = createDependencies();
+      const userIdByName: Record<string, string> = {
+        小明: "user-ming",
+        小红: "user-hong",
+      };
+      vi.mocked(
+        dependencies.accountImportService.loadContext,
+      ).mockResolvedValue({
+        accounts: data.accounts.map((account) => ({
+          currency: account.currency,
+          holder: account.holder
+            ? { kind: "member", userId: userIdByName[account.holder.name] }
+            : null,
+          id: account.id,
+          isArchived: false,
+          name: account.name,
+          type: account.type,
+        })),
+        holders: Object.entries(userIdByName).map(([displayName, userId]) => ({
+          displayName,
+          userId,
+        })),
+      });
+
+      const result = await createDataImportExecutionService(
+        dependencies,
+      ).executeBatch({
+        ledgerId: "ledger-1",
+        timeZoneOffsetMinutes: 0,
+        units,
+        userId: "user-1",
+      });
+
+      expect(result).toMatchObject({ failureCount: 0, successCount: 3 });
+      expect(
+        dependencies.accountImportService.createAccount,
+      ).not.toHaveBeenCalled();
+      const { createBalanceAdjustment, createNormal, createTransfer } =
+        vi.mocked(dependencies.transactionImportService);
+      expect(
+        [
+          ...createNormal.mock.calls.flatMap(([input]) =>
+            input.payments.map((payment) => payment.accountId),
+          ),
+          ...createTransfer.mock.calls.flatMap(([input]) => [
+            input.accountId,
+            input.transferTargetAccountId,
+          ]),
+          ...createBalanceAdjustment.mock.calls.map(
+            ([input]) => input.accountId,
+          ),
+        ].sort(),
+      ).toEqual(
+        multi
+          ? ["bank", "bank", "cash", "cash", "none"]
+          : ["bank", "cash", "cash", "none"],
+      );
+      expect(createNormal.mock.calls[0][0].payments).toEqual(
+        multi
+          ? [
+              { accountId: "cash", amount: "100" },
+              { accountId: "bank", amount: "23.45" },
+            ]
+          : [{ accountId: "cash", amount: null }],
+      );
+    },
+  );
 });

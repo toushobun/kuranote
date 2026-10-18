@@ -5,6 +5,7 @@ import { dataExportPageMessages } from "config/dataImportExportMessages";
 import {
   dataExportErrorMessages,
   IncompleteDataExportError,
+  AccountSeparatorDataExportError,
 } from "internal/dataExport";
 import type { DataExportAction } from "types/dataExport";
 
@@ -47,7 +48,8 @@ export function useDataExport(exportAction: DataExportAction) {
       }
     } catch (error) {
       setError(
-        error instanceof IncompleteDataExportError
+        error instanceof IncompleteDataExportError ||
+          error instanceof AccountSeparatorDataExportError
           ? error.message
           : dataExportErrorMessages.downloadFailed,
       );

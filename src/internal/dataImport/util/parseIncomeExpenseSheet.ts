@@ -1,3 +1,8 @@
+import {
+  splitPaymentCell,
+  parsePaymentAccounts,
+} from "internal/dataImport/util/parsePaymentAccounts";
+import { parseAccountType } from "internal/dataImport/util/parseAccountType";
 import type { ParsedTable } from "internal/dataImport/entity/parsedTable";
 import type { ImportValidationIssue } from "internal/dataImport/entity/importValidationIssue";
 import {
@@ -16,8 +21,6 @@ import {
   buildColumnIndex,
   findColumnStructuralIssues,
 } from "internal/dataImport/util/columnIndex";
-import { parseAccountType } from "internal/dataImport/util/parseAccountType";
-import { parseHolderName } from "internal/dataImport/util/parseHolderName";
 import { parseImportAmount } from "internal/dataImport/util/parseImportAmount";
 import { parseImportDate } from "internal/dataImport/util/parseImportDate";
 
@@ -52,16 +55,17 @@ const sharedColumnValidators: Partial<
   日期: (text) =>
     parseImportDate(text).ok ? null : importRowErrorMessages.dateInvalid,
   账户: (text) => (text ? null : importRowErrorMessages.accountRequired),
-  账户持有人: (text) =>
-    parseHolderName(text).ok ? null : importRowErrorMessages.holderInvalid,
+  账户类型: (text) => {
+    for (const value of splitPaymentCell(text)) {
+      const result = parseAccountType(value, "账户类型");
+      if (!result.ok) return result.message;
+    }
+    return null;
+  },
   账户币种: (text) =>
     importCurrencyPattern.test(text)
       ? null
       : importRowErrorMessages.currencyInvalid,
-  账户类型: (text) => {
-    const result = parseAccountType(text, "账户类型");
-    return result.ok ? null : result.message;
-  },
   备注: (text) =>
     text.length > importNoteMaxLength
       ? importRowErrorMessages.noteTooLong
@@ -123,6 +127,17 @@ export function parseIncomeExpenseSheet(
       if (errorMessage) {
         addIssue(column, errorMessage);
       }
+    }
+
+    if (
+      !hasError &&
+      !["账户", "账户类型", "账户持有人", "账户币种", "付款金额"].some(
+        (column) => isGrouped && get(column) === billRefPlaceholder,
+      )
+    ) {
+      const paymentResult = parsePaymentAccounts(sharedTexts);
+      if (!paymentResult.ok)
+        addIssue(paymentResult.column, paymentResult.message);
     }
 
     const typeText = get("交易类型");

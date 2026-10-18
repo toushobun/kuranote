@@ -94,7 +94,6 @@ export function createTransactionExportQueryService({
           recordPayments.push({
             accountId: payment.account_id,
             amount: payment.amount,
-            balanceDelta: payment.balance_delta,
           });
           paymentsByRecord.set(payment.transaction_record_id, recordPayments);
         }
