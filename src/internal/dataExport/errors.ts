@@ -4,7 +4,8 @@ import {
 } from "internal/shared/errors/appError";
 
 export const dataExportErrorMessages = {
-  accountSeparator: "账户名称包含分号，无法导出。请修改账户名称后重试。",
+  accountSeparator:
+    "收支记录的账户名称或持有人名称包含分号，无法导出。请修改相应名称后重试。",
   incompleteData:
     "交易数据不完整，无法导出。请刷新后重试；若仍失败，请联系账本管理员。",
   exportFailed: "数据导出失败，请稍后重试。",

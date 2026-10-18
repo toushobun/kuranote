@@ -2,7 +2,7 @@
 import ExcelJS from "exceljs";
 import { execFileSync } from "node:child_process";
 import { getCategoryDisplayName } from "utils/categoryNames";
-import type { DataExport } from "internal/dataExport";
+import { dataExportErrorMessages, type DataExport } from "internal/dataExport";
 import { describe, expect, it } from "vitest";
 import {
   analyzeImportFile,
@@ -266,14 +266,59 @@ describe("dataExportWorkbook", () => {
     ]);
   });
 
-  it.each(["现金;钱包", "现金；钱包"])(
-    "账户名包含分号 %s 时拒绝导出并提示",
-    async (name) => {
+  describe.each([false, true])("收支分号检查（多账户=%s）", (multi) => {
+    it.each([
+      ["账户名称", ";"],
+      ["账户名称", "；"],
+      ["持有人名称", ";"],
+      ["持有人名称", "；"],
+    ])("%s 包含分号 %s 时拒绝导出并提示", async (field, separator) => {
       const data = createDataExportFixture();
-      data.accounts[0].name = name;
+      const normal = data.records[0];
+      if (normal.type !== "normal") throw new Error("测试数据不正确");
+      data.records = [normal];
+      if (multi) normal.payments.push({ accountId: "bank", amount: "0" });
+      // 多账户检查第二个账户，避免只校验首个账户而漏报。
+      const account = data.accounts[multi ? 1 : 0];
+      if (field === "账户名称") account.name += `${separator}别名`;
+      else account.holder!.name += `${separator}别名`;
       await expect(buildDataExportWorkbook(data)).rejects.toMatchObject({
         code: "data_export_account_separator",
+        message: dataExportErrorMessages.accountSeparator,
       });
+    });
+  });
+
+  it.each([";", "；"])(
+    "转账和余额变更账户名包含分号 %s 时仍正常导出并保留名称",
+    async (separator) => {
+      const data = createDataExportFixture();
+      data.records = data.records.filter((record) => record.type !== "normal");
+      for (const account of data.accounts) account.name += `${separator}别名`;
+      const workbook = await loadWorkbook(data);
+      const transfer = workbook.getWorksheet("转账")!;
+      expect(cell(transfer, 2, "转出账户").value).toBe(data.accounts[0].name);
+      expect(cell(transfer, 2, "转入账户").value).toBe(data.accounts[1].name);
+      expect(cell(workbook.getWorksheet("余额变更")!, 2, "账户").value).toBe(
+        data.accounts[2].name,
+      );
+      const { result, units } = await analyzeImportFile(
+        new File([await buildDataExportWorkbook(data)], "export.xlsx"),
+      );
+      expect(result.ok).toBe(true);
+      expect(units).toMatchObject([
+        {
+          kind: "transfer",
+          row: {
+            fromAccountName: data.accounts[0].name,
+            toAccountName: data.accounts[1].name,
+          },
+        },
+        {
+          kind: "balanceAdjustment",
+          row: { accountName: data.accounts[2].name },
+        },
+      ]);
     },
   );
 

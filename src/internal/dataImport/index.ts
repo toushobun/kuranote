@@ -28,6 +28,8 @@ export type {
 } from "internal/dataImport/entity/importValidationIssue";
 export {
   incomeExpenseColumns,
+  incomeExpensePaymentColumnNames,
+  incomeExpensePaymentColumns,
   importColumnsBySheetKind,
   transferColumns,
   balanceAdjustmentColumns,

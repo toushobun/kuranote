@@ -12,6 +12,8 @@ import {
 } from "internal/dataExport";
 import {
   incomeExpenseColumns,
+  incomeExpensePaymentColumnNames,
+  incomeExpensePaymentColumns,
   transferColumns,
   balanceAdjustmentColumns,
   importSheetKindLabels,
@@ -48,7 +50,7 @@ export async function buildDataExportWorkbook(
     importSheetKindLabels.incomeExpense,
     incomeExpenseColumns.filter(
       (column) =>
-        column.name !== "付款金额" ||
+        column.name !== incomeExpensePaymentColumnNames.paymentAmount ||
         data.records.some(
           (record) => record.type === "normal" && record.payments.length > 1,
         ),
@@ -71,7 +73,17 @@ export async function buildDataExportWorkbook(
 
   function requireExportAccount(account: AccountExportSummary | undefined) {
     if (!account) throw new IncompleteDataExportError();
-    if (paymentSeparatorPattern.test(account.name))
+    return account;
+  }
+
+  function requireIncomeExpenseExportAccount(
+    account: AccountExportSummary | undefined,
+  ) {
+    account = requireExportAccount(account);
+    if (
+      paymentSeparatorPattern.test(account.name) ||
+      paymentSeparatorPattern.test(account.holder?.name ?? "")
+    )
       throw new AccountSeparatorDataExportError();
     return account;
   }
@@ -165,19 +177,18 @@ export async function buildDataExportWorkbook(
           金额: item.amount,
         });
         if (record.payments.length === 1) {
-          writeAccount(row, accounts.get(record.payments[0].accountId));
+          writeAccount(
+            row,
+            requireIncomeExpenseExportAccount(
+              accounts.get(record.payments[0].accountId),
+            ),
+          );
         } else if (index > 0) {
-          for (const name of [
-            "账户",
-            "账户币种",
-            "账户持有人",
-            "账户类型",
-            "付款金额",
-          ])
+          for (const name of incomeExpensePaymentColumns)
             row.getCell(name).value = "-";
         } else {
           const paymentAccounts = record.payments.map((payment) =>
-            requireExportAccount(accounts.get(payment.accountId)),
+            requireIncomeExpenseExportAccount(accounts.get(payment.accountId)),
           );
           row.getCell("账户").value = paymentAccounts
             .map((account) => account.name)

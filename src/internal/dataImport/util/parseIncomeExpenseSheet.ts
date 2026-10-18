@@ -13,6 +13,7 @@ import {
   importCurrencyPattern,
   importNoteMaxLength,
   incomeExpenseColumns,
+  incomeExpensePaymentColumns,
   incomeExpenseSharedColumns,
   incomeExpenseTypeValues,
   type IncomeExpenseSharedColumn,
@@ -131,7 +132,7 @@ export function parseIncomeExpenseSheet(
 
     if (
       !hasError &&
-      !["账户", "账户类型", "账户持有人", "账户币种", "付款金额"].some(
+      !incomeExpensePaymentColumns.some(
         (column) => isGrouped && get(column) === billRefPlaceholder,
       )
     ) {
