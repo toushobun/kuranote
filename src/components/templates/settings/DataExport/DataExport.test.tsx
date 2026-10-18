@@ -6,7 +6,10 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { dataExportErrorMessages } from "internal/dataExport";
+import {
+  AccountSeparatorDataExportError,
+  dataExportErrorMessages,
+} from "internal/dataExport";
 import { createEmptyDataExport } from "test/mocks/dataExport";
 import type { DataExportAction } from "types/dataExport";
 import { DataExportTemplate } from "./DataExport";
@@ -91,6 +94,14 @@ describe("DataExportTemplate", () => {
       expect(screen.queryByText("账本无法访问")).not.toBeInTheDocument(),
     );
     expect(screen.getByRole("button", { name: "导出 xlsx" })).toBeEnabled();
+  });
+  it("账户名称包含分号时展示具体原因并阻止下载", async () => {
+    buildWorkbook.mockRejectedValueOnce(new AccountSeparatorDataExportError());
+    startExport(async () => ({ data: createEmptyDataExport() }));
+    expect(
+      await screen.findByText(dataExportErrorMessages.accountSeparator),
+    ).toBeInTheDocument();
+    expect(createObjectURL).not.toHaveBeenCalled();
   });
   it("文件生成异常不会下载，显示安全文案并恢复按钮", async () => {
     buildWorkbook.mockRejectedValueOnce(new Error("private internal failure"));

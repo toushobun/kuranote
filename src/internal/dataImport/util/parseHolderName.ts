@@ -1,8 +1,8 @@
+import { paymentSeparatorPattern } from "config/dataImportExportFormat";
+
 export type ParseHolderNameResult =
   | { ok: false }
   | { ok: true; value: string | null };
-
-const holderSeparatorPattern = /[;；]/;
 
 /**
  * 「账户持有人」列格式约定：单元格内只能是空（0 个持有人）或者一个持有人姓名
@@ -12,7 +12,7 @@ const holderSeparatorPattern = /[;；]/;
 export function parseHolderName(cellText: string): ParseHolderNameResult {
   const name = cellText.trim();
 
-  if (holderSeparatorPattern.test(name)) {
+  if (paymentSeparatorPattern.test(name)) {
     return { ok: false };
   }
 

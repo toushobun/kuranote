@@ -104,6 +104,7 @@ describe("parseIncomeExpenseSheet", () => {
         parentCategoryName: "餐饮",
         rowNumber: 2,
         sharedTexts: {
+          付款金额: "",
           商家: "便利店",
           商家分类: "",
           日期: "2026-01-05 12:00:00",

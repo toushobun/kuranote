@@ -8,6 +8,19 @@ export type ImportColumnDef = {
   required: boolean;
 };
 
+/** 「收支」sheet 的付款相关列，导入继承判断与导出共用。 */
+export const incomeExpensePaymentColumnNames = {
+  account: "账户",
+  accountHolder: "账户持有人",
+  accountCurrency: "账户币种",
+  accountType: "账户类型",
+  paymentAmount: "付款金额",
+} as const;
+
+export const incomeExpensePaymentColumns = Object.values(
+  incomeExpensePaymentColumnNames,
+);
+
 /** 「收支」sheet 列定义，顺序仅用于模板说明展示，解析时按列名匹配、不要求顺序。 */
 export const incomeExpenseColumns: ImportColumnDef[] = [
   { name: "账单关联", required: false },
@@ -18,11 +31,12 @@ export const incomeExpenseColumns: ImportColumnDef[] = [
   { name: "交易类型", required: true },
   { name: "一级分类", required: true },
   { name: "二级分类", required: false },
-  { name: "账户", required: true },
-  { name: "账户持有人", required: false },
-  { name: "账户币种", required: true },
-  { name: "账户类型", required: true },
+  { name: incomeExpensePaymentColumnNames.account, required: true },
+  { name: incomeExpensePaymentColumnNames.accountHolder, required: false },
+  { name: incomeExpensePaymentColumnNames.accountCurrency, required: true },
+  { name: incomeExpensePaymentColumnNames.accountType, required: true },
   { name: "金额", required: true },
+  { name: incomeExpensePaymentColumnNames.paymentAmount, required: false },
   { name: "备注", required: false },
 ];
 
@@ -73,10 +87,7 @@ export const importColumnsBySheetKind: Record<
  */
 export const incomeExpenseSharedColumns = [
   "日期",
-  "账户",
-  "账户持有人",
-  "账户币种",
-  "账户类型",
+  ...incomeExpensePaymentColumns,
   "商家",
   "商家分类",
   "备注",

@@ -63,6 +63,7 @@ describe("TransactionImportService", () => {
     const input = {
       signedDelta: -1200,
       accountId: "account-1",
+      payments: [{ accountId: "account-1", amount: null }],
       items: [{ amount: 1200, categoryId: "category-1" }],
       ledgerId: "ledger-1",
       merchantId: "merchant-1",
@@ -74,21 +75,12 @@ describe("TransactionImportService", () => {
       type: "expense" as const,
     };
     await services.importService[method](input);
-    const { accountId, timeZoneOffsetMinutes: offset, ...transaction } = input;
+    const { timeZoneOffsetMinutes: offset, ...transaction } = input;
     expect(offset).toBe(-540);
-    expect(services[method]).toHaveBeenCalledExactlyOnceWith(
-      method === "createNormal"
-        ? {
-            ...transaction,
-            payments: [{ accountId, amount: null }],
-            transactionAt: "2025-12-31T15:30:15.000Z",
-          }
-        : {
-            accountId,
-            ...transaction,
-            transactionAt: "2025-12-31T15:30:15.000Z",
-          },
-    );
+    expect(services[method]).toHaveBeenCalledExactlyOnceWith({
+      ...transaction,
+      transactionAt: "2025-12-31T15:30:15.000Z",
+    });
     await expect(
       services.importService[method]({
         ...input,
@@ -96,6 +88,27 @@ describe("TransactionImportService", () => {
       }),
     ).rejects.toMatchObject({ code: "date_invalid" });
     expect(services[method]).toHaveBeenCalledOnce();
+  });
+
+  it("多账户付款原样传给正式 Service，保留金额与顺序", async () => {
+    const { createNormal, importService } = createService();
+    const payments = [
+      { accountId: "card-1", amount: "0" },
+      { accountId: "card-2", amount: "1200" },
+    ];
+    await importService.createNormal({
+      payments,
+      items: [{ amount: 1200, categoryId: "category-1" }],
+      ledgerId: "ledger-1",
+      merchantId: "merchant-1",
+      note: null,
+      timeZoneOffsetMinutes: 0,
+      transactionAt: "2026-01-01 00:00:00",
+      type: "expense",
+    });
+    expect(createNormal).toHaveBeenCalledWith(
+      expect.objectContaining({ payments }),
+    );
   });
 
   it("收支按日期、金额、商家和账户判定疑似重复", async () => {
@@ -118,7 +131,7 @@ describe("TransactionImportService", () => {
     });
 
     const duplicate = await importService.hasPossibleNormalDuplicate({
-      accountId: "account-1",
+      payments: [{ accountId: "account-1", amount: null }],
       items: [{ amount: 1200, categoryId: "category-1" }],
       ledgerId: "ledger-1",
       merchantId: "merchant-1",
@@ -197,7 +210,7 @@ describe("TransactionImportService", () => {
     // 对应真实 UTC 09-17T17:00Z，落在查询实际按 JST（+09:00）分桶的 09-18。
     // 若仍按本地或 UTC 日期猜测（均为 09-17），会漏查真实重复所在的分桶。
     await importService.hasPossibleNormalDuplicate({
-      accountId: "account-1",
+      payments: [{ accountId: "account-1", amount: null }],
       items: [{ amount: 1200, categoryId: "category-1" }],
       ledgerId: "ledger-1",
       merchantId: "merchant-1",

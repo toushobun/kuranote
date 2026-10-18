@@ -70,6 +70,9 @@ export const incomeExpenseImportErrorMessages = {
     columns: string[],
   ) =>
     `账单关联「${billRef}」下第 ${firstRowNumber} 行与第 ${rowNumber} 行的 ${columns.join("、")} 不一致，无法合并为同一笔交易。`,
+  paymentCountMismatch:
+    "账户、账户持有人、账户类型和付款金额的个数必须一致（持有人整格可留空）。",
+  singlePaymentAmount: "只有一个账户时，付款金额必须留空。",
   merchantRequired: "商家不能为空。",
   parentCategoryRequired: "一级分类不能为空。",
   typeInvalid: "交易类型必须是「支出」或「收入」。",

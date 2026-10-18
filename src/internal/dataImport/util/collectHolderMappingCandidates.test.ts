@@ -1,6 +1,7 @@
 import {
   makeBalanceAdjustmentUnit,
   makeIncomeExpenseUnit,
+  makeImportPayment,
   makeTransferUnit,
 } from "test/mocks/dataImport";
 import { describe, expect, it } from "vitest";
@@ -15,9 +16,24 @@ const members = [
 ];
 
 describe("collectHolderMappingCandidates", () => {
+  it("多账户的所有持有人都参与映射，同一姓名每笔只计一次", () => {
+    const unit = makeIncomeExpenseUnit({
+      payments: [
+        makeImportPayment({ accountHolder: "小明" }),
+        makeImportPayment({ accountHolder: "小红", accountName: "卡" }),
+        makeImportPayment({ accountHolder: "小明", accountName: "卡2" }),
+      ],
+    });
+    expect(collectHolderMappingCandidates([unit], members)).toEqual([
+      { name: "小明", recordCount: 1, reason: "unmatched" },
+      { name: "小红", recordCount: 1, reason: "unmatched" },
+    ]);
+  });
   it("全部唯一匹配或无持有人时不需要映射", () => {
     const units = [
-      makeIncomeExpenseUnit({ accountHolder: "张三" }),
+      makeIncomeExpenseUnit({
+        payments: [makeImportPayment({ accountHolder: "张三" })],
+      }),
       makeTransferUnit({ fromAccountHolder: "李四", toAccountHolder: null }),
       makeBalanceAdjustmentUnit({ accountHolder: null }),
     ];
@@ -27,10 +43,16 @@ describe("collectHolderMappingCandidates", () => {
 
   it("汇总未匹配姓名并统计涉及记录数", () => {
     const units = [
-      makeIncomeExpenseUnit({ accountHolder: "小明" }),
-      makeIncomeExpenseUnit({ accountHolder: "小明" }),
+      makeIncomeExpenseUnit({
+        payments: [makeImportPayment({ accountHolder: "小明" })],
+      }),
+      makeIncomeExpenseUnit({
+        payments: [makeImportPayment({ accountHolder: "小明" })],
+      }),
       makeBalanceAdjustmentUnit({ accountHolder: "小明" }),
-      makeIncomeExpenseUnit({ accountHolder: "张三" }),
+      makeIncomeExpenseUnit({
+        payments: [makeImportPayment({ accountHolder: "张三" })],
+      }),
     ];
 
     expect(collectHolderMappingCandidates(units, members)).toEqual([
@@ -39,7 +61,11 @@ describe("collectHolderMappingCandidates", () => {
   });
 
   it("同名多成员标记为歧义", () => {
-    const units = [makeIncomeExpenseUnit({ accountHolder: "重名" })];
+    const units = [
+      makeIncomeExpenseUnit({
+        payments: [makeImportPayment({ accountHolder: "重名" })],
+      }),
+    ];
 
     expect(collectHolderMappingCandidates(units, members)).toEqual([
       { name: "重名", recordCount: 1, reason: "ambiguous" },
@@ -70,8 +96,12 @@ describe("collectHolderMappingCandidates", () => {
   it("按姓名首次出现的顺序返回", () => {
     const units = [
       makeBalanceAdjustmentUnit({ accountHolder: "小红" }),
-      makeIncomeExpenseUnit({ accountHolder: "小明" }),
-      makeIncomeExpenseUnit({ accountHolder: "小红" }),
+      makeIncomeExpenseUnit({
+        payments: [makeImportPayment({ accountHolder: "小明" })],
+      }),
+      makeIncomeExpenseUnit({
+        payments: [makeImportPayment({ accountHolder: "小红" })],
+      }),
     ];
 
     expect(
@@ -83,8 +113,12 @@ describe("collectHolderMappingCandidates", () => {
     it("姓名只与待邀请成员同名时仍作为未匹配候选，由用户在映射步骤确认", () => {
       // 候选只按账本成员判断，待邀请成员不参与匹配，不会被自动选中。
       const units = [
-        makeIncomeExpenseUnit({ accountHolder: "奶奶" }),
-        makeIncomeExpenseUnit({ accountHolder: "张三" }),
+        makeIncomeExpenseUnit({
+          payments: [makeImportPayment({ accountHolder: "奶奶" })],
+        }),
+        makeIncomeExpenseUnit({
+          payments: [makeImportPayment({ accountHolder: "张三" })],
+        }),
       ];
 
       expect(collectHolderMappingCandidates(units, members)).toEqual([

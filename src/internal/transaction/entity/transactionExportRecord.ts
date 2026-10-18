@@ -9,7 +9,6 @@ type TransactionExportRecordCommon = {
 export type TransactionExportPayment = {
   accountId: string;
   amount: string;
-  balanceDelta: string;
 };
 
 type TransactionExportAccountItem = {

@@ -1,5 +1,8 @@
 // @vitest-environment node
 import ExcelJS from "exceljs";
+import { execFileSync } from "node:child_process";
+import { getCategoryDisplayName } from "utils/categoryNames";
+import { dataExportErrorMessages, type DataExport } from "internal/dataExport";
 import { describe, expect, it } from "vitest";
 import {
   analyzeImportFile,
@@ -179,85 +182,145 @@ describe("dataExportWorkbook", () => {
     );
   });
 
-  it("普通记录按账户数写入「收支」与「付款明细」sheet：单账户照填账户列，多账户留空并逐行列出付款", async () => {
+  it("多账户分号格式真实往返保留账户、持有人、金额及顺序，后续行继承首行", async () => {
     const data = createDataExportFixture();
     const normal = data.records[0];
     if (normal.type !== "normal") throw new Error("测试数据不正确");
-    data.records.push({
-      ...normal,
-      id: "multi",
-      items: [{ categoryId: "food", amount: "80" }],
-      payments: [
-        { accountId: "cash", amount: "50", balanceDelta: "-50" },
-        { accountId: "bank", amount: "30", balanceDelta: "-30" },
-      ],
-    });
+    normal.items = [
+      { categoryId: "lunch", amount: "50" },
+      { categoryId: "lunch", amount: "30" },
+    ];
+    normal.payments = [
+      { accountId: "none", amount: "50" },
+      { accountId: "bank", amount: "30" },
+    ];
+    data.accounts[2].currency = "JPY";
+    data.records = [normal];
     const workbook = await loadWorkbook(data);
-
-    const incomeExpense = workbook.getWorksheet("收支")!;
-    // 单账户记录（3 条明细）+ 多账户记录（1 条明细）
-    expect(incomeExpense.rowCount).toBe(5);
-    expect(cell(incomeExpense, 5, "账单关联").value).toBe("multi");
-    expect(cell(incomeExpense, 5, "账户").value).toBeNull();
-    expect(cell(incomeExpense, 5, "账户币种").value).toBeNull();
-    expect(cell(incomeExpense, 5, "账户持有人").value).toBeNull();
-    expect(cell(incomeExpense, 5, "账户类型").value).toBeNull();
-    // 单账户记录仍照常填写账户四列。
-    expect(cell(incomeExpense, 2, "账户").value).toBe("现金");
-
-    const paymentDetail = workbook.getWorksheet("付款明细")!;
-    // 单账户记录（1 行付款）+ 多账户记录（2 行付款）
-    expect(paymentDetail.rowCount).toBe(4);
-    expect(cell(paymentDetail, 2, "账单关联").value).toBe("normal");
-    expect(cell(paymentDetail, 2, "账户").value).toBe("现金");
-    expect(cell(paymentDetail, 2, "付款金额").value).toBe("163.45");
-    expect(cell(paymentDetail, 2, "顺序").value).toBe(1);
-    expect(cell(paymentDetail, 3, "账单关联").value).toBe("multi");
-    expect(cell(paymentDetail, 3, "账户").value).toBe("现金");
-    expect(cell(paymentDetail, 3, "付款金额").value).toBe("50");
-    expect(cell(paymentDetail, 3, "顺序").value).toBe(1);
-    expect(cell(paymentDetail, 4, "账单关联").value).toBe("multi");
-    expect(cell(paymentDetail, 4, "账户").value).toBe("存款");
-    expect(cell(paymentDetail, 4, "付款金额").value).toBe("30");
-    expect(cell(paymentDetail, 4, "顺序").value).toBe(2);
+    expect(workbook.worksheets.map((sheet) => sheet.name)).toEqual([
+      "收支",
+      "转账",
+      "余额变更",
+    ]);
+    const sheet = workbook.getWorksheet("收支")!;
+    expect(cell(sheet, 2, "账户").value).toBe("公共账户；存款");
+    expect(cell(sheet, 2, "账户持有人").value).toBe("；小红");
+    expect(cell(sheet, 2, "付款金额").value).toBe("50；30");
+    for (const name of [
+      "账户",
+      "账户持有人",
+      "账户币种",
+      "账户类型",
+      "付款金额",
+    ])
+      expect(cell(sheet, 3, name).value).toBe("-");
+    const { result, units } = await analyzeImportFile(
+      new File([await buildDataExportWorkbook(data)], "export.xlsx"),
+    );
+    expect(result.ok).toBe(true);
+    expect(units).toHaveLength(1);
+    expect(units[0]).toMatchObject({
+      group: {
+        rowNumbers: [2, 3],
+        items: [
+          {
+            payments: [
+              {
+                accountName: "公共账户",
+                accountHolder: null,
+                amount: "50",
+                accountType: "other",
+              },
+              {
+                accountName: "存款",
+                accountHolder: "小红",
+                amount: "30",
+                accountType: "bank",
+              },
+            ],
+          },
+          { amount: 30 },
+        ],
+      },
+    });
   });
 
-  it("导入会忽略「付款明细」sheet，不影响收支 / 转账 / 余额变更的导入结果", async () => {
+  it("单账户收支混合记录真实往返仍为一笔且没有付款金额列", async () => {
     const data = createDataExportFixture();
-    const normal = data.records[0];
-    if (normal.type !== "normal") throw new Error("测试数据不正确");
-    // 导入要求必须有二级分类，只保留有二级分类的明细，让记录能成功导入。
-    normal.items = normal.items.filter((item) => item.categoryId === "lunch");
-    const file = new File([await buildDataExportWorkbook(data)], "export.xlsx");
-
-    const { result, units } = await analyzeImportFile(file);
-
-    expect(result).toMatchObject({
-      ok: true,
-      summary: {
-        balanceAdjustmentCount: 1,
-        incomeExpenseCount: 1,
-        transferCount: 1,
-      },
-    });
-    expect(units).toHaveLength(3);
-    const incomeExpenseUnit = units.find(
-      (unit) => unit.kind === "incomeExpense",
+    const sheet = (await loadWorkbook(data)).getWorksheet("收支")!;
+    expect(sheet.getRow(1).values).not.toContain("付款金额");
+    const { result, units } = await analyzeImportFile(
+      new File([await buildDataExportWorkbook(data)], "export.xlsx"),
     );
-    if (incomeExpenseUnit?.kind !== "incomeExpense")
-      throw new Error("意外的单元");
-    expect(incomeExpenseUnit.group.items).toMatchObject([
-      {
-        accountName: "现金",
-        accountHolder: "小明",
-        accountType: "cash",
-        amount: 123.45,
-        billRef: "normal",
-        parentCategoryName: "饮食",
-        childCategoryName: "午餐",
-      },
+    expect(result.ok).toBe(true);
+    const normal = units.find((unit) => unit.kind === "incomeExpense");
+    expect(normal).toMatchObject({ group: { rowNumbers: [2, 3, 4] } });
+    if (normal?.kind !== "incomeExpense") throw new Error("意外的单元");
+    expect(normal.group.items.map((item) => item.transactionType)).toEqual([
+      "expense",
+      "expense",
+      "income",
+    ]);
+    expect(normal.group.items[0].payments).toMatchObject([
+      { accountName: "现金", accountHolder: "小明", amount: null },
     ]);
   });
+
+  describe.each([false, true])("收支分号检查（多账户=%s）", (multi) => {
+    it.each([
+      ["账户名称", ";"],
+      ["账户名称", "；"],
+      ["持有人名称", ";"],
+      ["持有人名称", "；"],
+    ])("%s 包含分号 %s 时拒绝导出并提示", async (field, separator) => {
+      const data = createDataExportFixture();
+      const normal = data.records[0];
+      if (normal.type !== "normal") throw new Error("测试数据不正确");
+      data.records = [normal];
+      if (multi) normal.payments.push({ accountId: "bank", amount: "0" });
+      // 多账户检查第二个账户，避免只校验首个账户而漏报。
+      const account = data.accounts[multi ? 1 : 0];
+      if (field === "账户名称") account.name += `${separator}别名`;
+      else account.holder!.name += `${separator}别名`;
+      await expect(buildDataExportWorkbook(data)).rejects.toMatchObject({
+        code: "data_export_account_separator",
+        message: dataExportErrorMessages.accountSeparator,
+      });
+    });
+  });
+
+  it.each([";", "；"])(
+    "转账和余额变更账户名包含分号 %s 时仍正常导出并保留名称",
+    async (separator) => {
+      const data = createDataExportFixture();
+      data.records = data.records.filter((record) => record.type !== "normal");
+      for (const account of data.accounts) account.name += `${separator}别名`;
+      const workbook = await loadWorkbook(data);
+      const transfer = workbook.getWorksheet("转账")!;
+      expect(cell(transfer, 2, "转出账户").value).toBe(data.accounts[0].name);
+      expect(cell(transfer, 2, "转入账户").value).toBe(data.accounts[1].name);
+      expect(cell(workbook.getWorksheet("余额变更")!, 2, "账户").value).toBe(
+        data.accounts[2].name,
+      );
+      const { result, units } = await analyzeImportFile(
+        new File([await buildDataExportWorkbook(data)], "export.xlsx"),
+      );
+      expect(result.ok).toBe(true);
+      expect(units).toMatchObject([
+        {
+          kind: "transfer",
+          row: {
+            fromAccountName: data.accounts[0].name,
+            toAccountName: data.accounts[1].name,
+          },
+        },
+        {
+          kind: "balanceAdjustment",
+          row: { accountName: data.accounts[2].name },
+        },
+      ]);
+    },
+  );
 
   it("引用缺失或转账方向无法判定时拒绝导出，而不是写出错误或空白数据", async () => {
     const broken = (
@@ -306,13 +369,12 @@ describe("dataExportWorkbook", () => {
     ).rejects.toMatchObject(error);
   });
 
-  it("空账本也生成四个工作表，列名顺序复用导入定义且表头加粗填绿", async () => {
+  it("空账本也生成三个工作表，列名顺序复用导入定义且表头加粗填绿", async () => {
     const workbook = await loadWorkbook(createEmptyDataExport());
     expect(workbook.worksheets.map((sheet) => sheet.name)).toEqual([
       "收支",
       "转账",
       "余额变更",
-      "付款明细",
     ]);
     for (const kind of [
       "incomeExpense",
@@ -322,7 +384,9 @@ describe("dataExportWorkbook", () => {
       const sheet = workbook.getWorksheet(importSheetKindLabels[kind])!;
       expect(sheet.rowCount).toBe(1);
       expect((sheet.getRow(1).values as string[]).slice(1)).toEqual(
-        importColumnsBySheetKind[kind].map((column) => column.name),
+        importColumnsBySheetKind[kind]
+          .filter((column) => column.name !== "付款金额")
+          .map((column) => column.name),
       );
       sheet.getRow(1).eachCell((header) => {
         expect(header.font.bold).toBe(true);
@@ -333,25 +397,115 @@ describe("dataExportWorkbook", () => {
         });
       });
     }
-    const paymentDetail = workbook.getWorksheet("付款明细")!;
-    expect(paymentDetail.rowCount).toBe(1);
-    expect((paymentDetail.getRow(1).values as string[]).slice(1)).toEqual([
-      "账单关联",
-      "日期",
-      "账户",
-      "账户币种",
-      "账户持有人",
-      "账户类型",
-      "付款金额",
-      "顺序",
-    ]);
-    paymentDetail.getRow(1).eachCell((header) => {
-      expect(header.font.bold).toBe(true);
-      expect(header.fill).toMatchObject({
-        type: "pattern",
-        pattern: "solid",
-        fgColor: { argb: "FF92D050" },
-      });
-    });
   });
 });
+
+/** 需本地 Supabase seed；所有写入都在事务内回滚，不修改开发数据。 */
+describe.runIf(process.env.KURANOTE_DB_ROUNDTRIP === "1")(
+  "dataExportWorkbook 数据库往返",
+  () => {
+    const ledgerId = "00000000-0000-4000-8000-000000000032";
+    const accountId = "00000000-0000-4000-8000-000000000043";
+    const merchantId = "00000000-0000-4000-8000-000000001001";
+    const expenseCategoryId = "00000000-0000-4000-8000-000000005021";
+    const incomeCategoryId = "00000000-0000-4000-8000-000000005002";
+
+    function databaseSql(sql: string): string {
+      return execFileSync(
+        "docker",
+        [
+          "exec",
+          "-i",
+          "supabase_db_kuranote",
+          "psql",
+          "-X",
+          "-qAt",
+          "-v",
+          "ON_ERROR_STOP=1",
+          "-U",
+          "postgres",
+          "-d",
+          "postgres",
+        ],
+        {
+          input: `begin;
+        set local role authenticated;
+        do $$ begin perform set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-000000000031","role":"authenticated"}', true); end $$;
+        ${sql}
+        rollback;`,
+          encoding: "utf8",
+        },
+      ).trim();
+    }
+
+    function createRecordSql(
+      items: { amount: number; categoryId: string | undefined }[],
+    ) {
+      return `create temp table roundtrip_record as select public.create_transaction('${ledgerId}', 'expense', '2099-05-01T00:00:00Z', '${JSON.stringify(items)}'::jsonb, '[{"accountId":"${accountId}","amount":null}]'::jsonb, '${merchantId}', '#921 往返') as id;`;
+    }
+
+    it.each([false, true])(
+      "真实 RPC 记录经 XLSX 导出导入仍为一笔且付款余额一致（混合=%s）",
+      async (mixed) => {
+        const sourceItems = [
+          { categoryId: expenseCategoryId, amount: 100 },
+          ...(mixed ? [{ categoryId: incomeCategoryId, amount: 30 }] : []),
+        ];
+        const source = JSON.parse(
+          databaseSql(`
+      ${createRecordSql(sourceItems)}
+      select jsonb_build_object(
+        'accounts', (select jsonb_agg(jsonb_build_object('id', id, 'name', name, 'currency', currency, 'type', type, 'holder', null)) from public.account where id = '${accountId}'),
+        'categories', (select jsonb_agg(jsonb_build_object('id', id, 'name', name, 'parent_id', parent_id, 'type', type)) from public.category where ledger_id = '${ledgerId}'),
+        'merchants', (select jsonb_agg(jsonb_build_object('id', id, 'name', name, 'tagNames', '[]'::jsonb)) from public.merchant where id = '${merchantId}'),
+        'records', (select jsonb_agg(jsonb_build_object('id', r.id, 'type', r.type, 'transactionAt', r.transaction_at, 'recorderName', '往返测试', 'note', r.note, 'merchantId', r.merchant_id,
+          'items', (select jsonb_agg(jsonb_build_object('categoryId', category_id, 'amount', amount::text) order by sort_order) from public.transaction_item where transaction_record_id = r.id),
+          'payments', (select jsonb_agg(jsonb_build_object('accountId', account_id, 'amount', amount::text) order by sort_order) from public.transaction_payment where transaction_record_id = r.id))) from public.transaction_record r join roundtrip_record t on t.id = r.id)
+      );
+    `),
+        ) as DataExport;
+        const { result, units } = await analyzeImportFile(
+          new File([await buildDataExportWorkbook(source)], "roundtrip.xlsx"),
+        );
+        expect(result.ok).toBe(true);
+        expect(units).toHaveLength(1);
+        const unit = units[0];
+        if (unit.kind !== "incomeExpense") throw new Error("意外的单元");
+        expect(unit.group.items).toHaveLength(sourceItems.length);
+        const importedItems = unit.group.items.map((item) => ({
+          amount: item.amount,
+          categoryId: source.categories.find(
+            (category) =>
+              category.type === item.transactionType &&
+              category.parent_id !== null &&
+              getCategoryDisplayName(category.name, undefined) ===
+                item.childCategoryName,
+          )?.id,
+        }));
+        expect(importedItems).toEqual(sourceItems);
+        const payment = unit.group.items[0].payments[0];
+        expect(payment).toMatchObject({
+          accountName: source.accounts[0].name,
+          amount: null,
+        });
+        const net = mixed ? -70 : -100;
+        const restored = JSON.parse(
+          databaseSql(`
+      create temp table roundtrip_balance as select current_balance from public.account where id = '${accountId}';
+      ${createRecordSql(importedItems)}
+      select jsonb_build_object('records', (select count(*) from public.transaction_record where id = (select id from roundtrip_record)),
+        'items', (select count(*) from public.transaction_item where transaction_record_id = (select id from roundtrip_record)),
+        'delta', (select current_balance - (select current_balance from roundtrip_balance) from public.account where id = '${accountId}'),
+        'paymentDelta', (select balance_delta from public.transaction_payment where transaction_record_id = (select id from roundtrip_record)));
+    `),
+        );
+        expect(restored).toEqual({
+          records: 1,
+          items: sourceItems.length,
+          delta: net,
+          paymentDelta: net,
+        });
+      },
+    );
+  },
+);

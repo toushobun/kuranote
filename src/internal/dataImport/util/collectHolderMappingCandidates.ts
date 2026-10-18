@@ -5,7 +5,7 @@ import type { ImportExecutionUnit } from "internal/dataImport/entity/importRow";
 function unitHolderNames(unit: ImportExecutionUnit): Set<string> {
   const names =
     unit.kind === "incomeExpense"
-      ? [unit.group.items[0].accountHolder]
+      ? unit.group.items[0].payments.map((payment) => payment.accountHolder)
       : unit.kind === "transfer"
         ? [unit.row.fromAccountHolder, unit.row.toAccountHolder]
         : [unit.row.accountHolder];
