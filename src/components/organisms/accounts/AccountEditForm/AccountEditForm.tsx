@@ -139,6 +139,7 @@ export function AccountEditForm({
 
         <AccountFields
           balanceLabel="当前余额"
+          currencyLocked={account.has_transactions}
           defaultCurrency={account.currency}
           defaultName={account.name}
           defaultType={account.type}

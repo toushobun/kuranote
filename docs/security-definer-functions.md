@@ -362,3 +362,15 @@ migration 在新增 CHECK 之前，把残留的匿名待接受邀请（`placehol
 `transaction_payment` 启用 RLS，只有与 `transaction_item_select_active_record` 同形的 SELECT policy；撤销 anon / authenticated / service_role 的全部表权限后只授予 authenticated SELECT，写入只经上述 RPC。`transaction_account_movement` 视图为 `security_invoker = true`，同样只授予 authenticated SELECT。
 
 锁顺序：`ledger（需要时）→ transaction_record → transaction_item / 关联目标 → account`。账户集合为「旧付款账户 ∪ 新付款账户」（类型转换时为付款账户 ∪ 转账账户），按 UUID 一次性 `FOR NO KEY UPDATE`。使用 NO KEY UPDATE 而不是 FOR UPDATE：它与余额 UPDATE 本身的锁等级相同，不会与写明细 / 付款明细时外键检查取得的 `KEY SHARE` 冲突；用 FOR UPDATE 时，两个事务在相反方向切换付款账户会互相等待对方的 KEY SHARE 而死锁（`supabase/tests/database/transaction_payment_account_lock_concurrency.sh` 覆盖）。
+
+## Issue #910：已有交易的账户禁止修改币种
+
+「已有交易」= 账户出现在 `transaction_account_movement` 中（普通记录的付款明细、转账 / 余额调整明细，含初始余额生成的余额调整），不区分记录 `status`，已作废记录也算。
+
+| 函数                                                  | 变更与权限边界                                                                                                                                                                                                                                                                                          |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `account_has_transactions(uuid,uuid)`                 | 新增 STABLE SECURITY INVOKER 内部函数，经 `transaction_account_movement` 判定。撤销全部客户端及 service_role 的 EXECUTE，只在 SECURITY DEFINER 上下文中调用，因此不受 RLS 隐藏已作废记录的影响。                                                                                                        |
+| `prevent_account_currency_change_with_transactions()` | 新增 SECURITY DEFINER 触发器函数，挂在 `account` 的 `BEFORE UPDATE OF currency`（仅币种实际变化时）。先 `FOR UPDATE` 锁账户行，再判定；已有交易时抛出 `account_currency_locked`（`22023`，`detail` 同名）。覆盖 `update_account_with_holders`、`update_account_with_balance_adjustment` 与直接 UPDATE。 |
+| `list_account_ids_with_transactions(uuid)`            | 新增 STABLE SECURITY DEFINER RPC，仅授予 authenticated；非 active 成员得到空结果。供账户编辑表单禁用币种字段，最终以触发器为准。                                                                                                                                                                        |
+
+并发：`FOR UPDATE` 与记账写明细 / 付款明细时外键检查取得的 `KEY SHARE` 冲突，进行中的记账提交后才继续判定；`update_account_with_holders` 原本就在更新前 `FOR UPDATE` 锁账户行，触发器内的加锁不会再等待。先改币种、后记账时，记账的外键检查等币种提交后再写入新币种账户。由 `account_currency_lock_concurrency.sh` 覆盖两种顺序。

@@ -340,17 +340,24 @@ export function createAccountService({
 
     async getView({ ledgerId, userId, includeArchived }) {
       const role = await requireActiveMemberRole(ledgerId, userId);
-      const [ledger, members, accounts, displaySettings, placeholders] =
-        await Promise.all([
-          accountRepository.findActiveLedger(ledgerId),
-          accountRepository.listActiveMembers(ledgerId),
-          accountRepository.listAccounts(ledgerId, includeArchived),
-          accountRepository.listDisplaySettings(ledgerId),
-          ledgerPlaceholderMemberQueryService.listUnclaimed({
-            ledgerId,
-            userId,
-          }),
-        ]);
+      const [
+        ledger,
+        members,
+        accounts,
+        accountIdsWithTransactions,
+        displaySettings,
+        placeholders,
+      ] = await Promise.all([
+        accountRepository.findActiveLedger(ledgerId),
+        accountRepository.listActiveMembers(ledgerId),
+        accountRepository.listAccounts(ledgerId, includeArchived),
+        accountRepository.listAccountIdsWithTransactions(ledgerId),
+        accountRepository.listDisplaySettings(ledgerId),
+        ledgerPlaceholderMemberQueryService.listUnclaimed({
+          ledgerId,
+          userId,
+        }),
+      ]);
 
       if (!ledger) {
         throw new NotFoundError(
@@ -375,6 +382,7 @@ export function createAccountService({
       const users = await accountRepository.listUsers(userIds);
 
       return buildAccountsView({
+        accountIdsWithTransactions,
         accounts,
         displaySettings,
         holders,

@@ -62,5 +62,7 @@ export type Account = {
   current_balance: number | string;
   sort_order: number;
   created_at: string;
+  // 已有交易（含已作废记录、初始余额）时不能修改币种（#910）。
+  has_transactions: boolean;
   holders: AccountHolder[];
 };

@@ -38,6 +38,7 @@ const account: Account = {
   current_balance: 85000,
   sort_order: 1,
   created_at: "2026-01-01T00:00:00.000Z",
+  has_transactions: false,
   holders: [],
 };
 
@@ -149,6 +150,39 @@ describe("AccountEditForm", () => {
     expect(screen.getByText("$")).toBeInTheDocument();
 
     expect(within(container).getByLabelText("当前余额")).toHaveValue("85000");
+  });
+});
+
+describe("币种锁定", () => {
+  const currencyLockedText = "该账户已有交易记录，不能修改币种。";
+
+  function renderCurrencyField(hasTransactions: boolean) {
+    const { container } = renderWithUserTheme(
+      <AccountEditForm
+        {...baseProps}
+        account={{ ...account, has_transactions: hasTransactions }}
+      />,
+    );
+    return {
+      currency: within(container).getByRole("combobox", { name: "货币" }),
+      form: container.querySelector<HTMLFormElement>("form")!,
+    };
+  }
+
+  it("已有交易时禁用币种并在字段下方说明原因，仍提交当前币种", () => {
+    const { currency, form } = renderCurrencyField(true);
+
+    expect(currency).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByText(currencyLockedText)).toBeInTheDocument();
+    expect(new FormData(form).getAll("currency")).toEqual(["JPY"]);
+  });
+
+  it("没有交易时币种可以修改且不显示说明", () => {
+    const { currency, form } = renderCurrencyField(false);
+
+    expect(currency).not.toHaveAttribute("aria-disabled");
+    expect(screen.queryByText(currencyLockedText)).toBeNull();
+    expect(new FormData(form).getAll("currency")).toEqual(["JPY"]);
   });
 });
 

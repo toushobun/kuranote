@@ -28,6 +28,7 @@ const baseAccount = {
   current_balance: 85000,
   sort_order: 0,
   created_at: "2026-06-03T00:00:00.000Z",
+  has_transactions: false,
 } as const;
 
 const meta: Meta<typeof AccountEditForm> = {
@@ -113,6 +114,19 @@ export const NoHolderAccount: Story = {
       ...baseAccount,
       name: "备用账户",
       type: "other",
+      holders: [],
+    },
+    holderOptions,
+    updateAccountAction: async () => {},
+  },
+};
+
+export const CurrencyLockedAccount: Story = {
+  name: "已有交易、币种禁用",
+  args: {
+    account: {
+      ...baseAccount,
+      has_transactions: true,
       holders: [],
     },
     holderOptions,

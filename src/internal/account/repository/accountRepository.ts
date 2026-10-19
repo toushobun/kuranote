@@ -157,6 +157,8 @@ export interface AccountRepository {
     ledgerId: string,
     includeArchived?: boolean,
   ): Promise<AccountData[]>;
+  /** 出现在任何交易数据中（含已作废记录、初始余额）的账户 ID。 */
+  listAccountIdsWithTransactions(ledgerId: string): Promise<string[]>;
   listActiveMembers(ledgerId: string): Promise<AccountLedgerMember[]>;
   listDisplaySettings(ledgerId: string): Promise<AccountMemberDisplaySetting[]>;
   listHolders(
@@ -169,6 +171,7 @@ export interface AccountRepository {
 
 const rpcErrorByDetails = {
   [accountErrorCodes.authRequired]: AuthenticationError,
+  [accountErrorCodes.currencyLocked]: ValidationError,
   [accountErrorCodes.holderChanged]: ConflictError,
   [accountErrorCodes.holderIdentityInvalid]: ValidationError,
   [accountErrorCodes.permissionDenied]: AuthorizationError,
@@ -178,8 +181,8 @@ const rpcErrorByDetails = {
 } as const;
 
 /**
- * 只按 RPC / 触发器的 `details` 精确识别业务错误：持有人相关错误，以及
- * 占位锁函数抛出的 auth_required / permission_denied。
+ * 只按 RPC / 触发器的 `details` 精确识别业务错误：持有人相关错误、
+ * 已有交易时修改币种，以及占位锁函数抛出的 auth_required / permission_denied。
  */
 function findRpcDetailError(error: { details?: string | null }) {
   const code = error.details?.trim();
@@ -409,6 +412,27 @@ export function createSupabaseAccountRepository(
         sort_order: row.sort_order,
         type: row.type,
       }));
+    },
+
+    async listAccountIdsWithTransactions(ledgerId) {
+      const { data, error } = await supabase.rpc(
+        "list_account_ids_with_transactions",
+        { p_ledger_id: ledgerId },
+      );
+
+      if (error) {
+        logError("failed to load account transaction usage", error, {
+          ledgerId,
+        });
+        throw toRepositoryError(
+          "account_transaction_usage_load_failed",
+          accountLoadErrorMessages.transactionUsageLoadFailed,
+        );
+      }
+
+      return ((data ?? []) as { account_id: string }[]).map(
+        (row) => row.account_id,
+      );
     },
 
     async listActiveMembers(ledgerId) {
