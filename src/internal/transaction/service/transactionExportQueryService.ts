@@ -8,6 +8,7 @@ import {
   type LedgerAccessService,
 } from "internal/ledger";
 import { readAllPages } from "internal/shared/supabase/readAllPages";
+import { requireItemAccountId } from "internal/transaction/util/grouping/recordAccounts";
 
 export interface TransactionExportQueryService {
   listAllForExport(input: {
@@ -15,13 +16,6 @@ export interface TransactionExportQueryService {
     userId: string;
   }): Promise<TransactionExportRecord[]>;
 }
-
-type ExportItemRow = {
-  accountId: string;
-  categoryId: string | null;
-  amount: string;
-  balanceDelta: string;
-};
 
 export function createTransactionExportQueryService({
   transactionRepository,
@@ -75,16 +69,11 @@ export function createTransactionExportQueryService({
         const recorderById = new Map(
           users.map((user) => [user.id, user.display_name]),
         );
-        const itemsByRecord = new Map<string, ExportItemRow[]>();
+        const itemsByRecord = new Map<string, typeof items>();
         for (const item of items) {
           const recordItems =
             itemsByRecord.get(item.transaction_record_id) ?? [];
-          recordItems.push({
-            accountId: item.account_id,
-            categoryId: item.category_id,
-            amount: item.amount,
-            balanceDelta: item.balance_delta ?? item.amount,
-          });
+          recordItems.push(item);
           itemsByRecord.set(item.transaction_record_id, recordItems);
         }
         const paymentsByRecord = new Map<string, TransactionExportPayment[]>();
@@ -113,14 +102,24 @@ export function createTransactionExportQueryService({
               return {
                 ...common,
                 type: "normal",
-                items: recordItems.map(({ categoryId, amount }) => ({
-                  categoryId,
-                  amount,
+                items: recordItems.map((item) => ({
+                  categoryId: item.category_id,
+                  amount: item.amount,
                 })),
                 payments: paymentsByRecord.get(record.id) ?? [],
               };
             }
-            return { ...common, type: record.type, items: recordItems };
+            // 转账 / 余额调整的账户仍在明细上；普通记录的账户只来自付款明细。
+            return {
+              ...common,
+              type: record.type,
+              items: recordItems.map((item) => ({
+                accountId: requireItemAccountId(item),
+                categoryId: item.category_id,
+                amount: item.amount,
+                balanceDelta: item.balance_delta ?? item.amount,
+              })),
+            };
           }),
         );
         offset += records.length;

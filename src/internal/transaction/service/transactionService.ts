@@ -33,6 +33,7 @@ import {
 } from "internal/transaction/errors";
 import type { TransactionPayment } from "internal/transaction/entity/transactionPayment";
 import { validateTransactionPayments } from "internal/transaction/util/validateTransactionPayments";
+import { requireItemAccountId } from "internal/transaction/util/grouping/recordAccounts";
 import type {
   TransactionFilters,
   TransactionGroupBy,
@@ -639,7 +640,7 @@ export function createTransactionService({
       requireActiveTransactionAccounts({
         accountIds: [input.accountId, input.transferTargetAccountId],
         accountOptions,
-        existingAccountIds: existingItems.map((item) => item.account_id),
+        existingAccountIds: existingItems.map(requireItemAccountId),
       });
       try {
         await transactionRepository.updateTransfer(input);
@@ -662,10 +663,7 @@ export function createTransactionService({
           }),
         ]);
         if (
-          !areAccountIdsAvailable(
-            items.map((item) => item.account_id),
-            accounts,
-          )
+          !areAccountIdsAvailable(items.map(requireItemAccountId), accounts)
         ) {
           throw new ValidationError(
             transactionErrorCodes.balanceAdjustmentAccountArchived,

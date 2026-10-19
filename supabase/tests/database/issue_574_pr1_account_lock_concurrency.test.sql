@@ -301,9 +301,11 @@ $$;
 
 select is(
     (
-        select account_id
-        from public.transaction_item
-        where id = '57485000-0000-4000-8000-000000000002'
+        select p.account_id
+        from public.transaction_payment p
+        join public.transaction_item ti
+          on ti.transaction_record_id = p.transaction_record_id
+        where ti.id = '57485000-0000-4000-8000-000000000002'
     ),
     '00000000-0000-4000-8000-000000000043'::uuid,
     '关联收入最终切换到新账户'

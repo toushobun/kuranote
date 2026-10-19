@@ -4,6 +4,8 @@ import type {
   TransactionRecordDbRow,
 } from "internal/db-types";
 
+const itemAccountMissingMessage = "转账 / 余额调整的明细缺少账户，数据不完整。";
+
 export type TransactionRecordAccountMovement = {
   accountId: string;
   balanceDelta: string | null;
@@ -26,7 +28,18 @@ export function listRecordAccountMovements(
   }
 
   return items.map((item) => ({
-    accountId: item.account_id,
+    accountId: requireItemAccountId(item),
     balanceDelta: item.balance_delta ?? null,
   }));
+}
+
+/**
+ * 转账 / 余额调整明细上的账户（数据库约束保证非 NULL）。
+ * 普通记录明细不保存账户（#914），账户只能从付款明细取，不调用这里。
+ */
+export function requireItemAccountId(
+  item: Pick<TransactionItemDbRow, "account_id">,
+): string {
+  if (item.account_id === null) throw new Error(itemAccountMissingMessage);
+  return item.account_id;
 }

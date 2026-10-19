@@ -211,12 +211,12 @@ with seed_records as (
         case when series_index % 10 = 0 then 260000::numeric(14,2) else (300 + ((series_index * 137) % 9000))::numeric(14,2) end as amount,
         ('2026-06-05 12:00:00+09'::timestamptz - (series_index * interval '6 hours')) as transaction_at
     from generate_series(1, 100) as series_index
-)
+),
+seeded_items as (
 insert into public.transaction_item (
     id,
     ledger_id,
     transaction_record_id,
-    account_id,
     category_id,
     amount,
     discount_amount,
@@ -232,7 +232,6 @@ select
     item_id,
     '00000000-0000-4000-8000-000000000032',
     record_id,
-    account_id,
     category_id,
     amount,
     0,
@@ -246,13 +245,23 @@ select
 from seed_records
 on conflict (id) do update
 set
-    account_id = excluded.account_id,
     category_id = excluded.category_id,
     amount = excluded.amount,
     updated_by = excluded.updated_by,
-    updated_at = excluded.updated_at;
+    updated_at = excluded.updated_at
+returning id
+)
+-- 普通记录明细不保存账户，付款账户登记到测试辅助表后重建付款明细。
+insert into tests.normal_item_payment_account (transaction_item_id, account_id)
+select item_id, account_id
+from seed_records
+on conflict (transaction_item_id) do update
+set account_id = excluded.account_id;
 
-select tests.sync_normal_transaction_payments();
+select tests.sync_normal_transaction_payments(array(
+    select ('00000000-0000-4000-8000-' || lpad((900000 + series_index)::text, 12, '0'))::uuid
+    from generate_series(1, 100) as series_index
+));
 
 -- 初始余额已包含在交易中，只汇总有效交易，避免重复累加。
 -- 普通记录取付款明细，转账 / 余额调整取明细（transaction_account_movement）。

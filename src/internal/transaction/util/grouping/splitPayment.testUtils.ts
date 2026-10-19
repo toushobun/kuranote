@@ -9,7 +9,7 @@ import type { TransactionGroupLoaderContext } from "internal/transaction/util/gr
 
 // 医院 12 万（docs/design/issue-834-split-payment.md 的示例）：
 // 治疗费 4 万 + 住院费 8 万；我的账户 5 万、妻子账户 7 万。
-// 过渡期内明细仍带账户镜像（首个付款账户），读取方不得使用它。
+// 普通记录明细不保存账户（account_id 为 NULL），账户只来自付款明细。
 
 export const hospitalAccounts = {
   mine: { currency: "JPY", id: "account-mine", name: "我的账户" },
@@ -55,7 +55,7 @@ export const hospitalRecord: TransactionRecordDbRow = {
 
 export const hospitalItems: TransactionItemDbRow[] = [
   {
-    account_id: hospitalAccounts.mine.id,
+    account_id: null,
     amount: "40000",
     business_net_amount: "40000",
     category_id: hospitalCategories.treatment.id,
@@ -63,7 +63,7 @@ export const hospitalItems: TransactionItemDbRow[] = [
     transaction_record_id: hospitalRecord.id,
   },
   {
-    account_id: hospitalAccounts.mine.id,
+    account_id: null,
     amount: "80000",
     business_net_amount: "80000",
     category_id: hospitalCategories.inpatient.id,

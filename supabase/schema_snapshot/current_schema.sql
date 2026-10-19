@@ -1668,7 +1668,6 @@ begin
             insert into public.transaction_item (
                 ledger_id,
                 transaction_record_id,
-                account_id,
                 category_id,
                 amount,
                 discount_amount,
@@ -1680,7 +1679,6 @@ begin
             ) values (
                 p_ledger_id,
                 p_transaction_record_id,
-                v_new_account_ids[1],
                 v_item_category_id,
                 v_item_amount,
                 0,
@@ -2494,7 +2492,6 @@ declare
     v_item_category_type text;
     v_item_special_status public.transaction_item_special_status;
     v_sort_order integer := 0;
-    v_mirror_account_id uuid;
     v_transaction_item_ids uuid[] := array[]::uuid[];
     v_item_payloads jsonb[] := array[]::jsonb[];
     v_item_index integer;
@@ -2519,7 +2516,8 @@ begin
         raise exception 'items_invalid' using errcode = '22023';
     end if;
 
-    v_mirror_account_id := (public.transaction_payment_account_ids(p_ledger_id, p_payments))[1];
+    -- 写明细前先校验付款账户（属于本账本且未归档），保持原有的报错顺序。
+    perform public.transaction_payment_account_ids(p_ledger_id, p_payments);
 
     if p_merchant_id is not null and not exists (
         select 1 from public.merchant m
@@ -2574,12 +2572,11 @@ begin
         end if;
 
         insert into public.transaction_item (
-            ledger_id, transaction_record_id, account_id, category_id, amount,
+            ledger_id, transaction_record_id, category_id, amount,
             discount_amount, balance_delta, note, sort_order, special_status,
             created_by, updated_by
         ) values (
-            p_ledger_id, v_transaction_record_id, v_mirror_account_id,
-            v_item_category_id, v_item_amount, 0, null, null,
+            p_ledger_id, v_transaction_record_id, v_item_category_id, v_item_amount, 0, null, null,
             v_sort_order, v_item_special_status, v_user_id, v_user_id
         ) returning id into v_transaction_item_id;
 
@@ -6130,13 +6127,6 @@ begin
     from unnest(v_new_account_ids, v_new_deltas)
         with ordinality as new_payment(account_id, balance_delta, ordinality);
 
-    -- 过渡期：明细 account_id 是首个付款账户的只读镜像。
-    update public.transaction_item ti
-    set account_id = v_new_account_ids[1]
-    where ti.transaction_record_id = p_transaction_record_id
-      and ti.ledger_id = p_ledger_id
-      and ti.account_id is distinct from v_new_account_ids[1];
-
     for v_account_id, v_delta in
         select movement.account_id, sum(movement.balance_delta)
         from (
@@ -7658,7 +7648,6 @@ declare
     v_item_category_type text;
     v_item_special_status public.transaction_item_special_status;
     v_transaction_item_id uuid;
-    v_mirror_account_id uuid;
     v_sort_order integer := 0;
     v_is_income_link_edit_request boolean;
 begin
@@ -7684,7 +7673,8 @@ begin
 
     v_is_income_link_edit_request := p_type = 'income';
 
-    v_mirror_account_id := (public.transaction_payment_account_ids(p_ledger_id, p_payments))[1];
+    -- 写明细前先校验付款账户（属于本账本且未归档），保持原有的报错顺序。
+    perform public.transaction_payment_account_ids(p_ledger_id, p_payments);
 
     if p_merchant_id is not null and not exists (
         select 1 from public.merchant m
@@ -7856,7 +7846,6 @@ begin
             insert into public.transaction_item (
                 ledger_id,
                 transaction_record_id,
-                account_id,
                 category_id,
                 amount,
                 discount_amount,
@@ -7869,7 +7858,6 @@ begin
             ) values (
                 p_ledger_id,
                 p_transaction_record_id,
-                v_mirror_account_id,
                 v_item_category_id,
                 v_item_amount,
                 0,
@@ -7882,8 +7870,7 @@ begin
             ) returning id into v_transaction_item_id;
         else
             update public.transaction_item ti
-            set account_id = v_mirror_account_id,
-                category_id = v_item_category_id,
+            set category_id = v_item_category_id,
                 amount = v_item_amount,
                 discount_amount = 0,
                 balance_delta = null,
@@ -8754,6 +8741,11 @@ begin
         raise exception 'transaction_item_balance_delta_invalid' using errcode = '23514';
     end if;
 
+    -- 普通记录的账户来自付款明细，明细不再保存 account_id；转账 / 余额调整的账户仍在明细上。
+    if (v_record_type = 'normal') = (new.account_id is not null) then
+        raise exception 'transaction_item_account_invalid' using errcode = '23514';
+    end if;
+
     return new;
 end;
 $$;
@@ -9001,7 +8993,6 @@ declare
     v_payment_delta_total numeric;
     v_payment_currency_count integer;
     v_payments_all_outflow boolean;
-    v_payment_account_id uuid;
     v_item_delta_total numeric;
     v_has_non_expense_item boolean;
 begin
@@ -9028,14 +9019,12 @@ begin
             count(*)::integer,
             coalesce(sum(p.balance_delta), 0),
             count(distinct a.currency)::integer,
-            coalesce(bool_and(p.balance_delta = -p.amount), true),
-            min(p.account_id::text)::uuid
+            coalesce(bool_and(p.balance_delta = -p.amount), true)
         into
             v_payment_count,
             v_payment_delta_total,
             v_payment_currency_count,
-            v_payments_all_outflow,
-            v_payment_account_id
+            v_payments_all_outflow
         from public.transaction_payment p
         join public.account a
           on a.id = p.account_id
@@ -9136,19 +9125,6 @@ begin
         ) then
             raise exception 'reimbursement_currency_mismatch'
                 using errcode = '22023', detail = 'reimbursement_currency_mismatch';
-        end if;
-
-        -- 过渡期（#834 子 Issue 4 解除）：付款明细恰好 1 行，明细 account_id 是它的镜像。
-        -- 明细 balance_delta 为 NULL 由 validate_transaction_item_category_shape 立即校验。
-        if v_payment_count <> 1 or exists (
-            select 1
-            from public.transaction_item ti
-            where ti.transaction_record_id = v_record.id
-              and ti.ledger_id = v_record.ledger_id
-              and ti.account_id is distinct from v_payment_account_id
-        ) then
-            raise exception 'payment_transition_invalid'
-                using errcode = '22023', detail = 'payment_transition_invalid';
         end if;
     end loop;
 
@@ -9787,7 +9763,7 @@ CREATE TABLE IF NOT EXISTS "public"."transaction_item" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "ledger_id" "uuid" NOT NULL,
     "transaction_record_id" "uuid" NOT NULL,
-    "account_id" "uuid" NOT NULL,
+    "account_id" "uuid",
     "category_id" "uuid",
     "amount" numeric(14,2) DEFAULT 0 NOT NULL,
     "discount_amount" numeric(14,2) DEFAULT 0 NOT NULL,
@@ -10590,7 +10566,7 @@ CREATE OR REPLACE TRIGGER "transaction_item_set_updated_at" BEFORE UPDATE ON "pu
 
 
 
-CREATE OR REPLACE TRIGGER "transaction_item_validate_category_shape" BEFORE INSERT OR UPDATE OF "ledger_id", "transaction_record_id", "category_id", "balance_delta" ON "public"."transaction_item" FOR EACH ROW EXECUTE FUNCTION "public"."validate_transaction_item_category_shape"();
+CREATE OR REPLACE TRIGGER "transaction_item_validate_category_shape" BEFORE INSERT OR UPDATE OF "ledger_id", "transaction_record_id", "account_id", "category_id", "balance_delta" ON "public"."transaction_item" FOR EACH ROW EXECUTE FUNCTION "public"."validate_transaction_item_category_shape"();
 
 
 
@@ -10630,7 +10606,7 @@ CREATE OR REPLACE TRIGGER "transaction_record_validate" BEFORE INSERT OR UPDATE 
 
 
 
-CREATE CONSTRAINT TRIGGER "validate_transaction_record_payments" AFTER INSERT OR DELETE OR UPDATE OF "amount", "category_id", "transaction_record_id", "account_id" ON "public"."transaction_item" DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION "public"."validate_transaction_record_payments"();
+CREATE CONSTRAINT TRIGGER "validate_transaction_record_payments" AFTER INSERT OR DELETE OR UPDATE OF "amount", "category_id", "transaction_record_id" ON "public"."transaction_item" DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION "public"."validate_transaction_record_payments"();
 
 
 
@@ -11268,9 +11244,9 @@ CREATE POLICY "merchant_update_admin" ON "public"."merchant" FOR UPDATE TO "auth
 ALTER TABLE "public"."transaction_item" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "transaction_item_insert_authorized" ON "public"."transaction_item" FOR INSERT TO "authenticated" WITH CHECK (("public"."current_user_can_mutate_transaction"("ledger_id", "transaction_record_id") AND (EXISTS ( SELECT 1
+CREATE POLICY "transaction_item_insert_authorized" ON "public"."transaction_item" FOR INSERT TO "authenticated" WITH CHECK (("public"."current_user_can_mutate_transaction"("ledger_id", "transaction_record_id") AND (("account_id" IS NULL) OR (EXISTS ( SELECT 1
    FROM "public"."account" "a"
-  WHERE (("a"."id" = "transaction_item"."account_id") AND ("a"."ledger_id" = "transaction_item"."ledger_id") AND ("a"."is_archived" = false)))) AND (("category_id" IS NULL) OR (EXISTS ( SELECT 1
+  WHERE (("a"."id" = "transaction_item"."account_id") AND ("a"."ledger_id" = "transaction_item"."ledger_id") AND ("a"."is_archived" = false))))) AND (("category_id" IS NULL) OR (EXISTS ( SELECT 1
    FROM "public"."category" "c"
   WHERE (("c"."id" = "transaction_item"."category_id") AND ("c"."ledger_id" = "transaction_item"."ledger_id") AND ("c"."is_archived" = false)))))));
 
@@ -11296,9 +11272,9 @@ CREATE POLICY "transaction_item_select_active_record" ON "public"."transaction_i
 
 
 
-CREATE POLICY "transaction_item_update_authorized" ON "public"."transaction_item" FOR UPDATE TO "authenticated" USING ("public"."current_user_can_mutate_transaction"("ledger_id", "transaction_record_id")) WITH CHECK (("public"."current_user_can_mutate_transaction"("ledger_id", "transaction_record_id") AND (EXISTS ( SELECT 1
+CREATE POLICY "transaction_item_update_authorized" ON "public"."transaction_item" FOR UPDATE TO "authenticated" USING ("public"."current_user_can_mutate_transaction"("ledger_id", "transaction_record_id")) WITH CHECK (("public"."current_user_can_mutate_transaction"("ledger_id", "transaction_record_id") AND (("account_id" IS NULL) OR (EXISTS ( SELECT 1
    FROM "public"."account" "a"
-  WHERE (("a"."id" = "transaction_item"."account_id") AND ("a"."ledger_id" = "transaction_item"."ledger_id") AND ("a"."is_archived" = false)))) AND (("category_id" IS NULL) OR (EXISTS ( SELECT 1
+  WHERE (("a"."id" = "transaction_item"."account_id") AND ("a"."ledger_id" = "transaction_item"."ledger_id") AND ("a"."is_archived" = false))))) AND (("category_id" IS NULL) OR (EXISTS ( SELECT 1
    FROM "public"."category" "c"
   WHERE (("c"."id" = "transaction_item"."category_id") AND ("c"."ledger_id" = "transaction_item"."ledger_id") AND ("c"."is_archived" = false)))))));
 

@@ -25,7 +25,7 @@ type BuildTransactionListItemInput = Parameters<
 >[0];
 
 /**
- * 未指定付款明细时，普通记录按过渡期的单账户形态补一行付款明细（账户取首条明细），
+ * 未指定付款明细时，普通记录补一行单账户付款明细（账户取首条明细上给出的测试账户），
  * 金额为 Σ收入 − Σ支出；未指定筛选条件时使用默认筛选。
  */
 function buildTransactionListItem(
@@ -44,7 +44,7 @@ function buildTransactionListItem(
     return type === "income" ? sum + amount : sum - amount;
   }, 0);
   const defaultPayments: TransactionPaymentDbRow[] =
-    input.record.type === "normal" && firstItem
+    input.record.type === "normal" && firstItem?.account_id
       ? [
           {
             account_id: firstItem.account_id,

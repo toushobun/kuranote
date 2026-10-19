@@ -1293,11 +1293,6 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
         transactionErrorCodes.paymentAmountRequired,
         transactionWriteErrorMessages.paymentAmountRequired,
       ],
-      [
-        "payment_transition_invalid",
-        transactionErrorCodes.paymentTransitionInvalid,
-        transactionWriteErrorMessages.paymentTransitionInvalid,
-      ],
     ])(
       "数据库参数错误 %s 转换为安全的 ValidationError",
       async (databaseError, expectedCode, expectedMessage) => {

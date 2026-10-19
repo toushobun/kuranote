@@ -26,6 +26,7 @@ import {
   toRefundMinorUnits,
 } from "internal/transaction/util/refundAllocation";
 import { transactionFallbackLabels } from "internal/transaction/util/transactionFallbackLabels";
+import { requireItemAccountId } from "internal/transaction/util/grouping/recordAccounts";
 import { hasBusinessNetAmountOffset } from "utils/transactions";
 import { getAmountDecimalPlaces } from "utils/transactionAmountInput";
 
@@ -87,7 +88,7 @@ export async function getEditTransactionView(
   const hasArchivedAccount = !areAccountIdsAvailable(
     record.type === "normal"
       ? payments.map((payment) => payment.account_id)
-      : items.map((item) => item.account_id),
+      : items.map(requireItemAccountId),
     options.accountOptions,
   );
   const currencyByAccountId = new Map(
@@ -109,14 +110,15 @@ export async function getEditTransactionView(
       Number(item.balance_delta) === 0
     )
       return null;
+    const accountId = requireItemAccountId(item);
     const context =
       await dependencies.accountQueryService.getTransactionContext({
-        accountIds: [item.account_id],
+        accountIds: [accountId],
         ledgerId: currentLedger.id,
         userId: dependencies.currentUserId,
       });
     const account = context.accounts.find(
-      (account) => account.id === item.account_id,
+      (account) => account.id === accountId,
     );
     return {
       ...options,
@@ -124,7 +126,7 @@ export async function getEditTransactionView(
       editRestriction: canModify ? null : "permission",
       initialValues: {
         type: "balance_adjustment",
-        accountId: item.account_id,
+        accountId,
         accountName: account?.name ?? transactionFallbackLabels.account,
         currency: account?.currency ?? currentLedger.baseCurrency,
         signedDelta: item.balance_delta!,
@@ -151,21 +153,21 @@ export async function getEditTransactionView(
     ) {
       return null;
     }
+    const fromAccountId = requireItemAccountId(fromItem);
     return {
       ...options,
       canEdit,
       editRestriction,
       initialValues: {
-        accountId: fromItem.account_id,
+        accountId: fromAccountId,
         note: record.note ?? "",
         transactionAt: record.transaction_at,
         transactionRecordId: record.id,
         transferAmount: formatEditableAmount(
           fromItem.amount,
-          currencyByAccountId.get(fromItem.account_id) ??
-            currentLedger.baseCurrency,
+          currencyByAccountId.get(fromAccountId) ?? currentLedger.baseCurrency,
         ),
-        transferTargetAccountId: toItem.account_id,
+        transferTargetAccountId: requireItemAccountId(toItem),
         type: "transfer" as const,
       } satisfies TransferEditInitialValues,
       ledgerName: currentLedger.name,
