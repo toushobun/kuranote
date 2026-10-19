@@ -1,0 +1,3 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";import{t}from"./jsx-runtime-Dwpk6tgA.js";import{_ as n,c as r}from"./transactions-Dcq0gS9C.js";function i({value:e}){return(0,a.jsx)(`time`,{dateTime:e,suppressHydrationWarning:!0,children:r(e)})}var a,o=e((()=>{a=t(),n(),i.__docgenInfo={description:``,methods:[],displayName:`TransactionDateTime`,props:{value:{required:!0,tsType:{name:`string`},description:``}}}})),s,c,l;e((()=>{o(),s={title:`Atoms/Transactions/TransactionDateTime`,component:i,args:{value:`2026-06-05T03:20:10.000Z`}},c={name:`交易时间`},c.parameters={...c.parameters,docs:{...c.parameters?.docs,source:{originalSource:`{
+  name: "交易时间"
+}`,...c.parameters?.docs?.source}}},l=[`Default`]}))();export{c as Default,l as __namedExportsOrder,s as default};
