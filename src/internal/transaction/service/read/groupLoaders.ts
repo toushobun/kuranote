@@ -398,6 +398,7 @@ async function loadStep4TransactionGroupItemsPage(
     pageRecords,
     filteredPageContext,
     filters,
+    { groupBy, groupKey },
   );
 
   return {

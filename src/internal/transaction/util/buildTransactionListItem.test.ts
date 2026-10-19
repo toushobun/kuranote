@@ -750,7 +750,9 @@ describe("buildTransactionListItem 多账户记录", () => {
   };
 
   function buildHospitalItem(
-    overrides: Partial<Pick<BuildTransactionListItemInput, "filters">> & {
+    overrides: Partial<
+      Pick<BuildTransactionListItemInput, "filters" | "group">
+    > & {
       recordItems?: BuildTransactionListItemInput["recordItems"];
     } = {},
   ) {
@@ -822,6 +824,106 @@ describe("buildTransactionListItem 多账户记录", () => {
     expect(item.amount).toBe("80000");
     expect(item.account_share_amount).toBe("50000");
     expect(item.record_total_amount).toBe("120000");
+  });
+
+  it("筛选我的账户 + 按小分类分组时，组内行金额为命中该组的明细全额，与组合计一致", () => {
+    const inpatientRow = buildHospitalItem({
+      filters: mineFilters,
+      group: { groupBy: "category", groupKey: hospitalCategories.inpatient.id },
+    });
+    expect(inpatientRow).toMatchObject({
+      account_share_amount: "50000",
+      amount: "80000",
+      record_total_amount: "120000",
+    });
+
+    const treatmentRow = buildHospitalItem({
+      filters: mineFilters,
+      group: { groupBy: "category", groupKey: hospitalCategories.treatment.id },
+    });
+    expect(treatmentRow).toMatchObject({
+      account_share_amount: "50000",
+      amount: "40000",
+      record_total_amount: "120000",
+    });
+  });
+
+  it("筛选我的账户 + 按大分类分组时，组内行金额为命中该组的明细全额", () => {
+    const item = buildHospitalItem({
+      filters: mineFilters,
+      group: {
+        groupBy: "parentCategory",
+        groupKey: hospitalCategories.medical.id,
+      },
+    });
+
+    expect(item).toMatchObject({
+      account_share_amount: "50000",
+      amount: "120000",
+      record_total_amount: "120000",
+    });
+  });
+
+  it("按账户分组时，各账户组内行金额为该账户的付款金额，并给出整笔金额", () => {
+    const mineRow = buildHospitalItem({
+      group: { groupBy: "account", groupKey: hospitalAccounts.mine.id },
+    });
+    expect(mineRow.amount).toBe("50000");
+    expect(mineRow.type).toBe("expense");
+    expect(mineRow.record_total_amount).toBe("120000");
+    expect(mineRow).not.toHaveProperty("account_share_amount");
+
+    const wifeRow = buildHospitalItem({
+      group: { groupBy: "account", groupKey: hospitalAccounts.wife.id },
+    });
+    expect(wifeRow.amount).toBe("70000");
+    expect(wifeRow.record_total_amount).toBe("120000");
+    expect(wifeRow).not.toHaveProperty("account_share_amount");
+
+    const filteredRow = buildHospitalItem({
+      filters: mineFilters,
+      group: { groupBy: "account", groupKey: hospitalAccounts.mine.id },
+    });
+    expect(filteredRow.amount).toBe("50000");
+    expect(filteredRow).not.toHaveProperty("account_share_amount");
+  });
+
+  it("无账户筛选时按小分类分组，行金额维持整笔", () => {
+    const item = buildHospitalItem({
+      group: { groupBy: "category", groupKey: hospitalCategories.inpatient.id },
+    });
+
+    expect(item.amount).toBe("120000");
+    expect(item).not.toHaveProperty("record_total_amount");
+  });
+
+  it("单账户记录在明细级维度的组内，行金额维持命中明细合计", () => {
+    const item = buildTransactionListItem({
+      accountById,
+      categoryById,
+      fallbackCurrency: "JPY",
+      filters: { accountId: accountA.id, recordType: "all" },
+      group: { groupBy: "category", groupKey: categoryA.id },
+      merchantById: new Map(),
+      record: { ...baseRecord, type: "normal" as const },
+      recordItems: [
+        {
+          account_id: accountA.id,
+          amount: "1200",
+          category_id: categoryA.id,
+          transaction_record_id: baseRecord.id,
+        },
+        {
+          account_id: accountA.id,
+          amount: "300",
+          category_id: categoryB.id,
+          transaction_record_id: baseRecord.id,
+        },
+      ],
+    });
+
+    expect(item.amount).toBe("900");
+    expect(item).not.toHaveProperty("record_total_amount");
   });
 
   it("主金额为份额时不显示原金额；为命中明细时原金额与共同支付同时给出", () => {

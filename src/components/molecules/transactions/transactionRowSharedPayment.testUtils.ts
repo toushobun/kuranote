@@ -49,3 +49,31 @@ export const sharedPaymentWithOriginalAmountRowItem: TransactionRowItem = {
   amount: "70000",
   originalAmount: "80000",
 };
+
+/**
+ * 筛选我的账户 + 按小分类：组内行金额为命中该组的明细全额，与组合计一致；
+ * 下方显示「本账户 / 整笔」。
+ */
+export const sharedPaymentCategoryGroupRowItems = {
+  inpatient: {
+    ...sharedPaymentRowItem,
+    account_share_amount: "50000",
+    amount: "80000",
+    record_total_amount: "120000",
+  },
+  treatment: {
+    ...sharedPaymentRowItem,
+    account_share_amount: "50000",
+    amount: "40000",
+    record_total_amount: "120000",
+  },
+} satisfies Record<string, TransactionRowItem>;
+
+/** 按账户分组（有无筛选都一样）：各账户组内行金额为该账户的付款金额，下方显示整笔。 */
+export const sharedPaymentAccountGroupRowItems = {
+  mine: sharedPaymentAccountShareRowItem,
+  wife: {
+    ...sharedPaymentAccountShareRowItem,
+    amount: "70000",
+  },
+} satisfies Record<string, TransactionRowItem>;

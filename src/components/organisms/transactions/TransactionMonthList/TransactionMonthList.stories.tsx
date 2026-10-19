@@ -1,8 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
+import {
+  sharedPaymentAccountGroupRowItems,
+  sharedPaymentCategoryGroupRowItems,
+} from "molecules/transactions/transactionRowSharedPayment.testUtils";
 import type {
   TransactionGroupSummaryItem,
   TransactionListItem,
+  TransactionRowItem,
   TransactionTimeGroupViewData,
 } from "types/transactions";
 
@@ -117,39 +122,100 @@ const emptyTimeGroupView: TransactionTimeGroupViewData = {
   initialNextItemOffsetByGroupId: {},
 };
 
-// 筛选我的账户 + 按分类：医院 12 万（我 5 万、妻子 7 万）的明细全额计入各分类组。
-const sharedPaymentTimeGroupView: TransactionTimeGroupViewData = {
-  ...emptyTimeGroupView,
+// 医院 12 万（我 5 万、妻子 7 万）所在组的组头与组内行；行金额与组合计一致。
+function createSharedPaymentGroupView({
+  groupBy,
+  groups,
+}: {
+  groupBy: TransactionTimeGroupViewData["groupBy"];
+  groups: Array<{
+    key: string;
+    label: string;
+    row: TransactionRowItem;
+    sharedPayment?: TransactionGroupSummaryItem["sharedPayment"];
+  }>;
+}): TransactionTimeGroupViewData {
+  const summaryGroups = groups.map(({ key, label, row, sharedPayment }) => ({
+    id: `${groupBy}:${key}`,
+    key,
+    label,
+    ...(sharedPayment ? { sharedPayment } : {}),
+    summary: {
+      balance: `-${row.amount}`,
+      currency: "JPY",
+      expense: row.amount,
+      income: "0",
+    },
+    transactionCount: 1,
+  }));
+
+  return {
+    ...emptyTimeGroupView,
+    groupBy,
+    groups: summaryGroups,
+    initialDateGroupsByGroupId: Object.fromEntries(
+      groups.map(({ row }, index) => [
+        summaryGroups[index].id,
+        [
+          {
+            date: "2026-10-10",
+            items: [
+              createItem(1, {
+                ...row,
+                note: null,
+                recorder_name: null,
+              }),
+            ],
+            label: "10日（周六）",
+            summary: summaryGroups[index].summary,
+          },
+        ],
+      ]),
+    ),
+    initialExpandedGroupId: summaryGroups[0]?.id ?? null,
+  };
+}
+
+// 筛选我的账户 + 按分类：明细全额计入各分类组，组头与行都显示「本账户 / 整笔」。
+const sharedPaymentTimeGroupView = createSharedPaymentGroupView({
   groupBy: "category",
   groups: [
     {
-      id: "category:inpatient",
       key: "inpatient",
       label: "住院费",
-      summary: "80000",
+      row: sharedPaymentCategoryGroupRowItems.inpatient,
     },
     {
-      id: "category:treatment",
       key: "treatment",
       label: "治疗费",
-      summary: "40000",
+      row: sharedPaymentCategoryGroupRowItems.treatment,
     },
-  ].map(({ summary, ...group }) => ({
+  ].map((group) => ({
     ...group,
     sharedPayment: {
       accountShareAmount: "50000",
       recordCount: 1,
       recordTotalAmount: "120000",
     },
-    summary: {
-      balance: `-${summary}`,
-      currency: "JPY",
-      expense: summary,
-      income: "0",
-    },
-    transactionCount: 1,
   })),
-};
+});
+
+// 无筛选 + 按账户：各账户组按实际付款计入，组内行显示该账户的付款金额与整笔。
+const sharedPaymentAccountGroupView = createSharedPaymentGroupView({
+  groupBy: "account",
+  groups: [
+    {
+      key: "account-mine",
+      label: "我的账户",
+      row: sharedPaymentAccountGroupRowItems.mine,
+    },
+    {
+      key: "account-wife",
+      label: "妻子账户",
+      row: sharedPaymentAccountGroupRowItems.wife,
+    },
+  ],
+});
 
 async function loadGroupItemsAction() {
   return { groups: [], nextOffset: null };
@@ -207,9 +273,16 @@ export const Default: Story = {
 };
 
 export const SharedPaymentGroupSummary: Story = {
-  name: "组头显示共同支付提示",
+  name: "筛选账户 + 按分类：组头与组内行金额一致",
   args: {
     timeGroupView: sharedPaymentTimeGroupView,
+  },
+};
+
+export const SharedPaymentAccountGroup: Story = {
+  name: "按账户分组：组内行为该账户的付款金额",
+  args: {
+    timeGroupView: sharedPaymentAccountGroupView,
   },
 };
 

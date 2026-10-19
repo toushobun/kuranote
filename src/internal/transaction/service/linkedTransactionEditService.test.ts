@@ -826,6 +826,27 @@ describe("LinkedTransactionEditService", () => {
       expect(updateNormal).not.toHaveBeenCalled();
     });
 
+    it("多账户记录只提交 1 个付款账户时拒绝保存（#915 开放多账户表单后移除）", async () => {
+      const { service, updateEdit, updateNormal } = createService(
+        createMultiAccountTargetView(),
+      );
+
+      await expect(
+        service.updateNormal(
+          currentLedger,
+          targetInput({
+            confirmSync: true,
+            expectedUpdatedAtByItemId: { [linkedItemId]: updatedAt },
+          }),
+        ),
+      ).rejects.toMatchObject({
+        code: transactionErrorCodes.paymentMultiAccountEditUnsupported,
+        name: ValidationError.name,
+      });
+      expect(updateEdit).not.toHaveBeenCalled();
+      expect(updateNormal).not.toHaveBeenCalled();
+    });
+
     it("多账户支出母项含普通兄弟明细时仅修改付款明细要求先解除关联", async () => {
       const view = createMultiAccountTargetView();
       const sibling = {

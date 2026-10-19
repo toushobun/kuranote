@@ -416,12 +416,17 @@ describe("getEditTransactionView", () => {
     });
   });
 
-  it("多账户付款明细中任一账户已归档时整笔只读", async () => {
-    const secondAccountId = "00000000-0000-4000-8000-000000000047";
-    const repository = createRepository({
+  function createMultiAccountRepository({
+    createdBy = userId,
+    secondAccountId,
+  }: {
+    createdBy?: string;
+    secondAccountId: string;
+  }) {
+    return createRepository({
       findActiveRecord: vi.fn().mockResolvedValue({
         created_at: "2026-06-04T01:00:00.000Z",
-        created_by: userId,
+        created_by: createdBy,
         id: transactionRecordId,
         merchant_id: merchantId,
         note: "共同支付",
@@ -430,7 +435,7 @@ describe("getEditTransactionView", () => {
       }),
       listItems: vi.fn().mockResolvedValue([
         {
-          account_id: accountId,
+          account_id: null,
           amount: "1200.00",
           balance_delta: null,
           category_id: categoryId,
@@ -455,7 +460,13 @@ describe("getEditTransactionView", () => {
         },
       ]),
     });
-    const dependencies = createDependencies(repository);
+  }
+
+  it("多账户付款明细中任一账户已归档时整笔只读", async () => {
+    const secondAccountId = "00000000-0000-4000-8000-000000000047";
+    const dependencies = createDependencies(
+      createMultiAccountRepository({ secondAccountId }),
+    );
     vi.mocked(
       dependencies.accountQueryService.listTransactionOptions,
     ).mockResolvedValue([{ currency: "JPY", id: accountId, name: "现金" }]);
@@ -476,6 +487,45 @@ describe("getEditTransactionView", () => {
           { accountId: secondAccountId, amount: "700.00" },
         ],
       },
+    });
+  });
+
+  it("多账户记录暂不能用现有表单编辑，整笔只读", async () => {
+    const view = await getEditTransactionView(
+      createDependencies(
+        createMultiAccountRepository({ secondAccountId: targetAccountId }),
+      ),
+      currentLedger,
+      transactionRecordId,
+    );
+
+    expect(view).toMatchObject({
+      canEdit: false,
+      editRestriction: "multiAccount",
+      initialValues: {
+        payments: [
+          { accountId, amount: "500.00" },
+          { accountId: targetAccountId, amount: "700.00" },
+        ],
+      },
+    });
+  });
+
+  it("没有修改权限的多账户记录仍按权限限制提示", async () => {
+    const view = await getEditTransactionView(
+      createDependencies(
+        createMultiAccountRepository({
+          createdBy: "00000000-0000-4000-8000-000000000099",
+          secondAccountId: targetAccountId,
+        }),
+      ),
+      currentLedger,
+      transactionRecordId,
+    );
+
+    expect(view).toMatchObject({
+      canEdit: false,
+      editRestriction: "permission",
     });
   });
 

@@ -14,7 +14,10 @@ import type { TransactionPayment } from "internal/transaction/entity/transaction
 import type { UpdateNormalTransactionInput } from "internal/transaction/repository/transactionRepository";
 import type { LinkedTransactionItemService } from "internal/transaction/service/linkedTransactionItemService";
 import type { EditTransactionView } from "internal/transaction/service/read/transactionReadModels";
-import type { TransactionService } from "internal/transaction/service/transactionService";
+import {
+  requireMultiAccountPaymentsKept,
+  type TransactionService,
+} from "internal/transaction/service/transactionService";
 import { toRefundMinorUnits } from "internal/transaction/util/refundAllocation";
 import { validateTransactionPayments } from "internal/transaction/util/validateTransactionPayments";
 
@@ -303,6 +306,12 @@ export function createLinkedTransactionEditService({
         return;
       }
       const initial = getNormalInitialValues(view);
+      // 受控关联编辑不经 transactionService.updateNormal，这里同样拒绝把多账户记录改成单账户。
+      // #915 开放多账户表单后移除。
+      requireMultiAccountPaymentsKept({
+        existingPaymentCount: initial.payments.length,
+        submittedPaymentCount: input.payments.length,
+      });
       if (hasDuplicatePersistedItemIds(input.items)) {
         throw new ValidationError(
           transactionErrorCodes.updateInvalid,

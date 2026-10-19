@@ -97,6 +97,7 @@ describe("groupLoaders", () => {
     mocks.getTransactionGroupContextLookups.mockReturnValue({
       categoryById: new Map(),
       itemsByRecordId: new Map(),
+      paymentsByRecordId: new Map(),
       tagsByRecordId: new Map(),
     });
     mocks.buildTransactionListItemsFromContext.mockReturnValue([]);
@@ -176,6 +177,27 @@ describe("groupLoaders", () => {
         dateStart: "2026-07-09T15:00:00.000Z",
         groupKeyPushDown: { groupBy: "month", groupKey: "2026-07" },
       }),
+    );
+  });
+
+  it("组内列表行带上所在分组，行金额与组合计同口径", async () => {
+    const record = createRecord("record-1", "2026-07-15T01:00:00.000Z");
+    const listRecords = vi.fn().mockResolvedValueOnce([record]);
+
+    await loadStep4TransactionGroupItems(
+      createDependencies(listRecords),
+      currentLedger,
+      "month",
+      "2026-07",
+      0,
+      defaultTransactionFilters,
+    );
+
+    expect(mocks.buildTransactionListItemsFromContext).toHaveBeenCalledWith(
+      [record],
+      expect.anything(),
+      defaultTransactionFilters,
+      { groupBy: "month", groupKey: "2026-07" },
     );
   });
 

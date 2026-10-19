@@ -151,7 +151,13 @@ export type NewTransactionView = TransactionFormOptions & {
 
 export type EditTransactionView = TransactionFormOptions & {
   canEdit: boolean;
-  editRestriction: "archivedAccount" | "linked" | "permission" | null;
+  editRestriction:
+    | "archivedAccount"
+    | "linked"
+    // 多账户记录暂不能用现有表单编辑（#915 开放多账户表单后移除）。
+    | "multiAccount"
+    | "permission"
+    | null;
   initialValues:
     | BalanceAdjustmentEditInitialValues
     | TransferEditInitialValues
