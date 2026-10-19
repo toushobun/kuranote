@@ -94,12 +94,16 @@ export async function getEditTransactionView(
   const currencyByAccountId = new Map(
     options.accountOptions.map((account) => [account.id, account.currency]),
   );
-  const canEdit = canModify && !hasArchivedAccount;
-  const editRestriction = canModify
-    ? hasArchivedAccount
+  // 现有表单只能提交单账户，多账户记录保存会被改成单账户；#915 开放多账户表单后移除。
+  const isMultiAccount = record.type === "normal" && payments.length >= 2;
+  const editRestriction = !canModify
+    ? "permission"
+    : hasArchivedAccount
       ? "archivedAccount"
-      : null
-    : "permission";
+      : isMultiAccount
+        ? "multiAccount"
+        : null;
+  const canEdit = editRestriction === null;
 
   if (record.type === "balance_adjustment") {
     const item = items[0];

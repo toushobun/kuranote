@@ -2,6 +2,7 @@ import { serverFallbackTimeZone, transactionTimeLocale } from "config/dateTime";
 import type {
   CategorySummaryItem,
   TransactionAmountSummary,
+  TransactionBusinessStatus,
   TransactionDateGroup,
   TransactionListItem,
   TransactionRecordType,
@@ -63,6 +64,13 @@ export function hasBusinessNetAmountOffset(
     businessNetAmount !== null &&
     Number(businessNetAmount) !== Number(amount)
   );
+}
+
+/** 明细中是否有已关联退款 / 报销的收入（删除会解除关联，确认文案需说明）。 */
+export function hasAnyLinkedIncomeItem(
+  items: readonly { businessStatus?: TransactionBusinessStatus | null }[],
+) {
+  return items.some((item) => item.businessStatus?.incomeLinkRole != null);
 }
 
 // 退款 / 报销关联的候选必须与收款账户币种一致；账户未选择时视为不一致。

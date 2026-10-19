@@ -26,6 +26,15 @@ export const transactionSharedPaymentMessages = {
   recordTotal: (recordTotal: string) => `共同支付 · 整笔 ${recordTotal}`,
 } as const;
 
+// 编辑页「不能编辑」提示（权限不足的提示随操作变化，在页面内生成）。
+export const transactionEditRestrictionMessages = {
+  archivedAccount: "该交易引用的账户已被删除，请先恢复该账户后再编辑。",
+  linked: "该交易已关联报销或退款，不能编辑。",
+  // #915 开放多账户表单后移除。
+  multiAccount: "多账户记录暂不支持编辑，请等待后续版本。",
+  title: "该交易不能编辑",
+} as const;
+
 export const transactionListPageErrorMessages = {
   initialLoadFailed: "明细读取失败，请稍后重新读取。",
 } as const;

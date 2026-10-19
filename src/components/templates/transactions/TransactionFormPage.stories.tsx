@@ -107,6 +107,21 @@ export const ArchivedAccountPermissionDenied: Story = {
   ),
 };
 
+export const MultiAccountPermissionDenied: Story = {
+  name: "多账户记录只读（可删除）",
+  render: () => (
+    <TransactionPermissionDenied
+      deleteControl={{
+        deleteAction: async () => ({}),
+        hasLinkedIncomeItems: false,
+        transactionRecordId: "00000000-0000-4000-8000-000000009140",
+      }}
+      operation="edit"
+      reason="multiAccount"
+    />
+  ),
+};
+
 export const EmptyOptions: Story = {
   name: "无账户和分类选项",
   args: {

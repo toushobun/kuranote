@@ -25,6 +25,7 @@ import {
   getDateLabelRefreshDelayMs,
   hasBusinessNetAmountOffset,
   hasLinkCandidateCurrencyMismatch,
+  hasAnyLinkedIncomeItem,
   getMonthBounds,
   getNowDateTimeLocalValue,
   groupTransactionItemsByDate,
@@ -163,6 +164,23 @@ describe("transactions utils", () => {
     expect(hasBusinessNetAmountOffset("500", undefined)).toBe(false);
     expect(hasBusinessNetAmountOffset("500", "500.00")).toBe(false);
     expect(hasBusinessNetAmountOffset("500", "300")).toBe(true);
+  });
+
+  it("明细中有已关联退款 / 报销的收入时判定存在关联收入", () => {
+    const businessStatus = {
+      incomeLinkRole: "refund" as const,
+      offsetComposition: { refundAmount: "0", reimbursementAmount: "0" },
+      settlementStatus: null,
+    };
+
+    expect(hasAnyLinkedIncomeItem([])).toBe(false);
+    expect(hasAnyLinkedIncomeItem([{ businessStatus: null }, {}])).toBe(false);
+    expect(
+      hasAnyLinkedIncomeItem([
+        { businessStatus: { ...businessStatus, incomeLinkRole: null } },
+      ]),
+    ).toBe(false);
+    expect(hasAnyLinkedIncomeItem([{}, { businessStatus }])).toBe(true);
   });
 
   it("关联候选与账户币种不一致或账户未选择时判定为币种不一致", () => {

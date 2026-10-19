@@ -93,6 +93,15 @@ function createTransferEditView() {
   };
 }
 
+/** 渲染页面并取出 NewTransactionVisualFrame 内的直接子元素。 */
+async function renderFramedChild() {
+  const result = await TransactionEditPage({
+    params: Promise.resolve({ transactionRecordId }),
+  });
+  const element = result as ReactElement<Record<string, unknown>>;
+  return element.props.children as ReactElement<Record<string, unknown>>;
+}
+
 describe("TransactionEditPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -104,16 +113,44 @@ describe("TransactionEditPage", () => {
       canEdit: false,
     });
 
-    const result = await TransactionEditPage({
-      params: Promise.resolve({ transactionRecordId }),
-    });
-    const element = result as ReactElement<Record<string, unknown>>;
-    const child = element.props.children as ReactElement<
-      Record<string, unknown>
-    >;
+    const child = await renderFramedChild();
 
     expect(child.type).toBe(mocks.TransactionPermissionDenied);
     expect(child.props).toMatchObject({ operation: "edit" });
+  });
+
+  it("多账户记录只读时显示提示并保留删除入口", async () => {
+    mocks.loadEditTransactionView.mockResolvedValue({
+      ...createEditView(),
+      canEdit: false,
+      editRestriction: "multiAccount",
+    });
+
+    const child = await renderFramedChild();
+
+    expect(child.type).toBe(mocks.TransactionPermissionDenied);
+    expect(child.props).toMatchObject({
+      deleteControl: {
+        deleteAction: mocks.voidTransaction,
+        hasLinkedIncomeItems: false,
+        transactionRecordId,
+      },
+      operation: "edit",
+      reason: "multiAccount",
+    });
+  });
+
+  it("其他只读原因不显示删除入口", async () => {
+    mocks.loadEditTransactionView.mockResolvedValue({
+      ...createEditView(),
+      canEdit: false,
+      editRestriction: "archivedAccount",
+    });
+
+    const child = await renderFramedChild();
+
+    expect(child.props).toMatchObject({ reason: "archivedAccount" });
+    expect(child.props.deleteControl).toBeUndefined();
   });
 
   it("关联报销或退款的目标支出渲染正常编辑表单", async () => {
