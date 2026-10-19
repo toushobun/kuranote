@@ -24,7 +24,6 @@ export const transactionErrorCodes = {
   paymentCurrencyMismatch: "payment_currency_mismatch",
   paymentMultiAccountNotAllowed: "payment_multi_account_not_allowed",
   paymentTotalMismatch: "payment_total_mismatch",
-  paymentTransitionInvalid: "payment_transition_invalid",
   refundLinkInvalid: "refund_link_invalid",
   reimbursementLinkInvalid: "reimbursement_link_invalid",
   permissionDenied: "permission_denied",
@@ -91,8 +90,6 @@ export const transactionPaymentMessages = {
     "含收入明细的记录只能选择一个付款账户。",
   [transactionErrorCodes.paymentTotalMismatch]:
     "付款金额合计必须等于支出明细合计。",
-  [transactionErrorCodes.paymentTransitionInvalid]:
-    "当前暂不支持保存多个付款账户，请稍后重试。",
 } as const;
 
 export const transactionValidationErrorMessages: Record<
@@ -196,8 +193,6 @@ export const transactionWriteErrorMessages = {
     ],
   paymentTotalMismatch:
     transactionPaymentMessages[transactionErrorCodes.paymentTotalMismatch],
-  paymentTransitionInvalid:
-    transactionPaymentMessages[transactionErrorCodes.paymentTransitionInvalid],
   refundAllocationInvalid: "退款金额不正确，请重新选择退款明细。",
   refundCurrencyMismatch: "退款收入与支出明细的账户币种必须一致。",
   refundedItemInvalid: "退款关联的支出明细无效，请重新选择。",

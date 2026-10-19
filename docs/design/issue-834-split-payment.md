@@ -242,6 +242,8 @@ create index transaction_payment_account_idx
 - **单行限制：** 过渡期内数据库要求普通记录的付款明细恰好 1 行，即还不能真正保存多账户记录。这样未切换的读取方不会读到错误的账户。
 - **结束条件：** 所有读取方都切换到付款明细 / `transaction_account_movement`（子 Issue 3 导出、子 Issue 4 列表与统计合并）。子 Issue 4 的 migration 把普通记录明细的 `account_id` 置为 NULL，并启用最终状态的类型约束，删除镜像校验，解除单行限制，同时更新 `transaction_item` 的 INSERT / UPDATE RLS policy（现有 policy 要求 `account_id` 指向未归档账户）。之后在代码中 grep `transaction_item` 的 `account_id`，只应剩下转账 / 余额调整的路径。
 
+过渡期已由子 Issue 4 PR 2 结束，实现差异见 3.14。
+
 ### 3.4 RPC 入参契约
 
 `create_transaction`、`update_transaction`、`convert_transaction_type`（含 `_with_special_status`）的 `p_account_id uuid` 改为 `p_payments jsonb`。签名变化时先 `drop function` 旧签名再创建，避免重载歧义，并按 `docs/security-definer-functions.md` 重新撤销 / 授予 EXECUTE。payload 形态：
@@ -347,10 +349,22 @@ ledger（需要时）→ transaction_record（稳定顺序）→ transaction_ite
 - **主金额为本账户份额时不显示原金额。** 原金额是明细业务净额口径，与份额口径不可比，同时显示会误导；主金额为明细全额时照常显示，顺序为当前金额 → 共同支付行 → 原金额。
 - **分组摘要用嵌套对象 `sharedPayment: { recordCount, accountShareAmount, recordTotalAmount }`，不是平铺字段。** 三个值总是一起出现或一起缺省，嵌套后前端只需判断一次。只在出现条件成立且 `recordCount > 0` 时给出；RPC 的 3 个列照常返回，由 TS 端按同一判断函数决定是否显示。
 - **`currentLedgerBoundaryAudit.test.ts` 的对应断言改为检查 `load_transaction_group_summaries_with_special_status`，而不是删除。** 基础版删除后，该断言检查的「非时间维度分组 RPC 只读取 active 成员可访问的目标账本」仍然成立且有意义，改为指向实际使用的函数。
-- **pgTAP 构造多账户数据用测试辅助函数 `tests.replace_transaction_payments_in_transition`。** 过渡期内 `validate_transaction_record_payments` 是延迟约束触发器，在 pgTAP 最终回滚的事务中不会触发，因此可以直接替换付款明细构造多账户记录；结束过渡期（PR 2）后删除该辅助函数，改用正式 RPC 构造。
+- **pgTAP 构造多账户数据曾用测试辅助函数 `tests.replace_transaction_payments_in_transition`。** 过渡期内 `validate_transaction_record_payments` 是延迟约束触发器，在 pgTAP 最终回滚的事务中不会触发，因此可以直接替换付款明细构造多账户记录。PR 2 已删除该辅助函数，多账户数据改用正式 RPC `create_transaction` 写入（见 3.14）。
 - **`transaction_item_special_status_statistics.test.sql` 中按账户分组的 4 个断言改为「按分类分组 + 账户筛选」。** 这些断言验证的是业务净额口径；按账户分组自本 PR 起改为付款明细的实际收付（2.1），业务净额口径改在分类维度验证。
 - **编辑表单读取普通记录的币种改为取首个付款账户。** 为满足「普通记录路径不再读明细 `account_id`」，`transactionFormService` 的明细金额格式化不再读明细账户镜像；表单的多账户 UI 仍属于 #915。
 - **按 `transaction_record_id` 分组的工具函数移到 `utils/collections.ts` 的 `groupByKey`。** 上下文、分组 builder 与列表行都需要按记录分组明细和付款明细，抽成通用函数共用。
+
+### 3.14 子 Issue 4 PR 2 实现注记（#914）
+
+PR 2 执行 3.3 的「结束条件」：新增 migration `20261019150000_end_transaction_payment_transition.sql`，普通记录明细的 `account_id` 回填为 NULL，`transaction_item.account_id` 改为 nullable，删除镜像校验与单行限制，更新 `transaction_item` 的 INSERT / UPDATE RLS policy；seed 加入多账户示例。对本节以上内容的补充如下：
+
+- **明细账户的形态由 `validate_transaction_item_category_shape` 立即校验，错误码 `transaction_item_account_invalid`（`23514`）。** 与 `balance_delta` 的 `transaction_item_balance_delta_invalid` 放在同一个触发器：普通记录必须为 NULL，转账 / 余额调整必须非空。触发器的监听列加上 `account_id`。延迟触发器 `validate_transaction_record_payments` 不再需要监听明细的 `account_id`，从监听列中移除。
+- **`payment_transition_invalid` 随镜像校验一起删除**（数据库与 TS 的错误码、提示文案、Repository 分支和测试）。3.2 表中该行只描述过渡期。
+- **RPC 写明细前先执行 `transaction_payment_account_ids` 校验付款账户。** 过渡期内创建 / 编辑 / 类型转换在写明细前取镜像账户，顺带完成付款账户校验；去掉镜像后保留这一步，`account_invalid` 等错误仍先于明细相关错误抛出，报错顺序不变。
+- **回填用普通 `UPDATE`。** 参照 #911，生产环境尚无真实交易数据，不分批。
+- **测试辅助函数保留「明细带 `account_id`」的入参形态。** 约 30 个 pgTAP 文件与 seed 经 `tests.insert_normal_transaction_items` 写普通明细；现在 JSON 中的 `account_id` 登记到本地表 `tests.normal_item_payment_account`（明细本身写 NULL），再据此重建付款明细，避免逐个改写测试数据。改付款账户用 `tests.set_normal_transaction_payment_account`。多账户数据一律经正式 RPC 写入（`transaction_payment.test.sql` 的多账户段、`split_payment_group_summaries.test.sql` 的医院示例）。
+- **TS 的 `TransactionItemDbRow.account_id` 改为 `string | null`。** 转账 / 余额调整读取明细账户统一经 `requireItemAccountId`（`recordAccounts.ts`），普通记录路径只读付款明细。
+- **seed 示例：** 新增账户「🎁 Amazon 礼品卡」（`other`，用户一持有），Amazon「礼品卡 2000 + 📗 Amazon 信用卡 1500」；医院 12 万（商家「圣巴拿巴医院」）由用户一的「📘 Debit」付 5 万、用户二的「📕 Debit」付 7 万。seed 没有「住院费」分类，医院示例用「💉 治疗费 4 万 + 🏥 检查费 8 万」代替 2.1 的「治疗费 4 万 + 住院费 8 万」，金额结构与验收例子一致。
 
 ## 4. 受影响的 RPC / Service / UI 清单
 
@@ -420,7 +434,7 @@ ledger（需要时）→ transaction_record（稳定顺序）→ transaction_ite
 - 非空「账单关联」相同的所有行合并成一笔，每行的收支由分类决定，允许单账户记录收支混合。共享字段由首行提供，后续行填写「-」或原样复述；多账户导出的后续行账户四列和付款金额为「-」。账单关联为空的行各自独立。
 - 复用 `validateTransactionPayments` 校验账户不重复、同币种、全支出、付款金额非负（含 0）及付款合计等于支出合计。每个账户独立复用名称、币种、类型、持有人匹配与映射、新建逻辑。
 - `create_transaction_locked_impl` 的 `p_type` 接受 expense / income / normal，只作普通记录类型入口校验；记录存为 normal，明细收支由分类决定。App 表单提交当前所选 expense / income 并可带混合明细；导入按收入减支出的净额推导（正数 income、负数 expense；零净额含支出时 expense，纯收入时 income），查重金额取净额绝对值，不取首行类型。
-- #914 解除过渡期单付款行限制之前，多账户写入用 Service mock 验证；格式、校验、导出和单账户收支混合往返可以先验证。退款 / 报销关联关系及待报销状态仍不在导入导出范围内。
+- #914 解除过渡期单付款行限制之前，多账户写入用 Service mock 验证（PR 2 起补充真实导入 Service → 交易 Service → 仓储链路的测试，以及按导入入参形态经 `create_transaction` 写入的 pgTAP）；格式、校验、导出和单账户收支混合往返可以先验证。退款 / 报销关联关系及待报销状态仍不在导入导出范围内。
 - 转账 / 余额调整格式保持不变。不认识的 sheet 继续忽略，无需兼容曾经的「付款明细」sheet。
 
 ### 4.5 #836「按商家推荐账户」的影响（只记录，不实现）

@@ -89,7 +89,6 @@ const linkedEditRpcErrorCodes = [
   transactionErrorCodes.paymentCurrencyMismatch,
   transactionErrorCodes.paymentMultiAccountNotAllowed,
   transactionErrorCodes.paymentTotalMismatch,
-  transactionErrorCodes.paymentTransitionInvalid,
 ] as const;
 
 type LinkedEditLogContext = {
@@ -232,12 +231,6 @@ export function createSupabaseLinkedTransactionItemRepository(
       throw new ValidationError(
         rpcErrorCode,
         transactionWriteErrorMessages.paymentAmountRequired,
-      );
-    }
-    if (rpcErrorCode === transactionErrorCodes.paymentTransitionInvalid) {
-      throw new ValidationError(
-        rpcErrorCode,
-        transactionWriteErrorMessages.paymentTransitionInvalid,
       );
     }
     if (

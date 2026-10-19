@@ -7,7 +7,7 @@ select plan(10);
 create temporary table test_refund_edit_context as
 select
     expense_item.ledger_id,
-    expense_item.account_id,
+    expense_payment.account_id,
     expense_item.transaction_record_id as expense_record_id,
     expense_category.id as expense_category_id,
     income_category.id as income_category_id,
@@ -22,6 +22,9 @@ join public.transaction_record expense_record
   on expense_record.id = expense_item.transaction_record_id
  and expense_record.ledger_id = expense_item.ledger_id
  and expense_record.status = 'active'
+join public.transaction_payment expense_payment
+  on expense_payment.transaction_record_id = expense_item.transaction_record_id
+ and expense_payment.ledger_id = expense_item.ledger_id
 join lateral (
     select category.id
     from public.category category

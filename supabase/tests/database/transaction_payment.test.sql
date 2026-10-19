@@ -1,4 +1,4 @@
--- #911：付款明细表、记录级不变量、按付款明细更新余额（过渡期单账户）。
+-- #911：付款明细表、记录级不变量、按付款明细更新余额。
 begin;
 
 set local search_path = public, extensions;
@@ -118,8 +118,8 @@ select results_eq(
         from public.transaction_item
         where transaction_record_id = pg_temp.rid('normal')
     $$,
-    $$ values ('00000000-0000-4000-8000-000000000043'::uuid, null::numeric) $$,
-    '过渡期明细 account_id 为付款账户镜像，balance_delta 为 NULL'
+    $$ values (null::uuid, null::numeric) $$,
+    '普通记录明细不保存 account_id 与 balance_delta'
 );
 select is(pg_temp.delta('00000000-0000-4000-8000-000000000043'), -100.00, '创建后付款账户余额减少');
 
@@ -248,7 +248,7 @@ select is(pg_temp.delta('00000000-0000-4000-8000-000000000045'), 0.00, '转回�
 select is(pg_temp.delta('00000000-0000-4000-8000-000000000041'), 20.00, '转回普通记录时付款账户入账');
 
 -- ------------------------------------------------------------
--- 入参校验与过渡期限制（失败时整体回滚）
+-- 入参校验（失败时整体回滚）
 -- ------------------------------------------------------------
 
 create function pg_temp.create_sql(p_payments jsonb, p_items jsonb default pg_temp.items(100))
@@ -296,10 +296,6 @@ select throws_ok(
 select throws_ok(
     pg_temp.create_sql('[{"accountId":"00000000-0000-4000-8000-000000000043","amount":"60"},{"accountId":"00000000-0000-4000-8000-000000000042","amount":"40"}]'),
     '22023', 'payment_currency_mismatch', '付款账户必须同币种'
-);
-select throws_ok(
-    pg_temp.create_sql('[{"accountId":"00000000-0000-4000-8000-000000000043","amount":"60"},{"accountId":"00000000-0000-4000-8000-000000000044","amount":"40"},{"accountId":"00000000-0000-4000-8000-000000000045","amount":"0"}]'),
-    '22023', 'payment_transition_invalid', '过渡期内合法的多账户付款仍被拒绝'
 );
 select is(pg_temp.delta('00000000-0000-4000-8000-000000000043'), 0.00, '失败后付款账户余额不变');
 select is(pg_temp.delta('00000000-0000-4000-8000-000000000044'), 0.00, '失败后其他账户余额不变');
@@ -412,8 +408,179 @@ select is(
 );
 select is(
     (select account_id from public.transaction_item where transaction_record_id = pg_temp.rid('refund')),
-    '00000000-0000-4000-8000-000000000045'::uuid,
-    '已关联编辑同步明细账户镜像'
+    null::uuid,
+    '已关联编辑不写明细账户'
+);
+
+-- ------------------------------------------------------------
+-- 多账户：经正式 RPC 创建 / 编辑 / 转换 / 删除（#914 结束过渡期）
+-- ------------------------------------------------------------
+
+create function pg_temp.multi_items(p_amounts numeric[]) returns jsonb
+language sql immutable as $$
+    select jsonb_agg(
+        jsonb_build_object('amount', amount, 'categoryId', '00000000-0000-4000-8000-000000005086')
+        order by ordinality
+    )
+    from unnest(p_amounts) with ordinality as amount;
+$$;
+
+-- 账户变动视图中某条记录的 (账户, 余额变动)，按账户排序。
+create function pg_temp.movements(p_name text) returns table (account_id uuid, balance_delta numeric)
+language sql stable as $$
+    select m.account_id, m.balance_delta
+    from public.transaction_account_movement m
+    where m.transaction_record_id = pg_temp.rid(p_name)
+    order by m.account_id;
+$$;
+
+-- 与 #921 多账户导入提交给 create_transaction 的 p_payments 同形态：按列顺序的 accountId + 字符串金额。
+insert into payment_test_ids
+select 'multi', public.create_transaction(
+    '00000000-0000-4000-8000-000000000032',
+    'expense',
+    '2099-04-05 00:00:00+00',
+    pg_temp.multi_items(array[3500]),
+    '[{"accountId":"00000000-0000-4000-8000-000000000052","amount":"2000"},{"accountId":"00000000-0000-4000-8000-000000000047","amount":"1500"}]',
+    '00000000-0000-4000-8000-000000001008',
+    '#914 礼品卡 + 信用卡'
+);
+
+select results_eq(
+    $$
+        select account_id, amount, balance_delta, sort_order
+        from public.transaction_payment
+        where transaction_record_id = pg_temp.rid('multi')
+        order by sort_order
+    $$,
+    $$ values
+        ('00000000-0000-4000-8000-000000000052'::uuid, 2000.00::numeric, -2000.00::numeric, 0),
+        ('00000000-0000-4000-8000-000000000047'::uuid, 1500.00::numeric, -1500.00::numeric, 1)
+    $$,
+    '多账户导入形态的付款明细按提交顺序写入'
+);
+select is(
+    (select count(*) from public.transaction_item where transaction_record_id = pg_temp.rid('multi') and account_id is not null),
+    0::bigint,
+    '多账户记录的明细不保存账户'
+);
+select is(pg_temp.delta('00000000-0000-4000-8000-000000000052'), -2000.00, '礼品卡按付款金额扣减');
+select is(pg_temp.delta('00000000-0000-4000-8000-000000000047'), -1500.00, '信用卡按付款金额扣减');
+select results_eq(
+    $$ select * from pg_temp.movements('multi') $$,
+    $$ values ('00000000-0000-4000-8000-000000000047'::uuid, -1500.00::numeric), ('00000000-0000-4000-8000-000000000052'::uuid, -2000.00::numeric) $$,
+    '账户变动视图按付款明细展开多账户'
+);
+
+select lives_ok(
+    $$
+        select public.update_transaction(
+            '00000000-0000-4000-8000-000000000032',
+            pg_temp.rid('multi'),
+            'expense',
+            '2099-04-05 00:00:00+00',
+            pg_temp.multi_items(array[40000, 80000]),
+            '[{"accountId":"00000000-0000-4000-8000-000000000048","amount":"50000"},{"accountId":"00000000-0000-4000-8000-000000000049","amount":"70000"},{"accountId":"00000000-0000-4000-8000-000000000047","amount":"0"}]',
+            '00000000-0000-4000-8000-000000001008',
+            '#914 我的账户 + 妻子账户'
+        )
+    $$,
+    '编辑可以增加付款账户、替换账户并调整金额'
+);
+select is(pg_temp.delta('00000000-0000-4000-8000-000000000052'), 0.00, '移除的付款账户余额全部回滚');
+select is(pg_temp.delta('00000000-0000-4000-8000-000000000047'), 0.00, '保留但金额为 0 的付款账户不再扣减');
+select is(pg_temp.delta('00000000-0000-4000-8000-000000000048'), -50000.00, '新增付款账户按金额扣减');
+select is(pg_temp.delta('00000000-0000-4000-8000-000000000049'), -70000.00, '第二个新增付款账户按金额扣减');
+select is(
+    (select count(*) from public.transaction_payment where transaction_record_id = pg_temp.rid('multi')),
+    3::bigint,
+    '付款明细不再限制为一行'
+);
+
+select lives_ok(
+    $$
+        select public.update_transaction(
+            '00000000-0000-4000-8000-000000000032',
+            pg_temp.rid('multi'),
+            'expense',
+            '2099-04-05 00:00:00+00',
+            pg_temp.multi_items(array[1000]),
+            pg_temp.pay('00000000-0000-4000-8000-000000000048'),
+            '00000000-0000-4000-8000-000000001008',
+            '#914 改回单账户'
+        )
+    $$,
+    '多账户记录可以改回单账户'
+);
+select is(pg_temp.delta('00000000-0000-4000-8000-000000000048'), -1000.00, '改回单账户后按新金额扣减');
+select is(pg_temp.delta('00000000-0000-4000-8000-000000000049'), 0.00, '改回单账户后移除账户的余额回滚');
+
+select lives_ok(
+    $$
+        select public.update_transaction(
+            '00000000-0000-4000-8000-000000000032',
+            pg_temp.rid('multi'),
+            'expense',
+            '2099-04-05 00:00:00+00',
+            pg_temp.multi_items(array[3000]),
+            '[{"accountId":"00000000-0000-4000-8000-000000000048","amount":"1000"},{"accountId":"00000000-0000-4000-8000-000000000049","amount":"2000"}]',
+            '00000000-0000-4000-8000-000000001008',
+            '#914 删除前'
+        )
+    $$,
+    '单账户记录可以改为多账户'
+);
+select lives_ok(
+    $$ select public.void_transaction('00000000-0000-4000-8000-000000000032', pg_temp.rid('multi')) $$,
+    '删除多账户记录'
+);
+select is(pg_temp.delta('00000000-0000-4000-8000-000000000048'), 0.00, '删除后回滚第一个付款账户');
+select is(pg_temp.delta('00000000-0000-4000-8000-000000000049'), 0.00, '删除后回滚第二个付款账户');
+
+insert into payment_test_ids
+select 'multi_convert', public.create_transaction(
+    '00000000-0000-4000-8000-000000000032',
+    'expense',
+    '2099-04-06 00:00:00+00',
+    pg_temp.multi_items(array[600, 400]),
+    '[{"accountId":"00000000-0000-4000-8000-000000000048","amount":"300"},{"accountId":"00000000-0000-4000-8000-000000000049","amount":"700"}]',
+    '00000000-0000-4000-8000-000000001008',
+    '#914 多账户转换'
+);
+select lives_ok(
+    $$
+        select public.convert_transaction_type_with_special_status(
+            '00000000-0000-4000-8000-000000000032',
+            pg_temp.rid('multi_convert'),
+            'transfer',
+            '2099-04-06 00:00:00+00',
+            '#914 多账户转换',
+            null,
+            null,
+            null,
+            '00000000-0000-4000-8000-000000000048',
+            '00000000-0000-4000-8000-000000000049',
+            100
+        )
+    $$,
+    '多账户记录可以转换为转账'
+);
+select is(
+    (select count(*) from public.transaction_payment where transaction_record_id = pg_temp.rid('multi_convert')),
+    0::bigint,
+    '转为转账后删除全部付款明细'
+);
+select results_eq(
+    $$ select * from pg_temp.movements('multi_convert') $$,
+    $$ values ('00000000-0000-4000-8000-000000000048'::uuid, -100.00::numeric), ('00000000-0000-4000-8000-000000000049'::uuid, 100.00::numeric) $$,
+    '转账的账户变动仍来自明细账户'
+);
+select is(pg_temp.delta('00000000-0000-4000-8000-000000000048'), -100.00, '转为转账后回滚付款并按转出扣减');
+select is(pg_temp.delta('00000000-0000-4000-8000-000000000049'), 100.00, '转为转账后回滚付款并按转入入账');
+
+select lives_ok(
+    'set constraints public.validate_transaction_record_payments immediate',
+    '经 RPC 写入的多账户记录满足付款明细不变量'
 );
 
 -- ------------------------------------------------------------
@@ -458,15 +625,13 @@ select throws_ok(
             pg_temp.rid('target')
         )
     ),
-    '22023', 'payment_transition_invalid', '明细账户镜像必须等于付款账户'
+    '23514', 'transaction_item_account_invalid', '普通记录明细不能写 account_id'
 );
 select throws_ok(
     format(
         $f$select pg_temp.check_after(%L)$f$,
         format(
-            'update public.transaction_payment set account_id = %L where transaction_record_id = %L; '
-            'update public.transaction_item set account_id = %L where transaction_record_id = %L',
-            '00000000-0000-4000-8000-000000000042', pg_temp.rid('target'),
+            'update public.transaction_payment set account_id = %L where transaction_record_id = %L',
             '00000000-0000-4000-8000-000000000042', pg_temp.rid('target')
         )
     ),

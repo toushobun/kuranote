@@ -241,10 +241,6 @@ describe("LinkedTransactionItemRepository", () => {
       transactionErrorCodes.paymentCurrencyMismatch,
     ],
     ["payment_amount_required", transactionErrorCodes.paymentAmountRequired],
-    [
-      "payment_transition_invalid",
-      transactionErrorCodes.paymentTransitionInvalid,
-    ],
   ] as const)(
     "数据库付款明细错误 %s 转换为安全的 ValidationError",
     async (databaseError, expectedCode) => {

@@ -97,10 +97,10 @@ select lives_ok(
 );
 
 -- #899：创建退款时允许不同账户，但币种必须一致。
-update public.transaction_item
-set account_id = '00000000-0000-4000-8000-000000000042'
-where id = '57420000-0000-4000-8000-000000000004';
-select tests.sync_normal_transaction_payments(array['57410000-0000-4000-8000-000000000004'::uuid]);
+select tests.set_normal_transaction_payment_account(
+    '57410000-0000-4000-8000-000000000004',
+    '00000000-0000-4000-8000-000000000042'
+);
 
 select throws_ok(
     $$select public.apply_transaction_item_links(
@@ -113,10 +113,10 @@ select throws_ok(
     '不同币种账户不能创建退款关联'
 );
 
-update public.transaction_item
-set account_id = '00000000-0000-4000-8000-000000000044'
-where id = '57420000-0000-4000-8000-000000000004';
-select tests.sync_normal_transaction_payments(array['57410000-0000-4000-8000-000000000004'::uuid]);
+select tests.set_normal_transaction_payment_account(
+    '57410000-0000-4000-8000-000000000004',
+    '00000000-0000-4000-8000-000000000044'
+);
 
 select lives_ok(
     $$
@@ -421,13 +421,15 @@ where item.id in (
 )
 order by item.id;
 
-select is(account_id,
-    case when id = '57420000-0000-4000-8000-000000000003'::uuid
+select is(p.account_id,
+    case when ti.id = '57420000-0000-4000-8000-000000000003'::uuid
          then '00000000-0000-4000-8000-000000000044'::uuid
          else '00000000-0000-4000-8000-000000000043'::uuid end,
-    '同币种账户切换已持久化：' || id)
-from public.transaction_item
-where id in (
+    '同币种账户切换已持久化：' || ti.id)
+from public.transaction_item ti
+join public.transaction_payment p
+  on p.transaction_record_id = ti.transaction_record_id
+where ti.id in (
     '57420000-0000-4000-8000-000000000003',
     '57420000-0000-4000-8000-000000000004'
 );

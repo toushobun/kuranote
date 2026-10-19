@@ -118,9 +118,11 @@ select throws_ok(
 
 select is(
     (
-        select account_id
-        from public.transaction_item
-        where id = '57492000-0000-4000-8000-000000000002'
+        select p.account_id
+        from public.transaction_payment p
+        join public.transaction_item ti
+          on ti.transaction_record_id = p.transaction_record_id
+        where ti.id = '57492000-0000-4000-8000-000000000002'
     ),
     '00000000-0000-4000-8000-000000000043'::uuid,
     '归档旧账户校验失败后收入明细不发生部分更新'

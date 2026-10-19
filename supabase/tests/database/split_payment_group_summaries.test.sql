@@ -1,12 +1,11 @@
 -- #914：非时间维度分组 RPC 的统计口径方案 D（docs/design/issue-834-split-payment.md 2.1 / 2.3 / 2.4）。
 -- 医院 12 万：治疗费 4 万 + 住院费 8 万；我的账户 5 万、妻子账户 7 万。
--- 过渡期内 RPC 还不能写入多账户，多账户付款明细经 tests.replace_transaction_payments_in_transition 构造
--- （见 supabase/seeds/test_helpers.sql）；本文件不执行 set constraints … immediate。
+-- 医院记录经正式 RPC create_transaction 写入多账户付款明细；最后立即执行延迟校验，确认数据满足不变量。
 begin;
 
 set local search_path = public, extensions;
 
-select plan(18);
+select plan(19);
 
 insert into public.ledger (
     id, name, base_currency, owner_user_id, created_by, updated_by,
@@ -58,10 +57,6 @@ insert into public.transaction_record (
     id, ledger_id, type, status, transaction_at, merchant_id, title, note, created_by, updated_by
 )
 values
-    -- 医院 12 万（多账户）
-    ('91440000-0000-4000-8000-000000000001', '91400000-0000-4000-8000-000000000001', 'normal', 'active',
-     '2099-03-10 10:00:00+00', '91430000-0000-4000-8000-000000000001', '医院', null,
-     '00000000-0000-4000-8000-000000000031', '00000000-0000-4000-8000-000000000031'),
     -- 单账户支出 1000，之后退款 300 到妻子账户
     ('91440000-0000-4000-8000-000000000002', '91400000-0000-4000-8000-000000000001', 'normal', 'active',
      '2099-03-11 10:00:00+00', '91430000-0000-4000-8000-000000000002', '购物', null,
@@ -71,26 +66,6 @@ values
      '00000000-0000-4000-8000-000000000031', '00000000-0000-4000-8000-000000000031');
 
 select tests.insert_normal_transaction_items(jsonb_build_array(
-    jsonb_build_object(
-        'id', '91450000-0000-4000-8000-000000000001',
-        'ledger_id', '91400000-0000-4000-8000-000000000001',
-        'transaction_record_id', '91440000-0000-4000-8000-000000000001',
-        'account_id', '91410000-0000-4000-8000-000000000001',
-        'category_id', '91420000-0000-4000-8000-000000000002',
-        'amount', 40000,
-        'sort_order', 0,
-        'created_by', '00000000-0000-4000-8000-000000000031'
-    ),
-    jsonb_build_object(
-        'id', '91450000-0000-4000-8000-000000000002',
-        'ledger_id', '91400000-0000-4000-8000-000000000001',
-        'transaction_record_id', '91440000-0000-4000-8000-000000000001',
-        'account_id', '91410000-0000-4000-8000-000000000001',
-        'category_id', '91420000-0000-4000-8000-000000000003',
-        'amount', 80000,
-        'sort_order', 1,
-        'created_by', '00000000-0000-4000-8000-000000000031'
-    ),
     jsonb_build_object(
         'id', '91450000-0000-4000-8000-000000000003',
         'ledger_id', '91400000-0000-4000-8000-000000000001',
@@ -111,13 +86,31 @@ select tests.insert_normal_transaction_items(jsonb_build_array(
     )
 ));
 
-select tests.replace_transaction_payments_in_transition(
-    '91440000-0000-4000-8000-000000000001',
-    jsonb_build_array(
-        jsonb_build_object('accountId', '91410000-0000-4000-8000-000000000001', 'amount', '50000'),
-        jsonb_build_object('accountId', '91410000-0000-4000-8000-000000000002', 'amount', '70000')
-    )
+-- 医院 12 万（多账户），以记账人身份经正式 RPC 写入。
+set local role authenticated;
+select set_config(
+    'request.jwt.claims',
+    '{"sub":"00000000-0000-4000-8000-000000000031","role":"authenticated"}',
+    true
 );
+
+select public.create_transaction(
+    '91400000-0000-4000-8000-000000000001',
+    'expense',
+    '2099-03-10 10:00:00+00',
+    jsonb_build_array(
+        jsonb_build_object('amount', 40000, 'categoryId', '91420000-0000-4000-8000-000000000002'),
+        jsonb_build_object('amount', 80000, 'categoryId', '91420000-0000-4000-8000-000000000003')
+    ),
+    jsonb_build_array(
+        jsonb_build_object('accountId', '91410000-0000-4000-8000-000000000001', 'amount', 50000),
+        jsonb_build_object('accountId', '91410000-0000-4000-8000-000000000002', 'amount', 70000)
+    ),
+    '91430000-0000-4000-8000-000000000001',
+    '医院'
+);
+
+reset role;
 
 select public.apply_transaction_item_links(
     '91400000-0000-4000-8000-000000000001',
@@ -273,6 +266,11 @@ select results_eq(
 
 reset role;
 select set_config('request.jwt.claim.sub', '', true);
+
+select lives_ok(
+    'set constraints public.validate_transaction_record_payments immediate',
+    '经 RPC 写入的多账户记录满足付款明细不变量'
+);
 
 select * from finish();
 rollback;

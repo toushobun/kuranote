@@ -243,11 +243,12 @@ begin
         raise exception 'create_transaction record smoke test failed';
     end if;
 
+    -- 普通记录明细不保存账户（#914），账户只在付款明细上。
     if not exists (
         select 1
         from public.transaction_item item
         where item.transaction_record_id = v_transaction_id
-          and item.account_id = v_account_id
+          and item.account_id is null
           and item.category_id = v_expense_category_id
           and item.amount = 12.34
           and item.balance_delta is null

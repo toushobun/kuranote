@@ -324,7 +324,6 @@ const transactionRpcErrorCodes = [
   transactionErrorCodes.paymentCurrencyMismatch,
   transactionErrorCodes.paymentMultiAccountNotAllowed,
   transactionErrorCodes.paymentTotalMismatch,
-  transactionErrorCodes.paymentTransitionInvalid,
 ] as const;
 
 export function createSupabaseTransactionRepository(
@@ -561,13 +560,6 @@ export function createSupabaseTransactionRepository(
       throw new ValidationError(
         rpcErrorCode,
         transactionWriteErrorMessages.paymentAmountRequired,
-      );
-    }
-
-    if (rpcErrorCode === transactionErrorCodes.paymentTransitionInvalid) {
-      throw new ValidationError(
-        rpcErrorCode,
-        transactionWriteErrorMessages.paymentTransitionInvalid,
       );
     }
 

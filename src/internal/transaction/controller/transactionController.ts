@@ -35,7 +35,7 @@ export const createTransactionHandler = async (
       transferTargetAccountId: input.transferTargetAccountId,
     });
   } else {
-    // JSON API 本期仍是单账户；payments 的多账户解析只在表单入口实现（3.4 过渡期）。
+    // JSON API 仍是单账户；payments 的多账户解析只在表单入口实现（设计文档 3.10 实现注记）。
     const { accountId, ...transaction } = input;
     await service.createNormal({
       ...transaction,

@@ -26,7 +26,8 @@ export type TransactionPaymentDbRow = {
 export type TransactionItemDbRow = {
   id?: string;
   transaction_record_id: string;
-  account_id: string;
+  // 普通记录为 NULL（账户来自 transaction_payment，#914）；转账 / 余额调整仍保存账户。
+  account_id: string | null;
   category_id: string | null;
   amount: string;
   business_net_amount?: string;

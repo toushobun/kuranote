@@ -33,6 +33,10 @@ import {
 } from "internal/shared/errors/appError";
 import type { Logger } from "internal/shared/logging/logger";
 import type { TransactionImportService } from "internal/transaction";
+import { createSupabaseTransactionRepository } from "internal/transaction/repository/transactionRepository";
+import { createTransactionImportService } from "internal/transaction/service/transactionImportService";
+import { createTransactionService } from "internal/transaction/service/transactionService";
+import { createSupabaseMock } from "test/supabaseMock";
 import { buildDataExportWorkbook } from "utils/dataExportWorkbook";
 
 async function executeUnits(
@@ -2041,6 +2045,104 @@ describe("账户类型参与账户匹配", () => {
               { accountId: "bank", amount: "23.45" },
             ]
           : [{ accountId: "cash", amount: null }],
+      );
+    },
+  );
+});
+
+/**
+ * 交易侧使用真实的导入 Service → 交易 Service → Supabase 仓储，只替换 Supabase 客户端，
+ * 用于确认多账户导入最终提交给 create_transaction 的入参。
+ */
+function createDependenciesWithTransactionWrites() {
+  const dependencies = createDependencies();
+  const supabase = createSupabaseMock();
+  const service = createTransactionService({
+    accountQueryService: {
+      getTransactionContext: vi.fn(),
+      listTransactionOptions: vi.fn(async () =>
+        ["礼品卡", "信用卡"].map((name) => ({
+          currency: "JPY",
+          id: `account-${name}`,
+          name,
+        })),
+      ),
+    } as never,
+    categoryQueryService: {
+      findSummariesByIds: vi.fn(async ({ categoryIds }) =>
+        categoryIds.map((id: string) => ({
+          id,
+          name: id,
+          parent_id: null,
+          type: "expense" as const,
+        })),
+      ),
+      listActiveSummaries: vi.fn(),
+    },
+    currentUserId: "user-1",
+    ledgerAccessService: {
+      getActiveMemberRole: vi.fn(async () => "owner" as const),
+    },
+    merchantQueryService: {
+      findSummariesByIds: vi.fn(async () => []),
+      listActiveOptions: vi.fn(),
+    },
+    transactionRepository: createSupabaseTransactionRepository(
+      supabase.client as never,
+      dependencies.logger,
+    ),
+  });
+  return {
+    dependencies: {
+      ...dependencies,
+      transactionImportService: createTransactionImportService({
+        currentLedger: {
+          baseCurrency: "JPY",
+          currentUserRole: "owner",
+          id: "ledger-1",
+          name: "家庭账本",
+        },
+        service,
+      }),
+    },
+    rpc: supabase.rpc,
+  };
+}
+
+describe("多账户导入端到端（#921）", () => {
+  it.each([
+    ["2000；1500", "2000", "1500"],
+    ["0；3500", "0", "3500"],
+  ])(
+    "付款金额 %s 按顺序写入 create_transaction 的付款明细",
+    async (amounts, giftCardAmount, creditCardAmount) => {
+      const { dependencies, rpc } = createDependenciesWithTransactionWrites();
+      const result = await executeUnits(
+        dependencies,
+        unitsOf([
+          incomeTable([
+            incomeRow({
+              账户: "礼品卡；信用卡",
+              账户持有人: "；淞文",
+              账户类型: "其他；信用卡",
+              付款金额: amounts,
+              金额: "3500",
+            }),
+          ]),
+        ]),
+      );
+
+      expect(result).toMatchObject({ failureCount: 0, successCount: 1 });
+      expect(rpc).toHaveBeenCalledExactlyOnceWith(
+        "create_transaction",
+        expect.objectContaining({
+          p_ledger_id: "ledger-1",
+          p_payments: [
+            { accountId: "account-礼品卡", amount: giftCardAmount },
+            { accountId: "account-信用卡", amount: creditCardAmount },
+          ],
+          p_type: "expense",
+        }),
       );
     },
   );

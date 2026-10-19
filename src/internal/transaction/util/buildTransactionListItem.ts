@@ -64,9 +64,11 @@ export function buildTransactionListItem({
 
   if (record.type === "balance_adjustment") {
     const item = recordItems[0];
-    const account = item ? accountById.get(item.account_id) : undefined;
+    const account = item?.account_id
+      ? accountById.get(item.account_id)
+      : undefined;
     return {
-      account_color: item
+      account_color: item?.account_id
         ? (accountColorById?.get(item.account_id) ?? null)
         : null,
       account_currency: account?.currency ?? fallbackCurrency,
@@ -257,11 +259,13 @@ function buildTransferListItem({
   );
   const fallbackItem = recordItems[0];
 
-  const fromAccount = fromItem
+  const fromAccount = fromItem?.account_id
     ? accountById.get(fromItem.account_id)
     : undefined;
-  const toAccount = toItem ? accountById.get(toItem.account_id) : undefined;
-  const fallbackAccount = fallbackItem
+  const toAccount = toItem?.account_id
+    ? accountById.get(toItem.account_id)
+    : undefined;
+  const fallbackAccount = fallbackItem?.account_id
     ? accountById.get(fallbackItem.account_id)
     : undefined;
 
@@ -317,10 +321,12 @@ function getTransferAccountColor({
   fromItem: TransactionItemDbRow | undefined;
   toItem: TransactionItemDbRow | undefined;
 }) {
-  const fromColor = fromItem
+  const fromColor = fromItem?.account_id
     ? accountColorById?.get(fromItem.account_id)
     : undefined;
-  const toColor = toItem ? accountColorById?.get(toItem.account_id) : undefined;
+  const toColor = toItem?.account_id
+    ? accountColorById?.get(toItem.account_id)
+    : undefined;
 
   if (fromItem && toItem) {
     return fromColor && fromColor === toColor ? fromColor : null;
@@ -329,7 +335,7 @@ function getTransferAccountColor({
   return (
     fromColor ??
     toColor ??
-    (fallbackItem
+    (fallbackItem?.account_id
       ? (accountColorById?.get(fallbackItem.account_id) ?? null)
       : null)
   );
