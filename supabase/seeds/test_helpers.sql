@@ -138,6 +138,41 @@ as $$
     where p.transaction_record_id = p_transaction_record_id;
 $$;
 
+-- 过渡期（docs/design/issue-834-split-payment.md 3.3）内数据库要求普通记录恰好 1 行付款明细，
+-- RPC 还不能写入多账户记录。pgTAP 需要多账户数据时用这里直接改写付款明细：
+-- p_payments = [{ "accountId": "…", "amount": "50000" }, …]，按数组顺序写 sort_order，
+-- 每行 balance_delta = -amount（多账户只允许全部为支出）。明细的账户镜像保持不变。
+-- 付款明细校验是 DEFERRABLE INITIALLY DEFERRED 的约束触发器，pgTAP 以 rollback 结束，
+-- 只要测试不执行 set constraints … immediate，它就不会运行。过渡期结束后改用 RPC 写入并删除本函数。
+create or replace function tests.replace_transaction_payments_in_transition(
+    p_transaction_record_id uuid,
+    p_payments jsonb
+)
+returns void
+language sql
+set search_path = pg_catalog, pg_temp
+as $$
+    delete from public.transaction_payment p
+    where p.transaction_record_id = p_transaction_record_id;
+
+    insert into public.transaction_payment (
+        ledger_id, transaction_record_id, account_id, amount, balance_delta,
+        sort_order, created_by, created_at
+    )
+    select
+        tr.ledger_id,
+        tr.id,
+        (payment.value ->> 'accountId')::uuid,
+        (payment.value ->> 'amount')::numeric,
+        -(payment.value ->> 'amount')::numeric,
+        (payment.ordinality - 1)::integer,
+        tr.created_by,
+        tr.created_at
+    from public.transaction_record tr
+    cross join jsonb_array_elements(p_payments) with ordinality payment(value, ordinality)
+    where tr.id = p_transaction_record_id;
+$$;
+
 -- pgTAP 会切换到 authenticated 后调用上面的辅助函数（RPC 仍按 auth.uid() 鉴权）。
 grant usage on schema tests to authenticated;
 grant execute on function tests.update_linked_transaction_item(uuid, uuid, uuid, timestamptz, numeric, uuid, uuid) to authenticated;

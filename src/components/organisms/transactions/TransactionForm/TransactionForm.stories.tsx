@@ -185,7 +185,6 @@ export const EditIncomeWithSavedRefundLink: Story = {
           id: "00000000-0000-4000-8000-000000008001",
           refundCandidate: {
             accountCurrency: "JPY",
-            accountId: "00000000-0000-4000-8000-000000000045",
             amount: "1200",
             categoryName: "餐饮",
             id: "00000000-0000-4000-8000-000000008002",

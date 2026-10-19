@@ -22,7 +22,6 @@ export const PartialReimbursement: Story = {
     incomeAmount: "1500",
     value: {
       accountCurrency: "JPY",
-      accountId: "account-1",
       amount: "1200",
       categoryName: "午餐",
       id: "reimbursement-item-1",
@@ -41,7 +40,6 @@ const reimbursementSearchPage = {
       account_currency: "JPY",
       categoryItems: [
         {
-          accountId: "account-1",
           amount: "1200",
           categoryName: "午餐",
           categoryType: "expense",

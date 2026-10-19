@@ -7,6 +7,7 @@ import type {
   TransactionItemDbRow,
   TransactionRecordDbRow,
 } from "internal/db-types";
+import { defaultTransactionFilters } from "internal/transaction/entity/transactionGrouping";
 
 import { buildTransactionGroupSummaryPage } from "./transactionListGroups";
 
@@ -83,6 +84,8 @@ describe("transactionListGroups", () => {
       merchants,
       offset: 0,
       pageSize: 1,
+      payments: [],
+      filters: defaultTransactionFilters,
       records: [
         record({ id: "june", transaction_at: "2026-06-28T10:00:00.000Z" }),
         record({
@@ -124,6 +127,8 @@ describe("transactionListGroups", () => {
       merchants,
       offset: 0,
       pageSize: 20,
+      payments: [],
+      filters: defaultTransactionFilters,
       records: [
         record({
           id: "time-group",
@@ -171,6 +176,8 @@ describe("transactionListGroups", () => {
       merchants,
       offset: 0,
       pageSize: 20,
+      payments: [],
+      filters: defaultTransactionFilters,
       records: [
         record({
           id: "mixed",
@@ -214,6 +221,8 @@ describe("transactionListGroups", () => {
       merchants,
       offset: 0,
       pageSize: 20,
+      payments: [],
+      filters: defaultTransactionFilters,
       records: [
         record({
           id: "negative-mixed",
@@ -251,6 +260,8 @@ describe("transactionListGroups", () => {
       merchants,
       offset: 0,
       pageSize: 20,
+      payments: [],
+      filters: defaultTransactionFilters,
       records: [
         record({
           id: "category-type",
@@ -288,6 +299,8 @@ describe("transactionListGroups", () => {
       merchants,
       offset: 0,
       pageSize: 20,
+      payments: [],
+      filters: defaultTransactionFilters,
       records: [
         record({
           created_by: "user-a",
@@ -331,7 +344,7 @@ describe("transactionListGroups", () => {
     ]);
   });
 
-  it("按账户分组时按明细所在账户分别统计", () => {
+  it("按账户分组时按付款明细的实际收付分别统计", () => {
     const result = buildTransactionGroupSummaryPage({
       accounts,
       categories,
@@ -339,23 +352,33 @@ describe("transactionListGroups", () => {
       groupBy: "account",
       items: [
         item({
-          account_id: "account-cash",
-          amount: "100",
-          transaction_record_id: "mixed",
-        }),
-        item({
-          account_id: "account-bank",
-          amount: "300",
-          category_id: "bonus",
-          transaction_record_id: "mixed",
+          amount: "400",
+          transaction_record_id: "shared",
         }),
       ],
       merchants,
       offset: 0,
       pageSize: 20,
+      payments: [
+        {
+          account_id: "account-cash",
+          amount: "100",
+          balance_delta: "-100",
+          sort_order: 0,
+          transaction_record_id: "shared",
+        },
+        {
+          account_id: "account-bank",
+          amount: "300",
+          balance_delta: "-300",
+          sort_order: 1,
+          transaction_record_id: "shared",
+        },
+      ],
+      filters: defaultTransactionFilters,
       records: [
         record({
-          id: "mixed",
+          id: "shared",
           transaction_at: "2026-06-28T10:00:00.000Z",
         }),
       ],
@@ -370,10 +393,10 @@ describe("transactionListGroups", () => {
           key: "account-bank",
           label: "银行",
           summary: {
-            balance: "300",
+            balance: "-300",
             currency: "JPY",
-            expense: "0",
-            income: "300",
+            expense: "300",
+            income: "0",
           },
           transactionCount: 1,
         },
@@ -402,6 +425,8 @@ describe("transactionListGroups", () => {
       merchants,
       offset: 0,
       pageSize: 20,
+      payments: [],
+      filters: defaultTransactionFilters,
       records: [
         record({
           id: "dinner",
@@ -440,6 +465,8 @@ describe("transactionListGroups", () => {
       merchants,
       offset: 0,
       pageSize: 20,
+      payments: [],
+      filters: defaultTransactionFilters,
       recorders,
     };
 
@@ -501,6 +528,8 @@ describe("transactionListGroups", () => {
       merchants,
       offset: 0,
       pageSize: 20,
+      payments: [],
+      filters: defaultTransactionFilters,
       records: manyRecords,
       recorders,
     });

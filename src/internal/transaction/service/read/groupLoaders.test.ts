@@ -65,6 +65,7 @@ function createContext(
     currentUserId: "user-1",
     items: [],
     merchants: [],
+    payments: [],
     recorders: [],
     records,
   };

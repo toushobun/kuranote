@@ -5,6 +5,7 @@ import type {
   CategorySummaryDbRow,
   MerchantSummaryDbRow,
   TransactionItemDbRow,
+  TransactionPaymentDbRow,
   TransactionRecordDbRow,
 } from "internal/db-types";
 import type { ThemeColorKey } from "theme/themeColorTokens";
@@ -24,6 +25,7 @@ export type TransactionGroupLoaderContext = {
   currentUserId?: string;
   items: TransactionItemDbRow[];
   merchants: MerchantSummaryDbRow[];
+  payments: TransactionPaymentDbRow[];
   records: TransactionRecordDbRow[];
   recorders: AppUserSummaryDbRow[];
   showRecorder?: boolean;

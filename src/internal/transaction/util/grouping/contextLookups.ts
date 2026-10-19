@@ -4,15 +4,18 @@ import type {
   CategorySummaryDbRow,
   MerchantSummaryDbRow,
   TransactionItemDbRow,
+  TransactionPaymentDbRow,
 } from "internal/db-types";
 
 import type { TransactionGroupLoaderContext } from "internal/transaction/util/grouping/types";
+import { groupByKey } from "utils/collections";
 
 export type TransactionGroupContextLookups = {
   accountById: Map<string, AccountOptionDbRow>;
   categoryById: Map<string, CategorySummaryDbRow>;
   itemsByRecordId: Map<string, TransactionItemDbRow[]>;
   merchantById: Map<string, MerchantSummaryDbRow>;
+  paymentsByRecordId: Map<string, TransactionPaymentDbRow[]>;
   recorderById: Map<string, AppUserSummaryDbRow>;
 };
 
@@ -38,9 +41,16 @@ export function getTransactionGroupContextLookups(
     categoryById: new Map(
       context.categories.map((category) => [category.id, category] as const),
     ),
-    itemsByRecordId: groupItemsByRecordId(context.items),
+    itemsByRecordId: groupByKey(
+      context.items,
+      (item) => item.transaction_record_id,
+    ),
     merchantById: new Map(
       context.merchants.map((merchant) => [merchant.id, merchant] as const),
+    ),
+    paymentsByRecordId: groupByKey(
+      context.payments,
+      (payment) => payment.transaction_record_id,
     ),
     recorderById: new Map(
       context.recorders.map((user) => [user.id, user] as const),
@@ -49,16 +59,4 @@ export function getTransactionGroupContextLookups(
 
   contextLookupsCache.set(context, lookups);
   return lookups;
-}
-
-function groupItemsByRecordId(items: TransactionItemDbRow[]) {
-  const itemsByRecordId = new Map<string, TransactionItemDbRow[]>();
-
-  for (const item of items) {
-    const recordItems = itemsByRecordId.get(item.transaction_record_id) ?? [];
-    recordItems.push(item);
-    itemsByRecordId.set(item.transaction_record_id, recordItems);
-  }
-
-  return itemsByRecordId;
 }

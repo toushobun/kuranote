@@ -1049,7 +1049,7 @@ describe("TransactionDashboardRepository", () => {
       data: [{ id: recordId }, { id: secondRecordId }],
       error: null,
     });
-    const itemQuery = createQuery({
+    const movementQuery = createQuery({
       data: [
         {
           account_id: secondAccountId,
@@ -1061,7 +1061,7 @@ describe("TransactionDashboardRepository", () => {
       error: null,
     });
     const { repository } = createRepository({
-      transaction_item: itemQuery,
+      transaction_account_movement: movementQuery,
       transaction_record: recordQuery,
     });
     await expect(
@@ -1077,11 +1077,14 @@ describe("TransactionDashboardRepository", () => {
       "balance_adjustment",
     ]);
     expect(recordQuery.range).toHaveBeenCalledWith(0, 99);
-    expect(itemQuery.select).toHaveBeenCalledWith(
+    expect(movementQuery.select).toHaveBeenCalledWith(
       "transaction_record_id, account_id",
     );
+    expect(movementQuery.order).toHaveBeenCalledWith("sort_order", {
+      ascending: true,
+    });
   });
-  it("最近使用账户没有记录时不查询明细", async () => {
+  it("最近使用账户没有记录时不查询账户变动", async () => {
     const recordQuery = createQuery();
     const { from, repository } = createRepository({
       transaction_record: recordQuery,

@@ -31,7 +31,6 @@ const searchPage = {
       account_currency: "JPY",
       categoryItems: [
         {
-          accountId: "account-1",
           amount: "1200",
           categoryName: "午餐",
           categoryType: "expense",
@@ -56,7 +55,6 @@ describe("TransactionRefundLinkPicker", () => {
         onChange={onChange}
         value={{
           accountCurrency: "JPY",
-          accountId: "account-1",
           amount: "1200",
           categoryName: "午餐",
           id: "refund-item-1",
@@ -109,7 +107,6 @@ describe("TransactionRefundLinkPicker", () => {
         refundAmount="1.111"
         value={{
           accountCurrency: "KWD",
-          accountId: "account-1",
           amount: "1.234",
           categoryName: "午餐",
           id: "refund-item-1",

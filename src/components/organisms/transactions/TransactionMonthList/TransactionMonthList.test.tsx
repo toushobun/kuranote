@@ -233,6 +233,40 @@ describe("TransactionMonthList", () => {
     expect(screen.queryByText("1 条流水")).toBeNull();
   });
 
+  it("组内有共同支付记录时组头显示共同支付提示", () => {
+    render(
+      <TransactionMonthList
+        timeGroupView={createView({
+          groupBy: "category",
+          groups: [
+            createGroup({
+              id: "category:inpatient",
+              key: "inpatient",
+              label: "住院费",
+              sharedPayment: {
+                accountShareAmount: "50000",
+                recordCount: 1,
+                recordTotalAmount: "120000",
+              },
+            }),
+            createGroup({
+              id: "category:other",
+              key: "other",
+              label: "购物",
+            }),
+          ],
+          initialDateGroupsByGroupId: {},
+          initialExpandedGroupId: null,
+          initialNextItemOffsetByGroupId: {},
+        })}
+      />,
+    );
+
+    expect(
+      screen.getAllByText("含共同支付 1 笔 · 本账户 ¥50,000 / 整笔 ¥120,000"),
+    ).toHaveLength(1);
+  });
+
   it("三位小数币种的月份摘要保留币种精度", () => {
     const kwdGroup = createGroup({
       id: "month:2026-07",
@@ -406,7 +440,6 @@ describe("TransactionMonthList", () => {
           amount: "100",
           categoryItems: [
             {
-              accountId: "account-1",
               amount: "100",
               categoryName: "午餐",
               categoryType: "expense",
@@ -463,7 +496,6 @@ describe("TransactionMonthList", () => {
           amount: "100",
           categoryItems: [
             {
-              accountId: "account-1",
               amount: "100",
               categoryName: "午餐",
               categoryType: "expense",

@@ -13,6 +13,21 @@ export function chunkArray<T>(values: T[], size: number): T[][] {
   return chunks;
 }
 
+/** 按 key 分组，组内保持原有顺序。 */
+export function groupByKey<T, K>(
+  values: readonly T[],
+  getKey: (value: T) => K,
+) {
+  const groups = new Map<K, T[]>();
+  for (const value of values) {
+    const key = getKey(value);
+    const group = groups.get(key);
+    if (group) group.push(value);
+    else groups.set(key, [value]);
+  }
+  return groups;
+}
+
 export function mergeUniqueById<T extends { id: string }>(
   existing: T[],
   incoming: T[],

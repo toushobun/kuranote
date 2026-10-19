@@ -11,6 +11,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
 import { EmptyState } from "molecules/ui/EmptyState";
+import { TransactionSharedPaymentNote } from "atoms/transactions/TransactionSharedPaymentNote";
 import { TransactionGroupList } from "organisms/transactions/TransactionGroupList/TransactionGroupList";
 import { designTokens } from "theme/theme";
 import { userThemeCardBorder } from "theme/userThemeCardSx";
@@ -23,7 +24,8 @@ import type {
 } from "types/transactions";
 import { mergeUniqueById } from "utils/collections";
 import { getCurrencySymbol } from "utils/currency";
-import { formatNumber } from "utils/transactions";
+import { transactionSharedPaymentMessages } from "utils/transactionMessages";
+import { formatNumber, formatUnsignedCurrencyAmount } from "utils/transactions";
 
 import { mergeTransactionDateGroups } from "./transactionMonthListUtils";
 
@@ -278,7 +280,7 @@ function TransactionMonthListContent({
                         <SummaryLine
                           label="收入"
                           labelColor="var(--user-theme-income-amount)"
-                          value={formatUnsignedSummaryAmount(
+                          value={formatUnsignedCurrencyAmount(
                             group.summary.income,
                             group.summary.currency,
                           )}
@@ -286,7 +288,7 @@ function TransactionMonthListContent({
                         <SummaryLine
                           label="支出"
                           labelColor="var(--user-theme-negative-amount)"
-                          value={formatUnsignedSummaryAmount(
+                          value={formatUnsignedCurrencyAmount(
                             group.summary.expense,
                             group.summary.currency,
                           )}
@@ -305,6 +307,29 @@ function TransactionMonthListContent({
                     }}
                   />
                 </Stack>
+                {group.sharedPayment ? (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "flex-end",
+                      mt: 0.8,
+                    }}
+                  >
+                    <TransactionSharedPaymentNote
+                      label={transactionSharedPaymentMessages.groupSummary(
+                        group.sharedPayment.recordCount,
+                        formatUnsignedCurrencyAmount(
+                          group.sharedPayment.accountShareAmount,
+                          group.summary.currency,
+                        ),
+                        formatUnsignedCurrencyAmount(
+                          group.sharedPayment.recordTotalAmount,
+                          group.summary.currency,
+                        ),
+                      )}
+                    />
+                  </Box>
+                ) : null}
               </Box>
 
               <Collapse
@@ -542,16 +567,6 @@ function omitRecordKey<T>(record: Record<string, T>, key: string) {
   return Object.fromEntries(
     Object.entries(record).filter(([recordKey]) => recordKey !== key),
   );
-}
-
-function formatUnsignedSummaryAmount(amount: string, currency: string) {
-  const currencySymbol = getCurrencySymbol(currency);
-  const value = Number(amount);
-
-  if (!Number.isFinite(value))
-    return `${currencySymbol}${formatNumber(amount, currency)}`;
-
-  return `${currencySymbol}${formatNumber(String(Math.abs(value)), currency)}`;
 }
 
 function formatSignedSummaryAmount(amount: string, currency: string) {

@@ -18,6 +18,7 @@ import {
 
 import { getTransactionGroupContextLookups } from "internal/transaction/util/grouping/contextLookups";
 import { matchesParentCategory } from "internal/transaction/util/grouping/groupMatching";
+import { listRecordAccountMovements } from "internal/transaction/util/grouping/recordAccounts";
 import type { TransactionGroupLoaderContext } from "internal/transaction/util/grouping/types";
 
 export function filterTransactionRecords(
@@ -26,7 +27,7 @@ export function filterTransactionRecords(
 ) {
   const normalizedFilters = normalizeTransactionFilters(filters);
   const lookups = getTransactionGroupContextLookups(context);
-  const { categoryById, itemsByRecordId } = lookups;
+  const { categoryById, itemsByRecordId, paymentsByRecordId } = lookups;
 
   return context.records.filter((record) => {
     const recordItems = itemsByRecordId.get(record.id) ?? [];
@@ -54,7 +55,20 @@ export function filterTransactionRecords(
     ) {
       return false;
     }
-    if (hasItemFilters(normalizedFilters) && matchingItems.length === 0) {
+    if (
+      normalizedFilters.accountId &&
+      !listRecordAccountMovements(
+        record,
+        recordItems,
+        paymentsByRecordId.get(record.id) ?? [],
+      ).some((movement) => movement.accountId === normalizedFilters.accountId)
+    ) {
+      return false;
+    }
+    if (
+      hasNonAccountItemFilters(normalizedFilters) &&
+      matchingItems.length === 0
+    ) {
       return false;
     }
 
@@ -95,9 +109,12 @@ function normalizeSpecialStatuses(
   return [...new Set(values ?? [])].filter((value) => validValues.has(value));
 }
 
-function hasItemFilters(filters: TransactionFilters) {
+/**
+ * 账户以外的明细级筛选。账户筛选是记录级（付款明细 / 转账明细包含该账户即命中），
+ * 不剔除明细；这些筛选存在时，命中部分由明细决定。
+ */
+export function hasNonAccountItemFilters(filters: TransactionFilters) {
   return Boolean(
-    filters.accountId ||
     filters.parentCategoryId ||
     filters.categoryId ||
     filters.specialStatuses?.length ||
@@ -110,7 +127,7 @@ function filterItems(
   categoryById: Map<string, CategorySummaryDbRow>,
   filters: TransactionFilters,
 ) {
-  if (!hasItemFilters(filters)) return items;
+  if (!hasNonAccountItemFilters(filters)) return items;
 
   return items.filter((item) => {
     if (filters.recordType === "refundableExpense") {
@@ -121,8 +138,6 @@ function filterItems(
         return false;
       }
     }
-    if (filters.accountId && item.account_id !== filters.accountId)
-      return false;
     if (
       filters.parentCategoryId &&
       !matchesParentCategory(item, categoryById, filters.parentCategoryId)

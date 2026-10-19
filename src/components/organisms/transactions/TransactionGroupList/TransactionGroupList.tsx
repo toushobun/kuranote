@@ -147,15 +147,14 @@ export function TransactionRefundCandidateList({
       if (
         item.categoryType !== "expense" ||
         !item.id ||
-        !item.accountId ||
         item.remainingRefundableAmount === undefined
       ) {
         return [];
       }
       return [
         {
+          // 记录币种（普通记录取付款账户币种），只用于判断候选是否可选。
           accountCurrency: record.account_currency,
-          accountId: item.accountId,
           amount: item.amount,
           categoryName: item.categoryName,
           id: item.id,

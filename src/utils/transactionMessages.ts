@@ -15,6 +15,17 @@ export const transactionAmountMessages = {
   partiallyOffset: "部分已核销",
 } as const;
 
+// 多账户记录（#834 / #914）：列表账户位置与「共同支付」标识。金额参数为已格式化的「币种符号 + 金额」。
+export const transactionSharedPaymentMessages = {
+  accountShareAndRecordTotal: (accountShare: string, recordTotal: string) =>
+    `共同支付 · 本账户 ${accountShare} / 整笔 ${recordTotal}`,
+  groupSummary: (count: number, accountShare: string, recordTotal: string) =>
+    `含共同支付 ${count} 笔 · 本账户 ${accountShare} / 整笔 ${recordTotal}`,
+  multipleAccounts: (firstAccountName: string, accountCount: number) =>
+    `${firstAccountName} 等 ${accountCount} 个账户`,
+  recordTotal: (recordTotal: string) => `共同支付 · 整笔 ${recordTotal}`,
+} as const;
+
 export const transactionListPageErrorMessages = {
   initialLoadFailed: "明细读取失败，请稍后重新读取。",
 } as const;

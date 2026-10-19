@@ -4,12 +4,13 @@ import type {
   CategorySummaryDbRow,
   MerchantSummaryDbRow,
   TransactionItemDbRow,
+  TransactionPaymentDbRow,
   TransactionRecordDbRow,
 } from "internal/db-types";
+import type { TransactionFilters } from "internal/transaction/entity/transactionGrouping";
 import type { TransactionListItem } from "internal/transaction/service/read/transactionReadModels";
 import {
   calculateTransactionRecordDisplayAmount,
-  calculateTransactionRecordNetAmount,
   getTransactionRecordCategoryType,
 } from "internal/transaction/util/transactionAmountHelpers";
 import { resolveTransactionBusinessStatus } from "internal/transaction/entity/transactionSpecialStatus";
@@ -18,7 +19,13 @@ import {
   formatRefundMinorUnits,
 } from "internal/transaction/util/refundAllocation";
 import { transactionFallbackLabels } from "internal/transaction/util/transactionFallbackLabels";
+import {
+  getSharedPaymentAmounts,
+  resolveRecordLevelContribution,
+  resolveSharedPaymentAmountBasis,
+} from "internal/transaction/util/grouping/recordContribution";
 import type { ThemeColorKey } from "theme/themeColorTokens";
+import { transactionSharedPaymentMessages } from "utils/transactionMessages";
 import { hasBusinessNetAmountOffset } from "utils/transactions";
 
 export function buildTransactionListItem({
@@ -27,7 +34,9 @@ export function buildTransactionListItem({
   canEdit,
   categoryById,
   fallbackCurrency,
+  filters,
   merchantById,
+  payments,
   record,
   recorderById,
   recordItems,
@@ -38,7 +47,11 @@ export function buildTransactionListItem({
   canEdit: boolean;
   categoryById: Map<string, CategorySummaryDbRow>;
   fallbackCurrency: string;
+  /** 已规范化的筛选条件；`recordItems` 为按它命中的明细。 */
+  filters: TransactionFilters;
   merchantById: Map<string, MerchantSummaryDbRow>;
+  /** 普通记录的付款明细（按 sort_order）。 */
+  payments: TransactionPaymentDbRow[];
   record: TransactionRecordDbRow;
   recorderById?: Map<string, AppUserSummaryDbRow>;
   recordItems: TransactionItemDbRow[];
@@ -87,7 +100,11 @@ export function buildTransactionListItem({
   }
 
   const firstItem = recordItems[0];
-  const account = firstItem ? accountById.get(firstItem.account_id) : undefined;
+  const firstPayment = payments[0];
+  const account = firstPayment
+    ? accountById.get(firstPayment.account_id)
+    : undefined;
+  const accountName = account?.name ?? transactionFallbackLabels.account;
   const merchant = record.merchant_id
     ? merchantById.get(record.merchant_id)
     : undefined;
@@ -95,17 +112,29 @@ export function buildTransactionListItem({
     recordItems,
     categoryById,
   );
-  const displayAmount = calculateTransactionRecordNetAmount(
-    recordItems,
+  const displayAmount = resolveRecordLevelContribution({
     categoryById,
-  );
+    filters,
+    matchedItems: recordItems,
+    payments,
+  });
+  const sharedPaymentAmounts = getSharedPaymentAmounts({
+    accountId: filters.accountId,
+    payments,
+  });
+  const sharedPaymentAmountBasis = sharedPaymentAmounts
+    ? resolveSharedPaymentAmountBasis({ filters })
+    : null;
   const displayType = getTransactionRecordCategoryType(
     recordItems,
     categoryById,
   );
-  const hasBusinessNetOffset = recordItems.some((item) =>
-    hasBusinessNetAmountOffset(item.amount, item.business_net_amount),
-  );
+  // 主金额为账户份额（实际付款，不扣退款 / 报销）时，「原金额」没有对应的含义，不显示。
+  const hasBusinessNetOffset =
+    sharedPaymentAmountBasis !== "accountShare" &&
+    recordItems.some((item) =>
+      hasBusinessNetAmountOffset(item.amount, item.business_net_amount),
+    );
 
   const categoryItems = recordItems.flatMap((item) => {
     if (item.category_id === null) return [];
@@ -114,8 +143,7 @@ export function buildTransactionListItem({
     const parent = category?.parent_id
       ? categoryById.get(category.parent_id)
       : undefined;
-    const currency =
-      accountById.get(item.account_id)?.currency ?? fallbackCurrency;
+    const currency = account?.currency ?? fallbackCurrency;
     const businessStatus = resolveTransactionBusinessStatus({
       currency,
       isRefundIncome: item.is_refund_income,
@@ -127,7 +155,6 @@ export function buildTransactionListItem({
 
     return [
       {
-        accountId: item.account_id,
         amount: item.amount,
         ...(hasBusinessNetAmountOffset(item.amount, item.business_net_amount)
           ? { businessNetAmount: item.business_net_amount }
@@ -148,11 +175,22 @@ export function buildTransactionListItem({
   });
 
   return {
-    account_color: firstItem
-      ? (accountColorById?.get(firstItem.account_id) ?? null)
+    account_color: firstPayment
+      ? (accountColorById?.get(firstPayment.account_id) ?? null)
       : null,
     account_currency: account?.currency ?? fallbackCurrency,
-    account_name: account?.name ?? transactionFallbackLabels.account,
+    account_name:
+      payments.length > 1
+        ? transactionSharedPaymentMessages.multipleAccounts(
+            accountName,
+            payments.length,
+          )
+        : accountName,
+    ...(sharedPaymentAmounts && sharedPaymentAmountBasis === "matchedItems"
+      ? {
+          account_share_amount: String(sharedPaymentAmounts.accountShareAmount),
+        }
+      : {}),
     amount: String(Math.abs(displayAmount)),
     ...(hasBusinessNetOffset
       ? {
@@ -172,6 +210,9 @@ export function buildTransactionListItem({
     merchant_icon_url: merchant?.icon_url ?? null,
     merchant_name: merchant?.name ?? null,
     note: record.note ?? firstItem?.note ?? null,
+    ...(sharedPaymentAmounts
+      ? { record_total_amount: String(sharedPaymentAmounts.recordTotalAmount) }
+      : {}),
     recorder_color: recorder?.display_color ?? null,
     recorder_name: recorder?.display_name ?? null,
     show_recorder: showRecorder,

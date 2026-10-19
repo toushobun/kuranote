@@ -191,6 +191,11 @@ export async function getEditTransactionView(
     incomeLinks.map((link) => [link.incomeItemId, link]),
   );
 
+  // 记录币种取首个付款账户的币种（各付款账户币种一致），不读明细的账户镜像。
+  const currency =
+    currencyByAccountId.get(payments[0]?.account_id ?? "") ??
+    currentLedger.baseCurrency;
+
   return {
     ...options,
     canEdit,
@@ -217,9 +222,6 @@ export async function getEditTransactionView(
           options.categoryOptions,
           currentLedger.baseCurrency,
         );
-        const currency =
-          currencyByAccountId.get(item.account_id) ??
-          currentLedger.baseCurrency;
         const amount = formatEditableAmount(item.amount, currency);
         const businessNetAmount = hasBusinessNetAmountOffset(
           item.amount,

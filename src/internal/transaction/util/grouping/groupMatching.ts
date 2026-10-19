@@ -1,6 +1,7 @@
 import type {
   CategorySummaryDbRow,
   TransactionItemDbRow,
+  TransactionPaymentDbRow,
   TransactionRecordDbRow,
 } from "internal/db-types";
 import type { TransactionGroupBy } from "internal/transaction/entity/transactionGrouping";
@@ -9,17 +10,21 @@ import {
   isTransactionTimeGroupBy,
 } from "internal/transaction/util/transactionListGroups";
 
+import { listRecordAccountMovements } from "internal/transaction/util/grouping/recordAccounts";
+
 export function recordMatchesGroup({
   categoryById,
   groupBy,
   groupKey,
   items,
+  payments,
   record,
 }: {
   categoryById: Map<string, CategorySummaryDbRow>;
   groupBy: TransactionGroupBy;
   groupKey: string;
   items: TransactionItemDbRow[];
+  payments: TransactionPaymentDbRow[];
   record: TransactionRecordDbRow;
 }) {
   if (isTransactionTimeGroupBy(groupBy)) {
@@ -37,7 +42,9 @@ export function recordMatchesGroup({
   }
 
   if (groupBy === "account") {
-    return items.some((item) => item.account_id === groupKey);
+    return listRecordAccountMovements(record, items, payments).some(
+      (movement) => movement.accountId === groupKey,
+    );
   }
 
   if (groupBy === "parentCategory") {

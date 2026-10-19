@@ -113,7 +113,7 @@ Parent：#380
 - `update_transfer_transaction`
 - `convert_transaction_type`
 - `void_transaction`
-- `load_transaction_group_summaries`
+- `load_transaction_group_summaries_with_special_status`
 
 ### 数据库兜底
 

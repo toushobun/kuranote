@@ -2,7 +2,7 @@ import type {
   TransactionExportPayment,
   TransactionExportRecord,
 } from "internal/transaction/entity/transactionExportRecord";
-import type { TransactionExportRepository } from "internal/transaction/repository/transactionRepository";
+import type { TransactionContextRepository } from "internal/transaction/repository/transactionRepository";
 import {
   requireActiveLedgerMemberRole,
   type LedgerAccessService,
@@ -27,7 +27,7 @@ export function createTransactionExportQueryService({
   transactionRepository,
   ledgerAccessService,
 }: {
-  transactionRepository: TransactionExportRepository;
+  transactionRepository: TransactionContextRepository;
   ledgerAccessService: LedgerAccessService;
 }): TransactionExportQueryService {
   return {

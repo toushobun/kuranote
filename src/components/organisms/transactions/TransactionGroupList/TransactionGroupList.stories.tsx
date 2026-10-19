@@ -52,7 +52,6 @@ const refundCandidateItems: TransactionListItem[] = [
     amount: "200",
     categoryItems: [
       {
-        accountId: "00000000-0000-4000-8000-000000008001",
         amount: "120",
         categoryName: "服装",
         categoryType: "expense",
@@ -62,7 +61,6 @@ const refundCandidateItems: TransactionListItem[] = [
         remainingRefundableAmount: "100",
       },
       {
-        accountId: "00000000-0000-4000-8000-000000008001",
         amount: "80",
         categoryName: "日用品",
         categoryType: "expense",
@@ -116,7 +114,6 @@ const currencyMismatchedCandidateItems: TransactionListItem[] = [
     account_name: "现金",
     categoryItems: [
       {
-        accountId: "00000000-0000-4000-8000-000000008002",
         amount: "1200",
         categoryName: "午餐",
         categoryType: "expense",

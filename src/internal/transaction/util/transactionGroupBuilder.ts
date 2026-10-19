@@ -3,9 +3,13 @@ import type {
   AppUserSummaryDbRow,
   CategorySummaryDbRow,
   TransactionItemDbRow,
+  TransactionPaymentDbRow,
   TransactionRecordDbRow,
 } from "internal/db-types";
-import type { TransactionGroupBy } from "internal/transaction/entity/transactionGrouping";
+import type {
+  TransactionFilters,
+  TransactionGroupBy,
+} from "internal/transaction/entity/transactionGrouping";
 import type { TransactionGroupPage } from "internal/transaction/entity/transactionReadModels";
 import {
   fromTransactionSpecialStatusStorageValue,
@@ -13,12 +17,20 @@ import {
   transactionSpecialStatusStorageValues,
   type TransactionSpecialStatusStorageValue,
 } from "internal/transaction/entity/transactionSpecialStatus";
-import type { TransactionAmountSummary } from "internal/transaction/service/read/transactionReadModels";
-import { paginateItems } from "utils/collections";
+import type {
+  TransactionAmountSummary,
+  TransactionSharedPaymentSummary,
+} from "internal/transaction/service/read/transactionReadModels";
+import { groupByKey, paginateItems } from "utils/collections";
 
+import { listRecordAccountMovements } from "./grouping/recordAccounts";
+import {
+  getSharedPaymentAmounts,
+  resolveRecordLevelContribution,
+  toSharedPaymentSummary,
+} from "./grouping/recordContribution";
 import {
   addSignedAmount,
-  calculateRecordNetAmount,
   createSummary,
   getSignedTransactionItemAmount,
   normalizeSummary,
@@ -33,11 +45,14 @@ export type BuildTransactionGroupSummaryPageParams = {
   accounts: AccountOptionDbRow[];
   categories: CategorySummaryDbRow[];
   currency: string;
+  /** 已规范化的筛选条件（`normalizeTransactionFilters`）；`items` 已按它过滤。 */
+  filters: TransactionFilters;
   groupBy: TransactionGroupBy;
   items: TransactionItemDbRow[];
   merchants: { id: string; name: string }[];
   offset: number;
   pageSize: number;
+  payments: TransactionPaymentDbRow[];
   records: TransactionRecordDbRow[];
   recorders: AppUserSummaryDbRow[];
 };
@@ -48,23 +63,43 @@ type MutableGroup = {
   label: string;
   latestTransactionAt: string;
   recordIds: Set<string>;
+  sharedPaymentAccountShareAmount: number;
+  sharedPaymentRecordIds: Set<string>;
+  sharedPaymentRecordTotalAmount: number;
   summary: TransactionAmountSummary;
   itemCount: number;
+};
+
+type RecordGroupContext = {
+  categoryById: Map<string, CategorySummaryDbRow>;
+  filters: TransactionFilters;
+  payments: TransactionPaymentDbRow[];
+  record: TransactionRecordDbRow;
+  recordItems: TransactionItemDbRow[];
 };
 
 export function buildTransactionGroupSummaryPage({
   accounts,
   categories,
   currency,
+  filters,
   groupBy,
   items,
   merchants,
   offset,
   pageSize,
+  payments,
   records,
   recorders,
 }: BuildTransactionGroupSummaryPageParams): TransactionGroupPage {
-  const itemsByRecordId = groupItemsByRecordId(items);
+  const itemsByRecordId = groupByKey(
+    items,
+    (item) => item.transaction_record_id,
+  );
+  const paymentsByRecordId = groupByKey(
+    payments,
+    (payment) => payment.transaction_record_id,
+  );
   const accountById = new Map(accounts.map((account) => [account.id, account]));
   const categoryById = new Map(
     categories.map((category) => [category.id, category]),
@@ -78,7 +113,13 @@ export function buildTransactionGroupSummaryPage({
   const groups = new Map<string, MutableGroup>();
 
   for (const record of records) {
-    const recordItems = itemsByRecordId.get(record.id) ?? [];
+    const recordContext: RecordGroupContext = {
+      categoryById,
+      filters,
+      payments: paymentsByRecordId.get(record.id) ?? [],
+      record,
+      recordItems: itemsByRecordId.get(record.id) ?? [],
+    };
 
     if (isTransactionTimeGroupBy(groupBy)) {
       const timeGroup = getTransactionTimeGroupInfo(
@@ -93,7 +134,7 @@ export function buildTransactionGroupSummaryPage({
         label: timeGroup.label,
         transactionAt: record.transaction_at,
       });
-      addRecordToGroup(group, record, recordItems, categoryById);
+      addRecordToGroup(group, recordContext);
       continue;
     }
 
@@ -105,7 +146,7 @@ export function buildTransactionGroupSummaryPage({
         merchantById,
         record,
       });
-      addRecordToGroup(group, record, recordItems, categoryById);
+      addRecordToGroup(group, recordContext);
       continue;
     }
 
@@ -117,19 +158,22 @@ export function buildTransactionGroupSummaryPage({
         record,
         recorderById,
       });
-      addRecordToGroup(group, record, recordItems, categoryById);
+      addRecordToGroup(group, recordContext);
       continue;
     }
 
-    addItemGroups({
-      accountById,
-      categoryById,
-      currency,
-      groupBy,
-      groups,
-      record,
-      recordItems,
-    });
+    if (groupBy === "account") {
+      addAccountGroups({
+        accountById,
+        currency,
+        groupBy,
+        groups,
+        recordContext,
+      });
+      continue;
+    }
+
+    addItemGroups({ currency, groupBy, groups, recordContext });
   }
 
   const sortedGroups = [...groups.values()].sort((a, b) => {
@@ -157,6 +201,15 @@ export function buildTransactionGroupSummaryPage({
       id: group.id,
       key: group.key,
       label: group.label,
+      ...withSharedPayment(
+        toSharedPaymentSummary({
+          accountShareAmount: group.sharedPaymentAccountShareAmount,
+          filters,
+          groupBy,
+          recordCount: group.sharedPaymentRecordIds.size,
+          recordTotalAmount: group.sharedPaymentRecordTotalAmount,
+        }),
+      ),
       summary: normalizeSummary(group.summary),
       transactionCount:
         groupBy === "specialStatus" ? group.itemCount : group.recordIds.size,
@@ -217,39 +270,66 @@ function getMemberGroup({
   });
 }
 
-function addItemGroups({
+/**
+ * 按账户分组取记录的实际收付（付款明细 / 转账明细的 balance_delta），
+ * 有账户筛选时只计该账户；转账 / 余额调整计入笔数但不计入收支。
+ */
+function addAccountGroups({
   accountById,
-  categoryById,
   currency,
   groupBy,
   groups,
-  record,
-  recordItems,
+  recordContext,
 }: {
   accountById: Map<string, AccountOptionDbRow>;
-  categoryById: Map<string, CategorySummaryDbRow>;
   currency: string;
   groupBy: TransactionGroupBy;
   groups: Map<string, MutableGroup>;
-  record: TransactionRecordDbRow;
-  recordItems: TransactionItemDbRow[];
+  recordContext: RecordGroupContext;
 }) {
-  for (const item of recordItems) {
-    if (groupBy === "account") {
-      const group = getOrCreateGroup({
-        currency,
-        groupBy,
-        groups,
-        key: item.account_id,
-        label:
-          accountById.get(item.account_id)?.name ??
-          transactionFallbackLabels.account,
-        transactionAt: record.transaction_at,
-      });
-      addItemToGroup(group, record, item, categoryById);
+  const { filters, payments, record, recordItems } = recordContext;
+
+  for (const movement of listRecordAccountMovements(
+    record,
+    recordItems,
+    payments,
+  )) {
+    if (filters.accountId && movement.accountId !== filters.accountId) {
       continue;
     }
 
+    const group = getOrCreateGroup({
+      currency,
+      groupBy,
+      groups,
+      key: movement.accountId,
+      label:
+        accountById.get(movement.accountId)?.name ??
+        transactionFallbackLabels.account,
+      transactionAt: record.transaction_at,
+    });
+    trackGroupRecord(group, recordContext);
+
+    if (record.type === "normal") {
+      addSignedAmount(group.summary, Number(movement.balanceDelta ?? 0));
+    }
+  }
+}
+
+function addItemGroups({
+  currency,
+  groupBy,
+  groups,
+  recordContext,
+}: {
+  currency: string;
+  groupBy: TransactionGroupBy;
+  groups: Map<string, MutableGroup>;
+  recordContext: RecordGroupContext;
+}) {
+  const { categoryById, record, recordItems } = recordContext;
+
+  for (const item of recordItems) {
     if (groupBy === "parentCategory") {
       const category = item.category_id
         ? categoryById.get(item.category_id)
@@ -265,7 +345,7 @@ function addItemGroups({
         label: parent?.name ?? transactionFallbackLabels.parentCategory,
         transactionAt: record.transaction_at,
       });
-      addItemToGroup(group, record, item, categoryById);
+      addItemToGroup(group, recordContext, item);
       continue;
     }
 
@@ -281,7 +361,7 @@ function addItemGroups({
         label: category?.name ?? transactionFallbackLabels.subcategory,
         transactionAt: record.transaction_at,
       });
-      addItemToGroup(group, record, item, categoryById);
+      addItemToGroup(group, recordContext, item);
       continue;
     }
 
@@ -299,21 +379,9 @@ function addItemGroups({
           ],
         transactionAt: record.transaction_at,
       });
-      addItemToGroup(group, record, item, categoryById);
+      addItemToGroup(group, recordContext, item);
     }
   }
-}
-
-function groupItemsByRecordId(items: TransactionItemDbRow[]) {
-  const itemsByRecordId = new Map<string, TransactionItemDbRow[]>();
-
-  for (const item of items) {
-    const recordItems = itemsByRecordId.get(item.transaction_record_id) ?? [];
-    recordItems.push(item);
-    itemsByRecordId.set(item.transaction_record_id, recordItems);
-  }
-
-  return itemsByRecordId;
 }
 
 function getOrCreateGroup({
@@ -339,6 +407,9 @@ function getOrCreateGroup({
     label,
     latestTransactionAt: transactionAt,
     recordIds: new Set<string>(),
+    sharedPaymentAccountShareAmount: 0,
+    sharedPaymentRecordIds: new Set<string>(),
+    sharedPaymentRecordTotalAmount: 0,
     summary: createSummary(currency),
   };
 
@@ -353,28 +424,63 @@ function getOrCreateGroup({
 
 function addRecordToGroup(
   group: MutableGroup,
-  record: TransactionRecordDbRow,
-  items: TransactionItemDbRow[],
-  categoryById: Map<string, CategorySummaryDbRow>,
+  recordContext: RecordGroupContext,
 ) {
-  group.recordIds.add(record.id);
+  const { categoryById, filters, payments, record, recordItems } =
+    recordContext;
+  trackGroupRecord(group, recordContext);
 
   if (record.type !== "normal") return;
 
-  addSignedAmount(group.summary, calculateRecordNetAmount(items, categoryById));
+  addSignedAmount(
+    group.summary,
+    resolveRecordLevelContribution({
+      categoryById,
+      filters,
+      matchedItems: recordItems,
+      payments,
+    }),
+  );
 }
 
 function addItemToGroup(
   group: MutableGroup,
-  record: TransactionRecordDbRow,
+  recordContext: RecordGroupContext,
   item: TransactionItemDbRow,
-  categoryById: Map<string, CategorySummaryDbRow>,
 ) {
-  group.recordIds.add(record.id);
+  const { categoryById, record } = recordContext;
+  trackGroupRecord(group, recordContext);
   group.itemCount += 1;
 
   if (record.type !== "normal") return;
 
   const signedAmount = getSignedTransactionItemAmount(item, categoryById);
   addSignedAmount(group.summary, signedAmount);
+}
+
+/** 记录计入组：笔数，以及有账户筛选时的「共同支付」统计（一笔记录在一个组内只计一次）。 */
+function trackGroupRecord(
+  group: MutableGroup,
+  recordContext: RecordGroupContext,
+) {
+  const { filters, payments, record } = recordContext;
+  group.recordIds.add(record.id);
+
+  if (group.sharedPaymentRecordIds.has(record.id)) return;
+
+  const sharedAmounts = getSharedPaymentAmounts({
+    accountId: filters.accountId,
+    payments,
+  });
+  if (!sharedAmounts) return;
+
+  group.sharedPaymentRecordIds.add(record.id);
+  group.sharedPaymentAccountShareAmount += sharedAmounts.accountShareAmount;
+  group.sharedPaymentRecordTotalAmount += sharedAmounts.recordTotalAmount;
+}
+
+function withSharedPayment(
+  sharedPayment: TransactionSharedPaymentSummary | undefined,
+) {
+  return sharedPayment ? { sharedPayment } : {};
 }
