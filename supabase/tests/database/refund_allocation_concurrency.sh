@@ -74,8 +74,8 @@ trap cleanup EXIT
 
 read -r ledger_id account_id expense_record_id expense_category_id income_record_id income_account_id income_category_id user_id old_enabled < <(
   psql_in_db -A -t -F ' ' -c "
-    select e.ledger_id, e.account_id, e.transaction_record_id, ec.id,
-           i.transaction_record_id, i.account_id, ic.id, e.created_by,
+    select e.ledger_id, ep.account_id, e.transaction_record_id, ec.id,
+           i.transaction_record_id, ip.account_id, ic.id, e.created_by,
            l.transaction_item_special_status_enabled
     from public.transaction_item e
     join public.category ec on ec.id = e.category_id and ec.ledger_id = e.ledger_id and ec.type = 'expense'
@@ -88,6 +88,16 @@ read -r ledger_id account_id expense_record_id expense_category_id income_record
       where candidate.ledger_id = e.ledger_id limit 1
     ) i on true
     join public.category ic on ic.id = i.category_id and ic.ledger_id = i.ledger_id
+    -- 普通记录的账户来自付款明细（#914 起明细不保存账户）。只选单账户记录：
+    -- 测试辅助函数按登记的明细重建单账户付款明细，不能往 seed 的多账户记录里追加明细。
+    join lateral (
+      select min(p.account_id::text)::uuid as account_id from public.transaction_payment p
+      where p.transaction_record_id = e.transaction_record_id having count(*) = 1
+    ) ep on true
+    join lateral (
+      select min(p.account_id::text)::uuid as account_id from public.transaction_payment p
+      where p.transaction_record_id = i.transaction_record_id having count(*) = 1
+    ) ip on true
     limit 1;"
 )
 if [[ "${old_enabled}" != "t" && "${old_enabled}" != "f" ]]; then
@@ -98,7 +108,7 @@ fi
 psql_in_db >/dev/null <<SQL
 begin;
 update public.ledger set transaction_item_special_status_enabled = true where id = '${ledger_id}';
--- 同一记录的明细保持同一付款账户（#911 过渡期镜像）。
+-- 同一记录的明细登记同一付款账户，测试辅助函数据此重建单账户付款明细。
 select tests.insert_normal_transaction_items(jsonb_agg(item))
 from (values
   ('${target_id}', '${ledger_id}', '${expense_record_id}', '${account_id}', '${expense_category_id}', 100, 0, -100, null, 5791, null, '${user_id}', '${user_id}'),
