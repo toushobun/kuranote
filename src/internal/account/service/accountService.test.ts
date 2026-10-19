@@ -21,6 +21,18 @@ const holderUserId = "00000000-0000-4000-8000-000000000041";
 const accountId = "00000000-0000-4000-8000-000000000045";
 const placeholderId = "00000000-0000-4000-8000-000000000061";
 
+const cashAccountRow = {
+  created_at: "2026-07-01T00:00:00.000Z",
+  currency: "JPY",
+  current_balance: "1000",
+  id: accountId,
+  is_archived: false,
+  initial_balance: "1000",
+  name: "现金",
+  sort_order: 0,
+  type: "cash" as const,
+};
+
 function createPlaceholderQueryService(
   placeholders = [{ displayName: "奶奶", id: placeholderId }],
 ): LedgerPlaceholderMemberQueryService {
@@ -39,6 +51,7 @@ function createRepository(): AccountRepository {
     findSummariesByIds: vi.fn().mockResolvedValue([]),
     isActiveAccount: vi.fn().mockResolvedValue(true),
     listAccounts: vi.fn().mockResolvedValue([]),
+    listAccountIdsWithTransactions: vi.fn().mockResolvedValue([]),
     listActiveMembers: vi.fn().mockResolvedValue([
       {
         created_at: "2026-07-01T00:00:00.000Z",
@@ -106,19 +119,7 @@ describe("AccountService", () => {
   it("读取账户页面时通过账本窄接口校验权限并聚合成员信息", async () => {
     const repository = createRepository();
     const ledgerAccessService = createLedgerAccessService();
-    vi.mocked(repository.listAccounts).mockResolvedValue([
-      {
-        created_at: "2026-07-01T00:00:00.000Z",
-        currency: "JPY",
-        current_balance: "1000",
-        id: accountId,
-        is_archived: false,
-        initial_balance: "1000",
-        name: "现金",
-        sort_order: 0,
-        type: "cash",
-      },
-    ]);
+    vi.mocked(repository.listAccounts).mockResolvedValue([cashAccountRow]);
     vi.mocked(repository.listHolders).mockResolvedValue([
       {
         account_id: accountId,
@@ -167,8 +168,24 @@ describe("AccountService", () => {
         }),
       ]),
     );
+    expect(view.accounts[0].has_transactions).toBe(false);
     expect(repository.listAccounts).toHaveBeenCalledWith(ledgerId, undefined);
     expect(repository.listHolders).toHaveBeenCalledWith(ledgerId, [accountId]);
+  });
+
+  it("已有交易的账户在视图中标记为不能修改币种", async () => {
+    const repository = createRepository();
+    vi.mocked(repository.listAccounts).mockResolvedValue([cashAccountRow]);
+    vi.mocked(repository.listAccountIdsWithTransactions).mockResolvedValue([
+      accountId,
+    ]);
+
+    const view = await createService(repository).getView({ ledgerId, userId });
+
+    expect(repository.listAccountIdsWithTransactions).toHaveBeenCalledWith(
+      ledgerId,
+    );
+    expect(view.accounts[0].has_transactions).toBe(true);
   });
 
   it("includeArchived 透传给仓储以读取归档账户", async () => {

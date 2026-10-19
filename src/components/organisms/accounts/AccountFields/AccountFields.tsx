@@ -6,6 +6,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useState, type ReactNode } from "react";
 
+import { accountErrorCodes, accountErrorMessages } from "internal/account";
 import { AccountHolderCheckboxGroup } from "molecules/accounts/AccountHolderCheckboxGroup";
 import {
   accountTypeOptions,
@@ -16,6 +17,8 @@ import { ledgerCurrencyOptions } from "types/ledgers";
 
 type AccountFieldsProps = {
   balanceLabel: string;
+  // 已有交易的账户不能修改币种：禁用选择并说明原因，服务端仍会再次校验（#910）。
+  currencyLocked?: boolean;
   defaultCurrency: string;
   defaultName?: string;
   defaultType: string;
@@ -32,6 +35,7 @@ type AccountFieldsProps = {
 
 export function AccountFields({
   balanceLabel,
+  currencyLocked = false,
   defaultCurrency,
   defaultName,
   defaultType,
@@ -126,10 +130,20 @@ export function AccountFields({
       </AccountFormRow>
 
       <AccountFormRow label="货币">
+        {currencyLocked ? (
+          // 禁用的字段不会随表单提交，用隐藏字段原样带回当前币种。
+          <input name="currency" type="hidden" value={defaultCurrency} />
+        ) : null}
         <TextField
           defaultValue={defaultCurrency}
+          disabled={currencyLocked}
           fullWidth
-          name="currency"
+          helperText={
+            currencyLocked
+              ? accountErrorMessages[accountErrorCodes.currencyLocked]
+              : undefined
+          }
+          name={currencyLocked ? undefined : "currency"}
           onChange={(event) => setSelectedCurrency(event.target.value)}
           required
           select

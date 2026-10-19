@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   accountErrorCodes,
   accountErrorMessages,
+  accountLoadErrorMessages,
   type AccountErrorCode,
 } from "internal/account/errors";
 import { createSupabaseAccountRepository } from "internal/account/repository/accountRepository";
@@ -12,7 +13,10 @@ import {
   expectConcurrentModificationConflict,
   retryableConcurrencyRpcErrors,
 } from "test/concurrencyConflict";
-import { createSupabaseMock } from "test/supabaseMock";
+import {
+  createSupabaseMock,
+  type SupabaseMockResponse,
+} from "test/supabaseMock";
 
 const ledgerId = "00000000-0000-4000-8000-000000000032";
 const userId = "00000000-0000-4000-8000-000000000031";
@@ -250,6 +254,73 @@ it("账户资料和目标余额通过同一 RPC 保存", async () => {
       p_adjustment_note: "盘点",
     },
   );
+});
+
+describe("AccountRepository 币种锁定（#910）", () => {
+  function createRepositoryWithRpc(rpcResponse: Partial<SupabaseMockResponse>) {
+    const supabase = createSupabaseMock({ rpcResponse });
+    return {
+      repository: createSupabaseAccountRepository(
+        supabase.client as never,
+        logger,
+      ),
+      supabase,
+    };
+  }
+
+  it("已有交易时修改币种的 detail 精确映射为 ValidationError", async () => {
+    const { repository } = createRepositoryWithRpc({
+      error: {
+        code: "22023",
+        details: accountErrorCodes.currencyLocked,
+        message: "private raw message",
+      },
+    });
+
+    await expect(
+      repository.update({
+        accountId,
+        currency: "USD",
+        holderPlaceholderId: null,
+        holderUserIds: [],
+        ledgerId,
+        name: "现金",
+        type: "cash",
+      }),
+    ).rejects.toMatchObject({
+      code: accountErrorCodes.currencyLocked,
+      message: "该账户已有交易记录，不能修改币种。",
+      name: "ValidationError",
+    });
+  });
+
+  it("读取已有交易的账户 ID", async () => {
+    const { repository, supabase } = createRepositoryWithRpc({
+      data: [{ account_id: accountId }],
+    });
+
+    await expect(
+      repository.listAccountIdsWithTransactions(ledgerId),
+    ).resolves.toEqual([accountId]);
+    expect(supabase.rpc).toHaveBeenCalledExactlyOnceWith(
+      "list_account_ids_with_transactions",
+      { p_ledger_id: ledgerId },
+    );
+  });
+
+  it("读取已有交易的账户失败时转换为安全 RepositoryError", async () => {
+    const { repository } = createRepositoryWithRpc({
+      error: { code: "XX000", message: "private database message" },
+    });
+
+    await expect(
+      repository.listAccountIdsWithTransactions(ledgerId),
+    ).rejects.toMatchObject({
+      code: "account_transaction_usage_load_failed",
+      message: accountLoadErrorMessages.transactionUsageLoadFailed,
+      name: "RepositoryError",
+    });
+  });
 });
 
 describe("AccountRepository 占位持有人", () => {

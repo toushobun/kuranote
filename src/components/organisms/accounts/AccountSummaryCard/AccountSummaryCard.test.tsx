@@ -22,6 +22,7 @@ const accounts: Account[] = [
     current_balance: 85000,
     sort_order: 1,
     created_at: "2026-01-01T00:00:00.000Z",
+    has_transactions: false,
     holders: [
       {
         id: "holder-1",
@@ -45,6 +46,7 @@ const accounts: Account[] = [
     current_balance: 3200,
     sort_order: 2,
     created_at: "2026-01-02T00:00:00.000Z",
+    has_transactions: false,
     holders: [],
   },
 ];
@@ -136,6 +138,7 @@ describe("AccountSummaryCard", () => {
         current_balance: 500,
         sort_order: 3,
         created_at: "2026-01-03T00:00:00.000Z",
+        has_transactions: false,
         holders: [],
       },
     ];

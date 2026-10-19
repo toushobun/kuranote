@@ -18,6 +18,7 @@ import {
 } from "internal/account/util/accountView";
 
 type AccountsViewInput = {
+  accountIdsWithTransactions: string[];
   accounts: Awaited<ReturnType<AccountRepository["listAccounts"]>>;
   displaySettings: AccountMemberDisplaySetting[];
   holders: Awaited<ReturnType<AccountRepository["listHolders"]>>;
@@ -49,6 +50,7 @@ export function mergeLedgerDisplayNames(
 }
 
 export function buildAccountsView({
+  accountIdsWithTransactions,
   accounts,
   displaySettings,
   holders,
@@ -65,10 +67,15 @@ export function buildAccountsView({
   const appUserById = new Map(
     usersWithLedgerDisplayNames.map((user) => [user.id, user]),
   );
+  const accountIdsWithTransactionsSet = new Set(accountIdsWithTransactions);
 
   return {
     accounts: buildAccountsWithHolders({
-      accounts,
+      // 已有交易的账户在编辑表单中禁用币种字段（#910）。
+      accounts: accounts.map((account) => ({
+        ...account,
+        has_transactions: accountIdsWithTransactionsSet.has(account.id),
+      })),
       appUserById,
       displayColorByUserId: buildDisplayColorByUserId({
         members,

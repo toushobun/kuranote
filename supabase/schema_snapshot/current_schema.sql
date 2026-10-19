@@ -458,6 +458,24 @@ $$;
 ALTER FUNCTION "public"."accept_ledger_invite"("p_token" "text") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."account_has_transactions"("p_ledger_id" "uuid", "p_account_id" "uuid") RETURNS boolean
+    LANGUAGE "sql" STABLE
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+    -- 视图为 security_invoker，只在 SECURITY DEFINER 上下文中调用，
+    -- 不受 RLS 隐藏已作废记录的影响。
+    select exists (
+        select 1
+        from public.transaction_account_movement m
+        where m.ledger_id = p_ledger_id
+          and m.account_id = p_account_id
+    );
+$$;
+
+
+ALTER FUNCTION "public"."account_has_transactions"("p_ledger_id" "uuid", "p_account_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."add_merchant_presets"("p_ledger_id" "uuid", "p_currency" "text", "p_payload" "jsonb") RETURNS integer
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -4371,6 +4389,22 @@ $$;
 ALTER FUNCTION "public"."ledger_setup_is_completed"("p_ledger_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."list_account_ids_with_transactions"("p_ledger_id" "uuid") RETURNS TABLE("account_id" "uuid")
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+    select a.id
+    from public.account a
+    where a.ledger_id = p_ledger_id
+      and public.current_user_is_active_ledger_member(p_ledger_id)
+      and public.account_has_transactions(a.ledger_id, a.id)
+    order by a.id;
+$$;
+
+
+ALTER FUNCTION "public"."list_account_ids_with_transactions"("p_ledger_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."list_current_user_ledger_display_names"() RETURNS TABLE("ledger_id" "uuid", "ledger_name" "text", "display_name" "text")
     LANGUAGE "sql" STABLE
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -5121,6 +5155,29 @@ $$;
 
 
 ALTER FUNCTION "public"."normalize_transaction_record_type_for_compat"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."prevent_account_currency_change_with_transactions"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+begin
+    -- 判定与更新在同一事务内。FOR UPDATE 与记账写明细 / 付款明细时外键检查取得的
+    -- KEY SHARE 冲突：进行中的记账提交后才继续判定，避免「检查时没有交易、
+    -- 更新前刚好有人记账」。update_account_with_holders 已先持有该锁，这里不会再等待。
+    perform 1 from public.account where id = new.id for update;
+
+    if public.account_has_transactions(new.ledger_id, new.id) then
+        raise exception 'account_currency_locked'
+            using errcode = '22023', detail = 'account_currency_locked';
+    end if;
+
+    return new;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."prevent_account_currency_change_with_transactions"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."prevent_direct_account_balance_update"() RETURNS "trigger"
@@ -10439,6 +10496,10 @@ CREATE INDEX "transaction_record_merchant_id_idx" ON "public"."transaction_recor
 
 
 
+CREATE OR REPLACE TRIGGER "account_currency_locked_by_transactions" BEFORE UPDATE OF "currency" ON "public"."account" FOR EACH ROW WHEN (("new"."currency" IS DISTINCT FROM "old"."currency")) EXECUTE FUNCTION "public"."prevent_account_currency_change_with_transactions"();
+
+
+
 CREATE OR REPLACE TRIGGER "account_holder_name_scope_refresh" AFTER INSERT OR DELETE OR UPDATE ON "public"."account_holder" FOR EACH ROW EXECUTE FUNCTION "public"."refresh_account_name_scope"();
 
 
@@ -11394,6 +11455,10 @@ GRANT ALL ON FUNCTION "public"."accept_ledger_invite"("p_token" "text") TO "auth
 
 
 
+REVOKE ALL ON FUNCTION "public"."account_has_transactions"("p_ledger_id" "uuid", "p_account_id" "uuid") FROM PUBLIC;
+
+
+
 REVOKE ALL ON FUNCTION "public"."add_merchant_presets"("p_ledger_id" "uuid", "p_currency" "text", "p_payload" "jsonb") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."add_merchant_presets"("p_ledger_id" "uuid", "p_currency" "text", "p_payload" "jsonb") TO "authenticated";
 
@@ -11673,6 +11738,11 @@ REVOKE ALL ON FUNCTION "public"."ledger_setup_is_completed"("p_ledger_id" "uuid"
 
 
 
+REVOKE ALL ON FUNCTION "public"."list_account_ids_with_transactions"("p_ledger_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."list_account_ids_with_transactions"("p_ledger_id" "uuid") TO "authenticated";
+
+
+
 REVOKE ALL ON FUNCTION "public"."list_current_user_ledger_display_names"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."list_current_user_ledger_display_names"() TO "authenticated";
 
@@ -11719,6 +11789,10 @@ REVOKE ALL ON FUNCTION "public"."normalize_ledger_placeholder_name"("p_display_n
 
 
 REVOKE ALL ON FUNCTION "public"."normalize_transaction_record_type_for_compat"() FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."prevent_account_currency_change_with_transactions"() FROM PUBLIC;
 
 
 

@@ -9,6 +9,7 @@ export const accountErrorCodes = {
   authRequired: "auth_required",
   createFailed: "create_failed",
   currencyInvalid: "currency_invalid",
+  currencyLocked: "account_currency_locked",
   holderChanged: "account_holder_changed",
   holderIdentityInvalid: "account_holder_identity_invalid",
   holderInvalid: "holder_invalid",
@@ -39,6 +40,7 @@ export const accountErrorMessages: Record<AccountErrorCode, string> = {
   [accountErrorCodes.authRequired]: sharedErrorMessages.authRequired,
   [accountErrorCodes.createFailed]: "账户新增失败，请稍后重试。",
   [accountErrorCodes.currencyInvalid]: "货币必须是 3 位大写字母，例如 JPY。",
+  [accountErrorCodes.currencyLocked]: "该账户已有交易记录，不能修改币种。",
   [accountErrorCodes.holderChanged]:
     "账户持有人已被其他人修改，请刷新页面后重新选择持有人。",
   [accountErrorCodes.holderIdentityInvalid]:
@@ -72,4 +74,5 @@ export const accountLoadErrorMessages = {
   memberRoleInvalid: "账户成员资料格式异常，请稍后重试。",
   membersLoadFailed: "账本成员加载失败，请稍后重试。",
   summariesLoadFailed: "账户信息加载失败，请稍后重试。",
+  transactionUsageLoadFailed: "账户交易记录确认失败，请稍后重试。",
 } as const;
