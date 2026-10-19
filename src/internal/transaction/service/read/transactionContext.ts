@@ -13,6 +13,7 @@ import { getTransactionGroupContextLookups } from "internal/transaction/util/gro
 import { normalizeTransactionFilters } from "internal/transaction/util/grouping/filters";
 import { listRecordAccountMovements } from "internal/transaction/util/grouping/recordAccounts";
 import type { TransactionGroupLoaderContext } from "internal/transaction/util/grouping/types";
+import type { TransactionListGroupContext } from "internal/transaction/util/grouping/recordContribution";
 import { groupByKey } from "utils/collections";
 
 type TransactionReadBaseDependencies = {
@@ -159,6 +160,7 @@ export function buildTransactionListItemsFromContext(
   records: TransactionRecordDbRow[],
   context: TransactionGroupLoaderContext,
   filters: TransactionFilters,
+  group?: TransactionListGroupContext,
 ): TransactionListItem[] {
   const lookups = getTransactionGroupContextLookups(context);
   const normalizedFilters = normalizeTransactionFilters(filters);
@@ -176,6 +178,7 @@ export function buildTransactionListItemsFromContext(
       categoryById: lookups.categoryById,
       fallbackCurrency: context.currentLedger.baseCurrency,
       filters: normalizedFilters,
+      group,
       merchantById: lookups.merchantById,
       payments: lookups.paymentsByRecordId.get(record.id) ?? [],
       record,

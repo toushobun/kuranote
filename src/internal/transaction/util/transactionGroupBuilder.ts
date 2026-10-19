@@ -468,10 +468,7 @@ function trackGroupRecord(
 
   if (group.sharedPaymentRecordIds.has(record.id)) return;
 
-  const sharedAmounts = getSharedPaymentAmounts({
-    accountId: filters.accountId,
-    payments,
-  });
+  const sharedAmounts = getSharedPaymentAmounts({ filters, payments });
   if (!sharedAmounts) return;
 
   group.sharedPaymentRecordIds.add(record.id);

@@ -7,7 +7,9 @@ import type { TransactionRowItem } from "types/transactions";
 
 import { TransactionRow } from "./TransactionRow";
 import {
+  sharedPaymentAccountGroupRowItems,
   sharedPaymentAccountShareRowItem,
+  sharedPaymentCategoryGroupRowItems,
   sharedPaymentMatchedItemsRowItem,
   sharedPaymentRowItem,
   sharedPaymentWithOriginalAmountRowItem,
@@ -374,6 +376,20 @@ export const SharedPaymentMatchedItems: Story = {
   name: "筛选账户 + 分类：主金额为明细全额并显示本账户份额",
   args: {
     item: sharedPaymentMatchedItemsRowItem,
+  },
+};
+
+export const SharedPaymentCategoryGroup: Story = {
+  name: "筛选账户 + 按分类：组内行为命中该组的明细全额",
+  args: {
+    item: sharedPaymentCategoryGroupRowItems.treatment,
+  },
+};
+
+export const SharedPaymentAccountGroup: Story = {
+  name: "按账户分组：组内行为该账户的付款金额",
+  args: {
+    item: sharedPaymentAccountGroupRowItems.wife,
   },
 };
 

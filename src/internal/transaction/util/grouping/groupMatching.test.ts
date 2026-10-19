@@ -8,6 +8,8 @@ import type {
   TransactionRecordDbRow,
 } from "internal/db-types";
 import {
+  isItemLevelGroupBy,
+  itemMatchesGroup,
   matchesParentCategory,
   recordMatchesGroup,
 } from "internal/transaction/util/grouping/groupMatching";
@@ -148,6 +150,64 @@ describe("recordMatchesGroup", () => {
 
   it("未知分组方式不会匹配记录", () => {
     expect(matches("month", "invalid")).toBe(false);
+  });
+});
+
+describe("itemMatchesGroup", () => {
+  it("明细级维度按单条明细判断所属组", () => {
+    expect(
+      itemMatchesGroup({
+        categoryById,
+        groupBy: "parentCategory",
+        groupKey: "parent-category",
+        item,
+      }),
+    ).toBe(true);
+    expect(
+      itemMatchesGroup({
+        categoryById,
+        groupBy: "category",
+        groupKey: "child-category",
+        item,
+      }),
+    ).toBe(true);
+    expect(
+      itemMatchesGroup({
+        categoryById,
+        groupBy: "category",
+        groupKey: "parent-category",
+        item,
+      }),
+    ).toBe(false);
+    expect(
+      itemMatchesGroup({
+        categoryById,
+        groupBy: "specialStatus",
+        groupKey: "none",
+        item,
+      }),
+    ).toBe(true);
+  });
+
+  it("记录级维度不按明细划分，不匹配", () => {
+    expect(
+      itemMatchesGroup({
+        categoryById,
+        groupBy: "account",
+        groupKey: "account-1",
+        item,
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("isItemLevelGroupBy", () => {
+  it("大分类 / 小分类 / 特殊状态为明细级维度", () => {
+    expect(isItemLevelGroupBy("parentCategory")).toBe(true);
+    expect(isItemLevelGroupBy("category")).toBe(true);
+    expect(isItemLevelGroupBy("specialStatus")).toBe(true);
+    expect(isItemLevelGroupBy("account")).toBe(false);
+    expect(isItemLevelGroupBy("month")).toBe(false);
   });
 });
 
