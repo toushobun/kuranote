@@ -1,17 +1,67 @@
 import { describe, expect, it } from "vitest";
 
-import type { CategorySummaryDbRow } from "internal/db-types";
+import type {
+  CategorySummaryDbRow,
+  TransactionPaymentDbRow,
+} from "internal/db-types";
+import {
+  defaultTransactionFilters,
+  type TransactionFilters,
+} from "internal/transaction/entity/transactionGrouping";
 
 import { buildTransactionListItem as buildTransactionListItemBase } from "./buildTransactionListItem";
+import {
+  hospitalAccountList,
+  hospitalAccounts,
+  hospitalCategories,
+  hospitalCategoryById,
+  hospitalItems,
+  hospitalPayments,
+  hospitalRecord,
+} from "./grouping/splitPayment.testUtils";
 
 type BuildTransactionListItemInput = Parameters<
   typeof buildTransactionListItemBase
 >[0];
 
+/**
+ * 未指定付款明细时，普通记录按过渡期的单账户形态补一行付款明细（账户取首条明细），
+ * 金额为 Σ收入 − Σ支出；未指定筛选条件时使用默认筛选。
+ */
 function buildTransactionListItem(
-  input: Omit<BuildTransactionListItemInput, "canEdit">,
+  input: Omit<
+    BuildTransactionListItemInput,
+    "canEdit" | "filters" | "payments"
+  > &
+    Partial<Pick<BuildTransactionListItemInput, "filters" | "payments">>,
 ) {
-  return buildTransactionListItemBase({ ...input, canEdit: true });
+  const firstItem = input.recordItems[0];
+  const balanceDelta = input.recordItems.reduce((sum, item) => {
+    const type = item.category_id
+      ? input.categoryById.get(item.category_id)?.type
+      : undefined;
+    const amount = Number(item.amount);
+    return type === "income" ? sum + amount : sum - amount;
+  }, 0);
+  const defaultPayments: TransactionPaymentDbRow[] =
+    input.record.type === "normal" && firstItem
+      ? [
+          {
+            account_id: firstItem.account_id,
+            amount: String(Math.abs(balanceDelta)),
+            balance_delta: String(balanceDelta),
+            sort_order: 0,
+            transaction_record_id: input.record.id,
+          },
+        ]
+      : [];
+
+  return buildTransactionListItemBase({
+    filters: defaultTransactionFilters,
+    payments: defaultPayments,
+    ...input,
+    canEdit: true,
+  });
 }
 
 const baseRecord = {
@@ -536,14 +586,12 @@ describe("buildTransactionListItem", () => {
     expect(item.amount).toBe("258800");
     expect(item.categoryItems).toEqual([
       {
-        accountId: "acct-a",
         amount: "1200",
         categoryName: "餐饮",
         categoryType: "expense",
         parentCategoryName: null,
       },
       {
-        accountId: "acct-a",
         amount: "260000",
         categoryName: "工资",
         categoryType: "income",
@@ -694,3 +742,113 @@ it.each(["2500", "-2500"])(
     });
   },
 );
+
+describe("buildTransactionListItem 多账户记录", () => {
+  const mineFilters: TransactionFilters = {
+    accountId: hospitalAccounts.mine.id,
+    recordType: "all",
+  };
+
+  function buildHospitalItem(
+    overrides: Partial<Pick<BuildTransactionListItemInput, "filters">> & {
+      recordItems?: BuildTransactionListItemInput["recordItems"];
+    } = {},
+  ) {
+    return buildTransactionListItem({
+      accountById: new Map(
+        hospitalAccountList.map((account) => [account.id, account] as const),
+      ),
+      categoryById: hospitalCategoryById,
+      fallbackCurrency: "JPY",
+      merchantById: new Map(),
+      payments: hospitalPayments,
+      record: hospitalRecord,
+      recordItems: hospitalItems,
+      ...overrides,
+    });
+  }
+
+  it("单账户记录的账户显示与金额不变，不给出共同支付字段", () => {
+    const item = buildTransactionListItem({
+      accountById,
+      categoryById,
+      fallbackCurrency: "JPY",
+      filters: { accountId: accountA.id, recordType: "all" },
+      merchantById: new Map(),
+      record: { ...baseRecord, type: "normal" as const },
+      recordItems: [
+        {
+          account_id: accountA.id,
+          amount: "1200",
+          category_id: categoryA.id,
+          transaction_record_id: baseRecord.id,
+        },
+      ],
+    });
+
+    expect(item.account_name).toBe(accountA.name);
+    expect(item.amount).toBe("1200");
+    expect(item).not.toHaveProperty("record_total_amount");
+    expect(item).not.toHaveProperty("account_share_amount");
+  });
+
+  it("无筛选时显示「首个账户 等 N 个账户」，主金额为整笔", () => {
+    const item = buildHospitalItem();
+
+    expect(item.account_name).toBe("我的账户 等 2 个账户");
+    expect(item.account_currency).toBe("JPY");
+    expect(item.amount).toBe("120000");
+    expect(item).not.toHaveProperty("record_total_amount");
+  });
+
+  it("筛选我的账户时主金额为份额 5 万，并给出整笔金额", () => {
+    const item = buildHospitalItem({ filters: mineFilters });
+
+    expect(item.account_name).toBe("我的账户 等 2 个账户");
+    expect(item.amount).toBe("50000");
+    expect(item.type).toBe("expense");
+    expect(item.record_total_amount).toBe("120000");
+    expect(item).not.toHaveProperty("account_share_amount");
+  });
+
+  it("筛选我的账户 + 住院费时主金额为命中明细全额，并给出本账户份额与整笔", () => {
+    const item = buildHospitalItem({
+      filters: { ...mineFilters, categoryId: hospitalCategories.inpatient.id },
+      recordItems: hospitalItems.filter(
+        (item) => item.category_id === hospitalCategories.inpatient.id,
+      ),
+    });
+
+    expect(item.amount).toBe("80000");
+    expect(item.account_share_amount).toBe("50000");
+    expect(item.record_total_amount).toBe("120000");
+  });
+
+  it("主金额为份额时不显示原金额；为命中明细时原金额与共同支付同时给出", () => {
+    const refundedItems = hospitalItems.map((item) =>
+      item.category_id === hospitalCategories.inpatient.id
+        ? { ...item, business_net_amount: "60000", refunded_amount: "20000" }
+        : item,
+    );
+
+    const shareItem = buildHospitalItem({
+      filters: mineFilters,
+      recordItems: refundedItems,
+    });
+    expect(shareItem.amount).toBe("50000");
+    expect(shareItem).not.toHaveProperty("originalAmount");
+
+    const matchedItem = buildHospitalItem({
+      filters: { ...mineFilters, categoryId: hospitalCategories.inpatient.id },
+      recordItems: refundedItems.filter(
+        (item) => item.category_id === hospitalCategories.inpatient.id,
+      ),
+    });
+    expect(matchedItem).toMatchObject({
+      account_share_amount: "50000",
+      amount: "60000",
+      originalAmount: "80000",
+      record_total_amount: "120000",
+    });
+  });
+});

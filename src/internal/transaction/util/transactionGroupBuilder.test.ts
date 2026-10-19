@@ -7,7 +7,22 @@ import type {
   TransactionItemDbRow,
   TransactionRecordDbRow,
 } from "internal/db-types";
+import {
+  defaultTransactionFilters,
+  type TransactionFilters,
+  type TransactionGroupBy,
+} from "internal/transaction/entity/transactionGrouping";
 
+import {
+  filterTransactionItems,
+  filterTransactionRecords,
+  normalizeTransactionFilters,
+} from "./grouping/filters";
+import {
+  createHospitalGroupLoaderContext,
+  hospitalAccounts,
+  hospitalCategories,
+} from "./grouping/splitPayment.testUtils";
 import { buildTransactionGroupSummaryPage } from "./transactionGroupBuilder";
 
 const expenseCategory: CategorySummaryDbRow = {
@@ -77,6 +92,8 @@ describe("buildTransactionGroupSummaryPage", () => {
       merchants,
       offset: 0,
       pageSize: 20,
+      payments: [],
+      filters: defaultTransactionFilters,
       records,
       recorders,
     });
@@ -104,6 +121,8 @@ describe("buildTransactionGroupSummaryPage", () => {
       merchants,
       offset: 0,
       pageSize: 20,
+      payments: [],
+      filters: defaultTransactionFilters,
       records,
       recorders,
     });
@@ -133,6 +152,8 @@ describe("buildTransactionGroupSummaryPage", () => {
       merchants,
       offset: 0,
       pageSize: 20,
+      payments: [],
+      filters: defaultTransactionFilters,
       records,
       recorders,
     });
@@ -167,6 +188,8 @@ describe("buildTransactionGroupSummaryPage", () => {
       merchants,
       offset: 0,
       pageSize: 2,
+      payments: [],
+      filters: defaultTransactionFilters,
       records,
       recorders,
     });
@@ -199,6 +222,8 @@ describe("buildTransactionGroupSummaryPage", () => {
       merchants,
       offset: 0,
       pageSize: 20,
+      payments: [],
+      filters: defaultTransactionFilters,
       records,
       recorders,
     });
@@ -231,6 +256,8 @@ it.each(["2500", "-2500"])("余额调整 %s 计入流水笔数但不计入收支
     merchants,
     offset: 0,
     pageSize: 20,
+    payments: [],
+    filters: defaultTransactionFilters,
     records: [
       record("adjustment", "2026-09-14T00:00:00Z", "balance_adjustment"),
     ],
@@ -239,5 +266,115 @@ it.each(["2500", "-2500"])("余额调整 %s 计入流水笔数但不计入收支
   expect(page.groups[0]).toMatchObject({
     transactionCount: 1,
     summary: { income: "0", expense: "0", balance: "0" },
+  });
+});
+
+describe("buildTransactionGroupSummaryPage 医院 12 万（方案 D）", () => {
+  const mine = hospitalAccounts.mine.id;
+  const inpatient = hospitalCategories.inpatient.id;
+
+  function buildHospitalPage(
+    groupBy: TransactionGroupBy,
+    filters: Omit<TransactionFilters, "recordType"> = {},
+  ) {
+    const context = createHospitalGroupLoaderContext();
+    const normalizedFilters = normalizeTransactionFilters({
+      recordType: "all",
+      ...filters,
+    });
+    const records = filterTransactionRecords(context, normalizedFilters);
+
+    return buildTransactionGroupSummaryPage({
+      accounts: context.accounts,
+      categories: context.categories,
+      currency: "JPY",
+      filters: normalizedFilters,
+      groupBy,
+      items: filterTransactionItems(context, normalizedFilters),
+      merchants: context.merchants,
+      offset: 0,
+      pageSize: 20,
+      payments: context.payments,
+      records,
+      recorders: context.recorders,
+    }).groups.map((group) => ({
+      expense: group.summary.expense,
+      label: group.label,
+      sharedPayment: group.sharedPayment,
+    }));
+  }
+
+  it("无筛选：按月 12 万；按分类住院费 8 万、治疗费 4 万；按账户我 5 万、妻子 7 万", () => {
+    expect(buildHospitalPage("month")).toEqual([
+      {
+        expense: "120000",
+        label: expect.any(String),
+        sharedPayment: undefined,
+      },
+    ]);
+    expect(buildHospitalPage("category")).toEqual(
+      expect.arrayContaining([
+        { expense: "80000", label: "住院费", sharedPayment: undefined },
+        { expense: "40000", label: "治疗费", sharedPayment: undefined },
+      ]),
+    );
+    expect(buildHospitalPage("account")).toEqual(
+      expect.arrayContaining([
+        { expense: "50000", label: "我的账户", sharedPayment: undefined },
+        { expense: "70000", label: "妻子账户", sharedPayment: undefined },
+      ]),
+    );
+  });
+
+  it("筛选我的账户：按月 / 商家 / 成员计份额 5 万，不需要组头提示", () => {
+    for (const groupBy of ["month", "merchant", "member"] as const) {
+      expect(buildHospitalPage(groupBy, { accountId: mine })).toEqual([
+        {
+          expense: "50000",
+          label: expect.any(String),
+          sharedPayment: undefined,
+        },
+      ]);
+    }
+  });
+
+  it("筛选我的账户按分类：明细全额，并带共同支付提示", () => {
+    const sharedPayment = {
+      accountShareAmount: "50000",
+      recordCount: 1,
+      recordTotalAmount: "120000",
+    };
+
+    expect(buildHospitalPage("category", { accountId: mine })).toEqual(
+      expect.arrayContaining([
+        { expense: "80000", label: "住院费", sharedPayment },
+        { expense: "40000", label: "治疗费", sharedPayment },
+      ]),
+    );
+    expect(buildHospitalPage("parentCategory", { accountId: mine })).toEqual([
+      { expense: "120000", label: "医疗", sharedPayment },
+    ]);
+  });
+
+  it("筛选我的账户按账户分组：只有「我的账户」组 5 万", () => {
+    expect(buildHospitalPage("account", { accountId: mine })).toEqual([
+      { expense: "50000", label: "我的账户", sharedPayment: undefined },
+    ]);
+  });
+
+  it("筛选我的账户 + 住院费按月：8 万，并带共同支付提示（本账户 5 万 / 整笔 12 万）", () => {
+    expect(
+      buildHospitalPage("month", { accountId: mine, categoryId: inpatient }),
+    ).toEqual([
+      {
+        expense: "80000",
+        label: expect.any(String),
+        sharedPayment: {
+          accountShareAmount: "50000",
+          recordCount: 1,
+          recordTotalAmount: "120000",
+        },
+      },
+    ]);
   });
 });

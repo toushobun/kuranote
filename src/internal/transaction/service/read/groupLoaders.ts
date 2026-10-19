@@ -37,6 +37,7 @@ import {
   normalizeTransactionFilters,
 } from "internal/transaction/util/grouping/filters";
 import { recordMatchesGroup } from "internal/transaction/util/grouping/groupMatching";
+import { toSharedPaymentSummary } from "internal/transaction/util/grouping/recordContribution";
 import {
   transactionPageSize,
   type TransactionGroupLoaderContext,
@@ -162,18 +163,33 @@ async function loadStep4NonTimeGroupedTransactionGroupPage(
     recordType: normalizedFilters.recordType,
     specialStatuses: normalizedFilters.specialStatuses,
   });
-  const groups = pageRows.slice(0, transactionPageSize).map((row) => ({
-    id: row.group_id,
-    key: row.group_key,
-    label: row.group_label,
-    summary: {
-      balance: normalizeRpcAmount(row.balance),
-      currency: currentLedger.baseCurrency,
-      expense: normalizeRpcAmount(row.expense),
-      income: normalizeRpcAmount(row.income),
-    },
-    transactionCount: Number(row.transaction_count ?? 0),
-  }));
+  const groups = pageRows.slice(0, transactionPageSize).map((row) => {
+    const sharedPayment = toSharedPaymentSummary({
+      accountShareAmount: Number(
+        normalizeRpcAmount(row.shared_payment_account_share_amount),
+      ),
+      filters: normalizedFilters,
+      groupBy,
+      recordCount: Number(row.shared_payment_record_count ?? 0),
+      recordTotalAmount: Number(
+        normalizeRpcAmount(row.shared_payment_record_total_amount),
+      ),
+    });
+
+    return {
+      id: row.group_id,
+      key: row.group_key,
+      label: row.group_label,
+      ...(sharedPayment ? { sharedPayment } : {}),
+      summary: {
+        balance: normalizeRpcAmount(row.balance),
+        currency: currentLedger.baseCurrency,
+        expense: normalizeRpcAmount(row.expense),
+        income: normalizeRpcAmount(row.income),
+      },
+      transactionCount: Number(row.transaction_count ?? 0),
+    };
+  });
 
   return {
     groupBy,
@@ -285,11 +301,15 @@ function buildStep4TransactionGroupPageFromContext(
     accounts: context.accounts,
     categories: context.categories,
     currency: context.currentLedger.baseCurrency,
+    filters: normalizeTransactionFilters(filters),
     groupBy,
     items: filteredItems,
     merchants: context.merchants,
     offset,
     pageSize: transactionPageSize,
+    payments: context.payments.filter((payment) =>
+      filteredRecordIds.has(payment.transaction_record_id),
+    ),
     records: filteredRecords,
     recorders: context.recorders,
   });
@@ -377,6 +397,7 @@ async function loadStep4TransactionGroupItemsPage(
   const items = buildTransactionListItemsFromContext(
     pageRecords,
     filteredPageContext,
+    filters,
   );
 
   return {
@@ -394,7 +415,7 @@ function filterRecordsByGroup(
   groupBy: TransactionGroupBy,
   groupKey: string,
 ) {
-  const { categoryById, itemsByRecordId } =
+  const { categoryById, itemsByRecordId, paymentsByRecordId } =
     getTransactionGroupContextLookups(context);
 
   return records.filter((record) =>
@@ -403,6 +424,7 @@ function filterRecordsByGroup(
       groupBy,
       groupKey,
       items: itemsByRecordId.get(record.id) ?? [],
+      payments: paymentsByRecordId.get(record.id) ?? [],
       record,
     }),
   );

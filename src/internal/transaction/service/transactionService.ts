@@ -561,7 +561,7 @@ export function createTransactionService({
         ),
       };
       return buildTransactionSearchPage(
-        buildTransactionListItemsFromContext(records, filteredContext),
+        buildTransactionListItemsFromContext(records, filteredContext, filters),
         query,
         offset,
       );

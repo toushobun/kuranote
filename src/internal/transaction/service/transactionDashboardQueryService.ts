@@ -16,6 +16,7 @@ import {
   requireTransactionReadLedger,
   type TransactionReadAccessDependencies,
 } from "internal/transaction/service/read/transactionReadAccess";
+import { defaultTransactionFilters } from "internal/transaction/entity/transactionGrouping";
 import { calculateTransactionRecordNetAmount } from "internal/transaction/util/transactionAmountHelpers";
 import { dashboardRecentTransactionCount } from "@/constants/dashboard";
 import type {
@@ -132,6 +133,7 @@ export function createTransactionDashboardQueryService({
         recentTransactions: buildTransactionListItemsFromContext(
           recentRecords,
           recentContext,
+          defaultTransactionFilters,
         ).map(toDashboardRecentTransaction),
         recentlyUsedAccountIds,
       };

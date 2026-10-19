@@ -337,6 +337,21 @@ ledger（需要时）→ transaction_record（稳定顺序）→ transaction_ite
 
 维护者认为额外一个 sheet 普通用户看不懂，因此将 #913 / PR #920 的「付款明细」sheet 替换为「收支」sheet 内的分号格式（4.4）。当前没有真实多账户数据，不保留旧 sheet 的兼容代码、列常量或专用测试。3.11 仅作为历史实现记录保留；普通记录从 `transaction_payment` 读取账户与付款顺序的设计继续沿用。导出契约移除未被使用的付款 `balanceDelta`，仅保留账户和金额。
 
+### 3.13 子 Issue 4 PR 1 实现注记（#914）
+
+子 Issue 4 拆成 2 个 PR：PR 1 实现方案 D 的统计 / 列表 / 「共同支付」标识，过渡期保持开启；PR 2 执行结束过渡期的 migration 与 seed。PR 1 对本节以上内容做了以下补充，理由逐条记录：
+
+- **`TransactionExportRepository` 并入 `TransactionContextRepository`。** 3.11 为了不扩大范围单独加了窄接口；本 PR 起列表、分组、仪表盘的上下文都要读付款明细，`listPayments` 成为上下文的公共依赖，窄接口不再有意义。
+- **列表行不输出 `payment_account_count`。** 账户位置的「首个账户 等 N 个账户」在 `buildTransactionListItem` 内直接由付款明细生成到 `account_name`，前端没有其他地方需要账户数，保留该字段会成为无人读取的字段。
+- **`account_share_amount` 只在主金额为命中明细全额（出现条件 1 / 2）时给出；`record_total_amount` 在「有账户筛选 ∧ 多账户记录」时给出。** 记录级维度下主金额本身就是本账户份额，列表行按 Issue「共同支付显示规格」只显示「共同支付 · 整笔 ¥Y」；出现条件 1 / 2 下显示「共同支付 · 本账户 ¥X / 整笔 ¥Y」。文案用「本账户」而不是 2.1 / 2.4 示例中的「我出资」（以 Issue 规格为准）。
+- **主金额为本账户份额时不显示原金额。** 原金额是明细业务净额口径，与份额口径不可比，同时显示会误导；主金额为明细全额时照常显示，顺序为当前金额 → 共同支付行 → 原金额。
+- **分组摘要用嵌套对象 `sharedPayment: { recordCount, accountShareAmount, recordTotalAmount }`，不是平铺字段。** 三个值总是一起出现或一起缺省，嵌套后前端只需判断一次。只在出现条件成立且 `recordCount > 0` 时给出；RPC 的 3 个列照常返回，由 TS 端按同一判断函数决定是否显示。
+- **`currentLedgerBoundaryAudit.test.ts` 的对应断言改为检查 `load_transaction_group_summaries_with_special_status`，而不是删除。** 基础版删除后，该断言检查的「非时间维度分组 RPC 只读取 active 成员可访问的目标账本」仍然成立且有意义，改为指向实际使用的函数。
+- **pgTAP 构造多账户数据用测试辅助函数 `tests.replace_transaction_payments_in_transition`。** 过渡期内 `validate_transaction_record_payments` 是延迟约束触发器，在 pgTAP 最终回滚的事务中不会触发，因此可以直接替换付款明细构造多账户记录；结束过渡期（PR 2）后删除该辅助函数，改用正式 RPC 构造。
+- **`transaction_item_special_status_statistics.test.sql` 中按账户分组的 4 个断言改为「按分类分组 + 账户筛选」。** 这些断言验证的是业务净额口径；按账户分组自本 PR 起改为付款明细的实际收付（2.1），业务净额口径改在分类维度验证。
+- **编辑表单读取普通记录的币种改为取首个付款账户。** 为满足「普通记录路径不再读明细 `account_id`」，`transactionFormService` 的明细金额格式化不再读明细账户镜像；表单的多账户 UI 仍属于 #915。
+- **按 `transaction_record_id` 分组的工具函数移到 `utils/collections.ts` 的 `groupByKey`。** 上下文、分组 builder 与列表行都需要按记录分组明细和付款明细，抽成通用函数共用。
+
 ## 4. 受影响的 RPC / Service / UI 清单
 
 下表列出现有引用 `transaction_item.account_id`（及普通记录的 `balance_delta`）的位置和改法。「子」列对应第 6 节的子 Issue 编号。

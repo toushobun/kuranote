@@ -32,7 +32,6 @@ export const NetIncomeDifference: Story = {
     refundAmount: "1500",
     value: {
       accountCurrency: "JPY",
-      accountId: "credit-card-jpy",
       amount: "1200",
       categoryName: "午餐",
       id: "refund-item-1",
@@ -98,7 +97,6 @@ const refundSearchPage = {
     createTransactionListItem({
       categoryItems: [
         {
-          accountId: "credit-card-jpy",
           amount: "1200",
           categoryName: "午餐",
           categoryType: "expense",

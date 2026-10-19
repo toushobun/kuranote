@@ -135,8 +135,8 @@ export type TransactionDashboardMonthSource = {
   items: TransactionDashboardSummaryItem[];
 };
 
-type TransactionDashboardRecentAccountItem = Pick<
-  TransactionItemDbRow,
+type TransactionDashboardRecentAccountMovement = Pick<
+  TransactionPaymentDbRow,
   "account_id" | "transaction_record_id"
 >;
 
@@ -160,6 +160,9 @@ export type TransactionGroupSummaryRow = {
   group_label: string;
   income: number | string | null;
   latest_transaction_at: string;
+  shared_payment_account_share_amount: number | string | null;
+  shared_payment_record_count: number | string | null;
+  shared_payment_record_total_amount: number | string | null;
   transaction_count: number | string | null;
 };
 
@@ -206,15 +209,12 @@ export interface TransactionContextRepository {
     transactionRecordIds: string[],
     page?: { offset: number; limit: number },
   ): Promise<TransactionItemDbRow[]>;
-  listRecords(input: TransactionRecordQuery): Promise<TransactionRecordDbRow[]>;
-}
-
-export interface TransactionExportRepository extends TransactionContextRepository {
   listPayments(
     ledgerId: string,
     transactionRecordIds: string[],
     page?: { offset: number; limit: number },
   ): Promise<TransactionPaymentDbRow[]>;
+  listRecords(input: TransactionRecordQuery): Promise<TransactionRecordDbRow[]>;
 }
 
 export interface TransactionFormRepository {
@@ -986,19 +986,19 @@ export function createSupabaseTransactionRepository(
       const recordIds = (recordData ?? []).map((record) => record.id);
       if (recordIds.length === 0) return [];
 
-      const { data: itemData, error: itemError } = await supabase
-        .from("transaction_item")
+      const { data: movementData, error: movementError } = await supabase
+        .from("transaction_account_movement")
         .select("transaction_record_id, account_id")
         .eq("ledger_id", ledgerId)
         .in("transaction_record_id", recordIds)
         .order("sort_order", { ascending: true })
-        .order("id", { ascending: true });
+        .order("account_id", { ascending: true });
 
-      if (itemError) {
+      if (movementError) {
         logger.error(
-          "[transaction] failed to load dashboard recent account items",
+          "[transaction] failed to load dashboard recent account movements",
           {
-            databaseCode: itemError.code,
+            databaseCode: movementError.code,
             ledgerId,
           },
         );
@@ -1008,13 +1008,14 @@ export function createSupabaseTransactionRepository(
         );
       }
 
-      const items = (itemData ?? []) as TransactionDashboardRecentAccountItem[];
+      const movements = (movementData ??
+        []) as TransactionDashboardRecentAccountMovement[];
       const accountIdsByRecordId = new Map<string, string[]>();
-      for (const item of items) {
+      for (const movement of movements) {
         const accountIds =
-          accountIdsByRecordId.get(item.transaction_record_id) ?? [];
-        accountIds.push(item.account_id);
-        accountIdsByRecordId.set(item.transaction_record_id, accountIds);
+          accountIdsByRecordId.get(movement.transaction_record_id) ?? [];
+        accountIds.push(movement.account_id);
+        accountIdsByRecordId.set(movement.transaction_record_id, accountIds);
       }
 
       const recentlyUsedAccountIds = new Set<string>();

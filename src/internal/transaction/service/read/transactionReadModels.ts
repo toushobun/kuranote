@@ -11,7 +11,6 @@ import type {
 import type { ThemeColorKey } from "theme/themeColorTokens";
 
 export type TransactionCategorySummaryItem = {
-  accountId?: string;
   amount: string;
   businessNetAmount?: string;
   businessStatus?: TransactionBusinessStatus | null;
@@ -27,6 +26,8 @@ export type TransactionListItem = {
   account_color?: ThemeColorKey | null;
   account_currency: string;
   account_name: string;
+  /** 有账户筛选 ∧ 多账户记录，且主金额为命中明细全额时：该账户的付款金额。 */
+  account_share_amount?: string;
   amount: string;
   originalAmount?: string;
   originalType?: CategoryType;
@@ -37,6 +38,8 @@ export type TransactionListItem = {
   merchant_icon_url: string | null;
   merchant_name: string | null;
   note: string | null;
+  /** 有账户筛选 ∧ 多账户记录时：整笔金额（付款明细 amount 合计），用于「共同支付」行。 */
+  record_total_amount?: string;
   recorder_color?: ThemeColorKey | null;
   recorder_name: string | null;
   show_recorder?: boolean;
@@ -93,10 +96,18 @@ export type TransactionDateGroup = {
   summary: TransactionAmountSummary;
 };
 
+/** 组头「含共同支付 N 笔 · 本账户 X / 整笔 Y」的数据，只在组合计含命中明细全额时给出。 */
+export type TransactionSharedPaymentSummary = {
+  accountShareAmount: string;
+  recordCount: number;
+  recordTotalAmount: string;
+};
+
 export type TransactionGroupSummaryItem = {
   id: string;
   key: string;
   label: string;
+  sharedPayment?: TransactionSharedPaymentSummary;
   summary: TransactionAmountSummary;
   transactionCount: number;
 };

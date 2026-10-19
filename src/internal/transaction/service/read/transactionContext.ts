@@ -3,13 +3,17 @@ import { canModifyTransaction } from "internal/ledger";
 import type { AccountQueryService } from "internal/account";
 import type { CategoryQueryService } from "internal/category";
 import type { TransactionRecordDbRow } from "internal/db-types";
+import type { TransactionFilters } from "internal/transaction/entity/transactionGrouping";
 import { buildTransactionListItem } from "internal/transaction/util/buildTransactionListItem";
 import type { MerchantQueryService } from "internal/merchant";
 import type { TransactionContextRepository } from "internal/transaction/repository/transactionRepository";
 import type { TransactionListItem } from "internal/transaction/service/read/transactionReadModels";
 
 import { getTransactionGroupContextLookups } from "internal/transaction/util/grouping/contextLookups";
+import { normalizeTransactionFilters } from "internal/transaction/util/grouping/filters";
+import { listRecordAccountMovements } from "internal/transaction/util/grouping/recordAccounts";
 import type { TransactionGroupLoaderContext } from "internal/transaction/util/grouping/types";
+import { groupByKey } from "utils/collections";
 
 type TransactionReadBaseDependencies = {
   accountQueryService: AccountQueryService;
@@ -56,17 +60,44 @@ export async function loadTransactionGroupLoaderContextForRecords(
       currentUserId,
       items: [],
       merchants: [],
+      payments: [],
       records: [],
       recorders: [],
       showRecorder: false,
     };
   }
 
-  const items = await dependencies.transactionRepository.listItems(
-    currentLedger.id,
-    recordIds,
+  const normalRecordIds = records
+    .filter((record) => record.type === "normal")
+    .map((record) => record.id);
+  const [items, payments] = await Promise.all([
+    dependencies.transactionRepository.listItems(currentLedger.id, recordIds),
+    normalRecordIds.length > 0
+      ? dependencies.transactionRepository.listPayments(
+          currentLedger.id,
+          normalRecordIds,
+        )
+      : Promise.resolve([]),
+  ]);
+  const itemsByRecordId = groupByKey(
+    items,
+    (item) => item.transaction_record_id,
   );
-  const accountIds = [...new Set(items.map((item) => item.account_id))];
+  const paymentsByRecordId = groupByKey(
+    payments,
+    (payment) => payment.transaction_record_id,
+  );
+  const accountIds = [
+    ...new Set(
+      records.flatMap((record) =>
+        listRecordAccountMovements(
+          record,
+          itemsByRecordId.get(record.id) ?? [],
+          paymentsByRecordId.get(record.id) ?? [],
+        ).map((movement) => movement.accountId),
+      ),
+    ),
+  ];
   const categoryIds = [
     ...new Set(
       items
@@ -117,6 +148,7 @@ export async function loadTransactionGroupLoaderContextForRecords(
     currentUserId,
     items,
     merchants,
+    payments,
     records,
     recorders,
     showRecorder: accountContext.showRecorder,
@@ -126,8 +158,10 @@ export async function loadTransactionGroupLoaderContextForRecords(
 export function buildTransactionListItemsFromContext(
   records: TransactionRecordDbRow[],
   context: TransactionGroupLoaderContext,
+  filters: TransactionFilters,
 ): TransactionListItem[] {
   const lookups = getTransactionGroupContextLookups(context);
+  const normalizedFilters = normalizeTransactionFilters(filters);
   return records.map((record) =>
     buildTransactionListItem({
       accountById: lookups.accountById,
@@ -141,7 +175,9 @@ export function buildTransactionListItemsFromContext(
         : false,
       categoryById: lookups.categoryById,
       fallbackCurrency: context.currentLedger.baseCurrency,
+      filters: normalizedFilters,
       merchantById: lookups.merchantById,
+      payments: lookups.paymentsByRecordId.get(record.id) ?? [],
       record,
       recorderById: lookups.recorderById,
       recordItems: lookups.itemsByRecordId.get(record.id) ?? [],

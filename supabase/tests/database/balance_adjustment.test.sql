@@ -31,7 +31,7 @@ select results_eq(
   $query$, rpc),
   $$values ('all', 1::bigint, 0::numeric, 0::numeric), ('expense', 0::bigint, 0::numeric, 0::numeric), ('income', 0::bigint, 0::numeric, 0::numeric), ('transfer', 0::bigint, 0::numeric, 0::numeric)$$,
   rpc || '正确排除余额调整的收支筛选及金额'
-) from unnest(array['load_transaction_group_summaries','load_transaction_group_summaries_with_special_status']) as functions(rpc);
+) from unnest(array['load_transaction_group_summaries_with_special_status']) as functions(rpc);
 select throws_ok($$update public.transaction_item set balance_delta=999 where ledger_id='75500000-0000-4000-8000-000000000001'$$,'22023','transaction_type_invalid','禁止篡改原始调整金额');
 select lives_ok($$select public.void_transaction('75500000-0000-4000-8000-000000000001',(select id from public.transaction_record where ledger_id='75500000-0000-4000-8000-000000000001'))$$,'删除正调整成功');
 select is((select current_balance from public.account where id='75510000-0000-4000-8000-000000000001'),10000::numeric,'删除按原差值反向冲销');

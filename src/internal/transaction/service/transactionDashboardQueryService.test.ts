@@ -104,6 +104,15 @@ describe("TransactionDashboardQueryService", () => {
     ];
     const listRecords = vi.fn().mockResolvedValue(recentRecords);
     const listItems = vi.fn().mockResolvedValue(recentDisplayItems);
+    const listPayments = vi.fn().mockResolvedValue(
+      ["recent-1", "recent-3", "recent-5"].map((recordId) => ({
+        account_id: "account-1",
+        amount: "100",
+        balance_delta: "-100",
+        sort_order: 0,
+        transaction_record_id: recordId,
+      })),
+    );
     const findSummariesByIds = vi.fn().mockResolvedValue([
       {
         id: "recent-category",
@@ -150,6 +159,7 @@ describe("TransactionDashboardQueryService", () => {
         ],
       }),
       listItems,
+      listPayments,
       listRecords,
       listTagAssignments: vi.fn().mockResolvedValue([]),
       listTagsByIds: vi.fn().mockResolvedValue([]),
@@ -215,6 +225,11 @@ describe("TransactionDashboardQueryService", () => {
       "recent-2",
       "recent-3",
       "recent-4",
+      "recent-5",
+    ]);
+    expect(listPayments).toHaveBeenCalledWith(ledgerId, [
+      "recent-1",
+      "recent-3",
       "recent-5",
     ]);
     expect(findSummariesByIds).toHaveBeenCalledWith({

@@ -67,7 +67,6 @@ export const defaultTransactionFilters = {
 } satisfies TransactionFilters;
 
 export type CategorySummaryItem = {
-  accountId?: string;
   amount: string;
   businessNetAmount?: string;
   businessStatus?: TransactionBusinessStatus | null;
@@ -89,11 +88,13 @@ export type TransactionRowItem = {
   account_name: string;
   account_currency: string;
   account_color?: ThemeColorKey | null;
+  account_share_amount?: string;
   canEdit?: boolean;
   categoryItems: CategorySummaryItem[];
   merchant_name: string | null;
   merchant_icon_url: string | null;
   note?: string | null;
+  record_total_amount?: string;
   recorder_color?: ThemeColorKey | null;
   recorder_name?: string | null;
   show_recorder?: boolean;
@@ -142,7 +143,6 @@ export type TransactionListItem = TransactionRowItem & {
 
 export type TransactionRefundCandidate = {
   accountCurrency: string;
-  accountId: string;
   amount: string;
   categoryName: string;
   id: string;
@@ -192,10 +192,17 @@ export type TransactionSearchPage = TransactionListPage & {
   totalCount: number;
 };
 
+export type TransactionSharedPaymentSummary = {
+  accountShareAmount: string;
+  recordCount: number;
+  recordTotalAmount: string;
+};
+
 export type TransactionGroupSummaryItem = {
   id: string;
   key: string;
   label: string;
+  sharedPayment?: TransactionSharedPaymentSummary;
   summary: TransactionAmountSummary;
   transactionCount: number;
 };

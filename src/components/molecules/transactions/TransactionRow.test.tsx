@@ -4,6 +4,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { transactionFallbackLabels } from "internal/transaction";
 import { type TransactionRowItem } from "types/transactions";
 import { TransactionRow } from "./TransactionRow";
+import {
+  sharedPaymentAccountShareRowItem,
+  sharedPaymentMatchedItemsRowItem,
+  sharedPaymentRowItem,
+  sharedPaymentWithOriginalAmountRowItem,
+} from "./transactionRowSharedPayment.testUtils";
 import { themeColorTokens } from "theme/themeColorTokens";
 
 function incomeBusinessStatus(role: "refund" | "reimbursement") {
@@ -927,6 +933,58 @@ describe("TransactionRow", () => {
     vi.stubGlobal("Intl", mockedIntl);
   }
 });
+describe("TransactionRow 共同支付", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("多账户记录在账户行显示首个账户等 N 个账户，没有账户筛选时不显示共同支付行", () => {
+    render(<TransactionRow item={sharedPaymentRowItem} showAccount />);
+
+    expect(screen.getByText("我的账户 等 2 个账户")).toBeInTheDocument();
+    expect(screen.getByText("- ¥ 120,000")).toBeInTheDocument();
+    expect(screen.queryByText(/共同支付/)).not.toBeInTheDocument();
+  });
+
+  it("主金额为本账户份额时只显示整笔金额", () => {
+    render(
+      <TransactionRow item={sharedPaymentAccountShareRowItem} showAccount />,
+    );
+
+    expect(screen.getByText("- ¥ 50,000")).toBeInTheDocument();
+    expect(screen.getByText("共同支付 · 整笔 ¥120,000")).toBeInTheDocument();
+    expect(screen.getByText("我的账户 等 2 个账户")).toBeInTheDocument();
+  });
+
+  it("主金额为命中明细全额时显示本账户份额与整笔金额", () => {
+    render(<TransactionRow item={sharedPaymentMatchedItemsRowItem} />);
+
+    expect(screen.getByText("- ¥ 80,000")).toBeInTheDocument();
+    expect(
+      screen.getByText("共同支付 · 本账户 ¥50,000 / 整笔 ¥120,000"),
+    ).toBeInTheDocument();
+  });
+
+  it("共同支付行夹在当前金额和原金额之间", () => {
+    render(<TransactionRow item={sharedPaymentWithOriginalAmountRowItem} />);
+
+    const amount = screen.getByText("- ¥ 70,000");
+    const sharedPayment = screen.getByText(
+      "共同支付 · 本账户 ¥50,000 / 整笔 ¥120,000",
+    );
+    const originalAmount = screen.getByText("原金额 - ¥ 80,000");
+
+    expect(
+      amount.compareDocumentPosition(sharedPayment) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      sharedPayment.compareDocumentPosition(originalAmount) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+});
+
 describe("TransactionRow \u4E0D\u5C55\u793A\u8BB0\u8D26\u4EBA", () => {
   const item: TransactionRowItem = {
     account_color: "sakura",

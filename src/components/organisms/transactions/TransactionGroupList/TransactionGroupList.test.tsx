@@ -232,7 +232,6 @@ describe("TransactionGroupList", () => {
           amount: "100",
           categoryItems: [
             {
-              accountId: "account-1",
               amount: "100",
               categoryName: "服装",
               categoryType: "expense",
@@ -284,7 +283,6 @@ describe("TransactionRefundCandidateList", () => {
       amount: "100",
       categoryItems: [
         {
-          accountId: "account-1",
           amount: "100",
           categoryName: "服装",
           categoryType: "expense",
@@ -332,7 +330,6 @@ describe("TransactionRefundCandidateList", () => {
             account_currency: "KWD",
             categoryItems: [
               {
-                accountId: "account-1",
                 amount: "1.234",
                 categoryName: "服装",
                 categoryType: "expense",

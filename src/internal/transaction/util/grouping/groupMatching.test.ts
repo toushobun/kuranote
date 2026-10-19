@@ -11,6 +11,7 @@ import {
   matchesParentCategory,
   recordMatchesGroup,
 } from "internal/transaction/util/grouping/groupMatching";
+import { hospitalPayments } from "internal/transaction/util/grouping/splitPayment.testUtils";
 
 const record: TransactionRecordDbRow = {
   created_at: "2026-07-20T01:00:00.000Z",
@@ -57,6 +58,15 @@ function matches(
     groupBy,
     groupKey,
     items: [item],
+    payments: [
+      {
+        account_id: "account-1",
+        amount: "1200",
+        balance_delta: "-1200",
+        sort_order: 0,
+        transaction_record_id: record.id,
+      },
+    ],
     record,
     ...overrides,
   });
@@ -86,9 +96,31 @@ describe("recordMatchesGroup", () => {
     ).toBe(true);
   });
 
-  it("按账户分组时匹配任意一个交易明细账户", () => {
+  it("按账户分组时普通记录匹配任意一个付款账户，不看明细账户", () => {
     expect(matches("account", "account-1")).toBe(true);
     expect(matches("account", "account-2")).toBe(false);
+    expect(
+      matches("account", "account-wife", {
+        payments: hospitalPayments.map((payment) => ({
+          ...payment,
+          transaction_record_id: record.id,
+        })),
+      }),
+    ).toBe(true);
+    expect(
+      matches("account", "account-1", {
+        payments: hospitalPayments,
+      }),
+    ).toBe(false);
+  });
+
+  it("按账户分组时转账匹配明细账户", () => {
+    expect(
+      matches("account", "account-1", {
+        payments: [],
+        record: { ...record, type: "transfer" },
+      }),
+    ).toBe(true);
   });
 
   it("按父分类分组时匹配子分类所属的顶层分类", () => {

@@ -69,6 +69,7 @@ const context: TransactionGroupLoaderContext = {
   },
   items: [expenseItem, incomeItem],
   merchants: [],
+  payments: [],
   records: [record],
   recorders: [],
 };

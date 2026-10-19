@@ -4580,232 +4580,20 @@ $$;
 ALTER FUNCTION "public"."load_frequent_transaction_category_counts"("p_ledger_id" "uuid", "p_date_start" timestamp with time zone, "p_date_end" timestamp with time zone, "p_minimum_item_count" integer) OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."load_transaction_group_summaries"("p_ledger_id" "uuid", "p_group_by" "text", "p_date_start" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_date_end" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_record_type" "text" DEFAULT 'all'::"text", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_account_id" "uuid" DEFAULT NULL::"uuid", "p_parent_category_id" "uuid" DEFAULT NULL::"uuid", "p_category_id" "uuid" DEFAULT NULL::"uuid", "p_member_id" "uuid" DEFAULT NULL::"uuid", "p_offset" integer DEFAULT 0, "p_limit" integer DEFAULT 20) RETURNS TABLE("group_id" "text", "group_key" "text", "group_label" "text", "income" numeric, "expense" numeric, "balance" numeric, "transaction_count" integer, "latest_transaction_at" timestamp with time zone)
+CREATE OR REPLACE FUNCTION "public"."load_transaction_group_summaries_with_special_status"("p_ledger_id" "uuid", "p_group_by" "text", "p_date_start" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_date_end" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_record_type" "text" DEFAULT 'all'::"text", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_account_id" "uuid" DEFAULT NULL::"uuid", "p_parent_category_id" "uuid" DEFAULT NULL::"uuid", "p_category_id" "uuid" DEFAULT NULL::"uuid", "p_member_id" "uuid" DEFAULT NULL::"uuid", "p_special_statuses" "text"[] DEFAULT NULL::"text"[], "p_offset" integer DEFAULT 0, "p_limit" integer DEFAULT 20) RETURNS TABLE("group_id" "text", "group_key" "text", "group_label" "text", "income" numeric, "expense" numeric, "balance" numeric, "transaction_count" integer, "latest_transaction_at" timestamp with time zone, "shared_payment_record_count" integer, "shared_payment_account_share_amount" numeric, "shared_payment_record_total_amount" numeric)
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
-    with record_amounts as (
-        select
-            tr.id,
-            tr.ledger_id,
-            tr.type,
-            tr.transaction_at,
-            tr.merchant_id,
-            tr.created_by,
-            coalesce(sum(
-                case
-                    when c.type = 'income' then ti.amount
-                    when c.type = 'expense' then -ti.amount
-                    else 0
-                end
-            ), 0) as net_amount,
-            coalesce(bool_or(c.type = 'expense'), false) as has_expense,
-            coalesce(bool_or(c.type = 'income'), false) as has_income
-        from public.transaction_record tr
-        left join public.transaction_item ti
-          on ti.transaction_record_id = tr.id
-         and ti.ledger_id = tr.ledger_id
-        left join public.category c
-          on c.id = ti.category_id
-         and c.ledger_id = ti.ledger_id
-        where tr.ledger_id = p_ledger_id
-          and tr.status = 'active'
-          and tr.type in ('normal', 'transfer', 'balance_adjustment')
-          and public.current_user_is_active_ledger_member(p_ledger_id)
-        group by
-            tr.id,
-            tr.ledger_id,
-            tr.type,
-            tr.transaction_at,
-            tr.merchant_id,
-            tr.created_by
-    ),
-    record_profiles as (
-        select
-            ra.*,
-            case
-                when ra.type in ('transfer', 'balance_adjustment') then ra.type
-                when ra.net_amount > 0 then 'income'
-                when ra.net_amount < 0 then 'expense'
-                when ra.has_expense then 'expense'
-                when ra.has_income then 'income'
-                else 'expense'
-            end as computed_record_type
-        from record_amounts ra
-    ),
-    filtered_records as (
-        select rp.*
-        from record_profiles rp
-        where p_group_by in (
-            'merchant',
-            'account',
-            'parentCategory',
-            'category',
-            'member'
-        )
-          and p_record_type in ('all', 'income', 'expense', 'transfer')
-          and (p_date_start is null or rp.transaction_at >= p_date_start)
-          and (p_date_end is null or rp.transaction_at < p_date_end)
-          and (
-              p_record_type = 'all'
-              or rp.computed_record_type = p_record_type
-          )
-          and (p_merchant_id is null or rp.merchant_id = p_merchant_id)
-          and (p_member_id is null or rp.created_by = p_member_id)
-          and (
-              p_account_id is null
-              or exists (
-                  select 1
-                  from public.transaction_item ti
-                  where ti.ledger_id = p_ledger_id
-                    and ti.transaction_record_id = rp.id
-                    and ti.account_id = p_account_id
-              )
-          )
-          and (
-              p_category_id is null
-              or exists (
-                  select 1
-                  from public.transaction_item ti
-                  where ti.ledger_id = p_ledger_id
-                    and ti.transaction_record_id = rp.id
-                    and ti.category_id = p_category_id
-              )
-          )
-          and (
-              p_parent_category_id is null
-              or exists (
-                  select 1
-                  from public.transaction_item ti
-                  left join public.category c
-                    on c.id = ti.category_id
-                   and c.ledger_id = ti.ledger_id
-                  left join public.category parent
-                    on parent.id = c.parent_id
-                   and parent.ledger_id = c.ledger_id
-                  where ti.ledger_id = p_ledger_id
-                    and ti.transaction_record_id = rp.id
-                    and coalesce(parent.id, c.id) = p_parent_category_id
-              )
-          )
-    ),
-    record_group_rows as (
-        select
-            case
-                when p_group_by = 'merchant' then 'merchant:' || coalesce(fr.merchant_id::text, 'unknown')
-                else 'member:' || coalesce(fr.created_by::text, 'unknown')
-            end as group_id,
-            case
-                when p_group_by = 'merchant' then coalesce(fr.merchant_id::text, 'unknown')
-                else coalesce(fr.created_by::text, 'unknown')
-            end as group_key,
-            case
-                when p_group_by = 'merchant' then coalesce(m.name, '未知商家')
-                else coalesce(nullif(btrim(lmds.display_name), ''), au.display_name, '未知成员')
-            end as group_label,
-            fr.id as transaction_record_id,
-            fr.transaction_at,
-            case
-                when fr.type in ('transfer', 'balance_adjustment') then 0
-                else fr.net_amount
-            end as signed_amount
-        from filtered_records fr
-        left join public.merchant m
-          on m.id = fr.merchant_id
-         and m.ledger_id = p_ledger_id
-        left join public.app_user au
-          on au.id = fr.created_by
-        left join public.ledger_member_display_setting lmds
-          on lmds.ledger_id = p_ledger_id
-         and lmds.user_id = fr.created_by
-        where p_group_by in ('merchant', 'member')
-    ),
-    item_group_rows as (
-        select
-            case
-                when p_group_by = 'account' then 'account:' || ti.account_id::text
-                when p_group_by = 'parentCategory' then 'parentCategory:' || coalesce(coalesce(parent.id, c.id)::text, 'unknown')
-                else 'category:' || coalesce(c.id::text, 'unknown')
-            end as group_id,
-            case
-                when p_group_by = 'account' then ti.account_id::text
-                when p_group_by = 'parentCategory' then coalesce(coalesce(parent.id, c.id)::text, 'unknown')
-                else coalesce(c.id::text, 'unknown')
-            end as group_key,
-            case
-                when p_group_by = 'account' then coalesce(a.name, '未知账户')
-                when p_group_by = 'parentCategory' then coalesce(parent.name, c.name, '未知大分类')
-                else coalesce(c.name, '未知小分类')
-            end as group_label,
-            fr.id as transaction_record_id,
-            fr.transaction_at,
-            case
-                when fr.type in ('transfer', 'balance_adjustment') then 0
-                when c.type = 'income' then ti.amount
-                when c.type = 'expense' then -ti.amount
-                else 0
-            end as signed_amount
-        from filtered_records fr
-        join public.transaction_item ti
-          on ti.transaction_record_id = fr.id
-         and ti.ledger_id = p_ledger_id
-        left join public.account a
-          on a.id = ti.account_id
-         and a.ledger_id = ti.ledger_id
-        left join public.category c
-          on c.id = ti.category_id
-         and c.ledger_id = ti.ledger_id
-        left join public.category parent
-          on parent.id = c.parent_id
-         and parent.ledger_id = c.ledger_id
-        where p_group_by in ('account', 'parentCategory', 'category')
-    ),
-    all_group_rows as (
-        select * from record_group_rows
-        union all
-        select * from item_group_rows
-    ),
-    aggregated_groups as (
-        select
-            agr.group_id,
-            agr.group_key,
-            agr.group_label,
-            coalesce(sum(
-                case when agr.signed_amount > 0 then agr.signed_amount else 0 end
-            ), 0) as income,
-            coalesce(sum(
-                case when agr.signed_amount < 0 then abs(agr.signed_amount) else 0 end
-            ), 0) as expense,
-            coalesce(sum(agr.signed_amount), 0) as balance,
-            count(distinct agr.transaction_record_id)::integer as transaction_count,
-            max(agr.transaction_at) as latest_transaction_at
-        from all_group_rows agr
-        group by agr.group_id, agr.group_key, agr.group_label
-    )
-    select
-        ag.group_id,
-        ag.group_key,
-        ag.group_label,
-        ag.income,
-        ag.expense,
-        ag.balance,
-        ag.transaction_count,
-        ag.latest_transaction_at
-    from aggregated_groups ag
-    order by ag.latest_transaction_at desc, ag.group_id asc
-    limit greatest(coalesce(p_limit, 20), 0)
-    offset greatest(coalesce(p_offset, 0), 0);
-$$;
-
-
-ALTER FUNCTION "public"."load_transaction_group_summaries"("p_ledger_id" "uuid", "p_group_by" "text", "p_date_start" timestamp with time zone, "p_date_end" timestamp with time zone, "p_record_type" "text", "p_merchant_id" "uuid", "p_account_id" "uuid", "p_parent_category_id" "uuid", "p_category_id" "uuid", "p_member_id" "uuid", "p_offset" integer, "p_limit" integer) OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."load_transaction_group_summaries_with_special_status"("p_ledger_id" "uuid", "p_group_by" "text", "p_date_start" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_date_end" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_record_type" "text" DEFAULT 'all'::"text", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_account_id" "uuid" DEFAULT NULL::"uuid", "p_parent_category_id" "uuid" DEFAULT NULL::"uuid", "p_category_id" "uuid" DEFAULT NULL::"uuid", "p_member_id" "uuid" DEFAULT NULL::"uuid", "p_special_statuses" "text"[] DEFAULT NULL::"text"[], "p_offset" integer DEFAULT 0, "p_limit" integer DEFAULT 20) RETURNS TABLE("group_id" "text", "group_key" "text", "group_label" "text", "income" numeric, "expense" numeric, "balance" numeric, "transaction_count" integer, "latest_transaction_at" timestamp with time zone)
-    LANGUAGE "sql" STABLE SECURITY DEFINER
-    SET "search_path" TO 'pg_catalog', 'pg_temp'
-    AS $$
-with base_items as (
+with filter_flags as (
+    -- 账户以外的明细级筛选：存在时命中部分由明细决定，账户筛选只决定记录是否出现。
+    select (
+        p_parent_category_id is not null
+        or p_category_id is not null
+        or coalesce(array_length(p_special_statuses, 1), 0) > 0
+        or p_record_type = 'refundableExpense'
+    ) as has_other_item_filters
+),
+base_items as (
     select
         tr.id as record_id,
         tr.type as record_type,
@@ -4813,7 +4601,6 @@ with base_items as (
         tr.merchant_id,
         tr.created_by,
         ti.id as item_id,
-        ti.account_id,
         ti.category_id,
         ti.special_status,
         ti.amount,
@@ -4853,6 +4640,28 @@ record_profiles as (
     from base_items
     group by record_id
 ),
+record_payments as (
+    select
+        p.transaction_record_id as record_id,
+        count(*) as payment_count,
+        sum(p.amount) as record_total_amount,
+        coalesce(sum(p.amount) filter (where p.account_id = p_account_id), 0) as account_share_amount,
+        coalesce(sum(p.balance_delta) filter (where p.account_id = p_account_id), 0) as account_share_delta
+    from public.transaction_payment p
+    where p.ledger_id = p_ledger_id
+      and p.transaction_record_id in (select bi.record_id from base_items bi)
+    group by p.transaction_record_id
+),
+shared_records as (
+    select
+        rp.record_id,
+        rp.account_share_amount,
+        rp.account_share_delta,
+        rp.record_total_amount
+    from record_payments rp
+    where p_account_id is not null
+      and rp.payment_count >= 2
+),
 matched_items as (
     select bi.*
     from base_items bi
@@ -4887,7 +4696,16 @@ matched_items as (
             and bi.category_type = 'expense'
         )
     )
-      and (p_account_id is null or bi.account_id = p_account_id)
+      and (
+          p_account_id is null
+          or exists (
+              select 1
+              from public.transaction_account_movement m
+              where m.ledger_id = p_ledger_id
+                and m.transaction_record_id = bi.record_id
+                and m.account_id = p_account_id
+          )
+      )
       and (
           p_parent_category_id is null
           or bi.parent_id = p_parent_category_id
@@ -4899,28 +4717,108 @@ matched_items as (
           or bi.special_status::text = any(p_special_statuses)
       )
 ),
-grouped as (
+matched_records as (
+    select distinct
+        mi.record_id,
+        mi.record_type,
+        mi.transaction_at,
+        mi.merchant_id,
+        mi.created_by
+    from matched_items mi
+),
+share_records as (
+    -- 记录级维度下只计账户份额的记录。
+    select sr.record_id, sr.account_share_delta
+    from shared_records sr
+    cross join filter_flags ff
+    where p_group_by in ('merchant', 'member')
+      and not ff.has_other_item_filters
+),
+group_rows as (
+    -- 按账户分组：命中记录的实际收付。
+    select
+        m.account_id::text as key,
+        mr.record_id,
+        null::uuid as item_id,
+        mr.transaction_at,
+        case
+            when mr.record_type = 'normal' then m.balance_delta
+            else 0::numeric
+        end as signed_amount
+    from matched_records mr
+    join public.transaction_account_movement m
+      on m.ledger_id = p_ledger_id
+     and m.transaction_record_id = mr.record_id
+    where p_group_by = 'account'
+      and (p_account_id is null or m.account_id = p_account_id)
+
+    union all
+
+    -- 记录级维度下的份额行：每笔记录一行。
+    select
+        case p_group_by
+            when 'merchant' then coalesce(mr.merchant_id::text, 'unknown')
+            else coalesce(mr.created_by::text, 'unknown')
+        end,
+        mr.record_id,
+        null::uuid,
+        mr.transaction_at,
+        sr.account_share_delta
+    from matched_records mr
+    join share_records sr on sr.record_id = mr.record_id
+
+    union all
+
+    -- 其他情况：命中明细逐行（与 #914 之前相同）。
     select
         case p_group_by
             when 'merchant' then coalesce(mi.merchant_id::text, 'unknown')
-            when 'account' then mi.account_id::text
             when 'parentCategory' then coalesce(mi.parent_id, mi.category_id)::text
             when 'category' then coalesce(mi.category_id::text, 'unknown')
             when 'member' then coalesce(mi.created_by::text, 'unknown')
             when 'specialStatus' then mi.special_status::text
             else 'unknown'
-        end as key,
-        count(distinct case
-            when p_group_by = 'specialStatus' then mi.item_id::text
-            else mi.record_id::text
-        end) as count_value,
-        sum(case when mi.signed_amount > 0 then mi.signed_amount else 0 end) as income_value,
-        sum(case when mi.signed_amount < 0 then -mi.signed_amount else 0 end) as expense_value,
-        sum(mi.signed_amount) as balance_value,
-        max(mi.transaction_at) as latest_at
+        end,
+        mi.record_id,
+        mi.item_id,
+        mi.transaction_at,
+        mi.signed_amount
     from matched_items mi
-    where p_group_by <> 'specialStatus' or mi.special_status is not null
-    group by 1
+    where p_group_by <> 'account'
+      and (p_group_by <> 'specialStatus' or mi.special_status is not null)
+      and not exists (
+          select 1
+          from share_records sr
+          where sr.record_id = mi.record_id
+      )
+),
+grouped as (
+    select
+        gr.key,
+        count(distinct case
+            when p_group_by = 'specialStatus' then gr.item_id::text
+            else gr.record_id::text
+        end) as count_value,
+        sum(case when gr.signed_amount > 0 then gr.signed_amount else 0 end) as income_value,
+        sum(case when gr.signed_amount < 0 then -gr.signed_amount else 0 end) as expense_value,
+        sum(gr.signed_amount) as balance_value,
+        max(gr.transaction_at) as latest_at
+    from group_rows gr
+    group by gr.key
+),
+shared_grouped as (
+    -- 一笔记录在一个组内只计一次。
+    select
+        gr.key,
+        count(*) as record_count,
+        sum(sr.account_share_amount) as account_share_amount,
+        sum(sr.record_total_amount) as record_total_amount
+    from (
+        select distinct key, record_id
+        from group_rows
+    ) gr
+    join shared_records sr on sr.record_id = gr.record_id
+    group by gr.key
 ),
 labeled as (
     select
@@ -4976,8 +4874,12 @@ select
     coalesce(labeled.expense_value, 0),
     coalesce(labeled.balance_value, 0),
     labeled.count_value::integer,
-    labeled.latest_at
+    labeled.latest_at,
+    coalesce(sg.record_count, 0)::integer,
+    coalesce(sg.account_share_amount, 0),
+    coalesce(sg.record_total_amount, 0)
 from labeled
+left join shared_grouped sg on sg.key = labeled.key
 order by
     case when p_group_by = 'specialStatus' then
         case labeled.key
@@ -11755,11 +11657,6 @@ GRANT ALL ON FUNCTION "public"."list_pending_ledger_invites"("p_ledger_id" "uuid
 
 REVOKE ALL ON FUNCTION "public"."load_frequent_transaction_category_counts"("p_ledger_id" "uuid", "p_date_start" timestamp with time zone, "p_date_end" timestamp with time zone, "p_minimum_item_count" integer) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."load_frequent_transaction_category_counts"("p_ledger_id" "uuid", "p_date_start" timestamp with time zone, "p_date_end" timestamp with time zone, "p_minimum_item_count" integer) TO "authenticated";
-
-
-
-REVOKE ALL ON FUNCTION "public"."load_transaction_group_summaries"("p_ledger_id" "uuid", "p_group_by" "text", "p_date_start" timestamp with time zone, "p_date_end" timestamp with time zone, "p_record_type" "text", "p_merchant_id" "uuid", "p_account_id" "uuid", "p_parent_category_id" "uuid", "p_category_id" "uuid", "p_member_id" "uuid", "p_offset" integer, "p_limit" integer) FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."load_transaction_group_summaries"("p_ledger_id" "uuid", "p_group_by" "text", "p_date_start" timestamp with time zone, "p_date_end" timestamp with time zone, "p_record_type" "text", "p_merchant_id" "uuid", "p_account_id" "uuid", "p_parent_category_id" "uuid", "p_category_id" "uuid", "p_member_id" "uuid", "p_offset" integer, "p_limit" integer) TO "authenticated";
 
 
 

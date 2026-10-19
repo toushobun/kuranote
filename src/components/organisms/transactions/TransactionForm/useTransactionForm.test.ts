@@ -54,7 +54,6 @@ const merchantOptions: TransactionMerchantOption[] = [
 
 const refundCandidate: TransactionRefundCandidate = {
   accountCurrency: "JPY",
-  accountId: "account-1",
   amount: "1200",
   categoryName: "午餐",
   id: "refund-item-1",
@@ -66,7 +65,6 @@ const refundCandidate: TransactionRefundCandidate = {
 };
 const reimbursementCandidate: TransactionRefundCandidate = {
   ...refundCandidate,
-  accountId: "account-2",
   id: "reimbursement-item-1",
   remainingRefundableAmount: "1000",
   transactionRecordId: "reimbursement-record-1",
@@ -509,7 +507,6 @@ describe("useTransactionForm", () => {
     act(() =>
       result.current.setPickerRefundCandidate({
         ...refundCandidate,
-        accountId: "account-3",
         accountCurrency: "USD",
       }),
     );

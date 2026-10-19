@@ -194,19 +194,21 @@ select set_config(
 );
 set local role authenticated;
 
--- 汇总函数会返回账本内所有账户的分组；这里只断言测试数据使用的账户，
+-- 汇总函数会返回账本内所有账户的数据；这里筛选测试数据使用的账户，
 -- 避免同账本其它账户的种子交易改变预期金额。
+-- 业务净额口径看分类维度：按账户分组自 #914 起取付款明细的实际收付。
 select is(
     (
         select coalesce(sum(summary.expense), 0)
         from public.load_transaction_group_summaries_with_special_status(
-            (select ledger_id from test_special_status_context),
-            'account',
-            '2026-07-01 00:00:00+00',
-            '2026-08-01 00:00:00+00'
+            p_ledger_id => (select ledger_id from test_special_status_context),
+            p_group_by => 'category',
+            p_date_start => '2026-07-01 00:00:00+00',
+            p_date_end => '2026-08-01 00:00:00+00',
+            p_account_id => (select account_id from test_special_status_context)
         ) summary
         where summary.group_key = (
-            select account_id::text from test_special_status_context
+            select expense_category_id::text from test_special_status_context
         )
     ),
     0::numeric,
@@ -217,13 +219,14 @@ select is(
     (
         select coalesce(sum(summary.income), 0)
         from public.load_transaction_group_summaries_with_special_status(
-            (select ledger_id from test_special_status_context),
-            'account',
-            '2026-08-01 00:00:00+00',
-            '2026-09-01 00:00:00+00'
+            p_ledger_id => (select ledger_id from test_special_status_context),
+            p_group_by => 'category',
+            p_date_start => '2026-08-01 00:00:00+00',
+            p_date_end => '2026-09-01 00:00:00+00',
+            p_account_id => (select account_id from test_special_status_context)
         ) summary
         where summary.group_key = (
-            select account_id::text from test_special_status_context
+            select income_category_id::text from test_special_status_context
         )
     ),
     0::numeric,
@@ -270,13 +273,14 @@ select is(
     (
         select coalesce(sum(summary.expense), 0)
         from public.load_transaction_group_summaries_with_special_status(
-            (select ledger_id from test_special_status_context),
-            'account',
-            '2026-09-01 00:00:00+00',
-            '2026-10-01 00:00:00+00'
+            p_ledger_id => (select ledger_id from test_special_status_context),
+            p_group_by => 'category',
+            p_date_start => '2026-09-01 00:00:00+00',
+            p_date_end => '2026-10-01 00:00:00+00',
+            p_account_id => (select account_id from test_special_status_context)
         ) summary
         where summary.group_key = (
-            select account_id::text from test_special_status_context
+            select expense_category_id::text from test_special_status_context
         )
     ),
     7000::numeric,
@@ -287,13 +291,14 @@ select is(
     (
         select coalesce(sum(summary.income), 0)
         from public.load_transaction_group_summaries_with_special_status(
-            (select ledger_id from test_special_status_context),
-            'account',
-            '2026-10-01 00:00:00+00',
-            '2026-11-01 00:00:00+00'
+            p_ledger_id => (select ledger_id from test_special_status_context),
+            p_group_by => 'category',
+            p_date_start => '2026-10-01 00:00:00+00',
+            p_date_end => '2026-11-01 00:00:00+00',
+            p_account_id => (select account_id from test_special_status_context)
         ) summary
         where summary.group_key = (
-            select account_id::text from test_special_status_context
+            select income_category_id::text from test_special_status_context
         )
     ),
     0::numeric,

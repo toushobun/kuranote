@@ -24,6 +24,17 @@ export function formatNumber(amount: string, currency?: string) {
   }).format(value);
 }
 
+/** 不带正负号的「符号 + 金额」，如 ¥120,000；组头合计与「共同支付」提示共用。 */
+export function formatUnsignedCurrencyAmount(amount: string, currency: string) {
+  const currencySymbol = getCurrencySymbol(currency);
+  const value = Number(amount);
+
+  if (!Number.isFinite(value))
+    return `${currencySymbol}${formatNumber(amount, currency)}`;
+
+  return `${currencySymbol}${formatNumber(String(Math.abs(value)), currency)}`;
+}
+
 export function formatPlainAmount(amount: string, currency = "") {
   const formattedAmount = formatNumber(amount, currency);
 

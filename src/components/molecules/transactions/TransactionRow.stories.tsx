@@ -6,6 +6,12 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import type { TransactionRowItem } from "types/transactions";
 
 import { TransactionRow } from "./TransactionRow";
+import {
+  sharedPaymentAccountShareRowItem,
+  sharedPaymentMatchedItemsRowItem,
+  sharedPaymentRowItem,
+  sharedPaymentWithOriginalAmountRowItem,
+} from "./transactionRowSharedPayment.testUtils";
 
 // seed 9001: 業務スーパー 2026-06-05, expense, 2858 JPY, 4 categories
 const expenseItem: TransactionRowItem = {
@@ -337,6 +343,58 @@ export const FullyOffsetReimbursementIncome: Story = {
         .slice(1)
         .map((item) => ({ ...item, businessNetAmount: "0" })),
     },
+  },
+};
+
+export const SingleAccount: Story = {
+  name: "单账户记录（账户行显示账户名）",
+  args: {
+    item: {
+      ...sharedPaymentRowItem,
+      account_name: "我的账户",
+    },
+  },
+};
+
+export const MultipleAccounts: Story = {
+  name: "多账户记录（首个账户 等 N 个账户）",
+  args: {
+    item: sharedPaymentRowItem,
+  },
+};
+
+export const SharedPaymentAccountShare: Story = {
+  name: "筛选账户：主金额为本账户份额",
+  args: {
+    item: sharedPaymentAccountShareRowItem,
+  },
+};
+
+export const SharedPaymentMatchedItems: Story = {
+  name: "筛选账户 + 分类：主金额为明细全额并显示本账户份额",
+  args: {
+    item: sharedPaymentMatchedItemsRowItem,
+  },
+};
+
+export const SharedPaymentWithOriginalAmount: Story = {
+  name: "共同支付行与原金额同时出现",
+  args: {
+    item: sharedPaymentWithOriginalAmountRowItem,
+  },
+};
+
+export const SharedPaymentNarrow: Story = {
+  name: "窄屏下共同支付行换行",
+  decorators: [
+    (Story) => (
+      <Box sx={{ width: 240 }}>
+        <Story />
+      </Box>
+    ),
+  ],
+  args: {
+    item: sharedPaymentWithOriginalAmountRowItem,
   },
 };
 

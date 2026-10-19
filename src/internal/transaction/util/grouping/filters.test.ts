@@ -6,7 +6,17 @@ import type {
   TransactionRecordDbRow,
 } from "internal/db-types";
 
-import { filterTransactionItems, filterTransactionRecords } from "./filters";
+import {
+  filterTransactionItems,
+  filterTransactionRecords,
+  hasNonAccountItemFilters,
+} from "./filters";
+import {
+  createHospitalGroupLoaderContext,
+  hospitalAccounts,
+  hospitalCategories,
+  hospitalItems,
+} from "./splitPayment.testUtils";
 import type { TransactionGroupLoaderContext } from "./types";
 
 const ledgerId = "00000000-0000-4000-8000-000000000001";
@@ -38,6 +48,7 @@ function createContext(
     },
     items: [],
     merchants: [],
+    payments: [],
     records,
     recorders: [],
   };
@@ -161,5 +172,87 @@ describe("特殊状态明细筛选", () => {
         specialStatuses: ["pendingReimbursement"],
       }),
     ).toEqual([]);
+  });
+});
+
+describe("账户筛选按付款明细（记录级）", () => {
+  const context = createHospitalGroupLoaderContext();
+
+  it("付款明细包含该账户即命中记录，明细账户镜像不参与判断", () => {
+    expect(
+      filterTransactionRecords(context, {
+        accountId: hospitalAccounts.wife.id,
+        recordType: "all",
+      }).map((record) => record.id),
+    ).toEqual(["record-hospital"]);
+    expect(
+      filterTransactionRecords(context, {
+        accountId: "account-other",
+        recordType: "all",
+      }),
+    ).toEqual([]);
+  });
+
+  it("只有账户筛选时不剔除明细", () => {
+    expect(
+      filterTransactionItems(context, {
+        accountId: hospitalAccounts.wife.id,
+        recordType: "all",
+      }),
+    ).toEqual(hospitalItems);
+  });
+
+  it("账户筛选与分类筛选同时存在时，命中部分由分类决定", () => {
+    expect(
+      filterTransactionItems(context, {
+        accountId: hospitalAccounts.wife.id,
+        categoryId: hospitalCategories.inpatient.id,
+        recordType: "all",
+      }).map((item) => item.id),
+    ).toEqual(["item-inpatient"]);
+  });
+
+  it("hasNonAccountItemFilters 不把账户计入明细级筛选", () => {
+    expect(
+      hasNonAccountItemFilters({ accountId: "account", recordType: "all" }),
+    ).toBe(false);
+    expect(hasNonAccountItemFilters({ recordType: "refundableExpense" })).toBe(
+      true,
+    );
+    expect(
+      hasNonAccountItemFilters({ categoryId: "category", recordType: "all" }),
+    ).toBe(true);
+  });
+
+  it("转账记录仍按明细账户筛选", () => {
+    const transferContext = createHospitalGroupLoaderContext({
+      items: [
+        {
+          account_id: "account-from",
+          amount: "100",
+          balance_delta: "-100",
+          category_id: null,
+          transaction_record_id: "record-transfer",
+        },
+      ],
+      payments: [],
+      records: [
+        {
+          created_at: "2026-10-10T00:00:00.000Z",
+          id: "record-transfer",
+          merchant_id: null,
+          note: null,
+          transaction_at: "2026-10-10T00:00:00.000Z",
+          type: "transfer",
+        },
+      ],
+    });
+
+    expect(
+      filterTransactionRecords(transferContext, {
+        accountId: "account-from",
+        recordType: "all",
+      }),
+    ).toHaveLength(1);
   });
 });

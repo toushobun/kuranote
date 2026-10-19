@@ -9,6 +9,7 @@ import { Fragment, useSyncExternalStore } from "react";
 
 import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/TransactionBusinessBadge";
 import { TransactionOriginalAmount } from "atoms/transactions/TransactionOriginalAmount";
+import { TransactionSharedPaymentNote } from "atoms/transactions/TransactionSharedPaymentNote";
 import { balanceAdjustmentText } from "config/balanceAdjustmentText";
 import { serverFallbackTimeZone } from "config/dateTime";
 import {
@@ -18,7 +19,10 @@ import {
 import { designTokens } from "theme/theme";
 import { transactionOriginalAmountTextSx } from "theme/transactionAmountSx";
 import { themeColorTokens } from "theme/themeColorTokens";
-import { transactionAmountMessages } from "utils/transactionMessages";
+import {
+  transactionAmountMessages,
+  transactionSharedPaymentMessages,
+} from "utils/transactionMessages";
 import { getAmountDecimalPlaces } from "utils/transactionAmountInput";
 import type {
   CategorySummaryItem,
@@ -29,6 +33,7 @@ import { getMerchantInitial } from "utils/merchants";
 import {
   formatTransactionRowAmount,
   formatTransactionTime,
+  formatUnsignedCurrencyAmount,
 } from "utils/transactions";
 
 export type TransactionRowProps = {
@@ -102,6 +107,7 @@ export function TransactionRow({
         item.account_currency,
       )
     : formatRowAmount(item);
+  const sharedPaymentLabel = getSharedPaymentLabel(item);
   const categorySummaryText = getTransactionCategorySummaryText(item);
   const detailText = categorySummaryText ?? "";
   const adjustmentNode =
@@ -226,6 +232,10 @@ export function TransactionRow({
               {signedAmount}
             </Typography>
           </Stack>
+
+          {sharedPaymentLabel ? (
+            <TransactionSharedPaymentNote label={sharedPaymentLabel} />
+          ) : null}
 
           {metaSegments.length > 0 || adjustmentNode ? (
             <Stack
@@ -460,6 +470,26 @@ function normalizeAggregatedAmount(amount: number, currency?: string) {
   return Number.isFinite(amount) && amount > 0
     ? String(Number(amount.toFixed(getAmountDecimalPlaces(currency))))
     : "0";
+}
+
+// 共同支付行夹在当前金额和原金额之间；主金额为命中明细全额时再给出本账户份额。
+function getSharedPaymentLabel(item: TransactionRowItem) {
+  if (item.record_total_amount === undefined) return null;
+
+  const recordTotal = formatUnsignedCurrencyAmount(
+    item.record_total_amount,
+    item.account_currency,
+  );
+
+  return item.account_share_amount === undefined
+    ? transactionSharedPaymentMessages.recordTotal(recordTotal)
+    : transactionSharedPaymentMessages.accountShareAndRecordTotal(
+        formatUnsignedCurrencyAmount(
+          item.account_share_amount,
+          item.account_currency,
+        ),
+        recordTotal,
+      );
 }
 
 function formatRowAmount(item: TransactionRowItem) {

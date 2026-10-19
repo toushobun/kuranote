@@ -195,13 +195,17 @@ describe("current ledger 数据边界", () => {
   });
 
   it("非时间维度交易分组 RPC 只读取 active 成员可访问的目标账本", () => {
-    const functionSql = getFunctionSql("load_transaction_group_summaries");
+    const functionSql = getFunctionSql(
+      "load_transaction_group_summaries_with_special_status",
+    );
 
     expect(functionSql).toContain("tr.ledger_id = p_ledger_id");
     expect(functionSql).toContain(
       "current_user_is_active_ledger_member(p_ledger_id)",
     );
-    expect(functionSql).toContain("ti.ledger_id = p_ledger_id");
+    expect(functionSql).toContain("ti.ledger_id = tr.ledger_id");
+    expect(functionSql).toContain("p.ledger_id = p_ledger_id");
+    expect(functionSql).toContain("m.ledger_id = p_ledger_id");
     expect(functionSql).not.toContain("transaction_record_tag");
   });
 

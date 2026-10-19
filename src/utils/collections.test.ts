@@ -1,6 +1,28 @@
 import { describe, expect, it } from "vitest";
 
-import { chunkArray, mergeUniqueById, paginateItems } from "./collections";
+import {
+  chunkArray,
+  groupByKey,
+  mergeUniqueById,
+  paginateItems,
+} from "./collections";
+
+describe("groupByKey", () => {
+  it("按 key 分组并保持组内原有顺序", () => {
+    const grouped = groupByKey(
+      [
+        { id: "a", recordId: "r1" },
+        { id: "b", recordId: "r2" },
+        { id: "c", recordId: "r1" },
+      ],
+      (value) => value.recordId,
+    );
+
+    expect([...grouped.keys()]).toEqual(["r1", "r2"]);
+    expect(grouped.get("r1")?.map((value) => value.id)).toEqual(["a", "c"]);
+    expect(grouped.get("r2")?.map((value) => value.id)).toEqual(["b"]);
+  });
+});
 
 describe("mergeUniqueById", () => {
   it("追加不存在的 id 并保留已有顺序", () => {

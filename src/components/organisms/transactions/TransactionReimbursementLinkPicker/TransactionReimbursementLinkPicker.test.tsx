@@ -58,7 +58,6 @@ const searchPage = {
       account_currency: candidate.accountCurrency,
       categoryItems: [
         {
-          accountId: candidate.accountId,
           amount: candidate.amount,
           categoryName: candidate.categoryName,
           categoryType: "expense",

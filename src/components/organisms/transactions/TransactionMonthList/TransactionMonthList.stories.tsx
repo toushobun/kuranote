@@ -117,6 +117,40 @@ const emptyTimeGroupView: TransactionTimeGroupViewData = {
   initialNextItemOffsetByGroupId: {},
 };
 
+// 筛选我的账户 + 按分类：医院 12 万（我 5 万、妻子 7 万）的明细全额计入各分类组。
+const sharedPaymentTimeGroupView: TransactionTimeGroupViewData = {
+  ...emptyTimeGroupView,
+  groupBy: "category",
+  groups: [
+    {
+      id: "category:inpatient",
+      key: "inpatient",
+      label: "住院费",
+      summary: "80000",
+    },
+    {
+      id: "category:treatment",
+      key: "treatment",
+      label: "治疗费",
+      summary: "40000",
+    },
+  ].map(({ summary, ...group }) => ({
+    ...group,
+    sharedPayment: {
+      accountShareAmount: "50000",
+      recordCount: 1,
+      recordTotalAmount: "120000",
+    },
+    summary: {
+      balance: `-${summary}`,
+      currency: "JPY",
+      expense: summary,
+      income: "0",
+    },
+    transactionCount: 1,
+  })),
+};
+
 async function loadGroupItemsAction() {
   return { groups: [], nextOffset: null };
 }
@@ -170,6 +204,13 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   name: "同日、跨日与跨月分组边界",
+};
+
+export const SharedPaymentGroupSummary: Story = {
+  name: "组头显示共同支付提示",
+  args: {
+    timeGroupView: sharedPaymentTimeGroupView,
+  },
 };
 
 export const Empty: Story = {

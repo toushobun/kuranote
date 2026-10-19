@@ -19,6 +19,7 @@ import {
   formatTransactionAt,
   formatTransactionRowAmount,
   formatTransactionTime,
+  formatUnsignedCurrencyAmount,
   getCategoryLabel,
   getCurrentMonthRange,
   getDateLabelRefreshDelayMs,
@@ -85,6 +86,13 @@ describe("transactions utils", () => {
       `-${numberFormatter.format(1200)}`,
     );
     expect(formatSignedNumber("invalid")).toBe("invalid");
+  });
+
+  it("不带正负号地显示币种符号与金额", () => {
+    expect(formatUnsignedCurrencyAmount("-120000", "JPY")).toBe(
+      `¥${numberFormatter.format(120000)}`,
+    );
+    expect(formatUnsignedCurrencyAmount("invalid", "JPY")).toBe("¥invalid");
   });
 
   it("按交易类型给行金额添加符号", () => {
