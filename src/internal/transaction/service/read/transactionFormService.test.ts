@@ -219,8 +219,7 @@ describe("getEditTransactionView", () => {
     expect(view).toMatchObject({
       canEdit: false,
       initialValues: {
-        accountId,
-        payments: [{ accountId, amount: "1200.00" }],
+        payments: [{ accountId, amount: "1200" }],
         items: [
           { amount: "1200", categoryId, specialStatus: "pendingReimbursement" },
         ],
@@ -416,22 +415,17 @@ describe("getEditTransactionView", () => {
     });
   });
 
-  function createMultiAccountRepository({
-    createdBy = userId,
-    secondAccountId,
-  }: {
-    createdBy?: string;
-    secondAccountId: string;
-  }) {
+  function createMultiAccountRepository(secondAccountId: string) {
     return createRepository({
       findActiveRecord: vi.fn().mockResolvedValue({
         created_at: "2026-06-04T01:00:00.000Z",
-        created_by: createdBy,
+        created_by: userId,
         id: transactionRecordId,
         merchant_id: merchantId,
         note: "共同支付",
         transaction_at: "2026-06-04T01:30:05.000Z",
         type: "normal",
+        updated_at: updatedAt,
       }),
       listItems: vi.fn().mockResolvedValue([
         {
@@ -465,7 +459,7 @@ describe("getEditTransactionView", () => {
   it("多账户付款明细中任一账户已归档时整笔只读", async () => {
     const secondAccountId = "00000000-0000-4000-8000-000000000047";
     const dependencies = createDependencies(
-      createMultiAccountRepository({ secondAccountId }),
+      createMultiAccountRepository(secondAccountId),
     );
     vi.mocked(
       dependencies.accountQueryService.listTransactionOptions,
@@ -481,51 +475,31 @@ describe("getEditTransactionView", () => {
       canEdit: false,
       editRestriction: "archivedAccount",
       initialValues: {
-        accountId,
         payments: [
-          { accountId, amount: "500.00" },
-          { accountId: secondAccountId, amount: "700.00" },
+          { accountId, amount: "500" },
+          { accountId: secondAccountId, amount: "700" },
         ],
       },
     });
   });
 
-  it("多账户记录暂不能用现有表单编辑，整笔只读", async () => {
+  it("多账户记录可以编辑，按录入顺序回填付款明细与记录版本", async () => {
     const view = await getEditTransactionView(
-      createDependencies(
-        createMultiAccountRepository({ secondAccountId: targetAccountId }),
-      ),
+      createDependencies(createMultiAccountRepository(targetAccountId)),
       currentLedger,
       transactionRecordId,
     );
 
     expect(view).toMatchObject({
-      canEdit: false,
-      editRestriction: "multiAccount",
+      canEdit: true,
+      editRestriction: null,
       initialValues: {
+        expectedRecordUpdatedAt: updatedAt,
         payments: [
-          { accountId, amount: "500.00" },
-          { accountId: targetAccountId, amount: "700.00" },
+          { accountId, amount: "500" },
+          { accountId: targetAccountId, amount: "700" },
         ],
       },
-    });
-  });
-
-  it("没有修改权限的多账户记录仍按权限限制提示", async () => {
-    const view = await getEditTransactionView(
-      createDependencies(
-        createMultiAccountRepository({
-          createdBy: "00000000-0000-4000-8000-000000000099",
-          secondAccountId: targetAccountId,
-        }),
-      ),
-      currentLedger,
-      transactionRecordId,
-    );
-
-    expect(view).toMatchObject({
-      canEdit: false,
-      editRestriction: "permission",
     });
   });
 

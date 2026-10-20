@@ -151,18 +151,13 @@ export type NewTransactionView = TransactionFormOptions & {
 
 export type EditTransactionView = TransactionFormOptions & {
   canEdit: boolean;
-  editRestriction:
-    | "archivedAccount"
-    | "linked"
-    // 多账户记录暂不能用现有表单编辑（#915 开放多账户表单后移除）。
-    | "multiAccount"
-    | "permission"
-    | null;
+  editRestriction: "archivedAccount" | "linked" | "permission" | null;
   initialValues:
     | BalanceAdjustmentEditInitialValues
     | TransferEditInitialValues
     | {
-        accountId: string;
+        // 记录级乐观锁版本（transaction_record.updated_at），表单原样回传。
+        expectedRecordUpdatedAt?: string;
         payments: TransactionPayment[];
         items: {
           amount: string;

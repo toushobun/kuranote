@@ -107,21 +107,6 @@ export const ArchivedAccountPermissionDenied: Story = {
   ),
 };
 
-export const MultiAccountPermissionDenied: Story = {
-  name: "多账户记录只读（可删除）",
-  render: () => (
-    <TransactionPermissionDenied
-      deleteControl={{
-        deleteAction: async () => ({}),
-        hasLinkedIncomeItems: false,
-        transactionRecordId: "00000000-0000-4000-8000-000000009140",
-      }}
-      operation="edit"
-      reason="multiAccount"
-    />
-  ),
-};
-
 export const EmptyOptions: Story = {
   name: "无账户和分类选项",
   args: {
@@ -138,7 +123,9 @@ export const EditExpenseConvert: Story = {
       {...baseArgs}
       deleteAction={noopAction}
       initialValues={{
-        accountId: "00000000-0000-4000-8000-000000000045",
+        payments: [
+          { accountId: "00000000-0000-4000-8000-000000000045", amount: null },
+        ],
         items: [
           {
             amount: "1200",
@@ -155,6 +142,34 @@ export const EditExpenseConvert: Story = {
   ),
 };
 
+export const EditMultiAccountExpense: Story = {
+  name: "编辑多账户支出（卡 1 + 卡 2）",
+  render: () => (
+    <EditTransactionTemplate
+      {...baseArgs}
+      deleteAction={noopAction}
+      initialValues={{
+        expectedRecordUpdatedAt: "2026-06-05T03:21:00.000+00:00",
+        payments: [
+          { accountId: "00000000-0000-4000-8000-000000000045", amount: "500" },
+          { accountId: "00000000-0000-4000-8000-000000000046", amount: "700" },
+        ],
+        items: [
+          {
+            amount: "1200",
+            categoryId: "00000000-0000-4000-8000-000000005072",
+          },
+        ],
+        merchantId: "00000000-0000-4000-8000-000000001001",
+        note: "多账户编辑示例",
+        transactionAt: "2026-06-05T03:20:10.000Z",
+        transactionRecordId: "00000000-0000-4000-8000-000000009004",
+        type: "expense",
+      }}
+    />
+  ),
+};
+
 export const EditIncomeConvert: Story = {
   name: "编辑收入：可切换到转账",
   render: () => (
@@ -162,7 +177,9 @@ export const EditIncomeConvert: Story = {
       {...baseArgs}
       deleteAction={noopAction}
       initialValues={{
-        accountId: "00000000-0000-4000-8000-000000000046",
+        payments: [
+          { accountId: "00000000-0000-4000-8000-000000000046", amount: null },
+        ],
         items: [
           {
             amount: "260000",
@@ -205,7 +222,9 @@ export const EditLinkedExpense: Story = {
       {...baseArgs}
       deleteAction={noopAction}
       initialValues={{
-        accountId: "00000000-0000-4000-8000-000000000045",
+        payments: [
+          { accountId: "00000000-0000-4000-8000-000000000045", amount: null },
+        ],
         items: [
           {
             amount: "1200",
@@ -245,7 +264,9 @@ export const LinkedDeleteForbidden: Story = {
         errorKey: "storybook-linked-delete-forbidden",
       })}
       initialValues={{
-        accountId: "00000000-0000-4000-8000-000000000045",
+        payments: [
+          { accountId: "00000000-0000-4000-8000-000000000045", amount: null },
+        ],
         items: [
           {
             amount: "1200",
@@ -288,7 +309,9 @@ export const LinkedIncomeDeleteConfirmation: Story = {
       {...baseArgs}
       deleteAction={noopAction}
       initialValues={{
-        accountId: "00000000-0000-4000-8000-000000000045",
+        payments: [
+          { accountId: "00000000-0000-4000-8000-000000000045", amount: null },
+        ],
         items: [
           {
             amount: "1200",

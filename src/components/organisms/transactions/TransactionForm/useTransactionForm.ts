@@ -21,6 +21,8 @@ import {
   summarizeRefundAllocationAmounts,
   summarizeReimbursementAllocationAmounts,
   toRefundMinorUnits,
+  transactionPaymentValidationErrorMessages,
+  validateTransactionPayments,
 } from "internal/transaction";
 import {
   composeTransactionDateTimeLocalValue,
@@ -31,6 +33,10 @@ import {
   splitDateTimeLocalValue,
 } from "utils/transactions";
 
+import {
+  reconcileTransactionPayments,
+  useTransactionPaymentFields,
+} from "../TransactionPaymentFields/useTransactionPaymentFields";
 import type {
   TransactionFieldErrors,
   TransactionFormInitialValues,
@@ -72,9 +78,8 @@ export function useTransactionForm({
   const [selectedType, setSelectedType] = useState<TransactionType>(
     initialValues?.type ?? initialType ?? "expense",
   );
-  const [selectedAccountId, setSelectedAccountId] = useState(
-    initialValues?.accountId ?? "",
-  );
+  const paymentFields = useTransactionPaymentFields(initialValues?.payments);
+  const selectedAccountId = paymentFields.primaryAccountId;
   const [selectedMerchantId, setSelectedMerchantId] = useState(
     initialValues?.merchantId ?? "",
   );
@@ -187,6 +192,13 @@ export function useTransactionForm({
     if (!isValidMoneyText(item.amount, selectedAccount?.currency)) return sum;
     return sum + Number(item.amount);
   }, 0);
+  const paymentReconciliation = reconcileTransactionPayments({
+    currency: selectedAccount?.currency,
+    itemAmounts: allDisplayItems.map((item) => item.amount),
+    payments: paymentFields.payments,
+  });
+  // 含收入明细时不提供多账户入口；已展开后又加了收入明细时，由提交前校验提示并阻止保存，不自动收起。
+  const hasIncomeItems = itemsByType.income.length > 0;
   const hasValidItems =
     allDisplayItems.length > 0 &&
     allDisplayItems.every(
@@ -203,7 +215,8 @@ export function useTransactionForm({
     accountOptions.length === 0 ||
     merchantOptions.length === 0 ||
     allNormalCategoryOptions.length === 0 ||
-    !transactionAtValue;
+    !transactionAtValue ||
+    (paymentFields.isMultiAccount && !paymentReconciliation.isBalanced);
 
   useEffect(() => {
     onSubmitDisabledChange?.(isSubmitDisabled);
@@ -513,9 +526,47 @@ export function useTransactionForm({
     }
   }
 
-  function handleAccountChange(accountId: string) {
+  function handlePaymentAccountChange(key: number, accountId: string) {
+    if (key !== paymentFields.payments[0]?.key) {
+      markEditDirty?.();
+      paymentFields.changeAccount(key, accountId);
+      clearAccountFieldError();
+      return;
+    }
+    handlePrimaryAccountChange(key, accountId);
+  }
+
+  function handlePaymentAmountChange(key: number, amount: string) {
     markEditDirty?.();
-    setSelectedAccountId(accountId);
+    paymentFields.changeAmount(key, amount);
+    clearAccountFieldError();
+  }
+
+  function handleAddPayment() {
+    markEditDirty?.();
+    // 首行预填当前明细合计（单账户时它实际承担的金额），新增行留空（已决事项第 7 条）。
+    paymentFields.addPayment(
+      allDisplayItems.length > 0 ? paymentReconciliation.itemTotal : "",
+    );
+    clearAccountFieldError();
+  }
+
+  function handleRemovePayment(key: number) {
+    markEditDirty?.();
+    paymentFields.removePayment(key);
+    clearAccountFieldError();
+  }
+
+  function clearAccountFieldError() {
+    if (fieldErrors.account) {
+      setFieldErrors((current) => ({ ...current, account: undefined }));
+    }
+  }
+
+  // 首个付款账户决定记录币种，切换时同步检查退款 / 报销关联的币种。
+  function handlePrimaryAccountChange(key: number, accountId: string) {
+    markEditDirty?.();
+    paymentFields.changeAccount(key, accountId);
     const nextAccount = accountOptions.find(
       (account) => account.id === accountId,
     );
@@ -600,9 +651,7 @@ export function useTransactionForm({
     ].filter((notice) => notice !== null);
     setLinkNotice(notices.length > 0 ? notices.join("") : null);
 
-    if (fieldErrors.account) {
-      setFieldErrors((current) => ({ ...current, account: undefined }));
-    }
+    clearAccountFieldError();
   }
 
   // 退款与报销候选共用同一套拒绝判断：未选账户时提示先选账户，币种不一致时提示重新选择。
@@ -618,6 +667,27 @@ export function useTransactionForm({
       return transactionLinkMessages.candidateCurrencyMismatch(kind);
     }
     return null;
+  }
+
+  // 付款账户的提交前校验与 Service 共用 validateTransactionPayments。
+  function getAccountFieldError() {
+    if (paymentFields.payments.some((payment) => !payment.accountId)) {
+      return transactionFormValidationMessages.accountRequired;
+    }
+    if (!hasValidItems) return null;
+    const validation = validateTransactionPayments({
+      accountOptions,
+      items: allDisplayItems.map((item) => ({
+        amount: item.amount,
+        categoryType: getNormalCategoryType(
+          categoryById.get(item.categoryId)?.type,
+        ),
+      })),
+      payments: paymentFields.submittedPayments,
+    });
+    return validation.ok
+      ? null
+      : transactionPaymentValidationErrorMessages[validation.error];
   }
 
   function handleNoteChange() {
@@ -644,11 +714,12 @@ export function useTransactionForm({
     if (!selectedMerchantId) {
       errors.merchant = transactionFormValidationMessages.merchantRequired;
     }
-    if (!selectedAccountId) {
-      errors.account = transactionFormValidationMessages.accountRequired;
-    }
     if (!hasValidItems) {
       errors.items = transactionFormValidationMessages.itemsRequired;
+    }
+    const accountError = getAccountFieldError();
+    if (accountError) {
+      errors.account = accountError;
     }
 
     if (Object.keys(errors).length > 0) {
@@ -677,7 +748,7 @@ export function useTransactionForm({
     closeSheet,
     editingItemId,
     fieldErrors,
-    handleAccountChange,
+    handleAddPayment,
     handleDateChange,
     handleMerchantChange,
     handleNoteChange,
@@ -685,8 +756,12 @@ export function useTransactionForm({
     handlePickerAmountChange,
     handlePickerCategoryToggle,
     handlePickerGroupSelect,
+    handlePaymentAccountChange,
+    handlePaymentAmountChange,
+    handleRemovePayment,
     handleSubmit,
     handleTimeChange,
+    hasIncomeItems,
     isSheetOpen,
     isSubmitDisabled,
     linkNotice,
@@ -695,6 +770,8 @@ export function useTransactionForm({
     merchantFieldRef,
     openItemSheet,
     openSheet,
+    paymentReconciliation,
+    payments: paymentFields.payments,
     pickerAmount,
     pickerCategoryId,
     pickerErrors,
@@ -833,6 +910,10 @@ function getFormItemBusinessStatus(
     isReimbursementIncome: Boolean(reimbursementCandidate),
     specialStatus,
   });
+}
+
+function getNormalCategoryType(type: TransactionType | string | undefined) {
+  return type === "expense" || type === "income" ? type : null;
 }
 
 function cancelDefaultEvent(event: { preventDefault(): void }) {

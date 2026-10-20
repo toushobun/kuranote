@@ -30,8 +30,6 @@ export const transactionSharedPaymentMessages = {
 export const transactionEditRestrictionMessages = {
   archivedAccount: "该交易引用的账户已被删除，请先恢复该账户后再编辑。",
   linked: "该交易已关联报销或退款，不能编辑。",
-  // #915 开放多账户表单后移除。
-  multiAccount: "多账户记录暂不支持编辑，请等待后续版本。",
   title: "该交易不能编辑",
 } as const;
 
@@ -49,7 +47,22 @@ export const transactionItemsSectionMessages = {
 } as const;
 
 export const transactionAccountSectionMessages = {
+  accountLabel: "账户",
+  accountPlaceholder: "选择账户",
+  accountRequiredOption: "请选择账户",
+  emptyAccountHelper: "请先新增账户。",
   title: "账户",
+} as const;
+
+// 多账户付款（#834 / #915）。金额参数为已格式化的「币种符号 + 金额」。
+export const transactionPaymentFieldsMessages = {
+  addPayment: "添加付款账户",
+  difference: (difference: string) => `差额 ${difference}`,
+  paymentAccountLabel: (index: number) => `付款账户 ${index}`,
+  paymentAmountLabel: (index: number) => `付款金额 ${index}`,
+  reconciliation: (paymentTotal: string, itemTotal: string) =>
+    `付款合计 ${paymentTotal} / 明细合计 ${itemTotal}`,
+  removePayment: (index: number) => `删除付款账户 ${index}`,
 } as const;
 
 const transactionLinkKindLabels = {

@@ -1,6 +1,9 @@
 import type { ReactNode } from "react";
 
-import type { TransactionSpecialStatus } from "internal/transaction";
+import type {
+  TransactionPayment,
+  TransactionSpecialStatus,
+} from "internal/transaction";
 import type {
   TransactionAccountOption,
   TransactionBusinessStatus,
@@ -75,10 +78,13 @@ export type TransactionFormInitialItem = {
 };
 
 export type TransactionFormInitialValues = {
-  accountId: string;
+  // 编辑时的记录级乐观锁版本，原样作为隐藏字段提交。
+  expectedRecordUpdatedAt?: string;
   items: TransactionFormInitialItem[];
   merchantId: string;
   note: string;
+  // 按录入顺序；1 行为单账户（金额由明细推导），≥ 2 行为多账户。
+  payments: TransactionPayment[];
   transactionAt: string;
   transactionRecordId?: string;
   type: TransactionType;

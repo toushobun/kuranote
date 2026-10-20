@@ -83,9 +83,19 @@ function renderTransactionFormHook(
   );
 }
 
+function changePrimaryAccount(
+  result: { current: ReturnType<typeof useTransactionForm> },
+  accountId: string,
+) {
+  result.current.handlePaymentAccountChange(
+    result.current.payments[0]!.key,
+    accountId,
+  );
+}
+
 function createInitialValues() {
   return {
-    accountId: "account-1",
+    payments: [{ accountId: "account-1", amount: null }],
     items: [{ amount: "1200", categoryId: "income-category" }],
     merchantId: "merchant-1",
     note: "",
@@ -100,7 +110,7 @@ describe("useTransactionForm", () => {
   it("按分类类型初始化明细并计算收支净额", async () => {
     const { result } = renderTransactionFormHook({
       initialValues: {
-        accountId: "account-1",
+        payments: [{ accountId: "account-1", amount: null }],
         items: [
           { amount: "1200", categoryId: "expense-child" },
           { amount: "500", categoryId: "income-category" },
@@ -125,7 +135,7 @@ describe("useTransactionForm", () => {
   it("退款报销后的表单合计使用业务净额并保留原始合计", () => {
     const { result } = renderTransactionFormHook({
       initialValues: {
-        accountId: "account-1",
+        payments: [{ accountId: "account-1", amount: null }],
         items: [
           {
             amount: "500",
@@ -147,7 +157,7 @@ describe("useTransactionForm", () => {
   it("三位小数币种的收支净额和业务净额不截断", () => {
     const { result } = renderTransactionFormHook({
       initialValues: {
-        accountId: "account-4",
+        payments: [{ accountId: "account-4", amount: null }],
         items: [
           {
             amount: "1.234",
@@ -170,7 +180,7 @@ describe("useTransactionForm", () => {
     const { result } = renderTransactionFormHook({ initialType: "income" });
 
     act(() => {
-      result.current.handleAccountChange("account-1");
+      changePrimaryAccount(result, "account-1");
       result.current.openSheet();
       result.current.handlePickerCategoryToggle("income-category");
       result.current.handlePickerAmountChange("1500");
@@ -203,7 +213,7 @@ describe("useTransactionForm", () => {
       const { result } = renderTransactionFormHook({ initialType: "income" });
 
       act(() => {
-        result.current.handleAccountChange("account-1");
+        changePrimaryAccount(result, "account-1");
         result.current.openSheet();
         result.current.handlePickerCategoryToggle("income-category");
         result.current.handlePickerAmountChange(incomeAmount);
@@ -225,7 +235,7 @@ describe("useTransactionForm", () => {
   it("普通既有交易修改金额时不保留等额业务净额", () => {
     const { result } = renderTransactionFormHook({
       initialValues: {
-        accountId: "account-1",
+        payments: [{ accountId: "account-1", amount: null }],
         items: [
           {
             amount: "500",
@@ -250,7 +260,7 @@ describe("useTransactionForm", () => {
   it("行内修改部分退款支出金额时重新计算业务净额", () => {
     const { result } = renderTransactionFormHook({
       initialValues: {
-        accountId: "account-1",
+        payments: [{ accountId: "account-1", amount: null }],
         items: [
           {
             amount: "500",
@@ -278,7 +288,7 @@ describe("useTransactionForm", () => {
   it("修改已倒赚支出金额时按带符号业务净额实时重算", () => {
     const { result } = renderTransactionFormHook({
       initialValues: {
-        accountId: "account-1",
+        payments: [{ accountId: "account-1", amount: null }],
         items: [
           {
             amount: "4000",
@@ -307,7 +317,7 @@ describe("useTransactionForm", () => {
   it("修改含退款和报销的支出金额时保留全部核销量", () => {
     const { result } = renderTransactionFormHook({
       initialValues: {
-        accountId: "account-1",
+        payments: [{ accountId: "account-1", amount: null }],
         items: [
           {
             amount: "4000",
@@ -333,7 +343,7 @@ describe("useTransactionForm", () => {
   it("通过明细选择器保存部分退款支出时保留业务净额", () => {
     const { result } = renderTransactionFormHook({
       initialValues: {
-        accountId: "account-1",
+        payments: [{ accountId: "account-1", amount: null }],
         items: [
           {
             amount: "500",
@@ -364,7 +374,7 @@ describe("useTransactionForm", () => {
   it("通过明细选择器保存已报销支出时保留零业务净额", () => {
     const { result } = renderTransactionFormHook({
       initialValues: {
-        accountId: "account-1",
+        payments: [{ accountId: "account-1", amount: null }],
         items: [
           {
             amount: "500",
@@ -413,7 +423,7 @@ describe("useTransactionForm", () => {
   it("修改已部分核销的待报销支出金额时增量更新业务净额", () => {
     const { result } = renderTransactionFormHook({
       initialValues: {
-        accountId: "account-1",
+        payments: [{ accountId: "account-1", amount: null }],
         items: [
           {
             amount: "4000",
@@ -494,9 +504,28 @@ describe("useTransactionForm", () => {
     const candidate = { ...refundCandidate, accountId: "account-2" };
     act(() => result.current.setPickerRefundCandidate(candidate));
     expect(result.current.pickerRefundCandidate).toEqual(candidate);
-    act(() => result.current.handleAccountChange("account-2"));
+    act(() => changePrimaryAccount(result, "account-2"));
     expect(result.current.pickerRefundCandidate).toEqual(candidate);
     expect(result.current.linkNotice).toBeNull();
+  });
+
+  it("多账户时退款 / 报销候选的币种按首个付款账户判断", () => {
+    const { result } = renderTransactionFormHook({
+      initialValues: {
+        ...createInitialValues(),
+        payments: [
+          { accountId: "account-3", amount: "600" },
+          { accountId: "account-1", amount: "600" },
+        ],
+      },
+    });
+
+    act(() => result.current.setPickerRefundCandidate(refundCandidate));
+    expect(result.current.pickerRefundCandidate).toBeNull();
+
+    const usdCandidate = { ...refundCandidate, accountCurrency: "USD" };
+    act(() => result.current.setPickerRefundCandidate(usdCandidate));
+    expect(result.current.pickerRefundCandidate).toEqual(usdCandidate);
   });
 
   it("首次选择跨币种退款候选时立即拒绝并提示重新选择", () => {
@@ -544,7 +573,7 @@ describe("useTransactionForm", () => {
     act(() => result.current.setPickerRefundCandidate(refundCandidate));
     expect(result.current.pickerRefundCandidate).toEqual(refundCandidate);
 
-    act(() => result.current.handleAccountChange("account-3"));
+    act(() => changePrimaryAccount(result, "account-3"));
 
     expect(result.current.selectedAccountId).toBe("account-3");
     expect(result.current.pickerRefundCandidate).toBeNull();
@@ -563,7 +592,7 @@ describe("useTransactionForm", () => {
       reimbursementCandidate,
     );
 
-    act(() => result.current.handleAccountChange("account-3"));
+    act(() => changePrimaryAccount(result, "account-3"));
 
     expect(result.current.selectedAccountId).toBe("account-3");
     expect(result.current.pickerReimbursementCandidate).toBeNull();
@@ -615,12 +644,12 @@ describe("useTransactionForm", () => {
     });
 
     expect(result.current.businessTotalAmount).toBe("0");
-    act(() => result.current.handleAccountChange("account-2"));
+    act(() => changePrimaryAccount(result, "account-2"));
     expect(result.current.itemSummaries[0]?.refundCandidate).toEqual(
       refundCandidate,
     );
     expect(result.current.businessTotalAmount).toBe("0");
-    act(() => result.current.handleAccountChange("account-3"));
+    act(() => changePrimaryAccount(result, "account-3"));
 
     expect(result.current.itemSummaries[0]).toMatchObject({
       amount: "200",
@@ -688,7 +717,7 @@ describe("useTransactionForm", () => {
           { [field]: candidate },
         ]);
 
-        act(() => result.current.handleAccountChange("account-3"));
+        act(() => changePrimaryAccount(result, "account-3"));
 
         expect(result.current.itemSummaries[0]?.[field]).toBeNull();
         expect(result.current.linkNotice).toBe(
@@ -704,7 +733,7 @@ describe("useTransactionForm", () => {
           { [field]: candidate },
         ]);
 
-        act(() => result.current.handleAccountChange("account-3"));
+        act(() => changePrimaryAccount(result, "account-3"));
 
         expect(result.current.itemSummaries[0]?.[field]).toEqual(candidate);
         expect(result.current.linkNotice).toBe(
@@ -722,7 +751,7 @@ describe("useTransactionForm", () => {
         { reimbursementCandidate },
       ]);
 
-      act(() => result.current.handleAccountChange("account-3"));
+      act(() => changePrimaryAccount(result, "account-3"));
 
       expect(result.current.itemSummaries[0]?.refundCandidate).toEqual(
         refundCandidate,
@@ -757,7 +786,7 @@ describe("useTransactionForm", () => {
         });
         expect(result.current.itemSummaries[1]?.[field]).toEqual(candidate);
 
-        act(() => result.current.handleAccountChange("account-3"));
+        act(() => changePrimaryAccount(result, "account-3"));
 
         expect(result.current.itemSummaries[1]?.[field]).toBeNull();
         expect(result.current.linkNotice).toBe(
@@ -777,7 +806,7 @@ describe("useTransactionForm", () => {
         act(() =>
           result.current.updateItem(1, { [field]: reselectedCandidate }),
         );
-        act(() => result.current.handleAccountChange("account-3"));
+        act(() => changePrimaryAccount(result, "account-3"));
 
         expect(result.current.itemSummaries[0]?.[field]).toBeNull();
         expect(result.current.linkNotice).toBe(
@@ -793,7 +822,7 @@ describe("useTransactionForm", () => {
       ]);
 
       act(() => result.current.updateItem(2, { reimbursementCandidate }));
-      act(() => result.current.handleAccountChange("account-3"));
+      act(() => changePrimaryAccount(result, "account-3"));
 
       expect(result.current.itemSummaries[0]?.refundCandidate).toEqual(
         refundCandidate,
@@ -814,7 +843,7 @@ describe("useTransactionForm", () => {
           { [field]: candidate },
         ]);
 
-        act(() => result.current.handleAccountChange("account-2"));
+        act(() => changePrimaryAccount(result, "account-2"));
 
         expect(result.current.itemSummaries[0]?.[field]).toEqual(candidate);
         expect(result.current.linkNotice).toBeNull();
@@ -827,7 +856,7 @@ describe("useTransactionForm", () => {
         { reimbursementCandidate },
       ]);
 
-      act(() => result.current.handleAccountChange("account-3"));
+      act(() => changePrimaryAccount(result, "account-3"));
 
       expect(result.current.linkNotice).toBe(
         transactionLinkMessages.accountCurrencyChanged([

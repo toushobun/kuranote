@@ -13,6 +13,8 @@ export type LinkedEditActionInput = {
 
 const offsetDateTimePattern = /(?:Z|[+-]\d{2}:\d{2})$/;
 const expectedUpdatedAtFieldPrefix = "itemExpectedUpdatedAt__";
+export const linkedEditExpectedRecordUpdatedAtFieldName =
+  "expectedRecordUpdatedAt";
 
 export function getLinkedEditExpectedUpdatedAtFieldName(itemId: string) {
   return `${expectedUpdatedAtFieldPrefix}${itemId}`;
@@ -95,10 +97,9 @@ export function parseLinkedEditActionInput(
     expectedUpdatedAtByItemId[itemId] = value;
   }
 
-  // 记录版本：当前表单尚未提交此字段（#915 补充后才会有值），缺省时只做
-  // 明细级版本校验，与 RPC 默认行为一致。
+  // 记录版本：编辑表单以隐藏字段提交；缺省时只做明细级版本校验，与 RPC 默认行为一致。
   const expectedRecordUpdatedAt = String(
-    formData.get("expectedRecordUpdatedAt") ?? "",
+    formData.get(linkedEditExpectedRecordUpdatedAtFieldName) ?? "",
   ).trim();
   if (
     expectedRecordUpdatedAt &&

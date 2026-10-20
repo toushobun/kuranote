@@ -27,7 +27,6 @@ import {
 import {
   transactionAccessErrorMessages,
   transactionErrorCodes,
-  transactionMultiAccountEditErrorMessage,
   transactionPaymentValidationErrorMessages,
   transactionSpecialStatusErrorMessages,
   transactionValidationErrorMessages,
@@ -169,26 +168,6 @@ function operationError(error: unknown, fallbackCode: string): never {
     );
   }
   throw error;
-}
-
-/**
- * 现有表单与 JSON API 只能提交单账户：原记录有 2 行以上付款明细、提交的付款明细却不足 2 行时拒绝保存，
- * 防止静默删除其他付款账户并挪动余额。普通编辑、类型转换与受控关联编辑共用。
- * #915 开放多账户表单后移除。
- */
-export function requireMultiAccountPaymentsKept({
-  existingPaymentCount,
-  submittedPaymentCount,
-}: {
-  existingPaymentCount: number;
-  submittedPaymentCount: number;
-}) {
-  if (existingPaymentCount >= 2 && submittedPaymentCount < 2) {
-    throw new ValidationError(
-      transactionErrorCodes.paymentMultiAccountEditUnsupported,
-      transactionMultiAccountEditErrorMessage,
-    );
-  }
 }
 
 /**
@@ -420,15 +399,6 @@ export function createTransactionService({
         input.ledgerId,
         input.transactionRecordId,
       );
-      const existingPayments = await transactionRepository.listPayments(
-        input.ledgerId,
-        [input.transactionRecordId],
-      );
-      requireMultiAccountPaymentsKept({
-        existingPaymentCount: existingPayments.length,
-        submittedPaymentCount:
-          input.targetType === "transfer" ? 0 : input.payments.length,
-      });
       if (input.targetType !== "transfer") {
         await validateSpecialStatuses(input);
         const accountOptions = await accountQueryService.listTransactionOptions(
@@ -618,10 +588,6 @@ export function createTransactionService({
         input.ledgerId,
         [input.transactionRecordId],
       );
-      requireMultiAccountPaymentsKept({
-        existingPaymentCount: existingPayments.length,
-        submittedPaymentCount: input.payments.length,
-      });
       requireActiveTransactionAccounts({
         accountIds: input.payments.map((payment) => payment.accountId),
         accountOptions,

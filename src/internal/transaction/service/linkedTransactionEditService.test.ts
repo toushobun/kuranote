@@ -96,7 +96,6 @@ function createIncomeView(
     canEdit: false,
     editRestriction: "linked",
     initialValues: {
-      accountId: oldAccountId,
       payments: [{ accountId: oldAccountId, amount: null }],
       items: [
         {
@@ -135,7 +134,6 @@ function createTargetView(
     canEdit: false,
     editRestriction: "linked",
     initialValues: {
-      accountId: oldAccountId,
       payments: [{ accountId: oldAccountId, amount: null }],
       items: [
         {
@@ -171,7 +169,6 @@ function createUnlinkedView(): EditTransactionView {
     canEdit: true,
     editRestriction: null,
     initialValues: {
-      accountId: oldAccountId,
       payments: [{ accountId: oldAccountId, amount: null }],
       items: [
         {
@@ -823,27 +820,6 @@ describe("LinkedTransactionEditService", () => {
         transactionAt,
         transactionRecordId,
       });
-      expect(updateNormal).not.toHaveBeenCalled();
-    });
-
-    it("多账户记录只提交 1 个付款账户时拒绝保存（#915 开放多账户表单后移除）", async () => {
-      const { service, updateEdit, updateNormal } = createService(
-        createMultiAccountTargetView(),
-      );
-
-      await expect(
-        service.updateNormal(
-          currentLedger,
-          targetInput({
-            confirmSync: true,
-            expectedUpdatedAtByItemId: { [linkedItemId]: updatedAt },
-          }),
-        ),
-      ).rejects.toMatchObject({
-        code: transactionErrorCodes.paymentMultiAccountEditUnsupported,
-        name: ValidationError.name,
-      });
-      expect(updateEdit).not.toHaveBeenCalled();
       expect(updateNormal).not.toHaveBeenCalled();
     });
 

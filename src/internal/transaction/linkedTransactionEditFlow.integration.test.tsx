@@ -41,6 +41,7 @@ const expenseCategoryId = "00000000-0000-4000-8000-000000005021";
 const incomeCategoryId = "00000000-0000-4000-8000-000000005002";
 const merchantId = "00000000-0000-4000-8000-000000001001";
 const expectedUpdatedAt = "2026-08-21T01:00:00.000Z";
+const expectedRecordUpdatedAt = "2026-08-21T01:00:01.000Z";
 const transactionAt = "2026-08-20T01:30:00.000Z";
 
 const currentLedger: CurrentLedger = {
@@ -103,7 +104,7 @@ function createView(side: "parent" | "child"): NormalEditView {
     editRestriction: null,
     frequentCategoryIds: [],
     initialValues: {
-      accountId,
+      expectedRecordUpdatedAt,
       payments: [{ accountId, amount: null }],
       items: [
         {
@@ -146,8 +147,34 @@ function createView(side: "parent" | "child"): NormalEditView {
   };
 }
 
-function createScenario(side: "parent" | "child") {
-  const view = createView(side);
+// 无关联的多账户支出：治疗费 1,200，现金 500 + 银行 700。
+function createMultiAccountView(): NormalEditView {
+  const view = createView("parent");
+  return {
+    ...view,
+    initialValues: {
+      ...view.initialValues,
+      items: [
+        {
+          amount: "1200",
+          businessStatus: null,
+          categoryId: expenseCategoryId,
+          expectedUpdatedAt,
+          id: transactionItemId,
+          refundCandidate: null,
+          reimbursementCandidate: null,
+          specialStatus: null,
+        },
+      ],
+      payments: [
+        { accountId, amount: "500" },
+        { accountId: otherAccountId, amount: "700" },
+      ],
+    },
+  };
+}
+
+function createScenario(view: NormalEditView) {
   const persisted = {
     amount: view.initialValues.items[0]?.amount ?? "0",
     payments: view.initialValues.payments,
@@ -163,9 +190,15 @@ function createScenario(side: "parent" | "child") {
   const linkedTransactionItemService = {
     updateEdit,
   } as unknown as LinkedTransactionItemService;
+  const updateNormal = vi.fn<TransactionService["updateNormal"]>(
+    async (input) => {
+      persisted.payments = input.payments;
+    },
+  );
   const transactionService = {
     canModify: vi.fn().mockResolvedValue(true),
     getEditView: vi.fn().mockResolvedValue(view),
+    updateNormal,
   } as unknown as TransactionService;
   const service: LinkedTransactionEditService =
     createLinkedTransactionEditService({
@@ -202,11 +235,11 @@ function createScenario(side: "parent" | "child") {
     }
   };
 
-  return { action, persisted, updateEdit, view };
+  return { action, persisted, updateEdit, updateNormal, view };
 }
 
-function renderScenario(side: "parent" | "child") {
-  const scenario = createScenario(side);
+function renderScenario(view: NormalEditView) {
+  const scenario = createScenario(view);
   const { initialValues, ...viewProps } = scenario.view;
   const { container } = render(
     <UserThemeProvider>
@@ -234,7 +267,7 @@ describe("Issue #574 已关联交易跨层编辑流程", () => {
   });
 
   it("母项金额从表单直接写入原子保存边界", async () => {
-    const { persisted, updateEdit } = renderScenario("parent");
+    const { persisted, updateEdit } = renderScenario(createView("parent"));
     fireEvent.change(screen.getByLabelText("明细 1 金额"), {
       target: { value: "70" },
     });
@@ -249,7 +282,7 @@ describe("Issue #574 已关联交易跨层编辑流程", () => {
   }, 15_000);
 
   it("子项金额从表单确认后写入原子保存边界", async () => {
-    const { persisted, updateEdit } = renderScenario("child");
+    const { persisted, updateEdit } = renderScenario(createView("child"));
     fireEvent.change(screen.getByLabelText("明细 1 金额"), {
       target: { value: "80" },
     });
@@ -278,7 +311,7 @@ describe("Issue #574 已关联交易跨层编辑流程", () => {
   }, 15_000);
 
   it("付款账户变化先返回确认冲突并在确认后保存成功", async () => {
-    const { persisted, updateEdit } = renderScenario("child");
+    const { persisted, updateEdit } = renderScenario(createView("child"));
     fireEvent.mouseDown(screen.getByRole("combobox", { name: "账户" }));
     fireEvent.click(await screen.findByRole("option", { name: /银行/ }));
 
@@ -326,17 +359,18 @@ describe("Issue #574 已关联交易跨层编辑流程", () => {
     expect(persisted.amount).toBe("40");
   }, 15_000);
 
-  it("记录版本冲突通过保存流程返回 ConflictError 并保留原数据", async () => {
-    const { action, container, persisted, updateEdit } =
-      renderScenario("child");
+  it("表单提交记录版本，冲突时返回 ConflictError 并保留原数据", async () => {
+    const { action, container, persisted, updateEdit } = renderScenario(
+      createView("child"),
+    );
     const form = container.querySelector<HTMLFormElement>(
       "#edit-income-transaction-form",
     );
     if (!form) throw new Error("测试表单不存在");
     const formData = new FormData(form);
-    const staleRecordUpdatedAt = "2026-08-19T00:00:00.000Z";
-    // 记录版本隐藏字段由 #915 补充，此处从 Action 入口验证跨层透传与冲突返回。
-    formData.set("expectedRecordUpdatedAt", staleRecordUpdatedAt);
+    expect(formData.get("expectedRecordUpdatedAt")).toBe(
+      expectedRecordUpdatedAt,
+    );
     formData.set("note", "修改后的备注");
     const conflict = new ConflictError(
       transactionErrorCodes.updateInvalid,
@@ -351,7 +385,7 @@ describe("Issue #574 已关联交易跨层编辑流程", () => {
     });
     expect(updateEdit).toHaveBeenCalledWith(
       expect.objectContaining({
-        expectedRecordUpdatedAt: staleRecordUpdatedAt,
+        expectedRecordUpdatedAt,
       }),
     );
     await expect(
@@ -363,7 +397,7 @@ describe("Issue #574 已关联交易跨层编辑流程", () => {
   }, 15_000);
 
   it("取消确认后不会触发任何持久化写入", async () => {
-    const { persisted, updateEdit } = renderScenario("child");
+    const { persisted, updateEdit } = renderScenario(createView("child"));
     fireEvent.change(screen.getByLabelText("明细 1 金额"), {
       target: { value: "80" },
     });
@@ -374,5 +408,38 @@ describe("Issue #574 已关联交易跨层编辑流程", () => {
     expect(updateEdit).not.toHaveBeenCalled();
     expect(persisted.amount).toBe("40");
     expect(dialog).not.toBeVisible();
+  }, 15_000);
+});
+
+describe("Issue #915 多账户付款跨层编辑流程", () => {
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+  });
+
+  it("多账户记录不改动直接保存时付款明细保持不变", async () => {
+    const view = createMultiAccountView();
+    const { persisted, updateNormal } = renderScenario(view);
+
+    fireEvent.click(screen.getByRole("button", { name: "保存修改" }));
+    await vi.waitFor(() => expect(updateNormal).toHaveBeenCalledOnce());
+
+    expect(updateNormal).toHaveBeenCalledWith(
+      expect.objectContaining({ payments: view.initialValues.payments }),
+    );
+    expect(persisted.payments).toEqual(view.initialValues.payments);
+    expect(transactionActionModuleMocks.redirect).toHaveBeenCalled();
+  }, 15_000);
+
+  it("在表单中删到 1 行后保存为单账户", async () => {
+    const { persisted, updateNormal } = renderScenario(
+      createMultiAccountView(),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "删除付款账户 2" }));
+    fireEvent.click(screen.getByRole("button", { name: "保存修改" }));
+    await vi.waitFor(() => expect(updateNormal).toHaveBeenCalledOnce());
+
+    expect(persisted.payments).toEqual([{ accountId, amount: null }]);
   }, 15_000);
 });
