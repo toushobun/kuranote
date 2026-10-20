@@ -43,6 +43,11 @@ export const Default: Story = {
   name: "普通支出",
 };
 
+export const MultiAccount: Story = {
+  name: "多账户付款",
+  args: { paymentAccountCount: 2 },
+};
+
 export const PartiallyOffset: Story = {
   name: "部分抵消",
   args: {

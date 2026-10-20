@@ -10,7 +10,10 @@ import type {
   TransactionMerchantOption,
 } from "types/transactions";
 import { formatTransactionRowAmount } from "utils/transactions";
-import { transactionAmountMessages } from "utils/transactionMessages";
+import {
+  transactionAmountMessages,
+  transactionSharedPaymentMessages,
+} from "utils/transactionMessages";
 
 import type { TransactionItemSummary } from "../TransactionForm/TransactionForm.types";
 import { transactionSummarySurfaceSx } from "../TransactionForm/TransactionForm.styles";
@@ -25,6 +28,8 @@ import {
 type TransactionSummarySectionProps = {
   businessTotalAmount?: string | null;
   itemSummaries: TransactionItemSummary[];
+  // 多账户时显示「首个账户 等 N 个账户」。
+  paymentAccountCount?: number;
   selectedAccount?: TransactionAccountOption;
   selectedMerchant?: TransactionMerchantOption;
   signedTotalAmount: string;
@@ -35,6 +40,7 @@ type TransactionSummarySectionProps = {
 export function TransactionSummarySection({
   businessTotalAmount = null,
   itemSummaries,
+  paymentAccountCount = 1,
   selectedAccount,
   selectedMerchant,
   signedTotalAmount,
@@ -52,7 +58,7 @@ export function TransactionSummarySection({
           label="账户"
           value={
             selectedAccount
-              ? `${selectedAccount.name}（${selectedAccount.currency}）`
+              ? formatSummaryAccount(selectedAccount, paymentAccountCount)
               : "未选择"
           }
         />
@@ -204,4 +210,17 @@ function ItemSummaryValue({
       )}
     </>
   );
+}
+
+function formatSummaryAccount(
+  account: TransactionAccountOption,
+  paymentAccountCount: number,
+) {
+  const accountLabel = `${account.name}（${account.currency}）`;
+  return paymentAccountCount > 1
+    ? transactionSharedPaymentMessages.multipleAccounts(
+        accountLabel,
+        paymentAccountCount,
+      )
+    : accountLabel;
 }

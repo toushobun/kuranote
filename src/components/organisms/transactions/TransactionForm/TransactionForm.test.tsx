@@ -1,4 +1,5 @@
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -144,7 +145,7 @@ describe("TransactionForm", () => {
   }
   function createInitialValues(): TransactionFormInitialValues {
     return {
-      accountId: accountOptions[0].id,
+      payments: [{ accountId: accountOptions[0].id, amount: null }],
       items: [{ amount: "1200", categoryId: categoryOptions[0].id }],
       merchantId: merchantOptions[0].id,
       note: "",
@@ -578,6 +579,200 @@ describe("TransactionForm", () => {
       container.querySelector<HTMLInputElement>('input[name="type"]');
     expect(typeInput?.value).toBe("expense");
   });
+  describe("多账户付款", () => {
+    const multiAccountOptions = [
+      ...accountOptions,
+      {
+        id: "00000000-0000-4000-8000-000000000046",
+        name: "信用卡",
+        currency: "JPY",
+      },
+    ];
+    const [cash, card] = multiAccountOptions;
+
+    function renderMultiAccountForm(
+      props: Partial<ComponentProps<typeof TransactionForm>> = {},
+    ) {
+      return renderForm({ accountOptions: multiAccountOptions, ...props });
+    }
+    function getFieldValues(container: HTMLElement, name: string) {
+      return Array.from(
+        container.querySelectorAll<HTMLInputElement>(`input[name="${name}"]`),
+      ).map((input) => input.value);
+    }
+    function getSaveButton(container: HTMLElement) {
+      return within(container).getByRole("button", { name: "保存记账" });
+    }
+    function selectPaymentAccount(rowNumber: number, accountName: string) {
+      fireEvent.mouseDown(
+        screen.getByRole("combobox", { name: `付款账户 ${rowNumber}` }),
+      );
+      fireEvent.click(
+        screen.getByRole("option", { name: `${accountName}（JPY）` }),
+      );
+    }
+    function changePaymentAmount(rowNumber: number, amount: string) {
+      fireEvent.change(
+        screen.getByRole("textbox", { name: `付款金额 ${rowNumber}` }),
+        { target: { value: amount } },
+      );
+    }
+    function addIncomeItem(container: HTMLElement) {
+      openSheet(container);
+      fireEvent.click(screen.getByRole("button", { name: "固定收入" }));
+      addItemViaSheet(container, "工资", "300");
+    }
+    // 提交后等待 React 处理 form action，阻止保存的断言才有意义。
+    async function submitForm(container: HTMLElement) {
+      fireEvent.submit(container.querySelector("form")!);
+      await act(async () => undefined);
+    }
+    function createMultiAccountInitialValues(): TransactionFormInitialValues {
+      return {
+        ...createInitialValues(),
+        expectedRecordUpdatedAt: "2026-06-05T03:21:00.000+00:00",
+        payments: [
+          { accountId: cash!.id, amount: "500" },
+          { accountId: card!.id, amount: "700" },
+        ],
+      };
+    }
+
+    it("默认与原来一样只有一个账户选择，并提供添加付款账户入口", () => {
+      const { container } = renderMultiAccountForm({
+        initialValues: createInitialValues(),
+      });
+
+      expect(getFieldValues(container, "accountId")).toEqual([cash!.id]);
+      expect(getFieldValues(container, "paymentAccountId")).toEqual([]);
+      expect(
+        within(container).getByRole("button", { name: "添加付款账户" }),
+      ).toBeInTheDocument();
+    });
+
+    it("展开时首行预填明细合计、新增行金额留空，删到 1 行自动回到单账户", () => {
+      const { container } = renderMultiAccountForm({
+        initialValues: createInitialValues(),
+      });
+
+      fireEvent.click(
+        within(container).getByRole("button", { name: "添加付款账户" }),
+      );
+
+      expect(getFieldValues(container, "accountId")).toEqual([]);
+      expect(getFieldValues(container, "paymentAccountId")).toEqual([
+        cash!.id,
+        "",
+      ]);
+      expect(getFieldValues(container, "paymentAmount")).toEqual(["1200", ""]);
+
+      fireEvent.click(
+        within(container).getByRole("button", { name: "删除付款账户 2" }),
+      );
+
+      expect(getFieldValues(container, "accountId")).toEqual([cash!.id]);
+      expect(getFieldValues(container, "paymentAmount")).toEqual([]);
+    });
+
+    it("付款合计与明细合计不平衡时不能保存", () => {
+      const { container } = renderMultiAccountForm({
+        initialValues: createInitialValues(),
+      });
+      fireEvent.click(
+        within(container).getByRole("button", { name: "添加付款账户" }),
+      );
+      selectPaymentAccount(2, card!.name);
+      changePaymentAmount(1, "500");
+
+      expect(screen.getByRole("status")).toHaveTextContent("差额 ¥700");
+      expect(getSaveButton(container)).toBeDisabled();
+
+      changePaymentAmount(2, "700");
+
+      expect(screen.getByRole("status")).not.toHaveTextContent("差额");
+      expect(getSaveButton(container)).toBeEnabled();
+    });
+
+    it("新增行未填金额时提交前提示并阻止保存", async () => {
+      const { action, container } = renderMultiAccountForm({
+        initialValues: createInitialValues(),
+      });
+      fireEvent.click(
+        within(container).getByRole("button", { name: "添加付款账户" }),
+      );
+      selectPaymentAccount(2, card!.name);
+
+      await submitForm(container);
+
+      expect(
+        within(container).getByText(
+          "选择多个付款账户时，每个账户的金额都必须填写。",
+        ),
+      ).toBeInTheDocument();
+      expect(action).not.toHaveBeenCalled();
+    });
+
+    it("含收入明细时不显示添加付款账户入口", () => {
+      const { container } = renderMultiAccountForm();
+      addIncomeItem(container);
+
+      expect(
+        within(container).queryByRole("button", { name: "添加付款账户" }),
+      ).toBeNull();
+    });
+
+    it("多账户后又加了收入明细时提交前提示并阻止保存，不自动收起", async () => {
+      const { action, container } = renderMultiAccountForm({
+        initialValues: createMultiAccountInitialValues(),
+      });
+      addIncomeItem(container);
+      await submitForm(container);
+
+      expect(action).not.toHaveBeenCalled();
+      expect(
+        within(container).getByText("含收入明细的记录只能选择一个付款账户。"),
+      ).toBeInTheDocument();
+      expect(getFieldValues(container, "paymentAccountId")).toHaveLength(2);
+    });
+
+    it("编辑既有多账户记录时按原样回填付款明细与记录版本，不改动直接提交", async () => {
+      const { action, container } = renderMultiAccountForm({
+        initialValues: createMultiAccountInitialValues(),
+      });
+
+      expect(getFieldValues(container, "accountId")).toEqual([]);
+      expect(getFieldValues(container, "paymentAccountId")).toEqual([
+        cash!.id,
+        card!.id,
+      ]);
+      expect(getFieldValues(container, "paymentAmount")).toEqual([
+        "500",
+        "700",
+      ]);
+      expect(getFieldValues(container, "expectedRecordUpdatedAt")).toEqual([
+        "2026-06-05T03:21:00.000+00:00",
+      ]);
+
+      await submitForm(container);
+
+      expect(action).toHaveBeenCalledOnce();
+      const formData = (action.mock.calls[0] as unknown[])[0] as FormData;
+      expect(formData.has("accountId")).toBe(false);
+      expect(formData.getAll("paymentAccountId")).toEqual([cash!.id, card!.id]);
+      expect(formData.getAll("paymentAmount")).toEqual(["500", "700"]);
+    });
+
+    it("保存前汇总显示首个账户与账户数", () => {
+      renderMultiAccountForm({
+        initialValues: createMultiAccountInitialValues(),
+      });
+
+      expect(
+        screen.getByText("日元现金（JPY） 等 2 个账户"),
+      ).toBeInTheDocument();
+    });
+  });
+
   describe("缺少账户或商家提示", () => {
     const setupHrefs = {
       account:
@@ -762,7 +957,7 @@ describe("TransactionForm \u7F16\u8F91\u7C7B\u578B\u5207\u6362", () => {
     type: "expense" | "income" = "expense",
   ): TransactionFormInitialValues {
     return {
-      accountId: accountOptions[0].id,
+      payments: [{ accountId: accountOptions[0].id, amount: null }],
       items: [
         {
           amount: type === "expense" ? "1200" : "300000",

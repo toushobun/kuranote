@@ -13,7 +13,7 @@ import {
 
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import Box from "@mui/material/Box";
-import Button, { type ButtonProps } from "@mui/material/Button";
+import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -22,7 +22,6 @@ import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import type { SxProps, Theme } from "@mui/material/styles";
 import Link from "next/link";
 
 import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
@@ -34,7 +33,6 @@ import {
 } from "config/paths";
 import { getAmountDecimalPlaces } from "utils/transactionAmountInput";
 import { transactionEditRestrictionMessages } from "utils/transactionMessages";
-import { hasAnyLinkedIncomeItem } from "utils/transactions";
 import {
   DeleteConfirmationDialog,
   FailureFeedbackDialog,
@@ -241,14 +239,11 @@ export function NewTransactionTemplate(props: TransactionFormTemplateProps) {
 }
 
 export function TransactionPermissionDenied({
-  deleteControl,
   operation,
   reason = "permission",
 }: {
-  /** 不能编辑但可以删除时（如多账户记录）给出删除入口。 */
-  deleteControl?: TransactionDeleteActionProps;
   operation: "edit" | "create";
-  reason?: "archivedAccount" | "linked" | "multiAccount" | "permission";
+  reason?: "archivedAccount" | "linked" | "permission";
 }) {
   const operationLabel = operation === "create" ? "新增" : "编辑";
   const restrictionDescription =
@@ -270,18 +265,13 @@ export function TransactionPermissionDenied({
           `当前账本角色没有${operationLabel}记账的权限。`
         }
         action={
-          <Stack direction="row" spacing={1.5}>
-            <Button
-              component={Link}
-              href={routePaths.transactions}
-              variant="outlined"
-            >
-              返回明细
-            </Button>
-            {deleteControl ? (
-              <TransactionDeleteAction {...deleteControl} />
-            ) : null}
-          </Stack>
+          <Button
+            component={Link}
+            href={routePaths.transactions}
+            variant="outlined"
+          >
+            返回明细
+          </Button>
         }
       />
     </Stack>
@@ -527,8 +517,11 @@ function EditTransactionShell({
   submitDisabledByType,
   transactionRecordId,
 }: EditTransactionShellProps) {
+  const [deleteState, deleteFormAction] = useActionState(deleteAction, {});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isExitDialogOpen, setIsExitDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [dismissedDeleteState, setDismissedDeleteState] = useState(deleteState);
   const lastNormalTypeRef = useRef<TransactionType>(
     activeType !== "transfer" ? activeType : "expense",
   );
@@ -572,6 +565,14 @@ function EditTransactionShell({
     form.requestSubmit();
   }
 
+  function handleConfirmDelete() {
+    const form = document.getElementById(deleteTransactionFormId);
+    if (!(form instanceof HTMLFormElement)) return;
+
+    setIsDeleteDialogOpen(false);
+    form.requestSubmit();
+  }
+
   return (
     <EditTransactionDirtyProvider onDirty={markDirty}>
       <Stack onChangeCapture={markDirty} spacing={0}>
@@ -586,13 +587,15 @@ function EditTransactionShell({
         />
         <TransactionTypeSlidePanels activeType={activeType} panels={panels} />
         <Box sx={editTransactionActionBarSx}>
-          <TransactionDeleteAction
-            buttonSx={editTransactionDeleteButtonSx}
-            deleteAction={deleteAction}
-            hasLinkedIncomeItems={hasLinkedIncomeItems}
+          <Button
+            color="error"
+            onClick={() => setIsDeleteDialogOpen(true)}
             size="large"
-            transactionRecordId={transactionRecordId}
-          />
+            variant="outlined"
+            sx={editTransactionDeleteButtonSx}
+          >
+            删除
+          </Button>
           <PrimaryActionButton
             disabled={submitDisabledByType[activeType] || isSavePending}
             form={editTransactionFormId(activeType)}
@@ -604,6 +607,14 @@ function EditTransactionShell({
           </PrimaryActionButton>
         </Box>
       </Stack>
+      <form action={deleteFormAction} id={deleteTransactionFormId}>
+        <input
+          name="transactionRecordId"
+          readOnly
+          type="hidden"
+          value={transactionRecordId}
+        />
+      </form>
       <TransactionAmountKeypadLauncher />
       <Dialog
         aria-labelledby="unsaved-transaction-dialog-title"
@@ -626,6 +637,17 @@ function EditTransactionShell({
           </Button>
         </DialogActions>
       </Dialog>
+      <DeleteConfirmationDialog
+        description={
+          hasLinkedIncomeItems
+            ? "删除后这笔记账会从明细页移除，并解除退款 / 报销关联，目标支出的核销净额会相应变化。是否继续？"
+            : "删除后这笔记账会从明细页移除，是否继续？"
+        }
+        onCancel={() => setIsDeleteDialogOpen(false)}
+        onConfirm={handleConfirmDelete}
+        open={isDeleteDialogOpen}
+        title="删除记账？"
+      />
       <LinkedTransactionSyncConfirmationDialog
         onCancel={() => {
           setHasUnsavedChanges(true);
@@ -644,69 +666,6 @@ function EditTransactionShell({
         open={isSaveFailureOpen}
         title="保存失败"
       />
-    </EditTransactionDirtyProvider>
-  );
-}
-
-type TransactionDeleteActionProps = {
-  deleteAction: TransactionStateAction;
-  hasLinkedIncomeItems: boolean;
-  transactionRecordId: string;
-};
-
-/** 删除按钮、删除确认与删除失败提示；编辑页和「不能编辑」提示页共用。 */
-function TransactionDeleteAction({
-  buttonSx,
-  deleteAction,
-  hasLinkedIncomeItems,
-  size,
-  transactionRecordId,
-}: TransactionDeleteActionProps & {
-  buttonSx?: SxProps<Theme>;
-  size?: ButtonProps["size"];
-}) {
-  const [deleteState, deleteFormAction] = useActionState(deleteAction, {});
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [dismissedDeleteState, setDismissedDeleteState] = useState(deleteState);
-
-  function handleConfirmDelete() {
-    const form = document.getElementById(deleteTransactionFormId);
-    if (!(form instanceof HTMLFormElement)) return;
-
-    setIsDeleteDialogOpen(false);
-    form.requestSubmit();
-  }
-
-  return (
-    <>
-      <Button
-        color="error"
-        onClick={() => setIsDeleteDialogOpen(true)}
-        size={size}
-        variant="outlined"
-        sx={buttonSx}
-      >
-        删除
-      </Button>
-      <form action={deleteFormAction} hidden id={deleteTransactionFormId}>
-        <input
-          name="transactionRecordId"
-          readOnly
-          type="hidden"
-          value={transactionRecordId}
-        />
-      </form>
-      <DeleteConfirmationDialog
-        description={
-          hasLinkedIncomeItems
-            ? "删除后这笔记账会从明细页移除，并解除退款 / 报销关联，目标支出的核销净额会相应变化。是否继续？"
-            : "删除后这笔记账会从明细页移除，是否继续？"
-        }
-        onCancel={() => setIsDeleteDialogOpen(false)}
-        onConfirm={handleConfirmDelete}
-        open={isDeleteDialogOpen}
-        title="删除记账？"
-      />
       <FailureFeedbackDialog
         bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
         description={deleteState.error}
@@ -720,7 +679,7 @@ function TransactionDeleteAction({
             : "删除失败"
         }
       />
-    </>
+    </EditTransactionDirtyProvider>
   );
 }
 
@@ -1011,7 +970,9 @@ export function EditTransactionTemplate({
     <EditTransactionShell
       activeType={activeType}
       deleteAction={deleteAction}
-      hasLinkedIncomeItems={hasAnyLinkedIncomeItem(initialValues.items)}
+      hasLinkedIncomeItems={initialValues.items.some(
+        (item) => item.businessStatus?.incomeLinkRole != null,
+      )}
       isSaveConfirmationOpen={editAction.isConfirmationOpen}
       isSaveFailureOpen={editAction.isFailureOpen}
       isSavePending={editAction.isPending}
@@ -1035,9 +996,14 @@ function createNormalInitialValuesFromNormal(
 ): TransactionFormInitialValues {
   if (targetType === initialValues.type) return initialValues;
 
+  // 转换类型时明细清空重填；多账户只支持支出明细，因此只保留首个付款账户。
   return {
     ...initialValues,
     items: [],
+    payments: initialValues.payments.slice(0, 1).map((payment) => ({
+      accountId: payment.accountId,
+      amount: null,
+    })),
     type: targetType,
   };
 }
@@ -1046,8 +1012,9 @@ function createTransferInitialValuesFromNormal(
   initialValues: TransactionFormInitialValues,
   accountOptions: TransactionAccountOption[],
 ): TransferEditInitialValues {
+  const accountId = initialValues.payments[0]?.accountId ?? "";
   return {
-    accountId: initialValues.accountId,
+    accountId,
     note: initialValues.note,
     transactionAt: initialValues.transactionAt,
     transactionRecordId: requireEditTransactionRecordId(
@@ -1055,12 +1022,11 @@ function createTransferInitialValuesFromNormal(
     ),
     transferAmount: totalAmountText(
       initialValues.items,
-      accountOptions.find((account) => account.id === initialValues.accountId)
-        ?.currency,
+      accountOptions.find((account) => account.id === accountId)?.currency,
     ),
     transferTargetAccountId: findTransferTargetAccountId(
       accountOptions,
-      initialValues.accountId,
+      accountId,
     ),
     type: "transfer",
   };
@@ -1071,10 +1037,10 @@ function createNormalInitialValuesFromTransfer(
   targetType: TransactionType,
 ): TransactionFormInitialValues {
   return {
-    accountId: initialValues.accountId,
     items: [],
     merchantId: "",
     note: initialValues.note,
+    payments: [{ accountId: initialValues.accountId, amount: null }],
     transactionAt: initialValues.transactionAt,
     transactionRecordId: initialValues.transactionRecordId,
     type: targetType,

@@ -425,51 +425,6 @@ describe("\u65B0\u589E\u8BB0\u8D26\u9875\u9762", () => {
       expect(within(container).getByRole("alert")).toHaveTextContent(
         "该交易引用的账户已被删除，请先恢复该账户后再编辑。",
       );
-      expect(
-        within(container).queryByRole("button", { name: "删除" }),
-      ).not.toBeInTheDocument();
-    });
-
-    it("多账户记录只读时提示等待后续版本，删除照常可用", () => {
-      const requestSubmit = vi
-        .spyOn(HTMLFormElement.prototype, "requestSubmit")
-        .mockImplementation(() => undefined);
-      const { container } = render(
-        <UserThemeProvider>
-          <TransactionPermissionDenied
-            deleteControl={{
-              deleteAction: vi.fn(async () => ({})),
-              hasLinkedIncomeItems: false,
-              transactionRecordId: "record-multi-account",
-            }}
-            operation="edit"
-            reason="multiAccount"
-          />
-        </UserThemeProvider>,
-      );
-
-      expect(within(container).getByRole("alert")).toHaveTextContent(
-        "该交易不能编辑",
-      );
-      expect(within(container).getByRole("alert")).toHaveTextContent(
-        "多账户记录暂不支持编辑，请等待后续版本。",
-      );
-      expect(
-        within(container).queryByRole("button", { name: "保存修改" }),
-      ).not.toBeInTheDocument();
-      expect(
-        container.querySelector('input[name="transactionRecordId"]'),
-      ).toHaveValue("record-multi-account");
-
-      fireEvent.click(within(container).getByRole("button", { name: "删除" }));
-      fireEvent.click(
-        within(screen.getByRole("dialog", { name: "删除记账？" })).getByRole(
-          "button",
-          { name: "删除" },
-        ),
-      );
-      expect(requestSubmit).toHaveBeenCalledTimes(1);
-      requestSubmit.mockRestore();
     });
   });
 });
@@ -506,7 +461,7 @@ describe("EditTransactionTemplate", () => {
   ];
   function createProps(type: "expense" | "income" = "expense") {
     const initialValues: TransactionFormInitialValues = {
-      accountId: accountOptions[0].id,
+      payments: [{ accountId: accountOptions[0].id, amount: null }],
       items: [
         {
           amount: "1200",

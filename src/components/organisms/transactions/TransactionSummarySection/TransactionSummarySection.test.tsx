@@ -52,6 +52,21 @@ describe("TransactionSummarySection", () => {
     expect(screen.getByText("- ¥ 1200")).toBeInTheDocument();
   });
 
+  it("多账户时账户显示首个账户与账户数", () => {
+    render(
+      <TransactionSummarySection
+        itemSummaries={itemSummaries}
+        paymentAccountCount={2}
+        selectedAccount={{ currency: "JPY", id: "account-1", name: "礼品卡" }}
+        signedTotalAmount="-1200"
+        transactionDate="2026-07-20"
+        transactionTime="10:30:00"
+      />,
+    );
+
+    expect(screen.getByText("礼品卡（JPY） 等 2 个账户")).toBeInTheDocument();
+  });
+
   it("未选择可选项时显示占位状态", () => {
     render(
       <TransactionSummarySection

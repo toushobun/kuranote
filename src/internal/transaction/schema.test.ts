@@ -928,19 +928,24 @@ describe("付款明细表单解析", () => {
   const categoryId = "00000000-0000-4000-8000-000000000101";
   const merchantId = "00000000-0000-4000-8000-000000001001";
 
-  function createMultiAccountFormData(overrides: {
-    paymentAccountId?: string[];
-    paymentAmount?: string[];
-  }) {
+  function createPaymentFormData() {
     const formData = new FormData();
     formData.set("type", "expense");
     formData.set("transactionAt", "2026-06-04T10:30:05");
     formData.set("timeZoneOffsetMinutes", "-540");
-    formData.set("accountId", accountId1);
     formData.append("itemCategoryId", categoryId);
     formData.append("itemAmount", "120");
     formData.set("merchantId", merchantId);
     formData.set("note", "共同支付");
+    return formData;
+  }
+
+  // 多账户提交契约：只提交 paymentAccountId[] / paymentAmount[]，不提交 accountId。
+  function createMultiAccountFormData(overrides: {
+    paymentAccountId?: string[];
+    paymentAmount?: string[];
+  }) {
+    const formData = createPaymentFormData();
     for (const value of overrides.paymentAccountId ?? [
       accountId1,
       accountId2,
@@ -953,16 +958,9 @@ describe("付款明细表单解析", () => {
     return formData;
   }
 
-  it("没有 paymentAccountId 字段时沿用 accountId 作为单账户", () => {
-    const formData = new FormData();
-    formData.set("type", "expense");
-    formData.set("transactionAt", "2026-06-04T10:30:05");
-    formData.set("timeZoneOffsetMinutes", "-540");
+  it("没有 paymentAccountId 字段时以 accountId 作为单账户", () => {
+    const formData = createPaymentFormData();
     formData.set("accountId", accountId1);
-    formData.append("itemCategoryId", categoryId);
-    formData.append("itemAmount", "120");
-    formData.set("merchantId", merchantId);
-    formData.set("note", "单账户");
 
     expect(validateTransactionForm(formData)).toMatchObject({
       ok: true,
@@ -970,7 +968,24 @@ describe("付款明细表单解析", () => {
     });
   });
 
-  it("解析 paymentAccountId[] / paymentAmount[] 为多账户付款明细", () => {
+  it("单账户缺少 accountId 时返回 accountInvalid", () => {
+    expect(validateTransactionForm(createPaymentFormData())).toEqual({
+      error: transactionErrorCodes.accountInvalid,
+      ok: false,
+    });
+  });
+
+  it("多账户同时提交 accountId 时返回 accountInvalid", () => {
+    const formData = createMultiAccountFormData({});
+    formData.set("accountId", accountId1);
+
+    expect(validateTransactionForm(formData)).toEqual({
+      error: transactionErrorCodes.accountInvalid,
+      ok: false,
+    });
+  });
+
+  it("不提交 accountId 时解析 paymentAccountId[] / paymentAmount[] 为多账户付款明细", () => {
     const formData = createMultiAccountFormData({});
 
     expect(validateTransactionForm(formData)).toMatchObject({

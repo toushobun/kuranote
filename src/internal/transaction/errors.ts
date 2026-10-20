@@ -1,8 +1,5 @@
 import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
-import {
-  transactionEditRestrictionMessages,
-  transactionLinkMessages,
-} from "utils/transactionMessages";
+import { transactionLinkMessages } from "utils/transactionMessages";
 
 export const transactionErrorCodes = {
   balanceAdjustmentAccountArchived: "balance_adjustment_account_archived",
@@ -26,8 +23,6 @@ export const transactionErrorCodes = {
   paymentAmountRequired: "payment_amount_required",
   paymentCurrencyMismatch: "payment_currency_mismatch",
   paymentMultiAccountNotAllowed: "payment_multi_account_not_allowed",
-  // 多账户记录不能经现有单账户表单 / API 保存（#915 开放多账户表单后移除）。
-  paymentMultiAccountEditUnsupported: "payment_multi_account_edit_unsupported",
   paymentTotalMismatch: "payment_total_mismatch",
   refundLinkInvalid: "refund_link_invalid",
   reimbursementLinkInvalid: "reimbursement_link_invalid",
@@ -138,10 +133,6 @@ export const transactionPaymentValidationErrorMessages: Record<
   [transactionErrorCodes.paymentTotalMismatch]:
     transactionPaymentMessages[transactionErrorCodes.paymentTotalMismatch],
 };
-
-/** 多账户记录被提交为单账户时的文案，与编辑页的只读提示共用（#915 开放多账户表单后移除）。 */
-export const transactionMultiAccountEditErrorMessage =
-  transactionEditRestrictionMessages.multiAccount;
 
 /** 编辑 / 删除对象本身不正确时的文案。 */
 export const transactionTargetErrorMessages = {

@@ -20,7 +20,6 @@ import {
   TransactionPermissionDenied,
 } from "templates/transactions/TransactionFormPage";
 import { NewTransactionVisualFrame } from "templates/transactions/NewTransactionVisualFrame";
-import { hasAnyLinkedIncomeItem } from "utils/transactions";
 
 export default async function TransactionEditPage({
   params,
@@ -40,17 +39,6 @@ export default async function TransactionEditPage({
     return (
       <NewTransactionVisualFrame>
         <TransactionPermissionDenied
-          deleteControl={
-            editRestriction === "multiAccount" && "items" in view.initialValues
-              ? {
-                  deleteAction: voidTransaction,
-                  hasLinkedIncomeItems: hasAnyLinkedIncomeItem(
-                    view.initialValues.items,
-                  ),
-                  transactionRecordId,
-                }
-              : undefined
-          }
           operation="edit"
           reason={editRestriction ?? "permission"}
         />

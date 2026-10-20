@@ -2,7 +2,6 @@
 
 import type { ReactNode } from "react";
 
-import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
 import KeyboardArrowRightRoundedIcon from "@mui/icons-material/KeyboardArrowRightRounded";
 import StorefrontRoundedIcon from "@mui/icons-material/StorefrontRounded";
 import Alert from "@mui/material/Alert";
@@ -18,12 +17,14 @@ import { routePaths } from "config/paths";
 import { transactionSetupHintMessages } from "config/transactionMessages";
 import { TransactionDateTimePicker } from "molecules/transactions/TransactionDateTimePicker";
 import { TransactionFormHeader } from "organisms/transactions/TransactionFormHeader/TransactionFormHeader";
+import { linkedEditExpectedRecordUpdatedAtFieldName } from "internal/transaction/adapter/next/linkedEditInput";
 import { getMerchantInitial } from "utils/merchants";
 import { transactionAccountSectionMessages } from "utils/transactionMessages";
 import { TransactionSetupHintCard } from "../TransactionSetupHintCard/TransactionSetupHintCard";
 import { getNormalTransactionSetupHint } from "../TransactionSetupHintCard/transactionSetupHint";
 import { TransactionItemPickerDrawer } from "../TransactionItemPickerDrawer/TransactionItemPickerDrawer";
 import { TransactionItemsSection } from "../TransactionItemsSection/TransactionItemsSection";
+import { TransactionPaymentFields } from "../TransactionPaymentFields/TransactionPaymentFields";
 import { TransactionSummarySection } from "../TransactionSummarySection/TransactionSummarySection";
 import {
   TransactionSelectionValue,
@@ -101,7 +102,7 @@ export function TransactionForm({
     closeSheet,
     editingItemId,
     fieldErrors,
-    handleAccountChange,
+    handleAddPayment,
     handleDateChange,
     handleMerchantChange,
     handleNoteChange,
@@ -109,8 +110,12 @@ export function TransactionForm({
     handlePickerAmountChange,
     handlePickerCategoryToggle,
     handlePickerGroupSelect,
+    handlePaymentAccountChange,
+    handlePaymentAmountChange,
+    handleRemovePayment,
     handleSubmit,
     handleTimeChange,
+    hasIncomeItems,
     isSheetOpen,
     isSubmitDisabled,
     linkNotice,
@@ -119,6 +124,8 @@ export function TransactionForm({
     merchantFieldRef,
     openItemSheet,
     openSheet,
+    paymentReconciliation,
+    payments,
     pickerAmount,
     pickerCategoryId,
     pickerErrors,
@@ -129,7 +136,6 @@ export function TransactionForm({
     removeItem,
     businessTotalAmount,
     selectedAccount,
-    selectedAccountId,
     selectedCategoryGroup,
     selectedMerchant,
     selectedMerchantId,
@@ -205,6 +211,13 @@ export function TransactionForm({
             value={initialValues.transactionRecordId}
           />
         ) : null}
+        {initialValues?.expectedRecordUpdatedAt ? (
+          <input
+            name={linkedEditExpectedRecordUpdatedAtFieldName}
+            type="hidden"
+            value={initialValues.expectedRecordUpdatedAt}
+          />
+        ) : null}
         <input name="type" type="hidden" value={selectedType} />
 
         <Box ref={merchantFieldRef} sx={selectionFieldGroupSx}>
@@ -269,50 +282,18 @@ export function TransactionForm({
 
         <Box ref={accountFieldRef} sx={selectionFieldGroupSx}>
           <SectionTitle>{transactionAccountSectionMessages.title}</SectionTitle>
-          <TextField
-            disabled={hasNoAccount}
-            error={!!fieldErrors.account}
-            fullWidth
-            helperText={
-              fieldErrors.account ??
-              (hasNoAccount && !setupHint ? "请先新增账户。" : undefined)
-            }
-            label="账户"
-            name="accountId"
-            onChange={(event) => handleAccountChange(event.target.value)}
-            select
-            slotProps={{
-              select: {
-                displayEmpty: true,
-                IconComponent: KeyboardArrowRightRoundedIcon,
-                renderValue: () => (
-                  <TransactionSelectionValue
-                    icon={<AccountBalanceWalletRoundedIcon fontSize="small" />}
-                    muted={hasNoAccount}
-                    text={
-                      selectedAccount
-                        ? `${selectedAccount.name}（${selectedAccount.currency}）`
-                        : hasNoAccount
-                          ? transactionSetupHintMessages.emptyAccount
-                          : "选择账户"
-                    }
-                    tone="account"
-                  />
-                ),
-              },
-            }}
-            value={selectedAccountId}
-            sx={transactionSelectionSelectSx}
-          >
-            <MenuItem disabled value="">
-              请选择账户
-            </MenuItem>
-            {accountOptions.map((account) => (
-              <MenuItem key={account.id} value={account.id}>
-                {account.name}（{account.currency}）
-              </MenuItem>
-            ))}
-          </TextField>
+          <TransactionPaymentFields
+            accountOptions={accountOptions}
+            canAddPayment={!hasIncomeItems}
+            fieldError={fieldErrors.account}
+            onAccountChange={handlePaymentAccountChange}
+            onAddPayment={handleAddPayment}
+            onAmountChange={handlePaymentAmountChange}
+            onRemovePayment={handleRemovePayment}
+            payments={payments}
+            reconciliation={paymentReconciliation}
+            showEmptyAccountHelper={hasNoAccount && !setupHint}
+          />
         </Box>
 
         <TransactionItemsSection
@@ -354,6 +335,7 @@ export function TransactionForm({
 
         <TransactionSummarySection
           itemSummaries={itemSummaries}
+          paymentAccountCount={payments.length}
           selectedAccount={selectedAccount}
           selectedMerchant={selectedMerchant}
           businessTotalAmount={businessTotalAmount}

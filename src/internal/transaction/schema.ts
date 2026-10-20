@@ -211,22 +211,29 @@ function parseTransactionItems(
 }
 
 /**
- * 普通记录的付款明细：没有 `paymentAccountId` 字段时沿用 `accountId`（单账户，
- * 金额由 RPC 按明细推导）；有 `paymentAccountId[]` / `paymentAmount[]` 时解析为
- * 多账户（≥ 2 行，金额必填、≥ 0、最多两位小数）。重复账户、币种、合计等业务
- * 校验交给 Service 层的 `validateTransactionPayments`，这里只做结构解析。
+ * 普通记录的付款明细，两种提交形态互斥（同一信息只有一个来源）：
+ * - 单账户：只提交 `accountId`，金额由 RPC 按明细推导；
+ * - 多账户：只提交 `paymentAccountId[]` / `paymentAmount[]`（≥ 2 行，金额必填、
+ *   ≥ 0、最多两位小数），不提交 `accountId`；两者同时出现视为账户不正确。
+ * 重复账户、币种、合计等业务校验交给 `validateTransactionPayments`，这里只做结构解析。
  */
 function parseTransactionPayments(
   formData: FormData,
-  singleAccountId: string,
 ): ValidationResult<TransactionPayment[], TransactionValidationErrorCode> {
   const paymentAccountIdValues = formData.getAll("paymentAccountId");
   if (paymentAccountIdValues.length === 0) {
-    return valid([{ accountId: singleAccountId, amount: null }]);
+    const accountIdResult = parseRequiredUuidField(
+      formData,
+      "accountId",
+      transactionErrorCodes.accountInvalid,
+    );
+    if (!accountIdResult.ok) return accountIdResult;
+    return valid([{ accountId: accountIdResult.value, amount: null }]);
   }
 
   const paymentAmountValues = formData.getAll("paymentAmount");
   if (
+    formData.has("accountId") ||
     paymentAccountIdValues.length < 2 ||
     paymentAccountIdValues.length !== paymentAmountValues.length
   ) {
@@ -294,17 +301,17 @@ export function validateTransactionForm(
     return invalid(transactionErrorCodes.dateInvalid);
   }
 
-  const accountIdResult = parseRequiredUuidField(
-    formData,
-    "accountId",
-    transactionErrorCodes.accountInvalid,
-  );
-
-  if (!accountIdResult.ok) {
-    return accountIdResult;
-  }
-
   if (typeResult.value === "transfer") {
+    const accountIdResult = parseRequiredUuidField(
+      formData,
+      "accountId",
+      transactionErrorCodes.accountInvalid,
+    );
+
+    if (!accountIdResult.ok) {
+      return accountIdResult;
+    }
+
     const targetAccountIdResult = parseRequiredUuidField(
       formData,
       "transferTargetAccountId",
@@ -353,6 +360,13 @@ export function validateTransactionForm(
     });
   }
 
+  // 付款账户先于明细解析，账户错误的提示优先级与单账户时一致。
+  const paymentsResult = parseTransactionPayments(formData);
+
+  if (!paymentsResult.ok) {
+    return paymentsResult;
+  }
+
   const itemsResult = parseTransactionItems(formData);
 
   if (!itemsResult.ok) {
@@ -378,15 +392,6 @@ export function validateTransactionForm(
 
   if (!noteResult.ok) {
     return noteResult;
-  }
-
-  const paymentsResult = parseTransactionPayments(
-    formData,
-    accountIdResult.value,
-  );
-
-  if (!paymentsResult.ok) {
-    return paymentsResult;
   }
 
   return valid({

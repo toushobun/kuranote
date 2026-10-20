@@ -83,7 +83,9 @@ export const Default: Story = {};
 export const WithTags: Story = {
   args: {
     initialValues: {
-      accountId: "00000000-0000-4000-8000-000000000045",
+      payments: [
+        { accountId: "00000000-0000-4000-8000-000000000045", amount: null },
+      ],
       items: [
         {
           amount: "1200",
@@ -101,7 +103,9 @@ export const WithTags: Story = {
 export const CustomDateTime: Story = {
   args: {
     initialValues: {
-      accountId: "00000000-0000-4000-8000-000000000046",
+      payments: [
+        { accountId: "00000000-0000-4000-8000-000000000046", amount: null },
+      ],
       items: [
         {
           amount: "980",
@@ -120,7 +124,9 @@ export const EditMode: Story = {
   args: {
     formId: "edit-transaction-form",
     initialValues: {
-      accountId: "00000000-0000-4000-8000-000000000045",
+      payments: [
+        { accountId: "00000000-0000-4000-8000-000000000045", amount: null },
+      ],
       items: [
         {
           amount: "1200",
@@ -146,7 +152,9 @@ export const EditIncomeMode: Story = {
   args: {
     formId: "edit-transaction-form",
     initialValues: {
-      accountId: "00000000-0000-4000-8000-000000000046",
+      payments: [
+        { accountId: "00000000-0000-4000-8000-000000000046", amount: null },
+      ],
       items: [
         {
           amount: "300000",
@@ -176,7 +184,9 @@ export const EditIncomeWithSavedRefundLink: Story = {
     accountOptions: [...accountOptions, usdAccount],
     formId: "edit-transaction-form",
     initialValues: {
-      accountId: "00000000-0000-4000-8000-000000000045",
+      payments: [
+        { accountId: "00000000-0000-4000-8000-000000000045", amount: null },
+      ],
       items: [
         {
           amount: "500",
