@@ -115,7 +115,7 @@ export function TransactionForm({
     handleRemovePayment,
     handleSubmit,
     handleTimeChange,
-    hasIncomeItems,
+    isMultiAccount,
     isSheetOpen,
     isSubmitDisabled,
     linkNotice,
@@ -284,7 +284,6 @@ export function TransactionForm({
           <SectionTitle>{transactionAccountSectionMessages.title}</SectionTitle>
           <TransactionPaymentFields
             accountOptions={accountOptions}
-            canAddPayment={!hasIncomeItems}
             fieldError={fieldErrors.account}
             onAccountChange={handlePaymentAccountChange}
             onAddPayment={handleAddPayment}
@@ -361,6 +360,7 @@ export function TransactionForm({
         frequentCategoryIds={frequentCategoryIds}
         linkNotice={linkNotice}
         filteredCategoryOptions={allNormalCategoryOptions}
+        incomeCategoriesDisabled={isMultiAccount}
         editingItemId={editingItemId}
         onAmountChange={handlePickerAmountChange}
         onCategoryToggle={handlePickerCategoryToggle}

@@ -30,6 +30,7 @@ import {
   transactionSelectionSelectSx,
 } from "../TransactionSelectionValue/TransactionSelectionValue";
 import {
+  canAddPaymentRow,
   isPaymentAccountSelectable,
   type TransactionPaymentReconciliation,
   type TransactionPaymentRow,
@@ -37,8 +38,6 @@ import {
 
 type TransactionPaymentFieldsProps = {
   accountOptions: TransactionAccountOption[];
-  /** 是否显示「添加付款账户」入口（含收入明细时不显示）。 */
-  canAddPayment: boolean;
   fieldError?: string;
   onAccountChange: (key: number, accountId: string) => void;
   onAddPayment: () => void;
@@ -57,7 +56,6 @@ type TransactionPaymentFieldsProps = {
  */
 export function TransactionPaymentFields({
   accountOptions,
-  canAddPayment,
   fieldError,
   onAccountChange,
   onAddPayment,
@@ -74,27 +72,23 @@ export function TransactionPaymentFields({
     (account) => account.id === primaryPayment?.accountId,
   );
   const primaryCurrency = primaryAccount?.currency;
-  const hasAddableAccount = accountOptions.some((account) =>
-    isPaymentAccountSelectable({
-      account,
-      payments,
-      primaryCurrency,
-    }),
-  );
-  const addPaymentButton =
-    canAddPayment && !hasNoAccount ? (
-      <Button
-        disabled={!hasAddableAccount}
-        onClick={onAddPayment}
-        size="small"
-        startIcon={<AddRoundedIcon fontSize="small" />}
-        type="button"
-        variant="text"
-        sx={addPaymentButtonSx}
-      >
-        {transactionPaymentFieldsMessages.addPayment}
-      </Button>
-    ) : null;
+  // 入口只取决于可选账户，不受字段错误等其他状态影响（#930）。
+  const addPaymentButton = canAddPaymentRow({
+    accountOptions,
+    payments,
+    primaryCurrency,
+  }) ? (
+    <Button
+      onClick={onAddPayment}
+      size="small"
+      startIcon={<AddRoundedIcon fontSize="small" />}
+      type="button"
+      variant="text"
+      sx={addPaymentButtonSx}
+    >
+      {transactionPaymentFieldsMessages.addPayment}
+    </Button>
+  ) : null;
 
   if (!isMultiAccount || !primaryPayment) {
     return (

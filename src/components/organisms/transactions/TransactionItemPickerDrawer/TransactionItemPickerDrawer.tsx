@@ -24,6 +24,7 @@ import type { TransactionSpecialStatus } from "internal/transaction";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { designTokens } from "theme/theme";
 import { appZIndex } from "theme/zIndex";
+import { transactionPaymentFieldsMessages } from "utils/transactionMessages";
 import type {
   TransactionCategoryOption,
   TransactionGroupPage,
@@ -95,6 +96,8 @@ type TransactionItemPickerDrawerProps = {
   specialStatusEnabled?: boolean;
   specialStatusLocked?: boolean;
   incomeLinksEnabled?: boolean;
+  /** 多账户付款时禁用收入分类（多账户仅限纯支出，#930）。 */
+  incomeCategoriesDisabled?: boolean;
 };
 
 export function TransactionItemPickerDrawer({
@@ -132,6 +135,7 @@ export function TransactionItemPickerDrawer({
   specialStatusEnabled = false,
   specialStatusLocked = false,
   incomeLinksEnabled = true,
+  incomeCategoriesDisabled = false,
 }: TransactionItemPickerDrawerProps) {
   const selectedCategoryType = filteredCategoryOptions.find(
     (category) => category.id === pickerCategoryId,
@@ -185,6 +189,8 @@ export function TransactionItemPickerDrawer({
       group.categories.map((category) => [category.id, { category, group }]),
     ),
   );
+  const isCategoryDisabled = (category: TransactionCategoryOption) =>
+    incomeCategoriesDisabled && category.type === "income";
   const quickCategories = frequentCategoryIds.flatMap((categoryId) => {
     const categoryWithGroup = categoryWithGroupById.get(categoryId);
     return categoryWithGroup ? [categoryWithGroup] : [];
@@ -301,6 +307,7 @@ export function TransactionItemPickerDrawer({
             <Stack direction="row" sx={quickCategoryListSx}>
               {quickCategories.map(({ category, group }) => (
                 <Chip
+                  disabled={isCategoryDisabled(category)}
                   key={category.id}
                   label={`${group.name} · ${category.name}`}
                   onClick={() => selectCategory(group.id, category.id)}
@@ -358,6 +365,9 @@ export function TransactionItemPickerDrawer({
                             return (
                               <Button
                                 aria-pressed={isSelected}
+                                disabled={group.categories.every(
+                                  isCategoryDisabled,
+                                )}
                                 key={group.id}
                                 onClick={() => onGroupSelect(group.id)}
                                 type="button"
@@ -380,6 +390,7 @@ export function TransactionItemPickerDrawer({
                         return (
                           <Button
                             aria-pressed={isSelected}
+                            disabled={isCategoryDisabled(category)}
                             endIcon={
                               isSelected ? (
                                 <CheckRoundedIcon fontSize="small" />
@@ -406,6 +417,12 @@ export function TransactionItemPickerDrawer({
                 </Stack>
               )}
             </Collapse>
+
+            {incomeCategoriesDisabled ? (
+              <Typography color="textSecondary" variant="caption">
+                {transactionPaymentFieldsMessages.incomeCategoriesDisabled}
+              </Typography>
+            ) : null}
 
             {pickerErrors.category ? (
               <Typography color="error" variant="caption">

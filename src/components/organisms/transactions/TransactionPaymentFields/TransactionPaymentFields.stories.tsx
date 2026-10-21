@@ -9,6 +9,8 @@ import { TransactionPaymentFields } from "./TransactionPaymentFields";
 import {
   createPaymentFieldsProps,
   createPaymentRows,
+  paymentFieldsAccountOptions,
+  paymentFieldsCashAccount,
 } from "./transactionPaymentFields.testUtils";
 
 const meta = {
@@ -25,7 +27,7 @@ export const SingleAccount: Story = {
 };
 
 export const MultiAccountBalanced: Story = {
-  name: "多账户平衡",
+  name: "多账户平衡（行数已达同币种账户数）",
   args: createPaymentFieldsProps({
     payments: createPaymentRows(["2000", "1500"]),
   }),
@@ -43,14 +45,24 @@ export const MultiAccountWithZeroAmount: Story = {
   }),
 };
 
-export const MultiAccountWithIncomeItem: Story = {
-  name: "多账户后又加了收入明细",
+export const SingleAccountWithoutAddableAccount: Story = {
+  name: "没有其他同币种账户（不显示添加入口）",
   args: createPaymentFieldsProps({
-    canAddPayment: false,
+    accountOptions: [
+      paymentFieldsAccountOptions[0]!,
+      paymentFieldsAccountOptions[2]!,
+    ],
+  }),
+};
+
+export const MultiAccountWithFieldError: Story = {
+  name: "多账户显示错误时保留添加入口",
+  args: createPaymentFieldsProps({
+    accountOptions: [...paymentFieldsAccountOptions, paymentFieldsCashAccount],
     fieldError:
       transactionPaymentValidationErrorMessages[
-        transactionErrorCodes.paymentMultiAccountNotAllowed
+        transactionErrorCodes.paymentTotalMismatch
       ],
-    payments: createPaymentRows(["2000", "1500"]),
+    payments: createPaymentRows(["2000", ""]),
   }),
 };

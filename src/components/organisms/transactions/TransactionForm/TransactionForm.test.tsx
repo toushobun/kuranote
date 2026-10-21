@@ -4,6 +4,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import { createTheme } from "@mui/material/styles";
@@ -11,6 +12,8 @@ import { type ReactNode, useState, type ComponentProps } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { routePaths } from "config/paths";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
+import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
+import { UserThemeProvider } from "theme/UserThemeProvider";
 import { appZIndex } from "theme/zIndex";
 import { transactionFormValidationMessages } from "utils/transactionMessages";
 import {
@@ -90,14 +93,18 @@ describe("TransactionForm", () => {
   ) {
     const action = vi.fn(async () => undefined);
     const view = render(
-      <TransactionForm
-        action={action}
-        accountOptions={accountOptions}
-        categoryOptions={categoryOptions}
-        frequentCategoryIds={categoryOptions.map((category) => category.id)}
-        merchantOptions={merchantOptions}
-        {...props}
-      />,
+      <UserThemeProvider>
+        <ConfirmDialogProvider>
+          <TransactionForm
+            action={action}
+            accountOptions={accountOptions}
+            categoryOptions={categoryOptions}
+            frequentCategoryIds={categoryOptions.map((category) => category.id)}
+            merchantOptions={merchantOptions}
+            {...props}
+          />
+        </ConfirmDialogProvider>
+      </UserThemeProvider>,
     );
     return { action, ...view };
   }
@@ -589,6 +596,11 @@ describe("TransactionForm", () => {
       },
     ];
     const [cash, card] = multiAccountOptions;
+    const thirdCard = {
+      id: "00000000-0000-4000-8000-000000000047",
+      name: "积分卡",
+      currency: "JPY",
+    };
 
     function renderMultiAccountForm(
       props: Partial<ComponentProps<typeof TransactionForm>> = {},
@@ -602,6 +614,15 @@ describe("TransactionForm", () => {
     }
     function getSaveButton(container: HTMLElement) {
       return within(container).getByRole("button", { name: "保存记账" });
+    }
+    // 明细抽屉关闭动画期间表单仍是 aria-hidden，按钮需带 hidden 查找。
+    function clickAddPayment(container: HTMLElement) {
+      fireEvent.click(
+        within(container).getByRole("button", {
+          hidden: true,
+          name: "添加付款账户",
+        }),
+      );
     }
     function selectPaymentAccount(rowNumber: number, accountName: string) {
       fireEvent.mouseDown(
@@ -650,21 +671,19 @@ describe("TransactionForm", () => {
       ).toBeInTheDocument();
     });
 
-    it("展开时首行预填明细合计、新增行金额留空，删到 1 行自动回到单账户", () => {
+    it("展开时首行预填明细合计、新增行为 0，删到 1 行自动回到单账户", () => {
       const { container } = renderMultiAccountForm({
         initialValues: createInitialValues(),
       });
 
-      fireEvent.click(
-        within(container).getByRole("button", { name: "添加付款账户" }),
-      );
+      clickAddPayment(container);
 
       expect(getFieldValues(container, "accountId")).toEqual([]);
       expect(getFieldValues(container, "paymentAccountId")).toEqual([
         cash!.id,
         "",
       ]);
-      expect(getFieldValues(container, "paymentAmount")).toEqual(["1200", ""]);
+      expect(getFieldValues(container, "paymentAmount")).toEqual(["1200", "0"]);
 
       fireEvent.click(
         within(container).getByRole("button", { name: "删除付款账户 2" }),
@@ -674,33 +693,82 @@ describe("TransactionForm", () => {
       expect(getFieldValues(container, "paymentAmount")).toEqual([]);
     });
 
-    it("付款合计与明细合计不平衡时不能保存", () => {
+    it("修改首行金额时下一行自动补足差额", () => {
       const { container } = renderMultiAccountForm({
         initialValues: createInitialValues(),
       });
-      fireEvent.click(
-        within(container).getByRole("button", { name: "添加付款账户" }),
-      );
+      clickAddPayment(container);
       selectPaymentAccount(2, card!.name);
       changePaymentAmount(1, "500");
 
-      expect(screen.getByRole("status")).toHaveTextContent("差额 ¥700");
-      expect(getSaveButton(container)).toBeDisabled();
-
-      changePaymentAmount(2, "700");
-
+      expect(getFieldValues(container, "paymentAmount")).toEqual([
+        "500",
+        "700",
+      ]);
       expect(screen.getByRole("status")).not.toHaveTextContent("差额");
       expect(getSaveButton(container)).toBeEnabled();
+    });
+
+    it("修改最后一行金额导致不平衡时显示差额且不能保存", () => {
+      const { container } = renderMultiAccountForm({
+        initialValues: createInitialValues(),
+      });
+      clickAddPayment(container);
+      selectPaymentAccount(2, card!.name);
+      changePaymentAmount(2, "300");
+
+      expect(getFieldValues(container, "paymentAmount")).toEqual([
+        "1200",
+        "300",
+      ]);
+      expect(screen.getByRole("status", { hidden: true })).toHaveTextContent(
+        "差额 ¥300",
+      );
+      expect(getSaveButton(container)).toBeDisabled();
+    });
+
+    it("删除付款行时金额归还到上一行", () => {
+      const { container } = renderMultiAccountForm({
+        accountOptions: [...multiAccountOptions, thirdCard],
+        initialValues: {
+          ...createInitialValues(),
+          payments: [
+            { accountId: cash!.id, amount: "500" },
+            { accountId: card!.id, amount: "700" },
+            { accountId: thirdCard!.id, amount: "0" },
+          ],
+        },
+      });
+
+      fireEvent.click(
+        within(container).getByRole("button", { name: "删除付款账户 2" }),
+      );
+
+      expect(getFieldValues(container, "paymentAmount")).toEqual(["1200", "0"]);
+    });
+
+    it("修改明细金额时不改动付款分配", () => {
+      const { container } = renderMultiAccountForm({
+        initialValues: createMultiAccountInitialValues(),
+      });
+      addItemViaSheet(container, "日用品", "300");
+
+      expect(getFieldValues(container, "paymentAmount")).toEqual([
+        "500",
+        "700",
+      ]);
+      expect(screen.getByRole("status", { hidden: true })).toHaveTextContent(
+        "差额 ¥300",
+      );
     });
 
     it("新增行未填金额时提交前提示并阻止保存", async () => {
       const { action, container } = renderMultiAccountForm({
         initialValues: createInitialValues(),
       });
-      fireEvent.click(
-        within(container).getByRole("button", { name: "添加付款账户" }),
-      );
+      clickAddPayment(container);
       selectPaymentAccount(2, card!.name);
+      changePaymentAmount(2, "");
 
       await submitForm(container);
 
@@ -712,27 +780,85 @@ describe("TransactionForm", () => {
       expect(action).not.toHaveBeenCalled();
     });
 
-    it("含收入明细时不显示添加付款账户入口", () => {
-      const { container } = renderMultiAccountForm();
-      addIncomeItem(container);
+    it("付款行数达到同币种账户数量后不显示添加入口", () => {
+      const { container } = renderMultiAccountForm({
+        initialValues: createMultiAccountInitialValues(),
+      });
 
       expect(
         within(container).queryByRole("button", { name: "添加付款账户" }),
       ).toBeNull();
     });
 
-    it("多账户后又加了收入明细时提交前提示并阻止保存，不自动收起", async () => {
-      const { action, container } = renderMultiAccountForm({
+    it("多账户时收入分类不可选，回到单账户后恢复", () => {
+      const { container } = renderMultiAccountForm({
         initialValues: createMultiAccountInitialValues(),
       });
-      addIncomeItem(container);
-      await submitForm(container);
+      openSheet(container);
 
-      expect(action).not.toHaveBeenCalled();
+      expect(screen.getByRole("button", { name: "固定收入" })).toBeDisabled();
       expect(
-        within(container).getByText("含收入明细的记录只能选择一个付款账户。"),
+        screen.getByRole("button", { name: "固定收入 · 工资" }),
+      ).toHaveAttribute("aria-disabled", "true");
+      expect(
+        screen.getByText("多账户付款时只能添加支出明细。"),
       ).toBeInTheDocument();
-      expect(getFieldValues(container, "paymentAccountId")).toHaveLength(2);
+
+      fireEvent.click(screen.getByRole("button", { name: "关闭" }));
+      fireEvent.click(
+        within(container).getByRole("button", {
+          hidden: true,
+          name: "删除付款账户 2",
+        }),
+      );
+      openSheet(container);
+
+      expect(screen.getByRole("button", { name: "固定收入" })).toBeEnabled();
+    });
+
+    describe("已有收入明细时添加付款账户", () => {
+      function getItemAmountButtons(container: HTMLElement) {
+        return container.querySelectorAll(
+          'button[aria-label^="编辑明细"][aria-label$="金额"]',
+        );
+      }
+      async function clickAddPaymentWithIncome(container: HTMLElement) {
+        addIncomeItem(container);
+        clickAddPayment(container);
+        return screen.findByRole("dialog", { name: "删除收入明细？" });
+      }
+
+      it("确认后删除收入明细并进入多账户，首行预填支出合计", async () => {
+        const { container } = renderMultiAccountForm({
+          initialValues: createInitialValues(),
+        });
+        const dialog = await clickAddPaymentWithIncome(container);
+
+        fireEvent.click(
+          within(dialog).getByRole("button", { name: "删除收入明细" }),
+        );
+
+        await waitFor(() =>
+          expect(getFieldValues(container, "paymentAmount")).toEqual([
+            "1200",
+            "0",
+          ]),
+        );
+        expect(getItemAmountButtons(container)).toHaveLength(1);
+      });
+
+      it("取消后保持单账户与收入明细", async () => {
+        const { container } = renderMultiAccountForm({
+          initialValues: createInitialValues(),
+        });
+        const dialog = await clickAddPaymentWithIncome(container);
+
+        fireEvent.click(within(dialog).getByRole("button", { name: "取消" }));
+
+        await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+        expect(getFieldValues(container, "accountId")).toEqual([cash!.id]);
+        expect(getItemAmountButtons(container)).toHaveLength(2);
+      });
     });
 
     it("编辑既有多账户记录时按原样回填付款明细与记录版本，不改动直接提交", async () => {

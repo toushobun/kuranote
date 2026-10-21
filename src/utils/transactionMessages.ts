@@ -58,10 +58,15 @@ export const transactionAccountSectionMessages = {
 export const transactionPaymentFieldsMessages = {
   addPayment: "添加付款账户",
   difference: (difference: string) => `差额 ${difference}`,
+  incomeCategoriesDisabled: "多账户付款时只能添加支出明细。",
   paymentAccountLabel: (index: number) => `付款账户 ${index}`,
   paymentAmountLabel: (index: number) => `付款金额 ${index}`,
   reconciliation: (paymentTotal: string, itemTotal: string) =>
     `付款合计 ${paymentTotal} / 明细合计 ${itemTotal}`,
+  removeIncomeItemsConfirm: "删除收入明细",
+  removeIncomeItemsDescription:
+    "多账户付款只能用于支出明细。继续添加付款账户会删除当前的收入明细。",
+  removeIncomeItemsTitle: "删除收入明细？",
   removePayment: (index: number) => `删除付款账户 ${index}`,
 } as const;
 

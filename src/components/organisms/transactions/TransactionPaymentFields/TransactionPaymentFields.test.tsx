@@ -12,6 +12,7 @@ import {
   createPaymentFieldsProps,
   createPaymentRows,
   paymentFieldsAccountOptions,
+  paymentFieldsCashAccount,
 } from "./transactionPaymentFields.testUtils";
 
 function renderFields(
@@ -46,18 +47,24 @@ describe("TransactionPaymentFields", () => {
       expect(onAddPayment).toHaveBeenCalledTimes(1);
     });
 
-    it("含收入明细时不显示添加付款账户入口", () => {
-      renderFields({ canAddPayment: false });
+    it("没有其他可选的同币种账户时不显示添加付款账户入口", () => {
+      renderFields({
+        accountOptions: [
+          paymentFieldsAccountOptions[0]!,
+          paymentFieldsAccountOptions[2]!,
+        ],
+      });
 
       expect(screen.queryByRole("button", { name: "添加付款账户" })).toBeNull();
     });
 
-    it("没有其他可添加的同币种账户时入口不可用", () => {
-      renderFields({ accountOptions: paymentFieldsAccountOptions.slice(0, 1) });
+    it("没有账户时不显示添加付款账户入口", () => {
+      renderFields({
+        accountOptions: [],
+        payments: [{ accountId: "", amount: "", key: 1 }],
+      });
 
-      expect(
-        screen.getByRole("button", { name: "添加付款账户" }),
-      ).toBeDisabled();
+      expect(screen.queryByRole("button", { name: "添加付款账户" })).toBeNull();
     });
 
     it("显示字段错误", () => {
@@ -144,17 +151,28 @@ describe("TransactionPaymentFields", () => {
       expect(screen.queryByText(/^差额/)).toBeNull();
     });
 
-    it("显示提交前校验的错误，含收入明细时不显示添加入口", () => {
+    it("付款行数达到同币种账户数量后不显示添加入口", () => {
+      renderFields({ payments: createPaymentRows(["2000", "1500"]) });
+
+      expect(screen.queryByRole("button", { name: "添加付款账户" })).toBeNull();
+    });
+
+    it("还有可选的同币种账户时显示添加入口，显示字段错误时也不隐藏", () => {
       renderFields({
-        canAddPayment: false,
-        fieldError: "含收入明细的记录只能选择一个付款账户。",
+        accountOptions: [
+          ...paymentFieldsAccountOptions,
+          paymentFieldsCashAccount,
+        ],
+        fieldError: "付款合计与明细合计不一致。",
         payments: createPaymentRows(["2000", "1500"]),
       });
 
       expect(
-        screen.getByText("含收入明细的记录只能选择一个付款账户。"),
+        screen.getByText("付款合计与明细合计不一致。"),
       ).toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: "添加付款账户" })).toBeNull();
+      expect(
+        screen.getByRole("button", { name: "添加付款账户" }),
+      ).toBeInTheDocument();
     });
   });
 });
