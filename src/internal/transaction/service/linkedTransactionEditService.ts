@@ -16,7 +16,10 @@ import type { LinkedTransactionItemService } from "internal/transaction/service/
 import type { EditTransactionView } from "internal/transaction/service/read/transactionReadModels";
 import type { TransactionService } from "internal/transaction/service/transactionService";
 import { toRefundMinorUnits } from "internal/transaction/util/refundAllocation";
-import { validateTransactionPayments } from "internal/transaction/util/validateTransactionPayments";
+import {
+  validateMultiAccountPaymentSetting,
+  validateTransactionPayments,
+} from "internal/transaction/util/validateTransactionPayments";
 
 export type LinkedTransactionEditInput = UpdateNormalTransactionInput & {
   confirmSync: boolean;
@@ -366,6 +369,16 @@ export function createLinkedTransactionEditService({
         throw new ValidationError(
           paymentsResult.error,
           transactionPaymentValidationErrorMessages[paymentsResult.error],
+        );
+      }
+      const paymentSettingResult = validateMultiAccountPaymentSetting({
+        multiAccountPaymentEnabled: view.multiAccountPaymentEnabled,
+        paymentCount: input.payments.length,
+      });
+      if (!paymentSettingResult.ok) {
+        throw new ValidationError(
+          paymentSettingResult.error,
+          transactionPaymentValidationErrorMessages[paymentSettingResult.error],
         );
       }
       const oldAccount = view.accountOptions.find(

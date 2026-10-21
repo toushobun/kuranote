@@ -189,6 +189,7 @@ export interface TransactionCommandRepository {
   createNormal(input: CreateNormalTransactionInput): Promise<void>;
   createTransfer(input: CreateTransferTransactionInput): Promise<void>;
   createBalanceAdjustment(input: CreateBalanceAdjustmentInput): Promise<void>;
+  isMultiAccountPaymentEnabled(ledgerId: string): Promise<boolean>;
   isSpecialStatusEnabled(ledgerId: string): Promise<boolean>;
   findActiveRecord(
     ledgerId: string,
@@ -322,6 +323,7 @@ const transactionRpcErrorCodes = [
   transactionErrorCodes.paymentAccountDuplicate,
   transactionErrorCodes.paymentAmountRequired,
   transactionErrorCodes.paymentCurrencyMismatch,
+  transactionErrorCodes.paymentMultiAccountDisabled,
   transactionErrorCodes.paymentMultiAccountNotAllowed,
   transactionErrorCodes.paymentTotalMismatch,
 ] as const;
@@ -330,6 +332,33 @@ export function createSupabaseTransactionRepository(
   supabase: AuthenticatedSupabaseClient,
   logger: Logger,
 ): SupabaseTransactionRepository {
+  /** 读取账本功能开关（特殊状态 / 多账户付款），账本不存在时视为未开启。 */
+  async function loadLedgerFeatureEnabled(input: {
+    column:
+      | "multi_account_payment_enabled"
+      | "transaction_item_special_status_enabled";
+    errorCode: string;
+    errorMessage: string;
+    ledgerId: string;
+    logMessage: string;
+  }) {
+    const { data, error } = await supabase
+      .from("ledger")
+      .select(input.column)
+      .eq("id", input.ledgerId)
+      .maybeSingle();
+    if (error) {
+      logger.error(input.logMessage, {
+        databaseCode: error.code,
+        ledgerId: input.ledgerId,
+      });
+      throw toRepositoryError(input.errorCode, input.errorMessage);
+    }
+    return Boolean(
+      (data as Record<string, boolean | null> | null)?.[input.column],
+    );
+  }
+
   function throwRpcError(
     operation: string,
     fallbackCode: TransactionServiceErrorCode,
@@ -542,6 +571,13 @@ export function createSupabaseTransactionRepository(
       );
     }
 
+    if (rpcErrorCode === transactionErrorCodes.paymentMultiAccountDisabled) {
+      throw new ValidationError(
+        rpcErrorCode,
+        transactionWriteErrorMessages.paymentMultiAccountDisabled,
+      );
+    }
+
     if (rpcErrorCode === transactionErrorCodes.paymentMultiAccountNotAllowed) {
       throw new ValidationError(
         rpcErrorCode,
@@ -713,23 +749,27 @@ export function createSupabaseTransactionRepository(
       }
     },
 
-    async isSpecialStatusEnabled(ledgerId) {
-      const { data, error } = await supabase
-        .from("ledger")
-        .select("transaction_item_special_status_enabled")
-        .eq("id", ledgerId)
-        .maybeSingle();
-      if (error) {
-        logger.error("[transaction] failed to load special status setting", {
-          databaseCode: error.code,
-          ledgerId,
-        });
-        throw toRepositoryError(
-          "transaction_special_status_setting_load_failed",
+    isMultiAccountPaymentEnabled(ledgerId) {
+      return loadLedgerFeatureEnabled({
+        column: "multi_account_payment_enabled",
+        errorCode: "transaction_multi_account_payment_setting_load_failed",
+        errorMessage:
+          transactionLoadErrorMessages.multiAccountPaymentSettingLoadFailed,
+        ledgerId,
+        logMessage:
+          "[transaction] failed to load multi account payment setting",
+      });
+    },
+
+    isSpecialStatusEnabled(ledgerId) {
+      return loadLedgerFeatureEnabled({
+        column: "transaction_item_special_status_enabled",
+        errorCode: "transaction_special_status_setting_load_failed",
+        errorMessage:
           transactionLoadErrorMessages.specialStatusSettingLoadFailed,
-        );
-      }
-      return Boolean(data?.transaction_item_special_status_enabled);
+        ledgerId,
+        logMessage: "[transaction] failed to load special status setting",
+      });
     },
 
     async findActiveRecord(ledgerId, transactionRecordId) {

@@ -7,6 +7,7 @@ export type CurrentLedger = {
   currentUserId?: string;
   currentUserRole: CurrentLedgerRole;
   transactionItemSpecialStatusEnabled?: boolean;
+  multiAccountPaymentEnabled?: boolean;
 };
 
 export type LedgerWithMemberCount = CurrentLedger & {

@@ -42,6 +42,8 @@ import {
 type TransactionPaymentFieldsProps = {
   accountOptions: TransactionAccountOption[];
   fieldError?: string;
+  /** 账本未开启多账户付款（#931）时不显示「添加付款账户」。 */
+  multiAccountPaymentEnabled: boolean;
   onAccountChange: (key: number, accountId: string) => void;
   onAddPayment: () => void;
   onAmountChange: (key: number, amount: string) => void;
@@ -62,6 +64,7 @@ type TransactionPaymentFieldsProps = {
 export function TransactionPaymentFields({
   accountOptions,
   fieldError,
+  multiAccountPaymentEnabled,
   onAccountChange,
   onAddPayment,
   onAmountChange,
@@ -78,23 +81,25 @@ export function TransactionPaymentFields({
     (account) => account.id === primaryPayment?.accountId,
   );
   const primaryCurrency = primaryAccount?.currency;
-  // 入口只取决于可选账户，不受字段错误等其他状态影响（#930）。
-  const addPaymentButton = canAddPaymentRow({
-    accountOptions,
-    payments,
-    primaryCurrency,
-  }) ? (
-    <Button
-      onClick={onAddPayment}
-      size="small"
-      startIcon={<AddRoundedIcon fontSize="small" />}
-      type="button"
-      variant="text"
-      sx={addPaymentButtonSx}
-    >
-      {transactionPaymentFieldsMessages.addPayment}
-    </Button>
-  ) : null;
+  // 入口只取决于账本开关与可选账户，不受字段错误等其他状态影响（#930 / #931）。
+  const addPaymentButton =
+    multiAccountPaymentEnabled &&
+    canAddPaymentRow({
+      accountOptions,
+      payments,
+      primaryCurrency,
+    }) ? (
+      <Button
+        onClick={onAddPayment}
+        size="small"
+        startIcon={<AddRoundedIcon fontSize="small" />}
+        type="button"
+        variant="text"
+        sx={addPaymentButtonSx}
+      >
+        {transactionPaymentFieldsMessages.addPayment}
+      </Button>
+    ) : null;
 
   if (!isMultiAccount || !primaryPayment) {
     return (

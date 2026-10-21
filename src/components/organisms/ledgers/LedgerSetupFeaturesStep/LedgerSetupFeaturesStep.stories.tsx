@@ -8,10 +8,16 @@ import {
 } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardStoryUtils";
 import { createLedgerSetupProgressFixture } from "test/mocks/ledgerSetup";
 
-function createFeaturesProgress(specialStatusEnabled: boolean) {
+function createFeaturesProgress(enabled: boolean) {
   const base = createLedgerSetupProgressFixture();
   return createLedgerSetupProgressFixture({
-    draft: { ...base.setup.draft, features: { specialStatusEnabled } },
+    draft: {
+      ...base.setup.draft,
+      features: {
+        multiAccountPaymentEnabled: enabled,
+        specialStatusEnabled: enabled,
+      },
+    },
     step: 4,
   });
 }

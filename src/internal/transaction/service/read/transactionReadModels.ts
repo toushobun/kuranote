@@ -79,6 +79,7 @@ export type TransactionFormOptions = {
   categoryOptions: TransactionCategoryOption[];
   frequentCategoryIds: string[];
   merchantOptions: MerchantSummary[];
+  multiAccountPaymentEnabled: boolean;
   transactionItemSpecialStatusEnabled: boolean;
 };
 

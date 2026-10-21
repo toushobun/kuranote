@@ -613,7 +613,11 @@ describe("TransactionForm", () => {
       options: Parameters<typeof renderForm>[1] = {},
     ) {
       return renderForm(
-        { accountOptions: multiAccountOptions, ...props },
+        {
+          accountOptions: multiAccountOptions,
+          multiAccountPaymentEnabled: true,
+          ...props,
+        },
         options,
       );
     }
@@ -693,6 +697,18 @@ describe("TransactionForm", () => {
       expect(
         within(container).getByRole("button", { name: "添加付款账户" }),
       ).toBeInTheDocument();
+    });
+
+    it("账本未开启多账户付款时不显示添加付款账户入口", () => {
+      const { container } = renderMultiAccountForm({
+        initialValues: createInitialValues(),
+        multiAccountPaymentEnabled: false,
+      });
+
+      expect(getFieldValues(container, "accountId")).toEqual([cash!.id]);
+      expect(
+        within(container).queryByRole("button", { name: "添加付款账户" }),
+      ).not.toBeInTheDocument();
     });
 
     it("展开时首行预填明细合计、新增行为 0，删到 1 行自动回到单账户", () => {

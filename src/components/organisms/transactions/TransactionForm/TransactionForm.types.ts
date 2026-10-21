@@ -31,6 +31,8 @@ export type TransactionFormProps = {
   initialValues?: TransactionFormInitialValues;
   ledgerName?: string;
   merchantOptions: TransactionMerchantOption[];
+  /** 账本是否开启多账户付款（#931）；关闭时不显示「添加付款账户」。 */
+  multiAccountPaymentEnabled?: boolean;
   refundPickerView?: TransactionTimeGroupViewData;
   reimbursementPickerView?: TransactionTimeGroupViewData;
   loadRefundGroupItemsAction?: (

@@ -86,7 +86,7 @@ export const ledgerSetupMerchantsMessages = {
   title: "挑选常去的商家",
 } as const;
 
-/** 第 4 步「功能」。功能开关本身的文案由 LedgerSpecialStatusSetting 提供。 */
+/** 第 4 步「功能」。功能开关本身的文案由各功能开关组件提供。 */
 export const ledgerSetupFeaturesMessages = {
   description: "可以随时在账本设置中开启或关闭",
   title: "需要这些功能吗？",
@@ -118,6 +118,7 @@ export const ledgerSetupConfirmMessages = {
   features: {
     disabled: "未开启",
     enabled: "已开启",
+    multiAccountPayment: "多账户付款",
     specialStatus: "报销与退款状态",
     title: "功能",
   },

@@ -36,6 +36,7 @@ import { AccountFormDialogShell } from "organisms/accounts/AccountFormDialogShel
 import { LedgerDeletion } from "organisms/ledgers/LedgerDeletion/LedgerDeletion";
 import type { DeleteLedgerAction } from "organisms/ledgers/LedgerDeletion/useLedgerDeletion";
 import { LedgerInviteEntry } from "organisms/ledgers/LedgerInviteEntry/LedgerInviteEntry";
+import { LedgerMultiAccountPaymentSetting } from "organisms/ledgers/LedgerMultiAccountPaymentSetting/LedgerMultiAccountPaymentSetting";
 import { LedgerSpecialStatusSetting } from "organisms/ledgers/LedgerSpecialStatusSetting/LedgerSpecialStatusSetting";
 import {
   bottomNavigationLayout,
@@ -106,6 +107,9 @@ export function LedgerSettingsTemplate({
   const [baseCurrency, setBaseCurrency] = useState(ledger.baseCurrency);
   const [specialStatusEnabled, setSpecialStatusEnabled] = useState(
     ledger.transactionItemSpecialStatusEnabled ?? false,
+  );
+  const [multiAccountPaymentEnabled, setMultiAccountPaymentEnabled] = useState(
+    ledger.multiAccountPaymentEnabled ?? false,
   );
   const enqueuedErrorKeysRef = useRef(new Set<string>());
   const errorFeedbackIdRef = useRef(0);
@@ -234,6 +238,17 @@ export function LedgerSettingsTemplate({
           canEdit={canEditLedger}
           enabled={specialStatusEnabled}
           onChange={setSpecialStatusEnabled}
+        />
+
+        <input
+          name="multiAccountPaymentEnabled"
+          type="hidden"
+          value={String(multiAccountPaymentEnabled)}
+        />
+        <LedgerMultiAccountPaymentSetting
+          canEdit={canEditLedger}
+          enabled={multiAccountPaymentEnabled}
+          onChange={setMultiAccountPaymentEnabled}
         />
 
         <SettingsSection title="成员">

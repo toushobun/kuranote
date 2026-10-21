@@ -57,6 +57,7 @@ export function TransactionForm({
   initialValues,
   ledgerName,
   merchantOptions,
+  multiAccountPaymentEnabled = false,
   loadRefundGroupItemsAction,
   loadRefundMoreGroupsAction,
   loadRefundSearchPageAction,
@@ -286,6 +287,7 @@ export function TransactionForm({
           <TransactionPaymentFields
             accountOptions={accountOptions}
             fieldError={fieldErrors.account}
+            multiAccountPaymentEnabled={multiAccountPaymentEnabled}
             onAccountChange={handlePaymentAccountChange}
             onAddPayment={handleAddPayment}
             onAmountChange={handlePaymentAmountChange}

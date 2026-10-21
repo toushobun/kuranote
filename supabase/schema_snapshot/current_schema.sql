@@ -1328,6 +1328,7 @@ begin
 
     update public.ledger
        set transaction_item_special_status_enabled = (p_payload ->> 'specialStatusEnabled')::boolean,
+           multi_account_payment_enabled = (p_payload ->> 'multiAccountPaymentEnabled')::boolean,
            setup_status = 'completed',
            setup_step = null,
            setup_draft = null,
@@ -2166,6 +2167,7 @@ CREATE TABLE IF NOT EXISTS "public"."ledger" (
     "setup_status" "text" DEFAULT 'completed'::"text" NOT NULL,
     "setup_step" smallint,
     "setup_draft" "jsonb",
+    "multi_account_payment_enabled" boolean DEFAULT false NOT NULL,
     CONSTRAINT "ledger_archive_check" CHECK (((("is_archived" = false) AND ("archived_at" IS NULL) AND ("archived_by" IS NULL)) OR (("is_archived" = true) AND ("archived_at" IS NOT NULL)))),
     CONSTRAINT "ledger_base_currency_check" CHECK (("base_currency" ~ '^[A-Z]{3}$'::"text")),
     CONSTRAINT "ledger_name_check" CHECK ((("length"(TRIM(BOTH FROM "name")) >= 1) AND ("length"(TRIM(BOTH FROM "name")) <= 100))),
@@ -5097,6 +5099,36 @@ $$;
 ALTER FUNCTION "public"."prevent_direct_account_balance_update"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."prevent_disable_multi_account_payment_with_records"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+begin
+    if new.multi_account_payment_enabled = false
+       and old.multi_account_payment_enabled = true
+       and exists (
+           select 1
+           from public.transaction_payment p
+           join public.transaction_record tr
+             on tr.id = p.transaction_record_id
+            and tr.ledger_id = p.ledger_id
+           where p.ledger_id = new.id
+             and tr.status = 'active'
+           group by p.transaction_record_id
+           having count(*) >= 2
+       ) then
+        raise exception 'multi_account_payment_has_records'
+            using errcode = '55006', detail = 'multi_account_payment_has_records';
+    end if;
+
+    return new;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."prevent_disable_multi_account_payment_with_records"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."prevent_disable_special_status_with_active_items"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -6030,6 +6062,7 @@ declare
     v_old_deltas numeric(14,2)[];
     v_all_account_ids uuid[];
     v_locked_account_count integer;
+    v_multi_account_payment_enabled boolean;
 begin
     v_new_account_ids := public.transaction_payment_account_ids(p_ledger_id, p_payments);
 
@@ -6046,6 +6079,21 @@ begin
 
         v_new_deltas := array[v_delta];
     else
+        -- 账本关闭多账户付款时拒绝多行（#931）。与 prevent_disable_multi_account_payment_with_records
+        -- 互斥：锁住账本行，避免关闭开关与保存多账户记录并发时两边都通过检查。
+        -- 与 validate_transaction_item_special_status 读取开关时的锁等级一致（FOR UPDATE），
+        -- 并在下面锁账户之前取得，保持 record → ledger → account 的锁顺序。
+        select l.multi_account_payment_enabled
+        into v_multi_account_payment_enabled
+        from public.ledger l
+        where l.id = p_ledger_id
+        for update;
+
+        if v_multi_account_payment_enabled is distinct from true then
+            raise exception 'payment_multi_account_disabled'
+                using errcode = '22023', detail = 'payment_multi_account_disabled';
+        end if;
+
         -- 多账户：每行必须提交金额，全部记为支出。
         for v_payment_index in 0..array_length(v_new_account_ids, 1) - 1
         loop
@@ -8407,6 +8455,7 @@ begin
        or jsonb_typeof(p_payload -> 'merchantTags') is distinct from 'array'
        or jsonb_typeof(p_payload -> 'merchants') is distinct from 'array'
        or jsonb_typeof(p_payload -> 'specialStatusEnabled') is distinct from 'boolean'
+       or jsonb_typeof(p_payload -> 'multiAccountPaymentEnabled') is distinct from 'boolean'
        or jsonb_array_length(p_payload -> 'accounts') > 50
        or jsonb_array_length(p_payload -> 'merchantTags') > 50
        or jsonb_array_length(p_payload -> 'merchants') > 200 then
@@ -10498,6 +10547,10 @@ CREATE OR REPLACE TRIGGER "ledger_set_updated_at" BEFORE UPDATE ON "public"."led
 
 
 
+CREATE OR REPLACE TRIGGER "ledger_validate_multi_account_payment_disable" BEFORE UPDATE OF "multi_account_payment_enabled" ON "public"."ledger" FOR EACH ROW EXECUTE FUNCTION "public"."prevent_disable_multi_account_payment_with_records"();
+
+
+
 CREATE OR REPLACE TRIGGER "ledger_validate_special_status_disable" BEFORE UPDATE OF "transaction_item_special_status_enabled" ON "public"."ledger" FOR EACH ROW EXECUTE FUNCTION "public"."prevent_disable_special_status_with_active_items"();
 
 
@@ -11666,6 +11719,10 @@ REVOKE ALL ON FUNCTION "public"."normalize_transaction_record_type_for_compat"()
 
 
 REVOKE ALL ON FUNCTION "public"."prevent_account_currency_change_with_transactions"() FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."prevent_disable_multi_account_payment_with_records"() FROM PUBLIC;
 
 
 

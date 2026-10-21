@@ -125,17 +125,24 @@ describe("LedgerSetupConfirmStep", () => {
     });
 
     it.each([
-      [true, "报销与退款状态 · 已开启"],
-      [false, "报销与退款状态 · 未开启"],
-    ])("功能显示特殊状态开关（%s）", (specialStatusEnabled, text) => {
-      renderConfirmStep({
-        progress: createLedgerSetupConfirmProgressFixture({
-          features: { specialStatusEnabled },
-        }),
-      });
+      [true, "报销与退款状态 · 已开启", "多账户付款 · 未开启"],
+      [false, "报销与退款状态 · 未开启", "多账户付款 · 已开启"],
+    ])(
+      "功能显示特殊状态与多账户付款开关（%s）",
+      (specialStatusEnabled, specialStatusText, multiAccountText) => {
+        renderConfirmStep({
+          progress: createLedgerSetupConfirmProgressFixture({
+            features: {
+              multiAccountPaymentEnabled: !specialStatusEnabled,
+              specialStatusEnabled,
+            },
+          }),
+        });
 
-      expect(getCard("功能")).toHaveTextContent(text);
-    });
+        expect(getCard("功能")).toHaveTextContent(specialStatusText);
+        expect(getCard("功能")).toHaveTextContent(multiAccountText);
+      },
+    );
   });
 
   describe("已跳过", () => {

@@ -32,7 +32,10 @@ const filledProgress = createLedgerSetupProgressFixture(
         ],
         skipped: false,
       },
-      features: { specialStatusEnabled: true },
+      features: {
+        multiAccountPaymentEnabled: false,
+        specialStatusEnabled: true,
+      },
       merchants: {
         selectedKeys: [...ledgerSetupMerchantDefaultSelectedKeys, "apple"],
         skipped: false,

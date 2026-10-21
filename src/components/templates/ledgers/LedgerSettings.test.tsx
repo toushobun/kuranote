@@ -8,6 +8,7 @@ import {
 import { type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { ledgerFeatureSettingMessages } from "config/ledgerMessages";
 import { loadLedgerDeletionImpactWith } from "test/ledgerDeletion";
 import { UserThemeProvider } from "theme/UserThemeProvider";
 import type { LedgerSettingsView } from "types/ledgers";
@@ -124,6 +125,54 @@ describe("LedgerSettingsTemplate", () => {
         "如果账本内还有处于报销流程的明细，将无法关闭；请先处理完这些明细。",
       ),
     ).toBeInTheDocument();
+  });
+
+  it("多账户付款开关以已保存的值初始化，切换后随表单提交", () => {
+    const { container } = renderWithUserTheme(
+      <LedgerSettingsTemplate
+        {...view}
+        errorMessage={null}
+        inviteAction={inviteAction}
+        ledger={{ ...view.ledger, multiAccountPaymentEnabled: true }}
+        updateLedgerSettingsAction={vi.fn(async () => {})}
+      />,
+    );
+    const toggle = screen.getByRole("switch", {
+      name: ledgerFeatureSettingMessages.multiAccountPayment.switchLabel,
+    });
+    const hiddenInput = container.querySelector<HTMLInputElement>(
+      'input[name="multiAccountPaymentEnabled"]',
+    );
+
+    expect(toggle).toBeChecked();
+    expect(hiddenInput).toHaveValue("true");
+    expect(
+      screen.getByText(
+        ledgerFeatureSettingMessages.multiAccountPayment.enabledDescription,
+      ),
+    ).toBeInTheDocument();
+
+    fireEvent.click(toggle);
+
+    expect(toggle).not.toBeChecked();
+    expect(hiddenInput).toHaveValue("false");
+  });
+
+  it("关闭多账户付款被拒绝时显示保存失败原因", () => {
+    const message =
+      "账本内仍有使用多个付款账户的记录，请先把这些记录改为单个付款账户后再关闭该功能。";
+    renderWithUserTheme(
+      <LedgerSettingsTemplate
+        {...view}
+        errorKey="multi-account-payment-has-records"
+        errorMessage={message}
+        inviteAction={inviteAction}
+        ledger={{ ...view.ledger, multiAccountPaymentEnabled: true }}
+        updateLedgerSettingsAction={vi.fn(async () => {})}
+      />,
+    );
+
+    expect(screen.getByText(message)).toBeInTheDocument();
   });
 
   it("点击成员后显示成员设置弹窗", () => {

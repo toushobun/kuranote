@@ -33,6 +33,7 @@ export type UpdateLedgerBaseSettingsInput = {
   ledgerName: string;
   updatedBy: string;
   transactionItemSpecialStatusEnabled?: boolean;
+  multiAccountPaymentEnabled?: boolean;
 };
 
 export type UpdateLedgerMemberSettingsInput = {
@@ -64,6 +65,7 @@ const ledgerSettingsRpcErrorMap = {
 
 const ledgerBaseSettingsErrorCodes = [
   ledgerSettingsErrorCodes.specialStatusHasActiveItems,
+  ledgerSettingsErrorCodes.multiAccountPaymentHasRecords,
 ] as const;
 
 function findLedgerBaseSettingsErrorCode(
@@ -370,6 +372,12 @@ export function createSupabaseLedgerSettingsRepository(
               : {
                   transaction_item_special_status_enabled:
                     input.transactionItemSpecialStatusEnabled,
+                }),
+            ...(input.multiAccountPaymentEnabled === undefined
+              ? {}
+              : {
+                  multi_account_payment_enabled:
+                    input.multiAccountPaymentEnabled,
                 }),
             updated_by: input.updatedBy,
           },

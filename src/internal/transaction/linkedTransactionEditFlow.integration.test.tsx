@@ -143,6 +143,7 @@ function createView(side: "parent" | "child"): NormalEditView {
     },
     ledgerName: "家庭账本",
     merchantOptions,
+    multiAccountPaymentEnabled: true,
     transactionItemSpecialStatusEnabled: true,
   };
 }

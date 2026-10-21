@@ -24,6 +24,7 @@ const payload = {
   accounts: [{ name: "现金", type: "cash" as const }],
   merchantTags: [],
   merchants: [],
+  multiAccountPaymentEnabled: false,
   specialStatusEnabled: false,
 };
 
@@ -139,7 +140,13 @@ describe("createSupabaseLedgerSetupRepository.findCurrentUserSetupLedger", () =>
       id: ledgerId,
       name: "家庭账本",
       step: 3,
-      storedDraft: { features: { specialStatusEnabled: true } },
+      // #931 之前保存的草稿没有多账户付款开关，解析时按默认关闭补全。
+      storedDraft: {
+        features: {
+          multiAccountPaymentEnabled: false,
+          specialStatusEnabled: true,
+        },
+      },
     });
     expect(supabase.rpc).toHaveBeenCalledWith("get_current_user_setup_ledger");
     expect(supabase.queries[0]).toMatchObject({

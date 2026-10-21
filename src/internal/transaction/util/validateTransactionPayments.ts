@@ -99,3 +99,23 @@ export function validateTransactionPayments({
 
   return { ok: true };
 }
+
+/**
+ * 账本未开启多账户付款（#931）时只允许 1 个付款账户；与
+ * replace_transaction_payments 的数据库校验一致，供 Service 在写入前复用。
+ */
+export function validateMultiAccountPaymentSetting({
+  multiAccountPaymentEnabled,
+  paymentCount,
+}: {
+  multiAccountPaymentEnabled: boolean;
+  paymentCount: number;
+}): TransactionPaymentValidationResult {
+  if (paymentCount > 1 && !multiAccountPaymentEnabled) {
+    return {
+      error: transactionErrorCodes.paymentMultiAccountDisabled,
+      ok: false,
+    };
+  }
+  return { ok: true };
+}

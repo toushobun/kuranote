@@ -48,6 +48,7 @@ export function createPaymentFieldsProps({
   const rows = payments ?? [{ accountId: giftCard!.id, amount: "", key: 1 }];
   return {
     accountOptions: paymentFieldsAccountOptions,
+    multiAccountPaymentEnabled: true,
     onAccountChange: () => undefined,
     onAddPayment: () => undefined,
     onAmountChange: () => undefined,

@@ -43,6 +43,7 @@ const currentLedger: CurrentLedger = {
   baseCurrency: "JPY",
   currentUserRole: "member",
   id: ledgerId,
+  multiAccountPaymentEnabled: true,
   name: "家庭账本",
   transactionItemSpecialStatusEnabled: true,
 };
@@ -229,6 +230,7 @@ describe("getEditTransactionView", () => {
         type: "expense",
       },
       ledgerName: "家庭账本",
+      multiAccountPaymentEnabled: true,
       transactionItemSpecialStatusEnabled: true,
     });
     if (
@@ -559,6 +561,22 @@ describe("getNewTransactionView", () => {
     expect(view.merchantOptions).toHaveLength(1);
     expect(view.frequentCategoryIds).toEqual([categoryId]);
   });
+
+  it.each([
+    [true, true],
+    [false, false],
+    [undefined, false],
+  ])(
+    "账本多账户付款开关 %s 时表单选项为 %s",
+    async (multiAccountPaymentEnabled, expected) => {
+      const view = await getNewTransactionView(
+        createDependencies(createRepository()),
+        { ...currentLedger, multiAccountPaymentEnabled },
+      );
+
+      expect(view.multiAccountPaymentEnabled).toBe(expected);
+    },
+  );
 });
 
 describe("getEditTransactionView income links", () => {

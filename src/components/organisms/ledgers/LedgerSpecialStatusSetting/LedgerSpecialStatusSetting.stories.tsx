@@ -30,7 +30,7 @@ export const Disabled: Story = {
     const canvas = within(canvasElement);
     await expect(
       canvas.getByText(
-        "如果账本内还有待报销或已报销的明细，将无法关闭；请先处理完这些明细。",
+        "如果账本内还有处于报销流程的明细，将无法关闭；请先处理完这些明细。",
       ),
     ).toBeInTheDocument();
   },

@@ -191,7 +191,10 @@ export function createLedgerSetupProgressFixture(
       displayName: "淞文",
       draft: {
         accounts: { items: [{ name: "现金", type: "cash" }], skipped: false },
-        features: { specialStatusEnabled: false },
+        features: {
+          multiAccountPaymentEnabled: false,
+          specialStatusEnabled: false,
+        },
         merchants: { selectedKeys: [], skipped: false },
         templateCurrency: "JPY",
         templateVersion: 1,
@@ -230,7 +233,10 @@ export function createLedgerSetupConfirmProgressFixture(
           ],
           skipped: false,
         },
-        features: { specialStatusEnabled: true },
+        features: {
+          multiAccountPaymentEnabled: true,
+          specialStatusEnabled: true,
+        },
         // 超市 2 家、餐饮 1 家，Apple / Amazon 为多标签商家。
         merchants: {
           selectedKeys: ["aeon", "seiyu", "mcdonalds", "apple", "amazon"],

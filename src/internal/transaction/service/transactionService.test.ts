@@ -8,7 +8,10 @@ import {
   NotFoundError,
   ValidationError,
 } from "internal/shared/errors/appError";
-import { transactionErrorCodes } from "internal/transaction/errors";
+import {
+  transactionErrorCodes,
+  transactionPaymentMessages,
+} from "internal/transaction/errors";
 import {
   createTransactionService,
   type TransactionServiceDependencies,
@@ -29,6 +32,7 @@ function createRepository(
     createBalanceAdjustment: vi.fn(),
     createNormal: vi.fn(),
     createTransfer: vi.fn(),
+    isMultiAccountPaymentEnabled: vi.fn().mockResolvedValue(true),
     isSpecialStatusEnabled: vi.fn().mockResolvedValue(true),
     findActiveRecord: vi.fn().mockResolvedValue({
       created_at: "2026-06-04T01:00:00.000Z",
@@ -767,6 +771,49 @@ describe("付款明细校验（create / update / convert）", () => {
       });
     },
   );
+
+  it.each(["createNormal", "updateNormal", "convert"] as const)(
+    "账本未开启多账户付款时 %s 拒绝多个付款账户",
+    async (method) => {
+      const repository = createRepository({
+        isMultiAccountPaymentEnabled: vi.fn().mockResolvedValue(false),
+      });
+      const { service } = createMultiAccountService({ repository });
+
+      await expect(
+        service[method]({
+          ...normalInput,
+          items: [{ ...normalInput.items[0], amount: 1200 }],
+          payments: multiAccountPayments,
+          targetType: "expense" as const,
+          transactionRecordId,
+        }),
+      ).rejects.toMatchObject({
+        code: transactionErrorCodes.paymentMultiAccountDisabled,
+        message:
+          transactionPaymentMessages[
+            transactionErrorCodes.paymentMultiAccountDisabled
+          ],
+        name: ValidationError.name,
+      });
+      expect(repository.isMultiAccountPaymentEnabled).toHaveBeenCalledWith(
+        ledgerId,
+      );
+      expect(repository[method]).not.toHaveBeenCalled();
+    },
+  );
+
+  it("单个付款账户时不读取多账户付款开关", async () => {
+    const repository = createRepository({
+      isMultiAccountPaymentEnabled: vi.fn().mockResolvedValue(false),
+    });
+    const { service } = createMultiAccountService({ repository });
+
+    await service.createNormal(normalInput);
+
+    expect(repository.isMultiAccountPaymentEnabled).not.toHaveBeenCalled();
+    expect(repository.createNormal).toHaveBeenCalledWith(normalInput);
+  });
 
   it("新建交易时付款合计与支出明细合计不一致被拒绝", async () => {
     const { repository, service } = createMultiAccountService();

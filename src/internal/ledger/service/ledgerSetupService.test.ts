@@ -258,7 +258,10 @@ describe("createLedgerSetupService.complete", () => {
             items: [{ name: "PayPay", templateKey: "PayPay", type: "e_money" }],
             skipped: false,
           },
-          features: { specialStatusEnabled: true },
+          features: {
+            multiAccountPaymentEnabled: true,
+            specialStatusEnabled: true,
+          },
           merchants: { selectedKeys: ["netflix"], skipped: false },
         }),
       ),
@@ -288,6 +291,7 @@ describe("createLedgerSetupService.complete", () => {
             websiteUrl: "https://www.netflix.com/jp/",
           },
         ],
+        multiAccountPaymentEnabled: true,
         specialStatusEnabled: true,
       },
     });
@@ -312,6 +316,7 @@ describe("createLedgerSetupService.complete", () => {
         accounts: [{ name: "现金", type: "cash" }],
         merchantTags: [],
         merchants: [],
+        multiAccountPaymentEnabled: false,
         specialStatusEnabled: false,
       },
     });

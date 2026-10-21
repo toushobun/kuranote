@@ -166,6 +166,7 @@ describe("\u65B0\u589E\u8BB0\u8D26\u9875\u9762", () => {
     frequentCategoryIds: [],
     ledgerName: "家庭账本",
     merchantOptions: [],
+    multiAccountPaymentEnabled: true,
     transactionItemSpecialStatusEnabled: false,
   };
   describe("NewTransactionTemplate", () => {
@@ -484,6 +485,7 @@ describe("EditTransactionTemplate", () => {
       initialValues,
       ledgerName: "家庭账本",
       merchantOptions,
+      multiAccountPaymentEnabled: true,
       transactionItemSpecialStatusEnabled: false,
     };
   }
@@ -908,6 +910,7 @@ describe("EditTransferTransactionTemplate", () => {
         }}
         ledgerName="家庭账本"
         merchantOptions={[]}
+        multiAccountPaymentEnabled
         transactionItemSpecialStatusEnabled={false}
       />,
     );

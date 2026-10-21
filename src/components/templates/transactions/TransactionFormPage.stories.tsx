@@ -65,6 +65,7 @@ const baseArgs = {
   frequentCategoryIds: categoryOptions.map((category) => category.id),
   ledgerName: "家庭账本",
   merchantOptions,
+  multiAccountPaymentEnabled: true,
   transactionItemSpecialStatusEnabled: true,
 };
 

@@ -33,6 +33,10 @@ import {
 } from "internal/shared/errors/appError";
 import type { Logger } from "internal/shared/logging/logger";
 import type { TransactionImportService } from "internal/transaction";
+import {
+  transactionErrorCodes,
+  transactionPaymentMessages,
+} from "internal/transaction/errors";
 import { createSupabaseTransactionRepository } from "internal/transaction/repository/transactionRepository";
 import { createTransactionImportService } from "internal/transaction/service/transactionImportService";
 import { createTransactionService } from "internal/transaction/service/transactionService";
@@ -2054,9 +2058,25 @@ describe("账户类型参与账户匹配", () => {
  * 交易侧使用真实的导入 Service → 交易 Service → Supabase 仓储，只替换 Supabase 客户端，
  * 用于确认多账户导入最终提交给 create_transaction 的入参。
  */
-function createDependenciesWithTransactionWrites() {
+function createDependenciesWithTransactionWrites(
+  multiAccountPaymentEnabled = true,
+) {
   const dependencies = createDependencies();
   const supabase = createSupabaseMock();
+  // 交易 Service 写入多账户前读取账本的多账户付款开关（#931）；其他查询（重复检测等）
+  // 仍返回空结果。
+  const ledgerSettings = createSupabaseMock({
+    queryResponses: [
+      { data: { multi_account_payment_enabled: multiAccountPaymentEnabled } },
+    ],
+  });
+  const client = {
+    ...supabase.client,
+    from: (table: string) =>
+      table === "ledger"
+        ? ledgerSettings.client.from(table)
+        : supabase.client.from(table),
+  };
   const service = createTransactionService({
     accountQueryService: {
       getTransactionContext: vi.fn(),
@@ -2088,7 +2108,7 @@ function createDependenciesWithTransactionWrites() {
       listActiveOptions: vi.fn(),
     },
     transactionRepository: createSupabaseTransactionRepository(
-      supabase.client as never,
+      client as never,
       dependencies.logger,
     ),
   });
@@ -2146,4 +2166,31 @@ describe("多账户导入端到端（#921）", () => {
       );
     },
   );
+
+  it("账本未开启多账户付款时该行失败并提示先开启，不写入数据库", async () => {
+    const { dependencies, rpc } =
+      createDependenciesWithTransactionWrites(false);
+    const result = await executeUnits(
+      dependencies,
+      unitsOf([
+        incomeTable([
+          incomeRow({
+            账户: "礼品卡；信用卡",
+            账户持有人: "；淞文",
+            账户类型: "其他；信用卡",
+            付款金额: "2000；1500",
+            金额: "3500",
+          }),
+        ]),
+      ]),
+    );
+
+    expect(result).toMatchObject({ failureCount: 1, successCount: 0 });
+    expect(JSON.stringify(result)).toContain(
+      transactionPaymentMessages[
+        transactionErrorCodes.paymentMultiAccountDisabled
+      ],
+    );
+    expect(rpc).not.toHaveBeenCalled();
+  });
 });

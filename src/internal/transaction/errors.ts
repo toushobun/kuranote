@@ -22,6 +22,8 @@ export const transactionErrorCodes = {
   paymentAccountDuplicate: "payment_account_duplicate",
   paymentAmountRequired: "payment_amount_required",
   paymentCurrencyMismatch: "payment_currency_mismatch",
+  // 账本未开启多账户付款（#931）时，超过 1 个付款账户被拒绝。
+  paymentMultiAccountDisabled: "payment_multi_account_disabled",
   paymentMultiAccountNotAllowed: "payment_multi_account_not_allowed",
   paymentTotalMismatch: "payment_total_mismatch",
   refundLinkInvalid: "refund_link_invalid",
@@ -58,6 +60,7 @@ export type TransactionPaymentValidationErrorCode =
   | typeof transactionErrorCodes.paymentAccountDuplicate
   | typeof transactionErrorCodes.paymentAmountRequired
   | typeof transactionErrorCodes.paymentCurrencyMismatch
+  | typeof transactionErrorCodes.paymentMultiAccountDisabled
   | typeof transactionErrorCodes.paymentMultiAccountNotAllowed
   | typeof transactionErrorCodes.paymentTotalMismatch;
 
@@ -86,6 +89,8 @@ export const transactionPaymentMessages = {
   [transactionErrorCodes.paymentAmountRequired]:
     "选择多个付款账户时，每个账户的金额都必须填写。",
   [transactionErrorCodes.paymentCurrencyMismatch]: "付款账户的币种必须一致。",
+  [transactionErrorCodes.paymentMultiAccountDisabled]:
+    "本账本未开启多账户付款，请在账本设置中开启后再选择多个付款账户。",
   [transactionErrorCodes.paymentMultiAccountNotAllowed]:
     "含收入明细的记录只能选择一个付款账户。",
   [transactionErrorCodes.paymentTotalMismatch]:
@@ -126,6 +131,10 @@ export const transactionPaymentValidationErrorMessages: Record<
     transactionPaymentMessages[transactionErrorCodes.paymentAmountRequired],
   [transactionErrorCodes.paymentCurrencyMismatch]:
     transactionPaymentMessages[transactionErrorCodes.paymentCurrencyMismatch],
+  [transactionErrorCodes.paymentMultiAccountDisabled]:
+    transactionPaymentMessages[
+      transactionErrorCodes.paymentMultiAccountDisabled
+    ],
   [transactionErrorCodes.paymentMultiAccountNotAllowed]:
     transactionPaymentMessages[
       transactionErrorCodes.paymentMultiAccountNotAllowed
@@ -187,6 +196,10 @@ export const transactionWriteErrorMessages = {
     transactionPaymentMessages[transactionErrorCodes.paymentAmountRequired],
   paymentCurrencyMismatch:
     transactionPaymentMessages[transactionErrorCodes.paymentCurrencyMismatch],
+  paymentMultiAccountDisabled:
+    transactionPaymentMessages[
+      transactionErrorCodes.paymentMultiAccountDisabled
+    ],
   paymentMultiAccountNotAllowed:
     transactionPaymentMessages[
       transactionErrorCodes.paymentMultiAccountNotAllowed
@@ -227,6 +240,8 @@ export const transactionLoadErrorMessages = {
   itemsLoadFailed: "交易明细加载失败，请稍后重试。",
   linkedItemLoadFailed: "交易明细读取失败，请稍后重试。",
   membersLoadFailed: "账本成员加载失败，请稍后重试。",
+  multiAccountPaymentSettingLoadFailed:
+    "账本多账户付款设置读取失败，请稍后重试。",
   paymentsLoadFailed: "付款明细加载失败，请稍后重试。",
   recordersLoadFailed: "交易记录人信息加载失败，请稍后重试。",
   recordLoadFailed: "交易记录读取失败，请稍后重试。",
