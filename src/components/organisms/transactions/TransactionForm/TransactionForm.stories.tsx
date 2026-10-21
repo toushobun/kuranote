@@ -7,6 +7,8 @@ import {
   transactionsNewHref,
 } from "config/paths";
 
+import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
+
 import { TransactionForm } from "./TransactionForm";
 
 const accountOptions = [
@@ -72,6 +74,13 @@ const meta = {
     ledgerName: "家庭账本",
     merchantOptions,
   },
+  decorators: [
+    (Story) => (
+      <ConfirmDialogProvider>
+        <Story />
+      </ConfirmDialogProvider>
+    ),
+  ],
 } satisfies Meta<typeof TransactionForm>;
 
 export default meta;
@@ -169,6 +178,63 @@ export const EditIncomeMode: Story = {
     },
     submitLabel: "保存修改",
     title: "编辑记账",
+  },
+};
+
+export const MultiAccountPayment: Story = {
+  name: "多账户付款（收入分类不可选）",
+  args: {
+    initialValues: {
+      payments: [
+        { accountId: "00000000-0000-4000-8000-000000000045", amount: "800" },
+        { accountId: "00000000-0000-4000-8000-000000000046", amount: "400" },
+      ],
+      items: [
+        {
+          amount: "1200",
+          categoryId: "00000000-0000-4000-8000-000000005072",
+        },
+      ],
+      merchantId: "00000000-0000-4000-8000-000000001001",
+      note: "",
+      transactionAt: "2026-06-05T03:20:10.000Z",
+      type: "expense",
+    },
+  },
+};
+
+export const AddPaymentWithIncomeItem: Story = {
+  name: "含收入明细时添加付款账户（确认删除收入明细）",
+  args: {
+    initialValues: {
+      payments: [
+        { accountId: "00000000-0000-4000-8000-000000000045", amount: null },
+      ],
+      items: [
+        {
+          amount: "1200",
+          categoryId: "00000000-0000-4000-8000-000000005072",
+        },
+        {
+          amount: "300",
+          categoryId: "00000000-0000-4000-8000-000000005074",
+        },
+      ],
+      merchantId: "00000000-0000-4000-8000-000000001001",
+      note: "",
+      transactionAt: "2026-06-05T03:20:10.000Z",
+      type: "expense",
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(
+      await canvas.findByRole("button", { name: "添加付款账户" }),
+    );
+    const body = within(canvasElement.ownerDocument.body);
+    await expect(
+      await body.findByRole("dialog", { name: "删除收入明细？" }),
+    ).toBeInTheDocument();
   },
 };
 

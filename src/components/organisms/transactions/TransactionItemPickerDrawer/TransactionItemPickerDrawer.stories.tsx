@@ -99,6 +99,20 @@ export const Expanded: Story = {
   },
 };
 
+export const IncomeCategoriesDisabled: Story = {
+  name: "多账户付款时收入分类不可选",
+  args: { incomeCategoriesDisabled: true, pickerSpecialStatus: null },
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    await userEvent.click(
+      await body.findByRole("button", { name: "选择更多分类" }),
+    );
+    await expect(
+      await body.findByRole("button", { name: "固定收入" }),
+    ).toBeDisabled();
+  },
+};
+
 export const IncomeLinkNotice: Story = {
   name: "收入明细显示关联提示",
   args: {

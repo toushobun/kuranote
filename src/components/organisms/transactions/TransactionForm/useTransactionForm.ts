@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
 import { useEditTransactionDirty } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
+import { useConfirmDialog } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import type {
   TransactionBusinessStatus,
   TransactionCategoryOption,
@@ -12,6 +13,7 @@ import type {
 import {
   transactionFormValidationMessages,
   transactionLinkMessages,
+  transactionPaymentFieldsMessages,
   type TransactionLinkKind,
 } from "utils/transactionMessages";
 import { getAmountDecimalPlaces } from "utils/transactionAmountInput";
@@ -70,6 +72,7 @@ export function useTransactionForm({
   onSubmitDisabledChange,
 }: UseTransactionFormOptions) {
   const markEditDirty = useEditTransactionDirty();
+  const confirm = useConfirmDialog();
   const nextItemIdRef = useRef((initialValues?.items.length ?? 0) + 1);
   const merchantFieldRef = useRef<HTMLDivElement>(null);
   const accountFieldRef = useRef<HTMLDivElement>(null);
@@ -197,8 +200,6 @@ export function useTransactionForm({
     itemAmounts: allDisplayItems.map((item) => item.amount),
     payments: paymentFields.payments,
   });
-  // 含收入明细时不提供多账户入口；已展开后又加了收入明细时，由提交前校验提示并阻止保存，不自动收起。
-  const hasIncomeItems = itemsByType.income.length > 0;
   const hasValidItems =
     allDisplayItems.length > 0 &&
     allDisplayItems.every(
@@ -538,22 +539,44 @@ export function useTransactionForm({
 
   function handlePaymentAmountChange(key: number, amount: string) {
     markEditDirty?.();
-    paymentFields.changeAmount(key, amount);
+    paymentFields.changeAmount(key, amount, {
+      currency: selectedAccount?.currency,
+      itemTotal: paymentReconciliation.itemTotal,
+    });
     clearAccountFieldError();
   }
 
-  function handleAddPayment() {
+  // 多账户仅限纯支出：已有收入明细时先确认删除收入明细，再展开为多账户（#930）。
+  async function handleAddPayment() {
+    const expenseItems = itemsByType.expense;
+    if (itemsByType.income.length > 0) {
+      const confirmed = await confirm({
+        confirmLabel: transactionPaymentFieldsMessages.removeIncomeItemsConfirm,
+        description:
+          transactionPaymentFieldsMessages.removeIncomeItemsDescription,
+        title: transactionPaymentFieldsMessages.removeIncomeItemsTitle,
+        tone: "delete",
+      });
+      if (!confirmed) return;
+      setItemsByType((current) => ({ ...current, income: [] }));
+    }
     markEditDirty?.();
-    // 首行预填当前明细合计（单账户时它实际承担的金额），新增行留空（已决事项第 7 条）。
+    // 首行预填当前明细合计（单账户时它实际承担的金额），新增行为 0。
     paymentFields.addPayment(
-      allDisplayItems.length > 0 ? paymentReconciliation.itemTotal : "",
+      expenseItems.length > 0
+        ? reconcileTransactionPayments({
+            currency: selectedAccount?.currency,
+            itemAmounts: expenseItems.map((item) => item.amount),
+            payments: [],
+          }).itemTotal
+        : "",
     );
     clearAccountFieldError();
   }
 
   function handleRemovePayment(key: number) {
     markEditDirty?.();
-    paymentFields.removePayment(key);
+    paymentFields.removePayment(key, selectedAccount?.currency);
     clearAccountFieldError();
   }
 
@@ -761,7 +784,7 @@ export function useTransactionForm({
     handleRemovePayment,
     handleSubmit,
     handleTimeChange,
-    hasIncomeItems,
+    isMultiAccount: paymentFields.isMultiAccount,
     isSheetOpen,
     isSubmitDisabled,
     linkNotice,

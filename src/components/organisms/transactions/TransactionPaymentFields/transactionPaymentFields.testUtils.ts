@@ -29,6 +29,13 @@ export const paymentFieldsAccountOptions: TransactionAccountOption[] = [
 
 const [giftCard, creditCard] = paymentFieldsAccountOptions;
 
+/** 第三个 JPY 账户：用于「付款行未达到同币种账户数量」的场景。 */
+export const paymentFieldsCashAccount: TransactionAccountOption = {
+  currency: "JPY",
+  id: "00000000-0000-4000-8000-000000000064",
+  name: "现金",
+};
+
 const paymentFieldsItemAmounts = ["3500"];
 
 export function createPaymentFieldsProps({
@@ -41,7 +48,6 @@ export function createPaymentFieldsProps({
   const rows = payments ?? [{ accountId: giftCard!.id, amount: "", key: 1 }];
   return {
     accountOptions: paymentFieldsAccountOptions,
-    canAddPayment: true,
     onAccountChange: () => undefined,
     onAddPayment: () => undefined,
     onAmountChange: () => undefined,
