@@ -42,6 +42,8 @@ type TransactionPaymentFieldsProps = {
   onAccountChange: (key: number, accountId: string) => void;
   onAddPayment: () => void;
   onAmountChange: (key: number, amount: string) => void;
+  /** 金额输入框失焦（含计算器确认 / 关闭）时确定本行金额并联动下一行。 */
+  onAmountCommit: (key: number) => void;
   onRemovePayment: (key: number) => void;
   payments: TransactionPaymentRow[];
   reconciliation: TransactionPaymentReconciliation;
@@ -60,6 +62,7 @@ export function TransactionPaymentFields({
   onAccountChange,
   onAddPayment,
   onAmountChange,
+  onAmountCommit,
   onRemovePayment,
   payments,
   reconciliation,
@@ -213,6 +216,7 @@ export function TransactionPaymentFields({
             <TextField
               hiddenLabel
               name="paymentAmount"
+              onBlur={() => onAmountCommit(payment.key)}
               onChange={(event) =>
                 onAmountChange(payment.key, event.target.value)
               }

@@ -632,11 +632,21 @@ describe("TransactionForm", () => {
         screen.getByRole("option", { name: `${accountName}（JPY）` }),
       );
     }
+    function getPaymentAmountInput(rowNumber: number) {
+      return screen.getByRole("textbox", {
+        hidden: true,
+        name: `付款金额 ${rowNumber}`,
+      });
+    }
     function changePaymentAmount(rowNumber: number, amount: string) {
-      fireEvent.change(
-        screen.getByRole("textbox", { name: `付款金额 ${rowNumber}` }),
-        { target: { value: amount } },
-      );
+      fireEvent.change(getPaymentAmountInput(rowNumber), {
+        target: { value: amount },
+      });
+    }
+    // 计算器点「确认」/ 关闭与桌面端键盘输入后离开输入框，都以失焦确定金额。
+    function commitPaymentAmount(rowNumber: number, amount?: string) {
+      if (amount !== undefined) changePaymentAmount(rowNumber, amount);
+      fireEvent.blur(getPaymentAmountInput(rowNumber));
     }
     function addIncomeItem(container: HTMLElement) {
       openSheet(container);
@@ -693,13 +703,25 @@ describe("TransactionForm", () => {
       expect(getFieldValues(container, "paymentAmount")).toEqual([]);
     });
 
-    it("修改首行金额时下一行自动补足差额", () => {
+    it("还没有明细时添加付款账户，两行都是 0", () => {
+      const { container } = renderMultiAccountForm();
+
+      clickAddPayment(container);
+
+      expect(getFieldValues(container, "paymentAmount")).toEqual(["0", "0"]);
+    });
+
+    it("输入首行金额时下一行不变，失焦后自动补足差额", () => {
       const { container } = renderMultiAccountForm({
         initialValues: createInitialValues(),
       });
       clickAddPayment(container);
       selectPaymentAccount(2, card!.name);
       changePaymentAmount(1, "500");
+
+      expect(getFieldValues(container, "paymentAmount")).toEqual(["500", "0"]);
+
+      commitPaymentAmount(1);
 
       expect(getFieldValues(container, "paymentAmount")).toEqual([
         "500",
@@ -715,7 +737,7 @@ describe("TransactionForm", () => {
       });
       clickAddPayment(container);
       selectPaymentAccount(2, card!.name);
-      changePaymentAmount(2, "300");
+      commitPaymentAmount(2, "300");
 
       expect(getFieldValues(container, "paymentAmount")).toEqual([
         "1200",
@@ -760,6 +782,23 @@ describe("TransactionForm", () => {
       expect(screen.getByRole("status", { hidden: true })).toHaveTextContent(
         "差额 ¥300",
       );
+    });
+
+    it("首行金额不变时失焦也重新计算下一行，补上明细变化产生的差额", () => {
+      const { container } = renderMultiAccountForm({
+        initialValues: createMultiAccountInitialValues(),
+      });
+      addItemViaSheet(container, "日用品", "300");
+
+      commitPaymentAmount(1);
+
+      expect(getFieldValues(container, "paymentAmount")).toEqual([
+        "500",
+        "1000",
+      ]);
+      expect(
+        screen.getByRole("status", { hidden: true }),
+      ).not.toHaveTextContent("差额");
     });
 
     it("新增行未填金额时提交前提示并阻止保存", async () => {
