@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+
 import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
@@ -25,6 +27,7 @@ import {
 } from "utils/transactionMessages";
 import { formatUnsignedCurrencyAmount } from "utils/transactions";
 
+import { amountInputCommitEvent } from "../TransactionAmountKeypadLauncher/TransactionAmountKeypadLauncher";
 import {
   TransactionSelectionValue,
   transactionSelectionSelectSx,
@@ -42,7 +45,7 @@ type TransactionPaymentFieldsProps = {
   onAccountChange: (key: number, accountId: string) => void;
   onAddPayment: () => void;
   onAmountChange: (key: number, amount: string) => void;
-  /** 金额输入框失焦（含计算器确认 / 关闭）时确定本行金额并联动下一行。 */
+  /** 计算器确认 / 关闭（`amountInputCommitEvent`）时确定本行金额并联动下一行。 */
   onAmountCommit: (key: number) => void;
   onRemovePayment: (key: number) => void;
   payments: TransactionPaymentRow[];
@@ -150,8 +153,6 @@ export function TransactionPaymentFields({
     );
   }
 
-  const currencySymbol = getCurrencySymbol(primaryCurrency);
-
   return (
     <Stack spacing={1}>
       {payments.map((payment, index) => {
@@ -213,34 +214,12 @@ export function TransactionPaymentFields({
                 </MenuItem>
               ))}
             </TextField>
-            <TextField
-              hiddenLabel
-              name="paymentAmount"
-              onBlur={() => onAmountCommit(payment.key)}
-              onChange={(event) =>
-                onAmountChange(payment.key, event.target.value)
-              }
-              slotProps={{
-                htmlInput: {
-                  "aria-label":
-                    transactionPaymentFieldsMessages.paymentAmountLabel(
-                      rowNumber,
-                    ),
-                  "data-amount-currency": primaryCurrency ?? "",
-                  "data-amount-input": "true",
-                  inputMode: "decimal" as const,
-                },
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      {currencySymbol}
-                    </InputAdornment>
-                  ),
-                },
-              }}
-              type="text"
-              value={payment.amount}
-              sx={paymentAmountFieldSx}
+            <PaymentAmountField
+              amount={payment.amount}
+              currency={primaryCurrency}
+              onChange={(amount) => onAmountChange(payment.key, amount)}
+              onCommit={() => onAmountCommit(payment.key)}
+              rowNumber={rowNumber}
             />
             <IconButton
               aria-label={transactionPaymentFieldsMessages.removePayment(
@@ -283,6 +262,61 @@ export function TransactionPaymentFields({
         </Typography>
       ) : null}
     </Stack>
+  );
+}
+
+/**
+ * 付款金额输入框。监听计算器派发的 `amountInputCommitEvent` 确定金额；
+ * 不用 onBlur，因为打开计算器时输入框就已失焦。
+ */
+function PaymentAmountField({
+  amount,
+  currency,
+  onChange,
+  onCommit,
+  rowNumber,
+}: {
+  amount: string;
+  currency: string | undefined;
+  onChange: (amount: string) => void;
+  onCommit: () => void;
+  rowNumber: number;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const input = inputRef.current;
+    if (!input) return;
+    input.addEventListener(amountInputCommitEvent, onCommit);
+    return () => input.removeEventListener(amountInputCommitEvent, onCommit);
+  }, [onCommit]);
+
+  return (
+    <TextField
+      hiddenLabel
+      inputRef={inputRef}
+      name="paymentAmount"
+      onChange={(event) => onChange(event.target.value)}
+      slotProps={{
+        htmlInput: {
+          "aria-label":
+            transactionPaymentFieldsMessages.paymentAmountLabel(rowNumber),
+          "data-amount-currency": currency ?? "",
+          "data-amount-input": "true",
+          inputMode: "decimal" as const,
+        },
+        input: {
+          startAdornment: (
+            <InputAdornment position="start">
+              {getCurrencySymbol(currency)}
+            </InputAdornment>
+          ),
+        },
+      }}
+      type="text"
+      value={amount}
+      sx={paymentAmountFieldSx}
+    />
   );
 }
 

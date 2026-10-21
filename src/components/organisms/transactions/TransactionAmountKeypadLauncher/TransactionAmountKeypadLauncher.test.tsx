@@ -12,6 +12,7 @@ import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLay
 import { amountKeypadZIndex, appZIndex } from "theme/zIndex";
 
 import {
+  amountInputCommitEvent,
   amountKeypadDrawerPaperSx,
   amountKeypadDrawerSx,
   TransactionAmountKeypadLauncher,
@@ -51,6 +52,50 @@ describe("TransactionAmountKeypadLauncher", () => {
     expect(input).toHaveProperty("value", "12");
     await waitFor(() => {
       expect(screen.queryByLabelText("金额计算器")).toBeNull();
+    });
+  });
+
+  describe("金额确定事件", () => {
+    function listenCommit(input: HTMLElement) {
+      const events: string[] = [];
+      input.addEventListener(amountInputCommitEvent, () =>
+        events.push(`commit:${(input as HTMLInputElement).value}`),
+      );
+      return events;
+    }
+
+    it("打开与输入时不派发，点确认时派发", async () => {
+      renderAmountInput();
+      const input = screen.getByRole("textbox");
+      const events = listenCommit(input);
+
+      fireEvent.focusIn(input);
+      fireEvent.click(screen.getByRole("button", { name: "1" }));
+      expect(events).toEqual([]);
+
+      fireEvent.click(screen.getByRole("button", { name: "确认" }));
+
+      expect(events).toEqual(["commit:1"]);
+      await waitFor(() => {
+        expect(screen.queryByLabelText("金额计算器")).toBeNull();
+      });
+    });
+
+    it("不点确认直接关闭计算器时也派发", async () => {
+      renderAmountInput();
+      const input = screen.getByRole("textbox");
+      const events = listenCommit(input);
+
+      fireEvent.focusIn(input);
+      fireEvent.click(screen.getByRole("button", { name: "2" }));
+      fireEvent.keyDown(screen.getByLabelText("金额计算器"), {
+        key: "Escape",
+      });
+
+      expect(events).toEqual(["commit:2"]);
+      await waitFor(() => {
+        expect(screen.queryByLabelText("金额计算器")).toBeNull();
+      });
     });
   });
 

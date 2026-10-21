@@ -108,7 +108,7 @@ describe("useTransactionPaymentFields", () => {
   });
 
   describe("确定金额时的自动分配", () => {
-    /** 依次修改并确定多行金额，模拟输入后失焦。 */
+    /** 依次修改并确定多行金额，模拟输入后点计算器确认。 */
     function changeAndCommit(
       result: ReturnType<typeof renderPayments>["result"],
       key: number,

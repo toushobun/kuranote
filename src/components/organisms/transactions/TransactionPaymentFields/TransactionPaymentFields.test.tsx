@@ -7,6 +7,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { amountInputCommitEvent } from "../TransactionAmountKeypadLauncher/TransactionAmountKeypadLauncher";
 import { TransactionPaymentFields } from "./TransactionPaymentFields";
 import {
   createPaymentFieldsProps,
@@ -124,7 +125,11 @@ describe("TransactionPaymentFields", () => {
       expect(onAmountChange).toHaveBeenCalledWith(2, "1000");
       expect(onAmountCommit).not.toHaveBeenCalled();
 
+      // 打开计算器时输入框就会失焦，失焦不能确定金额。
       fireEvent.blur(amountInput);
+      expect(onAmountCommit).not.toHaveBeenCalled();
+
+      amountInput.dispatchEvent(new Event(amountInputCommitEvent));
       fireEvent.click(screen.getByRole("button", { name: "删除付款账户 1" }));
 
       expect(onAmountCommit).toHaveBeenCalledWith(2);
