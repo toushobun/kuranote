@@ -117,7 +117,7 @@ export function useTransactionPaymentFields(
   }
 
   /**
-   * 确定第 i 行金额（计算器确认 / 关闭）时，第 i+1 行 = 明细合计 − 其他所有行合计（负数取 0）；
+   * 确定第 i 行金额（计算器确认）时，第 i+1 行 = 明细合计 − 其他所有行合计（负数取 0）；
    * 金额未变化也重新计算。确定最后一行时不联动，差额由对账条提示。
    */
   function commitAmount(
