@@ -112,6 +112,7 @@ export function TransactionForm({
     handlePickerGroupSelect,
     handlePaymentAccountChange,
     handlePaymentAmountChange,
+    handlePaymentAmountCommit,
     handleRemovePayment,
     handleSubmit,
     handleTimeChange,
@@ -288,6 +289,7 @@ export function TransactionForm({
             onAccountChange={handlePaymentAccountChange}
             onAddPayment={handleAddPayment}
             onAmountChange={handlePaymentAmountChange}
+            onAmountCommit={handlePaymentAmountCommit}
             onRemovePayment={handleRemovePayment}
             payments={payments}
             reconciliation={paymentReconciliation}

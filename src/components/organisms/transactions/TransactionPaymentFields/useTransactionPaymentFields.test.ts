@@ -107,14 +107,35 @@ describe("useTransactionPaymentFields", () => {
     expect(getAmounts(result.current.payments)).toEqual(["1000", "0", "0"]);
   });
 
-  describe("修改金额时的自动分配", () => {
+  describe("确定金额时的自动分配", () => {
+    /** 依次修改并确定多行金额，模拟输入后点计算器确认。 */
+    function changeAndCommit(
+      result: ReturnType<typeof renderPayments>["result"],
+      key: number,
+      amount: string,
+      total: Parameters<typeof result.current.commitAmount>[1],
+    ) {
+      act(() => result.current.changeAmount(key, amount));
+      act(() => result.current.commitAmount(key, total));
+    }
+
+    it("输入过程中只更新本行，不联动下一行", () => {
+      const { result } = renderPayments(["1000", "0", "0"]);
+
+      act(() => result.current.changeAmount(1, "6"));
+      act(() => result.current.changeAmount(1, "60"));
+      act(() => result.current.changeAmount(1, "600"));
+
+      expect(getAmounts(result.current.payments)).toEqual(["600", "0", "0"]);
+    });
+
     it("下一行 = 明细合计 − 其他所有行合计，其他行不变", () => {
       const { result } = renderPayments(["1000", "0", "0"]);
 
-      act(() => result.current.changeAmount(1, "600", jpyTotal("1000")));
+      changeAndCommit(result, 1, "600", jpyTotal("1000"));
       expect(getAmounts(result.current.payments)).toEqual(["600", "400", "0"]);
 
-      act(() => result.current.changeAmount(2, "200", jpyTotal("1000")));
+      changeAndCommit(result, 2, "200", jpyTotal("1000"));
       expect(getAmounts(result.current.payments)).toEqual([
         "600",
         "200",
@@ -122,18 +143,26 @@ describe("useTransactionPaymentFields", () => {
       ]);
     });
 
+    it("金额未变化时也按当前明细合计重新计算下一行", () => {
+      const { result } = renderPayments(["500", "700"]);
+
+      act(() => result.current.commitAmount(1, jpyTotal("1500")));
+
+      expect(getAmounts(result.current.payments)).toEqual(["500", "1000"]);
+    });
+
     it("计算结果为负数时下一行设为 0", () => {
       const { result } = renderPayments(["600", "400", "300"]);
 
-      act(() => result.current.changeAmount(1, "900", jpyTotal("1000")));
+      changeAndCommit(result, 1, "900", jpyTotal("1000"));
 
       expect(getAmounts(result.current.payments)).toEqual(["900", "0", "300"]);
     });
 
-    it("修改最后一行时不联动其他行", () => {
+    it("确定最后一行时不联动其他行", () => {
       const { result } = renderPayments(["600", "400"]);
 
-      act(() => result.current.changeAmount(2, "100", jpyTotal("1000")));
+      changeAndCommit(result, 2, "100", jpyTotal("1000"));
 
       expect(getAmounts(result.current.payments)).toEqual(["600", "100"]);
     });
@@ -141,10 +170,10 @@ describe("useTransactionPaymentFields", () => {
     it("金额无效或留空的行按 0 计", () => {
       const { result } = renderPayments(["1000", "0", "abc"]);
 
-      act(() => result.current.changeAmount(1, "", jpyTotal("1000")));
+      changeAndCommit(result, 1, "", jpyTotal("1000"));
       expect(getAmounts(result.current.payments)).toEqual(["", "1000", "abc"]);
 
-      act(() => result.current.changeAmount(1, "1.5", jpyTotal("1000")));
+      changeAndCommit(result, 1, "1.5", jpyTotal("1000"));
       expect(getAmounts(result.current.payments)).toEqual([
         "1.5",
         "1000",
@@ -155,12 +184,7 @@ describe("useTransactionPaymentFields", () => {
     it("小数金额按最小单位计算，不受浮点误差影响", () => {
       const { result } = renderPayments(["0.3", "0"]);
 
-      act(() =>
-        result.current.changeAmount(1, "0.1", {
-          currency: "USD",
-          itemTotal: "0.3",
-        }),
-      );
+      changeAndCommit(result, 1, "0.1", { currency: "USD", itemTotal: "0.3" });
 
       expect(getAmounts(result.current.payments)).toEqual(["0.1", "0.2"]);
     });
@@ -216,7 +240,7 @@ describe("useTransactionPaymentFields", () => {
 
     act(() => {
       result.current.changeAccount(2, jpyCard.id);
-      result.current.changeAmount(2, " 700 ", jpyTotal("1200"));
+      result.current.changeAmount(2, " 700 ");
     });
 
     expect(result.current.submittedPayments).toEqual([

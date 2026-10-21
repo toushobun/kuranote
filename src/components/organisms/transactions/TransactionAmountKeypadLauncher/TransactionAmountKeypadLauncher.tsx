@@ -10,6 +10,12 @@ import { amountKeypadZIndex } from "theme/zIndex";
 
 import { TransactionAmountKeypad } from "../TransactionAmountKeypad/TransactionAmountKeypad";
 
+/**
+ * 计算器确认或关闭时对金额输入框派发的事件，表示「金额已确定」。
+ * 打开计算器时 Drawer 会抢走焦点，输入框在打开时就已失焦，因此不能用 blur 判断金额确定（#930）。
+ */
+export const amountInputCommitEvent = "kuranote:amount-input-commit";
+
 export const amountKeypadDrawerSx = {
   zIndex: amountKeypadZIndex,
 };
@@ -77,6 +83,7 @@ export function TransactionAmountKeypadLauncher() {
 
   function closeKeypad() {
     ignoreFocusRef.current = true;
+    activeInput?.dispatchEvent(new Event(amountInputCommitEvent));
     activeInput?.blur();
     setActiveInput(null);
     setCurrency(undefined);

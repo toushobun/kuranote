@@ -539,11 +539,15 @@ export function useTransactionForm({
 
   function handlePaymentAmountChange(key: number, amount: string) {
     markEditDirty?.();
-    paymentFields.changeAmount(key, amount, {
+    paymentFields.changeAmount(key, amount);
+    clearAccountFieldError();
+  }
+
+  function handlePaymentAmountCommit(key: number) {
+    paymentFields.commitAmount(key, {
       currency: selectedAccount?.currency,
       itemTotal: paymentReconciliation.itemTotal,
     });
-    clearAccountFieldError();
   }
 
   // 多账户仅限纯支出：已有收入明细时先确认删除收入明细，再展开为多账户（#930）。
@@ -561,15 +565,13 @@ export function useTransactionForm({
       setItemsByType((current) => ({ ...current, income: [] }));
     }
     markEditDirty?.();
-    // 首行预填当前明细合计（单账户时它实际承担的金额），新增行为 0。
+    // 首行预填当前明细合计（单账户时它实际承担的金额，没有明细时为 0），新增行为 0。
     paymentFields.addPayment(
-      expenseItems.length > 0
-        ? reconcileTransactionPayments({
-            currency: selectedAccount?.currency,
-            itemAmounts: expenseItems.map((item) => item.amount),
-            payments: [],
-          }).itemTotal
-        : "",
+      reconcileTransactionPayments({
+        currency: selectedAccount?.currency,
+        itemAmounts: expenseItems.map((item) => item.amount),
+        payments: [],
+      }).itemTotal,
     );
     clearAccountFieldError();
   }
@@ -781,6 +783,7 @@ export function useTransactionForm({
     handlePickerGroupSelect,
     handlePaymentAccountChange,
     handlePaymentAmountChange,
+    handlePaymentAmountCommit,
     handleRemovePayment,
     handleSubmit,
     handleTimeChange,

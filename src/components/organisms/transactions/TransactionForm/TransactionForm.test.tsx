@@ -22,6 +22,10 @@ import {
   itemPickerDrawerSx,
 } from "../TransactionItemPickerDrawer/TransactionItemPickerDrawer";
 import {
+  amountInputCommitEvent,
+  TransactionAmountKeypadLauncher,
+} from "../TransactionAmountKeypadLauncher/TransactionAmountKeypadLauncher";
+import {
   TransactionForm,
   type TransactionFormInitialValues,
 } from "./TransactionForm";
@@ -90,6 +94,7 @@ describe("TransactionForm", () => {
   });
   function renderForm(
     props: Partial<React.ComponentProps<typeof TransactionForm>> = {},
+    { withAmountKeypad = false } = {},
   ) {
     const action = vi.fn(async () => undefined);
     const view = render(
@@ -103,6 +108,7 @@ describe("TransactionForm", () => {
             merchantOptions={merchantOptions}
             {...props}
           />
+          {withAmountKeypad ? <TransactionAmountKeypadLauncher /> : null}
         </ConfirmDialogProvider>
       </UserThemeProvider>,
     );
@@ -604,8 +610,12 @@ describe("TransactionForm", () => {
 
     function renderMultiAccountForm(
       props: Partial<ComponentProps<typeof TransactionForm>> = {},
+      options: Parameters<typeof renderForm>[1] = {},
     ) {
-      return renderForm({ accountOptions: multiAccountOptions, ...props });
+      return renderForm(
+        { accountOptions: multiAccountOptions, ...props },
+        options,
+      );
     }
     function getFieldValues(container: HTMLElement, name: string) {
       return Array.from(
@@ -632,11 +642,25 @@ describe("TransactionForm", () => {
         screen.getByRole("option", { name: `${accountName}（JPY）` }),
       );
     }
+    function getPaymentAmountInput(rowNumber: number) {
+      return screen.getByRole("textbox", {
+        hidden: true,
+        name: `付款金额 ${rowNumber}`,
+      });
+    }
     function changePaymentAmount(rowNumber: number, amount: string) {
-      fireEvent.change(
-        screen.getByRole("textbox", { name: `付款金额 ${rowNumber}` }),
-        { target: { value: amount } },
-      );
+      fireEvent.change(getPaymentAmountInput(rowNumber), {
+        target: { value: amount },
+      });
+    }
+    // 计算器点「确认」/ 关闭时派发 amountInputCommitEvent 确定金额；经过计算器的流程见「经过金额计算器」。
+    function commitPaymentAmount(rowNumber: number, amount?: string) {
+      if (amount !== undefined) changePaymentAmount(rowNumber, amount);
+      act(() => {
+        getPaymentAmountInput(rowNumber).dispatchEvent(
+          new Event(amountInputCommitEvent),
+        );
+      });
     }
     function addIncomeItem(container: HTMLElement) {
       openSheet(container);
@@ -693,13 +717,25 @@ describe("TransactionForm", () => {
       expect(getFieldValues(container, "paymentAmount")).toEqual([]);
     });
 
-    it("修改首行金额时下一行自动补足差额", () => {
+    it("还没有明细时添加付款账户，两行都是 0", () => {
+      const { container } = renderMultiAccountForm();
+
+      clickAddPayment(container);
+
+      expect(getFieldValues(container, "paymentAmount")).toEqual(["0", "0"]);
+    });
+
+    it("输入首行金额时下一行不变，确定后自动补足差额", () => {
       const { container } = renderMultiAccountForm({
         initialValues: createInitialValues(),
       });
       clickAddPayment(container);
       selectPaymentAccount(2, card!.name);
       changePaymentAmount(1, "500");
+
+      expect(getFieldValues(container, "paymentAmount")).toEqual(["500", "0"]);
+
+      commitPaymentAmount(1);
 
       expect(getFieldValues(container, "paymentAmount")).toEqual([
         "500",
@@ -715,7 +751,7 @@ describe("TransactionForm", () => {
       });
       clickAddPayment(container);
       selectPaymentAccount(2, card!.name);
-      changePaymentAmount(2, "300");
+      commitPaymentAmount(2, "300");
 
       expect(getFieldValues(container, "paymentAmount")).toEqual([
         "1200",
@@ -760,6 +796,100 @@ describe("TransactionForm", () => {
       expect(screen.getByRole("status", { hidden: true })).toHaveTextContent(
         "差额 ¥300",
       );
+    });
+
+    it("首行金额不变时确定也重新计算下一行，补上明细变化产生的差额", () => {
+      const { container } = renderMultiAccountForm({
+        initialValues: createMultiAccountInitialValues(),
+      });
+      addItemViaSheet(container, "日用品", "300");
+
+      commitPaymentAmount(1);
+
+      expect(getFieldValues(container, "paymentAmount")).toEqual([
+        "500",
+        "1000",
+      ]);
+      expect(
+        screen.getByRole("status", { hidden: true }),
+      ).not.toHaveTextContent("差额");
+    });
+
+    describe("经过金额计算器", () => {
+      function openPaymentKeypad(rowNumber: number) {
+        act(() => getPaymentAmountInput(rowNumber).focus());
+        return screen.getByLabelText("金额计算器");
+      }
+      function pressKeypadKeys(keypad: HTMLElement, keys: string[]) {
+        keys.forEach((key) =>
+          fireEvent.click(within(keypad).getByRole("button", { name: key })),
+        );
+      }
+      async function confirmKeypad(keypad: HTMLElement) {
+        fireEvent.click(within(keypad).getByRole("button", { name: "确认" }));
+        await waitFor(() =>
+          expect(screen.queryByLabelText("金额计算器")).toBeNull(),
+        );
+      }
+
+      it("打开计算器与按键输入时下一行不变，点确认后补足差额", async () => {
+        const { container } = renderMultiAccountForm(
+          { initialValues: createInitialValues() },
+          { withAmountKeypad: true },
+        );
+        clickAddPayment(container);
+        selectPaymentAccount(2, card!.name);
+
+        const keypad = openPaymentKeypad(1);
+        expect(getFieldValues(container, "paymentAmount")).toEqual([
+          "1200",
+          "0",
+        ]);
+
+        pressKeypadKeys(keypad, [
+          "退格",
+          "退格",
+          "退格",
+          "退格",
+          "5",
+          "0",
+          "0",
+        ]);
+        expect(getFieldValues(container, "paymentAmount")).toEqual([
+          "500",
+          "0",
+        ]);
+
+        await confirmKeypad(keypad);
+        expect(getFieldValues(container, "paymentAmount")).toEqual([
+          "500",
+          "700",
+        ]);
+      });
+
+      it("改明细产生差额后，打开首行计算器直接确认即补上差额", async () => {
+        const { container } = renderMultiAccountForm(
+          { initialValues: createMultiAccountInitialValues() },
+          { withAmountKeypad: true },
+        );
+        addItemViaSheet(container, "日用品", "300");
+        expect(screen.getByRole("status", { hidden: true })).toHaveTextContent(
+          "差额 ¥300",
+        );
+
+        const keypad = openPaymentKeypad(1);
+        expect(getFieldValues(container, "paymentAmount")).toEqual([
+          "500",
+          "700",
+        ]);
+
+        await confirmKeypad(keypad);
+
+        expect(getFieldValues(container, "paymentAmount")).toEqual([
+          "500",
+          "1000",
+        ]);
+      });
     });
 
     it("新增行未填金额时提交前提示并阻止保存", async () => {

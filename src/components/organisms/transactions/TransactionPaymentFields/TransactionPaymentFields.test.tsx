@@ -7,6 +7,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { amountInputCommitEvent } from "../TransactionAmountKeypadLauncher/TransactionAmountKeypadLauncher";
 import { TransactionPaymentFields } from "./TransactionPaymentFields";
 import {
   createPaymentFieldsProps,
@@ -109,19 +110,29 @@ describe("TransactionPaymentFields", () => {
 
     it("修改金额、删除行时回调对应行", () => {
       const onAmountChange = vi.fn();
+      const onAmountCommit = vi.fn();
       const onRemovePayment = vi.fn();
       renderFields({
         onAmountChange,
+        onAmountCommit,
         onRemovePayment,
         payments: createPaymentRows(["2000", "1500"]),
       });
+      const amountInput = screen.getByRole("textbox", { name: "付款金额 2" });
 
-      fireEvent.change(screen.getByRole("textbox", { name: "付款金额 2" }), {
-        target: { value: "1000" },
-      });
-      fireEvent.click(screen.getByRole("button", { name: "删除付款账户 1" }));
+      fireEvent.change(amountInput, { target: { value: "1000" } });
 
       expect(onAmountChange).toHaveBeenCalledWith(2, "1000");
+      expect(onAmountCommit).not.toHaveBeenCalled();
+
+      // 打开计算器时输入框就会失焦，失焦不能确定金额。
+      fireEvent.blur(amountInput);
+      expect(onAmountCommit).not.toHaveBeenCalled();
+
+      amountInput.dispatchEvent(new Event(amountInputCommitEvent));
+      fireEvent.click(screen.getByRole("button", { name: "删除付款账户 1" }));
+
+      expect(onAmountCommit).toHaveBeenCalledWith(2);
       expect(onRemovePayment).toHaveBeenCalledWith(1);
     });
 

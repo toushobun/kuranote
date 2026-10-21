@@ -51,6 +51,7 @@ export function createPaymentFieldsProps({
     onAccountChange: () => undefined,
     onAddPayment: () => undefined,
     onAmountChange: () => undefined,
+    onAmountCommit: () => undefined,
     onRemovePayment: () => undefined,
     payments: rows,
     reconciliation: reconcileTransactionPayments({

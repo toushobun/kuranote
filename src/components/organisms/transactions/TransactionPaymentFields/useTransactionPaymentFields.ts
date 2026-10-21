@@ -107,27 +107,33 @@ export function useTransactionPaymentFields(
     );
   }
 
+  /** 输入过程中只更新本行金额，不联动其他行（#930）。 */
+  function changeAmount(key: number, amount: string) {
+    setPayments((current) =>
+      current.map((payment) =>
+        payment.key === key ? { ...payment, amount } : payment,
+      ),
+    );
+  }
+
   /**
-   * 修改第 i 行金额时，第 i+1 行 = 明细合计 − 其他所有行合计（负数取 0）；
-   * 修改最后一行时不联动，差额由对账条提示。
+   * 确定第 i 行金额（计算器确认 / 关闭）时，第 i+1 行 = 明细合计 − 其他所有行合计（负数取 0）；
+   * 金额未变化也重新计算。确定最后一行时不联动，差额由对账条提示。
    */
-  function changeAmount(
+  function commitAmount(
     key: number,
-    amount: string,
     {
       currency,
       itemTotal,
     }: { currency: string | undefined; itemTotal: string },
   ) {
     setPayments((current) => {
-      const changedIndex = current.findIndex((payment) => payment.key === key);
-      if (changedIndex < 0) return current;
-      const next = current.map((payment, index) =>
-        index === changedIndex ? { ...payment, amount } : payment,
-      );
-      const followingIndex = changedIndex + 1;
-      if (followingIndex >= next.length) return next;
-      const otherUnits = next.reduce(
+      const followingIndex =
+        current.findIndex((payment) => payment.key === key) + 1;
+      if (followingIndex <= 0 || followingIndex >= current.length) {
+        return current;
+      }
+      const otherUnits = current.reduce(
         (sum, payment, index) =>
           index === followingIndex
             ? sum
@@ -136,6 +142,7 @@ export function useTransactionPaymentFields(
       );
       const remainingUnits =
         toValidMoneyUnits(itemTotal, currency) - otherUnits;
+      const next = [...current];
       next[followingIndex] = {
         ...next[followingIndex]!,
         amount: formatRefundMinorUnits(
@@ -157,6 +164,7 @@ export function useTransactionPaymentFields(
     addPayment,
     changeAccount,
     changeAmount,
+    commitAmount,
     isMultiAccount,
     payments,
     primaryAccountId: payments[0]?.accountId ?? "",
