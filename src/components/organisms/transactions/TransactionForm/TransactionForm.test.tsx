@@ -653,7 +653,7 @@ describe("TransactionForm", () => {
         target: { value: amount },
       });
     }
-    // 计算器点「确认」/ 关闭时派发 amountInputCommitEvent 确定金额；经过计算器的流程见「经过金额计算器」。
+    // 计算器点「确认」时派发 amountInputCommitEvent 确定金额；经过计算器的流程见「经过金额计算器」。
     function commitPaymentAmount(rowNumber: number, amount?: string) {
       if (amount !== undefined) changePaymentAmount(rowNumber, amount);
       act(() => {
@@ -832,20 +832,16 @@ describe("TransactionForm", () => {
         );
       }
 
-      it("打开计算器与按键输入时下一行不变，点确认后补足差额", async () => {
-        const { container } = renderMultiAccountForm(
+      // 两行付款、首行 1200，打开首行计算器并改为 500（尚未确认）。
+      function openFirstPaymentKeypadAndType500() {
+        const rendered = renderMultiAccountForm(
           { initialValues: createInitialValues() },
           { withAmountKeypad: true },
         );
-        clickAddPayment(container);
+        clickAddPayment(rendered.container);
         selectPaymentAccount(2, card!.name);
 
         const keypad = openPaymentKeypad(1);
-        expect(getFieldValues(container, "paymentAmount")).toEqual([
-          "1200",
-          "0",
-        ]);
-
         pressKeypadKeys(keypad, [
           "退格",
           "退格",
@@ -855,8 +851,14 @@ describe("TransactionForm", () => {
           "0",
           "0",
         ]);
+        return { container: rendered.container, keypad };
+      }
+
+      it("按键输入时付款金额和下一行都不变，点确认后写入并补足差额", async () => {
+        const { container, keypad } = openFirstPaymentKeypadAndType500();
+
         expect(getFieldValues(container, "paymentAmount")).toEqual([
-          "500",
+          "1200",
           "0",
         ]);
 
@@ -864,6 +866,20 @@ describe("TransactionForm", () => {
         expect(getFieldValues(container, "paymentAmount")).toEqual([
           "500",
           "700",
+        ]);
+      });
+
+      it("关闭计算器但不点确认时，付款金额和下一行都不变", async () => {
+        const { container, keypad } = openFirstPaymentKeypadAndType500();
+
+        fireEvent.keyDown(keypad, { key: "Escape" });
+        await waitFor(() =>
+          expect(screen.queryByLabelText("金额计算器")).toBeNull(),
+        );
+
+        expect(getFieldValues(container, "paymentAmount")).toEqual([
+          "1200",
+          "0",
         ]);
       });
 

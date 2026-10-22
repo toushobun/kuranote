@@ -45,7 +45,7 @@ type TransactionPaymentFieldsProps = {
   onAccountChange: (key: number, accountId: string) => void;
   onAddPayment: () => void;
   onAmountChange: (key: number, amount: string) => void;
-  /** 计算器确认 / 关闭（`amountInputCommitEvent`）时确定本行金额并联动下一行。 */
+  /** 计算器确认（`amountInputCommitEvent`）时确定本行金额并联动下一行。 */
   onAmountCommit: (key: number) => void;
   onRemovePayment: (key: number) => void;
   payments: TransactionPaymentRow[];

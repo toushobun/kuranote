@@ -11,7 +11,7 @@ import { amountKeypadZIndex } from "theme/zIndex";
 import { TransactionAmountKeypad } from "../TransactionAmountKeypad/TransactionAmountKeypad";
 
 /**
- * 计算器确认或关闭时对金额输入框派发的事件，表示「金额已确定」。
+ * 计算器点「确认」时对金额输入框派发的事件，表示「金额已确定」；不确认直接关闭视为取消，不派发。
  * 打开计算器时 Drawer 会抢走焦点，输入框在打开时就已失焦，因此不能用 blur 判断金额确定（#930）。
  */
 export const amountInputCommitEvent = "kuranote:amount-input-commit";
@@ -81,9 +81,9 @@ export function TransactionAmountKeypadLauncher() {
     };
   }, []);
 
+  // 不点确认直接关闭（点遮罩等）视为取消：输入框保持打开前的金额。
   function closeKeypad() {
     ignoreFocusRef.current = true;
-    activeInput?.dispatchEvent(new Event(amountInputCommitEvent));
     activeInput?.blur();
     setActiveInput(null);
     setCurrency(undefined);
@@ -92,13 +92,13 @@ export function TransactionAmountKeypadLauncher() {
     });
   }
 
-  function handleChange(nextValue: string) {
-    setValue(nextValue);
-    if (activeInput) setInputValue(activeInput, nextValue);
-  }
-
+  // 逐键输入只更新计算器自己的显示，确认时才写入输入框（#930）。
   function handleConfirm(nextValue: string) {
     setValue(nextValue);
+    if (activeInput) {
+      setInputValue(activeInput, nextValue);
+      activeInput.dispatchEvent(new Event(amountInputCommitEvent));
+    }
     closeKeypad();
   }
 
@@ -118,7 +118,7 @@ export function TransactionAmountKeypadLauncher() {
       <TransactionAmountKeypad
         currency={currency}
         value={value}
-        onChange={handleChange}
+        onChange={setValue}
         onConfirm={handleConfirm}
       />
     </Drawer>
