@@ -89,6 +89,43 @@ describe("TransactionRepository", () => {
     expect(query.range).toHaveBeenCalledWith(500, 999);
     expect(query.order).toHaveBeenCalledWith("id", { ascending: true });
   });
+  it.each([
+    [
+      "isMultiAccountPaymentEnabled",
+      "multi_account_payment_enabled",
+      "transaction_multi_account_payment_setting_load_failed",
+    ],
+    [
+      "isSpecialStatusEnabled",
+      "transaction_item_special_status_enabled",
+      "transaction_special_status_setting_load_failed",
+    ],
+  ] as const)("%s 读取账本的 %s 开关", async (method, column, errorCode) => {
+    const query = createQuery({ data: { [column]: true }, error: null });
+    const { repository } = createRepository({ queries: { ledger: query } });
+
+    await expect(repository[method](ledgerId)).resolves.toBe(true);
+    expect(query.select).toHaveBeenCalledWith(column);
+    expect(query.eq).toHaveBeenCalledWith("id", ledgerId);
+
+    const missingQuery = createQuery({ data: null, error: null });
+    const { repository: missingRepository } = createRepository({
+      queries: { ledger: missingQuery },
+    });
+    await expect(missingRepository[method](ledgerId)).resolves.toBe(false);
+
+    const failedQuery = createQuery({
+      data: null,
+      error: { code: "XX000", message: "private" },
+    });
+    const { logger, repository: failedRepository } = createRepository({
+      queries: { ledger: failedQuery },
+    });
+    await expect(failedRepository[method](ledgerId)).rejects.toMatchObject({
+      code: errorCode,
+    });
+    expect(logger.error).toHaveBeenCalledOnce();
+  });
   const normalInput = {
     items: [{ amount: 1200, categoryId }],
     ledgerId,
@@ -1277,6 +1314,11 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
         "payment_total_mismatch",
         transactionErrorCodes.paymentTotalMismatch,
         transactionWriteErrorMessages.paymentTotalMismatch,
+      ],
+      [
+        "payment_multi_account_disabled",
+        transactionErrorCodes.paymentMultiAccountDisabled,
+        transactionWriteErrorMessages.paymentMultiAccountDisabled,
       ],
       [
         "payment_multi_account_not_allowed",

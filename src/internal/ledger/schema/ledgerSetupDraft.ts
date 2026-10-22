@@ -44,6 +44,8 @@ const ledgerSetupDraftSectionSchemas = {
     skipped: z.boolean(),
   }),
   features: z.object({
+    /** #931 之前保存的草稿没有该项，按默认关闭补全，不丢弃同一部分的其他开关。 */
+    multiAccountPaymentEnabled: z.boolean().default(false),
     specialStatusEnabled: z.boolean(),
   }),
   /** 以商家为单位存储勾选，标签勾选只是对其下商家的批量操作。 */

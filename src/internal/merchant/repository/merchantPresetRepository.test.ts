@@ -64,7 +64,12 @@ describe("merchantPresetRepository", () => {
     expect(supabase.rpc).toHaveBeenCalledWith("add_merchant_presets", {
       p_ledger_id: "ledger",
       p_currency: "JPY",
-      p_payload: { accounts: [], specialStatusEnabled: false, ...payload },
+      p_payload: {
+        accounts: [],
+        multiAccountPaymentEnabled: false,
+        specialStatusEnabled: false,
+        ...payload,
+      },
     });
   });
   it.each([

@@ -140,9 +140,29 @@ describe("parseStoredLedgerSetupDraft", () => {
         templateVersion: "1",
       }),
     ).toEqual({
-      features: { specialStatusEnabled: true },
+      // #931 之前保存的功能开关没有多账户付款，按默认关闭补全。
+      features: {
+        multiAccountPaymentEnabled: false,
+        specialStatusEnabled: true,
+      },
       merchants: draft.merchants,
       templateCurrency: "JPY",
+    });
+  });
+
+  it("保留已保存的多账户付款开关", () => {
+    expect(
+      parseStoredLedgerSetupDraft({
+        features: {
+          multiAccountPaymentEnabled: true,
+          specialStatusEnabled: false,
+        },
+      }),
+    ).toEqual({
+      features: {
+        multiAccountPaymentEnabled: true,
+        specialStatusEnabled: false,
+      },
     });
   });
 

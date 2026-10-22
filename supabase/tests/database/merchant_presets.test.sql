@@ -17,7 +17,7 @@ values ('87820000-0000-4000-8000-000000000001', '87800000-0000-4000-8000-0000000
 
 create function pg_temp.payload(names text[], tag_name text default 'Tag') returns jsonb language sql as $$
   select jsonb_build_object(
-    'accounts', '[]'::jsonb, 'specialStatusEnabled', false,
+    'accounts', '[]'::jsonb, 'multiAccountPaymentEnabled', false, 'specialStatusEnabled', false,
     'merchantTags', jsonb_build_array(jsonb_build_object('key', 'tag', 'name', tag_name, 'icon', '🛒')),
     'merchants', coalesce((select jsonb_agg(jsonb_build_object(
       'name', n, 'websiteUrl', 'https://example.com/',

@@ -96,6 +96,7 @@ export type TransactionFormTemplateProps = {
     query: string,
     offset: number,
   ) => Promise<TransactionSearchPage>;
+  multiAccountPaymentEnabled: boolean;
   transactionItemSpecialStatusEnabled: boolean;
 };
 
@@ -300,6 +301,7 @@ function NewTransactionFormView({
   loadRefundGroupItemsAction,
   loadRefundMoreGroupsAction,
   loadRefundSearchPageAction,
+  multiAccountPaymentEnabled,
   transactionItemSpecialStatusEnabled,
 }: TransactionFormTemplateProps) {
   const [actionState, formAction] = useActionState(action, {});
@@ -347,6 +349,7 @@ function NewTransactionFormView({
           loadRefundMoreGroupsAction={loadRefundMoreGroupsAction}
           loadRefundSearchPageAction={loadRefundSearchPageAction}
           setupHrefs={newTransactionSetupHrefs("expense")}
+          multiAccountPaymentEnabled={multiAccountPaymentEnabled}
           transactionItemSpecialStatusEnabled={
             transactionItemSpecialStatusEnabled
           }
@@ -371,6 +374,7 @@ function NewTransactionFormView({
           loadRefundMoreGroupsAction={loadRefundMoreGroupsAction}
           loadRefundSearchPageAction={loadRefundSearchPageAction}
           setupHrefs={newTransactionSetupHrefs("income")}
+          multiAccountPaymentEnabled={multiAccountPaymentEnabled}
           transactionItemSpecialStatusEnabled={
             transactionItemSpecialStatusEnabled
           }
@@ -404,6 +408,7 @@ function NewTransactionFormView({
       loadRefundGroupItemsAction,
       loadRefundMoreGroupsAction,
       loadRefundSearchPageAction,
+      multiAccountPaymentEnabled,
       transactionItemSpecialStatusEnabled,
     ],
   );
@@ -713,6 +718,7 @@ export function EditTransferTransactionTemplate({
   frequentCategoryIds,
   initialValues,
   merchantOptions,
+  multiAccountPaymentEnabled,
   transactionItemSpecialStatusEnabled,
 }: EditTransferTransactionTemplateProps) {
   const editAction = useLinkedTransactionEditAction(action);
@@ -748,6 +754,7 @@ export function EditTransferTransactionTemplate({
               "expense",
             )}
             merchantOptions={merchantOptions}
+            multiAccountPaymentEnabled={multiAccountPaymentEnabled}
             transactionItemSpecialStatusEnabled={
               transactionItemSpecialStatusEnabled
             }
@@ -784,6 +791,7 @@ export function EditTransferTransactionTemplate({
               "income",
             )}
             merchantOptions={merchantOptions}
+            multiAccountPaymentEnabled={multiAccountPaymentEnabled}
             transactionItemSpecialStatusEnabled={
               transactionItemSpecialStatusEnabled
             }
@@ -818,6 +826,7 @@ export function EditTransferTransactionTemplate({
       activeErrorMessage,
       initialValues,
       merchantOptions,
+      multiAccountPaymentEnabled,
       transactionItemSpecialStatusEnabled,
     ],
   );
@@ -853,6 +862,7 @@ export function EditTransactionTemplate({
   frequentCategoryIds,
   initialValues,
   merchantOptions,
+  multiAccountPaymentEnabled,
   transactionItemSpecialStatusEnabled,
 }: EditTransactionTemplateProps) {
   const editAction = useLinkedTransactionEditAction(action);
@@ -889,6 +899,7 @@ export function EditTransactionTemplate({
               "expense",
             )}
             merchantOptions={merchantOptions}
+            multiAccountPaymentEnabled={multiAccountPaymentEnabled}
             transactionItemSpecialStatusEnabled={
               transactionItemSpecialStatusEnabled
             }
@@ -925,6 +936,7 @@ export function EditTransactionTemplate({
               "income",
             )}
             merchantOptions={merchantOptions}
+            multiAccountPaymentEnabled={multiAccountPaymentEnabled}
             transactionItemSpecialStatusEnabled={
               transactionItemSpecialStatusEnabled
             }
@@ -962,6 +974,7 @@ export function EditTransactionTemplate({
       activeErrorMessage,
       initialValues,
       merchantOptions,
+      multiAccountPaymentEnabled,
       transactionItemSpecialStatusEnabled,
     ],
   );

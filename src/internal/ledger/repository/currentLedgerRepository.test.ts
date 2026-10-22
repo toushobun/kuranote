@@ -121,6 +121,7 @@ describe("createSupabaseCurrentLedgerRepository", () => {
           data: {
             base_currency: "JPY",
             id: ledgerId,
+            multi_account_payment_enabled: true,
             name: "家庭账本",
             transaction_item_special_status_enabled: true,
           },
@@ -139,6 +140,7 @@ describe("createSupabaseCurrentLedgerRepository", () => {
       currentUserId: userId,
       currentUserRole: "admin",
       id: ledgerId,
+      multiAccountPaymentEnabled: true,
       name: "家庭账本",
       transactionItemSpecialStatusEnabled: true,
     });

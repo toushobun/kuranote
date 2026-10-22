@@ -24,6 +24,7 @@ export type LedgerSettingsView = {
     isCurrent: boolean;
     name: string;
     transactionItemSpecialStatusEnabled: boolean;
+    multiAccountPaymentEnabled: boolean;
   };
   members: LedgerSettingsMemberView[];
 };

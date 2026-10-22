@@ -36,6 +36,16 @@ describe("ledgerSettingsErrorMessages", () => {
     );
   });
 
+  it("返回关闭多账户付款前需要先改为单个付款账户的提示", () => {
+    expect(
+      ledgerSettingsErrorMessages[
+        ledgerSettingsErrorCodes.multiAccountPaymentHasRecords
+      ],
+    ).toBe(
+      "账本内仍有使用多个付款账户的记录，请先把这些记录改为单个付款账户后再关闭该功能。",
+    );
+  });
+
   it("与账本创建、待邀请成员同一业务概念的文案引用同一定义", () => {
     expect(
       ledgerSettingsErrorMessages[ledgerSettingsErrorCodes.authRequired],

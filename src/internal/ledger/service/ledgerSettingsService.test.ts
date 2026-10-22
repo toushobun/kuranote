@@ -211,6 +211,29 @@ describe("createLedgerSettingsService.update — ledger 意图", () => {
     });
   });
 
+  it("admin 可以更新账本多账户付款开关", async () => {
+    const { service, ledgerSettingsRepository } = createService({
+      getMemberRole: vi.fn().mockResolvedValue("admin"),
+    });
+
+    await service.update({
+      ...ledgerSettingsInput,
+      settings: {
+        ...ledgerSettingsInput.settings,
+        multiAccountPaymentEnabled: true,
+      },
+    });
+
+    expect(
+      ledgerSettingsRepository.updateLedgerBaseSettings,
+    ).toHaveBeenCalledWith(ledgerId, {
+      baseCurrency: "USD",
+      ledgerName: "新名称",
+      multiAccountPaymentEnabled: true,
+      updatedBy: userId,
+    });
+  });
+
   it("Repository 更新失败时抛出映射后的错误", async () => {
     const { service } = createService({
       updateLedgerBaseSettings: vi.fn().mockResolvedValue({
@@ -243,6 +266,32 @@ describe("createLedgerSettingsService.update — ledger 意图", () => {
     await expect(promise).rejects.toBeInstanceOf(ConflictError);
     await expect(promise).rejects.toMatchObject({
       code: ledgerSettingsErrorCodes.specialStatusHasActiveItems,
+    });
+  });
+
+  it("存在多账户记录时抛出带原因的 ConflictError", async () => {
+    const { service } = createService({
+      updateLedgerBaseSettings: vi.fn().mockResolvedValue({
+        code: ledgerSettingsErrorCodes.multiAccountPaymentHasRecords,
+        ok: false,
+      }),
+    });
+
+    const promise = service.update({
+      ...ledgerSettingsInput,
+      settings: {
+        ...ledgerSettingsInput.settings,
+        multiAccountPaymentEnabled: false,
+      },
+    });
+
+    await expect(promise).rejects.toBeInstanceOf(ConflictError);
+    await expect(promise).rejects.toMatchObject({
+      code: ledgerSettingsErrorCodes.multiAccountPaymentHasRecords,
+      message:
+        ledgerSettingsErrorMessages[
+          ledgerSettingsErrorCodes.multiAccountPaymentHasRecords
+        ],
     });
   });
 });

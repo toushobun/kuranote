@@ -289,6 +289,7 @@ export type LedgerSettingsView = {
     isCurrent: boolean;
     name: string;
     transactionItemSpecialStatusEnabled?: boolean;
+    multiAccountPaymentEnabled?: boolean;
   };
   members: LedgerSettingsMember[];
   pendingInvites: PendingLedgerInvite[];

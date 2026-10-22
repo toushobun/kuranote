@@ -30,6 +30,7 @@ export type UpdateLedgerBaseSettingsValues = {
   baseCurrency: string;
   ledgerName: string;
   transactionItemSpecialStatusEnabled?: boolean;
+  multiAccountPaymentEnabled?: boolean;
 };
 
 export type UpdateLedgerSettingsValues = {
@@ -106,25 +107,36 @@ function validateLedgerBaseSettingsForm(
     return currencyResult;
   }
 
-  const specialStatusEnabled = getFormText(
+  const specialStatusEnabled = parseOptionalBooleanField(
     formData,
     "transactionItemSpecialStatusEnabled",
   );
-  if (
-    specialStatusEnabled &&
-    specialStatusEnabled !== "true" &&
-    specialStatusEnabled !== "false"
-  ) {
+  const multiAccountPaymentEnabled = parseOptionalBooleanField(
+    formData,
+    "multiAccountPaymentEnabled",
+  );
+  if (specialStatusEnabled === null || multiAccountPaymentEnabled === null) {
     return invalid(ledgerSettingsErrorCodes.updateFailed);
   }
 
   return valid({
     baseCurrency: currencyResult.value,
     ledgerName: ledgerNameResult.value,
-    ...(specialStatusEnabled
-      ? { transactionItemSpecialStatusEnabled: specialStatusEnabled === "true" }
-      : {}),
+    ...(specialStatusEnabled === undefined
+      ? {}
+      : { transactionItemSpecialStatusEnabled: specialStatusEnabled }),
+    ...(multiAccountPaymentEnabled === undefined
+      ? {}
+      : { multiAccountPaymentEnabled }),
   });
+}
+
+/** 功能开关字段：未提交时为 undefined（不修改），值不是 "true" / "false" 时为 null。 */
+function parseOptionalBooleanField(formData: FormData, name: string) {
+  const value = getFormText(formData, name);
+  if (!value) return undefined;
+  if (value !== "true" && value !== "false") return null;
+  return value === "true";
 }
 
 function validateMemberSettingsForm(

@@ -22,7 +22,10 @@ describe("createDefaultLedgerSetupDraft", () => {
 
     expect(draft).toMatchObject({
       accounts: { items: [{ name: "现金", type: "cash" }], skipped: false },
-      features: { specialStatusEnabled: false },
+      features: {
+        multiAccountPaymentEnabled: false,
+        specialStatusEnabled: false,
+      },
       merchants: { skipped: false },
       templateCurrency: "JPY",
       templateVersion: jpyTemplate?.version,
@@ -46,7 +49,10 @@ describe("createDefaultLedgerSetupDraft", () => {
   it("无模板币种没有预设商家，模板版本为 null", () => {
     expect(createDefaultLedgerSetupDraft("USD")).toEqual({
       accounts: { items: [{ name: "现金", type: "cash" }], skipped: false },
-      features: { specialStatusEnabled: false },
+      features: {
+        multiAccountPaymentEnabled: false,
+        specialStatusEnabled: false,
+      },
       merchants: { selectedKeys: [], skipped: false },
       templateCurrency: "USD",
       templateVersion: null,
@@ -64,12 +70,20 @@ describe("resolveLedgerSetupDraft", () => {
   it("货币变更后只剩功能开关时，账户与商家按新币种恢复默认", () => {
     expect(
       resolveLedgerSetupDraft(
-        { features: { specialStatusEnabled: true } },
+        {
+          features: {
+            multiAccountPaymentEnabled: true,
+            specialStatusEnabled: true,
+          },
+        },
         "USD",
       ),
     ).toEqual({
       ...createDefaultLedgerSetupDraft("USD"),
-      features: { specialStatusEnabled: true },
+      features: {
+        multiAccountPaymentEnabled: true,
+        specialStatusEnabled: true,
+      },
     });
   });
 
@@ -148,7 +162,10 @@ describe("resolveLedgerSetupDraft", () => {
         items: [{ name: "楽天銀行", type: "bank" }],
         skipped: false,
       },
-      features: { specialStatusEnabled: false },
+      features: {
+        multiAccountPaymentEnabled: false,
+        specialStatusEnabled: false,
+      },
       merchants: { selectedKeys: [], skipped: false },
       templateCurrency: "USD",
       templateVersion: null,

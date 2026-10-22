@@ -11,8 +11,14 @@ import type {
   StoredLedgerSetupDraft,
 } from "internal/ledger/schema/ledgerSetupDraft";
 
-/** 功能开关默认值，与新建账本的 ledger.transaction_item_special_status_enabled 默认值一致。 */
-const defaultLedgerSetupFeatures = { specialStatusEnabled: false } as const;
+/**
+ * 功能开关默认值，与新建账本的 ledger.transaction_item_special_status_enabled、
+ * ledger.multi_account_payment_enabled 默认值一致。
+ */
+const defaultLedgerSetupFeatures = {
+  multiAccountPaymentEnabled: false,
+  specialStatusEnabled: false,
+} as const;
 
 /** 草稿的模板版本：有模板时为模板版本，无模板时为 null。 */
 function templateVersionOf(template: LedgerSetupTemplate | null) {

@@ -350,7 +350,7 @@ describe("getCurrentLedgerContext", () => {
       calls: [
         {
           args: [
-            "id, name, base_currency, transaction_item_special_status_enabled",
+            "id, name, base_currency, transaction_item_special_status_enabled, multi_account_payment_enabled",
           ],
           method: "select",
         },

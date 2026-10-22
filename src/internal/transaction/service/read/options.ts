@@ -53,6 +53,8 @@ export async function loadTransactionFormOptions(
       categoryOptions.map((category) => category.id),
     ),
     merchantOptions,
+    multiAccountPaymentEnabled:
+      currentLedger.multiAccountPaymentEnabled ?? false,
     transactionItemSpecialStatusEnabled:
       currentLedger.transactionItemSpecialStatusEnabled ?? false,
   };

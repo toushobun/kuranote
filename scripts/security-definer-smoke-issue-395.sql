@@ -560,6 +560,7 @@ as $$
                 "aliases": [{"alias": "自来水", "locale": "zh"}]
             }
         ],
+        "multiAccountPaymentEnabled": true,
         "specialStatusEnabled": true
     }'::jsonb;
 $$;
@@ -579,6 +580,7 @@ begin
            where l.id = p_ledger_id
              and l.setup_status = 'in_progress'
              and l.transaction_item_special_status_enabled = false
+             and l.multi_account_payment_enabled = false
        ) then
         raise exception '% left data behind', p_label;
     end if;
@@ -698,6 +700,8 @@ begin
         null,
         '[]'::jsonb,
         pg_temp.completion_payload() - 'specialStatusEnabled',
+        pg_temp.completion_payload() - 'multiAccountPaymentEnabled',
+        jsonb_set(pg_temp.completion_payload(), '{multiAccountPaymentEnabled}', '"true"'::jsonb),
         jsonb_set(pg_temp.completion_payload(), '{accounts,0,name}', to_jsonb(repeat('x', 101))),
         jsonb_set(pg_temp.completion_payload(), '{accounts,0,type}', '"other"'::jsonb),
         jsonb_set(pg_temp.completion_payload(), '{accounts,1}', '{"type": "cash", "name": "现金 "}'::jsonb),
@@ -800,6 +804,7 @@ begin
           and l.setup_step is null
           and l.setup_draft is null
           and l.transaction_item_special_status_enabled = true
+          and l.multi_account_payment_enabled = true
     ) then
         raise exception 'complete_ledger_setup ledger status smoke test failed';
     end if;
@@ -928,7 +933,7 @@ begin
       into v_skip_ledger_id;
     perform public.complete_ledger_setup(
         v_skip_ledger_id,
-        '{"accounts": [], "merchantTags": [], "merchants": [], "specialStatusEnabled": false}'::jsonb
+        '{"accounts": [], "merchantTags": [], "merchants": [], "multiAccountPaymentEnabled": false, "specialStatusEnabled": false}'::jsonb
     );
 
     if not exists (
@@ -985,7 +990,7 @@ begin
     v_ledger_id := public.create_ledger_setup('Icon Ledger', 'JPY', 'Icon Owner', 'sky');
     perform public.complete_ledger_setup(
         v_ledger_id,
-        '{"accounts": [], "merchantTags": [], "merchants": [], "specialStatusEnabled": false}'::jsonb
+        '{"accounts": [], "merchantTags": [], "merchants": [], "multiAccountPaymentEnabled": false, "specialStatusEnabled": false}'::jsonb
     );
 
     insert into public.merchant (
@@ -1134,7 +1139,7 @@ begin
       into v_setup_ledger_id;
     perform public.complete_ledger_setup(
         v_setup_ledger_id,
-        '{"accounts": [], "merchantTags": [], "merchants": [], "specialStatusEnabled": false}'::jsonb
+        '{"accounts": [], "merchantTags": [], "merchants": [], "multiAccountPaymentEnabled": false, "specialStatusEnabled": false}'::jsonb
     );
 
     perform pg_temp.assert_default_categories('/ledgers/new', v_legacy_ledger_id);

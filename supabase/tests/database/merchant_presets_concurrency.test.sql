@@ -32,7 +32,7 @@ $setup$);
 create temporary table preset878_query as
 select format('select public.add_merchant_presets(%L, %L, %L::jsonb)',
   '87800000-0000-4000-8000-000000000002', 'JPY',
-  jsonb_build_object('accounts', '[]'::jsonb, 'specialStatusEnabled', false,
+  jsonb_build_object('accounts', '[]'::jsonb, 'multiAccountPaymentEnabled', false, 'specialStatusEnabled', false,
     'merchantTags', jsonb_build_array(jsonb_build_object('key','tag','name','并发标签','icon','🛒')),
     'merchants', jsonb_build_array(jsonb_build_object('name','并发商家','websiteUrl',null,'iconUrl',null,
       'aliases',jsonb_build_array(jsonb_build_object('alias','并发别名','locale','zh')),'tagKeys',jsonb_build_array('tag')))

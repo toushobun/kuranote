@@ -90,6 +90,7 @@ function toAppError(code: LedgerSettingsErrorCode): AppError {
       return new ValidationError(code, message);
     case ledgerSettingsErrorCodes.displayNamePlaceholderConflict:
     case ledgerSettingsErrorCodes.specialStatusHasActiveItems:
+    case ledgerSettingsErrorCodes.multiAccountPaymentHasRecords:
     case ledgerSettingsErrorCodes.deleteNotCompleted:
     case ledgerSettingsErrorCodes.updateFailed:
       return new ConflictError(code, message);
@@ -178,6 +179,8 @@ export function createLedgerSettingsService({
           name: ledger.name,
           transactionItemSpecialStatusEnabled:
             ledger.transactionItemSpecialStatusEnabled ?? false,
+          multiAccountPaymentEnabled:
+            ledger.multiAccountPaymentEnabled ?? false,
         },
         members: members.map((member) => ({
           avatarUrl: member.avatarUrl,

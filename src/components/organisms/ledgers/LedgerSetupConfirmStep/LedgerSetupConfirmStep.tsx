@@ -62,7 +62,13 @@ function LedgerSetupConfirmStepContent({
   progress: LedgerSetupProgress;
 }) {
   const step = useLedgerSetupConfirmStep(props);
-  const { accounts, basicInfo, merchants, specialStatusEnabled } = step.summary;
+  const {
+    accounts,
+    basicInfo,
+    merchants,
+    multiAccountPaymentEnabled,
+    specialStatusEnabled,
+  } = step.summary;
   const colorToken = themeColorTokens[basicInfo.displayColor];
 
   return (
@@ -195,13 +201,20 @@ function LedgerSetupConfirmStepContent({
           onEdit={() => onGoToStep(editSteps.features)}
           title={messages.features.title}
         >
-          <Typography sx={bodyTextSx}>
-            {`${messages.features.specialStatus} · ${
-              specialStatusEnabled
-                ? messages.features.enabled
-                : messages.features.disabled
-            }`}
-          </Typography>
+          <Stack spacing={0.5}>
+            <Typography sx={bodyTextSx}>
+              {formatFeatureLine(
+                messages.features.specialStatus,
+                specialStatusEnabled,
+              )}
+            </Typography>
+            <Typography sx={bodyTextSx}>
+              {formatFeatureLine(
+                messages.features.multiAccountPayment,
+                multiAccountPaymentEnabled,
+              )}
+            </Typography>
+          </Stack>
         </LedgerSetupSummaryCard>
       </Stack>
 
@@ -211,6 +224,12 @@ function LedgerSetupConfirmStepContent({
       />
     </WizardStepLayout>
   );
+}
+
+function formatFeatureLine(label: string, enabled: boolean) {
+  return `${label} · ${
+    enabled ? messages.features.enabled : messages.features.disabled
+  }`;
 }
 
 function ChipList({ children }: { children: ReactNode }) {

@@ -247,6 +247,7 @@ insert into public.ledger (
     base_currency,
     owner_user_id,
     transaction_item_special_status_enabled,
+    multi_account_payment_enabled,
     created_by,
     updated_by
 )
@@ -255,6 +256,7 @@ values (
     '家庭账本',
     'JPY',
     '00000000-0000-4000-8000-000000000031',
+    true,
     true,
     '00000000-0000-4000-8000-000000000031',
     '00000000-0000-4000-8000-000000000031'
@@ -265,6 +267,7 @@ set
     base_currency = excluded.base_currency,
     owner_user_id = excluded.owner_user_id,
     transaction_item_special_status_enabled = excluded.transaction_item_special_status_enabled,
+    multi_account_payment_enabled = excluded.multi_account_payment_enabled,
     updated_by = excluded.updated_by,
     updated_at = now();
 

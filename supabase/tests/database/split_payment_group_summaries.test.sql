@@ -9,13 +9,14 @@ select plan(19);
 
 insert into public.ledger (
     id, name, base_currency, owner_user_id, created_by, updated_by,
-    transaction_item_special_status_enabled
+    transaction_item_special_status_enabled, multi_account_payment_enabled
 )
 values (
     '91400000-0000-4000-8000-000000000001', '共同支付统计测试', 'JPY',
     '00000000-0000-4000-8000-000000000031',
     '00000000-0000-4000-8000-000000000031',
     '00000000-0000-4000-8000-000000000031',
+    true,
     true
 );
 

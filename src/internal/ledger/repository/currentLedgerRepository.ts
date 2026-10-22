@@ -150,7 +150,7 @@ export function createSupabaseCurrentLedgerRepository(
       const ledgerQuery = supabase
         .from("ledger")
         .select(
-          "id, name, base_currency, transaction_item_special_status_enabled",
+          "id, name, base_currency, transaction_item_special_status_enabled, multi_account_payment_enabled",
         )
         .in("id", ledgerIds)
         .eq("is_archived", false)
@@ -192,6 +192,7 @@ export function createSupabaseCurrentLedgerRepository(
               roleByLedgerId.get(ledger.id) ?? fallbackCurrentLedgerRole,
             transactionItemSpecialStatusEnabled:
               ledger.transaction_item_special_status_enabled,
+            multiAccountPaymentEnabled: ledger.multi_account_payment_enabled,
           },
         ]),
       );
@@ -240,7 +241,7 @@ export function createSupabaseCurrentLedgerRepository(
       const { data: ledger, error: ledgerError } = await supabase
         .from("ledger")
         .select(
-          "id, name, base_currency, transaction_item_special_status_enabled",
+          "id, name, base_currency, transaction_item_special_status_enabled, multi_account_payment_enabled",
         )
         .eq("id", ledgerId)
         .eq("is_archived", false)
@@ -268,6 +269,7 @@ export function createSupabaseCurrentLedgerRepository(
         name: ledger.name,
         transactionItemSpecialStatusEnabled:
           ledger.transaction_item_special_status_enabled,
+        multiAccountPaymentEnabled: ledger.multi_account_payment_enabled,
       };
     },
 

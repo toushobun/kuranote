@@ -233,6 +233,10 @@ describe("LinkedTransactionItemRepository", () => {
     ],
     ["payment_total_mismatch", transactionErrorCodes.paymentTotalMismatch],
     [
+      "payment_multi_account_disabled",
+      transactionErrorCodes.paymentMultiAccountDisabled,
+    ],
+    [
       "payment_multi_account_not_allowed",
       transactionErrorCodes.paymentMultiAccountNotAllowed,
     ],

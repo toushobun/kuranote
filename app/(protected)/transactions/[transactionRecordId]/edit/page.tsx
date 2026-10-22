@@ -84,6 +84,7 @@ export default async function TransactionEditPage({
             initialValues={initialValues}
             ledgerName={view.ledgerName}
             merchantOptions={view.merchantOptions}
+            multiAccountPaymentEnabled={view.multiAccountPaymentEnabled}
             transactionItemSpecialStatusEnabled={
               view.transactionItemSpecialStatusEnabled
             }
@@ -106,6 +107,7 @@ export default async function TransactionEditPage({
           initialValues={initialValues}
           ledgerName={view.ledgerName}
           merchantOptions={view.merchantOptions}
+          multiAccountPaymentEnabled={view.multiAccountPaymentEnabled}
           transactionItemSpecialStatusEnabled={
             view.transactionItemSpecialStatusEnabled
           }

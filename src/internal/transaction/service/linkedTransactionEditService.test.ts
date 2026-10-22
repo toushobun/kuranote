@@ -84,6 +84,7 @@ function formOptions() {
       { icon_url: null, id: merchantId, name: "商家" },
       { icon_url: null, id: otherMerchantId, name: "新商家" },
     ],
+    multiAccountPaymentEnabled: true,
     transactionItemSpecialStatusEnabled: true,
   };
 }
@@ -820,6 +821,31 @@ describe("LinkedTransactionEditService", () => {
         transactionAt,
         transactionRecordId,
       });
+      expect(updateNormal).not.toHaveBeenCalled();
+    });
+
+    it("账本未开启多账户付款时拒绝多个付款账户，不调用保存 RPC", async () => {
+      const view = {
+        ...createTargetView(),
+        multiAccountPaymentEnabled: false,
+      };
+      const { service, updateEdit, updateNormal } = createService(view);
+      const input = targetInput({
+        confirmSync: true,
+        expectedUpdatedAtByItemId: { [linkedItemId]: updatedAt },
+        payments: [
+          { accountId: oldAccountId, amount: "100" },
+          { accountId: sameCurrencyAccountId, amount: "200" },
+        ],
+      });
+
+      await expect(
+        service.updateNormal(currentLedger, input),
+      ).rejects.toMatchObject({
+        code: transactionErrorCodes.paymentMultiAccountDisabled,
+        name: ValidationError.name,
+      });
+      expect(updateEdit).not.toHaveBeenCalled();
       expect(updateNormal).not.toHaveBeenCalled();
     });
 

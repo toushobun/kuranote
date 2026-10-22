@@ -32,7 +32,10 @@ import {
   transactionValidationErrorMessages,
 } from "internal/transaction/errors";
 import type { TransactionPayment } from "internal/transaction/entity/transactionPayment";
-import { validateTransactionPayments } from "internal/transaction/util/validateTransactionPayments";
+import {
+  validateMultiAccountPaymentSetting,
+  validateTransactionPayments,
+} from "internal/transaction/util/validateTransactionPayments";
 import { requireItemAccountId } from "internal/transaction/util/grouping/recordAccounts";
 import type {
   TransactionFilters,
@@ -344,7 +347,8 @@ export function createTransactionService({
   /**
    * create / update / convert 调用 Repository 前的第二道防线：账户去重、归档、
    * 同币种、多行时全部为支出明细、付款合计 = 支出明细合计，规则与数据库延迟
-   * 约束触发器一致（docs/design/issue-834-split-payment.md 3.2）。
+   * 约束触发器一致（docs/design/issue-834-split-payment.md 3.2）；多行时账本还
+   * 必须开启多账户付款（#931，与 replace_transaction_payments 一致）。
    */
   async function requireValidTransactionPayments(input: {
     accountOptions: AccountSummary[];
@@ -374,6 +378,21 @@ export function createTransactionService({
       throw new ValidationError(
         result.error,
         transactionPaymentValidationErrorMessages[result.error],
+      );
+    }
+    // 单账户时无需读取账本开关。
+    if (input.payments.length <= 1) return;
+    const settingResult = validateMultiAccountPaymentSetting({
+      multiAccountPaymentEnabled:
+        await transactionRepository.isMultiAccountPaymentEnabled(
+          input.ledgerId,
+        ),
+      paymentCount: input.payments.length,
+    });
+    if (!settingResult.ok) {
+      throw new ValidationError(
+        settingResult.error,
+        transactionPaymentValidationErrorMessages[settingResult.error],
       );
     }
   }

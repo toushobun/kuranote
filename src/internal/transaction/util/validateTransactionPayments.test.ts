@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { transactionErrorCodes } from "internal/transaction/errors";
-import { validateTransactionPayments } from "internal/transaction/util/validateTransactionPayments";
+import {
+  validateMultiAccountPaymentSetting,
+  validateTransactionPayments,
+} from "internal/transaction/util/validateTransactionPayments";
 
 const accountId1 = "00000000-0000-4000-8000-000000000101";
 const accountId2 = "00000000-0000-4000-8000-000000000102";
@@ -146,4 +149,27 @@ describe("validateTransactionPayments", () => {
       ok: false,
     });
   });
+});
+
+describe("validateMultiAccountPaymentSetting", () => {
+  it.each([
+    [true, 2, { ok: true }],
+    [false, 1, { ok: true }],
+    [false, 0, { ok: true }],
+    [
+      false,
+      2,
+      { error: transactionErrorCodes.paymentMultiAccountDisabled, ok: false },
+    ],
+  ])(
+    "开关 %s、付款账户 %i 个时返回 %j",
+    (multiAccountPaymentEnabled, paymentCount, expected) => {
+      expect(
+        validateMultiAccountPaymentSetting({
+          multiAccountPaymentEnabled,
+          paymentCount,
+        }),
+      ).toEqual(expected);
+    },
+  );
 });

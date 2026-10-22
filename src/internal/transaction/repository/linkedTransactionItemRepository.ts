@@ -87,6 +87,7 @@ const linkedEditRpcErrorCodes = [
   transactionErrorCodes.paymentAccountDuplicate,
   transactionErrorCodes.paymentAmountRequired,
   transactionErrorCodes.paymentCurrencyMismatch,
+  transactionErrorCodes.paymentMultiAccountDisabled,
   transactionErrorCodes.paymentMultiAccountNotAllowed,
   transactionErrorCodes.paymentTotalMismatch,
 ] as const;
@@ -215,6 +216,13 @@ export function createSupabaseLinkedTransactionItemRepository(
         transactionWriteErrorMessages.paymentTotalMismatch,
       );
     }
+    if (rpcErrorCode === transactionErrorCodes.paymentMultiAccountDisabled) {
+      throw new ValidationError(
+        rpcErrorCode,
+        transactionWriteErrorMessages.paymentMultiAccountDisabled,
+      );
+    }
+
     if (rpcErrorCode === transactionErrorCodes.paymentMultiAccountNotAllowed) {
       throw new ValidationError(
         rpcErrorCode,

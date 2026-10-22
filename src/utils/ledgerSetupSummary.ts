@@ -60,6 +60,7 @@ export function buildLedgerSetupConfirmSummary({
       skipped: selectedMerchants.length === 0,
       tags: merchantTags,
     },
+    multiAccountPaymentEnabled: features.multiAccountPaymentEnabled,
     specialStatusEnabled: features.specialStatusEnabled,
   };
 }

@@ -23,3 +23,19 @@ export const ledgerBasicInfoFieldMessages = {
   displayNameLabel: "我的显示名",
   ledgerNameLabel: "账本名称",
 } as const;
+
+/** 账本功能开关卡片（账本设置页与创建账本向导第 4 步共用）。 */
+export const ledgerFeatureSettingMessages = {
+  canEditOnly: "只有管理员或所有者可以修改此设置。",
+  loadFailed: "功能设置加载失败，请稍后重试。",
+  loading: "正在加载功能设置…",
+  multiAccountPayment: {
+    description: "一笔支出可以由多个同币种账户共同支付，并分别填写金额。",
+    disabledDescription: "关闭时每笔记录只能选择一个付款账户。",
+    enabledDescription:
+      "如果账本内已有使用多个付款账户的记录，将无法关闭；请先把这些记录改为单个付款账户。",
+    sectionTitle: "多账户付款",
+    switchLabel: "启用多账户付款",
+  },
+  retry: "重试",
+} as const;

@@ -23,7 +23,10 @@ describe("buildLedgerSetupCompletionPayload", () => {
           ],
           skipped: false,
         },
-        features: { specialStatusEnabled: true },
+        features: {
+          multiAccountPaymentEnabled: true,
+          specialStatusEnabled: true,
+        },
         merchants: { selectedKeys: ["water_bureau", "amazon"], skipped: false },
       },
       jpyTemplate,
@@ -66,6 +69,7 @@ describe("buildLedgerSetupCompletionPayload", () => {
           websiteUrl: null,
         },
       ],
+      multiAccountPaymentEnabled: true,
       specialStatusEnabled: true,
     });
   });
@@ -88,6 +92,7 @@ describe("buildLedgerSetupCompletionPayload", () => {
       "通讯",
       "订阅服务",
     ]);
+    expect(payload.multiAccountPaymentEnabled).toBe(false);
     expect(payload.specialStatusEnabled).toBe(false);
   });
 
@@ -124,6 +129,7 @@ describe("buildLedgerSetupCompletionPayload", () => {
       accounts: [],
       merchantTags: [],
       merchants: [],
+      multiAccountPaymentEnabled: false,
       specialStatusEnabled: false,
     });
   });
@@ -138,6 +144,7 @@ describe("buildLedgerSetupCompletionPayload", () => {
       accounts: [{ name: "现金", type: "cash" }],
       merchantTags: [],
       merchants: [],
+      multiAccountPaymentEnabled: false,
       specialStatusEnabled: false,
     });
   });

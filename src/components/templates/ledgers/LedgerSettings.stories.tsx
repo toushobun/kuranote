@@ -70,6 +70,23 @@ export const Default: Story = {
   name: "账本设置页",
 };
 
+export const MultiAccountPaymentHasRecords: Story = {
+  name: "关闭多账户付款被拒绝（已有多账户记录）",
+  args: {
+    errorKey: "multi-account-payment-has-records",
+    errorMessage:
+      "账本内仍有使用多个付款账户的记录，请先把这些记录改为单个付款账户后再关闭该功能。",
+    ledger: {
+      baseCurrency: "JPY",
+      currentUserRole: "owner",
+      id: "00000000-0000-4000-8000-000000000032",
+      isCurrent: true,
+      multiAccountPaymentEnabled: true,
+      name: "家庭账本",
+    },
+  },
+};
+
 const placeholderMembers = [
   { displayName: "奶奶", id: "00000000-0000-4000-8000-000000000061" },
   { displayName: "爷爷", id: "00000000-0000-4000-8000-000000000062" },

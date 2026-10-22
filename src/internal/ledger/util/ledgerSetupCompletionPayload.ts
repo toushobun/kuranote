@@ -16,6 +16,7 @@ export type LedgerSetupCompletionPayload = {
     tagKeys: string[];
     websiteUrl: string | null;
   }[];
+  multiAccountPaymentEnabled: boolean;
   specialStatusEnabled: boolean;
 };
 
@@ -43,6 +44,7 @@ export function buildLedgerSetupCompletionPayload(
       draft.merchants.skipped ? [] : draft.merchants.selectedKeys,
       template,
     ),
+    multiAccountPaymentEnabled: draft.features.multiAccountPaymentEnabled,
     specialStatusEnabled: draft.features.specialStatusEnabled,
   };
 }

@@ -9,19 +9,32 @@ import {
   goPreviousTo,
   renderLedgerSetupWizard,
 } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardTestUtils";
+import { ledgerFeatureSettingMessages } from "config/ledgerMessages";
 import { createLedgerSetupProgressFixture } from "test/mocks/ledgerSetup";
 import type { LedgerSetupDraftSaveAction } from "types/ledgers";
 
-function createFeaturesProgress(specialStatusEnabled = false) {
+function createFeaturesProgress(
+  specialStatusEnabled = false,
+  multiAccountPaymentEnabled = false,
+) {
   const base = createLedgerSetupProgressFixture({ step: 4 });
   return createLedgerSetupProgressFixture({
-    draft: { ...base.setup.draft, features: { specialStatusEnabled } },
+    draft: {
+      ...base.setup.draft,
+      features: { multiAccountPaymentEnabled, specialStatusEnabled },
+    },
     step: 4,
   });
 }
 
 function getSpecialStatusSwitch() {
   return screen.getByRole("switch", { name: "启用特殊状态" });
+}
+
+function getMultiAccountPaymentSwitch() {
+  return screen.getByRole("switch", {
+    name: ledgerFeatureSettingMessages.multiAccountPayment.switchLabel,
+  });
 }
 
 describe("LedgerSetupFeaturesStep", () => {
@@ -42,9 +55,22 @@ describe("LedgerSetupFeaturesStep", () => {
   });
 
   it.each([false, true])("初始值来自草稿（%s）", (enabled) => {
-    renderLedgerSetupWizard({ progress: createFeaturesProgress(enabled) });
+    renderLedgerSetupWizard({
+      progress: createFeaturesProgress(enabled, !enabled),
+    });
 
     expect(getSpecialStatusSwitch()).toHaveProperty("checked", enabled);
+    expect(getMultiAccountPaymentSwitch()).toHaveProperty("checked", !enabled);
+  });
+
+  it("开启多账户付款时不显示已有账本才适用的「无法关闭」说明", () => {
+    renderLedgerSetupWizard({ progress: createFeaturesProgress(false, true) });
+
+    expect(
+      screen.queryByText(
+        ledgerFeatureSettingMessages.multiAccountPayment.enabledDescription,
+      ),
+    ).not.toBeInTheDocument();
   });
 
   it("关闭状态下不显示已有账本才适用的「将无法关闭」说明", () => {
@@ -60,14 +86,19 @@ describe("LedgerSetupFeaturesStep", () => {
     renderLedgerSetupWizard({ progress, saveDraft });
 
     fireEvent.click(getSpecialStatusSwitch());
+    fireEvent.click(getMultiAccountPaymentSwitch());
     expect(getSpecialStatusSwitch()).toBeChecked();
+    expect(getMultiAccountPaymentSwitch()).toBeChecked();
     clickNext();
 
     await waitFor(() => expect(getCurrentStepItem()).toHaveTextContent("确认"));
     expect(getSavedInput(saveDraft)).toEqual({
       draft: {
         ...progress.setup.draft,
-        features: { specialStatusEnabled: true },
+        features: {
+          multiAccountPaymentEnabled: true,
+          specialStatusEnabled: true,
+        },
       },
       ledgerId: progress.setup.id,
       step: 5,
@@ -75,7 +106,7 @@ describe("LedgerSetupFeaturesStep", () => {
   });
 
   it("上一步时同样保存功能设置，setup_step 不倒退", async () => {
-    const progress = createFeaturesProgress(true);
+    const progress = createFeaturesProgress(true, true);
     const saveDraft = createSaveDraftMock(progress);
     renderLedgerSetupWizard({ progress, saveDraft });
 
@@ -85,7 +116,10 @@ describe("LedgerSetupFeaturesStep", () => {
     expect(getSavedInput(saveDraft)).toEqual({
       draft: {
         ...progress.setup.draft,
-        features: { specialStatusEnabled: false },
+        features: {
+          multiAccountPaymentEnabled: true,
+          specialStatusEnabled: false,
+        },
       },
       ledgerId: progress.setup.id,
       step: 4,

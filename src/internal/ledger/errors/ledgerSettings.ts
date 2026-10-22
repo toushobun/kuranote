@@ -21,6 +21,7 @@ export const ledgerSettingsErrorCodes = {
   displayNameTooLong: "display_name_too_long",
   ledgerInvalid: "ledger_invalid",
   memberInvalid: "member_invalid",
+  multiAccountPaymentHasRecords: "multi_account_payment_has_records",
   nameRequired: "name_required",
   nameTooLong: "name_too_long",
   permissionDenied: "permission_denied",
@@ -58,6 +59,8 @@ export const ledgerSettingsErrorMessages: Record<
     "当前账本昵称不能超过 100 个字符。",
   [ledgerSettingsErrorCodes.ledgerInvalid]: "账本指定不正确。",
   [ledgerSettingsErrorCodes.memberInvalid]: "成员指定不正确。",
+  [ledgerSettingsErrorCodes.multiAccountPaymentHasRecords]:
+    "账本内仍有使用多个付款账户的记录，请先把这些记录改为单个付款账户后再关闭该功能。",
   [ledgerSettingsErrorCodes.nameRequired]:
     ledgerCreateErrorMessages[ledgerCreateErrorCodes.nameRequired],
   [ledgerSettingsErrorCodes.nameTooLong]:

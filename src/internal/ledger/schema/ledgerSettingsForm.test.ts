@@ -66,6 +66,31 @@ describe("ledger settings validators", () => {
     });
   });
 
+  it.each([
+    ["true", true],
+    ["false", false],
+  ])("解析账本多账户付款开关（%s）", (value, expected) => {
+    expect(
+      validateUpdateLedgerSettingsForm(
+        createLedgerFormData({ multiAccountPaymentEnabled: value }),
+      ),
+    ).toMatchObject({
+      ok: true,
+      value: {
+        ledgerSettings: { multiAccountPaymentEnabled: expected },
+      },
+    });
+  });
+
+  it("未提交多账户付款开关时不更新该项", () => {
+    const result = validateUpdateLedgerSettingsForm(createLedgerFormData());
+
+    expect(result.ok).toBe(true);
+    expect(result.ok && result.value.ledgerSettings).not.toHaveProperty(
+      "multiAccountPaymentEnabled",
+    );
+  });
+
   it("成员设置表单校验通过", () => {
     expect(validateUpdateLedgerSettingsForm(createMemberFormData())).toEqual({
       ok: true,

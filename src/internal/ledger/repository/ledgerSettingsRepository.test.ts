@@ -259,6 +259,33 @@ describe("createSupabaseLedgerSettingsRepository.updateLedgerBaseSettings", () =
     });
   });
 
+  it("更新账本基础设置时一并保存多账户付款开关", async () => {
+    const supabase = createSupabaseMock({ queryResponses: [{ count: 1 }] });
+    const repository = createSupabaseLedgerSettingsRepository(
+      supabase.client as never,
+    );
+
+    await repository.updateLedgerBaseSettings(ledgerId, {
+      baseCurrency: "JPY",
+      ledgerName: "家庭账本",
+      multiAccountPaymentEnabled: true,
+      updatedBy: userId,
+    });
+
+    expect(supabase.queries[0]?.calls[0]).toEqual({
+      args: [
+        {
+          base_currency: "JPY",
+          multi_account_payment_enabled: true,
+          name: "家庭账本",
+          updated_by: userId,
+        },
+        { count: "exact" },
+      ],
+      method: "update",
+    });
+  });
+
   it("count 不为 1 时返回 update_failed", async () => {
     const supabase = createSupabaseMock({ queryResponses: [{ count: 0 }] });
     const repository = createSupabaseLedgerSettingsRepository(
@@ -301,6 +328,34 @@ describe("createSupabaseLedgerSettingsRepository.updateLedgerBaseSettings", () =
       }),
     ).resolves.toEqual({
       code: ledgerSettingsErrorCodes.specialStatusHasActiveItems,
+      ok: false,
+    });
+  });
+
+  it("存在多账户记录时返回可识别的业务错误", async () => {
+    const supabase = createSupabaseMock({
+      queryResponses: [
+        {
+          error: {
+            details: "multi_account_payment_has_records",
+            message: "database validation failed",
+          },
+        },
+      ],
+    });
+    const repository = createSupabaseLedgerSettingsRepository(
+      supabase.client as never,
+    );
+
+    await expect(
+      repository.updateLedgerBaseSettings(ledgerId, {
+        baseCurrency: "JPY",
+        ledgerName: "家庭账本",
+        multiAccountPaymentEnabled: false,
+        updatedBy: userId,
+      }),
+    ).resolves.toEqual({
+      code: ledgerSettingsErrorCodes.multiAccountPaymentHasRecords,
       ok: false,
     });
   });

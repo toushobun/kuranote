@@ -95,8 +95,13 @@ export function createMerchantPresetRepository(
       const { data, error } = await supabase.rpc("add_merchant_presets", {
         p_ledger_id: ledgerId,
         p_currency: currency,
-        // 补齐空账户与特殊状态字段，以复用 validate_ledger_setup_completion_payload。
-        p_payload: { accounts: [], specialStatusEnabled: false, ...payload },
+        // 补齐空账户与功能开关字段，以复用 validate_ledger_setup_completion_payload。
+        p_payload: {
+          accounts: [],
+          multiAccountPaymentEnabled: false,
+          specialStatusEnabled: false,
+          ...payload,
+        },
       });
       if (error) fail(error, merchantErrorCodes.merchantPresetAddFailed);
       if (typeof data !== "number" || !Number.isSafeInteger(data) || data < 0)

@@ -27,6 +27,7 @@ describe("buildLedgerSetupConfirmSummary", () => {
     ]);
     expect(summary.basicInfo.currencyLabel).toBe("JPY 日元");
     expect(summary.specialStatusEnabled).toBe(true);
+    expect(summary.multiAccountPaymentEnabled).toBe(true);
   });
 
   it("跳过或数量为 0 时视为已跳过", () => {
