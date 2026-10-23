@@ -49,6 +49,7 @@ export type {
 } from "internal/transaction/entity/transactionGrouping";
 export { defaultTransactionFilters } from "internal/transaction/entity/transactionGrouping";
 export type {
+  TransactionEditRestriction,
   TransactionGroupPage,
   TransactionMonthPage,
   TransactionSearchPage,

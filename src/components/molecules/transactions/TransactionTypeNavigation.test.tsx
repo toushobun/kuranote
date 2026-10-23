@@ -34,6 +34,22 @@ describe("TransactionTypeNavigation", () => {
     );
   });
 
+  it("disabled 时两个入口都不可切换", () => {
+    const onChange = vi.fn();
+    render(
+      <TransactionTypeNavigation
+        activeType="normal"
+        disabled
+        onChange={onChange}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "收支" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "转账" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "转账" }));
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it("点击转账会触发切换", () => {
     const onChange = vi.fn();
     render(

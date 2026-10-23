@@ -10,7 +10,11 @@ import {
 import { UserThemeProvider } from "theme/UserThemeProvider";
 import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import { BalanceAdjustmentEditForm } from "./BalanceAdjustmentEditForm";
-import type { BalanceAdjustmentEditInitialValues } from "internal/transaction";
+import type {
+  BalanceAdjustmentEditInitialValues,
+  TransactionEditRestriction,
+} from "internal/transaction";
+import { transactionEditRestrictionMessages } from "utils/transactionMessages";
 const initialValues: BalanceAdjustmentEditInitialValues = {
   type: "balance_adjustment",
   accountId: "account",
@@ -23,7 +27,16 @@ const initialValues: BalanceAdjustmentEditInitialValues = {
   accountArchived: false,
 };
 afterEach(cleanup);
-function setup(archived = false) {
+function setup(
+  archived = false,
+  {
+    canDelete = true,
+    editRestriction = null,
+  }: {
+    canDelete?: boolean;
+    editRestriction?: TransactionEditRestriction | null;
+  } = {},
+) {
   const action = vi.fn(async () => ({}));
   const deleteAction = vi.fn(async () => ({}));
   render(
@@ -32,7 +45,9 @@ function setup(archived = false) {
         <BalanceAdjustmentEditForm
           initialValues={{ ...initialValues, accountArchived: archived }}
           action={action}
+          canDelete={canDelete}
           deleteAction={deleteAction}
+          editRestriction={editRestriction}
         />
       </ConfirmDialogProvider>
     </UserThemeProvider>,
@@ -80,6 +95,20 @@ describe("BalanceAdjustmentEditForm", () => {
       within(screen.getByRole("dialog")).getByRole("button", { name: "取消" }),
     );
     expect(deleteAction).not.toHaveBeenCalled();
+  });
+  it("无修改权限时显示只读详情：提示原因，字段禁用，没有保存和删除", () => {
+    const { action } = setup(false, {
+      canDelete: false,
+      editRestriction: "permission",
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      transactionEditRestrictionMessages.permission,
+    );
+    expect(screen.getByLabelText("备注（选填）")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "选择记账时间" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "保存修改" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "删除" })).toBeNull();
+    expect(action).not.toHaveBeenCalled();
   });
   it("归档账户禁止删除但允许保存", () => {
     setup(true);

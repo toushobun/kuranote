@@ -20,6 +20,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
 import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
+import { ReadOnlyFieldset } from "atoms/ui/ReadOnlyFieldset";
 import { routePaths } from "config/paths";
 import { TransactionFormHeader } from "organisms/transactions/TransactionFormHeader/TransactionFormHeader";
 import { TransactionDateTimePicker } from "molecules/transactions/TransactionDateTimePicker";
@@ -77,6 +78,8 @@ type TransferTransactionFormProps = {
   initialValues?: TransferEditInitialValues;
   ledgerName?: string;
   onSubmitDisabledChange?: (disabled: boolean) => void;
+  /** 只读详情（#928）：整体禁用，不能修改任何字段。 */
+  readOnly?: boolean;
   sourceType?: TransactionRecordType;
   submitLabel?: string;
   title?: string;
@@ -94,6 +97,7 @@ export function TransferTransactionForm({
   initialValues,
   ledgerName,
   onSubmitDisabledChange,
+  readOnly = false,
   sourceType,
   submitLabel,
   title = "新增记账",
@@ -217,290 +221,303 @@ export function TransferTransactionForm({
 
   return (
     <form id={formId} action={action} onSubmit={handleSubmit}>
-      <Stack spacing={0} sx={transactionFormStackSx}>
-        {hideHeader ? null : (
-          <TransactionFormHeader
-            closeHref={routePaths.transactions}
-            isSubmitDisabled={isSubmitDisabled}
-            ledgerName={ledgerName}
-            title={title}
-          />
-        )}
+      <ReadOnlyFieldset readOnly={readOnly}>
+        <Stack spacing={0} sx={transactionFormStackSx}>
+          {hideHeader ? null : (
+            <TransactionFormHeader
+              closeHref={routePaths.transactions}
+              isSubmitDisabled={isSubmitDisabled}
+              ledgerName={ledgerName}
+              title={title}
+            />
+          )}
 
-        {typeNavigation}
+          {typeNavigation}
 
-        {errorMessage ? <Alert severity="error">{errorMessage}</Alert> : null}
+          {errorMessage ? <Alert severity="error">{errorMessage}</Alert> : null}
 
-        {isSameAccount ? (
-          <Alert severity="warning">转出账户和转入账户不能相同。</Alert>
-        ) : isDifferentCurrency ? (
-          <Alert severity="warning">暂不支持不同币种之间的转账。</Alert>
-        ) : null}
+          {isSameAccount ? (
+            <Alert severity="warning">转出账户和转入账户不能相同。</Alert>
+          ) : isDifferentCurrency ? (
+            <Alert severity="warning">暂不支持不同币种之间的转账。</Alert>
+          ) : null}
 
-        {setupHint && addAccountHref ? (
-          <TransactionSetupHintCard
-            addAccountHref={addAccountHref}
-            hint={setupHint}
-          />
-        ) : null}
+          {setupHint && addAccountHref ? (
+            <TransactionSetupHintCard
+              addAccountHref={addAccountHref}
+              hint={setupHint}
+            />
+          ) : null}
 
-        <input name="type" readOnly type="hidden" value="transfer" />
-        <input name="targetType" readOnly type="hidden" value="transfer" />
-        {sourceType ? (
-          <input name="sourceType" readOnly type="hidden" value={sourceType} />
-        ) : null}
-        <input
-          name="timeZoneOffsetMinutes"
-          readOnly
-          type="hidden"
-          value={timeZoneOffsetMinutes}
-        />
-        <input
-          name="transactionAt"
-          readOnly
-          type="hidden"
-          value={transactionAtValue}
-        />
-        {initialValues?.transactionRecordId ? (
+          <input name="type" readOnly type="hidden" value="transfer" />
+          <input name="targetType" readOnly type="hidden" value="transfer" />
+          {sourceType ? (
+            <input
+              name="sourceType"
+              readOnly
+              type="hidden"
+              value={sourceType}
+            />
+          ) : null}
           <input
-            name="transactionRecordId"
+            name="timeZoneOffsetMinutes"
             readOnly
             type="hidden"
-            value={initialValues.transactionRecordId}
+            value={timeZoneOffsetMinutes}
           />
-        ) : null}
-
-        <Box ref={accountFieldRef} sx={transactionFieldGroupSx}>
-          <TransferSectionTitle>转出账户</TransferSectionTitle>
-          <TextField
-            disabled={hasTooFewAccounts}
-            error={!!fieldErrors.accountId}
-            fullWidth
-            helperText={fieldErrors.accountId ?? accountHelperText}
-            label="转出账户"
-            name="accountId"
-            onChange={(e) => {
-              markEditDirty?.();
-              setSelectedAccountId(e.target.value);
-              if (fieldErrors.accountId) {
-                setFieldErrors((prev) => ({ ...prev, accountId: undefined }));
-              }
-            }}
-            select
-            slotProps={{
-              select: {
-                displayEmpty: true,
-                IconComponent: KeyboardArrowRightRoundedIcon,
-                renderValue: () => (
-                  <TransactionSelectionValue
-                    icon={<AccountBalanceWalletRoundedIcon fontSize="small" />}
-                    iconLabel="转出账户"
-                    text={
-                      sourceAccount
-                        ? `${sourceAccount.name}（${sourceAccount.currency}）`
-                        : "选择转出账户"
-                    }
-                    tone="outgoing"
-                  />
-                ),
-              },
-            }}
-            sx={transactionSelectionSelectSx}
-            value={selectedAccountId}
-          >
-            <MenuItem disabled value="">
-              请选择账户
-            </MenuItem>
-            {accountOptions.map((account) => (
-              <MenuItem key={account.id} value={account.id}>
-                {account.name}（{account.currency}）
-              </MenuItem>
-            ))}
-          </TextField>
-        </Box>
-
-        <Box ref={targetAccountFieldRef} sx={transactionFieldGroupSx}>
-          <TransferSectionTitle>转入账户</TransferSectionTitle>
-          <TextField
-            disabled={hasTooFewAccounts}
-            error={!!fieldErrors.targetAccountId}
-            fullWidth
-            helperText={fieldErrors.targetAccountId ?? accountHelperText}
-            label="转入账户"
-            name="transferTargetAccountId"
-            onChange={(e) => {
-              markEditDirty?.();
-              setSelectedTargetAccountId(e.target.value);
-              if (fieldErrors.targetAccountId) {
-                setFieldErrors((prev) => ({
-                  ...prev,
-                  targetAccountId: undefined,
-                }));
-              }
-            }}
-            select
-            slotProps={{
-              select: {
-                displayEmpty: true,
-                IconComponent: KeyboardArrowRightRoundedIcon,
-                renderValue: () => (
-                  <TransactionSelectionValue
-                    icon={<AccountBalanceWalletRoundedIcon fontSize="small" />}
-                    iconLabel="转入账户"
-                    text={
-                      targetAccount
-                        ? `${targetAccount.name}（${targetAccount.currency}）`
-                        : "选择转入账户"
-                    }
-                    tone="incoming"
-                  />
-                ),
-              },
-            }}
-            sx={transactionSelectionSelectSx}
-            value={selectedTargetAccountId}
-          >
-            <MenuItem disabled value="">
-              请选择账户
-            </MenuItem>
-            {accountOptions.map((account) => (
-              <MenuItem key={account.id} value={account.id}>
-                {account.name}（{account.currency}）
-              </MenuItem>
-            ))}
-          </TextField>
-        </Box>
-
-        <Box ref={amountFieldRef} sx={transactionFieldGroupSx}>
-          <TransferSectionTitle>转账金额</TransferSectionTitle>
-          <TextField
-            error={!!fieldErrors.transferAmount}
-            fullWidth
-            helperText={fieldErrors.transferAmount}
-            hiddenLabel
-            name="transferAmount"
-            onChange={(e) => {
-              markEditDirty?.();
-              setTransferAmount(e.target.value);
-              if (fieldErrors.transferAmount) {
-                setFieldErrors((prev) => ({
-                  ...prev,
-                  transferAmount: undefined,
-                }));
-              }
-            }}
-            placeholder="0"
-            slotProps={{
-              htmlInput: {
-                "aria-label": "金额",
-                "data-amount-currency": sourceAccount?.currency ?? "",
-                "data-amount-input": "true",
-                inputMode: "decimal" as const,
-              },
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    {transferCurrencySymbol}
-                  </InputAdornment>
-                ),
-              },
-            }}
-            sx={transferAmountFieldSx}
-            type="text"
-            value={transferAmount}
+          <input
+            name="transactionAt"
+            readOnly
+            type="hidden"
+            value={transactionAtValue}
           />
-        </Box>
+          {initialValues?.transactionRecordId ? (
+            <input
+              name="transactionRecordId"
+              readOnly
+              type="hidden"
+              value={initialValues.transactionRecordId}
+            />
+          ) : null}
 
-        <TransactionDateTimePicker
-          date={transactionDate}
-          onDateChange={(date) => {
-            markEditDirty?.();
-            setTransactionDate(date);
-          }}
-          onTimeChange={(time) => {
-            markEditDirty?.();
-            setTransactionTime(time);
-          }}
-          time={transactionTime}
-        />
-
-        <Box ref={noteFieldRef} sx={transactionFieldGroupSx}>
-          <TransferSectionTitle>备注（可选）</TransferSectionTitle>
-          <TextField
-            error={isNoteTooLong}
-            fullWidth
-            helperText={
-              isNoteTooLong
-                ? `备注不能超过 ${maxNoteLength} 个字符。`
-                : `${note.length} / ${maxNoteLength}`
-            }
-            hiddenLabel
-            multiline
-            name="note"
-            onChange={(e) => {
-              markEditDirty?.();
-              setNote(e.target.value);
-            }}
-            placeholder="记录这次转账的用途…"
-            rows={1}
-            slotProps={{ htmlInput: { "aria-label": "备注（选填）" } }}
-            sx={transactionNoteFieldSx}
-            value={note}
-          />
-        </Box>
-
-        <Box sx={transactionSummarySurfaceSx}>
-          <Stack spacing={1}>
-            <Typography variant="subtitle1" sx={summaryTitleSx}>
-              保存前汇总
-            </Typography>
-            <SummaryRow
+          <Box ref={accountFieldRef} sx={transactionFieldGroupSx}>
+            <TransferSectionTitle>转出账户</TransferSectionTitle>
+            <TextField
+              disabled={hasTooFewAccounts}
+              error={!!fieldErrors.accountId}
+              fullWidth
+              helperText={fieldErrors.accountId ?? accountHelperText}
               label="转出账户"
-              value={
-                sourceAccount
-                  ? `${sourceAccount.name}（${sourceAccount.currency}）`
-                  : "未选择"
-              }
-            />
-            <SummaryRow
-              label="转入账户"
-              value={
-                targetAccount
-                  ? `${targetAccount.name}（${targetAccount.currency}）`
-                  : "未选择"
-              }
-            />
-            <SummaryRow
-              label="时间"
-              value={formatSummaryDateTime(transactionDate, transactionTime)}
-            />
-            <Divider />
-            <SummaryRow
-              label="转账金额"
-              value={
-                transferAmount
-                  ? formatSignedCurrencyAmount(
-                      transferAmount,
-                      sourceAccount?.currency,
-                    )
-                  : "未填写金额"
-              }
-              strong
-            />
-          </Stack>
-        </Box>
+              name="accountId"
+              onChange={(e) => {
+                markEditDirty?.();
+                setSelectedAccountId(e.target.value);
+                if (fieldErrors.accountId) {
+                  setFieldErrors((prev) => ({ ...prev, accountId: undefined }));
+                }
+              }}
+              select
+              slotProps={{
+                input: { readOnly },
+                select: {
+                  displayEmpty: true,
+                  IconComponent: KeyboardArrowRightRoundedIcon,
+                  renderValue: () => (
+                    <TransactionSelectionValue
+                      icon={
+                        <AccountBalanceWalletRoundedIcon fontSize="small" />
+                      }
+                      iconLabel="转出账户"
+                      text={
+                        sourceAccount
+                          ? `${sourceAccount.name}（${sourceAccount.currency}）`
+                          : "选择转出账户"
+                      }
+                      tone="outgoing"
+                    />
+                  ),
+                },
+              }}
+              sx={transactionSelectionSelectSx}
+              value={selectedAccountId}
+            >
+              <MenuItem disabled value="">
+                请选择账户
+              </MenuItem>
+              {accountOptions.map((account) => (
+                <MenuItem key={account.id} value={account.id}>
+                  {account.name}（{account.currency}）
+                </MenuItem>
+              ))}
+            </TextField>
+          </Box>
 
-        {hideSubmitButton ? null : (
-          <PrimaryActionButton
-            disabled={isSubmitDisabled}
-            size="large"
-            type="submit"
-            sx={transactionSubmitButtonSx}
-          >
-            {effectiveSubmitLabel}
-          </PrimaryActionButton>
-        )}
-      </Stack>
+          <Box ref={targetAccountFieldRef} sx={transactionFieldGroupSx}>
+            <TransferSectionTitle>转入账户</TransferSectionTitle>
+            <TextField
+              disabled={hasTooFewAccounts}
+              error={!!fieldErrors.targetAccountId}
+              fullWidth
+              helperText={fieldErrors.targetAccountId ?? accountHelperText}
+              label="转入账户"
+              name="transferTargetAccountId"
+              onChange={(e) => {
+                markEditDirty?.();
+                setSelectedTargetAccountId(e.target.value);
+                if (fieldErrors.targetAccountId) {
+                  setFieldErrors((prev) => ({
+                    ...prev,
+                    targetAccountId: undefined,
+                  }));
+                }
+              }}
+              select
+              slotProps={{
+                input: { readOnly },
+                select: {
+                  displayEmpty: true,
+                  IconComponent: KeyboardArrowRightRoundedIcon,
+                  renderValue: () => (
+                    <TransactionSelectionValue
+                      icon={
+                        <AccountBalanceWalletRoundedIcon fontSize="small" />
+                      }
+                      iconLabel="转入账户"
+                      text={
+                        targetAccount
+                          ? `${targetAccount.name}（${targetAccount.currency}）`
+                          : "选择转入账户"
+                      }
+                      tone="incoming"
+                    />
+                  ),
+                },
+              }}
+              sx={transactionSelectionSelectSx}
+              value={selectedTargetAccountId}
+            >
+              <MenuItem disabled value="">
+                请选择账户
+              </MenuItem>
+              {accountOptions.map((account) => (
+                <MenuItem key={account.id} value={account.id}>
+                  {account.name}（{account.currency}）
+                </MenuItem>
+              ))}
+            </TextField>
+          </Box>
+
+          <Box ref={amountFieldRef} sx={transactionFieldGroupSx}>
+            <TransferSectionTitle>转账金额</TransferSectionTitle>
+            <TextField
+              error={!!fieldErrors.transferAmount}
+              fullWidth
+              helperText={fieldErrors.transferAmount}
+              hiddenLabel
+              name="transferAmount"
+              onChange={(e) => {
+                markEditDirty?.();
+                setTransferAmount(e.target.value);
+                if (fieldErrors.transferAmount) {
+                  setFieldErrors((prev) => ({
+                    ...prev,
+                    transferAmount: undefined,
+                  }));
+                }
+              }}
+              placeholder="0"
+              slotProps={{
+                htmlInput: {
+                  "aria-label": "金额",
+                  "data-amount-currency": sourceAccount?.currency ?? "",
+                  "data-amount-input": "true",
+                  inputMode: "decimal" as const,
+                },
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      {transferCurrencySymbol}
+                    </InputAdornment>
+                  ),
+                },
+              }}
+              sx={transferAmountFieldSx}
+              type="text"
+              value={transferAmount}
+            />
+          </Box>
+
+          <TransactionDateTimePicker
+            date={transactionDate}
+            onDateChange={(date) => {
+              markEditDirty?.();
+              setTransactionDate(date);
+            }}
+            onTimeChange={(time) => {
+              markEditDirty?.();
+              setTransactionTime(time);
+            }}
+            time={transactionTime}
+          />
+
+          <Box ref={noteFieldRef} sx={transactionFieldGroupSx}>
+            <TransferSectionTitle>备注（可选）</TransferSectionTitle>
+            <TextField
+              error={isNoteTooLong}
+              fullWidth
+              helperText={
+                isNoteTooLong
+                  ? `备注不能超过 ${maxNoteLength} 个字符。`
+                  : `${note.length} / ${maxNoteLength}`
+              }
+              hiddenLabel
+              multiline
+              name="note"
+              onChange={(e) => {
+                markEditDirty?.();
+                setNote(e.target.value);
+              }}
+              placeholder="记录这次转账的用途…"
+              rows={1}
+              slotProps={{ htmlInput: { "aria-label": "备注（选填）" } }}
+              sx={transactionNoteFieldSx}
+              value={note}
+            />
+          </Box>
+
+          <Box sx={transactionSummarySurfaceSx}>
+            <Stack spacing={1}>
+              <Typography variant="subtitle1" sx={summaryTitleSx}>
+                保存前汇总
+              </Typography>
+              <SummaryRow
+                label="转出账户"
+                value={
+                  sourceAccount
+                    ? `${sourceAccount.name}（${sourceAccount.currency}）`
+                    : "未选择"
+                }
+              />
+              <SummaryRow
+                label="转入账户"
+                value={
+                  targetAccount
+                    ? `${targetAccount.name}（${targetAccount.currency}）`
+                    : "未选择"
+                }
+              />
+              <SummaryRow
+                label="时间"
+                value={formatSummaryDateTime(transactionDate, transactionTime)}
+              />
+              <Divider />
+              <SummaryRow
+                label="转账金额"
+                value={
+                  transferAmount
+                    ? formatSignedCurrencyAmount(
+                        transferAmount,
+                        sourceAccount?.currency,
+                      )
+                    : "未填写金额"
+                }
+                strong
+              />
+            </Stack>
+          </Box>
+
+          {hideSubmitButton ? null : (
+            <PrimaryActionButton
+              disabled={isSubmitDisabled}
+              size="large"
+              type="submit"
+              sx={transactionSubmitButtonSx}
+            >
+              {effectiveSubmitLabel}
+            </PrimaryActionButton>
+          )}
+        </Stack>
+      </ReadOnlyFieldset>
     </form>
   );
 }

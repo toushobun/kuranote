@@ -13,7 +13,9 @@ const meta = {
   ],
   args: {
     action: async () => ({}),
+    canDelete: true,
     deleteAction: async () => ({}),
+    editRestriction: null,
     initialValues: {
       type: "balance_adjustment",
       accountId: "account",
@@ -39,4 +41,8 @@ export const Archived: Story = {
   args: {
     initialValues: { ...meta.args.initialValues, accountArchived: true },
   },
+};
+export const ReadOnlyPermission: Story = {
+  name: "只读详情：他人创建",
+  args: { canDelete: false, editRestriction: "permission" },
 };

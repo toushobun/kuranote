@@ -30,7 +30,6 @@ const transactionListItemSchema = z.object({
   account_currency: z.string(),
   account_name: z.string(),
   amount: z.string(),
-  canEdit: z.boolean().optional(),
   categoryItems: z.array(categoryItemSchema),
   created_at: z.string(),
   id: z.string(),

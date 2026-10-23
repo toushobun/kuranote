@@ -33,7 +33,6 @@ import { hasBusinessNetAmountOffset } from "utils/transactions";
 export function buildTransactionListItem({
   accountById,
   accountColorById,
-  canEdit,
   categoryById,
   fallbackCurrency,
   filters,
@@ -47,7 +46,6 @@ export function buildTransactionListItem({
 }: {
   accountById: Map<string, AccountOptionDbRow>;
   accountColorById?: Map<string, ThemeColorKey>;
-  canEdit: boolean;
   categoryById: Map<string, CategorySummaryDbRow>;
   fallbackCurrency: string;
   /** 已规范化的筛选条件；`recordItems` 为按它命中的明细。 */
@@ -79,7 +77,6 @@ export function buildTransactionListItem({
       account_currency: account?.currency ?? fallbackCurrency,
       account_name: account?.name ?? transactionFallbackLabels.account,
       amount: item?.balance_delta ?? "0",
-      canEdit,
       categoryItems: [],
       created_at: record.created_at,
       id: record.id,
@@ -97,7 +94,6 @@ export function buildTransactionListItem({
     return buildTransferListItem({
       accountById,
       accountColorById,
-      canEdit,
       fallbackCurrency,
       record,
       recorder,
@@ -219,7 +215,6 @@ export function buildTransactionListItem({
                 : displayType,
         }
       : {}),
-    canEdit,
     categoryItems,
     created_at: record.created_at,
     id: record.id,
@@ -249,7 +244,6 @@ function getRemainingRefundableAmount(item: TransactionItemDbRow) {
 function buildTransferListItem({
   accountById,
   accountColorById,
-  canEdit,
   fallbackCurrency,
   record,
   recorder,
@@ -258,7 +252,6 @@ function buildTransferListItem({
 }: {
   accountById: Map<string, AccountOptionDbRow>;
   accountColorById?: Map<string, ThemeColorKey>;
-  canEdit: boolean;
   fallbackCurrency: string;
   record: TransactionRecordDbRow;
   recorder: AppUserSummaryDbRow | undefined;
@@ -309,7 +302,6 @@ function buildTransferListItem({
     account_currency: currency,
     account_name: accountName,
     amount,
-    canEdit,
     categoryItems: [],
     created_at: record.created_at,
     id: record.id,

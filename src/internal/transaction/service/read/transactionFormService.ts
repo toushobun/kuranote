@@ -16,6 +16,7 @@ import type {
   TransactionCategoryOption,
   TransferEditInitialValues,
 } from "internal/transaction/service/read/transactionReadModels";
+import type { TransactionEditRestriction } from "internal/transaction/entity/transactionReadModels";
 import type { TransactionType } from "internal/transaction/entity/transactionType";
 import {
   fromTransactionSpecialStatusStorageValue,
@@ -94,12 +95,12 @@ export async function getEditTransactionView(
   const currencyByAccountId = new Map(
     options.accountOptions.map((account) => [account.id, account.currency]),
   );
-  const canEdit = canModify && !hasArchivedAccount;
-  const editRestriction = canModify
-    ? hasArchivedAccount
+  // 有限制时编辑页显示只读详情（#928）；删除仍按修改权限判断。
+  const editRestriction: TransactionEditRestriction | null = !canModify
+    ? "permission"
+    : hasArchivedAccount
       ? "archivedAccount"
-      : null
-    : "permission";
+      : null;
 
   if (record.type === "balance_adjustment") {
     const item = items[0];
@@ -122,7 +123,8 @@ export async function getEditTransactionView(
     );
     return {
       ...options,
-      canEdit: canModify,
+      canDelete: canModify,
+      // 余额调整的账户已归档时仍可修改时间与备注（只禁止删除），因此只按权限限制。
       editRestriction: canModify ? null : "permission",
       initialValues: {
         type: "balance_adjustment",
@@ -156,7 +158,7 @@ export async function getEditTransactionView(
     const fromAccountId = requireItemAccountId(fromItem);
     return {
       ...options,
-      canEdit,
+      canDelete: canModify,
       editRestriction,
       initialValues: {
         accountId: fromAccountId,
@@ -200,7 +202,7 @@ export async function getEditTransactionView(
 
   return {
     ...options,
-    canEdit,
+    canDelete: canModify,
     editRestriction,
     initialValues: {
       ...(record.updated_at

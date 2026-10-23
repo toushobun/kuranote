@@ -260,7 +260,6 @@ describe("TransactionDashboardQueryService", () => {
     expect(result.recentTransactions[0]).toMatchObject({
       account_color: null,
       amount: "50",
-      canEdit: false,
       merchant_name: "超市",
       recorder_color: null,
       recorder_name: null,

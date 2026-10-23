@@ -17,7 +17,6 @@ const mocks = vi.hoisted(() => ({
   loadReimbursementPickerGroupPage: vi.fn(),
   loadReimbursementPickerSearchPage: vi.fn(),
   NewTransactionVisualFrame: vi.fn(() => null),
-  TransactionPermissionDenied: vi.fn(() => null),
   saveEditTransaction: vi.fn(),
   updateTransaction: vi.fn(),
   voidTransaction: vi.fn(),
@@ -42,7 +41,6 @@ vi.mock("internal/transaction/adapter/next/loadTransactionViews", () => ({
 vi.mock("templates/transactions/TransactionFormPage", () => ({
   EditTransactionTemplate: mocks.EditTransactionTemplate,
   EditTransferTransactionTemplate: mocks.EditTransferTransactionTemplate,
-  TransactionPermissionDenied: mocks.TransactionPermissionDenied,
 }));
 
 vi.mock("utils/pageErrors", () => ({
@@ -58,7 +56,9 @@ import TransactionEditPage from "./page";
 function createEditView() {
   return {
     accountOptions: [],
+    canDelete: true,
     categoryOptions: [],
+    editRestriction: null,
     initialValues: {
       accountId: "00000000-0000-4000-8000-000000000041",
       items: [
@@ -98,48 +98,36 @@ describe("TransactionEditPage", () => {
     vi.clearAllMocks();
   });
 
-  it("无修改权限时在当前页面显示权限提示", async () => {
-    mocks.loadEditTransactionView.mockResolvedValue({
-      ...createEditView(),
-      canEdit: false,
-    });
+  it.each([
+    ["普通记录", createEditView, mocks.EditTransactionTemplate],
+    ["转账", createTransferEditView, mocks.EditTransferTransactionTemplate],
+  ] as const)(
+    "%s无修改权限时仍渲染模板并传入限制原因（只读详情）",
+    async (_label, createView, template) => {
+      mocks.loadEditTransactionView.mockResolvedValue({
+        ...createView(),
+        canDelete: false,
+        editRestriction: "permission",
+      });
 
-    const result = await TransactionEditPage({
-      params: Promise.resolve({ transactionRecordId }),
-    });
-    const element = result as ReactElement<Record<string, unknown>>;
-    const child = element.props.children as ReactElement<
-      Record<string, unknown>
-    >;
+      const result = await TransactionEditPage({
+        params: Promise.resolve({ transactionRecordId }),
+      });
+      const element = result as ReactElement<Record<string, unknown>>;
+      const provider = element.props.children as ReactElement<{
+        children: ReactElement<Record<string, unknown>>;
+      }>;
+      const child = provider.props.children;
 
-    expect(child.type).toBe(mocks.TransactionPermissionDenied);
-    expect(child.props).toMatchObject({ operation: "edit" });
-  });
-
-  it("关联报销或退款的目标支出渲染正常编辑表单", async () => {
-    const view = {
-      ...createEditView(),
-      canEdit: true,
-      editRestriction: null,
-    };
-    mocks.loadEditTransactionView.mockResolvedValue(view);
-
-    const result = await TransactionEditPage({
-      params: Promise.resolve({ transactionRecordId }),
-    });
-    const element = result as ReactElement<Record<string, unknown>>;
-    const provider = element.props.children as ReactElement<{
-      children: ReactElement<Record<string, unknown>>;
-    }>;
-    const child = provider.props.children;
-
-    expect(child.type).toBe(mocks.EditTransactionTemplate);
-    expect(child.props.initialValues).toMatchObject({
-      transactionRecordId,
-      type: "expense",
-    });
-    expect(mocks.TransactionPermissionDenied).not.toHaveBeenCalled();
-  });
+      expect(child.type).toBe(template);
+      expect(child.props).toMatchObject({
+        action: mocks.saveEditTransaction,
+        canDelete: false,
+        deleteAction: mocks.voidTransaction,
+        editRestriction: "permission",
+      });
+    },
+  );
 
   it("使用 URL 参数中的 transactionRecordId 显示编辑画面", async () => {
     const view = createEditView();

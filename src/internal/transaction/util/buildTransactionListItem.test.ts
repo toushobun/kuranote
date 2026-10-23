@@ -29,10 +29,7 @@ type BuildTransactionListItemInput = Parameters<
  * 金额为 Σ收入 − Σ支出；未指定筛选条件时使用默认筛选。
  */
 function buildTransactionListItem(
-  input: Omit<
-    BuildTransactionListItemInput,
-    "canEdit" | "filters" | "payments"
-  > &
+  input: Omit<BuildTransactionListItemInput, "filters" | "payments"> &
     Partial<Pick<BuildTransactionListItemInput, "filters" | "payments">>,
 ) {
   const firstItem = input.recordItems[0];
@@ -60,7 +57,6 @@ function buildTransactionListItem(
     filters: defaultTransactionFilters,
     payments: defaultPayments,
     ...input,
-    canEdit: true,
   });
 }
 

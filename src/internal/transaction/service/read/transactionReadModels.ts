@@ -3,6 +3,7 @@ import type { CategoryType } from "internal/category";
 import type { MerchantSummary } from "internal/merchant";
 import type { TransactionPayment } from "internal/transaction/entity/transactionPayment";
 import type { TransactionGroupBy } from "internal/transaction/entity/transactionGrouping";
+import type { TransactionEditRestriction } from "internal/transaction/entity/transactionReadModels";
 import type { TransactionType } from "internal/transaction/entity/transactionType";
 import type {
   TransactionBusinessStatus,
@@ -31,7 +32,6 @@ export type TransactionListItem = {
   amount: string;
   originalAmount?: string;
   originalType?: CategoryType;
-  canEdit?: boolean;
   categoryItems: TransactionCategorySummaryItem[];
   created_at: string;
   id: string;
@@ -151,8 +151,8 @@ export type NewTransactionView = TransactionFormOptions & {
 };
 
 export type EditTransactionView = TransactionFormOptions & {
-  canEdit: boolean;
-  editRestriction: "archivedAccount" | "linked" | "permission" | null;
+  canDelete: boolean;
+  editRestriction: TransactionEditRestriction | null;
   initialValues:
     | BalanceAdjustmentEditInitialValues
     | TransferEditInitialValues

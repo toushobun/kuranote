@@ -13,6 +13,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
 import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
+import { ReadOnlyFieldset } from "atoms/ui/ReadOnlyFieldset";
 import { routePaths } from "config/paths";
 import { transactionSetupHintMessages } from "config/transactionMessages";
 import { TransactionDateTimePicker } from "molecules/transactions/TransactionDateTimePicker";
@@ -67,6 +68,7 @@ export function TransactionForm({
   refundPickerView,
   reimbursementPickerView,
   onSubmitDisabledChange,
+  readOnly = false,
   setupHrefs,
   submitLabel = "保存记账",
   title = "新增记账",
@@ -172,192 +174,199 @@ export function TransactionForm({
 
   return (
     <form id={formId} action={action} onSubmit={handleSubmit}>
-      <Stack spacing={0} sx={transactionFormStackSx}>
-        {hideHeader ? null : (
-          <TransactionFormHeader
-            closeHref={closeHref}
-            isSubmitDisabled={isSubmitDisabled}
-            ledgerName={ledgerName}
-            title={title}
-          />
-        )}
+      <ReadOnlyFieldset readOnly={readOnly}>
+        <Stack spacing={0} sx={transactionFormStackSx}>
+          {hideHeader ? null : (
+            <TransactionFormHeader
+              closeHref={closeHref}
+              isSubmitDisabled={isSubmitDisabled}
+              ledgerName={ledgerName}
+              title={title}
+            />
+          )}
 
-        {typeNavigation}
+          {typeNavigation}
 
-        {errorMessage ? <Alert severity="error">{errorMessage}</Alert> : null}
-        {linkNotice ? <Alert severity="info">{linkNotice}</Alert> : null}
-        {setupHint && setupHrefs ? (
-          <TransactionSetupHintCard
-            addAccountHref={setupHrefs.account}
-            addMerchantHref={setupHrefs.merchant}
-            hint={setupHint}
-          />
-        ) : null}
+          {errorMessage ? <Alert severity="error">{errorMessage}</Alert> : null}
+          {linkNotice ? <Alert severity="info">{linkNotice}</Alert> : null}
+          {setupHint && setupHrefs ? (
+            <TransactionSetupHintCard
+              addAccountHref={setupHrefs.account}
+              addMerchantHref={setupHrefs.merchant}
+              hint={setupHint}
+            />
+          ) : null}
 
-        <input
-          name="timeZoneOffsetMinutes"
-          readOnly
-          type="hidden"
-          value={timeZoneOffsetMinutes}
-        />
-        <input
-          name="transactionAt"
-          readOnly
-          type="hidden"
-          value={transactionAtValue}
-        />
-        {initialValues?.transactionRecordId ? (
           <input
-            name="transactionRecordId"
+            name="timeZoneOffsetMinutes"
+            readOnly
             type="hidden"
-            value={initialValues.transactionRecordId}
+            value={timeZoneOffsetMinutes}
           />
-        ) : null}
-        {initialValues?.expectedRecordUpdatedAt ? (
           <input
-            name={linkedEditExpectedRecordUpdatedAtFieldName}
+            name="transactionAt"
+            readOnly
             type="hidden"
-            value={initialValues.expectedRecordUpdatedAt}
+            value={transactionAtValue}
           />
-        ) : null}
-        <input name="type" type="hidden" value={selectedType} />
+          {initialValues?.transactionRecordId ? (
+            <input
+              name="transactionRecordId"
+              type="hidden"
+              value={initialValues.transactionRecordId}
+            />
+          ) : null}
+          {initialValues?.expectedRecordUpdatedAt ? (
+            <input
+              name={linkedEditExpectedRecordUpdatedAtFieldName}
+              type="hidden"
+              value={initialValues.expectedRecordUpdatedAt}
+            />
+          ) : null}
+          <input name="type" type="hidden" value={selectedType} />
 
-        <Box ref={merchantFieldRef} sx={selectionFieldGroupSx}>
-          <SectionTitle>商家</SectionTitle>
-          <TextField
-            disabled={hasNoMerchant}
-            error={!!fieldErrors.merchant}
-            fullWidth
-            helperText={
-              fieldErrors.merchant ??
-              (hasNoMerchant && !setupHint ? "请先新增商家。" : undefined)
-            }
-            label="商家"
-            name="merchantId"
-            onChange={(event) => handleMerchantChange(event.target.value)}
-            select
-            slotProps={{
-              select: {
-                displayEmpty: true,
-                IconComponent: KeyboardArrowRightRoundedIcon,
-                renderValue: () => (
-                  <TransactionSelectionValue
-                    icon={<StorefrontRoundedIcon fontSize="small" />}
-                    muted={hasNoMerchant}
-                    text={
-                      selectedMerchant?.name ??
-                      (hasNoMerchant
-                        ? transactionSetupHintMessages.emptyMerchant
-                        : "选择商家")
-                    }
-                    tone="merchant"
-                  />
-                ),
-              },
-            }}
-            value={selectedMerchantId}
-            sx={transactionSelectionSelectSx}
-          >
-            <MenuItem disabled value="">
-              请选择商家
-            </MenuItem>
-            {merchantOptions.map((merchant) => (
-              <MenuItem key={merchant.id} value={merchant.id}>
-                <Stack
-                  direction="row"
-                  spacing={1.5}
-                  sx={{ alignItems: "center" }}
-                >
-                  <Avatar
-                    alt={merchant.name}
-                    src={merchant.icon_url ?? undefined}
-                    sx={{ height: 24, width: 24 }}
-                  >
-                    {getMerchantInitial(merchant.name)}
-                  </Avatar>
-                  <span>{merchant.name}</span>
-                </Stack>
+          <Box ref={merchantFieldRef} sx={selectionFieldGroupSx}>
+            <SectionTitle>商家</SectionTitle>
+            <TextField
+              disabled={hasNoMerchant}
+              error={!!fieldErrors.merchant}
+              fullWidth
+              helperText={
+                fieldErrors.merchant ??
+                (hasNoMerchant && !setupHint ? "请先新增商家。" : undefined)
+              }
+              label="商家"
+              name="merchantId"
+              onChange={(event) => handleMerchantChange(event.target.value)}
+              select
+              slotProps={{
+                input: { readOnly },
+                select: {
+                  displayEmpty: true,
+                  IconComponent: KeyboardArrowRightRoundedIcon,
+                  renderValue: () => (
+                    <TransactionSelectionValue
+                      icon={<StorefrontRoundedIcon fontSize="small" />}
+                      muted={hasNoMerchant}
+                      text={
+                        selectedMerchant?.name ??
+                        (hasNoMerchant
+                          ? transactionSetupHintMessages.emptyMerchant
+                          : "选择商家")
+                      }
+                      tone="merchant"
+                    />
+                  ),
+                },
+              }}
+              value={selectedMerchantId}
+              sx={transactionSelectionSelectSx}
+            >
+              <MenuItem disabled value="">
+                请选择商家
               </MenuItem>
-            ))}
-          </TextField>
-        </Box>
+              {merchantOptions.map((merchant) => (
+                <MenuItem key={merchant.id} value={merchant.id}>
+                  <Stack
+                    direction="row"
+                    spacing={1.5}
+                    sx={{ alignItems: "center" }}
+                  >
+                    <Avatar
+                      alt={merchant.name}
+                      src={merchant.icon_url ?? undefined}
+                      sx={{ height: 24, width: 24 }}
+                    >
+                      {getMerchantInitial(merchant.name)}
+                    </Avatar>
+                    <span>{merchant.name}</span>
+                  </Stack>
+                </MenuItem>
+              ))}
+            </TextField>
+          </Box>
 
-        <Box ref={accountFieldRef} sx={selectionFieldGroupSx}>
-          <SectionTitle>{transactionAccountSectionMessages.title}</SectionTitle>
-          <TransactionPaymentFields
-            accountOptions={accountOptions}
-            fieldError={fieldErrors.account}
-            multiAccountPaymentEnabled={multiAccountPaymentEnabled}
-            onAccountChange={handlePaymentAccountChange}
-            onAddPayment={handleAddPayment}
-            onAmountChange={handlePaymentAmountChange}
-            onAmountCommit={handlePaymentAmountCommit}
-            onRemovePayment={handleRemovePayment}
-            payments={payments}
-            reconciliation={paymentReconciliation}
-            showEmptyAccountHelper={hasNoAccount && !setupHint}
+          <Box ref={accountFieldRef} sx={selectionFieldGroupSx}>
+            <SectionTitle>
+              {transactionAccountSectionMessages.title}
+            </SectionTitle>
+            <TransactionPaymentFields
+              accountOptions={accountOptions}
+              fieldError={fieldErrors.account}
+              multiAccountPaymentEnabled={multiAccountPaymentEnabled}
+              onAccountChange={handlePaymentAccountChange}
+              onAddPayment={handleAddPayment}
+              onAmountChange={handlePaymentAmountChange}
+              onAmountCommit={handlePaymentAmountCommit}
+              onRemovePayment={handleRemovePayment}
+              payments={payments}
+              readOnly={readOnly}
+              reconciliation={paymentReconciliation}
+              showEmptyAccountHelper={hasNoAccount && !setupHint}
+            />
+          </Box>
+
+          <TransactionItemsSection
+            fieldError={fieldErrors.items}
+            hasCategoryOptions={allNormalCategoryOptions.length > 0}
+            itemsFieldRef={itemsFieldRef}
+            itemSummaries={itemSummaries}
+            onOpenItem={openItemSheet}
+            onOpenSheet={openSheet}
+            onUpdateItem={updateItem}
+            readOnly={readOnly}
+            selectedAccountCurrency={selectedAccount?.currency}
+            selectedType={selectedType}
+            businessTotalAmount={businessTotalAmount}
+            signedTotalAmount={signedTotalAmount}
           />
-        </Box>
 
-        <TransactionItemsSection
-          fieldError={fieldErrors.items}
-          hasCategoryOptions={allNormalCategoryOptions.length > 0}
-          itemsFieldRef={itemsFieldRef}
-          itemSummaries={itemSummaries}
-          onOpenItem={openItemSheet}
-          onOpenSheet={openSheet}
-          onUpdateItem={updateItem}
-          selectedAccountCurrency={selectedAccount?.currency}
-          selectedType={selectedType}
-          businessTotalAmount={businessTotalAmount}
-          signedTotalAmount={signedTotalAmount}
-        />
+          <Box sx={transactionFieldGroupSx}>
+            <SectionTitle>备注</SectionTitle>
+            <TextField
+              defaultValue={initialValues?.note ?? ""}
+              fullWidth
+              hiddenLabel
+              multiline
+              name="note"
+              onChange={handleNoteChange}
+              placeholder="记录这次生活的小片段…"
+              rows={1}
+              size="small"
+              sx={transactionNoteFieldSx}
+            />
+          </Box>
 
-        <Box sx={transactionFieldGroupSx}>
-          <SectionTitle>备注</SectionTitle>
-          <TextField
-            defaultValue={initialValues?.note ?? ""}
-            fullWidth
-            hiddenLabel
-            multiline
-            name="note"
-            onChange={handleNoteChange}
-            placeholder="记录这次生活的小片段…"
-            rows={1}
-            size="small"
-            sx={transactionNoteFieldSx}
+          <TransactionDateTimePicker
+            date={transactionDate}
+            onDateChange={handleDateChange}
+            onTimeChange={handleTimeChange}
+            time={transactionTime}
           />
-        </Box>
 
-        <TransactionDateTimePicker
-          date={transactionDate}
-          onDateChange={handleDateChange}
-          onTimeChange={handleTimeChange}
-          time={transactionTime}
-        />
+          <TransactionSummarySection
+            itemSummaries={itemSummaries}
+            paymentAccountCount={payments.length}
+            selectedAccount={selectedAccount}
+            selectedMerchant={selectedMerchant}
+            businessTotalAmount={businessTotalAmount}
+            signedTotalAmount={signedTotalAmount}
+            transactionDate={transactionDate}
+            transactionTime={transactionTime}
+          />
 
-        <TransactionSummarySection
-          itemSummaries={itemSummaries}
-          paymentAccountCount={payments.length}
-          selectedAccount={selectedAccount}
-          selectedMerchant={selectedMerchant}
-          businessTotalAmount={businessTotalAmount}
-          signedTotalAmount={signedTotalAmount}
-          transactionDate={transactionDate}
-          transactionTime={transactionTime}
-        />
-
-        {hideSubmitButton ? null : (
-          <PrimaryActionButton
-            disabled={isSubmitDisabled}
-            size="large"
-            type="submit"
-            sx={transactionSubmitButtonSx}
-          >
-            {submitLabel}
-          </PrimaryActionButton>
-        )}
-      </Stack>
+          {hideSubmitButton ? null : (
+            <PrimaryActionButton
+              disabled={isSubmitDisabled}
+              size="large"
+              type="submit"
+              sx={transactionSubmitButtonSx}
+            >
+              {submitLabel}
+            </PrimaryActionButton>
+          )}
+        </Stack>
+      </ReadOnlyFieldset>
 
       <TransactionItemPickerDrawer
         categoryGroups={categoryGroups}

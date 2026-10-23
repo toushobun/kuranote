@@ -1061,6 +1061,87 @@ describe("TransactionForm", () => {
     });
   });
 
+  describe("只读详情", () => {
+    const cardAccount = {
+      id: "00000000-0000-4000-8000-000000000046",
+      name: "信用卡",
+      currency: "JPY",
+    };
+
+    function renderReadOnlyForm(initialValues: TransactionFormInitialValues) {
+      return renderForm(
+        {
+          accountOptions: [...accountOptions, cardAccount],
+          hideSubmitButton: true,
+          initialValues,
+          multiAccountPaymentEnabled: true,
+          readOnly: true,
+        },
+        { withAmountKeypad: true },
+      );
+    }
+
+    function expectSelectDoesNotOpen(container: HTMLElement, name: string) {
+      fireEvent.mouseDown(getCombobox(container, name));
+      expect(screen.queryByRole("listbox")).toBeNull();
+    }
+
+    it("单账户记录的字段、明细抽屉、计算器都不能操作", () => {
+      const { action, container } = renderReadOnlyForm({
+        ...createInitialValues(),
+        note: "他人的备注",
+      });
+
+      expectSelectDoesNotOpen(container, "商家");
+      expectSelectDoesNotOpen(container, "账户");
+      expect(
+        within(container).queryByRole("button", { name: "添加明细" }),
+      ).toBeNull();
+      expect(
+        within(container).queryByRole("button", { name: "添加付款账户" }),
+      ).toBeNull();
+
+      const itemButton = within(container).getByRole("button", {
+        name: "编辑明细 1 分类",
+      });
+      expect(itemButton).toBeDisabled();
+      fireEvent.click(itemButton);
+      expect(screen.queryByRole("heading", { name: "添加明细" })).toBeNull();
+
+      const amountInput = within(container).getByLabelText("明细 1 金额");
+      expect(amountInput).toBeDisabled();
+      act(() => amountInput.focus());
+      expect(screen.queryByLabelText("金额计算器")).toBeNull();
+
+      expect(within(container).getByDisplayValue("他人的备注")).toBeDisabled();
+      expect(
+        container.querySelector('button[aria-label="编辑明细 1 金额"]'),
+      ).toBeDisabled();
+      expect(action).not.toHaveBeenCalled();
+    });
+
+    it("多账户记录显示各付款账户，但不能修改、删除或添加付款账户", () => {
+      const { container } = renderReadOnlyForm({
+        ...createInitialValues(),
+        payments: [
+          { accountId: accountOptions[0].id, amount: "500" },
+          { accountId: cardAccount.id, amount: "700" },
+        ],
+      });
+
+      expectSelectDoesNotOpen(container, "付款账户 1");
+      expectSelectDoesNotOpen(container, "付款账户 2");
+      expect(within(container).getByLabelText("付款金额 1")).toBeDisabled();
+      expect(within(container).getByLabelText("付款金额 2")).toHaveValue("700");
+      expect(
+        within(container).queryByRole("button", { name: "删除付款账户 1" }),
+      ).toBeNull();
+      expect(
+        within(container).queryByRole("button", { name: "添加付款账户" }),
+      ).toBeNull();
+    });
+  });
+
   describe("缺少账户或商家提示", () => {
     const setupHrefs = {
       account:

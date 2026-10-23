@@ -19,9 +19,11 @@ import {
   transactionActionErrorMessages,
   transactionErrorCodes,
   transactionLinkedEditErrorTitles,
+  type TransactionEditRestriction,
 } from "internal/transaction";
 import type { TransactionFormInitialValues } from "organisms/transactions/TransactionForm/TransactionForm";
 import { UserThemeProvider } from "theme/UserThemeProvider";
+import { transactionEditRestrictionMessages } from "utils/transactionMessages";
 vi.mock("organisms/transactions/TransactionForm/TransactionForm", () => ({
   TransactionForm: ({
     action,
@@ -30,6 +32,7 @@ vi.mock("organisms/transactions/TransactionForm/TransactionForm", () => ({
     initialValues,
     initialType,
     onSubmitDisabledChange,
+    readOnly,
     setupHrefs,
     transactionItemSpecialStatusEnabled,
   }: {
@@ -41,6 +44,7 @@ vi.mock("organisms/transactions/TransactionForm/TransactionForm", () => ({
     };
     initialType?: "expense" | "income";
     onSubmitDisabledChange?: (disabled: boolean) => void;
+    readOnly?: boolean;
     setupHrefs?: { account: string; merchant: string };
     transactionItemSpecialStatusEnabled?: boolean;
   }): ReactNode => {
@@ -63,6 +67,7 @@ vi.mock("organisms/transactions/TransactionForm/TransactionForm", () => ({
         <form action={action} id={formId}>
           <div
             data-add-account-href={setupHrefs?.account}
+            data-read-only={readOnly}
             data-testid={`transaction-form-${type}`}
           >
             <input aria-label={`${label}编辑临时输入`} defaultValue="" />
@@ -95,16 +100,19 @@ vi.mock(
       errorMessage,
       formId,
       initialValues,
+      readOnly,
     }: {
       addAccountHref?: string;
       errorMessage: string | null;
       formId?: string;
       initialValues?: { transferAmount: string };
+      readOnly?: boolean;
     }): ReactNode => {
       if (formId?.startsWith("edit-")) {
         return (
           <form
             data-add-account-href={addAccountHref}
+            data-read-only={readOnly}
             data-testid="transfer-transaction-form"
             id={formId}
           >
@@ -397,10 +405,8 @@ describe("\u65B0\u589E\u8BB0\u8D26\u9875\u9762", () => {
     });
   });
   describe("TransactionPermissionDenied", () => {
-    it("显示当前操作的权限提示和返回入口", () => {
-      const { container } = render(
-        <TransactionPermissionDenied operation="create" />,
-      );
+    it("显示新增记账的权限提示和返回入口", () => {
+      const { container } = render(<TransactionPermissionDenied />);
       expect(within(container).getByRole("alert")).toHaveTextContent(
         "无法新增记账",
       );
@@ -411,24 +417,40 @@ describe("\u65B0\u589E\u8BB0\u8D26\u9875\u9762", () => {
         within(container).getByRole("link", { name: "返回明细" }),
       ).toHaveAttribute("href", "/transactions");
     });
-
-    it("交易账户已归档时显示恢复账户提示", () => {
-      const { container } = render(
-        <TransactionPermissionDenied
-          operation="edit"
-          reason="archivedAccount"
-        />,
-      );
-
-      expect(within(container).getByRole("alert")).toHaveTextContent(
-        "该交易不能编辑",
-      );
-      expect(within(container).getByRole("alert")).toHaveTextContent(
-        "该交易引用的账户已被删除，请先恢复该账户后再编辑。",
-      );
-    });
   });
 });
+// 只读详情（#928）：标题、限制原因、禁用的类型切换、各面板只读，且没有保存按钮。
+function expectReadOnlyDetail(
+  container: HTMLElement,
+  reason: TransactionEditRestriction,
+) {
+  expect(
+    within(container).getByRole("heading", { name: "记账详情" }),
+  ).toBeInTheDocument();
+  const alert = within(container).getByRole("alert");
+  expect(alert).toHaveTextContent(transactionEditRestrictionMessages.title);
+  expect(alert).toHaveTextContent(transactionEditRestrictionMessages[reason]);
+  expect(
+    within(container).getByRole("button", { name: "收支" }),
+  ).toBeDisabled();
+  expect(
+    within(container).getByRole("button", { name: "转账" }),
+  ).toBeDisabled();
+  for (const testId of [
+    "transaction-form-expense",
+    "transaction-form-income",
+    "transfer-transaction-form",
+  ]) {
+    expect(within(container).getByTestId(testId)).toHaveAttribute(
+      "data-read-only",
+      "true",
+    );
+  }
+  expect(
+    within(container).queryByRole("button", { name: "保存修改" }),
+  ).toBeNull();
+}
+
 describe("EditTransactionTemplate", () => {
   function renderWithTheme(ui: ReactNode) {
     return render(<UserThemeProvider>{ui}</UserThemeProvider>);
@@ -478,8 +500,10 @@ describe("EditTransactionTemplate", () => {
     return {
       accountOptions,
       action: vi.fn(async () => ({})),
+      canDelete: true,
       categoryOptions,
       deleteAction: vi.fn(async () => ({})),
+      editRestriction: null,
       errorMessage: null,
       frequentCategoryIds: categoryOptions.map((category) => category.id),
       initialValues,
@@ -489,6 +513,57 @@ describe("EditTransactionTemplate", () => {
       transactionItemSpecialStatusEnabled: false,
     };
   }
+  describe("只读详情", () => {
+    it.each(["permission", "archivedAccount", "linked"] as const)(
+      "限制原因为 %s 时显示只读详情和对应文案",
+      (reason) => {
+        const { container } = renderWithTheme(
+          <EditTransactionTemplate
+            {...createProps()}
+            canDelete={false}
+            editRestriction={reason}
+          />,
+        );
+
+        expectReadOnlyDetail(container, reason);
+        expect(
+          within(container).queryByRole("button", { name: "删除" }),
+        ).toBeNull();
+      },
+    );
+
+    it("有删除权限时只读详情仍可删除，删除前要求确认", () => {
+      const requestSubmit = vi
+        .spyOn(HTMLFormElement.prototype, "requestSubmit")
+        .mockImplementation(() => undefined);
+      const { container } = renderWithTheme(
+        <EditTransactionTemplate
+          {...createProps()}
+          editRestriction="archivedAccount"
+        />,
+      );
+
+      fireEvent.click(within(container).getByRole("button", { name: "删除" }));
+      const dialog = screen.getByRole("dialog", { name: "删除记账？" });
+      fireEvent.click(within(dialog).getByRole("button", { name: "删除" }));
+      expect(requestSubmit).toHaveBeenCalledTimes(1);
+    });
+
+    it("可编辑时表单不是只读，也不显示限制原因", () => {
+      const { container } = renderWithTheme(
+        <EditTransactionTemplate {...createProps()} />,
+      );
+
+      expect(within(container).queryByRole("alert")).toBeNull();
+      expect(
+        within(container).getByTestId("transaction-form-expense"),
+      ).toHaveAttribute("data-read-only", "false");
+      expect(
+        within(container).getByRole("button", { name: "转账" }),
+      ).toBeEnabled();
+    });
+  });
+
   it("编辑页不传入添加账户 / 商家入口", () => {
     const { container } = renderWithTheme(
       <EditTransactionTemplate {...createProps()} />,
@@ -884,9 +959,17 @@ describe("EditTransferTransactionTemplate", () => {
     cleanup();
     vi.restoreAllMocks();
   });
-  function renderTemplate() {
+  function renderTemplate({
+    canDelete = true,
+    editRestriction = null,
+  }: {
+    canDelete?: boolean;
+    editRestriction?: TransactionEditRestriction | null;
+  } = {}) {
     return renderWithTheme(
       <EditTransferTransactionTemplate
+        canDelete={canDelete}
+        editRestriction={editRestriction}
         accountOptions={[
           {
             id: "00000000-0000-4000-8000-000000000045",
@@ -915,6 +998,21 @@ describe("EditTransferTransactionTemplate", () => {
       />,
     );
   }
+  it("无修改权限时显示转账的只读详情，不显示保存和删除", () => {
+    const { container } = renderTemplate({
+      canDelete: false,
+      editRestriction: "permission",
+    });
+
+    expectReadOnlyDetail(container, "permission");
+    expect(
+      within(container).getByRole("button", { name: "转账" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(
+      within(container).queryByRole("button", { name: "删除" }),
+    ).toBeNull();
+  });
+
   it("转账编辑页默认激活转账编辑表单，并显示编辑记账标题", () => {
     const { container } = renderTemplate();
     expect(

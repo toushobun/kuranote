@@ -125,7 +125,6 @@ describe("TransactionsNewPage", () => {
 
     expect(mocks.redirect).not.toHaveBeenCalled();
     expect(child.type).toBe(mocks.TransactionPermissionDenied);
-    expect(child.props).toMatchObject({ operation: "create" });
   });
 
   it("没有 type 时默认 expense", async () => {

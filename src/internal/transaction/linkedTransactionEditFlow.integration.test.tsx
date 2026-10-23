@@ -99,7 +99,7 @@ function createView(side: "parent" | "child"): NormalEditView {
   const isParent = side === "parent";
   return {
     accountOptions,
-    canEdit: true,
+    canDelete: true,
     categoryOptions,
     editRestriction: null,
     frequentCategoryIds: [],

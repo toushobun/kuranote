@@ -69,6 +69,60 @@ const baseArgs = {
   transactionItemSpecialStatusEnabled: true,
 };
 
+// 编辑页默认可编辑、可删除；只读详情的 Story 覆盖 editRestriction / canDelete。
+const editArgs = {
+  ...baseArgs,
+  canDelete: true,
+  deleteAction: noopAction,
+  editRestriction: null,
+};
+
+const expenseEditInitialValues = {
+  payments: [
+    { accountId: "00000000-0000-4000-8000-000000000045", amount: null },
+  ],
+  items: [
+    {
+      amount: "1200",
+      categoryId: "00000000-0000-4000-8000-000000005072",
+    },
+  ],
+  merchantId: "00000000-0000-4000-8000-000000001001",
+  note: "普通交易编辑示例",
+  transactionAt: "2026-06-05T03:20:10.000Z",
+  transactionRecordId: "00000000-0000-4000-8000-000000009001",
+  type: "expense" as const,
+};
+
+const multiAccountEditInitialValues = {
+  expectedRecordUpdatedAt: "2026-06-05T03:21:00.000+00:00",
+  payments: [
+    { accountId: "00000000-0000-4000-8000-000000000045", amount: "500" },
+    { accountId: "00000000-0000-4000-8000-000000000046", amount: "700" },
+  ],
+  items: [
+    {
+      amount: "1200",
+      categoryId: "00000000-0000-4000-8000-000000005072",
+    },
+  ],
+  merchantId: "00000000-0000-4000-8000-000000001001",
+  note: "多账户编辑示例",
+  transactionAt: "2026-06-05T03:20:10.000Z",
+  transactionRecordId: "00000000-0000-4000-8000-000000009004",
+  type: "expense" as const,
+};
+
+const transferEditInitialValues = {
+  accountId: "00000000-0000-4000-8000-000000000045",
+  note: "转账编辑示例",
+  transactionAt: "2026-06-05T03:20:10.000Z",
+  transactionRecordId: "00000000-0000-4000-8000-000000009003",
+  transferAmount: "5000",
+  transferTargetAccountId: "00000000-0000-4000-8000-000000000046",
+  type: "transfer" as const,
+};
+
 const meta = {
   title: "Templates/Transactions/TransactionFormPage",
   component: NewTransactionTemplate,
@@ -98,14 +152,7 @@ export const WithError: Story = {
 
 export const PermissionDenied: Story = {
   name: "无新增权限",
-  render: () => <TransactionPermissionDenied operation="create" />,
-};
-
-export const ArchivedAccountPermissionDenied: Story = {
-  name: "转账账户已归档",
-  render: () => (
-    <TransactionPermissionDenied operation="edit" reason="archivedAccount" />
-  ),
+  render: () => <TransactionPermissionDenied />,
 };
 
 export const EmptyOptions: Story = {
@@ -121,24 +168,8 @@ export const EditExpenseConvert: Story = {
   name: "编辑支出：可切换到转账",
   render: () => (
     <EditTransactionTemplate
-      {...baseArgs}
-      deleteAction={noopAction}
-      initialValues={{
-        payments: [
-          { accountId: "00000000-0000-4000-8000-000000000045", amount: null },
-        ],
-        items: [
-          {
-            amount: "1200",
-            categoryId: "00000000-0000-4000-8000-000000005072",
-          },
-        ],
-        merchantId: "00000000-0000-4000-8000-000000001001",
-        note: "普通交易编辑示例",
-        transactionAt: "2026-06-05T03:20:10.000Z",
-        transactionRecordId: "00000000-0000-4000-8000-000000009001",
-        type: "expense",
-      }}
+      {...editArgs}
+      initialValues={expenseEditInitialValues}
     />
   ),
 };
@@ -147,26 +178,8 @@ export const EditMultiAccountExpense: Story = {
   name: "编辑多账户支出（卡 1 + 卡 2）",
   render: () => (
     <EditTransactionTemplate
-      {...baseArgs}
-      deleteAction={noopAction}
-      initialValues={{
-        expectedRecordUpdatedAt: "2026-06-05T03:21:00.000+00:00",
-        payments: [
-          { accountId: "00000000-0000-4000-8000-000000000045", amount: "500" },
-          { accountId: "00000000-0000-4000-8000-000000000046", amount: "700" },
-        ],
-        items: [
-          {
-            amount: "1200",
-            categoryId: "00000000-0000-4000-8000-000000005072",
-          },
-        ],
-        merchantId: "00000000-0000-4000-8000-000000001001",
-        note: "多账户编辑示例",
-        transactionAt: "2026-06-05T03:20:10.000Z",
-        transactionRecordId: "00000000-0000-4000-8000-000000009004",
-        type: "expense",
-      }}
+      {...editArgs}
+      initialValues={multiAccountEditInitialValues}
     />
   ),
 };
@@ -175,8 +188,7 @@ export const EditIncomeConvert: Story = {
   name: "编辑收入：可切换到转账",
   render: () => (
     <EditTransactionTemplate
-      {...baseArgs}
-      deleteAction={noopAction}
+      {...editArgs}
       initialValues={{
         payments: [
           { accountId: "00000000-0000-4000-8000-000000000046", amount: null },
@@ -201,17 +213,8 @@ export const EditTransferConvert: Story = {
   name: "编辑记账：转账类型可切换到支出或收入",
   render: () => (
     <EditTransferTransactionTemplate
-      {...baseArgs}
-      deleteAction={noopAction}
-      initialValues={{
-        accountId: "00000000-0000-4000-8000-000000000045",
-        note: "转账编辑示例",
-        transactionAt: "2026-06-05T03:20:10.000Z",
-        transactionRecordId: "00000000-0000-4000-8000-000000009003",
-        transferAmount: "5000",
-        transferTargetAccountId: "00000000-0000-4000-8000-000000000046",
-        type: "transfer",
-      }}
+      {...editArgs}
+      initialValues={transferEditInitialValues}
     />
   ),
 };
@@ -220,8 +223,7 @@ export const EditLinkedExpense: Story = {
   name: "编辑已关联支出：可编辑并显示核销结余",
   render: () => (
     <EditTransactionTemplate
-      {...baseArgs}
-      deleteAction={noopAction}
+      {...editArgs}
       initialValues={{
         payments: [
           { accountId: "00000000-0000-4000-8000-000000000045", amount: null },
@@ -258,7 +260,7 @@ export const LinkedDeleteForbidden: Story = {
   name: "删除仍被子项关联的母项被拒绝",
   render: () => (
     <EditTransactionTemplate
-      {...baseArgs}
+      {...editArgs}
       deleteAction={async () => ({
         error: "该交易包含已关联的退款 / 报销明细，请先解除关联后再删除。",
         errorCode: transactionErrorCodes.linkedDeleteForbidden,
@@ -307,8 +309,7 @@ export const LinkedIncomeDeleteConfirmation: Story = {
   name: "删除关联收入时提示自动解除关联",
   render: () => (
     <EditTransactionTemplate
-      {...baseArgs}
-      deleteAction={noopAction}
+      {...editArgs}
       initialValues={{
         payments: [
           { accountId: "00000000-0000-4000-8000-000000000045", amount: null },
@@ -345,4 +346,73 @@ export const LinkedIncomeDeleteConfirmation: Story = {
       "删除后这笔记账会从明细页移除，并解除退款 / 报销关联，目标支出的核销净额会相应变化。是否继续？",
     );
   },
+};
+
+export const ReadOnlyPermission: Story = {
+  name: "只读详情：他人创建的普通记录",
+  render: () => (
+    <EditTransactionTemplate
+      {...editArgs}
+      canDelete={false}
+      editRestriction="permission"
+      initialValues={expenseEditInitialValues}
+    />
+  ),
+};
+
+export const ReadOnlyMultiAccountPermission: Story = {
+  name: "只读详情：他人创建的多账户记录",
+  render: () => (
+    <EditTransactionTemplate
+      {...editArgs}
+      canDelete={false}
+      editRestriction="permission"
+      initialValues={multiAccountEditInitialValues}
+    />
+  ),
+};
+
+export const ReadOnlyArchivedAccount: Story = {
+  name: "只读详情：账户已归档（可删除）",
+  render: () => (
+    <EditTransactionTemplate
+      {...editArgs}
+      editRestriction="archivedAccount"
+      initialValues={expenseEditInitialValues}
+    />
+  ),
+};
+
+export const ReadOnlyLinked: Story = {
+  name: "只读详情：已关联报销或退款",
+  render: () => (
+    <EditTransactionTemplate
+      {...editArgs}
+      editRestriction="linked"
+      initialValues={expenseEditInitialValues}
+    />
+  ),
+};
+
+export const ReadOnlyTransferPermission: Story = {
+  name: "只读详情：他人创建的转账",
+  render: () => (
+    <EditTransferTransactionTemplate
+      {...editArgs}
+      canDelete={false}
+      editRestriction="permission"
+      initialValues={transferEditInitialValues}
+    />
+  ),
+};
+
+export const ReadOnlyTransferArchivedAccount: Story = {
+  name: "只读详情：转账账户已归档（可删除）",
+  render: () => (
+    <EditTransferTransactionTemplate
+      {...editArgs}
+      editRestriction="archivedAccount"
+      initialValues={transferEditInitialValues}
+    />
+  ),
 };

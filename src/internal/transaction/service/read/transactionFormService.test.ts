@@ -218,7 +218,8 @@ describe("getEditTransactionView", () => {
 
     expect(view).not.toBeNull();
     expect(view).toMatchObject({
-      canEdit: false,
+      canDelete: false,
+      editRestriction: "permission",
       initialValues: {
         payments: [{ accountId, amount: "1200" }],
         items: [
@@ -288,7 +289,7 @@ describe("getEditTransactionView", () => {
     );
 
     expect(view).toMatchObject({
-      canEdit: false,
+      canDelete: true,
       editRestriction: "archivedAccount",
     });
   });
@@ -338,7 +339,7 @@ describe("getEditTransactionView", () => {
       transactionRecordId,
     );
 
-    expect(view?.canEdit).toBe(true);
+    expect(view).toMatchObject({ canDelete: true, editRestriction: null });
     expect(view?.initialValues).toEqual({
       accountId,
       note: "账户调拨",
@@ -392,7 +393,7 @@ describe("getEditTransactionView", () => {
     );
 
     expect(view).toMatchObject({
-      canEdit: false,
+      canDelete: true,
       editRestriction: "archivedAccount",
     });
 
@@ -412,7 +413,7 @@ describe("getEditTransactionView", () => {
     );
 
     expect(permissionView).toMatchObject({
-      canEdit: false,
+      canDelete: false,
       editRestriction: "permission",
     });
   });
@@ -474,7 +475,7 @@ describe("getEditTransactionView", () => {
     );
 
     expect(view).toMatchObject({
-      canEdit: false,
+      canDelete: true,
       editRestriction: "archivedAccount",
       initialValues: {
         payments: [
@@ -493,7 +494,7 @@ describe("getEditTransactionView", () => {
     );
 
     expect(view).toMatchObject({
-      canEdit: true,
+      canDelete: true,
       editRestriction: null,
       initialValues: {
         expectedRecordUpdatedAt: updatedAt,
@@ -593,7 +594,7 @@ describe("getEditTransactionView income links", () => {
     );
 
     expect(view).toMatchObject({
-      canEdit: true,
+      canDelete: true,
       editRestriction: null,
       initialValues: {
         items: [{ expectedUpdatedAt: updatedAt }],
@@ -640,7 +641,7 @@ describe("getEditTransactionView income links", () => {
     );
 
     expect(view).toMatchObject({
-      canEdit: true,
+      canDelete: true,
       editRestriction: null,
       initialValues: {
         items: [
@@ -701,7 +702,7 @@ describe("getEditTransactionView income links", () => {
     );
 
     expect(view).toMatchObject({
-      canEdit: true,
+      canDelete: true,
       editRestriction: null,
       initialValues: {
         items: [
@@ -726,12 +727,12 @@ describe("getEditTransactionView income links", () => {
   });
 });
 
-it("归档账户余额调整仍可编辑时间备注并展示原账户", async () => {
+async function getArchivedBalanceAdjustmentView(createdBy: string) {
   const repository = createRepository({
     findActiveRecord: vi.fn().mockResolvedValue({
       id: transactionRecordId,
       type: "balance_adjustment",
-      created_by: userId,
+      created_by: createdBy,
       transaction_at: "2026-09-14T00:00:00Z",
       note: "盘点",
     }),
@@ -751,13 +752,17 @@ it("归档账户余额调整仍可编辑时间备注并展示原账户", async (
     accountColorById: new Map(),
     showRecorder: true,
   });
-  const view = await getEditTransactionView(
+  return getEditTransactionView(
     dependencies,
     currentLedger,
     transactionRecordId,
   );
+}
+
+it("归档账户余额调整仍可编辑时间备注并展示原账户", async () => {
+  const view = await getArchivedBalanceAdjustmentView(userId);
   expect(view).toMatchObject({
-    canEdit: true,
+    canDelete: true,
     editRestriction: null,
     initialValues: {
       type: "balance_adjustment",
@@ -765,5 +770,14 @@ it("归档账户余额调整仍可编辑时间备注并展示原账户", async (
       signedDelta: "-2500",
       accountName: "归档现金",
     },
+  });
+});
+
+it("他人创建的余额调整返回只读详情，且不能删除", async () => {
+  const view = await getArchivedBalanceAdjustmentView(otherUserId);
+  expect(view).toMatchObject({
+    canDelete: false,
+    editRestriction: "permission",
+    initialValues: { type: "balance_adjustment", signedDelta: "-2500" },
   });
 });

@@ -9,11 +9,13 @@ import {
   voidTransaction,
 } from "internal/transaction/adapter/next/actions";
 import {
+  AuthorizationError,
   ConflictError,
   ValidationError,
 } from "internal/shared/errors/appError";
 import {
   balanceAdjustmentErrorMessages,
+  transactionAccessErrorMessages,
   transactionActionErrorMessages,
   transactionErrorCodes,
   transactionLinkedEditErrorMessages,
@@ -376,6 +378,49 @@ describe("Transaction Action 写入流程", () => {
       transactionActionModuleMocks.revalidateTransactionMutation,
     ).toHaveBeenCalledOnce();
   });
+  // 只读详情页（#928）没有保存按钮，但直接提交表单时仍由 Service 的权限校验拒绝。
+  it.each([
+    {
+      label: "保存普通记录",
+      mock: mocks.updateNormal,
+      submit: () =>
+        saveEditTransaction(
+          {},
+          createNormalFormData({ sourceType: "expense" }),
+        ),
+    },
+    {
+      label: "保存转账",
+      mock: mocks.updateTransfer,
+      submit: () => saveEditTransaction({}, createTransferFormData("transfer")),
+    },
+    {
+      label: "删除",
+      mock: mocks.void,
+      submit: () => voidTransaction({}, createVoidFormData()),
+    },
+  ])(
+    "member 提交他人记录的$label请求时返回权限错误",
+    async ({ mock, submit }) => {
+      mock.mockRejectedValueOnce(
+        new AuthorizationError(
+          transactionErrorCodes.permissionDenied,
+          transactionAccessErrorMessages.permissionDenied,
+        ),
+      );
+
+      const state = await submit();
+
+      expect(mock).toHaveBeenCalledOnce();
+      expect(state).toMatchObject({
+        error: transactionAccessErrorMessages.permissionDenied,
+      });
+      expect(
+        transactionActionModuleMocks.revalidateTransactionMutation,
+      ).not.toHaveBeenCalled();
+      expect(transactionActionModuleMocks.redirect).not.toHaveBeenCalled();
+    },
+  );
   it("编辑类型非法时不读取上下文也不调用 Service", async () => {
     const formData = createNormalFormData({
       sourceType: "invalid",

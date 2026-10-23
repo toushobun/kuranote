@@ -94,7 +94,7 @@ function createIncomeView(
 ): EditTransactionView {
   return {
     ...formOptions(),
-    canEdit: false,
+    canDelete: false,
     editRestriction: "linked",
     initialValues: {
       payments: [{ accountId: oldAccountId, amount: null }],
@@ -132,7 +132,7 @@ function createTargetView(
 ): EditTransactionView {
   return {
     ...formOptions(),
-    canEdit: false,
+    canDelete: false,
     editRestriction: "linked",
     initialValues: {
       payments: [{ accountId: oldAccountId, amount: null }],
@@ -167,7 +167,7 @@ function createTargetView(
 function createUnlinkedView(): EditTransactionView {
   return {
     ...formOptions(),
-    canEdit: true,
+    canDelete: true,
     editRestriction: null,
     initialValues: {
       payments: [{ accountId: oldAccountId, amount: null }],
