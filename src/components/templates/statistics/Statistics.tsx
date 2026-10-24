@@ -1,3 +1,4 @@
+import { statisticsRankingNote } from "@/constants/statistics";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -175,6 +176,10 @@ function RankingSection({
           {items.length} 项
         </Typography>
       </Stack>
+
+      <Typography color="textSecondary" variant="body2" sx={{ mt: 1 }}>
+        {statisticsRankingNote}
+      </Typography>
 
       {items.length > 0 ? (
         <Stack spacing={0} sx={{ mt: 1.5 }}>

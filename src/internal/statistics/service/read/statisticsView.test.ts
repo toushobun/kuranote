@@ -1,3 +1,13 @@
+import { buildTransactionGroupSummaryPage } from "internal/transaction/util/transactionGroupBuilder";
+import { defaultTransactionFilters } from "internal/transaction/entity/transactionGrouping";
+import { createTransactionDashboardQueryService } from "internal/transaction/service/transactionDashboardQueryService";
+import {
+  createMonthlyAmountItems,
+  expectedMonthlyAmountSummary,
+  monthlyAmountCategories,
+  monthlyRecordAmountCases,
+} from "utils/transactionRecordAmounts.testUtils";
+import { vi } from "vitest";
 import { describe, expect, it } from "vitest";
 
 import { buildStatisticsViewData } from "internal/statistics/service/read/statisticsView";
@@ -489,4 +499,90 @@ describe("buildStatisticsViewData", () => {
       expect(view.categoryExpenseRanking).toEqual([]);
     });
   });
+});
+
+describe("Issue #917 月度口径一致性", () => {
+  it.each(monthlyRecordAmountCases)(
+    "$name：统计页、交易时间分组与 Dashboard 一致",
+    async (testCase) => {
+      const items = createMonthlyAmountItems(testCase);
+      const records = [
+        {
+          id: "record",
+          type: "normal" as const,
+          merchant_id: "merchant",
+          created_by: "user",
+          created_at: "2026-10-10T01:00:00Z",
+          transaction_at: "2026-10-10T01:00:00Z",
+          note: null,
+        },
+      ];
+      const expected = expectedMonthlyAmountSummary(testCase.net);
+      const statistics = buildStatisticsViewData({
+        categories: monthlyAmountCategories,
+        currency: "JPY",
+        items,
+        ledgerName: "账本",
+        merchants: [{ id: "merchant", name: "商家" }],
+        month: "2026-10",
+        records,
+      });
+      expect(statistics.summary).toEqual(expected);
+      // 排行保留支出明细业务净额，不分摊同笔收入。
+      expect(
+        statistics.categoryExpenseRanking.reduce(
+          (sum, item) => sum + Number(item.amount),
+          0,
+        ),
+      ).toBe(Math.max(0, Number(testCase.expenseNet ?? testCase.expense)));
+      for (const groupBy of ["month", "day", "week", "year"] as const) {
+        const grouped = buildTransactionGroupSummaryPage({
+          accounts: [],
+          categories: monthlyAmountCategories,
+          currency: "JPY",
+          filters: defaultTransactionFilters,
+          groupBy,
+          items,
+          merchants: [],
+          offset: 0,
+          pageSize: 20,
+          payments: [],
+          records,
+          recorders: [],
+        });
+        expect(grouped.groups[0].summary).toEqual(expected);
+      }
+      const currentLedger = {
+        id: "ledger",
+        name: "账本",
+        baseCurrency: "JPY",
+        currentUserRole: "owner" as const,
+      };
+      const service = createTransactionDashboardQueryService({
+        accountQueryService: {} as never,
+        categoryQueryService: {} as never,
+        merchantQueryService: {} as never,
+        currentUserId: "user",
+        ledgerAccessService: {
+          getActiveMemberRole: vi.fn().mockResolvedValue("owner"),
+        },
+        transactionRepository: {
+          loadDashboardMonthSource: vi
+            .fn()
+            .mockResolvedValue({ categories: monthlyAmountCategories, items }),
+          listRecords: vi.fn().mockResolvedValue([]),
+          loadDashboardRecentlyUsedAccountIds: vi.fn().mockResolvedValue([]),
+        } as never,
+      });
+      expect(
+        (
+          await service.getDashboardData({
+            currentLedger,
+            dateStart: "2026-10-01T00:00:00Z",
+            dateEnd: "2026-11-01T00:00:00Z",
+          })
+        ).monthSummary,
+      ).toEqual(expected);
+    },
+  );
 });

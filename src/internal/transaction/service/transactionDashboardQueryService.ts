@@ -17,16 +17,16 @@ import {
   type TransactionReadAccessDependencies,
 } from "internal/transaction/service/read/transactionReadAccess";
 import { defaultTransactionFilters } from "internal/transaction/entity/transactionGrouping";
-import { calculateTransactionRecordNetAmount } from "internal/transaction/util/transactionAmountHelpers";
+import {
+  addSignedAmount,
+  calculateRecordNetAmount,
+} from "utils/transactionRecordAmounts";
 import { dashboardRecentTransactionCount } from "@/constants/dashboard";
 import type {
   TransactionAmountSummary,
   TransactionListItem,
 } from "internal/transaction/service/read/transactionReadModels";
-import {
-  addTransactionAmount,
-  createTransactionAmountSummary,
-} from "utils/transactions";
+import { createTransactionAmountSummary } from "utils/transactions";
 
 export type TransactionDashboardData = {
   monthSummary: TransactionAmountSummary;
@@ -97,18 +97,9 @@ export function createTransactionDashboardQueryService({
 
       const monthSummary = createTransactionAmountSummary(ledger.baseCurrency);
       for (const items of monthItemsByRecordId.values()) {
-        const netAmount = calculateTransactionRecordNetAmount(
-          items,
-          categoryById,
-        );
+        const netAmount = calculateRecordNetAmount(items, categoryById);
 
-        if (!Number.isFinite(netAmount) || netAmount === 0) continue;
-
-        addTransactionAmount(
-          monthSummary,
-          netAmount > 0 ? "income" : "expense",
-          String(Math.abs(netAmount)),
-        );
+        addSignedAmount(monthSummary, netAmount);
       }
 
       const recentRecords = await transactionRepository.listRecords({

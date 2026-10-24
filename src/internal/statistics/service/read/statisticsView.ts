@@ -1,7 +1,11 @@
+import {
+  addSignedAmount,
+  calculateRecordNetAmount,
+} from "utils/transactionRecordAmounts";
+import { groupByKey } from "utils/collections";
 import type { CategoryType } from "internal/category";
 import type { TransactionRecordStorageType } from "internal/transaction";
 import {
-  addTransactionAmount,
   createTransactionAmountSummary,
   formatMonthLabel,
   shiftMonth,
@@ -93,6 +97,20 @@ export function buildStatisticsViewData({
     categories.map((category) => [category.id, category]),
   );
   const summary = createTransactionAmountSummary(currency);
+  const itemsByRecordId = groupByKey(
+    items,
+    (item) => item.transaction_record_id,
+  );
+  for (const record of records) {
+    if (record.type !== "normal") continue;
+    addSignedAmount(
+      summary,
+      calculateRecordNetAmount(
+        itemsByRecordId.get(record.id) ?? [],
+        categoryById,
+      ),
+    );
+  }
   const merchantRankingById = new Map<string, RankingAccumulator>();
   const categoryRankingById = new Map<string, RankingAccumulator>();
 
@@ -116,14 +134,6 @@ export function buildStatisticsViewData({
     // 只有退款/报销关联支出的业务净额转为负数时，才按核销结余计入收入。
     const isExpenseSurplus =
       category.type === "expense" && hasOffsetLink && effectiveValue < 0;
-
-    if (effectiveValue !== 0) {
-      addTransactionAmount(
-        summary,
-        isExpenseSurplus ? "income" : category.type,
-        isExpenseSurplus ? String(Math.abs(effectiveValue)) : effectiveAmount,
-      );
-    }
 
     if (category.type !== "expense" || isExpenseSurplus) {
       continue;

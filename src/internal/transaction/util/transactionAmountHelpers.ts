@@ -1,13 +1,18 @@
+import {
+  calculateRecordNetAmount,
+  getSignedItemAmount,
+} from "utils/transactionRecordAmounts";
+export {
+  calculateRecordNetAmount,
+  addSignedAmount,
+} from "utils/transactionRecordAmounts";
 import type {
   CategorySummaryDbRow,
   TransactionItemDbRow,
 } from "internal/db-types";
 import type { CategoryType } from "internal/category";
 import type { TransactionAmountSummary } from "internal/transaction/service/read/transactionReadModels";
-import {
-  addTransactionAmount,
-  createTransactionAmountSummary,
-} from "utils/transactions";
+import { createTransactionAmountSummary } from "utils/transactions";
 
 type TransactionAmountItem = Pick<
   TransactionItemDbRow,
@@ -58,29 +63,6 @@ export function createSummary(currency: string): TransactionAmountSummary {
   return createTransactionAmountSummary(currency);
 }
 
-export function calculateRecordNetAmount(
-  items: TransactionAmountItem[],
-  categoryById: ReadonlyMap<string, TransactionAmountCategory>,
-) {
-  return items.reduce(
-    (sum, item) => sum + getSignedItemAmount(item, categoryById, true),
-    0,
-  );
-}
-
-export function addSignedAmount(
-  summary: TransactionAmountSummary,
-  amount: number,
-) {
-  if (!Number.isFinite(amount) || amount === 0) return;
-
-  addTransactionAmount(
-    summary,
-    amount > 0 ? "income" : "expense",
-    String(Math.abs(amount)),
-  );
-}
-
 export function normalizeSummary(
   summary: TransactionAmountSummary,
 ): TransactionAmountSummary {
@@ -123,31 +105,4 @@ function getTransactionRecordAmountProfile(
     incomeTotal,
     netAmount: incomeTotal - expenseTotal,
   };
-}
-
-function getSignedItemAmount(
-  item: TransactionAmountItem,
-  categoryById: ReadonlyMap<string, TransactionAmountCategory>,
-  useBusinessNetAmount = true,
-) {
-  const amount = Number(
-    useBusinessNetAmount
-      ? (item.business_net_amount ?? item.amount)
-      : item.amount,
-  );
-
-  if (!Number.isFinite(amount)) return 0;
-
-  const categoryType = item.category_id
-    ? categoryById.get(item.category_id)?.type
-    : undefined;
-
-  if (categoryType === "income") {
-    return amount;
-  }
-  if (categoryType === "expense") {
-    return -amount;
-  }
-
-  return 0;
 }

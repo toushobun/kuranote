@@ -4768,7 +4768,28 @@ group_rows as (
 
     union all
 
-    -- 其他情况：命中明细逐行（与 #914 之前相同）。
+    -- #917：记录级维度先抵消同一笔内的收入与支出，再分收入 / 支出桶。
+    select
+        case p_group_by
+            when 'merchant' then coalesce(mi.merchant_id::text, 'unknown')
+            else coalesce(mi.created_by::text, 'unknown')
+        end,
+        mi.record_id,
+        null::uuid,
+        max(mi.transaction_at),
+        sum(mi.signed_amount)
+    from matched_items mi
+    where p_group_by in ('merchant', 'member')
+      and p_account_id is null
+      and not exists (
+          select 1 from share_records sr where sr.record_id = mi.record_id
+      )
+    group by mi.record_id, mi.merchant_id, mi.created_by
+
+    union all
+
+    -- 明细级维度仍逐行统计，不分摊同笔抵扣。
+
     select
         case p_group_by
             when 'merchant' then coalesce(mi.merchant_id::text, 'unknown')
@@ -4784,6 +4805,7 @@ group_rows as (
         mi.signed_amount
     from matched_items mi
     where p_group_by <> 'account'
+      and (p_group_by not in ('merchant', 'member') or p_account_id is not null)
       and (p_group_by <> 'specialStatus' or mi.special_status is not null)
       and not exists (
           select 1
