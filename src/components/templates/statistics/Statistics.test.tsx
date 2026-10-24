@@ -1,3 +1,4 @@
+import { statisticsRankingNote } from "@/constants/statistics";
 import { cleanup, render, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -52,6 +53,13 @@ afterEach(() => {
 });
 
 describe("StatisticsTemplate", () => {
+  it("分类与商家排行均说明明细与月度合计的差异", () => {
+    const { container } = render(<StatisticsTemplate {...statisticsView} />);
+    expect(within(container).getAllByText(statisticsRankingNote)).toHaveLength(
+      2,
+    );
+  });
+
   it("显示统计页面标题、账本和月份", () => {
     const { container } = render(<StatisticsTemplate {...statisticsView} />);
 
