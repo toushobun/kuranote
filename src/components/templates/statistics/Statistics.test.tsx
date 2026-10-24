@@ -53,11 +53,23 @@ afterEach(() => {
 });
 
 describe("StatisticsTemplate", () => {
-  it("分类与商家排行均说明明细与月度合计的差异", () => {
+  it("仅分类排行说明明细与月度合计的差异", () => {
     const { container } = render(<StatisticsTemplate {...statisticsView} />);
     expect(within(container).getAllByText(statisticsRankingNote)).toHaveLength(
-      2,
+      1,
     );
+    const categorySection = within(container).getByRole("heading", {
+      name: "分类支出汇总",
+    }).parentElement!.parentElement!;
+    const merchantSection = within(container).getByRole("heading", {
+      name: "商家支出排行",
+    }).parentElement!.parentElement!;
+    expect(
+      within(categorySection).getByText(statisticsRankingNote),
+    ).toBeInTheDocument();
+    expect(
+      within(merchantSection).queryByText(statisticsRankingNote),
+    ).not.toBeInTheDocument();
   });
 
   it("显示统计页面标题、账本和月份", () => {

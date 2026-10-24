@@ -99,6 +99,7 @@ export function StatisticsTemplate({
             currency={summary.currency}
             emptyDescription="这个月还没有分类支出记录。"
             items={categoryExpenseRanking}
+            note={statisticsRankingNote}
             title="分类支出汇总"
             totalExpense={totalExpense}
           />
@@ -154,12 +155,14 @@ function RankingSection({
   currency,
   emptyDescription,
   items,
+  note,
   title,
   totalExpense,
 }: {
   currency: string;
   emptyDescription: string;
   items: StatisticsRankItem[];
+  note?: string;
   title: string;
   totalExpense: number;
 }) {
@@ -177,9 +180,11 @@ function RankingSection({
         </Typography>
       </Stack>
 
-      <Typography color="textSecondary" variant="body2" sx={{ mt: 1 }}>
-        {statisticsRankingNote}
-      </Typography>
+      {note && (
+        <Typography color="textSecondary" variant="body2" sx={{ mt: 1 }}>
+          {note}
+        </Typography>
+      )}
 
       {items.length > 0 ? (
         <Stack spacing={0} sx={{ mt: 1.5 }}>

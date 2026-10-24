@@ -101,17 +101,24 @@ export function buildStatisticsViewData({
     items,
     (item) => item.transaction_record_id,
   );
+  const merchantRankingById = new Map<string, RankingAccumulator>();
   for (const record of records) {
     if (record.type !== "normal") continue;
-    addSignedAmount(
-      summary,
-      calculateRecordNetAmount(
-        itemsByRecordId.get(record.id) ?? [],
-        categoryById,
-      ),
+    const netAmount = calculateRecordNetAmount(
+      itemsByRecordId.get(record.id) ?? [],
+      categoryById,
     );
+    addSignedAmount(summary, netAmount);
+    if (record.merchant_id && netAmount < 0) {
+      addRankingAmount(
+        merchantRankingById,
+        record.merchant_id,
+        merchantById.get(record.merchant_id)?.name ?? "未指定商家",
+        String(-netAmount),
+        record.id,
+      );
+    }
   }
-  const merchantRankingById = new Map<string, RankingAccumulator>();
   const categoryRankingById = new Map<string, RankingAccumulator>();
 
   for (const item of items) {
@@ -137,18 +144,6 @@ export function buildStatisticsViewData({
 
     if (category.type !== "expense" || isExpenseSurplus) {
       continue;
-    }
-
-    const merchantId = record.merchant_id;
-
-    if (merchantId) {
-      addRankingAmount(
-        merchantRankingById,
-        merchantId,
-        merchantById.get(merchantId)?.name ?? "未指定商家",
-        effectiveAmount,
-        record.id,
-      );
     }
 
     addRankingAmount(
