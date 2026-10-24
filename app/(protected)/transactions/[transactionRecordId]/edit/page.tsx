@@ -17,7 +17,6 @@ import { TransactionIncomeLinksProvider } from "organisms/transactions/Transacti
 import {
   EditTransactionTemplate,
   EditTransferTransactionTemplate,
-  TransactionPermissionDenied,
 } from "templates/transactions/TransactionFormPage";
 import { NewTransactionVisualFrame } from "templates/transactions/NewTransactionVisualFrame";
 
@@ -27,24 +26,14 @@ export default async function TransactionEditPage({
   params: Promise<{ transactionRecordId: string }>;
 }) {
   const { transactionRecordId } = await params;
+  // 有限制（无权限 / 账户已归档等）时各模板显示只读详情，保存与删除仍由服务端校验（#928）。
   const {
-    canEdit,
+    canDelete,
     editRestriction,
     refundPickerView,
     reimbursementPickerView,
     ...view
   } = await loadEditTransactionView(transactionRecordId);
-
-  if (canEdit === false) {
-    return (
-      <NewTransactionVisualFrame>
-        <TransactionPermissionDenied
-          operation="edit"
-          reason={editRestriction ?? "permission"}
-        />
-      </NewTransactionVisualFrame>
-    );
-  }
 
   const errorMessage = null;
   const initialValues = view.initialValues;
@@ -54,7 +43,9 @@ export default async function TransactionEditPage({
         <BalanceAdjustmentEditForm
           initialValues={initialValues}
           action={updateBalanceAdjustmentTransaction}
+          canDelete={canDelete}
           deleteAction={voidTransaction}
+          editRestriction={editRestriction}
         />
       </NewTransactionVisualFrame>
     );
@@ -77,8 +68,10 @@ export default async function TransactionEditPage({
           <EditTransferTransactionTemplate
             accountOptions={view.accountOptions}
             action={saveEditTransaction}
+            canDelete={canDelete}
             categoryOptions={view.categoryOptions}
             deleteAction={voidTransaction}
+            editRestriction={editRestriction}
             errorMessage={errorMessage}
             frequentCategoryIds={view.frequentCategoryIds}
             initialValues={initialValues}
@@ -100,8 +93,10 @@ export default async function TransactionEditPage({
         <EditTransactionTemplate
           accountOptions={view.accountOptions}
           action={saveEditTransaction}
+          canDelete={canDelete}
           categoryOptions={view.categoryOptions}
           deleteAction={voidTransaction}
+          editRestriction={editRestriction}
           errorMessage={errorMessage}
           frequentCategoryIds={view.frequentCategoryIds}
           initialValues={initialValues}

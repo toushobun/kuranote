@@ -14,6 +14,7 @@ import {
 } from "internal/transaction/errors";
 import {
   createTransactionService,
+  type TransactionService,
   type TransactionServiceDependencies,
 } from "internal/transaction/service/transactionService";
 
@@ -488,24 +489,69 @@ describe("TransactionService", () => {
     expect(accountQueryService.listTransactionOptions).toHaveBeenCalledOnce();
   });
 
-  it("member 不能修改他人创建的交易", async () => {
-    const repository = createRepository({
-      findActiveRecord: vi.fn().mockResolvedValue({
-        created_at: "2026-06-04T01:00:00.000Z",
-        created_by: otherUserId,
-        id: transactionRecordId,
-        merchant_id: null,
-        note: null,
-        transaction_at: "2026-06-04T01:00:00.000Z",
-        type: "normal",
-      }),
-    });
-    const { service } = createService("member", repository);
-    await expect(
-      service.updateNormal({ ...normalInput, transactionRecordId }),
-    ).rejects.toBeInstanceOf(AuthorizationError);
-    expect(repository.updateNormal).not.toHaveBeenCalled();
-  });
+  // 只读详情页（#928）不放宽服务端校验：member 直接提交他人记录的保存 / 删除请求也会被拒绝。
+  it.each([
+    {
+      method: "updateNormal",
+      run: (service: TransactionService) =>
+        service.updateNormal({ ...normalInput, transactionRecordId }),
+    },
+    {
+      method: "convert",
+      run: (service: TransactionService) =>
+        service.convert({
+          ...normalInput,
+          targetType: "expense",
+          transactionRecordId,
+        }),
+    },
+    {
+      method: "updateTransfer",
+      run: (service: TransactionService) =>
+        service.updateTransfer({
+          accountId: normalInput.payments[0].accountId,
+          ledgerId,
+          note: null,
+          transactionAt: "2026-06-04T01:00:00.000Z",
+          transactionRecordId,
+          transferAmount: 1200,
+          transferTargetAccountId: "00000000-0000-4000-8000-000000000046",
+        }),
+    },
+    {
+      method: "updateBalanceAdjustment",
+      run: (service: TransactionService) =>
+        service.updateBalanceAdjustment({
+          ledgerId,
+          note: "改备注",
+          transactionAt: "2026-06-04T01:00:00.000Z",
+          transactionRecordId,
+        }),
+    },
+    {
+      method: "void",
+      run: (service: TransactionService) =>
+        service.void({ ledgerId, transactionRecordId }),
+    },
+  ] as const)(
+    "member 不能通过 $method 修改或删除他人创建的交易",
+    async ({ method, run }) => {
+      const repository = createRepository({
+        findActiveRecord: vi.fn().mockResolvedValue({
+          created_at: "2026-06-04T01:00:00.000Z",
+          created_by: otherUserId,
+          id: transactionRecordId,
+          merchant_id: null,
+          note: null,
+          transaction_at: "2026-06-04T01:00:00.000Z",
+          type: "normal",
+        }),
+      });
+      const { service } = createService("member", repository);
+      await expect(run(service)).rejects.toBeInstanceOf(AuthorizationError);
+      expect(repository[method]).not.toHaveBeenCalled();
+    },
+  );
 
   it("转账引用已归档账户时服务端拒绝绕过页面编辑", async () => {
     const archivedAccountId = "00000000-0000-4000-8000-000000000046";

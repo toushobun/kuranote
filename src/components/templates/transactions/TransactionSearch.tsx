@@ -13,16 +13,13 @@ import Typography from "@mui/material/Typography";
 import Link from "next/link";
 
 import { routePaths } from "config/paths";
-import { TransactionRow } from "molecules/transactions/TransactionRow";
+import { TransactionRowLink } from "molecules/transactions/TransactionRowLink";
 import { TransactionRefundCandidateList } from "organisms/transactions/TransactionGroupList/TransactionGroupList";
 import {
   TransactionSearchIllustration,
   type TransactionSearchIllustrationVariant,
 } from "molecules/transactions/TransactionSearchIllustration";
-import {
-  userThemeCardBorder,
-  userThemeCardBorderSx,
-} from "theme/userThemeCardSx";
+import { userThemeCardBorderSx } from "theme/userThemeCardSx";
 import { designTokens } from "theme/theme";
 import type {
   TransactionListItem,
@@ -210,33 +207,14 @@ function SearchResultList({
 }) {
   return (
     <Box>
-      {items.map((item, itemIndex) => {
-        const isLastItem = itemIndex === items.length - 1;
-        const rowSx = {
-          ...searchResultRowSx,
-          borderBottom: isLastItem ? "none" : userThemeCardBorder,
-        };
-        const content = <TransactionRow item={item} showAccount showTime />;
-
-        if (item.canEdit === false) {
-          return (
-            <Box key={item.id} sx={rowSx}>
-              {content}
-            </Box>
-          );
-        }
-
-        return (
-          <Box
-            key={item.id}
-            component={Link}
-            href={getEditHref(item)}
-            sx={rowSx}
-          >
-            {content}
-          </Box>
-        );
-      })}
+      {items.map((item, itemIndex) => (
+        <TransactionRowLink
+          href={getEditHref(item)}
+          item={item}
+          key={item.id}
+          showDivider={itemIndex < items.length - 1}
+        />
+      ))}
     </Box>
   );
 }
@@ -368,18 +346,6 @@ const resultCountSx = {
   color: "text.secondary",
   fontSize: 13,
   fontWeight: 800,
-};
-
-const searchResultRowSx = {
-  color: "inherit",
-  display: "block",
-  outline: "none",
-  textDecoration: "none",
-  WebkitTapHighlightColor: "transparent",
-  "&:focus-visible": {
-    outline: "2px solid var(--user-theme-action-text)",
-    outlineOffset: "-2px",
-  },
 };
 
 const emptyStateSx = {

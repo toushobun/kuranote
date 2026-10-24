@@ -8,10 +8,9 @@ import Radio from "@mui/material/Radio";
 import Stack from "@mui/material/Stack";
 import type { Theme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
-import Link from "next/link";
 
 import { transactionEditHref } from "config/paths";
-import { TransactionRow } from "molecules/transactions/TransactionRow";
+import { TransactionRowLink } from "molecules/transactions/TransactionRowLink";
 import { userThemeCardBorder } from "theme/userThemeCardSx";
 import type {
   TransactionDateGroup,
@@ -114,10 +113,11 @@ export function TransactionGroupList({
               />
             ) : (
               group.items.map((item, itemIndex) => (
-                <TransactionListRow
-                  isLastItem={itemIndex === group.items.length - 1}
+                <TransactionRowLink
+                  href={transactionEditHref(item.id)}
                   item={item}
                   key={item.id}
+                  showDivider={itemIndex < group.items.length - 1}
                 />
               ))
             )}
@@ -238,38 +238,6 @@ export function TransactionRefundCandidateList({
         );
       })}
     </Stack>
-  );
-}
-
-function TransactionListRow({
-  isLastItem,
-  item,
-}: {
-  isLastItem: boolean;
-  item: TransactionListItem;
-}) {
-  const content = <TransactionRow item={item} showAccount showTime />;
-  const sx = {
-    borderBottom: isLastItem ? "none" : userThemeCardBorder,
-    color: "inherit",
-    display: "block",
-    outline: "none",
-    textDecoration: "none",
-    WebkitTapHighlightColor: "transparent",
-    "&:focus-visible": {
-      outline: "2px solid var(--user-theme-action-text)",
-      outlineOffset: "-2px",
-    },
-  };
-
-  if (item.canEdit === false) {
-    return <Box sx={sx}>{content}</Box>;
-  }
-
-  return (
-    <Box component={Link} href={transactionEditHref(item.id)} sx={sx}>
-      {content}
-    </Box>
   );
 }
 

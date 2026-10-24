@@ -236,6 +236,24 @@ describe("TransactionSearchTemplate", () => {
     );
   });
 
+  it("所有结果行都链接到记录页（含他人创建的记录）", () => {
+    renderSearch({
+      initialPage: {
+        items: [firstItem, { ...secondItem, recorder_name: "其他成员" }],
+        nextOffset: null,
+        totalCount: 2,
+      },
+    });
+
+    expect(screen.getByText("咖啡店").closest("a")).toHaveAttribute(
+      "href",
+      expect.stringContaining(
+        "/transactions/00000000-0000-4000-8000-000000009002/edit",
+      ),
+    );
+    expect(screen.getByText("便利店").closest("a")).not.toBeNull();
+  });
+
   it("读取更多结果", async () => {
     const loadSearchPageAction = vi.fn(async () => ({
       items: [secondItem],

@@ -48,7 +48,7 @@ export default async function TransactionsNewPage({
   if (canWriteTransactions === false) {
     return (
       <NewTransactionVisualFrame>
-        <TransactionPermissionDenied operation="create" />
+        <TransactionPermissionDenied />
       </NewTransactionVisualFrame>
     );
   }

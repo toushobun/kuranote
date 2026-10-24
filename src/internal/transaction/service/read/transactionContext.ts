@@ -1,5 +1,4 @@
 import type { CurrentLedger } from "internal/ledger";
-import { canModifyTransaction } from "internal/ledger";
 import type { AccountQueryService } from "internal/account";
 import type { CategoryQueryService } from "internal/category";
 import type { TransactionRecordDbRow } from "internal/db-types";
@@ -49,7 +48,6 @@ export async function loadTransactionGroupLoaderContextForRecords(
   currentLedger: CurrentLedger,
   records: TransactionRecordDbRow[],
 ): Promise<TransactionGroupLoaderContext> {
-  const currentUserId = dependencies.currentUserId;
   const recordIds = records.map((record) => record.id);
 
   if (recordIds.length === 0) {
@@ -58,7 +56,6 @@ export async function loadTransactionGroupLoaderContextForRecords(
       accounts: [],
       categories: [],
       currentLedger,
-      currentUserId,
       items: [],
       merchants: [],
       payments: [],
@@ -125,12 +122,12 @@ export async function loadTransactionGroupLoaderContextForRecords(
     dependencies.accountQueryService.getTransactionContext({
       accountIds,
       ledgerId: currentLedger.id,
-      userId: currentUserId,
+      userId: dependencies.currentUserId,
     }),
     dependencies.categoryQueryService.findSummariesByIds({
       categoryIds,
       ledgerId: currentLedger.id,
-      userId: currentUserId,
+      userId: dependencies.currentUserId,
     }),
     dependencies.merchantQueryService.findSummariesByIds({
       ledgerId: currentLedger.id,
@@ -146,7 +143,6 @@ export async function loadTransactionGroupLoaderContextForRecords(
     accounts: accountContext.accounts,
     categories,
     currentLedger,
-    currentUserId,
     items,
     merchants,
     payments,
@@ -168,13 +164,6 @@ export function buildTransactionListItemsFromContext(
     buildTransactionListItem({
       accountById: lookups.accountById,
       accountColorById: context.accountColorById,
-      canEdit: context.currentUserId
-        ? canModifyTransaction({
-            createdBy: record.created_by ?? null,
-            role: context.currentLedger.currentUserRole,
-            userId: context.currentUserId,
-          })
-        : false,
       categoryById: lookups.categoryById,
       fallbackCurrency: context.currentLedger.baseCurrency,
       filters: normalizedFilters,

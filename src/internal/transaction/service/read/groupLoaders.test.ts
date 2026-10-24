@@ -62,7 +62,6 @@ function createContext(
     accounts: [],
     categories: [],
     currentLedger,
-    currentUserId: "user-1",
     items: [],
     merchants: [],
     payments: [],

@@ -22,7 +22,6 @@ export type TransactionGroupLoaderContext = {
   accounts: AccountOptionDbRow[];
   categories: CategorySummaryDbRow[];
   currentLedger: CurrentLedger;
-  currentUserId?: string;
   items: TransactionItemDbRow[];
   merchants: MerchantSummaryDbRow[];
   payments: TransactionPaymentDbRow[];

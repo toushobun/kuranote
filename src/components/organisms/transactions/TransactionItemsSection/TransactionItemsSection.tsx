@@ -38,6 +38,8 @@ type TransactionItemsSectionProps = {
     itemId: number,
     values: Partial<Omit<TransactionFormItem, "id">>,
   ) => void;
+  /** 只读详情（#928）：不显示「添加明细」。 */
+  readOnly?: boolean;
   selectedAccountCurrency?: string;
   selectedType: TransactionType;
   businessTotalAmount?: string | null;
@@ -52,6 +54,7 @@ export function TransactionItemsSection({
   onOpenItem,
   onOpenSheet,
   onUpdateItem,
+  readOnly = false,
   selectedAccountCurrency,
   selectedType,
   businessTotalAmount = null,
@@ -194,16 +197,18 @@ export function TransactionItemsSection({
             })
           )}
 
-          <Button
-            aria-label="添加明细"
-            disabled={!hasCategoryOptions}
-            onClick={onOpenSheet}
-            type="button"
-            variant="text"
-            sx={addItemButtonSx}
-          >
-            + 添加明细
-          </Button>
+          {readOnly ? null : (
+            <Button
+              aria-label="添加明细"
+              disabled={!hasCategoryOptions}
+              onClick={onOpenSheet}
+              type="button"
+              variant="text"
+              sx={addItemButtonSx}
+            >
+              + 添加明细
+            </Button>
+          )}
         </Box>
 
         {itemSummaries.length > 0 ? (

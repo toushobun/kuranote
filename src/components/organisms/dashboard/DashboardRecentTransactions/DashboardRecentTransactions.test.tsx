@@ -29,6 +29,31 @@ describe("DashboardRecentTransactions", () => {
     expect(screen.getByText(/测试备注/)).toBeInTheDocument();
   });
 
+  it("每条近期记录都链接到记录页（含他人创建的记录）", () => {
+    render(
+      <DashboardRecentTransactions
+        hasLedger
+        transactions={[
+          createDashboardRecentTransaction({ id: "own-record" }),
+          createDashboardRecentTransaction({
+            id: "other-member-record",
+            merchant_name: "超市",
+            recorder_name: "其他成员",
+          }),
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: /超市/ })).toHaveAttribute(
+      "href",
+      "/transactions/other-member-record/edit",
+    );
+    expect(screen.getByRole("link", { name: /便利店/ })).toHaveAttribute(
+      "href",
+      "/transactions/own-record/edit",
+    );
+  });
+
   it("传入转账记录时保留并显示在近期记录中", () => {
     render(
       <DashboardRecentTransactions

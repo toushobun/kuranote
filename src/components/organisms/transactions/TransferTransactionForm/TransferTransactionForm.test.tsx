@@ -105,6 +105,36 @@ describe("TransferTransactionForm", () => {
     expect(getSaveButton(container)).toBeInTheDocument();
   });
 
+  it("只读详情时账户不可选，金额、时间、备注都不能修改", () => {
+    const { container } = renderForm({
+      hideSubmitButton: true,
+      initialValues: {
+        accountId: jpyAccount1.id,
+        note: "他人的转账",
+        transactionAt: "2026-06-05T03:20:10.000Z",
+        transactionRecordId: "00000000-0000-4000-8000-000000009002",
+        transferAmount: "5000",
+        transferTargetAccountId: jpyAccount2.id,
+        type: "transfer",
+      },
+      readOnly: true,
+    });
+
+    for (const name of ["转出账户", "转入账户"]) {
+      fireEvent.mouseDown(within(container).getByRole("combobox", { name }));
+      expect(screen.queryByRole("listbox")).toBeNull();
+    }
+    expect(
+      within(container).getByRole("textbox", { name: "金额" }),
+    ).toBeDisabled();
+    expect(
+      within(container).getByRole("textbox", { name: "备注（选填）" }),
+    ).toBeDisabled();
+    expect(
+      within(container).getByRole("button", { name: "选择记账时间" }),
+    ).toBeDisabled();
+  });
+
   it("表单内包含 type=transfer 的 hidden input", () => {
     const { container } = renderForm();
 

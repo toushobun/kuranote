@@ -38,10 +38,12 @@ import {
   FailureFeedbackDialog,
 } from "molecules/ui/OperationFeedbackDialogs";
 import { ErrorState } from "molecules/ui/ErrorState";
+import { TransactionEditRestrictionAlert } from "molecules/transactions/TransactionEditRestrictionAlert";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import {
   transactionErrorCodes,
   transactionLinkedEditErrorTitles,
+  type TransactionEditRestriction,
 } from "internal/transaction";
 import {
   TransactionTypeNavigation,
@@ -100,19 +102,21 @@ export type TransactionFormTemplateProps = {
   transactionItemSpecialStatusEnabled: boolean;
 };
 
-type EditTransactionTemplateProps = Omit<
+type EditTemplateBaseProps = Omit<
   TransactionFormTemplateProps,
   "initialType"
 > & {
+  canDelete: boolean;
   deleteAction: TransactionStateAction;
+  /** 有限制时显示只读详情（#928）：表单整体禁用，不显示保存。 */
+  editRestriction: TransactionEditRestriction | null;
+};
+
+type EditTransactionTemplateProps = EditTemplateBaseProps & {
   initialValues: TransactionFormInitialValues;
 };
 
-type EditTransferTransactionTemplateProps = Omit<
-  TransactionFormTemplateProps,
-  "initialType"
-> & {
-  deleteAction: TransactionStateAction;
+type EditTransferTransactionTemplateProps = EditTemplateBaseProps & {
   initialValues: TransferEditInitialValues;
 };
 
@@ -239,32 +243,14 @@ export function NewTransactionTemplate(props: TransactionFormTemplateProps) {
   );
 }
 
-export function TransactionPermissionDenied({
-  operation,
-  reason = "permission",
-}: {
-  operation: "edit" | "create";
-  reason?: "archivedAccount" | "linked" | "permission";
-}) {
-  const operationLabel = operation === "create" ? "新增" : "编辑";
-  const restrictionDescription =
-    operation === "edit" && reason !== "permission"
-      ? transactionEditRestrictionMessages[reason]
-      : null;
-
+// 当前账本角色不能新增记账时的整页提示。查看已有记录不走这里，有限制时编辑页显示只读详情（#928）。
+export function TransactionPermissionDenied() {
   return (
     <Stack spacing={2}>
-      <TransactionPageTopBar title={`${operationLabel}记账`} />
+      <TransactionPageTopBar title="新增记账" />
       <ErrorState
-        title={
-          restrictionDescription
-            ? transactionEditRestrictionMessages.title
-            : `无法${operationLabel}记账`
-        }
-        description={
-          restrictionDescription ??
-          `当前账本角色没有${operationLabel}记账的权限。`
-        }
+        title="无法新增记账"
+        description="当前账本角色没有新增记账的权限。"
         action={
           <Button
             component={Link}
@@ -491,7 +477,9 @@ const newTransactionTitleSx = {
 
 type EditTransactionShellProps = {
   activeType: TransactionRecordType;
+  canDelete: boolean;
   deleteAction: TransactionStateAction;
+  editRestriction: TransactionEditRestriction | null;
   hasLinkedIncomeItems: boolean;
   isSaveConfirmationOpen: boolean;
   isSaveFailureOpen: boolean;
@@ -508,7 +496,9 @@ type EditTransactionShellProps = {
 
 function EditTransactionShell({
   activeType,
+  canDelete,
   deleteAction,
+  editRestriction,
   hasLinkedIncomeItems,
   isSaveConfirmationOpen,
   isSaveFailureOpen,
@@ -522,6 +512,7 @@ function EditTransactionShell({
   submitDisabledByType,
   transactionRecordId,
 }: EditTransactionShellProps) {
+  const readOnly = editRestriction !== null;
   const [deleteState, deleteFormAction] = useActionState(deleteAction, {});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isExitDialogOpen, setIsExitDialogOpen] = useState(false);
@@ -584,33 +575,52 @@ function EditTransactionShell({
         <TransactionPageTopBar
           hasUnsavedChanges={hasUnsavedChanges}
           onClose={() => setIsExitDialogOpen(true)}
-          title="编辑记账"
+          title={
+            readOnly ? transactionEditRestrictionMessages.pageTitle : "编辑记账"
+          }
         />
+        {editRestriction ? (
+          <Box sx={editRestrictionAlertSx}>
+            <TransactionEditRestrictionAlert reason={editRestriction} />
+          </Box>
+        ) : null}
         <TransactionTypeNavigation
           activeType={outerTab}
+          disabled={readOnly}
           onChange={handleOuterTabChange}
         />
         <TransactionTypeSlidePanels activeType={activeType} panels={panels} />
-        <Box sx={editTransactionActionBarSx}>
-          <Button
-            color="error"
-            onClick={() => setIsDeleteDialogOpen(true)}
-            size="large"
-            variant="outlined"
-            sx={editTransactionDeleteButtonSx}
+        {canDelete || !readOnly ? (
+          <Box
+            sx={[
+              editTransactionActionBarSx,
+              readOnly && editTransactionSingleActionSx,
+            ]}
           >
-            删除
-          </Button>
-          <PrimaryActionButton
-            disabled={submitDisabledByType[activeType] || isSavePending}
-            form={editTransactionFormId(activeType)}
-            size="large"
-            type="submit"
-            sx={editTransactionSaveButtonSx}
-          >
-            保存修改
-          </PrimaryActionButton>
-        </Box>
+            {canDelete ? (
+              <Button
+                color="error"
+                onClick={() => setIsDeleteDialogOpen(true)}
+                size="large"
+                variant="outlined"
+                sx={editTransactionDeleteButtonSx}
+              >
+                删除
+              </Button>
+            ) : null}
+            {readOnly ? null : (
+              <PrimaryActionButton
+                disabled={submitDisabledByType[activeType] || isSavePending}
+                form={editTransactionFormId(activeType)}
+                size="large"
+                type="submit"
+                sx={editTransactionSaveButtonSx}
+              >
+                保存修改
+              </PrimaryActionButton>
+            )}
+          </Box>
+        ) : null}
       </Stack>
       <form action={deleteFormAction} id={deleteTransactionFormId}>
         <input
@@ -620,7 +630,7 @@ function EditTransactionShell({
           value={transactionRecordId}
         />
       </form>
-      <TransactionAmountKeypadLauncher />
+      {readOnly ? null : <TransactionAmountKeypadLauncher />}
       <Dialog
         aria-labelledby="unsaved-transaction-dialog-title"
         onClose={() => setIsExitDialogOpen(false)}
@@ -696,6 +706,15 @@ const editTransactionActionBarSx = {
   mt: transactionFormStackSx.gap,
 };
 
+// 只读详情只剩删除按钮时占满整行。
+const editTransactionSingleActionSx = {
+  gridTemplateColumns: "minmax(0, 1fr)",
+};
+
+const editRestrictionAlertSx = {
+  pb: 1.5,
+};
+
 // 操作栏已统一控制上边距，去掉保存按钮自带的上边距以与删除按钮对齐
 const editTransactionSaveButtonSx = {
   ...transactionSubmitButtonSx,
@@ -712,8 +731,10 @@ const editTransactionDeleteButtonSx = {
 export function EditTransferTransactionTemplate({
   accountOptions,
   action,
+  canDelete,
   categoryOptions,
   deleteAction,
+  editRestriction,
   errorMessage,
   frequentCategoryIds,
   initialValues,
@@ -723,6 +744,7 @@ export function EditTransferTransactionTemplate({
 }: EditTransferTransactionTemplateProps) {
   const editAction = useLinkedTransactionEditAction(action);
   const activeErrorMessage = errorMessage;
+  const readOnly = editRestriction !== null;
   const [activeType, setActiveType] =
     useState<TransactionRecordType>("transfer");
   const [submitDisabledByType, setSubmitDisabledByType] = useState<
@@ -764,6 +786,7 @@ export function EditTransferTransactionTemplate({
                 expense: disabled,
               }))
             }
+            readOnly={readOnly}
             submitLabel="保存修改"
           />
         </>
@@ -798,6 +821,7 @@ export function EditTransferTransactionTemplate({
             onSubmitDisabledChange={(disabled) =>
               setSubmitDisabledByType((prev) => ({ ...prev, income: disabled }))
             }
+            readOnly={readOnly}
             submitLabel="保存修改"
           />
         </>
@@ -814,6 +838,7 @@ export function EditTransferTransactionTemplate({
           onSubmitDisabledChange={(disabled) =>
             setSubmitDisabledByType((prev) => ({ ...prev, transfer: disabled }))
           }
+          readOnly={readOnly}
           sourceType="transfer"
         />
       ),
@@ -827,6 +852,7 @@ export function EditTransferTransactionTemplate({
       initialValues,
       merchantOptions,
       multiAccountPaymentEnabled,
+      readOnly,
       transactionItemSpecialStatusEnabled,
     ],
   );
@@ -834,7 +860,9 @@ export function EditTransferTransactionTemplate({
   return (
     <EditTransactionShell
       activeType={activeType}
+      canDelete={canDelete}
       deleteAction={deleteAction}
+      editRestriction={editRestriction}
       hasLinkedIncomeItems={false}
       isSaveConfirmationOpen={editAction.isConfirmationOpen}
       isSaveFailureOpen={editAction.isFailureOpen}
@@ -856,8 +884,10 @@ export function EditTransferTransactionTemplate({
 export function EditTransactionTemplate({
   accountOptions,
   action,
+  canDelete,
   categoryOptions,
   deleteAction,
+  editRestriction,
   errorMessage,
   frequentCategoryIds,
   initialValues,
@@ -867,6 +897,7 @@ export function EditTransactionTemplate({
 }: EditTransactionTemplateProps) {
   const editAction = useLinkedTransactionEditAction(action);
   const activeErrorMessage = errorMessage;
+  const readOnly = editRestriction !== null;
   const [activeType, setActiveType] = useState<TransactionRecordType>(
     initialValues.type,
   );
@@ -909,6 +940,7 @@ export function EditTransactionTemplate({
                 expense: disabled,
               }))
             }
+            readOnly={readOnly}
             submitLabel="保存修改"
           />
         </>
@@ -943,6 +975,7 @@ export function EditTransactionTemplate({
             onSubmitDisabledChange={(disabled) =>
               setSubmitDisabledByType((prev) => ({ ...prev, income: disabled }))
             }
+            readOnly={readOnly}
             submitLabel="保存修改"
           />
         </>
@@ -962,6 +995,7 @@ export function EditTransactionTemplate({
           onSubmitDisabledChange={(disabled) =>
             setSubmitDisabledByType((prev) => ({ ...prev, transfer: disabled }))
           }
+          readOnly={readOnly}
           sourceType={initialValues.type}
         />
       ),
@@ -975,6 +1009,7 @@ export function EditTransactionTemplate({
       initialValues,
       merchantOptions,
       multiAccountPaymentEnabled,
+      readOnly,
       transactionItemSpecialStatusEnabled,
     ],
   );
@@ -982,7 +1017,9 @@ export function EditTransactionTemplate({
   return (
     <EditTransactionShell
       activeType={activeType}
+      canDelete={canDelete}
       deleteAction={deleteAction}
+      editRestriction={editRestriction}
       hasLinkedIncomeItems={initialValues.items.some(
         (item) => item.businessStatus?.incomeLinkRole != null,
       )}

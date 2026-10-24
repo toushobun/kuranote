@@ -81,6 +81,28 @@ describe("TransactionGroupList", () => {
     ).toBeNull();
   });
 
+  it("他人创建的记录也链接到记录页（无编辑权限时由记录页显示只读详情）", () => {
+    const group = createTransactionDateGroup({
+      items: [
+        createTransactionListItem({
+          id: "own-record",
+          merchant_name: "便利店",
+        }),
+        createTransactionListItem({
+          id: "other-member-record",
+          merchant_name: "超市",
+          recorder_name: "其他成员",
+        }),
+      ],
+    });
+    const { container } = render(<TransactionGroupList groups={[group]} />);
+
+    expect(
+      within(container).getByRole("link", { name: "超市" }),
+    ).toHaveAttribute("href", "/transactions/other-member-record/edit");
+    expect(within(container).getAllByRole("link")).toHaveLength(2);
+  });
+
   it("显示多个分组", () => {
     const group2 = createTransactionDateGroup({
       date: "2026-06-01",

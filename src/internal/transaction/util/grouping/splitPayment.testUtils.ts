@@ -109,7 +109,6 @@ export function createHospitalGroupLoaderContext(
       id: "ledger-1",
       name: "测试账本",
     },
-    currentUserId: "user-a",
     items: hospitalItems,
     merchants: [hospitalMerchant],
     payments: hospitalPayments,

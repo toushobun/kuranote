@@ -6,9 +6,9 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
 
-import { routePaths } from "config/paths";
+import { routePaths, transactionEditHref } from "config/paths";
 import { dashboardRecentTransactionCount } from "@/constants/dashboard";
-import { TransactionRow } from "molecules/transactions/TransactionRow";
+import { TransactionRowLink } from "molecules/transactions/TransactionRowLink";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { designTokens } from "theme/theme";
 import type { DashboardRecentTransaction } from "types/dashboard";
@@ -68,11 +68,10 @@ export function DashboardRecentTransactions({
             {transactions
               .slice(0, dashboardRecentTransactionCount)
               .map((item) => (
-                <TransactionRow
+                <TransactionRowLink
+                  href={transactionEditHref(item.id)}
                   item={item}
                   key={item.id}
-                  showAccount
-                  showTime
                 />
               ))}
           </Stack>

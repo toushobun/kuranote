@@ -26,10 +26,12 @@ export const transactionSharedPaymentMessages = {
   recordTotal: (recordTotal: string) => `共同支付 · 整笔 ${recordTotal}`,
 } as const;
 
-// 编辑页「不能编辑」提示（权限不足的提示随操作变化，在页面内生成）。
+// 编辑页有限制时显示只读详情（#928），顶部按限制原因显示提示。
 export const transactionEditRestrictionMessages = {
   archivedAccount: "该交易引用的账户已被删除，请先恢复该账户后再编辑。",
   linked: "该交易已关联报销或退款，不能编辑。",
+  pageTitle: "记账详情",
+  permission: "这条记录由其他成员创建，你只能查看。",
   title: "该交易不能编辑",
 } as const;
 
