@@ -141,6 +141,30 @@ describe("buildStatisticsViewData", () => {
     ]);
   });
 
+  it("同一商家多笔记录只累计净支出的金额与笔数", () => {
+    const view = buildStatisticsViewData({
+      categories: monthlyAmountCategories,
+      currency: "JPY",
+      items: monthlyRecordAmountCases.flatMap((testCase, index) =>
+        createMonthlyAmountItems(testCase).map((item) => ({
+          ...item,
+          transaction_record_id: `record-${index}`,
+        })),
+      ),
+      ledgerName: "家庭账本",
+      merchants: [{ id: "merchant", name: "商家" }],
+      month: "2026-10",
+      records: monthlyRecordAmountCases.map((_, index) => ({
+        id: `record-${index}`,
+        merchant_id: "merchant",
+        type: "normal",
+      })),
+    });
+    expect(view.merchantExpenseRanking).toEqual([
+      { id: "merchant", name: "商家", amount: "18000", transactionCount: 5 },
+    ]);
+  });
+
   it("没有交易数据时返回空汇总", () => {
     const view = buildStatisticsViewData({
       categories: [],
@@ -528,14 +552,32 @@ describe("Issue #917 月度口径一致性", () => {
         records,
       });
       expect(statistics.summary).toEqual(expected);
-      // 排行保留支出明细业务净额，不分摊同笔收入。
+      // 分类排行保留支出明细业务净额，不分摊同笔收入。
       expect(
         statistics.categoryExpenseRanking.reduce(
           (sum, item) => sum + Number(item.amount),
           0,
         ),
       ).toBe(Math.max(0, Number(testCase.expenseNet ?? testCase.expense)));
-      for (const groupBy of ["month", "day", "week", "year"] as const) {
+      expect(statistics.merchantExpenseRanking).toEqual(
+        testCase.net < 0
+          ? [
+              {
+                id: "merchant",
+                name: "商家",
+                amount: expected.expense,
+                transactionCount: 1,
+              },
+            ]
+          : [],
+      );
+      for (const groupBy of [
+        "month",
+        "day",
+        "week",
+        "year",
+        "merchant",
+      ] as const) {
         const grouped = buildTransactionGroupSummaryPage({
           accounts: [],
           categories: monthlyAmountCategories,
@@ -551,6 +593,11 @@ describe("Issue #917 月度口径一致性", () => {
           recorders: [],
         });
         expect(grouped.groups[0].summary).toEqual(expected);
+        if (groupBy === "merchant") {
+          expect(statistics.merchantExpenseRanking[0]?.amount ?? "0").toBe(
+            grouped.groups[0].summary.expense,
+          );
+        }
       }
       const currentLedger = {
         id: "ledger",

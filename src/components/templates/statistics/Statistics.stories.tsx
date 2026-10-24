@@ -73,13 +73,13 @@ export const Empty: Story = {
 };
 
 export const MixedRecord: Story = {
-  name: "同笔抵扣：月度净支出与明细排行不同",
+  name: "同笔抵扣：商家按净支出、分类按明细",
   args: {
     categoryExpenseRanking: [
       { id: "phone", name: "数码产品", amount: "8000", transactionCount: 1 },
     ],
     merchantExpenseRanking: [
-      { id: "apple", name: "苹果店", amount: "8000", transactionCount: 1 },
+      { id: "apple", name: "苹果店", amount: "4000", transactionCount: 1 },
     ],
     summary: {
       balance: "-4000",
