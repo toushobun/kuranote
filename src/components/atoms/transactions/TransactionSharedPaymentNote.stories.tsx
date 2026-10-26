@@ -23,6 +23,7 @@ export const AccountShareAndRecordTotal: Story = {
   name: "主金额为命中明细全额",
   args: {
     label: transactionSharedPaymentMessages.accountShareAndRecordTotal(
+      transactionSharedPaymentMessages.currentAccountSubject,
       "¥50,000",
       "¥120,000",
     ),
@@ -34,6 +35,7 @@ export const GroupSummary: Story = {
   args: {
     label: transactionSharedPaymentMessages.groupSummary(
       1,
+      transactionSharedPaymentMessages.currentAccountSubject,
       "¥50,000",
       "¥120,000",
     ),

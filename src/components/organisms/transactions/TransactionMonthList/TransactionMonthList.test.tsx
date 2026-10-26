@@ -16,6 +16,8 @@ import type {
   TransactionTimeGroupViewData,
 } from "types/transactions";
 
+import { sharedPaymentCategoryGroupRowItems } from "molecules/transactions/transactionRowSharedPayment.testUtils";
+
 import {
   TransactionMonthList,
   transactionGroupCollapseDuration,
@@ -233,38 +235,62 @@ describe("TransactionMonthList", () => {
     expect(screen.queryByText("1 条流水")).toBeNull();
   });
 
-  it("组内有共同支付记录时组头显示共同支付提示", () => {
-    render(
-      <TransactionMonthList
-        timeGroupView={createView({
-          groupBy: "category",
-          groups: [
-            createGroup({
-              id: "category:inpatient",
-              key: "inpatient",
-              label: "住院费",
-              sharedPayment: {
-                accountShareAmount: "50000",
-                recordCount: 1,
-                recordTotalAmount: "120000",
-              },
-            }),
-            createGroup({
-              id: "category:other",
-              key: "other",
-              label: "购物",
-            }),
-          ],
-          initialDateGroupsByGroupId: {},
-          initialExpandedGroupId: null,
-          initialNextItemOffsetByGroupId: {},
-        })}
-      />,
-    );
+  describe("共同支付提示", () => {
+    // 筛选账户集合 + 按分类：组头带共同支付合计，展开的组内行主金额为命中明细全额。
+    const inpatientGroup = createGroup({
+      id: "category:inpatient",
+      key: "inpatient",
+      label: "住院费",
+      sharedPayment: {
+        accountShareAmount: "50000",
+        recordCount: 1,
+        recordTotalAmount: "120000",
+      },
+    });
+    const sharedPaymentView = createView({
+      groupBy: "category",
+      groups: [
+        inpatientGroup,
+        createGroup({ id: "category:other", key: "other", label: "购物" }),
+      ],
+      initialDateGroupsByGroupId: {
+        [inpatientGroup.id]: [
+          createDateGroup({
+            items: [createItem(sharedPaymentCategoryGroupRowItems.inpatient)],
+          }),
+        ],
+      },
+      initialExpandedGroupId: inpatientGroup.id,
+      initialNextItemOffsetByGroupId: { [inpatientGroup.id]: null },
+    });
 
-    expect(
-      screen.getAllByText("含共同支付 1 笔 · 本账户 ¥50,000 / 整笔 ¥120,000"),
-    ).toHaveLength(1);
+    it("组内有共同支付记录时组头与行默认按「本账户」显示", () => {
+      render(<TransactionMonthList timeGroupView={sharedPaymentView} />);
+
+      expect(
+        screen.getAllByText("含共同支付 1 笔 · 本账户 ¥50,000 / 整笔 ¥120,000"),
+      ).toHaveLength(1);
+      expect(
+        screen.getByText("共同支付 · 本账户 ¥50,000 / 整笔 ¥120,000"),
+      ).toBeInTheDocument();
+    });
+
+    it("按持有人筛选时组头与行的份额主体都显示持有人名称（#909）", () => {
+      render(
+        <TransactionMonthList
+          sharedPaymentSubject="妻子"
+          timeGroupView={sharedPaymentView}
+        />,
+      );
+
+      expect(
+        screen.getByText("含共同支付 1 笔 · 妻子 ¥50,000 / 整笔 ¥120,000"),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText("共同支付 · 妻子 ¥50,000 / 整笔 ¥120,000"),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/本账户/)).not.toBeInTheDocument();
+    });
   });
 
   it("三位小数币种的月份摘要保留币种精度", () => {

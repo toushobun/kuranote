@@ -114,6 +114,7 @@ export function TransactionsTemplate({
     openFilterDialog,
     resetDraftFilters,
     resultLabel,
+    sharedPaymentSubject,
     showFilterEmptyState,
   } = useTransactions({
     filterOptions,
@@ -232,6 +233,7 @@ export function TransactionsTemplate({
                   .join("|")}`}
                 loadGroupItemsAction={loadGroupItems}
                 loadMoreGroupsAction={loadMoreGroups}
+                sharedPaymentSubject={sharedPaymentSubject}
                 timeGroupView={groupView}
               />
             )}

@@ -16,11 +16,21 @@ export const transactionAmountMessages = {
 } as const;
 
 // 多账户记录（#834 / #914）：列表账户位置与「共同支付」标识。金额参数为已格式化的「币种符号 + 金额」。
+// shareSubject 是份额主体（#909）：按账户筛选时为「本账户」，只按持有人筛选时为持有人名称。
 export const transactionSharedPaymentMessages = {
-  accountShareAndRecordTotal: (accountShare: string, recordTotal: string) =>
-    `共同支付 · 本账户 ${accountShare} / 整笔 ${recordTotal}`,
-  groupSummary: (count: number, accountShare: string, recordTotal: string) =>
-    `含共同支付 ${count} 笔 · 本账户 ${accountShare} / 整笔 ${recordTotal}`,
+  accountShareAndRecordTotal: (
+    shareSubject: string,
+    accountShare: string,
+    recordTotal: string,
+  ) => `共同支付 · ${shareSubject} ${accountShare} / 整笔 ${recordTotal}`,
+  currentAccountSubject: "本账户",
+  groupSummary: (
+    count: number,
+    shareSubject: string,
+    accountShare: string,
+    recordTotal: string,
+  ) =>
+    `含共同支付 ${count} 笔 · ${shareSubject} ${accountShare} / 整笔 ${recordTotal}`,
   multipleAccounts: (firstAccountName: string, accountCount: number) =>
     `${firstAccountName} 等 ${accountCount} 个账户`,
   recordTotal: (recordTotal: string) => `共同支付 · 整笔 ${recordTotal}`,

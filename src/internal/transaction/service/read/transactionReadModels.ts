@@ -104,7 +104,7 @@ export type TransactionDateGroup = {
   summary: TransactionAmountSummary;
 };
 
-/** 组头「含共同支付 N 笔 · 本账户 X / 整笔 Y」的数据，只在组合计含命中明细全额时给出。 */
+/** 组头「含共同支付 N 笔 · 本账户（或持有人名称）X / 整笔 Y」的数据，只在组合计含命中明细全额时给出。 */
 export type TransactionSharedPaymentSummary = {
   accountShareAmount: string;
   recordCount: number;

@@ -3,6 +3,7 @@ import type {
   TransactionFilters,
   TransactionGroupBy,
 } from "types/transactions";
+import { transactionSharedPaymentMessages } from "utils/transactionMessages";
 
 import {
   recordTypeOptions,
@@ -86,6 +87,25 @@ export function buildActiveFilterChips(
   }
 
   return chips;
+}
+
+/**
+ * 「共同支付」标识的份额主体（#909）：只按持有人筛选时为该持有人的名称（取自筛选选项，
+ * 正式成员为账本内显示名，占位成员为其名称，「未指定持有人」原样显示）；
+ * 按账户筛选（同时按持有人筛选时也以账户为准）为「本账户」。
+ * 持有人只能从筛选选项中选择，找不到名称的情况不会出现，此时也退回「本账户」。
+ */
+export function resolveSharedPaymentSubject(
+  filters: TransactionFilters,
+  filterOptions: TransactionFilterOptions,
+) {
+  const holderName =
+    filters.holderId && !filters.accountId
+      ? filterOptions.holders.find((holder) => holder.id === filters.holderId)
+          ?.name
+      : undefined;
+
+  return holderName ?? transactionSharedPaymentMessages.currentAccountSubject;
 }
 
 export function serializeTransactionFilters(filters: TransactionFilters) {

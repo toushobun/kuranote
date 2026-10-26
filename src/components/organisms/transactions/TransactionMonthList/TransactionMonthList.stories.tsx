@@ -176,29 +176,39 @@ function createSharedPaymentGroupView({
   };
 }
 
-// 筛选我的账户 + 按分类：明细全额计入各分类组，组头与行都显示「本账户 / 整笔」。
-const sharedPaymentTimeGroupView = createSharedPaymentGroupView({
-  groupBy: "category",
-  groups: [
-    {
-      key: "inpatient",
-      label: "住院费",
-      row: sharedPaymentCategoryGroupRowItems.inpatient,
-    },
-    {
-      key: "treatment",
-      label: "治疗费",
-      row: sharedPaymentCategoryGroupRowItems.treatment,
-    },
-  ].map((group) => ({
-    ...group,
-    sharedPayment: {
-      accountShareAmount: "50000",
-      recordCount: 1,
-      recordTotalAmount: "120000",
-    },
-  })),
-});
+// 筛选账户集合 + 按分类：明细全额计入各分类组，组头与行都显示「份额主体 份额 / 整笔」。
+function createSharedPaymentCategoryGroupView(accountShareAmount: string) {
+  return createSharedPaymentGroupView({
+    groupBy: "category",
+    groups: [
+      {
+        key: "inpatient",
+        label: "住院费",
+        row: sharedPaymentCategoryGroupRowItems.inpatient,
+      },
+      {
+        key: "treatment",
+        label: "治疗费",
+        row: sharedPaymentCategoryGroupRowItems.treatment,
+      },
+    ].map((group) => ({
+      ...group,
+      row: { ...group.row, account_share_amount: accountShareAmount },
+      sharedPayment: {
+        accountShareAmount,
+        recordCount: 1,
+        recordTotalAmount: "120000",
+      },
+    })),
+  });
+}
+
+// 筛选我的账户：份额主体为「本账户」。
+const sharedPaymentTimeGroupView =
+  createSharedPaymentCategoryGroupView("50000");
+// 只筛选持有人妻子（#909）：份额为妻子名下账户的付款，份额主体显示持有人名称。
+const sharedPaymentWifeHolderView =
+  createSharedPaymentCategoryGroupView("70000");
 
 // 无筛选 + 按账户：各账户组按实际付款计入，组内行显示该账户的付款金额与整笔。
 const sharedPaymentAccountGroupView = createSharedPaymentGroupView({
@@ -298,6 +308,14 @@ export const SharedPaymentGroupSummary: Story = {
   name: "筛选账户 + 按分类：组头与组内行金额一致",
   args: {
     timeGroupView: sharedPaymentTimeGroupView,
+  },
+};
+
+export const SharedPaymentHolderFilter: Story = {
+  name: "按持有人筛选（妻子）+ 按分类：共同支付显示持有人名称",
+  args: {
+    sharedPaymentSubject: "妻子",
+    timeGroupView: sharedPaymentWifeHolderView,
   },
 };
 
