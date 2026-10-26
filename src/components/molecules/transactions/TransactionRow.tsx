@@ -39,6 +39,8 @@ import {
 export type TransactionRowProps = {
   item: TransactionRowItem;
   receiptCard?: boolean;
+  /** 「共同支付」标识的份额主体（#909）：按账户筛选为「本账户」，只按持有人筛选为持有人名称。 */
+  sharedPaymentSubject?: string;
   showAccount?: boolean;
   showTime?: boolean;
 };
@@ -64,6 +66,7 @@ const themeDotColor = "var(--user-theme-tx-accent)";
 export function TransactionRow({
   item,
   receiptCard = false,
+  sharedPaymentSubject = transactionSharedPaymentMessages.currentAccountSubject,
   showAccount = false,
   showTime = false,
 }: TransactionRowProps) {
@@ -107,7 +110,7 @@ export function TransactionRow({
         item.account_currency,
       )
     : formatRowAmount(item);
-  const sharedPaymentLabel = getSharedPaymentLabel(item);
+  const sharedPaymentLabel = getSharedPaymentLabel(item, sharedPaymentSubject);
   const categorySummaryText = getTransactionCategorySummaryText(item);
   const detailText = categorySummaryText ?? "";
   const adjustmentNode =
@@ -472,8 +475,11 @@ function normalizeAggregatedAmount(amount: number, currency?: string) {
     : "0";
 }
 
-// 共同支付行夹在当前金额和原金额之间；主金额为命中明细全额时再给出本账户份额。
-function getSharedPaymentLabel(item: TransactionRowItem) {
+// 共同支付行夹在当前金额和原金额之间；主金额为命中明细全额时再给出份额主体（本账户 / 持有人）的份额。
+function getSharedPaymentLabel(
+  item: TransactionRowItem,
+  sharedPaymentSubject: string,
+) {
   if (item.record_total_amount === undefined) return null;
 
   const recordTotal = formatUnsignedCurrencyAmount(
@@ -484,6 +490,7 @@ function getSharedPaymentLabel(item: TransactionRowItem) {
   return item.account_share_amount === undefined
     ? transactionSharedPaymentMessages.recordTotal(recordTotal)
     : transactionSharedPaymentMessages.accountShareAndRecordTotal(
+        sharedPaymentSubject,
         formatUnsignedCurrencyAmount(
           item.account_share_amount,
           item.account_currency,

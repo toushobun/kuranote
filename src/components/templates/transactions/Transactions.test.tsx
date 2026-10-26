@@ -41,11 +41,16 @@ vi.mock(
   "organisms/transactions/TransactionMonthList/TransactionMonthList",
   () => ({
     TransactionMonthList: ({
+      sharedPaymentSubject,
       timeGroupView,
     }: {
+      sharedPaymentSubject?: string;
       timeGroupView: TransactionTimeGroupViewData;
     }): ReactNode => (
-      <div data-testid="transaction-month-list">
+      <div
+        data-shared-payment-subject={sharedPaymentSubject}
+        data-testid="transaction-month-list"
+      >
         {timeGroupView.groups.map((group) => group.label).join(" / ")}
       </div>
     ),
@@ -85,7 +90,7 @@ const timeGroupView: TransactionTimeGroupViewData = {
 const filterOptions: TransactionFilterOptions = {
   accounts: [],
   categories: [],
-  holders: [],
+  holders: [{ id: "holder-wife", name: "妻子" }],
   members: [],
   merchants: [],
 };
@@ -473,6 +478,38 @@ describe("TransactionsTemplate", () => {
         recordType: "expense",
       });
       expect(screen.getByText("按商家显示，筛选结果如下")).toBeInTheDocument();
+    });
+  });
+
+  describe("共同支付标识的份额主体（#909）", () => {
+    function getSharedPaymentSubject() {
+      return screen
+        .getByTestId("transaction-month-list")
+        .getAttribute("data-shared-payment-subject");
+    }
+
+    it("未筛选持有人时为「本账户」", () => {
+      renderPage();
+
+      expect(getSharedPaymentSubject()).toBe("本账户");
+    });
+
+    it("应用持有人筛选后为筛选选项中的持有人名称", async () => {
+      const loadGroupViewAction = createLoadGroupViewAction();
+      renderPage({ loadGroupViewAction });
+
+      openFilterDialog();
+      fireEvent.mouseDown(screen.getByRole("combobox", { name: "持有人" }));
+      fireEvent.click(screen.getByRole("option", { name: "妻子" }));
+      applyFilterDialog();
+
+      await waitFor(() => {
+        expect(loadGroupViewAction).toHaveBeenCalledWith("month", {
+          holderId: "holder-wife",
+          recordType: "all",
+        });
+        expect(getSharedPaymentSubject()).toBe("妻子");
+      });
     });
   });
 });

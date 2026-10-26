@@ -965,6 +965,20 @@ describe("TransactionRow 共同支付", () => {
     ).toBeInTheDocument();
   });
 
+  it("按持有人筛选时份额主体显示持有人名称", () => {
+    render(
+      <TransactionRow
+        item={sharedPaymentMatchedItemsRowItem}
+        sharedPaymentSubject="妻子"
+      />,
+    );
+
+    expect(
+      screen.getByText("共同支付 · 妻子 ¥50,000 / 整笔 ¥120,000"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/本账户/)).not.toBeInTheDocument();
+  });
+
   it("共同支付行夹在当前金额和原金额之间", () => {
     render(<TransactionRow item={sharedPaymentWithOriginalAmountRowItem} />);
 
