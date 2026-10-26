@@ -43,6 +43,7 @@ describe("transactionContext", () => {
     expect(context).toEqual({
       accountColorById: new Map([[accountId, "sky"]]),
       accounts: [{ currency: "JPY", id: accountId, name: "现金" }],
+      holderIdsByAccountId: new Map([[accountId, [userId]]]),
       showRecorder: false,
     });
   });
@@ -96,10 +97,13 @@ describe("transactionContext", () => {
     });
 
     expect(context.accountColorById).toEqual(new Map());
+    expect(context.holderIdsByAccountId).toEqual(
+      new Map([[accountId, [userId, secondUserId]]]),
+    );
     expect(context.showRecorder).toBe(true);
   });
 
-  it("占位持有的账户不取任何成员颜色", () => {
+  it("占位持有的账户不取任何成员颜色，持有人 ID 为占位 ID", () => {
     const placeholderId = "00000000-0000-4000-8000-000000000061";
     const context = buildTransactionAccountContext({
       accounts: [
@@ -127,5 +131,8 @@ describe("transactionContext", () => {
     });
 
     expect(context.accountColorById).toEqual(new Map());
+    expect(context.holderIdsByAccountId).toEqual(
+      new Map([[accountId, [placeholderId]]]),
+    );
   });
 });

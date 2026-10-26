@@ -59,6 +59,7 @@ function matches(
     categoryById,
     groupBy,
     groupKey,
+    holderIdsByAccountId: new Map([["account-1", ["holder-me"]]]),
     items: [item],
     payments: [
       {
@@ -119,6 +120,20 @@ describe("recordMatchesGroup", () => {
   it("按账户分组时转账匹配明细账户", () => {
     expect(
       matches("account", "account-1", {
+        payments: [],
+        record: { ...record, type: "transfer" },
+      }),
+    ).toBe(true);
+  });
+
+  it("按持有人分组时匹配任意一个付款账户的持有人，无持有人的账户归入 none", () => {
+    expect(matches("holder", "holder-me")).toBe(true);
+    expect(matches("holder", "holder-wife")).toBe(false);
+    expect(matches("holder", "none", { holderIdsByAccountId: new Map() })).toBe(
+      true,
+    );
+    expect(
+      matches("holder", "holder-me", {
         payments: [],
         record: { ...record, type: "transfer" },
       }),

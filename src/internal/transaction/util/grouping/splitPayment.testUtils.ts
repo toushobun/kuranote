@@ -101,6 +101,7 @@ export function createHospitalGroupLoaderContext(
 ): TransactionGroupLoaderContext {
   return {
     accountColorById: new Map(),
+    holderIdsByAccountId: new Map(),
     accounts: hospitalAccountList,
     categories: hospitalCategoryList,
     currentLedger: {

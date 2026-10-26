@@ -27,6 +27,7 @@ export function getGroupDisplayLabel(groupBy: TransactionGroupBy) {
     account: "按账户显示",
     category: "按小分类显示",
     day: "按日显示",
+    holder: "按持有人显示",
     member: "按成员显示",
     merchant: "按商家显示",
     month: "按月显示",
@@ -47,6 +48,7 @@ export function hasActiveTransactionFilters(filters: TransactionFilters) {
     Boolean(filters.dateTo) ||
     Boolean(filters.merchantId) ||
     Boolean(filters.accountId) ||
+    Boolean(filters.holderId) ||
     Boolean(filters.parentCategoryId) ||
     Boolean(filters.categoryId) ||
     Boolean(filters.memberId) ||
@@ -72,6 +74,7 @@ export function buildActiveFilterChips(
 
   pushOptionChip(chips, filterOptions.merchants, filters.merchantId, "name");
   pushOptionChip(chips, filterOptions.accounts, filters.accountId, "name");
+  pushOptionChip(chips, filterOptions.holders, filters.holderId, "name");
   pushCategoryChip(chips, filterOptions, filters.parentCategoryId);
   pushCategoryChip(chips, filterOptions, filters.categoryId);
   pushOptionChip(chips, filterOptions.members, filters.memberId, "name");
@@ -92,6 +95,7 @@ export function serializeTransactionFilters(filters: TransactionFilters) {
     filters.dateTo ?? "",
     filters.merchantId ?? "",
     filters.accountId ?? "",
+    filters.holderId ?? "",
     filters.parentCategoryId ?? "",
     filters.categoryId ?? "",
     filters.memberId ?? "",

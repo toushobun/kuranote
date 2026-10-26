@@ -217,6 +217,28 @@ const sharedPaymentAccountGroupView = createSharedPaymentGroupView({
   ],
 });
 
+// 按持有人分组（#909）：组头沿用账户分组的样式，无持有人的账户归入「未指定持有人」。
+const sharedPaymentHolderGroupView = createSharedPaymentGroupView({
+  groupBy: "holder",
+  groups: [
+    {
+      key: "user-me",
+      label: "我",
+      row: sharedPaymentAccountGroupRowItems.mine,
+    },
+    {
+      key: "user-wife",
+      label: "妻子",
+      row: sharedPaymentAccountGroupRowItems.wife,
+    },
+    {
+      key: "none",
+      label: "未指定持有人",
+      row: createItem(2, { account_name: "公共钱包", amount: "800" }),
+    },
+  ],
+});
+
 async function loadGroupItemsAction() {
   return { groups: [], nextOffset: null };
 }
@@ -283,6 +305,13 @@ export const SharedPaymentAccountGroup: Story = {
   name: "按账户分组：组内行为该账户的付款金额",
   args: {
     timeGroupView: sharedPaymentAccountGroupView,
+  },
+};
+
+export const SharedPaymentHolderGroup: Story = {
+  name: "按持有人分组：组内行为该持有人的实际收付",
+  args: {
+    timeGroupView: sharedPaymentHolderGroupView,
   },
 };
 

@@ -59,6 +59,7 @@ function createContext(
 ): TransactionGroupLoaderContext {
   return {
     accountColorById: new Map(),
+    holderIdsByAccountId: new Map(),
     accounts: [],
     categories: [],
     currentLedger,
@@ -152,6 +153,30 @@ describe("groupLoaders", () => {
     );
     expect(result.groups).toHaveLength(2);
     expect(result.nextOffset).toBeNull();
+  });
+
+  it("按持有人分组由数据库分组函数汇总，并传入持有人筛选", async () => {
+    const dependencies = createDependencies(vi.fn());
+    vi.mocked(
+      dependencies.transactionRepository.loadGroupSummaries,
+    ).mockResolvedValue([]);
+
+    await loadStep4TransactionGroupPage(
+      dependencies,
+      currentLedger,
+      "holder",
+      0,
+      {
+        ...defaultTransactionFilters,
+        holderId: " user-me ",
+      },
+    );
+
+    expect(
+      dependencies.transactionRepository.loadGroupSummaries,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({ groupBy: "holder", holderId: "user-me" }),
+    );
   });
 
   it("分组日期边界与筛选日期边界取交集", async () => {

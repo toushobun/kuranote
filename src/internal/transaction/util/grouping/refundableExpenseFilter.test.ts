@@ -59,6 +59,7 @@ const incomeItem: TransactionItemDbRow = {
 
 const context: TransactionGroupLoaderContext = {
   accountColorById: new Map(),
+  holderIdsByAccountId: new Map(),
   accounts: [],
   categories,
   currentLedger: {

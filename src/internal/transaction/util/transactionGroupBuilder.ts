@@ -23,6 +23,10 @@ import type {
 } from "internal/transaction/service/read/transactionReadModels";
 import { groupByKey, paginateItems } from "utils/collections";
 
+import {
+  resolveAccountScope,
+  type HolderIdsByAccountId,
+} from "./grouping/accountScope";
 import { listRecordAccountMovements } from "./grouping/recordAccounts";
 import {
   getSharedPaymentAmounts,
@@ -48,6 +52,7 @@ export type BuildTransactionGroupSummaryPageParams = {
   /** 已规范化的筛选条件（`normalizeTransactionFilters`）；`items` 已按它过滤。 */
   filters: TransactionFilters;
   groupBy: TransactionGroupBy;
+  holderIdsByAccountId: HolderIdsByAccountId;
   items: TransactionItemDbRow[];
   merchants: { id: string; name: string }[];
   offset: number;
@@ -73,6 +78,7 @@ type MutableGroup = {
 type RecordGroupContext = {
   categoryById: Map<string, CategorySummaryDbRow>;
   filters: TransactionFilters;
+  holderIdsByAccountId: HolderIdsByAccountId;
   payments: TransactionPaymentDbRow[];
   record: TransactionRecordDbRow;
   recordItems: TransactionItemDbRow[];
@@ -84,6 +90,7 @@ export function buildTransactionGroupSummaryPage({
   currency,
   filters,
   groupBy,
+  holderIdsByAccountId,
   items,
   merchants,
   offset,
@@ -92,6 +99,11 @@ export function buildTransactionGroupSummaryPage({
   records,
   recorders,
 }: BuildTransactionGroupSummaryPageParams): TransactionGroupPage {
+  // 按持有人分组只由数据库分组函数汇总（非时间维度），组内明细经 recordMatchesGroup 在 TS 端取得。
+  if (groupBy === "holder") {
+    throw new Error("Unsupported transaction group in memory: holder");
+  }
+
   const itemsByRecordId = groupByKey(
     items,
     (item) => item.transaction_record_id,
@@ -116,6 +128,7 @@ export function buildTransactionGroupSummaryPage({
     const recordContext: RecordGroupContext = {
       categoryById,
       filters,
+      holderIdsByAccountId,
       payments: paymentsByRecordId.get(record.id) ?? [],
       record,
       recordItems: itemsByRecordId.get(record.id) ?? [],
@@ -272,7 +285,7 @@ function getMemberGroup({
 
 /**
  * 按账户分组取记录的实际收付（付款明细 / 转账明细的 balance_delta），
- * 有账户筛选时只计该账户；转账 / 余额调整计入笔数但不计入收支。
+ * 有账户 / 持有人筛选时只计账户集合内的账户；转账 / 余额调整计入笔数但不计入收支。
  */
 function addAccountGroups({
   accountById,
@@ -287,16 +300,16 @@ function addAccountGroups({
   groups: Map<string, MutableGroup>;
   recordContext: RecordGroupContext;
 }) {
-  const { filters, payments, record, recordItems } = recordContext;
+  const { filters, holderIdsByAccountId, payments, record, recordItems } =
+    recordContext;
+  const accountScope = resolveAccountScope({ filters, holderIdsByAccountId });
 
   for (const movement of listRecordAccountMovements(
     record,
     recordItems,
     payments,
   )) {
-    if (filters.accountId && movement.accountId !== filters.accountId) {
-      continue;
-    }
+    if (accountScope && !accountScope(movement.accountId)) continue;
 
     const group = getOrCreateGroup({
       currency,
@@ -426,8 +439,14 @@ function addRecordToGroup(
   group: MutableGroup,
   recordContext: RecordGroupContext,
 ) {
-  const { categoryById, filters, payments, record, recordItems } =
-    recordContext;
+  const {
+    categoryById,
+    filters,
+    holderIdsByAccountId,
+    payments,
+    record,
+    recordItems,
+  } = recordContext;
   trackGroupRecord(group, recordContext);
 
   if (record.type !== "normal") return;
@@ -437,6 +456,7 @@ function addRecordToGroup(
     resolveRecordLevelContribution({
       categoryById,
       filters,
+      holderIdsByAccountId,
       matchedItems: recordItems,
       payments,
     }),
@@ -458,17 +478,21 @@ function addItemToGroup(
   addSignedAmount(group.summary, signedAmount);
 }
 
-/** 记录计入组：笔数，以及有账户筛选时的「共同支付」统计（一笔记录在一个组内只计一次）。 */
+/** 记录计入组：笔数，以及有账户集合筛选时的「共同支付」统计（一笔记录在一个组内只计一次）。 */
 function trackGroupRecord(
   group: MutableGroup,
   recordContext: RecordGroupContext,
 ) {
-  const { filters, payments, record } = recordContext;
+  const { filters, holderIdsByAccountId, payments, record } = recordContext;
   group.recordIds.add(record.id);
 
   if (group.sharedPaymentRecordIds.has(record.id)) return;
 
-  const sharedAmounts = getSharedPaymentAmounts({ filters, payments });
+  const sharedAmounts = getSharedPaymentAmounts({
+    filters,
+    holderIdsByAccountId,
+    payments,
+  });
   if (!sharedAmounts) return;
 
   group.sharedPaymentRecordIds.add(record.id);

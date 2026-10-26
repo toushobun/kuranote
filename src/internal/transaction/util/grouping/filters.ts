@@ -16,6 +16,7 @@ import {
   isDateText as isDateKey,
 } from "utils/transactions";
 
+import { resolveAccountScope } from "internal/transaction/util/grouping/accountScope";
 import { getTransactionGroupContextLookups } from "internal/transaction/util/grouping/contextLookups";
 import { matchesParentCategory } from "internal/transaction/util/grouping/groupMatching";
 import { listRecordAccountMovements } from "internal/transaction/util/grouping/recordAccounts";
@@ -28,6 +29,10 @@ export function filterTransactionRecords(
   const normalizedFilters = normalizeTransactionFilters(filters);
   const lookups = getTransactionGroupContextLookups(context);
   const { categoryById, itemsByRecordId, paymentsByRecordId } = lookups;
+  const accountScope = resolveAccountScope({
+    filters: normalizedFilters,
+    holderIdsByAccountId: context.holderIdsByAccountId,
+  });
 
   return context.records.filter((record) => {
     const recordItems = itemsByRecordId.get(record.id) ?? [];
@@ -56,12 +61,12 @@ export function filterTransactionRecords(
       return false;
     }
     if (
-      normalizedFilters.accountId &&
+      accountScope &&
       !listRecordAccountMovements(
         record,
         recordItems,
         paymentsByRecordId.get(record.id) ?? [],
-      ).some((movement) => movement.accountId === normalizedFilters.accountId)
+      ).some((movement) => accountScope(movement.accountId))
     ) {
       return false;
     }
@@ -95,6 +100,7 @@ export function normalizeTransactionFilters(
     categoryId: normalizeOptionalValue(filters.categoryId),
     dateFrom: normalizeOptionalValue(filters.dateFrom),
     dateTo: normalizeOptionalValue(filters.dateTo),
+    holderId: normalizeOptionalValue(filters.holderId),
     memberId: normalizeOptionalValue(filters.memberId),
     merchantId: normalizeOptionalValue(filters.merchantId),
     parentCategoryId: normalizeOptionalValue(filters.parentCategoryId),
@@ -110,7 +116,7 @@ function normalizeSpecialStatuses(
 }
 
 /**
- * 账户以外的明细级筛选。账户筛选是记录级（付款明细 / 转账明细包含该账户即命中），
+ * 账户以外的明细级筛选。账户 / 持有人筛选是记录级（付款明细 / 转账明细包含账户集合内的账户即命中），
  * 不剔除明细；这些筛选存在时，命中部分由明细决定。
  */
 export function hasNonAccountItemFilters(filters: TransactionFilters) {

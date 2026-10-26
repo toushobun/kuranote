@@ -175,6 +175,7 @@ describe("TransactionDashboardQueryService", () => {
             { currency: "JPY", id: "account-1", name: "现金" },
             { currency: "JPY", id: "account-2", name: "银行卡" },
           ],
+          holderIdsByAccountId: new Map(),
           showRecorder: true,
         }),
       } as never,

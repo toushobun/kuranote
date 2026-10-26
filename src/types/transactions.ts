@@ -41,6 +41,7 @@ export type TransactionGroupBy =
   | "parentCategory"
   | "category"
   | "member"
+  | "holder"
   | "specialStatus";
 
 export type TransactionFilterRecordType =
@@ -55,6 +56,7 @@ export type TransactionFilters = {
   categoryId?: string;
   dateFrom?: string;
   dateTo?: string;
+  holderId?: string;
   memberId?: string;
   merchantId?: string;
   parentCategoryId?: string;
@@ -124,9 +126,15 @@ export type TransactionMemberOption = {
   name: string;
 };
 
+export type TransactionHolderOption = {
+  id: string;
+  name: string;
+};
+
 export type TransactionFilterOptions = {
   accounts: TransactionAccountOption[];
   categories: TransactionCategoryOption[];
+  holders: TransactionHolderOption[];
   members: TransactionMemberOption[];
   merchants: TransactionMerchantOption[];
   transactionItemSpecialStatusEnabled?: boolean;
