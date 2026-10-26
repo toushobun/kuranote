@@ -19,9 +19,11 @@ import {
   formatRefundMinorUnits,
 } from "internal/transaction/util/refundAllocation";
 import { transactionFallbackLabels } from "internal/transaction/util/transactionFallbackLabels";
+import type { HolderIdsByAccountId } from "internal/transaction/util/grouping/accountScope";
 import {
   getSharedPaymentAmounts,
   resolveContributionItems,
+  resolveRecordAmountSource,
   resolveRecordLevelContribution,
   resolveSharedPaymentAmountBasis,
   type TransactionListGroupContext,
@@ -37,6 +39,7 @@ export function buildTransactionListItem({
   fallbackCurrency,
   filters,
   group,
+  holderIdsByAccountId,
   merchantById,
   payments,
   record,
@@ -52,6 +55,7 @@ export function buildTransactionListItem({
   filters: TransactionFilters;
   /** 行所在的分组；组内行金额与组合计同口径。 */
   group?: TransactionListGroupContext;
+  holderIdsByAccountId: HolderIdsByAccountId;
   merchantById: Map<string, MerchantSummaryDbRow>;
   /** 普通记录的付款明细（按 sort_order）。 */
   payments: TransactionPaymentDbRow[];
@@ -111,29 +115,22 @@ export function buildTransactionListItem({
   const merchant = record.merchant_id
     ? merchantById.get(record.merchant_id)
     : undefined;
+  const paymentScope = { filters, group, holderIdsByAccountId, payments };
   const contributionItems = resolveContributionItems({
+    ...paymentScope,
     categoryById,
-    filters,
-    group,
     matchedItems: recordItems,
-    payments,
   });
   const originalAmount = calculateTransactionRecordDisplayAmount(
     contributionItems,
     categoryById,
   );
   const displayAmount = resolveRecordLevelContribution({
+    ...paymentScope,
     categoryById,
-    filters,
-    group,
     matchedItems: recordItems,
-    payments,
   });
-  const sharedPaymentAmounts = getSharedPaymentAmounts({
-    filters,
-    group,
-    payments,
-  });
+  const sharedPaymentAmounts = getSharedPaymentAmounts(paymentScope);
   const sharedPaymentAmountBasis = sharedPaymentAmounts
     ? resolveSharedPaymentAmountBasis({ filters, groupBy: group?.groupBy })
     : null;
@@ -141,9 +138,9 @@ export function buildTransactionListItem({
     recordItems,
     categoryById,
   );
-  // 主金额为账户份额（实际付款，不扣退款 / 报销）时，「原金额」没有对应的含义，不显示。
+  // 主金额为账户集合的实际收付（不扣退款 / 报销）时，「原金额」没有对应的含义，不显示。
   const hasBusinessNetOffset =
-    sharedPaymentAmountBasis !== "accountShare" &&
+    resolveRecordAmountSource(paymentScope) !== "movement" &&
     contributionItems.some((item) =>
       hasBusinessNetAmountOffset(item.amount, item.business_net_amount),
     );

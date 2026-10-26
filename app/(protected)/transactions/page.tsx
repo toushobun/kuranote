@@ -74,6 +74,7 @@ const emptyTimeGroupView: TransactionTimeGroupViewData = {
 const emptyFilterOptions: TransactionFilterOptions = {
   accounts: [],
   categories: [],
+  holders: [],
   members: [],
   merchants: [],
 };

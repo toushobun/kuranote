@@ -50,6 +50,7 @@ const nonTimeTransactionGroupByValues = new Set<string>([
   "parentCategory",
   "category",
   "member",
+  "holder",
   "specialStatus",
 ]);
 
@@ -154,6 +155,7 @@ async function loadStep4NonTimeGroupedTransactionGroupPage(
     dateEnd: dateBounds?.endIso,
     dateStart: dateBounds?.startIso,
     groupBy,
+    holderId: normalizedFilters.holderId,
     ledgerId: currentLedger.id,
     limit: transactionGroupSummaryRpcPageSize,
     memberId: normalizedFilters.memberId,
@@ -303,6 +305,7 @@ function buildStep4TransactionGroupPageFromContext(
     currency: context.currentLedger.baseCurrency,
     filters: normalizeTransactionFilters(filters),
     groupBy,
+    holderIdsByAccountId: context.holderIdsByAccountId,
     items: filteredItems,
     merchants: context.merchants,
     offset,
@@ -424,6 +427,7 @@ function filterRecordsByGroup(
       categoryById,
       groupBy,
       groupKey,
+      holderIdsByAccountId: context.holderIdsByAccountId,
       items: itemsByRecordId.get(record.id) ?? [],
       payments: paymentsByRecordId.get(record.id) ?? [],
       record,

@@ -26,10 +26,14 @@ export const timeGroupOptions = [
   { label: "日", value: "day" },
 ] as const satisfies readonly GroupOption[];
 
+/** 账户持有人：筛选项与「按持有人」分组共用（#909）。 */
+export const holderFilterLabel = "持有人";
+
 export const otherGroupOptions = [
   { label: "大分类", value: "parentCategory" },
   { label: "小分类", value: "category" },
   { label: "账户", value: "account" },
+  { label: holderFilterLabel, value: "holder" },
   { label: "商家", value: "merchant" },
   { label: "成员", value: "member" },
   { label: "特殊状态", value: "specialStatus" },

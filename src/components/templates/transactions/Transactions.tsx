@@ -266,6 +266,7 @@ export function TransactionsTemplate({
 const emptyFilterOptions: TransactionFilterOptions = {
   accounts: [],
   categories: [],
+  holders: [],
   members: [],
   merchants: [],
 };

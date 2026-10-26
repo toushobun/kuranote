@@ -68,8 +68,10 @@ function createService(
     getTransactionContext: vi.fn().mockResolvedValue({
       accountColorById: new Map(),
       accounts: [],
+      holderIdsByAccountId: new Map(),
       showRecorder: false,
     }),
+    listTransactionHolderOptions: vi.fn().mockResolvedValue([]),
     listTransactionOptions: vi.fn().mockResolvedValue([
       {
         currency: "JPY",
@@ -374,6 +376,7 @@ describe("TransactionService", () => {
     const service = createTransactionService({
       accountQueryService: {
         getTransactionContext: vi.fn(),
+        listTransactionHolderOptions: vi.fn().mockResolvedValue([]),
         listTransactionOptions: vi.fn().mockResolvedValue([
           {
             currency: "JPY",
@@ -748,8 +751,10 @@ describe("付款明细校验（create / update / convert）", () => {
       getTransactionContext: vi.fn().mockResolvedValue({
         accountColorById: new Map(),
         accounts: [],
+        holderIdsByAccountId: new Map(),
         showRecorder: false,
       }),
+      listTransactionHolderOptions: vi.fn().mockResolvedValue([]),
       listTransactionOptions: vi.fn().mockResolvedValue(
         options?.accountOptions ?? [
           {
@@ -923,8 +928,10 @@ describe("付款明细校验（create / update / convert）", () => {
       getTransactionContext: vi.fn().mockResolvedValue({
         accountColorById: new Map(),
         accounts: [],
+        holderIdsByAccountId: new Map(),
         showRecorder: false,
       }),
+      listTransactionHolderOptions: vi.fn().mockResolvedValue([]),
       listTransactionOptions: vi.fn().mockResolvedValue([
         {
           currency: "JPY",

@@ -1,8 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { CategorySummaryDbRow } from "internal/db-types";
 
-import { buildFormCategoryOptions } from "./options";
+import {
+  buildFormCategoryOptions,
+  loadTransactionFilterOptions,
+} from "./options";
 
 function createCategory(
   overrides: Partial<CategorySummaryDbRow>,
@@ -105,6 +108,57 @@ describe("buildFormCategoryOptions", () => {
         parentName: null,
         type: "expense",
       },
+    ]);
+  });
+});
+
+const ledgerId = "00000000-0000-4000-8000-000000000032";
+const userId = "00000000-0000-4000-8000-000000000031";
+
+describe("loadTransactionFilterOptions", () => {
+  it("持有人候选来自账户模块，末尾追加「未指定持有人」", async () => {
+    const listTransactionHolderOptions = vi.fn().mockResolvedValue([
+      { id: "placeholder-grandma", name: "奶奶" },
+      { id: userId, name: "我" },
+    ]);
+
+    const options = await loadTransactionFilterOptions(
+      {
+        accountQueryService: {
+          getTransactionContext: vi.fn(),
+          listTransactionHolderOptions,
+          listTransactionOptions: vi.fn().mockResolvedValue([]),
+        },
+        categoryQueryService: {
+          findSummariesByIds: vi.fn(),
+          listActiveSummaries: vi.fn().mockResolvedValue([]),
+        },
+        currentUserId: userId,
+        merchantQueryService: {
+          findSummariesByIds: vi.fn(),
+          listActiveOptions: vi.fn().mockResolvedValue([]),
+        },
+        transactionRepository: {
+          findUserSummaries: vi.fn().mockResolvedValue([]),
+          listActiveMemberIds: vi.fn().mockResolvedValue([]),
+        },
+      },
+      {
+        baseCurrency: "JPY",
+        currentUserRole: "owner",
+        id: ledgerId,
+        name: "家庭账本",
+      },
+    );
+
+    expect(listTransactionHolderOptions).toHaveBeenCalledWith({
+      ledgerId,
+      userId,
+    });
+    expect(options.holders).toEqual([
+      { id: "placeholder-grandma", name: "奶奶" },
+      { id: userId, name: "我" },
+      { id: "none", name: "未指定持有人" },
     ]);
   });
 });

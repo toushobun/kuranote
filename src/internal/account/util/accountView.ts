@@ -6,6 +6,7 @@ import {
 } from "theme/themeColorTokens";
 import type {
   AccountHolderData,
+  AccountHolderIdentity,
   AccountLedgerMember,
   AccountMemberDisplaySetting,
   AccountUser,
@@ -69,13 +70,19 @@ export function buildAccountsWithHolders<T extends { id: string }>({
   const holdersByAccountId = new Map<string, AccountHolderView[]>();
 
   for (const holder of holders) {
+    const displayName = resolveAccountHolderDisplayName({
+      appUserById,
+      holder,
+      placeholderById,
+    });
+    if (displayName === null) continue;
+
+    const accountHolders = holdersByAccountId.get(holder.account_id) ?? [];
+
     if (holder.user_id === null) {
-      const accountHolders = holdersByAccountId.get(holder.account_id) ?? [];
       accountHolders.push({
         display_color: null,
-        display_name:
-          placeholderById.get(holder.placeholder_id)?.displayName ??
-          unknownPlaceholderHolderName,
+        display_name: displayName,
         email: null,
         id: holder.id,
         kind: "placeholder",
@@ -84,31 +91,21 @@ export function buildAccountsWithHolders<T extends { id: string }>({
         share_ratio: holder.share_ratio,
         user_id: null,
       });
-      holdersByAccountId.set(holder.account_id, accountHolders);
-      continue;
+    } else {
+      accountHolders.push({
+        id: holder.id,
+        kind: "member",
+        placeholder_id: null,
+        user_id: holder.user_id,
+        display_name: displayName,
+        email: appUserById.get(holder.user_id)?.email ?? null,
+        display_color:
+          displayColorByUserId.get(holder.user_id) ??
+          getStableFallbackThemeColorKey(holder.user_id),
+        role: holder.role,
+        share_ratio: holder.share_ratio,
+      });
     }
-
-    const appUser = appUserById.get(holder.user_id);
-
-    if (!appUser) {
-      continue;
-    }
-
-    const accountHolders = holdersByAccountId.get(holder.account_id) ?? [];
-
-    accountHolders.push({
-      id: holder.id,
-      kind: "member",
-      placeholder_id: null,
-      user_id: holder.user_id,
-      display_name: appUser.display_name,
-      email: appUser.email,
-      display_color:
-        displayColorByUserId.get(holder.user_id) ??
-        getStableFallbackThemeColorKey(holder.user_id),
-      role: holder.role,
-      share_ratio: holder.share_ratio,
-    });
 
     holdersByAccountId.set(holder.account_id, accountHolders);
   }
@@ -117,6 +114,60 @@ export function buildAccountsWithHolders<T extends { id: string }>({
     ...account,
     holders: holdersByAccountId.get(account.id) ?? [],
   }));
+}
+
+/**
+ * 持有人显示名称：成员取账本内显示名（调用方已合并），占位取占位名称；
+ * 成员资料读不到时返回 null（不显示该持有人）。
+ */
+function resolveAccountHolderDisplayName({
+  appUserById,
+  holder,
+  placeholderById,
+}: {
+  appUserById: Map<string, AccountUser>;
+  holder: AccountHolderIdentity;
+  placeholderById: Map<string, LedgerPlaceholderMemberSummary>;
+}): string | null {
+  if (holder.user_id === null) {
+    return (
+      placeholderById.get(holder.placeholder_id)?.displayName ??
+      unknownPlaceholderHolderName
+    );
+  }
+
+  return appUserById.get(holder.user_id)?.display_name ?? null;
+}
+
+/** 持有人 ID：成员为 user_id，占位为 placeholder_id。交易统计按它区分持有人（#909）。 */
+export function getAccountHolderId(holder: AccountHolderIdentity): string {
+  return holder.user_id ?? holder.placeholder_id;
+}
+
+/** 交易筛选的持有人候选：账户上出现过的持有人去重，名称与账户列表一致，按名称排序。 */
+export function buildAccountHolderOptions({
+  appUserById,
+  holders,
+  placeholderById,
+}: {
+  appUserById: Map<string, AccountUser>;
+  holders: AccountHolderData[];
+  placeholderById: Map<string, LedgerPlaceholderMemberSummary>;
+}): { id: string; name: string }[] {
+  const nameById = new Map<string, string>();
+
+  for (const holder of holders) {
+    const name = resolveAccountHolderDisplayName({
+      appUserById,
+      holder,
+      placeholderById,
+    });
+    if (name !== null) nameById.set(getAccountHolderId(holder), name);
+  }
+
+  return [...nameById]
+    .map(([id, name]) => ({ id, name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export function buildHolderOptions({

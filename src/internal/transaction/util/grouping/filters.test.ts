@@ -38,6 +38,7 @@ function createContext(
 ): TransactionGroupLoaderContext {
   return {
     accountColorById: new Map(),
+    holderIdsByAccountId: new Map(),
     accounts: [],
     categories: [],
     currentLedger: {

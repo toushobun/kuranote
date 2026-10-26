@@ -19,6 +19,12 @@ import {
   normalizeTransactionFilters,
 } from "./grouping/filters";
 import {
+  createHolderGroupLoaderContext,
+  holderIds,
+  holderRecords,
+} from "./grouping/accountHolder.testUtils";
+import type { TransactionGroupLoaderContext } from "./grouping/types";
+import {
   createHospitalGroupLoaderContext,
   hospitalAccounts,
   hospitalCategories,
@@ -87,6 +93,7 @@ describe("buildTransactionGroupSummaryPage", () => {
       accounts,
       categories,
       currency: "JPY",
+      holderIdsByAccountId: new Map(),
       groupBy: "month",
       items,
       merchants,
@@ -116,6 +123,7 @@ describe("buildTransactionGroupSummaryPage", () => {
       accounts,
       categories,
       currency: "JPY",
+      holderIdsByAccountId: new Map(),
       groupBy: "month",
       items,
       merchants,
@@ -147,6 +155,7 @@ describe("buildTransactionGroupSummaryPage", () => {
       accounts,
       categories,
       currency: "JPY",
+      holderIdsByAccountId: new Map(),
       groupBy: "month",
       items,
       merchants,
@@ -183,6 +192,7 @@ describe("buildTransactionGroupSummaryPage", () => {
       accounts,
       categories,
       currency: "JPY",
+      holderIdsByAccountId: new Map(),
       groupBy: "month",
       items,
       merchants,
@@ -217,6 +227,7 @@ describe("buildTransactionGroupSummaryPage", () => {
       accounts,
       categories,
       currency: "JPY",
+      holderIdsByAccountId: new Map(),
       groupBy: "specialStatus",
       items,
       merchants,
@@ -251,6 +262,7 @@ it.each(["2500", "-2500"])("余额调整 %s 计入流水笔数但不计入收支
     accounts,
     categories,
     currency: "JPY",
+    holderIdsByAccountId: new Map(),
     groupBy: "month",
     items: [{ ...item("adjustment", null, "2500"), balance_delta: delta }],
     merchants,
@@ -269,6 +281,34 @@ it.each(["2500", "-2500"])("余额调整 %s 计入流水笔数但不计入收支
   });
 });
 
+/** 与列表 loader 相同：先按筛选取记录与明细，再在内存中分组。 */
+function buildPageFromContext(
+  context: TransactionGroupLoaderContext,
+  groupBy: TransactionGroupBy,
+  filters: Omit<TransactionFilters, "recordType">,
+) {
+  const normalizedFilters = normalizeTransactionFilters({
+    recordType: "all",
+    ...filters,
+  });
+
+  return buildTransactionGroupSummaryPage({
+    accounts: context.accounts,
+    categories: context.categories,
+    currency: "JPY",
+    holderIdsByAccountId: context.holderIdsByAccountId,
+    filters: normalizedFilters,
+    groupBy,
+    items: filterTransactionItems(context, normalizedFilters),
+    merchants: context.merchants,
+    offset: 0,
+    pageSize: 20,
+    payments: context.payments,
+    records: filterTransactionRecords(context, normalizedFilters),
+    recorders: context.recorders,
+  });
+}
+
 describe("buildTransactionGroupSummaryPage 医院 12 万（方案 D）", () => {
   const mine = hospitalAccounts.mine.id;
   const inpatient = hospitalCategories.inpatient.id;
@@ -277,27 +317,11 @@ describe("buildTransactionGroupSummaryPage 医院 12 万（方案 D）", () => {
     groupBy: TransactionGroupBy,
     filters: Omit<TransactionFilters, "recordType"> = {},
   ) {
-    const context = createHospitalGroupLoaderContext();
-    const normalizedFilters = normalizeTransactionFilters({
-      recordType: "all",
-      ...filters,
-    });
-    const records = filterTransactionRecords(context, normalizedFilters);
-
-    return buildTransactionGroupSummaryPage({
-      accounts: context.accounts,
-      categories: context.categories,
-      currency: "JPY",
-      filters: normalizedFilters,
+    return buildPageFromContext(
+      createHospitalGroupLoaderContext(),
       groupBy,
-      items: filterTransactionItems(context, normalizedFilters),
-      merchants: context.merchants,
-      offset: 0,
-      pageSize: 20,
-      payments: context.payments,
-      records,
-      recorders: context.recorders,
-    }).groups.map((group) => ({
+      filters,
+    ).groups.map((group) => ({
       expense: group.summary.expense,
       label: group.label,
       sharedPayment: group.sharedPayment,
@@ -376,5 +400,91 @@ describe("buildTransactionGroupSummaryPage 医院 12 万（方案 D）", () => {
         },
       },
     ]);
+  });
+});
+
+describe("buildTransactionGroupSummaryPage 持有人维度（#909）", () => {
+  function buildMonthSummary(
+    records: TransactionRecordDbRow[],
+    filters: Omit<TransactionFilters, "recordType">,
+  ) {
+    return buildPageFromContext(
+      createHolderGroupLoaderContext(records),
+      "month",
+      filters,
+    ).groups.map((group) => ({
+      sharedPayment: group.sharedPayment,
+      summary: group.summary,
+      transactionCount: group.transactionCount,
+    }));
+  }
+
+  it("筛选「我」按月：本月 -5 万 + 1 万", () => {
+    expect(
+      buildMonthSummary([holderRecords.hospital, holderRecords.refund], {
+        holderId: holderIds.me,
+      }),
+    ).toEqual([
+      {
+        sharedPayment: undefined,
+        summary: {
+          balance: "-40000",
+          currency: "JPY",
+          expense: "50000",
+          income: "10000",
+        },
+        transactionCount: 2,
+      },
+    ]);
+  });
+
+  it("筛选「我」按月：共同支付、转账、余额调整与其他持有人的记录合计 -4.3 万", () => {
+    expect(
+      buildMonthSummary(Object.values(holderRecords), {
+        holderId: holderIds.me,
+      }),
+    ).toEqual([
+      {
+        sharedPayment: undefined,
+        summary: {
+          balance: "-43000",
+          currency: "JPY",
+          expense: "53000",
+          income: "10000",
+        },
+        // 医院、退款、共同支付、两笔转账、余额调整；无持有人与占位成员账户的记录不出现。
+        transactionCount: 6,
+      },
+    ]);
+  });
+
+  it("筛选「我」+ 分类：明细级筛选优先，带共同支付提示", () => {
+    expect(
+      buildMonthSummary([holderRecords.hospital, holderRecords.refund], {
+        categoryId: "category-checkup",
+        holderId: holderIds.me,
+      }),
+    ).toEqual([
+      {
+        sharedPayment: {
+          accountShareAmount: "50000",
+          recordCount: 1,
+          recordTotalAmount: "120000",
+        },
+        summary: {
+          balance: "-70000",
+          currency: "JPY",
+          expense: "70000",
+          income: "0",
+        },
+        transactionCount: 1,
+      },
+    ]);
+  });
+
+  it("按持有人分组只由数据库分组函数汇总，内存分组拒绝", () => {
+    expect(() =>
+      buildPageFromContext(createHolderGroupLoaderContext(), "holder", {}),
+    ).toThrow("holder");
   });
 });

@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -24,9 +25,42 @@ const filterOptions = {
       type: "expense" as const,
     },
   ],
+  holders: [
+    { id: "holder-me", name: "我" },
+    { id: "none", name: "未指定持有人" },
+  ],
   members: [],
   merchants: [],
 };
+
+function renderFilterDialog({
+  draftFilters = { recordType: "all" },
+  draftGroupBy = "month",
+  onChangeFilters = vi.fn(),
+  onChangeGroupBy = vi.fn(),
+}: Partial<
+  Pick<
+    ComponentProps<typeof TransactionFilterDialog>,
+    "draftFilters" | "draftGroupBy" | "onChangeFilters" | "onChangeGroupBy"
+  >
+> = {}) {
+  render(
+    <TransactionFilterDialog
+      draftFilters={draftFilters}
+      draftGroupBy={draftGroupBy}
+      filterOptions={filterOptions}
+      isPending={false}
+      onApply={vi.fn()}
+      onChangeFilters={onChangeFilters}
+      onChangeGroupBy={onChangeGroupBy}
+      onClose={vi.fn()}
+      onReset={vi.fn()}
+      open
+    />,
+  );
+
+  return { onChangeFilters, onChangeGroupBy };
+}
 
 describe("TransactionFilterDialog", () => {
   it("在真实 theme 下 Dialog 圆角使用 xl token", () => {
@@ -53,22 +87,9 @@ describe("TransactionFilterDialog", () => {
   });
 
   it("使用同一个分类选择框切换大分类和小分类", () => {
-    const onChangeFilters = vi.fn();
-
-    render(
-      <TransactionFilterDialog
-        draftFilters={{ parentCategoryId: "food", recordType: "all" }}
-        draftGroupBy="month"
-        filterOptions={filterOptions}
-        isPending={false}
-        onApply={vi.fn()}
-        onChangeFilters={onChangeFilters}
-        onChangeGroupBy={vi.fn()}
-        onClose={vi.fn()}
-        onReset={vi.fn()}
-        open
-      />,
-    );
+    const { onChangeFilters } = renderFilterDialog({
+      draftFilters: { parentCategoryId: "food", recordType: "all" },
+    });
 
     expect(screen.getByRole("combobox", { name: "分类" })).toBeInTheDocument();
     expect(screen.queryByRole("combobox", { name: "大分类" })).toBeNull();
@@ -84,6 +105,35 @@ describe("TransactionFilterDialog", () => {
     });
   });
 
+  describe("持有人（#909）", () => {
+    it("筛选可选择持有人与「未指定持有人」", () => {
+      const { onChangeFilters } = renderFilterDialog();
+
+      fireEvent.mouseDown(screen.getByRole("combobox", { name: "持有人" }));
+      expect(
+        screen.getByRole("option", { name: "未指定持有人" }),
+      ).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("option", { name: "我" }));
+
+      expect(onChangeFilters).toHaveBeenCalledWith({
+        holderId: "holder-me",
+        recordType: "all",
+      });
+    });
+
+    it("其他分组可选择「持有人」", () => {
+      const { onChangeGroupBy } = renderFilterDialog({
+        draftGroupBy: "holder",
+      });
+
+      const holderChip = screen.getByRole("button", { name: "持有人" });
+      expect(holderChip).toHaveAttribute("aria-pressed", "true");
+      fireEvent.click(holderChip);
+
+      expect(onChangeGroupBy).toHaveBeenCalledWith("holder");
+    });
+  });
+
   describe("日期筛选", () => {
     beforeEach(() => {
       vi.useFakeTimers({ toFake: ["Date"] });
@@ -94,23 +144,8 @@ describe("TransactionFilterDialog", () => {
       vi.useRealTimers();
     });
 
-    function renderDialog(onChangeFilters = vi.fn()) {
-      render(
-        <TransactionFilterDialog
-          draftFilters={{ recordType: "all" }}
-          draftGroupBy="month"
-          filterOptions={filterOptions}
-          isPending={false}
-          onApply={vi.fn()}
-          onChangeFilters={onChangeFilters}
-          onChangeGroupBy={vi.fn()}
-          onClose={vi.fn()}
-          onReset={vi.fn()}
-          open
-        />,
-      );
-
-      return onChangeFilters;
+    function renderDialog() {
+      return renderFilterDialog().onChangeFilters;
     }
 
     it("不再使用自由文本输入日期", () => {

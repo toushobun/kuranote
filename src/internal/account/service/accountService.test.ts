@@ -448,6 +448,43 @@ describe("AccountService 占位持有人", () => {
     );
   });
 
+  it("交易筛选的持有人候选：成员用账本显示名，占位显示名字，含归档账户并去重", async () => {
+    const repository = createRepository();
+    mockPlaceholderAccount(repository);
+    vi.mocked(repository.listHolders).mockResolvedValue([
+      placeholderHolder,
+      {
+        ...placeholderHolder,
+        id: "00000000-0000-4000-8000-000000000053",
+        placeholder_id: null,
+        user_id: holderUserId,
+      },
+      {
+        ...placeholderHolder,
+        account_id: "00000000-0000-4000-8000-000000000046",
+        id: "00000000-0000-4000-8000-000000000054",
+        placeholder_id: null,
+        user_id: holderUserId,
+      },
+    ]);
+    vi.mocked(repository.listDisplaySettings).mockResolvedValue([
+      { display_color: "sky", display_name: "妻子", user_id: holderUserId },
+    ]);
+
+    const options = await createService(
+      repository,
+    ).listTransactionHolderOptions({ ledgerId, userId });
+
+    expect(options).toEqual([
+      { id: placeholderId, name: "奶奶" },
+      { id: holderUserId, name: "妻子" },
+    ]);
+    expect(repository.listAccounts).toHaveBeenCalledWith(ledgerId, true);
+    expect(vi.mocked(repository.listUsers).mock.calls).toEqual([
+      [[holderUserId]],
+    ]);
+  });
+
   it("创建时把占位 ID 透传给 Repository，且不传用户持有人", async () => {
     const repository = createRepository();
 

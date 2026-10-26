@@ -66,9 +66,16 @@ export type TransactionMemberOption = {
   name: string;
 };
 
+export type TransactionHolderOption = {
+  id: string;
+  name: string;
+};
+
 export type TransactionFilterOptions = {
   accounts: TransactionAccountOption[];
   categories: TransactionCategoryOption[];
+  /** 账户持有人（含占位成员），末尾为「未指定持有人」。 */
+  holders: TransactionHolderOption[];
   members: TransactionMemberOption[];
   merchants: MerchantSummary[];
   transactionItemSpecialStatusEnabled?: boolean;

@@ -11,6 +11,13 @@ import {
 
 import { buildTransactionListItem as buildTransactionListItemBase } from "./buildTransactionListItem";
 import {
+  createHolderGroupLoaderContext,
+  holderCategories,
+  holderIds,
+  holderRecords,
+} from "./grouping/accountHolder.testUtils";
+import { getTransactionGroupContextLookups } from "./grouping/contextLookups";
+import {
   hospitalAccountList,
   hospitalAccounts,
   hospitalCategories,
@@ -26,11 +33,19 @@ type BuildTransactionListItemInput = Parameters<
 
 /**
  * 未指定付款明细时，普通记录补一行单账户付款明细（账户取首条明细上给出的测试账户），
- * 金额为 Σ收入 − Σ支出；未指定筛选条件时使用默认筛选。
+ * 金额为 Σ收入 − Σ支出；未指定筛选条件时使用默认筛选，未指定持有人时所有账户都无持有人。
  */
 function buildTransactionListItem(
-  input: Omit<BuildTransactionListItemInput, "filters" | "payments"> &
-    Partial<Pick<BuildTransactionListItemInput, "filters" | "payments">>,
+  input: Omit<
+    BuildTransactionListItemInput,
+    "filters" | "holderIdsByAccountId" | "payments"
+  > &
+    Partial<
+      Pick<
+        BuildTransactionListItemInput,
+        "filters" | "holderIdsByAccountId" | "payments"
+      >
+    >,
 ) {
   const firstItem = input.recordItems[0];
   const balanceDelta = input.recordItems.reduce((sum, item) => {
@@ -55,6 +70,7 @@ function buildTransactionListItem(
 
   return buildTransactionListItemBase({
     filters: defaultTransactionFilters,
+    holderIdsByAccountId: new Map(),
     payments: defaultPayments,
     ...input,
   });
@@ -948,5 +964,90 @@ describe("buildTransactionListItem 多账户记录", () => {
       originalAmount: "80000",
       record_total_amount: "120000",
     });
+  });
+});
+
+describe("buildTransactionListItem 持有人维度（#909）", () => {
+  const meFilters: TransactionFilters = {
+    holderId: holderIds.me,
+    recordType: "all",
+  };
+
+  function buildHolderItem(
+    record: (typeof holderRecords)[keyof typeof holderRecords],
+    overrides: Partial<
+      Pick<BuildTransactionListItemInput, "filters" | "group">
+    >,
+  ) {
+    const context = createHolderGroupLoaderContext();
+    const lookups = getTransactionGroupContextLookups(context);
+
+    return buildTransactionListItem({
+      accountById: lookups.accountById,
+      categoryById: lookups.categoryById,
+      fallbackCurrency: "JPY",
+      holderIdsByAccountId: context.holderIdsByAccountId,
+      merchantById: new Map(),
+      payments: lookups.paymentsByRecordId.get(record.id) ?? [],
+      record,
+      recordItems: lookups.itemsByRecordId.get(record.id) ?? [],
+      ...overrides,
+    });
+  }
+
+  it("筛选「我」：医院行显示我的份额 5 万，带共同支付（整笔 12 万），不显示原金额", () => {
+    const item = buildHolderItem(holderRecords.hospital, {
+      filters: meFilters,
+    });
+
+    expect(item.amount).toBe("50000");
+    expect(item.record_total_amount).toBe("120000");
+    expect(item).not.toHaveProperty("account_share_amount");
+    expect(item).not.toHaveProperty("originalAmount");
+  });
+
+  it("筛选「我」：退款行显示实际进入礼品卡的 1 万，不显示原金额", () => {
+    const item = buildHolderItem(holderRecords.refund, { filters: meFilters });
+
+    expect(item.amount).toBe("10000");
+    expect(item.type).toBe("income");
+    expect(item).not.toHaveProperty("originalAmount");
+    expect(item).not.toHaveProperty("record_total_amount");
+  });
+
+  it("筛选「我」：我名下两个账户共同支付时份额 = 整笔，不显示共同支付标识", () => {
+    const item = buildHolderItem(holderRecords.sharedMine, {
+      filters: meFilters,
+    });
+
+    expect(item.amount).toBe("3000");
+    expect(item).not.toHaveProperty("record_total_amount");
+    expect(item).not.toHaveProperty("account_share_amount");
+  });
+
+  it("筛选「我」按分类：医院行显示所在组明细全额，并带本人份额与整笔", () => {
+    const item = buildHolderItem(holderRecords.hospital, {
+      filters: meFilters,
+      group: { groupBy: "category", groupKey: holderCategories.treatment.id },
+    });
+
+    expect(item.amount).toBe("40000");
+    expect(item.account_share_amount).toBe("50000");
+    expect(item.record_total_amount).toBe("120000");
+  });
+
+  it("按持有人分组：组内行金额为该持有人的实际收付", () => {
+    expect(
+      buildHolderItem(holderRecords.hospital, {
+        filters: { recordType: "all" },
+        group: { groupBy: "holder", groupKey: holderIds.wife },
+      }).amount,
+    ).toBe("70000");
+    expect(
+      buildHolderItem(holderRecords.refund, {
+        filters: { recordType: "all" },
+        group: { groupBy: "holder", groupKey: holderIds.me },
+      }).amount,
+    ).toBe("10000");
   });
 });

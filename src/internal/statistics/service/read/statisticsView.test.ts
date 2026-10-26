@@ -582,6 +582,7 @@ describe("Issue #917 月度口径一致性", () => {
           accounts: [],
           categories: monthlyAmountCategories,
           currency: "JPY",
+          holderIdsByAccountId: new Map(),
           filters: defaultTransactionFilters,
           groupBy,
           items,

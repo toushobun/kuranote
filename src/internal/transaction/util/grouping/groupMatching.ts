@@ -10,12 +10,17 @@ import {
   isTransactionTimeGroupBy,
 } from "internal/transaction/util/transactionListGroups";
 
+import {
+  listAccountHolderIds,
+  type HolderIdsByAccountId,
+} from "internal/transaction/util/grouping/accountScope";
 import { listRecordAccountMovements } from "internal/transaction/util/grouping/recordAccounts";
 
 export function recordMatchesGroup({
   categoryById,
   groupBy,
   groupKey,
+  holderIdsByAccountId,
   items,
   payments,
   record,
@@ -23,6 +28,7 @@ export function recordMatchesGroup({
   categoryById: Map<string, CategorySummaryDbRow>;
   groupBy: TransactionGroupBy;
   groupKey: string;
+  holderIdsByAccountId: HolderIdsByAccountId;
   items: TransactionItemDbRow[];
   payments: TransactionPaymentDbRow[];
   record: TransactionRecordDbRow;
@@ -44,6 +50,14 @@ export function recordMatchesGroup({
   if (groupBy === "account") {
     return listRecordAccountMovements(record, items, payments).some(
       (movement) => movement.accountId === groupKey,
+    );
+  }
+  if (groupBy === "holder") {
+    return listRecordAccountMovements(record, items, payments).some(
+      (movement) =>
+        listAccountHolderIds(movement.accountId, holderIdsByAccountId).includes(
+          groupKey,
+        ),
     );
   }
 

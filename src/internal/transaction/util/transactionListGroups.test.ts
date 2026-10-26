@@ -67,6 +67,7 @@ describe("transactionListGroups", () => {
       accounts,
       categories,
       currency: "JPY",
+      holderIdsByAccountId: new Map(),
       groupBy: "month",
       items: [
         item({ amount: "120", transaction_record_id: "june" }),
@@ -123,6 +124,7 @@ describe("transactionListGroups", () => {
       accounts,
       categories,
       currency: "JPY",
+      holderIdsByAccountId: new Map(),
       items: [item({ amount: "120", transaction_record_id: "time-group" })],
       merchants,
       offset: 0,
@@ -164,6 +166,7 @@ describe("transactionListGroups", () => {
       accounts,
       categories,
       currency: "JPY",
+      holderIdsByAccountId: new Map(),
       groupBy: "merchant",
       items: [
         item({ amount: "100", transaction_record_id: "mixed" }),
@@ -209,6 +212,7 @@ describe("transactionListGroups", () => {
       accounts,
       categories,
       currency: "JPY",
+      holderIdsByAccountId: new Map(),
       groupBy: "merchant",
       items: [
         item({ amount: "300", transaction_record_id: "negative-mixed" }),
@@ -248,6 +252,7 @@ describe("transactionListGroups", () => {
       accounts,
       categories,
       currency: "JPY",
+      holderIdsByAccountId: new Map(),
       groupBy: "merchant",
       items: [
         item({ amount: "300", transaction_record_id: "category-type" }),
@@ -287,6 +292,7 @@ describe("transactionListGroups", () => {
       accounts,
       categories,
       currency: "JPY",
+      holderIdsByAccountId: new Map(),
       groupBy: "member",
       items: [
         item({ amount: "120", transaction_record_id: "user-a-expense" }),
@@ -349,6 +355,7 @@ describe("transactionListGroups", () => {
       accounts,
       categories,
       currency: "JPY",
+      holderIdsByAccountId: new Map(),
       groupBy: "account",
       items: [
         item({
@@ -421,6 +428,7 @@ describe("transactionListGroups", () => {
       accounts,
       categories,
       currency: "JPY",
+      holderIdsByAccountId: new Map(),
       items: [item({ amount: "120", transaction_record_id: "dinner" })],
       merchants,
       offset: 0,
@@ -462,6 +470,7 @@ describe("transactionListGroups", () => {
       accounts,
       categories,
       currency: "JPY",
+      holderIdsByAccountId: new Map(),
       merchants,
       offset: 0,
       pageSize: 20,
@@ -523,6 +532,7 @@ describe("transactionListGroups", () => {
       accounts,
       categories,
       currency: "JPY",
+      holderIdsByAccountId: new Map(),
       groupBy: "month",
       items: manyItems,
       merchants,

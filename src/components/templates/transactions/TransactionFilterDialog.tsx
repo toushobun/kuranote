@@ -19,6 +19,7 @@ import { TransactionFilterChip } from "./TransactionFilterChip";
 import { TransactionFilterGroupSelector } from "./TransactionFilterGroupSelector";
 import { TransactionFilterSelect } from "./TransactionFilterSelect";
 import {
+  holderFilterLabel,
   otherGroupOptions,
   recordTypeOptions,
   specialStatusFilterOptions,
@@ -161,6 +162,17 @@ export function TransactionFilterDialog({
               value={draftFilters.accountId}
               onChange={(value) =>
                 onChangeFilters({ ...draftFilters, accountId: value })
+              }
+            />
+            <TransactionFilterSelect
+              label={holderFilterLabel}
+              options={filterOptions.holders.map((holder) => ({
+                label: holder.name,
+                value: holder.id,
+              }))}
+              value={draftFilters.holderId}
+              onChange={(value) =>
+                onChangeFilters({ ...draftFilters, holderId: value })
               }
             />
             <TransactionFilterSelect

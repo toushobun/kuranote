@@ -265,6 +265,7 @@ export interface TransactionGroupRepository extends TransactionContextRepository
     dateEnd?: string;
     dateStart?: string;
     groupBy: TransactionGroupBy;
+    holderId?: string;
     ledgerId: string;
     limit: number;
     memberId?: string;
@@ -1209,6 +1210,7 @@ export function createSupabaseTransactionRepository(
           p_date_end: input.dateEnd ?? null,
           p_date_start: input.dateStart ?? null,
           p_group_by: input.groupBy,
+          p_holder_id: input.holderId ?? null,
           p_ledger_id: input.ledgerId,
           p_limit: input.limit,
           p_member_id: input.memberId ?? null,

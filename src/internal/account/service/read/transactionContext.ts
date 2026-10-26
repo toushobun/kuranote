@@ -4,6 +4,7 @@ import type {
   AccountRepository,
 } from "internal/account/repository/accountRepository";
 import { buildSingleHolderAccountColorById } from "internal/account/util/accountHolderDisplayColors";
+import { getAccountHolderId } from "internal/account/util/accountView";
 
 type TransactionAccountContextInput = {
   accounts: Awaited<ReturnType<AccountRepository["findSummariesByIds"]>>;
@@ -18,6 +19,14 @@ export function buildTransactionAccountContext({
   members,
   settings,
 }: TransactionAccountContextInput) {
+  const holderIdsByAccountId = new Map<string, string[]>();
+  for (const holder of holders) {
+    holderIdsByAccountId.set(holder.account_id, [
+      ...(holderIdsByAccountId.get(holder.account_id) ?? []),
+      getAccountHolderId(holder),
+    ]);
+  }
+
   return {
     accountColorById: buildSingleHolderAccountColorById({
       activeMemberUserIds: new Set(members.map((member) => member.user_id)),
@@ -29,6 +38,7 @@ export function buildTransactionAccountContext({
       id,
       name,
     })),
+    holderIdsByAccountId,
     showRecorder: members.length > 1,
   };
 }

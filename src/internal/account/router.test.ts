@@ -52,6 +52,7 @@ function createContainer(
         create: vi.fn(),
         getTransactionContext: vi.fn(),
         getView: vi.fn(),
+        listTransactionHolderOptions: vi.fn(),
         listTransactionOptions: vi.fn(),
         update: vi.fn(),
         ...overrides,

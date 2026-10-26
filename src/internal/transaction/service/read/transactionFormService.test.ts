@@ -64,6 +64,7 @@ function createDependencies(repository: TransactionFormRepository) {
   return {
     accountQueryService: {
       getTransactionContext: vi.fn(),
+      listTransactionHolderOptions: vi.fn().mockResolvedValue([]),
       listTransactionOptions: vi.fn().mockResolvedValue([
         { currency: "JPY", id: accountId, name: "现金" },
         { currency: "JPY", id: targetAccountId, name: "储蓄" },
@@ -144,6 +145,7 @@ function createLinkedDependencies({
   return {
     accountQueryService: {
       getTransactionContext: vi.fn(),
+      listTransactionHolderOptions: vi.fn().mockResolvedValue([]),
       listTransactionOptions: vi
         .fn()
         .mockResolvedValue([{ currency: "JPY", id: accountId, name: "现金" }]),
@@ -750,6 +752,7 @@ async function getArchivedBalanceAdjustmentView(createdBy: string) {
   dependencies.accountQueryService.getTransactionContext.mockResolvedValue({
     accounts: [{ id: accountId, name: "归档现金", currency: "JPY" }],
     accountColorById: new Map(),
+    holderIdsByAccountId: new Map(),
     showRecorder: true,
   });
   return getEditTransactionView(

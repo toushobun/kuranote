@@ -1,5 +1,9 @@
 import type { CurrentLedger } from "internal/ledger";
 import type { CategorySummaryDbRow } from "internal/db-types";
+import {
+  unassignedAccountHolderId,
+  unassignedAccountHolderLabel,
+} from "internal/transaction/entity/transactionGrouping";
 import type {
   TransactionFilterOptionsRepository,
   TransactionFormRepository,
@@ -64,20 +68,25 @@ export async function loadTransactionFilterOptions(
   dependencies: TransactionReadDependencies<TransactionFilterOptionsRepository>,
   currentLedger: CurrentLedger,
 ): Promise<TransactionFilterOptions> {
-  const [accounts, categoryRows, merchants, memberIds] = await Promise.all([
-    dependencies.accountQueryService.listTransactionOptions({
-      ledgerId: currentLedger.id,
-      userId: dependencies.currentUserId,
-    }),
-    dependencies.categoryQueryService.listActiveSummaries({
-      ledgerId: currentLedger.id,
-      userId: dependencies.currentUserId,
-    }),
-    dependencies.merchantQueryService.listActiveOptions({
-      ledgerId: currentLedger.id,
-    }),
-    dependencies.transactionRepository.listActiveMemberIds(currentLedger.id),
-  ]);
+  const [accounts, holders, categoryRows, merchants, memberIds] =
+    await Promise.all([
+      dependencies.accountQueryService.listTransactionOptions({
+        ledgerId: currentLedger.id,
+        userId: dependencies.currentUserId,
+      }),
+      dependencies.accountQueryService.listTransactionHolderOptions({
+        ledgerId: currentLedger.id,
+        userId: dependencies.currentUserId,
+      }),
+      dependencies.categoryQueryService.listActiveSummaries({
+        ledgerId: currentLedger.id,
+        userId: dependencies.currentUserId,
+      }),
+      dependencies.merchantQueryService.listActiveOptions({
+        ledgerId: currentLedger.id,
+      }),
+      dependencies.transactionRepository.listActiveMemberIds(currentLedger.id),
+    ]);
   const members = await loadMemberOptions(
     dependencies,
     currentLedger.id,
@@ -87,6 +96,10 @@ export async function loadTransactionFilterOptions(
   return {
     accounts,
     categories: buildFilterCategoryOptions(categoryRows),
+    holders: [
+      ...holders,
+      { id: unassignedAccountHolderId, name: unassignedAccountHolderLabel },
+    ],
     members,
     merchants,
     transactionItemSpecialStatusEnabled:

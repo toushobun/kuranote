@@ -22,6 +22,8 @@ export type TransactionGroupLoaderContext = {
   accounts: AccountOptionDbRow[];
   categories: CategorySummaryDbRow[];
   currentLedger: CurrentLedger;
+  /** 账户的持有人 ID（成员 user_id 或占位 ID）；无持有人的账户不在其中。 */
+  holderIdsByAccountId: Map<string, string[]>;
   items: TransactionItemDbRow[];
   merchants: MerchantSummaryDbRow[];
   payments: TransactionPaymentDbRow[];
