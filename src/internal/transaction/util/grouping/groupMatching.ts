@@ -8,7 +8,7 @@ import type { TransactionGroupBy } from "internal/transaction/entity/transaction
 import {
   getTransactionTimeGroupInfo,
   isTransactionTimeGroupBy,
-} from "internal/transaction/util/transactionListGroups";
+} from "internal/transaction/util/transactionListGroupTime";
 
 import {
   listAccountHolderIds,
@@ -61,8 +61,24 @@ export function recordMatchesGroup({
     );
   }
 
+  if (isExcludedFromCategoryGroups(groupBy, record)) return false;
+
   return items.some((item) =>
     itemMatchesGroup({ categoryById, groupBy, groupKey, item }),
+  );
+}
+
+/**
+ * 按大分类 / 小分类分组只纳入普通记录（#909 追加 2）：转账、余额调整的明细没有分类，
+ * 不进入「未知」组；普通记录的明细缺分类时仍进入「未知」组。与 SQL 分组函数同口径。
+ */
+export function isExcludedFromCategoryGroups(
+  groupBy: TransactionGroupBy,
+  record: Pick<TransactionRecordDbRow, "type">,
+) {
+  return (
+    (groupBy === "parentCategory" || groupBy === "category") &&
+    record.type !== "normal"
   );
 }
 

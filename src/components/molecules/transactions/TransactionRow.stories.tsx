@@ -373,7 +373,7 @@ export const SharedPaymentAccountShare: Story = {
 };
 
 export const SharedPaymentMatchedItems: Story = {
-  name: "筛选账户 + 分类：主金额为明细全额并显示本账户份额",
+  name: "筛选账户 + 分类：主金额为明细全额，只显示整笔",
   args: {
     item: sharedPaymentMatchedItemsRowItem,
   },

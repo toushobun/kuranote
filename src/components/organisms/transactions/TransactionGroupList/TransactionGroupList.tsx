@@ -35,7 +35,6 @@ type TransactionGroupListProps = {
   selectableCurrency?: string;
   selectedRefundItemId?: string | null;
   selectedReimbursementItemId?: string | null;
-  sharedPaymentSubject?: string;
   showSummary?: boolean;
 };
 
@@ -48,7 +47,6 @@ export function TransactionGroupList({
   selectableCurrency,
   selectedRefundItemId = null,
   selectedReimbursementItemId = null,
-  sharedPaymentSubject,
   showSummary = true,
 }: TransactionGroupListProps) {
   useDateGroupLabelRefresh();
@@ -119,7 +117,6 @@ export function TransactionGroupList({
                   href={transactionEditHref(item.id)}
                   item={item}
                   key={item.id}
-                  sharedPaymentSubject={sharedPaymentSubject}
                   showDivider={itemIndex < group.items.length - 1}
                 />
               ))

@@ -34,10 +34,9 @@ export const sharedPaymentAccountShareRowItem: TransactionRowItem = {
   record_total_amount: "120000",
 };
 
-/** 筛选我的账户 + 分类住院费：主金额为命中明细全额。 */
+/** 筛选我的账户 + 分类住院费：主金额为命中明细全额，下方只显示整笔。 */
 export const sharedPaymentMatchedItemsRowItem: TransactionRowItem = {
   ...sharedPaymentRowItem,
-  account_share_amount: "50000",
   amount: "80000",
   categoryItems: sharedPaymentRowItem.categoryItems.slice(0, 1),
   record_total_amount: "120000",
@@ -52,18 +51,16 @@ export const sharedPaymentWithOriginalAmountRowItem: TransactionRowItem = {
 
 /**
  * 筛选我的账户 + 按小分类：组内行金额为命中该组的明细全额，与组合计一致；
- * 下方显示「本账户 / 整笔」。
+ * 下方只显示整笔。
  */
 export const sharedPaymentCategoryGroupRowItems = {
   inpatient: {
     ...sharedPaymentRowItem,
-    account_share_amount: "50000",
     amount: "80000",
     record_total_amount: "120000",
   },
   treatment: {
     ...sharedPaymentRowItem,
-    account_share_amount: "50000",
     amount: "40000",
     record_total_amount: "120000",
   },

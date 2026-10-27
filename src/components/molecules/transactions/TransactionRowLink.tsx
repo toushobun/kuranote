@@ -10,7 +10,6 @@ import type { TransactionRowItem } from "types/transactions";
 type TransactionRowLinkProps = {
   href: string;
   item: TransactionRowItem;
-  sharedPaymentSubject?: string;
   showDivider?: boolean;
 };
 
@@ -20,7 +19,6 @@ type TransactionRowLinkProps = {
 export function TransactionRowLink({
   href,
   item,
-  sharedPaymentSubject,
   showDivider = false,
 }: TransactionRowLinkProps) {
   return (
@@ -32,12 +30,7 @@ export function TransactionRowLink({
         showDivider && { borderBottom: userThemeCardBorder },
       ]}
     >
-      <TransactionRow
-        item={item}
-        sharedPaymentSubject={sharedPaymentSubject}
-        showAccount
-        showTime
-      />
+      <TransactionRow item={item} showAccount showTime />
     </Box>
   );
 }

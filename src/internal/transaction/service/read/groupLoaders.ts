@@ -167,9 +167,6 @@ async function loadStep4NonTimeGroupedTransactionGroupPage(
   });
   const groups = pageRows.slice(0, transactionPageSize).map((row) => {
     const sharedPayment = toSharedPaymentSummary({
-      accountShareAmount: Number(
-        normalizeRpcAmount(row.shared_payment_account_share_amount),
-      ),
       filters: normalizedFilters,
       groupBy,
       recordCount: Number(row.shared_payment_record_count ?? 0),

@@ -25,7 +25,6 @@ import {
   resolveContributionItems,
   resolveRecordAmountSource,
   resolveRecordLevelContribution,
-  resolveSharedPaymentAmountBasis,
   type TransactionListGroupContext,
 } from "internal/transaction/util/grouping/recordContribution";
 import type { ThemeColorKey } from "theme/themeColorTokens";
@@ -131,9 +130,6 @@ export function buildTransactionListItem({
     matchedItems: recordItems,
   });
   const sharedPaymentAmounts = getSharedPaymentAmounts(paymentScope);
-  const sharedPaymentAmountBasis = sharedPaymentAmounts
-    ? resolveSharedPaymentAmountBasis({ filters, groupBy: group?.groupBy })
-    : null;
   const displayType = getTransactionRecordCategoryType(
     recordItems,
     categoryById,
@@ -195,11 +191,6 @@ export function buildTransactionListItem({
             payments.length,
           )
         : accountName,
-    ...(sharedPaymentAmounts && sharedPaymentAmountBasis === "matchedItems"
-      ? {
-          account_share_amount: String(sharedPaymentAmounts.accountShareAmount),
-        }
-      : {}),
     amount: String(Math.abs(displayAmount)),
     ...(hasBusinessNetOffset
       ? {

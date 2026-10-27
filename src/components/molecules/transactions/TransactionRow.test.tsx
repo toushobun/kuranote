@@ -956,26 +956,11 @@ describe("TransactionRow 共同支付", () => {
     expect(screen.getByText("我的账户 等 2 个账户")).toBeInTheDocument();
   });
 
-  it("主金额为命中明细全额时显示本账户份额与整笔金额", () => {
+  it("主金额为命中明细全额时也只显示整笔金额，不显示份额", () => {
     render(<TransactionRow item={sharedPaymentMatchedItemsRowItem} />);
 
     expect(screen.getByText("- ¥ 80,000")).toBeInTheDocument();
-    expect(
-      screen.getByText("共同支付 · 本账户 ¥50,000 / 整笔 ¥120,000"),
-    ).toBeInTheDocument();
-  });
-
-  it("按持有人筛选时份额主体显示持有人名称", () => {
-    render(
-      <TransactionRow
-        item={sharedPaymentMatchedItemsRowItem}
-        sharedPaymentSubject="妻子"
-      />,
-    );
-
-    expect(
-      screen.getByText("共同支付 · 妻子 ¥50,000 / 整笔 ¥120,000"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("共同支付 · 整笔 ¥120,000")).toBeInTheDocument();
     expect(screen.queryByText(/本账户/)).not.toBeInTheDocument();
   });
 
@@ -983,9 +968,7 @@ describe("TransactionRow 共同支付", () => {
     render(<TransactionRow item={sharedPaymentWithOriginalAmountRowItem} />);
 
     const amount = screen.getByText("- ¥ 70,000");
-    const sharedPayment = screen.getByText(
-      "共同支付 · 本账户 ¥50,000 / 整笔 ¥120,000",
-    );
+    const sharedPayment = screen.getByText("共同支付 · 整笔 ¥120,000");
     const originalAmount = screen.getByText("原金额 - ¥ 80,000");
 
     expect(

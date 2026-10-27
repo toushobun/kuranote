@@ -14,7 +14,6 @@ import {
   buildActiveFilterChips,
   getResultLabel,
   hasActiveTransactionFilters,
-  resolveSharedPaymentSubject,
   serializeTransactionFilters,
 } from "./transactionFilterUtils";
 
@@ -87,10 +86,6 @@ export function useTransactions({
   const activeFilterChips = useMemo(
     () => buildActiveFilterChips(appliedFilters, filterOptions),
     [appliedFilters, filterOptions],
-  );
-  const sharedPaymentSubject = resolveSharedPaymentSubject(
-    appliedFilters,
-    filterOptions,
   );
   const draftHasActiveFilters = hasActiveTransactionFilters(draftFilters);
   const loadingHasActiveFilters = isPending
@@ -240,7 +235,6 @@ export function useTransactions({
     openFilterDialog,
     resetDraftFilters,
     resultLabel,
-    sharedPaymentSubject,
     showFilterEmptyState,
   };
 }

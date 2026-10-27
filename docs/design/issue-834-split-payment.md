@@ -74,7 +74,7 @@
 - 带退款 / 报销核销的视图（`_with_special_status`）按账户分组时，用付款明细的实际付款金额，不分摊业务净额。
 - 统计页（/statistics）的分类、商家排行不受影响。
 - **已知并接受的结果：** 筛选某账户后，多账户记录在「按月」等记录级维度下计入该账户的份额，而在「按分类」等明细级维度下计入明细全额。所以同一筛选条件下，各分类合计与按月合计可能不一致（例：筛选我的账户，按月 5 万，按分类合计 12 万）。明细级维度通过「共同支付」标识说明差异来源（2.4）。
-- **由方案 D 推导的组合规则：** 账户筛选与分类 / 大分类 / 特殊状态 / 「可退款支出」等明细级筛选**同时**存在时，命中部分由明细级筛选决定（付款无法与明细取交集），多账户记录在记录级维度下也计入命中明细的全额，账户筛选只决定记录是否出现。例：筛选我的账户 + 分类住院费，按月显示 8 万。这种情况下金额为明细全额，**不能只显示数字**：多账户记录必须带「共同支付」标识，并能看到该账户的出资份额和整笔金额，让用户一眼看出这 8 万不全是该账户出的。示例显示形式（最终样式以设计图为准）：「8 万（共同支付 · 我出资 5 万 / 整笔 12 万）」。数据字段见 2.4。
+- **由方案 D 推导的组合规则：** 账户筛选与分类 / 大分类 / 特殊状态 / 「可退款支出」等明细级筛选**同时**存在时，命中部分由明细级筛选决定（付款无法与明细取交集），多账户记录在记录级维度下也计入命中明细的全额，账户筛选只决定记录是否出现。例：筛选我的账户 + 分类住院费，按月显示 8 万。这种情况下金额为明细全额，**不能只显示数字**：多账户记录必须带「共同支付」标识并显示整笔金额，让用户一眼看出这 8 万不全是该账户出的。显示形式：「8 万（共同支付 · 整笔 12 万）」。不显示该账户的出资份额：份额是整笔记录的份额而不是该明细的份额，与明细全额并列会被误读（#909 追加 2，见 3.16）。数据字段见 2.4。
 - **已知边界（由上述规则直接得出）：** 记录级维度下的「份额」是实际付款金额，不扣除退款 / 报销。被退款的多账户支出在「筛选账户 + 按月」时仍按份额全额计入；而单账户的退款收入记录保持现有业务净额口径（已关联时为 0）。需要看账户实际流水时，以「按账户分组」为准。如需按「人」查看（某人名下所有账户合计，例如退款进入我的礼品卡时，我 = −5 万 + 1 万 = −4 万），见 [#909](https://github.com/toushobun/kuranote/issues/909)；本 Issue 中「筛选单个账户只看该账户自己的收付」的规则不变。
 
 ### 2.2 现状与可行性
@@ -106,10 +106,10 @@
    - 记录满足「`p_account_id` 非空 ∧ 多账户记录 ∧ 没有其他明细级筛选」，且至少有一条命中明细 → 该记录只产生**一行**，`signed_amount = account_share_delta`（例：−5 万）。
    - 其他记录 → 沿用 `matched_items` 的逐明细行（与现状相同）。
 4. `p_group_by = 'account'` 时走 `account_rows`：取至少有一条命中明细的记录，连接 `transaction_account_movement`。普通记录的 `signed_amount = balance_delta`（实际收付，单账户也一样），转账 / 余额调整仍为 0（现状）。`p_account_id` 非空时只保留该账户的行（只出现该账户一组）。`count(distinct record_id)` 计入每个出资账户。
-5. `p_group_by in ('parentCategory', 'category', 'specialStatus')`（明细级维度）：金额逻辑不变（命中明细的业务净额）。所有维度新增三个返回列，供「共同支付」标识使用（2.4）。只在 `p_account_id` 非空时计算，否则为 0；均按组内**去重后的多账户记录**统计（一笔记录在一个组内只计一次）：
+5. `p_group_by in ('parentCategory', 'category', 'specialStatus')`（明细级维度）：金额逻辑不变（命中明细的业务净额）。按大分类 / 小分类分组时只纳入普通记录，转账、余额调整没有分类，不进入「未知」组（#909 追加 2）。所有维度新增两个返回列，供「共同支付」标识使用（2.4）。只在 `p_account_id` 非空时计算，否则为 0；均按组内**去重后的多账户记录**统计（一笔记录在一个组内只计一次）：
    - `shared_payment_record_count integer`：组内多账户记录数。
-   - `shared_payment_account_share_amount numeric`：这些记录中 `p_account_id` 的付款金额（`amount`）合计。
    - `shared_payment_record_total_amount numeric`：这些记录的整笔金额（付款明细 `amount` 合计，等于支出明细合计）合计。
+   - （#914 时还有 `shared_payment_account_share_amount`，#909 追加 2 删除，见 3.16。）
 6. 签名的返回列变化后，先 `drop function` 再创建，并重新授予 EXECUTE；`TransactionGroupSummaryRow` 同步增加字段。
 
 **基础版 `load_transaction_group_summaries`**：删除该函数，以及只验证它的 migration 文本测试（`loadTransactionGroupSummaries*Migration.test.ts`、`currentLedgerBoundaryAudit.test.ts` 中的对应断言）（子 Issue 4）。
@@ -120,7 +120,7 @@
 | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `util/grouping/filters.ts`                                                                                                        | `filterItems` 去掉 `item.account_id !== filters.accountId` 条件；`filterTransactionRecords` 的账户条件改为「该记录的账户来源（付款明细 / 转账明细）包含 `accountId`」。`hasItemFilters` 不再把 `accountId` 计入明细级筛选，另导出 `hasNonAccountItemFilters(filters)` 供下面的份额判断使用。                                                             |
 | 新增纯函数 `util/grouping/recordContribution.ts`                                                                                  | `resolveRecordLevelContribution({ record, matchedItems, payments, filters, categoryById })`：满足「有账户筛选 ∧ 多账户记录 ∧ 没有其他明细级筛选」时返回该账户付款份额（`balance_delta`），否则返回命中明细的业务净额合计（现有 `calculateRecordNetAmount` 的口径）。这是 SQL 第 3 步在 TS 端的唯一实现，时间维度分组和组内列表行都用它，不各自重复判断。 |
-| `util/transactionGroupBuilder.ts`                                                                                                 | `addRecordToGroup`（时间 / 商家 / 成员）改为用 `resolveRecordLevelContribution` 累计金额。`addItemGroups` 的账户分支改为遍历付款明细（筛选账户时只取该账户），用 `balance_delta` 累计；分类 / 特殊状态分支不变。各组增加 `sharedPaymentRecordCount`、`sharedPaymentAccountShareAmount`、`sharedPaymentRecordTotalAmount`（口径同 SQL 第 5 步）。         |
+| `util/transactionGroupBuilder.ts`                                                                                                 | `addRecordToGroup`（时间 / 商家 / 成员）改为用 `resolveRecordLevelContribution` 累计金额。`addItemGroups` 的账户分支改为遍历付款明细（筛选账户时只取该账户），用 `balance_delta` 累计；分类 / 特殊状态分支不变。各组增加 `sharedPaymentRecordCount`、`sharedPaymentRecordTotalAmount`（口径同 SQL 第 5 步）。                                            |
 | `util/grouping/groupMatching.ts`                                                                                                  | `groupBy === "account"` 改为在该记录的账户来源中查找 `groupKey`。                                                                                                                                                                                                                                                                                        |
 | `util/grouping/contextLookups.ts`、`util/grouping/types.ts`、`service/read/groupLoaders.ts`、`service/read/transactionContext.ts` | 上下文增加 `payments` / `paymentsByRecordId`（经 `transactionRepository.listPayments`）；账户上下文的 `accountIds` 从付款明细和转账明细收集；RPC 返回的 `shared_payment_*` 三列映射到组摘要。                                                                                                                                                            |
 | `util/buildTransactionListItem.ts`                                                                                                | 见 2.4。                                                                                                                                                                                                                                                                                                                                                 |
@@ -129,25 +129,24 @@
 
 ### 2.4 「共同支付」标识的数据来源
 
-**出现条件。** 有账户筛选时，多账户记录的金额在以下两种情况下是明细全额而不是该账户的份额，必须显示「共同支付」标识，并能看到该账户的出资份额和整笔金额：
+**出现条件。** 有账户筛选时，多账户记录的金额在以下两种情况下是明细全额而不是该账户的份额，必须显示「共同支付」标识和整笔金额（不显示份额，#909 追加 2）：
 
-| #   | 条件                                                                                                                 | 金额           | 例（医院 12 万，筛选我的账户）                                 |
-| --- | -------------------------------------------------------------------------------------------------------------------- | -------------- | -------------------------------------------------------------- |
-| 1   | 有账户筛选 + 明细级维度分组（按分类 / 大分类 / 特殊状态）                                                            | 命中明细的全额 | 按分类：住院费 8 万（共同支付 · 我出资 5 万 / 整笔 12 万）     |
-| 2   | 有账户筛选 + 其他明细级筛选（分类 / 大分类 / 特殊状态 / 可退款支出）同时存在，任何分组维度（包括按月 / 商家 / 成员） | 命中明细的全额 | 分类住院费 + 按月：8 万（共同支付 · 我出资 5 万 / 整笔 12 万） |
+| #   | 条件                                                                                                                 | 金额           | 例（医院 12 万，筛选我的账户）                   |
+| --- | -------------------------------------------------------------------------------------------------------------------- | -------------- | ------------------------------------------------ |
+| 1   | 有账户筛选 + 明细级维度分组（按分类 / 大分类 / 特殊状态）                                                            | 命中明细的全额 | 按分类：住院费 8 万（共同支付 · 整笔 12 万）     |
+| 2   | 有账户筛选 + 其他明细级筛选（分类 / 大分类 / 特殊状态 / 可退款支出）同时存在，任何分组维度（包括按月 / 商家 / 成员） | 命中明细的全额 | 分类住院费 + 按月：8 万（共同支付 · 整笔 12 万） |
 
 两种情况合起来就是「有账户筛选 ∧ 多账户记录 ∧（明细级维度分组 ∨ 有其他明细级筛选）」，由 TS 端一个纯函数判断（与 `resolveRecordLevelContribution` 放在同一文件，复用 `hasNonAccountItemFilters`），列表行和组头都调用它，不各自重复判断。按账户分组时金额就是付款份额，不需要标识。
 
 **需要的数据：**
 
-| 数据             | 列表行（`TransactionListItem`）             | 分组摘要（RPC 列 / TS 组摘要字段）                                             |
-| ---------------- | ------------------------------------------- | ------------------------------------------------------------------------------ |
-| 付款账户数       | `payment_account_count: number`（始终给出） | `shared_payment_record_count` / `sharedPaymentRecordCount`（组内多账户记录数） |
-| 该账户的出资份额 | `account_share_amount?: string`             | `shared_payment_account_share_amount` / `sharedPaymentAccountShareAmount`      |
-| 整笔金额         | `record_total_amount?: string`              | `shared_payment_record_total_amount` / `sharedPaymentRecordTotalAmount`        |
+| 数据       | 列表行（`TransactionListItem`）             | 分组摘要（RPC 列 / TS 组摘要字段）                                             |
+| ---------- | ------------------------------------------- | ------------------------------------------------------------------------------ |
+| 付款账户数 | `payment_account_count: number`（始终给出） | `shared_payment_record_count` / `sharedPaymentRecordCount`（组内多账户记录数） |
+| 整笔金额   | `record_total_amount?: string`              | `shared_payment_record_total_amount` / `sharedPaymentRecordTotalAmount`        |
 
-- **列表行：** `buildTransactionListItem` 从付款明细计算 `payment_account_count`。`payment_account_count ≥ 2` 时，账户位置按方案 B 显示「首个账户等 N 个账户」。`account_share_amount`（筛选账户的付款金额）和 `record_total_amount`（付款明细 `amount` 合计）只在「有账户筛选 ∧ 多账户记录」时给出，其他情况不给。主金额统一来自 `resolveRecordLevelContribution`，与组合计一致：没有其他明细级筛选的记录级维度下是份额（2.1），出现条件 1 / 2 下是命中明细全额；后者再用这两个字段显示「共同支付 · 我出资 X / 整笔 Y」。
-- **分组摘要：** 三个字段来自 RPC（2.3 第 5 步）或 TS builder，口径相同。满足出现条件且 `sharedPaymentRecordCount > 0` 时，组头在金额旁显示「含共同支付 N 笔 · 我出资 X / 整笔 Y」一类的提示，说明组合计不全是该账户出的。文案集中到模块常量。
+- **列表行：** `buildTransactionListItem` 从付款明细计算 `payment_account_count`。`payment_account_count ≥ 2` 时，账户位置按方案 B 显示「首个账户等 N 个账户」。`record_total_amount`（付款明细 `amount` 合计）只在「有账户筛选 ∧ 多账户记录」时给出，其他情况不给。主金额统一来自 `resolveRecordLevelContribution`，与组合计一致：没有其他明细级筛选的记录级维度下是份额（2.1），出现条件 1 / 2 下是命中明细全额；两种情况都只显示「共同支付 · 整笔 Y」。
+- **分组摘要：** 两个字段来自 RPC（2.3 第 5 步）或 TS builder，口径相同。满足出现条件且 `sharedPaymentRecordCount > 0` 时，组头在金额旁显示「含共同支付 N 笔 · 整笔 Y」，说明组合计不全是该账户出的。文案集中到模块常量。
 - **视觉样式：** 按 Issue 评论第 10 点，具体展示方式按设计图确定；本文只规定数据字段和出现条件。
 - **实现位置：** 字段与计算都在子 Issue 4。
 
@@ -345,16 +344,16 @@ ledger（需要时）→ transaction_record（稳定顺序）→ transaction_ite
 
 - **`TransactionExportRepository` 并入 `TransactionContextRepository`。** 3.11 为了不扩大范围单独加了窄接口；本 PR 起列表、分组、仪表盘的上下文都要读付款明细，`listPayments` 成为上下文的公共依赖，窄接口不再有意义。
 - **列表行不输出 `payment_account_count`。** 账户位置的「首个账户 等 N 个账户」在 `buildTransactionListItem` 内直接由付款明细生成到 `account_name`，前端没有其他地方需要账户数，保留该字段会成为无人读取的字段。
-- **`account_share_amount` 只在主金额为命中明细全额（出现条件 1 / 2）时给出；`record_total_amount` 在「有账户筛选 ∧ 多账户记录」时给出。** 记录级维度下主金额本身就是本账户份额，列表行按 Issue「共同支付显示规格」只显示「共同支付 · 整笔 ¥Y」；出现条件 1 / 2 下显示「共同支付 · 本账户 ¥X / 整笔 ¥Y」。文案用「本账户」而不是 2.1 / 2.4 示例中的「我出资」（以 Issue 规格为准）。
+- **`account_share_amount` 只在主金额为命中明细全额（出现条件 1 / 2）时给出；`record_total_amount` 在「有账户筛选 ∧ 多账户记录」时给出。** 记录级维度下主金额本身就是本账户份额，列表行按 Issue「共同支付显示规格」只显示「共同支付 · 整笔 ¥Y」；出现条件 1 / 2 下显示「共同支付 · 本账户 ¥X / 整笔 ¥Y」。文案用「本账户」而不是 2.1 / 2.4 示例中的「我出资」（以 Issue 规格为准）。#909 追加 2 起不再显示份额，`account_share_amount` 已删除（3.16）。
 - **主金额为本账户份额时不显示原金额。** 原金额是明细业务净额口径，与份额口径不可比，同时显示会误导；主金额为明细全额时照常显示，顺序为当前金额 → 共同支付行 → 原金额。
-- **分组摘要用嵌套对象 `sharedPayment: { recordCount, accountShareAmount, recordTotalAmount }`，不是平铺字段。** 三个值总是一起出现或一起缺省，嵌套后前端只需判断一次。只在出现条件成立且 `recordCount > 0` 时给出；RPC 的 3 个列照常返回，由 TS 端按同一判断函数决定是否显示。
+- **分组摘要用嵌套对象 `sharedPayment: { recordCount, recordTotalAmount }`，不是平铺字段。** 这些值总是一起出现或一起缺省，嵌套后前端只需判断一次。只在出现条件成立且 `recordCount > 0` 时给出；RPC 的列照常返回，由 TS 端按同一判断函数决定是否显示。（#914 时还有 `accountShareAmount`，#909 追加 2 删除，见 3.16。）
 - **`currentLedgerBoundaryAudit.test.ts` 的对应断言改为检查 `load_transaction_group_summaries_with_special_status`，而不是删除。** 基础版删除后，该断言检查的「非时间维度分组 RPC 只读取 active 成员可访问的目标账本」仍然成立且有意义，改为指向实际使用的函数。
 - **pgTAP 构造多账户数据曾用测试辅助函数 `tests.replace_transaction_payments_in_transition`。** 过渡期内 `validate_transaction_record_payments` 是延迟约束触发器，在 pgTAP 最终回滚的事务中不会触发，因此可以直接替换付款明细构造多账户记录。PR 2 已删除该辅助函数，多账户数据改用正式 RPC `create_transaction` 写入（见 3.14）。
 - **`transaction_item_special_status_statistics.test.sql` 中按账户分组的 4 个断言改为「按分类分组 + 账户筛选」。** 这些断言验证的是业务净额口径；按账户分组自本 PR 起改为付款明细的实际收付（2.1），业务净额口径改在分类维度验证。
 - **编辑表单读取普通记录的币种改为取首个付款账户。** 为满足「普通记录路径不再读明细 `account_id`」，`transactionFormService` 的明细金额格式化不再读明细账户镜像；表单的多账户 UI 仍属于 #915。
 - **按 `transaction_record_id` 分组的工具函数移到 `utils/collections.ts` 的 `groupByKey`。** 上下文、分组 builder 与列表行都需要按记录分组明细和付款明细，抽成通用函数共用。
 - **验收后的修正：列表行按所在分组计算金额，与组合计一致。** PR 1 的列表行不接收分组维度（行金额只由筛选条件决定），出现条件 1 下组头是命中明细全额，组内行却是本账户份额与「共同支付 · 整笔」，与 2.4「主金额统一来自 `resolveRecordLevelContribution`，与组合计一致」不符。现在组内列表行带上所在分组（`groupBy` + `groupKey`），组头与行共用 `resolveSharedPaymentAmountBasis` 判断口径：
-  - 有账户筛选 + 按分类 / 大分类 / 特殊状态分组（出现条件 1）：多账户记录的组内行金额为命中该组的明细全额，下方显示「共同支付 · 本账户 ¥X / 整笔 ¥Y」。例：筛选我的账户 + 按分类，住院费组内行 8 万，治疗费组内行 4 万。单账户记录维持现状。
+  - 有账户筛选 + 按分类 / 大分类 / 特殊状态分组（出现条件 1）：多账户记录的组内行金额为命中该组的明细全额，下方显示「共同支付 · 本账户 ¥X / 整笔 ¥Y」（#909 追加 2 起只显示「共同支付 · 整笔 ¥Y」，见 3.16）。例：筛选我的账户 + 按分类，住院费组内行 8 万，治疗费组内行 4 万。单账户记录维持现状。
   - 按账户分组（有无筛选都一样）：多账户记录在每个账户组内显示该账户的付款金额（`balance_delta` 的绝对值），下方显示「共同支付 · 整笔 ¥Y」，因此 `record_total_amount` 在按账户分组时也给出。例：无筛选按账户分组，我的账户组内行 5 万、妻子账户组内行 7 万。组头的金额本身就是付款金额，不显示共同支付提示。
   - 其他情况不变：记录级维度显示份额，有其他明细级筛选时显示命中明细全额。搜索结果、仪表盘等不按组展开的列表不传分组。
 - **验收后的修正：#915 之前多账户记录不能用现有表单编辑。** 现有编辑表单不提交 `paymentAccountId`，`parseTransactionPayments` 回落为首个账户付全额，直接保存会删除其他付款账户并挪动余额。编辑视图对付款明细 ≥ 2 行的普通记录返回 `editRestriction: "multiAccount"`，与含已归档账户的记录一样整体只读，提示「多账户记录暂不支持编辑，请等待后续版本」，但保留删除入口。服务端兜底：普通编辑、类型转换（含转为转账）与受控关联编辑在原记录付款明细 ≥ 2 行、提交的付款明细不足 2 行时拒绝保存，错误码 `payment_multi_account_edit_unsupported`（`ValidationError`）。两处都在 #915 开放多账户表单后移除（已移除，见 3.15）。
@@ -384,6 +383,17 @@ PR 2 执行 3.3 的「结束条件」：新增 migration `20261019150000_end_tra
 - **编辑页切换到另一个收支类型面板时只保留首个付款账户。** 该面板的明细清空重填，而多账户只支持支出明细；转为转账时转出账户取首个付款账户。
 - **保存前汇总。** 多账户时账户一栏显示「首个账户 等 N 个账户」，与列表的方案 B 一致。
 - **移除 3.13 的临时保护。** 删除 `editRestriction: "multiAccount"`、`requireMultiAccountPaymentsKept`、错误码 `payment_multi_account_edit_unsupported` 及其文案和测试；「不能编辑」提示页恢复为不带删除入口，编辑页的删除按钮恢复为页面内实现（`TransactionDeleteAction` 与 `hasAnyLinkedIncomeItem` 只剩一个调用方，一并内联）。多账户 → 单账户由用户在表单中删到 1 行显式完成。
+
+### 3.16 #909 追加 2 实现注记
+
+#909（按账户持有人筛选 / 分组）合并后人工确认发现两个问题，维护者决定如下（2026-10-27）：
+
+- **「共同支付」标识不再显示份额。** 明细级维度（或记录级维度 + 其他明细级筛选）下主金额是命中明细全额，而份额 X 是整笔记录的份额，不是该明细的份额，会出现「治疗费组 4 万，却写 ¥5 万」、同一个 5 万在多个分类组重复出现的情况。列表行一律显示「共同支付 · 整笔 ¥Y」，组头显示「含共同支付 N 笔 · 整笔 ¥Y」；记录级维度（主金额 = 份额）的显示不变。随之删除：
+  - #940 的份额主体（`sharedPaymentSubject` 经 `Transactions → TransactionMonthList → TransactionGroupList → TransactionRowLink → TransactionRow` 的传递链、`resolveSharedPaymentSubject`、文案 `currentAccountSubject` / `accountShareAndRecordTotal`）；
+  - 列表行字段 `account_share_amount`（只用于该文案，主金额由 `resolveRecordLevelContribution` 计算，不依赖它）；
+  - 组头字段 `sharedPayment.accountShareAmount`，以及 RPC 返回列 `shared_payment_account_share_amount`（新 migration `20261027090000_category_group_summaries_exclude_transfer.sql` 重建函数）。
+- **按大分类 / 小分类分组只纳入普通记录。** 转账、余额调整的明细没有分类，原来归入「未知大分类 / 未知小分类」组且金额为 0，像是数据错误。现在 SQL（同一个 migration）与 TS（`isExcludedFromCategoryGroups`，分组 builder 与组内明细匹配共用）都不把它们放进分类组；普通记录的明细缺分类时「未知」组照常保留。其他分组维度不受影响。
+- **不改：** 已关联退款收入在分类分组中计 0（「其他收入 ¥0」）是 #605 的既有规则，保持现状。
 
 ## 4. 受影响的 RPC / Service / UI 清单
 
@@ -483,7 +493,7 @@ PR 2 执行 3.3 的「结束条件」：新增 migration `20261019150000_end_tra
 10. 子 Issue 1 的 migration 附带幂等的本地库回填（3.8）。（2026-10-15，维护者确认）
 11. 含已归档付款账户的记录保持整笔只读（3.5）。（2026-10-15，维护者确认）
 12. 有收入明细时不显示「添加付款账户」；多账户状态下选了收入分类时提交报错并阻止保存，不自动收起（4.3）。（2026-10-15，维护者确认）
-13. 「筛选账户 + 其他明细级筛选」时金额为明细全额，多账户记录必须带「共同支付」标识，并显示该账户出资份额和整笔金额；标识样式以设计图为准，设计图确定是子 Issue 4 UI 部分开工的前置条件（2.1、2.4、第 6 节）。（2026-10-15，维护者确认）
+13. 「筛选账户 + 其他明细级筛选」时金额为明细全额，多账户记录必须带「共同支付」标识，并显示该账户出资份额和整笔金额（#909 追加 2 改为只显示整笔金额，见 3.16）；标识样式以设计图为准，设计图确定是子 Issue 4 UI 部分开工的前置条件（2.1、2.4、第 6 节）。（2026-10-15，维护者确认）
 14. 按账户持有人统计另开 #909，不在本 Issue 范围内；本 Issue 中「筛选单个账户只看该账户自己的收付」的规则不变（2.1、4.6）。（2026-10-15，维护者确认）
 
 ## 6. 子 Issue 拆分方案

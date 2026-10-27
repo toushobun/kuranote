@@ -212,6 +212,6 @@ describe("按持有人筛选（明细级维度）", () => {
         holderIdsByAccountId: context.holderIdsByAccountId,
         payments,
       }),
-    ).toEqual({ accountShareAmount: 50000, recordTotalAmount: 120000 });
+    ).toEqual({ recordTotalAmount: 120000 });
   });
 });

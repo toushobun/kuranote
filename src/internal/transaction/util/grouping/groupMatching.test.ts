@@ -8,6 +8,7 @@ import type {
   TransactionRecordDbRow,
 } from "internal/db-types";
 import {
+  isExcludedFromCategoryGroups,
   isItemLevelGroupBy,
   itemMatchesGroup,
   matchesParentCategory,
@@ -154,6 +155,39 @@ describe("recordMatchesGroup", () => {
     ).toBe(true);
   });
 
+  it("按大分类 / 小分类分组时转账、余额调整不进入任何组（包括 unknown）", () => {
+    const uncategorizedItems = [{ ...item, category_id: null }];
+    for (const type of ["transfer", "balance_adjustment"] as const) {
+      for (const groupBy of ["parentCategory", "category"] as const) {
+        expect(
+          matches(groupBy, "unknown", {
+            items: uncategorizedItems,
+            payments: [],
+            record: { ...record, type },
+          }),
+        ).toBe(false);
+      }
+      // 其他维度不受影响。
+      expect(
+        matches("month", "2026-07", {
+          items: uncategorizedItems,
+          payments: [],
+          record: { ...record, type },
+        }),
+      ).toBe(true);
+    }
+  });
+
+  it("按大分类 / 小分类分组时普通记录的明细缺分类仍归入 unknown", () => {
+    const uncategorizedItems = [{ ...item, category_id: null }];
+    expect(
+      matches("parentCategory", "unknown", { items: uncategorizedItems }),
+    ).toBe(true);
+    expect(matches("category", "unknown", { items: uncategorizedItems })).toBe(
+      true,
+    );
+  });
+
   it("按特殊状态分组时匹配明细状态和无状态组", () => {
     expect(
       matches("specialStatus", "pending_reimbursement", {
@@ -223,6 +257,34 @@ describe("isItemLevelGroupBy", () => {
     expect(isItemLevelGroupBy("specialStatus")).toBe(true);
     expect(isItemLevelGroupBy("account")).toBe(false);
     expect(isItemLevelGroupBy("month")).toBe(false);
+  });
+});
+
+describe("isExcludedFromCategoryGroups", () => {
+  it("只在按大分类 / 小分类分组时排除转账与余额调整", () => {
+    for (const groupBy of ["parentCategory", "category"] as const) {
+      expect(isExcludedFromCategoryGroups(groupBy, { type: "transfer" })).toBe(
+        true,
+      );
+      expect(
+        isExcludedFromCategoryGroups(groupBy, { type: "balance_adjustment" }),
+      ).toBe(true);
+      expect(isExcludedFromCategoryGroups(groupBy, { type: "normal" })).toBe(
+        false,
+      );
+    }
+    for (const groupBy of [
+      "month",
+      "merchant",
+      "member",
+      "account",
+      "holder",
+      "specialStatus",
+    ] as const) {
+      expect(isExcludedFromCategoryGroups(groupBy, { type: "transfer" })).toBe(
+        false,
+      );
+    }
   });
 });
 

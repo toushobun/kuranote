@@ -4579,7 +4579,7 @@ $$;
 ALTER FUNCTION "public"."load_frequent_transaction_category_counts"("p_ledger_id" "uuid", "p_date_start" timestamp with time zone, "p_date_end" timestamp with time zone, "p_minimum_item_count" integer) OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."load_transaction_group_summaries_with_special_status"("p_ledger_id" "uuid", "p_group_by" "text", "p_date_start" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_date_end" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_record_type" "text" DEFAULT 'all'::"text", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_account_id" "uuid" DEFAULT NULL::"uuid", "p_parent_category_id" "uuid" DEFAULT NULL::"uuid", "p_category_id" "uuid" DEFAULT NULL::"uuid", "p_member_id" "uuid" DEFAULT NULL::"uuid", "p_special_statuses" "text"[] DEFAULT NULL::"text"[], "p_offset" integer DEFAULT 0, "p_limit" integer DEFAULT 20, "p_holder_id" "text" DEFAULT NULL::"text") RETURNS TABLE("group_id" "text", "group_key" "text", "group_label" "text", "income" numeric, "expense" numeric, "balance" numeric, "transaction_count" integer, "latest_transaction_at" timestamp with time zone, "shared_payment_record_count" integer, "shared_payment_account_share_amount" numeric, "shared_payment_record_total_amount" numeric)
+CREATE OR REPLACE FUNCTION "public"."load_transaction_group_summaries_with_special_status"("p_ledger_id" "uuid", "p_group_by" "text", "p_date_start" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_date_end" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_record_type" "text" DEFAULT 'all'::"text", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_account_id" "uuid" DEFAULT NULL::"uuid", "p_parent_category_id" "uuid" DEFAULT NULL::"uuid", "p_category_id" "uuid" DEFAULT NULL::"uuid", "p_member_id" "uuid" DEFAULT NULL::"uuid", "p_special_statuses" "text"[] DEFAULT NULL::"text"[], "p_offset" integer DEFAULT 0, "p_limit" integer DEFAULT 20, "p_holder_id" "text" DEFAULT NULL::"text") RETURNS TABLE("group_id" "text", "group_key" "text", "group_label" "text", "income" numeric, "expense" numeric, "balance" numeric, "transaction_count" integer, "latest_transaction_at" timestamp with time zone, "shared_payment_record_count" integer, "shared_payment_record_total_amount" numeric)
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -4675,7 +4675,6 @@ record_payments as (
         count(*) as payment_count,
         count(sa.account_id) as scope_payment_count,
         sum(p.amount) as record_total_amount,
-        coalesce(sum(p.amount) filter (where sa.account_id is not null), 0) as account_share_amount,
         coalesce(sum(p.balance_delta) filter (where sa.account_id is not null), 0) as account_share_delta
     from public.transaction_payment p
     left join scope_accounts sa on sa.account_id = p.account_id
@@ -4686,8 +4685,6 @@ record_payments as (
 shared_records as (
     select
         rp.record_id,
-        rp.account_share_amount,
-        rp.account_share_delta,
         rp.record_total_amount
     from record_payments rp
     cross join filter_flags ff
@@ -4864,6 +4861,8 @@ group_rows as (
     where p_group_by not in ('account', 'holder')
       and (p_group_by not in ('merchant', 'member') or ff.has_account_scope)
       and (p_group_by <> 'specialStatus' or mi.special_status is not null)
+      -- 分类分组只纳入普通记录：转账、余额调整没有分类，不进入「未知」组。
+      and (p_group_by not in ('parentCategory', 'category') or mi.record_type = 'normal')
       and not exists (
           select 1
           from share_records sr
@@ -4889,7 +4888,6 @@ shared_grouped as (
     select
         gr.key,
         count(*) as record_count,
-        sum(sr.account_share_amount) as account_share_amount,
         sum(sr.record_total_amount) as record_total_amount
     from (
         select distinct key, record_id
@@ -4970,7 +4968,6 @@ select
     labeled.count_value::integer,
     labeled.latest_at,
     coalesce(sg.record_count, 0)::integer,
-    coalesce(sg.account_share_amount, 0),
     coalesce(sg.record_total_amount, 0)
 from labeled
 left join shared_grouped sg on sg.key = labeled.key
