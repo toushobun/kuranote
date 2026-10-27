@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import type { ComponentProps } from "react";
-import { userEvent, within } from "storybook/test";
+import { expect, userEvent, within } from "storybook/test";
 
 import {
   ledgerInviteErrorCodes,
@@ -115,7 +115,10 @@ export const InviteFailed: Story = {
     await userEvent.click(
       await body.findByRole("button", { name: "生成邀请链接" }),
     );
-    await body.findByRole("heading", { name: "邀请成员失败" });
+    // 失败反馈以 Snackbar 的 alert 显示，标题不是 heading
+    await expect(await body.findByRole("alert")).toHaveTextContent(
+      "邀请成员失败",
+    );
   },
 };
 

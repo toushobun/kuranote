@@ -93,8 +93,11 @@ export const Pending: Story = {
     const pending = await page.findByRole("button", { name: "正在删除…" });
     await expect(pending).toBeDisabled();
     await expect(within(pending).getByRole("progressbar")).toBeVisible();
-    await expect(getComputedStyle(pending).backgroundColor).toBe(
-      alpha(theme.palette.error.main, 0.5),
+    // 按钮背景色有过渡动画，等动画结束后再比较
+    await waitFor(() =>
+      expect(getComputedStyle(pending).backgroundColor).toBe(
+        alpha(theme.palette.error.main, 0.5),
+      ),
     );
   },
 };

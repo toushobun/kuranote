@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 
 import { CategoryList } from "./CategoryList";
@@ -213,7 +213,10 @@ export const SearchRestoresSorting: Story = {
     await expect(
       canvas.getByRole("button", { name: "调整餐饮排序" }),
     ).toBeEnabled();
-    await expect(canvas.queryByText("外食")).not.toBeInTheDocument();
+    // 小分类在折叠动画结束后才卸载
+    await waitFor(() =>
+      expect(canvas.queryByText("外食")).not.toBeInTheDocument(),
+    );
   },
 };
 
