@@ -115,6 +115,54 @@ describe("buildTransactionGroupSummaryPage", () => {
     });
   });
 
+  it.each(["parentCategory", "category"] as const)(
+    "按 %s 分组时不纳入转账与余额调整，普通记录缺分类时「未知」组保留",
+    (groupBy) => {
+      const records = [
+        record("expense-1", "2026-06-10T01:00:00.000Z"),
+        record("uncategorized-1", "2026-06-10T02:00:00.000Z"),
+        record("transfer-1", "2026-06-10T03:00:00.000Z", "transfer"),
+        record(
+          "adjustment-1",
+          "2026-06-10T04:00:00.000Z",
+          "balance_adjustment",
+        ),
+      ];
+      const items = [
+        item("expense-1", expenseCategory.id, "1200"),
+        item("uncategorized-1", null, "300"),
+        item("transfer-1", null, "5000"),
+        item("adjustment-1", null, "500"),
+      ];
+
+      const page = buildTransactionGroupSummaryPage({
+        accounts,
+        categories,
+        currency: "JPY",
+        holderIdsByAccountId: new Map(),
+        groupBy,
+        items,
+        merchants,
+        offset: 0,
+        pageSize: 20,
+        payments: [],
+        filters: defaultTransactionFilters,
+        records,
+        recorders,
+      });
+
+      expect(
+        page.groups.map((group) => [group.key, group.transactionCount]),
+      ).toEqual(
+        expect.arrayContaining([
+          [expenseCategory.id, 1],
+          ["unknown", 1],
+        ]),
+      );
+      expect(page.groups).toHaveLength(2);
+    },
+  );
+
   it("净额为零时按分类类型归属收支：仅含支出分类归为支出", () => {
     const records = [record("zero-expense", "2026-06-10T01:00:00.000Z")];
     const items = [item("zero-expense", expenseCategory.id, "0")];
@@ -364,7 +412,6 @@ describe("buildTransactionGroupSummaryPage 医院 12 万（方案 D）", () => {
 
   it("筛选我的账户按分类：明细全额，并带共同支付提示", () => {
     const sharedPayment = {
-      accountShareAmount: "50000",
       recordCount: 1,
       recordTotalAmount: "120000",
     };
@@ -386,7 +433,7 @@ describe("buildTransactionGroupSummaryPage 医院 12 万（方案 D）", () => {
     ]);
   });
 
-  it("筛选我的账户 + 住院费按月：8 万，并带共同支付提示（本账户 5 万 / 整笔 12 万）", () => {
+  it("筛选我的账户 + 住院费按月：8 万，并带共同支付提示（整笔 12 万）", () => {
     expect(
       buildHospitalPage("month", { accountId: mine, categoryId: inpatient }),
     ).toEqual([
@@ -394,7 +441,6 @@ describe("buildTransactionGroupSummaryPage 医院 12 万（方案 D）", () => {
         expense: "80000",
         label: expect.any(String),
         sharedPayment: {
-          accountShareAmount: "50000",
           recordCount: 1,
           recordTotalAmount: "120000",
         },
@@ -467,7 +513,6 @@ describe("buildTransactionGroupSummaryPage 持有人维度（#909）", () => {
     ).toEqual([
       {
         sharedPayment: {
-          accountShareAmount: "50000",
           recordCount: 1,
           recordTotalAmount: "120000",
         },

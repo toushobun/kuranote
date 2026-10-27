@@ -90,13 +90,13 @@ function listScopePayments({
 }
 
 /**
- * 「共同支付」记录中账户集合的付款金额与整笔金额（付款明细 amount 合计）：付款账户一部分在集合内、
+ * 「共同支付」记录的整笔金额（付款明细 amount 合计）：付款账户一部分在集合内、
  * 一部分在集合外时才算共同支付；付款账户全在集合内（例如同一持有人的两个账户）时份额 = 整笔，返回 null。
  * 没有账户集合时也返回 null。组头与列表行共用。
  */
 export function getSharedPaymentAmounts(
   input: RecordPaymentScopeInput,
-): { accountShareAmount: number; recordTotalAmount: number } | null {
+): { recordTotalAmount: number } | null {
   const scopePayments = listScopePayments(input);
   if (
     !scopePayments ||
@@ -107,7 +107,6 @@ export function getSharedPaymentAmounts(
   }
 
   return {
-    accountShareAmount: sumPayments(scopePayments, "amount"),
     recordTotalAmount: sumPayments(input.payments, "amount"),
   };
 }
@@ -197,13 +196,11 @@ export function resolveRecordLevelContribution({
  * 组头的「共同支付」提示：只在组合计含命中明细全额（出现条件 1 / 2）且组内有多账户记录时给出。
  */
 export function toSharedPaymentSummary({
-  accountShareAmount,
   filters,
   groupBy,
   recordCount,
   recordTotalAmount,
 }: {
-  accountShareAmount: number;
   filters: TransactionFilters;
   groupBy: TransactionGroupBy;
   recordCount: number;
@@ -217,7 +214,6 @@ export function toSharedPaymentSummary({
   }
 
   return {
-    accountShareAmount: String(accountShareAmount),
     recordCount,
     recordTotalAmount: String(recordTotalAmount),
   };

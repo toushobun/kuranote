@@ -134,7 +134,6 @@ returns table (
     expense numeric,
     transaction_count integer,
     shared_count integer,
-    shared_share numeric,
     shared_total numeric
 )
 language sql
@@ -145,7 +144,6 @@ as $$
         s.expense,
         s.transaction_count,
         s.shared_payment_record_count,
-        s.shared_payment_account_share_amount,
         s.shared_payment_record_total_amount
     from public.load_transaction_group_summaries_with_special_status(
         p_ledger_id => '91400000-0000-4000-8000-000000000001',
@@ -186,9 +184,9 @@ select results_eq(
 
 -- 筛选我的账户
 select results_eq(
-    $$select label, expense, shared_count, shared_share, shared_total
+    $$select label, expense, shared_count, shared_total
       from pg_temp.group_summaries('merchant', true, '91410000-0000-4000-8000-000000000001')$$,
-    $$values ('妇产科医院', 50000::numeric, 1, 50000::numeric, 120000::numeric)$$,
+    $$values ('妇产科医院', 50000::numeric, 1, 120000::numeric)$$,
     '筛选我的账户按商家：只计我的份额 5 万'
 );
 select results_eq(
@@ -197,11 +195,11 @@ select results_eq(
     '筛选我的账户按成员：只计我的份额 5 万'
 );
 select results_eq(
-    $$select label, expense, shared_count, shared_share, shared_total
+    $$select label, expense, shared_count, shared_total
       from pg_temp.group_summaries('category', true, '91410000-0000-4000-8000-000000000001')$$,
     $$values
-        ('住院费', 80000::numeric, 1, 50000::numeric, 120000::numeric),
-        ('治疗费', 40000::numeric, 1, 50000::numeric, 120000::numeric)$$,
+        ('住院费', 80000::numeric, 1, 120000::numeric),
+        ('治疗费', 40000::numeric, 1, 120000::numeric)$$,
     '筛选我的账户按分类：明细全额，并返回共同支付统计'
 );
 select results_eq(
@@ -217,10 +215,10 @@ select results_eq(
 
 -- 筛选我的账户 + 分类住院费：明细级筛选优先，记录级维度也计命中明细全额
 select results_eq(
-    $$select label, expense, shared_count, shared_share, shared_total
+    $$select label, expense, shared_count, shared_total
       from pg_temp.group_summaries('merchant', true, '91410000-0000-4000-8000-000000000001', '91420000-0000-4000-8000-000000000003')$$,
-    $$values ('妇产科医院', 80000::numeric, 1, 50000::numeric, 120000::numeric)$$,
-    '筛选我的账户 + 住院费按商家：8 万，并带共同支付（本账户 5 万 / 整笔 12 万）'
+    $$values ('妇产科医院', 80000::numeric, 1, 120000::numeric)$$,
+    '筛选我的账户 + 住院费按商家：8 万，并带共同支付（整笔 12 万）'
 );
 select results_eq(
     $$select label, expense from pg_temp.group_summaries('account', true, '91410000-0000-4000-8000-000000000001', '91420000-0000-4000-8000-000000000003')$$,

@@ -154,7 +154,6 @@ returns table (
     balance numeric,
     transaction_count integer,
     shared_count integer,
-    shared_share numeric,
     shared_total numeric
 )
 language sql
@@ -166,7 +165,6 @@ as $$
         s.balance,
         s.transaction_count,
         s.shared_payment_record_count,
-        s.shared_payment_account_share_amount,
         s.shared_payment_record_total_amount
     from public.load_transaction_group_summaries_with_special_status(
         p_ledger_id => pg_temp.id(10),
@@ -197,23 +195,23 @@ select results_eq(
     '筛选「我」按成员（记录级维度）：-5 万 + 1 万，不用业务净额'
 );
 select results_eq(
-    $$select label, income, expense, shared_count, shared_share, shared_total
+    $$select label, income, expense, shared_count, shared_total
       from pg_temp.group_summaries('merchant', '2099-04-10', '2099-04-13', pg_temp.id(1)::text)$$,
-    $$values ('妇产科医院', 10000::numeric, 50000::numeric, 1, 50000::numeric, 120000::numeric)$$,
+    $$values ('妇产科医院', 10000::numeric, 50000::numeric, 1, 120000::numeric)$$,
     '筛选「我」按商家：医院取我的份额 5 万，退款记录取实际进入礼品卡的 1 万'
 );
 select results_eq(
-    $$select label, expense, shared_count, shared_share, shared_total
+    $$select label, expense, shared_count, shared_total
       from pg_temp.group_summaries('category', '2099-04-10', '2099-04-13', pg_temp.id(1)::text)$$,
-    $$values ('检查费', 70000::numeric, 1, 50000::numeric, 120000::numeric),
-             ('治疗费', 40000::numeric, 1, 50000::numeric, 120000::numeric),
-             ('退款', 0::numeric, 0, 0::numeric, 0::numeric)$$,
-    '筛选「我」按分类：命中明细全额（业务净额），医院带共同支付（我 5 万 / 整笔 12 万）'
+    $$values ('检查费', 70000::numeric, 1, 120000::numeric),
+             ('治疗费', 40000::numeric, 1, 120000::numeric),
+             ('退款', 0::numeric, 0, 0::numeric)$$,
+    '筛选「我」按分类：命中明细全额（业务净额），医院带共同支付（整笔 12 万）'
 );
 select results_eq(
-    $$select label, expense, shared_count, shared_share, shared_total
+    $$select label, expense, shared_count, shared_total
       from pg_temp.group_summaries('member', '2099-04-10', '2099-04-13', pg_temp.id(2)::text)$$,
-    $$values ('我', 70000::numeric, 1, 70000::numeric, 120000::numeric)$$,
+    $$values ('我', 70000::numeric, 1, 120000::numeric)$$,
     '筛选「妻子」按成员：只计妻子的份额 7 万（记账人是我）'
 );
 select results_eq(
@@ -223,9 +221,9 @@ select results_eq(
     '筛选「我」按持有人分组：只有「我」一组'
 );
 select results_eq(
-    $$select label, expense, shared_count, shared_share, shared_total
+    $$select label, expense, shared_count, shared_total
       from pg_temp.group_summaries('member', '2099-04-10', '2099-04-13', null, pg_temp.id(30))$$,
-    $$values ('我', 50000::numeric, 1, 50000::numeric, 120000::numeric)$$,
+    $$values ('我', 50000::numeric, 1, 120000::numeric)$$,
     '按单个账户筛选保持 #914 方案 D：只计该账户份额，并带共同支付统计'
 );
 select results_eq(
@@ -281,11 +279,11 @@ select results_eq(
     $$values ('我', 0::numeric, 0::numeric)$$,
     '筛选「我」按成员：转账与余额调整不计入收支'
 );
-select results_eq(
-    $$select label, income, expense
-      from pg_temp.group_summaries('category', '2099-04-16', '2099-04-19', pg_temp.id(2)::text)$$,
-    $$values ('未知小分类', 0::numeric, 0::numeric)$$,
-    '筛选「妻子」按分类：收到的转账不计入收支'
+select is(
+    (select count(*)::integer
+      from pg_temp.group_summaries('category', '2099-04-16', '2099-04-19', pg_temp.id(2)::text)),
+    0,
+    '筛选「妻子」按分类：收到的转账不进入分类组（#909 追加 2）'
 );
 
 -- D：无持有人账户、占位成员持有的账户

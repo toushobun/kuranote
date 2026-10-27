@@ -90,7 +90,6 @@ export type TransactionRowItem = {
   account_name: string;
   account_currency: string;
   account_color?: ThemeColorKey | null;
-  account_share_amount?: string;
   categoryItems: CategorySummaryItem[];
   merchant_name: string | null;
   merchant_icon_url: string | null;
@@ -200,7 +199,6 @@ export type TransactionSearchPage = TransactionListPage & {
 };
 
 export type TransactionSharedPaymentSummary = {
-  accountShareAmount: string;
   recordCount: number;
   recordTotalAmount: string;
 };

@@ -27,6 +27,7 @@ import {
   resolveAccountScope,
   type HolderIdsByAccountId,
 } from "./grouping/accountScope";
+import { isExcludedFromCategoryGroups } from "./grouping/groupMatching";
 import { listRecordAccountMovements } from "./grouping/recordAccounts";
 import {
   getSharedPaymentAmounts,
@@ -68,7 +69,6 @@ type MutableGroup = {
   label: string;
   latestTransactionAt: string;
   recordIds: Set<string>;
-  sharedPaymentAccountShareAmount: number;
   sharedPaymentRecordIds: Set<string>;
   sharedPaymentRecordTotalAmount: number;
   summary: TransactionAmountSummary;
@@ -216,7 +216,6 @@ export function buildTransactionGroupSummaryPage({
       label: group.label,
       ...withSharedPayment(
         toSharedPaymentSummary({
-          accountShareAmount: group.sharedPaymentAccountShareAmount,
           filters,
           groupBy,
           recordCount: group.sharedPaymentRecordIds.size,
@@ -341,6 +340,7 @@ function addItemGroups({
   recordContext: RecordGroupContext;
 }) {
   const { categoryById, record, recordItems } = recordContext;
+  if (isExcludedFromCategoryGroups(groupBy, record)) return;
 
   for (const item of recordItems) {
     if (groupBy === "parentCategory") {
@@ -420,7 +420,6 @@ function getOrCreateGroup({
     label,
     latestTransactionAt: transactionAt,
     recordIds: new Set<string>(),
-    sharedPaymentAccountShareAmount: 0,
     sharedPaymentRecordIds: new Set<string>(),
     sharedPaymentRecordTotalAmount: 0,
     summary: createSummary(currency),
@@ -496,7 +495,6 @@ function trackGroupRecord(
   if (!sharedAmounts) return;
 
   group.sharedPaymentRecordIds.add(record.id);
-  group.sharedPaymentAccountShareAmount += sharedAmounts.accountShareAmount;
   group.sharedPaymentRecordTotalAmount += sharedAmounts.recordTotalAmount;
 }
 

@@ -242,7 +242,6 @@ describe("TransactionMonthList", () => {
       key: "inpatient",
       label: "住院费",
       sharedPayment: {
-        accountShareAmount: "50000",
         recordCount: 1,
         recordTotalAmount: "120000",
       },
@@ -264,31 +263,13 @@ describe("TransactionMonthList", () => {
       initialNextItemOffsetByGroupId: { [inpatientGroup.id]: null },
     });
 
-    it("组内有共同支付记录时组头与行默认按「本账户」显示", () => {
+    it("组内有共同支付记录时组头与行都只显示整笔，不显示份额", () => {
       render(<TransactionMonthList timeGroupView={sharedPaymentView} />);
 
       expect(
-        screen.getAllByText("含共同支付 1 笔 · 本账户 ¥50,000 / 整笔 ¥120,000"),
-      ).toHaveLength(1);
-      expect(
-        screen.getByText("共同支付 · 本账户 ¥50,000 / 整笔 ¥120,000"),
+        screen.getByText("含共同支付 1 笔 · 整笔 ¥120,000"),
       ).toBeInTheDocument();
-    });
-
-    it("按持有人筛选时组头与行的份额主体都显示持有人名称（#909）", () => {
-      render(
-        <TransactionMonthList
-          sharedPaymentSubject="妻子"
-          timeGroupView={sharedPaymentView}
-        />,
-      );
-
-      expect(
-        screen.getByText("含共同支付 1 笔 · 妻子 ¥50,000 / 整笔 ¥120,000"),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByText("共同支付 · 妻子 ¥50,000 / 整笔 ¥120,000"),
-      ).toBeInTheDocument();
+      expect(screen.getByText("共同支付 · 整笔 ¥120,000")).toBeInTheDocument();
       expect(screen.queryByText(/本账户/)).not.toBeInTheDocument();
     });
   });

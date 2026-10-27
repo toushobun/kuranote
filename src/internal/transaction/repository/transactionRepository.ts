@@ -160,7 +160,6 @@ export type TransactionGroupSummaryRow = {
   group_label: string;
   income: number | string | null;
   latest_transaction_at: string;
-  shared_payment_account_share_amount: number | string | null;
   shared_payment_record_count: number | string | null;
   shared_payment_record_total_amount: number | string | null;
   transaction_count: number | string | null;

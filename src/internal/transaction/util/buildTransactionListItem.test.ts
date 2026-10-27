@@ -803,7 +803,6 @@ describe("buildTransactionListItem 多账户记录", () => {
     expect(item.account_name).toBe(accountA.name);
     expect(item.amount).toBe("1200");
     expect(item).not.toHaveProperty("record_total_amount");
-    expect(item).not.toHaveProperty("account_share_amount");
   });
 
   it("无筛选时显示「首个账户 等 N 个账户」，主金额为整笔", () => {
@@ -822,10 +821,9 @@ describe("buildTransactionListItem 多账户记录", () => {
     expect(item.amount).toBe("50000");
     expect(item.type).toBe("expense");
     expect(item.record_total_amount).toBe("120000");
-    expect(item).not.toHaveProperty("account_share_amount");
   });
 
-  it("筛选我的账户 + 住院费时主金额为命中明细全额，并给出本账户份额与整笔", () => {
+  it("筛选我的账户 + 住院费时主金额为命中明细全额，只给出整笔金额", () => {
     const item = buildHospitalItem({
       filters: { ...mineFilters, categoryId: hospitalCategories.inpatient.id },
       recordItems: hospitalItems.filter(
@@ -834,7 +832,6 @@ describe("buildTransactionListItem 多账户记录", () => {
     });
 
     expect(item.amount).toBe("80000");
-    expect(item.account_share_amount).toBe("50000");
     expect(item.record_total_amount).toBe("120000");
   });
 
@@ -844,7 +841,6 @@ describe("buildTransactionListItem 多账户记录", () => {
       group: { groupBy: "category", groupKey: hospitalCategories.inpatient.id },
     });
     expect(inpatientRow).toMatchObject({
-      account_share_amount: "50000",
       amount: "80000",
       record_total_amount: "120000",
     });
@@ -854,7 +850,6 @@ describe("buildTransactionListItem 多账户记录", () => {
       group: { groupBy: "category", groupKey: hospitalCategories.treatment.id },
     });
     expect(treatmentRow).toMatchObject({
-      account_share_amount: "50000",
       amount: "40000",
       record_total_amount: "120000",
     });
@@ -870,7 +865,6 @@ describe("buildTransactionListItem 多账户记录", () => {
     });
 
     expect(item).toMatchObject({
-      account_share_amount: "50000",
       amount: "120000",
       record_total_amount: "120000",
     });
@@ -883,21 +877,18 @@ describe("buildTransactionListItem 多账户记录", () => {
     expect(mineRow.amount).toBe("50000");
     expect(mineRow.type).toBe("expense");
     expect(mineRow.record_total_amount).toBe("120000");
-    expect(mineRow).not.toHaveProperty("account_share_amount");
 
     const wifeRow = buildHospitalItem({
       group: { groupBy: "account", groupKey: hospitalAccounts.wife.id },
     });
     expect(wifeRow.amount).toBe("70000");
     expect(wifeRow.record_total_amount).toBe("120000");
-    expect(wifeRow).not.toHaveProperty("account_share_amount");
 
     const filteredRow = buildHospitalItem({
       filters: mineFilters,
       group: { groupBy: "account", groupKey: hospitalAccounts.mine.id },
     });
     expect(filteredRow.amount).toBe("50000");
-    expect(filteredRow).not.toHaveProperty("account_share_amount");
   });
 
   it("无账户筛选时按小分类分组，行金额维持整笔", () => {
@@ -959,7 +950,6 @@ describe("buildTransactionListItem 多账户记录", () => {
       ),
     });
     expect(matchedItem).toMatchObject({
-      account_share_amount: "50000",
       amount: "60000",
       originalAmount: "80000",
       record_total_amount: "120000",
@@ -1002,7 +992,6 @@ describe("buildTransactionListItem 持有人维度（#909）", () => {
 
     expect(item.amount).toBe("50000");
     expect(item.record_total_amount).toBe("120000");
-    expect(item).not.toHaveProperty("account_share_amount");
     expect(item).not.toHaveProperty("originalAmount");
   });
 
@@ -1022,17 +1011,15 @@ describe("buildTransactionListItem 持有人维度（#909）", () => {
 
     expect(item.amount).toBe("3000");
     expect(item).not.toHaveProperty("record_total_amount");
-    expect(item).not.toHaveProperty("account_share_amount");
   });
 
-  it("筛选「我」按分类：医院行显示所在组明细全额，并带本人份额与整笔", () => {
+  it("筛选「我」按分类：医院行显示所在组明细全额，只给出整笔金额", () => {
     const item = buildHolderItem(holderRecords.hospital, {
       filters: meFilters,
       group: { groupBy: "category", groupKey: holderCategories.treatment.id },
     });
 
     expect(item.amount).toBe("40000");
-    expect(item.account_share_amount).toBe("50000");
     expect(item.record_total_amount).toBe("120000");
   });
 

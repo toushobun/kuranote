@@ -42,8 +42,6 @@ type TransactionMonthListProps = {
   selectableCurrency?: string;
   selectedRefundItemId?: string | null;
   selectedReimbursementItemId?: string | null;
-  /** 「共同支付」标识的份额主体，由列表上下文按筛选条件解析一次后传入（#909）。 */
-  sharedPaymentSubject?: string;
   timeGroupView: TransactionTimeGroupViewData;
 };
 
@@ -68,7 +66,6 @@ function TransactionMonthListContent({
   selectableCurrency,
   selectedRefundItemId = null,
   selectedReimbursementItemId = null,
-  sharedPaymentSubject = transactionSharedPaymentMessages.currentAccountSubject,
   timeGroupView,
 }: TransactionMonthListProps) {
   const [groups, setGroups] = useState(timeGroupView.groups);
@@ -321,11 +318,6 @@ function TransactionMonthListContent({
                     <TransactionSharedPaymentNote
                       label={transactionSharedPaymentMessages.groupSummary(
                         group.sharedPayment.recordCount,
-                        sharedPaymentSubject,
-                        formatUnsignedCurrencyAmount(
-                          group.sharedPayment.accountShareAmount,
-                          group.summary.currency,
-                        ),
                         formatUnsignedCurrencyAmount(
                           group.sharedPayment.recordTotalAmount,
                           group.summary.currency,
@@ -363,7 +355,6 @@ function TransactionMonthListContent({
                         selectedReimbursementItemId={
                           selectedReimbursementItemId
                         }
-                        sharedPaymentSubject={sharedPaymentSubject}
                         showSummary={false}
                       />
                     ) : (
