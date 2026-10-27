@@ -4,7 +4,7 @@ import {
   categoryEmojiOptions,
 } from "config/categoryEmojis";
 import { useState } from "react";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { GroupedIconPicker } from "./GroupedIconPicker";
 
 const meta = {
@@ -43,9 +43,12 @@ export const Grouped: Story = {
     const dialog = within(
       await within(canvasElement.ownerDocument.body).findByRole("dialog"),
     );
-    await expect(
-      dialog.getByRole("heading", { name: "餐饮 2个图标" }),
-    ).toBeVisible();
+    // 弹窗淡入开始时 opacity 为 0，等淡入后再断言可见
+    await waitFor(() =>
+      expect(
+        dialog.getByRole("heading", { name: "餐饮 2个图标" }),
+      ).toBeVisible(),
+    );
     await expect(
       dialog.getByRole("heading", { name: "出行 1个图标" }),
     ).toBeVisible();

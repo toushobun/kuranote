@@ -206,6 +206,7 @@ export const MultiAccountPayment: Story = {
 export const AddPaymentWithIncomeItem: Story = {
   name: "含收入明细时添加付款账户（确认删除收入明细）",
   args: {
+    multiAccountPaymentEnabled: true,
     initialValues: {
       payments: [
         { accountId: "00000000-0000-4000-8000-000000000045", amount: null },
@@ -256,6 +257,13 @@ export const EditIncomeWithSavedRefundLink: Story = {
       items: [
         {
           amount: "500",
+          // 与编辑页加载器一致：已关联退款的收入带业务状态，显示「退款收入」标记
+          businessNetAmount: "0",
+          businessStatus: {
+            incomeLinkRole: "refund",
+            offsetComposition: { refundAmount: "0", reimbursementAmount: "0" },
+            settlementStatus: null,
+          },
           categoryId: "00000000-0000-4000-8000-000000005074",
           expectedUpdatedAt: "2026-06-05T03:20:10.000Z",
           id: "00000000-0000-4000-8000-000000008001",
@@ -293,6 +301,8 @@ export const EditIncomeWithSavedRefundLink: Story = {
         "该明细已关联退款，账户需与关联明细的币种一致；如需更换为其他币种的账户，请先解除关联。",
       ),
     ).toBeInTheDocument();
+    // 切换币种后已保存的退款关联仍被保留
+    await expect(canvas.getByText("退款收入")).toBeVisible();
   },
 };
 
