@@ -1,0 +1,3 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";import{t}from"./jsx-runtime-Dwpk6tgA.js";import{n,t as r}from"./ConfirmDialogProvider-D6Eu5N4G.js";import{n as i,t as a}from"./DestructiveSubmitButton-DIYmJjqf.js";var o,s,c,l;e((()=>{o=t(),n(),i(),s={title:`Molecules/UI/DestructiveSubmitButton`,component:a,decorators:[e=>(0,o.jsx)(r,{children:(0,o.jsx)(`form`,{onSubmit:e=>e.preventDefault(),children:(0,o.jsx)(e,{})})})],args:{confirmLabel:`归档`,description:`归档后该分类不会在记账选择中显示，确定要归档吗？`,label:`归档该分类`,title:`归档该分类？`}},c={name:`破坏性操作确认按钮`},c.parameters={...c.parameters,docs:{...c.parameters?.docs,source:{originalSource:`{
+  name: "破坏性操作确认按钮"
+}`,...c.parameters?.docs?.source}}},l=[`Default`]}))();export{c as Default,l as __namedExportsOrder,s as default};
