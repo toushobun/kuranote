@@ -2106,6 +2106,7 @@ function createDependenciesWithTransactionWrites(
     merchantQueryService: {
       findSummariesByIds: vi.fn(async () => []),
       listActiveOptions: vi.fn(),
+      listActiveOptionsWithTags: vi.fn(),
     },
     transactionRepository: createSupabaseTransactionRepository(
       client as never,

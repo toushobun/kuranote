@@ -1,6 +1,6 @@
 import type { BalanceAdjustmentEditInitialValues } from "internal/transaction/entity/balanceAdjustment";
 import type { CategoryType } from "internal/category";
-import type { MerchantSummary } from "internal/merchant";
+import type { MerchantEntryOptions, MerchantSummary } from "internal/merchant";
 import type { TransactionPayment } from "internal/transaction/entity/transactionPayment";
 import type { TransactionGroupBy } from "internal/transaction/entity/transactionGrouping";
 import type { TransactionEditRestriction } from "internal/transaction/entity/transactionReadModels";
@@ -47,11 +47,14 @@ export type TransactionListItem = {
 
 export type TransactionAccountOption = {
   currency: string;
+  /** 新增记账流程（#943）带持有人；其他表单不读取。 */
+  holders?: { display_name: string }[];
   id: string;
   name: string;
 };
 
 export type TransactionCategoryOption = {
+  iconName?: string | null;
   id: string;
   name: string;
   parentId: string | null;
@@ -149,8 +152,22 @@ type TransactionIncomeLinkCandidate = {
   transactionRecordId: string;
 };
 
-export type NewTransactionView = TransactionFormOptions & {
+/** 新增记账页（#943）：账户必带持有人、商家带商家分类。 */
+export type TransactionEntryOptions = Omit<
+  TransactionFormOptions,
+  "accountOptions" | "merchantOptions"
+> & {
+  accountOptions: (TransactionAccountOption & {
+    holders: { display_name: string }[];
+  })[];
+  merchantOptions: MerchantEntryOptions["merchants"];
+  merchantTags: MerchantEntryOptions["tags"];
+};
+
+export type NewTransactionView = TransactionEntryOptions & {
   canWriteTransactions: boolean;
+  /** 浏览器端读取常用商家与商家建议时使用（#948）。 */
+  ledgerId: string;
   ledgerName: string;
 };
 

@@ -2,6 +2,7 @@ import { merchantRecentTransactionLimit } from "@/constants/recentUsage";
 
 export const flowMessages = {
   title: "从商家记账",
+  transferTitle: "账户周转",
   switchMethod: "切换方式",
   methodTitle: "切换记账方式",
   close: "关闭记账",

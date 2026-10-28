@@ -8,7 +8,12 @@ import { useTheme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useId, type ReactNode } from "react";
-import { designTokens } from "theme/theme";
+import {
+  wizardDialogHeaderSx,
+  wizardDialogPaperSx,
+  wizardDialogTitleRowSx,
+  wizardDialogTitleSx,
+} from "./wizardDialogStyles";
 
 type WizardDialogProps = {
   children: ReactNode;
@@ -55,14 +60,14 @@ export function WizardDialog({
       slotProps={{
         paper: {
           "aria-label": ariaLabel,
-          sx: fullScreen ? fullScreenPaperSx : paperSx,
+          sx: fullScreen ? fullScreenPaperSx : wizardDialogPaperSx,
         },
       }}
     >
       <Box
         sx={
           title
-            ? headerSx
+            ? wizardDialogHeaderSx
             : [completeHeaderSx, closeAlignment === "start" && startHeaderSx]
         }
       >
@@ -70,7 +75,7 @@ export function WizardDialog({
           sx={
             title
               ? [
-                  titleRowSx,
+                  wizardDialogTitleRowSx,
                   titleAction ? { gridTemplateColumns: "40px 1fr auto" } : {},
                 ]
               : undefined
@@ -84,7 +89,7 @@ export function WizardDialog({
             <CloseRoundedIcon />
           </IconButton>
           {title ? (
-            <Typography component="h2" id={headingId} sx={titleSx}>
+            <Typography component="h2" id={headingId} sx={wizardDialogTitleSx}>
               {title}
             </Typography>
           ) : null}
@@ -97,40 +102,13 @@ export function WizardDialog({
   );
 }
 
-const paperSx = {
-  borderRadius: `${designTokens.radius.xl}px`,
-  height: "min(760px, calc(100% - 64px))",
-  maxWidth: 560,
-  overflow: "hidden",
-};
 const fullScreenPaperSx = { overflow: "hidden" };
-const headerSx = {
-  borderBottom: "1px solid",
-  borderColor: "divider",
-  flexShrink: 0,
-  pb: 2,
-  pt: "calc(8px + env(safe-area-inset-top))",
-  px: { xs: 1, sm: 2 },
-};
-// 关闭按钮在左、标题居中：右侧留出与按钮等宽的空列。
-const titleRowSx = {
-  alignItems: "center",
-  display: "grid",
-  gridTemplateColumns: "40px 1fr 40px",
-  mb: 1.5,
-};
 const completeHeaderSx = {
   display: "flex",
   flexShrink: 0,
   justifyContent: "flex-end",
   pt: "calc(8px + env(safe-area-inset-top))",
   px: { xs: 1, sm: 2 },
-};
-const titleSx = {
-  color: "text.primary",
-  fontSize: 17,
-  fontWeight: 900,
-  textAlign: "center",
 };
 
 const startHeaderSx = { justifyContent: "flex-start" };

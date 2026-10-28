@@ -124,6 +124,7 @@ function TransactionStepFlowSession(props: TransactionStepFlowProps) {
         )}
       </WizardDialog>
       <EntryMethodDrawer
+        currentMethod="merchant"
         open={w.methodOpen}
         onClose={() => w.setMethodOpen(false)}
         onMethodChange={props.onMethodChange}

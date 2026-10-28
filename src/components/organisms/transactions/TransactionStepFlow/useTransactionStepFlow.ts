@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useResolvedTransactionIncomeLinks } from "organisms/transactions/TransactionForm/TransactionIncomeLinksContext";
 import { useTransactionForm } from "organisms/transactions/TransactionForm/useTransactionForm";
 import type { TransactionFormInitialValues } from "organisms/transactions/TransactionForm/TransactionForm.types";
 import { useConfirmDialog } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
@@ -25,7 +26,12 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
   const [itemsReached, setItemsReached] = useState(
     (props.initialStep ?? 1) >= 3,
   );
-  const itemsOptions = props.itemsOptions ?? { categoryOptions: [] };
+  const baseItemsOptions = props.itemsOptions ?? { categoryOptions: [] };
+  // 明细抽屉的退款 / 报销选择器优先使用页面的 TransactionIncomeLinksProvider。
+  const itemsOptions = {
+    ...baseItemsOptions,
+    ...useResolvedTransactionIncomeLinks(baseItemsOptions),
+  };
   const [amountItemId, setAmountItemId] = useState<number | null>(null);
   function automaticCategoryIds(
     quick = false,

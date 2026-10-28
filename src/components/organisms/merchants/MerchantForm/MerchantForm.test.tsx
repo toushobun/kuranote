@@ -32,6 +32,19 @@ describe("MerchantForm", () => {
     expect(screen.getByLabelText("备注（可选）")).toHaveValue("网购");
   });
 
+  it("从记一笔带来的关键词预填到商家名称", () => {
+    render(
+      <MerchantForm
+        action={vi.fn()}
+        fetchIconAction={vi.fn()}
+        initialName="LIFE"
+        ledgerId="ledger-1"
+      />,
+    );
+
+    expect(screen.getByLabelText(/商家名称/)).toHaveValue("LIFE");
+  });
+
   it("提交中禁用按钮并显示进度", () => {
     const { container } = render(
       <MerchantForm

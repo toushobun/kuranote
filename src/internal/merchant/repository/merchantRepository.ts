@@ -1,5 +1,8 @@
 import { readAllPages } from "internal/shared/supabase/readAllPages";
-import type { MerchantSummary } from "internal/merchant/entity/merchantSummary";
+import type {
+  MerchantEntryOptions,
+  MerchantSummary,
+} from "internal/merchant/entity/merchantSummary";
 import {
   getMerchantErrorMessage,
   merchantErrorCodes,
@@ -255,6 +258,7 @@ export interface MerchantRepository {
   ): Promise<MerchantSummary[]>;
   listActive(ledgerId: string): Promise<ActiveMerchantListData>;
   listActiveSummaries(ledgerId: string): Promise<MerchantSummary[]>;
+  listActiveSummariesWithTags(ledgerId: string): Promise<MerchantEntryOptions>;
   listActiveTagIds(ledgerId: string): Promise<string[]>;
   listActiveTags(ledgerId: string): Promise<MerchantTagData[]>;
   reorder(ledgerId: string, merchantIds: string[]): Promise<void>;
@@ -301,11 +305,11 @@ function attachMerchantCounts(
   }));
 }
 
-function attachMerchantTags(
-  merchants: MerchantData[],
+function attachMerchantTags<T extends { id: string }>(
+  merchants: T[],
   tags: MerchantTagData[],
   links: MerchantTagLinkRow[],
-): MerchantData[] {
+): (T & { tags: MerchantTagData[] })[] {
   const tagIdsByMerchantId = new Map<string, Set<string>>();
   for (const link of links) {
     const tagIds = tagIdsByMerchantId.get(link.merchant_id) ?? new Set();
@@ -454,6 +458,35 @@ export function createSupabaseMerchantRepository(
       );
     }
     return (data ?? []) as Array<{ alias: string; merchant_id: string }>;
+  }
+
+  async function loadActiveSummaries(
+    ledgerId: string,
+  ): Promise<MerchantSummary[]> {
+    const { data, error } = await supabase
+      .from("merchant")
+      .select(merchantSummaryColumns)
+      .eq("ledger_id", ledgerId)
+      .eq("is_archived", false)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      fail(
+        "[merchant] failed to load active merchant summaries",
+        merchantErrorCodes.merchantListFailed,
+        merchantLoadErrorMessages.listLoadFailed,
+        { ledgerId },
+        error,
+      );
+    }
+    const merchants = ((data ?? []) as MerchantSummaryRow[]).map(
+      toMerchantSummary,
+    );
+    return applyPreferredNames(
+      merchants,
+      await loadPreferredAliases(merchants.map((merchant) => merchant.id)),
+    );
   }
 
   async function loadActiveTags(ledgerId: string): Promise<MerchantTagData[]> {
@@ -925,30 +958,20 @@ export function createSupabaseMerchantRepository(
     },
 
     async listActiveSummaries(ledgerId) {
-      const { data, error } = await supabase
-        .from("merchant")
-        .select(merchantSummaryColumns)
-        .eq("ledger_id", ledgerId)
-        .eq("is_archived", false)
-        .order("sort_order", { ascending: true })
-        .order("created_at", { ascending: true });
+      return loadActiveSummaries(ledgerId);
+    },
 
-      if (error) {
-        fail(
-          "[merchant] failed to load active merchant summaries",
-          merchantErrorCodes.merchantListFailed,
-          merchantLoadErrorMessages.listLoadFailed,
-          { ledgerId },
-          error,
-        );
-      }
-      const merchants = ((data ?? []) as MerchantSummaryRow[]).map(
-        toMerchantSummary,
-      );
-      return applyPreferredNames(
-        merchants,
-        await loadPreferredAliases(merchants.map((merchant) => merchant.id)),
-      );
+    async listActiveSummariesWithTags(ledgerId) {
+      const [merchants, baseTags] = await Promise.all([
+        loadActiveSummaries(ledgerId),
+        loadActiveTags(ledgerId),
+      ]);
+      const links =
+        baseTags.length === 0
+          ? []
+          : await loadTagLinks(merchants.map((merchant) => merchant.id));
+      const tags = attachMerchantCounts(baseTags, links);
+      return { merchants: attachMerchantTags(merchants, tags, links), tags };
     },
 
     async listActiveTagIds(ledgerId) {

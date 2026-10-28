@@ -1,5 +1,5 @@
-import { TransactionFormSkeleton } from "templates/transactions/TransactionFormSkeleton";
+import { TransactionStepFlowSkeleton } from "templates/transactions/TransactionStepFlowSkeleton";
 
 export default function TransactionsNewLoadingPage() {
-  return <TransactionFormSkeleton title="记一笔" />;
+  return <TransactionStepFlowSkeleton />;
 }

@@ -13,8 +13,9 @@ import {
   transactionEditPagePath,
   transactionResultValues,
   transactionsMonthHref,
-  transactionsNewHref,
+  transactionsNewEntryHref,
   transactionsResultHref,
+  withQueryParam,
   transactionsSearchHref,
 } from "./paths";
 
@@ -106,15 +107,19 @@ describe("merchant paths", () => {
 });
 
 describe("transaction setup paths", () => {
-  it("生成带页签的记一笔路由", () => {
-    expect(transactionsNewHref("transfer")).toBe(
-      "/transactions/new?type=transfer",
+  it("生成带 returnTo 的商家新增路由", () => {
+    expect(
+      merchantsNewHref(
+        transactionsNewEntryHref({ method: "standard", type: "expense" }),
+      ),
+    ).toBe(
+      "/merchants/new?returnTo=%2Ftransactions%2Fnew%3Fmethod%3Dstandard%26type%3Dexpense",
     );
   });
 
-  it("生成带 returnTo 的商家新增路由", () => {
-    expect(merchantsNewHref(transactionsNewHref("expense"))).toBe(
-      "/merchants/new?returnTo=%2Ftransactions%2Fnew%3Ftype%3Dexpense",
+  it("商家新增路由可预填名称", () => {
+    expect(merchantsNewHref("/transactions/new", "LIFE")).toBe(
+      "/merchants/new?name=LIFE&returnTo=%2Ftransactions%2Fnew",
     );
   });
 
@@ -123,12 +128,50 @@ describe("transaction setup paths", () => {
   });
 
   it("生成打开新增弹框并带 returnTo 的账户路由", () => {
-    expect(accountsCreateHref(transactionsNewHref("income"))).toBe(
-      "/accounts?create=1&returnTo=%2Ftransactions%2Fnew%3Ftype%3Dincome",
+    expect(
+      accountsCreateHref(
+        transactionsNewEntryHref({ method: "standard", type: "income" }),
+      ),
+    ).toBe(
+      "/accounts?create=1&returnTo=%2Ftransactions%2Fnew%3Fmethod%3Dstandard%26type%3Dincome",
     );
   });
 
   it("没有 returnTo 时账户路由只带打开新增弹框参数", () => {
     expect(accountsCreateHref()).toBe("/accounts?create=1");
+  });
+});
+
+describe("transaction entry paths", () => {
+  it("从商家记账不带 method，可带回商家与账户", () => {
+    expect(transactionsNewEntryHref({ method: "merchant" })).toBe(
+      "/transactions/new",
+    );
+    expect(
+      transactionsNewEntryHref({
+        accountId: "account-1",
+        merchantId: "merchant-1",
+        method: "merchant",
+        type: "income",
+      }),
+    ).toBe("/transactions/new?merchantId=merchant-1&accountId=account-1");
+  });
+
+  it("账户周转只带 method，标准记账带页签", () => {
+    expect(transactionsNewEntryHref({ method: "transfer" })).toBe(
+      "/transactions/new?method=transfer",
+    );
+    expect(
+      transactionsNewEntryHref({ method: "standard", type: "income" }),
+    ).toBe("/transactions/new?method=standard&type=income");
+  });
+
+  it("追加查询参数时保留原有参数并覆盖同名参数", () => {
+    expect(
+      withQueryParam("/transactions/new?merchantId=a", "accountId", "b"),
+    ).toBe("/transactions/new?merchantId=a&accountId=b");
+    expect(
+      withQueryParam("/transactions/new?accountId=a", "accountId", "b"),
+    ).toBe("/transactions/new?accountId=b");
   });
 });

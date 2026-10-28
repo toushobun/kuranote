@@ -59,6 +59,7 @@ function createService({
   };
   const merchantQueryService = {
     findSummariesByIds: vi.fn().mockResolvedValue([]),
+    listActiveOptionsWithTags: vi.fn(),
     listActiveOptions: vi.fn().mockResolvedValue([]),
   };
 

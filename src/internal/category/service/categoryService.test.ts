@@ -96,6 +96,35 @@ describe("createCategoryService", () => {
     });
   });
 
+  it("交易表单的分类候选带上分类图标", async () => {
+    const repository = createRepository({
+      findActiveByLedgerId: vi.fn().mockResolvedValue([
+        {
+          ...baseRow,
+          icon_name: "🍜",
+          id: categoryId,
+          name: "餐饮",
+          parent_id: null,
+        },
+      ]),
+    });
+
+    await expect(
+      createService(repository, "member").listActiveSummaries({
+        ledgerId,
+        userId,
+      }),
+    ).resolves.toEqual([
+      {
+        icon_name: "🍜",
+        id: categoryId,
+        name: "餐饮",
+        parent_id: null,
+        type: baseRow.type,
+      },
+    ]);
+  });
+
   it("非活动账本成员读取分类时返回 404", async () => {
     const repository = createRepository();
     const service = createService(repository, null);

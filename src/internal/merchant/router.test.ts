@@ -62,6 +62,7 @@ function createService(
       tags: [],
     }),
     listActiveOptions: vi.fn().mockResolvedValue([]),
+    listActiveOptionsWithTags: vi.fn(),
     listTags: vi.fn().mockResolvedValue([]),
     reorder: vi.fn(),
     reorderTags: vi.fn(),

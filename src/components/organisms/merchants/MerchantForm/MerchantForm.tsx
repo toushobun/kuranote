@@ -17,6 +17,7 @@ import type { MerchantIconStateAction, MerchantTag } from "types/merchants";
 type MerchantFormProps = {
   action: ServerAction;
   fetchIconAction: MerchantIconStateAction;
+  initialName?: string;
   ledgerId: string;
   pending?: boolean;
   // 新增成功或取消后返回的站内路径（例如记一笔），由服务端再次校验。
@@ -27,12 +28,13 @@ type MerchantFormProps = {
 export function MerchantForm({
   action,
   fetchIconAction,
+  initialName,
   ledgerId,
   pending = false,
   returnTo = null,
   tags = [],
 }: MerchantFormProps) {
-  const details = useMerchantDetails();
+  const details = useMerchantDetails({ name: initialName });
 
   return (
     <Stack component="form" action={action} spacing={2.5}>

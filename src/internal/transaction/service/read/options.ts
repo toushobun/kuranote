@@ -10,7 +10,9 @@ import type {
 } from "internal/transaction/repository/transactionRepository";
 import type { TransactionReadDependencies } from "internal/transaction/service/read/transactionContext";
 import type {
+  TransactionAccountOption,
   TransactionCategoryOption,
+  TransactionEntryOptions,
   TransactionFilterOptions,
   TransactionFormOptions,
   TransactionMemberOption,
@@ -25,16 +27,59 @@ export async function loadTransactionFormOptions(
   dependencies: TransactionReadDependencies<TransactionFormRepository>,
   currentLedger: CurrentLedger,
 ): Promise<TransactionFormOptions> {
+  const { merchantOptions, ...options } = await loadFormOptionsWith(
+    dependencies,
+    currentLedger,
+    dependencies.accountQueryService.listTransactionOptions({
+      ledgerId: currentLedger.id,
+      userId: dependencies.currentUserId,
+    }),
+    dependencies.merchantQueryService.listActiveOptions({
+      ledgerId: currentLedger.id,
+    }),
+  );
+  return { ...options, merchantOptions };
+}
+
+/** 新增记账（#943）：账户带持有人，商家带商家分类，另附商家分类列表。 */
+export async function loadTransactionEntryOptions(
+  dependencies: TransactionReadDependencies<TransactionFormRepository>,
+  currentLedger: CurrentLedger,
+): Promise<TransactionEntryOptions> {
+  const { merchantOptions, ...options } = await loadFormOptionsWith(
+    dependencies,
+    currentLedger,
+    dependencies.accountQueryService.listTransactionOptionsWithHolders({
+      ledgerId: currentLedger.id,
+      userId: dependencies.currentUserId,
+    }),
+    dependencies.merchantQueryService.listActiveOptionsWithTags({
+      ledgerId: currentLedger.id,
+    }),
+  );
+  return {
+    ...options,
+    merchantOptions: merchantOptions.merchants,
+    merchantTags: merchantOptions.tags,
+  };
+}
+
+async function loadFormOptionsWith<
+  Account extends TransactionAccountOption,
+  Merchants,
+>(
+  dependencies: TransactionReadDependencies<TransactionFormRepository>,
+  currentLedger: CurrentLedger,
+  accountOptionsPromise: Promise<Account[]>,
+  merchantOptionsPromise: Promise<Merchants>,
+) {
   const [
     accountOptions,
     categoryRows,
     frequentCategoryHistory,
     merchantOptions,
   ] = await Promise.all([
-    dependencies.accountQueryService.listTransactionOptions({
-      ledgerId: currentLedger.id,
-      userId: dependencies.currentUserId,
-    }),
+    accountOptionsPromise,
     dependencies.categoryQueryService.listActiveSummaries({
       ledgerId: currentLedger.id,
       userId: dependencies.currentUserId,
@@ -43,9 +88,7 @@ export async function loadTransactionFormOptions(
       ledgerId: currentLedger.id,
       transactionRepository: dependencies.transactionRepository,
     }),
-    dependencies.merchantQueryService.listActiveOptions({
-      ledgerId: currentLedger.id,
-    }),
+    merchantOptionsPromise,
   ]);
   const categoryOptions = buildFormCategoryOptions(categoryRows);
 
@@ -144,6 +187,7 @@ export function buildFormCategoryOptions(
   const categoryOptions: TransactionCategoryOption[] = parentRows.flatMap(
     (parentRow) =>
       (childRowsByParentId.get(parentRow.id) ?? []).map((row) => ({
+        iconName: row.icon_name ?? null,
         id: row.id,
         name: row.name,
         parentId: parentRow.id,
@@ -156,6 +200,7 @@ export function buildFormCategoryOptions(
     if (row.parent_id === null || parentIds.has(row.parent_id)) continue;
 
     categoryOptions.push({
+      iconName: row.icon_name ?? null,
       id: row.id,
       name: row.name,
       parentId: row.parent_id,

@@ -60,11 +60,28 @@ function createRepository(
   };
 }
 
+const merchantTag = {
+  icon: "🛒",
+  id: "00000000-0000-4000-8000-000000000901",
+  merchant_count: 1,
+  name: "超市",
+  sort_order: 0,
+};
+
 function createDependencies(repository: TransactionFormRepository) {
   return {
     accountQueryService: {
       getTransactionContext: vi.fn(),
       listTransactionHolderOptions: vi.fn().mockResolvedValue([]),
+      listTransactionOptionsWithHolders: vi.fn().mockResolvedValue([
+        {
+          currency: "JPY",
+          holders: [{ display_name: "我" }],
+          id: accountId,
+          name: "现金",
+        },
+        { currency: "JPY", holders: [], id: targetAccountId, name: "储蓄" },
+      ]),
       listTransactionOptions: vi.fn().mockResolvedValue([
         { currency: "JPY", id: accountId, name: "现金" },
         { currency: "JPY", id: targetAccountId, name: "储蓄" },
@@ -80,6 +97,7 @@ function createDependencies(repository: TransactionFormRepository) {
           type: "expense",
         },
         {
+          icon_name: "🍱",
           id: categoryId,
           name: "午餐",
           parent_id: parentCategoryId,
@@ -90,6 +108,17 @@ function createDependencies(repository: TransactionFormRepository) {
     currentUserId: userId,
     merchantQueryService: {
       findSummariesByIds: vi.fn(),
+      listActiveOptionsWithTags: vi.fn().mockResolvedValue({
+        merchants: [
+          {
+            icon_url: null,
+            id: merchantId,
+            name: "便利店",
+            tags: [merchantTag],
+          },
+        ],
+        tags: [merchantTag],
+      }),
       listActiveOptions: vi
         .fn()
         .mockResolvedValue([
@@ -146,6 +175,7 @@ function createLinkedDependencies({
     accountQueryService: {
       getTransactionContext: vi.fn(),
       listTransactionHolderOptions: vi.fn().mockResolvedValue([]),
+      listTransactionOptionsWithHolders: vi.fn(),
       listTransactionOptions: vi
         .fn()
         .mockResolvedValue([{ currency: "JPY", id: accountId, name: "现金" }]),
@@ -170,6 +200,7 @@ function createLinkedDependencies({
     currentUserId: userId,
     merchantQueryService: {
       findSummariesByIds: vi.fn(),
+      listActiveOptionsWithTags: vi.fn(),
       listActiveOptions: vi.fn().mockResolvedValue([]),
     },
     transactionIncomeLinkRepository: incomeLinkRepository,
@@ -563,6 +594,34 @@ describe("getNewTransactionView", () => {
     expect(view.categoryOptions).toHaveLength(1);
     expect(view.merchantOptions).toHaveLength(1);
     expect(view.frequentCategoryIds).toEqual([categoryId]);
+  });
+
+  it("账户带持有人、商家带商家分类、分类带图标", async () => {
+    const dependencies = createDependencies(createRepository());
+
+    const view = await getNewTransactionView(dependencies, currentLedger);
+
+    expect(view.accountOptions[0]).toEqual({
+      currency: "JPY",
+      holders: [{ display_name: "我" }],
+      id: accountId,
+      name: "现金",
+    });
+    expect(view.merchantOptions).toEqual([
+      { icon_url: null, id: merchantId, name: "便利店", tags: [merchantTag] },
+    ]);
+    expect(view.merchantTags).toEqual([merchantTag]);
+    expect(view.ledgerId).toBe(currentLedger.id);
+    expect(view.categoryOptions[0]).toMatchObject({
+      iconName: "🍱",
+      id: categoryId,
+    });
+    expect(
+      dependencies.accountQueryService.listTransactionOptions,
+    ).not.toHaveBeenCalled();
+    expect(
+      dependencies.merchantQueryService.listActiveOptions,
+    ).not.toHaveBeenCalled();
   });
 
   it.each([

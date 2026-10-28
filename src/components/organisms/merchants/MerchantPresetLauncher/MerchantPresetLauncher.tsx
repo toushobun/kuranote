@@ -16,6 +16,7 @@ type MerchantPresetLauncherProps = {
   action: MerchantPresetStateAction;
   loadAction: MerchantPresetLoadAction;
   onClose: () => void;
+  returnTo?: string | null;
 };
 
 /** 弹框打开才读取数据；读取失败沿用 Action 失败反馈。 */
@@ -23,6 +24,7 @@ export function MerchantPresetLauncher({
   action,
   loadAction,
   onClose,
+  returnTo,
 }: MerchantPresetLauncherProps) {
   const state = useMerchantPresetLoader(loadAction);
   if (state.options)
@@ -31,6 +33,7 @@ export function MerchantPresetLauncher({
         action={action}
         options={state.options}
         onClose={onClose}
+        returnTo={returnTo}
       />
     );
   return (

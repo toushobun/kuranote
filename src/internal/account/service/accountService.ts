@@ -20,7 +20,10 @@ import {
   mergeLedgerDisplayNames,
 } from "internal/account/service/read/accountsView";
 import { buildTransactionAccountContext } from "internal/account/service/read/transactionContext";
-import { buildAccountHolderOptions } from "internal/account/util/accountView";
+import {
+  buildAccountHolderOptions,
+  buildAccountsWithHolders,
+} from "internal/account/util/accountView";
 import {
   requireActiveLedgerMemberRole,
   type LedgerAccessService,
@@ -77,6 +80,11 @@ export type AccountHolderOption = {
   name: string;
 };
 
+/** 新增记账流程的账户候选：账户摘要 + 持有人显示名（#943）。 */
+export type AccountSummaryWithHolders = AccountSummary & {
+  holders: { display_name: string }[];
+};
+
 /** Transaction 等其他模块只依赖此窄查询接口。 */
 export interface AccountQueryService {
   getTransactionContext(input: {
@@ -93,6 +101,10 @@ export interface AccountQueryService {
     ledgerId: string;
     userId: string;
   }): Promise<AccountSummary[]>;
+  listTransactionOptionsWithHolders(input: {
+    ledgerId: string;
+    userId: string;
+  }): Promise<AccountSummaryWithHolders[]>;
 }
 
 export interface AccountService extends AccountQueryService {
@@ -182,6 +194,39 @@ export function createAccountService({
       ledgerId,
       userId,
     });
+  }
+
+  /** 解析持有人显示名所需的成员 / 占位资料，名称与账户列表一致。 */
+  async function loadHolderDisplayContext(
+    ledgerId: string,
+    userId: string,
+    accounts: { id: string }[],
+  ) {
+    const [holders, displaySettings, placeholders] = await Promise.all([
+      accountRepository.listHolders(
+        ledgerId,
+        accounts.map((account) => account.id),
+      ),
+      accountRepository.listDisplaySettings(ledgerId),
+      ledgerPlaceholderMemberQueryService.listUnclaimed({ ledgerId, userId }),
+    ]);
+    const users = mergeLedgerDisplayNames(
+      await accountRepository.listUsers([
+        ...new Set(
+          holders.flatMap((holder) =>
+            holder.user_id === null ? [] : [holder.user_id],
+          ),
+        ),
+      ]),
+      displaySettings,
+    );
+    return {
+      appUserById: new Map(users.map((user) => [user.id, user])),
+      holders,
+      placeholderById: new Map(
+        placeholders.map((placeholder) => [placeholder.id, placeholder]),
+      ),
+    };
   }
 
   function requireManagement(role: CurrentLedgerRole): void {
@@ -349,33 +394,13 @@ export function createAccountService({
 
     async listTransactionHolderOptions({ ledgerId, userId }) {
       await requireActiveMemberRole(ledgerId, userId);
-      const [accounts, displaySettings, placeholders] = await Promise.all([
-        accountRepository.listAccounts(ledgerId, true),
-        accountRepository.listDisplaySettings(ledgerId),
-        ledgerPlaceholderMemberQueryService.listUnclaimed({ ledgerId, userId }),
-      ]);
-      const holders = await accountRepository.listHolders(
-        ledgerId,
-        accounts.map((account) => account.id),
-      );
-      const users = mergeLedgerDisplayNames(
-        await accountRepository.listUsers([
-          ...new Set(
-            holders.flatMap((holder) =>
-              holder.user_id === null ? [] : [holder.user_id],
-            ),
-          ),
-        ]),
-        displaySettings,
-      );
-
-      return buildAccountHolderOptions({
-        appUserById: new Map(users.map((user) => [user.id, user])),
-        holders,
-        placeholderById: new Map(
-          placeholders.map((placeholder) => [placeholder.id, placeholder]),
+      return buildAccountHolderOptions(
+        await loadHolderDisplayContext(
+          ledgerId,
+          userId,
+          await accountRepository.listAccounts(ledgerId, true),
         ),
-      });
+      );
     },
 
     async listTransactionOptions({ ledgerId, userId }) {
@@ -383,6 +408,22 @@ export function createAccountService({
       return (await accountRepository.listAccounts(ledgerId)).map(
         ({ currency, id, name }) => ({ currency, id, name }),
       );
+    },
+
+    async listTransactionOptionsWithHolders({ ledgerId, userId }) {
+      await requireActiveMemberRole(ledgerId, userId);
+      const accounts = (await accountRepository.listAccounts(ledgerId)).map(
+        ({ currency, id, name }) => ({ currency, id, name }),
+      );
+      return buildAccountsWithHolders({
+        accounts,
+        // 只取显示名，持有人颜色在这里用不到。
+        displayColorByUserId: new Map(),
+        ...(await loadHolderDisplayContext(ledgerId, userId, accounts)),
+      }).map(({ holders, ...account }) => ({
+        ...account,
+        holders: holders.map(({ display_name }) => ({ display_name })),
+      }));
     },
 
     async getView({ ledgerId, userId, includeArchived }) {

@@ -16,12 +16,11 @@ import { userThemeCardBorderSx } from "theme/userThemeCardSx";
 import { NewTransactionVisualFrame } from "./NewTransactionVisualFrame";
 
 type TransactionFormSkeletonProps = {
-  mode?: "new" | "edit";
   title: string;
 };
 
+/** 编辑记账页的加载骨架；新增记账使用 TransactionStepFlowSkeleton（#943）。 */
 export function TransactionFormSkeleton({
-  mode = "new",
   title,
 }: TransactionFormSkeletonProps) {
   return (
@@ -35,15 +34,7 @@ export function TransactionFormSkeleton({
             sx={typeNavigationSkeletonSx}
           />
           <Stack spacing={0} sx={transactionFormStackSx}>
-            <TransactionFormFieldsSkeleton
-              action={
-                mode === "edit" ? (
-                  <EditActionBarSkeleton />
-                ) : (
-                  <SubmitButtonSkeleton />
-                )
-              }
-            />
+            <TransactionFormFieldsSkeleton action={<EditActionBarSkeleton />} />
           </Stack>
         </Stack>
       </Box>

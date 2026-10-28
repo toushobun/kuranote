@@ -57,6 +57,7 @@ function createRepository(
     findSummariesByIds: vi.fn().mockResolvedValue([]),
     listActive: vi.fn().mockResolvedValue({ merchants: [], tags: [] }),
     listActiveSummaries: vi.fn().mockResolvedValue([]),
+    listActiveSummariesWithTags: vi.fn(),
     listActiveTagIds: vi.fn().mockResolvedValue([]),
     listActiveTags: vi.fn().mockResolvedValue([]),
     reorderTags: vi.fn(),
@@ -152,6 +153,25 @@ describe("createMerchantService", () => {
         ledgerId,
       }),
     ).rejects.toMatchObject({ code: merchantErrorCodes.ledgerInvalid });
+  });
+
+  it("记账用商家候选只需读取权限", async () => {
+    const options = { merchants: [], tags: [] };
+    const repository = createRepository({
+      listActiveSummariesWithTags: vi.fn().mockResolvedValue(options),
+    });
+    const ledgerAccessService = createLedgerAccessService({
+      getActiveMemberRole: vi.fn().mockResolvedValue("viewer"),
+    });
+
+    await expect(
+      createService(repository, ledgerAccessService).listActiveOptionsWithTags({
+        ledgerId,
+      }),
+    ).resolves.toBe(options);
+    expect(repository.listActiveSummariesWithTags).toHaveBeenCalledWith(
+      ledgerId,
+    );
   });
 
   it("普通成员可以读取但不能维护商家", async () => {

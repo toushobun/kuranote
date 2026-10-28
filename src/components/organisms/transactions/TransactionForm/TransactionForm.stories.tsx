@@ -4,7 +4,7 @@ import { expect, userEvent, within } from "storybook/test";
 import {
   accountsCreateHref,
   merchantsNewHref,
-  transactionsNewHref,
+  transactionsNewEntryHref,
 } from "config/paths";
 
 import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
@@ -321,8 +321,12 @@ export const EmptyOptions: Story = {
 };
 
 const setupHrefs = {
-  account: accountsCreateHref(transactionsNewHref("expense")),
-  merchant: merchantsNewHref(transactionsNewHref("expense")),
+  account: accountsCreateHref(
+    transactionsNewEntryHref({ method: "standard", type: "expense" }),
+  ),
+  merchant: merchantsNewHref(
+    transactionsNewEntryHref({ method: "standard", type: "expense" }),
+  ),
 };
 
 export const MissingAccountAndMerchant: Story = {
