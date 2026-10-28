@@ -6,6 +6,7 @@ import type { TransactionAccountOption } from "types/transactions";
 import { flowFixture } from "test/mocks/transactionStepFlow";
 
 export type ItemsStepHarnessProps = ItemsStepOptions & {
+  merchantHasHistory?: boolean;
   accountOptions: TransactionAccountOption[];
   selectedAccount?: TransactionAccountOption;
   suggestions?: MerchantEntrySuggestions;

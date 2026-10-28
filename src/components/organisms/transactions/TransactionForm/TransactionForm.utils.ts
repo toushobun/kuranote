@@ -14,7 +14,10 @@ import {
   hasLinkCandidateCurrencyMismatch,
 } from "utils/transactions";
 
-import type { CategoryPickerGroup } from "./TransactionForm.types";
+import type {
+  TransactionFormItem,
+  CategoryPickerGroup,
+} from "./TransactionForm.types";
 
 export { getCurrencySymbol } from "utils/currency";
 
@@ -141,4 +144,15 @@ export function getCurrencyMismatchedLinkKinds(
     kinds.push("reimbursement");
   }
   return kinds;
+}
+
+export function isValidTransactionFormItem(
+  item: TransactionFormItem,
+  currency?: string,
+) {
+  return (
+    item.categoryId.length > 0 &&
+    isValidMoneyText(item.amount, currency) &&
+    (!item.refundCandidate || Number(item.amount) > 0)
+  );
 }

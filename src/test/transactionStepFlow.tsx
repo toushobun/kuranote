@@ -1,3 +1,6 @@
+import { TransactionStepFlow } from "organisms/transactions/TransactionStepFlow/TransactionStepFlow";
+import type { TransactionStepFlowProps } from "organisms/transactions/TransactionStepFlow/TransactionStepFlow.types";
+import { flowFixture } from "./mocks/transactionStepFlow";
 import { fireEvent, render, screen } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { vi } from "vitest";
@@ -22,4 +25,11 @@ export function clickEntryButton(name: string) {
 }
 export function selectEntryAccount(name = "PayPay JPY") {
   fireEvent.click(screen.getByRole("radio", { name }));
+}
+
+export function renderTransactionFlow(
+  overrides: Partial<TransactionStepFlowProps> = {},
+) {
+  const props = { ...flowFixture, ...createEntryCallbacks(), ...overrides };
+  return { ...renderEntryComponent(<TransactionStepFlow {...props} />), props };
 }

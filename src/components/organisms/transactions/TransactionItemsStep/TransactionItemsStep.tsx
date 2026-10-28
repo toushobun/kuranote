@@ -9,7 +9,7 @@ import Typography from "@mui/material/Typography";
 import { flowMessages as m } from "config/transactionStepFlowMessages";
 import { EmptyState } from "molecules/ui/EmptyState";
 import { TransactionStepItemsCard } from "organisms/transactions/TransactionStepItemsCard/TransactionStepItemsCard";
-import { TransactionItemAmountDrawer } from "organisms/transactions/TransactionItemAmountDrawer/TransactionItemAmountDrawer";
+import { TransactionStepAmountEditor } from "../TransactionStepAmountEditor/TransactionStepAmountEditor";
 import { TransactionItemPickerDrawer } from "organisms/transactions/TransactionItemPickerDrawer/TransactionItemPickerDrawer";
 import { TransactionPaymentFields } from "organisms/transactions/TransactionPaymentFields/TransactionPaymentFields";
 import { TransactionAmountKeypadLauncher } from "organisms/transactions/TransactionAmountKeypadLauncher/TransactionAmountKeypadLauncher";
@@ -150,23 +150,7 @@ export function TransactionItemsStep(props: TransactionItemsStepProps) {
         onRefundItemChange={f.setPickerRefundCandidate}
         onReimbursementItemChange={f.setPickerReimbursementCandidate}
       />
-      <TransactionItemAmountDrawer
-        open={!!w.amountItem}
-        title={
-          w.amountItem?.category
-            ? [w.amountItem.category.parentName, w.amountItem.category.name]
-                .filter(Boolean)
-                .join(" · ")
-            : m.missingCategory
-        }
-        categoryId={w.amountItem?.categoryId}
-        currency={w.currency ?? ""}
-        value={w.amountItem?.amount ?? ""}
-        quickAmounts={props.suggestions?.quickAmounts}
-        onChange={w.updateAmount}
-        onConfirm={w.confirmAmount}
-        onClose={() => w.setAmountItemId(null)}
-      />
+      <TransactionStepAmountEditor {...props} />
     </Stack>
   );
 }

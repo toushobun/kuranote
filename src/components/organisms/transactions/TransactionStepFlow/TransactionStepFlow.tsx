@@ -3,7 +3,7 @@ import { TransactionItemsStep } from "organisms/transactions/TransactionItemsSte
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import DialogContent from "@mui/material/DialogContent";
-import Typography from "@mui/material/Typography";
+import { TransactionConfirmStep } from "../TransactionConfirmStep/TransactionConfirmStep";
 import { WizardDialog } from "molecules/ui/WizardDialog/WizardDialog";
 import { StepProgress } from "molecules/ui/StepProgress/StepProgress";
 import { MerchantStep } from "organisms/transactions/MerchantStep/MerchantStep";
@@ -69,7 +69,7 @@ function TransactionStepFlowSession(props: TransactionStepFlowProps) {
           {w.step === 2 && (
             <AccountStep
               accounts={props.accounts}
-              recommendedAccountIds={props.suggestions?.recommendedAccountIds}
+              recommendedAccountIds={w.suggestions?.recommendedAccountIds}
               selectedAccount={w.account}
               hasDetails={props.hasDetails || !!w.form.itemSummaries.length}
               onSelect={w.selectAccount}
@@ -84,12 +84,29 @@ function TransactionStepFlowSession(props: TransactionStepFlowProps) {
               amountItemId={w.amountItemId}
               onAmountItemChange={w.setAmountItemId}
               accountOptions={props.accounts}
-              suggestions={props.suggestions}
+              suggestions={w.suggestions}
+              merchantHasHistory={w.merchantHasHistory}
               returning={w.returning}
               onConfirm={() => w.advance(3)}
             />
           )}
-          {w.step === 4 && <Typography>{m.confirmPlaceholder}</Typography>}
+          {w.step === 4 && (
+            <TransactionConfirmStep
+              {...w.itemsOptions}
+              form={w.form}
+              automaticItemIds={w.automaticItemIds}
+              amountItemId={w.amountItemId}
+              onAmountItemChange={w.setAmountItemId}
+              accountOptions={props.accounts}
+              suggestions={w.suggestions}
+              onConfirm={() => w.advance(3)}
+              action={w.saveAction}
+              errorMessage={w.saveState.error}
+              successMessage={w.saveState.success}
+              saving={w.saving}
+              goToStep={w.goToStep}
+            />
+          )}
         </DialogContent>
         {w.returning && w.step !== 3 && (
           <Box sx={{ p: 2, pb: "max(16px, env(safe-area-inset-bottom))" }}>
