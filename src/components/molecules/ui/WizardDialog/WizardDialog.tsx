@@ -16,6 +16,7 @@ type WizardDialogProps = {
   closeAlignment?: "start" | "end";
   disabled?: boolean;
   headerContent?: ReactNode;
+  titleAction?: ReactNode;
   onClose: () => void;
   open: boolean;
   title?: string;
@@ -30,6 +31,7 @@ export function WizardDialog({
   closeAlignment = "end",
   disabled = false,
   headerContent,
+  titleAction,
   onClose,
   open,
   title,
@@ -64,7 +66,16 @@ export function WizardDialog({
             : [completeHeaderSx, closeAlignment === "start" && startHeaderSx]
         }
       >
-        <Box sx={title ? titleRowSx : undefined}>
+        <Box
+          sx={
+            title
+              ? [
+                  titleRowSx,
+                  titleAction ? { gridTemplateColumns: "40px 1fr auto" } : {},
+                ]
+              : undefined
+          }
+        >
           <IconButton
             aria-label={closeLabel}
             disabled={disabled}
@@ -77,6 +88,7 @@ export function WizardDialog({
               {title}
             </Typography>
           ) : null}
+          {titleAction}
         </Box>
         {headerContent}
       </Box>

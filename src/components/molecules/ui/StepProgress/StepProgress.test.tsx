@@ -1,5 +1,5 @@
-import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import { StepProgress } from "./StepProgress";
 
@@ -57,5 +57,28 @@ describe("StepProgress", () => {
     ).toBeInTheDocument();
     expect(items[1]).toHaveTextContent(/^2账户$/);
     expect(within(items[5]).queryByTestId("CheckRoundedIcon")).toBeNull();
+  });
+  it("仅可点击指定步骤，返回修改时保留显式完成状态", () => {
+    const onStepClick = vi.fn();
+    render(
+      <StepProgress
+        currentStep={2}
+        label="修改进度"
+        steps={["商家", "账户", "明细", "确认"]}
+        completedSteps={[1, 2, 3]}
+        clickableSteps={[1, 3, 4]}
+        onStepClick={onStepClick}
+      />,
+    );
+    const items = within(screen.getByRole("list")).getAllByRole("listitem");
+    expect(items.map((item) => item.dataset.status)).toEqual([
+      "completed",
+      "current",
+      "completed",
+      "upcoming",
+    ]);
+    fireEvent.click(screen.getByRole("button", { name: "明细" }));
+    expect(onStepClick).toHaveBeenCalledWith(3);
+    expect(screen.getByRole("button", { name: "账户" })).toBeDisabled();
   });
 });

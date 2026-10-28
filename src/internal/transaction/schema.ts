@@ -1,3 +1,8 @@
+import {
+  frequentMerchantLimit,
+  recommendedAccountLimit,
+  merchantRecentTransactionLimit,
+} from "internal/transaction/service/read/recentUsage";
 import { z } from "@hono/zod-openapi";
 import {
   parseTimeZoneOffsetMinutes,
@@ -781,3 +786,10 @@ export type MerchantEntrySuggestions = z.infer<
   typeof merchantEntrySuggestionsSchema
 >;
 export type FrequentMerchant = z.infer<typeof frequentMerchantsSchema>[number];
+
+/** 从商家记账的公共展示契约，与推荐查询共用规则来源。 */
+export const merchantEntryDisplayLimits = {
+  frequentMerchants: frequentMerchantLimit,
+  recommendedAccounts: recommendedAccountLimit,
+  recentTransactions: merchantRecentTransactionLimit,
+} as const;

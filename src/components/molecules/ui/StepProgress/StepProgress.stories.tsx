@@ -35,3 +35,14 @@ export const LastStep: Story = {
   name: "最后一步",
   args: { currentStep: 6 },
 };
+
+export const EditableCompletedSteps: Story = {
+  name: "返回修改时保留其他完成状态",
+  args: {
+    steps: ["商家", "账户", "明细", "确认"],
+    currentStep: 2,
+    completedSteps: [1, 2, 3],
+    clickableSteps: [1, 2, 3, 4],
+    onStepClick: () => {},
+  },
+};
