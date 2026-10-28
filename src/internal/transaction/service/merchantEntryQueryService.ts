@@ -24,10 +24,7 @@ import {
   frequentMerchantLimit,
   merchantRecentTransactionLimit,
 } from "internal/transaction/service/read/recentUsage";
-import {
-  buildMerchantEntrySuggestions,
-  selectFrequentMerchants,
-} from "internal/transaction/util/merchantEntrySuggestions";
+import { buildMerchantEntrySuggestions } from "internal/transaction/util/merchantEntrySuggestions";
 
 export interface MerchantEntryQueryService {
   getFrequentMerchants(input: {
@@ -70,11 +67,9 @@ export function createMerchantEntryQueryService({
       const parsed = transactionLedgerQuerySchema.safeParse(input);
       if (!parsed.success) invalid();
       await authorize(parsed.data.ledgerId);
-      return selectFrequentMerchants(
-        await repository.loadFrequentMerchantCounts(
-          parsed.data.ledgerId,
-          frequentMerchantLimit,
-        ),
+      return repository.loadFrequentMerchantCounts(
+        parsed.data.ledgerId,
+        frequentMerchantLimit,
       );
     },
     async getMerchantSuggestions(input) {

@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MerchantEntryHistoryRecord } from "internal/transaction/entity/merchantEntryHistory";
-import {
-  buildMerchantEntrySuggestions,
-  selectFrequentMerchants,
-} from "./merchantEntrySuggestions";
+import { buildMerchantEntrySuggestions } from "./merchantEntrySuggestions";
 
 function record(
   index: number,
@@ -87,38 +84,41 @@ describe("merchantEntrySuggestions", () => {
       buildMerchantEntrySuggestions(records).recommendedAccountIds,
     ).toEqual(["c", "b", "a"]);
   });
-  it("最近明细作为上次，按金额及币种计数，排除单次金额并去除与上次重复的金额", () => {
-    const values = [
-      "100.00",
-      "200",
-      "100",
-      "300",
-      "200.00",
-      "400",
-      "300",
-      "300",
+  it("同一小分类按币种分别保留上次及常用金额，直接使用 RPC 金额字符串", () => {
+    const samples = [
+      ["JPY", "100.00"],
+      ["CNY", "200.00"],
+      ["JPY", "300.00"],
+      ["CNY", "100.00"],
+      ["JPY", "100.00"],
+      ["CNY", "200.00"],
+      ["JPY", "300.00"],
+      ["CNY", "100.00"],
+      ["JPY", "300.00"],
+      ["JPY", "400.00"],
+      ["JPY", "400.00"],
+      ["JPY", "500.00"],
     ];
-    const records = values.map((amount, i) =>
-      record(i, { items: [{ categoryId: "food", amount }] }),
-    );
-    records.push(
-      record(8, {
-        payments: [{ accountId: "usd", currency: "USD", isArchived: true }],
-        items: [
-          { categoryId: "food", amount: "100" },
-          { categoryId: "food", amount: "100" },
+    const records = samples.map(([currency, amount], i) =>
+      record(i, {
+        payments: [
+          { accountId: currency, currency, isArchived: currency === "CNY" },
         ],
+        items: [{ categoryId: "food", amount }],
       }),
     );
     expect(buildMerchantEntrySuggestions(records).quickAmounts).toEqual([
       {
         categoryId: "food",
-        lastAmount: { amount: "100", currency: "JPY" },
-        frequentAmounts: [
-          { amount: "300", currency: "JPY" },
-          { amount: "200", currency: "JPY" },
-          { amount: "100", currency: "USD" },
-        ],
+        currency: "JPY",
+        lastAmount: "100.00",
+        frequentAmounts: ["300.00", "400.00"],
+      },
+      {
+        categoryId: "food",
+        currency: "CNY",
+        lastAmount: "200.00",
+        frequentAmounts: ["100.00"],
       },
     ]);
   });
@@ -141,27 +141,12 @@ describe("merchantEntrySuggestions", () => {
         }),
       );
     const result = buildMerchantEntrySuggestions(records).quickAmounts;
-    expect(result[0].frequentAmounts.map((a) => a.amount)).toEqual([
-      "6",
-      "5",
-      "4",
-      "3",
-    ]);
+    expect(result[0].frequentAmounts).toEqual(["6", "5", "4", "3"]);
     expect(result[1]).toEqual({
       categoryId: "other",
-      lastAmount: { amount: "1", currency: "JPY" },
+      currency: "JPY",
+      lastAmount: "1",
       frequentAmounts: [],
     });
-  });
-  it("常用商家按记录数排序且最多返回八个，无历史则为空", () => {
-    const counts = Array.from({ length: 10 }, (_, i) => ({
-      merchantId: String(i),
-      recordCount: i,
-    }));
-    expect(selectFrequentMerchants(counts).map((r) => r.recordCount)).toEqual([
-      9, 8, 7, 6, 5, 4, 3, 2,
-    ]);
-    expect(counts[0].recordCount).toBe(0);
-    expect(selectFrequentMerchants([])).toEqual([]);
   });
 });

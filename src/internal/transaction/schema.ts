@@ -759,18 +759,15 @@ export const merchantEntrySuggestionsQuerySchema =
   transactionLedgerQuerySchema.extend({
     merchantId: z.string().uuid(),
   });
-const merchantEntryAmountSchema = z.object({
-  amount: z.string(),
-  currency: z.string(),
-});
 export const merchantEntrySuggestionsSchema = z.object({
   recommendedAccountIds: z.array(z.string().uuid()),
   automaticCategoryIds: z.array(z.string().uuid()),
   quickAmounts: z.array(
     z.object({
       categoryId: z.string().uuid(),
-      lastAmount: merchantEntryAmountSchema,
-      frequentAmounts: z.array(merchantEntryAmountSchema),
+      currency: z.string(),
+      lastAmount: z.string(),
+      frequentAmounts: z.array(z.string()),
     }),
   ),
 });

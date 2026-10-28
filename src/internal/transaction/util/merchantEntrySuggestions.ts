@@ -1,36 +1,19 @@
 import type { MerchantEntryHistoryRecord } from "internal/transaction/entity/merchantEntryHistory";
-import type {
-  FrequentMerchant,
-  MerchantEntrySuggestions,
-} from "internal/transaction/schema";
+import type { MerchantEntrySuggestions } from "internal/transaction/schema";
 import {
   automaticCategoryMinimumRecordCount,
   frequentAmountLimit,
   frequentAmountMinimumOccurrenceCount,
-  frequentMerchantLimit,
   recommendedAccountLimit,
 } from "internal/transaction/service/read/recentUsage";
-import {
-  formatRefundMinorUnits,
-  toRefundMinorUnits,
-} from "internal/transaction/util/refundAllocation";
-
-export function selectFrequentMerchants(
-  counts: FrequentMerchant[],
-): FrequentMerchant[] {
-  return [...counts]
-    .sort((a, b) => b.recordCount - a.recordCount)
-    .slice(0, frequentMerchantLimit);
-}
-
 export function buildMerchantEntrySuggestions(
   records: readonly MerchantEntryHistoryRecord[],
 ): MerchantEntrySuggestions {
   const accountCounts = new Map<string, number>();
   const categoryCounts = new Map<string, number>();
-  const amountsByCategory = new Map<
+  const amountGroups = new Map<
     string,
-    Map<string, { amount: string; currency: string; count: number }>
+    { categoryId: string; currency: string; counts: Map<string, number> }
   >();
   for (const record of records) {
     for (const id of new Set(
@@ -45,14 +28,14 @@ export function buildMerchantEntrySuggestions(
     const currency = record.payments[0]?.currency;
     if (!currency) continue;
     for (const item of record.items) {
-      const units = toRefundMinorUnits(item.amount);
-      if (units === null) continue;
-      const amount = formatRefundMinorUnits(units);
-      const amounts = amountsByCategory.get(item.categoryId) ?? new Map();
-      const key = `${currency}:${amount}`;
-      const existing = amounts.get(key);
-      amounts.set(key, { amount, currency, count: (existing?.count ?? 0) + 1 });
-      amountsByCategory.set(item.categoryId, amounts);
+      const key = `${item.categoryId}:${currency}`;
+      const group = amountGroups.get(key) ?? {
+        categoryId: item.categoryId,
+        currency,
+        counts: new Map<string, number>(),
+      };
+      group.counts.set(item.amount, (group.counts.get(item.amount) ?? 0) + 1);
+      amountGroups.set(key, group);
     }
   }
   return {
@@ -64,21 +47,24 @@ export function buildMerchantEntrySuggestions(
       .filter(([, count]) => count >= automaticCategoryMinimumRecordCount)
       .sort((a, b) => b[1] - a[1])
       .map(([id]) => id),
-    quickAmounts: [...amountsByCategory].map(([categoryId, amounts]) => {
-      const [last] = amounts.values();
-      return {
-        categoryId,
-        lastAmount: { amount: last.amount, currency: last.currency },
-        frequentAmounts: [...amounts.values()]
-          .filter(
-            (value) =>
-              value.count >= frequentAmountMinimumOccurrenceCount &&
-              value !== last,
-          )
-          .sort((a, b) => b.count - a.count)
-          .slice(0, frequentAmountLimit)
-          .map(({ amount, currency }) => ({ amount, currency })),
-      };
-    }),
+    quickAmounts: [...amountGroups.values()].map(
+      ({ categoryId, currency, counts }) => {
+        const [lastAmount] = counts.keys();
+        return {
+          categoryId,
+          currency,
+          lastAmount,
+          frequentAmounts: [...counts]
+            .filter(
+              ([amount, count]) =>
+                count >= frequentAmountMinimumOccurrenceCount &&
+                amount !== lastAmount,
+            )
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, frequentAmountLimit)
+            .map(([amount]) => amount),
+        };
+      },
+    ),
   };
 }
