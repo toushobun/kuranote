@@ -1,0 +1,3 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";import{a as t,i as n}from"./transactionStepFlowMessages-B6ZUkmPU.js";import{n as r,t as i}from"./EntryMethodDrawer-D3W9g4_u.js";var a,o,s;e((()=>{r(),t(),a={title:`Organisms/Transactions/EntryMethodDrawer`,component:i,args:{open:!0,onClose:n.onClose,onMethodChange:n.onMethodChange}},o={name:`切换方式（当前、过渡与即将推出）`},o.parameters={...o.parameters,docs:{...o.parameters?.docs,source:{originalSource:`{
+  name: "切换方式（当前、过渡与即将推出）"
+}`,...o.parameters?.docs?.source}}},s=[`Default`]}))();export{o as Default,s as __namedExportsOrder,a as default};
