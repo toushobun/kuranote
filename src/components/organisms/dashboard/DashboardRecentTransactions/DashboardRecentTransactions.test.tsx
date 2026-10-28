@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { createDashboardRecentTransaction } from "@/test/mocks/dashboard";
-import { dashboardRecentTransactionCount } from "@/constants/dashboard";
+import { dashboardRecentTransactionCount } from "@/constants/recentUsage";
 
 import { DashboardRecentTransactions } from "./DashboardRecentTransactions";
 

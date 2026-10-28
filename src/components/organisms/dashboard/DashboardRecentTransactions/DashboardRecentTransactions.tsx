@@ -7,7 +7,7 @@ import Typography from "@mui/material/Typography";
 import Link from "next/link";
 
 import { routePaths, transactionEditHref } from "config/paths";
-import { dashboardRecentTransactionCount } from "@/constants/dashboard";
+import { dashboardRecentTransactionCount } from "@/constants/recentUsage";
 import { TransactionRowLink } from "molecules/transactions/TransactionRowLink";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { designTokens } from "theme/theme";

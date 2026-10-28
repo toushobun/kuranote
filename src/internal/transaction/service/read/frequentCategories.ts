@@ -1,12 +1,13 @@
+import {
+  minimumHistoryItemCount,
+  frequentCategoryLimit,
+} from "internal/transaction/service/read/recentUsage";
 import { RepositoryError } from "internal/shared/errors/appError";
 import type {
   FrequentCategoryCount,
   TransactionFormRepository,
 } from "internal/transaction/repository/transactionRepository";
 import { getMonthBounds, normalizeMonth } from "utils/transactions";
-
-const minimumHistoryItemCount = 20;
-const frequentCategoryLimit = 5;
 
 type LoadFrequentCategoryHistoryInput = {
   currentMonth?: string;
