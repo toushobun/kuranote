@@ -1,7 +1,7 @@
 import {
   minimumHistoryItemCount,
   frequentCategoryLimit,
-} from "internal/transaction/constants/recentUsage";
+} from "internal/transaction/service/read/recentUsage";
 import { RepositoryError } from "internal/shared/errors/appError";
 import type {
   FrequentCategoryCount,

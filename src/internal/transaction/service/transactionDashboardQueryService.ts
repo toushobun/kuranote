@@ -1,4 +1,4 @@
-import { dashboardRecentAccountHistoryLimit } from "internal/transaction/constants/recentUsage";
+import { dashboardRecentAccountHistoryLimit } from "internal/transaction/service/read/recentUsage";
 import type { CurrentLedger } from "internal/ledger";
 import type { AccountQueryService } from "internal/account";
 import type { CategoryQueryService } from "internal/category";
