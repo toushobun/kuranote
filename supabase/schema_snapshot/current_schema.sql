@@ -4579,6 +4579,63 @@ $$;
 ALTER FUNCTION "public"."load_frequent_transaction_category_counts"("p_ledger_id" "uuid", "p_date_start" timestamp with time zone, "p_date_end" timestamp with time zone, "p_minimum_item_count" integer) OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."load_frequent_transaction_merchants"("p_ledger_id" "uuid", "p_limit" integer) RETURNS TABLE("merchant_id" "uuid", "record_count" bigint)
+    LANGUAGE "sql" STABLE
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+    select r.merchant_id, count(*) as record_count
+    from public.transaction_record r
+    join public.merchant m on m.id = r.merchant_id and m.ledger_id = r.ledger_id
+    where r.ledger_id = p_ledger_id and r.status = 'active'
+      and not m.is_archived and public.current_user_is_active_ledger_member(p_ledger_id)
+    group by r.merchant_id
+    order by record_count desc, r.merchant_id
+    limit greatest(p_limit, 0);
+$$;
+
+
+ALTER FUNCTION "public"."load_frequent_transaction_merchants"("p_ledger_id" "uuid", "p_limit" integer) OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."load_merchant_entry_history"("p_ledger_id" "uuid", "p_merchant_id" "uuid", "p_limit" integer) RETURNS "jsonb"
+    LANGUAGE "sql" STABLE
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+    select coalesce(jsonb_agg(jsonb_build_object(
+        'id', r.id,
+        'payments', (
+            select coalesce(jsonb_agg(jsonb_build_object(
+                'accountId', p.account_id, 'currency', a.currency, 'isArchived', a.is_archived
+            ) order by p.sort_order, p.id), '[]'::jsonb)
+            from public.transaction_payment p
+            join public.account a on a.id = p.account_id and a.ledger_id = p.ledger_id
+            where p.ledger_id = p_ledger_id and p.transaction_record_id = r.id
+        ),
+        'items', (
+            select coalesce(jsonb_agg(jsonb_build_object(
+                'categoryId', i.category_id, 'amount', i.amount::text
+            ) order by i.sort_order, i.id), '[]'::jsonb)
+            from public.transaction_item i
+            join public.category c on c.id = i.category_id and c.ledger_id = i.ledger_id
+            where i.ledger_id = p_ledger_id and i.transaction_record_id = r.id
+              and c.parent_id is not null and not c.is_archived
+        )
+    ) order by r.transaction_at desc, r.created_at desc, r.id desc), '[]'::jsonb)
+    from (
+        select id, transaction_at, created_at
+        from public.transaction_record
+        where ledger_id = p_ledger_id and merchant_id = p_merchant_id
+          and status = 'active'
+          and public.current_user_is_active_ledger_member(p_ledger_id)
+        order by transaction_at desc, created_at desc, id desc
+        limit greatest(p_limit, 0)
+    ) r;
+$$;
+
+
+ALTER FUNCTION "public"."load_merchant_entry_history"("p_ledger_id" "uuid", "p_merchant_id" "uuid", "p_limit" integer) OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."load_transaction_group_summaries_with_special_status"("p_ledger_id" "uuid", "p_group_by" "text", "p_date_start" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_date_end" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_record_type" "text" DEFAULT 'all'::"text", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_account_id" "uuid" DEFAULT NULL::"uuid", "p_parent_category_id" "uuid" DEFAULT NULL::"uuid", "p_category_id" "uuid" DEFAULT NULL::"uuid", "p_member_id" "uuid" DEFAULT NULL::"uuid", "p_special_statuses" "text"[] DEFAULT NULL::"text"[], "p_offset" integer DEFAULT 0, "p_limit" integer DEFAULT 20, "p_holder_id" "text" DEFAULT NULL::"text") RETURNS TABLE("group_id" "text", "group_key" "text", "group_label" "text", "income" numeric, "expense" numeric, "balance" numeric, "transaction_count" integer, "latest_transaction_at" timestamp with time zone, "shared_payment_record_count" integer, "shared_payment_record_total_amount" numeric)
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -10511,6 +10568,10 @@ CREATE INDEX "transaction_record_ledger_transaction_at_idx" ON "public"."transac
 
 
 
+CREATE INDEX "transaction_record_merchant_entry_idx" ON "public"."transaction_record" USING "btree" ("ledger_id", "merchant_id", "transaction_at" DESC, "created_at" DESC, "id" DESC) WHERE ("status" = 'active'::"text");
+
+
+
 CREATE INDEX "transaction_record_merchant_id_idx" ON "public"."transaction_record" USING "btree" ("merchant_id") WHERE ("merchant_id" IS NOT NULL);
 
 
@@ -11778,6 +11839,16 @@ GRANT ALL ON FUNCTION "public"."list_pending_ledger_invites"("p_ledger_id" "uuid
 
 REVOKE ALL ON FUNCTION "public"."load_frequent_transaction_category_counts"("p_ledger_id" "uuid", "p_date_start" timestamp with time zone, "p_date_end" timestamp with time zone, "p_minimum_item_count" integer) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."load_frequent_transaction_category_counts"("p_ledger_id" "uuid", "p_date_start" timestamp with time zone, "p_date_end" timestamp with time zone, "p_minimum_item_count" integer) TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."load_frequent_transaction_merchants"("p_ledger_id" "uuid", "p_limit" integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."load_frequent_transaction_merchants"("p_ledger_id" "uuid", "p_limit" integer) TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."load_merchant_entry_history"("p_ledger_id" "uuid", "p_merchant_id" "uuid", "p_limit" integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."load_merchant_entry_history"("p_ledger_id" "uuid", "p_merchant_id" "uuid", "p_limit" integer) TO "authenticated";
 
 
 

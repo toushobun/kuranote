@@ -754,3 +754,30 @@ export const createBalanceAdjustmentSchema = z.object({
 export type CreateBalanceAdjustmentInput = z.infer<
   typeof createBalanceAdjustmentSchema
 >;
+
+export const merchantEntrySuggestionsQuerySchema =
+  transactionLedgerQuerySchema.extend({
+    merchantId: z.string().uuid(),
+  });
+export const merchantEntrySuggestionsSchema = z.object({
+  recommendedAccountIds: z.array(z.string().uuid()),
+  automaticCategoryIds: z.array(z.string().uuid()),
+  quickAmounts: z.array(
+    z.object({
+      categoryId: z.string().uuid(),
+      currency: z.string(),
+      lastAmount: z.string(),
+      frequentAmounts: z.array(z.string()),
+    }),
+  ),
+});
+export const frequentMerchantsSchema = z.array(
+  z.object({
+    merchantId: z.string().uuid(),
+    recordCount: z.number().int().nonnegative(),
+  }),
+);
+export type MerchantEntrySuggestions = z.infer<
+  typeof merchantEntrySuggestionsSchema
+>;
+export type FrequentMerchant = z.infer<typeof frequentMerchantsSchema>[number];

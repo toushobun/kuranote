@@ -176,6 +176,11 @@ const routeSpecs: RouteSpec[] = [
   {
     basePath: "/transactions",
     expectedRoutes: {
+      frequentMerchantsRoute: { method: "get", path: "/frequent-merchants" },
+      merchantEntrySuggestionsRoute: {
+        method: "get",
+        path: "/merchant-entry-suggestions",
+      },
       convertTransactionRoute: {
         method: "post",
         path: "/{transactionRecordId}/conversion",

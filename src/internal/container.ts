@@ -1,3 +1,5 @@
+import { createMerchantEntryQueryService } from "internal/transaction/service/merchantEntryQueryService";
+import { createMerchantEntryRepository } from "internal/transaction/repository/merchantEntryRepository";
 import { createMerchantPresetRepository } from "internal/merchant/repository/merchantPresetRepository";
 import { createMerchantPresetService } from "internal/merchant/service/merchantPresetService";
 import { createAccountExportQueryService } from "internal/account/service/accountExportQueryService";
@@ -110,6 +112,9 @@ export type RequestContainer = {
     readonly service: ReturnType<typeof createStatisticsService>;
   };
   readonly transaction: {
+    readonly merchantEntryQueryService: ReturnType<
+      typeof createMerchantEntryQueryService
+    >;
     readonly service: ReturnType<typeof createTransactionService>;
     readonly linkedTransactionEditService: ReturnType<
       typeof createLinkedTransactionEditService
@@ -512,6 +517,15 @@ export function createRequestContainer(
         });
 
         transactionContainer = {
+          merchantEntryQueryService: createMerchantEntryQueryService({
+            currentUserId,
+            ledgerAccessService,
+            merchantQueryService: getMerchantQueryService(),
+            repository: createMerchantEntryRepository(
+              dependencies.supabase,
+              dependencies.logger,
+            ),
+          }),
           linkedTransactionEditService: createLinkedTransactionEditService({
             linkedTransactionItemService,
             transactionService,

@@ -7,6 +7,9 @@ import type { AppEnv } from "internal/appEnv";
 import type { RequestContainer } from "internal/container";
 import type { RequestDependencies } from "internal/shared/context/requestDependencies";
 import {
+  AuthenticationError,
+  NotFoundError,
+  RepositoryError,
   AuthorizationError,
   ValidationError,
 } from "internal/shared/errors/appError";
@@ -47,7 +50,21 @@ function createApp(
     isAuthenticated: true,
     userId,
   },
+  suggestionOverrides: Partial<
+    RequestContainer["transaction"]["merchantEntryQueryService"]
+  > = {},
 ) {
+  const merchantEntryQueryService = {
+    getFrequentMerchants: vi
+      .fn()
+      .mockResolvedValue([{ merchantId, recordCount: 3 }]),
+    getMerchantSuggestions: vi.fn().mockResolvedValue({
+      recommendedAccountIds: [],
+      automaticCategoryIds: [],
+      quickAmounts: [],
+    }),
+    ...suggestionOverrides,
+  };
   const service = {
     createNormal: vi.fn(),
     ...overrides,
@@ -63,7 +80,11 @@ function createApp(
   app.use("*", async (c, next) => {
     c.set("container", {
       ledger: { currentLedgerService: { getAccessibleLedger } },
-      transaction: { linkedTransactionEditService, service },
+      transaction: {
+        linkedTransactionEditService,
+        service,
+        merchantEntryQueryService,
+      },
     } as unknown as RequestContainer);
     c.set("requestDependencies", {
       auth,
@@ -76,7 +97,13 @@ function createApp(
   });
   app.onError(errorHandlingMiddleware);
   app.route("/transactions", transactionRouter);
-  return { app, getAccessibleLedger, linkedTransactionEditService, service };
+  return {
+    app,
+    getAccessibleLedger,
+    linkedTransactionEditService,
+    service,
+    merchantEntryQueryService,
+  };
 }
 
 const body = {
@@ -286,4 +313,107 @@ describe("transactionRouter", () => {
     expect(response.status).toBe(403);
     expect(service.createNormal).not.toHaveBeenCalled();
   });
+});
+
+describe("商家记账只读接口", () => {
+  const query = `ledgerId=${ledgerId}&merchantId=${merchantId}`;
+  it("GET 无需 Origin，两个入口返回 200 和查询结果", async () => {
+    const { app, merchantEntryQueryService } = createApp();
+    const merchants = await app.request(
+      `/transactions/frequent-merchants?ledgerId=${ledgerId}`,
+    );
+    expect(merchants.status).toBe(200);
+    expect(await merchants.json()).toEqual([{ merchantId, recordCount: 3 }]);
+    const suggestions = await app.request(
+      `/transactions/merchant-entry-suggestions?${query}`,
+    );
+    expect(suggestions.status).toBe(200);
+    expect(await suggestions.json()).toEqual({
+      recommendedAccountIds: [],
+      automaticCategoryIds: [],
+      quickAmounts: [],
+    });
+    expect(
+      merchantEntryQueryService.getMerchantSuggestions,
+    ).toHaveBeenCalledWith({ ledgerId, merchantId });
+    expect(merchantEntryQueryService.getFrequentMerchants).toHaveBeenCalledWith(
+      { ledgerId },
+    );
+  });
+  it.each(["frequent-merchants", "merchant-entry-suggestions"])(
+    "%s 未登录返回安全 401",
+    async (path) => {
+      const { app, merchantEntryQueryService } = createApp(
+        {},
+        { isAuthenticated: false, userId: null, email: null },
+      );
+      const response = await app.request(`/transactions/${path}?${query}`);
+      expect(response.status).toBe(401);
+      expect(await response.json()).toEqual({
+        error: {
+          code: "auth_required",
+          message: "请先登录。",
+          status: 401,
+          requestId: "request-1",
+        },
+      });
+      expect(
+        merchantEntryQueryService.getFrequentMerchants,
+      ).not.toHaveBeenCalled();
+      expect(
+        merchantEntryQueryService.getMerchantSuggestions,
+      ).not.toHaveBeenCalled();
+    },
+  );
+  it.each([
+    "frequent-merchants?ledgerId=bad",
+    `merchant-entry-suggestions?ledgerId=${ledgerId}&merchantId=bad`,
+    `merchant-entry-suggestions?ledgerId=${ledgerId}`,
+  ])("%s 非法参数返回安全 400", async (path) => {
+    const { app } = createApp();
+    const response = await app.request(`/transactions/${path}`);
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: {
+        code: "validation_error",
+        message: "请求参数无效。",
+        status: 400,
+        requestId: "request-1",
+      },
+    });
+  });
+  it.each([
+    [new AuthenticationError("auth_required", "请先登录。"), 401],
+    [new ValidationError("validation_failed", "商家记账查询参数不正确。"), 400],
+    [new NotFoundError("ledger_invalid", "账本不可访问。"), 404],
+    [new NotFoundError("merchant_invalid", "商家指定不正确。"), 404],
+    [
+      new RepositoryError(
+        "transaction_merchant_suggestions_load_failed",
+        "商家记账建议加载失败，请稍后重试。",
+      ),
+      500,
+    ],
+  ] as const)(
+    "查询失败映射 %s 为正确状态且不泄露内部异常",
+    async (error, status) => {
+      const fail = vi.fn().mockRejectedValue(error);
+      const { app } = createApp({}, undefined, {
+        getFrequentMerchants: fail,
+        getMerchantSuggestions: fail,
+      });
+      for (const path of ["frequent-merchants", "merchant-entry-suggestions"]) {
+        const response = await app.request(`/transactions/${path}?${query}`);
+        expect(response.status).toBe(status);
+        expect(await response.json()).toEqual({
+          error: {
+            code: error.code,
+            message: error.message,
+            status,
+            requestId: "request-1",
+          },
+        });
+      }
+    },
+  );
 });
