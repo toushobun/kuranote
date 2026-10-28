@@ -1,3 +1,4 @@
+import { dashboardRecentAccountHistoryLimit } from "internal/transaction/constants/recentUsage";
 import type { CurrentLedger } from "internal/ledger";
 import type { AccountQueryService } from "internal/account";
 import type { CategoryQueryService } from "internal/category";
@@ -21,7 +22,7 @@ import {
   addSignedAmount,
   calculateRecordNetAmount,
 } from "utils/transactionRecordAmounts";
-import { dashboardRecentTransactionCount } from "@/constants/dashboard";
+import { dashboardRecentTransactionCount } from "@/constants/recentUsage";
 import type {
   TransactionAmountSummary,
   TransactionListItem,
@@ -116,7 +117,7 @@ export function createTransactionDashboardQueryService({
       const recentlyUsedAccountIds =
         await transactionRepository.loadDashboardRecentlyUsedAccountIds({
           ledgerId: ledger.id,
-          limit: 100,
+          limit: dashboardRecentAccountHistoryLimit,
         });
 
       return {

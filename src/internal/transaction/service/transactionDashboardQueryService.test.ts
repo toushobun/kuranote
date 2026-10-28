@@ -2,7 +2,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 
-import { dashboardRecentTransactionCount } from "@/constants/dashboard";
+import { dashboardRecentTransactionCount } from "@/constants/recentUsage";
 import { NotFoundError } from "internal/shared/errors/appError";
 import { createTransactionDashboardQueryService } from "internal/transaction/service/transactionDashboardQueryService";
 
