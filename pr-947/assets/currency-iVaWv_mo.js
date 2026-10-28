@@ -1,0 +1,1 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";function t(e){let t=e?.trim().toUpperCase();return t?n[t]??t:`¥`}var n,r=e((()=>{n={CNY:`¥`,EUR:`€`,GBP:`£`,HKD:`HK$`,JPY:`¥`,KRW:`₩`,SGD:`S$`,THB:`฿`,TWD:`NT$`,USD:`$`}}));export{r as n,t};
