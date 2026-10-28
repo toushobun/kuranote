@@ -315,3 +315,8 @@ export const balanceAdjustmentErrorMessages = {
     transactionValidationErrorMessages[transactionErrorCodes.noteTooLong],
   updateFailed: "余额调整更新失败，请稍后重试。",
 } as const;
+
+export const merchantEntryErrorMessages = {
+  invalid: "商家记账查询参数不正确。",
+  loadFailed: "商家记账建议加载失败，请稍后重试。",
+} as const;

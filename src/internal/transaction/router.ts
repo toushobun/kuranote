@@ -4,8 +4,13 @@ import type { AppEnv } from "internal/appEnv";
 import {
   createOpenApiErrorResponses,
   protectedMutationErrorStatuses,
+  protectedReadErrorStatuses,
 } from "internal/shared/http/openApiErrorResponses";
 import { sameOriginMiddleware } from "internal/shared/middleware/sameOriginMiddleware";
+import {
+  frequentMerchantsHandler,
+  merchantEntrySuggestionsHandler,
+} from "internal/transaction/controller/merchantEntryController";
 import {
   convertTransactionHandler,
   createTransactionHandler,
@@ -13,6 +18,9 @@ import {
   voidTransactionHandler,
 } from "internal/transaction/controller/transactionController";
 import {
+  merchantEntrySuggestionsQuerySchema,
+  merchantEntrySuggestionsSchema,
+  frequentMerchantsSchema,
   convertTransactionRequestSchema,
   createTransactionRequestSchema,
   errorResponseSchema,
@@ -102,6 +110,37 @@ export const voidTransactionRoute = createRoute({
   },
 });
 
+const readErrorResponses = createOpenApiErrorResponses(
+  errorResponseSchema,
+  protectedReadErrorStatuses,
+);
+export const frequentMerchantsRoute = createRoute({
+  method: "get",
+  path: "/frequent-merchants",
+  request: { query: transactionLedgerQuerySchema },
+  responses: {
+    200: {
+      content: { "application/json": { schema: frequentMerchantsSchema } },
+      description: "常用商家",
+    },
+    ...readErrorResponses,
+  },
+});
+export const merchantEntrySuggestionsRoute = createRoute({
+  method: "get",
+  path: "/merchant-entry-suggestions",
+  request: { query: merchantEntrySuggestionsQuerySchema },
+  responses: {
+    200: {
+      content: {
+        "application/json": { schema: merchantEntrySuggestionsSchema },
+      },
+      description: "商家记账建议",
+    },
+    ...readErrorResponses,
+  },
+});
+
 export const transactionRouter = new OpenAPIHono<AppEnv>();
 
 transactionRouter.use("*", sameOriginMiddleware);
@@ -109,3 +148,9 @@ transactionRouter.openapi(createTransactionRoute, createTransactionHandler);
 transactionRouter.openapi(updateTransactionRoute, updateTransactionHandler);
 transactionRouter.openapi(convertTransactionRoute, convertTransactionHandler);
 transactionRouter.openapi(voidTransactionRoute, voidTransactionHandler);
+
+transactionRouter.openapi(frequentMerchantsRoute, frequentMerchantsHandler);
+transactionRouter.openapi(
+  merchantEntrySuggestionsRoute,
+  merchantEntrySuggestionsHandler,
+);

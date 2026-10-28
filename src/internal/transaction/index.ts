@@ -73,3 +73,5 @@ export type { TransactionExportQueryService } from "internal/transaction/service
 
 export { validateTransactionPayments } from "internal/transaction/util/validateTransactionPayments";
 export { transactionPaymentValidationErrorMessages } from "internal/transaction/errors";
+
+export type { MerchantEntryQueryService } from "internal/transaction/service/merchantEntryQueryService";
