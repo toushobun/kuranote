@@ -1,3 +1,4 @@
+import type { AccountHolder } from "types/accounts";
 import type { CategoryType } from "internal/category";
 import type {
   TransactionActionErrorCode,
@@ -104,6 +105,8 @@ export type TransactionAccountOption = {
   id: string;
   name: string;
   currency: string;
+  /** 可直接使用已有账户的持有人摘要；旧表单调用可不传。 */
+  holders?: Pick<AccountHolder, "display_name">[];
 };
 
 export type TransactionCategoryOption = {

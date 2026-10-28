@@ -1,4 +1,4 @@
-import { merchantEntryDisplayLimits } from "internal/transaction";
+import { merchantRecentTransactionLimit } from "@/constants/recentUsage";
 
 export const flowMessages = {
   title: "从商家记账",
@@ -30,8 +30,9 @@ export const flowMessages = {
   presets: "从预设添加",
   addMerchant: "新增商家",
   accounts: "收支账户",
+  holder: (names: string[]) => `持有人：${names.join("、") || "未指定"}`,
   recommended: "推荐账户",
-  recommendationHint: `按这家商家最近 ${merchantEntryDisplayLimits.recentTransactions} 笔记录`,
+  recommendationHint: `按这家商家最近 ${merchantRecentTransactionLimit} 笔记录`,
   otherAccounts: "其他账户",
   allAccounts: "全部账户",
   noHistory: "这家商家还没有记录，按账户顺序显示",

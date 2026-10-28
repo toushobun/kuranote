@@ -20,10 +20,16 @@ type StepProgressProps = {
   onStepClick?: (step: number) => void;
 };
 
-function getStepStatus(step: number, currentStep: number): StepProgressStatus {
-  if (step < currentStep) return "completed";
+function getStepStatus(
+  step: number,
+  currentStep: number,
+  completedSteps?: readonly number[],
+): StepProgressStatus {
   if (step === currentStep) return "current";
-  return "upcoming";
+  const completed = completedSteps
+    ? completedSteps.includes(step)
+    : step < currentStep;
+  return completed ? "completed" : "upcoming";
 }
 
 /**
@@ -42,14 +48,23 @@ export function StepProgress({
     <Box aria-label={label} component="ol" sx={listSx}>
       {steps.map((stepLabel, index) => {
         const step = index + 1;
-        const status = completedSteps
-          ? step === currentStep
-            ? "current"
-            : completedSteps.includes(step)
-              ? "completed"
-              : "upcoming"
-          : getStepStatus(step, currentStep);
+        const status = getStepStatus(step, currentStep, completedSteps);
         const isLast = step === steps.length;
+        const content = (
+          <>
+            <Box aria-hidden="true" component="span" sx={dotSx(status)}>
+              {status === "completed" ? <CheckRoundedIcon /> : step}
+            </Box>
+            <Typography component="span" sx={labelSx(status)}>
+              {stepLabel}
+              {status === "current" ? null : (
+                <Box component="span" sx={visuallyHiddenSx}>
+                  （{stepProgressText[status]}）
+                </Box>
+              )}
+            </Typography>
+          </>
+        );
 
         return (
           <Box
@@ -66,30 +81,23 @@ export function StepProgress({
                 sx={connectorSx(status === "completed")}
               />
             )}
-            <ButtonBase
-              disabled={!onStepClick || !clickableSteps.includes(step)}
-              onClick={() => onStepClick?.(step)}
-              aria-label={stepLabel}
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 0.6,
-                width: "100%",
-                minHeight: 44,
-              }}
-            >
-              <Box aria-hidden="true" component="span" sx={dotSx(status)}>
-                {status === "completed" ? <CheckRoundedIcon /> : step}
-              </Box>
-              <Typography component="span" sx={labelSx(status)}>
-                {stepLabel}
-                {status === "current" ? null : (
-                  <Box component="span" sx={visuallyHiddenSx}>
-                    （{stepProgressText[status]}）
-                  </Box>
-                )}
-              </Typography>
-            </ButtonBase>
+            {onStepClick && clickableSteps.includes(step) ? (
+              <ButtonBase
+                onClick={() => onStepClick(step)}
+                aria-label={stepLabel}
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 0.6,
+                  width: "100%",
+                  minHeight: 44,
+                }}
+              >
+                {content}
+              </ButtonBase>
+            ) : (
+              content
+            )}
           </Box>
         );
       })}

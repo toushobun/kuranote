@@ -79,6 +79,14 @@ describe("StepProgress", () => {
     ]);
     fireEvent.click(screen.getByRole("button", { name: "明细" }));
     expect(onStepClick).toHaveBeenCalledWith(3);
-    expect(screen.getByRole("button", { name: "账户" })).toBeDisabled();
+    expect(
+      screen.queryByRole("button", { name: "账户" }),
+    ).not.toBeInTheDocument();
+  });
+  it("不传步骤点击回调时保持非按钮结构", () => {
+    const items = renderProgress(2);
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(items[1].children).toHaveLength(3);
+    expect(items[1].lastElementChild?.tagName).toBe("SPAN");
   });
 });

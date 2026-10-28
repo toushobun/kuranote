@@ -3,12 +3,9 @@ import type {
   MerchantEntrySuggestions,
 } from "internal/transaction";
 import type { MerchantTag } from "types/merchants";
-import type {
-  TransactionAccountOption,
-  TransactionMerchantOption,
-} from "types/transactions";
-export type FlowMerchant = TransactionMerchantOption & { tags: MerchantTag[] };
-export type EntryMethod = "merchant" | "transfer" | "standard";
+import type { TransactionAccountOption } from "types/transactions";
+import type { FlowMerchant } from "organisms/transactions/MerchantStep/MerchantStep.types";
+import type { EntryMethod } from "organisms/transactions/EntryMethodDrawer/EntryMethodDrawer";
 export type TransactionStepFlowProps = {
   open: boolean;
   merchants: FlowMerchant[];
