@@ -49,6 +49,9 @@ type TransactionItemPickerDrawerProps = {
   editingItemId?: number | null;
   filteredCategoryOptions: TransactionCategoryOption[];
   frequentCategoryIds: string[];
+  showFrequentCategories?: boolean;
+  showAmountInput?: boolean;
+  inWizard?: boolean;
   // 退款 / 报销关联提示；抽屉打开时表单顶部的提示会被遮罩挡住，因此在抽屉内同步显示。
   linkNotice?: string | null;
   onAmountChange: (amount: string) => void;
@@ -105,6 +108,9 @@ export function TransactionItemPickerDrawer({
   editingItemId = null,
   filteredCategoryOptions,
   frequentCategoryIds,
+  showFrequentCategories = true,
+  showAmountInput = true,
+  inWizard = false,
   linkNotice = null,
   onAmountChange,
   onCategoryToggle,
@@ -142,14 +148,17 @@ export function TransactionItemPickerDrawer({
   )?.type;
   const [searchText, setSearchText] = useState("");
   const [isCategoryListExpanded, setIsCategoryListExpanded] = useState(
-    editingItemId !== null,
+    !showFrequentCategories || editingItemId !== null,
   );
   // Drawer 的内容不会在 open 切换时卸载重挂，所以用渲染期间对比上一次 open 的方式
   // 在每次真正打开时重新决定展开态，而不是用 useEffect 里 setState（会触发级联渲染）。
   const [previousOpen, setPreviousOpen] = useState(open);
   if (open !== previousOpen) {
     setPreviousOpen(open);
-    if (open) setIsCategoryListExpanded(editingItemId !== null);
+    if (open)
+      setIsCategoryListExpanded(
+        !showFrequentCategories || editingItemId !== null,
+      );
   }
   const amountCurrencySymbol = getCurrencySymbol(selectedAccountCurrency);
   const displayedGroups = useMemo(() => {
@@ -222,7 +231,10 @@ export function TransactionItemPickerDrawer({
       anchor="bottom"
       onClose={closeDrawer}
       open={open}
-      sx={itemPickerDrawerSx}
+      sx={[
+        itemPickerDrawerSx,
+        inWizard ? { zIndex: (theme) => theme.zIndex.modal } : {},
+      ]}
       slotProps={{ paper: { sx: itemPickerDrawerPaperSx } }}
     >
       <Box sx={drawerHandleSx}>
@@ -239,31 +251,33 @@ export function TransactionItemPickerDrawer({
       </Stack>
 
       <Box sx={drawerBodySx}>
-        <TextField
-          error={!!pickerErrors.amount}
-          fullWidth
-          helperText={pickerErrors.amount}
-          onChange={(event) => onAmountChange(event.target.value)}
-          placeholder="0.00"
-          slotProps={{
-            htmlInput: {
-              "aria-label": "金额",
-              "data-amount-currency": selectedAccountCurrency ?? "",
-              "data-amount-input": "true",
-              inputMode: "decimal" as const,
-            },
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  {amountCurrencySymbol}
-                </InputAdornment>
-              ),
-            },
-          }}
-          sx={amountFieldSx}
-          type="text"
-          value={pickerAmount}
-        />
+        {showAmountInput && (
+          <TextField
+            error={!!pickerErrors.amount}
+            fullWidth
+            helperText={pickerErrors.amount}
+            onChange={(event) => onAmountChange(event.target.value)}
+            placeholder="0.00"
+            slotProps={{
+              htmlInput: {
+                "aria-label": "金额",
+                "data-amount-currency": selectedAccountCurrency ?? "",
+                "data-amount-input": "true",
+                inputMode: "decimal" as const,
+              },
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    {amountCurrencySymbol}
+                  </InputAdornment>
+                ),
+              },
+            }}
+            sx={amountFieldSx}
+            type="text"
+            value={pickerAmount}
+          />
+        )}
 
         <TextField
           fullWidth
@@ -303,38 +317,43 @@ export function TransactionItemPickerDrawer({
           <Typography color="textSecondary">请先新增分类。</Typography>
         ) : (
           <>
-            <SectionLabel>常用快捷</SectionLabel>
-            <Stack direction="row" sx={quickCategoryListSx}>
-              {quickCategories.map(({ category, group }) => (
-                <Chip
-                  disabled={isCategoryDisabled(category)}
-                  key={category.id}
-                  label={`${group.name} · ${category.name}`}
-                  onClick={() => selectCategory(group.id, category.id)}
-                  size="small"
-                  sx={quickCategoryChipSx}
-                  variant="outlined"
-                />
-              ))}
-            </Stack>
-
-            <Button
-              aria-expanded={isCategoryListExpanded}
-              endIcon={
-                isCategoryListExpanded ? (
-                  <KeyboardArrowUpRoundedIcon />
-                ) : (
-                  <KeyboardArrowRightRoundedIcon />
-                )
-              }
-              fullWidth
-              onClick={() => setIsCategoryListExpanded((current) => !current)}
-              type="button"
-              sx={categoryListToggleSx}
-            >
-              {isCategoryListExpanded ? "收起分类列表" : "选择更多分类"}
-            </Button>
-
+            {showFrequentCategories && (
+              <>
+                {" "}
+                <SectionLabel>常用快捷</SectionLabel>
+                <Stack direction="row" sx={quickCategoryListSx}>
+                  {quickCategories.map(({ category, group }) => (
+                    <Chip
+                      disabled={isCategoryDisabled(category)}
+                      key={category.id}
+                      label={`${group.name} · ${category.name}`}
+                      onClick={() => selectCategory(group.id, category.id)}
+                      size="small"
+                      sx={quickCategoryChipSx}
+                      variant="outlined"
+                    />
+                  ))}
+                </Stack>
+                <Button
+                  aria-expanded={isCategoryListExpanded}
+                  endIcon={
+                    isCategoryListExpanded ? (
+                      <KeyboardArrowUpRoundedIcon />
+                    ) : (
+                      <KeyboardArrowRightRoundedIcon />
+                    )
+                  }
+                  fullWidth
+                  onClick={() =>
+                    setIsCategoryListExpanded((current) => !current)
+                  }
+                  type="button"
+                  sx={categoryListToggleSx}
+                >
+                  {isCategoryListExpanded ? "收起分类列表" : "选择更多分类"}
+                </Button>
+              </>
+            )}
             <Collapse
               in={isCategoryListExpanded}
               timeout={designTokens.motion.collapse}

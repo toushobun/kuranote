@@ -144,3 +144,12 @@ export const IncomeLinkAccountRequiredNotice: Story = {
     );
   },
 };
+
+export const CategoryOnly: Story = {
+  name: "分步流程：只选分类",
+  args: {
+    showAmountInput: false,
+    showFrequentCategories: false,
+    inWizard: true,
+  },
+};

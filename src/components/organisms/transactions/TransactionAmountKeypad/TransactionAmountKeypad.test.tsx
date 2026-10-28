@@ -345,4 +345,18 @@ describe("TransactionAmountKeypad", () => {
       screen.getByText(transactionFormValidationMessages.amountInvalid),
     ).toBeInTheDocument();
   });
+  it("可指定新流程的确定按钮文案，旧调用默认确认", () => {
+    render(
+      <TransactionAmountKeypad
+        value=""
+        onChange={vi.fn()}
+        onConfirm={vi.fn()}
+        confirmLabel="确定"
+      />,
+    );
+    expect(screen.getByRole("button", { name: "确定" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "确认" }),
+    ).not.toBeInTheDocument();
+  });
 });

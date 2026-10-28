@@ -257,4 +257,39 @@ describe("TransactionItemPickerDrawer", () => {
       screen.queryByRole("checkbox", { name: "待报销" }),
     ).not.toBeInTheDocument();
   });
+  it("新流程可隐藏金额和常用快捷并直接展示分类，确认回调保持不变", () => {
+    const onPickerAdd = vi.fn(() => true);
+    const onClose = vi.fn();
+    render(
+      <ThemeProvider theme={theme}>
+        <TransactionItemPickerDrawer
+          categoryGroups={categoryGroups}
+          filteredCategoryOptions={categoryOptions}
+          frequentCategoryIds={["food-lunch"]}
+          showAmountInput={false}
+          showFrequentCategories={false}
+          inWizard
+          onAmountChange={vi.fn()}
+          onCategoryToggle={vi.fn()}
+          onGroupSelect={vi.fn()}
+          onPickerAdd={onPickerAdd}
+          onRemoveItem={vi.fn()}
+          onClose={onClose}
+          open
+          pickerAmount=""
+          pickerCategoryId="food-lunch"
+          pickerErrors={{}}
+          selectedCategoryGroup={categoryGroups[0]}
+        />
+      </ThemeProvider>,
+    );
+    expect(screen.queryByText("常用快捷")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("textbox", { name: "金额" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "午餐" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "确定" }));
+    expect(onPickerAdd).toHaveBeenCalledOnce();
+    expect(onClose).toHaveBeenCalledOnce();
+  });
 });

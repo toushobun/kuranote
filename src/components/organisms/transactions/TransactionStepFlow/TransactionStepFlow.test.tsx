@@ -6,6 +6,7 @@ import {
   clickEntryButton as click,
   selectEntryAccount as selectAccount,
 } from "test/transactionStepFlow";
+import { itemsStepFixture, filledItems } from "test/mocks/transactionItemsStep";
 import { flowFixture } from "test/mocks/transactionStepFlow";
 import { TransactionStepFlow } from "./TransactionStepFlow";
 import type { TransactionStepFlowProps } from "./TransactionStepFlow.types";
@@ -22,7 +23,12 @@ function progress() {
 }
 describe("TransactionStepFlow", () => {
   it("商家选择通知外部并进入账户，账户选择后进入明细", async () => {
-    const { props } = setup();
+    const { props } = setup({
+      itemsOptions: {
+        categoryOptions: itemsStepFixture.categoryOptions,
+        initialItems: filledItems,
+      },
+    });
     click("7-Eleven");
     expect(props.onMerchantSelect).toHaveBeenCalledWith(
       flowFixture.merchants[1],
@@ -32,7 +38,9 @@ describe("TransactionStepFlow", () => {
     ).toBeInTheDocument();
     selectAccount();
     await waitFor(() =>
-      expect(screen.getByText("明细内容将在后续任务实现")).toBeInTheDocument(),
+      expect(
+        screen.getByRole("button", { name: "添加明细" }),
+      ).toBeInTheDocument(),
     );
     expect(props.onAccountSelect).toHaveBeenCalledWith(flowFixture.accounts[1]);
     click("去确认");
@@ -121,5 +129,34 @@ describe("TransactionStepFlow", () => {
     click("切换方式");
     click("账户周转");
     expect(props.onMethodChange).toHaveBeenCalledWith("transfer");
+  });
+  it("多账户数量同步到紧凑卡片，从确认返回保留明细与付款金额", async () => {
+    setup({
+      initialStep: 3,
+      initialMerchantId: "seven",
+      initialAccountId: "paypay",
+      initialCompletedSteps: [1, 2],
+      itemsOptions: {
+        categoryOptions: itemsStepFixture.categoryOptions,
+        initialItems: filledItems,
+        initialPayments: [
+          { accountId: "paypay", amount: "7000" },
+          { accountId: "cash", amount: "3000" },
+        ],
+      },
+    });
+    expect(await screen.findByText("PayPay 等 2 个账户")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "PayPay JPY 更换" }),
+    ).not.toBeInTheDocument();
+    click("去确认");
+    click("明细");
+    expect(
+      screen.getByRole("button", { name: "编辑明细 1 金额" }),
+    ).toHaveTextContent("¥8,000");
+    expect(screen.getByText("✓ 已对上")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "完成，回到确认" }),
+    ).toBeEnabled();
   });
 });

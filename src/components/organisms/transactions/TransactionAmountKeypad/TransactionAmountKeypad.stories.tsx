@@ -23,3 +23,8 @@ export const Jpy: Story = {
     currency: "JPY",
   },
 };
+
+export const StepFlow: Story = {
+  name: "分步流程确定按钮",
+  args: { confirmLabel: "确定", currency: "JPY" },
+};

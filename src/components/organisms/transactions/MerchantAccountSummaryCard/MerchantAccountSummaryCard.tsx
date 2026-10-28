@@ -1,6 +1,7 @@
 "use client";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
+import Box from "@mui/material/Box";
 import ListItemButton from "@mui/material/ListItemButton";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
@@ -14,12 +15,14 @@ import type {
 type MerchantAccountSummaryCardProps = {
   merchant: TransactionMerchantOption;
   account?: TransactionAccountOption;
+  paymentAccountCount?: number;
   onMerchantChange: () => void;
   onAccountChange: () => void;
 };
 export function MerchantAccountSummaryCard({
   merchant,
   account,
+  paymentAccountCount = 1,
   onMerchantChange,
   onAccountChange,
 }: MerchantAccountSummaryCardProps) {
@@ -41,7 +44,10 @@ export function MerchantAccountSummaryCard({
           ? [
               {
                 step: 2,
-                name: account.name,
+                name:
+                  paymentAccountCount > 1
+                    ? m.multipleAccounts(account.name, paymentAccountCount)
+                    : account.name,
                 currency: account.currency,
                 icon: (
                   <AccountBalanceWalletRoundedIcon
@@ -52,32 +58,53 @@ export function MerchantAccountSummaryCard({
               },
             ]
           : []),
-      ].map((row) => (
-        <ListItemButton
-          key={row.step}
-          onClick={row.step === 1 ? onMerchantChange : onAccountChange}
-          sx={{
-            ...compactSx,
-            ...(row.step === 2
-              ? { borderTop: "1px solid", borderColor: "divider" }
-              : {}),
-          }}
-        >
-          {row.icon}
-          <Typography noWrap sx={{ flex: 1 }}>
-            {row.name}
-          </Typography>
-          {"currency" in row && (
-            <Typography variant="body2" color="textSecondary">
-              {row.currency}
+      ].map((row) => {
+        const editable = row.step === 1 || paymentAccountCount <= 1;
+        const content = (
+          <>
+            {row.icon}
+            <Typography noWrap sx={{ flex: 1 }}>
+              {row.name}
             </Typography>
-          )}
-          <Typography color="primary" variant="body2">
-            {m.change}
-          </Typography>
-          <ChevronRightRoundedIcon fontSize="small" />
-        </ListItemButton>
-      ))}
+            {"currency" in row && (
+              <Typography variant="body2" color="textSecondary">
+                {row.currency}
+              </Typography>
+            )}
+            {editable && (
+              <>
+                <Typography color="primary" variant="body2">
+                  {m.change}
+                </Typography>
+                <ChevronRightRoundedIcon fontSize="small" />
+              </>
+            )}
+          </>
+        );
+        return (
+          <Box
+            key={row.step}
+            sx={
+              row.step === 2
+                ? { borderTop: "1px solid", borderColor: "divider" }
+                : undefined
+            }
+          >
+            {editable ? (
+              <ListItemButton
+                onClick={row.step === 1 ? onMerchantChange : onAccountChange}
+                sx={compactSx}
+              >
+                {content}
+              </ListItemButton>
+            ) : (
+              <Box sx={{ ...compactSx, display: "flex", alignItems: "center" }}>
+                {content}
+              </Box>
+            )}
+          </Box>
+        );
+      })}
     </Paper>
   );
 }
