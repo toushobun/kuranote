@@ -1,6 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { userEvent, within } from "storybook/test";
 import { transactionEntryStoryDecorators } from "organisms/transactions/transactionStepFlowStoryUtils";
+import {
+  itemsStepFixture,
+  filledItems,
+  twoPayments,
+} from "test/mocks/transactionItemsStep";
 import { flowFixture } from "test/mocks/transactionStepFlow";
 import { TransactionStepFlow } from "./TransactionStepFlow";
 const meta = {
@@ -48,5 +53,28 @@ export const CloseConfirmation: Story = {
         name: "关闭记账",
       }),
     );
+  },
+};
+
+export const ItemsStep: Story = {
+  name: "明细步骤（自动预填）",
+  args: {
+    initialStep: 3,
+    initialMerchantId: "seven",
+    initialAccountId: "paypay",
+    initialCompletedSteps: [1, 2],
+    suggestions: itemsStepFixture.suggestions,
+    itemsOptions: { ...itemsStepFixture, prefillAutomaticItems: true },
+  },
+};
+export const SharedPayments: Story = {
+  name: "明细步骤（多账户付款）",
+  args: {
+    ...ItemsStep.args,
+    itemsOptions: {
+      ...itemsStepFixture,
+      initialItems: filledItems,
+      initialPayments: twoPayments,
+    },
   },
 };

@@ -3,6 +3,8 @@
 import { useEffect, useRef } from "react";
 
 import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import { flowMessages } from "config/transactionStepFlowMessages";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import KeyboardArrowRightRoundedIcon from "@mui/icons-material/KeyboardArrowRightRounded";
@@ -41,6 +43,7 @@ import {
 
 type TransactionPaymentFieldsProps = {
   accountOptions: TransactionAccountOption[];
+  stepFlow?: boolean;
   fieldError?: string;
   /** 账本未开启多账户付款（#931）时不显示「添加付款账户」。 */
   multiAccountPaymentEnabled: boolean;
@@ -65,6 +68,7 @@ type TransactionPaymentFieldsProps = {
  */
 export function TransactionPaymentFields({
   accountOptions,
+  stepFlow = false,
   fieldError,
   multiAccountPaymentEnabled,
   onAccountChange,
@@ -101,7 +105,9 @@ export function TransactionPaymentFields({
         variant="text"
         sx={addPaymentButtonSx}
       >
-        {transactionPaymentFieldsMessages.addPayment}
+        {stepFlow
+          ? flowMessages.addPayment
+          : transactionPaymentFieldsMessages.addPayment}
       </Button>
     ) : null;
 
@@ -187,19 +193,25 @@ export function TransactionPaymentFields({
                 select: {
                   displayEmpty: true,
                   IconComponent: KeyboardArrowRightRoundedIcon,
-                  renderValue: () => (
-                    <TransactionSelectionValue
-                      icon={
-                        <AccountBalanceWalletRoundedIcon fontSize="small" />
-                      }
-                      text={
-                        account
-                          ? formatAccountOptionLabel(account)
-                          : transactionAccountSectionMessages.accountPlaceholder
-                      }
-                      tone="account"
-                    />
-                  ),
+                  renderValue: () =>
+                    stepFlow ? (
+                      <Typography noWrap variant="body2">
+                        {account?.name ??
+                          transactionAccountSectionMessages.accountPlaceholder}
+                      </Typography>
+                    ) : (
+                      <TransactionSelectionValue
+                        icon={
+                          <AccountBalanceWalletRoundedIcon fontSize="small" />
+                        }
+                        text={
+                          account
+                            ? formatAccountOptionLabel(account)
+                            : transactionAccountSectionMessages.accountPlaceholder
+                        }
+                        tone="account"
+                      />
+                    ),
                 },
               }}
               value={payment.accountId}
@@ -211,6 +223,9 @@ export function TransactionPaymentFields({
               {accountOptions.map((option) => (
                 <MenuItem
                   disabled={
+                    (stepFlow &&
+                      !!primaryCurrency &&
+                      option.currency !== primaryCurrency) ||
                     !isPaymentAccountSelectable({
                       account: option,
                       payments,
@@ -240,7 +255,11 @@ export function TransactionPaymentFields({
                 onClick={() => onRemovePayment(payment.key)}
                 sx={removePaymentButtonSx}
               >
-                <DeleteOutlineRoundedIcon fontSize="small" />
+                {stepFlow ? (
+                  <CloseRoundedIcon fontSize="small" />
+                ) : (
+                  <DeleteOutlineRoundedIcon fontSize="small" />
+                )}
               </IconButton>
             )}
           </Box>
@@ -261,9 +280,17 @@ export function TransactionPaymentFields({
             formatPaymentAmount(reconciliation.itemTotal, primaryCurrency),
           )}
         </Typography>
-        {reconciliation.isBalanced ? null : (
+        {reconciliation.isBalanced ? (
+          stepFlow ? (
+            <Typography color="success" variant="body2">
+              {flowMessages.paymentBalanced}
+            </Typography>
+          ) : null
+        ) : (
           <Typography color="error" variant="body2" sx={{ fontWeight: 800 }}>
-            {transactionPaymentFieldsMessages.difference(
+            {(stepFlow
+              ? flowMessages.paymentDifference
+              : transactionPaymentFieldsMessages.difference)(
               formatPaymentAmount(reconciliation.difference, primaryCurrency),
             )}
           </Typography>

@@ -867,4 +867,23 @@ describe("useTransactionForm", () => {
       expect(result.current.linkNotice).toContain("退款、报销");
     });
   });
+  it("延后金额模式允许空金额并通知新明细编号，默认模式仍校验金额", () => {
+    const onPickerItemCommit = vi.fn();
+    const { result } = renderTransactionFormHook({
+      deferPickerAmount: true,
+      onPickerItemCommit,
+    });
+    act(() => result.current.handlePickerCategoryToggle("expense-child"));
+    act(() => {
+      expect(result.current.handlePickerAdd()).toBe(true);
+    });
+    expect(result.current.itemSummaries[0]).toMatchObject({
+      categoryId: "expense-child",
+      amount: "",
+    });
+    expect(result.current.hasValidItems).toBe(false);
+    expect(onPickerItemCommit).toHaveBeenCalledWith(
+      result.current.itemSummaries[0].id,
+    );
+  });
 });

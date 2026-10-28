@@ -61,7 +61,10 @@ type UseTransactionFormOptions = Pick<
   | "initialValues"
   | "merchantOptions"
   | "onSubmitDisabledChange"
->;
+> & {
+  deferPickerAmount?: boolean;
+  onPickerItemCommit?: (itemId: number) => void;
+};
 
 export function useTransactionForm({
   accountOptions,
@@ -70,6 +73,8 @@ export function useTransactionForm({
   initialValues,
   merchantOptions,
   onSubmitDisabledChange,
+  deferPickerAmount = false,
+  onPickerItemCommit,
 }: UseTransactionFormOptions) {
   const markEditDirty = useEditTransactionDirty();
   const confirm = useConfirmDialog();
@@ -285,6 +290,7 @@ export function useTransactionForm({
     if (fieldErrors.items) {
       setFieldErrors((current) => ({ ...current, items: undefined }));
     }
+    return itemId;
   }
 
   function updateItem(
@@ -480,9 +486,16 @@ export function useTransactionForm({
     if (!pickerCategoryId) {
       errors.category = transactionFormValidationMessages.categoryRequired;
     }
-    if (!isValidMoneyText(pickerAmount, selectedAccount?.currency)) {
+    if (
+      !deferPickerAmount &&
+      !isValidMoneyText(pickerAmount, selectedAccount?.currency)
+    ) {
       errors.amount = transactionFormValidationMessages.amountInvalid;
-    } else if (pickerRefundCandidate && Number(pickerAmount) <= 0) {
+    } else if (
+      !deferPickerAmount &&
+      pickerRefundCandidate &&
+      Number(pickerAmount) <= 0
+    ) {
       errors.amount = "退款金额必须大于 0。";
     }
 
@@ -493,13 +506,14 @@ export function useTransactionForm({
 
     setPickerErrors({});
     if (editingItemId === null) {
-      addItem(
+      const itemId = addItem(
         pickerCategoryId,
         pickerAmount,
         pickerSpecialStatus,
         pickerRefundCandidate,
         pickerReimbursementCandidate,
       );
+      onPickerItemCommit?.(itemId);
     } else {
       replaceItem(
         editingItemId,
@@ -510,6 +524,7 @@ export function useTransactionForm({
         pickerReimbursementCandidate,
       );
     }
+    if (editingItemId !== null) onPickerItemCommit?.(editingItemId);
     setEditingItemId(null);
     setPickerCategoryId("");
     setPickerAmount("");
@@ -767,7 +782,10 @@ export function useTransactionForm({
   }
 
   return {
+    addItem,
     accountFieldRef,
+    accountFieldError: getAccountFieldError(),
+    hasValidItems,
     allNormalCategoryOptions,
     categoryGroups,
     closeSheet,
@@ -807,6 +825,8 @@ export function useTransactionForm({
     pickerSpecialStatusLocked,
     removeItem,
     businessTotalAmount,
+    expenseTotal,
+    incomeTotal,
     selectedAccount,
     selectedAccountId,
     selectedCategoryGroup,

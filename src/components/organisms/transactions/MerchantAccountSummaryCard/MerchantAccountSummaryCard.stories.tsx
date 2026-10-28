@@ -13,3 +13,8 @@ export const MerchantOnly: Story = {
   args: { account: undefined },
 };
 export const MerchantAndAccount: Story = { name: "已选商家与账户" };
+
+export const MultipleAccounts: Story = {
+  name: "多个付款账户（不可更换）",
+  args: { paymentAccountCount: 2 },
+};

@@ -1,4 +1,5 @@
 "use client";
+import { TransactionItemsStep } from "organisms/transactions/TransactionItemsStep/TransactionItemsStep";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import DialogContent from "@mui/material/DialogContent";
@@ -44,6 +45,7 @@ function TransactionStepFlowSession(props: TransactionStepFlowProps) {
               <MerchantAccountSummaryCard
                 merchant={w.merchant}
                 account={w.account}
+                paymentAccountCount={w.form.payments.length}
                 onMerchantChange={() => w.goToStep(1)}
                 onAccountChange={() => w.goToStep(2)}
               />
@@ -51,7 +53,9 @@ function TransactionStepFlowSession(props: TransactionStepFlowProps) {
           </>
         }
       >
-        <DialogContent sx={{ p: 2.5 }}>
+        <DialogContent
+          sx={{ p: 2.5, display: "flex", flexDirection: "column" }}
+        >
           {w.step === 1 && (
             <MerchantStep
               merchants={props.merchants}
@@ -67,15 +71,27 @@ function TransactionStepFlowSession(props: TransactionStepFlowProps) {
               accounts={props.accounts}
               recommendedAccountIds={props.suggestions?.recommendedAccountIds}
               selectedAccount={w.account}
-              hasDetails={props.hasDetails}
+              hasDetails={props.hasDetails || !!w.form.itemSummaries.length}
               onSelect={w.selectAccount}
               onAddAccount={props.onAddAccount}
             />
           )}
-          {w.step === 3 && <Typography>{m.detailsPlaceholder}</Typography>}
+          {w.step === 3 && (
+            <TransactionItemsStep
+              {...w.itemsOptions}
+              form={w.form}
+              automaticItemIds={w.automaticItemIds}
+              amountItemId={w.amountItemId}
+              onAmountItemChange={w.setAmountItemId}
+              accountOptions={props.accounts}
+              suggestions={props.suggestions}
+              returning={w.returning}
+              onConfirm={() => w.advance(3)}
+            />
+          )}
           {w.step === 4 && <Typography>{m.confirmPlaceholder}</Typography>}
         </DialogContent>
-        {(w.returning || w.step === 3) && (
+        {w.returning && w.step !== 3 && (
           <Box sx={{ p: 2, pb: "max(16px, env(safe-area-inset-bottom))" }}>
             <Button
               fullWidth

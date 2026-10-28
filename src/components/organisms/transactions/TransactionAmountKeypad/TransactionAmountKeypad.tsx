@@ -27,6 +27,7 @@ import { getCurrencySymbol } from "../TransactionForm/TransactionForm.utils";
 
 type TransactionAmountKeypadProps = {
   currency?: string;
+  confirmLabel?: string;
   onChange: (value: string) => void;
   onConfirm: (value: string) => void;
   value: string;
@@ -81,6 +82,7 @@ const keyAriaLabels: Record<string, string | undefined> = {
 
 export function TransactionAmountKeypad({
   currency,
+  confirmLabel = "确认",
   onChange,
   onConfirm,
   value,
@@ -226,7 +228,7 @@ export function TransactionAmountKeypad({
               ...primaryActionButtonNoHoverBrightenSx,
             }}
           >
-            确认
+            {confirmLabel}
           </PrimaryActionButton>
           {keypadKeys.slice(confirmButtonInsertIndex).map(renderKeyButton)}
         </Box>
