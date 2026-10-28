@@ -9,7 +9,7 @@ import Button from "@mui/material/Button";
 import Box from "@mui/material/Box";
 import { designTokens } from "theme/theme";
 import { amountKeypadZIndex } from "theme/zIndex";
-import { flowMessages as m } from "config/transactionStepFlowMessages";
+import { transactionBottomEditorDrawerMessages as m } from "config/transactionMessages";
 
 export function TransactionBottomEditorDrawer({
   open,
@@ -46,7 +46,7 @@ export function TransactionBottomEditorDrawer({
           sx={{ alignItems: "center", justifyContent: "space-between" }}
         >
           <Typography variant="h6">{title}</Typography>
-          <IconButton aria-label={m.closeEditor(title)} onClick={onClose}>
+          <IconButton aria-label={m.close(title)} onClick={onClose}>
             <CloseRoundedIcon />
           </IconButton>
         </Stack>

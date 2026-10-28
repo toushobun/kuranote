@@ -74,8 +74,6 @@ export const flowMessages = {
   note: "备注",
   time: "时间",
   addNote: "添加备注（可选）",
-  done: "完成",
-  closeEditor: (title: string) => `关闭${title}编辑`,
   noteLimit: 2000,
   noteCount: (count: number) => `${count} / 2000`,
   save: "保存记账",

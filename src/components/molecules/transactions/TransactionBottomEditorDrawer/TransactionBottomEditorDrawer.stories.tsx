@@ -3,11 +3,11 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
 import { TransactionBottomEditorDrawer } from "./TransactionBottomEditorDrawer";
-import { flowMessages as m } from "config/transactionStepFlowMessages";
+const noteTitle = "备注";
 const meta = {
   title: "Molecules/Transactions/TransactionBottomEditorDrawer",
   component: TransactionBottomEditorDrawer,
-  args: { open: true, title: m.note, onClose: () => {}, children: null },
+  args: { open: true, title: noteTitle, onClose: () => {}, children: null },
 } satisfies Meta<typeof TransactionBottomEditorDrawer>;
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -17,13 +17,13 @@ export const Note: Story = {
     const [open, setOpen] = useState(true);
     return (
       <>
-        <Button onClick={() => setOpen(true)}>{m.note}</Button>
+        <Button onClick={() => setOpen(true)}>{noteTitle}</Button>
         <TransactionBottomEditorDrawer
           {...args}
           open={open}
           onClose={() => setOpen(false)}
         >
-          <TextField label={m.note} fullWidth multiline minRows={4} />
+          <TextField label={noteTitle} fullWidth multiline minRows={4} />
         </TransactionBottomEditorDrawer>
       </>
     );
