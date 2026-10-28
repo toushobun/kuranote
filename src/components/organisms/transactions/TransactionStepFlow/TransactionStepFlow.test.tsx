@@ -1,4 +1,4 @@
-import { screen, within, waitFor } from "@testing-library/react";
+import { fireEvent, screen, within, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import {
   createEntryCallbacks,
@@ -149,8 +149,22 @@ describe("TransactionStepFlow", () => {
     expect(
       screen.queryByRole("button", { name: "PayPay JPY 更换" }),
     ).not.toBeInTheDocument();
+    const amounts = screen
+      .getAllByRole("textbox")
+      .filter((input) => input.getAttribute("name") === "paymentAmount");
+    fireEvent.change(amounts[0], { target: { value: "6000" } });
+    fireEvent.change(amounts[1], { target: { value: "4000" } });
     click("去确认");
+    expect(screen.queryByText("付款账户")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "添加明细" }),
+    ).not.toBeInTheDocument();
     click("明细");
+    const restoredAmounts = screen
+      .getAllByRole("textbox")
+      .filter((input) => input.getAttribute("name") === "paymentAmount");
+    expect(restoredAmounts[0]).toHaveValue("6000");
+    expect(restoredAmounts[1]).toHaveValue("4000");
     expect(
       screen.getByRole("button", { name: "编辑明细 1 金额" }),
     ).toHaveTextContent("¥8,000");
@@ -158,5 +172,71 @@ describe("TransactionStepFlow", () => {
     expect(
       screen.getByRole("button", { name: "完成，回到确认" }),
     ).toBeEnabled();
+    click("删除付款账户 2");
+    expect(screen.queryByText("PayPay 等 2 个账户")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "PayPay JPY 更换" }),
+    ).toBeInTheDocument();
+  });
+
+  it("从确认更换收支账户后，明细使用同一份主付款账户并保留编辑金额", async () => {
+    setup({
+      initialStep: 3,
+      initialMerchantId: "seven",
+      initialAccountId: "paypay",
+      initialCompletedSteps: [1, 2],
+      itemsOptions: {
+        categoryOptions: itemsStepFixture.categoryOptions,
+        initialItems: filledItems,
+        multiAccountPaymentEnabled: true,
+      },
+    });
+    click("编辑明细 1 金额");
+    fireEvent.click(
+      within(screen.getByLabelText("金额计算器")).getByRole("button", {
+        name: "9",
+      }),
+    );
+    fireEvent.click(
+      within(screen.getByLabelText("金额计算器")).getByRole("button", {
+        name: "确定",
+      }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByLabelText("金额计算器")).not.toBeInTheDocument(),
+    );
+    click("去确认");
+    click("账户");
+    selectAccount("现金 JPY");
+    click("完成，回到确认");
+    click("明细");
+    expect(
+      screen.getByRole("button", { name: "编辑明细 1 金额" }),
+    ).toHaveTextContent("¥80,009");
+    expect(
+      screen.getByRole("button", { name: "现金 JPY 更换" }),
+    ).toBeInTheDocument();
+    click("添加付款账户（多个账户一起付）");
+    expect(screen.getAllByRole("combobox")[0]).toHaveTextContent("现金");
+  });
+
+  it("首次进入明细才预填自动明细，离开再返回不重复添加", async () => {
+    setup({
+      itemsOptions: {
+        categoryOptions: itemsStepFixture.categoryOptions,
+        prefillAutomaticItems: true,
+      },
+      suggestions: itemsStepFixture.suggestions,
+    });
+    click("7-Eleven");
+    selectAccount();
+    expect(await screen.findAllByText("自动")).toHaveLength(2);
+    click("删除明细 1");
+    click("账户");
+    selectAccount("现金 JPY");
+    expect(await screen.findAllByText("自动")).toHaveLength(1);
+    expect(
+      screen.getByRole("button", { name: "编辑明细 1 分类" }),
+    ).toHaveTextContent("咖啡");
   });
 });

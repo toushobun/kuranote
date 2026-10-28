@@ -54,15 +54,9 @@ describe("TransactionItemsStep", () => {
     pressItemAmountKey("4");
     pressItemAmountKey("9");
     pressItemAmountKey("8");
-    await waitFor(() =>
-      expect(props.onChange).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          items: expect.arrayContaining([
-            expect.objectContaining({ categoryId: "lunch", amount: "498" }),
-          ]),
-        }),
-      ),
-    );
+    expect(
+      screen.getByRole("button", { name: "编辑明细 1 金额", hidden: true }),
+    ).toHaveTextContent("¥498");
     pressItemAmountKey("确定");
     expect(await screen.findByText("饮料 · 咖啡 的金额")).toBeInTheDocument();
     pressItemAmountKey("2");
@@ -77,7 +71,7 @@ describe("TransactionItemsStep", () => {
     expect(props.onConfirm).toHaveBeenCalledOnce();
   });
   it("快捷金额按小分类与币种显示，点击实时填入", async () => {
-    const { props } = renderItemsStep();
+    renderItemsStep();
     await addStepItem();
     const quick = within(screen.getByRole("group", { name: "快捷金额" }));
     expect(
@@ -90,13 +84,9 @@ describe("TransactionItemsStep", () => {
       quick.queryByRole("button", { name: "上次 ¥18.5" }),
     ).not.toBeInTheDocument();
     fireEvent.click(quick.getByRole("button", { name: "¥450" }));
-    await waitFor(() =>
-      expect(props.onChange).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          items: [expect.objectContaining({ amount: "450" })],
-        }),
-      ),
-    );
+    expect(
+      screen.getByRole("button", { name: "编辑明细 1 金额", hidden: true }),
+    ).toHaveTextContent("¥450");
   });
   it("没有对应快捷金额时不显示快捷区块，日元禁止小数", async () => {
     renderItemsStep({ suggestions: undefined });
@@ -175,7 +165,7 @@ describe("TransactionItemsStep", () => {
     expect(screen.getByRole("button", { name: "去确认" })).toBeEnabled();
   });
   it("分类抽屉的待报销状态保留到实时输入后的明细", async () => {
-    const { props } = renderItemsStep();
+    renderItemsStep();
     click("添加明细");
     click("午餐");
     fireEvent.click(screen.getByRole("checkbox", { name: /待报销/ }));
@@ -184,16 +174,11 @@ describe("TransactionItemsStep", () => {
     pressItemAmountKey("5");
     pressItemAmountKey("确定");
     await waitFor(() =>
-      expect(props.onChange).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          items: [
-            expect.objectContaining({
-              specialStatus: "pendingReimbursement",
-              amount: "5",
-            }),
-          ],
-        }),
-      ),
+      expect(screen.queryByLabelText("金额计算器")).not.toBeInTheDocument(),
     );
+    expect(screen.getByText("待报销")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "编辑明细 1 金额", hidden: true }),
+    ).toHaveTextContent("¥5");
   });
 });

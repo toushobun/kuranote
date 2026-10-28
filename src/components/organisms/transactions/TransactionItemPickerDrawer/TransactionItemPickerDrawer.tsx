@@ -319,7 +319,6 @@ export function TransactionItemPickerDrawer({
           <>
             {showFrequentCategories && (
               <>
-                {" "}
                 <SectionLabel>常用快捷</SectionLabel>
                 <Stack direction="row" sx={quickCategoryListSx}>
                   {quickCategories.map(({ category, group }) => (

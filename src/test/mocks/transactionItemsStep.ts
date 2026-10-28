@@ -1,7 +1,7 @@
-import type { TransactionItemsStepProps } from "organisms/transactions/TransactionItemsStep/TransactionItemsStep.types";
+import type { ItemsStepHarnessProps } from "test/TransactionItemsStepHarness";
 import { flowFixture } from "./transactionStepFlow";
 
-export const itemsStepFixture: TransactionItemsStepProps = {
+export const itemsStepFixture: ItemsStepHarnessProps = {
   accountOptions: flowFixture.accounts,
   selectedAccount: flowFixture.accounts[1],
   categoryOptions: [

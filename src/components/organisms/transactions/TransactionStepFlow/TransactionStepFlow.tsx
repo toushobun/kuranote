@@ -1,6 +1,5 @@
 "use client";
 import { TransactionItemsStep } from "organisms/transactions/TransactionItemsStep/TransactionItemsStep";
-import type { ItemsStepOptions } from "organisms/transactions/TransactionItemsStep/TransactionItemsStep.types";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import DialogContent from "@mui/material/DialogContent";
@@ -14,8 +13,6 @@ import { MerchantAccountSummaryCard } from "organisms/transactions/MerchantAccou
 import { flowMessages as m } from "config/transactionStepFlowMessages";
 import type { TransactionStepFlowProps } from "./TransactionStepFlow.types";
 import { useTransactionStepFlow } from "./useTransactionStepFlow";
-
-const emptyItemsOptions: ItemsStepOptions = { categoryOptions: [] };
 
 export function TransactionStepFlow(props: TransactionStepFlowProps) {
   return props.open ? <TransactionStepFlowSession {...props} /> : null;
@@ -47,16 +44,8 @@ function TransactionStepFlowSession(props: TransactionStepFlowProps) {
             {w.step >= 2 && w.merchant && (
               <MerchantAccountSummaryCard
                 merchant={w.merchant}
-                account={
-                  w.itemsSnapshot && w.itemsSnapshot.payments.length > 1
-                    ? props.accounts.find(
-                        (account) =>
-                          account.id ===
-                          w.itemsSnapshot?.payments[0]?.accountId,
-                      )
-                    : w.account
-                }
-                paymentAccountCount={w.itemsSnapshot?.payments.length ?? 1}
+                account={w.account}
+                paymentAccountCount={w.form.payments.length}
                 onMerchantChange={() => w.goToStep(1)}
                 onAccountChange={() => w.goToStep(2)}
               />
@@ -82,30 +71,23 @@ function TransactionStepFlowSession(props: TransactionStepFlowProps) {
               accounts={props.accounts}
               recommendedAccountIds={props.suggestions?.recommendedAccountIds}
               selectedAccount={w.account}
-              hasDetails={props.hasDetails || !!w.itemsSnapshot?.items.length}
+              hasDetails={props.hasDetails || !!w.form.itemSummaries.length}
               onSelect={w.selectAccount}
               onAddAccount={props.onAddAccount}
             />
           )}
-          {w.itemsStarted && (
-            <Box
-              hidden={w.step !== 3}
-              sx={{
-                display: w.step === 3 ? "flex" : "none",
-                flex: 1,
-                flexDirection: "column",
-              }}
-            >
-              <TransactionItemsStep
-                {...(props.itemsOptions ?? emptyItemsOptions)}
-                accountOptions={props.accounts}
-                selectedAccount={w.account}
-                suggestions={props.suggestions}
-                returning={w.returning}
-                onConfirm={() => w.advance(3)}
-                onChange={w.updateItemsSnapshot}
-              />
-            </Box>
+          {w.step === 3 && (
+            <TransactionItemsStep
+              {...w.itemsOptions}
+              form={w.form}
+              automaticItemIds={w.automaticItemIds}
+              amountItemId={w.amountItemId}
+              onAmountItemChange={w.setAmountItemId}
+              accountOptions={props.accounts}
+              suggestions={props.suggestions}
+              returning={w.returning}
+              onConfirm={() => w.advance(3)}
+            />
           )}
           {w.step === 4 && <Typography>{m.confirmPlaceholder}</Typography>}
         </DialogContent>

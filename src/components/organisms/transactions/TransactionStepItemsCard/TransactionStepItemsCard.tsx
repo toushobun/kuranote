@@ -77,9 +77,9 @@ export function TransactionStepItemsCard({
                   textAlign: "left",
                 }}
               >
-                {item.category?.icon_name ? (
+                {item.category?.iconName ? (
                   <Box component="span" aria-hidden="true">
-                    {item.category.icon_name}
+                    {item.category.iconName}
                   </Box>
                 ) : (
                   <CategoryRoundedIcon color="action" fontSize="small" />

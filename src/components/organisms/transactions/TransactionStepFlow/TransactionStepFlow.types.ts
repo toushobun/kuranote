@@ -1,7 +1,4 @@
-import type {
-  ItemsStepOptions,
-  ItemsStepSnapshot,
-} from "organisms/transactions/TransactionItemsStep/TransactionItemsStep.types";
+import type { ItemsStepOptions } from "organisms/transactions/TransactionItemsStep/TransactionItemsStep.types";
 import type {
   FrequentMerchant,
   MerchantEntrySuggestions,
@@ -18,7 +15,6 @@ export type TransactionStepFlowProps = {
   accounts: TransactionAccountOption[];
   suggestions?: MerchantEntrySuggestions;
   itemsOptions?: ItemsStepOptions;
-  onItemsChange?: (snapshot: ItemsStepSnapshot) => void;
   hasDetails?: boolean;
   initialMerchantId?: string;
   initialAccountId?: string;

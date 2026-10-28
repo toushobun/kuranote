@@ -1,7 +1,9 @@
 import { fireEvent, screen, within } from "@testing-library/react";
 import { vi } from "vitest";
-import { TransactionItemsStep } from "organisms/transactions/TransactionItemsStep/TransactionItemsStep";
-import type { TransactionItemsStepProps } from "organisms/transactions/TransactionItemsStep/TransactionItemsStep.types";
+import {
+  TransactionItemsStepHarness,
+  type ItemsStepHarnessProps,
+} from "test/TransactionItemsStepHarness";
 import { itemsStepFixture } from "test/mocks/transactionItemsStep";
 import {
   renderEntryComponent,
@@ -9,17 +11,16 @@ import {
 } from "test/transactionStepFlow";
 
 export function renderItemsStep(
-  overrides: Partial<TransactionItemsStepProps> = {},
+  overrides: Partial<ItemsStepHarnessProps> = {},
 ) {
   const props = {
     ...itemsStepFixture,
     onConfirm: vi.fn(),
-    onChange: vi.fn(),
     ...overrides,
   };
   return {
     props,
-    ...renderEntryComponent(<TransactionItemsStep {...props} />),
+    ...renderEntryComponent(<TransactionItemsStepHarness {...props} />),
   };
 }
 export async function addStepItem(name = "午餐", group?: string) {

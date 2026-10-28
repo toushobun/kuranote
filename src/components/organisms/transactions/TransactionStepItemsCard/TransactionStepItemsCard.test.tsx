@@ -20,7 +20,7 @@ describe("TransactionStepItemsCard", () => {
             amount: "",
             category: {
               ...itemsStepFixture.categoryOptions[0],
-              icon_name: "🍴",
+              iconName: "🍴",
             },
             specialStatus: "pendingReimbursement",
           },

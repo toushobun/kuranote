@@ -6,13 +6,13 @@ import {
   filledItems,
   twoPayments,
 } from "test/mocks/transactionItemsStep";
-import { TransactionItemsStep } from "./TransactionItemsStep";
+import { TransactionItemsStepHarness } from "test/TransactionItemsStepHarness";
 const meta = {
   title: "Organisms/Transactions/TransactionItemsStep",
-  component: TransactionItemsStep,
+  component: TransactionItemsStepHarness,
   decorators: transactionEntryStoryDecorators,
   args: itemsStepFixture,
-} satisfies Meta<typeof TransactionItemsStep>;
+} satisfies Meta<typeof TransactionItemsStepHarness>;
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const NoHistory: Story = {

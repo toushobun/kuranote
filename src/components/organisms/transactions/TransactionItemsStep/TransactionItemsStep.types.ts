@@ -4,9 +4,8 @@ import type {
   TransactionFormProps,
   TransactionFormInitialItem,
   TransactionFormInitialValues,
-  TransactionItemSummary,
 } from "organisms/transactions/TransactionForm/TransactionForm.types";
-import type { TransactionPaymentRow } from "organisms/transactions/TransactionPaymentFields/useTransactionPaymentFields";
+import type { useTransactionForm } from "organisms/transactions/TransactionForm/useTransactionForm";
 
 export type ItemsStepOptions = Pick<
   TransactionFormProps,
@@ -27,15 +26,13 @@ export type ItemsStepOptions = Pick<
   initialItems?: TransactionFormInitialItem[];
   initialPayments?: TransactionFormInitialValues["payments"];
 };
-export type ItemsStepSnapshot = {
-  items: TransactionItemSummary[];
-  payments: TransactionPaymentRow[];
-};
 export type TransactionItemsStepProps = ItemsStepOptions & {
   accountOptions: TransactionAccountOption[];
-  selectedAccount?: TransactionAccountOption;
+  form: ReturnType<typeof useTransactionForm>;
+  automaticItemIds: number[];
+  amountItemId: number | null;
+  onAmountItemChange: (id: number | null) => void;
   suggestions?: MerchantEntrySuggestions;
   returning?: boolean;
   onConfirm: () => void;
-  onChange?: (snapshot: ItemsStepSnapshot) => void;
 };

@@ -110,7 +110,7 @@ export type TransactionAccountOption = {
 };
 
 export type TransactionCategoryOption = {
-  icon_name?: string | null;
+  iconName?: string | null;
   id: string;
   name: string;
   parentId: string | null;

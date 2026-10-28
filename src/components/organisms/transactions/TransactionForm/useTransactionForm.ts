@@ -117,10 +117,7 @@ export function useTransactionForm({
   const [transactionTime, setTransactionTime] = useState("");
   const [timeZoneOffsetMinutes, setTimeZoneOffsetMinutes] = useState("");
 
-  const allDisplayItems = useMemo(
-    () => [...itemsByType.expense, ...itemsByType.income],
-    [itemsByType],
-  );
+  const allDisplayItems = [...itemsByType.expense, ...itemsByType.income];
 
   useEffect(() => {
     const localValue = initialValues?.transactionAt
@@ -185,13 +182,11 @@ export function useTransactionForm({
   const selectedMerchant = merchantOptions.find(
     (merchant) => merchant.id === selectedMerchantId,
   );
-  const itemSummaries: TransactionItemSummary[] = useMemo(
-    () =>
-      allDisplayItems.map((item) => ({
-        ...item,
-        category: categoryById.get(item.categoryId),
-      })),
-    [allDisplayItems, categoryById],
+  const itemSummaries: TransactionItemSummary[] = allDisplayItems.map(
+    (item) => ({
+      ...item,
+      category: categoryById.get(item.categoryId),
+    }),
   );
   const pickerSpecialStatusLocked = Boolean(
     allDisplayItems.find((item) => item.id === editingItemId)
@@ -787,6 +782,7 @@ export function useTransactionForm({
   }
 
   return {
+    addItem,
     accountFieldRef,
     accountFieldError: getAccountFieldError(),
     hasValidItems,
