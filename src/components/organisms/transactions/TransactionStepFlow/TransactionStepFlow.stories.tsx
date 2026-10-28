@@ -24,7 +24,6 @@ export const RecommendedAccounts: Story = {
   args: {
     initialStep: 2,
     initialMerchantId: "seven",
-    initialCompletedSteps: [1],
   },
 };
 
@@ -34,7 +33,6 @@ export const ReturnFromConfirmation: Story = {
     initialStep: 4,
     initialMerchantId: "seven",
     initialAccountId: "paypay",
-    initialCompletedSteps: [1, 2, 3],
   },
   play: async ({ canvasElement }) => {
     await userEvent.click(
@@ -62,7 +60,6 @@ export const ItemsStep: Story = {
     initialStep: 3,
     initialMerchantId: "seven",
     initialAccountId: "paypay",
-    initialCompletedSteps: [1, 2],
     suggestions: itemsStepFixture.suggestions,
     itemsOptions: { ...itemsStepFixture, prefillAutomaticItems: true },
   },
@@ -76,5 +73,24 @@ export const SharedPayments: Story = {
       initialItems: filledItems,
       initialPayments: twoPayments,
     },
+  },
+};
+
+export const QuickEntry: Story = {
+  name: "快速路线（确认页自动弹出金额键盘）",
+  args: {
+    suggestionsMerchantId: "seven",
+    suggestions: {
+      ...itemsStepFixture.suggestions!,
+      recommendedAccountIds: ["paypay"],
+    },
+    itemsOptions: { categoryOptions: itemsStepFixture.categoryOptions },
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      within(canvasElement.ownerDocument.body).getByRole("button", {
+        name: "7-Eleven",
+      }),
+    );
   },
 };

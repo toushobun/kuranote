@@ -21,12 +21,12 @@ export type ItemsStepOptions = Pick<
   | "transactionItemSpecialStatusEnabled"
   | "multiAccountPaymentEnabled"
 > & {
-  merchantHasHistory?: boolean;
   prefillAutomaticItems?: boolean;
   initialItems?: TransactionFormInitialItem[];
   initialPayments?: TransactionFormInitialValues["payments"];
 };
 export type TransactionItemsStepProps = ItemsStepOptions & {
+  merchantHasHistory?: boolean;
   accountOptions: TransactionAccountOption[];
   form: ReturnType<typeof useTransactionForm>;
   automaticItemIds: number[];

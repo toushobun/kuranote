@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { getTransactionPaymentInputNames } from "../TransactionFormHiddenFields/TransactionFormHiddenFields";
 
 import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
@@ -81,6 +82,7 @@ export function TransactionPaymentFields({
   reconciliation,
   showEmptyAccountHelper,
 }: TransactionPaymentFieldsProps) {
+  const inputNames = getTransactionPaymentInputNames(payments.length);
   const hasNoAccount = accountOptions.length === 0;
   const isMultiAccount = payments.length > 1;
   const primaryPayment = payments[0];
@@ -125,7 +127,7 @@ export function TransactionPaymentFields({
               : undefined)
           }
           label={transactionAccountSectionMessages.accountLabel}
-          name="accountId"
+          name={inputNames.account}
           onChange={(event) =>
             primaryPayment &&
             onAccountChange(primaryPayment.key, event.target.value)
@@ -183,7 +185,7 @@ export function TransactionPaymentFields({
               label={transactionPaymentFieldsMessages.paymentAccountLabel(
                 rowNumber,
               )}
-              name="paymentAccountId"
+              name={inputNames.account}
               onChange={(event) =>
                 onAccountChange(payment.key, event.target.value)
               }
@@ -241,6 +243,7 @@ export function TransactionPaymentFields({
               ))}
             </TextField>
             <PaymentAmountField
+              name={inputNames.amount}
               amount={payment.amount}
               currency={primaryCurrency}
               onChange={(amount) => onAmountChange(payment.key, amount)}
@@ -310,12 +313,14 @@ export function TransactionPaymentFields({
  * 不用 onBlur，因为打开计算器时输入框就已失焦。
  */
 function PaymentAmountField({
+  name,
   amount,
   currency,
   onChange,
   onCommit,
   rowNumber,
 }: {
+  name: string | undefined;
   amount: string;
   currency: string | undefined;
   onChange: (amount: string) => void;
@@ -335,7 +340,7 @@ function PaymentAmountField({
     <TextField
       hiddenLabel
       inputRef={inputRef}
-      name="paymentAmount"
+      name={name}
       onChange={(event) => onChange(event.target.value)}
       slotProps={{
         htmlInput: {

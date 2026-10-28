@@ -5,6 +5,7 @@ const tags = [
 ];
 export const flowFixture: TransactionStepFlowProps = {
   open: true,
+  action: async () => ({}),
   merchants: [
     { id: "life", name: "LIFE超市", icon_url: null, tags: [tags[1]] },
     { id: "seven", name: "7-Eleven", icon_url: null, tags: [tags[1]] },

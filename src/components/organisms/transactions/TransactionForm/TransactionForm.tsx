@@ -18,7 +18,7 @@ import { routePaths } from "config/paths";
 import { transactionSetupHintMessages } from "config/transactionMessages";
 import { TransactionDateTimePicker } from "molecules/transactions/TransactionDateTimePicker";
 import { TransactionFormHeader } from "organisms/transactions/TransactionFormHeader/TransactionFormHeader";
-import { linkedEditExpectedRecordUpdatedAtFieldName } from "internal/transaction/adapter/next/linkedEditInput";
+import { TransactionFormHiddenFields } from "../TransactionFormHiddenFields/TransactionFormHiddenFields";
 import { getMerchantInitial } from "utils/merchants";
 import { transactionAccountSectionMessages } from "utils/transactionMessages";
 import { TransactionSetupHintCard } from "../TransactionSetupHintCard/TransactionSetupHintCard";
@@ -98,6 +98,14 @@ export function TransactionForm({
   const activeLoadReimbursementSearchPageAction =
     incomeLinksContext?.loadReimbursementSearchPageAction ??
     loadReimbursementSearchPageAction;
+  const form = useTransactionForm({
+    accountOptions,
+    categoryOptions,
+    initialType,
+    initialValues,
+    merchantOptions,
+    onSubmitDisabledChange,
+  });
   const {
     accountFieldRef,
     allNormalCategoryOptions,
@@ -148,19 +156,10 @@ export function TransactionForm({
     setPickerRefundCandidate,
     setPickerReimbursementCandidate,
     signedTotalAmount,
-    timeZoneOffsetMinutes,
-    transactionAtValue,
     transactionDate,
     transactionTime,
     updateItem,
-  } = useTransactionForm({
-    accountOptions,
-    categoryOptions,
-    initialType,
-    initialValues,
-    merchantOptions,
-    onSubmitDisabledChange,
-  });
+  } = form;
 
   // 只有传入添加入口（新建记账）时才显示缺少账户 / 商家的提示卡片。
   const setupHint = setupHrefs
@@ -197,33 +196,10 @@ export function TransactionForm({
             />
           ) : null}
 
-          <input
-            name="timeZoneOffsetMinutes"
-            readOnly
-            type="hidden"
-            value={timeZoneOffsetMinutes}
+          <TransactionFormHiddenFields
+            form={form}
+            initialValues={initialValues}
           />
-          <input
-            name="transactionAt"
-            readOnly
-            type="hidden"
-            value={transactionAtValue}
-          />
-          {initialValues?.transactionRecordId ? (
-            <input
-              name="transactionRecordId"
-              type="hidden"
-              value={initialValues.transactionRecordId}
-            />
-          ) : null}
-          {initialValues?.expectedRecordUpdatedAt ? (
-            <input
-              name={linkedEditExpectedRecordUpdatedAtFieldName}
-              type="hidden"
-              value={initialValues.expectedRecordUpdatedAt}
-            />
-          ) : null}
-          <input name="type" type="hidden" value={selectedType} />
 
           <Box ref={merchantFieldRef} sx={selectionFieldGroupSx}>
             <SectionTitle>商家</SectionTitle>

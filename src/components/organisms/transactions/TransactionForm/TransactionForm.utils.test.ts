@@ -11,6 +11,7 @@ import {
   getTransactionItemAdjustmentMessage,
   getTransactionItemAmountPresentation,
   isValidMoneyText,
+  isValidTransactionFormItem,
 } from "./TransactionForm.utils";
 
 function createCategory(
@@ -246,4 +247,21 @@ describe("isValidMoneyText", () => {
   it("多个小数点无效", () => {
     expect(isValidMoneyText("1.2.3", "USD")).toBe(false);
   });
+});
+
+describe("isValidTransactionFormItem", () => {
+  it.each([
+    { categoryId: "lunch", amount: "100", currency: "JPY", expected: true },
+    { categoryId: "", amount: "100", currency: "JPY", expected: false },
+    { categoryId: "lunch", amount: "", currency: "JPY", expected: false },
+    { categoryId: "lunch", amount: "1.50", currency: "JPY", expected: false },
+    { categoryId: "lunch", amount: "1.50", currency: "CNY", expected: true },
+  ])(
+    "沿用分类及币种金额校验：$categoryId / $amount / $currency",
+    ({ categoryId, amount, currency, expected }) => {
+      expect(
+        isValidTransactionFormItem({ id: 1, categoryId, amount }, currency),
+      ).toBe(expected);
+    },
+  );
 });

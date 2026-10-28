@@ -15,7 +15,7 @@ import {
 } from "utils/transactionMessages";
 import type { TransactionType } from "types/transactions";
 import { resolveTransactionBusinessStatus } from "internal/transaction";
-import { getLinkedEditExpectedUpdatedAtFieldName } from "internal/transaction/adapter/next/linkedEditInput";
+import { TransactionItemHiddenFields } from "../TransactionFormHiddenFields/TransactionFormHiddenFields";
 import { formatTransactionRowAmount } from "utils/transactions";
 
 import type {
@@ -96,40 +96,7 @@ export function TransactionItemsSection({
                   sx={getItemPaperSx(index, itemSummaries.length)}
                 >
                   <Box sx={itemRowSx}>
-                    <input
-                      name="itemCategoryId"
-                      type="hidden"
-                      value={item.categoryId}
-                    />
-                    <input
-                      name="itemPersistedId"
-                      type="hidden"
-                      value={item.persistedId ?? ""}
-                    />
-                    {item.persistedId && item.expectedUpdatedAt ? (
-                      <input
-                        name={getLinkedEditExpectedUpdatedAtFieldName(
-                          item.persistedId,
-                        )}
-                        type="hidden"
-                        value={item.expectedUpdatedAt}
-                      />
-                    ) : null}
-                    <input
-                      name="itemSpecialStatus"
-                      type="hidden"
-                      value={item.specialStatus ?? ""}
-                    />
-                    <input
-                      name="itemRefundedItemId"
-                      type="hidden"
-                      value={item.refundCandidate?.id ?? ""}
-                    />
-                    <input
-                      name="itemReimbursementItemId"
-                      type="hidden"
-                      value={item.reimbursementCandidate?.id ?? ""}
-                    />
+                    <TransactionItemHiddenFields item={item} />
                     <ButtonBase
                       aria-label={`编辑明细 ${index + 1} 分类`}
                       onClick={() => onOpenItem(item.id)}

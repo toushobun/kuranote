@@ -16,6 +16,8 @@ import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLay
 import { designTokens } from "theme/theme";
 import { amountKeypadZIndex } from "theme/zIndex";
 
+import { TransactionBottomEditorDrawer } from "molecules/transactions/TransactionBottomEditorDrawer/TransactionBottomEditorDrawer";
+
 import { CalendarGrid } from "./CalendarGrid";
 import { DateSettingRow, TimeSettingRow } from "./DateTimeSettingRows";
 import { MonthPicker } from "./MonthPicker";
@@ -41,6 +43,7 @@ export const dateTimePickerDrawerSx = {
 
 type TransactionDateTimePickerProps = {
   date: string;
+  editor?: { open: boolean; onClose: () => void; title: string };
   fieldLabel?: string;
   onDateChange: (value: string) => void;
   onTimeChange?: (value: string) => void;
@@ -73,6 +76,7 @@ const slideMonthFromRight = keyframes`
 
 export function TransactionDateTimePicker({
   date,
+  editor,
   fieldLabel = messages.fieldLabel,
   onDateChange,
   onTimeChange,
@@ -202,6 +206,135 @@ export function TransactionDateTimePicker({
     secondRef.current?.scrollIntoView?.({ block: "center" });
   }
 
+  const editorContent = (
+    <Box sx={{ overflow: "hidden", position: "relative" }}>
+      <Stack>
+        {/* 日期 行 */}
+        <DateSettingRow
+          date={date}
+          expanded={calendarExpanded}
+          monthPickerOpen={monthPickerOpen}
+          onDateClick={handleDateRowClick}
+          onMonthNext={() => changeMonth(1)}
+          onMonthPickerClick={openMonthPicker}
+          onMonthPrev={() => changeMonth(-1)}
+          visibleMonth={visibleMonth}
+        />
+
+        <Box
+          ref={monthPickerOverlayRef}
+          aria-hidden={!monthPickerOpen}
+          data-month-picker-overlay
+          sx={{
+            bgcolor: "background.paper",
+            bottom: 0,
+            boxShadow: "var(--user-theme-card-shadow)",
+            clipPath: monthPickerOpen ? "inset(0 0 0 0)" : "inset(0 0 100% 0)",
+            display: "flex",
+            flexDirection: "column",
+            left: 0,
+            opacity: monthPickerOpen ? 1 : 0,
+            overflow: "hidden",
+            pointerEvents: monthPickerOpen ? "auto" : "none",
+            position: "absolute",
+            right: 0,
+            top: 56,
+            transform: monthPickerOpen ? "translateY(0)" : "translateY(-12px)",
+            transformOrigin: "top center",
+            transition:
+              "clip-path 280ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease-out, transform 260ms cubic-bezier(0.22, 1, 0.36, 1)",
+            zIndex: 4,
+            "@media (prefers-reduced-motion: reduce)": {
+              clipPath: "inset(0 0 0 0)",
+              transform: "none",
+              transition: "none",
+            },
+          }}
+        >
+          <MonthPicker
+            month={pickerMonth}
+            monthRef={selectedMonthRef}
+            onMonthChange={setPickerMonth}
+            onSubmit={confirmMonthPicker}
+            onYearChange={setPickerYear}
+            year={pickerYear}
+            yearOptions={yearOptions}
+            yearRef={selectedYearRef}
+          />
+        </Box>
+
+        {/* 日历展开区 */}
+        <Collapse in={calendarExpanded} timeout={designTokens.motion.collapse}>
+          <Box
+            sx={{
+              height: 230,
+              overflow: "hidden",
+              px: 2,
+              py: 1,
+            }}
+          >
+            <Box
+              key={monthSlide.key}
+              sx={{
+                animation:
+                  monthSlide.direction === 0
+                    ? "none"
+                    : `${monthSlide.direction < 0 ? slideMonthFromLeft : slideMonthFromRight} 220ms cubic-bezier(0.22, 1, 0.36, 1)`,
+                height: "100%",
+                "@media (prefers-reduced-motion: reduce)": {
+                  animation: "none",
+                },
+              }}
+            >
+              <CalendarGrid
+                calendarDays={calendarDays}
+                date={date}
+                onDateChange={onDateChange}
+                today={today}
+              />
+            </Box>
+          </Box>
+        </Collapse>
+
+        {/* 时刻 行 */}
+        {showTime ? (
+          <>
+            <TimeSettingRow
+              expanded={timePickerOpen}
+              onTimeClick={handleTimeRowClick}
+              time={formatTimeDisplay(time)}
+            />
+
+            {/* 时间列展开区 */}
+            <Collapse
+              in={timePickerOpen}
+              timeout={designTokens.motion.collapse}
+              onEntered={handleTimeCollapseEntered}
+            >
+              <TimePickerColumns
+                hourRef={hourRef}
+                minuteRef={minuteRef}
+                onTimePartChange={handleTimePartChange}
+                secondRef={secondRef}
+                timeParts={timeParts}
+              />
+            </Collapse>
+          </>
+        ) : null}
+      </Stack>
+    </Box>
+  );
+  if (editor)
+    return (
+      <TransactionBottomEditorDrawer
+        open={editor.open}
+        title={editor.title}
+        onClose={editor.onClose}
+      >
+        {editorContent}
+      </TransactionBottomEditorDrawer>
+    );
+
   return (
     <>
       <Box>
@@ -276,129 +409,7 @@ export function TransactionDateTimePicker({
             </Button>
           </Stack>
 
-          <Box sx={{ overflow: "hidden", position: "relative" }}>
-            <Stack>
-              {/* 日期 行 */}
-              <DateSettingRow
-                date={date}
-                expanded={calendarExpanded}
-                monthPickerOpen={monthPickerOpen}
-                onDateClick={handleDateRowClick}
-                onMonthNext={() => changeMonth(1)}
-                onMonthPickerClick={openMonthPicker}
-                onMonthPrev={() => changeMonth(-1)}
-                visibleMonth={visibleMonth}
-              />
-
-              <Box
-                ref={monthPickerOverlayRef}
-                aria-hidden={!monthPickerOpen}
-                data-month-picker-overlay
-                sx={{
-                  bgcolor: "background.paper",
-                  bottom: 0,
-                  boxShadow: "var(--user-theme-card-shadow)",
-                  clipPath: monthPickerOpen
-                    ? "inset(0 0 0 0)"
-                    : "inset(0 0 100% 0)",
-                  display: "flex",
-                  flexDirection: "column",
-                  left: 0,
-                  opacity: monthPickerOpen ? 1 : 0,
-                  overflow: "hidden",
-                  pointerEvents: monthPickerOpen ? "auto" : "none",
-                  position: "absolute",
-                  right: 0,
-                  top: 56,
-                  transform: monthPickerOpen
-                    ? "translateY(0)"
-                    : "translateY(-12px)",
-                  transformOrigin: "top center",
-                  transition:
-                    "clip-path 280ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease-out, transform 260ms cubic-bezier(0.22, 1, 0.36, 1)",
-                  zIndex: 4,
-                  "@media (prefers-reduced-motion: reduce)": {
-                    clipPath: "inset(0 0 0 0)",
-                    transform: "none",
-                    transition: "none",
-                  },
-                }}
-              >
-                <MonthPicker
-                  month={pickerMonth}
-                  monthRef={selectedMonthRef}
-                  onMonthChange={setPickerMonth}
-                  onSubmit={confirmMonthPicker}
-                  onYearChange={setPickerYear}
-                  year={pickerYear}
-                  yearOptions={yearOptions}
-                  yearRef={selectedYearRef}
-                />
-              </Box>
-
-              {/* 日历展开区 */}
-              <Collapse
-                in={calendarExpanded}
-                timeout={designTokens.motion.collapse}
-              >
-                <Box
-                  sx={{
-                    height: 230,
-                    overflow: "hidden",
-                    px: 2,
-                    py: 1,
-                  }}
-                >
-                  <Box
-                    key={monthSlide.key}
-                    sx={{
-                      animation:
-                        monthSlide.direction === 0
-                          ? "none"
-                          : `${monthSlide.direction < 0 ? slideMonthFromLeft : slideMonthFromRight} 220ms cubic-bezier(0.22, 1, 0.36, 1)`,
-                      height: "100%",
-                      "@media (prefers-reduced-motion: reduce)": {
-                        animation: "none",
-                      },
-                    }}
-                  >
-                    <CalendarGrid
-                      calendarDays={calendarDays}
-                      date={date}
-                      onDateChange={onDateChange}
-                      today={today}
-                    />
-                  </Box>
-                </Box>
-              </Collapse>
-
-              {/* 时刻 行 */}
-              {showTime ? (
-                <>
-                  <TimeSettingRow
-                    expanded={timePickerOpen}
-                    onTimeClick={handleTimeRowClick}
-                    time={formatTimeDisplay(time)}
-                  />
-
-                  {/* 时间列展开区 */}
-                  <Collapse
-                    in={timePickerOpen}
-                    timeout={designTokens.motion.collapse}
-                    onEntered={handleTimeCollapseEntered}
-                  >
-                    <TimePickerColumns
-                      hourRef={hourRef}
-                      minuteRef={minuteRef}
-                      onTimePartChange={handleTimePartChange}
-                      secondRef={secondRef}
-                      timeParts={timeParts}
-                    />
-                  </Collapse>
-                </>
-              ) : null}
-            </Stack>
-          </Box>
+          {editorContent}
         </Stack>
       </Drawer>
     </>

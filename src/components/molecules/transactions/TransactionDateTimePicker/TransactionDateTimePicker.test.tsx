@@ -10,6 +10,26 @@ import {
 } from "./TransactionDateTimePicker";
 
 describe("TransactionDateTimePicker", () => {
+  it("编辑模式使用调用方标题并通过完成按钮关闭", () => {
+    const onClose = vi.fn();
+    render(
+      <TransactionDateTimePicker
+        date="2026-07-20"
+        time="10:30:47"
+        onDateChange={vi.fn()}
+        editor={{ open: true, onClose, title: "自定义时间标题" }}
+      />,
+    );
+    expect(
+      screen.getByRole("heading", { name: "自定义时间标题" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "关闭自定义时间标题编辑" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "完成" }));
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
   it("抽屉层级高于底部导航栏和 Dialog，避免被遮挡", () => {
     expect(dateTimePickerDrawerSx.zIndex).toBeGreaterThan(
       bottomNavigationLayout.navigationZIndex,

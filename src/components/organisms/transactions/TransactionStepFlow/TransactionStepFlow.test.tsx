@@ -1,7 +1,7 @@
 import { fireEvent, screen, within, waitFor } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import {
-  createEntryCallbacks,
+  renderTransactionFlow as setup,
   renderEntryComponent,
   clickEntryButton as click,
   selectEntryAccount as selectAccount,
@@ -11,15 +11,10 @@ import { flowFixture } from "test/mocks/transactionStepFlow";
 import { TransactionStepFlow } from "./TransactionStepFlow";
 import type { TransactionStepFlowProps } from "./TransactionStepFlow.types";
 
-function setup(overrides: Partial<TransactionStepFlowProps> = {}) {
-  const props = { ...flowFixture, ...createEntryCallbacks(), ...overrides };
-  const view = renderEntryComponent(<TransactionStepFlow {...props} />);
-  return { ...view, props };
-}
 function progress() {
-  return within(screen.getByRole("list", { name: "记账进度" })).getAllByRole(
-    "listitem",
-  );
+  return within(
+    screen.getByRole("list", { name: "记账进度", hidden: true }),
+  ).getAllByRole("listitem", { hidden: true });
 }
 describe("TransactionStepFlow", () => {
   it("商家选择通知外部并进入账户，账户选择后进入明细", async () => {
@@ -44,7 +39,9 @@ describe("TransactionStepFlow", () => {
     );
     expect(props.onAccountSelect).toHaveBeenCalledWith(flowFixture.accounts[1]);
     click("去确认");
-    expect(screen.getByText("确认内容将在后续任务实现")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "保存记账" }),
+    ).toBeInTheDocument();
     click("账户");
     expect(progress().map((item) => item.dataset.status)).toEqual([
       "completed",
@@ -60,7 +57,9 @@ describe("TransactionStepFlow", () => {
       expect(screen.getByRole("radiogroup")).toBeInTheDocument(),
     );
     click("完成，回到确认");
-    expect(screen.getByText("确认内容将在后续任务实现")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "保存记账" }),
+    ).toBeInTheDocument();
   });
 
   it("任何步骤可查看确认，未完成步骤不可通过进度条进入", () => {
@@ -98,7 +97,6 @@ describe("TransactionStepFlow", () => {
       initialStep: 4,
       initialMerchantId: "seven",
       initialAccountId: "paypay",
-      initialCompletedSteps: [1, 2, 3],
     });
     click("商家");
     click("LIFE超市");
@@ -108,11 +106,13 @@ describe("TransactionStepFlow", () => {
     expect(progress().map((item) => item.dataset.status)).toEqual([
       "completed",
       "current",
-      "completed",
+      "upcoming",
       "upcoming",
     ]);
     click("完成，回到确认");
-    expect(screen.getByText("确认内容将在后续任务实现")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "保存记账" }),
+    ).toBeInTheDocument();
   });
 
   it("关闭后重新打开不保留上次内容", () => {
@@ -135,7 +135,6 @@ describe("TransactionStepFlow", () => {
       initialStep: 3,
       initialMerchantId: "seven",
       initialAccountId: "paypay",
-      initialCompletedSteps: [1, 2],
       itemsOptions: {
         categoryOptions: itemsStepFixture.categoryOptions,
         initialItems: filledItems,
@@ -165,6 +164,16 @@ describe("TransactionStepFlow", () => {
       .filter((input) => input.getAttribute("name") === "paymentAmount");
     expect(restoredAmounts[0]).toHaveValue("6000");
     expect(restoredAmounts[1]).toHaveValue("4000");
+    fireEvent.change(restoredAmounts[0], { target: { value: "5000" } });
+    click("确认");
+    expect(progress()[2]).toHaveAttribute("data-status", "upcoming");
+    click("明细");
+    fireEvent.change(screen.getByRole("textbox", { name: "付款金额 1" }), {
+      target: { value: "6000" },
+    });
+    click("确认");
+    expect(progress()[2]).toHaveAttribute("data-status", "completed");
+    click("明细");
     expect(
       screen.getByRole("button", { name: "编辑明细 1 金额" }),
     ).toHaveTextContent("¥8,000");
@@ -184,7 +193,6 @@ describe("TransactionStepFlow", () => {
       initialStep: 3,
       initialMerchantId: "seven",
       initialAccountId: "paypay",
-      initialCompletedSteps: [1, 2],
       itemsOptions: {
         categoryOptions: itemsStepFixture.categoryOptions,
         initialItems: filledItems,
@@ -239,4 +247,139 @@ describe("TransactionStepFlow", () => {
       screen.getByRole("button", { name: "编辑明细 1 分类" }),
     ).toHaveTextContent("咖啡");
   });
+});
+
+describe("TransactionStepFlow 快速路线", () => {
+  const quickSuggestions = {
+    ...itemsStepFixture.suggestions!,
+    recommendedAccountIds: ["paypay", "cash"],
+  };
+  function quickSetup(overrides: Partial<TransactionStepFlowProps> = {}) {
+    return setup({
+      suggestionsMerchantId: "seven",
+      suggestions: quickSuggestions,
+      itemsOptions: { categoryOptions: itemsStepFixture.categoryOptions },
+      ...overrides,
+    });
+  }
+  it("快速路线到确认时明细未完成但可点击，填完金额后才完成", async () => {
+    quickSetup();
+    click("7-Eleven");
+    expect(
+      await screen.findByText("午餐 的金额", { exact: false }),
+    ).toBeInTheDocument();
+    expect(progress().map((item) => item.dataset.status)).toEqual([
+      "completed",
+      "completed",
+      "upcoming",
+      "current",
+    ]);
+    expect(
+      within(progress()[2]).getByRole("button", { name: "明细", hidden: true }),
+    ).toBeInTheDocument();
+    click("上次 ¥498");
+    click("确定");
+    expect(
+      await screen.findByText("咖啡 的金额", { exact: false }),
+    ).toBeInTheDocument();
+    click("上次 ¥250");
+    click("确定");
+    await waitFor(() =>
+      expect(screen.queryByLabelText("金额计算器")).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole("button", { name: "保存记账" })).toBeEnabled();
+    expect(progress()[2]).toHaveAttribute("data-status", "completed");
+    expect(
+      screen.getByRole("button", { name: /^收支账户 / }),
+    ).toHaveTextContent("PayPay");
+    click("明细");
+    expect(
+      screen.getByRole("button", { name: "添加明细" }),
+    ).toBeInTheDocument();
+  });
+  it("只有推荐账户时选第一个账户并停在明细", async () => {
+    quickSetup({
+      suggestions: { ...quickSuggestions, automaticCategoryIds: [] },
+    });
+    click("7-Eleven");
+    expect(
+      await screen.findByRole("button", { name: "添加明细" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "PayPay JPY 更换" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "保存记账" }),
+    ).not.toBeInTheDocument();
+  });
+  it("没有历史时停在账户，明细空状态从建议推导", async () => {
+    quickSetup({
+      suggestions: {
+        recommendedAccountIds: [],
+        automaticCategoryIds: [],
+        quickAmounts: [],
+      },
+    });
+    click("7-Eleven");
+    expect(
+      screen.getByRole("radiogroup", { name: "收支账户" }),
+    ).toBeInTheDocument();
+    selectAccount();
+    expect(
+      await screen.findByText("这家商家还没有常用明细"),
+    ).toBeInTheDocument();
+  });
+  it("忽略其他商家的建议，当前建议晚到后只应用一次", async () => {
+    const { props, rerender } = quickSetup({ suggestionsMerchantId: "life" });
+    click("7-Eleven");
+    expect(screen.getByRole("radiogroup")).toBeInTheDocument();
+    const loaded = { ...props, suggestionsMerchantId: "seven" };
+    rerender(<TransactionStepFlow {...loaded} />);
+    expect(await screen.findByLabelText("金额计算器")).toBeInTheDocument();
+    click("关闭金额键盘");
+    await waitFor(() =>
+      expect(screen.queryByLabelText("金额计算器")).not.toBeInTheDocument(),
+    );
+    click("明细");
+    click("删除明细 1");
+    rerender(
+      <TransactionStepFlow {...loaded} suggestions={{ ...quickSuggestions }} />,
+    );
+    expect(screen.getAllByText("自动")).toHaveLength(1);
+    expect(screen.queryByLabelText("金额计算器")).not.toBeInTheDocument();
+  });
+  it.each(["商家", "7-Eleven 更换"])(
+    "从确认通过%s换商家时保留明细，不应用晚到的新建议",
+    async (entry) => {
+      const { props, rerender } = quickSetup({
+        initialStep: 4,
+        initialMerchantId: "seven",
+        initialAccountId: "paypay",
+        itemsOptions: {
+          categoryOptions: itemsStepFixture.categoryOptions,
+          initialItems: filledItems,
+        },
+      });
+      click(entry);
+      click("LIFE超市");
+      rerender(
+        <TransactionStepFlow
+          {...props}
+          suggestionsMerchantId="life"
+          suggestions={{
+            ...quickSuggestions,
+            automaticCategoryIds: ["coffee"],
+          }}
+        />,
+      );
+      click("完成，回到确认");
+      expect(
+        screen.getByRole("button", { name: /^明细 1 / }),
+      ).toHaveTextContent("午餐");
+      expect(
+        screen.getByRole("button", { name: /^明细 2 / }),
+      ).toHaveTextContent("收纳");
+      expect(screen.queryByLabelText("金额计算器")).not.toBeInTheDocument();
+    },
+  );
 });

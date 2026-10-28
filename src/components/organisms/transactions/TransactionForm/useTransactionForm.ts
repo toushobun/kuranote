@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
 
 import { useEditTransactionDirty } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
 import { useConfirmDialog } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
@@ -51,6 +58,7 @@ import {
   buildCategoryPickerGroups,
   getCurrencyMismatchedLinkKinds,
   isValidMoneyText,
+  isValidTransactionFormItem,
 } from "./TransactionForm.utils";
 
 type UseTransactionFormOptions = Pick<
@@ -112,6 +120,7 @@ export function useTransactionForm({
   const [pickerReimbursementCandidate, setPickerReimbursementCandidate] =
     useState<TransactionRefundCandidate | null>(null);
   const [pickerErrors, setPickerErrors] = useState<TransactionPickerErrors>({});
+  const [note, setNote] = useState(initialValues?.note ?? "");
   const [linkNotice, setLinkNotice] = useState<string | null>(null);
   const [transactionDate, setTransactionDate] = useState("");
   const [transactionTime, setTransactionTime] = useState("");
@@ -207,11 +216,8 @@ export function useTransactionForm({
   });
   const hasValidItems =
     allDisplayItems.length > 0 &&
-    allDisplayItems.every(
-      (item) =>
-        item.categoryId.length > 0 &&
-        isValidMoneyText(item.amount, selectedAccount?.currency) &&
-        (!item.refundCandidate || Number(item.amount) > 0),
+    allDisplayItems.every((item) =>
+      isValidTransactionFormItem(item, selectedAccount?.currency),
     );
   const transactionAtValue = composeTransactionDateTimeLocalValue(
     transactionDate,
@@ -730,7 +736,10 @@ export function useTransactionForm({
       : transactionPaymentValidationErrorMessages[validation.error];
   }
 
-  function handleNoteChange() {
+  function handleNoteChange(
+    event?: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) {
+    if (event) setNote(event.target.value);
     markEditDirty?.();
   }
 
@@ -782,6 +791,7 @@ export function useTransactionForm({
   }
 
   return {
+    note,
     addItem,
     accountFieldRef,
     accountFieldError: getAccountFieldError(),
