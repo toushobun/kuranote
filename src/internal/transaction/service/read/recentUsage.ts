@@ -7,9 +7,6 @@ export const minimumHistoryItemCount = 20;
 // 现有明细选择抽屉的常用快捷分类最多返回 5 个，含手动顺序回退。
 export const frequentCategoryLimit = 5;
 
-// 从商家记账的账户推荐、自动明细和快捷金额统计共用该商家最近 20 笔记录（预定义）。
-export const merchantRecentTransactionLimit = 20;
-
 // 从商家记账的收支账户步骤最多推荐 3 个账户（预定义）。
 export const recommendedAccountLimit = 3;
 

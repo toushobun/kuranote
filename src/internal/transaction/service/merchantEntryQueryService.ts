@@ -1,3 +1,4 @@
+import { merchantRecentTransactionLimit } from "@/constants/recentUsage";
 import {
   requireActiveLedgerMemberRole,
   type LedgerAccessService,
@@ -20,10 +21,7 @@ import {
   type MerchantEntrySuggestions,
 } from "internal/transaction/schema";
 import { requireTransactionUserId } from "internal/transaction/service/read/transactionReadAccess";
-import {
-  frequentMerchantLimit,
-  merchantRecentTransactionLimit,
-} from "internal/transaction/service/read/recentUsage";
+import { frequentMerchantLimit } from "internal/transaction/service/read/recentUsage";
 import { buildMerchantEntrySuggestions } from "internal/transaction/util/merchantEntrySuggestions";
 
 export interface MerchantEntryQueryService {
