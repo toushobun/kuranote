@@ -38,7 +38,7 @@ function TransactionStepFlowSession(props: TransactionStepFlowProps) {
               steps={m.steps}
               label={m.progress}
               completedSteps={w.completed}
-              clickableSteps={[...w.completed, 4]}
+              clickableSteps={w.clickableSteps}
               onStepClick={w.goToStep}
             />
             {w.step >= 2 && w.merchant && (

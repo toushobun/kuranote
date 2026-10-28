@@ -17,7 +17,6 @@ import { designTokens } from "theme/theme";
 import { amountKeypadZIndex } from "theme/zIndex";
 
 import { TransactionBottomEditorDrawer } from "molecules/transactions/TransactionBottomEditorDrawer/TransactionBottomEditorDrawer";
-import { flowMessages } from "config/transactionStepFlowMessages";
 
 import { CalendarGrid } from "./CalendarGrid";
 import { DateSettingRow, TimeSettingRow } from "./DateTimeSettingRows";
@@ -44,7 +43,7 @@ export const dateTimePickerDrawerSx = {
 
 type TransactionDateTimePickerProps = {
   date: string;
-  editor?: { open: boolean; onClose: () => void };
+  editor?: { open: boolean; onClose: () => void; title: string };
   fieldLabel?: string;
   onDateChange: (value: string) => void;
   onTimeChange?: (value: string) => void;
@@ -329,7 +328,7 @@ export function TransactionDateTimePicker({
     return (
       <TransactionBottomEditorDrawer
         open={editor.open}
-        title={flowMessages.time}
+        title={editor.title}
         onClose={editor.onClose}
       >
         {editorContent}

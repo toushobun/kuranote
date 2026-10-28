@@ -6,7 +6,6 @@ export const confirmFlowFixture: TransactionStepFlowProps = {
   initialStep: 4,
   initialMerchantId: "seven",
   initialAccountId: "paypay",
-  initialCompletedSteps: [1, 2, 3],
   itemsOptions: { ...itemsStepFixture, initialItems: filledItems },
   action: async () => ({}),
 };

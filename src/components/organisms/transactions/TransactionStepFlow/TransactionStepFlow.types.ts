@@ -25,7 +25,6 @@ export type TransactionStepFlowProps = {
   initialMerchantId?: string;
   initialAccountId?: string;
   initialStep?: number;
-  initialCompletedSteps?: number[];
   onClose: () => void;
   onMethodChange: (method: EntryMethod) => void;
   onMerchantSelect: (merchant: FlowMerchant) => void;

@@ -97,7 +97,6 @@ describe("TransactionStepFlow", () => {
       initialStep: 4,
       initialMerchantId: "seven",
       initialAccountId: "paypay",
-      initialCompletedSteps: [1, 2, 3],
     });
     click("商家");
     click("LIFE超市");
@@ -107,7 +106,7 @@ describe("TransactionStepFlow", () => {
     expect(progress().map((item) => item.dataset.status)).toEqual([
       "completed",
       "current",
-      "completed",
+      "upcoming",
       "upcoming",
     ]);
     click("完成，回到确认");
@@ -136,7 +135,6 @@ describe("TransactionStepFlow", () => {
       initialStep: 3,
       initialMerchantId: "seven",
       initialAccountId: "paypay",
-      initialCompletedSteps: [1, 2],
       itemsOptions: {
         categoryOptions: itemsStepFixture.categoryOptions,
         initialItems: filledItems,
@@ -166,6 +164,16 @@ describe("TransactionStepFlow", () => {
       .filter((input) => input.getAttribute("name") === "paymentAmount");
     expect(restoredAmounts[0]).toHaveValue("6000");
     expect(restoredAmounts[1]).toHaveValue("4000");
+    fireEvent.change(restoredAmounts[0], { target: { value: "5000" } });
+    click("确认");
+    expect(progress()[2]).toHaveAttribute("data-status", "upcoming");
+    click("明细");
+    fireEvent.change(screen.getByRole("textbox", { name: "付款金额 1" }), {
+      target: { value: "6000" },
+    });
+    click("确认");
+    expect(progress()[2]).toHaveAttribute("data-status", "completed");
+    click("明细");
     expect(
       screen.getByRole("button", { name: "编辑明细 1 金额" }),
     ).toHaveTextContent("¥8,000");
@@ -185,7 +193,6 @@ describe("TransactionStepFlow", () => {
       initialStep: 3,
       initialMerchantId: "seven",
       initialAccountId: "paypay",
-      initialCompletedSteps: [1, 2],
       itemsOptions: {
         categoryOptions: itemsStepFixture.categoryOptions,
         initialItems: filledItems,
@@ -255,7 +262,7 @@ describe("TransactionStepFlow 快速路线", () => {
       ...overrides,
     });
   }
-  it("有自动明细时跳到确认并依次补金额，前三步标记完成", async () => {
+  it("快速路线到确认时明细未完成但可点击，填完金额后才完成", async () => {
     quickSetup();
     click("7-Eleven");
     expect(
@@ -264,22 +271,31 @@ describe("TransactionStepFlow 快速路线", () => {
     expect(progress().map((item) => item.dataset.status)).toEqual([
       "completed",
       "completed",
-      "completed",
+      "upcoming",
       "current",
     ]);
+    expect(
+      within(progress()[2]).getByRole("button", { name: "明细", hidden: true }),
+    ).toBeInTheDocument();
     click("上次 ¥498");
     click("确定");
     expect(
       await screen.findByText("咖啡 的金额", { exact: false }),
     ).toBeInTheDocument();
-    click("关闭金额键盘");
+    click("上次 ¥250");
+    click("确定");
     await waitFor(() =>
       expect(screen.queryByLabelText("金额计算器")).not.toBeInTheDocument(),
     );
-    expect(screen.getByRole("button", { name: "保存记账" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "保存记账" })).toBeEnabled();
+    expect(progress()[2]).toHaveAttribute("data-status", "completed");
     expect(
       screen.getByRole("button", { name: /^收支账户 / }),
     ).toHaveTextContent("PayPay");
+    click("明细");
+    expect(
+      screen.getByRole("button", { name: "添加明细" }),
+    ).toBeInTheDocument();
   });
   it("只有推荐账户时选第一个账户并停在明细", async () => {
     quickSetup({
@@ -339,7 +355,6 @@ describe("TransactionStepFlow 快速路线", () => {
         initialStep: 4,
         initialMerchantId: "seven",
         initialAccountId: "paypay",
-        initialCompletedSteps: [1, 2, 3],
         itemsOptions: {
           categoryOptions: itemsStepFixture.categoryOptions,
           initialItems: filledItems,

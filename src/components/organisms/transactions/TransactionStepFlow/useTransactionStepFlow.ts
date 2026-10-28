@@ -22,8 +22,8 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
   );
   const pendingQuickMerchantId = useRef<string | null>(null);
   const [step, setStep] = useState(props.initialStep ?? 1);
-  const [completed, setCompleted] = useState<number[]>(
-    props.initialCompletedSteps ?? [],
+  const [itemsReached, setItemsReached] = useState(
+    (props.initialStep ?? 1) >= 3,
   );
   const itemsOptions = props.itemsOptions ?? { categoryOptions: [] };
   const [amountItemId, setAmountItemId] = useState<number | null>(null);
@@ -83,6 +83,11 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     (item) => item.id === form.selectedMerchantId,
   );
   const account = form.selectedAccount;
+  const completed = [
+    ...(merchant ? [1] : []),
+    ...(account ? [2] : []),
+    ...(form.hasValidItems && !form.accountFieldError ? [3] : []),
+  ];
   function initializeAutomaticItems(quick = false) {
     if (automaticItemsInitialized || form.itemSummaries.length > 0) return [];
     const ids = automaticCategoryIds(quick, form.selectedMerchantId).map(
@@ -110,7 +115,7 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
       props.onAccountSelect(recommended);
     }
     const ids = initializeAutomaticItems(true);
-    setCompleted(ids.length ? [1, 2, 3] : recommended ? [1, 2] : [1]);
+    if (ids.length || recommended) setItemsReached(true);
     setStep(ids.length ? 4 : recommended ? 3 : 2);
     setAmountItemId(ids[0] ?? null);
   });
@@ -120,15 +125,15 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
   }, [suggestionsReady, props.suggestions, merchant?.id]);
   function goToStep(target: number) {
     pendingQuickMerchantId.current = null;
-    if (target === 3) initializeAutomaticItems();
+    if (target === 3) {
+      setItemsReached(true);
+      initializeAutomaticItems();
+    }
     if (step === 4 && target !== 4) setReturning(true);
     if (target === 4) setReturning(false);
     setStep(target);
   }
   function advance(from: number) {
-    setCompleted((current) =>
-      current.includes(from) ? current : [...current, from],
-    );
     goToStep(returning ? 4 : from + 1);
   }
   function selectMerchant(value: FlowMerchant) {
@@ -136,9 +141,6 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
       !returning && step !== 4 && !form.itemSummaries.length ? value.id : null;
     form.handleMerchantChange(value.id);
     props.onMerchantSelect(value);
-    setCompleted((current) =>
-      current.includes(1) ? current : [...current, 1],
-    );
     setStep(2);
   }
   function selectAccount(value: TransactionAccountOption) {
@@ -181,6 +183,7 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     amountItemId,
     setAmountItemId,
     completed,
+    clickableSteps: [...completed, ...(itemsReached ? [3] : []), 4],
     returning,
     methodOpen,
     setMethodOpen,

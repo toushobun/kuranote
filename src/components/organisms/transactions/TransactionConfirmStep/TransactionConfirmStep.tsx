@@ -187,7 +187,11 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
           time={f.transactionTime}
           onDateChange={f.handleDateChange}
           onTimeChange={f.handleTimeChange}
-          editor={{ open: true, onClose: () => w.setEditor(null) }}
+          editor={{
+            open: true,
+            onClose: () => w.setEditor(null),
+            title: m.time,
+          }}
         />
       )}
       <TransactionStepAmountEditor {...props} />
