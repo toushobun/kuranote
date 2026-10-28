@@ -1,0 +1,1 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";import{E as t,T as n,o as r,r as i,s as a,t as o}from"./DefaultPropsProvider-BWoWYWbL.js";var s,c=e((()=>{n(),r(),o(),s=t({createStyledComponent:a(`div`,{name:`MuiStack`,slot:`Root`}),useThemeProps:e=>i({props:e,name:`MuiStack`})})})),l=e((()=>{c()}));export{s as n,c as r,l as t};
