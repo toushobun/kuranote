@@ -1,0 +1,1 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";import{t}from"./jsx-runtime-Dwpk6tgA.js";import{n,t as r}from"./ConfirmDialogProvider-zBQA2t0e.js";var i,a,o=e((()=>{i=t(),n(),a=[e=>(0,i.jsx)(r,{children:(0,i.jsx)(e,{})})]}));export{a as n,o as t};
