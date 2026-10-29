@@ -23,6 +23,8 @@ type WizardDialogProps = {
   closeLabel: string;
   closeAlignment?: "start" | "end";
   disabled?: boolean;
+  /** 打开时不淡入（如记一笔从骨架切换过来时，避免露出底部的页面与底部导航）。 */
+  disableEnterTransition?: boolean;
   headerContent?: ReactNode;
   titleAction?: ReactNode;
   /** 传入时左上角为返回 ←，关闭 × 移到右上角（不再显示 `titleAction`）。 */
@@ -40,6 +42,7 @@ export function WizardDialog({
   closeLabel,
   closeAlignment = "end",
   disabled = false,
+  disableEnterTransition = false,
   headerContent,
   titleAction,
   back,
@@ -49,7 +52,8 @@ export function WizardDialog({
   titleId,
   ariaLabel,
 }: WizardDialogProps) {
-  const fullScreen = useMediaQuery(useTheme().breakpoints.down("sm"));
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const generatedTitleId = useId();
   const headingId = titleId ?? generatedTitleId;
   function requestClose() {
@@ -72,6 +76,11 @@ export function WizardDialog({
       maxWidth={false}
       onClose={requestClose}
       open={open}
+      transitionDuration={
+        disableEnterTransition
+          ? { enter: 0, exit: theme.transitions.duration.leavingScreen }
+          : undefined
+      }
       slotProps={{
         paper: {
           "aria-label": ariaLabel,

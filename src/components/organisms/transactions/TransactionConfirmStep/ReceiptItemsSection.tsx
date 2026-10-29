@@ -11,6 +11,7 @@ import {
   formatStepItemAmount,
   formatStepItemCategory,
 } from "../transactionStepFlowFormat";
+import { exceedsCurrencyDecimalPlaces } from "utils/transactionAmountInput";
 import { ReceiptAmountButton, ReceiptLine } from "./ReceiptLine";
 
 /** 小票的明细区：提示、每条明细（标签、金额、铅笔、×）与「＋ 添加明细」。 */
@@ -55,6 +56,10 @@ export function ReceiptItemsSection({
       {items.map((item, index) => {
         const name = formatStepItemCategory(item.category);
         const amount = formatStepItemAmount(item, currency);
+        const excessDecimals = exceedsCurrencyDecimalPlaces(
+          item.amount,
+          currency,
+        );
         const businessStatus =
           item.businessStatus ??
           resolveTransactionBusinessStatus({
@@ -67,19 +72,28 @@ export function ReceiptItemsSection({
             label={name}
             error={invalidItems.includes(item)}
             errorLabel={invalidItems.includes(item) && !!item.amount.trim()}
-            tags={
-              businessStatus && (
-                <TransactionBusinessBadge
-                  currency={currency}
-                  status={businessStatus}
-                />
+            subline={
+              (businessStatus || excessDecimals) && (
+                <>
+                  {businessStatus && (
+                    <TransactionBusinessBadge
+                      currency={currency}
+                      status={businessStatus}
+                    />
+                  )}
+                  {excessDecimals && (
+                    <Typography variant="caption" sx={{ color: "error.main" }}>
+                      {m.excessDecimalsHint}
+                    </Typography>
+                  )}
+                </>
               )
             }
             amount={
               <ReceiptAmountButton
                 label={m.editAmount(index + 1, amount)}
                 amount={amount}
-                pending={!item.amount.trim()}
+                pending={!item.amount.trim() || excessDecimals}
                 income={item.category?.type === "income"}
                 onClick={() => onAmount(item.id)}
               />

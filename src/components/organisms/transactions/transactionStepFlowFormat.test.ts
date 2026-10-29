@@ -3,6 +3,7 @@ import {
   formatStepItemAmount,
   formatStepItemCategory,
   formatStepNetTotal,
+  sumStepItemAmounts,
 } from "./transactionStepFlowFormat";
 
 const lunch = {
@@ -40,5 +41,26 @@ describe("transactionStepFlowFormat", () => {
   it("合计为支出减收入，收入较多时带加号", () => {
     expect(formatStepNetTotal(748, 0, "JPY")).toBe("¥748");
     expect(formatStepNetTotal(100, 300, "JPY")).toBe("+ ¥200");
+  });
+
+  it("换币种后小数位超出时显示真实金额，不按新币种四舍五入", () => {
+    expect(
+      formatStepItemAmount({ amount: "12.55", category: lunch }, "JPY"),
+    ).toBe("¥12.55");
+    expect(formatStepNetTotal(12.55, 0, "JPY")).toBe("¥12.55");
+    expect(formatStepNetTotal(15.65, 3.1, "JPY")).toBe("¥12.55");
+  });
+
+  it("小票合计计入小数位超出的金额，跳过空金额并避免浮点误差", () => {
+    const income = { ...lunch, type: "income" as const };
+    expect(
+      sumStepItemAmounts([
+        { amount: "12.55", category: lunch },
+        { amount: "3.1", category: lunch },
+        { amount: "", category: lunch },
+        { amount: "0.2", category: income },
+        { amount: "0.1", category: income },
+      ]),
+    ).toEqual({ expenseTotal: 15.65, incomeTotal: 0.3 });
   });
 });

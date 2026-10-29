@@ -530,7 +530,9 @@ export function useTransactionForm({
         pickerReimbursementCandidate,
       );
     }
-    if (editingItemId !== null) onPickerItemCommit?.(editingItemId);
+    // 编辑已有明细时，只有金额还空着才通知（打开金额键盘）。
+    if (editingItemId !== null && !pickerAmount.trim())
+      onPickerItemCommit?.(editingItemId);
     setEditingItemId(null);
     setPickerCategoryId("");
     setPickerAmount("");

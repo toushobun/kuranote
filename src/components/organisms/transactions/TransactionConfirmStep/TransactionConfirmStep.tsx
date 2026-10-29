@@ -23,7 +23,11 @@ import { TransactionFormHiddenFields } from "../TransactionFormHiddenFields/Tran
 import { TransactionItemAmountDrawer } from "../TransactionItemAmountDrawer/TransactionItemAmountDrawer";
 import { TransactionStepAmountEditor } from "../TransactionStepAmountEditor/TransactionStepAmountEditor";
 import { TransactionStepItemPicker } from "../TransactionStepItemPicker/TransactionStepItemPicker";
-import { formatStepNetTotal } from "../transactionStepFlowFormat";
+import {
+  formatStepCurrencyAmount,
+  formatStepNetTotal,
+  sumStepItemAmounts,
+} from "../transactionStepFlowFormat";
 import { ReceiptItemsSection } from "./ReceiptItemsSection";
 import { receiptIconSize } from "./ReceiptLine";
 import { ReceiptPaymentSection } from "./ReceiptPaymentSection";
@@ -39,9 +43,10 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
   const paymentSectionRef = useRef<HTMLDivElement>(null);
   const w = useTransactionConfirmStep(props, paymentSectionRef);
   const currency = w.currency ?? "";
-  const total = formatStepNetTotal(f.expenseTotal, f.incomeTotal, currency);
+  const { expenseTotal, incomeTotal } = sumStepItemAmounts(f.itemSummaries);
+  const total = formatStepNetTotal(expenseTotal, incomeTotal, currency);
   const format = (amount: number) =>
-    formatUnsignedCurrencyAmount(String(amount), currency);
+    formatStepCurrencyAmount(String(amount), currency);
   const hasIncome = f.itemSummaries.some(
     (item) => item.category?.type === "income",
   );
@@ -132,10 +137,10 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
                   <Typography variant="caption" color="textSecondary">
                     {hasIncome
                       ? m.incomeExpense(
-                          format(f.expenseTotal),
-                          format(f.incomeTotal),
+                          format(expenseTotal),
+                          format(incomeTotal),
                         )
-                      : m.expenseOnly(format(f.expenseTotal))}
+                      : m.expenseOnly(format(expenseTotal))}
                   </Typography>
                 </Stack>
               </Stack>

@@ -6,11 +6,15 @@ import type { CSSProperties, ReactNode } from "react";
 
 import type { TransactionColorScheme, UserThemeKey } from "internal/user";
 import { BottomNavigationBar } from "organisms/navigation/BottomNavigationBar/BottomNavigationBar";
-import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
+import {
+  bottomNavigationLayout,
+  coverBottomNavigationAttribute,
+} from "organisms/navigation/bottomNavigationLayout";
 import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import { DynamicMuiThemeProvider } from "providers/DynamicMuiThemeProvider";
 import { UserThemeProvider, useUserTheme } from "theme/UserThemeProvider";
 import { getUserThemeCssVariables } from "theme/userThemeCssVariables";
+import { appZIndex } from "theme/zIndex";
 
 import { useScrollTopOnPathnameChange } from "./useScrollTopOnPathnameChange";
 
@@ -98,7 +102,14 @@ function AppShellContent({
       <Container
         component="main"
         maxWidth="md"
-        sx={{ position: "relative", py: 4, zIndex: 1 }}
+        sx={{
+          position: "relative",
+          py: 4,
+          zIndex: 1,
+          [`&:has([${coverBottomNavigationAttribute}])`]: {
+            zIndex: appZIndex.dialog,
+          },
+        }}
       >
         {children}
       </Container>

@@ -28,6 +28,7 @@ describe("merchantEntrySuggestions", () => {
   it.each([
     [20, 10],
     [19, 10],
+    [1, 1],
     [4, 2],
     [3, 2],
     [2, 2],
@@ -51,10 +52,16 @@ describe("merchantEntrySuggestions", () => {
       ).toEqual(["food"]);
     },
   );
-  it("只有 1 笔记录时不自动添加", () => {
+  it("只有 1 笔记录时，该记录里的小分类全部自动加入", () => {
+    const [only] = history(1);
     expect(
-      buildMerchantEntrySuggestions(history(1)).automaticCategoryIds,
-    ).toEqual([]);
+      buildMerchantEntrySuggestions([
+        {
+          ...only,
+          items: [...only.items, { categoryId: "drink", amount: "50" }],
+        },
+      ]).automaticCategoryIds,
+    ).toEqual(["food", "drink"]);
   });
   it("小分类按记录数降序，同次数保留首次出现顺序", () => {
     const records = history(12).map((r, i) => ({

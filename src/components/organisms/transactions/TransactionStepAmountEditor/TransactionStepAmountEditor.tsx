@@ -2,6 +2,7 @@
 import { TransactionItemAmountDrawer } from "../TransactionItemAmountDrawer/TransactionItemAmountDrawer";
 import type { TransactionReceiptProps } from "../TransactionConfirmStep/TransactionConfirmStep.types";
 import { formatStepItemCategory } from "../transactionStepFlowFormat";
+import { exceedsCurrencyDecimalPlaces } from "utils/transactionAmountInput";
 
 /** 明细的金额键盘：逐键同步到明细，确定后跳到下一条未填金额的明细。 */
 export function TransactionStepAmountEditor({
@@ -13,6 +14,7 @@ export function TransactionStepAmountEditor({
   const amountItem = form.itemSummaries.find(
     (item) => item.id === amountItemId,
   );
+  const currency = form.selectedAccount?.currency ?? "";
   function confirmAmount(amount: string) {
     if (!amountItem) return;
     form.updateItem(amountItem.id, { amount });
@@ -26,8 +28,13 @@ export function TransactionStepAmountEditor({
       open={!!amountItem}
       title={formatStepItemCategory(amountItem?.category)}
       categoryId={amountItem?.categoryId}
-      currency={form.selectedAccount?.currency ?? ""}
-      value={amountItem?.amount ?? ""}
+      currency={currency}
+      value={
+        // 换币种后小数位超出的金额从空白重新输入；不输入就关闭时保留原值。
+        amountItem && !exceedsCurrencyDecimalPlaces(amountItem.amount, currency)
+          ? amountItem.amount
+          : ""
+      }
       quickAmounts={suggestions?.quickAmounts}
       onChange={(amount) =>
         amountItem && form.updateItem(amountItem.id, { amount })

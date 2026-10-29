@@ -15,7 +15,8 @@ import type { TransactionStepFlowProps } from "./TransactionStepFlow.types";
 import { flowMessages as m } from "config/transactionStepFlowMessages";
 import type { FlowMerchant } from "organisms/transactions/MerchantStep/MerchantStep.types";
 
-// 快速路线：选完商家后最多等待建议数据这么久，超时则不再应用建议，直接进入小票。
+// 快速路线：选完商家后最多等待建议数据这么久，超时则直接进入小票；
+// 之后晚到的建议只在用户还没动过小票时补上。
 export const quickRouteSuggestionTimeoutMs = 2000;
 
 export type TransactionStepFlowScreen = "merchant" | "receipt";
@@ -26,7 +27,7 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     props.action,
     {},
   );
-  // 等待建议数据的商家；只应用一次，超时、返回换商家或已有输入时清空。
+  // 等待建议数据的商家；只应用一次，返回换商家、超时后动过小票或已有输入时清空。
   const pendingQuickMerchantId = useRef<string | null>(
     props.initialMerchantId ?? null,
   );
@@ -70,6 +71,12 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     deferPickerAmount: true,
     onPickerItemCommit: setAmountItemId,
   });
+  // 开始等待建议时的明细与付款；超时后与之不同即视为用户动过小票（选账户、加 / 删明细、改金额）。
+  const receiptSnapshot = JSON.stringify([
+    form.itemSummaries.map((item) => [item.id, item.amount]),
+    form.payments.map((payment) => [payment.accountId, payment.amount]),
+  ]);
+  const waitStartSnapshot = useRef(receiptSnapshot);
   const [methodOpen, setMethodOpen] = useState(false);
   const merchant = props.merchants.find(
     (item) => item.id === form.selectedMerchantId,
@@ -119,12 +126,19 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     if (!waiting) return;
     // 获取失败按「没有建议」处理会直接到达；一直没有结果时也不阻断手动记账。
     // 加载中改点另一个商家时重新计时。
+    // 超时后保留等待中的商家，晚到的建议在用户动过小票之前仍可补上。
     const timer = setTimeout(() => {
-      stopWaiting();
+      setLoadingMerchantId(null);
+      setWaitingInitialSuggestions(false);
       showReceipt();
     }, quickRouteSuggestionTimeoutMs);
     return () => clearTimeout(timer);
   }, [waiting, loadingMerchantId]);
+  useEffect(() => {
+    // 超时后动过小票就丢弃晚到的建议，不覆盖用户输入。
+    if (!waiting && receiptSnapshot !== waitStartSnapshot.current)
+      pendingQuickMerchantId.current = null;
+  }, [waiting, receiptSnapshot]);
   function backToMerchant() {
     stopWaiting();
     setAmountItemId(null);
@@ -134,6 +148,7 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     // 从小票返回换商家或已有明细时不走快速路线，直接回到小票。
     const quick = !receiptVisited && !form.itemSummaries.length;
     pendingQuickMerchantId.current = quick ? value.id : null;
+    waitStartSnapshot.current = receiptSnapshot;
     form.handleMerchantChange(value.id);
     props.onMerchantSelect(value);
     if (quick) setLoadingMerchantId(value.id);

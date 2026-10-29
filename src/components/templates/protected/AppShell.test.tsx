@@ -3,7 +3,9 @@ import type { ReactNode } from "react";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { coverBottomNavigationAttribute } from "organisms/navigation/bottomNavigationLayout";
 import { getUserThemeCssVariables } from "theme/userThemeCssVariables";
+import { appZIndex } from "theme/zIndex";
 
 import { AppShell } from "./AppShell";
 
@@ -32,13 +34,16 @@ afterEach(() => {
   cleanup();
 });
 
-function createAppShell(themeKey: "amberWarmth" | "lavenderDream") {
+function createAppShell(
+  themeKey: "amberWarmth" | "lavenderDream",
+  children: ReactNode = <div>内容</div>,
+) {
   return (
     <AppShell
       themeKey={themeKey}
       transactionColorScheme="expense_green_income_red"
     >
-      <div>内容</div>
+      {children}
     </AppShell>
   );
 }
@@ -100,5 +105,20 @@ describe("AppShell", () => {
     expect(
       within(container).getByLabelText("新增记录").getAttribute("href"),
     ).toBe("/transactions/new");
+  });
+
+  it("内容里有盖住底部导航的全屏层时，main 抬到底部导航之上", () => {
+    const { container, rerender } = render(createAppShell("amberWarmth"));
+    const main = container.querySelector("main")!;
+    expect(getComputedStyle(main).zIndex).toBe("1");
+
+    rerender(
+      createAppShell(
+        "amberWarmth",
+        <div {...{ [coverBottomNavigationAttribute]: true }} />,
+      ),
+    );
+    expect(Number(getComputedStyle(main).zIndex)).toBe(appZIndex.dialog);
+    expect(appZIndex.dialog).toBeGreaterThan(appZIndex.bottomNavigation);
   });
 });

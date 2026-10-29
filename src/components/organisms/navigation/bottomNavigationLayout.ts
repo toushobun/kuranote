@@ -21,6 +21,10 @@ export const bottomNavigationLayout = {
   shellPaddingBottomOffset: `calc(-${bottomNavigationReservePx}px - env(safe-area-inset-bottom))`,
 } as const;
 
+// 服务端就要盖住底部导航的全屏层（如记一笔的加载骨架）带上这个属性，AppShell 据此把 main 抬到底部导航之上。
+// main 自身是层叠上下文，里面的 fixed 元素无论 z-index 多高都盖不住同级的底部导航。
+export const coverBottomNavigationAttribute = "data-cover-bottom-navigation";
+
 // 第 index 条（从 0 开始）叠放提示条距底部的位置。
 export function stackedFeedbackBottomOffset(index: number): string {
   return `calc(${bottomNavigationLayout.feedbackBottomOffset} + ${index * stackedFeedbackGapPx}px)`;

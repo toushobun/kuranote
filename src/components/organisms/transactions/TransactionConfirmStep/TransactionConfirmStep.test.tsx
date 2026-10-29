@@ -30,6 +30,18 @@ function saveButton() {
 function transactionForm() {
   return saveButton().closest("form")!;
 }
+// 换成不同币种的账户（如 "招商银行卡 CNY"）：直接换，或点 × 清空后再选；停在弹出的确认框。
+async function openCurrencyConfirm(account: string, clearFirst = false) {
+  if (clearFirst) click("删除支付账户 1");
+  click("更换支付账户 1");
+  selectAccount(account);
+  return screen.findByRole("dialog", {
+    name: `切换为 ${account.split(" ")[0]} 账户？`,
+  });
+}
+function zIndexOf(element: Element, rootSelector: string) {
+  return Number(getComputedStyle(element.closest(rootSelector)!).zIndex);
+}
 function renderMultiAccount(lunchAmount = "10000") {
   return renderConfirmFlow({
     itemsOptions: {
@@ -135,6 +147,31 @@ describe("TransactionConfirmStep", () => {
       },
     });
     expect(within(line("编辑明细 1")).getByText("待报销")).toBeInTheDocument();
+  });
+
+  it("有标签时标签显示在分类名下面一行，分类名完整显示", () => {
+    renderConfirmFlow({
+      itemsOptions: {
+        ...receiptItemsOptions,
+        initialItems: [
+          {
+            categoryId: "lunch",
+            amount: "800",
+            specialStatus: "pendingReimbursement",
+          },
+          { categoryId: "storage", amount: "200" },
+        ],
+      },
+    });
+    const name = within(line("编辑明细 1")).getByText("餐饮 · 午餐");
+    const badge = within(line("编辑明细 1")).getByText("待报销");
+    // 名称一行、标签另起一行（同一列中名称行之后的兄弟元素）。
+    expect(name.parentElement!.contains(badge)).toBe(false);
+    expect(name.parentElement!.nextElementSibling).toContainElement(badge);
+    expect(
+      within(line("编辑明细 2")).getByText("日用品 · 收纳").parentElement!
+        .nextElementSibling,
+    ).toBeNull();
   });
 
   it("点金额只打开该明细的金额键盘，不打开明细编辑", async () => {
@@ -268,6 +305,61 @@ describe("TransactionConfirmStep", () => {
       expect(line("更换支付账户 1")).toHaveTextContent("现金"),
     );
     expect(screen.queryByText(/切换为/)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["直接换账户", false],
+    ["点 × 清空后再选", true],
+  ])("%s时，换币种确认框显示在账户抽屉之上", async (_, clearFirst) => {
+    renderConfirmFlow();
+    const dialog = await openCurrencyConfirm("招商银行卡 CNY", clearFirst);
+    const drawer = screen.getByRole("radio", {
+      name: "招商银行卡 CNY",
+      hidden: true,
+    });
+    expect(zIndexOf(dialog, ".MuiDialog-root")).toBeGreaterThan(
+      zIndexOf(drawer, ".MuiDrawer-root"),
+    );
+  });
+
+  it("换币种后小数位超出：显示真实金额并标红，合计与提示条正确，重新输入后可以保存", async () => {
+    renderConfirmFlow({
+      initialAccountId: "cny",
+      itemsOptions: {
+        ...receiptItemsOptions,
+        initialItems: [{ categoryId: "lunch", amount: "12.55" }],
+      },
+    });
+    await openCurrencyConfirm("现金 JPY");
+    click("切换");
+    await waitFor(() =>
+      expect(line("更换支付账户 1")).toHaveTextContent("现金"),
+    );
+    expect(line("编辑明细 1")).toHaveAttribute("data-invalid", "true");
+    expect(
+      screen.getByRole("button", { name: "修改明细 1 金额：¥12.55" }),
+    ).toBeInTheDocument();
+    expect(
+      within(line("编辑明细 1")).getByText(
+        "新币种不支持这么多位小数，请重新输入",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("合计").nextElementSibling).toHaveTextContent(
+      "¥12.55",
+    );
+    expect(screen.queryByText("请完善明细分类和金额")).toBeNull();
+    expect(saveButton()).toBeDisabled();
+    click("1 条明细金额的小数位超出当前币种，点一下重新输入");
+    expect(await screen.findByLabelText("金额计算器")).toBeInTheDocument();
+    pressItemAmountKey("1");
+    pressItemAmountKey("3");
+    pressItemAmountKey("确定");
+    await waitFor(() =>
+      expect(screen.queryByLabelText("金额计算器")).not.toBeInTheDocument(),
+    );
+    expect(line("编辑明细 1")).not.toHaveAttribute("data-invalid");
+    expect(line("编辑明细 1")).toHaveTextContent("¥13");
+    expect(saveButton()).toBeEnabled();
   });
 
   it("多账户时刚添加、尚未选账户的行也有 ×，删除后回到单账户并可保存", () => {

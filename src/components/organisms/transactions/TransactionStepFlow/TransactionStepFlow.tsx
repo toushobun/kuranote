@@ -20,6 +20,7 @@ function TransactionStepFlowSession(props: TransactionStepFlowProps) {
     <>
       <WizardDialog
         open={props.open}
+        disableEnterTransition
         onClose={() => void w.requestClose()}
         closeLabel={m.close}
         title={receipt ? m.title : m.merchantTitle}
