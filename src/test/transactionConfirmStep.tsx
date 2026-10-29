@@ -21,3 +21,8 @@ export function expectAutomaticItems(count: number) {
   ).toBeInTheDocument();
   expect(screen.queryByText("自动", { exact: true })).not.toBeInTheDocument();
 }
+
+// 以首排铅笔按钮定位包含次排标签的完整小票行。
+export function receiptLine(name: string) {
+  return screen.getByRole("button", { name }).parentElement!.parentElement!;
+}

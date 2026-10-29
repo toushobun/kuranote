@@ -8,6 +8,7 @@ import {
 } from "test/transactionStepFlow";
 import {
   expectAutomaticItems,
+  receiptLine,
   pressItemAmountKey,
 } from "test/transactionConfirmStep";
 import {
@@ -42,9 +43,6 @@ function heading(name: string) {
 }
 function onMerchantScreen() {
   return !!screen.queryByRole("textbox", { name: "搜索商家" });
-}
-function receiptLine(name: string) {
-  return screen.getByRole("button", { name }).parentElement!;
 }
 function saveButton() {
   return screen.getByRole("button", { name: "保存记账" });

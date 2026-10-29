@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import {
   expectAutomaticItems,
+  receiptLine as line,
   pressItemAmountKey,
   renderConfirmFlow,
 } from "test/transactionConfirmStep";
@@ -19,10 +20,6 @@ import {
 
 function headerRow(label: string) {
   return screen.getByRole("button", { name: new RegExp(`^修改${label}：`) });
-}
-// 明细行 / 支付行：以行内的铅笔按钮定位整行。
-function line(editLabel: string) {
-  return screen.getByRole("button", { name: editLabel }).parentElement!;
 }
 function saveButton() {
   return screen.getByRole("button", { name: "保存记账" });
@@ -165,13 +162,12 @@ describe("TransactionConfirmStep", () => {
     });
     const name = within(line("编辑明细 1")).getByText("餐饮 · 午餐");
     const badge = within(line("编辑明细 1")).getByText("待报销");
-    // 名称一行、标签另起一行（同一列中名称行之后的兄弟元素）。
+    // 首排包含名称、金额与操作，标签在独立的次排。
     expect(name.parentElement!.contains(badge)).toBe(false);
-    expect(name.parentElement!.nextElementSibling).toContainElement(badge);
     expect(
-      within(line("编辑明细 2")).getByText("日用品 · 收纳").parentElement!
-        .nextElementSibling,
-    ).toBeNull();
+      line("编辑明细 1").firstElementChild!.nextElementSibling,
+    ).toContainElement(badge);
+    expect(line("编辑明细 2").firstElementChild!.nextElementSibling).toBeNull();
   });
 
   it("点金额只打开该明细的金额键盘，不打开明细编辑", async () => {

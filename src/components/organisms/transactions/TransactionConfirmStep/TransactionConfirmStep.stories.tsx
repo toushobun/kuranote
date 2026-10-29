@@ -85,7 +85,7 @@ export const MultiAccountUnbalanced: Story = {
 };
 export const SingleAccount: Story = { name: "单账户（已填金额、空备注）" };
 export const ItemTags: Story = {
-  name: "明细标签（待报销）",
+  name: "明细两排：首排名称与操作、次排待报销",
   args: {
     itemsOptions: {
       ...receiptItemsOptions,
@@ -116,7 +116,7 @@ export const CurrencyConfirm: Story = {
   },
 };
 export const ExcessDecimals: Story = {
-  name: "换币种后小数位超出（显示真实金额、提示重新输入）",
+  name: "明细两排：首排真实金额、次排小数位超出提示",
   args: {
     itemsOptions: {
       ...receiptItemsOptions,
