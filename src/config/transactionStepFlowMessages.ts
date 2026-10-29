@@ -90,6 +90,9 @@ export const flowMessages = {
   invalidItems: "请完善明细分类和金额",
   missingAmounts: (count: number) =>
     `还有 ${count} 条明细没填金额，点一下去填写`,
+  excessDecimals: (count: number) =>
+    `${count} 条明细金额的小数位超出当前币种，点一下重新输入`,
+  excessDecimalsHint: "新币种不支持这么多位小数，请重新输入",
   unbalanced: "付款账户未对上，点一下去调整",
   checkAccount: "请完善收支账户，点一下去填写",
   invalidTime: "请选择有效时间",

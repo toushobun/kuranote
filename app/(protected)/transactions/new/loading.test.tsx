@@ -1,5 +1,8 @@
 import { cleanup, render, screen, within } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it } from "vitest";
+
+import { coverBottomNavigationAttribute } from "organisms/navigation/bottomNavigationLayout";
 
 import TransactionsNewLoadingPage from "./loading";
 
@@ -25,14 +28,20 @@ describe("TransactionsNewLoadingPage", () => {
     }).parentElement!;
 
     expect(backdrop).toHaveClass("MuiBackdrop-root");
-    expect(backdrop.style.transition).toMatch(/^opacity 0ms/);
+    expect(backdrop.style.opacity).toBe("1");
+    expect(backdrop.style.transition).not.toMatch(/opacity [1-9]/);
   });
 
-  it("与正式页面的 Dialog 一样经 Portal 渲染到 body，不留在页面主体的层叠上下文里", () => {
-    const { container } = render(<TransactionsNewLoadingPage />);
-    const status = screen.getByRole("status", { name: "页面数据加载中" });
+  it("服务端渲染的第一帧就输出盖住底部导航的全屏层，且不淡入", () => {
+    const container = document.createElement("div");
+    container.innerHTML = renderToString(<TransactionsNewLoadingPage />);
+    const overlay = container.firstElementChild as HTMLElement;
 
-    expect(container).not.toContainElement(status);
-    expect(document.body).toContainElement(status);
+    expect(overlay).toHaveClass("MuiBackdrop-root");
+    expect(overlay).toHaveAttribute(coverBottomNavigationAttribute);
+    expect(overlay.style.opacity).toBe("1");
+    expect(
+      within(overlay).getByRole("status", { name: "页面数据加载中" }),
+    ).toHaveAttribute("aria-busy", "true");
   });
 });

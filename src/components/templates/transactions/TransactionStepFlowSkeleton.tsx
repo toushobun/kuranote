@@ -1,6 +1,5 @@
 import Backdrop from "@mui/material/Backdrop";
 import Box from "@mui/material/Box";
-import Portal from "@mui/material/Portal";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -14,6 +13,7 @@ import {
   wizardDialogTitleRowSx,
   wizardDialogTitleSx,
 } from "molecules/ui/WizardDialog/wizardDialogStyles";
+import { coverBottomNavigationAttribute } from "organisms/navigation/bottomNavigationLayout";
 import { designTokens } from "theme/theme";
 
 const frequentMerchantSkeletonCount = 8;
@@ -23,79 +23,83 @@ const merchantRowSkeletonCount = 4;
  * 记一笔的加载骨架（#943）：与从商家记账的第一屏「选择商家」一致——标题栏 +
  * 搜索框 + 商家分类筛选 + 常用商家网格 + 商家列表。
  *
- * 正式页面的 WizardDialog（MUI Dialog）经 Portal 渲染到 body，再以 modal 层级盖住底部导航；
- * 骨架用同一个 Portal 机制，避免停留在 AppShell main 的层叠上下文里被底部导航盖住；
- * 遮罩不使用淡入动画，避免开头半透明时底部导航透出来。
+ * 骨架必须在服务端渲染的第一帧就盖住底部导航（任务 11），所以不用只在客户端渲染的 Portal：
+ * 直接渲染 fixed 全屏遮罩，并标记 `coverBottomNavigationAttribute`，由 AppShell 把 main 的层级
+ * 抬到底部导航之上；遮罩不使用淡入动画，避免开头半透明时底部导航透出来。
  */
 export function TransactionStepFlowSkeleton() {
   return (
-    <Portal>
-      <Backdrop open transitionDuration={0} sx={backdropSx}>
-        <Box
-          role="status"
-          aria-label="页面数据加载中"
-          aria-busy="true"
-          sx={paperSx}
-        >
-          <Box sx={[wizardDialogHeaderSx, wizardDialogTitleOnlyHeaderSx]}>
-            <Box
-              sx={[
-                wizardDialogTitleRowSx,
-                wizardDialogTitleOnlyRowSx,
-                titleRowSx,
-              ]}
-            >
-              <Skeleton variant="circular" width={36} height={36} />
-              <Typography component="h2" sx={wizardDialogTitleSx}>
-                {m.merchantTitle}
-              </Typography>
-              <Skeleton variant="rounded" width={64} height={30} />
-            </Box>
+    <Backdrop
+      open
+      transitionDuration={0}
+      slotProps={{ transition: { appear: false } }}
+      sx={backdropSx}
+      {...{ [coverBottomNavigationAttribute]: true }}
+    >
+      <Box
+        role="status"
+        aria-label="页面数据加载中"
+        aria-busy="true"
+        sx={paperSx}
+      >
+        <Box sx={[wizardDialogHeaderSx, wizardDialogTitleOnlyHeaderSx]}>
+          <Box
+            sx={[
+              wizardDialogTitleRowSx,
+              wizardDialogTitleOnlyRowSx,
+              titleRowSx,
+            ]}
+          >
+            <Skeleton variant="circular" width={36} height={36} />
+            <Typography component="h2" sx={wizardDialogTitleSx}>
+              {m.merchantTitle}
+            </Typography>
+            <Skeleton variant="rounded" width={64} height={30} />
           </Box>
-          <Stack spacing={2} sx={{ p: 2.5 }}>
-            <Skeleton variant="rounded" height={40} />
-            <Stack direction="row" spacing={1}>
-              {[56, 72, 72, 64].map((width, index) => (
-                <Skeleton
-                  key={index}
-                  variant="rounded"
-                  width={width}
-                  height={32}
-                  sx={chipSx}
-                />
-              ))}
-            </Stack>
-            <Skeleton width={72} />
-            <Box sx={gridSx}>
-              {Array.from({ length: frequentMerchantSkeletonCount }).map(
-                (_, index) => (
-                  <Stack key={index} spacing={1} sx={{ alignItems: "center" }}>
-                    <Skeleton variant="circular" width={56} height={56} />
-                    <Skeleton width="70%" />
-                  </Stack>
-                ),
-              )}
-            </Box>
-            <Skeleton width={72} />
-            <Stack spacing={1.5}>
-              {Array.from({ length: merchantRowSkeletonCount }).map(
-                (_, index) => (
-                  <Stack
-                    key={index}
-                    direction="row"
-                    spacing={1.5}
-                    sx={{ alignItems: "center" }}
-                  >
-                    <Skeleton variant="circular" width={36} height={36} />
-                    <Skeleton sx={{ flex: 1 }} />
-                  </Stack>
-                ),
-              )}
-            </Stack>
-          </Stack>
         </Box>
-      </Backdrop>
-    </Portal>
+        <Stack spacing={2} sx={{ p: 2.5 }}>
+          <Skeleton variant="rounded" height={40} />
+          <Stack direction="row" spacing={1}>
+            {[56, 72, 72, 64].map((width, index) => (
+              <Skeleton
+                key={index}
+                variant="rounded"
+                width={width}
+                height={32}
+                sx={chipSx}
+              />
+            ))}
+          </Stack>
+          <Skeleton width={72} />
+          <Box sx={gridSx}>
+            {Array.from({ length: frequentMerchantSkeletonCount }).map(
+              (_, index) => (
+                <Stack key={index} spacing={1} sx={{ alignItems: "center" }}>
+                  <Skeleton variant="circular" width={56} height={56} />
+                  <Skeleton width="70%" />
+                </Stack>
+              ),
+            )}
+          </Box>
+          <Skeleton width={72} />
+          <Stack spacing={1.5}>
+            {Array.from({ length: merchantRowSkeletonCount }).map(
+              (_, index) => (
+                <Stack
+                  key={index}
+                  direction="row"
+                  spacing={1.5}
+                  sx={{ alignItems: "center" }}
+                >
+                  <Skeleton variant="circular" width={36} height={36} />
+                  <Skeleton sx={{ flex: 1 }} />
+                </Stack>
+              ),
+            )}
+          </Stack>
+        </Stack>
+      </Box>
+    </Backdrop>
   );
 }
 

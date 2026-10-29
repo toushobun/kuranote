@@ -39,9 +39,10 @@ export function buildMerchantEntrySuggestions(
       amountGroups.set(key, group);
     }
   }
-  // 样本为该商家最近的记录（最多 20 笔），阈值 = max(2, ceil(样本数 / 2))。
+  // 样本为该商家最近的记录（最多 20 笔），阈值 = max(min(2, 样本数), ceil(样本数 / 2))：
+  // 只有 1 笔记录时阈值为 1，≥ 2 笔时为 max(2, ceil(样本数 / 2))。
   const automaticCategoryThreshold = Math.max(
-    automaticCategoryMinimumRecordCount,
+    Math.min(automaticCategoryMinimumRecordCount, records.length),
     Math.ceil(records.length * automaticCategoryRecordRatio),
   );
   return {

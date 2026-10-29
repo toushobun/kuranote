@@ -6,6 +6,7 @@ import {
   isPaymentAccountSelectable,
 } from "../TransactionPaymentFields/useTransactionPaymentFields";
 import { flowMessages as m } from "config/transactionStepFlowMessages";
+import { exceedsCurrencyDecimalPlaces } from "utils/transactionAmountInput";
 import type { TransactionAccountOption } from "types/transactions";
 import type { TransactionConfirmStepProps } from "./TransactionConfirmStep.types";
 
@@ -27,6 +28,13 @@ export function useTransactionConfirmStep(
   );
   const invalidItems = form.itemSummaries.filter(
     (item) => !item.category || !isValidTransactionFormItem(item, currency),
+  );
+  // 换币种后小数位超出的金额单独提示，点一下重新输入。
+  const excessDecimalItems = invalidItems.filter((item) =>
+    exceedsCurrencyDecimalPlaces(item.amount, currency),
+  );
+  const otherInvalidItems = invalidItems.filter(
+    (item) => !excessDecimalItems.includes(item),
   );
   const missingAmounts = invalidItems.filter((item) => !item.amount.trim());
   // 入口条件与标准表单一致（#930 / #931），另外未选账户或明细里有收入时不显示。
@@ -103,7 +111,15 @@ export function useTransactionConfirmStep(
     ...(!form.itemSummaries.length
       ? [{ message: m.missingItems, onClick: form.openSheet }]
       : []),
-    ...(invalidItems.length
+    ...(excessDecimalItems.length
+      ? [
+          {
+            message: m.excessDecimals(excessDecimalItems.length),
+            onClick: () => props.onAmountItemChange(excessDecimalItems[0]!.id),
+          },
+        ]
+      : []),
+    ...(otherInvalidItems.length
       ? [
           {
             message: missingAmounts.length
@@ -112,7 +128,7 @@ export function useTransactionConfirmStep(
             onClick: () =>
               missingAmounts[0]
                 ? props.onAmountItemChange(missingAmounts[0].id)
-                : form.openItemSheet(invalidItems[0]!.id),
+                : form.openItemSheet(otherInvalidItems[0]!.id),
           },
         ]
       : []),

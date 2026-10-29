@@ -4,6 +4,7 @@ import {
   applyAmountKeypadKey,
   confirmAmountKeypadState,
   createAmountKeypadState,
+  exceedsCurrencyDecimalPlaces,
   formatMoneyTextForCurrency,
   getAmountDecimalPlaces,
   getAmountKeypadExpressionText,
@@ -38,6 +39,15 @@ describe("transactionAmountInput", () => {
     expect(formatMoneyTextForCurrency("498.00", "JPY")).toBe("498");
     expect(formatMoneyTextForCurrency("12.5", "CNY")).toBe("12.50");
     expect(formatMoneyTextForCurrency("12.50", "CNY")).toBe("12.50");
+  });
+
+  it("判断金额的小数位数是否超过币种允许的位数", () => {
+    expect(exceedsCurrencyDecimalPlaces("12.55", "JPY")).toBe(true);
+    expect(exceedsCurrencyDecimalPlaces("12.555", "CNY")).toBe(true);
+    expect(exceedsCurrencyDecimalPlaces("12.55", "CNY")).toBe(false);
+    expect(exceedsCurrencyDecimalPlaces("12", "JPY")).toBe(false);
+    expect(exceedsCurrencyDecimalPlaces("", "JPY")).toBe(false);
+    expect(exceedsCurrencyDecimalPlaces("1+2.5", "JPY")).toBe(false);
   });
 
   it("限制整数位数，避免无限长金额", () => {

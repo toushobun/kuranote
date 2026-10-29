@@ -19,6 +19,7 @@ import { useId, useState, type ReactNode } from "react";
 import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { useUserTheme } from "theme/UserThemeProvider";
 import { designTokens } from "theme/theme";
+import { confirmDialogZIndex } from "theme/zIndex";
 import type { UserThemeKey } from "theme/userThemeTokens";
 import type { ActionState } from "types/actions";
 
@@ -213,6 +214,7 @@ export function ConfirmationDialog({
       onClose={onCancel}
       open={open}
       slotProps={{ paper: { sx: dialogPaperSx } }}
+      sx={confirmationDialogSx}
     >
       <DialogContent sx={confirmationContentSx}>
         {illustration}
@@ -439,6 +441,9 @@ const dialogPaperSx = {
   mx: 1.5,
   width: "calc(100% - 24px)",
 };
+
+// 从底部抽屉里弹出的确认框也要显示在抽屉之上。
+const confirmationDialogSx = { zIndex: confirmDialogZIndex };
 
 const confirmationContentSx = {
   alignItems: "center",

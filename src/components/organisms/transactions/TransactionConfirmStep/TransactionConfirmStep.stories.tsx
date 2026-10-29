@@ -104,6 +104,30 @@ export const AccountPicker: Story = {
   name: "支付行铅笔：账户选择抽屉",
   play: ({ canvasElement }) => clickButton(canvasElement, "更换支付账户 1"),
 };
+export const CurrencyConfirm: Story = {
+  name: "换成不同币种的账户：确认框在抽屉之上",
+  play: async ({ canvasElement }) => {
+    await clickButton(canvasElement, "更换支付账户 1");
+    await userEvent.click(
+      await within(canvasElement.ownerDocument.body).findByRole("radio", {
+        name: "招商银行卡 CNY",
+      }),
+    );
+  },
+};
+export const ExcessDecimals: Story = {
+  name: "换币种后小数位超出（显示真实金额、提示重新输入）",
+  args: {
+    itemsOptions: {
+      ...receiptItemsOptions,
+      // ฿12.55 换成 JPY 账户后金额不换算，保留 12.55。
+      initialItems: [
+        { categoryId: "lunch", amount: "12.55" },
+        { categoryId: "storage", amount: "2000" },
+      ],
+    },
+  },
+};
 export const PaymentAmountKeypad: Story = {
   name: "多账户：点金额打开金额键盘",
   args: MultiAccountUnbalanced.args,

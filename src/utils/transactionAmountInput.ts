@@ -73,6 +73,12 @@ export function getAmountDecimalPlaces(currency?: string) {
     : 0;
 }
 
+/** 金额文本的小数位数超过币种允许的位数，如换成 JPY 后保留下来的 12.55（金额不换算）。 */
+export function exceedsCurrencyDecimalPlaces(value: string, currency?: string) {
+  const decimals = /^\d+\.(\d+)$/.exec(value.trim())?.[1];
+  return !!decimals && decimals.length > getAmountDecimalPlaces(currency);
+}
+
 /** 按币种小数位数格式化为可直接填入金额键盘的文本，如 JPY 498.00 → 498、CNY 12.5 → 12.50。 */
 export function formatMoneyTextForCurrency(amount: string, currency?: string) {
   const value = Number(amount);

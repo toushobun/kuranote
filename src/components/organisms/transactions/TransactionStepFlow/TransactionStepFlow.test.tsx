@@ -1,4 +1,4 @@
-import { act, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   renderTransactionFlow as setup,
@@ -52,6 +52,17 @@ function saveButton() {
 // 快速路线等待建议超时后进入小票；测试中用假计时器推进。
 function waitQuickRouteTimeout(ms = quickRouteSuggestionTimeoutMs) {
   act(() => vi.advanceTimersByTime(ms));
+}
+// 小票里添加一条午餐明细，不填金额直接关闭金额键盘。
+async function addLunchItem() {
+  click("添加明细");
+  fireEvent.click(await screen.findByRole("button", { name: "午餐" }));
+  click("确定");
+  await screen.findByLabelText("金额计算器");
+  click("关闭金额键盘");
+  await waitFor(() =>
+    expect(screen.queryByLabelText("金额计算器")).not.toBeInTheDocument(),
+  );
 }
 afterEach(() => {
   vi.useRealTimers();
@@ -233,7 +244,7 @@ describe("TransactionStepFlow 进入小票", () => {
     expectAutomaticItems(1);
   });
 
-  it("超过等待时间仍没有建议时进入小票、不选账户，晚到的建议不再应用", () => {
+  it("超过等待时间仍没有建议时进入小票、不选账户；没动过小票时只补上当前商家晚到的建议一次", () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const { props, rerender } = quickSetup({ suggestionsMerchantId: "life" });
     click("7-Eleven");
@@ -242,9 +253,54 @@ describe("TransactionStepFlow 进入小票", () => {
     waitQuickRouteTimeout(1);
     expect(heading("从商家记账")).toBeInTheDocument();
     expect(receiptLine("更换支付账户 1")).toHaveTextContent("选择收支账户");
+    // 其他商家的建议不应用。
+    rerender(<TransactionStepFlow {...props} suggestionsMerchantId="coffee" />);
+    expect(screen.queryByText(/已按你的习惯/)).toBeNull();
     rerender(<TransactionStepFlow {...props} suggestionsMerchantId="seven" />);
-    expect(receiptLine("更换支付账户 1")).toHaveTextContent("选择收支账户");
-    expect(screen.queryByText("自动")).toBeNull();
+    expect(receiptLine("更换支付账户 1")).toHaveTextContent("PayPay");
+    expectAutomaticItems(2);
+    click("删除明细 1");
+    rerender(
+      <TransactionStepFlow
+        {...props}
+        suggestionsMerchantId="seven"
+        suggestions={{ ...quickSuggestions }}
+      />,
+    );
+    expectAutomaticItems(1);
+  });
+
+  it.each<[string, () => Promise<void>]>([
+    [
+      "选了账户",
+      async () => {
+        click("更换支付账户 1");
+        await screen.findByRole("radio", { name: "现金 JPY" });
+        selectAccount("现金 JPY");
+        await waitFor(() =>
+          expect(receiptLine("更换支付账户 1")).toHaveTextContent("现金"),
+        );
+      },
+    ],
+    ["加了明细", addLunchItem],
+    [
+      "加了又删了明细",
+      async () => {
+        await addLunchItem();
+        click("删除明细 1");
+      },
+    ],
+  ])("超时后%s，晚到的建议不再应用", async (_, touch) => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const { props, rerender } = quickSetup({ suggestionsMerchantId: "life" });
+    click("7-Eleven");
+    waitQuickRouteTimeout();
+    await touch();
+    const account = receiptLine("更换支付账户 1").textContent;
+    rerender(<TransactionStepFlow {...props} suggestionsMerchantId="seven" />);
+    expect(receiptLine("更换支付账户 1").textContent).toBe(account);
+    expect(screen.queryByText(/已按你的习惯/)).toBeNull();
+    expect(screen.queryByText("饮料 · 咖啡")).toBeNull();
   });
 
   it("加载中点另一个商家时改为加载新商家，只应用新商家的建议", async () => {
@@ -291,5 +347,31 @@ describe("TransactionStepFlow 进入小票", () => {
     quickSetup({ initialMerchantId: "seven", initialAccountId: "cash" });
     expect(receiptLine("更换支付账户 1")).toHaveTextContent("现金");
     expectAutomaticItems(2);
+  });
+});
+
+describe("TransactionStepFlow 编辑明细", () => {
+  it.each([
+    ["已有金额时不打开金额键盘", "800", false],
+    ["金额为空时打开金额键盘", "", true],
+  ])("保存修改后，%s", async (_, amount, opens) => {
+    quickSetup({
+      initialMerchantId: "seven",
+      initialAccountId: "paypay",
+      itemsOptions: {
+        ...receiptItemsOptions,
+        initialItems: [{ categoryId: "lunch", amount }],
+      },
+    });
+    click("编辑明细 1");
+    await screen.findByRole("button", { name: "保存修改" });
+    click("保存修改");
+    if (opens)
+      expect(await screen.findByLabelText("金额计算器")).toBeInTheDocument();
+    else
+      await waitFor(() =>
+        expect(screen.queryByRole("button", { name: "保存修改" })).toBeNull(),
+      );
+    expect(!!screen.queryByLabelText("金额计算器")).toBe(opens);
   });
 });

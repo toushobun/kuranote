@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { WizardDialog } from "./WizardDialog";
 
@@ -7,15 +8,17 @@ vi.mock("@mui/material/useMediaQuery", () => ({
   default: () => media.fullScreen,
 }));
 
-function renderDialog(disabled = false) {
+function renderDialog(
+  props: Partial<ComponentProps<typeof WizardDialog>> = {},
+) {
   const onClose = vi.fn();
   render(
     <WizardDialog
       closeLabel="关闭"
-      disabled={disabled}
       onClose={onClose}
       open
       title="预设选择"
+      {...props}
     >
       <p>列表内容</p>
     </WizardDialog>,
@@ -42,7 +45,7 @@ describe("WizardDialog", () => {
     expect(onClose).toHaveBeenCalledTimes(2);
   });
   it("锁定期间禁用关闭按钮，并拦截 Escape 与遮罩关闭", () => {
-    const onClose = renderDialog(true);
+    const onClose = renderDialog({ disabled: true });
     const button = screen.getByRole("button", { name: "关闭" });
     expect(button).toBeDisabled();
     fireEvent.click(button);
@@ -79,4 +82,15 @@ describe("WizardDialog", () => {
     fireEvent.click(buttons[1]!);
     expect(onClose).toHaveBeenCalledOnce();
   });
+  it.each([
+    [true, "0ms"],
+    [false, "225ms"],
+  ])(
+    "disableEnterTransition 为 %s 时打开的淡入时长为 %s",
+    (disable, duration) => {
+      renderDialog({ disableEnterTransition: disable });
+      const container = screen.getByRole("dialog").parentElement!;
+      expect(container.style.transition).toContain(`opacity ${duration}`);
+    },
+  );
 });

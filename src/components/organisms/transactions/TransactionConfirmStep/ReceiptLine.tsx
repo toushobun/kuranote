@@ -11,11 +11,13 @@ import { designTokens } from "theme/theme";
 /**
  * 小票中的明细行 / 支付行（设计图 8）：图标、名称与标签、金额，右侧依次为铅笔与删除 ×。
  * 明细与支付样式统一；没有可删除的内容时 × 位置留空，保持各行铅笔对齐。
+ * `subline`（明细的业务状态标签等）显示在名称下面一行，名称完整显示。
  */
 export function ReceiptLine({
   icon,
   label,
   tags,
+  subline,
   amount,
   error = false,
   errorLabel = error,
@@ -28,6 +30,7 @@ export function ReceiptLine({
   icon?: ReactNode;
   label: string;
   tags?: ReactNode;
+  subline?: ReactNode;
   amount?: ReactNode;
   error?: boolean;
   /** 名称是否标红；默认与 `error` 一致，只缺金额时由金额的「待输入」提示。 */
@@ -46,21 +49,24 @@ export function ReceiptLine({
           {icon}
         </Box>
       )}
-      <Box sx={labelBoxSx}>
-        <Typography
-          variant="body2"
-          noWrap
-          component={labelClickable ? ButtonBase : "p"}
-          onClick={labelClickable ? onEdit : undefined}
-          sx={[
-            { minWidth: 0 },
-            labelClickable && labelButtonSx,
-            errorLabel && errorTextSx,
-          ]}
-        >
-          {label}
-        </Typography>
-        {tags}
+      <Box sx={labelColumnSx}>
+        <Box sx={labelBoxSx}>
+          <Typography
+            variant="body2"
+            noWrap
+            component={labelClickable ? ButtonBase : "p"}
+            onClick={labelClickable ? onEdit : undefined}
+            sx={[
+              { minWidth: 0 },
+              labelClickable && labelButtonSx,
+              errorLabel && errorTextSx,
+            ]}
+          >
+            {label}
+          </Typography>
+          {tags}
+        </Box>
+        {subline && <Box sx={sublineSx}>{subline}</Box>}
       </Box>
       {amount}
       <IconButton
@@ -89,7 +95,7 @@ export function ReceiptLine({
 
 /**
  * 小票中可点击的金额：统一带「待输入」那样的下划线，点击只打开金额键盘。
- * `pending`（金额未填）时显示为强调色。
+ * `pending`（金额未填或需重新输入）时显示为强调色。
  */
 export function ReceiptAmountButton({
   label,
@@ -151,13 +157,27 @@ const labelButtonSx = {
   minHeight: 32,
   "&.Mui-focusVisible": { outline: "2px solid", outlineColor: "primary.main" },
 };
+const labelColumnSx = {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "flex-start",
+  gap: 0.25,
+  flex: 1,
+  minWidth: 0,
+};
 const labelBoxSx = {
   display: "flex",
   alignItems: "center",
   gap: 0.75,
-  flex: 1,
+  maxWidth: "100%",
   minWidth: 0,
   "& .MuiChip-root": { flexShrink: 0 },
+};
+const sublineSx = {
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "center",
+  gap: 0.75,
 };
 const actionSx = {
   color: "text.disabled",

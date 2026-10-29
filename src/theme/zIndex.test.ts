@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { amountKeypadZIndex, appZIndex } from "./zIndex";
+import { amountKeypadZIndex, appZIndex, confirmDialogZIndex } from "./zIndex";
 
 describe("appZIndex", () => {
   it("下拉菜单显示在弹框之上且不遮挡提示", () => {
@@ -18,5 +18,10 @@ describe("appZIndex", () => {
     expect(appZIndex.snackbar).toBeGreaterThan(appZIndex.dialog);
     expect(appZIndex.snackbar).toBeGreaterThan(amountKeypadZIndex);
     expect(appZIndex.snackbar).toBeLessThan(appZIndex.tooltip);
+  });
+
+  it("确认框显示在金额键盘层的底部抽屉之上，但不遮挡反馈提示", () => {
+    expect(confirmDialogZIndex).toBeGreaterThan(amountKeypadZIndex);
+    expect(confirmDialogZIndex).toBeLessThan(appZIndex.snackbar);
   });
 });
