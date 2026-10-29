@@ -2,7 +2,12 @@
 
 import { redirect } from "next/navigation";
 
-import { accountResultValues, accountsResultHref } from "config/paths";
+import {
+  accountResultValues,
+  accountsResultHref,
+  createdIdParams,
+  withQueryParam,
+} from "config/paths";
 import {
   parseArchiveAccountForm,
   parseCreateAccountForm,
@@ -55,23 +60,26 @@ export async function createAccount(
     return getValidationErrorState(parsed.error);
   }
 
+  let accountId: string;
   try {
-    await (
+    ({ accountId } = await (
       await getAccountService()
     ).create({
       ...parsed.value,
       ledgerId: currentLedger.id,
       userId,
-    });
+    }));
   } catch (error) {
     return getActionErrorState(error, accountErrorCodes.createFailed);
   }
 
   revalidateAccountMutation();
-  // 从记一笔等页面进入时，新增成功后返回来源页面。
+  // 从记一笔等页面进入时，新增成功后带着新账户 ID 返回来源页面。
+  const returnTo = getSafeNextPath(formData.get("returnTo"));
   redirect(
-    getSafeNextPath(formData.get("returnTo")) ??
-      accountsResultHref(accountResultValues.created),
+    returnTo
+      ? withQueryParam(returnTo, createdIdParams.account, accountId)
+      : accountsResultHref(accountResultValues.created),
   );
 }
 

@@ -362,8 +362,8 @@ describe("Merchant Server Actions", () => {
 
   it.each([
     {
-      expected: "/transactions/new?type=expense",
-      name: "合法 returnTo 时返回来源页面",
+      expected: `/transactions/new?type=expense&merchantId=${merchantId}`,
+      name: "合法 returnTo 时带着新商家 ID 返回来源页面",
       returnTo: "/transactions/new?type=expense",
     },
     {
@@ -377,6 +377,7 @@ describe("Merchant Server Actions", () => {
       returnTo: "//evil.example.com",
     },
   ])("新增商家成功后$name", async ({ expected, returnTo }) => {
+    mocks.createMerchant.mockResolvedValue(merchantId);
     await expect(
       runAction(createMerchant, merchantForm({ returnTo })),
     ).rejects.toThrow(`NEXT_REDIRECT:${expected}`);
@@ -590,6 +591,14 @@ describe("addMerchantPresets", () => {
       selectedKeys: ["amazon"],
     });
     expect(mocks.revalidateMerchantMutation).toHaveBeenCalled();
+  });
+  it("从记一笔进入时添加后返回来源页面", async () => {
+    mocks.addPresets.mockResolvedValue(2);
+    const form = presetForm();
+    form.set("returnTo", "/transactions/new");
+    await expect(addMerchantPresets({}, form)).rejects.toThrow(
+      "NEXT_REDIRECT:/transactions/new",
+    );
   });
   it("非法表单返回集中错误文案，不写入或跳转", async () => {
     expectErrorState(

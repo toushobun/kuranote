@@ -23,6 +23,8 @@ export type MerchantPresetDialogProps = {
   action: MerchantPresetStateAction;
   options: MerchantPresetOptions;
   onClose: () => void;
+  /** 添加成功后返回的站内路径（例如记一笔），由服务端再次校验。 */
+  returnTo?: string | null;
 };
 
 /** 内容随关闭卸载；重新打开时清空本次勾选与失败反馈。 */
@@ -30,9 +32,10 @@ export function MerchantPresetDialog({
   action,
   options,
   onClose,
+  returnTo = null,
 }: MerchantPresetDialogProps) {
   const formId = useId();
-  const dialog = useMerchantPresetDialog(options, action);
+  const dialog = useMerchantPresetDialog(options, action, returnTo);
   const pending = dialog.submission.pending;
   function requestClose() {
     if (!pending) onClose();

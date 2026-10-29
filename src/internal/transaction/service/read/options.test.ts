@@ -48,6 +48,7 @@ describe("buildFormCategoryOptions", () => {
 
     expect(buildFormCategoryOptions(rows)).toEqual([
       {
+        iconName: null,
         id: "transport-train",
         name: "电车",
         parentId: "transport",
@@ -55,6 +56,7 @@ describe("buildFormCategoryOptions", () => {
         type: "expense",
       },
       {
+        iconName: null,
         id: "transport-taxi",
         name: "出租车",
         parentId: "transport",
@@ -62,6 +64,7 @@ describe("buildFormCategoryOptions", () => {
         type: "expense",
       },
       {
+        iconName: null,
         id: "food-lunch",
         name: "午饭",
         parentId: "food",
@@ -69,6 +72,7 @@ describe("buildFormCategoryOptions", () => {
         type: "expense",
       },
       {
+        iconName: null,
         id: "food-dinner",
         name: "晚饭",
         parentId: "food",
@@ -78,9 +82,10 @@ describe("buildFormCategoryOptions", () => {
     ]);
   });
 
-  it("父分类不存在时仍保留子分类", () => {
+  it("父分类不存在时仍保留子分类，并带上分类图标", () => {
     const rows = [
       createCategory({
+        icon_name: "🧩",
         id: "orphan-child",
         name: "孤立分类",
         parent_id: "missing-parent",
@@ -95,6 +100,7 @@ describe("buildFormCategoryOptions", () => {
 
     expect(buildFormCategoryOptions(rows)).toEqual([
       {
+        iconName: null,
         id: "food-lunch",
         name: "午饭",
         parentId: "food",
@@ -102,6 +108,7 @@ describe("buildFormCategoryOptions", () => {
         type: "expense",
       },
       {
+        iconName: "🧩",
         id: "orphan-child",
         name: "孤立分类",
         parentId: "missing-parent",
@@ -127,6 +134,7 @@ describe("loadTransactionFilterOptions", () => {
         accountQueryService: {
           getTransactionContext: vi.fn(),
           listTransactionHolderOptions,
+          listTransactionOptionsWithHolders: vi.fn(),
           listTransactionOptions: vi.fn().mockResolvedValue([]),
         },
         categoryQueryService: {
@@ -136,6 +144,7 @@ describe("loadTransactionFilterOptions", () => {
         currentUserId: userId,
         merchantQueryService: {
           findSummariesByIds: vi.fn(),
+          listActiveOptionsWithTags: vi.fn(),
           listActiveOptions: vi.fn().mockResolvedValue([]),
         },
         transactionRepository: {

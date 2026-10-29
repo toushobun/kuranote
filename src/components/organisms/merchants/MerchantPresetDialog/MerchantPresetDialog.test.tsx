@@ -17,6 +17,7 @@ import { MerchantPresetDialog } from "./MerchantPresetDialog";
 function renderDialog(
   action: MerchantPresetStateAction = async () => ({}),
   options = createMerchantPresetOptions(),
+  returnTo?: string,
 ) {
   const onClose = vi.fn();
   render(
@@ -24,6 +25,7 @@ function renderDialog(
       action={action}
       onClose={onClose}
       options={options}
+      returnTo={returnTo}
     />,
   );
   return { options, onClose };
@@ -47,6 +49,15 @@ describe("MerchantPresetDialog", () => {
     expect(form.get("currency")).toBe("JPY");
     expect(form.get("templateVersion")).toBe("1");
     expect(form.get("name")).toBeNull();
+    expect(form.get("returnTo")).toBeNull();
+  });
+  it("从记一笔打开时提交返回路径", async () => {
+    const action = vi.fn<MerchantPresetStateAction>().mockResolvedValue({});
+    renderDialog(action, createMerchantPresetOptions(), "/transactions/new");
+    fireEvent.click(screen.getByRole("button", { name: "全部选择" }));
+    fireEvent.click(screen.getByRole("button", { name: /^添加 \d+ 个商家$/ }));
+    await waitFor(() => expect(action).toHaveBeenCalledTimes(1));
+    expect(action.mock.calls[0]![1].get("returnTo")).toBe("/transactions/new");
   });
   it("提交期间按钮、勾选与关闭锁定，仍可展开查看，禁止重复提交", async () => {
     let resolve!: (value: MerchantActionState) => void;

@@ -4,7 +4,10 @@ import {
   requireActiveLedgerMemberRole,
   type LedgerAccessService,
 } from "internal/ledger";
-import type { MerchantSummary } from "internal/merchant/entity/merchantSummary";
+import type {
+  MerchantEntryOptions,
+  MerchantSummary,
+} from "internal/merchant/entity/merchantSummary";
 import {
   createMerchantIconService,
   getReusableMerchantIconUrl,
@@ -84,6 +87,10 @@ export interface MerchantQueryService {
     merchantIds: string[];
   }): Promise<MerchantSummary[]>;
   listActiveOptions(input: MerchantLedgerInput): Promise<MerchantSummary[]>;
+  /** 新增记账流程的商家候选，带商家分类（#943）。 */
+  listActiveOptionsWithTags(
+    input: MerchantLedgerInput,
+  ): Promise<MerchantEntryOptions>;
 }
 
 export interface MerchantService extends MerchantQueryService {
@@ -377,6 +384,11 @@ export function createMerchantService({
     async listActiveOptions({ ledgerId }) {
       await requireLedgerRole(ledgerId, false);
       return merchantRepository.listActiveSummaries(ledgerId);
+    },
+
+    async listActiveOptionsWithTags({ ledgerId }) {
+      await requireLedgerRole(ledgerId, false);
+      return merchantRepository.listActiveSummariesWithTags(ledgerId);
     },
 
     async listTags({ ledgerId }) {

@@ -4,6 +4,7 @@ import {
   categoryErrorMessages,
 } from "internal/category/errors";
 import type {
+  CategoryData,
   CategoryRepository,
   CategoryScope,
   CategorySummary,
@@ -65,11 +66,15 @@ export interface CategoryQueryService {
     ledgerId: string;
     userId: string;
   }): Promise<CategorySummary[]>;
+  /** 交易表单的分类候选，含图标。 */
   listActiveSummaries(input: {
     ledgerId: string;
     userId: string;
-  }): Promise<CategorySummary[]>;
+  }): Promise<ActiveCategorySummary[]>;
 }
+
+export type ActiveCategorySummary = CategorySummary &
+  Pick<CategoryData, "icon_name">;
 
 export interface CategoryService extends CategoryQueryService {
   archive(input: ArchiveCategoryInput): Promise<void>;
@@ -255,7 +260,13 @@ export function createCategoryService({
     async listActiveSummaries({ ledgerId, userId }) {
       await requireActiveMemberRole(ledgerId, userId);
       return (await categoryRepository.findActiveByLedgerId(ledgerId)).map(
-        ({ id, name, parent_id, type }) => ({ id, name, parent_id, type }),
+        ({ icon_name, id, name, parent_id, type }) => ({
+          icon_name,
+          id,
+          name,
+          parent_id,
+          type,
+        }),
       );
     },
 

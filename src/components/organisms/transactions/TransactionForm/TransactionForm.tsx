@@ -39,7 +39,7 @@ import {
   transactionSubmitButtonSx,
 } from "./TransactionForm.styles";
 import type { TransactionFormProps } from "./TransactionForm.types";
-import { useTransactionIncomeLinks } from "./TransactionIncomeLinksContext";
+import { useResolvedTransactionIncomeLinks } from "./TransactionIncomeLinksContext";
 import { useTransactionForm } from "./useTransactionForm";
 
 export type { TransactionFormInitialValues } from "./TransactionForm.types";
@@ -75,29 +75,16 @@ export function TransactionForm({
   transactionItemSpecialStatusEnabled = false,
   typeNavigation,
 }: TransactionFormProps) {
-  const incomeLinksContext = useTransactionIncomeLinks();
-  const activeRefundPickerView =
-    incomeLinksContext?.refundPickerView ?? refundPickerView;
-  const activeLoadRefundGroupItemsAction =
-    incomeLinksContext?.loadRefundGroupItemsAction ??
-    loadRefundGroupItemsAction;
-  const activeLoadRefundMoreGroupsAction =
-    incomeLinksContext?.loadRefundMoreGroupsAction ??
-    loadRefundMoreGroupsAction;
-  const activeLoadRefundSearchPageAction =
-    incomeLinksContext?.loadRefundSearchPageAction ??
-    loadRefundSearchPageAction;
-  const activeReimbursementPickerView =
-    incomeLinksContext?.reimbursementPickerView ?? reimbursementPickerView;
-  const activeLoadReimbursementGroupItemsAction =
-    incomeLinksContext?.loadReimbursementGroupItemsAction ??
-    loadReimbursementGroupItemsAction;
-  const activeLoadReimbursementMoreGroupsAction =
-    incomeLinksContext?.loadReimbursementMoreGroupsAction ??
-    loadReimbursementMoreGroupsAction;
-  const activeLoadReimbursementSearchPageAction =
-    incomeLinksContext?.loadReimbursementSearchPageAction ??
-    loadReimbursementSearchPageAction;
+  const incomeLinks = useResolvedTransactionIncomeLinks({
+    loadRefundGroupItemsAction,
+    loadRefundMoreGroupsAction,
+    loadRefundSearchPageAction,
+    loadReimbursementGroupItemsAction,
+    loadReimbursementMoreGroupsAction,
+    loadReimbursementSearchPageAction,
+    refundPickerView,
+    reimbursementPickerView,
+  });
   const form = useTransactionForm({
     accountOptions,
     categoryOptions,
@@ -369,20 +356,7 @@ export function TransactionForm({
         specialStatusLocked={pickerSpecialStatusLocked}
         selectedAccountCurrency={selectedAccount?.currency}
         selectedCategoryGroup={selectedCategoryGroup}
-        refundPickerView={activeRefundPickerView}
-        loadRefundGroupItemsAction={activeLoadRefundGroupItemsAction}
-        loadRefundMoreGroupsAction={activeLoadRefundMoreGroupsAction}
-        loadRefundSearchPageAction={activeLoadRefundSearchPageAction}
-        reimbursementPickerView={activeReimbursementPickerView}
-        loadReimbursementGroupItemsAction={
-          activeLoadReimbursementGroupItemsAction
-        }
-        loadReimbursementMoreGroupsAction={
-          activeLoadReimbursementMoreGroupsAction
-        }
-        loadReimbursementSearchPageAction={
-          activeLoadReimbursementSearchPageAction
-        }
+        {...incomeLinks}
         specialStatusEnabled={transactionItemSpecialStatusEnabled}
         incomeLinksEnabled
         onSpecialStatusChange={setPickerSpecialStatus}

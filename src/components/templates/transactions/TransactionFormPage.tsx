@@ -29,8 +29,9 @@ import {
   accountsCreateHref,
   merchantsNewHref,
   routePaths,
-  transactionsNewHref,
+  transactionsNewEntryHref,
 } from "config/paths";
+import { flowMessages } from "config/transactionStepFlowMessages";
 import { getAmountDecimalPlaces } from "utils/transactionAmountInput";
 import { transactionEditRestrictionMessages } from "utils/transactionMessages";
 import {
@@ -60,6 +61,7 @@ import {
   transactionFormStackSx,
   transactionSubmitButtonSx,
 } from "organisms/transactions/TransactionForm/TransactionForm.styles";
+import { TransactionEntryMethodSwitch } from "organisms/transactions/TransactionEntryMethodSwitch/TransactionEntryMethodSwitch";
 import { TransferTransactionForm } from "organisms/transactions/TransferTransactionForm/TransferTransactionForm";
 import { designTokens } from "theme/theme";
 import type { TransferEditInitialValues } from "types/transactions";
@@ -243,6 +245,35 @@ export function NewTransactionTemplate(props: TransactionFormTemplateProps) {
   );
 }
 
+/** 记账方式「账户周转」（#943）：沿用现有转账表单。 */
+export function NewTransferTransactionTemplate({
+  accountOptions,
+  action,
+}: Pick<TransactionFormTemplateProps, "accountOptions" | "action">) {
+  const [actionState, formAction] = useActionState(action, {});
+  return (
+    <>
+      <Stack spacing={0}>
+        <TransactionPageTopBar
+          title={flowMessages.transferTitle}
+          action={<TransactionEntryMethodSwitch currentMethod="transfer" />}
+        />
+        <TransferTransactionForm
+          action={formAction}
+          accountOptions={accountOptions}
+          addAccountHref={accountsCreateHref(
+            transactionsNewEntryHref({ method: "transfer" }),
+          )}
+          errorMessage={actionState.error ?? null}
+          formId="new-transfer-transaction-form"
+          hideHeader
+        />
+      </Stack>
+      <TransactionAmountKeypadLauncher />
+    </>
+  );
+}
+
 // 当前账本角色不能新增记账时的整页提示。查看已有记录不走这里，有限制时编辑页显示只读详情（#928）。
 export function TransactionPermissionDenied() {
   return (
@@ -265,9 +296,9 @@ export function TransactionPermissionDenied() {
   );
 }
 
-// 添加账户 / 商家后带着当前页签返回记一笔。
+// 添加账户 / 商家后带着当前页签返回标准记账。
 function newTransactionSetupHrefs(type: TransactionType) {
-  const returnTo = transactionsNewHref(type);
+  const returnTo = transactionsNewEntryHref({ method: "standard", type });
 
   return {
     account: accountsCreateHref(returnTo),
@@ -373,7 +404,9 @@ function NewTransactionFormView({
         <TransferTransactionForm
           action={formAction}
           accountOptions={accountOptions}
-          addAccountHref={accountsCreateHref(transactionsNewHref("transfer"))}
+          addAccountHref={accountsCreateHref(
+            transactionsNewEntryHref({ method: "standard", type: "transfer" }),
+          )}
           errorMessage={activeErrorMessage}
           formId="new-transfer-transaction-form"
           hideHeader
@@ -401,7 +434,10 @@ function NewTransactionFormView({
 
   return (
     <Stack spacing={0}>
-      <TransactionPageTopBar title="记一笔" />
+      <TransactionPageTopBar
+        title="记一笔"
+        action={<TransactionEntryMethodSwitch currentMethod="standard" />}
+      />
       <TransactionTypeNavigation
         activeType={activeType === "transfer" ? "transfer" : "normal"}
         onChange={handleNewTypeChange}
@@ -412,10 +448,12 @@ function NewTransactionFormView({
 }
 
 function TransactionPageTopBar({
+  action,
   hasUnsavedChanges = false,
   onClose,
   title,
 }: {
+  action?: ReactNode;
   hasUnsavedChanges?: boolean;
   onClose?: () => void;
   title: string;
@@ -443,15 +481,20 @@ function TransactionPageTopBar({
       <Typography component="h1" variant="h5" sx={newTransactionTitleSx}>
         {title}
       </Typography>
-      <Box aria-hidden sx={{ width: 40 }} />
+      {action ? (
+        <Box sx={{ justifySelf: "end" }}>{action}</Box>
+      ) : (
+        <Box aria-hidden sx={{ width: 40 }} />
+      )}
     </Box>
   );
 }
 
+// 两侧等宽、标题居中；右侧可放「切换方式」等操作。
 const newTransactionTopBarSx = {
   alignItems: "center",
   display: "grid",
-  gridTemplateColumns: "40px minmax(0, 1fr) 40px",
+  gridTemplateColumns: "minmax(40px, 1fr) auto minmax(40px, 1fr)",
   pb: 1.5,
   pt: { xs: 0, sm: 0.5 },
 };

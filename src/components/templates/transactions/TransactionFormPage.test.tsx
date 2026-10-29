@@ -7,8 +7,11 @@ import {
 } from "@testing-library/react";
 import { type ReactNode, useEffect, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+const router = vi.hoisted(() => ({ replace: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => router }));
 import {
   NewTransactionTemplate,
+  NewTransferTransactionTemplate,
   TransactionPermissionDenied,
   EditTransactionTemplate,
   EditTransferTransactionTemplate,
@@ -363,30 +366,38 @@ describe("\u65B0\u589E\u8BB0\u8D26\u9875\u9762", () => {
         within(activePanel).getByRole("region", { name: "特殊状态" }),
       ).toBeInTheDocument();
     });
-    it("各页签的添加账户 / 商家入口带着对应页签的 returnTo", () => {
+    it("顶部可切换记账方式，当前为标准记账", () => {
+      const { container } = render(<NewTransactionTemplate {...baseProps} />);
+      fireEvent.click(
+        within(container).getByRole("button", { name: "切换方式" }),
+      );
+      fireEvent.click(screen.getByRole("button", { name: "从商家记账" }));
+      expect(router.replace).toHaveBeenCalledWith("/transactions/new");
+    });
+    it("各页签的添加账户 / 商家入口带着标准记账与对应页签的 returnTo", () => {
       const { container } = render(<NewTransactionTemplate {...baseProps} />);
       const expenseForm = within(container).getByTestId(
         "transaction-form-expense",
       );
       expect(expenseForm).toHaveAttribute(
         "data-add-account-href",
-        "/accounts?create=1&returnTo=%2Ftransactions%2Fnew%3Ftype%3Dexpense",
+        "/accounts?create=1&returnTo=%2Ftransactions%2Fnew%3Fmethod%3Dstandard%26type%3Dexpense",
       );
       expect(expenseForm).toHaveAttribute(
         "data-add-merchant-href",
-        "/merchants/new?returnTo=%2Ftransactions%2Fnew%3Ftype%3Dexpense",
+        "/merchants/new?returnTo=%2Ftransactions%2Fnew%3Fmethod%3Dstandard%26type%3Dexpense",
       );
       expect(
         within(container).getByTestId("transaction-form-income"),
       ).toHaveAttribute(
         "data-add-merchant-href",
-        "/merchants/new?returnTo=%2Ftransactions%2Fnew%3Ftype%3Dincome",
+        "/merchants/new?returnTo=%2Ftransactions%2Fnew%3Fmethod%3Dstandard%26type%3Dincome",
       );
       expect(
         within(container).getByTestId("transfer-transaction-form"),
       ).toHaveAttribute(
         "data-add-account-href",
-        "/accounts?create=1&returnTo=%2Ftransactions%2Fnew%3Ftype%3Dtransfer",
+        "/accounts?create=1&returnTo=%2Ftransactions%2Fnew%3Fmethod%3Dstandard%26type%3Dtransfer",
       );
     });
     it("initialType=income 时收支 tab 对应收入表单", () => {
@@ -402,6 +413,34 @@ describe("\u65B0\u589E\u8BB0\u8D26\u9875\u9762", () => {
       const hiddenInput = within(activePanel).getByDisplayValue("income");
       expect(hiddenInput).toHaveAttribute("name", "type");
       expect(hiddenInput).toHaveAttribute("type", "hidden");
+    });
+  });
+  describe("NewTransferTransactionTemplate", () => {
+    it("显示账户周转标题、转账表单与切换方式", () => {
+      const { container } = render(
+        <NewTransferTransactionTemplate
+          accountOptions={[]}
+          action={baseProps.action}
+        />,
+      );
+      expect(
+        within(container).getByRole("heading", { name: "账户周转" }),
+      ).toBeInTheDocument();
+      expect(
+        within(container).getByRole("link", { name: "关闭" }),
+      ).toHaveAttribute("href", routePaths.transactions);
+      expect(
+        within(container).queryByRole("group", { name: "记账类型" }),
+      ).not.toBeInTheDocument();
+      expect(
+        within(container).getByTestId("transfer-transaction-form"),
+      ).toHaveAttribute(
+        "data-add-account-href",
+        "/accounts?create=1&returnTo=%2Ftransactions%2Fnew%3Fmethod%3Dtransfer",
+      );
+      expect(
+        within(container).getByRole("button", { name: "切换方式" }),
+      ).toBeInTheDocument();
     });
   });
   describe("TransactionPermissionDenied", () => {

@@ -1,4 +1,7 @@
-export type { MerchantSummary } from "internal/merchant/entity/merchantSummary";
+export type {
+  MerchantEntryOptions,
+  MerchantSummary,
+} from "internal/merchant/entity/merchantSummary";
 export {
   isMerchantActionErrorCode,
   merchantErrorCodes,

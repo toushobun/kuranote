@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import {
   accountsCreateHref,
   merchantsNewHref,
-  transactionsNewHref,
+  transactionsNewEntryHref,
 } from "config/paths";
 
 import { TransactionSetupHintCard } from "./TransactionSetupHintCard";
@@ -22,8 +22,12 @@ const meta = {
   title: "Organisms/Transactions/TransactionSetupHintCard",
   component: TransactionSetupHintCard,
   args: {
-    addAccountHref: accountsCreateHref(transactionsNewHref("expense")),
-    addMerchantHref: merchantsNewHref(transactionsNewHref("expense")),
+    addAccountHref: accountsCreateHref(
+      transactionsNewEntryHref({ method: "standard", type: "expense" }),
+    ),
+    addMerchantHref: merchantsNewHref(
+      transactionsNewEntryHref({ method: "standard", type: "expense" }),
+    ),
     hint: requireHint(
       getNormalTransactionSetupHint({ accountCount: 0, merchantCount: 0 }),
     ),
@@ -58,7 +62,9 @@ export const MissingAccount: Story = {
 export const TransferOneAccount: Story = {
   name: "转账 · 只有 1 个账户",
   args: {
-    addAccountHref: accountsCreateHref(transactionsNewHref("transfer")),
+    addAccountHref: accountsCreateHref(
+      transactionsNewEntryHref({ method: "transfer" }),
+    ),
     addMerchantHref: undefined,
     hint: requireHint(getTransferTransactionSetupHint(1)),
   },

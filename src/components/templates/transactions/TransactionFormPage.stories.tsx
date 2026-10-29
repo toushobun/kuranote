@@ -6,6 +6,7 @@ import {
   EditTransactionTemplate,
   EditTransferTransactionTemplate,
   NewTransactionTemplate,
+  NewTransferTransactionTemplate,
   TransactionPermissionDenied,
 } from "./TransactionFormPage";
 import { NewTransactionVisualFrame } from "./NewTransactionVisualFrame";
@@ -140,7 +141,17 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  name: "新增记账页面",
+  name: "标准记账（带切换方式）",
+};
+
+export const NewTransfer: Story = {
+  name: "账户周转",
+  render: (args) => (
+    <NewTransferTransactionTemplate
+      accountOptions={args.accountOptions}
+      action={args.action}
+    />
+  ),
 };
 
 export const WithError: Story = {

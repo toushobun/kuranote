@@ -72,6 +72,7 @@ function createService(
       showRecorder: false,
     }),
     listTransactionHolderOptions: vi.fn().mockResolvedValue([]),
+    listTransactionOptionsWithHolders: vi.fn(),
     listTransactionOptions: vi.fn().mockResolvedValue([
       {
         currency: "JPY",
@@ -107,6 +108,7 @@ function createService(
       },
       merchantQueryService: {
         findSummariesByIds: vi.fn().mockResolvedValue([]),
+        listActiveOptionsWithTags: vi.fn(),
         listActiveOptions: vi.fn(),
       },
       transactionRepository: repository,
@@ -377,6 +379,7 @@ describe("TransactionService", () => {
       accountQueryService: {
         getTransactionContext: vi.fn(),
         listTransactionHolderOptions: vi.fn().mockResolvedValue([]),
+        listTransactionOptionsWithHolders: vi.fn(),
         listTransactionOptions: vi.fn().mockResolvedValue([
           {
             currency: "JPY",
@@ -402,6 +405,7 @@ describe("TransactionService", () => {
       },
       merchantQueryService: {
         findSummariesByIds: vi.fn(),
+        listActiveOptionsWithTags: vi.fn(),
         listActiveOptions: vi.fn(),
       },
       transactionRepository: repository,
@@ -755,6 +759,7 @@ describe("付款明细校验（create / update / convert）", () => {
         showRecorder: false,
       }),
       listTransactionHolderOptions: vi.fn().mockResolvedValue([]),
+      listTransactionOptionsWithHolders: vi.fn(),
       listTransactionOptions: vi.fn().mockResolvedValue(
         options?.accountOptions ?? [
           {
@@ -786,6 +791,7 @@ describe("付款明细校验（create / update / convert）", () => {
       },
       merchantQueryService: {
         findSummariesByIds: vi.fn().mockResolvedValue([]),
+        listActiveOptionsWithTags: vi.fn(),
         listActiveOptions: vi.fn(),
       },
       transactionRepository: repository,
@@ -932,6 +938,7 @@ describe("付款明细校验（create / update / convert）", () => {
         showRecorder: false,
       }),
       listTransactionHolderOptions: vi.fn().mockResolvedValue([]),
+      listTransactionOptionsWithHolders: vi.fn(),
       listTransactionOptions: vi.fn().mockResolvedValue([
         {
           currency: "JPY",
@@ -950,6 +957,7 @@ describe("付款明细校验（create / update / convert）", () => {
       },
       merchantQueryService: {
         findSummariesByIds: vi.fn().mockResolvedValue([]),
+        listActiveOptionsWithTags: vi.fn(),
         listActiveOptions: vi.fn(),
       },
       transactionRepository: repository,

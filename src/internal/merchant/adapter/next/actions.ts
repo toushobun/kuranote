@@ -8,7 +8,12 @@ import type {
 
 import { redirect } from "next/navigation";
 
-import { merchantResultValues, merchantsResultHref } from "config/paths";
+import {
+  createdIdParams,
+  merchantResultValues,
+  merchantsResultHref,
+  withQueryParam,
+} from "config/paths";
 import { merchantText } from "config/merchantText";
 import { createRequestContainer } from "internal/container";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
@@ -79,8 +84,9 @@ export const createMerchant: MerchantStateAction =
     const validation = validateCreateMerchantForm(formData);
     if (!validation.ok) return validationErrorState(validation.error);
 
+    let merchantId: string;
     try {
-      await (
+      merchantId = await (
         await getMerchantService()
       ).createMerchant({
         ledgerId: currentLedger.id,
@@ -91,10 +97,12 @@ export const createMerchant: MerchantStateAction =
     }
 
     revalidateMerchantMutation();
-    // 从记一笔等页面进入时，新增成功后返回来源页面。
+    // 从记一笔等页面进入时，新增成功后带着新商家 ID 返回来源页面。
+    const returnTo = getSafeNextPath(formData.get("returnTo"));
     redirect(
-      getSafeNextPath(formData.get("returnTo")) ??
-        merchantsResultHref(merchantResultValues.created),
+      returnTo
+        ? withQueryParam(returnTo, createdIdParams.merchant, merchantId)
+        : merchantsResultHref(merchantResultValues.created),
     );
   };
 
@@ -380,7 +388,11 @@ export const addMerchantPresets: MerchantPresetStateAction =
       );
     }
     revalidateMerchantMutation();
-    redirect(merchantsResultHref(merchantResultValues.presetsAdded, count));
+    // 从记一笔进入时添加后返回来源页面。
+    redirect(
+      getSafeNextPath(formData.get("returnTo")) ??
+        merchantsResultHref(merchantResultValues.presetsAdded, count),
+    );
   };
 
 /** 打开预设弹框时才读取，不向客户端发送完整模板。 */

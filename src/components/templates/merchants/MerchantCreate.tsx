@@ -17,6 +17,8 @@ import { useMerchantsActionState } from "./useMerchantsActionState";
 type MerchantCreateTemplateProps = {
   createMerchantAction: MerchantStateAction;
   fetchIconAction: MerchantIconStateAction;
+  /** 从记一笔搜索不到时带来的关键词，预填到商家名称。 */
+  initialName?: string;
   ledgerId: string;
   ledgerName: string;
   returnTo?: string | null;
@@ -26,6 +28,7 @@ type MerchantCreateTemplateProps = {
 export function MerchantCreateTemplate({
   createMerchantAction,
   fetchIconAction,
+  initialName,
   ledgerId,
   ledgerName,
   returnTo = null,
@@ -52,6 +55,7 @@ export function MerchantCreateTemplate({
         <MerchantForm
           action={create.action}
           fetchIconAction={fetchIconAction}
+          initialName={initialName}
           ledgerId={ledgerId}
           pending={create.pending}
           returnTo={returnTo}

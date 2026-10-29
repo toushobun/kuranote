@@ -537,6 +537,51 @@ describe("createSupabaseMerchantRepository", () => {
     });
   });
 
+  it("记账用商家候选带上商家分类与分类商家数", async () => {
+    const tagId = "00000000-0000-4000-8000-000000002001";
+    const secondMerchantId = "00000000-0000-4000-8000-000000001002";
+    const supabase = createSupabaseMock({
+      queryResponses: [
+        {
+          data: [
+            { icon_url: null, id: merchantId, name: "LIFE" },
+            { icon_url: null, id: secondMerchantId, name: "星巴克" },
+          ],
+        },
+        { data: [{ icon: "🛒", id: tagId, name: "超市", sort_order: 0 }] },
+        { data: [] },
+        { data: [{ merchant_id: merchantId, tag_id: tagId }] },
+      ],
+    });
+    const repository = createSupabaseMerchantRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+
+    const tag = {
+      icon: "🛒",
+      id: tagId,
+      merchant_count: 1,
+      name: "超市",
+      sort_order: 0,
+    };
+    await expect(
+      repository.listActiveSummariesWithTags(ledgerId),
+    ).resolves.toEqual({
+      merchants: [
+        { icon_url: null, id: merchantId, name: "LIFE", tags: [tag] },
+        { icon_url: null, id: secondMerchantId, name: "星巴克", tags: [] },
+      ],
+      tags: [tag],
+    });
+    expect(supabase.queries.map((query) => query.table)).toEqual([
+      "merchant",
+      "merchant_tags",
+      "merchant_alias",
+      "merchant_tag_links",
+    ]);
+  });
+
   it("标签计数所需的商家查询失败时返回统一的标签列表错误", async () => {
     const tagId = "00000000-0000-4000-8000-000000002001";
     const supabase = createSupabaseMock({

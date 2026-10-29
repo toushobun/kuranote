@@ -485,6 +485,40 @@ describe("AccountService 占位持有人", () => {
     ]);
   });
 
+  it("记账用账户候选带持有人显示名，只含未归档账户", async () => {
+    const repository = createRepository();
+    mockPlaceholderAccount(repository);
+    vi.mocked(repository.listHolders).mockResolvedValue([
+      placeholderHolder,
+      {
+        ...placeholderHolder,
+        id: "00000000-0000-4000-8000-000000000053",
+        placeholder_id: null,
+        user_id: holderUserId,
+      },
+    ]);
+    vi.mocked(repository.listDisplaySettings).mockResolvedValue([
+      { display_color: "sky", display_name: "妻子", user_id: holderUserId },
+    ]);
+
+    const options = await createService(
+      repository,
+    ).listTransactionOptionsWithHolders({ ledgerId, userId });
+
+    expect(options).toEqual([
+      expect.objectContaining({
+        holders: [{ display_name: "奶奶" }, { display_name: "妻子" }],
+      }),
+    ]);
+    expect(Object.keys(options[0]).sort()).toEqual([
+      "currency",
+      "holders",
+      "id",
+      "name",
+    ]);
+    expect(repository.listAccounts).toHaveBeenCalledWith(ledgerId);
+  });
+
   it("创建时把占位 ID 透传给 Repository，且不传用户持有人", async () => {
     const repository = createRepository();
 

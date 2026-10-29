@@ -13,14 +13,16 @@ import Typography from "@mui/material/Typography";
 import { designTokens } from "theme/theme";
 import { entrySelectionRowSx as rowSx } from "organisms/transactions/transactionStepFlowStyles";
 import { flowMessages as m } from "config/transactionStepFlowMessages";
+import type { TransactionEntryMethod } from "types/transactions";
 
-export type EntryMethod = "merchant" | "transfer" | "standard";
 type EntryMethodDrawerProps = {
+  currentMethod: TransactionEntryMethod;
   open: boolean;
   onClose: () => void;
-  onMethodChange: (method: EntryMethod) => void;
+  onMethodChange: (method: TransactionEntryMethod) => void;
 };
 export function EntryMethodDrawer({
+  currentMethod,
   open,
   onClose,
   onMethodChange,
@@ -59,9 +61,10 @@ export function EntryMethodDrawer({
               onClick={() => {
                 onClose();
                 if (
-                  method.id === "merchant" ||
-                  method.id === "transfer" ||
-                  method.id === "standard"
+                  method.id !== currentMethod &&
+                  (method.id === "merchant" ||
+                    method.id === "transfer" ||
+                    method.id === "standard")
                 )
                   onMethodChange(method.id);
               }}
@@ -70,7 +73,9 @@ export function EntryMethodDrawer({
               <ListItemText primary={method.label} />
               {"badge" in method && <Chip size="small" label={method.badge} />}
               {"disabled" in method && <Chip size="small" label={m.soon} />}
-              {method.id === "merchant" && <CheckRoundedIcon color="primary" />}
+              {method.id === currentMethod && (
+                <CheckRoundedIcon color="primary" />
+              )}
             </ListItemButton>
           ))}
         </List>

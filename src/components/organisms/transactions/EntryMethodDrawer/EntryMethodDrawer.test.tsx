@@ -5,9 +5,13 @@ import {
   renderEntryComponent,
   clickEntryButton as click,
 } from "test/transactionStepFlow";
+import type { TransactionEntryMethod } from "types/transactions";
 import { EntryMethodDrawer } from "./EntryMethodDrawer";
-function setup(open = true) {
-  const props = { ...createEntryCallbacks(), open };
+function setup(
+  open = true,
+  currentMethod: TransactionEntryMethod = "merchant",
+) {
+  const props = { ...createEntryCallbacks(), currentMethod, open };
   renderEntryComponent(<EntryMethodDrawer {...props} />);
   return props;
 }
@@ -27,12 +31,21 @@ describe("EntryMethodDrawer", () => {
     }
     expect(props.onMethodChange).not.toHaveBeenCalled();
   });
+  it("当前方式按传入的方式打勾，再点当前方式只关闭抽屉", () => {
+    const props = setup(true, "transfer");
+    expect(screen.getByRole("button", { name: "账户周转" })).toContainElement(
+      screen.getByTestId("CheckRoundedIcon"),
+    );
+    click("账户周转");
+    expect(props.onMethodChange).not.toHaveBeenCalled();
+    expect(props.onClose).toHaveBeenCalledOnce();
+  });
   it.each([
     ["从商家记账", "merchant"],
     ["账户周转", "transfer"],
     ["标准记账 过渡", "standard"],
-  ])("选择%s时关闭抽屉并通知外部", (name, method) => {
-    const props = setup();
+  ] as const)("选择%s时关闭抽屉并通知外部", (name, method) => {
+    const props = setup(true, method === "standard" ? "merchant" : "standard");
     click(name);
     expect(props.onMethodChange).toHaveBeenCalledWith(method);
     expect(props.onClose).toHaveBeenCalledOnce();

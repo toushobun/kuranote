@@ -7,7 +7,10 @@ import type {
   TransactionIncomeLinkRepository,
 } from "internal/transaction/repository/transactionIncomeLinkRepository";
 import type { TransactionFormRepository } from "internal/transaction/repository/transactionRepository";
-import { loadTransactionFormOptions } from "internal/transaction/service/read/options";
+import {
+  loadTransactionEntryOptions,
+  loadTransactionFormOptions,
+} from "internal/transaction/service/read/options";
 import type { TransactionReadDependencies } from "internal/transaction/service/read/transactionContext";
 import type {
   EditTransactionView,
@@ -50,10 +53,14 @@ export async function getNewTransactionView(
   dependencies: TransactionReadDependencies<TransactionFormRepository>,
   currentLedger: CurrentLedger,
 ): Promise<NewTransactionView> {
-  const options = await loadTransactionFormOptions(dependencies, currentLedger);
+  const options = await loadTransactionEntryOptions(
+    dependencies,
+    currentLedger,
+  );
   return {
     ...options,
     canWriteTransactions: canWriteTransaction(currentLedger.currentUserRole),
+    ledgerId: currentLedger.id,
     ledgerName: currentLedger.name,
   };
 }

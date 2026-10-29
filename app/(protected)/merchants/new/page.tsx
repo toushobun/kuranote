@@ -9,7 +9,7 @@ import { MerchantCreateTemplate } from "templates/merchants/MerchantCreate";
 export default async function MerchantCreatePage({
   searchParams,
 }: {
-  searchParams: Promise<{ returnTo?: string }>;
+  searchParams: Promise<{ name?: string; returnTo?: string }>;
 }) {
   const params = await searchParams;
   const view = await loadMerchantCreateView();
@@ -18,6 +18,7 @@ export default async function MerchantCreatePage({
     <MerchantCreateTemplate
       createMerchantAction={createMerchant}
       fetchIconAction={fetchMerchantIcon}
+      initialName={params.name?.trim() ?? ""}
       ledgerId={view.ledgerId}
       ledgerName={view.ledgerName}
       returnTo={getSafeNextPath(params.returnTo)}

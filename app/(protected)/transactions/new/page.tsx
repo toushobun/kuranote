@@ -1,6 +1,10 @@
 import { redirect } from "next/navigation";
 
 import { transactionEditHref } from "config/paths";
+import {
+  addMerchantPresets,
+  loadMerchantPresets,
+} from "internal/merchant/adapter/next/actions";
 import { createTransaction } from "internal/transaction/adapter/next/actions";
 import {
   loadNewTransactionView,
@@ -11,26 +15,23 @@ import {
   loadReimbursementPickerGroupPage,
   loadReimbursementPickerSearchPage,
 } from "internal/transaction/adapter/next/loadTransactionViews";
+import {
+  resolveNewTransactionEntry,
+  type NewTransactionEntrySearchParams,
+} from "internal/transaction/adapter/next/newTransactionEntry";
 import { TransactionIncomeLinksProvider } from "organisms/transactions/TransactionForm/TransactionIncomeLinksContext";
+import { NewTransactionStepFlow } from "templates/transactions/NewTransactionStepFlow";
 import {
   NewTransactionTemplate,
+  NewTransferTransactionTemplate,
   TransactionPermissionDenied,
 } from "templates/transactions/TransactionFormPage";
 import { NewTransactionVisualFrame } from "templates/transactions/NewTransactionVisualFrame";
-import type { TransactionRecordType } from "types/transactions";
-
-function parseInitialType(type?: string): TransactionRecordType {
-  if (type === "expense" || type === "income" || type === "transfer") {
-    return type;
-  }
-
-  return "expense";
-}
 
 export default async function TransactionsNewPage({
   searchParams,
 }: {
-  searchParams: Promise<{ editId?: string; type?: string }>;
+  searchParams: Promise<NewTransactionEntrySearchParams & { editId?: string }>;
 }) {
   const params = await searchParams;
 
@@ -40,6 +41,8 @@ export default async function TransactionsNewPage({
 
   const {
     canWriteTransactions,
+    ledgerId,
+    merchantTags,
     refundPickerView,
     reimbursementPickerView,
     ...view
@@ -53,6 +56,7 @@ export default async function TransactionsNewPage({
     );
   }
 
+  const entry = resolveNewTransactionEntry(params, view);
   const incomeLinksValue = {
     loadRefundGroupItemsAction: loadRefundPickerGroupItems,
     loadRefundMoreGroupsAction: loadRefundPickerGroupPage,
@@ -67,12 +71,37 @@ export default async function TransactionsNewPage({
   return (
     <NewTransactionVisualFrame>
       <TransactionIncomeLinksProvider value={incomeLinksValue}>
-        <NewTransactionTemplate
-          action={createTransaction}
-          errorMessage={null}
-          initialType={parseInitialType(params.type)}
-          {...view}
-        />
+        {entry.method === "merchant" ? (
+          <NewTransactionStepFlow
+            action={createTransaction}
+            accountOptions={view.accountOptions}
+            addPresetsAction={addMerchantPresets}
+            categoryOptions={view.categoryOptions}
+            initialAccountId={entry.initialAccountId}
+            initialMerchantId={entry.initialMerchantId}
+            initialStep={entry.initialStep}
+            ledgerId={ledgerId}
+            loadPresetsAction={loadMerchantPresets}
+            merchantOptions={view.merchantOptions}
+            merchantTags={merchantTags}
+            multiAccountPaymentEnabled={view.multiAccountPaymentEnabled}
+            transactionItemSpecialStatusEnabled={
+              view.transactionItemSpecialStatusEnabled
+            }
+          />
+        ) : entry.method === "transfer" ? (
+          <NewTransferTransactionTemplate
+            accountOptions={view.accountOptions}
+            action={createTransaction}
+          />
+        ) : (
+          <NewTransactionTemplate
+            action={createTransaction}
+            errorMessage={null}
+            initialType={entry.standardType}
+            {...view}
+          />
+        )}
       </TransactionIncomeLinksProvider>
     </NewTransactionVisualFrame>
   );

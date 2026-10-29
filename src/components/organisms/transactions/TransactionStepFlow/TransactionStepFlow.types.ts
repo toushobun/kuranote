@@ -5,9 +5,11 @@ import type {
   MerchantEntrySuggestions,
 } from "internal/transaction";
 import type { MerchantTag } from "types/merchants";
-import type { TransactionAccountOption } from "types/transactions";
+import type {
+  TransactionAccountOption,
+  TransactionEntryMethod,
+} from "types/transactions";
 import type { FlowMerchant } from "organisms/transactions/MerchantStep/MerchantStep.types";
-import type { EntryMethod } from "organisms/transactions/EntryMethodDrawer/EntryMethodDrawer";
 export type TransactionStepFlowProps = {
   action: (
     previousState: ActionState,
@@ -26,7 +28,7 @@ export type TransactionStepFlowProps = {
   initialAccountId?: string;
   initialStep?: number;
   onClose: () => void;
-  onMethodChange: (method: EntryMethod) => void;
+  onMethodChange: (method: TransactionEntryMethod) => void;
   onMerchantSelect: (merchant: FlowMerchant) => void;
   onAccountSelect: (account: TransactionAccountOption) => void;
   onAddMerchant: (name?: string) => void;
