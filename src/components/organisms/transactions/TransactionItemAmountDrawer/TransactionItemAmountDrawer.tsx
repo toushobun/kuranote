@@ -12,8 +12,8 @@ import { flowMessages as m } from "config/transactionStepFlowMessages";
 import { TransactionAmountKeypad } from "organisms/transactions/TransactionAmountKeypad/TransactionAmountKeypad";
 import { amountKeypadDrawerSx } from "organisms/transactions/TransactionAmountKeypadLauncher/TransactionAmountKeypadLauncher";
 import { designTokens } from "theme/theme";
-import { getCurrencySymbol } from "utils/currency";
 import { formatMoneyTextForCurrency } from "utils/transactionAmountInput";
+import { formatUnsignedCurrencyAmount } from "utils/transactions";
 
 type TransactionItemAmountDrawerProps = {
   open: boolean;
@@ -45,7 +45,7 @@ export function TransactionItemAmountDrawer({
   const quick = quickAmounts.find(
     (item) => item.categoryId === categoryId && item.currency === currency,
   );
-  // 显示与填入共用同一个按币种格式化的金额；格式化后与「上次」相同的常用金额不重复显示。
+  // 填入与去重使用按币种格式化的金额，按钮显示再加货币符号与千位分隔符；格式化后与「上次」相同的常用金额不重复显示。
   const lastAmount =
     quick && formatMoneyTextForCurrency(quick.lastAmount, currency);
   const frequentAmounts = quick
@@ -57,7 +57,8 @@ export function TransactionItemAmountDrawer({
         ),
       ].filter((amount) => amount !== lastAmount)
     : [];
-  const format = (amount: string) => `${getCurrencySymbol(currency)}${amount}`;
+  const format = (amount: string) =>
+    formatUnsignedCurrencyAmount(amount, currency);
   return (
     <Drawer
       anchor="bottom"
