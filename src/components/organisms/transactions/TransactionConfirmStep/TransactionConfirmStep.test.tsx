@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import {
   expectAutomaticItems,
+  receiptLine as line,
   pressItemAmountKey,
   renderConfirmFlow,
 } from "test/transactionConfirmStep";
@@ -19,11 +20,6 @@ import {
 
 function headerRow(label: string) {
   return screen.getByRole("button", { name: new RegExp(`^修改${label}：`) });
-}
-// 明细行 / 支付行：以行内的铅笔按钮定位整行。
-function line(editLabel: string) {
-  return screen.getByRole("button", { name: editLabel }).parentElement!
-    .parentElement!;
 }
 function saveButton() {
   return screen.getByRole("button", { name: "保存记账" });
