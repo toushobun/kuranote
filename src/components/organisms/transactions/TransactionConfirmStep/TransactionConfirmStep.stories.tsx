@@ -5,7 +5,7 @@ import { transactionEntryStoryDecorators } from "organisms/transactions/transact
 import { flowFixture } from "test/mocks/transactionStepFlow";
 import {
   receiptFlowFixture,
-  receiptItemsOptions,
+  receiptEmojiItemsOptions as receiptItemsOptions,
   receiptSuggestions,
   twoPayments,
 } from "test/mocks/transactionReceipt";
@@ -13,7 +13,14 @@ const meta = {
   title: "Organisms/Transactions/TransactionConfirmStep",
   component: TransactionStepFlow,
   decorators: transactionEntryStoryDecorators,
-  args: { ...flowFixture, ...receiptFlowFixture },
+  args: {
+    ...flowFixture,
+    ...receiptFlowFixture,
+    itemsOptions: {
+      ...receiptFlowFixture.itemsOptions,
+      ...receiptItemsOptions,
+    },
+  },
   parameters: { viewport: { defaultViewport: "mobile2" } },
 } satisfies Meta<typeof TransactionStepFlow>;
 export default meta;
@@ -78,7 +85,7 @@ export const MultiAccountUnbalanced: Story = {
 };
 export const SingleAccount: Story = { name: "单账户（已填金额、空备注）" };
 export const ItemTags: Story = {
-  name: "明细标签（自动以外的待报销）",
+  name: "明细标签（待报销）",
   args: {
     itemsOptions: {
       ...receiptItemsOptions,

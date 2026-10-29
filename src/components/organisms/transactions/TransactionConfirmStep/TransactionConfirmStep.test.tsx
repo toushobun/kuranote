@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import {
+  expectAutomaticItems,
   pressItemAmountKey,
   renderConfirmFlow,
 } from "test/transactionConfirmStep";
@@ -11,6 +12,7 @@ import {
 import {
   filledItems,
   receiptItemsOptions,
+  receiptEmojiItemsOptions,
   receiptSuggestions,
   twoPayments,
 } from "test/mocks/transactionReceipt";
@@ -93,7 +95,33 @@ describe("TransactionConfirmStep", () => {
       );
   });
 
-  it("小票显示明细标签：自动以外的「待报销」也显示", () => {
+  it("自动明细只显示添加条数提示，不显示自动标签，删除后条数同步减少", () => {
+    renderConfirmFlow({
+      itemsOptions: receiptEmojiItemsOptions,
+      suggestionsMerchantId: "seven",
+      suggestions: receiptSuggestions,
+    });
+    expectAutomaticItems(2);
+    click("删除明细 2");
+    expectAutomaticItems(1);
+  });
+
+  it("带 emoji 的分类名只显示一次小分类图标，也不显示默认分类图标", () => {
+    renderConfirmFlow({
+      itemsOptions: {
+        ...receiptEmojiItemsOptions,
+        initialItems: filledItems,
+      },
+    });
+    const row = line("编辑明细 1");
+    expect(row).toHaveTextContent("🍽️ 饮食 · 🍙 午餐");
+    expect(row.textContent?.match(/🍙/gu)).toHaveLength(1);
+    expect(
+      within(line("编辑明细 2")).queryByTestId("CategoryRoundedIcon"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("小票仍显示业务状态「待报销」标签", () => {
     renderConfirmFlow({
       itemsOptions: {
         ...receiptItemsOptions,

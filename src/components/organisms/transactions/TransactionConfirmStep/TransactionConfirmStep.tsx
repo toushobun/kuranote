@@ -116,7 +116,7 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
               </Box>
               <Stack
                 direction="row"
-                sx={[sectionSx, { alignItems: "flex-start", py: 1.5 }]}
+                sx={[sectionSx, { alignItems: "center", py: 1.5 }]}
               >
                 <Typography sx={{ flex: 1, fontWeight: 700 }}>
                   {m.total}

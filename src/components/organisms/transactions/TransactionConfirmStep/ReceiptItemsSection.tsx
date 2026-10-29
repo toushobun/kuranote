@@ -1,9 +1,6 @@
 "use client";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import CategoryRoundedIcon from "@mui/icons-material/CategoryRounded";
-import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Chip from "@mui/material/Chip";
 import Typography from "@mui/material/Typography";
 import { resolveTransactionBusinessStatus } from "internal/transaction";
 import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/TransactionBusinessBadge";
@@ -67,28 +64,16 @@ export function ReceiptItemsSection({
         return (
           <ReceiptLine
             key={item.id}
-            icon={
-              item.category?.iconName ? (
-                <Box component="span">{item.category.iconName}</Box>
-              ) : (
-                <CategoryRoundedIcon fontSize="inherit" color="action" />
-              )
-            }
             label={name}
             error={invalidItems.includes(item)}
             errorLabel={invalidItems.includes(item) && !!item.amount.trim()}
             tags={
-              <>
-                {automaticItemIds.includes(item.id) && (
-                  <Chip label={m.automatic} size="small" />
-                )}
-                {businessStatus && (
-                  <TransactionBusinessBadge
-                    currency={currency}
-                    status={businessStatus}
-                  />
-                )}
-              </>
+              businessStatus && (
+                <TransactionBusinessBadge
+                  currency={currency}
+                  status={businessStatus}
+                />
+              )
             }
             amount={
               <ReceiptAmountButton
