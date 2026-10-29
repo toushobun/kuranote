@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { transactionEntryStoryDecorators } from "organisms/transactions/transactionStepFlowStoryUtils";
 import {
   itemsStepFixture,
@@ -76,8 +76,14 @@ export const SharedPayments: Story = {
   },
 };
 
+async function selectSevenEleven(canvasElement: HTMLElement) {
+  const body = within(canvasElement.ownerDocument.body);
+  await userEvent.click(body.getByRole("button", { name: "7-Eleven" }));
+  return body;
+}
+
 export const QuickEntry: Story = {
-  name: "快速路线（建议到达后直接跳到确认并弹出金额键盘）",
+  name: "快速路线（建议到达后直接跳到确认，自动明细待输入）",
   args: {
     suggestionsMerchantId: "seven",
     suggestions: {
@@ -87,11 +93,14 @@ export const QuickEntry: Story = {
     itemsOptions: { categoryOptions: itemsStepFixture.categoryOptions },
   },
   play: async ({ canvasElement }) => {
-    await userEvent.click(
-      within(canvasElement.ownerDocument.body).getByRole("button", {
-        name: "7-Eleven",
-      }),
+    const body = await selectSevenEleven(canvasElement);
+    // 跳到确认后不自动弹出金额键盘，自动明细显示「待输入」。
+    await waitFor(() =>
+      expect(
+        body.getByRole("button", { name: /^修改明细 1：/ }),
+      ).toHaveTextContent("待输入"),
     );
+    await expect(body.queryByLabelText("金额计算器")).not.toBeInTheDocument();
   },
 };
 
@@ -101,5 +110,7 @@ export const QuickEntryLoading: Story = {
     suggestionsMerchantId: "coffee",
     itemsOptions: { categoryOptions: itemsStepFixture.categoryOptions },
   },
-  play: QuickEntry.play,
+  play: async ({ canvasElement }) => {
+    await selectSevenEleven(canvasElement);
+  },
 };

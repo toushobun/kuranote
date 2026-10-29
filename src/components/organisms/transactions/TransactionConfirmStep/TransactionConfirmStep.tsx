@@ -123,7 +123,7 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
                       label={m.itemLabel(index + 1)}
                       value={`${name} ${amount}`}
                       error={w.invalidItems.includes(item)}
-                      onClick={() => f.openItemSheet(item.id)}
+                      onClick={() => w.editItem(item)}
                     >
                       <AmountLine label={name} amount={amount} />
                     </ReceiptRow>

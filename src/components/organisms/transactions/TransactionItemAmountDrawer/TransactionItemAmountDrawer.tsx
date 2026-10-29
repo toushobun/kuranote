@@ -12,7 +12,8 @@ import { flowMessages as m } from "config/transactionStepFlowMessages";
 import { TransactionAmountKeypad } from "organisms/transactions/TransactionAmountKeypad/TransactionAmountKeypad";
 import { amountKeypadDrawerSx } from "organisms/transactions/TransactionAmountKeypadLauncher/TransactionAmountKeypadLauncher";
 import { designTokens } from "theme/theme";
-import { formatUnsignedCurrencyAmount } from "utils/transactions";
+import { getCurrencySymbol } from "utils/currency";
+import { formatMoneyTextForCurrency } from "utils/transactionAmountInput";
 
 type TransactionItemAmountDrawerProps = {
   open: boolean;
@@ -44,8 +45,19 @@ export function TransactionItemAmountDrawer({
   const quick = quickAmounts.find(
     (item) => item.categoryId === categoryId && item.currency === currency,
   );
-  const format = (amount: string) =>
-    formatUnsignedCurrencyAmount(amount, currency);
+  // 显示与填入共用同一个按币种格式化的金额；格式化后与「上次」相同的常用金额不重复显示。
+  const lastAmount =
+    quick && formatMoneyTextForCurrency(quick.lastAmount, currency);
+  const frequentAmounts = quick
+    ? [
+        ...new Set(
+          quick.frequentAmounts.map((amount) =>
+            formatMoneyTextForCurrency(amount, currency),
+          ),
+        ),
+      ].filter((amount) => amount !== lastAmount)
+    : [];
+  const format = (amount: string) => `${getCurrencySymbol(currency)}${amount}`;
   return (
     <Drawer
       anchor="bottom"
@@ -71,7 +83,7 @@ export function TransactionItemAmountDrawer({
           <CloseRoundedIcon />
         </IconButton>
       </Stack>
-      {quick && (
+      {lastAmount && (
         <Box
           role="group"
           aria-label={m.quickAmounts}
@@ -80,14 +92,14 @@ export function TransactionItemAmountDrawer({
           <Button
             variant="outlined"
             size="small"
-            onClick={() => applyQuickAmount(quick.lastAmount)}
+            onClick={() => applyQuickAmount(lastAmount)}
             sx={{ flexShrink: 0 }}
           >
-            {m.lastAmount(format(quick.lastAmount))}
+            {m.lastAmount(format(lastAmount))}
           </Button>
-          {quick.frequentAmounts.map((amount, index) => (
+          {frequentAmounts.map((amount) => (
             <Button
-              key={`${index}:${amount}`}
+              key={amount}
               variant="outlined"
               size="small"
               onClick={() => applyQuickAmount(amount)}

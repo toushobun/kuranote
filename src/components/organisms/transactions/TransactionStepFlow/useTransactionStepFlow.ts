@@ -135,7 +135,6 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     const ids = initializeAutomaticItems(true);
     if (ids.length || recommended) setItemsReached(true);
     setStep(ids.length ? 4 : recommended ? 3 : 2);
-    setAmountItemId(ids[0] ?? null);
   });
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 按商家标识同步异步到达的建议，pending 标识保证只应用一次。

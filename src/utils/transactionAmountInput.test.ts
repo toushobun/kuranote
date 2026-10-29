@@ -4,6 +4,7 @@ import {
   applyAmountKeypadKey,
   confirmAmountKeypadState,
   createAmountKeypadState,
+  formatMoneyTextForCurrency,
   getAmountDecimalPlaces,
   getAmountKeypadExpressionText,
   getAmountKeypadPreviewValue,
@@ -31,6 +32,12 @@ describe("transactionAmountInput", () => {
     expect(isValidMoneyText("1200.50", { currency: "USD" })).toBe(true);
     expect(isValidMoneyText("1200.500", { currency: "USD" })).toBe(false);
     expect(isValidMoneyText("12..5", { currency: "USD" })).toBe(false);
+  });
+
+  it("按币种小数位数格式化金额文本", () => {
+    expect(formatMoneyTextForCurrency("498.00", "JPY")).toBe("498");
+    expect(formatMoneyTextForCurrency("12.5", "CNY")).toBe("12.50");
+    expect(formatMoneyTextForCurrency("12.50", "CNY")).toBe("12.50");
   });
 
   it("限制整数位数，避免无限长金额", () => {

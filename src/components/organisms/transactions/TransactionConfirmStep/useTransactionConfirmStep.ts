@@ -16,6 +16,12 @@ export function useTransactionConfirmStep(
       !isValidTransactionFormItem(item, form.selectedAccount?.currency),
   );
   const missingAmounts = invalidItems.filter((item) => !item.amount.trim());
+  // 金额待输入的明细（如快速路线自动加入的）直接打开金额键盘，其余打开明细编辑。
+  function editItem(item: (typeof form.itemSummaries)[number]) {
+    if (item.category && !item.amount.trim() && form.selectedAccount)
+      onAmount(item.id);
+    else form.openItemSheet(item.id);
+  }
   const accountError = !!form.accountFieldError || !form.selectedAccount;
   const issues = [
     ...(!form.selectedMerchant
@@ -52,5 +58,5 @@ export function useTransactionConfirmStep(
       ? [{ message: m.invalidTime, onClick: () => setEditor("time") }]
       : []),
   ];
-  return { editor, setEditor, invalidItems, accountError, issues };
+  return { editor, setEditor, editItem, invalidItems, accountError, issues };
 }

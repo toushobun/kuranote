@@ -29,7 +29,7 @@ describe("TransactionItemAmountDrawer", () => {
     const props = setup();
     expect(screen.getByText("餐饮 · 午餐 的金额")).toBeInTheDocument();
     expect(screen.queryByText("上次 ¥498")).not.toBeInTheDocument();
-    click("上次 ¥18.5");
+    click("上次 ¥18.50");
     expect(props.onChange).toHaveBeenCalledWith("18.50");
     expect(
       within(screen.getByLabelText("金额计算器")).getByRole("button", {
@@ -53,5 +53,49 @@ describe("TransactionItemAmountDrawer", () => {
         .getAllByRole("button")
         .map((button) => button.textContent),
     ).toEqual(["上次 ¥1", "¥9", "¥8", "¥7", "¥6", "¥5"]);
+  });
+
+  it("日元快捷金额去掉小数部分，显示与填入一致", () => {
+    const props = setup("JPY", [
+      {
+        categoryId: "lunch",
+        currency: "JPY",
+        lastAmount: "498.00",
+        frequentAmounts: ["520.00"],
+      },
+    ]);
+    click("上次 ¥498");
+    expect(props.onChange).toHaveBeenLastCalledWith("498");
+    click("¥520");
+    expect(props.onChange).toHaveBeenLastCalledWith("520");
+  });
+  it("人民币快捷金额保留两位小数，显示与填入一致", () => {
+    const props = setup("CNY", [
+      {
+        categoryId: "lunch",
+        currency: "CNY",
+        lastAmount: "12.5",
+        frequentAmounts: ["8"],
+      },
+    ]);
+    click("上次 ¥12.50");
+    expect(props.onChange).toHaveBeenLastCalledWith("12.50");
+    click("¥8.00");
+    expect(props.onChange).toHaveBeenLastCalledWith("8.00");
+  });
+  it("格式化后与「上次」相同的常用金额不重复显示", () => {
+    setup("JPY", [
+      {
+        categoryId: "lunch",
+        currency: "JPY",
+        lastAmount: "498",
+        frequentAmounts: ["498.00", "520.00", "520"],
+      },
+    ]);
+    expect(
+      within(screen.getByRole("group", { name: "快捷金额" }))
+        .getAllByRole("button")
+        .map((button) => button.textContent),
+    ).toEqual(["上次 ¥498", "¥520"]);
   });
 });

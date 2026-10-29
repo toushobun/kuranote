@@ -15,10 +15,12 @@ const mocks = vi.hoisted(() => ({
   createServerRequestDependencies: vi.fn(),
   getCurrentLedgerOrRedirect: vi.fn(),
   getEditView: vi.fn(),
+  getFrequentMerchants: vi.fn(),
   getGroupItems: vi.fn(),
   getGroupPage: vi.fn(),
   getGroupView: vi.fn(),
   getNewView: vi.fn(),
+  logError: vi.fn(),
   notFound: vi.fn(() => {
     throw new Error("NEXT_NOT_FOUND");
   }),
@@ -52,9 +54,15 @@ describe("Transaction SSR adapter", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getCurrentLedgerOrRedirect.mockResolvedValue(currentLedger);
-    mocks.createServerRequestDependencies.mockResolvedValue({});
+    mocks.createServerRequestDependencies.mockResolvedValue({
+      logger: { error: mocks.logError },
+    });
+    mocks.getFrequentMerchants.mockResolvedValue([]);
     mocks.createRequestContainer.mockReturnValue({
       transaction: {
+        merchantEntryQueryService: {
+          getFrequentMerchants: mocks.getFrequentMerchants,
+        },
         service: {
           getGroupItems: mocks.getGroupItems,
           getGroupPage: mocks.getGroupPage,
@@ -135,6 +143,7 @@ describe("Transaction SSR adapter", () => {
 
     await expect(loadNewTransactionView()).resolves.toEqual({
       form: "new",
+      frequentMerchants: [],
       refundPickerView,
       reimbursementPickerView,
     });
@@ -150,6 +159,36 @@ describe("Transaction SSR adapter", () => {
       enabledLedger,
       "month",
       reimbursementFilters,
+    );
+  });
+
+  it("新建视图与页面数据并行加载常用商家", async () => {
+    const frequentMerchants = [{ merchantId: "seven", recordCount: 3 }];
+    mocks.getNewView.mockResolvedValue({ form: "new" });
+    mocks.getFrequentMerchants.mockResolvedValue(frequentMerchants);
+
+    await expect(loadNewTransactionView()).resolves.toMatchObject({
+      form: "new",
+      frequentMerchants,
+    });
+    expect(mocks.getFrequentMerchants).toHaveBeenCalledWith({
+      ledgerId: currentLedger.id,
+    });
+  });
+
+  it("常用商家获取失败时按空列表处理并记录错误日志", async () => {
+    mocks.getNewView.mockResolvedValue({ form: "new" });
+    mocks.getFrequentMerchants.mockRejectedValue(
+      new TypeError("raw database message"),
+    );
+
+    await expect(loadNewTransactionView()).resolves.toMatchObject({
+      form: "new",
+      frequentMerchants: [],
+    });
+    expect(mocks.logError).toHaveBeenCalledWith(
+      "[transaction] failed to load frequent merchants",
+      { errorName: "TypeError" },
     );
   });
 });

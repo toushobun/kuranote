@@ -6,6 +6,7 @@ import { getCurrentLedgerOrRedirect } from "internal/ledger/adapter/next/current
 import { createRequestContainer } from "internal/container";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import type {
+  FrequentMerchant,
   TransactionFilters,
   TransactionGroupBy,
   TransactionGroupPage,
@@ -34,27 +35,50 @@ async function getContext() {
     getCurrentLedgerOrRedirect(),
     createServerRequestDependencies(),
   ]);
+  const transaction = createRequestContainer(dependencies).transaction;
   return {
     currentLedger,
-    service: createRequestContainer(dependencies).transaction.service,
+    logger: dependencies.logger,
+    merchantEntryQueryService: transaction.merchantEntryQueryService,
+    service: transaction.service,
   };
 }
 
 export async function loadNewTransactionView() {
-  const { currentLedger, service } = await getContext();
+  const { currentLedger, logger, merchantEntryQueryService, service } =
+    await getContext();
   const specialStatusEnabled = Boolean(
     currentLedger.transactionItemSpecialStatusEnabled,
   );
-  const [view, refundPickerView, reimbursementPickerView] = await Promise.all([
-    service.getNewView(currentLedger),
-    specialStatusEnabled
-      ? service.getGroupView(currentLedger, "month", refundPickerFilters)
-      : Promise.resolve(undefined),
-    specialStatusEnabled
-      ? service.getGroupView(currentLedger, "month", reimbursementPickerFilters)
-      : Promise.resolve(undefined),
-  ]);
-  return { ...view, refundPickerView, reimbursementPickerView };
+  const [view, refundPickerView, reimbursementPickerView, frequentMerchants] =
+    await Promise.all([
+      service.getNewView(currentLedger),
+      specialStatusEnabled
+        ? service.getGroupView(currentLedger, "month", refundPickerFilters)
+        : Promise.resolve(undefined),
+      specialStatusEnabled
+        ? service.getGroupView(
+            currentLedger,
+            "month",
+            reimbursementPickerFilters,
+          )
+        : Promise.resolve(undefined),
+      // 常用商家与全部商家一起出现；获取失败时按空列表处理，不阻断记账。
+      merchantEntryQueryService
+        .getFrequentMerchants({ ledgerId: currentLedger.id })
+        .catch((error: unknown): FrequentMerchant[] => {
+          logger.error("[transaction] failed to load frequent merchants", {
+            errorName: error instanceof Error ? error.name : "unknown",
+          });
+          return [];
+        }),
+    ]);
+  return {
+    ...view,
+    frequentMerchants,
+    refundPickerView,
+    reimbursementPickerView,
+  };
 }
 
 export async function loadEditTransactionView(transactionRecordId: string) {

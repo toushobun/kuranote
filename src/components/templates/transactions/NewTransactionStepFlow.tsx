@@ -16,7 +16,11 @@ import { useNewTransactionStepFlow } from "./useNewTransactionStepFlow";
 
 type NewTransactionStepFlowProps = Pick<
   TransactionStepFlowProps,
-  "action" | "initialAccountId" | "initialMerchantId" | "initialStep"
+  | "action"
+  | "frequentMerchants"
+  | "initialAccountId"
+  | "initialMerchantId"
+  | "initialStep"
 > & {
   accountOptions: TransactionAccountOption[];
   addPresetsAction: MerchantPresetStateAction;
@@ -29,7 +33,7 @@ type NewTransactionStepFlowProps = Pick<
   transactionItemSpecialStatusEnabled: boolean;
 };
 
-/** 记账方式「从商家记账」（#943）：页面数据接入分步流程，推荐数据在浏览器端异步读取。 */
+/** 记账方式「从商家记账」（#943）：页面数据（含常用商家）接入分步流程，选商家后的建议在浏览器端异步读取。 */
 export function NewTransactionStepFlow(props: NewTransactionStepFlowProps) {
   const w = useNewTransactionStepFlow(props);
   return (
@@ -40,7 +44,7 @@ export function NewTransactionStepFlow(props: NewTransactionStepFlowProps) {
         accounts={props.accountOptions}
         merchants={props.merchantOptions}
         merchantTags={props.merchantTags}
-        frequentMerchants={w.frequentMerchants}
+        frequentMerchants={props.frequentMerchants}
         suggestions={w.suggestions}
         suggestionsMerchantId={w.suggestionsMerchantId}
         itemsOptions={{

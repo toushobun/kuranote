@@ -4,7 +4,7 @@ import { itemsStepFixture } from "test/mocks/transactionItemsStep";
 import { flowFixture } from "test/mocks/transactionStepFlow";
 import { NewTransactionStepFlow } from "./NewTransactionStepFlow";
 
-// Storybook 没有推荐查询 API：常用商家与商家建议按读取失败处理（不显示常用、按没有记录）。
+// Storybook 没有推荐查询 API：选商家后的建议按读取失败处理（按没有记录）。
 const meta = {
   title: "Templates/Transactions/NewTransactionStepFlow",
   component: NewTransactionStepFlow,
@@ -14,6 +14,7 @@ const meta = {
     accountOptions: flowFixture.accounts,
     addPresetsAction: async () => ({}),
     categoryOptions: itemsStepFixture.categoryOptions,
+    frequentMerchants: flowFixture.frequentMerchants,
     ledgerId: "ledger-1",
     loadPresetsAction: async () => ({}),
     merchantOptions: flowFixture.merchants,
@@ -26,7 +27,12 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = { name: "从商家记账（常用商家读取中）" };
+export const Default: Story = { name: "从商家记账" };
+
+export const NoFrequentMerchants: Story = {
+  name: "常用商家为空（含获取失败）",
+  args: { frequentMerchants: [] },
+};
 
 export const ReturnFromNewMerchant: Story = {
   name: "新建商家后返回（停在账户步骤）",
