@@ -73,6 +73,15 @@ export function getAmountDecimalPlaces(currency?: string) {
     : 0;
 }
 
+/** 按币种小数位数格式化为可直接填入金额键盘的文本，如 JPY 498.00 → 498、CNY 12.5 → 12.50。 */
+export function formatMoneyTextForCurrency(amount: string, currency?: string) {
+  const value = Number(amount);
+
+  return Number.isFinite(value)
+    ? value.toFixed(getAmountDecimalPlaces(currency))
+    : amount;
+}
+
 export function isValidMoneyText(
   value: string,
   options: AmountInputOptions = {},

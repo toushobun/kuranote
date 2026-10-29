@@ -54,4 +54,60 @@ describe("TransactionItemAmountDrawer", () => {
         .map((button) => button.textContent),
     ).toEqual(["上次 ¥1", "¥9", "¥8", "¥7", "¥6", "¥5"]);
   });
+
+  it("日元快捷金额去掉小数部分", () => {
+    const props = setup("JPY", [
+      {
+        categoryId: "lunch",
+        currency: "JPY",
+        lastAmount: "498.00",
+        frequentAmounts: ["520.00"],
+      },
+    ]);
+    click("上次 ¥498");
+    expect(props.onChange).toHaveBeenLastCalledWith("498");
+    click("¥520");
+    expect(props.onChange).toHaveBeenLastCalledWith("520");
+  });
+  it("人民币快捷金额填入时保留两位小数", () => {
+    const props = setup("CNY", [
+      {
+        categoryId: "lunch",
+        currency: "CNY",
+        lastAmount: "12.5",
+        frequentAmounts: ["8"],
+      },
+    ]);
+    click("上次 ¥12.5");
+    expect(props.onChange).toHaveBeenLastCalledWith("12.50");
+    click("¥8");
+    expect(props.onChange).toHaveBeenLastCalledWith("8.00");
+  });
+  it("大金额按钮显示千位分隔符，填入不带分隔符", () => {
+    const props = setup("JPY", [
+      {
+        categoryId: "lunch",
+        currency: "JPY",
+        lastAmount: "85000.00",
+        frequentAmounts: [],
+      },
+    ]);
+    click("上次 ¥85,000");
+    expect(props.onChange).toHaveBeenLastCalledWith("85000");
+  });
+  it("格式化后与「上次」相同的常用金额不重复显示", () => {
+    setup("JPY", [
+      {
+        categoryId: "lunch",
+        currency: "JPY",
+        lastAmount: "498",
+        frequentAmounts: ["498.00", "520.00", "520"],
+      },
+    ]);
+    expect(
+      within(screen.getByRole("group", { name: "快捷金额" }))
+        .getAllByRole("button")
+        .map((button) => button.textContent),
+    ).toEqual(["上次 ¥498", "¥520"]);
+  });
 });

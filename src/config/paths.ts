@@ -150,8 +150,6 @@ export function transactionsNewEntryHref({
 
 // 新增记账流程在浏览器端读取的推荐查询（#948）。
 export const transactionEntryApiPaths = {
-  frequentMerchants: (ledgerId: string) =>
-    `/api/transactions/frequent-merchants?${new URLSearchParams({ ledgerId })}`,
   merchantEntrySuggestions: (ledgerId: string, merchantId: string) =>
     `/api/transactions/merchant-entry-suggestions?${new URLSearchParams({
       ledgerId,

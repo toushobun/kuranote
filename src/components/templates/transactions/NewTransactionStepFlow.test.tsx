@@ -52,6 +52,7 @@ function setup(
       accountOptions={flowFixture.accounts}
       addPresetsAction={async () => ({})}
       categoryOptions={itemsStepFixture.categoryOptions}
+      frequentMerchants={[]}
       ledgerId="ledger-1"
       loadPresetsAction={async () => ({})}
       merchantOptions={flowFixture.merchants}
@@ -68,7 +69,7 @@ function click(name: string) {
   fireEvent.click(screen.getByRole("button", { name }));
 }
 
-// 常用商家未到达时只有列表行，行名称带商家分类。
+// 没有常用商家时只有列表行，行名称带商家分类。
 function selectMerchant(name: string) {
   fireEvent.click(screen.getByRole("button", { name: new RegExp(`^${name}`) }));
 }
@@ -95,30 +96,23 @@ describe("NewTransactionStepFlow", () => {
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  it("常用商家异步到达前先显示全部商家，到达后显示常用区块", async () => {
-    setup();
+  it("常用商家随页面数据传入，与全部商家同时显示且不在浏览器端另行请求", () => {
+    setup({
+      frequentMerchants: [{ merchantId: "seven", recordCount: 3 }],
+    });
+    expect(screen.getByRole("group", { name: "常用商家" })).toBeInTheDocument();
     expect(screen.getByText("全部商家")).toBeInTheDocument();
-    expect(screen.queryByText("常用商家")).not.toBeInTheDocument();
-    expect(requests[0]?.url).toBe(
-      "/api/transactions/frequent-merchants?ledgerId=ledger-1",
-    );
-
-    respond("frequent-merchants", [{ merchantId: "seven", recordCount: 3 }]);
-
-    expect(
-      await screen.findByRole("group", { name: "常用商家" }),
-    ).toBeInTheDocument();
+    expect(requests).toHaveLength(0);
   });
 
-  it("常用商家读取失败时不显示常用区块，仍可选择商家", async () => {
+  it("常用商家为空时不显示常用区块，仍可选择商家", async () => {
     setup();
-    respond("frequent-merchants", { error: {} }, 500);
+    expect(screen.queryByText("常用商家")).not.toBeInTheDocument();
     selectMerchant("7-Eleven");
     respond("merchantId=seven", noHistory);
     expect(
       await screen.findByRole("radiogroup", { name: "收支账户" }),
     ).toBeInTheDocument();
-    expect(screen.queryByText("常用商家")).not.toBeInTheDocument();
   });
 
   it("加载中点另一个商家时取消前一个，只采用当前商家的建议", async () => {

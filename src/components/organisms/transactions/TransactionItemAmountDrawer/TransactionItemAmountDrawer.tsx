@@ -12,6 +12,7 @@ import { flowMessages as m } from "config/transactionStepFlowMessages";
 import { TransactionAmountKeypad } from "organisms/transactions/TransactionAmountKeypad/TransactionAmountKeypad";
 import { amountKeypadDrawerSx } from "organisms/transactions/TransactionAmountKeypadLauncher/TransactionAmountKeypadLauncher";
 import { designTokens } from "theme/theme";
+import { formatMoneyTextForCurrency } from "utils/transactionAmountInput";
 import { formatUnsignedCurrencyAmount } from "utils/transactions";
 
 type TransactionItemAmountDrawerProps = {
@@ -44,6 +45,18 @@ export function TransactionItemAmountDrawer({
   const quick = quickAmounts.find(
     (item) => item.categoryId === categoryId && item.currency === currency,
   );
+  // 填入与去重使用按币种格式化的金额，按钮显示再加货币符号与千位分隔符；格式化后与「上次」相同的常用金额不重复显示。
+  const lastAmount =
+    quick && formatMoneyTextForCurrency(quick.lastAmount, currency);
+  const frequentAmounts = quick
+    ? [
+        ...new Set(
+          quick.frequentAmounts.map((amount) =>
+            formatMoneyTextForCurrency(amount, currency),
+          ),
+        ),
+      ].filter((amount) => amount !== lastAmount)
+    : [];
   const format = (amount: string) =>
     formatUnsignedCurrencyAmount(amount, currency);
   return (
@@ -71,7 +84,7 @@ export function TransactionItemAmountDrawer({
           <CloseRoundedIcon />
         </IconButton>
       </Stack>
-      {quick && (
+      {lastAmount && (
         <Box
           role="group"
           aria-label={m.quickAmounts}
@@ -80,14 +93,14 @@ export function TransactionItemAmountDrawer({
           <Button
             variant="outlined"
             size="small"
-            onClick={() => applyQuickAmount(quick.lastAmount)}
+            onClick={() => applyQuickAmount(lastAmount)}
             sx={{ flexShrink: 0 }}
           >
-            {m.lastAmount(format(quick.lastAmount))}
+            {m.lastAmount(format(lastAmount))}
           </Button>
-          {quick.frequentAmounts.map((amount, index) => (
+          {frequentAmounts.map((amount) => (
             <Button
-              key={`${index}:${amount}`}
+              key={amount}
               variant="outlined"
               size="small"
               onClick={() => applyQuickAmount(amount)}

@@ -8,10 +8,7 @@ import {
   transactionEntryApiPaths,
   transactionsNewEntryHref,
 } from "config/paths";
-import type {
-  FrequentMerchant,
-  MerchantEntrySuggestions,
-} from "internal/transaction";
+import type { MerchantEntrySuggestions } from "internal/transaction";
 import { fetchClientJson } from "lib/api/clientQuery";
 import { useTransactionEntryMethodChange } from "organisms/transactions/TransactionEntryMethodSwitch/useTransactionEntryMethodChange";
 
@@ -36,9 +33,6 @@ export function useNewTransactionStepFlow({
 }) {
   const router = useRouter();
   const changeMethod = useTransactionEntryMethodChange();
-  const [frequentMerchants, setFrequentMerchants] = useState<
-    FrequentMerchant[]
-  >([]);
   const [suggestionState, setSuggestionState] =
     useState<MerchantSuggestionState | null>(null);
   const [selectedMerchantId, setSelectedMerchantId] =
@@ -63,19 +57,6 @@ export function useNewTransactionStepFlow({
     });
   }
 
-  // 常用商家不阻塞首屏：页面先用全部商家列表，到达后再显示常用区块。
-  useEffect(() => {
-    const controller = new AbortController();
-    void fetchClientJson<FrequentMerchant[]>(
-      transactionEntryApiPaths.frequentMerchants(ledgerId),
-      controller.signal,
-    ).then((merchants) => {
-      if (!controller.signal.aborted && merchants)
-        setFrequentMerchants(merchants);
-    });
-    return () => controller.abort();
-  }, [ledgerId]);
-
   // 新建商家后返回时，为预选的商家读取一次建议。
   const loadInitialSuggestions = useEffectEvent(loadSuggestions);
   useEffect(() => {
@@ -85,7 +66,6 @@ export function useNewTransactionStepFlow({
 
   const returnTo = transactionsNewEntryHref({ method: "merchant" });
   return {
-    frequentMerchants,
     suggestions: suggestionState?.suggestions,
     suggestionsMerchantId: suggestionState?.merchantId,
     presetsOpen,

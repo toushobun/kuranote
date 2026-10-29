@@ -163,6 +163,26 @@ describe("TransactionConfirmStep", () => {
     expect(screen.getByRole("button", { name: "保存记账" })).toBeEnabled();
   });
 
+  it("点击金额待输入的明细行直接打开带快捷金额的金额键盘", async () => {
+    renderConfirmFlow({
+      itemsOptions: {
+        ...itemsStepFixture,
+        initialItems: [{ categoryId: "lunch", amount: "" }],
+      },
+      suggestions: itemsStepFixture.suggestions,
+    });
+    expect(row("明细 1")).toHaveTextContent("待输入");
+    fireEvent.click(row("明细 1"));
+    expect(await screen.findByLabelText("金额计算器")).toBeInTheDocument();
+    expect(screen.queryByText("编辑明细")).not.toBeInTheDocument();
+    click("上次 ¥498");
+    click("确定");
+    await waitFor(() =>
+      expect(screen.queryByLabelText("金额计算器")).not.toBeInTheDocument(),
+    );
+    expect(row("明细 1")).toHaveTextContent("¥498");
+  });
+
   it("多账户未对上时提示跳到明细并禁用保存", () => {
     renderConfirmFlow({
       itemsOptions: {

@@ -277,20 +277,31 @@ describe("TransactionStepFlow 快速路线", () => {
       ...overrides,
     });
   }
-  it("快速路线到确认时明细未完成但可点击，填完金额后才完成", async () => {
+  it("快速路线到确认时不弹出金额键盘，自动明细显示待输入，点该行后填金额", async () => {
     quickSetup();
     click("7-Eleven");
-    expect(
-      await screen.findByText("午餐 的金额", { exact: false }),
-    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(progress()[3]).toHaveAttribute("data-status", "current"),
+    );
     expect(progress().map((item) => item.dataset.status)).toEqual([
       "completed",
       "completed",
       "upcoming",
       "current",
     ]);
+    expect(screen.queryByLabelText("金额计算器")).not.toBeInTheDocument();
+    expect(receiptRow("明细 1")).toHaveTextContent("待输入");
+    expect(receiptRow("明细 1")).toHaveAttribute("data-invalid", "true");
+    expect(
+      screen.getByText("还有 2 条明细没填金额，点一下去填写"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "保存记账" })).toBeDisabled();
     expect(
       within(progress()[2]).getByRole("button", { name: "明细", hidden: true }),
+    ).toBeInTheDocument();
+    fireEvent.click(receiptRow("明细 1"));
+    expect(
+      await screen.findByText("午餐 的金额", { exact: false }),
     ).toBeInTheDocument();
     click("上次 ¥498");
     click("确定");
@@ -351,13 +362,11 @@ describe("TransactionStepFlow 快速路线", () => {
     expect(screen.queryByRole("radiogroup")).not.toBeInTheDocument();
     const loaded = { ...props, suggestionsMerchantId: "seven" };
     rerender(<TransactionStepFlow {...loaded} />);
-    expect(await screen.findByLabelText("金额计算器")).toBeInTheDocument();
-    expect(progress()[3]).toHaveAttribute("data-status", "current");
-    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
-    click("关闭金额键盘");
     await waitFor(() =>
-      expect(screen.queryByLabelText("金额计算器")).not.toBeInTheDocument(),
+      expect(progress()[3]).toHaveAttribute("data-status", "current"),
     );
+    expect(screen.queryByLabelText("金额计算器")).not.toBeInTheDocument();
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
     click("明细");
     click("删除明细 1");
     rerender(
@@ -398,7 +407,9 @@ describe("TransactionStepFlow 快速路线", () => {
     ).toHaveLength(2);
     // 新商家的建议到达后直接跳到确认。
     rerender(<TransactionStepFlow {...props} suggestionsMerchantId="life" />);
-    expect(await screen.findByLabelText("金额计算器")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(progress()[3]).toHaveAttribute("data-status", "current"),
+    );
     expect(
       screen.getByRole("button", { name: "修改商家：LIFE超市", hidden: true }),
     ).toBeInTheDocument();

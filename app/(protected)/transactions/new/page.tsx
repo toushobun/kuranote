@@ -41,6 +41,7 @@ export default async function TransactionsNewPage({
 
   const {
     canWriteTransactions,
+    frequentMerchants,
     ledgerId,
     merchantTags,
     refundPickerView,
@@ -77,6 +78,7 @@ export default async function TransactionsNewPage({
             accountOptions={view.accountOptions}
             addPresetsAction={addMerchantPresets}
             categoryOptions={view.categoryOptions}
+            frequentMerchants={frequentMerchants}
             initialAccountId={entry.initialAccountId}
             initialMerchantId={entry.initialMerchantId}
             initialStep={entry.initialStep}
