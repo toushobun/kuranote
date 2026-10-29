@@ -1,0 +1,1 @@
+import{c as e,i as t}from"./preload-helper-D2yxXLVK.js";import{t as n}from"./react-DAMDAfNa.js";var r,i,a=t((()=>{r=e(n(),1),i=r.createContext(void 0)}));function o(){return c.useContext(i)}function s({props:e,states:t}){let n=c.useContext(i),r={};return t.forEach(t=>{let i=e[t];r[t]=i===void 0&&n?n[t]:i}),[r,n]}var c,l=t((()=>{c=e(n(),1),a()}));export{a,i,o as n,s as r,l as t};
