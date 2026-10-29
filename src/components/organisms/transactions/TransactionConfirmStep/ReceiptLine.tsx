@@ -19,6 +19,7 @@ export function ReceiptLine({
   amount,
   error = false,
   errorLabel = error,
+  labelClickable = false,
   editLabel,
   onEdit,
   removeLabel,
@@ -31,6 +32,8 @@ export function ReceiptLine({
   error?: boolean;
   /** 名称是否标红；默认与 `error` 一致，只缺金额时由金额的「待输入」提示。 */
   errorLabel?: boolean;
+  /** 名称本身也可点击，与铅笔同样调用 `onEdit`（如未选账户时的「选择收支账户」）。 */
+  labelClickable?: boolean;
   editLabel: string;
   onEdit: () => void;
   removeLabel?: string;
@@ -45,7 +48,13 @@ export function ReceiptLine({
         <Typography
           variant="body2"
           noWrap
-          sx={[{ minWidth: 0 }, errorLabel && errorTextSx]}
+          component={labelClickable ? ButtonBase : "p"}
+          onClick={labelClickable ? onEdit : undefined}
+          sx={[
+            { minWidth: 0 },
+            labelClickable && labelButtonSx,
+            errorLabel && errorTextSx,
+          ]}
         >
           {label}
         </Typography>
@@ -133,6 +142,12 @@ const iconSx = {
   fontSize: 18,
   width: 20,
   justifyContent: "center",
+};
+const labelButtonSx = {
+  justifyContent: "flex-start",
+  borderRadius: `${designTokens.radius.sm}px`,
+  minHeight: 32,
+  "&.Mui-focusVisible": { outline: "2px solid", outlineColor: "primary.main" },
 };
 const labelBoxSx = {
   display: "flex",

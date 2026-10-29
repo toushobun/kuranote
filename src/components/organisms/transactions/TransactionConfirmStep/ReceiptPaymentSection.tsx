@@ -39,6 +39,9 @@ export function ReceiptPaymentSection({
 }) {
   const currency = form.selectedAccount?.currency ?? "";
   const reconciliation = form.paymentReconciliation;
+  // 多账户时每一行都可删除（含刚添加、尚未选账户的行）；单账户未选账户时没有可删除的内容。
+  const removable = (account: TransactionAccountOption | undefined) =>
+    form.isMultiAccount || !!account;
   const format = (amount: string) =>
     formatUnsignedCurrencyAmount(amount, currency);
   return (
@@ -62,6 +65,7 @@ export function ReceiptPaymentSection({
             }
             label={account?.name ?? m.chooseAccount}
             error={!account}
+            labelClickable={!account}
             tags={
               account && (
                 <Typography variant="caption" sx={currencySx}>
@@ -83,8 +87,12 @@ export function ReceiptPaymentSection({
             }
             editLabel={m.changePaymentAccount(index + 1)}
             onEdit={() => onChangeAccount(payment.key)}
-            removeLabel={account ? m.removePayment(index + 1) : undefined}
-            onRemove={account ? () => onRemove(payment.key) : undefined}
+            removeLabel={
+              removable(account) ? m.removePayment(index + 1) : undefined
+            }
+            onRemove={
+              removable(account) ? () => onRemove(payment.key) : undefined
+            }
           />
         );
       })}

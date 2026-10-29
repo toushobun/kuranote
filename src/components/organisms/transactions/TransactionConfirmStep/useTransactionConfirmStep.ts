@@ -18,6 +18,9 @@ export function useTransactionConfirmStep(
   // 正在换账户 / 填金额的付款行（`TransactionPaymentRow.key`）。
   const [accountPickerKey, setAccountPickerKey] = useState<number | null>(null);
   const [paymentAmountKey, setPaymentAmountKey] = useState<number | null>(null);
+  // 单账户点 × 清空的账户：再选账户时仍按它的币种判断是否需要确认换币种。
+  const [clearedAccount, setClearedAccount] =
+    useState<TransactionAccountOption>();
   const currency = form.selectedAccount?.currency;
   const automaticItemIds = props.automaticItemIds.filter((id) =>
     form.itemSummaries.some((item) => item.id === id),
@@ -53,16 +56,24 @@ export function useTransactionConfirmStep(
           }),
       )
     : props.accountOptions;
+  const pickerSelectedAccount =
+    props.accountOptions.find(
+      (account) => account.id === pickerPayment?.accountId,
+    ) ?? (form.isMultiAccount ? undefined : clearedAccount);
   function selectAccount(account: TransactionAccountOption) {
     if (accountPickerKey === null) return;
     form.handlePaymentAccountChange(accountPickerKey, account.id);
     props.onAccountSelect(account);
+    setClearedAccount(undefined);
     setAccountPickerKey(null);
   }
   // 只剩一个付款账户时删除即清空账户，支付行回到「选择收支账户」。
   function removePayment(key: number) {
     if (form.isMultiAccount) form.handleRemovePayment(key);
-    else form.handlePaymentAccountChange(key, "");
+    else {
+      setClearedAccount(form.selectedAccount ?? clearedAccount);
+      form.handlePaymentAccountChange(key, "");
+    }
   }
   function focusPayments() {
     const section = paymentSectionRef.current;
@@ -120,6 +131,7 @@ export function useTransactionConfirmStep(
     setAccountPickerKey,
     pickerPayment,
     pickerAccounts,
+    pickerSelectedAccount,
     selectAccount,
     paymentAmountKey,
     setPaymentAmountKey,

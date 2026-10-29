@@ -266,6 +266,20 @@ describe("TransactionStepFlow 进入小票", () => {
     ).toBeInTheDocument();
   });
 
+  it("加载中改点另一个商家时重新开始等待计时", () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const { props, rerender } = quickSetup({ suggestionsMerchantId: "coffee" });
+    click("7-Eleven");
+    waitQuickRouteTimeout(quickRouteSuggestionTimeoutMs - 500);
+    click("LIFE超市");
+    waitQuickRouteTimeout(quickRouteSuggestionTimeoutMs - 1);
+    expect(onMerchantScreen()).toBe(true);
+    rerender(<TransactionStepFlow {...props} suggestionsMerchantId="life" />);
+    expect(heading("从商家记账")).toBeInTheDocument();
+    expect(receiptLine("更换支付账户 1")).toHaveTextContent("PayPay");
+    expect(screen.getAllByText("自动")).toHaveLength(2);
+  });
+
   it("URL 预选商家时直接进入小票并应用建议", () => {
     quickSetup({ initialMerchantId: "seven" });
     expect(heading("从商家记账")).toBeInTheDocument();

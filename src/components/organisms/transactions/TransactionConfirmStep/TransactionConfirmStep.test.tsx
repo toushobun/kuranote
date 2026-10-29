@@ -213,6 +213,48 @@ describe("TransactionConfirmStep", () => {
     ).toBeInTheDocument();
   });
 
+  it("未选账户时点「选择收支账户」本身也打开账户选择抽屉", () => {
+    renderConfirmFlow();
+    click("删除支付账户 1");
+    click("选择收支账户");
+    expect(
+      screen.getByRole("radiogroup", { name: "收支账户" }),
+    ).toBeInTheDocument();
+  });
+
+  it("删除唯一账户后再选不同币种的账户，仍按原币种弹出换币种确认", async () => {
+    renderConfirmFlow();
+    click("删除支付账户 1");
+    click("更换支付账户 1");
+    selectAccount("招商银行卡 CNY");
+    expect(
+      await screen.findByText("切换为 招商银行卡 账户？"),
+    ).toBeInTheDocument();
+    click("取消");
+    // 取消后仍停在账户抽屉，换成同币种的账户不再确认。
+    await waitFor(() =>
+      expect(screen.queryByText(/切换为/)).not.toBeInTheDocument(),
+    );
+    selectAccount("现金 JPY");
+    await waitFor(() =>
+      expect(line("更换支付账户 1")).toHaveTextContent("现金"),
+    );
+    expect(screen.queryByText(/切换为/)).not.toBeInTheDocument();
+  });
+
+  it("多账户时刚添加、尚未选账户的行也有 ×，删除后回到单账户并可保存", () => {
+    renderConfirmFlow();
+    click("添加付款账户（多个账户一起付）");
+    expect(line("更换支付账户 2")).toHaveTextContent("选择收支账户");
+    expect(saveButton()).toBeDisabled();
+    click("删除支付账户 2");
+    expect(
+      screen.queryByRole("button", { name: "更换支付账户 2" }),
+    ).not.toBeInTheDocument();
+    expect(line("更换支付账户 1")).toHaveTextContent("PayPayJPY¥10,000");
+    expect(saveButton()).toBeEnabled();
+  });
+
   it("添加付款账户后多一行待选账户；有收入或账本关闭多账户时不显示入口", () => {
     const view = renderConfirmFlow();
     click("添加付款账户（多个账户一起付）");

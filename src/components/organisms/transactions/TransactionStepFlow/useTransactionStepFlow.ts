@@ -118,12 +118,13 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
   useEffect(() => {
     if (!waiting) return;
     // 获取失败按「没有建议」处理会直接到达；一直没有结果时也不阻断手动记账。
+    // 加载中改点另一个商家时重新计时。
     const timer = setTimeout(() => {
       stopWaiting();
       showReceipt();
     }, quickRouteSuggestionTimeoutMs);
     return () => clearTimeout(timer);
-  }, [waiting]);
+  }, [waiting, loadingMerchantId]);
   function backToMerchant() {
     stopWaiting();
     setAmountItemId(null);

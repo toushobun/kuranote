@@ -229,9 +229,7 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
         <AccountStep
           accounts={w.pickerAccounts}
           recommendedAccountIds={props.suggestions?.recommendedAccountIds}
-          selectedAccount={props.accountOptions.find(
-            (account) => account.id === w.pickerPayment?.accountId,
-          )}
+          selectedAccount={w.pickerSelectedAccount}
           hasDetails={f.itemSummaries.length > 0}
           onSelect={w.selectAccount}
           onAddAccount={props.onAddAccount}
