@@ -17,6 +17,10 @@ export const wizardDialogHeaderSx = {
   px: { xs: 1, sm: 2 },
 };
 
+// 标题栏下方没有其他内容（如进度条）时收紧下边距。
+export const wizardDialogTitleOnlyHeaderSx = { pb: 1 };
+export const wizardDialogTitleOnlyRowSx = { mb: 0 };
+
 // 关闭按钮在左、标题居中：右侧留出与按钮等宽的空列。
 export const wizardDialogTitleRowSx = {
   alignItems: "center",

@@ -21,24 +21,28 @@ export const flowFixture: TransactionStepFlowProps = {
     {
       id: "cash",
       name: "现金",
+      type: "cash",
       currency: "JPY",
       holders: [{ display_name: "我" }],
     },
     {
       id: "paypay",
       name: "PayPay",
+      type: "e_money",
       currency: "JPY",
       holders: [{ display_name: "我" }],
     },
     {
       id: "cny",
       name: "招商银行卡",
+      type: "bank",
       currency: "CNY",
       holders: [{ display_name: "妻子" }],
     },
     {
       id: "bank",
       name: "乐天银行",
+      type: "bank",
       currency: "JPY",
       holders: [{ display_name: "我" }],
     },

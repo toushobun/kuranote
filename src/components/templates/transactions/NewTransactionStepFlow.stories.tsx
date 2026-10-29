@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { transactionEntryStoryDecorators } from "organisms/transactions/transactionStepFlowStoryUtils";
-import { itemsStepFixture } from "test/mocks/transactionItemsStep";
+import { receiptItemsOptions } from "test/mocks/transactionReceipt";
 import { flowFixture } from "test/mocks/transactionStepFlow";
 import { NewTransactionStepFlow } from "./NewTransactionStepFlow";
 
@@ -13,7 +13,7 @@ const meta = {
     action: async () => ({}),
     accountOptions: flowFixture.accounts,
     addPresetsAction: async () => ({}),
-    categoryOptions: itemsStepFixture.categoryOptions,
+    categoryOptions: receiptItemsOptions.categoryOptions,
     frequentMerchants: flowFixture.frequentMerchants,
     ledgerId: "ledger-1",
     loadPresetsAction: async () => ({}),
@@ -35,11 +35,11 @@ export const NoFrequentMerchants: Story = {
 };
 
 export const ReturnFromNewMerchant: Story = {
-  name: "新建商家后返回（停在账户步骤）",
-  args: { initialMerchantId: "life", initialStep: 2 },
+  name: "新建商家后返回（进入小票）",
+  args: { initialMerchantId: "life" },
 };
 
 export const ReturnFromNewAccount: Story = {
-  name: "新建账户后返回（停在明细步骤）",
-  args: { initialAccountId: "cash", initialMerchantId: "life", initialStep: 3 },
+  name: "新建账户后返回（进入小票并选中新账户）",
+  args: { initialAccountId: "cash", initialMerchantId: "life" },
 };

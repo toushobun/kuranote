@@ -66,13 +66,3 @@ export const MultiAccountWithFieldError: Story = {
     payments: createPaymentRows(["2000", ""]),
   }),
 };
-
-export const StepFlowBalanced: Story = {
-  name: "分步流程：已对上",
-  args: {
-    ...createPaymentFieldsProps({
-      payments: createPaymentRows(["2000", "1500"]),
-    }),
-    stepFlow: true,
-  },
-};

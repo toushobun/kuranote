@@ -1,12 +1,10 @@
 "use client";
 import { TransactionItemPickerDrawer } from "organisms/transactions/TransactionItemPickerDrawer/TransactionItemPickerDrawer";
-import { useTransactionItemsStep } from "../TransactionItemsStep/useTransactionItemsStep";
-import type { TransactionItemsStepProps } from "../TransactionItemsStep/TransactionItemsStep.types";
+import type { TransactionReceiptProps } from "../TransactionConfirmStep/TransactionConfirmStep.types";
 
-/** 分步流程的选择分类抽屉：明细步骤与确认页（小票）添加 / 编辑明细共用。 */
-export function TransactionStepItemPicker(props: TransactionItemsStepProps) {
-  const w = useTransactionItemsStep(props);
-  const f = w.form;
+/** 从商家记账的选择分类抽屉：小票内添加 / 编辑明细。 */
+export function TransactionStepItemPicker(props: TransactionReceiptProps) {
+  const f = props.form;
   return (
     <TransactionItemPickerDrawer
       {...props}
@@ -27,7 +25,7 @@ export function TransactionStepItemPicker(props: TransactionItemsStepProps) {
       specialStatusLocked={f.pickerSpecialStatusLocked}
       pickerRefundCandidate={f.pickerRefundCandidate}
       pickerReimbursementCandidate={f.pickerReimbursementCandidate}
-      selectedAccountCurrency={w.currency}
+      selectedAccountCurrency={f.selectedAccount?.currency}
       selectedCategoryGroup={f.selectedCategoryGroup}
       specialStatusEnabled={props.transactionItemSpecialStatusEnabled}
       incomeCategoriesDisabled={f.isMultiAccount}

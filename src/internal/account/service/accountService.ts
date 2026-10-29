@@ -80,9 +80,10 @@ export type AccountHolderOption = {
   name: string;
 };
 
-/** 新增记账流程的账户候选：账户摘要 + 持有人显示名（#943）。 */
+/** 新增记账流程的账户候选：账户摘要 + 账户类型 + 持有人显示名（#943）。 */
 export type AccountSummaryWithHolders = AccountSummary & {
   holders: { display_name: string }[];
+  type: AccountType;
 };
 
 /** Transaction 等其他模块只依赖此窄查询接口。 */
@@ -413,7 +414,7 @@ export function createAccountService({
     async listTransactionOptionsWithHolders({ ledgerId, userId }) {
       await requireActiveMemberRole(ledgerId, userId);
       const accounts = (await accountRepository.listAccounts(ledgerId)).map(
-        ({ currency, id, name }) => ({ currency, id, name }),
+        ({ currency, id, name, type }) => ({ currency, id, name, type }),
       );
       return buildAccountsWithHolders({
         accounts,

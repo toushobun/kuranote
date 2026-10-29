@@ -81,7 +81,6 @@ export default async function TransactionsNewPage({
             frequentMerchants={frequentMerchants}
             initialAccountId={entry.initialAccountId}
             initialMerchantId={entry.initialMerchantId}
-            initialStep={entry.initialStep}
             ledgerId={ledgerId}
             loadPresetsAction={loadMerchantPresets}
             merchantOptions={view.merchantOptions}

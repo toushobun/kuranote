@@ -2,115 +2,92 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 import { transactionEntryStoryDecorators } from "organisms/transactions/transactionStepFlowStoryUtils";
 import {
-  itemsStepFixture,
-  filledItems,
-  twoPayments,
-} from "test/mocks/transactionItemsStep";
+  receiptItemsOptions,
+  receiptSuggestions,
+} from "test/mocks/transactionReceipt";
 import { flowFixture } from "test/mocks/transactionStepFlow";
 import { TransactionStepFlow } from "./TransactionStepFlow";
 const meta = {
   title: "Organisms/Transactions/TransactionStepFlow",
   component: TransactionStepFlow,
   decorators: transactionEntryStoryDecorators,
-  args: flowFixture,
+  args: { ...flowFixture, itemsOptions: receiptItemsOptions },
   parameters: { viewport: { defaultViewport: "mobile2" } },
 } satisfies Meta<typeof TransactionStepFlow>;
 export default meta;
 type Story = StoryObj<typeof meta>;
-export const MerchantDefault: Story = { name: "商家默认（常用不足八个）" };
+export const MerchantDefault: Story = {
+  name: "选择商家（常用不足八个）",
+};
 
-export const RecommendedAccounts: Story = {
-  name: "收支账户有推荐",
+async function selectMerchant(canvasElement: HTMLElement, name: string) {
+  const body = within(canvasElement.ownerDocument.body);
+  await userEvent.click(body.getByRole("button", { name }));
+  return body;
+}
+
+export const QuickEntry: Story = {
+  name: "快速路线（建议到达后进入小票，自动明细待输入）",
   args: {
-    initialStep: 2,
-    initialMerchantId: "seven",
+    suggestionsMerchantId: "seven",
+    suggestions: { ...receiptSuggestions, recommendedAccountIds: ["paypay"] },
+  },
+  play: async ({ canvasElement }) => {
+    const body = await selectMerchant(canvasElement, "7-Eleven");
+    // 进入小票后不自动弹出金额键盘，自动明细显示「待输入」。
+    await waitFor(() =>
+      expect(
+        body.getByRole("button", { name: "修改明细 1 金额：待输入" }),
+      ).toBeInTheDocument(),
+    );
+    await expect(body.queryByLabelText("金额计算器")).not.toBeInTheDocument();
   },
 };
 
-export const ReturnFromConfirmation: Story = {
-  name: "从确认页返回修改",
+export const FirstVisit: Story = {
+  name: "第一次去的商家（不选账户，进入小票）",
   args: {
-    initialStep: 4,
-    initialMerchantId: "seven",
-    initialAccountId: "paypay",
+    suggestionsMerchantId: "coffee",
+    suggestions: {
+      automaticCategoryIds: [],
+      quickAmounts: [],
+      recommendedAccountIds: [],
+    },
   },
   play: async ({ canvasElement }) => {
-    await userEvent.click(
-      within(canvasElement.ownerDocument.body).getByRole("button", {
-        name: "账户",
-      }),
+    const body = await selectMerchant(canvasElement, "星巴克");
+    await waitFor(() =>
+      expect(body.getByText("这家商家还没有记录")).toBeInTheDocument(),
     );
+  },
+};
+
+export const QuickEntryLoading: Story = {
+  name: "快速路线（读取建议中，超时后进入小票）",
+  args: { suggestionsMerchantId: "coffee" },
+  play: async ({ canvasElement }) => {
+    await selectMerchant(canvasElement, "7-Eleven");
+  },
+};
+
+export const BackToMerchant: Story = {
+  name: "小票返回选择商家（已填内容保留）",
+  args: {
+    initialMerchantId: "seven",
+    initialAccountId: "paypay",
+    itemsOptions: {
+      ...receiptItemsOptions,
+      initialItems: [{ categoryId: "lunch", amount: "498" }],
+    },
+  },
+  play: async ({ canvasElement }) => {
+    await selectMerchant(canvasElement, "返回选择商家");
   },
 };
 
 export const CloseConfirmation: Story = {
   name: "关闭确认",
   play: async ({ canvasElement }) => {
-    await userEvent.click(
-      within(canvasElement.ownerDocument.body).getByRole("button", {
-        name: "关闭记账",
-      }),
-    );
-  },
-};
-
-export const ItemsStep: Story = {
-  name: "明细步骤（自动预填）",
-  args: {
-    initialStep: 3,
-    initialMerchantId: "seven",
-    initialAccountId: "paypay",
-    suggestions: itemsStepFixture.suggestions,
-    itemsOptions: { ...itemsStepFixture, prefillAutomaticItems: true },
-  },
-};
-export const SharedPayments: Story = {
-  name: "明细步骤（多账户付款）",
-  args: {
-    ...ItemsStep.args,
-    itemsOptions: {
-      ...itemsStepFixture,
-      initialItems: filledItems,
-      initialPayments: twoPayments,
-    },
-  },
-};
-
-async function selectSevenEleven(canvasElement: HTMLElement) {
-  const body = within(canvasElement.ownerDocument.body);
-  await userEvent.click(body.getByRole("button", { name: "7-Eleven" }));
-  return body;
-}
-
-export const QuickEntry: Story = {
-  name: "快速路线（建议到达后直接跳到确认，自动明细待输入）",
-  args: {
-    suggestionsMerchantId: "seven",
-    suggestions: {
-      ...itemsStepFixture.suggestions!,
-      recommendedAccountIds: ["paypay"],
-    },
-    itemsOptions: { categoryOptions: itemsStepFixture.categoryOptions },
-  },
-  play: async ({ canvasElement }) => {
-    const body = await selectSevenEleven(canvasElement);
-    // 跳到确认后不自动弹出金额键盘，自动明细显示「待输入」。
-    await waitFor(() =>
-      expect(
-        body.getByRole("button", { name: /^修改明细 1：/ }),
-      ).toHaveTextContent("待输入"),
-    );
-    await expect(body.queryByLabelText("金额计算器")).not.toBeInTheDocument();
-  },
-};
-
-export const QuickEntryLoading: Story = {
-  name: "快速路线（读取建议中，超时后进入账户）",
-  args: {
-    suggestionsMerchantId: "coffee",
-    itemsOptions: { categoryOptions: itemsStepFixture.categoryOptions },
-  },
-  play: async ({ canvasElement }) => {
-    await selectSevenEleven(canvasElement);
+    await selectMerchant(canvasElement, "关闭记账");
   },
 };

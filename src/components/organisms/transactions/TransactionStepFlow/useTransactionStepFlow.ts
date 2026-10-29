@@ -11,13 +11,14 @@ import { useTransactionForm } from "organisms/transactions/TransactionForm/useTr
 import type { TransactionFormInitialValues } from "organisms/transactions/TransactionForm/TransactionForm.types";
 import { useConfirmDialog } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import type { ActionState } from "types/actions";
-import type { TransactionAccountOption } from "types/transactions";
 import type { TransactionStepFlowProps } from "./TransactionStepFlow.types";
 import { flowMessages as m } from "config/transactionStepFlowMessages";
 import type { FlowMerchant } from "organisms/transactions/MerchantStep/MerchantStep.types";
 
-// 快速路线：选完商家后最多等待建议数据这么久，超时则进入账户步骤。
+// 快速路线：选完商家后最多等待建议数据这么久，超时则不再应用建议，直接进入小票。
 export const quickRouteSuggestionTimeoutMs = 2000;
+
+export type TransactionStepFlowScreen = "merchant" | "receipt";
 
 export function useTransactionStepFlow(props: TransactionStepFlowProps) {
   const confirm = useConfirmDialog();
@@ -25,14 +26,23 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     props.action,
     {},
   );
-  const pendingQuickMerchantId = useRef<string | null>(null);
-  // 快速路线等待建议数据期间停在商家步骤，被点中的商家显示加载状态。
+  // 等待建议数据的商家；只应用一次，超时、返回换商家或已有输入时清空。
+  const pendingQuickMerchantId = useRef<string | null>(
+    props.initialMerchantId ?? null,
+  );
+  // 快速路线等待建议数据期间停在选择商家，被点中的商家显示加载状态。
   const [loadingMerchantId, setLoadingMerchantId] = useState<string | null>(
     null,
   );
-  const [step, setStep] = useState(props.initialStep ?? 1);
-  const [itemsReached, setItemsReached] = useState(
-    (props.initialStep ?? 1) >= 3,
+  // 带商家进入时同样等待建议，但已经停在小票，不显示商家的加载状态。
+  const [waitingInitialSuggestions, setWaitingInitialSuggestions] = useState(
+    !!props.initialMerchantId,
+  );
+  const [screen, setScreen] = useState<TransactionStepFlowScreen>(
+    props.initialMerchantId ? "receipt" : "merchant",
+  );
+  const [receiptVisited, setReceiptVisited] = useState(
+    !!props.initialMerchantId,
   );
   const baseItemsOptions = props.itemsOptions ?? { categoryOptions: [] };
   // 明细抽屉的退款 / 报销选择器优先使用页面的 TransactionIncomeLinksProvider。
@@ -41,144 +51,92 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     ...useResolvedTransactionIncomeLinks(baseItemsOptions),
   };
   const [amountItemId, setAmountItemId] = useState<number | null>(null);
-  function automaticCategoryIds(
-    quick = false,
-    merchantId = props.initialMerchantId,
-  ) {
-    if (
-      props.suggestionsMerchantId &&
-      props.suggestionsMerchantId !== merchantId
-    )
-      return [];
-    return quick || itemsOptions.prefillAutomaticItems
-      ? (props.suggestions?.automaticCategoryIds ?? []).filter((id) =>
-          itemsOptions.categoryOptions.some((category) => category.id === id),
-        )
-      : [];
-  }
-  const [initial] = useState(() => {
-    const items = [...(itemsOptions.initialItems ?? [])];
-    const automaticIds: number[] = [];
-    if ((props.initialStep ?? 1) >= 3) {
-      for (const categoryId of automaticCategoryIds()) {
-        items.push({ categoryId, amount: "" });
-        automaticIds.push(items.length);
-      }
-    }
-    const values: TransactionFormInitialValues = {
-      items,
-      merchantId: props.initialMerchantId ?? "",
-      note: "",
-      payments: itemsOptions.initialPayments ?? [
-        { accountId: props.initialAccountId ?? "", amount: null },
-      ],
-      transactionAt: "",
-      type: "expense",
-    };
-    return { values, automaticIds };
-  });
-  const [automaticItemIds, setAutomaticItemIds] = useState(
-    initial.automaticIds,
-  );
-  const [automaticItemsInitialized, setAutomaticItemsInitialized] = useState(
-    (props.initialStep ?? 1) >= 3,
-  );
+  const [initialValues] = useState<TransactionFormInitialValues>(() => ({
+    items: itemsOptions.initialItems ?? [],
+    merchantId: props.initialMerchantId ?? "",
+    note: "",
+    payments: itemsOptions.initialPayments ?? [
+      { accountId: props.initialAccountId ?? "", amount: null },
+    ],
+    transactionAt: "",
+    type: "expense",
+  }));
+  const [automaticItemIds, setAutomaticItemIds] = useState<number[]>([]);
   const form = useTransactionForm({
     accountOptions: props.accounts,
     categoryOptions: itemsOptions.categoryOptions,
     merchantOptions: props.merchants,
-    initialValues: initial.values,
+    initialValues,
     deferPickerAmount: true,
     onPickerItemCommit: setAmountItemId,
   });
-  const [returning, setReturning] = useState(false);
   const [methodOpen, setMethodOpen] = useState(false);
   const merchant = props.merchants.find(
     (item) => item.id === form.selectedMerchantId,
   );
-  const account = form.selectedAccount;
-  const completed = [
-    ...(merchant ? [1] : []),
-    ...(account ? [2] : []),
-    ...(form.hasValidItems && !form.accountFieldError ? [3] : []),
-  ];
-  function initializeAutomaticItems(quick = false) {
-    if (automaticItemsInitialized || form.itemSummaries.length > 0) return [];
-    const ids = automaticCategoryIds(quick, form.selectedMerchantId).map(
-      (categoryId) => form.addItem(categoryId, "", null, null, null),
-    );
-    setAutomaticItemIds(ids);
-    setAutomaticItemsInitialized(true);
-    return ids;
-  }
   const suggestionsReady =
     !!merchant &&
     props.suggestionsMerchantId === merchant.id &&
     !!props.suggestions;
+  function stopWaiting() {
+    pendingQuickMerchantId.current = null;
+    setLoadingMerchantId(null);
+    setWaitingInitialSuggestions(false);
+  }
+  function showReceipt() {
+    setScreen("receipt");
+    setReceiptVisited(true);
+  }
   const applySuggestions = useEffectEvent(() => {
     if (!suggestionsReady || pendingQuickMerchantId.current !== merchant?.id)
       return;
-    pendingQuickMerchantId.current = null;
-    setLoadingMerchantId(null);
-    if (form.itemSummaries.length > 0) {
-      setStep(2);
-      return;
-    }
+    stopWaiting();
+    showReceipt();
+    // 已有明细时不覆盖用户输入。
+    if (form.itemSummaries.length > 0) return;
     const recommended = props.accounts.find(
       (account) => account.id === props.suggestions?.recommendedAccountIds[0],
     );
-    if (recommended) {
-      const primary = form.payments[0];
-      if (primary) form.handlePaymentAccountChange(primary.key, recommended.id);
+    const primary = form.payments[0];
+    if (recommended && primary && !primary.accountId) {
+      form.handlePaymentAccountChange(primary.key, recommended.id);
       props.onAccountSelect(recommended);
     }
-    const ids = initializeAutomaticItems(true);
-    if (ids.length || recommended) setItemsReached(true);
-    setStep(ids.length ? 4 : recommended ? 3 : 2);
+    setAutomaticItemIds(
+      (props.suggestions?.automaticCategoryIds ?? [])
+        .filter((id) =>
+          itemsOptions.categoryOptions.some((category) => category.id === id),
+        )
+        .map((categoryId) => form.addItem(categoryId, "", null, null, null)),
+    );
   });
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 按商家标识同步异步到达的建议，pending 标识保证只应用一次。
     applySuggestions();
   }, [suggestionsReady, props.suggestions, merchant?.id, loadingMerchantId]);
+  const waiting = !!loadingMerchantId || waitingInitialSuggestions;
   useEffect(() => {
-    if (!loadingMerchantId) return;
+    if (!waiting) return;
     // 获取失败按「没有建议」处理会直接到达；一直没有结果时也不阻断手动记账。
     const timer = setTimeout(() => {
-      pendingQuickMerchantId.current = null;
-      setLoadingMerchantId(null);
-      setStep(2);
+      stopWaiting();
+      showReceipt();
     }, quickRouteSuggestionTimeoutMs);
     return () => clearTimeout(timer);
-  }, [loadingMerchantId]);
-  function goToStep(target: number) {
-    pendingQuickMerchantId.current = null;
-    setLoadingMerchantId(null);
-    if (target === 3) {
-      setItemsReached(true);
-      initializeAutomaticItems();
-    }
-    if (step === 4 && target !== 4) setReturning(true);
-    if (target === 4) setReturning(false);
-    setStep(target);
-  }
-  function advance(from: number) {
-    goToStep(returning ? 4 : from + 1);
+  }, [waiting]);
+  function backToMerchant() {
+    stopWaiting();
+    setAmountItemId(null);
+    setScreen("merchant");
   }
   function selectMerchant(value: FlowMerchant) {
-    // 从确认页回来换商家或已有明细时不走快速路线，直接进入账户步骤。
-    const quick = !returning && step !== 4 && !form.itemSummaries.length;
+    // 从小票返回换商家或已有明细时不走快速路线，直接回到小票。
+    const quick = !receiptVisited && !form.itemSummaries.length;
     pendingQuickMerchantId.current = quick ? value.id : null;
     form.handleMerchantChange(value.id);
     props.onMerchantSelect(value);
     if (quick) setLoadingMerchantId(value.id);
-    else setStep(2);
-  }
-  function selectAccount(value: TransactionAccountOption) {
-    pendingQuickMerchantId.current = null;
-    const primary = form.payments[0];
-    if (primary) form.handlePaymentAccountChange(primary.key, value.id);
-    props.onAccountSelect(value);
-    if (!returning) advance(2);
+    else showReceipt();
   }
   async function requestClose() {
     if (
@@ -192,7 +150,7 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
       props.onClose();
   }
   return {
-    step,
+    screen,
     saveState,
     saveAction,
     saving,
@@ -212,25 +170,11 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     automaticItemIds,
     amountItemId,
     setAmountItemId,
-    completed,
-    clickableSteps: [...completed, ...(itemsReached ? [3] : []), 4],
-    returning,
     methodOpen,
     setMethodOpen,
-    merchant,
-    account,
-    stepDetails: [
-      merchant?.name,
-      account &&
-        (form.payments.length > 1
-          ? m.multipleAccounts(account.name, form.payments.length)
-          : account.name),
-    ],
     loadingMerchantId,
-    goToStep,
-    advance,
+    backToMerchant,
     selectMerchant,
-    selectAccount,
     requestClose,
   };
 }

@@ -53,4 +53,30 @@ describe("WizardDialog", () => {
     fireEvent.click(backdrop!);
     expect(onClose).not.toHaveBeenCalled();
   });
+  it("传入返回时左上角为返回、关闭移到右上角，不显示标题操作", () => {
+    const onBack = vi.fn();
+    const onClose = vi.fn();
+    render(
+      <WizardDialog
+        back={{ label: "返回", onClick: onBack }}
+        closeLabel="关闭"
+        onClose={onClose}
+        open
+        title="小票"
+        titleAction={<button type="button">切换</button>}
+      >
+        <p>内容</p>
+      </WizardDialog>,
+    );
+    const buttons = screen.getAllByRole("button");
+    expect(buttons.map((button) => button.getAttribute("aria-label"))).toEqual([
+      "返回",
+      "关闭",
+    ]);
+    fireEvent.click(buttons[0]!);
+    expect(onBack).toHaveBeenCalledOnce();
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.click(buttons[1]!);
+    expect(onClose).toHaveBeenCalledOnce();
+  });
 });

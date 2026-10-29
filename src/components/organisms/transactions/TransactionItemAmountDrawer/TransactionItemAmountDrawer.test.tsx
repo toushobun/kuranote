@@ -4,11 +4,11 @@ import {
   renderEntryComponent,
   clickEntryButton as click,
 } from "test/transactionStepFlow";
-import { itemsStepFixture } from "test/mocks/transactionItemsStep";
+import { receiptSuggestions } from "test/mocks/transactionReceipt";
 import { TransactionItemAmountDrawer } from "./TransactionItemAmountDrawer";
 function setup(
   currency = "CNY",
-  quickAmounts = itemsStepFixture.suggestions!.quickAmounts,
+  quickAmounts = receiptSuggestions.quickAmounts,
 ) {
   const props = {
     open: true,

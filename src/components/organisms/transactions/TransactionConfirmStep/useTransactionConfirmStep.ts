@@ -1,45 +1,96 @@
 "use client";
-import { useState } from "react";
-import type { useTransactionForm } from "../TransactionForm/useTransactionForm";
+import { useState, type RefObject } from "react";
 import { isValidTransactionFormItem } from "../TransactionForm/TransactionForm.utils";
+import {
+  canAddPaymentRow,
+  isPaymentAccountSelectable,
+} from "../TransactionPaymentFields/useTransactionPaymentFields";
 import { flowMessages as m } from "config/transactionStepFlowMessages";
+import type { TransactionAccountOption } from "types/transactions";
+import type { TransactionConfirmStepProps } from "./TransactionConfirmStep.types";
 
 export function useTransactionConfirmStep(
-  form: ReturnType<typeof useTransactionForm>,
-  goToStep: (step: number) => void,
-  onAmount: (id: number) => void,
+  props: TransactionConfirmStepProps,
+  paymentSectionRef: RefObject<HTMLDivElement | null>,
 ) {
+  const form = props.form;
   const [editor, setEditor] = useState<"note" | "time" | null>(null);
+  // 正在换账户 / 填金额的付款行（`TransactionPaymentRow.key`）。
+  const [accountPickerKey, setAccountPickerKey] = useState<number | null>(null);
+  const [paymentAmountKey, setPaymentAmountKey] = useState<number | null>(null);
+  const currency = form.selectedAccount?.currency;
+  const automaticItemIds = props.automaticItemIds.filter((id) =>
+    form.itemSummaries.some((item) => item.id === id),
+  );
   const invalidItems = form.itemSummaries.filter(
-    (item) =>
-      !item.category ||
-      !isValidTransactionFormItem(item, form.selectedAccount?.currency),
+    (item) => !item.category || !isValidTransactionFormItem(item, currency),
   );
   const missingAmounts = invalidItems.filter((item) => !item.amount.trim());
-  // 金额待输入的明细（如快速路线自动加入的）直接打开金额键盘，其余打开明细编辑。
-  function editItem(item: (typeof form.itemSummaries)[number]) {
-    if (item.category && !item.amount.trim() && form.selectedAccount)
-      onAmount(item.id);
-    else form.openItemSheet(item.id);
-  }
+  // 入口条件与标准表单一致（#930 / #931），另外未选账户或明细里有收入时不显示。
+  const canAddPayment =
+    !!props.multiAccountPaymentEnabled &&
+    !!form.selectedAccount &&
+    !form.itemSummaries.some((item) => item.category?.type === "income") &&
+    canAddPaymentRow({
+      accountOptions: props.accountOptions,
+      payments: form.payments,
+      primaryCurrency: currency,
+    });
   const accountError = !!form.accountFieldError || !form.selectedAccount;
+  const pickerPayment = form.payments.find(
+    (payment) => payment.key === accountPickerKey,
+  );
+  // 多账户时只能换成同币种、未被其他行选中的账户；单账户时可选全部账户（换币种时确认）。
+  const pickerAccounts = form.isMultiAccount
+    ? props.accountOptions.filter(
+        (account) =>
+          (!currency || account.currency === currency) &&
+          isPaymentAccountSelectable({
+            account,
+            payments: form.payments,
+            primaryCurrency: currency,
+            rowKey: accountPickerKey ?? undefined,
+          }),
+      )
+    : props.accountOptions;
+  function selectAccount(account: TransactionAccountOption) {
+    if (accountPickerKey === null) return;
+    form.handlePaymentAccountChange(accountPickerKey, account.id);
+    props.onAccountSelect(account);
+    setAccountPickerKey(null);
+  }
+  // 只剩一个付款账户时删除即清空账户，支付行回到「选择收支账户」。
+  function removePayment(key: number) {
+    if (form.isMultiAccount) form.handleRemovePayment(key);
+    else form.handlePaymentAccountChange(key, "");
+  }
+  function focusPayments() {
+    const section = paymentSectionRef.current;
+    section?.scrollIntoView?.({ block: "center", behavior: "smooth" });
+    section?.focus();
+  }
+  const emptyPayment = form.payments.find((payment) => !payment.accountId);
   const issues = [
     ...(!form.selectedMerchant
-      ? [{ message: m.selectMerchant, onClick: () => goToStep(1) }]
+      ? [{ message: m.selectMerchant, onClick: props.onBack }]
       : []),
     ...(accountError
       ? [
           {
-            message:
-              form.isMultiAccount && !form.paymentReconciliation.isBalanced
+            message: !form.selectedAccount
+              ? m.selectAccount
+              : form.isMultiAccount && !form.paymentReconciliation.isBalanced
                 ? m.unbalanced
                 : m.checkAccount,
-            onClick: () => goToStep(form.isMultiAccount ? 3 : 2),
+            onClick: () =>
+              emptyPayment
+                ? setAccountPickerKey(emptyPayment.key)
+                : focusPayments(),
           },
         ]
       : []),
     ...(!form.itemSummaries.length
-      ? [{ message: m.missingItems, onClick: () => goToStep(3) }]
+      ? [{ message: m.missingItems, onClick: form.openSheet }]
       : []),
     ...(invalidItems.length
       ? [
@@ -48,9 +99,9 @@ export function useTransactionConfirmStep(
               ? m.missingAmounts(missingAmounts.length)
               : m.invalidItems,
             onClick: () =>
-              missingAmounts[0] && form.selectedAccount
-                ? onAmount(missingAmounts[0].id)
-                : goToStep(3),
+              missingAmounts[0]
+                ? props.onAmountItemChange(missingAmounts[0].id)
+                : form.openItemSheet(invalidItems[0]!.id),
           },
         ]
       : []),
@@ -58,5 +109,21 @@ export function useTransactionConfirmStep(
       ? [{ message: m.invalidTime, onClick: () => setEditor("time") }]
       : []),
   ];
-  return { editor, setEditor, editItem, invalidItems, accountError, issues };
+  return {
+    editor,
+    setEditor,
+    currency,
+    automaticItemIds,
+    invalidItems,
+    canAddPayment,
+    accountPickerKey,
+    setAccountPickerKey,
+    pickerPayment,
+    pickerAccounts,
+    selectAccount,
+    paymentAmountKey,
+    setPaymentAmountKey,
+    removePayment,
+    issues,
+  };
 }

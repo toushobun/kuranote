@@ -1,5 +1,6 @@
 "use client";
 
+import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import Box from "@mui/material/Box";
 import Dialog from "@mui/material/Dialog";
@@ -11,6 +12,8 @@ import { useId, type ReactNode } from "react";
 import {
   wizardDialogHeaderSx,
   wizardDialogPaperSx,
+  wizardDialogTitleOnlyHeaderSx,
+  wizardDialogTitleOnlyRowSx,
   wizardDialogTitleRowSx,
   wizardDialogTitleSx,
 } from "./wizardDialogStyles";
@@ -22,6 +25,8 @@ type WizardDialogProps = {
   disabled?: boolean;
   headerContent?: ReactNode;
   titleAction?: ReactNode;
+  /** 传入时左上角为返回 ←，关闭 × 移到右上角（不再显示 `titleAction`）。 */
+  back?: { label: string; onClick: () => void };
   onClose: () => void;
   open: boolean;
   title?: string;
@@ -37,6 +42,7 @@ export function WizardDialog({
   disabled = false,
   headerContent,
   titleAction,
+  back,
   onClose,
   open,
   title,
@@ -49,6 +55,15 @@ export function WizardDialog({
   function requestClose() {
     if (!disabled) onClose();
   }
+  const closeButton = (
+    <IconButton
+      aria-label={closeLabel}
+      disabled={disabled}
+      onClick={requestClose}
+    >
+      <CloseRoundedIcon />
+    </IconButton>
+  );
   return (
     <Dialog
       aria-labelledby={title || titleId ? headingId : undefined}
@@ -67,7 +82,10 @@ export function WizardDialog({
       <Box
         sx={
           title
-            ? wizardDialogHeaderSx
+            ? [
+                wizardDialogHeaderSx,
+                !headerContent && wizardDialogTitleOnlyHeaderSx,
+              ]
             : [completeHeaderSx, closeAlignment === "start" && startHeaderSx]
         }
       >
@@ -76,24 +94,31 @@ export function WizardDialog({
             title
               ? [
                   wizardDialogTitleRowSx,
-                  titleAction ? { gridTemplateColumns: "40px 1fr auto" } : {},
+                  !headerContent && wizardDialogTitleOnlyRowSx,
+                  titleAction && !back
+                    ? { gridTemplateColumns: "40px 1fr auto" }
+                    : {},
                 ]
               : undefined
           }
         >
-          <IconButton
-            aria-label={closeLabel}
-            disabled={disabled}
-            onClick={requestClose}
-          >
-            <CloseRoundedIcon />
-          </IconButton>
+          {back ? (
+            <IconButton
+              aria-label={back.label}
+              disabled={disabled}
+              onClick={back.onClick}
+            >
+              <ArrowBackRoundedIcon />
+            </IconButton>
+          ) : (
+            closeButton
+          )}
           {title ? (
             <Typography component="h2" id={headingId} sx={wizardDialogTitleSx}>
               {title}
             </Typography>
           ) : null}
-          {titleAction}
+          {back ? closeButton : titleAction}
         </Box>
         {headerContent}
       </Box>

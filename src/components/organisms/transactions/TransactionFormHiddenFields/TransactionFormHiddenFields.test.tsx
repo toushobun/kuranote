@@ -3,10 +3,10 @@ import { describe, expect, it } from "vitest";
 import { renderConfirmFlow } from "test/transactionConfirmStep";
 import { renderEntryComponent } from "test/transactionStepFlow";
 import {
-  itemsStepFixture,
+  receiptItemsOptions,
   filledItems,
   twoPayments,
-} from "test/mocks/transactionItemsStep";
+} from "test/mocks/transactionReceipt";
 import { TransactionItemHiddenFields } from "./TransactionFormHiddenFields";
 
 function submittedData() {
@@ -31,7 +31,7 @@ describe("TransactionFormHiddenFields", () => {
   it("多账户按行提交账户和金额，不再提交单账户字段", () => {
     renderConfirmFlow({
       itemsOptions: {
-        ...itemsStepFixture,
+        ...receiptItemsOptions,
         initialItems: filledItems,
         initialPayments: twoPayments,
       },

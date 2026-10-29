@@ -186,15 +186,4 @@ describe("TransactionPaymentFields", () => {
       ).toBeInTheDocument();
     });
   });
-  it("分步流程展示对账成功，首行也不能选择不同币种", () => {
-    renderFields({
-      stepFlow: true,
-      payments: createPaymentRows(["2000", "1500"]),
-    });
-    expect(screen.getByText("✓ 已对上")).toBeInTheDocument();
-    fireEvent.mouseDown(screen.getAllByRole("combobox")[0]);
-    expect(
-      screen.getByRole("option", { name: "美元卡（USD）" }),
-    ).toHaveAttribute("aria-disabled", "true");
-  });
 });

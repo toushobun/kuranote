@@ -1,5 +1,4 @@
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
-import ButtonBase from "@mui/material/ButtonBase";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 
@@ -15,69 +14,25 @@ type StepProgressProps = {
   currentStep: number;
   label: string;
   steps: readonly string[];
-  /** 每一步步骤名下方的第二行文字（如已选内容），未传或为空时不显示。 */
-  stepDetails?: readonly (string | undefined)[];
-  completedSteps?: readonly number[];
-  clickableSteps?: readonly number[];
-  onStepClick?: (step: number) => void;
 };
 
-function getStepStatus(
-  step: number,
-  currentStep: number,
-  completedSteps?: readonly number[],
-): StepProgressStatus {
+function getStepStatus(step: number, currentStep: number): StepProgressStatus {
+  if (step < currentStep) return "completed";
   if (step === currentStep) return "current";
-  const completed = completedSteps
-    ? completedSteps.includes(step)
-    : step < currentStep;
-  return completed ? "completed" : "upcoming";
+  return "upcoming";
 }
 
 /**
  * 分步骤流程的进度条：「圆点 + 连线 + 下方标签」。
  * 已完成为主题强调色实心圆点带对勾，当前步骤高亮并加粗标签，未到的步骤为浅灰。
  */
-export function StepProgress({
-  currentStep,
-  label,
-  steps,
-  stepDetails,
-  completedSteps,
-  clickableSteps = [],
-  onStepClick,
-}: StepProgressProps) {
+export function StepProgress({ currentStep, label, steps }: StepProgressProps) {
   return (
     <Box aria-label={label} component="ol" sx={listSx}>
       {steps.map((stepLabel, index) => {
         const step = index + 1;
-        const status = getStepStatus(step, currentStep, completedSteps);
+        const status = getStepStatus(step, currentStep);
         const isLast = step === steps.length;
-        const detail = stepDetails?.[index];
-        // 连线左右任一侧的步骤已完成即为实线；不传 completedSteps 时与之前一致（当前步骤之前）。
-        const connectorCompleted =
-          status === "completed" ||
-          getStepStatus(step + 1, currentStep, completedSteps) === "completed";
-        const content = (
-          <>
-            <Box aria-hidden="true" component="span" sx={dotSx(status)}>
-              {status === "completed" ? <CheckRoundedIcon /> : step}
-            </Box>
-            <Typography component="span" sx={labelSx(status)}>
-              {stepLabel}
-              {status === "current" ? null : (
-                <Box component="span" sx={visuallyHiddenSx}>
-                  （{stepProgressText[status]}）
-                </Box>
-              )}
-            </Typography>
-            {detail ? (
-              <Typography component="span" sx={detailSx}>
-                {detail}
-              </Typography>
-            ) : null}
-          </>
-        );
 
         return (
           <Box
@@ -91,26 +46,20 @@ export function StepProgress({
               <Box
                 aria-hidden="true"
                 component="span"
-                sx={connectorSx(connectorCompleted)}
+                sx={connectorSx(status === "completed")}
               />
             )}
-            {onStepClick && clickableSteps.includes(step) ? (
-              <ButtonBase
-                onClick={() => onStepClick(step)}
-                aria-label={stepLabel}
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 0.6,
-                  width: "100%",
-                  minHeight: 44,
-                }}
-              >
-                {content}
-              </ButtonBase>
-            ) : (
-              content
-            )}
+            <Box aria-hidden="true" component="span" sx={dotSx(status)}>
+              {status === "completed" ? <CheckRoundedIcon /> : step}
+            </Box>
+            <Typography component="span" sx={labelSx(status)}>
+              {stepLabel}
+              {status === "current" ? null : (
+                <Box component="span" sx={visuallyHiddenSx}>
+                  （{stepProgressText[status]}）
+                </Box>
+              )}
+            </Typography>
           </Box>
         );
       })}
@@ -186,17 +135,6 @@ function dotSx(status: StepProgressStatus) {
     },
   } as const;
 }
-
-const detailSx = {
-  color: "text.primary",
-  fontSize: 13,
-  lineHeight: 1.4,
-  maxWidth: "100%",
-  mt: -0.4,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
-  whiteSpace: "nowrap",
-} as const;
 
 function labelSx(status: StepProgressStatus) {
   return {

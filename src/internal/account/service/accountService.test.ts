@@ -485,7 +485,7 @@ describe("AccountService 占位持有人", () => {
     ]);
   });
 
-  it("记账用账户候选带持有人显示名，只含未归档账户", async () => {
+  it("记账用账户候选带账户类型与持有人显示名，只含未归档账户", async () => {
     const repository = createRepository();
     mockPlaceholderAccount(repository);
     vi.mocked(repository.listHolders).mockResolvedValue([
@@ -508,6 +508,7 @@ describe("AccountService 占位持有人", () => {
     expect(options).toEqual([
       expect.objectContaining({
         holders: [{ display_name: "奶奶" }, { display_name: "妻子" }],
+        type: "cash",
       }),
     ]);
     expect(Object.keys(options[0]).sort()).toEqual([
@@ -515,6 +516,7 @@ describe("AccountService 占位持有人", () => {
       "holders",
       "id",
       "name",
+      "type",
     ]);
     expect(repository.listAccounts).toHaveBeenCalledWith(ledgerId);
   });

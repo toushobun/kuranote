@@ -1,78 +1,160 @@
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { renderConfirmFlow } from "test/transactionConfirmStep";
-import { clickEntryButton as click } from "test/transactionStepFlow";
-import { itemsStepFixture, twoPayments } from "test/mocks/transactionItemsStep";
+import {
+  pressItemAmountKey,
+  renderConfirmFlow,
+} from "test/transactionConfirmStep";
+import {
+  clickEntryButton as click,
+  selectEntryAccount as selectAccount,
+} from "test/transactionStepFlow";
+import {
+  filledItems,
+  receiptItemsOptions,
+  receiptSuggestions,
+  twoPayments,
+} from "test/mocks/transactionReceipt";
 
-function row(label: string) {
+function headerRow(label: string) {
   return screen.getByRole("button", { name: new RegExp(`^修改${label}：`) });
 }
+// 明细行 / 支付行：以行内的铅笔按钮定位整行。
+function line(editLabel: string) {
+  return screen.getByRole("button", { name: editLabel }).parentElement!;
+}
+function saveButton() {
+  return screen.getByRole("button", { name: "保存记账" });
+}
 function transactionForm() {
-  return screen.getByRole("button", { name: "保存记账" }).closest("form")!;
+  return saveButton().closest("form")!;
+}
+function renderMultiAccount(lunchAmount = "10000") {
+  return renderConfirmFlow({
+    itemsOptions: {
+      ...receiptItemsOptions,
+      initialItems: [{ categoryId: "lunch", amount: lunchAmount }],
+      initialPayments: twoPayments,
+    },
+  });
 }
 
 describe("TransactionConfirmStep", () => {
-  it("小票从上到下显示抬头、明细、合计、支付与备注", () => {
+  it("小票从上到下显示抬头、明细、合计（含支出）、支付与备注", () => {
     renderConfirmFlow();
-    expect(row("商家")).toHaveTextContent("7-Eleven");
-    expect(row("时间")).toHaveTextContent(/\d{2}:\d{2}$/);
-    expect(row("明细 1")).toHaveTextContent("餐饮 · 午餐¥8,000");
-    expect(row("明细 2")).toHaveTextContent("¥2,000");
-    expect(screen.getByText("合计").nextElementSibling).toHaveTextContent(
-      "¥10,000",
+    expect(headerRow("商家")).toHaveTextContent("7-Eleven");
+    expect(headerRow("时间")).toHaveTextContent(/\d{2}:\d{2}$/);
+    expect(line("编辑明细 1")).toHaveTextContent("餐饮 · 午餐¥8,000");
+    expect(line("编辑明细 2")).toHaveTextContent("日用品 · 收纳¥2,000");
+    const total = screen.getByText("合计").nextElementSibling!;
+    expect(total).toHaveTextContent("¥10,000");
+    expect(total).toHaveTextContent("支出 ¥10,000");
+    expect(line("更换支付账户 1")).toHaveTextContent("PayPayJPY¥10,000");
+    expect(headerRow("备注")).toHaveTextContent("添加备注");
+  });
+
+  it("合计与明细行沿用原明细卡片的字号", () => {
+    renderConfirmFlow();
+    expect(screen.getByText("¥10,000", { selector: "h5" })).toHaveClass(
+      "MuiTypography-h5",
     );
-    expect(row("支付账户 1")).toHaveTextContent("PayPayJPY¥10,000");
-    expect(row("备注")).toHaveTextContent("添加备注");
+    expect(screen.getByText("餐饮 · 午餐")).toHaveClass("MuiTypography-body2");
   });
 
-  it("商家、时间、每条明细、支付账户、备注各有一个铅笔，合计行没有", () => {
-    renderConfirmFlow();
-    expect(screen.getAllByTestId("EditOutlinedIcon")).toHaveLength(6);
-    for (const label of [
-      "商家",
-      "时间",
-      "明细 1",
-      "明细 2",
-      "支付账户 1",
-      "备注",
-    ])
-      expect(
-        within(row(label)).getByTestId("EditOutlinedIcon"),
-      ).toBeInTheDocument();
-    expect(
-      screen.getByText("合计").parentElement!.querySelector("svg"),
-    ).toBeNull();
-  });
-
-  it.each([
-    ["商家", () => screen.getByRole("textbox", { name: "搜索商家" })],
-    ["支付账户 1", () => screen.getByRole("radiogroup", { name: "收支账户" })],
-  ])("点击%s回到对应步骤", (label, target) => {
-    renderConfirmFlow();
-    fireEvent.click(row(label));
-    expect(target()).toBeInTheDocument();
-  });
-
-  it("多账户时点击支付账户回到明细步骤的付款分配", () => {
+  it("有收入时合计下方显示支出与收入", () => {
     renderConfirmFlow({
       itemsOptions: {
-        ...itemsStepFixture,
-        initialItems: [{ categoryId: "lunch", amount: "10000" }],
-        initialPayments: twoPayments,
+        ...receiptItemsOptions,
+        initialItems: [
+          { categoryId: "lunch", amount: "800" },
+          { categoryId: "points", amount: "100" },
+        ],
       },
     });
-    expect(row("支付账户 1")).toHaveTextContent("PayPayJPY¥7,000");
-    expect(row("支付账户 2")).toHaveTextContent("现金JPY¥3,000");
-    fireEvent.click(row("支付账户 2"));
-    expect(screen.getByText("付款账户")).toBeInTheDocument();
+    expect(screen.getByText("支出 ¥800 · 收入 ¥100")).toBeInTheDocument();
   });
 
-  it("点击明细打开该明细的编辑，保存后弹出金额键盘", async () => {
+  it("明细和支付行各有一个铅笔和一个 ×，商家名与时间的铅笔紧跟文字", () => {
     renderConfirmFlow();
-    fireEvent.click(row("明细 1"));
+    for (const [edit, remove] of [
+      ["编辑明细 1", "删除明细 1"],
+      ["编辑明细 2", "删除明细 2"],
+      ["更换支付账户 1", "删除支付账户 1"],
+    ]) {
+      const row = line(edit);
+      expect(
+        within(row).getByRole("button", { name: remove }),
+      ).toBeInTheDocument();
+      expect(within(row).getByTestId("EditOutlinedIcon")).toBeInTheDocument();
+    }
+    for (const label of ["商家", "时间"])
+      expect(headerRow(label).lastElementChild).toHaveAttribute(
+        "data-testid",
+        "EditOutlinedIcon",
+      );
+  });
+
+  it("小票显示明细标签：自动以外的「待报销」也显示", () => {
+    renderConfirmFlow({
+      itemsOptions: {
+        ...receiptItemsOptions,
+        initialItems: [
+          {
+            categoryId: "lunch",
+            amount: "800",
+            specialStatus: "pendingReimbursement",
+          },
+        ],
+      },
+    });
+    expect(within(line("编辑明细 1")).getByText("待报销")).toBeInTheDocument();
+  });
+
+  it("点金额只打开该明细的金额键盘，不打开明细编辑", async () => {
+    renderConfirmFlow({ suggestions: receiptSuggestions });
+    click("修改明细 1 金额：¥8,000");
+    expect(await screen.findByText("餐饮 · 午餐 的金额")).toBeInTheDocument();
+    expect(screen.queryByText("编辑明细")).not.toBeInTheDocument();
+    pressItemAmountKey("退格");
+    pressItemAmountKey("确定");
+    await waitFor(() =>
+      expect(screen.queryByLabelText("金额计算器")).not.toBeInTheDocument(),
+    );
+    expect(line("编辑明细 1")).toHaveTextContent("¥800");
+  });
+
+  it("金额待输入时带快捷金额，点「上次」后填入", async () => {
+    renderConfirmFlow({
+      itemsOptions: {
+        ...receiptItemsOptions,
+        initialItems: [{ categoryId: "lunch", amount: "" }],
+      },
+      suggestions: receiptSuggestions,
+    });
+    click("修改明细 1 金额：待输入");
+    click("上次 ¥498");
+    click("确定");
+    await waitFor(() =>
+      expect(screen.queryByLabelText("金额计算器")).not.toBeInTheDocument(),
+    );
+    expect(line("编辑明细 1")).toHaveTextContent("¥498");
+  });
+
+  it("金额是可用键盘操作的按钮", () => {
+    renderConfirmFlow();
+    const amount = screen.getByRole("button", {
+      name: "修改明细 1 金额：¥8,000",
+    });
+    amount.focus();
+    expect(amount).toHaveFocus();
+    expect(amount.tagName).toBe("BUTTON");
+  });
+
+  it("明细的 × 删除这条明细，铅笔打开编辑抽屉", async () => {
+    renderConfirmFlow();
+    click("删除明细 2");
+    expect(screen.queryByText("日用品 · 收纳")).not.toBeInTheDocument();
+    click("编辑明细 1");
     expect(await screen.findByText("编辑明细")).toBeInTheDocument();
-    click("保存修改");
-    expect(await screen.findByLabelText("金额计算器")).toBeInTheDocument();
   });
 
   it("小票内添加明细打开选择分类抽屉", async () => {
@@ -83,10 +165,139 @@ describe("TransactionConfirmStep", () => {
     ).toBeInTheDocument();
   });
 
+  it("支付行的铅笔打开账户选择抽屉并换账户，图标按账户类型显示", async () => {
+    const { props } = renderConfirmFlow();
+    expect(
+      within(line("更换支付账户 1")).getByTestId(
+        "AccountBalanceWalletOutlinedIcon",
+      ),
+    ).toBeInTheDocument();
+    click("更换支付账户 1");
+    expect(
+      screen.getByRole("radiogroup", { name: "收支账户" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("推荐账户")).toBeInTheDocument();
+    selectAccount("现金 JPY");
+    await waitFor(() =>
+      expect(line("更换支付账户 1")).toHaveTextContent("现金"),
+    );
+    expect(props.onAccountSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "cash" }),
+    );
+    expect(
+      within(line("更换支付账户 1")).getByTestId("PaymentsOutlinedIcon"),
+    ).toBeInTheDocument();
+  });
+
+  it("账户类型取不到时显示默认图标", () => {
+    renderConfirmFlow({
+      accounts: [{ id: "paypay", name: "PayPay", currency: "JPY" }],
+    });
+    expect(
+      within(line("更换支付账户 1")).getByTestId("MoreHorizRoundedIcon"),
+    ).toBeInTheDocument();
+  });
+
+  it("删除最后一个付款账户后回到「选择收支账户」并禁用保存", () => {
+    renderConfirmFlow();
+    click("删除支付账户 1");
+    expect(line("更换支付账户 1")).toHaveTextContent("选择收支账户");
+    expect(line("更换支付账户 1")).toHaveAttribute("data-invalid", "true");
+    expect(
+      screen.queryByRole("button", { name: "删除支付账户 1" }),
+    ).not.toBeInTheDocument();
+    expect(saveButton()).toBeDisabled();
+    click("请选择收支账户");
+    expect(
+      screen.getByRole("radiogroup", { name: "收支账户" }),
+    ).toBeInTheDocument();
+  });
+
+  it("添加付款账户后多一行待选账户；有收入或账本关闭多账户时不显示入口", () => {
+    const view = renderConfirmFlow();
+    click("添加付款账户（多个账户一起付）");
+    expect(line("更换支付账户 2")).toHaveTextContent("选择收支账户");
+    expect(
+      screen.getByRole("button", { name: "添加付款账户" }),
+    ).toBeInTheDocument();
+    view.unmount();
+    renderConfirmFlow({
+      itemsOptions: {
+        ...receiptItemsOptions,
+        initialItems: [{ categoryId: "points", amount: "100" }],
+      },
+    });
+    expect(screen.queryByRole("button", { name: /添加付款账户/ })).toBeNull();
+  });
+
+  it("账本关闭多账户付款时不显示添加付款账户", () => {
+    renderConfirmFlow({
+      itemsOptions: {
+        ...receiptItemsOptions,
+        initialItems: filledItems,
+        multiAccountPaymentEnabled: false,
+      },
+    });
+    expect(screen.queryByRole("button", { name: /添加付款账户/ })).toBeNull();
+  });
+
+  it("多账户已对上时显示对账行并可保存", () => {
+    renderMultiAccount();
+    expect(line("更换支付账户 1")).toHaveTextContent("PayPayJPY¥7,000");
+    expect(line("更换支付账户 2")).toHaveTextContent("现金JPY¥3,000");
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "✓ 付款合计 ¥10,000 = 明细合计 ¥10,000",
+    );
+    expect(saveButton()).toBeEnabled();
+  });
+
+  it("多账户未对上时显示差额、标红并禁用保存，在小票里调整金额后对上", async () => {
+    renderMultiAccount("9000");
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "付款合计 ¥10,000 / 明细合计 ¥9,000 · 差额 ¥1,000",
+    );
+    expect(screen.getByRole("status")).toHaveAttribute("data-invalid", "true");
+    expect(
+      screen.getByRole("button", { name: "付款账户未对上，点一下去调整" }),
+    ).toBeInTheDocument();
+    expect(saveButton()).toBeDisabled();
+    click("修改支付账户 2 金额：¥3,000");
+    expect(await screen.findByText("现金 的金额")).toBeInTheDocument();
+    for (const key of ["退格", "退格", "退格", "退格", "2", "0", "0", "0"])
+      pressItemAmountKey(key);
+    pressItemAmountKey("确定");
+    await waitFor(() =>
+      expect(screen.queryByLabelText("金额计算器")).not.toBeInTheDocument(),
+    );
+    expect(line("更换支付账户 2")).toHaveTextContent("¥2,000");
+    expect(screen.getByRole("status")).toHaveTextContent("✓");
+    expect(saveButton()).toBeEnabled();
+  });
+
+  it("多账户的 × 删除追加的账户，回到单账户", () => {
+    renderMultiAccount();
+    click("删除支付账户 2");
+    expect(
+      screen.queryByRole("button", { name: "更换支付账户 2" }),
+    ).not.toBeInTheDocument();
+    expect(line("更换支付账户 1")).toHaveTextContent("PayPayJPY¥10,000");
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("多账户换账户时只能选同币种、未被其他行选中的账户", () => {
+    renderMultiAccount();
+    click("更换支付账户 2");
+    const accounts = within(
+      screen.getByRole("radiogroup", { name: "收支账户" }),
+    )
+      .getAllByRole("radio")
+      .map((item) => item.getAttribute("aria-label"));
+    expect(accounts).toEqual(["现金 JPY", "乐天银行 JPY"]);
+  });
+
   it("空备注显示占位，抽屉计数并保留已编辑备注", async () => {
     renderConfirmFlow();
-    expect(row("备注")).toHaveTextContent("添加备注");
-    fireEvent.click(row("备注"));
+    fireEvent.click(headerRow("备注"));
     const input = screen.getByRole("textbox", { name: "备注" });
     expect(input).toHaveAttribute("maxlength", "2000");
     fireEvent.change(input, { target: { value: "一起吃午餐" } });
@@ -97,22 +308,14 @@ describe("TransactionConfirmStep", () => {
         screen.queryByRole("textbox", { name: "备注" }),
       ).not.toBeInTheDocument(),
     );
-    expect(row("备注")).toHaveTextContent("一起吃午餐");
+    expect(headerRow("备注")).toHaveTextContent("一起吃午餐");
     expect(new FormData(transactionForm()).get("note")).toBe("一起吃午餐");
-    fireEvent.click(row("备注"));
-    expect(screen.getByRole("textbox", { name: "备注" })).toHaveValue(
-      "一起吃午餐",
-    );
-    click("关闭备注编辑");
   });
 
-  it("时间选择和提交保留秒，确认行只显示分钟且日期时刻互斥展开", async () => {
+  it("时间选择和提交保留秒，小票只显示分钟", async () => {
     renderConfirmFlow();
-    fireEvent.click(row("时间"));
-    expect(screen.getByRole("button", { name: "上个月" })).toBeInTheDocument();
-    const timeRow = screen.getByRole("button", { name: /时刻/ });
-    fireEvent.click(timeRow);
-    expect(screen.getByRole("button", { name: "日期" })).toBeInTheDocument();
+    fireEvent.click(headerRow("时间"));
+    fireEvent.click(screen.getByRole("button", { name: /时刻/ }));
     click("选择 12 时");
     click("选择 30 分");
     click("选择 47 秒");
@@ -122,80 +325,47 @@ describe("TransactionConfirmStep", () => {
         screen.queryByRole("button", { name: "选择 47 秒" }),
       ).not.toBeInTheDocument(),
     );
-    expect(row("时间")).toHaveTextContent("12:30");
-    expect(row("时间")).not.toHaveTextContent("12:30:47");
+    expect(headerRow("时间")).toHaveTextContent("12:30");
+    expect(headerRow("时间")).not.toHaveTextContent("12:30:47");
     expect(new FormData(transactionForm()).get("transactionAt")).toMatch(
       /T12:30:47$/,
     );
   }, 15000);
 
-  it("缺少商家账户和明细时提示、标红并禁用保存", () => {
+  it("缺少账户和明细时提示、标红并禁用保存，点提示打开对应入口", async () => {
     renderConfirmFlow({
-      initialMerchantId: undefined,
       initialAccountId: undefined,
-      itemsOptions: { categoryOptions: itemsStepFixture.categoryOptions },
+      itemsOptions: receiptItemsOptions,
     });
-    expect(row("商家")).toHaveAttribute("data-invalid", "true");
-    expect(row("支付账户 1")).toHaveAttribute("data-invalid", "true");
+    expect(line("更换支付账户 1")).toHaveAttribute("data-invalid", "true");
     expect(screen.getByText("请添加明细", { selector: "p" })).toHaveAttribute(
       "data-invalid",
       "true",
     );
-    expect(screen.getByRole("button", { name: "保存记账" })).toBeDisabled();
-    expect(screen.getAllByRole("alert")).toHaveLength(3);
+    expect(saveButton()).toBeDisabled();
+    expect(screen.getAllByRole("alert")).toHaveLength(2);
+    click("请添加明细");
+    expect(
+      await screen.findByRole("textbox", { name: "搜索小分类" }),
+    ).toBeInTheDocument();
   });
 
-  it("未填金额标红，点击提示打开金额键盘并实时同步", async () => {
+  it("未填金额标红，点击提示打开金额键盘", async () => {
     renderConfirmFlow({
       itemsOptions: {
-        ...itemsStepFixture,
+        ...receiptItemsOptions,
         initialItems: [{ categoryId: "lunch", amount: "" }],
       },
     });
-    expect(row("明细 1")).toHaveAttribute("data-invalid", "true");
+    expect(line("编辑明细 1")).toHaveAttribute("data-invalid", "true");
     click("还有 1 条明细没填金额，点一下去填写");
-    click("8");
-    click("确定");
+    pressItemAmountKey("8");
+    pressItemAmountKey("确定");
     await waitFor(() =>
       expect(screen.queryByLabelText("金额计算器")).not.toBeInTheDocument(),
     );
-    expect(row("明细 1")).toHaveTextContent(/¥\s*8/);
-    expect(screen.getByRole("button", { name: "保存记账" })).toBeEnabled();
-  });
-
-  it("点击金额待输入的明细行直接打开带快捷金额的金额键盘", async () => {
-    renderConfirmFlow({
-      itemsOptions: {
-        ...itemsStepFixture,
-        initialItems: [{ categoryId: "lunch", amount: "" }],
-      },
-      suggestions: itemsStepFixture.suggestions,
-    });
-    expect(row("明细 1")).toHaveTextContent("待输入");
-    fireEvent.click(row("明细 1"));
-    expect(await screen.findByLabelText("金额计算器")).toBeInTheDocument();
-    expect(screen.queryByText("编辑明细")).not.toBeInTheDocument();
-    click("上次 ¥498");
-    click("确定");
-    await waitFor(() =>
-      expect(screen.queryByLabelText("金额计算器")).not.toBeInTheDocument(),
-    );
-    expect(row("明细 1")).toHaveTextContent("¥498");
-  });
-
-  it("多账户未对上时提示跳到明细并禁用保存", () => {
-    renderConfirmFlow({
-      itemsOptions: {
-        ...itemsStepFixture,
-        initialItems: [{ categoryId: "lunch", amount: "20" }],
-        initialPayments: twoPayments,
-      },
-    });
-    expect(row("支付账户 1")).toHaveAttribute("data-invalid", "true");
-    expect(row("支付账户 2")).toHaveAttribute("data-invalid", "true");
-    expect(screen.getByRole("button", { name: "保存记账" })).toBeDisabled();
-    click("付款账户未对上，点一下去调整");
-    expect(screen.getByText("付款账户")).toBeInTheDocument();
+    expect(line("编辑明细 1")).toHaveTextContent(/¥\s*8/);
+    expect(saveButton()).toBeEnabled();
   });
 
   it.each([true, false])(
@@ -220,7 +390,7 @@ describe("TransactionConfirmStep", () => {
       expect(
         await screen.findByText(success ? "已保存" : "保存失败，请重试"),
       ).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "保存记账" })).toBeEnabled();
+      expect(saveButton()).toBeEnabled();
     },
   );
 });
