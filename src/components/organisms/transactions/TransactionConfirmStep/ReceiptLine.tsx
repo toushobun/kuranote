@@ -43,52 +43,54 @@ export function ReceiptLine({
   onRemove?: () => void;
 }) {
   return (
-    <Box data-invalid={error || undefined} sx={lineSx}>
-      {icon && (
-        <Box aria-hidden sx={[iconSx, errorLabel && errorTextSx]}>
-          {icon}
+    <Box data-invalid={error || undefined}>
+      <Box sx={lineSx}>
+        {icon && (
+          <Box aria-hidden sx={[iconSx, errorLabel && errorTextSx]}>
+            {icon}
+          </Box>
+        )}
+        <Box sx={labelColumnSx}>
+          <Box sx={labelBoxSx}>
+            <Typography
+              variant="body2"
+              noWrap={!!icon}
+              component={labelClickable ? ButtonBase : "p"}
+              onClick={labelClickable ? onEdit : undefined}
+              sx={[
+                { minWidth: 0 },
+                labelClickable && labelButtonSx,
+                errorLabel && errorTextSx,
+              ]}
+            >
+              {label}
+            </Typography>
+            {tags}
+          </Box>
         </Box>
-      )}
-      <Box sx={labelColumnSx}>
-        <Box sx={labelBoxSx}>
-          <Typography
-            variant="body2"
-            noWrap
-            component={labelClickable ? ButtonBase : "p"}
-            onClick={labelClickable ? onEdit : undefined}
-            sx={[
-              { minWidth: 0 },
-              labelClickable && labelButtonSx,
-              errorLabel && errorTextSx,
-            ]}
-          >
-            {label}
-          </Typography>
-          {tags}
-        </Box>
-        {subline && <Box sx={sublineSx}>{subline}</Box>}
-      </Box>
-      {amount}
-      <IconButton
-        size="small"
-        aria-label={editLabel}
-        onClick={onEdit}
-        sx={actionSx}
-      >
-        <EditOutlinedIcon sx={{ fontSize: receiptIconSize }} />
-      </IconButton>
-      {onRemove && removeLabel ? (
+        {amount}
         <IconButton
           size="small"
-          aria-label={removeLabel}
-          onClick={onRemove}
+          aria-label={editLabel}
+          onClick={onEdit}
           sx={actionSx}
         >
-          <CloseRoundedIcon sx={{ fontSize: receiptIconSize }} />
+          <EditOutlinedIcon sx={{ fontSize: receiptIconSize }} />
         </IconButton>
-      ) : (
-        <Box sx={{ width: actionSize }} />
-      )}
+        {onRemove && removeLabel ? (
+          <IconButton
+            size="small"
+            aria-label={removeLabel}
+            onClick={onRemove}
+            sx={actionSx}
+          >
+            <CloseRoundedIcon sx={{ fontSize: receiptIconSize }} />
+          </IconButton>
+        ) : (
+          <Box sx={{ width: actionSize }} />
+        )}
+      </Box>
+      {subline && <Box sx={sublineSx}>{subline}</Box>}
     </Box>
   );
 }
