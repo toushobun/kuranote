@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useState } from "react";
-import { itemsStepFixture } from "test/mocks/transactionItemsStep";
+import { receiptSuggestions } from "test/mocks/transactionReceipt";
 import { TransactionItemAmountDrawer } from "./TransactionItemAmountDrawer";
 const meta = {
   title: "Organisms/Transactions/TransactionItemAmountDrawer",
@@ -11,7 +11,7 @@ const meta = {
     categoryId: "lunch",
     currency: "JPY",
     value: "",
-    quickAmounts: itemsStepFixture.suggestions?.quickAmounts,
+    quickAmounts: receiptSuggestions.quickAmounts,
     onChange: () => {},
     onConfirm: () => {},
     onClose: () => {},

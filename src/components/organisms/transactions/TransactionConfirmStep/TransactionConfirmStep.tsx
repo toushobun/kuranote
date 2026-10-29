@@ -1,6 +1,4 @@
 "use client";
-import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -9,7 +7,7 @@ import ButtonBase from "@mui/material/ButtonBase";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { flowMessages as m } from "config/transactionStepFlowMessages";
 import { TransactionDateTimePicker } from "molecules/transactions/TransactionDateTimePicker";
 import {
@@ -18,42 +16,45 @@ import {
 } from "molecules/transactions/TransactionDateTimePicker/dateTimePickerUtils";
 import { TransactionBottomEditorDrawer } from "molecules/transactions/TransactionBottomEditorDrawer/TransactionBottomEditorDrawer";
 import { MerchantAvatar } from "organisms/merchants/MerchantAvatar/MerchantAvatar";
+import { AccountStep } from "organisms/transactions/AccountStep/AccountStep";
 import { designTokens } from "theme/theme";
 import { formatUnsignedCurrencyAmount } from "utils/transactions";
 import { TransactionFormHiddenFields } from "../TransactionFormHiddenFields/TransactionFormHiddenFields";
+import { TransactionItemAmountDrawer } from "../TransactionItemAmountDrawer/TransactionItemAmountDrawer";
 import { TransactionStepAmountEditor } from "../TransactionStepAmountEditor/TransactionStepAmountEditor";
 import { TransactionStepItemPicker } from "../TransactionStepItemPicker/TransactionStepItemPicker";
-import {
-  formatStepItemAmount,
-  formatStepItemCategory,
-  formatStepNetTotal,
-} from "../transactionStepFlowFormat";
-import type { TransactionItemsStepProps } from "../TransactionItemsStep/TransactionItemsStep.types";
+import { formatStepNetTotal } from "../transactionStepFlowFormat";
+import { ReceiptItemsSection } from "./ReceiptItemsSection";
+import { receiptIconSize } from "./ReceiptLine";
+import { ReceiptPaymentSection } from "./ReceiptPaymentSection";
+import type { TransactionConfirmStepProps } from "./TransactionConfirmStep.types";
 import { useTransactionConfirmStep } from "./useTransactionConfirmStep";
 
-export type TransactionConfirmStepProps = TransactionItemsStepProps & {
-  action: (data: FormData) => void;
-  errorMessage?: string;
-  successMessage?: string;
-  saving: boolean;
-  goToStep: (step: number) => void;
-};
-
-/** 确认步骤（#943 走查修订，设计图 7）：小票风格展示，点击各行回到对应编辑入口。 */
+/**
+ * 小票（#943 任务 9，设计图 7 + 8）：抬头、明细、合计、支付（收支账户与付款分配）、备注都在这里编辑。
+ */
 export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
   const f = props.form;
-  const w = useTransactionConfirmStep(
-    f,
-    props.goToStep,
-    props.onAmountItemChange,
-  );
-  const currency = f.selectedAccount?.currency ?? "";
+  // 付款未对上时，点提示条定位到支付区。
+  const paymentSectionRef = useRef<HTMLDivElement>(null);
+  const w = useTransactionConfirmStep(props, paymentSectionRef);
+  const currency = w.currency ?? "";
   const total = formatStepNetTotal(f.expenseTotal, f.incomeTotal, currency);
+  const format = (amount: number) =>
+    formatUnsignedCurrencyAmount(String(amount), currency);
+  const hasIncome = f.itemSummaries.some(
+    (item) => item.category?.type === "income",
+  );
   const dateTime = `${formatDateOnlyLabel(
     f.transactionDate,
     formatDateValue(new Date()),
   )} ${f.transactionTime.slice(0, 5)}`;
-  const paymentStep = f.isMultiAccount ? 3 : 2;
+  const amountPayment = f.payments.find(
+    (payment) => payment.key === w.paymentAmountKey,
+  );
+  const amountAccount = props.accountOptions.find(
+    (account) => account.id === amountPayment?.accountId,
+  );
   return (
     <>
       <Box component="form" action={props.action} onSubmit={f.handleSubmit}>
@@ -74,27 +75,25 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
           ))}
           <Box sx={receiptShadowSx}>
             <Box sx={receiptPaperSx}>
-              <Stack sx={{ alignItems: "center", pb: 1.5 }}>
+              <Stack spacing={0.5} sx={{ alignItems: "center", pb: 1.5 }}>
                 {f.selectedMerchant && (
                   <MerchantAvatar
-                    size={56}
+                    size={48}
                     toneKey={f.selectedMerchant.id}
                     src={f.selectedMerchant.icon_url ?? undefined}
                   />
                 )}
-                <ReceiptRow
-                  centered
+                <HeaderButton
                   label={m.merchant}
                   value={f.selectedMerchant?.name ?? m.selectMerchant}
                   error={!f.selectedMerchant}
-                  onClick={() => props.goToStep(1)}
+                  onClick={props.onBack}
                 >
-                  <Typography sx={merchantNameSx}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
                     {f.selectedMerchant?.name ?? m.selectMerchant}
                   </Typography>
-                </ReceiptRow>
-                <ReceiptRow
-                  centered
+                </HeaderButton>
+                <HeaderButton
                   label={m.time}
                   value={dateTime}
                   error={!f.transactionAtValue}
@@ -103,126 +102,81 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
                   <Typography variant="body2" sx={mutedTextSx}>
                     {dateTime}
                   </Typography>
-                </ReceiptRow>
+                </HeaderButton>
               </Stack>
               <Box sx={sectionSx}>
-                {f.itemSummaries.length === 0 && (
-                  <Typography
-                    data-invalid="true"
-                    sx={{ color: "error.main", py: 0.75 }}
-                  >
-                    {m.missingItems}
-                  </Typography>
-                )}
-                {f.itemSummaries.map((item, index) => {
-                  const name = formatStepItemCategory(item.category);
-                  const amount = formatStepItemAmount(item, currency);
-                  return (
-                    <ReceiptRow
-                      key={item.id}
-                      label={m.itemLabel(index + 1)}
-                      value={`${name} ${amount}`}
-                      error={w.invalidItems.includes(item)}
-                      onClick={() => w.editItem(item)}
-                    >
-                      <AmountLine label={name} amount={amount} />
-                    </ReceiptRow>
-                  );
-                })}
-                <Button
-                  fullWidth
-                  startIcon={<AddRoundedIcon />}
-                  onClick={f.openSheet}
-                  disabled={props.categoryOptions.length === 0}
-                >
-                  {m.addItem}
-                </Button>
+                <ReceiptItemsSection
+                  form={f}
+                  automaticItemIds={w.automaticItemIds}
+                  invalidItems={w.invalidItems}
+                  merchantHasHistory={props.merchantHasHistory}
+                  canAddItem={props.categoryOptions.length > 0}
+                  onAmount={props.onAmountItemChange}
+                />
               </Box>
               <Stack
                 direction="row"
-                sx={[sectionSx, { alignItems: "center", py: 1.5 }]}
+                sx={[sectionSx, { alignItems: "flex-start", py: 1.5 }]}
               >
-                <Typography sx={{ flex: 1, fontSize: 18, fontWeight: 800 }}>
+                <Typography sx={{ flex: 1, fontWeight: 700 }}>
                   {m.total}
                 </Typography>
-                <Typography color="primary" sx={totalAmountSx}>
-                  {total}
-                </Typography>
+                <Stack sx={{ alignItems: "flex-end" }}>
+                  <Typography
+                    variant="h5"
+                    color="primary"
+                    sx={{ fontWeight: 800 }}
+                  >
+                    {total}
+                  </Typography>
+                  <Typography variant="caption" color="textSecondary">
+                    {hasIncome
+                      ? m.incomeExpense(
+                          format(f.expenseTotal),
+                          format(f.incomeTotal),
+                        )
+                      : m.expenseOnly(format(f.expenseTotal))}
+                  </Typography>
+                </Stack>
               </Stack>
-              <Box sx={sectionSx}>
+              <Box ref={paymentSectionRef} tabIndex={-1} sx={sectionSx}>
                 <Typography variant="caption" sx={sectionTitleSx}>
                   {m.payment}
                 </Typography>
-                {f.selectedAccount ? (
-                  f.payments.map((payment, index) => {
-                    const account = f.isMultiAccount
-                      ? props.accountOptions.find(
-                          (option) => option.id === payment.accountId,
-                        )
-                      : f.selectedAccount;
-                    const amount = f.isMultiAccount
-                      ? payment.amount.trim()
-                        ? formatUnsignedCurrencyAmount(payment.amount, currency)
-                        : m.pendingAmount
-                      : total;
-                    const name = account?.name ?? m.selectAccount;
-                    return (
-                      <ReceiptRow
-                        key={payment.key}
-                        label={m.paymentAccountLabel(index + 1)}
-                        value={`${name} ${account?.currency ?? ""} ${amount}`}
-                        error={w.accountError}
-                        onClick={() => props.goToStep(paymentStep)}
-                      >
-                        <Stack
-                          direction="row"
-                          spacing={1}
-                          sx={{ alignItems: "center", minWidth: 0 }}
-                        >
-                          <AccountBalanceWalletRoundedIcon
-                            fontSize="small"
-                            color="primary"
-                          />
-                          <Typography noWrap sx={{ flex: 1 }}>
-                            {name}
-                          </Typography>
-                          <Typography variant="body2" sx={mutedTextSx}>
-                            {account?.currency}
-                          </Typography>
-                          <Typography sx={amountSx}>{amount}</Typography>
-                        </Stack>
-                      </ReceiptRow>
-                    );
-                  })
-                ) : (
-                  <ReceiptRow
-                    label={m.paymentAccountLabel(1)}
-                    value={m.selectAccount}
-                    error
-                    onClick={() => props.goToStep(paymentStep)}
-                  >
-                    <Typography>{m.selectAccount}</Typography>
-                  </ReceiptRow>
-                )}
+                <ReceiptPaymentSection
+                  form={f}
+                  accountOptions={props.accountOptions}
+                  total={total}
+                  canAddPayment={w.canAddPayment}
+                  onChangeAccount={w.setAccountPickerKey}
+                  onAmount={w.setPaymentAmountKey}
+                  onRemove={w.removePayment}
+                />
               </Box>
               <Box sx={sectionSx}>
                 <Typography variant="caption" sx={sectionTitleSx}>
                   {m.note}
                 </Typography>
-                <ReceiptRow
-                  label={m.note}
-                  value={f.note || m.addNote}
+                <ButtonBase
+                  aria-label={m.editReceiptRow(m.note, f.note || m.addNote)}
                   onClick={() => w.setEditor("note")}
+                  sx={noteRowSx}
                 >
                   <Typography
+                    variant="body2"
                     sx={[
-                      { overflowWrap: "anywhere", whiteSpace: "pre-wrap" },
+                      {
+                        flex: 1,
+                        overflowWrap: "anywhere",
+                        whiteSpace: "pre-wrap",
+                      },
                       !f.note && { color: "text.disabled" },
                     ]}
                   >
                     {f.note || m.addNote}
                   </Typography>
-                </ReceiptRow>
+                  <EditOutlinedIcon aria-hidden sx={pencilSx} />
+                </ButtonBase>
               </Box>
             </Box>
           </Box>
@@ -267,27 +221,56 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
           }}
         />
       )}
+      <TransactionBottomEditorDrawer
+        open={!!w.pickerPayment}
+        title={m.accounts}
+        onClose={() => w.setAccountPickerKey(null)}
+      >
+        <AccountStep
+          accounts={w.pickerAccounts}
+          recommendedAccountIds={props.suggestions?.recommendedAccountIds}
+          selectedAccount={w.pickerSelectedAccount}
+          hasDetails={f.itemSummaries.length > 0}
+          onSelect={w.selectAccount}
+          onAddAccount={props.onAddAccount}
+        />
+      </TransactionBottomEditorDrawer>
+      <TransactionItemAmountDrawer
+        open={!!amountPayment}
+        title={amountAccount?.name ?? m.chooseAccount}
+        currency={currency}
+        value={amountPayment?.amount ?? ""}
+        onChange={(amount) =>
+          amountPayment &&
+          f.handlePaymentAmountChange(amountPayment.key, amount)
+        }
+        onConfirm={(amount) => {
+          if (!amountPayment) return;
+          f.handlePaymentAmountChange(amountPayment.key, amount);
+          f.handlePaymentAmountCommit(amountPayment.key);
+          w.setPaymentAmountKey(null);
+        }}
+        onClose={() => w.setPaymentAmountKey(null)}
+      />
       <TransactionStepItemPicker {...props} />
       <TransactionStepAmountEditor {...props} />
     </>
   );
 }
 
-/** 小票中可点击的一行：整行可点，右侧浅色铅笔对齐在小票最右侧同一条竖线上。 */
-function ReceiptRow({
+/** 抬头中可点击的一行（商家名、日期时间）：铅笔紧跟在文字右侧（设计图 8）。 */
+function HeaderButton({
   label,
   value,
   children,
   onClick,
   error = false,
-  centered = false,
 }: {
   label: string;
   value: string;
   children: ReactNode;
   onClick: () => void;
   error?: boolean;
-  centered?: boolean;
 }) {
   return (
     <ButtonBase
@@ -295,32 +278,16 @@ function ReceiptRow({
       onClick={onClick}
       data-invalid={error || undefined}
       sx={[
-        receiptRowSx,
-        centered && centeredRowSx,
+        headerButtonSx,
         error && { color: "error.main", "& .MuiTypography-root": errorTextSx },
       ]}
     >
-      {centered && <Box component="span" />}
-      <Box sx={{ minWidth: 0, textAlign: centered ? "center" : "left" }}>
-        {children}
-      </Box>
+      {children}
       <EditOutlinedIcon aria-hidden sx={pencilSx} />
     </ButtonBase>
   );
 }
 
-function AmountLine({ label, amount }: { label: string; amount: string }) {
-  return (
-    <Stack direction="row" spacing={1} sx={{ alignItems: "baseline" }}>
-      <Typography noWrap sx={{ flex: 1 }}>
-        {label}
-      </Typography>
-      <Typography sx={amountSx}>{amount}</Typography>
-    </Stack>
-  );
-}
-
-const pencilSize = 18;
 // 锯齿高度为齿宽的一半；上下各一排，用 mask 裁出纸片边缘，不使用图片资源。
 const toothWidth = 16;
 const tornEdgeMask = [
@@ -336,32 +303,47 @@ const receiptPaperSx = {
   bgcolor: "background.paper",
   mask: tornEdgeMask,
   WebkitMask: tornEdgeMask,
-  px: 2.5,
-  pt: 3.5,
-  pb: 3,
+  px: 2,
+  pt: 3,
+  pb: 2.5,
 };
-const receiptRowSx = {
-  display: "grid",
-  gridTemplateColumns: `minmax(0, 1fr) ${pencilSize}px`,
+const headerButtonSx = {
+  display: "inline-flex",
   alignItems: "center",
-  columnGap: 1,
+  gap: 0.5,
+  maxWidth: "100%",
+  minHeight: 32,
+  px: 0.5,
+  borderRadius: `${designTokens.radius.sm}px`,
+  color: "text.primary",
+  "& .MuiTypography-root": {
+    minWidth: 0,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+};
+const noteRowSx = {
+  display: "flex",
+  alignItems: "center",
+  gap: 1,
   width: "100%",
-  minHeight: 36,
-  py: 0.5,
+  minHeight: 40,
   borderRadius: `${designTokens.radius.sm}px`,
   color: "text.primary",
   textAlign: "left",
 };
-// 居中的抬头行左侧放一个与铅笔同宽的占位，使文字在整张小票中居中。
-const centeredRowSx = {
-  gridTemplateColumns: `${pencilSize}px minmax(0, 1fr) ${pencilSize}px`,
-};
 const errorTextSx = { color: "error.main" };
-const pencilSx = { color: "text.disabled", fontSize: pencilSize };
+const pencilSx = {
+  color: "text.disabled",
+  flexShrink: 0,
+  fontSize: receiptIconSize,
+};
 const sectionSx = {
   borderTop: "1px dashed",
   borderColor: "divider",
   py: 1,
+  outline: "none",
 };
 const sectionTitleSx = {
   color: "text.secondary",
@@ -370,13 +352,3 @@ const sectionTitleSx = {
   pt: 0.5,
 };
 const mutedTextSx = { color: "text.secondary" };
-const merchantNameSx = { fontSize: 20, fontWeight: 800 };
-const amountSx = {
-  ...designTokens.typography.style.amount,
-  fontWeight: 700,
-  flexShrink: 0,
-};
-const totalAmountSx = {
-  ...designTokens.typography.style.amount,
-  fontSize: 32,
-};

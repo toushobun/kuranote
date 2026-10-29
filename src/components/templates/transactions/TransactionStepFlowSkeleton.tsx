@@ -6,10 +6,11 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
 import { flowMessages as m } from "config/transactionStepFlowMessages";
-import { StepProgress } from "molecules/ui/StepProgress/StepProgress";
 import {
   wizardDialogHeaderSx,
   wizardDialogPaperSx,
+  wizardDialogTitleOnlyHeaderSx,
+  wizardDialogTitleOnlyRowSx,
   wizardDialogTitleRowSx,
   wizardDialogTitleSx,
 } from "molecules/ui/WizardDialog/wizardDialogStyles";
@@ -19,31 +20,37 @@ const frequentMerchantSkeletonCount = 8;
 const merchantRowSkeletonCount = 4;
 
 /**
- * 记一笔的加载骨架（#943）：与从商家记账的第一屏一致——标题栏 + 4 步进度条 +
+ * 记一笔的加载骨架（#943）：与从商家记账的第一屏「选择商家」一致——标题栏 +
  * 搜索框 + 商家分类筛选 + 常用商家网格 + 商家列表。
  *
  * 正式页面的 WizardDialog（MUI Dialog）经 Portal 渲染到 body，再以 modal 层级盖住底部导航；
- * 骨架用同一个 Portal 机制，避免停留在 AppShell main 的层叠上下文里被底部导航盖住。
+ * 骨架用同一个 Portal 机制，避免停留在 AppShell main 的层叠上下文里被底部导航盖住；
+ * 遮罩不使用淡入动画，避免开头半透明时底部导航透出来。
  */
 export function TransactionStepFlowSkeleton() {
   return (
     <Portal>
-      <Backdrop open sx={backdropSx}>
+      <Backdrop open transitionDuration={0} sx={backdropSx}>
         <Box
           role="status"
           aria-label="页面数据加载中"
           aria-busy="true"
           sx={paperSx}
         >
-          <Box sx={wizardDialogHeaderSx}>
-            <Box sx={[wizardDialogTitleRowSx, titleRowSx]}>
+          <Box sx={[wizardDialogHeaderSx, wizardDialogTitleOnlyHeaderSx]}>
+            <Box
+              sx={[
+                wizardDialogTitleRowSx,
+                wizardDialogTitleOnlyRowSx,
+                titleRowSx,
+              ]}
+            >
               <Skeleton variant="circular" width={36} height={36} />
               <Typography component="h2" sx={wizardDialogTitleSx}>
-                {m.title}
+                {m.merchantTitle}
               </Typography>
               <Skeleton variant="rounded" width={64} height={30} />
             </Box>
-            <StepProgress currentStep={1} label={m.progress} steps={m.steps} />
           </Box>
           <Stack spacing={2} sx={{ p: 2.5 }}>
             <Skeleton variant="rounded" height={40} />

@@ -1,4 +1,5 @@
 import type { BalanceAdjustmentEditInitialValues } from "internal/transaction/entity/balanceAdjustment";
+import type { AccountType } from "internal/account";
 import type { CategoryType } from "internal/category";
 import type { MerchantEntryOptions, MerchantSummary } from "internal/merchant";
 import type { TransactionPayment } from "internal/transaction/entity/transactionPayment";
@@ -51,6 +52,8 @@ export type TransactionAccountOption = {
   holders?: { display_name: string }[];
   id: string;
   name: string;
+  /** 新增记账流程（#943）带账户类型；其他表单不读取。 */
+  type?: AccountType;
 };
 
 export type TransactionCategoryOption = {
@@ -159,6 +162,7 @@ export type TransactionEntryOptions = Omit<
 > & {
   accountOptions: (TransactionAccountOption & {
     holders: { display_name: string }[];
+    type: AccountType;
   })[];
   merchantOptions: MerchantEntryOptions["merchants"];
   merchantTags: MerchantEntryOptions["tags"];

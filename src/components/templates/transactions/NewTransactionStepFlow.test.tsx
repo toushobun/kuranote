@@ -1,14 +1,8 @@
-import {
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-  within,
-} from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MerchantEntrySuggestions } from "internal/transaction";
 import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
-import { itemsStepFixture } from "test/mocks/transactionItemsStep";
+import { receiptItemsOptions } from "test/mocks/transactionReceipt";
 import { flowFixture } from "test/mocks/transactionStepFlow";
 import { NewTransactionStepFlow } from "./NewTransactionStepFlow";
 
@@ -51,7 +45,7 @@ function setup(
       action={async () => ({})}
       accountOptions={flowFixture.accounts}
       addPresetsAction={async () => ({})}
-      categoryOptions={itemsStepFixture.categoryOptions}
+      categoryOptions={receiptItemsOptions.categoryOptions}
       frequentMerchants={[]}
       ledgerId="ledger-1"
       loadPresetsAction={async () => ({})}
@@ -74,10 +68,11 @@ function selectMerchant(name: string) {
   fireEvent.click(screen.getByRole("button", { name: new RegExp(`^${name}`) }));
 }
 
-function currentStep() {
-  return within(screen.getByRole("list", { name: "记账进度" }))
-    .getAllByRole("listitem")
-    .findIndex((item) => item.dataset.status === "current");
+function onMerchantScreen() {
+  return !!screen.queryByRole("heading", { name: "记一笔" });
+}
+function paymentLine() {
+  return screen.getByRole("button", { name: "更换支付账户 1" }).parentElement!;
 }
 
 describe("NewTransactionStepFlow", () => {
@@ -110,9 +105,7 @@ describe("NewTransactionStepFlow", () => {
     expect(screen.queryByText("常用商家")).not.toBeInTheDocument();
     selectMerchant("7-Eleven");
     respond("merchantId=seven", noHistory);
-    expect(
-      await screen.findByRole("radiogroup", { name: "收支账户" }),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("这家商家还没有记录")).toBeInTheDocument();
   });
 
   it("加载中点另一个商家时取消前一个，只采用当前商家的建议", async () => {
@@ -121,7 +114,7 @@ describe("NewTransactionStepFlow", () => {
     expect(requests.at(-1)?.url).toBe(
       "/api/transactions/merchant-entry-suggestions?ledgerId=ledger-1&merchantId=seven",
     );
-    expect(currentStep()).toBe(0);
+    expect(onMerchantScreen()).toBe(true);
     selectMerchant("LIFE超市");
     expect(
       screen.getByRole("progressbar", { name: "正在读取 LIFE超市 的记录" }),
@@ -135,19 +128,18 @@ describe("NewTransactionStepFlow", () => {
     ).toBe(true);
 
     respond("merchantId=life", noHistory);
-    expect(
-      await screen.findByText("这家商家还没有记录，按账户顺序显示"),
-    ).toBeInTheDocument();
-    // 7-Eleven 的建议晚到：不覆盖当前商家的建议，也不会让流程跳到明细。
+    expect(await screen.findByText("这家商家还没有记录")).toBeInTheDocument();
+    // 7-Eleven 的建议晚到：不覆盖当前商家的建议，也不会自动选账户。
     respond("merchantId=seven", {
       ...noHistory,
       recommendedAccountIds: ["paypay"],
     });
     await Promise.resolve();
+    expect(screen.getByText("这家商家还没有记录")).toBeInTheDocument();
     expect(
-      screen.getByText("这家商家还没有记录，按账户顺序显示"),
+      screen.getByRole("button", { name: "修改商家：LIFE超市" }),
     ).toBeInTheDocument();
-    expect(currentStep()).toBe(1);
+    expect(paymentLine()).toHaveTextContent("选择收支账户");
   });
 
   it("当前商家的建议到达后走快速路线", async () => {
@@ -158,25 +150,31 @@ describe("NewTransactionStepFlow", () => {
       recommendedAccountIds: ["paypay"],
     });
 
-    await waitFor(() => expect(currentStep()).toBe(2));
+    await waitFor(() => expect(paymentLine()).toHaveTextContent("PayPay"));
   });
 
   it("建议获取失败时按没有记录处理，可以继续手动记账", async () => {
     setup();
     selectMerchant("7-Eleven");
-    expect(currentStep()).toBe(0);
+    expect(onMerchantScreen()).toBe(true);
     respond("merchantId=seven", { error: {} }, 500);
 
+    expect(await screen.findByText("这家商家还没有记录")).toBeInTheDocument();
+    expect(paymentLine()).toHaveTextContent("选择收支账户");
+    click("更换支付账户 1");
     expect(
-      await screen.findByText("这家商家还没有记录，按账户顺序显示"),
+      screen.getByText("这家商家还没有记录，按账户顺序显示"),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("radio", { name: "PayPay JPY" }));
-    await waitFor(() => expect(currentStep()).toBe(2));
+    await waitFor(() => expect(paymentLine()).toHaveTextContent("PayPay"));
   });
 
-  it("新建商家返回后预选商家并读取该商家的建议", async () => {
-    setup({ initialMerchantId: "life", initialStep: 2 });
-    expect(currentStep()).toBe(1);
+  it("新建商家返回后直接进入小票并读取该商家的建议", async () => {
+    setup({ initialMerchantId: "life" });
+    expect(onMerchantScreen()).toBe(false);
+    expect(
+      screen.getByRole("button", { name: "修改商家：LIFE超市" }),
+    ).toBeInTheDocument();
     expect(
       requests.some((request) => request.url.includes("merchantId=life")),
     ).toBe(true);
@@ -197,7 +195,10 @@ describe("NewTransactionStepFlow", () => {
     setup({ accountOptions: [] });
     selectMerchant("7-Eleven");
     respond("merchantId=seven", noHistory);
-    fireEvent.click(await screen.findByRole("button", { name: "新增账户" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "更换支付账户 1" }),
+    );
+    click("新增账户");
     expect(router.push).toHaveBeenCalledWith(
       "/accounts?create=1&returnTo=%2Ftransactions%2Fnew%3FmerchantId%3Dseven",
     );

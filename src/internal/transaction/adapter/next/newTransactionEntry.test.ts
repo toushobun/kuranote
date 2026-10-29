@@ -35,17 +35,16 @@ describe("resolveNewTransactionEntry", () => {
     ).toBe(standardType);
   });
 
-  it("带回商家时停在账户步骤并预选商家", () => {
+  it("带回商家时预选商家", () => {
     expect(
       resolveNewTransactionEntry({ merchantId: "merchant-1" }, options),
     ).toMatchObject({
       initialAccountId: undefined,
       initialMerchantId: "merchant-1",
-      initialStep: 2,
     });
   });
 
-  it("带回商家和账户时停在明细步骤", () => {
+  it("带回商家和账户时同时预选", () => {
     expect(
       resolveNewTransactionEntry(
         { accountId: "account-1", merchantId: "merchant-1" },
@@ -54,14 +53,16 @@ describe("resolveNewTransactionEntry", () => {
     ).toMatchObject({
       initialAccountId: "account-1",
       initialMerchantId: "merchant-1",
-      initialStep: 3,
     });
   });
 
-  it("只带回账户时停在商家步骤并预选账户", () => {
+  it("只带回账户时预选账户", () => {
     expect(
       resolveNewTransactionEntry({ accountId: "account-1" }, options),
-    ).toMatchObject({ initialAccountId: "account-1", initialStep: 1 });
+    ).toMatchObject({
+      initialAccountId: "account-1",
+      initialMerchantId: undefined,
+    });
   });
 
   it("不属于当前账本或已归档的商家 / 账户不采用", () => {
@@ -73,7 +74,6 @@ describe("resolveNewTransactionEntry", () => {
     ).toMatchObject({
       initialAccountId: undefined,
       initialMerchantId: undefined,
-      initialStep: 1,
     });
   });
 });

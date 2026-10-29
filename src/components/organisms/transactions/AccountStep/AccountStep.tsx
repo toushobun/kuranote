@@ -1,7 +1,6 @@
 "use client";
 import RadioButtonCheckedRoundedIcon from "@mui/icons-material/RadioButtonCheckedRounded";
 import RadioButtonUncheckedRoundedIcon from "@mui/icons-material/RadioButtonUncheckedRounded";
-import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -10,6 +9,7 @@ import ListItemButton from "@mui/material/ListItemButton";
 import ListItemText from "@mui/material/ListItemText";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { AccountTypeIcon } from "atoms/accounts/AccountTypeIcon/AccountTypeIcon";
 import { EmptyState } from "molecules/ui/EmptyState";
 import { publicAssetUrl } from "utils/publicAssetUrl";
 import { entrySelectionRowSx as rowSx } from "organisms/transactions/transactionStepFlowStyles";
@@ -18,6 +18,7 @@ import type { TransactionAccountOption } from "types/transactions";
 import type { AccountStepProps } from "./AccountStep.types";
 import { useAccountStep } from "./useAccountStep";
 
+/** 收支账户列表（#943）：任务 9 起在小票的账户选择抽屉里使用，标题由抽屉显示。 */
 export function AccountStep(props: AccountStepProps) {
   const w = useAccountStep(props);
   const accountList = (accounts: TransactionAccountOption[]) => (
@@ -37,7 +38,9 @@ export function AccountStep(props: AccountStepProps) {
           aria-checked={props.selectedAccount?.id === account.id}
           aria-label={`${account.name} ${account.currency}`}
         >
-          <AccountBalanceWalletRoundedIcon color="primary" />
+          <Box sx={{ color: "primary.main", display: "inline-flex" }}>
+            <AccountTypeIcon type={account.type ?? "other"} />
+          </Box>
           <ListItemText
             primary={account.name}
             secondary={m.holder(
@@ -78,7 +81,6 @@ export function AccountStep(props: AccountStepProps) {
     />
   ) : (
     <Stack spacing={2} role="radiogroup" aria-label={m.accounts}>
-      <Typography variant="h6">{m.accounts}</Typography>
       {w.recommended.length > 0 ? (
         <>
           <Stack

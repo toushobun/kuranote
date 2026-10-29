@@ -8,24 +8,24 @@ afterEach(() => {
 });
 
 describe("TransactionsNewLoadingPage", () => {
-  it("显示与从商家记账第一屏一致的加载骨架", () => {
+  it("显示与从商家记账第一屏「选择商家」一致的加载骨架，不含进度条", () => {
     render(<TransactionsNewLoadingPage />);
     const status = screen.getByRole("status", { name: "页面数据加载中" });
 
     expect(
-      within(status).getByRole("heading", { name: "从商家记账" }),
+      within(status).getByRole("heading", { name: "记一笔" }),
     ).toBeInTheDocument();
-    const steps = within(
-      within(status).getByRole("list", { name: "记账进度" }),
-    ).getAllByRole("listitem");
-    expect(steps).toHaveLength(4);
-    expect(steps[0]).toHaveAttribute("aria-current", "step");
-    expect(steps.map((step) => step.textContent)).toEqual([
-      "1商家",
-      "2账户（未开始）",
-      "3明细（未开始）",
-      "4确认（未开始）",
-    ]);
+    expect(within(status).queryByRole("list")).not.toBeInTheDocument();
+  });
+
+  it("遮罩不使用淡入动画，开头不透出底部导航", () => {
+    render(<TransactionsNewLoadingPage />);
+    const backdrop = screen.getByRole("status", {
+      name: "页面数据加载中",
+    }).parentElement!;
+
+    expect(backdrop).toHaveClass("MuiBackdrop-root");
+    expect(backdrop.style.transition).toMatch(/^opacity 0ms/);
   });
 
   it("与正式页面的 Dialog 一样经 Portal 渲染到 body，不留在页面主体的层叠上下文里", () => {

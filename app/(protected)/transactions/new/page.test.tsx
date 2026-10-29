@@ -151,7 +151,6 @@ describe("TransactionsNewPage", () => {
       accountOptions: baseView.accountOptions,
       action: mocks.createTransaction,
       addPresetsAction: mocks.addMerchantPresets,
-      initialStep: 1,
       ledgerId: "ledger-1",
       loadPresetsAction: mocks.loadMerchantPresets,
       merchantOptions: baseView.merchantOptions,
@@ -211,13 +210,12 @@ describe("TransactionsNewPage", () => {
     });
   });
 
-  it("新建商家 / 账户后返回时预选并停在对应步骤", async () => {
+  it("新建商家 / 账户后返回时预选商家与账户", async () => {
     const { template } = await renderPage({ accountId, merchantId });
 
     expect(template.props).toMatchObject({
       initialAccountId: accountId,
       initialMerchantId: merchantId,
-      initialStep: 3,
     });
   });
 
@@ -230,7 +228,6 @@ describe("TransactionsNewPage", () => {
     expect(template.props).toMatchObject({
       initialAccountId: undefined,
       initialMerchantId: undefined,
-      initialStep: 1,
     });
   });
 });

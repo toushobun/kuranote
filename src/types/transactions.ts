@@ -1,4 +1,4 @@
-import type { AccountHolder } from "types/accounts";
+import type { AccountHolder, AccountType } from "types/accounts";
 import type { CategoryType } from "internal/category";
 import type {
   TransactionActionErrorCode,
@@ -109,6 +109,8 @@ export type TransactionAccountOption = {
   currency: string;
   /** 可直接使用已有账户的持有人摘要；旧表单调用可不传。 */
   holders?: Pick<AccountHolder, "display_name">[];
+  /** 新增记账流程（#943）小票支付行的图标用；取不到时显示默认图标。 */
+  type?: AccountType;
 };
 
 export type TransactionCategoryOption = {

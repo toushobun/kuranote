@@ -12,9 +12,8 @@ export type NewTransactionEntrySearchParams = {
 
 export type NewTransactionEntry = {
   initialAccountId?: string;
+  /** 从商家记账：带回商家时直接进入小票，同时带回账户时预选该账户。 */
   initialMerchantId?: string;
-  /** 从商家记账的初始步骤：带回商家时停在账户，带回商家和账户时停在明细。 */
-  initialStep: number;
   method: TransactionEntryMethod;
   /** 标准记账的初始页签。 */
   standardType: TransactionRecordType;
@@ -55,7 +54,6 @@ export function resolveNewTransactionEntry(
   return {
     initialAccountId,
     initialMerchantId,
-    initialStep: initialMerchantId ? (initialAccountId ? 3 : 2) : 1,
     method,
     standardType,
   };
