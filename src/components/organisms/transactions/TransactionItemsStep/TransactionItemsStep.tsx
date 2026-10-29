@@ -10,7 +10,7 @@ import { flowMessages as m } from "config/transactionStepFlowMessages";
 import { EmptyState } from "molecules/ui/EmptyState";
 import { TransactionStepItemsCard } from "organisms/transactions/TransactionStepItemsCard/TransactionStepItemsCard";
 import { TransactionStepAmountEditor } from "../TransactionStepAmountEditor/TransactionStepAmountEditor";
-import { TransactionItemPickerDrawer } from "organisms/transactions/TransactionItemPickerDrawer/TransactionItemPickerDrawer";
+import { TransactionStepItemPicker } from "../TransactionStepItemPicker/TransactionStepItemPicker";
 import { TransactionPaymentFields } from "organisms/transactions/TransactionPaymentFields/TransactionPaymentFields";
 import { TransactionAmountKeypadLauncher } from "organisms/transactions/TransactionAmountKeypadLauncher/TransactionAmountKeypadLauncher";
 import { publicAssetUrl } from "utils/publicAssetUrl";
@@ -118,38 +118,7 @@ export function TransactionItemsStep(props: TransactionItemsStepProps) {
           {props.returning ? m.returnToConfirm : m.toConfirm}
         </Button>
       </Box>
-      <TransactionItemPickerDrawer
-        {...props}
-        inWizard
-        showFrequentCategories={false}
-        showAmountInput={false}
-        frequentCategoryIds={[]}
-        categoryGroups={f.categoryGroups}
-        filteredCategoryOptions={f.allNormalCategoryOptions}
-        editingItemId={f.editingItemId}
-        linkNotice={f.linkNotice}
-        open={f.isSheetOpen}
-        onClose={f.closeSheet}
-        pickerAmount={f.pickerAmount}
-        pickerCategoryId={f.pickerCategoryId}
-        pickerErrors={f.pickerErrors}
-        pickerSpecialStatus={f.pickerSpecialStatus}
-        specialStatusLocked={f.pickerSpecialStatusLocked}
-        pickerRefundCandidate={f.pickerRefundCandidate}
-        pickerReimbursementCandidate={f.pickerReimbursementCandidate}
-        selectedAccountCurrency={w.currency}
-        selectedCategoryGroup={f.selectedCategoryGroup}
-        specialStatusEnabled={props.transactionItemSpecialStatusEnabled}
-        incomeCategoriesDisabled={f.isMultiAccount}
-        onAmountChange={f.handlePickerAmountChange}
-        onCategoryToggle={f.handlePickerCategoryToggle}
-        onGroupSelect={f.handlePickerGroupSelect}
-        onPickerAdd={f.handlePickerAdd}
-        onRemoveItem={f.removeItem}
-        onSpecialStatusChange={f.setPickerSpecialStatus}
-        onRefundItemChange={f.setPickerRefundCandidate}
-        onReimbursementItemChange={f.setPickerReimbursementCandidate}
-      />
+      <TransactionStepItemPicker {...props} />
       <TransactionStepAmountEditor {...props} />
     </Stack>
   );

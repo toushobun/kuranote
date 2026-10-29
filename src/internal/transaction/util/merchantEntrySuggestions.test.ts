@@ -25,18 +25,37 @@ describe("merchantEntrySuggestions", () => {
       quickAmounts: [],
     });
   });
-  it.each([9, 10])(
-    "小分类累计 %i 笔时按阈值决定是否自动添加，重复明细每笔只算一次",
-    (count) => {
-      const records = history(count).map((r) => ({
+  it.each([
+    [20, 10],
+    [19, 10],
+    [4, 2],
+    [3, 2],
+    [2, 2],
+  ])(
+    "样本 %i 笔时阈值为 %i 笔，少 1 笔不自动添加，重复明细每笔只算一次",
+    (sampleCount, threshold) => {
+      const records = history(sampleCount).map((r, i) => ({
         ...r,
-        items: [...r.items, ...r.items],
+        items: [
+          ...(i < threshold ? [...r.items, ...r.items] : []),
+          ...(i < threshold - 1
+            ? [
+                { categoryId: "drink", amount: "100" },
+                { categoryId: "drink", amount: "100" },
+              ]
+            : []),
+        ],
       }));
       expect(
         buildMerchantEntrySuggestions(records).automaticCategoryIds,
-      ).toEqual(count === 10 ? ["food"] : []);
+      ).toEqual(["food"]);
     },
   );
+  it("只有 1 笔记录时不自动添加", () => {
+    expect(
+      buildMerchantEntrySuggestions(history(1)).automaticCategoryIds,
+    ).toEqual([]);
+  });
   it("小分类按记录数降序，同次数保留首次出现顺序", () => {
     const records = history(12).map((r, i) => ({
       ...r,

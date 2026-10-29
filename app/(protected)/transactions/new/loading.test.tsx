@@ -27,4 +27,12 @@ describe("TransactionsNewLoadingPage", () => {
       "4确认（未开始）",
     ]);
   });
+
+  it("与正式页面的 Dialog 一样经 Portal 渲染到 body，不留在页面主体的层叠上下文里", () => {
+    const { container } = render(<TransactionsNewLoadingPage />);
+    const status = screen.getByRole("status", { name: "页面数据加载中" });
+
+    expect(container).not.toContainElement(status);
+    expect(document.body).toContainElement(status);
+  });
 });

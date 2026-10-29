@@ -2,6 +2,7 @@ import type { MerchantEntryHistoryRecord } from "internal/transaction/entity/mer
 import type { MerchantEntrySuggestions } from "internal/transaction/schema";
 import {
   automaticCategoryMinimumRecordCount,
+  automaticCategoryRecordRatio,
   frequentAmountLimit,
   frequentAmountMinimumOccurrenceCount,
   recommendedAccountLimit,
@@ -38,13 +39,18 @@ export function buildMerchantEntrySuggestions(
       amountGroups.set(key, group);
     }
   }
+  // 样本为该商家最近的记录（最多 20 笔），阈值 = max(2, ceil(样本数 / 2))。
+  const automaticCategoryThreshold = Math.max(
+    automaticCategoryMinimumRecordCount,
+    Math.ceil(records.length * automaticCategoryRecordRatio),
+  );
   return {
     recommendedAccountIds: [...accountCounts]
       .sort((a, b) => b[1] - a[1])
       .slice(0, recommendedAccountLimit)
       .map(([id]) => id),
     automaticCategoryIds: [...categoryCounts]
-      .filter(([, count]) => count >= automaticCategoryMinimumRecordCount)
+      .filter(([, count]) => count >= automaticCategoryThreshold)
       .sort((a, b) => b[1] - a[1])
       .map(([id]) => id),
     quickAmounts: [...amountGroups.values()].map(

@@ -95,4 +95,16 @@ describe("MerchantStep", () => {
     click("7-Eleven");
     expect(props.onSelect).toHaveBeenCalledWith(flowFixture.merchants[1]);
   });
+  it("读取建议期间被点中的商家在头像和列表行显示加载状态", () => {
+    setup({ loadingMerchantId: "seven" });
+    expect(
+      screen.getAllByRole("progressbar", { name: "正在读取 7-Eleven 的记录" }),
+    ).toHaveLength(2);
+    expect(
+      within(screen.getByRole("group", { name: "常用商家" }))
+        .getAllByRole("button")
+        .filter((button) => button.getAttribute("aria-busy") === "true"),
+    ).toHaveLength(1);
+    expect(screen.getAllByRole("progressbar")).toHaveLength(2);
+  });
 });

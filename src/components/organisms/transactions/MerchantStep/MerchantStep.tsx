@@ -5,6 +5,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import ButtonBase from "@mui/material/ButtonBase";
 import Chip from "@mui/material/Chip";
+import CircularProgress from "@mui/material/CircularProgress";
 import List from "@mui/material/List";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemText from "@mui/material/ListItemText";
@@ -88,6 +89,7 @@ export function MerchantStep(props: MerchantStepProps) {
             {w.frequent.map((merchant) => (
               <ButtonBase
                 key={merchant.id}
+                aria-busy={merchant.id === props.loadingMerchantId || undefined}
                 onClick={() => props.onSelect(merchant)}
                 sx={{
                   display: "flex",
@@ -96,11 +98,21 @@ export function MerchantStep(props: MerchantStepProps) {
                   minWidth: 0,
                 }}
               >
-                <MerchantAvatar
-                  size={56}
-                  toneKey={merchant.id}
-                  src={merchant.icon_url ?? undefined}
-                />
+                <Box sx={{ position: "relative", display: "flex" }}>
+                  <MerchantAvatar
+                    size={56}
+                    toneKey={merchant.id}
+                    src={merchant.icon_url ?? undefined}
+                  />
+                  {merchant.id === props.loadingMerchantId && (
+                    <CircularProgress
+                      size={64}
+                      thickness={2.5}
+                      aria-label={m.loadingMerchant(merchant.name)}
+                      sx={avatarProgressSx}
+                    />
+                  )}
+                </Box>
                 <Typography variant="body2" noWrap sx={{ maxWidth: "100%" }}>
                   {merchant.name}
                 </Typography>
@@ -118,6 +130,7 @@ export function MerchantStep(props: MerchantStepProps) {
             {w.filtered.map((merchant) => (
               <ListItemButton
                 key={merchant.id}
+                aria-busy={merchant.id === props.loadingMerchantId || undefined}
                 onClick={() => props.onSelect(merchant)}
                 sx={rowSx}
               >
@@ -130,7 +143,14 @@ export function MerchantStep(props: MerchantStepProps) {
                 {merchant.tags.map((tag) => (
                   <Chip key={tag.id} label={tag.name} size="small" />
                 ))}
-                <ChevronRightRoundedIcon />
+                {merchant.id === props.loadingMerchantId ? (
+                  <CircularProgress
+                    size={20}
+                    aria-label={m.loadingMerchant(merchant.name)}
+                  />
+                ) : (
+                  <ChevronRightRoundedIcon />
+                )}
               </ListItemButton>
             ))}
           </List>
@@ -152,4 +172,11 @@ export function MerchantStep(props: MerchantStepProps) {
 }
 
 const chipSx = { borderRadius: `${designTokens.radius.full}px`, flexShrink: 0 };
+// 加载圈套在头像外圈，不改变网格布局。
+const avatarProgressSx = {
+  position: "absolute",
+  top: -4,
+  left: -4,
+  pointerEvents: "none",
+} as const;
 const emptySx = { textAlign: "center", py: 6 } as const;

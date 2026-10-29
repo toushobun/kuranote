@@ -1,5 +1,6 @@
 import Backdrop from "@mui/material/Backdrop";
 import Box from "@mui/material/Box";
+import Portal from "@mui/material/Portal";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -20,69 +21,74 @@ const merchantRowSkeletonCount = 4;
 /**
  * 记一笔的加载骨架（#943）：与从商家记账的第一屏一致——标题栏 + 4 步进度条 +
  * 搜索框 + 商家分类筛选 + 常用商家网格 + 商家列表。
+ *
+ * 正式页面的 WizardDialog（MUI Dialog）经 Portal 渲染到 body，再以 modal 层级盖住底部导航；
+ * 骨架用同一个 Portal 机制，避免停留在 AppShell main 的层叠上下文里被底部导航盖住。
  */
 export function TransactionStepFlowSkeleton() {
   return (
-    <Backdrop open sx={backdropSx}>
-      <Box
-        role="status"
-        aria-label="页面数据加载中"
-        aria-busy="true"
-        sx={paperSx}
-      >
-        <Box sx={wizardDialogHeaderSx}>
-          <Box sx={[wizardDialogTitleRowSx, titleRowSx]}>
-            <Skeleton variant="circular" width={36} height={36} />
-            <Typography component="h2" sx={wizardDialogTitleSx}>
-              {m.title}
-            </Typography>
-            <Skeleton variant="rounded" width={64} height={30} />
+    <Portal>
+      <Backdrop open sx={backdropSx}>
+        <Box
+          role="status"
+          aria-label="页面数据加载中"
+          aria-busy="true"
+          sx={paperSx}
+        >
+          <Box sx={wizardDialogHeaderSx}>
+            <Box sx={[wizardDialogTitleRowSx, titleRowSx]}>
+              <Skeleton variant="circular" width={36} height={36} />
+              <Typography component="h2" sx={wizardDialogTitleSx}>
+                {m.title}
+              </Typography>
+              <Skeleton variant="rounded" width={64} height={30} />
+            </Box>
+            <StepProgress currentStep={1} label={m.progress} steps={m.steps} />
           </Box>
-          <StepProgress currentStep={1} label={m.progress} steps={m.steps} />
-        </Box>
-        <Stack spacing={2} sx={{ p: 2.5 }}>
-          <Skeleton variant="rounded" height={40} />
-          <Stack direction="row" spacing={1}>
-            {[56, 72, 72, 64].map((width, index) => (
-              <Skeleton
-                key={index}
-                variant="rounded"
-                width={width}
-                height={32}
-                sx={chipSx}
-              />
-            ))}
-          </Stack>
-          <Skeleton width={72} />
-          <Box sx={gridSx}>
-            {Array.from({ length: frequentMerchantSkeletonCount }).map(
-              (_, index) => (
-                <Stack key={index} spacing={1} sx={{ alignItems: "center" }}>
-                  <Skeleton variant="circular" width={56} height={56} />
-                  <Skeleton width="70%" />
-                </Stack>
-              ),
-            )}
-          </Box>
-          <Skeleton width={72} />
-          <Stack spacing={1.5}>
-            {Array.from({ length: merchantRowSkeletonCount }).map(
-              (_, index) => (
-                <Stack
+          <Stack spacing={2} sx={{ p: 2.5 }}>
+            <Skeleton variant="rounded" height={40} />
+            <Stack direction="row" spacing={1}>
+              {[56, 72, 72, 64].map((width, index) => (
+                <Skeleton
                   key={index}
-                  direction="row"
-                  spacing={1.5}
-                  sx={{ alignItems: "center" }}
-                >
-                  <Skeleton variant="circular" width={36} height={36} />
-                  <Skeleton sx={{ flex: 1 }} />
-                </Stack>
-              ),
-            )}
+                  variant="rounded"
+                  width={width}
+                  height={32}
+                  sx={chipSx}
+                />
+              ))}
+            </Stack>
+            <Skeleton width={72} />
+            <Box sx={gridSx}>
+              {Array.from({ length: frequentMerchantSkeletonCount }).map(
+                (_, index) => (
+                  <Stack key={index} spacing={1} sx={{ alignItems: "center" }}>
+                    <Skeleton variant="circular" width={56} height={56} />
+                    <Skeleton width="70%" />
+                  </Stack>
+                ),
+              )}
+            </Box>
+            <Skeleton width={72} />
+            <Stack spacing={1.5}>
+              {Array.from({ length: merchantRowSkeletonCount }).map(
+                (_, index) => (
+                  <Stack
+                    key={index}
+                    direction="row"
+                    spacing={1.5}
+                    sx={{ alignItems: "center" }}
+                  >
+                    <Skeleton variant="circular" width={36} height={36} />
+                    <Skeleton sx={{ flex: 1 }} />
+                  </Stack>
+                ),
+              )}
+            </Stack>
           </Stack>
-        </Stack>
-      </Box>
-    </Backdrop>
+        </Box>
+      </Backdrop>
+    </Portal>
   );
 }
 
