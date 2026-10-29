@@ -38,6 +38,33 @@ export const receiptItemsOptions: ItemsStepOptions = {
   multiAccountPaymentEnabled: true,
   transactionItemSpecialStatusEnabled: true,
 };
+/** 分类名包含 emoji 的真实小票场景，用于检查图标不会重复。 */
+export const receiptEmojiItemsOptions: ItemsStepOptions = {
+  ...receiptItemsOptions,
+  categoryOptions: [
+    {
+      ...receiptItemsOptions.categoryOptions[0],
+      name: "🍙 午餐",
+      parentName: "🍽️ 饮食",
+      iconName: "🍙",
+    },
+    {
+      ...receiptItemsOptions.categoryOptions[1],
+      name: "☕ 咖啡",
+      parentName: "🥤 饮料",
+    },
+    {
+      ...receiptItemsOptions.categoryOptions[2],
+      name: "📦 收纳",
+      parentName: "🧻 日用品",
+    },
+    {
+      ...receiptItemsOptions.categoryOptions[3],
+      name: "🎁 积分返还",
+      parentName: "💰 其他收入",
+    },
+  ],
+};
 export const receiptSuggestions: MerchantEntrySuggestions = {
   automaticCategoryIds: ["lunch", "coffee"],
   recommendedAccountIds: [],

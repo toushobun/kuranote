@@ -6,7 +6,10 @@ import {
   clickEntryButton as click,
   selectEntryAccount as selectAccount,
 } from "test/transactionStepFlow";
-import { pressItemAmountKey } from "test/transactionConfirmStep";
+import {
+  expectAutomaticItems,
+  pressItemAmountKey,
+} from "test/transactionConfirmStep";
 import {
   filledItems,
   receiptItemsOptions,
@@ -157,10 +160,7 @@ describe("TransactionStepFlow 进入小票", () => {
     click("7-Eleven");
     expect(await screen.findByText("从商家记账")).toBeInTheDocument();
     expect(props.onAccountSelect).toHaveBeenCalledWith(flowFixture.accounts[1]);
-    expect(
-      screen.getByText("已按你的习惯自动添加 2 条，填金额即可"),
-    ).toBeInTheDocument();
-    expect(screen.getAllByText("自动")).toHaveLength(2);
+    expectAutomaticItems(2);
     expect(
       screen.getByRole("button", { name: "修改明细 1 金额：待输入" }),
     ).toBeInTheDocument();
@@ -230,7 +230,7 @@ describe("TransactionStepFlow 进入小票", () => {
     rerender(
       <TransactionStepFlow {...loaded} suggestions={{ ...quickSuggestions }} />,
     );
-    expect(screen.getAllByText("自动")).toHaveLength(1);
+    expectAutomaticItems(1);
   });
 
   it("超过等待时间仍没有建议时进入小票、不选账户，晚到的建议不再应用", () => {
@@ -277,19 +277,19 @@ describe("TransactionStepFlow 进入小票", () => {
     rerender(<TransactionStepFlow {...props} suggestionsMerchantId="life" />);
     expect(heading("从商家记账")).toBeInTheDocument();
     expect(receiptLine("更换支付账户 1")).toHaveTextContent("PayPay");
-    expect(screen.getAllByText("自动")).toHaveLength(2);
+    expectAutomaticItems(2);
   });
 
   it("URL 预选商家时直接进入小票并应用建议", () => {
     quickSetup({ initialMerchantId: "seven" });
     expect(heading("从商家记账")).toBeInTheDocument();
     expect(receiptLine("更换支付账户 1")).toHaveTextContent("PayPay");
-    expect(screen.getAllByText("自动")).toHaveLength(2);
+    expectAutomaticItems(2);
   });
 
   it("URL 同时带账户时保留该账户，不换成推荐账户", () => {
     quickSetup({ initialMerchantId: "seven", initialAccountId: "cash" });
     expect(receiptLine("更换支付账户 1")).toHaveTextContent("现金");
-    expect(screen.getAllByText("自动")).toHaveLength(2);
+    expectAutomaticItems(2);
   });
 });

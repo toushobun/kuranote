@@ -25,7 +25,7 @@ export function ReceiptLine({
   removeLabel,
   onRemove,
 }: {
-  icon: ReactNode;
+  icon?: ReactNode;
   label: string;
   tags?: ReactNode;
   amount?: ReactNode;
@@ -41,9 +41,11 @@ export function ReceiptLine({
 }) {
   return (
     <Box data-invalid={error || undefined} sx={lineSx}>
-      <Box aria-hidden sx={[iconSx, errorLabel && errorTextSx]}>
-        {icon}
-      </Box>
+      {icon && (
+        <Box aria-hidden sx={[iconSx, errorLabel && errorTextSx]}>
+          {icon}
+        </Box>
+      )}
       <Box sx={labelBoxSx}>
         <Typography
           variant="body2"
