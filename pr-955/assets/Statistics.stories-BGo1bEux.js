@@ -1,0 +1,38 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";import{t}from"./jsx-runtime-Dwpk6tgA.js";import{_ as n,f as r,s as i,v as a}from"./iframe-rGD2NFXr.js";import{n as o,t as s}from"./Stack-Blj2xom2.js";import{g as c,s as l}from"./transactions-dxVvZ12q.js";import{n as u,t as d}from"./Box-BOMx-HAz.js";import{n as f,t as p}from"./Typography-CWKirwdW.js";import{n as m,t as h}from"./SectionCard-K6cKP-7M.js";import{n as g,t as _}from"./MonthNavButton-Bl-9Bm0R.js";import{n as v,r as y,t as b}from"./userThemeCardSx-vnoApgu-.js";import{n as x,t as S}from"./EmptyState-CKhjGQkW.js";import{n as C,t as w}from"./PageHeader-DcJVdTPN.js";var T,E=e((()=>{T=`分类排行按明细统计，与月度合计可能存在差异（同一笔内的抵扣）`}));function D({categoryExpenseRanking:e,ledgerName:t,merchantExpenseRanking:n,monthLabel:i,nextMonth:a,previousMonth:s,summary:c}){let u=n.length>0||e.length>0,d=Number(c.expense);return(0,N.jsxs)(o,{spacing:2,sx:P,children:[(0,N.jsx)(w,{title:`统计`,subtitle:(0,N.jsxs)(o,{spacing:.5,children:[(0,N.jsxs)(`span`,{children:[`当前账本：`,t]}),(0,N.jsx)(f,{color:`textSecondary`,variant:`body2`,children:`按月份整理收支、分类和商家，让家庭账本一眼看清。`})]})}),(0,N.jsxs)(h,{sx:F,children:[(0,N.jsxs)(o,{direction:`row`,sx:{alignItems:`center`,justifyContent:`space-between`},children:[(0,N.jsx)(_,{href:r(s),children:`‹ 上个月`}),(0,N.jsxs)(o,{spacing:.2,sx:{alignItems:`center`,minWidth:0},children:[(0,N.jsx)(f,{component:`p`,sx:{fontWeight:900,lineHeight:1.2},variant:`h6`,children:i}),(0,N.jsx)(f,{color:`textSecondary`,variant:`caption`,children:`月度收支概览`})]}),(0,N.jsx)(_,{href:r(a),children:`下个月 ›`})]}),(0,N.jsxs)(o,{direction:{xs:`column`,sm:`row`},spacing:1.5,sx:{mt:2},children:[(0,N.jsx)(O,{amount:l(c.income,c.currency),label:`本月收入`,tone:`income`}),(0,N.jsx)(O,{amount:l(c.expense,c.currency),label:`本月支出`,tone:`expense`}),(0,N.jsx)(O,{amount:l(c.balance,c.currency),label:`本月净收支`,tone:`balance`})]})]}),u?(0,N.jsxs)(o,{direction:{xs:`column`,md:`row`},spacing:2,children:[(0,N.jsx)(k,{currency:c.currency,emptyDescription:`这个月还没有分类支出记录。`,items:e,note:T,title:`分类支出汇总`,totalExpense:d}),(0,N.jsx)(k,{currency:c.currency,emptyDescription:`这个月还没有支出记录。`,items:n,title:`商家支出排行`,totalExpense:d})]}):(0,N.jsx)(S,{description:`这个月还没有可以统计的收入或支出。`,title:`暂无统计数据`})]})}function O({amount:e,label:t,tone:n}){return(0,N.jsxs)(o,{sx:I,children:[(0,N.jsx)(f,{color:`textSecondary`,sx:{fontSize:12,fontWeight:800},children:t}),(0,N.jsx)(f,{component:`p`,sx:{color:L[n],fontWeight:900,mt:.7,overflowWrap:`anywhere`},variant:`h6`,children:e})]})}function k({currency:e,emptyDescription:t,items:n,note:r,title:i,totalExpense:a}){return(0,N.jsxs)(h,{sx:R,children:[(0,N.jsxs)(o,{direction:`row`,sx:{alignItems:`center`,justifyContent:`space-between`},children:[(0,N.jsx)(f,{component:`h2`,variant:`h6`,sx:{fontWeight:900},children:i}),(0,N.jsxs)(f,{sx:z,variant:`caption`,children:[n.length,` 项`]})]}),r&&(0,N.jsx)(f,{color:`textSecondary`,variant:`body2`,sx:{mt:1},children:r}),n.length>0?(0,N.jsx)(o,{spacing:0,sx:{mt:1.5},children:n.map((t,n)=>(0,N.jsx)(A,{currency:e,item:t,rank:n+1,totalExpense:a},t.id))}):(0,N.jsx)(f,{color:`textSecondary`,sx:{mt:2},children:t})]})}function A({currency:e,item:t,rank:n,totalExpense:r}){let i=M(t.amount,r);return(0,N.jsxs)(o,{spacing:1,sx:B,children:[(0,N.jsxs)(o,{direction:`row`,spacing:1.2,sx:{alignItems:`flex-start`,justifyContent:`space-between`},children:[(0,N.jsxs)(o,{direction:`row`,spacing:1.1,sx:{minWidth:0},children:[(0,N.jsx)(u,{"aria-hidden":!0,sx:V,children:n}),(0,N.jsxs)(o,{spacing:.4,sx:{minWidth:0},children:[(0,N.jsx)(f,{noWrap:!0,sx:{fontWeight:800},children:t.name}),(0,N.jsxs)(f,{color:`textSecondary`,variant:`body2`,children:[t.transactionCount,` 笔 · 占比 `,i,`%`]})]})]}),(0,N.jsx)(f,{sx:{flexShrink:0,fontWeight:900,textAlign:`right`},children:l(t.amount,e)})]}),(0,N.jsx)(j,{label:`${t.name}支出占比`,value:i})]})}function j({label:e,value:t}){return(0,N.jsx)(u,{"aria-label":e,"aria-valuemax":100,"aria-valuemin":0,"aria-valuenow":t,role:`progressbar`,sx:H,children:(0,N.jsx)(u,{sx:{backgroundColor:`var(--user-theme-budget-bar-1)`,borderRadius:`${n.radius.full}px`,height:`100%`,width:`${t}%`}})})}function M(e,t){let n=Number(e);return!Number.isFinite(n)||t<=0?0:Math.min(100,Math.round(n/t*100))}var N,P,F,I,L,R,z,B,V,H,U=e((()=>{N=t(),E(),d(),s(),p(),i(),g(),x(),m(),C(),a(),b(),c(),P={px:{xs:n.spacing.page.mobile,sm:n.spacing.page.desktop},py:{xs:n.spacing.page.mobile,sm:n.spacing.page.desktop}},F={borderRadius:`${n.radius.xl}px`,p:{xs:2,sm:2.5}},I={backgroundColor:`var(--user-theme-tx-summary-bg)`,...y,borderRadius:`${n.radius.lg}px`,flex:1,minWidth:0,p:1.5},L={balance:`var(--user-theme-balance-text)`,expense:`var(--user-theme-negative-amount)`,income:`var(--user-theme-income-amount)`},R={borderRadius:`${n.radius.xl}px`,flex:1,p:{xs:2,sm:2.5}},z={backgroundColor:`var(--user-theme-bottom-nav-active-bg)`,borderRadius:`${n.radius.full}px`,color:`var(--user-theme-action-text)`,fontWeight:800,px:1,py:.25},B={borderTop:v,py:1.5,"&:first-of-type":{borderTop:0,pt:0},"&:last-of-type":{pb:0}},V={alignItems:`center`,backgroundColor:`var(--user-theme-icon-badge-bg)`,borderRadius:`${n.radius.md}px`,color:`var(--user-theme-icon-badge-color)`,display:`inline-flex`,flexShrink:0,fontSize:12,fontWeight:900,height:26,justifyContent:`center`,mt:.1,width:26},H={backgroundColor:`var(--user-theme-bottom-nav-active-bg)`,borderRadius:`${n.radius.full}px`,height:8,overflow:`hidden`},D.__docgenInfo={description:``,methods:[],displayName:`StatisticsTemplate`}})),W,G,K,q,J,Y;e((()=>{U(),W={categoryExpenseRanking:[{amount:`2500`,id:`category-food`,name:`食费 / 外食`,transactionCount:2},{amount:`1200`,id:`category-daily`,name:`日用品`,transactionCount:1}],ledgerName:`家庭账本`,merchantExpenseRanking:[{amount:`3000`,id:`merchant-super`,name:`超市`,transactionCount:2},{amount:`700`,id:`merchant-cafe`,name:`咖啡店`,transactionCount:1}],month:`2026-06`,monthLabel:`2026年6月`,nextMonth:`2026-07`,previousMonth:`2026-05`,summary:{balance:`246700`,currency:`JPY`,expense:`3300`,income:`250000`}},G={title:`Templates/Statistics/StatisticsTemplate`,component:D,args:W},K={name:`统计页面`},q={args:{...W,categoryExpenseRanking:[],merchantExpenseRanking:[],summary:{balance:`0`,currency:`JPY`,expense:`0`,income:`0`}},name:`无统计数据`},J={name:`同笔抵扣：商家按净支出、分类按明细`,args:{categoryExpenseRanking:[{id:`phone`,name:`数码产品`,amount:`8000`,transactionCount:1}],merchantExpenseRanking:[{id:`apple`,name:`苹果店`,amount:`4000`,transactionCount:1}],summary:{balance:`-4000`,currency:`JPY`,expense:`4000`,income:`0`}}},K.parameters={...K.parameters,docs:{...K.parameters?.docs,source:{originalSource:`{
+  name: "统计页面"
+}`,...K.parameters?.docs?.source}}},q.parameters={...q.parameters,docs:{...q.parameters?.docs,source:{originalSource:`{
+  args: {
+    ...defaultArgs,
+    categoryExpenseRanking: [],
+    merchantExpenseRanking: [],
+    summary: {
+      balance: "0",
+      currency: "JPY",
+      expense: "0",
+      income: "0"
+    }
+  },
+  name: "无统计数据"
+}`,...q.parameters?.docs?.source}}},J.parameters={...J.parameters,docs:{...J.parameters?.docs,source:{originalSource:`{
+  name: "同笔抵扣：商家按净支出、分类按明细",
+  args: {
+    categoryExpenseRanking: [{
+      id: "phone",
+      name: "数码产品",
+      amount: "8000",
+      transactionCount: 1
+    }],
+    merchantExpenseRanking: [{
+      id: "apple",
+      name: "苹果店",
+      amount: "4000",
+      transactionCount: 1
+    }],
+    summary: {
+      balance: "-4000",
+      currency: "JPY",
+      expense: "4000",
+      income: "0"
+    }
+  }
+}`,...J.parameters?.docs?.source}}},Y=[`Default`,`Empty`,`MixedRecord`]}))();export{K as Default,q as Empty,J as MixedRecord,Y as __namedExportsOrder,G as default};
