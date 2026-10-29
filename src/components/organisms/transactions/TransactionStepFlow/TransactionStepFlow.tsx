@@ -9,7 +9,6 @@ import { StepProgress } from "molecules/ui/StepProgress/StepProgress";
 import { MerchantStep } from "organisms/transactions/MerchantStep/MerchantStep";
 import { AccountStep } from "organisms/transactions/AccountStep/AccountStep";
 import { EntryMethodDrawer } from "organisms/transactions/EntryMethodDrawer/EntryMethodDrawer";
-import { MerchantAccountSummaryCard } from "organisms/transactions/MerchantAccountSummaryCard/MerchantAccountSummaryCard";
 import { flowMessages as m } from "config/transactionStepFlowMessages";
 import type { TransactionStepFlowProps } from "./TransactionStepFlow.types";
 import { useTransactionStepFlow } from "./useTransactionStepFlow";
@@ -32,25 +31,15 @@ function TransactionStepFlowSession(props: TransactionStepFlowProps) {
           </Button>
         }
         headerContent={
-          <>
-            <StepProgress
-              currentStep={w.step}
-              steps={m.steps}
-              label={m.progress}
-              completedSteps={w.completed}
-              clickableSteps={w.clickableSteps}
-              onStepClick={w.goToStep}
-            />
-            {w.step >= 2 && w.merchant && (
-              <MerchantAccountSummaryCard
-                merchant={w.merchant}
-                account={w.account}
-                paymentAccountCount={w.form.payments.length}
-                onMerchantChange={() => w.goToStep(1)}
-                onAccountChange={() => w.goToStep(2)}
-              />
-            )}
-          </>
+          <StepProgress
+            currentStep={w.step}
+            steps={m.steps}
+            stepDetails={w.stepDetails}
+            label={m.progress}
+            completedSteps={w.completed}
+            clickableSteps={w.clickableSteps}
+            onStepClick={w.goToStep}
+          />
         }
       >
         <DialogContent
@@ -61,6 +50,7 @@ function TransactionStepFlowSession(props: TransactionStepFlowProps) {
               merchants={props.merchants}
               merchantTags={props.merchantTags}
               frequentMerchants={props.frequentMerchants}
+              loadingMerchantId={w.loadingMerchantId}
               onSelect={w.selectMerchant}
               onAddMerchant={props.onAddMerchant}
               onAddPresets={props.onAddPresets}

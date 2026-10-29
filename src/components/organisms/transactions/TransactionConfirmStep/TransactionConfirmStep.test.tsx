@@ -1,39 +1,91 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { renderConfirmFlow } from "test/transactionConfirmStep";
 import { clickEntryButton as click } from "test/transactionStepFlow";
 import { itemsStepFixture, twoPayments } from "test/mocks/transactionItemsStep";
 
 function row(label: string) {
-  return screen.getByRole("button", { name: new RegExp(`^${label} `) });
+  return screen.getByRole("button", { name: new RegExp(`^修改${label}：`) });
 }
 function transactionForm() {
   return screen.getByRole("button", { name: "保存记账" }).closest("form")!;
 }
 
 describe("TransactionConfirmStep", () => {
+  it("小票从上到下显示抬头、明细、合计、支付与备注", () => {
+    renderConfirmFlow();
+    expect(row("商家")).toHaveTextContent("7-Eleven");
+    expect(row("时间")).toHaveTextContent(/\d{2}:\d{2}$/);
+    expect(row("明细 1")).toHaveTextContent("餐饮 · 午餐¥8,000");
+    expect(row("明细 2")).toHaveTextContent("¥2,000");
+    expect(screen.getByText("合计").nextElementSibling).toHaveTextContent(
+      "¥10,000",
+    );
+    expect(row("支付账户 1")).toHaveTextContent("PayPayJPY¥10,000");
+    expect(row("备注")).toHaveTextContent("添加备注");
+  });
+
+  it("商家、时间、每条明细、支付账户、备注各有一个铅笔，合计行没有", () => {
+    renderConfirmFlow();
+    expect(screen.getAllByTestId("EditOutlinedIcon")).toHaveLength(6);
+    for (const label of [
+      "商家",
+      "时间",
+      "明细 1",
+      "明细 2",
+      "支付账户 1",
+      "备注",
+    ])
+      expect(
+        within(row(label)).getByTestId("EditOutlinedIcon"),
+      ).toBeInTheDocument();
+    expect(
+      screen.getByText("合计").parentElement!.querySelector("svg"),
+    ).toBeNull();
+  });
+
   it.each([
-    ["商家", "搜索商家"],
-    ["收支账户", "收支账户"],
-    ["明细 1", "添加明细"],
-  ])("点击%s返回相应步骤", (label, target) => {
+    ["商家", () => screen.getByRole("textbox", { name: "搜索商家" })],
+    ["支付账户 1", () => screen.getByRole("radiogroup", { name: "收支账户" })],
+  ])("点击%s回到对应步骤", (label, target) => {
     renderConfirmFlow();
     fireEvent.click(row(label));
+    expect(target()).toBeInTheDocument();
+  });
+
+  it("多账户时点击支付账户回到明细步骤的付款分配", () => {
+    renderConfirmFlow({
+      itemsOptions: {
+        ...itemsStepFixture,
+        initialItems: [{ categoryId: "lunch", amount: "10000" }],
+        initialPayments: twoPayments,
+      },
+    });
+    expect(row("支付账户 1")).toHaveTextContent("PayPayJPY¥7,000");
+    expect(row("支付账户 2")).toHaveTextContent("现金JPY¥3,000");
+    fireEvent.click(row("支付账户 2"));
+    expect(screen.getByText("付款账户")).toBeInTheDocument();
+  });
+
+  it("点击明细打开该明细的编辑，保存后弹出金额键盘", async () => {
+    renderConfirmFlow();
+    fireEvent.click(row("明细 1"));
+    expect(await screen.findByText("编辑明细")).toBeInTheDocument();
+    click("保存修改");
+    expect(await screen.findByLabelText("金额计算器")).toBeInTheDocument();
+  });
+
+  it("小票内添加明细打开选择分类抽屉", async () => {
+    renderConfirmFlow();
+    click("添加明细");
     expect(
-      screen.getByRole(
-        label === "商家"
-          ? "textbox"
-          : label === "收支账户"
-            ? "radiogroup"
-            : "button",
-        { name: target },
-      ),
+      await screen.findByRole("textbox", { name: "搜索小分类" }),
     ).toBeInTheDocument();
   });
 
   it("空备注显示占位，抽屉计数并保留已编辑备注", async () => {
     renderConfirmFlow();
-    expect(screen.getByText("添加备注（可选）")).toBeInTheDocument();
+    expect(row("备注")).toHaveTextContent("添加备注");
     fireEvent.click(row("备注"));
     const input = screen.getByRole("textbox", { name: "备注" });
     expect(input).toHaveAttribute("maxlength", "2000");
@@ -84,8 +136,11 @@ describe("TransactionConfirmStep", () => {
       itemsOptions: { categoryOptions: itemsStepFixture.categoryOptions },
     });
     expect(row("商家")).toHaveAttribute("data-invalid", "true");
-    expect(row("收支账户")).toHaveAttribute("data-invalid", "true");
-    expect(row("明细")).toHaveAttribute("data-invalid", "true");
+    expect(row("支付账户 1")).toHaveAttribute("data-invalid", "true");
+    expect(screen.getByText("请添加明细", { selector: "p" })).toHaveAttribute(
+      "data-invalid",
+      "true",
+    );
     expect(screen.getByRole("button", { name: "保存记账" })).toBeDisabled();
     expect(screen.getAllByRole("alert")).toHaveLength(3);
   });
@@ -116,8 +171,8 @@ describe("TransactionConfirmStep", () => {
         initialPayments: twoPayments,
       },
     });
-    expect(row("收支账户")).toHaveAttribute("data-invalid", "true");
-    expect(row("收支账户")).toHaveTextContent("PayPay 等 2 个账户");
+    expect(row("支付账户 1")).toHaveAttribute("data-invalid", "true");
+    expect(row("支付账户 2")).toHaveAttribute("data-invalid", "true");
     expect(screen.getByRole("button", { name: "保存记账" })).toBeDisabled();
     click("付款账户未对上，点一下去调整");
     expect(screen.getByText("付款账户")).toBeInTheDocument();

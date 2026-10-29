@@ -89,4 +89,80 @@ describe("StepProgress", () => {
     expect(items[1].children).toHaveLength(3);
     expect(items[1].lastElementChild?.tagName).toBe("SPAN");
   });
+  describe("连线", () => {
+    const flowSteps = ["商家", "账户", "明细", "确认"];
+    function connectors(items: HTMLElement[]) {
+      // 最后一步没有连线；每一步的第一个子元素是通往下一步的连线。
+      return items
+        .slice(0, -1)
+        .map((item) =>
+          getComputedStyle(item.firstElementChild!).backgroundColor ===
+          "var(--user-theme-action-text)"
+            ? "solid"
+            : "muted",
+        );
+    }
+
+    it("不传 completedSteps 时与创建账本向导一致，只有当前步骤之前的连线为实线", () => {
+      expect(connectors(renderProgress(3))).toEqual([
+        "solid",
+        "solid",
+        "muted",
+        "muted",
+        "muted",
+      ]);
+    });
+
+    it("连线任一侧步骤已完成即为实线，与当前步骤无关", () => {
+      render(
+        <StepProgress
+          currentStep={1}
+          label="记账进度"
+          steps={flowSteps}
+          completedSteps={[2, 3]}
+        />,
+      );
+      const items = within(screen.getByRole("list")).getAllByRole("listitem");
+      expect(connectors(items)).toEqual(["solid", "solid", "solid"]);
+    });
+
+    it("当前步骤两侧都未完成时连线保持浅色", () => {
+      render(
+        <StepProgress
+          currentStep={3}
+          label="记账进度"
+          steps={flowSteps}
+          completedSteps={[1]}
+        />,
+      );
+      const items = within(screen.getByRole("list")).getAllByRole("listitem");
+      expect(connectors(items)).toEqual(["solid", "muted", "muted"]);
+    });
+  });
+
+  describe("第二行文字", () => {
+    it("有值的步骤在步骤名下方显示第二行，空值不显示", () => {
+      render(
+        <StepProgress
+          currentStep={3}
+          label="记账进度"
+          steps={["商家", "账户", "明细", "确认"]}
+          stepDetails={["7-Eleven", "PayPay"]}
+          completedSteps={[1, 2]}
+          clickableSteps={[1, 2, 3, 4]}
+          onStepClick={() => {}}
+        />,
+      );
+      const items = within(screen.getByRole("list")).getAllByRole("listitem");
+      expect(items.map((item) => item.textContent)).toEqual([
+        "商家（已完成）7-Eleven",
+        "账户（已完成）PayPay",
+        "3明细",
+        "4确认（未开始）",
+      ]);
+      expect(screen.getByRole("button", { name: "商家" })).toContainElement(
+        screen.getByText("7-Eleven"),
+      );
+    });
+  });
 });

@@ -71,9 +71,3 @@ export const accountStepFixture = {
   onSelect: flowFixture.onAccountSelect,
   onAddAccount: flowFixture.onAddAccount,
 };
-export const summaryCardFixture = {
-  merchant: flowFixture.merchants[1],
-  account: flowFixture.accounts[1],
-  onMerchantChange: () => {},
-  onAccountChange: () => {},
-};

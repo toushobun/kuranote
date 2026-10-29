@@ -114,20 +114,27 @@ describe("NewTransactionStepFlow", () => {
     setup();
     respond("frequent-merchants", { error: {} }, 500);
     selectMerchant("7-Eleven");
+    respond("merchantId=seven", noHistory);
     expect(
-      screen.getByRole("radiogroup", { name: "收支账户" }),
+      await screen.findByRole("radiogroup", { name: "收支账户" }),
     ).toBeInTheDocument();
     expect(screen.queryByText("常用商家")).not.toBeInTheDocument();
   });
 
-  it("快速切换商家时只采用当前商家的建议", async () => {
+  it("加载中点另一个商家时取消前一个，只采用当前商家的建议", async () => {
     setup();
     selectMerchant("7-Eleven");
     expect(requests.at(-1)?.url).toBe(
       "/api/transactions/merchant-entry-suggestions?ledgerId=ledger-1&merchantId=seven",
     );
-    click("商家");
+    expect(currentStep()).toBe(0);
     selectMerchant("LIFE超市");
+    expect(
+      screen.getByRole("progressbar", { name: "正在读取 LIFE超市 的记录" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("progressbar", { name: "正在读取 7-Eleven 的记录" }),
+    ).not.toBeInTheDocument();
     expect(
       requests.find((request) => request.url.includes("merchantId=seven"))
         ?.signal?.aborted,
@@ -163,6 +170,7 @@ describe("NewTransactionStepFlow", () => {
   it("建议获取失败时按没有记录处理，可以继续手动记账", async () => {
     setup();
     selectMerchant("7-Eleven");
+    expect(currentStep()).toBe(0);
     respond("merchantId=seven", { error: {} }, 500);
 
     expect(
@@ -191,10 +199,11 @@ describe("NewTransactionStepFlow", () => {
     );
   });
 
-  it("新增账户时带着当前商家返回", () => {
+  it("新增账户时带着当前商家返回", async () => {
     setup({ accountOptions: [] });
     selectMerchant("7-Eleven");
-    click("新增账户");
+    respond("merchantId=seven", noHistory);
+    fireEvent.click(await screen.findByRole("button", { name: "新增账户" }));
     expect(router.push).toHaveBeenCalledWith(
       "/accounts?create=1&returnTo=%2Ftransactions%2Fnew%3FmerchantId%3Dseven",
     );

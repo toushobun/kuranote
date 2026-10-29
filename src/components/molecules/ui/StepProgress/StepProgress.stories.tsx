@@ -46,3 +46,23 @@ export const EditableCompletedSteps: Story = {
     onStepClick: () => {},
   },
 };
+
+export const WithStepDetails: Story = {
+  name: "步骤名下方显示选择内容",
+  args: {
+    steps: ["商家", "账户", "明细", "确认"],
+    stepDetails: ["7-Eleven", "三井住友卡 等 2 个账户"],
+    currentStep: 3,
+    completedSteps: [1, 2],
+    clickableSteps: [1, 2, 3, 4],
+    onStepClick: () => {},
+  },
+};
+
+export const LongStepDetails: Story = {
+  name: "选择内容过长时省略",
+  args: {
+    ...WithStepDetails.args,
+    stepDetails: ["Amazon マーケットプレイス 日本", "三井住友カード ゴールド"],
+  },
+};

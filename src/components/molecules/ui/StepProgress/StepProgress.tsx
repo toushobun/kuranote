@@ -15,6 +15,8 @@ type StepProgressProps = {
   currentStep: number;
   label: string;
   steps: readonly string[];
+  /** 每一步步骤名下方的第二行文字（如已选内容），未传或为空时不显示。 */
+  stepDetails?: readonly (string | undefined)[];
   completedSteps?: readonly number[];
   clickableSteps?: readonly number[];
   onStepClick?: (step: number) => void;
@@ -40,6 +42,7 @@ export function StepProgress({
   currentStep,
   label,
   steps,
+  stepDetails,
   completedSteps,
   clickableSteps = [],
   onStepClick,
@@ -50,6 +53,11 @@ export function StepProgress({
         const step = index + 1;
         const status = getStepStatus(step, currentStep, completedSteps);
         const isLast = step === steps.length;
+        const detail = stepDetails?.[index];
+        // 连线左右任一侧的步骤已完成即为实线；不传 completedSteps 时与之前一致（当前步骤之前）。
+        const connectorCompleted =
+          status === "completed" ||
+          getStepStatus(step + 1, currentStep, completedSteps) === "completed";
         const content = (
           <>
             <Box aria-hidden="true" component="span" sx={dotSx(status)}>
@@ -63,6 +71,11 @@ export function StepProgress({
                 </Box>
               )}
             </Typography>
+            {detail ? (
+              <Typography component="span" sx={detailSx}>
+                {detail}
+              </Typography>
+            ) : null}
           </>
         );
 
@@ -78,7 +91,7 @@ export function StepProgress({
               <Box
                 aria-hidden="true"
                 component="span"
-                sx={connectorSx(status === "completed")}
+                sx={connectorSx(connectorCompleted)}
               />
             )}
             {onStepClick && clickableSteps.includes(step) ? (
@@ -173,6 +186,17 @@ function dotSx(status: StepProgressStatus) {
     },
   } as const;
 }
+
+const detailSx = {
+  color: "text.primary",
+  fontSize: 13,
+  lineHeight: 1.4,
+  maxWidth: "100%",
+  mt: -0.4,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+} as const;
 
 function labelSx(status: StepProgressStatus) {
   return {

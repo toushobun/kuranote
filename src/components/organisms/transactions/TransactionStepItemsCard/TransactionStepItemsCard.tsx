@@ -16,6 +16,11 @@ import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/Transac
 import { flowMessages as m } from "config/transactionStepFlowMessages";
 import type { TransactionItemSummary } from "organisms/transactions/TransactionForm/TransactionForm.types";
 import { formatUnsignedCurrencyAmount } from "utils/transactions";
+import {
+  formatStepItemAmount,
+  formatStepItemCategory,
+  formatStepNetTotal,
+} from "organisms/transactions/transactionStepFlowFormat";
 
 export type TransactionStepItemsCardProps = {
   items: TransactionItemSummary[];
@@ -85,11 +90,7 @@ export function TransactionStepItemsCard({
                   <CategoryRoundedIcon color="action" fontSize="small" />
                 )}
                 <Typography variant="body2">
-                  {item.category
-                    ? [item.category.parentName, item.category.name]
-                        .filter(Boolean)
-                        .join(" · ")
-                    : m.missingCategory}
+                  {formatStepItemCategory(item.category)}
                 </Typography>
               </ButtonBase>
               {automaticItemIds.includes(item.id) && (
@@ -113,9 +114,7 @@ export function TransactionStepItemsCard({
                   px: 0,
                 }}
               >
-                {item.amount.trim()
-                  ? `${item.category?.type === "income" ? "+ " : ""}${format(item.amount)}`
-                  : m.pendingAmount}
+                {formatStepItemAmount(item, currency)}
               </Button>
               <IconButton
                 size="small"
@@ -156,8 +155,7 @@ export function TransactionStepItemsCard({
                 )}
               </Stack>
               <Typography variant="h5" color="primary" sx={{ fontWeight: 800 }}>
-                {incomeTotal > expenseTotal ? "+ " : ""}
-                {format(expenseTotal - incomeTotal)}
+                {formatStepNetTotal(expenseTotal, incomeTotal, currency)}
               </Typography>
             </Stack>
           </>

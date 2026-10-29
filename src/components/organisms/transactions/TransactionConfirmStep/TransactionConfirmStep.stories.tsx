@@ -3,7 +3,11 @@ import { userEvent, within } from "storybook/test";
 import { TransactionStepFlow } from "../TransactionStepFlow/TransactionStepFlow";
 import { transactionEntryStoryDecorators } from "organisms/transactions/transactionStepFlowStoryUtils";
 import { confirmFlowFixture } from "test/mocks/transactionConfirmStep";
-import { itemsStepFixture, twoPayments } from "test/mocks/transactionItemsStep";
+import {
+  filledItems,
+  itemsStepFixture,
+  twoPayments,
+} from "test/mocks/transactionItemsStep";
 const meta = {
   title: "Organisms/Transactions/TransactionConfirmStep",
   component: TransactionStepFlow,
@@ -13,12 +17,31 @@ const meta = {
 } satisfies Meta<typeof TransactionStepFlow>;
 export default meta;
 type Story = StoryObj<typeof meta>;
-export const Ready: Story = { name: "确认（可保存、空备注）" };
+export const Ready: Story = { name: "小票（单账户、空备注）" };
+export const MultiAccountWithNote: Story = {
+  name: "小票（多账户 + 备注）",
+  args: {
+    itemsOptions: {
+      ...itemsStepFixture,
+      initialItems: filledItems,
+      initialPayments: twoPayments,
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    await userEvent.click(body.getByRole("button", { name: /^修改备注：/ }));
+    await userEvent.type(
+      body.getByRole("textbox", { name: "备注" }),
+      "给书房换的新键盘",
+    );
+    await userEvent.click(body.getByRole("button", { name: "完成" }));
+  },
+};
 export const NoteEditor: Story = {
   name: "编辑备注",
   play: async ({ canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body);
-    await userEvent.click(body.getByRole("button", { name: /^备注 / }));
+    await userEvent.click(body.getByRole("button", { name: /^修改备注：/ }));
     await userEvent.type(
       body.getByRole("textbox", { name: "备注" }),
       "和同事一起吃的午饭",
@@ -30,13 +53,13 @@ export const TimeEditor: Story = {
   play: async ({ canvasElement }) => {
     await userEvent.click(
       within(canvasElement.ownerDocument.body).getByRole("button", {
-        name: /^时间 /,
+        name: /^修改时间：/,
       }),
     );
   },
 };
 export const MissingAmount: Story = {
-  name: "还有未填金额（提示、标红、禁用保存）",
+  name: "未完成项：还有未填金额（提示、标红、禁用保存）",
   args: {
     itemsOptions: {
       ...itemsStepFixture,
@@ -48,7 +71,7 @@ export const MissingAmount: Story = {
   },
 };
 export const MissingRequired: Story = {
-  name: "缺少商家、账户和明细",
+  name: "未完成项：缺少商家、账户和明细",
   args: {
     initialMerchantId: undefined,
     initialAccountId: undefined,
@@ -56,7 +79,7 @@ export const MissingRequired: Story = {
   },
 };
 export const Unbalanced: Story = {
-  name: "多账户未对上",
+  name: "未完成项：多账户未对上",
   args: {
     itemsOptions: {
       ...itemsStepFixture,

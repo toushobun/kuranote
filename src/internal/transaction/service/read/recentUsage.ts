@@ -13,8 +13,12 @@ export const recommendedAccountLimit = 3;
 // 从商家记账的商家选择步骤按全期间交易次数展示最多 8 个常用商家（预定义）。
 export const frequentMerchantLimit = 8;
 
-// 从商家记账时，小分类在最近记录中出现至少 10 笔才自动添加明细，每笔只计一次（预定义）。
-export const automaticCategoryMinimumRecordCount = 10;
+// 从商家记账时，小分类出现的记录数达到样本数（该商家最近的记录数，最多 20 笔）的一半（向上取整）
+// 才自动添加明细，每笔记录只计一次（预定义）。
+export const automaticCategoryRecordRatio = 1 / 2;
+
+// 自动添加明细的记录数下限：样本不足时也至少 2 笔，只有 1 笔记录时不会自动添加（预定义）。
+export const automaticCategoryMinimumRecordCount = 2;
 
 // 从商家记账的金额键盘最多提供 4 个常用金额（预定义）。
 export const frequentAmountLimit = 4;

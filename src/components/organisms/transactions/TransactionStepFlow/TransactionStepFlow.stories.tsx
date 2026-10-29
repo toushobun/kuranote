@@ -77,7 +77,7 @@ export const SharedPayments: Story = {
 };
 
 export const QuickEntry: Story = {
-  name: "快速路线（确认页自动弹出金额键盘）",
+  name: "快速路线（建议到达后直接跳到确认并弹出金额键盘）",
   args: {
     suggestionsMerchantId: "seven",
     suggestions: {
@@ -93,4 +93,13 @@ export const QuickEntry: Story = {
       }),
     );
   },
+};
+
+export const QuickEntryLoading: Story = {
+  name: "快速路线（读取建议中，超时后进入账户）",
+  args: {
+    suggestionsMerchantId: "coffee",
+    itemsOptions: { categoryOptions: itemsStepFixture.categoryOptions },
+  },
+  play: QuickEntry.play,
 };
