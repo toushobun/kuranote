@@ -39,6 +39,17 @@ async function openCurrencyConfirm(account: string, clearFirst = false) {
 function zIndexOf(element: Element, rootSelector: string) {
   return Number(getComputedStyle(element.closest(rootSelector)!).zIndex);
 }
+// 金额键盘打开时背景被设为 aria-hidden，按金额按钮的 aria-label 确认小票上的金额。
+function expectReceiptAmount(label: string) {
+  expect(
+    screen.getByRole("button", { name: label, hidden: true }),
+  ).toBeInTheDocument();
+}
+async function waitKeypadClosed() {
+  await waitFor(() =>
+    expect(screen.queryByLabelText("金额计算器")).not.toBeInTheDocument(),
+  );
+}
 function renderMultiAccount(lunchAmount = "10000") {
   return renderConfirmFlow({
     itemsOptions: {
@@ -551,4 +562,84 @@ describe("TransactionConfirmStep", () => {
       expect(saveButton()).toBeEnabled();
     },
   );
+});
+
+describe("TransactionConfirmStep 金额键盘", () => {
+  it("按键、快捷金额、清空时小票金额不变，点「确定」才写入", async () => {
+    renderConfirmFlow({ suggestions: receiptSuggestions });
+    click("修改明细 1 金额：¥8,000");
+    pressItemAmountKey("5");
+    expectReceiptAmount("修改明细 1 金额：¥8,000");
+    click("上次 ¥498");
+    expectReceiptAmount("修改明细 1 金额：¥8,000");
+    pressItemAmountKey("清空");
+    expectReceiptAmount("修改明细 1 金额：¥8,000");
+    expect(screen.getByText("合计").nextElementSibling!).toHaveTextContent(
+      "¥10,000",
+    );
+    pressItemAmountKey("1");
+    pressItemAmountKey("2");
+    pressItemAmountKey("确定");
+    await waitKeypadClosed();
+    expect(line("编辑明细 1")).toHaveTextContent("¥12");
+  });
+
+  it("点 × 关闭时放弃输入，金额保持打开前的值", async () => {
+    renderConfirmFlow();
+    click("修改明细 1 金额：¥8,000");
+    pressItemAmountKey("清空");
+    pressItemAmountKey("3");
+    click("关闭金额键盘");
+    await waitKeypadClosed();
+    expect(line("编辑明细 1")).toHaveTextContent("¥8,000");
+    click("修改明细 1 金额：¥8,000");
+    expect(screen.getByLabelText("计算器显示金额")).toHaveTextContent("8000");
+  });
+
+  it("显示 0 时点「确定」写入 0", async () => {
+    renderConfirmFlow();
+    click("修改明细 1 金额：¥8,000");
+    pressItemAmountKey("清空");
+    pressItemAmountKey("确定");
+    await waitKeypadClosed();
+    expect(
+      screen.getByRole("button", { name: "修改明细 1 金额：¥0" }),
+    ).toBeInTheDocument();
+  });
+
+  it("确定后只关闭键盘，不自动打开下一条未填金额的明细", async () => {
+    renderConfirmFlow({
+      itemsOptions: {
+        ...receiptItemsOptions,
+        initialItems: [
+          { categoryId: "lunch", amount: "" },
+          { categoryId: "storage", amount: "" },
+        ],
+      },
+    });
+    click("修改明细 1 金额：待输入");
+    pressItemAmountKey("8");
+    pressItemAmountKey("确定");
+    await waitKeypadClosed();
+    expect(line("编辑明细 1")).toHaveTextContent("¥8");
+    expect(
+      screen.getByRole("button", { name: "修改明细 2 金额：待输入" }),
+    ).toBeInTheDocument();
+  });
+
+  it("多账户确定一个账户的金额后，不把差额补到下一个账户", async () => {
+    renderMultiAccount();
+    click("修改支付账户 1 金额：¥7,000");
+    pressItemAmountKey("清空");
+    for (const key of ["6", "0", "0", "0"]) pressItemAmountKey(key);
+    expectReceiptAmount("修改支付账户 1 金额：¥7,000");
+    pressItemAmountKey("确定");
+    await waitKeypadClosed();
+    expect(line("更换支付账户 1")).toHaveTextContent("¥6,000");
+    expect(line("更换支付账户 2")).toHaveTextContent("¥3,000");
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "付款合计 ¥9,000 / 明细合计 ¥10,000 · 差额 ¥1,000",
+    );
+    expect(saveButton()).toBeDisabled();
+  });
 });

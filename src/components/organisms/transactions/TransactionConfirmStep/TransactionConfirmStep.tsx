@@ -245,14 +245,10 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
         title={amountAccount?.name ?? m.chooseAccount}
         currency={currency}
         value={amountPayment?.amount ?? ""}
-        onChange={(amount) =>
-          amountPayment &&
-          f.handlePaymentAmountChange(amountPayment.key, amount)
-        }
         onConfirm={(amount) => {
           if (!amountPayment) return;
+          // 只写入这一行，不把差额补到下一个账户（标准记账仍按 #834 联动）。
           f.handlePaymentAmountChange(amountPayment.key, amount);
-          f.handlePaymentAmountCommit(amountPayment.key);
           w.setPaymentAmountKey(null);
         }}
         onClose={() => w.setPaymentAmountKey(null)}
