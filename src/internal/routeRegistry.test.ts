@@ -181,10 +181,6 @@ const routeSpecs: RouteSpec[] = [
         method: "get",
         path: "/merchant-entry-suggestions",
       },
-      convertTransactionRoute: {
-        method: "post",
-        path: "/{transactionRecordId}/conversion",
-      },
       createTransactionRoute: { method: "post", path: "/" },
       updateTransactionRoute: {
         method: "patch",

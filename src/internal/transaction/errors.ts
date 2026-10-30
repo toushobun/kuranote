@@ -217,7 +217,6 @@ export const transactionWriteErrorMessages = {
   reimbursementLinkExists: "该支出仍有关联的报销收入，请先解除关联。",
   transferCurrencyMismatch: "转账账户币种必须一致。",
   typeInvalid: "交易类型不正确，请确认后重试。",
-  typeNotChanged: "交易类型没有发生变化，请刷新页面后重试。",
 } as const;
 
 /** 新增 / 编辑交易时特殊状态与收入关联的业务校验文案。 */
@@ -274,7 +273,6 @@ export const transactionLinkedEditErrorMessages = {
 
 /** 交易 Server Action 的未知异常兜底与类型指定错误文案。 */
 export const transactionActionErrorMessages = {
-  convertFailed: "交易类型转换失败，请稍后重试。",
   createFailed: "交易新增失败，请稍后重试。",
   transferUpdateFailed: "转账更新失败，请稍后重试。",
   typeInvalid: "交易类型指定不正确，请刷新页面后重试。",

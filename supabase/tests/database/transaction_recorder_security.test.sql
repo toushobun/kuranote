@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(18);
+select plan(17);
 
 select ok(
     to_regclass('public.transaction_consumer') is null,
@@ -45,13 +45,15 @@ select ok(
     to_regprocedure('public.update_transfer_transaction(uuid,uuid,timestamptz,numeric,uuid,uuid,text,uuid[])') is null,
     '转账编辑 RPC 不再保留消费者重载'
 );
-select ok(
-    to_regprocedure('public.convert_transaction_type_with_special_status(uuid,uuid,text,timestamptz,text,jsonb,uuid,jsonb,uuid,uuid,numeric)') is not null,
-    '交易类型转换 RPC 使用付款明细签名'
-);
-select ok(
-    to_regprocedure('public.convert_transaction_type_with_special_status(uuid,uuid,text,timestamptz,text,uuid,uuid,jsonb,uuid,uuid,numeric,uuid[])') is null,
-    '交易类型转换 RPC 不再接受消费者参数'
+select is(
+    (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public' and p.proname in (
+         'convert_transaction_type',
+         'convert_transaction_type_with_special_status',
+         'convert_transaction_type_locked_impl'
+     )),
+    0::bigint,
+    '交易类型转换及内部实现的全部签名均已删除'
 );
 select ok(
     to_regprocedure('public.update_linked_transaction_edit(uuid,uuid,timestamptz,uuid,text,jsonb,jsonb,timestamptz)') is not null,

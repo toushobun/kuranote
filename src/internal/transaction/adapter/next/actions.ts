@@ -27,7 +27,6 @@ import {
   voidTransactionValidationErrorMessages,
 } from "internal/transaction/errors";
 import {
-  validateConvertTransactionTypeForm,
   validateTransactionForm,
   validateUpdateTransferTransactionForm,
   validateVoidTransactionForm,
@@ -180,50 +179,6 @@ export async function updateTransferTransaction(
   redirect(updatedHref(validation.value.transactionAt));
 }
 
-export async function convertTransactionType(
-  _previousState: TransactionActionState,
-  formData: FormData,
-): Promise<TransactionActionState> {
-  const { currentLedger } = await requireCurrentUserAndLedger();
-  const validation = validateConvertTransactionTypeForm(formData);
-  if (!validation.ok) {
-    return createErrorState(
-      updateTransactionValidationErrorMessages[validation.error],
-    );
-  }
-  try {
-    const values = validation.value;
-    const service = await getTransactionService();
-    if (values.targetType === "transfer") {
-      await service.convert({
-        accountId: values.accountId,
-        ledgerId: currentLedger.id,
-        note: values.note,
-        targetType: "transfer",
-        transactionAt: values.transactionAt,
-        transactionRecordId: values.transactionRecordId,
-        transferAmount: values.transferAmount,
-        transferTargetAccountId: values.transferTargetAccountId,
-      });
-    } else {
-      await service.convert({
-        items: values.items,
-        ledgerId: currentLedger.id,
-        merchantId: values.merchantId,
-        note: values.note,
-        payments: values.payments,
-        targetType: values.targetType,
-        transactionAt: values.transactionAt,
-        transactionRecordId: values.transactionRecordId,
-      });
-    }
-  } catch (error) {
-    return appErrorState(error, transactionActionErrorMessages.convertFailed);
-  }
-  revalidateTransactionMutation();
-  redirect(updatedHref(validation.value.transactionAt));
-}
-
 export async function saveEditTransaction(
   previousState: TransactionActionState,
   formData: FormData,
@@ -244,7 +199,7 @@ export async function saveEditTransaction(
       ? updateTransferTransaction(previousState, formData)
       : updateTransaction(previousState, formData);
   }
-  return convertTransactionType(previousState, formData);
+  return createErrorState(transactionActionErrorMessages.typeInvalid);
 }
 
 export async function voidTransaction(

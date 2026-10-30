@@ -32,7 +32,6 @@ vi.mock("internal/transaction/adapter/next/revalidate", () => ({
 const ledgerId = "00000000-0000-4000-8000-000000000032";
 const userId = "00000000-0000-4000-8000-000000000031";
 const accountId = "00000000-0000-4000-8000-000000000045";
-const targetAccountId = "00000000-0000-4000-8000-000000000046";
 const categoryId = "00000000-0000-4000-8000-000000005072";
 const merchantId = "00000000-0000-4000-8000-000000001001";
 const transactionRecordId = "00000000-0000-4000-8000-000000009999";
@@ -193,37 +192,6 @@ describe("transactionRouter", () => {
       },
     );
     expect(service.updateNormal).not.toHaveBeenCalled();
-    expect(mocks.revalidateTransactionMutation).toHaveBeenCalledOnce();
-  });
-
-  it("转换交易后返回 200 并刷新缓存", async () => {
-    const { app, service } = createApp({ convert: vi.fn() });
-    const conversionBody = {
-      accountId,
-      ledgerId,
-      note: null,
-      targetType: "transfer",
-      transactionAt: "2026-06-04T01:00:00.000Z",
-      transferAmount: 1200,
-      transferTargetAccountId: targetAccountId,
-    };
-    const response = await app.request(
-      `/transactions/${transactionRecordId}/conversion`,
-      {
-        body: JSON.stringify(conversionBody),
-        headers: {
-          "content-type": "application/json",
-          origin: "http://localhost",
-        },
-        method: "POST",
-      },
-    );
-
-    expect(response.status).toBe(200);
-    expect(service.convert).toHaveBeenCalledWith({
-      ...conversionBody,
-      transactionRecordId,
-    });
     expect(mocks.revalidateTransactionMutation).toHaveBeenCalledOnce();
   });
 

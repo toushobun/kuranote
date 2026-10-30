@@ -12,7 +12,6 @@ import {
   merchantEntrySuggestionsHandler,
 } from "internal/transaction/controller/merchantEntryController";
 import {
-  convertTransactionHandler,
   createTransactionHandler,
   updateTransactionHandler,
   voidTransactionHandler,
@@ -21,7 +20,6 @@ import {
   merchantEntrySuggestionsQuerySchema,
   merchantEntrySuggestionsSchema,
   frequentMerchantsSchema,
-  convertTransactionRequestSchema,
   createTransactionRequestSchema,
   errorResponseSchema,
   okResponseSchema,
@@ -69,26 +67,6 @@ export const updateTransactionRoute = createRoute({
     200: {
       content: { "application/json": { schema: okResponseSchema } },
       description: "更新成功",
-    },
-    ...errorResponses,
-  },
-});
-
-export const convertTransactionRoute = createRoute({
-  method: "post",
-  path: "/{transactionRecordId}/conversion",
-  request: {
-    params: transactionIdParamsSchema,
-    body: {
-      content: {
-        "application/json": { schema: convertTransactionRequestSchema },
-      },
-    },
-  },
-  responses: {
-    200: {
-      content: { "application/json": { schema: okResponseSchema } },
-      description: "转换成功",
     },
     ...errorResponses,
   },
@@ -146,7 +124,6 @@ export const transactionRouter = new OpenAPIHono<AppEnv>();
 transactionRouter.use("*", sameOriginMiddleware);
 transactionRouter.openapi(createTransactionRoute, createTransactionHandler);
 transactionRouter.openapi(updateTransactionRoute, updateTransactionHandler);
-transactionRouter.openapi(convertTransactionRoute, convertTransactionHandler);
 transactionRouter.openapi(voidTransactionRoute, voidTransactionHandler);
 
 transactionRouter.openapi(frequentMerchantsRoute, frequentMerchantsHandler);

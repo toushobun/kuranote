@@ -119,3 +119,7 @@ npm run db:schema:snapshot:check
 `ledger_deletion_context` 是内部授权上下文表，主键为当前事务 ID，记录已由 RPC 校验的账本与用户。它启用 RLS 且没有客户端 policy，撤销 PUBLIC / anon / authenticated / service_role 的全部权限，不作为业务数据暴露，不增加外键。RPC 在事务内写入并在结束时清除，失败自动回滚。客户端无法写入该表，因此无法伪造放行；详见 [安全函数规范](security-definer-functions.md)。
 
 删除中任一步失败，数据、当前账本指针和上下文一起回滚。新增直接或间接账本外键时，必须同步审查删除顺序、权限及副作用触发器，并补充 `supabase/tests/database/delete_ledger.test.sql`。
+
+## 普通记录与转账类型转换移除（#962）
+
+`20261030120000_remove_transaction_type_conversion.sql` 删除 `convert_transaction_type_with_special_status`、`convert_transaction_type`、`convert_transaction_type_locked_impl`。普通记录与转账只允许各自编辑；既有记录和余额不受该 migration 影响。

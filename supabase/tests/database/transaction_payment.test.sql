@@ -178,77 +178,6 @@ select is(
 set local role authenticated;
 
 -- ------------------------------------------------------------
--- 类型转换
--- ------------------------------------------------------------
-
-insert into payment_test_ids
-select 'convert', public.create_transaction(
-    '00000000-0000-4000-8000-000000000032',
-    'expense',
-    '2099-04-02 00:00:00+00',
-    pg_temp.items(80),
-    pg_temp.pay('00000000-0000-4000-8000-000000000043'),
-    '00000000-0000-4000-8000-000000001001',
-    '#911 类型转换'
-);
-
-select lives_ok(
-    $$
-        select public.convert_transaction_type_with_special_status(
-            '00000000-0000-4000-8000-000000000032',
-            pg_temp.rid('convert'),
-            'transfer',
-            '2099-04-02 00:00:00+00',
-            '#911 类型转换',
-            null,
-            null,
-            null,
-            '00000000-0000-4000-8000-000000000045',
-            '00000000-0000-4000-8000-000000000046',
-            30
-        )
-    $$,
-    '普通记录可以转换为转账'
-);
-select is(
-    (select count(*) from public.transaction_payment where transaction_record_id = pg_temp.rid('convert')),
-    0::bigint,
-    '转为转账后删除付款明细'
-);
-select is(pg_temp.delta('00000000-0000-4000-8000-000000000043'), 0.00, '转为转账时回滚付款账户余额');
-select is(pg_temp.delta('00000000-0000-4000-8000-000000000045'), -30.00, '转账转出账户扣减');
-
-select lives_ok(
-    $$
-        select public.convert_transaction_type_with_special_status(
-            '00000000-0000-4000-8000-000000000032',
-            pg_temp.rid('convert'),
-            'income',
-            '2099-04-02 00:00:00+00',
-            '#911 类型转换',
-            pg_temp.pay('00000000-0000-4000-8000-000000000041'),
-            '00000000-0000-4000-8000-000000001001',
-            pg_temp.items(20, '00000000-0000-4000-8000-000000005002'),
-            null,
-            null,
-            null
-        )
-    $$,
-    '转账可以转换回普通记录'
-);
-select results_eq(
-    $$
-        select account_id, balance_delta
-        from public.transaction_payment
-        where transaction_record_id = pg_temp.rid('convert')
-    $$,
-    $$ values ('00000000-0000-4000-8000-000000000041'::uuid, 20.00::numeric) $$,
-    '转回普通记录时按 p_payments 写付款明细'
-);
-select is(pg_temp.delta('00000000-0000-4000-8000-000000000045'), 0.00, '转回普通记录时回滚转账余额');
-select is(pg_temp.delta('00000000-0000-4000-8000-000000000041'), 20.00, '转回普通记录时付款账户入账');
-
--- ------------------------------------------------------------
 -- 入参校验（失败时整体回滚）
 -- ------------------------------------------------------------
 
@@ -538,46 +467,17 @@ select lives_ok(
 select is(pg_temp.delta('00000000-0000-4000-8000-000000000048'), 0.00, '删除后回滚第一个付款账户');
 select is(pg_temp.delta('00000000-0000-4000-8000-000000000049'), 0.00, '删除后回滚第二个付款账户');
 
+-- 金额不变量使用独立普通记录，不依赖转换场景的产物。
 insert into payment_test_ids
-select 'multi_convert', public.create_transaction(
+select 'invariant', public.create_transaction(
     '00000000-0000-4000-8000-000000000032',
     'expense',
     '2099-04-06 00:00:00+00',
-    pg_temp.multi_items(array[600, 400]),
-    '[{"accountId":"00000000-0000-4000-8000-000000000048","amount":"300"},{"accountId":"00000000-0000-4000-8000-000000000049","amount":"700"}]',
-    '00000000-0000-4000-8000-000000001008',
-    '#914 多账户转换'
+    pg_temp.items(20),
+    pg_temp.pay('00000000-0000-4000-8000-000000000041'),
+    '00000000-0000-4000-8000-000000001001',
+    '#962 付款金额不变量'
 );
-select lives_ok(
-    $$
-        select public.convert_transaction_type_with_special_status(
-            '00000000-0000-4000-8000-000000000032',
-            pg_temp.rid('multi_convert'),
-            'transfer',
-            '2099-04-06 00:00:00+00',
-            '#914 多账户转换',
-            null,
-            null,
-            null,
-            '00000000-0000-4000-8000-000000000048',
-            '00000000-0000-4000-8000-000000000049',
-            100
-        )
-    $$,
-    '多账户记录可以转换为转账'
-);
-select is(
-    (select count(*) from public.transaction_payment where transaction_record_id = pg_temp.rid('multi_convert')),
-    0::bigint,
-    '转为转账后删除全部付款明细'
-);
-select results_eq(
-    $$ select * from pg_temp.movements('multi_convert') $$,
-    $$ values ('00000000-0000-4000-8000-000000000048'::uuid, -100.00::numeric), ('00000000-0000-4000-8000-000000000049'::uuid, 100.00::numeric) $$,
-    '转账的账户变动仍来自明细账户'
-);
-select is(pg_temp.delta('00000000-0000-4000-8000-000000000048'), -100.00, '转为转账后回滚付款并按转出扣减');
-select is(pg_temp.delta('00000000-0000-4000-8000-000000000049'), 100.00, '转为转账后回滚付款并按转入入账');
 
 select lives_ok(
     'set constraints public.validate_transaction_record_payments immediate',
@@ -587,6 +487,7 @@ select lives_ok(
 -- ------------------------------------------------------------
 -- 绕过 RPC 的直接写入：延迟约束兜底
 -- ------------------------------------------------------------
+
 
 reset role;
 
@@ -613,7 +514,7 @@ select throws_ok(
 select throws_ok(
     format(
         $f$select pg_temp.check_after(%L)$f$,
-        format('update public.transaction_item set amount = 19 where transaction_record_id = %L', pg_temp.rid('convert'))
+        format('update public.transaction_item set amount = 19 where transaction_record_id = %L', pg_temp.rid('invariant'))
     ),
     '22023', 'payment_total_mismatch', '直接修改明细金额而不同步付款明细时被拒绝'
 );

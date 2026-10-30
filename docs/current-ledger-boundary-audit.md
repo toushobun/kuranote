@@ -28,7 +28,7 @@ Parent：#380
 | --- | --- | --- | --- | --- | --- | --- |
 | Current ledger 共通上下文 | active `ledger_member` + 未归档 `ledger` | 创建、切换与接受邀请统一写入 `app_user.current_ledger_id` | `validate_app_user_current_ledger` 再校验 active 成员与未归档账本 | React `cache` 仅限单次请求 | context / service 既有测试 + 本次 Action / DB / migration 测试 | 通过 |
 | Dashboard | 记录、明细、账户、分类、商家均限定 `currentLedger.id` | 无独立写入；复用现有记账入口 | 复用各业务表 RLS / trigger | current ledger 变化时刷新 Dashboard | `dashboard.currentLedger.test.ts` 覆盖有账本和无账本路径 | 通过 |
-| 记账 / 明细 | 列表、分组、详情、表单和筛选候选限定 `currentLedger.id` | Action 使用服务端 current ledger；不信任客户端 `ledgerId` | 新增、编辑、转账、类型转换、删除 RPC 校验账本权限及目标记录 / 账户 / 分类 / 商家归属 | 写操作刷新明细和账户；current ledger 变化时刷新记账页面 | Action 伪造账本测试 + 双账本筛选测试 + DB 边界测试 | 通过 |
+| 记账 / 明细 | 列表、分组、详情、表单和筛选候选限定 `currentLedger.id` | Action 使用服务端 current ledger；不信任客户端 `ledgerId` | 新增、编辑、转账、删除 RPC 校验账本权限及目标记录 / 账户 / 分类 / 商家归属 | 写操作刷新明细和账户；current ledger 变化时刷新记账页面 | Action 伪造账本测试 + 双账本筛选测试 + DB 边界测试 | 通过 |
 | 统计 | 记录、明细、商家、分类限定 `currentLedger.id` | 只读 | 依赖业务表 RLS | current ledger 变化时刷新统计页 | `statistics.currentLedger.test.ts` | 通过 |
 | 账户 | 账户、持有人、成员显示设置限定 `currentLedger.id` | Action 使用服务端 current ledger；更新 / 归档限定账户 ID 与账本 ID | 账户 RPC 校验权限和持有人归属；账户及持有人 trigger 要求管理权限 | 账户操作和 current ledger 变化时刷新账户页 | 既有 Service 跨账本失败测试 + 本次 Loader / Action / DB 测试 | 通过 |
 | 分类 | 分类树和候选限定 `currentLedger.id` | 父分类、编辑、归档限定目标账本 | 分类管理 trigger + 父子分类同账本 trigger | 分类操作和 current ledger 变化时刷新分类页 | 既有父分类 / 更新 / 归档跨账本测试 + 本次 Loader / DB 测试 | 通过 |
@@ -111,7 +111,6 @@ Parent：#380
 - `create_transfer_transaction`
 - `update_transaction`
 - `update_transfer_transaction`
-- `convert_transaction_type`
 - `void_transaction`
 - `load_transaction_group_summaries_with_special_status`
 

@@ -41,9 +41,6 @@ function getTransactionMutationImplementationSql(functionName: string) {
   if (functionName === "update_transaction") {
     return getFunctionSql("update_transaction_locked_impl");
   }
-  if (functionName === "convert_transaction_type") {
-    return getFunctionSql("convert_transaction_type_locked_impl");
-  }
   if (functionName === "void_transaction") {
     return getFunctionSql("void_transaction_locked_impl");
   }
@@ -74,7 +71,6 @@ describe("current ledger 数据边界", () => {
     "create_transfer_transaction",
     "update_transaction",
     "update_transfer_transaction",
-    "convert_transaction_type",
     "void_transaction",
   ])("交易 RPC %s 重新校验目标账本写权限", (functionName) => {
     expect(getFunctionSql(functionName)).toContain(
@@ -117,21 +113,6 @@ describe("current ledger 数据边界", () => {
     expect(functionSql).toContain("update_transaction_locked_impl(");
   });
 
-  it("convert_transaction_type 在进入 record/account 实现前先锁目标账本", () => {
-    const functionSql = getFunctionSql("convert_transaction_type");
-    const ledgerLockIndex = functionSql.indexOf(
-      "from public.ledger ledger_row",
-    );
-    const implementationIndex = functionSql.indexOf(
-      "convert_transaction_type_locked_impl(",
-    );
-
-    expect(ledgerLockIndex).toBeGreaterThanOrEqual(0);
-    expect(functionSql).toContain("where ledger_row.id = p_ledger_id");
-    expect(functionSql).toContain("for update");
-    expect(implementationIndex).toBeGreaterThan(ledgerLockIndex);
-  });
-
   it("update_transaction 原实现只允许 income 请求越过关联收入前置冻结并进入 clear 流程", () => {
     const functionSql = getFunctionSql("update_transaction_locked_impl");
     const incomeFlagIndex = functionSql.indexOf(
@@ -153,7 +134,6 @@ describe("current ledger 数据边界", () => {
   it.each([
     "update_transaction",
     "update_transfer_transaction",
-    "convert_transaction_type",
     "void_transaction",
   ])("交易变更 RPC %s 只锁定目标账本内的 active 记录", (functionName) => {
     const functionSql = getTransactionMutationImplementationSql(functionName);
@@ -182,11 +162,10 @@ describe("current ledger 数据边界", () => {
     );
   });
 
-  it("转账和类型转换 RPC 只锁定目标账本内的账户", () => {
+  it("转账 RPC 只锁定目标账本内的账户", () => {
     for (const functionName of [
       "create_transfer_transaction",
       "update_transfer_transaction",
-      "convert_transaction_type",
     ]) {
       expect(getTransactionMutationImplementationSql(functionName)).toContain(
         "a.ledger_id = p_ledger_id",

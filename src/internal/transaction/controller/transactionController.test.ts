@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { RequestContainer } from "internal/container";
 import {
-  convertTransactionHandler,
   createTransactionHandler,
   updateTransactionHandler,
   voidTransactionHandler,
@@ -52,7 +51,6 @@ const transferInput = {
 
 function createService() {
   return {
-    convert: vi.fn(),
     createNormal: vi.fn(),
     createTransfer: vi.fn(),
     updateNormal: vi.fn(),
@@ -220,76 +218,6 @@ describe("transactionController", () => {
     expect(service.updateNormal).not.toHaveBeenCalled();
     expect(context.getAccessibleLedger).not.toHaveBeenCalled();
     expect(mocks.revalidateTransactionMutation).toHaveBeenCalledOnce();
-  });
-
-  it("转换为普通交易时透传付款明细", async () => {
-    const service = createService();
-    const context = createContext(
-      {
-        json: {
-          accountId,
-          items: normalInput.items,
-          ledgerId: normalInput.ledgerId,
-          merchantId: normalInput.merchantId,
-          note: normalInput.note,
-          targetType: "expense",
-          transactionAt: normalInput.transactionAt,
-        },
-        param: { transactionRecordId },
-      },
-      service,
-    );
-
-    await convertTransactionHandler(
-      context as unknown as Parameters<typeof convertTransactionHandler>[0],
-    );
-
-    expect(service.convert).toHaveBeenCalledWith({
-      items: normalInput.items,
-      ledgerId: normalInput.ledgerId,
-      merchantId: normalInput.merchantId,
-      note: normalInput.note,
-      payments: [{ accountId, amount: null }],
-      targetType: "expense",
-      transactionAt: normalInput.transactionAt,
-      transactionRecordId,
-    });
-    expect(mocks.revalidateTransactionMutation).toHaveBeenCalledOnce();
-    expect(context.json).toHaveBeenCalledWith({ ok: true }, 200);
-  });
-
-  it("转换为转账时按转账字段透传", async () => {
-    const service = createService();
-    const context = createContext(
-      {
-        json: {
-          accountId,
-          ledgerId: transferInput.ledgerId,
-          note: transferInput.note,
-          targetType: "transfer",
-          transactionAt: transferInput.transactionAt,
-          transferAmount: transferInput.transferAmount,
-          transferTargetAccountId: targetAccountId,
-        },
-        param: { transactionRecordId },
-      },
-      service,
-    );
-
-    await convertTransactionHandler(
-      context as unknown as Parameters<typeof convertTransactionHandler>[0],
-    );
-
-    expect(service.convert).toHaveBeenCalledWith({
-      accountId,
-      ledgerId: transferInput.ledgerId,
-      note: transferInput.note,
-      targetType: "transfer",
-      transactionAt: transferInput.transactionAt,
-      transactionRecordId,
-      transferAmount: transferInput.transferAmount,
-      transferTargetAccountId: targetAccountId,
-    });
   });
 
   it("作废交易时通过关联编辑 Service 校验并删除", async () => {
