@@ -44,9 +44,25 @@ async function getContext() {
   };
 }
 
+// 常用商家与全部商家一起出现；获取失败时按空列表处理，不阻断记账。
+function loadFrequentMerchants({
+  currentLedger,
+  logger,
+  merchantEntryQueryService,
+}: Awaited<ReturnType<typeof getContext>>) {
+  return merchantEntryQueryService
+    .getFrequentMerchants({ ledgerId: currentLedger.id })
+    .catch((error: unknown): FrequentMerchant[] => {
+      logger.error("[transaction] failed to load frequent merchants", {
+        errorName: error instanceof Error ? error.name : "unknown",
+      });
+      return [];
+    });
+}
+
 export async function loadNewTransactionView() {
-  const { currentLedger, logger, merchantEntryQueryService, service } =
-    await getContext();
+  const context = await getContext();
+  const { currentLedger, service } = context;
   const specialStatusEnabled = Boolean(
     currentLedger.transactionItemSpecialStatusEnabled,
   );
@@ -63,15 +79,7 @@ export async function loadNewTransactionView() {
             reimbursementPickerFilters,
           )
         : Promise.resolve(undefined),
-      // 常用商家与全部商家一起出现；获取失败时按空列表处理，不阻断记账。
-      merchantEntryQueryService
-        .getFrequentMerchants({ ledgerId: currentLedger.id })
-        .catch((error: unknown): FrequentMerchant[] => {
-          logger.error("[transaction] failed to load frequent merchants", {
-            errorName: error instanceof Error ? error.name : "unknown",
-          });
-          return [];
-        }),
+      loadFrequentMerchants(context),
     ]);
   return {
     ...view,
@@ -83,21 +91,34 @@ export async function loadNewTransactionView() {
 
 export async function loadEditTransactionView(transactionRecordId: string) {
   if (!uuidPattern.test(transactionRecordId)) notFound();
-  const { currentLedger, service } = await getContext();
+  const context = await getContext();
+  const { currentLedger, service } = context;
   const specialStatusEnabled = Boolean(
     currentLedger.transactionItemSpecialStatusEnabled,
   );
-  const [view, refundPickerView, reimbursementPickerView] = await Promise.all([
-    service.getEditView(currentLedger, transactionRecordId),
-    specialStatusEnabled
-      ? service.getGroupView(currentLedger, "month", refundPickerFilters)
-      : Promise.resolve(undefined),
-    specialStatusEnabled
-      ? service.getGroupView(currentLedger, "month", reimbursementPickerFilters)
-      : Promise.resolve(undefined),
-  ]);
+  const [view, refundPickerView, reimbursementPickerView, frequentMerchants] =
+    await Promise.all([
+      service.getEditEntryView(currentLedger, transactionRecordId),
+      specialStatusEnabled
+        ? service.getGroupView(currentLedger, "month", refundPickerFilters)
+        : Promise.resolve(undefined),
+      specialStatusEnabled
+        ? service.getGroupView(
+            currentLedger,
+            "month",
+            reimbursementPickerFilters,
+          )
+        : Promise.resolve(undefined),
+      // 小票换商家时的常用商家（#962）。
+      loadFrequentMerchants(context),
+    ]);
   if (!view) notFound();
-  return { ...view, refundPickerView, reimbursementPickerView };
+  return {
+    ...view,
+    frequentMerchants,
+    refundPickerView,
+    reimbursementPickerView,
+  };
 }
 
 export async function loadTransactionFilterOptions() {

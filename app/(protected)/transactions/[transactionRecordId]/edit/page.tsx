@@ -14,10 +14,8 @@ import {
 } from "internal/transaction/adapter/next/loadTransactionViews";
 import { BalanceAdjustmentEditForm } from "organisms/transactions/BalanceAdjustmentEditForm/BalanceAdjustmentEditForm";
 import { TransactionIncomeLinksProvider } from "organisms/transactions/TransactionForm/TransactionIncomeLinksContext";
-import {
-  EditTransactionTemplate,
-  EditTransferTransactionTemplate,
-} from "templates/transactions/TransactionFormPage";
+import { EditTransactionReceiptTemplate } from "templates/transactions/EditTransactionReceipt";
+import { EditTransferTransactionTemplate } from "templates/transactions/TransactionFormPage";
 import { NewTransactionVisualFrame } from "templates/transactions/NewTransactionVisualFrame";
 
 export default async function TransactionEditPage({
@@ -35,7 +33,6 @@ export default async function TransactionEditPage({
     ...view
   } = await loadEditTransactionView(transactionRecordId);
 
-  const errorMessage = null;
   const initialValues = view.initialValues;
   if (initialValues.type === "balance_adjustment") {
     return (
@@ -64,25 +61,14 @@ export default async function TransactionEditPage({
   if (initialValues.type === "transfer") {
     return (
       <NewTransactionVisualFrame>
-        <TransactionIncomeLinksProvider value={incomeLinksValue}>
-          <EditTransferTransactionTemplate
-            accountOptions={view.accountOptions}
-            action={saveEditTransaction}
-            canDelete={canDelete}
-            categoryOptions={view.categoryOptions}
-            deleteAction={voidTransaction}
-            editRestriction={editRestriction}
-            errorMessage={errorMessage}
-            frequentCategoryIds={view.frequentCategoryIds}
-            initialValues={initialValues}
-            ledgerName={view.ledgerName}
-            merchantOptions={view.merchantOptions}
-            multiAccountPaymentEnabled={view.multiAccountPaymentEnabled}
-            transactionItemSpecialStatusEnabled={
-              view.transactionItemSpecialStatusEnabled
-            }
-          />
-        </TransactionIncomeLinksProvider>
+        <EditTransferTransactionTemplate
+          accountOptions={view.accountOptions}
+          action={saveEditTransaction}
+          canDelete={canDelete}
+          deleteAction={voidTransaction}
+          editRestriction={editRestriction}
+          initialValues={initialValues}
+        />
       </NewTransactionVisualFrame>
     );
   }
@@ -90,18 +76,19 @@ export default async function TransactionEditPage({
   return (
     <NewTransactionVisualFrame>
       <TransactionIncomeLinksProvider value={incomeLinksValue}>
-        <EditTransactionTemplate
+        <EditTransactionReceiptTemplate
           accountOptions={view.accountOptions}
           action={saveEditTransaction}
+          archivedAccountOptions={view.archivedAccountOptions}
           canDelete={canDelete}
           categoryOptions={view.categoryOptions}
           deleteAction={voidTransaction}
           editRestriction={editRestriction}
-          errorMessage={errorMessage}
-          frequentCategoryIds={view.frequentCategoryIds}
+          frequentMerchants={view.frequentMerchants}
           initialValues={initialValues}
-          ledgerName={view.ledgerName}
+          ledgerId={view.ledgerId}
           merchantOptions={view.merchantOptions}
+          merchantTags={view.merchantTags}
           multiAccountPaymentEnabled={view.multiAccountPaymentEnabled}
           transactionItemSpecialStatusEnabled={
             view.transactionItemSpecialStatusEnabled

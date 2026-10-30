@@ -35,6 +35,7 @@ import {
   receiptIconSize,
 } from "./ReceiptLine";
 import { ReceiptPaymentSection } from "./ReceiptPaymentSection";
+import { receiptPaperSx, receiptShadowSx } from "./receiptPaperStyles";
 import type { TransactionConfirmStepProps } from "./TransactionConfirmStep.types";
 import { useTransactionConfirmStep } from "./useTransactionConfirmStep";
 
@@ -97,8 +98,17 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
   );
   return (
     <>
-      <Box component="form" action={props.action} onSubmit={f.handleSubmit}>
-        <TransactionFormHiddenFields form={f} includeVisibleFields />
+      <Box
+        component="form"
+        id={props.formId}
+        action={props.action}
+        onSubmit={f.handleSubmit}
+      >
+        <TransactionFormHiddenFields
+          form={f}
+          initialValues={props.initialValues}
+          includeVisibleFields
+        />
         <Stack spacing={2}>
           {props.errorMessage && (
             <Alert severity="error">{props.errorMessage}</Alert>
@@ -262,7 +272,7 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
                 w.issues.length > 0 || f.isSubmitDisabled || props.saving
               }
             >
-              {props.saving ? m.saving : m.save}
+              {props.saving ? m.saving : (props.submitLabel ?? m.save)}
             </Button>
           )}
         </Stack>
@@ -362,25 +372,6 @@ function HeaderButton({
   );
 }
 
-// 锯齿高度为齿宽的一半；上下各一排，用 mask 裁出纸片边缘，不使用图片资源。
-const toothWidth = 16;
-const tornEdgeMask = [
-  `conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / ${toothWidth}px 51% repeat-x`,
-  `conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / ${toothWidth}px 51% repeat-x`,
-].join(", ");
-
-// mask 会裁掉 box-shadow，阴影改由外层 drop-shadow 沿纸片轮廓绘制。
-const receiptShadowSx = {
-  filter: `drop-shadow(${designTokens.shadow.card})`,
-};
-const receiptPaperSx = {
-  bgcolor: "background.paper",
-  mask: tornEdgeMask,
-  WebkitMask: tornEdgeMask,
-  px: 2,
-  pt: 3,
-  pb: 2.5,
-};
 const headerButtonSx = {
   display: "inline-flex",
   alignItems: "center",

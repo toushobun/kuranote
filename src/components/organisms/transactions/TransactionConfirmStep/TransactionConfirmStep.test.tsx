@@ -755,6 +755,21 @@ describe("TransactionConfirmStep 只读", () => {
     expect(screen.queryByText("添加备注（可选）")).not.toBeInTheDocument();
   });
 
+  it("付款账户不在可选账户中（已归档）时显示已归档账户与金额，不标红", () => {
+    renderReadOnlyReceipt({
+      ...receiptItemsOptions,
+      initialItems: filledItems,
+      initialPayments: [{ accountId: "archived", amount: null }],
+    });
+    const payment = screen.getByText("已归档账户");
+    expect(screen.queryByText("选择收支账户")).not.toBeInTheDocument();
+    expect(payment.closest("[data-invalid]")).toBeNull();
+    // 支付区：标题「支付」与付款行。
+    expect(screen.getByText("支付").parentElement!).toHaveTextContent(
+      /已归档账户.*10,000/,
+    );
+  });
+
   it("传入自动明细时也不显示自动添加提示", () => {
     renderReadOnlyReceipt(
       { ...receiptItemsOptions, initialItems: filledItems },

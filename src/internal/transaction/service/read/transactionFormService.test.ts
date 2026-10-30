@@ -2,6 +2,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 
+import type { AccountSummary } from "internal/account";
 import type { TransactionItemDbRow } from "internal/db-types";
 import type { CurrentLedger } from "internal/ledger";
 import { RepositoryError } from "internal/shared/errors/appError";
@@ -10,6 +11,7 @@ import type { TransactionFormRepository } from "internal/transaction/repository/
 import type { TransferEditInitialValues } from "internal/transaction/service/read/transactionReadModels";
 import {
   formatEditableAmount,
+  getEditTransactionEntryView,
   getEditTransactionView,
   getNewTransactionView,
 } from "internal/transaction/service/read/transactionFormService";
@@ -68,10 +70,19 @@ const merchantTag = {
   sort_order: 0,
 };
 
+function transactionContext(accounts: AccountSummary[]) {
+  return {
+    accounts,
+    accountColorById: new Map<string, string>(),
+    holderIdsByAccountId: new Map<string, string[]>(),
+    showRecorder: true,
+  };
+}
+
 function createDependencies(repository: TransactionFormRepository) {
   return {
     accountQueryService: {
-      getTransactionContext: vi.fn(),
+      getTransactionContext: vi.fn().mockResolvedValue(transactionContext([])),
       listTransactionHolderOptions: vi.fn().mockResolvedValue([]),
       listTransactionOptionsWithHolders: vi.fn().mockResolvedValue([
         {
@@ -393,6 +404,70 @@ describe("getEditTransactionView", () => {
     });
   });
 
+  it("付款账户已归档时仍按账户实际币种还原金额，不用账本默认币种", async () => {
+    const usdAccount = { currency: "USD", id: accountId, name: "美元卡" };
+    const repository = createRepository({
+      findActiveRecord: vi.fn().mockResolvedValue({
+        created_at: "2026-06-04T01:00:00.000Z",
+        created_by: userId,
+        id: transactionRecordId,
+        merchant_id: merchantId,
+        note: "美元消费",
+        transaction_at: "2026-06-04T01:30:05.000Z",
+        type: "normal",
+      }),
+      listItems: vi.fn().mockResolvedValue([
+        {
+          account_id: null,
+          amount: "12.50",
+          balance_delta: null,
+          category_id: categoryId,
+          note: null,
+          transaction_record_id: transactionRecordId,
+        },
+      ]),
+      listPayments: vi.fn().mockResolvedValue([
+        {
+          account_id: accountId,
+          amount: "12.50",
+          balance_delta: "-12.50",
+          sort_order: 0,
+          transaction_record_id: transactionRecordId,
+        },
+      ]),
+    });
+    const dependencies = createDependencies(repository);
+    // 账本默认 JPY，美元卡已归档，不在账户选项里。
+    dependencies.accountQueryService.listTransactionOptionsWithHolders.mockResolvedValue(
+      [{ currency: "JPY", holders: [], id: targetAccountId, name: "储蓄" }],
+    );
+    dependencies.accountQueryService.getTransactionContext.mockResolvedValue(
+      transactionContext([usdAccount]),
+    );
+
+    const view = await getEditTransactionEntryView(
+      dependencies,
+      currentLedger,
+      transactionRecordId,
+    );
+
+    expect(
+      dependencies.accountQueryService.getTransactionContext,
+    ).toHaveBeenCalledWith({
+      accountIds: [accountId],
+      ledgerId,
+      userId,
+    });
+    expect(view).toMatchObject({
+      archivedAccountOptions: [usdAccount],
+      editRestriction: "archivedAccount",
+      initialValues: {
+        items: [{ amount: "12.5" }],
+        payments: [{ accountId, amount: "12.5" }],
+      },
+    });
+  });
+
   it("正确还原转账的转出、转入账户和金额", async () => {
     const repository = createRepository({
       findActiveRecord: vi.fn().mockResolvedValue({
@@ -707,6 +782,78 @@ describe("getNewTransactionView", () => {
   );
 });
 
+describe("getEditTransactionEntryView", () => {
+  it("编辑记账页的选项与新增记账一致，并带账本 ID（#962）", async () => {
+    const dependencies = createDependencies(
+      createRepository({
+        findActiveRecord: vi.fn().mockResolvedValue({
+          created_at: "2026-06-04T01:00:00.000Z",
+          created_by: userId,
+          id: transactionRecordId,
+          merchant_id: merchantId,
+          note: null,
+          transaction_at: "2026-06-04T01:30:05.000Z",
+          type: "normal",
+        }),
+        listItems: vi.fn().mockResolvedValue([
+          {
+            account_id: accountId,
+            amount: "1200.00",
+            balance_delta: "-1200.00",
+            category_id: categoryId,
+            note: null,
+            transaction_record_id: transactionRecordId,
+          },
+        ]),
+        listPayments: vi.fn().mockResolvedValue([
+          {
+            account_id: accountId,
+            amount: "1200.00",
+            balance_delta: "-1200.00",
+            sort_order: 0,
+            transaction_record_id: transactionRecordId,
+          },
+        ]),
+      }),
+    );
+
+    const view = await getEditTransactionEntryView(
+      dependencies,
+      currentLedger,
+      transactionRecordId,
+    );
+
+    expect(view).toMatchObject({
+      editRestriction: null,
+      initialValues: { merchantId, transactionRecordId, type: "expense" },
+      ledgerId: currentLedger.id,
+      merchantOptions: [
+        { icon_url: null, id: merchantId, name: "便利店", tags: [merchantTag] },
+      ],
+      merchantTags: [merchantTag],
+    });
+    expect(view?.accountOptions[0]).toEqual({
+      currency: "JPY",
+      holders: [{ display_name: "我" }],
+      id: accountId,
+      name: "现金",
+    });
+    expect(
+      dependencies.accountQueryService.listTransactionOptions,
+    ).not.toHaveBeenCalled();
+  });
+
+  it("记录不存在时返回 null", async () => {
+    await expect(
+      getEditTransactionEntryView(
+        createDependencies(createRepository()),
+        currentLedger,
+        transactionRecordId,
+      ),
+    ).resolves.toBeNull();
+  });
+});
+
 describe("getEditTransactionView income links", () => {
   it.each([
     ["已报销支出", { special_status: "reimbursed" as const }],
@@ -874,12 +1021,9 @@ async function getArchivedBalanceAdjustmentView(createdBy: string) {
   });
   const dependencies = createDependencies(repository);
   dependencies.accountQueryService.listTransactionOptions.mockResolvedValue([]);
-  dependencies.accountQueryService.getTransactionContext.mockResolvedValue({
-    accounts: [{ id: accountId, name: "归档现金", currency: "JPY" }],
-    accountColorById: new Map(),
-    holderIdsByAccountId: new Map(),
-    showRecorder: true,
-  });
+  dependencies.accountQueryService.getTransactionContext.mockResolvedValue(
+    transactionContext([{ id: accountId, name: "归档现金", currency: "JPY" }]),
+  );
   return getEditTransactionView(
     dependencies,
     currentLedger,

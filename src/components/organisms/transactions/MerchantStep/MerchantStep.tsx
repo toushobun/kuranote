@@ -38,14 +38,23 @@ export function MerchantStep(props: MerchantStepProps) {
         />
       }
       action={
-        <Stack spacing={2}>
-          <Button variant="contained" onClick={props.onAddPresets}>
-            {m.presets}
-          </Button>
-          <Button variant="outlined" onClick={() => props.onAddMerchant()}>
-            {m.addMerchant}
-          </Button>
-        </Stack>
+        (props.onAddPresets || props.onAddMerchant) && (
+          <Stack spacing={2}>
+            {props.onAddPresets && (
+              <Button variant="contained" onClick={props.onAddPresets}>
+                {m.presets}
+              </Button>
+            )}
+            {props.onAddMerchant && (
+              <Button
+                variant="outlined"
+                onClick={() => props.onAddMerchant?.()}
+              >
+                {m.addMerchant}
+              </Button>
+            )}
+          </Stack>
+        )
       }
     />
   ) : (
@@ -158,13 +167,15 @@ export function MerchantStep(props: MerchantStepProps) {
       ) : (
         <Stack spacing={2} sx={emptySx}>
           <Typography>{m.notFound(w.keyword)}</Typography>
-          <Button
-            startIcon={<AddRoundedIcon />}
-            variant="outlined"
-            onClick={() => props.onAddMerchant(w.keyword)}
-          >
-            {m.addSearch(w.keyword)}
-          </Button>
+          {props.onAddMerchant && (
+            <Button
+              startIcon={<AddRoundedIcon />}
+              variant="outlined"
+              onClick={() => props.onAddMerchant?.(w.keyword)}
+            >
+              {m.addSearch(w.keyword)}
+            </Button>
+          )}
         </Stack>
       )}
     </Stack>

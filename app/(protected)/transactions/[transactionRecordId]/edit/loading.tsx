@@ -1,5 +1,5 @@
-import { TransactionFormSkeleton } from "templates/transactions/TransactionFormSkeleton";
+import { EditTransactionSkeleton } from "templates/transactions/EditTransactionSkeleton";
 
 export default function TransactionEditLoadingPage() {
-  return <TransactionFormSkeleton title="编辑记账" />;
+  return <EditTransactionSkeleton />;
 }

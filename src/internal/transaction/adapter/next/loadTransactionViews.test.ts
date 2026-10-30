@@ -14,7 +14,7 @@ const mocks = vi.hoisted(() => ({
   createRequestContainer: vi.fn(),
   createServerRequestDependencies: vi.fn(),
   getCurrentLedgerOrRedirect: vi.fn(),
-  getEditView: vi.fn(),
+  getEditEntryView: vi.fn(),
   getFrequentMerchants: vi.fn(),
   getGroupItems: vi.fn(),
   getGroupPage: vi.fn(),
@@ -211,11 +211,17 @@ describe("Transaction 编辑 SSR 边界", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getCurrentLedgerOrRedirect.mockResolvedValue(currentLedger);
-    mocks.createServerRequestDependencies.mockResolvedValue({});
+    mocks.createServerRequestDependencies.mockResolvedValue({
+      logger: { error: mocks.logError },
+    });
+    mocks.getFrequentMerchants.mockResolvedValue([]);
     mocks.createRequestContainer.mockReturnValue({
       transaction: {
+        merchantEntryQueryService: {
+          getFrequentMerchants: mocks.getFrequentMerchants,
+        },
         service: {
-          getEditView: mocks.getEditView,
+          getEditEntryView: mocks.getEditEntryView,
           getGroupView: mocks.getGroupView,
         },
       },
@@ -230,11 +236,11 @@ describe("Transaction 编辑 SSR 边界", () => {
     expect(mocks.createServerRequestDependencies).not.toHaveBeenCalled();
   });
   it("Service 查不到当前账本内交易时 notFound", async () => {
-    mocks.getEditView.mockResolvedValue(null);
+    mocks.getEditEntryView.mockResolvedValue(null);
     await expect(loadEditTransactionView(transactionRecordId)).rejects.toThrow(
       "NEXT_NOT_FOUND",
     );
-    expect(mocks.getEditView).toHaveBeenCalledWith(
+    expect(mocks.getEditEntryView).toHaveBeenCalledWith(
       currentLedger,
       transactionRecordId,
     );
@@ -250,7 +256,7 @@ describe("Transaction 编辑 SSR 边界", () => {
     const refundPickerView = { groups: [{ key: "refund" }] };
     const reimbursementPickerView = { groups: [{ key: "reimbursement" }] };
     mocks.getCurrentLedgerOrRedirect.mockResolvedValue(enabledLedger);
-    mocks.getEditView.mockResolvedValue({ form: "edit" });
+    mocks.getEditEntryView.mockResolvedValue({ form: "edit" });
     mocks.getGroupView
       .mockResolvedValueOnce(refundPickerView)
       .mockResolvedValueOnce(reimbursementPickerView);
@@ -258,11 +264,12 @@ describe("Transaction 编辑 SSR 边界", () => {
     await expect(loadEditTransactionView(transactionRecordId)).resolves.toEqual(
       {
         form: "edit",
+        frequentMerchants: [],
         refundPickerView,
         reimbursementPickerView,
       },
     );
-    expect(mocks.getEditView).toHaveBeenCalledWith(
+    expect(mocks.getEditEntryView).toHaveBeenCalledWith(
       enabledLedger,
       transactionRecordId,
     );
@@ -278,5 +285,23 @@ describe("Transaction 编辑 SSR 边界", () => {
       "month",
       reimbursementFilters,
     );
+  });
+
+  it("编辑视图带常用商家，供小票换商家使用（#962）", async () => {
+    const frequentMerchants = [{ merchantId: "seven", recordCount: 3 }];
+    mocks.getEditEntryView.mockResolvedValue({ form: "edit" });
+    mocks.getFrequentMerchants.mockResolvedValue(frequentMerchants);
+
+    await expect(loadEditTransactionView(transactionRecordId)).resolves.toEqual(
+      {
+        form: "edit",
+        frequentMerchants,
+        refundPickerView: undefined,
+        reimbursementPickerView: undefined,
+      },
+    );
+    expect(mocks.getFrequentMerchants).toHaveBeenCalledWith({
+      ledgerId: currentLedger.id,
+    });
   });
 });

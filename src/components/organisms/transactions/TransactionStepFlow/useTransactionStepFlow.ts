@@ -6,8 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useResolvedTransactionIncomeLinks } from "organisms/transactions/TransactionForm/TransactionIncomeLinksContext";
-import { useTransactionForm } from "organisms/transactions/TransactionForm/useTransactionForm";
+import { useTransactionReceiptForm } from "organisms/transactions/TransactionConfirmStep/useTransactionReceiptForm";
 import type { TransactionFormInitialValues } from "organisms/transactions/TransactionForm/TransactionForm.types";
 import { useConfirmDialog } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import type { ActionState } from "types/actions";
@@ -46,31 +45,24 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     !!props.initialMerchantId,
   );
   const baseItemsOptions = props.itemsOptions ?? { categoryOptions: [] };
-  // 明细抽屉的退款 / 报销选择器优先使用页面的 TransactionIncomeLinksProvider。
-  const itemsOptions = {
-    ...baseItemsOptions,
-    ...useResolvedTransactionIncomeLinks(baseItemsOptions),
-  };
-  const [amountItemId, setAmountItemId] = useState<number | null>(null);
   const [initialValues] = useState<TransactionFormInitialValues>(() => ({
-    items: itemsOptions.initialItems ?? [],
+    items: baseItemsOptions.initialItems ?? [],
     merchantId: props.initialMerchantId ?? "",
     note: "",
-    payments: itemsOptions.initialPayments ?? [
+    payments: baseItemsOptions.initialPayments ?? [
       { accountId: props.initialAccountId ?? "", amount: null },
     ],
     transactionAt: "",
     type: "expense",
   }));
   const [automaticItemIds, setAutomaticItemIds] = useState<number[]>([]);
-  const form = useTransactionForm({
-    accountOptions: props.accounts,
-    categoryOptions: itemsOptions.categoryOptions,
-    merchantOptions: props.merchants,
-    initialValues,
-    deferPickerAmount: true,
-    onPickerItemCommit: setAmountItemId,
-  });
+  const { form, itemsOptions, amountItemId, setAmountItemId } =
+    useTransactionReceiptForm({
+      accounts: props.accounts,
+      merchants: props.merchants,
+      itemsOptions: baseItemsOptions,
+      initialValues,
+    });
   // 开始等待建议时的明细与付款；超时后与之不同即视为用户动过小票（选账户、加 / 删明细、改金额）。
   const receiptSnapshot = JSON.stringify([
     form.itemSummaries.map((item) => [item.id, item.amount]),

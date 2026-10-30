@@ -7,5 +7,6 @@ export type AccountStepProps = {
   selectedAccount?: TransactionAccountOption;
   hasDetails?: boolean;
   onSelect: (account: TransactionAccountOption) => void;
-  onAddAccount: () => void;
+  /** 不传时不显示「新增账户」入口（编辑记账，#962）。 */
+  onAddAccount?: () => void;
 };

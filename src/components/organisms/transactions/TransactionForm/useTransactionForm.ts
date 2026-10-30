@@ -543,7 +543,8 @@ export function useTransactionForm({
   }
 
   function handleMerchantChange(merchantId: string) {
-    markEditDirty?.();
+    // 重新选了同一个商家不算修改（#962）。
+    if (merchantId !== selectedMerchantId) markEditDirty?.();
     setSelectedMerchantId(merchantId);
     if (fieldErrors.merchant) {
       setFieldErrors((current) => ({ ...current, merchant: undefined }));

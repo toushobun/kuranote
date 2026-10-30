@@ -66,6 +66,7 @@ import {
 } from "internal/transaction/service/read/groupLoaders";
 import {
   areAccountIdsAvailable,
+  getEditTransactionEntryView,
   getEditTransactionView,
   getNewTransactionView,
 } from "internal/transaction/service/read/transactionFormService";
@@ -90,6 +91,7 @@ import {
   normalizeTransactionSearchQuery,
 } from "internal/transaction/util/transactionSearchHelpers";
 import type {
+  EditTransactionEntryView,
   EditTransactionView,
   NewTransactionView,
   TransactionFilterOptions,
@@ -123,6 +125,11 @@ export interface TransactionService {
     currentLedger: CurrentLedger,
     transactionRecordId: string,
   ): Promise<EditTransactionView | null>;
+  /** 编辑记账页（#962）：选项与新增记账一致。 */
+  getEditEntryView(
+    currentLedger: CurrentLedger,
+    transactionRecordId: string,
+  ): Promise<EditTransactionEntryView | null>;
   getFilterOptions(
     currentLedger: CurrentLedger,
   ): Promise<TransactionFilterOptions>;
@@ -494,6 +501,14 @@ export function createTransactionService({
 
     async getEditView(currentLedger, transactionRecordId) {
       return getEditTransactionView(
+        getReadDependencies(),
+        await requireReadLedger(currentLedger),
+        transactionRecordId,
+      );
+    },
+
+    async getEditEntryView(currentLedger, transactionRecordId) {
+      return getEditTransactionEntryView(
         getReadDependencies(),
         await requireReadLedger(currentLedger),
         transactionRecordId,

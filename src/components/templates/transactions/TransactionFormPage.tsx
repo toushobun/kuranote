@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  useCallback,
   useActionState,
   useEffect,
   useLayoutEffect,
@@ -11,20 +10,11 @@ import {
   type ReactNode,
 } from "react";
 
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Dialog from "@mui/material/Dialog";
-import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material/DialogContent";
-import DialogContentText from "@mui/material/DialogContentText";
-import DialogTitle from "@mui/material/DialogTitle";
-import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
 import Link from "next/link";
 
-import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import {
   accountsCreateHref,
   merchantsNewHref,
@@ -32,39 +22,16 @@ import {
   transactionsNewEntryHref,
 } from "config/paths";
 import { flowMessages } from "config/transactionStepFlowMessages";
-import { getAmountDecimalPlaces } from "utils/transactionAmountInput";
-import { transactionEditRestrictionMessages } from "utils/transactionMessages";
-import {
-  DeleteConfirmationDialog,
-  FailureFeedbackDialog,
-} from "molecules/ui/OperationFeedbackDialogs";
 import { ErrorState } from "molecules/ui/ErrorState";
-import { TransactionEditRestrictionAlert } from "molecules/transactions/TransactionEditRestrictionAlert";
-import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
-import {
-  transactionErrorCodes,
-  transactionLinkedEditErrorTitles,
-  type TransactionEditRestriction,
-} from "internal/transaction";
+import type { TransactionEditRestriction } from "internal/transaction";
 import {
   TransactionTypeNavigation,
   type TransactionTypeNavigationValue,
 } from "molecules/transactions/TransactionTypeNavigation";
 import { TransactionAmountKeypadLauncher } from "organisms/transactions/TransactionAmountKeypadLauncher/TransactionAmountKeypadLauncher";
-import { EditTransactionDirtyProvider } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
-import { LinkedTransactionSyncConfirmationDialog } from "organisms/transactions/LinkedTransactionSyncConfirmationDialog/LinkedTransactionSyncConfirmationDialog";
-import {
-  TransactionForm,
-  type TransactionFormInitialValues,
-} from "organisms/transactions/TransactionForm/TransactionForm";
-import {
-  transactionFormStackSx,
-  transactionSubmitButtonSx,
-} from "organisms/transactions/TransactionForm/TransactionForm.styles";
+import { TransactionForm } from "organisms/transactions/TransactionForm/TransactionForm";
 import { TransactionEntryMethodSwitch } from "organisms/transactions/TransactionEntryMethodSwitch/TransactionEntryMethodSwitch";
 import { TransferTransactionForm } from "organisms/transactions/TransferTransactionForm/TransferTransactionForm";
-import { designTokens } from "theme/theme";
-import type { TransferEditInitialValues } from "types/transactions";
 import type {
   TransactionAccountOption,
   TransactionCategoryOption,
@@ -76,7 +43,10 @@ import type {
   TransactionRecordType,
   TransactionStateAction,
   TransactionType,
+  TransferEditInitialValues,
 } from "types/transactions";
+import { EditTransactionShell } from "./EditTransactionShell";
+import { TransactionPageTopBar } from "./TransactionPageTopBar";
 import { useLinkedTransactionEditAction } from "./useLinkedTransactionEditAction";
 
 export type TransactionFormTemplateProps = {
@@ -104,21 +74,14 @@ export type TransactionFormTemplateProps = {
   transactionItemSpecialStatusEnabled: boolean;
 };
 
-type EditTemplateBaseProps = Omit<
+type EditTransferTransactionTemplateProps = Pick<
   TransactionFormTemplateProps,
-  "initialType"
+  "accountOptions" | "action"
 > & {
   canDelete: boolean;
   deleteAction: TransactionStateAction;
   /** 有限制时显示只读详情（#928）：表单整体禁用，不显示保存。 */
   editRestriction: TransactionEditRestriction | null;
-};
-
-type EditTransactionTemplateProps = EditTemplateBaseProps & {
-  initialValues: TransactionFormInitialValues;
-};
-
-type EditTransferTransactionTemplateProps = EditTemplateBaseProps & {
   initialValues: TransferEditInitialValues;
 };
 
@@ -128,21 +91,7 @@ const transactionTypeOrder: readonly TransactionRecordType[] = [
   "transfer",
 ];
 
-const deleteTransactionFormId = "delete-transaction-form";
-
-function editTransactionFormId(type: TransactionRecordType) {
-  return `edit-${type}-transaction-form`;
-}
-
-function requireEditTransactionRecordId(
-  transactionRecordId: string | undefined,
-) {
-  if (!transactionRecordId) {
-    throw new Error("transactionRecordId is required for edit transaction.");
-  }
-
-  return transactionRecordId;
-}
+const editTransferTransactionFormId = "edit-transfer-transaction-form";
 
 type TransactionTypeSlidePanelsProps = {
   activeType: TransactionRecordType;
@@ -447,724 +396,39 @@ function NewTransactionFormView({
   );
 }
 
-function TransactionPageTopBar({
-  action,
-  hasUnsavedChanges = false,
-  onClose,
-  title,
-}: {
-  action?: ReactNode;
-  hasUnsavedChanges?: boolean;
-  onClose?: () => void;
-  title: string;
-}) {
-  return (
-    <Box sx={newTransactionTopBarSx}>
-      {hasUnsavedChanges && onClose ? (
-        <IconButton
-          aria-label="关闭"
-          onClick={onClose}
-          sx={newTransactionCloseButtonSx}
-        >
-          <ArrowBackRoundedIcon />
-        </IconButton>
-      ) : (
-        <IconButton
-          aria-label="关闭"
-          component={Link}
-          href={routePaths.transactions}
-          sx={newTransactionCloseButtonSx}
-        >
-          <ArrowBackRoundedIcon />
-        </IconButton>
-      )}
-      <Typography component="h1" variant="h5" sx={newTransactionTitleSx}>
-        {title}
-      </Typography>
-      {action ? (
-        <Box sx={{ justifySelf: "end" }}>{action}</Box>
-      ) : (
-        <Box aria-hidden sx={{ width: 40 }} />
-      )}
-    </Box>
-  );
-}
-
-// 两侧等宽、标题居中；右侧可放「切换方式」等操作。
-const newTransactionTopBarSx = {
-  alignItems: "center",
-  display: "grid",
-  gridTemplateColumns: "minmax(40px, 1fr) auto minmax(40px, 1fr)",
-  pb: 1.5,
-  pt: { xs: 0, sm: 0.5 },
-};
-
-const newTransactionCloseButtonSx = {
-  "@media (hover: hover)": {
-    "&:hover": {
-      bgcolor: "action.hover",
-    },
-  },
-  color: "text.secondary",
-  justifySelf: "start",
-};
-
-const newTransactionTitleSx = {
-  color: "text.primary",
-  fontSize: "1rem",
-  fontWeight: 800,
-  letterSpacing: 0,
-  lineHeight: 1.25,
-  textAlign: "center",
-};
-
-type EditTransactionShellProps = {
-  activeType: TransactionRecordType;
-  canDelete: boolean;
-  deleteAction: TransactionStateAction;
-  editRestriction: TransactionEditRestriction | null;
-  hasLinkedIncomeItems: boolean;
-  isSaveConfirmationOpen: boolean;
-  isSaveFailureOpen: boolean;
-  isSavePending: boolean;
-  onCancelSync: () => void;
-  onCloseSaveFailure: () => void;
-  onConfirmSync: () => void;
-  panels: Record<TransactionRecordType, ReactNode>;
-  saveErrorMessage?: string;
-  setActiveType: (type: TransactionRecordType) => void;
-  submitDisabledByType: Record<TransactionRecordType, boolean>;
-  transactionRecordId: string;
-};
-
-function EditTransactionShell({
-  activeType,
-  canDelete,
-  deleteAction,
-  editRestriction,
-  hasLinkedIncomeItems,
-  isSaveConfirmationOpen,
-  isSaveFailureOpen,
-  isSavePending,
-  onCancelSync,
-  onCloseSaveFailure,
-  onConfirmSync,
-  panels,
-  saveErrorMessage,
-  setActiveType,
-  submitDisabledByType,
-  transactionRecordId,
-}: EditTransactionShellProps) {
-  const readOnly = editRestriction !== null;
-  const [deleteState, deleteFormAction] = useActionState(deleteAction, {});
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [isExitDialogOpen, setIsExitDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [dismissedDeleteState, setDismissedDeleteState] = useState(deleteState);
-  const lastNormalTypeRef = useRef<TransactionType>(
-    activeType !== "transfer" ? activeType : "expense",
-  );
-
-  const outerTab: TransactionTypeNavigationValue =
-    activeType === "transfer" ? "transfer" : "normal";
-
-  const markDirty = useCallback(() => setHasUnsavedChanges(true), []);
-
-  useEffect(() => {
-    if (activeType !== "transfer") {
-      lastNormalTypeRef.current = activeType;
-    }
-  }, [activeType]);
-
-  useEffect(() => {
-    if (!hasUnsavedChanges) return;
-
-    function handleBeforeUnload(event: BeforeUnloadEvent) {
-      event.preventDefault();
-      event.returnValue = "";
-    }
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [hasUnsavedChanges]);
-
-  function handleOuterTabChange(tab: TransactionTypeNavigationValue) {
-    markDirty();
-    setActiveType(tab === "transfer" ? "transfer" : lastNormalTypeRef.current);
-  }
-
-  function handleSaveAndExit() {
-    const form = document
-      .getElementById(editTransactionFormId(activeType))
-      ?.closest("form");
-
-    if (!(form instanceof HTMLFormElement)) return;
-
-    setIsExitDialogOpen(false);
-    form.requestSubmit();
-  }
-
-  function handleConfirmDelete() {
-    const form = document.getElementById(deleteTransactionFormId);
-    if (!(form instanceof HTMLFormElement)) return;
-
-    setIsDeleteDialogOpen(false);
-    form.requestSubmit();
-  }
-
-  return (
-    <EditTransactionDirtyProvider onDirty={markDirty}>
-      <Stack onChangeCapture={markDirty} spacing={0}>
-        <TransactionPageTopBar
-          hasUnsavedChanges={hasUnsavedChanges}
-          onClose={() => setIsExitDialogOpen(true)}
-          title={
-            readOnly ? transactionEditRestrictionMessages.pageTitle : "编辑记账"
-          }
-        />
-        {editRestriction ? (
-          <Box sx={editRestrictionAlertSx}>
-            <TransactionEditRestrictionAlert reason={editRestriction} />
-          </Box>
-        ) : null}
-        <TransactionTypeNavigation
-          activeType={outerTab}
-          disabled={readOnly}
-          onChange={handleOuterTabChange}
-        />
-        <TransactionTypeSlidePanels activeType={activeType} panels={panels} />
-        {canDelete || !readOnly ? (
-          <Box
-            sx={[
-              editTransactionActionBarSx,
-              readOnly && editTransactionSingleActionSx,
-            ]}
-          >
-            {canDelete ? (
-              <Button
-                color="error"
-                onClick={() => setIsDeleteDialogOpen(true)}
-                size="large"
-                variant="outlined"
-                sx={editTransactionDeleteButtonSx}
-              >
-                删除
-              </Button>
-            ) : null}
-            {readOnly ? null : (
-              <PrimaryActionButton
-                disabled={submitDisabledByType[activeType] || isSavePending}
-                form={editTransactionFormId(activeType)}
-                size="large"
-                type="submit"
-                sx={editTransactionSaveButtonSx}
-              >
-                保存修改
-              </PrimaryActionButton>
-            )}
-          </Box>
-        ) : null}
-      </Stack>
-      <form action={deleteFormAction} id={deleteTransactionFormId}>
-        <input
-          name="transactionRecordId"
-          readOnly
-          type="hidden"
-          value={transactionRecordId}
-        />
-      </form>
-      {readOnly ? null : <TransactionAmountKeypadLauncher />}
-      <Dialog
-        aria-labelledby="unsaved-transaction-dialog-title"
-        onClose={() => setIsExitDialogOpen(false)}
-        open={isExitDialogOpen}
-      >
-        <DialogTitle id="unsaved-transaction-dialog-title">
-          尚未保存
-        </DialogTitle>
-        <DialogContent>
-          <DialogContentText>修正的内容尚未保存，是否保存？</DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setIsExitDialogOpen(false)}>继续编辑</Button>
-          <Button component={Link} href={routePaths.transactions} color="error">
-            放弃修改
-          </Button>
-          <Button onClick={handleSaveAndExit} variant="contained">
-            保存
-          </Button>
-        </DialogActions>
-      </Dialog>
-      <DeleteConfirmationDialog
-        description={
-          hasLinkedIncomeItems
-            ? "删除后这笔记账会从明细页移除，并解除退款 / 报销关联，目标支出的核销净额会相应变化。是否继续？"
-            : "删除后这笔记账会从明细页移除，是否继续？"
-        }
-        onCancel={() => setIsDeleteDialogOpen(false)}
-        onConfirm={handleConfirmDelete}
-        open={isDeleteDialogOpen}
-        title="删除记账？"
-      />
-      <LinkedTransactionSyncConfirmationDialog
-        onCancel={() => {
-          setHasUnsavedChanges(true);
-          onCancelSync();
-        }}
-        onConfirm={onConfirmSync}
-        open={isSaveConfirmationOpen}
-      />
-      <FailureFeedbackDialog
-        bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
-        description={saveErrorMessage}
-        onClose={() => {
-          setHasUnsavedChanges(true);
-          onCloseSaveFailure();
-        }}
-        open={isSaveFailureOpen}
-        title="保存失败"
-      />
-      <FailureFeedbackDialog
-        bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
-        description={deleteState.error}
-        onClose={() => setDismissedDeleteState(deleteState)}
-        open={Boolean(
-          deleteState.error && deleteState !== dismissedDeleteState,
-        )}
-        title={
-          deleteState.errorCode === transactionErrorCodes.linkedDeleteForbidden
-            ? transactionLinkedEditErrorTitles.deleteForbidden
-            : "删除失败"
-        }
-      />
-    </EditTransactionDirtyProvider>
-  );
-}
-
-const editTransactionActionBarSx = {
-  display: "grid",
-  gap: 1.25,
-  gridTemplateColumns: "minmax(0, 1fr) minmax(0, 2fr)",
-  // 与表单内各区块（如时间与保存前汇总）保持相同间距
-  mt: transactionFormStackSx.gap,
-};
-
-// 只读详情只剩删除按钮时占满整行。
-const editTransactionSingleActionSx = {
-  gridTemplateColumns: "minmax(0, 1fr)",
-};
-
-const editRestrictionAlertSx = {
-  pb: 1.5,
-};
-
-// 操作栏已统一控制上边距，去掉保存按钮自带的上边距以与删除按钮对齐
-const editTransactionSaveButtonSx = {
-  ...transactionSubmitButtonSx,
-  mt: 0,
-};
-
-const editTransactionDeleteButtonSx = {
-  borderRadius: `${designTokens.radius.md}px`,
-  fontSize: "1rem",
-  fontWeight: 800,
-  minHeight: 48,
-};
-
+/** 编辑转账（#962）：只能修改转账本身，不再与支出 / 收入互相转换。 */
 export function EditTransferTransactionTemplate({
   accountOptions,
   action,
   canDelete,
-  categoryOptions,
   deleteAction,
   editRestriction,
-  errorMessage,
-  frequentCategoryIds,
   initialValues,
-  merchantOptions,
-  multiAccountPaymentEnabled,
-  transactionItemSpecialStatusEnabled,
 }: EditTransferTransactionTemplateProps) {
   const editAction = useLinkedTransactionEditAction(action);
-  const activeErrorMessage = errorMessage;
   const readOnly = editRestriction !== null;
-  const [activeType, setActiveType] =
-    useState<TransactionRecordType>("transfer");
-  const [submitDisabledByType, setSubmitDisabledByType] = useState<
-    Record<TransactionRecordType, boolean>
-  >({ expense: true, income: true, transfer: true });
-
-  const panels = useMemo(
-    () => ({
-      expense: (
-        <>
-          <input
-            form={editTransactionFormId("expense")}
-            name="sourceType"
-            readOnly
-            type="hidden"
-            value="transfer"
-          />
-          <TransactionForm
-            action={editAction.formAction}
-            accountOptions={accountOptions}
-            categoryOptions={categoryOptions}
-            errorMessage={activeErrorMessage}
-            frequentCategoryIds={frequentCategoryIds}
-            formId={editTransactionFormId("expense")}
-            hideHeader
-            hideSubmitButton
-            initialValues={createNormalInitialValuesFromTransfer(
-              initialValues,
-              "expense",
-            )}
-            merchantOptions={merchantOptions}
-            multiAccountPaymentEnabled={multiAccountPaymentEnabled}
-            transactionItemSpecialStatusEnabled={
-              transactionItemSpecialStatusEnabled
-            }
-            onSubmitDisabledChange={(disabled) =>
-              setSubmitDisabledByType((prev) => ({
-                ...prev,
-                expense: disabled,
-              }))
-            }
-            readOnly={readOnly}
-            submitLabel="保存修改"
-          />
-        </>
-      ),
-      income: (
-        <>
-          <input
-            form={editTransactionFormId("income")}
-            name="sourceType"
-            readOnly
-            type="hidden"
-            value="transfer"
-          />
-          <TransactionForm
-            action={editAction.formAction}
-            accountOptions={accountOptions}
-            categoryOptions={categoryOptions}
-            errorMessage={activeErrorMessage}
-            frequentCategoryIds={frequentCategoryIds}
-            formId={editTransactionFormId("income")}
-            hideHeader
-            hideSubmitButton
-            initialValues={createNormalInitialValuesFromTransfer(
-              initialValues,
-              "income",
-            )}
-            merchantOptions={merchantOptions}
-            multiAccountPaymentEnabled={multiAccountPaymentEnabled}
-            transactionItemSpecialStatusEnabled={
-              transactionItemSpecialStatusEnabled
-            }
-            onSubmitDisabledChange={(disabled) =>
-              setSubmitDisabledByType((prev) => ({ ...prev, income: disabled }))
-            }
-            readOnly={readOnly}
-            submitLabel="保存修改"
-          />
-        </>
-      ),
-      transfer: (
-        <TransferTransactionForm
-          action={editAction.formAction}
-          accountOptions={accountOptions}
-          errorMessage={activeErrorMessage}
-          formId={editTransactionFormId("transfer")}
-          hideHeader
-          hideSubmitButton
-          initialValues={initialValues}
-          onSubmitDisabledChange={(disabled) =>
-            setSubmitDisabledByType((prev) => ({ ...prev, transfer: disabled }))
-          }
-          readOnly={readOnly}
-          sourceType="transfer"
-        />
-      ),
-    }),
-    [
-      editAction.formAction,
-      accountOptions,
-      categoryOptions,
-      frequentCategoryIds,
-      activeErrorMessage,
-      initialValues,
-      merchantOptions,
-      multiAccountPaymentEnabled,
-      readOnly,
-      transactionItemSpecialStatusEnabled,
-    ],
-  );
 
   return (
     <EditTransactionShell
-      activeType={activeType}
       canDelete={canDelete}
       deleteAction={deleteAction}
+      editAction={editAction}
       editRestriction={editRestriction}
       hasLinkedIncomeItems={false}
-      isSaveConfirmationOpen={editAction.isConfirmationOpen}
-      isSaveFailureOpen={editAction.isFailureOpen}
-      isSavePending={editAction.isPending}
-      onCancelSync={editAction.cancelConfirmation}
-      onCloseSaveFailure={editAction.closeFailure}
-      onConfirmSync={editAction.confirmSync}
-      panels={panels}
-      saveErrorMessage={editAction.state.error}
-      setActiveType={setActiveType}
-      submitDisabledByType={submitDisabledByType}
-      transactionRecordId={requireEditTransactionRecordId(
-        initialValues.transactionRecordId,
-      )}
-    />
+      saveFormId={editTransferTransactionFormId}
+      transactionRecordId={initialValues.transactionRecordId}
+    >
+      <TransferTransactionForm
+        action={editAction.formAction}
+        accountOptions={accountOptions}
+        formId={editTransferTransactionFormId}
+        hideHeader
+        hideSubmitButton={readOnly}
+        initialValues={initialValues}
+        readOnly={readOnly}
+        sourceType="transfer"
+      />
+      {readOnly ? null : <TransactionAmountKeypadLauncher />}
+    </EditTransactionShell>
   );
-}
-
-export function EditTransactionTemplate({
-  accountOptions,
-  action,
-  canDelete,
-  categoryOptions,
-  deleteAction,
-  editRestriction,
-  errorMessage,
-  frequentCategoryIds,
-  initialValues,
-  merchantOptions,
-  multiAccountPaymentEnabled,
-  transactionItemSpecialStatusEnabled,
-}: EditTransactionTemplateProps) {
-  const editAction = useLinkedTransactionEditAction(action);
-  const activeErrorMessage = errorMessage;
-  const readOnly = editRestriction !== null;
-  const [activeType, setActiveType] = useState<TransactionRecordType>(
-    initialValues.type,
-  );
-  const [submitDisabledByType, setSubmitDisabledByType] = useState<
-    Record<TransactionRecordType, boolean>
-  >({ expense: true, income: true, transfer: true });
-
-  const panels = useMemo(
-    () => ({
-      expense: (
-        <>
-          <input
-            form={editTransactionFormId("expense")}
-            name="sourceType"
-            readOnly
-            type="hidden"
-            value={initialValues.type}
-          />
-          <TransactionForm
-            action={editAction.formAction}
-            accountOptions={accountOptions}
-            categoryOptions={categoryOptions}
-            errorMessage={activeErrorMessage}
-            frequentCategoryIds={frequentCategoryIds}
-            formId={editTransactionFormId("expense")}
-            hideHeader
-            hideSubmitButton
-            initialValues={createNormalInitialValuesFromNormal(
-              initialValues,
-              "expense",
-            )}
-            merchantOptions={merchantOptions}
-            multiAccountPaymentEnabled={multiAccountPaymentEnabled}
-            transactionItemSpecialStatusEnabled={
-              transactionItemSpecialStatusEnabled
-            }
-            onSubmitDisabledChange={(disabled) =>
-              setSubmitDisabledByType((prev) => ({
-                ...prev,
-                expense: disabled,
-              }))
-            }
-            readOnly={readOnly}
-            submitLabel="保存修改"
-          />
-        </>
-      ),
-      income: (
-        <>
-          <input
-            form={editTransactionFormId("income")}
-            name="sourceType"
-            readOnly
-            type="hidden"
-            value={initialValues.type}
-          />
-          <TransactionForm
-            action={editAction.formAction}
-            accountOptions={accountOptions}
-            categoryOptions={categoryOptions}
-            errorMessage={activeErrorMessage}
-            frequentCategoryIds={frequentCategoryIds}
-            formId={editTransactionFormId("income")}
-            hideHeader
-            hideSubmitButton
-            initialValues={createNormalInitialValuesFromNormal(
-              initialValues,
-              "income",
-            )}
-            merchantOptions={merchantOptions}
-            multiAccountPaymentEnabled={multiAccountPaymentEnabled}
-            transactionItemSpecialStatusEnabled={
-              transactionItemSpecialStatusEnabled
-            }
-            onSubmitDisabledChange={(disabled) =>
-              setSubmitDisabledByType((prev) => ({ ...prev, income: disabled }))
-            }
-            readOnly={readOnly}
-            submitLabel="保存修改"
-          />
-        </>
-      ),
-      transfer: (
-        <TransferTransactionForm
-          action={editAction.formAction}
-          accountOptions={accountOptions}
-          errorMessage={activeErrorMessage}
-          formId={editTransactionFormId("transfer")}
-          hideHeader
-          hideSubmitButton
-          initialValues={createTransferInitialValuesFromNormal(
-            initialValues,
-            accountOptions,
-          )}
-          onSubmitDisabledChange={(disabled) =>
-            setSubmitDisabledByType((prev) => ({ ...prev, transfer: disabled }))
-          }
-          readOnly={readOnly}
-          sourceType={initialValues.type}
-        />
-      ),
-    }),
-    [
-      editAction.formAction,
-      accountOptions,
-      categoryOptions,
-      frequentCategoryIds,
-      activeErrorMessage,
-      initialValues,
-      merchantOptions,
-      multiAccountPaymentEnabled,
-      readOnly,
-      transactionItemSpecialStatusEnabled,
-    ],
-  );
-
-  return (
-    <EditTransactionShell
-      activeType={activeType}
-      canDelete={canDelete}
-      deleteAction={deleteAction}
-      editRestriction={editRestriction}
-      hasLinkedIncomeItems={initialValues.items.some(
-        (item) => item.businessStatus?.incomeLinkRole != null,
-      )}
-      isSaveConfirmationOpen={editAction.isConfirmationOpen}
-      isSaveFailureOpen={editAction.isFailureOpen}
-      isSavePending={editAction.isPending}
-      onCancelSync={editAction.cancelConfirmation}
-      onCloseSaveFailure={editAction.closeFailure}
-      onConfirmSync={editAction.confirmSync}
-      panels={panels}
-      saveErrorMessage={editAction.state.error}
-      setActiveType={setActiveType}
-      submitDisabledByType={submitDisabledByType}
-      transactionRecordId={requireEditTransactionRecordId(
-        initialValues.transactionRecordId,
-      )}
-    />
-  );
-}
-
-function createNormalInitialValuesFromNormal(
-  initialValues: TransactionFormInitialValues,
-  targetType: TransactionType,
-): TransactionFormInitialValues {
-  if (targetType === initialValues.type) return initialValues;
-
-  // 转换类型时明细清空重填；多账户只支持支出明细，因此只保留首个付款账户。
-  return {
-    ...initialValues,
-    items: [],
-    payments: initialValues.payments.slice(0, 1).map((payment) => ({
-      accountId: payment.accountId,
-      amount: null,
-    })),
-    type: targetType,
-  };
-}
-
-function createTransferInitialValuesFromNormal(
-  initialValues: TransactionFormInitialValues,
-  accountOptions: TransactionAccountOption[],
-): TransferEditInitialValues {
-  const accountId = initialValues.payments[0]?.accountId ?? "";
-  return {
-    accountId,
-    note: initialValues.note,
-    transactionAt: initialValues.transactionAt,
-    transactionRecordId: requireEditTransactionRecordId(
-      initialValues.transactionRecordId,
-    ),
-    transferAmount: totalAmountText(
-      initialValues.items,
-      accountOptions.find((account) => account.id === accountId)?.currency,
-    ),
-    transferTargetAccountId: findTransferTargetAccountId(
-      accountOptions,
-      accountId,
-    ),
-    type: "transfer",
-  };
-}
-
-function createNormalInitialValuesFromTransfer(
-  initialValues: TransferEditInitialValues,
-  targetType: TransactionType,
-): TransactionFormInitialValues {
-  return {
-    items: [],
-    merchantId: "",
-    note: initialValues.note,
-    payments: [{ accountId: initialValues.accountId, amount: null }],
-    transactionAt: initialValues.transactionAt,
-    transactionRecordId: initialValues.transactionRecordId,
-    type: targetType,
-  };
-}
-
-function totalAmountText(
-  items: TransactionFormInitialValues["items"],
-  currency?: string,
-) {
-  const total = items.reduce((sum, item) => {
-    const amount = Number(item.amount);
-    return Number.isFinite(amount) ? sum + amount : sum;
-  }, 0);
-
-  if (total <= 0) return "";
-
-  return String(Number(total.toFixed(getAmountDecimalPlaces(currency))));
-}
-
-function findTransferTargetAccountId(
-  accountOptions: TransactionAccountOption[],
-  accountId: string,
-) {
-  const sourceAccount = accountOptions.find(
-    (account) => account.id === accountId,
-  );
-  const sameCurrencyAccount = accountOptions.find(
-    (account) =>
-      account.id !== accountId && account.currency === sourceAccount?.currency,
-  );
-
-  return sameCurrencyAccount?.id ?? "";
 }

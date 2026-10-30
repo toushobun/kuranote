@@ -74,9 +74,11 @@ export function AccountStep(props: AccountStepProps) {
         />
       }
       action={
-        <Button variant="contained" onClick={props.onAddAccount}>
-          {m.addAccount}
-        </Button>
+        props.onAddAccount && (
+          <Button variant="contained" onClick={props.onAddAccount}>
+            {m.addAccount}
+          </Button>
+        )
       }
     />
   ) : (

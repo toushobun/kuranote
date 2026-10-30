@@ -4,11 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const transactionRecordId = "00000000-0000-4000-8000-000000009001";
 
 const mocks = vi.hoisted(() => ({
-  EditTransactionTemplate: vi.fn(() => null),
+  EditTransactionReceiptTemplate: vi.fn(() => null),
   EditTransferTransactionTemplate: vi.fn(() => null),
-  getEditTransactionErrorMessage: vi.fn((error?: string) =>
-    error ? `编辑错误:${error}` : null,
-  ),
   loadEditTransactionView: vi.fn(),
   loadRefundPickerGroupItems: vi.fn(),
   loadRefundPickerGroupPage: vi.fn(),
@@ -38,13 +35,12 @@ vi.mock("internal/transaction/adapter/next/loadTransactionViews", () => ({
   loadReimbursementPickerSearchPage: mocks.loadReimbursementPickerSearchPage,
 }));
 
-vi.mock("templates/transactions/TransactionFormPage", () => ({
-  EditTransactionTemplate: mocks.EditTransactionTemplate,
-  EditTransferTransactionTemplate: mocks.EditTransferTransactionTemplate,
+vi.mock("templates/transactions/EditTransactionReceipt", () => ({
+  EditTransactionReceiptTemplate: mocks.EditTransactionReceiptTemplate,
 }));
 
-vi.mock("utils/pageErrors", () => ({
-  getEditTransactionErrorMessage: mocks.getEditTransactionErrorMessage,
+vi.mock("templates/transactions/TransactionFormPage", () => ({
+  EditTransferTransactionTemplate: mocks.EditTransferTransactionTemplate,
 }));
 
 vi.mock("templates/transactions/NewTransactionVisualFrame", () => ({
@@ -59,8 +55,9 @@ function createEditView() {
     canDelete: true,
     categoryOptions: [],
     editRestriction: null,
+    frequentMerchants: [],
     initialValues: {
-      accountId: "00000000-0000-4000-8000-000000000041",
+      expectedRecordUpdatedAt: "2026-06-04T10:31:00.000Z",
       items: [
         {
           amount: "1200",
@@ -69,12 +66,19 @@ function createEditView() {
       ],
       merchantId: "00000000-0000-4000-8000-000000001001",
       note: "晚餐",
+      payments: [
+        { accountId: "00000000-0000-4000-8000-000000000041", amount: null },
+      ],
       transactionAt: "2026-06-04T10:30:05.000Z",
       transactionRecordId,
       type: "expense" as const,
     },
+    ledgerId: "00000000-0000-4000-8000-000000000032",
     ledgerName: "家庭账本",
     merchantOptions: [],
+    merchantTags: [],
+    multiAccountPaymentEnabled: false,
+    transactionItemSpecialStatusEnabled: false,
   };
 }
 
@@ -93,13 +97,26 @@ function createTransferEditView() {
   };
 }
 
+// 页面外层是 NewTransactionVisualFrame；普通记录另包一层退款 / 报销选择器的 Provider。
+async function renderTemplateElement() {
+  const result = await TransactionEditPage({
+    params: Promise.resolve({ transactionRecordId }),
+  });
+  const element = result as ReactElement<{ children: ReactElement }>;
+  expect(element.type).toBe(mocks.NewTransactionVisualFrame);
+  const child = element.props.children as ReactElement<Record<string, unknown>>;
+  return child.type === mocks.EditTransferTransactionTemplate
+    ? child
+    : (child.props.children as ReactElement<Record<string, unknown>>);
+}
+
 describe("TransactionEditPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it.each([
-    ["普通记录", createEditView, mocks.EditTransactionTemplate],
+    ["普通记录", createEditView, mocks.EditTransactionReceiptTemplate],
     ["转账", createTransferEditView, mocks.EditTransferTransactionTemplate],
   ] as const)(
     "%s无修改权限时仍渲染模板并传入限制原因（只读详情）",
@@ -110,14 +127,7 @@ describe("TransactionEditPage", () => {
         editRestriction: "permission",
       });
 
-      const result = await TransactionEditPage({
-        params: Promise.resolve({ transactionRecordId }),
-      });
-      const element = result as ReactElement<Record<string, unknown>>;
-      const provider = element.props.children as ReactElement<{
-        children: ReactElement<Record<string, unknown>>;
-      }>;
-      const child = provider.props.children;
+      const child = await renderTemplateElement();
 
       expect(child.type).toBe(template);
       expect(child.props).toMatchObject({
@@ -129,88 +139,47 @@ describe("TransactionEditPage", () => {
     },
   );
 
-  it("使用 URL 参数中的 transactionRecordId 显示编辑画面", async () => {
+  it("普通记录使用 URL 参数中的 transactionRecordId 显示小票编辑画面", async () => {
     const view = createEditView();
     mocks.loadEditTransactionView.mockResolvedValue(view);
 
-    const result = await TransactionEditPage({
-      params: Promise.resolve({ transactionRecordId }),
-    });
-    const element = result as ReactElement<Record<string, unknown>>;
-    const provider = element.props.children as ReactElement<
-      Record<string, unknown>
-    >;
-    const child = provider.props.children as ReactElement<
-      Record<string, unknown>
-    >;
+    const child = await renderTemplateElement();
 
     expect(mocks.loadEditTransactionView).toHaveBeenCalledWith(
       transactionRecordId,
     );
-    expect(mocks.getEditTransactionErrorMessage).not.toHaveBeenCalled();
-    expect(element.type).toBe(mocks.NewTransactionVisualFrame);
-    expect(child.type).toBe(mocks.EditTransactionTemplate);
-    expect(child.props).toMatchObject({
-      ...view,
+    expect(child.type).toBe(mocks.EditTransactionReceiptTemplate);
+    expect(child.props).toEqual({
+      accountOptions: view.accountOptions,
       action: mocks.saveEditTransaction,
+      canDelete: true,
+      categoryOptions: view.categoryOptions,
       deleteAction: mocks.voidTransaction,
-      errorMessage: null,
-    });
-    expect(child.props).not.toHaveProperty("reimbursementCandidates");
-    expect(child.props).not.toHaveProperty("refundPickerView");
-  });
-
-  it("没有 error 参数时正常显示编辑画面", async () => {
-    const view = createEditView();
-    mocks.loadEditTransactionView.mockResolvedValue(view);
-
-    const result = await TransactionEditPage({
-      params: Promise.resolve({ transactionRecordId }),
-    });
-    const element = result as ReactElement<Record<string, unknown>>;
-    const provider = element.props.children as ReactElement<
-      Record<string, unknown>
-    >;
-    const child = provider.props.children as ReactElement<
-      Record<string, unknown>
-    >;
-
-    expect(mocks.loadEditTransactionView).toHaveBeenCalledWith(
-      transactionRecordId,
-    );
-    expect(mocks.getEditTransactionErrorMessage).not.toHaveBeenCalled();
-    expect(element.type).toBe(mocks.NewTransactionVisualFrame);
-    expect(child.type).toBe(mocks.EditTransactionTemplate);
-    expect(child.props).toMatchObject({
-      ...view,
-      action: mocks.saveEditTransaction,
-      deleteAction: mocks.voidTransaction,
-      errorMessage: null,
+      editRestriction: null,
+      frequentMerchants: view.frequentMerchants,
+      initialValues: view.initialValues,
+      ledgerId: view.ledgerId,
+      merchantOptions: view.merchantOptions,
+      merchantTags: view.merchantTags,
+      multiAccountPaymentEnabled: false,
+      transactionItemSpecialStatusEnabled: false,
     });
   });
 
-  it("转账类型编辑页向转账模板传递删除动作", async () => {
+  it("转账只传转账表单需要的数据，不再提供与收支互相转换的选项", async () => {
     const view = createTransferEditView();
     mocks.loadEditTransactionView.mockResolvedValue(view);
 
-    const result = await TransactionEditPage({
-      params: Promise.resolve({ transactionRecordId }),
-    });
-    const element = result as ReactElement<Record<string, unknown>>;
-    const provider = element.props.children as ReactElement<
-      Record<string, unknown>
-    >;
-    const child = provider.props.children as ReactElement<
-      Record<string, unknown>
-    >;
+    const child = await renderTemplateElement();
 
-    expect(element.type).toBe(mocks.NewTransactionVisualFrame);
     expect(child.type).toBe(mocks.EditTransferTransactionTemplate);
-    expect(child.props).toMatchObject({
-      ...view,
+    expect(child.props).toEqual({
+      accountOptions: view.accountOptions,
       action: mocks.saveEditTransaction,
+      canDelete: true,
       deleteAction: mocks.voidTransaction,
-      errorMessage: null,
+      editRestriction: null,
+      initialValues: view.initialValues,
     });
   });
 });

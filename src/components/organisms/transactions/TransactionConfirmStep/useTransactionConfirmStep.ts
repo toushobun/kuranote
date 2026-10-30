@@ -71,7 +71,7 @@ export function useTransactionConfirmStep(
   function selectAccount(account: TransactionAccountOption) {
     if (accountPickerKey === null) return;
     form.handlePaymentAccountChange(accountPickerKey, account.id);
-    props.onAccountSelect(account);
+    props.onAccountSelect?.(account);
     setClearedAccount(undefined);
     setAccountPickerKey(null);
   }

@@ -13,10 +13,12 @@ import {
 } from "internal/transaction/service/read/options";
 import type { TransactionReadDependencies } from "internal/transaction/service/read/transactionContext";
 import type {
+  EditTransactionEntryView,
   EditTransactionView,
   NewTransactionView,
   TransactionAccountOption,
   TransactionCategoryOption,
+  TransactionFormOptions,
   TransferEditInitialValues,
 } from "internal/transaction/service/read/transactionReadModels";
 import type { TransactionEditRestriction } from "internal/transaction/entity/transactionReadModels";
@@ -65,13 +67,50 @@ export async function getNewTransactionView(
   };
 }
 
-export async function getEditTransactionView(
+export function getEditTransactionView(
   dependencies: TransactionFormReadDependencies,
   currentLedger: CurrentLedger,
   transactionRecordId: string,
 ): Promise<EditTransactionView | null> {
+  return buildEditTransactionView(
+    dependencies,
+    currentLedger,
+    transactionRecordId,
+    loadTransactionFormOptions,
+  );
+}
+
+/** 编辑记账页（#962）：小票的选择商家 / 账户与新增记账使用相同的选项。 */
+export async function getEditTransactionEntryView(
+  dependencies: TransactionFormReadDependencies,
+  currentLedger: CurrentLedger,
+  transactionRecordId: string,
+): Promise<EditTransactionEntryView | null> {
+  const view = await buildEditTransactionView(
+    dependencies,
+    currentLedger,
+    transactionRecordId,
+    loadTransactionEntryOptions,
+  );
+  return view && { ...view, ledgerId: currentLedger.id };
+}
+
+async function buildEditTransactionView<
+  Options extends Pick<
+    TransactionFormOptions,
+    "accountOptions" | "categoryOptions"
+  >,
+>(
+  dependencies: TransactionFormReadDependencies,
+  currentLedger: CurrentLedger,
+  transactionRecordId: string,
+  loadOptions: (
+    dependencies: TransactionFormReadDependencies,
+    currentLedger: CurrentLedger,
+  ) => Promise<Options>,
+): Promise<EditTransactionView<Options> | null> {
   const [options, record] = await Promise.all([
-    loadTransactionFormOptions(dependencies, currentLedger),
+    loadOptions(dependencies, currentLedger),
     dependencies.transactionRepository.findActiveRecord(
       currentLedger.id,
       transactionRecordId,
@@ -93,14 +132,29 @@ export async function getEditTransactionView(
     ]),
   ]);
   // 普通记录的付款账户来自 transaction_payment；转账 / 余额调整仍看明细账户。
-  const hasArchivedAccount = !areAccountIdsAvailable(
+  const recordAccountIds =
     record.type === "normal"
       ? payments.map((payment) => payment.account_id)
-      : items.map(requireItemAccountId),
+      : items.map(requireItemAccountId);
+  const hasArchivedAccount = !areAccountIdsAvailable(
+    recordAccountIds,
     options.accountOptions,
   );
+  // 已归档账户不在选项里；转账与普通记录另外读取，只读时仍按记录实际币种与名称显示（#962）。
+  const archivedAccountOptions =
+    hasArchivedAccount && record.type !== "balance_adjustment"
+      ? await loadArchivedAccountOptions(
+          dependencies,
+          currentLedger,
+          recordAccountIds,
+          options.accountOptions,
+        )
+      : [];
   const currencyByAccountId = new Map(
-    options.accountOptions.map((account) => [account.id, account.currency]),
+    [...options.accountOptions, ...archivedAccountOptions].map((account) => [
+      account.id,
+      account.currency,
+    ]),
   );
   // 有限制时编辑页显示只读详情（#928）；删除仍按修改权限判断。
   const editRestriction: TransactionEditRestriction | null = !canModify
@@ -209,6 +263,7 @@ export async function getEditTransactionView(
 
   return {
     ...options,
+    archivedAccountOptions,
     canDelete: canModify,
     editRestriction,
     initialValues: {
@@ -274,6 +329,30 @@ export async function getEditTransactionView(
     },
     ledgerName: currentLedger.name,
   };
+}
+
+async function loadArchivedAccountOptions(
+  dependencies: TransactionFormReadDependencies,
+  currentLedger: CurrentLedger,
+  accountIds: readonly string[],
+  accountOptions: readonly { id: string }[],
+): Promise<TransactionAccountOption[]> {
+  const availableAccountIds = new Set(
+    accountOptions.map((account) => account.id),
+  );
+  const missingAccountIds = [
+    ...new Set(accountIds.filter((id) => !availableAccountIds.has(id))),
+  ];
+  const context = await dependencies.accountQueryService.getTransactionContext({
+    accountIds: missingAccountIds,
+    ledgerId: currentLedger.id,
+    userId: dependencies.currentUserId,
+  });
+  return context.accounts.map(({ currency, id, name }) => ({
+    currency,
+    id,
+    name,
+  }));
 }
 
 function buildRefundCandidate(

@@ -66,6 +66,8 @@ export const flowMessages = {
   addPayment: "添加付款账户",
   addSharedPayment: "添加付款账户（多个账户一起付）",
   chooseAccount: "选择收支账户",
+  // 只读小票里不在可选账户中的付款账户（已归档）。
+  archivedAccount: "已归档账户",
   changePaymentAccount: (index: number) => `更换支付账户 ${index}`,
   editPaymentAmount: (index: number, amount: string) =>
     `修改支付账户 ${index} 金额：${amount}`,
@@ -87,6 +89,9 @@ export const flowMessages = {
   noteLimit: 2000,
   noteCount: (count: number) => `${count} / 2000`,
   save: "保存记账",
+  saveEdit: "保存修改",
+  editTitle: "编辑记账",
+  delete: "删除",
   saving: "保存中…",
   selectMerchant: "请选择商家",
   selectAccount: "请选择收支账户",
