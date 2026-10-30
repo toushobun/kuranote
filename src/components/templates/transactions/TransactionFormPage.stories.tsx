@@ -165,6 +165,9 @@ export const ReadOnlyTransferArchivedAccount: Story = {
   render: () => (
     <EditTransferTransactionTemplate
       {...editArgs}
+      // 转入账户已归档：不在可选账户里，由 archivedAccountOptions 提供名称与币种（#966）。
+      accountOptions={accountOptions.slice(0, 1)}
+      archivedAccountOptions={accountOptions.slice(1)}
       editRestriction="archivedAccount"
       initialValues={transferEditInitialValues}
     />

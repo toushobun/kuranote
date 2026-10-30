@@ -140,7 +140,7 @@ async function buildEditTransactionView<
     recordAccountIds,
     options.accountOptions,
   );
-  // 已归档账户不在选项里；转账与普通记录另外读取，只读时仍按记录实际币种与名称显示（#962）。
+  // 已归档账户不在选项里；转账与普通记录另外读取，只读时仍按记录实际币种与名称显示（#962、#966）。
   const archivedAccountOptions =
     hasArchivedAccount && record.type !== "balance_adjustment"
       ? await loadArchivedAccountOptions(
@@ -219,6 +219,7 @@ async function buildEditTransactionView<
     const fromAccountId = requireItemAccountId(fromItem);
     return {
       ...options,
+      archivedAccountOptions,
       canDelete: canModify,
       editRestriction,
       initialValues: {

@@ -77,6 +77,7 @@ vi.mock(
   "organisms/transactions/TransferTransactionForm/TransferTransactionForm",
   () => ({
     TransferTransactionForm: ({
+      accountOptions,
       addAccountHref,
       errorMessage,
       formId,
@@ -85,6 +86,7 @@ vi.mock(
       readOnly,
       sourceType,
     }: {
+      accountOptions: { currency: string; name: string }[];
       addAccountHref?: string;
       errorMessage?: string | null;
       formId?: string;
@@ -96,6 +98,9 @@ vi.mock(
       if (initialValues) {
         return (
           <form
+            data-account-options={accountOptions
+              .map((account) => `${account.name}（${account.currency}）`)
+              .join("、")}
             data-add-account-href={addAccountHref}
             data-read-only={readOnly}
             data-source-type={sourceType}
@@ -442,15 +447,20 @@ describe("EditTransferTransactionTemplate", () => {
     vi.restoreAllMocks();
   });
   function renderTemplate({
+    archivedAccountOptions,
     canDelete = true,
     editRestriction = null,
   }: {
+    archivedAccountOptions?: Parameters<
+      typeof EditTransferTransactionTemplate
+    >[0]["archivedAccountOptions"];
     canDelete?: boolean;
     editRestriction?: TransactionEditRestriction | null;
   } = {}) {
     return render(
       <UserThemeProvider>
         <EditTransferTransactionTemplate
+          archivedAccountOptions={archivedAccountOptions}
           canDelete={canDelete}
           editRestriction={editRestriction}
           accountOptions={[
@@ -475,6 +485,26 @@ describe("EditTransferTransactionTemplate", () => {
       </UserThemeProvider>,
     );
   }
+  it("转入账户已归档时并入账户选项，只读详情显示原账户名称与币种", () => {
+    const { container } = renderTemplate({
+      archivedAccountOptions: [
+        {
+          currency: "USD",
+          id: "00000000-0000-4000-8000-000000000046",
+          name: "美元储蓄",
+        },
+      ],
+      editRestriction: "archivedAccount",
+    });
+
+    expect(
+      within(container).getByTestId("transfer-transaction-form"),
+    ).toHaveAttribute(
+      "data-account-options",
+      "日元现金（JPY）、美元储蓄（USD）",
+    );
+  });
+
   it("无修改权限时显示转账的只读详情，不显示保存和删除", () => {
     const { container } = renderTemplate({
       canDelete: false,

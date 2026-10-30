@@ -47,6 +47,7 @@ import type {
 } from "types/transactions";
 import { EditTransactionShell } from "./EditTransactionShell";
 import { TransactionPageTopBar } from "./TransactionPageTopBar";
+import { useEditAccountOptions } from "./useEditAccountOptions";
 import { useLinkedTransactionEditAction } from "./useLinkedTransactionEditAction";
 
 export type TransactionFormTemplateProps = {
@@ -78,6 +79,8 @@ type EditTransferTransactionTemplateProps = Pick<
   TransactionFormTemplateProps,
   "accountOptions" | "action"
 > & {
+  /** 已归档的转出 / 转入账户（只读时用来显示原账户名称与币种，#966）。 */
+  archivedAccountOptions?: TransactionAccountOption[];
   canDelete: boolean;
   deleteAction: TransactionStateAction;
   /** 有限制时显示只读详情（#928）：表单整体禁用，不显示保存。 */
@@ -398,8 +401,9 @@ function NewTransactionFormView({
 
 /** 编辑转账（#962）：只能修改转账本身，不再与支出 / 收入互相转换。 */
 export function EditTransferTransactionTemplate({
-  accountOptions,
+  accountOptions: availableAccountOptions,
   action,
+  archivedAccountOptions,
   canDelete,
   deleteAction,
   editRestriction,
@@ -407,6 +411,10 @@ export function EditTransferTransactionTemplate({
 }: EditTransferTransactionTemplateProps) {
   const editAction = useLinkedTransactionEditAction(action);
   const readOnly = editRestriction !== null;
+  const accountOptions = useEditAccountOptions(
+    availableAccountOptions,
+    archivedAccountOptions,
+  );
 
   return (
     <EditTransactionShell
