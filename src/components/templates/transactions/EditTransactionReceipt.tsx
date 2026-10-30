@@ -1,7 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
-
 import { flowMessages as m } from "config/transactionStepFlowMessages";
 import type {
   FrequentMerchant,
@@ -20,6 +18,7 @@ import type {
 } from "types/transactions";
 
 import { EditTransactionShell } from "./EditTransactionShell";
+import { useEditAccountOptions } from "./useEditAccountOptions";
 import { useEditTransactionReceipt } from "./useEditTransactionReceipt";
 import { useLinkedTransactionEditAction } from "./useLinkedTransactionEditAction";
 
@@ -85,10 +84,9 @@ function EditTransactionReceipt({
   saving: boolean;
 }) {
   const readOnly = props.editRestriction !== null;
-  // 有已归档付款账户时页面只读，并入后小票按账户实际币种显示金额，不回落到账本默认币种。
-  const accountOptions = useMemo(
-    () => [...props.accountOptions, ...(props.archivedAccountOptions ?? [])],
-    [props.accountOptions, props.archivedAccountOptions],
+  const accountOptions = useEditAccountOptions(
+    props.accountOptions,
+    props.archivedAccountOptions,
   );
   const w = useEditTransactionReceipt({
     accountOptions,

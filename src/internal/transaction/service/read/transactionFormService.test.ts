@@ -559,6 +559,14 @@ describe("getEditTransactionView", () => {
     vi.mocked(
       dependencies.accountQueryService.listTransactionOptions,
     ).mockResolvedValue([{ currency: "JPY", id: accountId, name: "现金" }]);
+    const archivedTarget = {
+      currency: "JPY",
+      id: targetAccountId,
+      name: "旧储蓄",
+    };
+    dependencies.accountQueryService.getTransactionContext.mockResolvedValue(
+      transactionContext([archivedTarget]),
+    );
 
     const view = await getEditTransactionView(
       dependencies,
@@ -566,7 +574,16 @@ describe("getEditTransactionView", () => {
       transactionRecordId,
     );
 
+    // 已归档的转入账户另外读取，只读详情显示原账户名称（#966）。
+    expect(
+      dependencies.accountQueryService.getTransactionContext,
+    ).toHaveBeenCalledWith({
+      accountIds: [targetAccountId],
+      ledgerId,
+      userId,
+    });
     expect(view).toMatchObject({
+      archivedAccountOptions: [archivedTarget],
       canDelete: true,
       editRestriction: "archivedAccount",
     });

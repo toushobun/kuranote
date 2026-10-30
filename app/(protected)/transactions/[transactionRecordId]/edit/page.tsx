@@ -64,6 +64,7 @@ export default async function TransactionEditPage({
         <EditTransferTransactionTemplate
           accountOptions={view.accountOptions}
           action={saveEditTransaction}
+          archivedAccountOptions={view.archivedAccountOptions}
           canDelete={canDelete}
           deleteAction={voidTransaction}
           editRestriction={editRestriction}
