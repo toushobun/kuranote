@@ -1,5 +1,7 @@
 "use client";
 
+import { useMemo } from "react";
+
 import { flowMessages as m } from "config/transactionStepFlowMessages";
 import type {
   FrequentMerchant,
@@ -26,6 +28,8 @@ const editReceiptFormId = "edit-transaction-receipt-form";
 type EditTransactionReceiptTemplateProps = {
   accountOptions: TransactionAccountOption[];
   action: TransactionStateAction;
+  /** 已归档的付款账户（只读时用来显示账户名称与记录实际币种）。 */
+  archivedAccountOptions?: TransactionAccountOption[];
   canDelete: boolean;
   categoryOptions: TransactionCategoryOption[];
   deleteAction: TransactionStateAction;
@@ -81,8 +85,13 @@ function EditTransactionReceipt({
   saving: boolean;
 }) {
   const readOnly = props.editRestriction !== null;
+  // 有已归档付款账户时页面只读，并入后小票按账户实际币种显示金额，不回落到账本默认币种。
+  const accountOptions = useMemo(
+    () => [...props.accountOptions, ...(props.archivedAccountOptions ?? [])],
+    [props.accountOptions, props.archivedAccountOptions],
+  );
   const w = useEditTransactionReceipt({
-    accountOptions: props.accountOptions,
+    accountOptions,
     initialValues: props.initialValues,
     itemsOptions: {
       categoryOptions: props.categoryOptions,
@@ -113,7 +122,7 @@ function EditTransactionReceipt({
         automaticItemIds={[]}
         amountItemId={w.amountItemId}
         onAmountItemChange={w.setAmountItemId}
-        accountOptions={props.accountOptions}
+        accountOptions={accountOptions}
         suggestions={w.suggestions}
         action={formAction}
         saving={saving}

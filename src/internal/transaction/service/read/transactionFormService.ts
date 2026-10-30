@@ -132,14 +132,29 @@ async function buildEditTransactionView<
     ]),
   ]);
   // 普通记录的付款账户来自 transaction_payment；转账 / 余额调整仍看明细账户。
-  const hasArchivedAccount = !areAccountIdsAvailable(
+  const recordAccountIds =
     record.type === "normal"
       ? payments.map((payment) => payment.account_id)
-      : items.map(requireItemAccountId),
+      : items.map(requireItemAccountId);
+  const hasArchivedAccount = !areAccountIdsAvailable(
+    recordAccountIds,
     options.accountOptions,
   );
+  // 已归档账户不在选项里；转账与普通记录另外读取，只读时仍按记录实际币种与名称显示（#962）。
+  const archivedAccountOptions =
+    hasArchivedAccount && record.type !== "balance_adjustment"
+      ? await loadArchivedAccountOptions(
+          dependencies,
+          currentLedger,
+          recordAccountIds,
+          options.accountOptions,
+        )
+      : [];
   const currencyByAccountId = new Map(
-    options.accountOptions.map((account) => [account.id, account.currency]),
+    [...options.accountOptions, ...archivedAccountOptions].map((account) => [
+      account.id,
+      account.currency,
+    ]),
   );
   // 有限制时编辑页显示只读详情（#928）；删除仍按修改权限判断。
   const editRestriction: TransactionEditRestriction | null = !canModify
@@ -248,6 +263,7 @@ async function buildEditTransactionView<
 
   return {
     ...options,
+    archivedAccountOptions,
     canDelete: canModify,
     editRestriction,
     initialValues: {
@@ -313,6 +329,30 @@ async function buildEditTransactionView<
     },
     ledgerName: currentLedger.name,
   };
+}
+
+async function loadArchivedAccountOptions(
+  dependencies: TransactionFormReadDependencies,
+  currentLedger: CurrentLedger,
+  accountIds: readonly string[],
+  accountOptions: readonly { id: string }[],
+): Promise<TransactionAccountOption[]> {
+  const availableAccountIds = new Set(
+    accountOptions.map((account) => account.id),
+  );
+  const missingAccountIds = [
+    ...new Set(accountIds.filter((id) => !availableAccountIds.has(id))),
+  ];
+  const context = await dependencies.accountQueryService.getTransactionContext({
+    accountIds: missingAccountIds,
+    ledgerId: currentLedger.id,
+    userId: dependencies.currentUserId,
+  });
+  return context.accounts.map(({ currency, id, name }) => ({
+    currency,
+    id,
+    name,
+  }));
 }
 
 function buildRefundCandidate(

@@ -58,6 +58,8 @@ type EditTransactionShellProps = {
 /**
  * 编辑记账页（普通记录的小票、转账）的外框（#962）：顶栏、限制提示、删除、
  * 未保存离开确认、关联同步确认与保存 / 删除失败提示。
+ * 只有表单经 useEditTransactionDirty 报告交易字段变化时才算未保存，
+ * 商家搜索等抽屉里的输入不算。
  */
 export function EditTransactionShell({
   canDelete,
@@ -108,7 +110,7 @@ export function EditTransactionShell({
 
   return (
     <EditTransactionDirtyProvider onDirty={markDirty}>
-      <Stack onChangeCapture={markDirty} spacing={0}>
+      <Stack spacing={0}>
         <TransactionPageTopBar
           hasUnsavedChanges={hasUnsavedChanges}
           onClose={() => setIsExitDialogOpen(true)}

@@ -19,6 +19,7 @@ import { routePaths } from "config/paths";
 import type { TransactionEditRestriction } from "internal/transaction";
 import { UserThemeProvider } from "theme/UserThemeProvider";
 import { transactionEditRestrictionMessages } from "utils/transactionMessages";
+import { useEditTransactionDirty } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
 vi.mock("organisms/transactions/TransactionForm/TransactionForm", () => ({
   TransactionForm: ({
     errorMessage,
@@ -61,6 +62,17 @@ vi.mock("organisms/transactions/TransactionForm/TransactionForm", () => ({
     );
   },
 }));
+// 真实的转账表单在字段变化时经 useEditTransactionDirty 报告未保存。
+function TransferEditInput() {
+  const markEditDirty = useEditTransactionDirty();
+  return (
+    <input
+      aria-label="转账编辑临时输入"
+      defaultValue=""
+      onChange={() => markEditDirty?.()}
+    />
+  );
+}
 vi.mock(
   "organisms/transactions/TransferTransactionForm/TransferTransactionForm",
   () => ({
@@ -90,7 +102,7 @@ vi.mock(
             data-testid="transfer-transaction-form"
             id={formId}
           >
-            <input aria-label="转账编辑临时输入" defaultValue="" />
+            <TransferEditInput />
             {hideSubmitButton ? null : <button type="submit">保存修改</button>}
           </form>
         );

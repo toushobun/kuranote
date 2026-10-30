@@ -19,6 +19,8 @@ import { UserThemeProvider } from "theme/UserThemeProvider";
 import type { TransactionStateAction } from "types/transactions";
 import { transactionEditRestrictionMessages } from "utils/transactionMessages";
 
+import { useEditTransactionDirty } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
+
 import { EditTransactionShell } from "./EditTransactionShell";
 import { useLinkedTransactionEditAction } from "./useLinkedTransactionEditAction";
 
@@ -50,10 +52,24 @@ function ShellHarness({
       transactionRecordId="00000000-0000-4000-8000-000000009001"
     >
       <form action={editAction.formAction} id={saveFormId}>
-        <input aria-label="编辑临时输入" defaultValue="" name="note" />
+        <DirtyReportingInput />
+        <input aria-label="未报告的输入" defaultValue="" />
         <button type="submit">保存修改</button>
       </form>
     </EditTransactionShell>
+  );
+}
+
+// 像小票 / 转账表单一样，在交易字段变化时经 useEditTransactionDirty 报告。
+function DirtyReportingInput() {
+  const markEditDirty = useEditTransactionDirty();
+  return (
+    <input
+      aria-label="编辑临时输入"
+      defaultValue=""
+      name="note"
+      onChange={() => markEditDirty?.()}
+    />
   );
 }
 
@@ -309,6 +325,17 @@ describe("EditTransactionShell", () => {
 
   it("未修改时返回直接回到明细", () => {
     const { container } = renderShell();
+
+    expect(
+      within(container).getByRole("link", { name: "关闭" }),
+    ).toHaveAttribute("href", routePaths.transactions);
+  });
+
+  it("没有经表单报告变化的输入不算未保存", () => {
+    const { container } = renderShell();
+    fireEvent.change(within(container).getByLabelText("未报告的输入"), {
+      target: { value: "搜索关键字" },
+    });
 
     expect(
       within(container).getByRole("link", { name: "关闭" }),

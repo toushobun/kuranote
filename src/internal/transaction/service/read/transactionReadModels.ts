@@ -179,6 +179,11 @@ export type NewTransactionView = TransactionEntryOptions & {
 export type EditTransactionView<
   Options extends EditTransactionViewOptions = TransactionFormOptions,
 > = Options & {
+  /**
+   * 普通记录付款账户中已归档、不在 accountOptions 里的账户（#962）。
+   * 有归档账户时编辑页只读，小票用它显示账户名称与记录实际币种。
+   */
+  archivedAccountOptions?: TransactionAccountOption[];
   canDelete: boolean;
   editRestriction: TransactionEditRestriction | null;
   initialValues:

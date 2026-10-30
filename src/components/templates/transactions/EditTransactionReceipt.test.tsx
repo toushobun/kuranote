@@ -77,6 +77,18 @@ function receiptForm() {
   return form;
 }
 
+async function openMerchantPicker() {
+  fireEvent.click(await screen.findByRole("button", { name: /^修改商家：/ }));
+  return (
+    await screen.findByRole("group", { name: "常用商家" })
+  ).closest<HTMLElement>(".MuiDrawer-paper")!;
+}
+
+// 没有未保存修改时，顶栏的关闭是直接回到明细的链接。
+function findCloseLink() {
+  return screen.findByRole("link", { name: "关闭" });
+}
+
 describe("EditTransactionReceiptTemplate", () => {
   beforeEach(() => {
     fetchClientJson.mockImplementation(async (url: string) =>
@@ -138,6 +150,28 @@ describe("EditTransactionReceiptTemplate", () => {
     expect(fetchClientJson).not.toHaveBeenCalled();
   });
 
+  it("付款账户已归档时只读小票按账户实际币种显示，不用账本默认币种", () => {
+    // 账本默认 JPY，美元卡已归档：USD 12.50 不能显示成 ¥13。
+    renderReceipt({
+      archivedAccountOptions: [
+        { currency: "USD", id: "usd-card", name: "美元卡" },
+      ],
+      editRestriction: "archivedAccount",
+      initialValues: {
+        ...initialValues,
+        items: [{ amount: "12.5", categoryId: "lunch", specialStatus: null }],
+        payments: [{ accountId: "usd-card", amount: null }],
+      },
+    });
+
+    const receipt = receiptForm();
+    expect(within(receipt).getByText("美元卡")).toBeInTheDocument();
+    expect(receipt.textContent).toContain("合计$12.5");
+    expect(receipt.textContent).toContain("USD$12.5");
+    expect(receipt.textContent).not.toContain("¥");
+    expect(receipt.textContent).not.toContain("已归档账户");
+  });
+
   it("点商家打开商家列表，没有新增商家入口；换商家只换商家本身", async () => {
     renderReceipt();
     click("修改商家：7-Eleven");
@@ -176,6 +210,35 @@ describe("EditTransactionReceiptTemplate", () => {
       expect.stringContaining("merchantId=coffee"),
       expect.anything(),
     );
+  });
+
+  it("搜索商家后不选择、或重新选同一个商家，返回时不提示尚未保存", async () => {
+    renderReceipt();
+    const drawer = await openMerchantPicker();
+    fireEvent.change(within(drawer).getByLabelText("搜索商家"), {
+      target: { value: "星巴" },
+    });
+    fireEvent.keyDown(drawer, { key: "Escape" });
+    expect(await findCloseLink()).toBeInTheDocument();
+
+    const reopened = await openMerchantPicker();
+    fireEvent.click(
+      within(reopened).getAllByRole("button", { name: /^7-Eleven/ })[0]!,
+    );
+    expect(await findCloseLink()).toBeInTheDocument();
+  });
+
+  it("选了另一个商家后返回时提示尚未保存", async () => {
+    renderReceipt();
+    const drawer = await openMerchantPicker();
+    fireEvent.click(
+      within(drawer).getAllByRole("button", { name: /^星巴克/ })[0]!,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "关闭" }));
+
+    expect(
+      await screen.findByText("修正的内容尚未保存，是否保存？"),
+    ).toBeInTheDocument();
   });
 
   it("金额键盘显示当前商家的快捷金额", async () => {

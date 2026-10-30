@@ -112,6 +112,9 @@ export const ReadOnlyArchivedAccount: Story = {
     accountOptions: flowFixture.accounts.filter(
       (account) => account.id !== "paypay",
     ),
+    archivedAccountOptions: flowFixture.accounts.filter(
+      (account) => account.id === "paypay",
+    ),
     editRestriction: "archivedAccount",
   },
 };

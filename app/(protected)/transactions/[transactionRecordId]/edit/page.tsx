@@ -79,6 +79,7 @@ export default async function TransactionEditPage({
         <EditTransactionReceiptTemplate
           accountOptions={view.accountOptions}
           action={saveEditTransaction}
+          archivedAccountOptions={view.archivedAccountOptions}
           canDelete={canDelete}
           categoryOptions={view.categoryOptions}
           deleteAction={voidTransaction}
