@@ -4,7 +4,6 @@ import { requireAuthenticatedUserId } from "internal/shared/auth/authContext";
 import type { ControllerContext } from "internal/shared/http/controllerContext";
 import { revalidateTransactionMutation } from "internal/transaction/adapter/next/revalidate";
 import {
-  convertTransactionRequestSchema,
   createTransactionRequestSchema,
   transactionIdParamsSchema,
   transactionLedgerQuerySchema,
@@ -13,9 +12,6 @@ import {
 
 type CreateTransactionRequest = z.infer<typeof createTransactionRequestSchema>;
 type UpdateTransactionRequest = z.infer<typeof updateTransactionRequestSchema>;
-type ConvertTransactionRequest = z.infer<
-  typeof convertTransactionRequestSchema
->;
 type TransactionIdParams = z.infer<typeof transactionIdParamsSchema>;
 type TransactionLedgerQuery = z.infer<typeof transactionLedgerQuerySchema>;
 
@@ -83,30 +79,6 @@ export const updateTransactionHandler = async (
         transactionRecordId,
       },
     );
-  }
-  revalidateTransactionMutation();
-  return c.json({ ok: true as const }, 200);
-};
-
-export const convertTransactionHandler = async (
-  c: ControllerContext<{
-    json: ConvertTransactionRequest;
-    param: TransactionIdParams;
-  }>,
-) => {
-  requireAuthenticatedUserId(c.get("requestDependencies").auth);
-  const input = c.req.valid("json");
-  const transactionRecordId = c.req.valid("param").transactionRecordId;
-  const service = c.get("container").transaction.service;
-  if (input.targetType === "transfer") {
-    await service.convert({ ...input, transactionRecordId });
-  } else {
-    const { accountId, ...transaction } = input;
-    await service.convert({
-      ...transaction,
-      payments: [{ accountId, amount: null }],
-      transactionRecordId,
-    });
   }
   revalidateTransactionMutation();
   return c.json({ ok: true as const }, 200);

@@ -393,42 +393,6 @@ describe("TransactionRepository", () => {
       p_transaction_record_id: transactionRecordId,
     });
   });
-  it("普通交易和转账转换映射互斥 RPC 参数", async () => {
-    const { repository, rpc } = createRepository();
-    await repository.convert({
-      ...normalInput,
-      targetType: "income",
-      transactionRecordId,
-    });
-    await repository.convert({
-      ...transferInput,
-      targetType: "transfer",
-      transactionRecordId,
-    });
-    expect(rpc).toHaveBeenNthCalledWith(
-      1,
-      "convert_transaction_type_with_special_status",
-      expect.objectContaining({
-        p_payments: [{ accountId }],
-        p_from_account_id: null,
-        p_target_type: "income",
-        p_to_account_id: null,
-        p_transfer_amount: null,
-      }),
-    );
-    expect(rpc).toHaveBeenNthCalledWith(
-      2,
-      "convert_transaction_type_with_special_status",
-      expect.objectContaining({
-        p_payments: null,
-        p_from_account_id: accountId,
-        p_items: null,
-        p_target_type: "transfer",
-        p_to_account_id: targetAccountId,
-        p_transfer_amount: 1200,
-      }),
-    );
-  });
   it("作废交易映射账本和交易 ID", async () => {
     const { repository, rpc } = createRepository();
     await repository.void(ledgerId, transactionRecordId);

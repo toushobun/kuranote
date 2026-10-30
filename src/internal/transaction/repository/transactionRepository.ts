@@ -106,12 +106,6 @@ export type UpdateTransferTransactionInput = CreateTransferTransactionInput & {
   transactionRecordId: string;
 };
 
-export type ConvertTransactionInput =
-  | (Omit<UpdateNormalTransactionInput, "type"> & {
-      targetType: TransactionType;
-    })
-  | (UpdateTransferTransactionInput & { targetType: "transfer" });
-
 export type TransactionDashboardSummaryItem = Pick<
   TransactionItemDbRow,
   "amount" | "business_net_amount" | "category_id" | "transaction_record_id"
@@ -184,7 +178,6 @@ export type FrequentCategoryHistoryQuery = {
 
 export interface TransactionCommandRepository {
   updateBalanceAdjustment(input: UpdateBalanceAdjustmentInput): Promise<void>;
-  convert(input: ConvertTransactionInput): Promise<void>;
   createNormal(input: CreateNormalTransactionInput): Promise<void>;
   createTransfer(input: CreateTransferTransactionInput): Promise<void>;
   createBalanceAdjustment(input: CreateBalanceAdjustmentInput): Promise<void>;
@@ -308,7 +301,6 @@ const transactionRpcErrorCodes = [
   "from_account_invalid",
   "to_account_invalid",
   "transfer_currency_invalid",
-  "transaction_type_not_changed",
   "reimbursement_item_invalid",
   "reimbursement_income_invalid",
   "income_link_category_invalid",
@@ -477,13 +469,6 @@ export function createSupabaseTransactionRepository(
       );
     }
 
-    if (rpcErrorCode === "transaction_type_not_changed") {
-      throw new ValidationError(
-        transactionErrorCodes.updateInvalid,
-        transactionWriteErrorMessages.typeNotChanged,
-      );
-    }
-
     if (
       rpcErrorCode === "reimbursement_item_invalid" ||
       rpcErrorCode === "reimbursement_income_invalid"
@@ -627,52 +612,6 @@ export function createSupabaseTransactionRepository(
   }
 
   return {
-    async convert(input) {
-      const rpcParams =
-        input.targetType === "transfer"
-          ? {
-              p_from_account_id: input.accountId,
-              p_items: null,
-              p_ledger_id: input.ledgerId,
-              p_merchant_id: null,
-              p_note: input.note,
-              p_payments: null,
-              p_target_type: "transfer" as const,
-              p_to_account_id: input.transferTargetAccountId,
-              p_transaction_at: input.transactionAt,
-              p_transaction_record_id: input.transactionRecordId,
-              p_transfer_amount: input.transferAmount,
-            }
-          : {
-              p_from_account_id: null,
-              p_items: toTransactionRpcItems(input.items),
-              p_ledger_id: input.ledgerId,
-              p_merchant_id: input.merchantId,
-              p_note: input.note,
-              p_payments: toTransactionPaymentRpcPayload(input.payments),
-              p_target_type: input.targetType,
-              p_to_account_id: null,
-              p_transaction_at: input.transactionAt,
-              p_transaction_record_id: input.transactionRecordId,
-              p_transfer_amount: null,
-            };
-      const { error } = await supabase.rpc(
-        "convert_transaction_type_with_special_status",
-        rpcParams,
-      );
-      if (error) {
-        throwRpcError(
-          "failed to convert transaction",
-          transactionErrorCodes.updateFailed,
-          error,
-          {
-            ledgerId: input.ledgerId,
-            transactionRecordId: input.transactionRecordId,
-          },
-        );
-      }
-    },
-
     async createNormal(input) {
       const { error } = await supabase.rpc("create_transaction", {
         p_items: toTransactionRpcItems(input.items),

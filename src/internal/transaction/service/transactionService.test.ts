@@ -29,7 +29,6 @@ function createRepository(
   > = {},
 ): TransactionServiceDependencies["transactionRepository"] {
   return {
-    convert: vi.fn(),
     createBalanceAdjustment: vi.fn(),
     createNormal: vi.fn(),
     createTransfer: vi.fn(),
@@ -504,15 +503,6 @@ describe("TransactionService", () => {
         service.updateNormal({ ...normalInput, transactionRecordId }),
     },
     {
-      method: "convert",
-      run: (service: TransactionService) =>
-        service.convert({
-          ...normalInput,
-          targetType: "expense",
-          transactionRecordId,
-        }),
-    },
-    {
       method: "updateTransfer",
       run: (service: TransactionService) =>
         service.updateTransfer({
@@ -743,7 +733,7 @@ describe("TransactionService", () => {
   });
 });
 
-describe("付款明细校验（create / update / convert）", () => {
+describe("付款明细校验（create / update）", () => {
   const secondAccountId = "00000000-0000-4000-8000-000000000048";
 
   function createMultiAccountService(options?: {
@@ -804,7 +794,7 @@ describe("付款明细校验（create / update / convert）", () => {
     { accountId: secondAccountId, amount: "700" },
   ];
 
-  it.each(["createNormal", "updateNormal", "convert"] as const)(
+  it.each(["createNormal", "updateNormal"] as const)(
     "%s 只查询一次账户选项并透传合法多账户付款明细",
     async (method) => {
       const { accountQueryService, repository, service } =
@@ -813,7 +803,6 @@ describe("付款明细校验（create / update / convert）", () => {
         ...normalInput,
         items: [{ ...normalInput.items[0], amount: 1200 }],
         payments: multiAccountPayments,
-        targetType: "expense" as const,
         transactionRecordId,
       };
 
@@ -829,7 +818,7 @@ describe("付款明细校验（create / update / convert）", () => {
     },
   );
 
-  it.each(["createNormal", "updateNormal", "convert"] as const)(
+  it.each(["createNormal", "updateNormal"] as const)(
     "账本未开启多账户付款时 %s 拒绝多个付款账户",
     async (method) => {
       const repository = createRepository({
@@ -842,7 +831,6 @@ describe("付款明细校验（create / update / convert）", () => {
           ...normalInput,
           items: [{ ...normalInput.items[0], amount: 1200 }],
           payments: multiAccountPayments,
-          targetType: "expense" as const,
           transactionRecordId,
         }),
       ).rejects.toMatchObject({
@@ -1022,30 +1010,6 @@ describe("付款明细校验（create / update / convert）", () => {
       name: ValidationError.name,
     });
     expect(repository.createNormal).not.toHaveBeenCalled();
-  });
-
-  it("类型转换为普通交易时校验付款明细", async () => {
-    const { repository, service } = createMultiAccountService();
-
-    await expect(
-      service.convert({
-        items: [{ ...normalInput.items[0], amount: 1200 }],
-        ledgerId,
-        merchantId: normalInput.merchantId,
-        note: null,
-        payments: [
-          { accountId: normalInput.payments[0].accountId, amount: "500" },
-          { accountId: secondAccountId, amount: "600" },
-        ],
-        targetType: "expense",
-        transactionAt: normalInput.transactionAt,
-        transactionRecordId,
-      }),
-    ).rejects.toMatchObject({
-      code: transactionErrorCodes.paymentTotalMismatch,
-      name: ValidationError.name,
-    });
-    expect(repository.convert).not.toHaveBeenCalled();
   });
 });
 

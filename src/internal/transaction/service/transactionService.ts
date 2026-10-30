@@ -49,7 +49,6 @@ import type {
 } from "internal/transaction/entity/transactionReadModels";
 import type { TransactionIncomeLinkRepository } from "internal/transaction/repository/transactionIncomeLinkRepository";
 import type {
-  ConvertTransactionInput,
   CreateNormalTransactionInput,
   CreateTransferTransactionInput,
   TransactionCommandRepository,
@@ -118,7 +117,6 @@ export interface TransactionService {
     ledgerId: string;
     transactionRecordId: string;
   }): Promise<boolean>;
-  convert(input: ConvertTransactionInput): Promise<void>;
   createNormal(input: CreateNormalTransactionInput): Promise<void>;
   createTransfer(input: CreateTransferTransactionInput): Promise<void>;
   getEditView(
@@ -352,7 +350,7 @@ export function createTransactionService({
   }
 
   /**
-   * create / update / convert 调用 Repository 前的第二道防线：账户去重、归档、
+   * create / update 调用 Repository 前的第二道防线：账户去重、归档、
    * 同币种、多行时全部为支出明细、付款合计 = 支出明细合计，规则与数据库延迟
    * 约束触发器一致（docs/design/issue-834-split-payment.md 3.2）；多行时账本还
    * 必须开启多账户付款（#931，与 replace_transaction_payments 一致）。
@@ -417,33 +415,6 @@ export function createTransactionService({
           return false;
         }
         throw error;
-      }
-    },
-
-    async convert(input) {
-      await requireModificationPermission(
-        input.ledgerId,
-        input.transactionRecordId,
-      );
-      if (input.targetType !== "transfer") {
-        await validateSpecialStatuses(input);
-        const accountOptions = await accountQueryService.listTransactionOptions(
-          {
-            ledgerId: input.ledgerId,
-            userId: requireTransactionUserId(currentUserId),
-          },
-        );
-        await requireValidTransactionPayments({
-          accountOptions,
-          items: input.items,
-          ledgerId: input.ledgerId,
-          payments: input.payments,
-        });
-      }
-      try {
-        await transactionRepository.convert(input);
-      } catch (error) {
-        operationError(error, transactionErrorCodes.updateFailed);
       }
     },
 

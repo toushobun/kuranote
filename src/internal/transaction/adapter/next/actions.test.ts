@@ -25,7 +25,6 @@ const transactionActionModuleMocks = getTransactionActionModuleMocks();
 
 const mocks = vi.hoisted(() => ({
   canModify: vi.fn(),
-  convert: vi.fn(),
   createNormal: vi.fn(),
   createTransfer: vi.fn(),
   getEditView: vi.fn(),
@@ -159,7 +158,6 @@ describe("Transaction Action 写入流程", () => {
         },
         service: {
           canModify: mocks.canModify,
-          convert: mocks.convert,
           createNormal: mocks.createNormal,
           createTransfer: mocks.createTransfer,
           getEditView: mocks.getEditView,
@@ -321,40 +319,31 @@ describe("Transaction Action 写入流程", () => {
     expectRandomErrorKey(state.errorKey);
     consoleError.mockRestore();
   });
-  it("普通交易转换为转账时由 saveEditTransaction 调用 convert", async () => {
-    await expect(
-      saveEditTransaction({}, createTransferFormData("expense")),
-    ).rejects.toThrow(
-      "NEXT_REDIRECT:/transactions?month=2026-06&result=updated",
-    );
-    expect(mocks.convert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        accountId,
-        ledgerId,
-        targetType: "transfer",
-        transactionRecordId,
-        transferTargetAccountId: targetAccountId,
-      }),
-    );
-    expect(mocks.updateTransfer).not.toHaveBeenCalled();
-  });
-  it("转账转换为普通交易时由 saveEditTransaction 调用 convert 并透传付款明细", async () => {
-    const formData = createNormalFormData({
-      sourceType: "transfer",
-      type: "expense",
-    });
-    await expect(saveEditTransaction({}, formData)).rejects.toThrow(
-      "NEXT_REDIRECT:/transactions?month=2026-06&result=updated",
-    );
-    expect(mocks.convert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        ledgerId,
-        payments: [{ accountId, amount: null }],
-        targetType: "expense",
-        transactionRecordId,
-      }),
-    );
-  });
+  it.each([
+    ["expense", "transfer"],
+    ["income", "transfer"],
+    ["transfer", "expense"],
+    ["transfer", "income"],
+  ])(
+    "拒绝从 %s 转为 %s 且不调用任何 service 方法",
+    async (sourceType, targetType) => {
+      const formData =
+        targetType === "transfer"
+          ? createTransferFormData(sourceType)
+          : createNormalFormData({ sourceType, type: targetType });
+      const state = await saveEditTransaction({}, formData);
+      expect(state).toEqual({
+        error: transactionActionErrorMessages.typeInvalid,
+        errorKey: expect.any(String),
+      });
+      for (const method of Object.values(mocks)) {
+        expect(method).not.toHaveBeenCalled();
+      }
+      expect(
+        transactionActionModuleMocks.createRequestContainer,
+      ).not.toHaveBeenCalled();
+    },
+  );
   it("转账保持转账类型时由 saveEditTransaction 调用 updateTransfer", async () => {
     await expect(
       saveEditTransaction({}, createTransferFormData("transfer")),
@@ -364,7 +353,6 @@ describe("Transaction Action 写入流程", () => {
     expect(mocks.updateTransfer).toHaveBeenCalledWith(
       expect.objectContaining({ ledgerId, transactionRecordId }),
     );
-    expect(mocks.convert).not.toHaveBeenCalled();
   });
   it("作废成功后刷新缓存并返回交易列表", async () => {
     await expect(voidTransaction({}, createVoidFormData())).rejects.toThrow(
