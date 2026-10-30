@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { useState } from "react";
 import { receiptSuggestions } from "test/mocks/transactionReceipt";
 import { TransactionItemAmountDrawer } from "./TransactionItemAmountDrawer";
 const meta = {
@@ -12,19 +11,8 @@ const meta = {
     currency: "JPY",
     value: "",
     quickAmounts: receiptSuggestions.quickAmounts,
-    onChange: () => {},
     onConfirm: () => {},
     onClose: () => {},
-  },
-  render: function AmountDrawerStory(args) {
-    const [value, setValue] = useState(args.value);
-    return (
-      <TransactionItemAmountDrawer
-        {...args}
-        value={value}
-        onChange={setValue}
-      />
-    );
   },
 } satisfies Meta<typeof TransactionItemAmountDrawer>;
 export default meta;

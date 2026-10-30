@@ -4,7 +4,7 @@ import type { TransactionReceiptProps } from "../TransactionConfirmStep/Transact
 import { formatStepItemCategory } from "../transactionStepFlowFormat";
 import { exceedsCurrencyDecimalPlaces } from "utils/transactionAmountInput";
 
-/** 明细的金额键盘：逐键同步到明细，确定后跳到下一条未填金额的明细。 */
+/** 明细的金额键盘：点「确定」才写入这一条明细并关闭键盘，不自动打开下一条。 */
 export function TransactionStepAmountEditor({
   form,
   amountItemId,
@@ -18,10 +18,7 @@ export function TransactionStepAmountEditor({
   function confirmAmount(amount: string) {
     if (!amountItem) return;
     form.updateItem(amountItem.id, { amount });
-    const next = form.itemSummaries.find(
-      (item) => item.id !== amountItem.id && !item.amount.trim(),
-    );
-    onAmountItemChange(next?.id ?? null);
+    onAmountItemChange(null);
   }
   return (
     <TransactionItemAmountDrawer
@@ -36,9 +33,6 @@ export function TransactionStepAmountEditor({
           : ""
       }
       quickAmounts={suggestions?.quickAmounts}
-      onChange={(amount) =>
-        amountItem && form.updateItem(amountItem.id, { amount })
-      }
       onConfirm={confirmAmount}
       onClose={() => onAmountItemChange(null)}
     />

@@ -4,33 +4,44 @@ import {
   renderEntryComponent,
   clickEntryButton as click,
 } from "test/transactionStepFlow";
+import { pressItemAmountKey as press } from "test/transactionConfirmStep";
 import { receiptSuggestions } from "test/mocks/transactionReceipt";
 import { TransactionItemAmountDrawer } from "./TransactionItemAmountDrawer";
 function setup(
   currency = "CNY",
   quickAmounts = receiptSuggestions.quickAmounts,
+  value = "",
 ) {
   const props = {
     open: true,
     title: "餐饮 · 午餐",
     categoryId: "lunch",
     currency,
-    value: "",
+    value,
     quickAmounts,
-    onChange: vi.fn(),
     onConfirm: vi.fn(),
     onClose: vi.fn(),
   };
-  renderEntryComponent(<TransactionItemAmountDrawer {...props} />);
-  return props;
+  const view = renderEntryComponent(<TransactionItemAmountDrawer {...props} />);
+  return { ...props, view };
+}
+function display() {
+  return screen.getByLabelText("计算器显示金额");
+}
+// 点快捷金额后确定，返回写入的金额。
+function confirmQuickAmount(props: ReturnType<typeof setup>, label: string) {
+  click(label);
+  press("确定");
+  return props.onConfirm.mock.lastCall?.[0];
 }
 describe("TransactionItemAmountDrawer", () => {
-  it("仅显示当前币种快捷金额并原样回调，确认和关闭通知外部", () => {
+  it("仅显示当前币种快捷金额，确认和关闭通知外部", () => {
     const props = setup();
     expect(screen.getByText("餐饮 · 午餐 的金额")).toBeInTheDocument();
     expect(screen.queryByText("上次 ¥498")).not.toBeInTheDocument();
     click("上次 ¥18.5");
-    expect(props.onChange).toHaveBeenCalledWith("18.50");
+    expect(display()).toHaveTextContent("¥ 18.5");
+    expect(props.onConfirm).not.toHaveBeenCalled();
     expect(
       within(screen.getByLabelText("金额计算器")).getByRole("button", {
         name: ".",
@@ -64,12 +75,10 @@ describe("TransactionItemAmountDrawer", () => {
         frequentAmounts: ["520.00"],
       },
     ]);
-    click("上次 ¥498");
-    expect(props.onChange).toHaveBeenLastCalledWith("498");
-    click("¥520");
-    expect(props.onChange).toHaveBeenLastCalledWith("520");
+    expect(confirmQuickAmount(props, "上次 ¥498")).toBe("498");
+    expect(confirmQuickAmount(props, "¥520")).toBe("520");
   });
-  it("人民币快捷金额填入时保留两位小数", () => {
+  it("人民币快捷金额按两位小数精度填入，确定后写入", () => {
     const props = setup("CNY", [
       {
         categoryId: "lunch",
@@ -78,10 +87,8 @@ describe("TransactionItemAmountDrawer", () => {
         frequentAmounts: ["8"],
       },
     ]);
-    click("上次 ¥12.5");
-    expect(props.onChange).toHaveBeenLastCalledWith("12.50");
-    click("¥8");
-    expect(props.onChange).toHaveBeenLastCalledWith("8.00");
+    expect(confirmQuickAmount(props, "上次 ¥12.5")).toBe("12.5");
+    expect(confirmQuickAmount(props, "¥8")).toBe("8");
   });
   it("大金额按钮显示千位分隔符，填入不带分隔符", () => {
     const props = setup("JPY", [
@@ -92,8 +99,7 @@ describe("TransactionItemAmountDrawer", () => {
         frequentAmounts: [],
       },
     ]);
-    click("上次 ¥85,000");
-    expect(props.onChange).toHaveBeenLastCalledWith("85000");
+    expect(confirmQuickAmount(props, "上次 ¥85,000")).toBe("85000");
   });
   it("格式化后与「上次」相同的常用金额不重复显示", () => {
     setup("JPY", [
@@ -109,5 +115,16 @@ describe("TransactionItemAmountDrawer", () => {
         .getAllByRole("button")
         .map((button) => button.textContent),
     ).toEqual(["上次 ¥498", "¥520"]);
+  });
+
+  it("每次打开都从当前金额开始，不保留上次关闭时的草稿", () => {
+    const props = setup("JPY", [], "800");
+    press("5");
+    const closed = { ...props, open: false };
+    props.view.rerender(<TransactionItemAmountDrawer {...closed} />);
+    props.view.rerender(<TransactionItemAmountDrawer {...props} />);
+    expect(display()).toHaveTextContent("¥ 800");
+    press("确定");
+    expect(props.onConfirm).toHaveBeenLastCalledWith("800");
   });
 });

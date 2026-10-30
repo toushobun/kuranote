@@ -22,10 +22,13 @@ type TransactionItemAmountDrawerProps = {
   currency: string;
   value: string;
   quickAmounts?: MerchantEntrySuggestions["quickAmounts"];
-  onChange: (value: string) => void;
   onConfirm: (value: string) => void;
   onClose: () => void;
 };
+/**
+ * 小票的金额键盘（明细与多账户付款共用）：键盘里的输入只是草稿，点「确定」才通过 `onConfirm` 写入；
+ * 按键、快捷金额、清空都不改外部金额，点 × 关闭即放弃草稿（#943 任务 13）。
+ */
 export function TransactionItemAmountDrawer({
   open,
   title,
@@ -33,14 +36,23 @@ export function TransactionItemAmountDrawer({
   currency,
   value,
   quickAmounts = [],
-  onChange,
   onConfirm,
   onClose,
 }: TransactionItemAmountDrawerProps) {
-  const [quickRevision, setQuickRevision] = useState(0);
+  const [draft, setDraft] = useState(value);
+  // 键盘每次打开或点快捷金额时重新挂载，从草稿重新开始（清掉未完成的算式）。
+  const [revision, setRevision] = useState(0);
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setDraft(value);
+      setRevision((current) => current + 1);
+    }
+  }
   function applyQuickAmount(amount: string) {
-    setQuickRevision((value) => value + 1);
-    onChange(amount);
+    setRevision((current) => current + 1);
+    setDraft(amount);
   }
   const quick = quickAmounts.find(
     (item) => item.categoryId === categoryId && item.currency === currency,
@@ -112,10 +124,10 @@ export function TransactionItemAmountDrawer({
         </Box>
       )}
       <TransactionAmountKeypad
-        key={`${categoryId}:${currency}:${quickRevision}`}
+        key={`${categoryId}:${currency}:${revision}`}
         currency={currency}
-        value={value}
-        onChange={onChange}
+        value={draft}
+        onChange={setDraft}
         onConfirm={onConfirm}
         confirmLabel={m.confirmAmount}
       />

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { userEvent, within } from "storybook/test";
+import { expect, userEvent, within } from "storybook/test";
 import { TransactionStepFlow } from "../TransactionStepFlow/TransactionStepFlow";
 import { transactionEntryStoryDecorators } from "organisms/transactions/transactionStepFlowStoryUtils";
 import { flowFixture } from "test/mocks/transactionStepFlow";
@@ -129,10 +129,22 @@ export const ExcessDecimals: Story = {
   },
 };
 export const PaymentAmountKeypad: Story = {
-  name: "多账户：点金额打开金额键盘",
+  name: "多账户：点金额打开金额键盘（输入中小票金额不变）",
   args: MultiAccountUnbalanced.args,
-  play: ({ canvasElement }) =>
-    clickButton(canvasElement, /^修改支付账户 2 金额：/),
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    await clickButton(canvasElement, "修改支付账户 2 金额：¥3,000");
+    const keypad = await body.findByLabelText("金额计算器");
+    await userEvent.click(within(keypad).getByRole("button", { name: "清空" }));
+    await userEvent.click(within(keypad).getByRole("button", { name: "5" }));
+    // 键盘里只是草稿，点「确定」前小票上的金额不变。
+    await expect(
+      body.getByRole("button", {
+        name: "修改支付账户 2 金额：¥3,000",
+        hidden: true,
+      }),
+    ).toBeInTheDocument();
+  },
 };
 export const NoteEditor: Story = {
   name: "编辑备注",
