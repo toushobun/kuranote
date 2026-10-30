@@ -40,7 +40,7 @@ export function ReceiptItemsSection({
   const items = form.itemSummaries;
   return (
     <>
-      {automaticItemIds.length > 0 && (
+      {!readOnly && automaticItemIds.length > 0 && (
         <Typography variant="caption" sx={hintSx}>
           {m.automaticNotice(automaticItemIds.length)}
         </Typography>

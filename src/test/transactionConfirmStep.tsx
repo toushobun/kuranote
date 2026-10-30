@@ -37,9 +37,16 @@ export function receiptLine(name: string) {
 /** 直接渲染只读小票（#962）：已选 7-Eleven，明细与付款按参数预填。 */
 export function renderReadOnlyReceipt(
   itemsOptions: ItemsStepOptions,
-  note = "",
+  {
+    note = "",
+    automaticItemIds,
+  }: { note?: string; automaticItemIds?: number[] } = {},
 ) {
   return renderEntryComponent(
-    <ReadOnlyReceipt itemsOptions={itemsOptions} note={note} />,
+    <ReadOnlyReceipt
+      itemsOptions={itemsOptions}
+      note={note}
+      automaticItemIds={automaticItemIds}
+    />,
   );
 }

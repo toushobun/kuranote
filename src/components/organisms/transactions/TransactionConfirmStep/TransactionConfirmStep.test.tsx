@@ -715,7 +715,7 @@ describe("TransactionConfirmStep 只读", () => {
   it("有备注时显示备注，没有备注时不显示备注区", () => {
     const { unmount } = renderReadOnlyReceipt(
       { ...receiptItemsOptions, initialItems: filledItems },
-      "买了饭团",
+      { note: "买了饭团" },
     );
     expect(screen.getByText("买了饭团")).toBeInTheDocument();
     unmount();
@@ -725,5 +725,13 @@ describe("TransactionConfirmStep 只读", () => {
     });
     expect(screen.queryByText("备注")).not.toBeInTheDocument();
     expect(screen.queryByText("添加备注（可选）")).not.toBeInTheDocument();
+  });
+
+  it("传入自动明细时也不显示自动添加提示", () => {
+    renderReadOnlyReceipt(
+      { ...receiptItemsOptions, initialItems: filledItems },
+      { automaticItemIds: [1, 2] },
+    );
+    expect(screen.queryByText(/已按你的习惯自动添加/)).not.toBeInTheDocument();
   });
 });
