@@ -3,6 +3,7 @@ import { expect, userEvent, within } from "storybook/test";
 import { TransactionStepFlow } from "../TransactionStepFlow/TransactionStepFlow";
 import { transactionEntryStoryDecorators } from "organisms/transactions/transactionStepFlowStoryUtils";
 import { flowFixture } from "test/mocks/transactionStepFlow";
+import { ReadOnlyReceipt } from "test/ReadOnlyReceipt";
 import {
   receiptFlowFixture,
   receiptEmojiItemsOptions as receiptItemsOptions,
@@ -99,6 +100,34 @@ export const ItemTags: Story = {
       ],
     },
   },
+};
+// 被其他记录退款 / 报销核销后的支出（编辑时，#962）。
+const offsetItems = [
+  {
+    categoryId: "lunch",
+    amount: "10000",
+    businessNetAmount: "5000",
+    refundedAmount: "3000",
+    reimbursementAmount: "2000",
+  },
+];
+export const OffsetNetTotal: Story = {
+  name: "被其他记录退款 / 报销：合计显示净额与已退款、已报销",
+  args: {
+    itemsOptions: { ...receiptItemsOptions, initialItems: offsetItems },
+  },
+};
+export const ReadOnly: Story = {
+  name: "只读（#962）：没有铅笔、×、可点金额与保存按钮",
+  render: () => (
+    <ReadOnlyReceipt
+      itemsOptions={{
+        ...receiptItemsOptions,
+        initialItems: [...offsetItems, { categoryId: "points", amount: "100" }],
+      }}
+      note="退了一部分，剩下的公司报销"
+    />
+  ),
 };
 export const AccountPicker: Story = {
   name: "支付行铅笔：账户选择抽屉",

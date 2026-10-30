@@ -78,6 +78,8 @@ export type TransactionFormInitialItem = {
   refundCandidate?: TransactionRefundCandidate | null;
   reimbursementCandidate?: TransactionRefundCandidate | null;
   refundedAmount?: string;
+  // 被其他记录报销核销的金额（编辑时由服务端读取）。
+  reimbursementAmount?: string;
   specialStatus?: TransactionSpecialStatus | null;
 };
 
@@ -104,6 +106,7 @@ export type TransactionFormItem = {
   persistedId?: string;
   reimbursementCandidate?: TransactionRefundCandidate | null;
   refundedAmount?: string;
+  reimbursementAmount?: string;
   refundCandidate?: TransactionRefundCandidate | null;
   specialStatus?: TransactionSpecialStatus | null;
   specialStatusLocked?: boolean;

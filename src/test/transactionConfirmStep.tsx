@@ -1,8 +1,15 @@
 import { expect } from "vitest";
 import { fireEvent, screen, within } from "@testing-library/react";
-import { renderTransactionFlow } from "./transactionStepFlow";
+import {
+  renderEntryComponent,
+  renderTransactionFlow,
+} from "./transactionStepFlow";
 import { receiptFlowFixture } from "./mocks/transactionReceipt";
-import type { TransactionStepFlowProps } from "organisms/transactions/TransactionStepFlow/TransactionStepFlow.types";
+import { ReadOnlyReceipt } from "./ReadOnlyReceipt";
+import type {
+  ItemsStepOptions,
+  TransactionStepFlowProps,
+} from "organisms/transactions/TransactionStepFlow/TransactionStepFlow.types";
 
 export function renderConfirmFlow(
   overrides: Partial<TransactionStepFlowProps> = {},
@@ -25,4 +32,14 @@ export function expectAutomaticItems(count: number) {
 // 以首排铅笔按钮定位包含次排标签的完整小票行。
 export function receiptLine(name: string) {
   return screen.getByRole("button", { name }).parentElement!.parentElement!;
+}
+
+/** 直接渲染只读小票（#962）：已选 7-Eleven，明细与付款按参数预填。 */
+export function renderReadOnlyReceipt(
+  itemsOptions: ItemsStepOptions,
+  note = "",
+) {
+  return renderEntryComponent(
+    <ReadOnlyReceipt itemsOptions={itemsOptions} note={note} />,
+  );
 }

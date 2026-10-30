@@ -260,6 +260,7 @@ export async function getEditTransactionView(
           refundCandidate,
           reimbursementCandidate,
           refundedAmount: item.refunded_amount ?? "0",
+          reimbursementAmount: item.reimbursement_amount ?? "0",
           specialStatus: fromTransactionSpecialStatusStorageValue(
             item.special_status ?? null,
           ),

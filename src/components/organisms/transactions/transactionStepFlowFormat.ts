@@ -3,9 +3,13 @@ import type { TransactionItemSummary } from "organisms/transactions/TransactionF
 import type { TransactionCategoryOption } from "types/transactions";
 import { getCurrencySymbol } from "utils/currency";
 import { getAmountDecimalPlaces } from "utils/transactionAmountInput";
-import { formatUnsignedCurrencyAmount } from "utils/transactions";
+import {
+  formatUnsignedCurrencyAmount,
+  hasBusinessNetAmountOffset,
+} from "utils/transactions";
 
 const plainAmountPattern = /^\d+(\.\d+)?$/;
+const signedAmountPattern = /^-?\d+(\.\d+)?$/;
 
 function countDecimals(amount: string) {
   return amount.split(".")[1]?.length ?? 0;
@@ -21,25 +25,57 @@ export function formatStepCurrencyAmount(amount: string, currency: string) {
   }).format(Math.abs(Number(amount)))}`;
 }
 
-/**
- * 小票的支出 / 收入合计：换币种后小数位超出的金额也按原值计入，合计不会显示成 ¥0；
- * 按其中最多的小数位取整，避免浮点误差。
- */
-export function sumStepItemAmounts(
-  items: readonly Pick<TransactionItemSummary, "amount" | "category">[],
-) {
-  const totals = { expense: 0, income: 0 };
+/** 金额文本求和：跳过空值和非数字，按其中最多的小数位取整，避免浮点误差。 */
+function sumDecimalAmounts(amounts: readonly (string | undefined)[]) {
+  let total = 0;
   let decimals = 0;
-  for (const item of items) {
-    const amount = item.amount.trim();
-    if (!plainAmountPattern.test(amount)) continue;
-    decimals = Math.max(decimals, countDecimals(amount));
-    totals[item.category?.type === "income" ? "income" : "expense"] +=
-      Number(amount);
+  for (const amount of amounts) {
+    const text = amount?.trim() ?? "";
+    if (!signedAmountPattern.test(text)) continue;
+    decimals = Math.max(decimals, countDecimals(text));
+    total += Number(text);
   }
+  return Number(total.toFixed(decimals));
+}
+
+type ReceiptTotalItem = Pick<
+  TransactionItemSummary,
+  | "amount"
+  | "businessNetAmount"
+  | "category"
+  | "refundedAmount"
+  | "reimbursementAmount"
+>;
+
+/**
+ * 小票合计：支出 / 收入按原金额（换币种后小数位超出的金额也按原值计入，合计不会显示成 ¥0），
+ * 净额按业务金额（扣除被其他记录退款 / 报销核销的部分），已退款 / 已报销取支出明细的核销金额。
+ */
+export function summarizeStepReceiptTotals(items: readonly ReceiptTotalItem[]) {
+  const filled = items.filter((item) =>
+    plainAmountPattern.test(item.amount.trim()),
+  );
+  const expenses = filled.filter((item) => item.category?.type !== "income");
+  const incomes = filled.filter((item) => item.category?.type === "income");
+  const businessTotal = (list: readonly ReceiptTotalItem[]) =>
+    sumDecimalAmounts(
+      list.map((item) => item.businessNetAmount ?? item.amount),
+    );
   return {
-    expenseTotal: Number(totals.expense.toFixed(decimals)),
-    incomeTotal: Number(totals.income.toFixed(decimals)),
+    expenseTotal: sumDecimalAmounts(expenses.map((item) => item.amount)),
+    incomeTotal: sumDecimalAmounts(incomes.map((item) => item.amount)),
+    businessExpenseTotal: businessTotal(expenses),
+    businessIncomeTotal: businessTotal(incomes),
+    refundedTotal: sumDecimalAmounts(
+      expenses.map((item) => item.refundedAmount),
+    ),
+    reimbursedTotal: sumDecimalAmounts(
+      expenses.map((item) => item.reimbursementAmount),
+    ),
+    // 有核销时左侧显示「净额」而不是「合计」。
+    hasBusinessOffset: filled.some((item) =>
+      hasBusinessNetAmountOffset(item.amount, item.businessNetAmount),
+    ),
   };
 }
 

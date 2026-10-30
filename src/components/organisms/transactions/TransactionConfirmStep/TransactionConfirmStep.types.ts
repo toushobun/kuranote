@@ -22,4 +22,6 @@ export type TransactionConfirmStepProps = TransactionReceiptProps & {
   onBack: () => void;
   onAccountSelect: (account: TransactionAccountOption) => void;
   onAddAccount: () => void;
+  /** 只读详情（#962，编辑页的 `editRestriction`）：只显示内容，不能修改。 */
+  readOnly?: boolean;
 };

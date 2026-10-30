@@ -37,8 +37,9 @@ export function ReceiptLine({
   errorLabel?: boolean;
   /** 名称本身也可点击，与铅笔同样调用 `onEdit`（如未选账户时的「选择收支账户」）。 */
   labelClickable?: boolean;
-  editLabel: string;
-  onEdit: () => void;
+  /** 不传时（只读）不显示铅笔与 × 的位置。 */
+  editLabel?: string;
+  onEdit?: () => void;
   removeLabel?: string;
   onRemove?: () => void;
 }) {
@@ -69,15 +70,17 @@ export function ReceiptLine({
           </Box>
         </Box>
         {amount}
-        <IconButton
-          size="small"
-          aria-label={editLabel}
-          onClick={onEdit}
-          sx={actionSx}
-        >
-          <EditOutlinedIcon sx={{ fontSize: receiptIconSize }} />
-        </IconButton>
-        {onRemove && removeLabel ? (
+        {onEdit && editLabel && (
+          <IconButton
+            size="small"
+            aria-label={editLabel}
+            onClick={onEdit}
+            sx={actionSx}
+          >
+            <EditOutlinedIcon sx={{ fontSize: receiptIconSize }} />
+          </IconButton>
+        )}
+        {!onEdit ? null : onRemove && removeLabel ? (
           <IconButton
             size="small"
             aria-label={removeLabel}
@@ -118,7 +121,7 @@ export function ReceiptAmountButton({
       onClick={onClick}
       sx={[
         amountButtonSx,
-        income && { color: "success.main" },
+        income && { color: incomeAmountColor },
         pending && { color: "error.main" },
       ]}
     >
@@ -127,16 +130,28 @@ export function ReceiptAmountButton({
   );
 }
 
-/** 小票中不可点击的金额（单账户的支付金额由明细推导）。 */
-export function ReceiptAmountText({ amount }: { amount: string }) {
+/** 小票中不可点击的金额（单账户的支付金额由明细推导；只读时的明细与付款金额）。 */
+export function ReceiptAmountText({
+  amount,
+  income = false,
+}: {
+  amount: string;
+  income?: boolean;
+}) {
   return (
-    <Typography variant="body2" sx={amountTextSx}>
+    <Typography
+      variant="body2"
+      sx={[amountTextSx, income && { color: incomeAmountColor }]}
+    >
       {amount}
     </Typography>
   );
 }
 
 export const receiptIconSize = 18;
+// 收支颜色按交易配色设置（与明细列表一致）。
+export const expenseAmountColor = "var(--user-theme-negative-amount)";
+export const incomeAmountColor = "var(--user-theme-income-amount)";
 const actionSize = 32;
 const errorTextSx = { color: "error.main" };
 const lineSx = {

@@ -5,6 +5,7 @@ import {
   receiptLine as line,
   pressItemAmountKey,
   renderConfirmFlow,
+  renderReadOnlyReceipt,
 } from "test/transactionConfirmStep";
 import {
   clickEntryButton as click,
@@ -92,7 +93,56 @@ describe("TransactionConfirmStep", () => {
         ],
       },
     });
-    expect(screen.getByText("支出 ¥800 · 收入 ¥100")).toBeInTheDocument();
+    expect(screen.getByText("合计").nextElementSibling).toHaveTextContent(
+      "¥700支出 ¥800 · 收入 ¥100",
+    );
+  });
+
+  it("「支出」「收入」字样与收入明细金额按交易配色设置上色", () => {
+    renderConfirmFlow({
+      itemsOptions: {
+        ...receiptItemsOptions,
+        initialItems: [
+          { categoryId: "lunch", amount: "800" },
+          { categoryId: "points", amount: "100" },
+        ],
+      },
+    });
+    expect(screen.getByText("支出")).toHaveStyle({
+      color: "var(--user-theme-negative-amount)",
+    });
+    expect(screen.getByText("收入")).toHaveStyle({
+      color: "var(--user-theme-income-amount)",
+    });
+    expect(
+      screen.getByRole("button", { name: "修改明细 2 金额：+ ¥100" }),
+    ).toHaveStyle({ color: "var(--user-theme-income-amount)" });
+  });
+
+  it("被其他记录退款 / 报销时合计显示净额，下方列出已退款与已报销，支付金额仍为原金额", () => {
+    renderConfirmFlow({
+      itemsOptions: {
+        ...receiptItemsOptions,
+        initialItems: [
+          {
+            categoryId: "lunch",
+            amount: "10000",
+            businessNetAmount: "5000",
+            refundedAmount: "3000",
+            reimbursementAmount: "2000",
+          },
+        ],
+      },
+    });
+    const total = screen.getByText("净额").nextElementSibling!;
+    expect(screen.queryByText("合计")).not.toBeInTheDocument();
+    expect(within(total as HTMLElement).getByText("¥5,000")).toHaveClass(
+      "MuiTypography-h5",
+    );
+    expect(total).toHaveTextContent(
+      "支出 ¥10,000 · 已退款 ¥3,000 · 已报销 ¥2,000",
+    );
+    expect(line("更换支付账户 1")).toHaveTextContent("¥10,000");
   });
 
   it("明细和支付行各有一个铅笔和一个 ×，商家名与时间的铅笔紧跟文字", () => {
@@ -641,5 +691,39 @@ describe("TransactionConfirmStep 金额键盘", () => {
       "付款合计 ¥9,000 / 明细合计 ¥10,000 · 差额 ¥1,000",
     );
     expect(saveButton()).toBeDisabled();
+  });
+});
+
+describe("TransactionConfirmStep 只读", () => {
+  it("不显示铅笔、×、可点金额、添加入口与保存按钮", () => {
+    renderReadOnlyReceipt({
+      ...receiptItemsOptions,
+      initialItems: [
+        { categoryId: "lunch", amount: "800" },
+        { categoryId: "points", amount: "100" },
+      ],
+      initialPayments: twoPayments,
+    });
+    expect(screen.getByText("7-Eleven")).toBeInTheDocument();
+    expect(screen.getByText("餐饮 · 午餐")).toBeInTheDocument();
+    expect(screen.getByText("PayPay")).toBeInTheDocument();
+    expect(screen.queryAllByRole("button")).toHaveLength(0);
+    expect(screen.queryByTestId("EditOutlinedIcon")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("有备注时显示备注，没有备注时不显示备注区", () => {
+    const { unmount } = renderReadOnlyReceipt(
+      { ...receiptItemsOptions, initialItems: filledItems },
+      "买了饭团",
+    );
+    expect(screen.getByText("买了饭团")).toBeInTheDocument();
+    unmount();
+    renderReadOnlyReceipt({
+      ...receiptItemsOptions,
+      initialItems: filledItems,
+    });
+    expect(screen.queryByText("备注")).not.toBeInTheDocument();
+    expect(screen.queryByText("添加备注（可选）")).not.toBeInTheDocument();
   });
 });
