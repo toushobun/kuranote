@@ -1,9 +1,16 @@
 import { flowMessages as m } from "config/transactionStepFlowMessages";
 import type { TransactionItemSummary } from "organisms/transactions/TransactionForm/TransactionForm.types";
-import type { TransactionCategoryOption } from "types/transactions";
+import type {
+  TransactionCategoryOption,
+  TransactionType,
+} from "types/transactions";
 import { getCurrencySymbol } from "utils/currency";
 import { getAmountDecimalPlaces } from "utils/transactionAmountInput";
 import { formatUnsignedCurrencyAmount } from "utils/transactions";
+import {
+  sumAmountTexts,
+  sumTransactionItemBusinessTotals,
+} from "organisms/transactions/TransactionForm/TransactionForm.utils";
 
 const plainAmountPattern = /^\d+(\.\d+)?$/;
 
@@ -21,25 +28,37 @@ export function formatStepCurrencyAmount(amount: string, currency: string) {
   }).format(Math.abs(Number(amount)))}`;
 }
 
+type ReceiptTotalItem = Pick<
+  TransactionItemSummary,
+  | "amount"
+  | "businessNetAmount"
+  | "category"
+  | "refundedAmount"
+  | "reimbursementAmount"
+>;
+
 /**
- * 小票的支出 / 收入合计：换币种后小数位超出的金额也按原值计入，合计不会显示成 ¥0；
- * 按其中最多的小数位取整，避免浮点误差。
+ * 小票合计：支出 / 收入按原金额（换币种后小数位超出的金额也按原值计入，合计不会显示成 ¥0），
+ * 净额按业务金额（扣除被其他记录退款 / 报销核销的部分），已退款 / 已报销取支出明细的核销金额。
  */
-export function sumStepItemAmounts(
-  items: readonly Pick<TransactionItemSummary, "amount" | "category">[],
-) {
-  const totals = { expense: 0, income: 0 };
-  let decimals = 0;
-  for (const item of items) {
-    const amount = item.amount.trim();
-    if (!plainAmountPattern.test(amount)) continue;
-    decimals = Math.max(decimals, countDecimals(amount));
-    totals[item.category?.type === "income" ? "income" : "expense"] +=
-      Number(amount);
-  }
+export function summarizeStepReceiptTotals(items: readonly ReceiptTotalItem[]) {
+  const typed = items.map((item) => ({
+    ...item,
+    type: item.category?.type === "income" ? "income" : "expense",
+  })) satisfies { type: TransactionType }[];
+  const filled = typed.filter((item) =>
+    plainAmountPattern.test(item.amount.trim()),
+  );
+  const expenses = filled.filter((item) => item.type === "expense");
+  const incomes = filled.filter((item) => item.type === "income");
   return {
-    expenseTotal: Number(totals.expense.toFixed(decimals)),
-    incomeTotal: Number(totals.income.toFixed(decimals)),
+    expenseTotal: sumAmountTexts(expenses.map((item) => item.amount)),
+    incomeTotal: sumAmountTexts(incomes.map((item) => item.amount)),
+    ...sumTransactionItemBusinessTotals(typed),
+    refundedTotal: sumAmountTexts(expenses.map((item) => item.refundedAmount)),
+    reimbursedTotal: sumAmountTexts(
+      expenses.map((item) => item.reimbursementAmount),
+    ),
   };
 }
 

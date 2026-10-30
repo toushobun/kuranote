@@ -12,7 +12,11 @@ import {
   formatStepItemCategory,
 } from "../transactionStepFlowFormat";
 import { exceedsCurrencyDecimalPlaces } from "utils/transactionAmountInput";
-import { ReceiptAmountButton, ReceiptLine } from "./ReceiptLine";
+import {
+  ReceiptAmountButton,
+  ReceiptAmountText,
+  ReceiptLine,
+} from "./ReceiptLine";
 
 /** 小票的明细区：提示、每条明细（标签、金额、铅笔、×）与「＋ 添加明细」。 */
 export function ReceiptItemsSection({
@@ -21,6 +25,7 @@ export function ReceiptItemsSection({
   invalidItems,
   merchantHasHistory,
   canAddItem,
+  readOnly = false,
   onAmount,
 }: {
   form: ReturnType<typeof useTransactionForm>;
@@ -28,13 +33,14 @@ export function ReceiptItemsSection({
   invalidItems: readonly TransactionItemSummary[];
   merchantHasHistory?: boolean;
   canAddItem: boolean;
+  readOnly?: boolean;
   onAmount: (id: number) => void;
 }) {
   const currency = form.selectedAccount?.currency ?? "";
   const items = form.itemSummaries;
   return (
     <>
-      {automaticItemIds.length > 0 && (
+      {!readOnly && automaticItemIds.length > 0 && (
         <Typography variant="caption" sx={hintSx}>
           {m.automaticNotice(automaticItemIds.length)}
         </Typography>
@@ -90,29 +96,40 @@ export function ReceiptItemsSection({
               )
             }
             amount={
-              <ReceiptAmountButton
-                label={m.editAmount(index + 1, amount)}
-                amount={amount}
-                pending={!item.amount.trim() || excessDecimals}
-                income={item.category?.type === "income"}
-                onClick={() => onAmount(item.id)}
-              />
+              readOnly ? (
+                <ReceiptAmountText
+                  amount={amount}
+                  income={item.category?.type === "income"}
+                />
+              ) : (
+                <ReceiptAmountButton
+                  label={m.editAmount(index + 1, amount)}
+                  amount={amount}
+                  pending={!item.amount.trim() || excessDecimals}
+                  income={item.category?.type === "income"}
+                  onClick={() => onAmount(item.id)}
+                />
+              )
             }
-            editLabel={m.editItem(index + 1)}
-            onEdit={() => form.openItemSheet(item.id)}
-            removeLabel={m.removeItem(index + 1)}
-            onRemove={() => form.removeItem(item.id)}
+            {...(!readOnly && {
+              editLabel: m.editItem(index + 1),
+              onEdit: () => form.openItemSheet(item.id),
+              removeLabel: m.removeItem(index + 1),
+              onRemove: () => form.removeItem(item.id),
+            })}
           />
         );
       })}
-      <Button
-        fullWidth
-        startIcon={<AddRoundedIcon />}
-        onClick={form.openSheet}
-        disabled={!canAddItem}
-      >
-        {m.addItem}
-      </Button>
+      {!readOnly && (
+        <Button
+          fullWidth
+          startIcon={<AddRoundedIcon />}
+          onClick={form.openSheet}
+          disabled={!canAddItem}
+        >
+          {m.addItem}
+        </Button>
+      )}
     </>
   );
 }

@@ -3,7 +3,7 @@ import {
   formatStepItemAmount,
   formatStepItemCategory,
   formatStepNetTotal,
-  sumStepItemAmounts,
+  summarizeStepReceiptTotals,
 } from "./transactionStepFlowFormat";
 
 const lunch = {
@@ -54,13 +54,67 @@ describe("transactionStepFlowFormat", () => {
   it("小票合计计入小数位超出的金额，跳过空金额并避免浮点误差", () => {
     const income = { ...lunch, type: "income" as const };
     expect(
-      sumStepItemAmounts([
+      summarizeStepReceiptTotals([
         { amount: "12.55", category: lunch },
         { amount: "3.1", category: lunch },
         { amount: "", category: lunch },
         { amount: "0.2", category: income },
         { amount: "0.1", category: income },
       ]),
-    ).toEqual({ expenseTotal: 15.65, incomeTotal: 0.3 });
+    ).toEqual({
+      expenseTotal: 15.65,
+      incomeTotal: 0.3,
+      businessExpenseTotal: 15.65,
+      businessIncomeTotal: 0.3,
+      refundedTotal: 0,
+      reimbursedTotal: 0,
+      hasBusinessOffset: false,
+    });
+  });
+
+  it("净额扣除被其他记录退款 / 报销核销的金额，并合计已退款与已报销", () => {
+    expect(
+      summarizeStepReceiptTotals([
+        {
+          amount: "10000",
+          businessNetAmount: "5000",
+          category: lunch,
+          refundedAmount: "3000",
+          reimbursementAmount: "2000",
+        },
+        {
+          amount: "12.5",
+          businessNetAmount: "12.5",
+          category: lunch,
+          refundedAmount: "0",
+          reimbursementAmount: "0",
+        },
+      ]),
+    ).toMatchObject({
+      expenseTotal: 10012.5,
+      businessExpenseTotal: 5012.5,
+      refundedTotal: 3000,
+      reimbursedTotal: 2000,
+      hasBusinessOffset: true,
+    });
+  });
+
+  it("核销超过原金额（结余）时业务金额为负，净额随之变为收入", () => {
+    const totals = summarizeStepReceiptTotals([
+      {
+        amount: "1000",
+        businessNetAmount: "-200",
+        category: lunch,
+        refundedAmount: "1200",
+      },
+    ]);
+    expect(totals.businessExpenseTotal).toBe(-200);
+    expect(
+      formatStepNetTotal(
+        totals.businessExpenseTotal,
+        totals.businessIncomeTotal,
+        "JPY",
+      ),
+    ).toBe("+ ¥200");
   });
 });

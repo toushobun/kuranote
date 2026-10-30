@@ -45,9 +45,13 @@ export const flowMessages = {
   automaticNotice: (count: number) =>
     `已按你的习惯自动添加 ${count} 条，填金额即可`,
   total: "合计",
-  incomeExpense: (expense: string, income: string) =>
-    `支出 ${expense} · 收入 ${income}`,
-  expenseOnly: (expense: string) => `支出 ${expense}`,
+  // 合计下方的小字，各项之间用「 · 」分隔。
+  totalBreakdown: {
+    expense: "支出",
+    income: "收入",
+    refunded: "已退款",
+    reimbursed: "已报销",
+  },
   amountTitle: (category: string) => `${category} 的金额`,
   missingCategory: "未选择分类",
   pendingAmount: "待输入",

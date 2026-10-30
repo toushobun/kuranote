@@ -37,7 +37,6 @@ import {
   composeTransactionDateTimeLocalValue,
   formatDateTimeLocalInputValue,
   getNowDateTimeLocalValue,
-  hasBusinessNetAmountOffset,
   hasLinkCandidateCurrencyMismatch,
   splitDateTimeLocalValue,
 } from "utils/transactions";
@@ -59,6 +58,7 @@ import {
   getCurrencyMismatchedLinkKinds,
   isValidMoneyText,
   isValidTransactionFormItem,
+  sumTransactionItemBusinessTotals,
 } from "./TransactionForm.utils";
 
 type UseTransactionFormOptions = Pick<
@@ -238,18 +238,18 @@ export function useTransactionForm({
     allDisplayItems.length > 0
       ? formatNetAmount(incomeTotal - expenseTotal, selectedAccount?.currency)
       : "未填写金额";
-  const businessExpenseTotal = itemsByType.expense.reduce(
-    (sum, item) => sum + getFormItemBusinessAmount(item),
-    0,
-  );
-  const businessIncomeTotal = itemsByType.income.reduce(
-    (sum, item) => sum + getFormItemBusinessAmount(item),
-    0,
-  );
-  const hasBusinessNetAmount = allDisplayItems.some((item) =>
-    hasBusinessNetAmountOffset(item.amount, item.businessNetAmount),
-  );
-  const businessTotalAmount = hasBusinessNetAmount
+  const { businessExpenseTotal, businessIncomeTotal, hasBusinessOffset } =
+    sumTransactionItemBusinessTotals([
+      ...itemsByType.expense.map((item) => ({
+        ...item,
+        type: "expense" as const,
+      })),
+      ...itemsByType.income.map((item) => ({
+        ...item,
+        type: "income" as const,
+      })),
+    ]);
+  const businessTotalAmount = hasBusinessOffset
     ? formatNetAmount(
         businessIncomeTotal - businessExpenseTotal,
         selectedAccount?.currency,
@@ -982,11 +982,6 @@ function formatNetAmount(net: number, currency?: string) {
   const value = parseFloat(net.toFixed(getAmountDecimalPlaces(currency)));
   if (value === 0) return "0";
   return value > 0 ? `+${value}` : `${value}`;
-}
-
-function getFormItemBusinessAmount(item: TransactionFormItem) {
-  const amount = Number(item.businessNetAmount ?? item.amount);
-  return Number.isFinite(amount) ? amount : 0;
 }
 
 function toSignedBusinessNetMinorUnits(value: string) {

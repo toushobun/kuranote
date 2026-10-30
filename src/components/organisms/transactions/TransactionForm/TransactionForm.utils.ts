@@ -21,6 +21,47 @@ import type {
 
 export { getCurrencySymbol } from "utils/currency";
 
+const signedAmountPattern = /^-?\d+(\.\d+)?$/;
+
+/** 金额文本求和：跳过空值和非数字，按其中最多的小数位取整，避免浮点误差。 */
+export function sumAmountTexts(amounts: readonly (string | undefined)[]) {
+  let total = 0;
+  let decimals = 0;
+  for (const amount of amounts) {
+    const text = amount?.trim() ?? "";
+    if (!signedAmountPattern.test(text)) continue;
+    decimals = Math.max(decimals, text.split(".")[1]?.length ?? 0);
+    total += Number(text);
+  }
+  return Number(total.toFixed(decimals));
+}
+
+/**
+ * 明细的业务金额合计（扣除被其他记录退款 / 报销核销的部分，核销结余为负数）：
+ * 标准记账的汇总与小票的净额共用同一口径。`hasBusinessOffset` 为有明细存在核销。
+ */
+export function sumTransactionItemBusinessTotals(
+  items: readonly {
+    amount: string;
+    businessNetAmount?: string;
+    type: TransactionType;
+  }[],
+) {
+  const total = (type: TransactionType) =>
+    sumAmountTexts(
+      items
+        .filter((item) => item.type === type)
+        .map((item) => item.businessNetAmount ?? item.amount),
+    );
+  return {
+    businessExpenseTotal: total("expense"),
+    businessIncomeTotal: total("income"),
+    hasBusinessOffset: items.some((item) =>
+      hasBusinessNetAmountOffset(item.amount, item.businessNetAmount),
+    ),
+  };
+}
+
 export function buildCategoryPickerGroups(
   categories: TransactionCategoryOption[],
 ) {

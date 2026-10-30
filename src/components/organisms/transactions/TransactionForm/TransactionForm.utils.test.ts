@@ -12,6 +12,8 @@ import {
   getTransactionItemAmountPresentation,
   isValidMoneyText,
   isValidTransactionFormItem,
+  sumAmountTexts,
+  sumTransactionItemBusinessTotals,
 } from "./TransactionForm.utils";
 
 function createCategory(
@@ -264,4 +266,35 @@ describe("isValidTransactionFormItem", () => {
       ).toBe(expected);
     },
   );
+});
+
+describe("sumAmountTexts", () => {
+  it("跳过空值与非数字，按最多的小数位取整避免浮点误差", () => {
+    expect(sumAmountTexts(["0.1", "0.2", "", undefined, "abc"])).toBe(0.3);
+    expect(sumAmountTexts(["1000", "-200"])).toBe(800);
+  });
+});
+
+describe("sumTransactionItemBusinessTotals", () => {
+  it("按收支类型合计业务金额，没有核销时取原金额", () => {
+    expect(
+      sumTransactionItemBusinessTotals([
+        { amount: "10000", businessNetAmount: "5000", type: "expense" },
+        { amount: "800", type: "expense" },
+        { amount: "100", businessNetAmount: "0", type: "income" },
+      ]),
+    ).toEqual({
+      businessExpenseTotal: 5800,
+      businessIncomeTotal: 0,
+      hasBusinessOffset: true,
+    });
+  });
+
+  it("业务金额与原金额相同时不视为有核销", () => {
+    expect(
+      sumTransactionItemBusinessTotals([
+        { amount: "800", businessNetAmount: "800", type: "expense" },
+      ]).hasBusinessOffset,
+    ).toBe(false);
+  });
 });

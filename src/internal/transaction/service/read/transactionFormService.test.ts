@@ -277,6 +277,72 @@ describe("getEditTransactionView", () => {
     expect(view.initialValues.items[0]?.businessNetAmount).toBeUndefined();
   });
 
+  it("普通交易回填被其他记录退款 / 报销核销的金额，没有时为 0", async () => {
+    const repository = createRepository({
+      findActiveRecord: vi.fn().mockResolvedValue({
+        created_at: "2026-06-04T01:00:00.000Z",
+        created_by: userId,
+        id: transactionRecordId,
+        merchant_id: merchantId,
+        note: "",
+        transaction_at: "2026-06-04T01:30:05.000Z",
+        type: "normal",
+      }),
+      listItems: vi.fn().mockResolvedValue([
+        {
+          account_id: accountId,
+          amount: "10000.00",
+          balance_delta: "-10000.00",
+          business_net_amount: "5000",
+          category_id: categoryId,
+          note: null,
+          refunded_amount: "3000",
+          reimbursement_amount: "2000",
+          special_status: null,
+          transaction_record_id: transactionRecordId,
+        },
+        {
+          account_id: accountId,
+          amount: "800.00",
+          balance_delta: "-800.00",
+          business_net_amount: "800",
+          category_id: categoryId,
+          note: null,
+          special_status: null,
+          transaction_record_id: transactionRecordId,
+        },
+      ]),
+      listPayments: vi.fn().mockResolvedValue([
+        {
+          account_id: accountId,
+          amount: "10800.00",
+          balance_delta: "-10800.00",
+          sort_order: 0,
+          transaction_record_id: transactionRecordId,
+        },
+      ]),
+    });
+
+    const view = await getEditTransactionView(
+      createDependencies(repository),
+      currentLedger,
+      transactionRecordId,
+    );
+
+    expect(view).toMatchObject({
+      initialValues: {
+        items: [
+          {
+            businessNetAmount: "5000",
+            refundedAmount: "3000",
+            reimbursementAmount: "2000",
+          },
+          { refundedAmount: "0", reimbursementAmount: "0" },
+        ],
+      },
+    });
+  });
+
   it("普通交易引用已归档账户时禁止编辑", async () => {
     const repository = createRepository({
       findActiveRecord: vi.fn().mockResolvedValue({

@@ -195,6 +195,7 @@ export type EditTransactionView = TransactionFormOptions & {
           refundCandidate?: TransactionIncomeLinkCandidate | null;
           reimbursementCandidate?: TransactionIncomeLinkCandidate | null;
           refundedAmount?: string;
+          reimbursementAmount?: string;
           specialStatus: TransactionSpecialStatus | null;
         }[];
         merchantId: string;

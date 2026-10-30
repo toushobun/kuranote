@@ -24,6 +24,7 @@ export function ReceiptPaymentSection({
   accountOptions,
   total,
   canAddPayment,
+  readOnly = false,
   onChangeAccount,
   onAmount,
   onRemove,
@@ -33,6 +34,7 @@ export function ReceiptPaymentSection({
   /** 单账户时的支付金额（由明细推导的合计）。 */
   total: string;
   canAddPayment: boolean;
+  readOnly?: boolean;
   onChangeAccount: (key: number) => void;
   onAmount: (key: number) => void;
   onRemove: (key: number) => void;
@@ -65,7 +67,7 @@ export function ReceiptPaymentSection({
             }
             label={account?.name ?? m.chooseAccount}
             error={!account}
-            labelClickable={!account}
+            labelClickable={!readOnly && !account}
             tags={
               account && (
                 <Typography variant="caption" sx={currencySx}>
@@ -74,7 +76,11 @@ export function ReceiptPaymentSection({
               )
             }
             amount={
-              !account ? null : form.isMultiAccount ? (
+              !account ? null : readOnly ? (
+                <ReceiptAmountText
+                  amount={form.isMultiAccount ? amount : total}
+                />
+              ) : form.isMultiAccount ? (
                 <ReceiptAmountButton
                   label={m.editPaymentAmount(index + 1, amount)}
                   amount={amount}
@@ -85,14 +91,16 @@ export function ReceiptPaymentSection({
                 <ReceiptAmountText amount={total} />
               )
             }
-            editLabel={m.changePaymentAccount(index + 1)}
-            onEdit={() => onChangeAccount(payment.key)}
-            removeLabel={
-              removable(account) ? m.removePayment(index + 1) : undefined
-            }
-            onRemove={
-              removable(account) ? () => onRemove(payment.key) : undefined
-            }
+            {...(!readOnly && {
+              editLabel: m.changePaymentAccount(index + 1),
+              onEdit: () => onChangeAccount(payment.key),
+              removeLabel: removable(account)
+                ? m.removePayment(index + 1)
+                : undefined,
+              onRemove: removable(account)
+                ? () => onRemove(payment.key)
+                : undefined,
+            })}
           />
         );
       })}
