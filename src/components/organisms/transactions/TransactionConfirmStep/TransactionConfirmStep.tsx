@@ -63,33 +63,28 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
   );
   const format = (amount: number) =>
     formatStepCurrencyAmount(String(amount), currency);
-  const hasIncome = f.itemSummaries.some(
-    (item) => item.category?.type === "income",
-  );
+  // 合计下方的小字：支出 · 收入 · 已退款 · 已报销。
   const breakdown = [
     {
       label: m.totalBreakdown.expense,
       amount: totals.expenseTotal,
       color: expenseAmountColor,
-      shown: !hasIncome || totals.expenseTotal > 0,
     },
     {
       label: m.totalBreakdown.income,
       amount: totals.incomeTotal,
       color: incomeAmountColor,
-      shown: hasIncome,
     },
     {
       label: m.totalBreakdown.refunded,
       amount: totals.refundedTotal,
-      shown: totals.refundedTotal > 0,
     },
     {
       label: m.totalBreakdown.reimbursed,
       amount: totals.reimbursedTotal,
-      shown: totals.reimbursedTotal > 0,
     },
-  ].filter((part) => part.shown);
+    // 金额为 0 的项不显示。
+  ].filter((part) => part.amount > 0);
   const dateTime = `${formatDateOnlyLabel(
     f.transactionDate,
     formatDateValue(new Date()),

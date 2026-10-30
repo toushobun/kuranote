@@ -98,6 +98,34 @@ describe("TransactionConfirmStep", () => {
     );
   });
 
+  it("合计下方小字不显示金额为 0 的支出 / 收入", () => {
+    renderConfirmFlow({
+      itemsOptions: {
+        ...receiptItemsOptions,
+        initialItems: [
+          { categoryId: "lunch", amount: "0" },
+          { categoryId: "points", amount: "100" },
+        ],
+      },
+    });
+    expect(screen.getByText("合计").nextElementSibling).toHaveTextContent(
+      "+ ¥100收入 ¥100",
+    );
+    expect(screen.queryByText("支出")).not.toBeInTheDocument();
+  });
+
+  it("只有金额为 0 的支出时不显示小字", () => {
+    renderConfirmFlow({
+      itemsOptions: {
+        ...receiptItemsOptions,
+        initialItems: [{ categoryId: "lunch", amount: "0" }],
+      },
+    });
+    expect(screen.getByText("合计").nextElementSibling).toHaveTextContent(
+      /^¥0$/,
+    );
+  });
+
   it("「支出」「收入」字样与收入明细金额按交易配色设置上色", () => {
     renderConfirmFlow({
       itemsOptions: {
