@@ -13,10 +13,12 @@ import {
 } from "internal/transaction/service/read/options";
 import type { TransactionReadDependencies } from "internal/transaction/service/read/transactionContext";
 import type {
+  EditTransactionEntryView,
   EditTransactionView,
   NewTransactionView,
   TransactionAccountOption,
   TransactionCategoryOption,
+  TransactionFormOptions,
   TransferEditInitialValues,
 } from "internal/transaction/service/read/transactionReadModels";
 import type { TransactionEditRestriction } from "internal/transaction/entity/transactionReadModels";
@@ -65,13 +67,50 @@ export async function getNewTransactionView(
   };
 }
 
-export async function getEditTransactionView(
+export function getEditTransactionView(
   dependencies: TransactionFormReadDependencies,
   currentLedger: CurrentLedger,
   transactionRecordId: string,
 ): Promise<EditTransactionView | null> {
+  return buildEditTransactionView(
+    dependencies,
+    currentLedger,
+    transactionRecordId,
+    loadTransactionFormOptions,
+  );
+}
+
+/** 编辑记账页（#962）：小票的选择商家 / 账户与新增记账使用相同的选项。 */
+export async function getEditTransactionEntryView(
+  dependencies: TransactionFormReadDependencies,
+  currentLedger: CurrentLedger,
+  transactionRecordId: string,
+): Promise<EditTransactionEntryView | null> {
+  const view = await buildEditTransactionView(
+    dependencies,
+    currentLedger,
+    transactionRecordId,
+    loadTransactionEntryOptions,
+  );
+  return view && { ...view, ledgerId: currentLedger.id };
+}
+
+async function buildEditTransactionView<
+  Options extends Pick<
+    TransactionFormOptions,
+    "accountOptions" | "categoryOptions"
+  >,
+>(
+  dependencies: TransactionFormReadDependencies,
+  currentLedger: CurrentLedger,
+  transactionRecordId: string,
+  loadOptions: (
+    dependencies: TransactionFormReadDependencies,
+    currentLedger: CurrentLedger,
+  ) => Promise<Options>,
+): Promise<EditTransactionView<Options> | null> {
   const [options, record] = await Promise.all([
-    loadTransactionFormOptions(dependencies, currentLedger),
+    loadOptions(dependencies, currentLedger),
     dependencies.transactionRepository.findActiveRecord(
       currentLedger.id,
       transactionRecordId,

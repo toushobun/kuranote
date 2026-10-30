@@ -175,7 +175,10 @@ export type NewTransactionView = TransactionEntryOptions & {
   ledgerName: string;
 };
 
-export type EditTransactionView = TransactionFormOptions & {
+/** 编辑记录的读取模型；选项默认是旧表单用的 `TransactionFormOptions`。 */
+export type EditTransactionView<
+  Options extends EditTransactionViewOptions = TransactionFormOptions,
+> = Options & {
   canDelete: boolean;
   editRestriction: TransactionEditRestriction | null;
   initialValues:
@@ -206,3 +209,14 @@ export type EditTransactionView = TransactionFormOptions & {
       };
   ledgerName: string;
 };
+
+type EditTransactionViewOptions = Pick<
+  TransactionFormOptions,
+  "accountOptions" | "categoryOptions"
+>;
+
+/** 编辑记账页（#962）：选项与新增记账一致（账户带持有人、商家带商家分类），另附账本 ID 供浏览器端读取商家建议。 */
+export type EditTransactionEntryView =
+  EditTransactionView<TransactionEntryOptions> & {
+    ledgerId: string;
+  };

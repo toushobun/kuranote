@@ -63,6 +63,11 @@ describe("AccountStep", () => {
     click("新增账户");
     expect(props.onAddAccount).toHaveBeenCalledOnce();
   });
+  it("不传新增回调时没有账户也不显示新增入口（编辑记账）", () => {
+    setup({ accounts: [], onAddAccount: undefined });
+    expect(screen.getByText("还没有收支账户")).toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
   it("显示已有账户的成员和占位持有人名称，兼容旧调用未传持有人", () => {
     setup({
       accounts: [

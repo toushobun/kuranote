@@ -7,8 +7,9 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { UserThemeProvider } from "theme/UserThemeProvider";
-import { EditTransactionTemplate } from "templates/transactions/TransactionFormPage";
+import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
+import { pressItemAmountKey } from "test/transactionConfirmStep";
+import { EditTransactionReceiptTemplate } from "templates/transactions/EditTransactionReceipt";
 import type { CurrentLedger } from "internal/ledger";
 import { ConflictError } from "internal/shared/errors/appError";
 import {
@@ -22,10 +23,15 @@ import {
   type LinkedTransactionEditService,
 } from "internal/transaction/service/linkedTransactionEditService";
 import type { LinkedTransactionItemService } from "internal/transaction/service/linkedTransactionItemService";
-import type { EditTransactionView } from "internal/transaction/service/read/transactionReadModels";
+import type { EditTransactionEntryView } from "internal/transaction/service/read/transactionReadModels";
 import type { TransactionService } from "internal/transaction/service/transactionService";
 
 const transactionActionModuleMocks = getTransactionActionModuleMocks();
+
+// 小票换商家时的快捷金额；这里不关心建议内容。
+vi.mock("lib/api/clientQuery", () => ({
+  fetchClientJson: vi.fn(async () => null),
+}));
 
 const serverMocks = vi.hoisted(() => ({
   linkedUpdateNormal: vi.fn(),
@@ -52,9 +58,15 @@ const currentLedger: CurrentLedger = {
 };
 
 const accountOptions = [
-  { currency: "JPY", id: accountId, name: "现金" },
-  { currency: "JPY", id: otherAccountId, name: "银行" },
-];
+  { currency: "JPY", holders: [], id: accountId, name: "现金", type: "cash" },
+  {
+    currency: "JPY",
+    holders: [],
+    id: otherAccountId,
+    name: "银行",
+    type: "bank",
+  },
+] satisfies EditTransactionEntryView["accountOptions"];
 const categoryOptions = [
   {
     id: expenseCategoryId,
@@ -71,11 +83,13 @@ const categoryOptions = [
     type: "income" as const,
   },
 ];
-const merchantOptions = [{ icon_url: null, id: merchantId, name: "商家" }];
+const merchantOptions = [
+  { icon_url: null, id: merchantId, name: "商家", tags: [] },
+];
 
-type NormalEditView = Omit<EditTransactionView, "initialValues"> & {
+type NormalEditView = Omit<EditTransactionEntryView, "initialValues"> & {
   initialValues: Extract<
-    EditTransactionView["initialValues"],
+    EditTransactionEntryView["initialValues"],
     { items: unknown[] }
   >;
 };
@@ -141,8 +155,10 @@ function createView(side: "parent" | "child"): NormalEditView {
       transactionRecordId,
       type: isParent ? "expense" : "income",
     },
+    ledgerId,
     ledgerName: "家庭账本",
     merchantOptions,
+    merchantTags: [],
     multiAccountPaymentEnabled: true,
     transactionItemSpecialStatusEnabled: true,
   };
@@ -243,21 +259,34 @@ function renderScenario(view: NormalEditView) {
   const scenario = createScenario(view);
   const { initialValues, ...viewProps } = scenario.view;
   const { container } = render(
-    <UserThemeProvider>
-      <EditTransactionTemplate
-        {...viewProps}
-        action={scenario.action}
-        deleteAction={vi.fn(async () => ({}))}
-        errorMessage={null}
-        initialValues={initialValues}
-      />
-    </UserThemeProvider>,
+    <EditTransactionReceiptTemplate
+      {...viewProps}
+      action={scenario.action}
+      deleteAction={vi.fn(async () => ({}))}
+      frequentMerchants={[]}
+      initialValues={initialValues}
+    />,
+    { wrapper: ConfirmDialogTestProviders },
   );
   return { ...scenario, container };
 }
 
+// 在小票上把明细 1 的金额改成 amount（点金额 → 计算器 → 确定）。
+async function changeItemAmount(current: string, amount: string) {
+  fireEvent.click(
+    screen.getByRole("button", { name: `修改明细 1 金额：${current}` }),
+  );
+  pressItemAmountKey("清空");
+  for (const key of amount) pressItemAmountKey(key);
+  pressItemAmountKey("确定");
+  await vi.waitFor(() =>
+    expect(screen.queryByLabelText("金额计算器")).not.toBeInTheDocument(),
+  );
+}
+
 async function submitForSyncConfirmation() {
-  fireEvent.click(screen.getByRole("button", { name: "保存修改" }));
+  // 抽屉关闭动画结束前背景会被 aria-hidden。
+  fireEvent.click(await screen.findByRole("button", { name: "保存修改" }));
   return screen.findByRole("dialog", { name: "同步修改关联数据？" });
 }
 
@@ -269,9 +298,7 @@ describe("Issue #574 已关联交易跨层编辑流程", () => {
 
   it("母项金额从表单直接写入原子保存边界", async () => {
     const { persisted, updateEdit } = renderScenario(createView("parent"));
-    fireEvent.change(screen.getByLabelText("明细 1 金额"), {
-      target: { value: "70" },
-    });
+    await changeItemAmount("¥100", "70");
 
     fireEvent.click(screen.getByRole("button", { name: "保存修改" }));
     await vi.waitFor(() => expect(updateEdit).toHaveBeenCalledOnce());
@@ -284,9 +311,7 @@ describe("Issue #574 已关联交易跨层编辑流程", () => {
 
   it("子项金额从表单确认后写入原子保存边界", async () => {
     const { persisted, updateEdit } = renderScenario(createView("child"));
-    fireEvent.change(screen.getByLabelText("明细 1 金额"), {
-      target: { value: "80" },
-    });
+    await changeItemAmount("+ ¥40", "80");
 
     const dialog = await submitForSyncConfirmation();
     expect(updateEdit).not.toHaveBeenCalled();
@@ -313,8 +338,8 @@ describe("Issue #574 已关联交易跨层编辑流程", () => {
 
   it("付款账户变化先返回确认冲突并在确认后保存成功", async () => {
     const { persisted, updateEdit } = renderScenario(createView("child"));
-    fireEvent.mouseDown(screen.getByRole("combobox", { name: "账户" }));
-    fireEvent.click(await screen.findByRole("option", { name: /银行/ }));
+    fireEvent.click(screen.getByRole("button", { name: "更换支付账户 1" }));
+    fireEvent.click(await screen.findByRole("radio", { name: /^银行/ }));
 
     const dialog = await submitForSyncConfirmation();
     expect(serverMocks.linkedUpdateNormal).toHaveBeenCalledOnce();
@@ -365,7 +390,7 @@ describe("Issue #574 已关联交易跨层编辑流程", () => {
       createView("child"),
     );
     const form = container.querySelector<HTMLFormElement>(
-      "#edit-income-transaction-form",
+      "#edit-transaction-receipt-form",
     );
     if (!form) throw new Error("测试表单不存在");
     const formData = new FormData(form);
@@ -399,9 +424,7 @@ describe("Issue #574 已关联交易跨层编辑流程", () => {
 
   it("取消确认后不会触发任何持久化写入", async () => {
     const { persisted, updateEdit } = renderScenario(createView("child"));
-    fireEvent.change(screen.getByLabelText("明细 1 金额"), {
-      target: { value: "80" },
-    });
+    await changeItemAmount("+ ¥40", "80");
 
     const dialog = await submitForSyncConfirmation();
     fireEvent.click(within(dialog).getByRole("button", { name: "取消" }));
@@ -437,7 +460,7 @@ describe("Issue #915 多账户付款跨层编辑流程", () => {
       createMultiAccountView(),
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "删除付款账户 2" }));
+    fireEvent.click(screen.getByRole("button", { name: "删除支付账户 2" }));
     fireEvent.click(screen.getByRole("button", { name: "保存修改" }));
     await vi.waitFor(() => expect(updateNormal).toHaveBeenCalledOnce());
 

@@ -10,6 +10,7 @@ import type { TransactionFormRepository } from "internal/transaction/repository/
 import type { TransferEditInitialValues } from "internal/transaction/service/read/transactionReadModels";
 import {
   formatEditableAmount,
+  getEditTransactionEntryView,
   getEditTransactionView,
   getNewTransactionView,
 } from "internal/transaction/service/read/transactionFormService";
@@ -705,6 +706,78 @@ describe("getNewTransactionView", () => {
       expect(view.multiAccountPaymentEnabled).toBe(expected);
     },
   );
+});
+
+describe("getEditTransactionEntryView", () => {
+  it("编辑记账页的选项与新增记账一致，并带账本 ID（#962）", async () => {
+    const dependencies = createDependencies(
+      createRepository({
+        findActiveRecord: vi.fn().mockResolvedValue({
+          created_at: "2026-06-04T01:00:00.000Z",
+          created_by: userId,
+          id: transactionRecordId,
+          merchant_id: merchantId,
+          note: null,
+          transaction_at: "2026-06-04T01:30:05.000Z",
+          type: "normal",
+        }),
+        listItems: vi.fn().mockResolvedValue([
+          {
+            account_id: accountId,
+            amount: "1200.00",
+            balance_delta: "-1200.00",
+            category_id: categoryId,
+            note: null,
+            transaction_record_id: transactionRecordId,
+          },
+        ]),
+        listPayments: vi.fn().mockResolvedValue([
+          {
+            account_id: accountId,
+            amount: "1200.00",
+            balance_delta: "-1200.00",
+            sort_order: 0,
+            transaction_record_id: transactionRecordId,
+          },
+        ]),
+      }),
+    );
+
+    const view = await getEditTransactionEntryView(
+      dependencies,
+      currentLedger,
+      transactionRecordId,
+    );
+
+    expect(view).toMatchObject({
+      editRestriction: null,
+      initialValues: { merchantId, transactionRecordId, type: "expense" },
+      ledgerId: currentLedger.id,
+      merchantOptions: [
+        { icon_url: null, id: merchantId, name: "便利店", tags: [merchantTag] },
+      ],
+      merchantTags: [merchantTag],
+    });
+    expect(view?.accountOptions[0]).toEqual({
+      currency: "JPY",
+      holders: [{ display_name: "我" }],
+      id: accountId,
+      name: "现金",
+    });
+    expect(
+      dependencies.accountQueryService.listTransactionOptions,
+    ).not.toHaveBeenCalled();
+  });
+
+  it("记录不存在时返回 null", async () => {
+    await expect(
+      getEditTransactionEntryView(
+        createDependencies(createRepository()),
+        currentLedger,
+        transactionRecordId,
+      ),
+    ).resolves.toBeNull();
+  });
 });
 
 describe("getEditTransactionView income links", () => {

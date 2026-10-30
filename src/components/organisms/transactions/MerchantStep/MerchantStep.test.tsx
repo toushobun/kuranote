@@ -71,6 +71,35 @@ describe("MerchantStep", () => {
     expect(props.onAddMerchant).toHaveBeenCalledWith();
   });
 
+  it("不传新增回调时不显示新增商家与从预设添加（编辑记账）", () => {
+    const { unmount } = renderEntryComponent(
+      <MerchantStep
+        {...merchantStepFixture}
+        merchants={[]}
+        frequentMerchants={[]}
+        onAddMerchant={undefined}
+        onAddPresets={undefined}
+      />,
+    );
+    expect(screen.getByText("还没有商家")).toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    unmount();
+    renderEntryComponent(
+      <MerchantStep
+        {...merchantStepFixture}
+        onAddMerchant={undefined}
+        onAddPresets={undefined}
+      />,
+    );
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: "星野咖啡" },
+    });
+    expect(screen.getByText("没有找到“星野咖啡”")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /新增商家/ }),
+    ).not.toBeInTheDocument();
+  });
+
   it("常用商家直接显示传入数据，不在前端重复截取", () => {
     const merchants = Array.from({ length: 10 }, (_, index) => ({
       ...flowFixture.merchants[0],

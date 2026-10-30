@@ -65,8 +65,10 @@ export function ReceiptPaymentSection({
                 <AccountBalanceWalletRoundedIcon fontSize="small" />
               )
             }
-            label={account?.name ?? m.chooseAccount}
-            error={!account}
+            label={
+              account?.name ?? (readOnly ? m.archivedAccount : m.chooseAccount)
+            }
+            error={!account && !readOnly}
             labelClickable={!readOnly && !account}
             tags={
               account && (
@@ -76,11 +78,11 @@ export function ReceiptPaymentSection({
               )
             }
             amount={
-              !account ? null : readOnly ? (
+              readOnly ? (
                 <ReceiptAmountText
                   amount={form.isMultiAccount ? amount : total}
                 />
-              ) : form.isMultiAccount ? (
+              ) : !account ? null : form.isMultiAccount ? (
                 <ReceiptAmountButton
                   label={m.editPaymentAmount(index + 1, amount)}
                   amount={amount}
