@@ -1,4 +1,5 @@
 import { accountTypeOptions } from "types/accounts";
+import { ledgerCurrencyOptions } from "types/ledgers";
 
 // 服务端和客户端默认 locale 可能不同，固定 locale 以避免金额文本 hydration mismatch。
 const defaultAmountDisplayLocale = "ja-JP";
@@ -56,4 +57,11 @@ export function formatAmount(amount: number | string | null, currency: string) {
   } catch {
     return `${numberAmount} ${currency}`;
   }
+}
+
+/** 账户表单的货币候选：账本常用货币之外的币种（如 CAD）放在最前面。 */
+export function getAccountCurrencyOptions(currency: string) {
+  return ledgerCurrencyOptions.some((option) => option.value === currency)
+    ? ledgerCurrencyOptions
+    : [{ label: currency, value: currency }, ...ledgerCurrencyOptions];
 }

@@ -2,7 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
-  accountsCreateHref,
+  accountsNewHref,
   merchantsNewHref,
   routePaths,
   transactionsNewEntryHref,
@@ -47,7 +47,7 @@ export function useNewTransactionStepFlow({
       // 新增账户后带着当前商家回来，自动选中新账户。
       onAddAccount: () =>
         router.push(
-          accountsCreateHref(
+          accountsNewHref(
             transactionsNewEntryHref({
               merchantId: selectedMerchantId,
               method: "merchant",

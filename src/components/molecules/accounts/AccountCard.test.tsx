@@ -46,6 +46,13 @@ describe("AccountCard", () => {
     expect(within(container).getByText("银行卡")).toBeInTheDocument();
   });
 
+  it("类型为 null 时不显示类型标签", () => {
+    const { container } = render(<AccountCard {...baseProps} type={null} />);
+
+    expect(within(container).queryByText("银行卡")).toBeNull();
+    expect(within(container).queryByText("其他")).toBeNull();
+  });
+
   it("显示当前余额", () => {
     const { container } = render(<AccountCard {...baseProps} />);
 

@@ -10,33 +10,31 @@ afterEach(() => {
 const holderOptions = [
   {
     user_id: "00000000-0000-4000-8000-000000000001",
+    display_color: "sky" as const,
     display_name: "测试用户",
     email: "test@example.com",
   },
 ];
 
 describe("AccountFields", () => {
-  it("显示共用字段、类型占位和持有人布局", () => {
+  it("显示共用字段和持有人布局", () => {
     render(
       <AccountFields
         balanceLabel="初始金额"
         defaultCurrency="CAD"
-        defaultType=""
+        defaultType="cash"
         holderOptions={holderOptions}
         nameId="account-name"
-        namePlaceholder="例如：钱包现金"
         renderBalanceField={(currency) => (
           <div data-testid="balance-currency">{currency}</div>
         )}
-        typePlaceholder="选择账户类型"
       />,
     );
 
-    expect(screen.getByLabelText("账户名称")).toHaveAttribute(
-      "placeholder",
-      "例如：钱包现金",
-    );
-    expect(screen.getByText("选择账户类型")).toBeInTheDocument();
+    expect(screen.getByLabelText("账户名称")).toBeInTheDocument();
+    expect(
+      screen.getByRole("combobox", { name: "账户类型" }),
+    ).toHaveTextContent("现金");
     expect(screen.getByRole("combobox", { name: "货币" })).toHaveTextContent(
       "CAD",
     );

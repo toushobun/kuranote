@@ -5,7 +5,7 @@ import {
   merchantsNewHref,
   merchantsResultHref,
   accountResultValues,
-  accountsCreateHref,
+  accountsNewHref,
   accountsResultHref,
   ledgerSwitchResultValues,
   ledgersResultHref,
@@ -127,18 +127,18 @@ describe("transaction setup paths", () => {
     expect(merchantsNewHref()).toBe("/merchants/new");
   });
 
-  it("生成打开新增弹框并带 returnTo 的账户路由", () => {
+  it("生成带 returnTo 的账户新增路由", () => {
     expect(
-      accountsCreateHref(
+      accountsNewHref(
         transactionsNewEntryHref({ method: "standard", type: "income" }),
       ),
     ).toBe(
-      "/accounts?create=1&returnTo=%2Ftransactions%2Fnew%3Fmethod%3Dstandard%26type%3Dincome",
+      "/accounts/new?returnTo=%2Ftransactions%2Fnew%3Fmethod%3Dstandard%26type%3Dincome",
     );
   });
 
-  it("没有 returnTo 时账户路由只带打开新增弹框参数", () => {
-    expect(accountsCreateHref()).toBe("/accounts?create=1");
+  it("没有 returnTo 时账户新增路由不带参数", () => {
+    expect(accountsNewHref()).toBe("/accounts/new");
   });
 });
 

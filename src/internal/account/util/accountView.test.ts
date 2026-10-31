@@ -16,6 +16,7 @@ import type {
   AccountMemberDisplaySetting,
   AccountUser,
 } from "internal/account/repository/accountRepository";
+import { getStableFallbackThemeColorKey } from "theme/themeColorTokens";
 
 function createAccount(id: string): AccountData {
   return {
@@ -183,7 +184,7 @@ describe("Account view builders", () => {
     ]);
   });
 
-  it("持有人候选只包含有效用户并按最终显示名排序", () => {
+  it("持有人候选只包含有效用户、按最终显示名排序并带成员个性色", () => {
     const holderOptions = buildHolderOptions({
       appUserById: new Map([
         ["user-a", createAppUser({ displayName: "Alpha", userId: "user-a" })],
@@ -197,6 +198,7 @@ describe("Account view builders", () => {
           }),
         ],
       ]),
+      displayColorByUserId: new Map([["user-a", "sakura"]]),
       members: [
         createMember("user-a"),
         createMember("user-b"),
@@ -208,6 +210,11 @@ describe("Account view builders", () => {
       "user-a",
       "user-b",
     ]);
+    expect(holderOptions[0]?.display_color).toBe("sakura");
+    // 没有颜色设置的成员按用户 ID 取稳定的备用色。
+    expect(holderOptions[1]?.display_color).toBe(
+      getStableFallbackThemeColorKey("user-b"),
+    );
   });
 
   it("显示颜色先按成员稳定顺序分配，再由合法设置覆盖", () => {

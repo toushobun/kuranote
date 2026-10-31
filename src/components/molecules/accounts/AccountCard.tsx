@@ -21,7 +21,8 @@ import {
 
 type AccountCardProps = {
   name: string;
-  type: AccountType;
+  /** 新增账户预览中还没选类型时为 null：不显示类型标签。 */
+  type: AccountType | null;
   currency: string;
   currentBalance: number | string;
   holders?: AccountHolder[];
@@ -45,7 +46,7 @@ export function AccountCard({
       <Stack spacing={1.25}>
         <Stack direction="row" spacing={1.25} sx={{ alignItems: "center" }}>
           <Box data-testid="account-card-icon" sx={accountIconSx}>
-            <AccountTypeIcon type={type} />
+            <AccountTypeIcon type={type ?? "other"} />
           </Box>
 
           <Stack spacing={0.65} sx={{ flex: 1, minWidth: 0 }}>
@@ -60,11 +61,13 @@ export function AccountCard({
               >
                 {name}
               </Typography>
-              <Chip
-                label={getAccountTypeLabel(type)}
-                size="small"
-                sx={accountTypeChipSx}
-              />
+              {type ? (
+                <Chip
+                  label={getAccountTypeLabel(type)}
+                  size="small"
+                  sx={accountTypeChipSx}
+                />
+              ) : null}
             </Stack>
 
             <Stack

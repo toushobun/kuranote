@@ -1,16 +1,12 @@
 "use client";
 
-import Button from "@mui/material/Button";
-import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
-import Link from "next/link";
 
-import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { routePaths } from "config/paths";
+import { PageFormActions } from "molecules/ui/PageFormActions/PageFormActions";
 import { MerchantDetailsFields } from "organisms/merchants/MerchantDetailsFields/MerchantDetailsFields";
 import { MerchantTagsField } from "organisms/merchants/MerchantTagsField/MerchantTagsField";
 import { useMerchantDetails } from "organisms/merchants/useMerchantDetails";
-import { designTokens } from "theme/theme";
 import type { ServerAction } from "types/actions";
 import type { MerchantIconStateAction, MerchantTag } from "types/merchants";
 
@@ -52,33 +48,13 @@ export function MerchantForm({
         websiteUrl={details.websiteUrl}
       />
       <MerchantTagsField tags={tags} />
-      <Stack direction="row" spacing={1.5}>
-        <Button
-          component={Link}
-          fullWidth
-          href={returnTo ?? routePaths.merchants}
-          sx={{ borderRadius: `${designTokens.radius.full}px` }}
-          variant="outlined"
-        >
-          取消
-        </Button>
-        <PrimaryActionButton
-          disabled={pending}
-          fullWidth
-          sx={{
-            borderRadius: `${designTokens.radius.full}px`,
-            fontWeight: 700,
-            minHeight: 40,
-          }}
-          type="submit"
-        >
-          {pending ? (
-            <CircularProgress aria-label="新增中" color="inherit" size={22} />
-          ) : (
-            "保存商家"
-          )}
-        </PrimaryActionButton>
-      </Stack>
+      <PageFormActions
+        cancelHref={returnTo ?? routePaths.merchants}
+        cancelLabel="取消"
+        pending={pending}
+        pendingLabel="新增中"
+        submitLabel="保存商家"
+      />
     </Stack>
   );
 }

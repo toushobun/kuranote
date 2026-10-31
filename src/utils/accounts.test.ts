@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatAmount } from "utils/accounts";
+import { formatAmount, getAccountCurrencyOptions } from "utils/accounts";
 
 describe("formatAmount", () => {
   it("可以按指定货币格式化 number 输入", () => {
@@ -33,5 +33,21 @@ describe("formatAmount", () => {
 
   it("泰铢金额使用泰铢符号而非货币代码前缀", () => {
     expect(formatAmount(1234.5, "THB")).toBe("฿1,234.50");
+  });
+});
+
+describe("getAccountCurrencyOptions", () => {
+  it("账本常用货币直接使用常用候选", () => {
+    const options = getAccountCurrencyOptions("JPY");
+
+    expect(options[0]).toEqual({ label: "CNY 人民币", value: "CNY" });
+    expect(options.some((option) => option.value === "JPY")).toBe(true);
+  });
+
+  it("常用候选以外的币种放在最前面", () => {
+    expect(getAccountCurrencyOptions("CAD")[0]).toEqual({
+      label: "CAD",
+      value: "CAD",
+    });
   });
 });

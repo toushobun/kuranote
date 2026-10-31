@@ -19,6 +19,13 @@ import type {
 } from "types/accounts";
 import { getAccountHolderLabel } from "utils/accounts";
 
+import {
+  getInitialAccountHolderSelection,
+  isAccountHolderSelected,
+  toggleAccountHolderSelection,
+  type AccountHolderSelectionKind,
+} from "./accountHolderSelection";
+
 type AccountHolderCheckboxGroupProps = {
   holderOptions: AccountHolderOption[];
   placeholderOptions?: AccountPlaceholderHolderOption[];
@@ -26,12 +33,6 @@ type AccountHolderCheckboxGroupProps = {
   selectedPlaceholderId?: string | null;
   selectedUserIds?: string[];
 };
-
-/** 三态持有人：真实成员 / 待邀请成员（占位）/ 未选择即无持有人，最多选 1 个。 */
-type HolderSelection =
-  | { id: string; kind: "member" }
-  | { id: string; kind: "placeholder" }
-  | null;
 
 export function AccountHolderCheckboxGroup({
   holderOptions,
@@ -45,27 +46,21 @@ export function AccountHolderCheckboxGroup({
   const hasPreservedOptions = preservedHolderOptions.length > 0;
   const hasAnyOptions =
     hasOptions || hasPlaceholderOptions || hasPreservedOptions;
-  const [selection, setSelection] = useState<HolderSelection>(() => {
-    if (
-      selectedPlaceholderId &&
-      placeholderOptions.some(
-        (option) => option.placeholder_id === selectedPlaceholderId,
-      )
-    ) {
-      return { id: selectedPlaceholderId, kind: "placeholder" };
-    }
-    const userId = holderOptions.find((option) =>
-      selectedUserIds.includes(option.user_id),
-    )?.user_id;
-    return userId ? { id: userId, kind: "member" } : null;
-  });
+  const [selection, setSelection] = useState(() =>
+    getInitialAccountHolderSelection({
+      holderUserIds: holderOptions.map((option) => option.user_id),
+      placeholderOptions,
+      selectedPlaceholderId,
+      selectedUserIds,
+    }),
+  );
 
-  function isSelected(kind: "member" | "placeholder", id: string) {
-    return selection?.kind === kind && selection.id === id;
+  function isSelected(kind: AccountHolderSelectionKind, id: string) {
+    return isAccountHolderSelected(selection, kind, id);
   }
 
-  function toggle(kind: "member" | "placeholder", id: string) {
-    setSelection(isSelected(kind, id) ? null : { id, kind });
+  function toggle(kind: AccountHolderSelectionKind, id: string) {
+    setSelection((current) => toggleAccountHolderSelection(current, kind, id));
   }
 
   return (

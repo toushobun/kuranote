@@ -13,7 +13,7 @@ import {
   type AccountHolderOption,
   type AccountPlaceholderHolderOption,
 } from "types/accounts";
-import { ledgerCurrencyOptions } from "types/ledgers";
+import { getAccountCurrencyOptions } from "utils/accounts";
 
 type AccountFieldsProps = {
   balanceLabel: string;
@@ -24,13 +24,11 @@ type AccountFieldsProps = {
   defaultType: string;
   holderOptions: AccountHolderOption[];
   nameId: string;
-  namePlaceholder?: string;
   placeholderHolderOptions?: AccountPlaceholderHolderOption[];
   preservedHolderOptions?: AccountHolderOption[];
   renderBalanceField: (selectedCurrency: string) => ReactNode;
   selectedHolderPlaceholderId?: string | null;
   selectedHolderUserIds?: string[];
-  typePlaceholder?: string;
 };
 
 export function AccountFields({
@@ -41,22 +39,13 @@ export function AccountFields({
   defaultType,
   holderOptions,
   nameId,
-  namePlaceholder,
   placeholderHolderOptions = [],
   preservedHolderOptions = [],
   renderBalanceField,
   selectedHolderPlaceholderId = null,
   selectedHolderUserIds = [],
-  typePlaceholder,
 }: AccountFieldsProps) {
-  const currencyOptions = ledgerCurrencyOptions.some(
-    (option) => option.value === defaultCurrency,
-  )
-    ? ledgerCurrencyOptions
-    : [
-        { label: defaultCurrency, value: defaultCurrency },
-        ...ledgerCurrencyOptions,
-      ];
+  const currencyOptions = getAccountCurrencyOptions(defaultCurrency);
   const [selectedCurrency, setSelectedCurrency] = useState(defaultCurrency);
 
   return (
@@ -71,7 +60,6 @@ export function AccountFields({
           fullWidth
           id={nameId}
           name="name"
-          placeholder={namePlaceholder}
           required
           slotProps={{ htmlInput: { "aria-label": "账户名称" } }}
         />
@@ -84,39 +72,8 @@ export function AccountFields({
           name="type"
           required
           select
-          slotProps={{
-            htmlInput: { "aria-label": "账户类型" },
-            ...(typePlaceholder
-              ? {
-                  select: {
-                    displayEmpty: true,
-                    renderValue: (value: unknown) => {
-                      const selectedOption = accountTypeOptions.find(
-                        (option) => option.value === value,
-                      );
-
-                      return (
-                        selectedOption?.label ?? (
-                          <Typography
-                            color="textSecondary"
-                            component="span"
-                            sx={{ fontWeight: 400 }}
-                          >
-                            {typePlaceholder}
-                          </Typography>
-                        )
-                      );
-                    },
-                  },
-                }
-              : {}),
-          }}
+          slotProps={{ htmlInput: { "aria-label": "账户类型" } }}
         >
-          {typePlaceholder ? (
-            <MenuItem disabled value="">
-              {typePlaceholder}
-            </MenuItem>
-          ) : null}
           {accountTypeOptions.map((option) => (
             <MenuItem key={option.value} value={option.value}>
               {option.label}

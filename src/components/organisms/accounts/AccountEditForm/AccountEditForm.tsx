@@ -82,6 +82,7 @@ export function AccountEditForm({
       ? [
           {
             user_id: holder.user_id,
+            display_color: holder.display_color,
             display_name: holder.display_name,
             email: holder.email,
           },

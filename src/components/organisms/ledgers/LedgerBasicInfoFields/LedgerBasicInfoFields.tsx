@@ -17,6 +17,7 @@ import { useRef, type ReactNode } from "react";
 import { ledgerBasicInfoFieldMessages } from "config/ledgerMessages";
 import type { LedgerCreateDefaults } from "internal/ledger";
 import { themeColorTokens, type ThemeColorKey } from "theme/themeColorTokens";
+import { visuallyHiddenInputStyle } from "theme/visuallyHiddenInputStyle";
 import { ledgerCurrencyOptions, ledgerMemberColorOptions } from "types/ledgers";
 
 export type LedgerBasicInfoValues = LedgerCreateDefaults["defaults"];
@@ -303,13 +304,6 @@ const colorOptionLabelSx = {
     opacity: 1,
   },
 };
-
-const visuallyHiddenInputStyle = {
-  height: 1,
-  opacity: 0,
-  position: "absolute",
-  width: 1,
-} as const;
 
 function colorSwatchSx(accent: string) {
   return {

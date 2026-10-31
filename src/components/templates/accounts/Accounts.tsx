@@ -2,17 +2,15 @@
 
 import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
-import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 
 import { CreateButton } from "atoms/ui/CreateButton";
 import { accountPageMessages } from "config/accountMessages";
-import { accountsCreateDialogParam, routePaths } from "config/paths";
+import { routePaths } from "config/paths";
 import {
   FailureFeedbackDialog,
   SuccessFeedbackDialog,
 } from "molecules/ui/OperationFeedbackDialogs";
-import { AccountCreateDialog } from "organisms/accounts/AccountCreateDialog/AccountCreateDialog";
 import { AccountList } from "organisms/accounts/AccountList/AccountList";
 import { AccountSummaryCard } from "organisms/accounts/AccountSummaryCard/AccountSummaryCard";
 import {
@@ -48,16 +46,11 @@ type AccountsTemplateProps = {
   baseCurrency: string;
   canManageAccounts?: boolean;
   canWriteTransactions?: boolean;
-  createAccountAction: AccountStateAction;
   initialErrorKey?: string | null;
   initialErrorMessage?: string | null;
   holderOptions: AccountHolderOption[];
   ledgerName: string;
-  // 通过 query 参数进入时直接打开新增账户弹框。
-  openCreateDialog?: boolean;
   placeholderHolderOptions?: AccountPlaceholderHolderOption[];
-  // 仅对按参数打开的那一次新增弹框生效：保存成功或未保存关闭后都回到该路径。
-  returnTo?: string | null;
   saveResult?: AccountSaveResult | null;
   updateAccountAction: AccountStateAction;
 };
@@ -72,25 +65,14 @@ export function AccountsTemplate({
   baseCurrency,
   canManageAccounts = true,
   canWriteTransactions = true,
-  createAccountAction,
   initialErrorKey = null,
   initialErrorMessage = null,
   holderOptions,
-  openCreateDialog = false,
   placeholderHolderOptions = [],
-  returnTo = null,
   saveResult = null,
   updateAccountAction,
 }: AccountsTemplateProps) {
   const [selectedType, setSelectedType] = useState<AccountTypeFilter>("all");
-  const router = useRouter();
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(
-    openCreateDialog && canManageAccounts,
-  );
-  // 进入页面时保存 returnTo 并从 URL 清除，之后从页面按钮打开的弹框不再带它。
-  const [createDialogReturnTo, setCreateDialogReturnTo] = useState(
-    openCreateDialog && canManageAccounts ? returnTo : null,
-  );
   const [errorFeedbacks, setErrorFeedbacks] = useState<ErrorFeedback[]>([]);
   const errorFeedbackIdRef = useRef(0);
   const enqueuedErrorKeysRef = useRef(new Set<string>());
@@ -99,10 +81,6 @@ export function AccountsTemplate({
     saveResult !== null,
   );
   const [previousSaveResult, setPreviousSaveResult] = useState(saveResult);
-  const [createActionState, createFormAction] = useActionState(
-    createAccountAction,
-    initialAccountActionState,
-  );
   const [updateActionState, updateFormAction] = useActionState(
     updateAccountAction,
     initialAccountActionState,
@@ -112,16 +90,6 @@ export function AccountsTemplate({
     initialAccountActionState,
   );
   const clearResultParam = useClearQueryParam("result");
-  const clearCreateDialogParams = useClearQueryParam(
-    accountsCreateDialogParam,
-    "returnTo",
-  );
-
-  useEffect(() => {
-    // 弹框已按参数打开，清除参数避免刷新后重复打开或残留 returnTo。
-    if (openCreateDialog) clearCreateDialogParams();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- 清除函数每次渲染都会重新生成，只跟随参数变化执行。
-  }, [openCreateDialog]);
 
   useEffect(() => {
     const actionStates = [
@@ -129,7 +97,6 @@ export function AccountsTemplate({
         error: initialErrorMessage ?? undefined,
         errorKey: initialErrorKey ?? undefined,
       },
-      createActionState,
       updateActionState,
       archiveActionState,
     ];
@@ -148,7 +115,6 @@ export function AccountsTemplate({
     }
   }, [
     archiveActionState,
-    createActionState,
     initialErrorKey,
     initialErrorMessage,
     updateActionState,
@@ -160,8 +126,6 @@ export function AccountsTemplate({
     if (saveResult !== null) {
       setActiveSaveResult(saveResult);
       setIsSaveSuccessOpen(true);
-      setIsCreateDialogOpen(false);
-      setCreateDialogReturnTo(null);
     }
   }
 
@@ -183,20 +147,6 @@ export function AccountsTemplate({
     );
   }
 
-  function openCreateDialogFromButton() {
-    setCreateDialogReturnTo(null);
-    setIsCreateDialogOpen(true);
-  }
-
-  function closeCreateDialog() {
-    setIsCreateDialogOpen(false);
-    if (!createDialogReturnTo) return;
-
-    // 从记一笔等页面进入且未保存就关闭时，回到来源页面。
-    setCreateDialogReturnTo(null);
-    router.push(createDialogReturnTo);
-  }
-
   function closeSaveSuccessDialog() {
     setIsSaveSuccessOpen(false);
 
@@ -208,7 +158,7 @@ export function AccountsTemplate({
       action={
         canManageAccounts ? (
           <CreateButton
-            onClick={openCreateDialogFromButton}
+            href={routePaths.accountsNew}
             size="small"
             sx={settingsPageActionButtonSx}
           >
@@ -264,17 +214,6 @@ export function AccountsTemplate({
       </Stack>
 
       {canWriteTransactions ? <TransactionAmountKeypadLauncher /> : null}
-      {canManageAccounts ? (
-        <AccountCreateDialog
-          createAccountAction={createFormAction}
-          defaultCurrency={baseCurrency}
-          holderOptions={holderOptions}
-          onClose={closeCreateDialog}
-          placeholderHolderOptions={placeholderHolderOptions}
-          open={isCreateDialogOpen}
-          returnTo={createDialogReturnTo}
-        />
-      ) : null}
       {errorFeedbacks.map((feedback, index) => (
         <FailureFeedbackDialog
           aboveModal

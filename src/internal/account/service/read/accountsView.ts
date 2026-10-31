@@ -68,6 +68,10 @@ export function buildAccountsView({
     usersWithLedgerDisplayNames.map((user) => [user.id, user]),
   );
   const accountIdsWithTransactionsSet = new Set(accountIdsWithTransactions);
+  const displayColorByUserId = buildDisplayColorByUserId({
+    members,
+    settings: displaySettings,
+  });
 
   return {
     accounts: buildAccountsWithHolders({
@@ -77,10 +81,7 @@ export function buildAccountsView({
         has_transactions: accountIdsWithTransactionsSet.has(account.id),
       })),
       appUserById,
-      displayColorByUserId: buildDisplayColorByUserId({
-        members,
-        settings: displaySettings,
-      }),
+      displayColorByUserId,
       holders,
       placeholderById: new Map(
         placeholders.map((placeholder) => [placeholder.id, placeholder]),
@@ -89,7 +90,11 @@ export function buildAccountsView({
     baseCurrency: ledger.baseCurrency,
     canManageAccounts: canManageMasterData(role),
     canWriteTransactions: canWriteTransaction(role),
-    holderOptions: buildHolderOptions({ appUserById, members }),
+    holderOptions: buildHolderOptions({
+      appUserById,
+      displayColorByUserId,
+      members,
+    }),
     ledgerName: ledger.name,
     placeholderHolderOptions: buildPlaceholderHolderOptions(placeholders),
   };

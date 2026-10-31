@@ -9,11 +9,13 @@ import { AccountEditForm } from "./AccountEditForm";
 const holderOptions = [
   {
     user_id: "user-1",
+    display_color: "sky" as const,
     display_name: "本地开发用户",
     email: "local1@example.test",
   },
   {
     user_id: "user-2",
+    display_color: "sakura" as const,
     display_name: "本地开发用户2",
     email: "local2@example.test",
   },

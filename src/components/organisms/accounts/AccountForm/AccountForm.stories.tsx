@@ -1,52 +1,31 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
+import {
+  accountHolderOptionsFixture,
+  accountPlaceholderHolderOptionsFixture,
+} from "test/mocks/accountHolders";
+
 import { AccountForm } from "./AccountForm";
 
-const holderOptions = [
-  {
-    user_id: "user-1",
-    display_name: "本地开发用户",
-    email: "local1@example.test",
-  },
-  {
-    user_id: "user-2",
-    display_name: "本地开发用户2",
-    email: "local2@example.test",
-  },
-];
-
-const meta: Meta<typeof AccountForm> = {
+const meta = {
   component: AccountForm,
   title: "Organisms/Accounts/AccountForm",
-};
+  args: {
+    action: async () => {},
+    defaultCurrency: "JPY",
+    holderOptions: accountHolderOptionsFixture,
+    placeholderHolderOptions: accountPlaceholderHolderOptionsFixture,
+  },
+} satisfies Meta<typeof AccountForm>;
 
 export default meta;
-type Story = StoryObj<typeof AccountForm>;
+type Story = StoryObj<typeof meta>;
 
-export const WithoutHolderInitialState: Story = {
-  name: "无持有人初始状态",
-  args: {
-    createAccountAction: async () => {},
-    defaultCurrency: "JPY",
-    holderOptions,
-  },
-};
+export const Default: Story = { name: "初始状态" };
 
-export const WithCancelButton: Story = {
-  name: "带取消按钮",
-  args: {
-    createAccountAction: async () => {},
-    defaultCurrency: "CNY",
-    holderOptions,
-    onCancel: () => {},
-  },
-};
+export const Pending: Story = { name: "提交中", args: { pending: true } };
 
 export const NoHolderOptions: Story = {
   name: "无可选持有人",
-  args: {
-    createAccountAction: async () => {},
-    defaultCurrency: "JPY",
-    holderOptions: [],
-  },
+  args: { holderOptions: [], placeholderHolderOptions: [] },
 };
