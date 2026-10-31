@@ -146,6 +146,29 @@ describe("transactionAmountInput", () => {
     expect(state.displayValue).toBe("15");
   });
 
+  it.each([
+    { operator: "-", allowNegative: true, expected: "-12800" },
+    { operator: "+", allowNegative: false, expected: "12800" },
+    { operator: "-", allowNegative: false, expected: null },
+  ] as const)(
+    "空显示值按 $operator 时从 0 运算，允许负数为 $allowNegative 时确认结果为 $expected",
+    ({ operator, allowNegative, expected }) => {
+      const options = { allowNegative, currency: "JPY" };
+      let state = createAmountKeypadState();
+      for (const key of [operator, "1", "2", "8", "0", "0"] as const) {
+        state = applyAmountKeypadKey(state, key, options);
+      }
+
+      expect(getAmountKeypadExpressionText(state)).toBe(`0 ${operator} 12800`);
+      expect(getAmountKeypadPreviewValue(state, options)).toBe(
+        operator === "-" ? "-12800" : "12800",
+      );
+      const result = confirmAmountKeypadState(state, options);
+      expect(result.ok).toBe(expected !== null);
+      if (result.ok) expect(result.value).toBe(expected);
+    },
+  );
+
   it("支持简单加减后确认", () => {
     const options = { currency: "USD" };
     let state = createAmountKeypadState();

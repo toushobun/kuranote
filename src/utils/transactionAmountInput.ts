@@ -161,7 +161,10 @@ export function applyAmountKeypadKey(
   }
 
   if (key === "+" || key === "-") {
-    const currentValue = resolveCurrentDisplayValue(state, options);
+    const currentValue = resolveCurrentDisplayValue(
+      { ...state, displayValue: state.displayValue || "0" },
+      options,
+    );
     if (!currentValue) return state;
     const expressionText = buildNextExpressionText(state, currentValue, key);
 
