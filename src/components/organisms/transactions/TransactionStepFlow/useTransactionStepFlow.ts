@@ -68,12 +68,30 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
       itemsOptions: baseItemsOptions,
       initialValues,
     });
-  // 开始等待建议时的明细与付款；超时后与之不同即视为用户动过小票（选账户、加 / 删明细、改金额）。
+  // 开始等待建议时的小票；之后与之不同即视为用户动过小票
+  //（选账户、加 / 删明细、改分类 / 金额 / 特殊状态 / 关联、改备注 / 时间）。
   const receiptSnapshot = JSON.stringify([
-    form.itemSummaries.map((item) => [item.id, item.amount]),
+    form.itemSummaries.map((item) => [
+      item.id,
+      item.categoryId,
+      item.amount,
+      item.specialStatus,
+      item.refundCandidate,
+      item.reimbursementCandidate,
+    ]),
     form.payments.map((payment) => [payment.accountId, payment.amount]),
+    form.note,
+    form.transactionAtValue,
   ]);
   const waitStartSnapshot = useRef(receiptSnapshot);
+  const timeInitialized = !!form.transactionAtValue;
+  const resetWaitStartSnapshot = useEffectEvent(() => {
+    waitStartSnapshot.current = receiptSnapshot;
+  });
+  useEffect(() => {
+    // 挂载后才填入本地当前时间，不算用户动过小票。
+    if (timeInitialized) resetWaitStartSnapshot();
+  }, [timeInitialized]);
   const [methodOpen, setMethodOpen] = useState(false);
   const merchant = props.merchants.find(
     (item) => item.id === form.selectedMerchantId,
@@ -165,7 +183,7 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     return () => clearTimeout(timer);
   }, [waiting, loadingMerchantId]);
   useEffect(() => {
-    // 超时后动过小票就丢弃晚到的建议，不覆盖用户输入。
+    // 超时后或换商家后动过小票就丢弃晚到的建议，不覆盖用户输入。
     if (!waiting && receiptSnapshot !== waitStartSnapshot.current)
       pendingQuickMerchantId.current = null;
   }, [waiting, receiptSnapshot]);
