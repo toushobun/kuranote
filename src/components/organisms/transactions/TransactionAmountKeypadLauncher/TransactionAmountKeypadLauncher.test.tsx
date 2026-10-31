@@ -104,6 +104,21 @@ describe("TransactionAmountKeypadLauncher", () => {
       });
     });
 
+    it("交易金额清空后减去 100 不能确认且输入框保持不变", () => {
+      renderAmountInput();
+      const input = screen.getByRole("textbox");
+      fireEvent.change(input, { target: { value: "8" } });
+      const events = listenInputAndCommit(input);
+
+      openAndType(input, ["清空", "减", "1", "0", "0", "确认"]);
+
+      expect(screen.getByLabelText("计算器显示金额")).toHaveTextContent("-100");
+      expect(screen.getByText("0 - 100")).toBeInTheDocument();
+      expect(screen.getByText("请输入有效金额。")).toBeInTheDocument();
+      expect(input).toHaveProperty("value", "8");
+      expect(events).toEqual([]);
+    });
+
     it("不点确认直接关闭时视为取消，不写入也不派发", async () => {
       renderAmountInput();
       const input = screen.getByRole("textbox");
