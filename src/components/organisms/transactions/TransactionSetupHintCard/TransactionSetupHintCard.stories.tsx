@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import {
-  accountsCreateHref,
+  accountsNewHref,
   merchantsNewHref,
   transactionsNewEntryHref,
 } from "config/paths";
@@ -22,7 +22,7 @@ const meta = {
   title: "Organisms/Transactions/TransactionSetupHintCard",
   component: TransactionSetupHintCard,
   args: {
-    addAccountHref: accountsCreateHref(
+    addAccountHref: accountsNewHref(
       transactionsNewEntryHref({ method: "standard", type: "expense" }),
     ),
     addMerchantHref: merchantsNewHref(
@@ -62,7 +62,7 @@ export const MissingAccount: Story = {
 export const TransferOneAccount: Story = {
   name: "转账 · 只有 1 个账户",
   args: {
-    addAccountHref: accountsCreateHref(
+    addAccountHref: accountsNewHref(
       transactionsNewEntryHref({ method: "transfer" }),
     ),
     addMerchantHref: undefined,

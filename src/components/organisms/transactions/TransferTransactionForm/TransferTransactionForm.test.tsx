@@ -471,7 +471,7 @@ describe("TransferTransactionForm", () => {
 
 describe("TransferTransactionForm 账户不足提示", () => {
   const addAccountHref =
-    "/accounts?create=1&returnTo=%2Ftransactions%2Fnew%3Ftype%3Dtransfer";
+    "/accounts/new?returnTo=%2Ftransactions%2Fnew%3Ftype%3Dtransfer";
 
   function renderSetupForm(
     accountOptions: React.ComponentProps<

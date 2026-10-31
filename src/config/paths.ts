@@ -5,6 +5,7 @@ import type {
 
 export const routePaths = {
   accounts: "/accounts",
+  accountsNew: "/accounts/new",
   authCallback: "/auth/callback",
   categories: "/categories",
   dashboard: "/dashboard",
@@ -195,14 +196,8 @@ export function ledgerSettingsResultHref(
   return `${ledgerSettingsHref(ledgerId)}?${searchParams.toString()}`;
 }
 
-// 账户管理页通过该参数打开新增账户弹框，打开后由页面清除，避免刷新时重复打开。
-export const accountsCreateDialogParam = "create";
-
-export function accountsCreateHref(returnTo?: string | null) {
-  return routeWithQuery(routePaths.accounts, {
-    [accountsCreateDialogParam]: "1",
-    returnTo,
-  });
+export function accountsNewHref(returnTo?: string | null) {
+  return routeWithQuery(routePaths.accountsNew, { returnTo });
 }
 
 export function accountsResultHref(result: AccountResultValue) {

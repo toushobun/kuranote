@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { accountsCreateHref, transactionsNewEntryHref } from "config/paths";
+import { accountsNewHref, transactionsNewEntryHref } from "config/paths";
 
 import { TransferTransactionForm } from "./TransferTransactionForm";
 
@@ -118,7 +118,7 @@ export const EditDifferentCurrency: Story = {
   },
 };
 
-const addAccountHref = accountsCreateHref(
+const addAccountHref = accountsNewHref(
   transactionsNewEntryHref({ method: "transfer" }),
 );
 

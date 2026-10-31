@@ -48,6 +48,7 @@ export type AccountPlaceholderHolderOption = {
 
 export type AccountHolderOption = {
   user_id: string;
+  display_color: ThemeColorKey;
   display_name: string;
   email: string | null;
 };

@@ -9,12 +9,14 @@ afterEach(() => {
 
 const activeHolder = {
   user_id: "00000000-0000-4000-8000-000000000001",
+  display_color: "sky" as const,
   display_name: "淞文",
   email: "songwen@example.com",
 };
 
 const preservedHolder = {
   user_id: "00000000-0000-4000-8000-000000000002",
+  display_color: "sakura" as const,
   display_name: "家人",
   email: "family@example.com",
 };

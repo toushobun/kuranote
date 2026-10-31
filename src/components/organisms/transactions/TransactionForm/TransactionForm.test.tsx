@@ -1144,8 +1144,7 @@ describe("TransactionForm", () => {
 
   describe("缺少账户或商家提示", () => {
     const setupHrefs = {
-      account:
-        "/accounts?create=1&returnTo=%2Ftransactions%2Fnew%3Ftype%3Dexpense",
+      account: "/accounts/new?returnTo=%2Ftransactions%2Fnew%3Ftype%3Dexpense",
       merchant:
         "/merchants/new?returnTo=%2Ftransactions%2Fnew%3Ftype%3Dexpense",
     };

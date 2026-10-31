@@ -24,7 +24,7 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-const addAccountHref = "/accounts?create=1";
+const addAccountHref = "/accounts/new";
 const addMerchantHref = "/merchants/new";
 
 afterEach(() => {

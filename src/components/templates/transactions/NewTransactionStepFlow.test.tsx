@@ -200,7 +200,7 @@ describe("NewTransactionStepFlow", () => {
     );
     click("新增账户");
     expect(router.push).toHaveBeenCalledWith(
-      "/accounts?create=1&returnTo=%2Ftransactions%2Fnew%3FmerchantId%3Dseven",
+      "/accounts/new?returnTo=%2Ftransactions%2Fnew%3FmerchantId%3Dseven",
     );
   });
 

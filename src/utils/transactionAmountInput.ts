@@ -26,6 +26,8 @@ export type AmountKeypadState = {
 };
 
 export type AmountInputOptions = {
+  /** 允许负数结果（如账户初始金额的信用卡欠款）；交易金额保持默认的非负。 */
+  allowNegative?: boolean;
   currency?: string;
 };
 
@@ -94,17 +96,18 @@ export function isValidMoneyText(
 ) {
   const text = value.trim();
   const decimalPlaces = getAmountDecimalPlaces(options.currency);
+  const sign = options.allowNegative ? "-?" : "";
   const pattern =
     decimalPlaces === 0
-      ? /^\d+$/
-      : new RegExp(`^\\d+(\\.\\d{1,${decimalPlaces}})?$`);
+      ? new RegExp(`^${sign}\\d+$`)
+      : new RegExp(`^${sign}\\d+(\\.\\d{1,${decimalPlaces}})?$`);
 
   if (!pattern.test(text)) return false;
   if (!isWithinIntegerDigitLimit(text)) return false;
 
   const amount = Number(text);
 
-  return Number.isFinite(amount) && amount >= 0;
+  return Number.isFinite(amount) && (options.allowNegative || amount >= 0);
 }
 
 export function isValidPositiveMoneyText(
@@ -122,18 +125,22 @@ export function normalizeMoneyText(
   if (!isValidMoneyText(text, options)) return null;
 
   const decimalPlaces = getAmountDecimalPlaces(options.currency);
-  const [integerText, decimalText] = text.split(".");
+  const isNegative = text.startsWith("-");
+  const [integerText, decimalText] = text.replace(/^-/, "").split(".");
   const normalizedInteger = String(Number(integerText));
+  const normalizedDecimal =
+    decimalPlaces === 0 || decimalText === undefined
+      ? ""
+      : decimalText.replace(/0+$/, "");
+  const normalizedAbsolute =
+    normalizedDecimal.length > 0
+      ? `${normalizedInteger}.${normalizedDecimal}`
+      : normalizedInteger;
 
-  if (decimalPlaces === 0 || decimalText === undefined) {
-    return normalizedInteger;
-  }
-
-  const normalizedDecimal = decimalText.replace(/0+$/, "");
-
-  return normalizedDecimal.length > 0
-    ? `${normalizedInteger}.${normalizedDecimal}`
-    : normalizedInteger;
+  // -0、-0.00 规范成 0，不保留负号。
+  return isNegative && Number(normalizedAbsolute) !== 0
+    ? `-${normalizedAbsolute}`
+    : normalizedAbsolute;
 }
 
 export function applyAmountKeypadKey(
@@ -274,11 +281,13 @@ function buildNextExpressionText(
 
 function isDraftMoneyText(value: string, options: AmountInputOptions) {
   const decimalPlaces = getAmountDecimalPlaces(options.currency);
+  // 允许负数时，从输入框带进来的负数（如 -12800）可以继续按数字键编辑。
+  const sign = options.allowNegative ? "-?" : "";
 
   if (!isWithinIntegerDigitLimit(value)) return false;
-  if (decimalPlaces === 0) return /^\d*$/.test(value);
+  if (decimalPlaces === 0) return new RegExp(`^${sign}\\d*$`).test(value);
 
-  return new RegExp(`^\\d*(\\.\\d{0,${decimalPlaces}})?$`).test(value);
+  return new RegExp(`^${sign}\\d*(\\.\\d{0,${decimalPlaces}})?$`).test(value);
 }
 
 function isWithinIntegerDigitLimit(value: string) {

@@ -224,4 +224,45 @@ describe("transactionAmountInput", () => {
     expect(getAmountKeypadPreviewValue(negativeResult.state)).toBe("-1");
     expect(getAmountKeypadExpressionText(negativeResult.state)).toBe("1 - 2");
   });
+
+  describe("允许负数模式", () => {
+    const negativeOptions = { allowNegative: true, currency: "JPY" };
+
+    it("默认模式拒绝负数，允许负数时接受并规范化", () => {
+      expect(isValidMoneyText("-12800", { currency: "JPY" })).toBe(false);
+      expect(isValidMoneyText("-12800", negativeOptions)).toBe(true);
+      expect(
+        isValidMoneyText("-12.50", { allowNegative: true, currency: "CNY" }),
+      ).toBe(true);
+      expect(normalizeMoneyText("-0012800", negativeOptions)).toBe("-12800");
+      expect(
+        normalizeMoneyText("-12.50", { allowNegative: true, currency: "CNY" }),
+      ).toBe("-12.5");
+      expect(normalizeMoneyText("-0", negativeOptions)).toBe("0");
+    });
+
+    it("从 0 减去金额后可以确认为负数", () => {
+      let state = createAmountKeypadState("0");
+      for (const key of ["-", "1", "2", "8", "0", "0"] as const) {
+        state = applyAmountKeypadKey(state, key, negativeOptions);
+      }
+
+      const result = confirmAmountKeypadState(state, negativeOptions);
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.value).toBe("-12800");
+    });
+
+    it("带入的负数可以继续按数字键编辑", () => {
+      const state = applyAmountKeypadKey(
+        createAmountKeypadState("-1280"),
+        "0",
+        negativeOptions,
+      );
+
+      expect(state.displayValue).toBe("-12800");
+      const result = confirmAmountKeypadState(state, negativeOptions);
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.value).toBe("-12800");
+    });
+  });
 });

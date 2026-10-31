@@ -109,6 +109,8 @@ const accountSchema = z.object({
 });
 
 const holderOptionSchema = z.object({
+  // 新增 / 编辑账户的持有人头像与预览按成员个性色显示。
+  display_color: z.enum(themeColorKeys),
   display_name: z.string(),
   email: z.string().email().nullable(),
   user_id: z.string().uuid(),

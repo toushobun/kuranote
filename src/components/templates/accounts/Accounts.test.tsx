@@ -32,11 +32,23 @@ function renderWithUserTheme(children: ReactNode) {
   return render(<UserThemeProvider>{children}</UserThemeProvider>);
 }
 
+const bankAccount = {
+  id: "00000000-0000-4000-8000-000000000001",
+  name: "三菱UFJ银行",
+  type: "bank" as const,
+  currency: "JPY",
+  initial_balance: 100000,
+  current_balance: 85000,
+  sort_order: 1,
+  created_at: "2026-01-01T00:00:00.000Z",
+  has_transactions: false,
+  holders: [],
+};
+
 const baseProps = {
   accounts: [],
   archiveAccountAction: vi.fn(async () => ({})),
   baseCurrency: "JPY",
-  createAccountAction: vi.fn(async () => ({})),
   initialErrorMessage: null,
   holderOptions: [],
   ledgerName: "家庭账本",
@@ -112,24 +124,23 @@ describe("AccountsTemplate", () => {
 
   it("Server Action 返回错误状态时弹窗且不修改当前 URL", async () => {
     window.history.replaceState(null, "", "/accounts?tab=all");
-    const createAccountAction = vi.fn(async () => ({
-      error: "账户新增失败。",
+    const updateAccountAction = vi.fn(async () => ({
+      error: "账户保存失败。",
       errorKey: "action-error-key-1",
     }));
     const { container } = renderWithUserTheme(
       <AccountsTemplate
         {...baseProps}
-        createAccountAction={createAccountAction}
+        accounts={[bankAccount]}
+        updateAccountAction={updateAccountAction}
       />,
     );
 
-    fireEvent.click(
-      within(container).getByRole("button", { name: "新增账户" }),
-    );
+    fireEvent.click(within(container).getByText("三菱UFJ银行"));
     fireEvent.submit(document.querySelector("form") as HTMLFormElement);
 
     await waitFor(() => {
-      expect(screen.getByText("账户新增失败。")).toBeInTheDocument();
+      expect(screen.getByText("账户保存失败。")).toBeInTheDocument();
     });
     const alert = screen.getByRole("alert");
     const dialog = screen.getByRole("dialog");
@@ -141,7 +152,7 @@ describe("AccountsTemplate", () => {
     ).toBeGreaterThan(
       Number(getComputedStyle(dialog.closest(".MuiModal-root")!).zIndex),
     );
-    expect(createAccountAction).toHaveBeenCalled();
+    expect(updateAccountAction).toHaveBeenCalled();
     expect(routerReplaceMock).not.toHaveBeenCalled();
     expect(`${window.location.pathname}${window.location.search}`).toBe(
       "/accounts?tab=all",
@@ -361,65 +372,31 @@ describe("AccountsTemplate", () => {
     expect(within(container).getByText("0 个")).toBeInTheDocument();
   });
 
-  it("点击新增按钮后显示新增账户弹窗", () => {
+  it("新增按钮链接到新增账户页面", () => {
     const { container } = renderWithUserTheme(
       <AccountsTemplate {...baseProps} />,
     );
 
-    const createButton = within(container).getByRole("button", {
+    const createButton = within(container).getByRole("link", {
       name: "新增账户",
     });
 
     expect(createButton).toHaveClass("MuiButton-root");
-    expect(createButton).not.toHaveClass("MuiFab-root");
-
-    fireEvent.click(createButton);
-
-    expect(
-      screen.getByRole("heading", { name: "新增账户" }),
-    ).toBeInTheDocument();
+    expect(createButton).toHaveAttribute("href", routePaths.accountsNew);
   });
 
-  it("新增账户弹窗打开时保存成功会关闭弹窗并显示新增成功反馈", async () => {
-    const { container, rerender } = renderWithUserTheme(
-      <AccountsTemplate {...baseProps} />,
+  it("没有管理权限时不显示新增按钮", () => {
+    const { container } = renderWithUserTheme(
+      <AccountsTemplate {...baseProps} canManageAccounts={false} />,
     );
 
-    fireEvent.click(
-      within(container).getByRole("button", { name: "新增账户" }),
-    );
     expect(
-      screen.getByRole("heading", { name: "新增账户" }),
-    ).toBeInTheDocument();
-
-    window.history.replaceState(null, "", "/accounts?result=created");
-    rerender(
-      <UserThemeProvider>
-        <AccountsTemplate {...baseProps} saveResult="created" />
-      </UserThemeProvider>,
-    );
-
-    await waitFor(() => {
-      expect(
-        screen.queryByRole("heading", { name: "新增账户" }),
-      ).not.toBeInTheDocument();
-    });
-    expect(screen.getByRole("status")).toHaveTextContent("新增成功");
+      within(container).queryByRole("link", { name: "新增账户" }),
+    ).toBeNull();
   });
 
   it("编辑账户弹窗打开时保存成功会关闭弹窗并显示保存成功反馈", async () => {
-    const account = {
-      id: "00000000-0000-4000-8000-000000000001",
-      name: "三菱UFJ银行",
-      type: "bank" as const,
-      currency: "JPY",
-      initial_balance: 100000,
-      current_balance: 85000,
-      sort_order: 1,
-      created_at: "2026-01-01T00:00:00.000Z",
-      has_transactions: false,
-      holders: [],
-    };
+    const account = bankAccount;
     const { container, rerender } = renderWithUserTheme(
       <AccountsTemplate {...baseProps} accounts={[account]} />,
     );
@@ -447,120 +424,6 @@ describe("AccountsTemplate", () => {
     });
     await waitFor(() => {
       expect(screen.getByRole("status")).toHaveTextContent("保存成功");
-    });
-  });
-
-  describe("通过参数打开新增弹框", () => {
-    const returnTo = "/transactions/new?type=expense";
-
-    function renderWithCreateParam(
-      props: Partial<React.ComponentProps<typeof AccountsTemplate>> = {},
-    ) {
-      window.history.replaceState(
-        null,
-        "",
-        `/accounts?create=1&returnTo=${encodeURIComponent(returnTo)}`,
-      );
-      return renderWithUserTheme(
-        <AccountsTemplate
-          {...baseProps}
-          openCreateDialog
-          returnTo={returnTo}
-          {...props}
-        />,
-      );
-    }
-
-    function getReturnToInput() {
-      return document.querySelector<HTMLInputElement>('input[name="returnTo"]');
-    }
-
-    function cancelCreateDialog() {
-      fireEvent.click(screen.getByRole("button", { name: "取消" }));
-    }
-
-    async function reopenCreateDialogFromButton(container: HTMLElement) {
-      await waitFor(() =>
-        expect(screen.queryByRole("heading", { name: "新增账户" })).toBeNull(),
-      );
-      fireEvent.click(
-        within(container).getByRole("button", { name: "新增账户" }),
-      );
-      expect(
-        screen.getByRole("heading", { name: "新增账户" }),
-      ).toBeInTheDocument();
-    }
-
-    it("带参数进入时打开新增弹框并清除参数", () => {
-      renderWithCreateParam();
-
-      expect(
-        screen.getByRole("heading", { name: "新增账户" }),
-      ).toBeInTheDocument();
-      expect(routerReplaceMock).toHaveBeenCalledExactlyOnceWith("/accounts", {
-        scroll: false,
-      });
-    });
-
-    it("未保存直接关闭时回到 returnTo", () => {
-      renderWithCreateParam();
-
-      cancelCreateDialog();
-
-      expect(routerPushMock).toHaveBeenCalledExactlyOnceWith(returnTo);
-    });
-
-    it("关闭后从页面按钮再次新增时不带 returnTo，关闭也不再跳转", async () => {
-      const { container } = renderWithCreateParam();
-      cancelCreateDialog();
-      routerPushMock.mockClear();
-
-      await reopenCreateDialogFromButton(container);
-
-      expect(getReturnToInput()).toBeNull();
-      cancelCreateDialog();
-      expect(routerPushMock).not.toHaveBeenCalled();
-    });
-
-    it("新增表单提交合法的 returnTo", () => {
-      renderWithCreateParam();
-
-      expect(getReturnToInput()).toHaveValue(returnTo);
-    });
-
-    it("没有 returnTo 时不提交返回路径，关闭时停留在账户页", () => {
-      renderWithCreateParam({ returnTo: null });
-
-      expect(getReturnToInput()).toBeNull();
-      cancelCreateDialog();
-      expect(routerPushMock).not.toHaveBeenCalled();
-    });
-
-    it("没有管理权限时不打开新增弹框", () => {
-      renderWithCreateParam({ canManageAccounts: false });
-
-      expect(screen.queryByRole("heading", { name: "新增账户" })).toBeNull();
-    });
-
-    it("不带参数时不打开新增弹框也不清除参数", () => {
-      renderWithUserTheme(<AccountsTemplate {...baseProps} />);
-
-      expect(screen.queryByRole("heading", { name: "新增账户" })).toBeNull();
-      expect(routerReplaceMock).not.toHaveBeenCalled();
-    });
-
-    it("只带 returnTo 不带打开参数时，按钮打开的弹框不带 returnTo", () => {
-      const { container } = renderWithUserTheme(
-        <AccountsTemplate {...baseProps} returnTo={returnTo} />,
-      );
-
-      fireEvent.click(
-        within(container).getByRole("button", { name: "新增账户" }),
-      );
-
-      expect(getReturnToInput()).toBeNull();
-      cancelCreateDialog();
-      expect(routerPushMock).not.toHaveBeenCalled();
     });
   });
 });

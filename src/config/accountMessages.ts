@@ -5,3 +5,30 @@ export const accountPageMessages = {
   create: "新增账户",
   loading: "账户数据加载中",
 } as const;
+
+/** 新增 / 编辑账户页面的文案。 */
+export const accountFormMessages = {
+  back: "返回",
+  backToAccounts: "返回账户管理",
+  createTitle: "新增账户",
+  createSubtitle: (ledgerName: string) =>
+    `账户管理 〉 新增账户 · ${ledgerName}`,
+  createErrorTitle: "新增账户失败",
+  loading: "新增账户页面加载中",
+  previewLabel: "预览",
+  previewNamePlaceholder: "账户名称",
+  basicSection: "基本信息",
+  nameLabel: "账户名称",
+  namePlaceholder: "例如：钱包现金",
+  typeLabel: "账户类型",
+  amountSection: "金额",
+  currencyLabel: "货币",
+  initialBalanceLabel: "初始金额",
+  initialBalanceHelper: "信用卡欠款请填负数，之后可用余额调整修改",
+  holderSection: "持有人",
+  holderHelper: "用于标识该账户的主要使用者，最多选择 1 位，可不选",
+  noHolderOptions: "当前账本没有可选持有人。",
+  cancel: "取消",
+  save: "保存账户",
+  saving: "保存中",
+} as const;

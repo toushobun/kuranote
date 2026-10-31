@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, userEvent, within } from "storybook/test";
 
 import {
-  accountsCreateHref,
+  accountsNewHref,
   merchantsNewHref,
   transactionsNewEntryHref,
 } from "config/paths";
@@ -321,7 +321,7 @@ export const EmptyOptions: Story = {
 };
 
 const setupHrefs = {
-  account: accountsCreateHref(
+  account: accountsNewHref(
     transactionsNewEntryHref({ method: "standard", type: "expense" }),
   ),
   merchant: merchantsNewHref(

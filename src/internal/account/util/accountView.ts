@@ -49,6 +49,7 @@ type AccountView<T> = T & {
 };
 
 type AccountHolderOptionView = {
+  display_color: ThemeColorKey;
   display_name: string;
   email: string | null;
   user_id: string;
@@ -172,9 +173,11 @@ export function buildAccountHolderOptions({
 
 export function buildHolderOptions({
   appUserById,
+  displayColorByUserId,
   members,
 }: {
   appUserById: Map<string, AccountUser>;
+  displayColorByUserId: Map<string, ThemeColorKey>;
   members: AccountLedgerMember[];
 }) {
   return members
@@ -187,6 +190,10 @@ export function buildHolderOptions({
 
       return {
         user_id: member.user_id,
+        // 新增 / 编辑账户的持有人选择与预览卡片按成员个性色显示。
+        display_color:
+          displayColorByUserId.get(member.user_id) ??
+          getStableFallbackThemeColorKey(member.user_id),
         display_name: appUser.display_name,
         email: appUser.email,
       };

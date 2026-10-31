@@ -128,6 +128,8 @@ describe("accountsView", () => {
       canWriteTransactions: true,
       holderOptions: [
         {
+          // 与账户卡片上的持有人胶囊同一个个性色。
+          display_color: "sky",
           display_name: "家庭称呼",
           email: "member@example.com",
           user_id: userId,

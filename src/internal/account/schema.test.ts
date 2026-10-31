@@ -3,6 +3,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  accountsViewResponseSchema,
   createAccountRequestSchema,
   updateAccountRequestSchema,
 } from "internal/account/schema";
@@ -84,6 +85,49 @@ describe("目标余额校验", () => {
     expect(
       accountBalanceAdjustmentSchema.safeParse({
         balanceAdjustmentNote: "a".repeat(2001),
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe("账户画面响应 Schema", () => {
+  const view = {
+    accounts: [],
+    baseCurrency: "JPY",
+    canManageAccounts: true,
+    canWriteTransactions: true,
+    holderOptions: [
+      {
+        display_color: "sakura",
+        display_name: "妻子",
+        email: null,
+        user_id: "00000000-0000-4000-8000-000000000042",
+      },
+    ],
+    ledgerName: "家庭账本",
+    placeholderHolderOptions: [],
+  };
+
+  it("持有人候选保留成员个性色", () => {
+    const parsed = accountsViewResponseSchema.parse(view);
+
+    expect(parsed.holderOptions[0]?.display_color).toBe("sakura");
+  });
+
+  it("拒绝缺少或非法的持有人个性色", () => {
+    const [option] = view.holderOptions;
+    const withoutColor = { ...option, display_color: undefined };
+
+    expect(
+      accountsViewResponseSchema.safeParse({
+        ...view,
+        holderOptions: [withoutColor],
+      }).success,
+    ).toBe(false);
+    expect(
+      accountsViewResponseSchema.safeParse({
+        ...view,
+        holderOptions: [{ ...option, display_color: "not-a-color" }],
       }).success,
     ).toBe(false);
   });

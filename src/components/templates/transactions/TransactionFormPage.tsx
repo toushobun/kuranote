@@ -16,7 +16,7 @@ import Stack from "@mui/material/Stack";
 import Link from "next/link";
 
 import {
-  accountsCreateHref,
+  accountsNewHref,
   merchantsNewHref,
   routePaths,
   transactionsNewEntryHref,
@@ -213,7 +213,7 @@ export function NewTransferTransactionTemplate({
         <TransferTransactionForm
           action={formAction}
           accountOptions={accountOptions}
-          addAccountHref={accountsCreateHref(
+          addAccountHref={accountsNewHref(
             transactionsNewEntryHref({ method: "transfer" }),
           )}
           errorMessage={actionState.error ?? null}
@@ -253,7 +253,7 @@ function newTransactionSetupHrefs(type: TransactionType) {
   const returnTo = transactionsNewEntryHref({ method: "standard", type });
 
   return {
-    account: accountsCreateHref(returnTo),
+    account: accountsNewHref(returnTo),
     merchant: merchantsNewHref(returnTo),
   };
 }
@@ -356,7 +356,7 @@ function NewTransactionFormView({
         <TransferTransactionForm
           action={formAction}
           accountOptions={accountOptions}
-          addAccountHref={accountsCreateHref(
+          addAccountHref={accountsNewHref(
             transactionsNewEntryHref({ method: "standard", type: "transfer" }),
           )}
           errorMessage={activeErrorMessage}

@@ -364,7 +364,7 @@ describe("\u65B0\u589E\u8BB0\u8D26\u9875\u9762", () => {
       );
       expect(expenseForm).toHaveAttribute(
         "data-add-account-href",
-        "/accounts?create=1&returnTo=%2Ftransactions%2Fnew%3Fmethod%3Dstandard%26type%3Dexpense",
+        "/accounts/new?returnTo=%2Ftransactions%2Fnew%3Fmethod%3Dstandard%26type%3Dexpense",
       );
       expect(expenseForm).toHaveAttribute(
         "data-add-merchant-href",
@@ -380,7 +380,7 @@ describe("\u65B0\u589E\u8BB0\u8D26\u9875\u9762", () => {
         within(container).getByTestId("transfer-transaction-form"),
       ).toHaveAttribute(
         "data-add-account-href",
-        "/accounts?create=1&returnTo=%2Ftransactions%2Fnew%3Fmethod%3Dstandard%26type%3Dtransfer",
+        "/accounts/new?returnTo=%2Ftransactions%2Fnew%3Fmethod%3Dstandard%26type%3Dtransfer",
       );
     });
     it("initialType=income 时收支 tab 对应收入表单", () => {
@@ -419,7 +419,7 @@ describe("\u65B0\u589E\u8BB0\u8D26\u9875\u9762", () => {
         within(container).getByTestId("transfer-transaction-form"),
       ).toHaveAttribute(
         "data-add-account-href",
-        "/accounts?create=1&returnTo=%2Ftransactions%2Fnew%3Fmethod%3Dtransfer",
+        "/accounts/new?returnTo=%2Ftransactions%2Fnew%3Fmethod%3Dtransfer",
       );
       expect(
         within(container).getByRole("button", { name: "切换方式" }),

@@ -26,6 +26,8 @@ import { transactionFormValidationMessages } from "utils/transactionMessages";
 import { getCurrencySymbol } from "../TransactionForm/TransactionForm.utils";
 
 type TransactionAmountKeypadProps = {
+  /** 允许确认负数（账户初始金额的信用卡欠款等），默认只接受非负金额。 */
+  allowNegative?: boolean;
   currency?: string;
   confirmLabel?: string;
   onChange: (value: string) => void;
@@ -81,6 +83,7 @@ const keyAriaLabels: Record<string, string | undefined> = {
 };
 
 export function TransactionAmountKeypad({
+  allowNegative = false,
   currency,
   confirmLabel = "确认",
   onChange,
@@ -92,16 +95,18 @@ export function TransactionAmountKeypad({
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const decimalDisabled = isDecimalAmountDisabled(currency);
+  const inputOptions = { allowNegative, currency };
   const syncedState = getSyncedAmountKeypadState(state, value);
-  const previewValue = getAmountKeypadPreviewValue(syncedState, { currency });
+  const previewValue = getAmountKeypadPreviewValue(syncedState, inputOptions);
   const expressionText = getAmountKeypadExpressionText(syncedState);
   const currencySymbol = getCurrencySymbol(currency);
 
   function handleKeyClick(key: AmountKeypadKey) {
-    const nextState = applyAmountKeypadKey(syncedState, key, { currency });
-    const nextPreviewValue = getAmountKeypadPreviewValue(nextState, {
-      currency,
-    });
+    const nextState = applyAmountKeypadKey(syncedState, key, inputOptions);
+    const nextPreviewValue = getAmountKeypadPreviewValue(
+      nextState,
+      inputOptions,
+    );
     setState(withExternalValue(nextState, value));
     setErrorMessage(null);
 
@@ -111,7 +116,7 @@ export function TransactionAmountKeypad({
   }
 
   function handleConfirm() {
-    const result = confirmAmountKeypadState(syncedState, { currency });
+    const result = confirmAmountKeypadState(syncedState, inputOptions);
     setState(withExternalValue(result.state, value));
 
     if (!result.ok) {

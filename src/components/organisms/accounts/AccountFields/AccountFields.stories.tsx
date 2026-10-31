@@ -10,21 +10,22 @@ function AccountFieldsPreview() {
       <AccountFields
         balanceLabel="初始金额"
         defaultCurrency="JPY"
-        defaultType=""
+        defaultType="cash"
         holderOptions={[
           {
             user_id: "00000000-0000-4000-8000-000000000001",
+            display_color: "sky" as const,
             display_name: "淞文",
             email: "songwen@example.com",
           },
           {
             user_id: "00000000-0000-4000-8000-000000000002",
+            display_color: "sakura" as const,
             display_name: "秋爽",
             email: "qiushuang@example.com",
           },
         ]}
         nameId="storybook-account-name"
-        namePlaceholder="例如：钱包现金"
         renderBalanceField={(currency) => (
           <TextField
             fullWidth
@@ -32,7 +33,6 @@ function AccountFieldsPreview() {
             slotProps={{ htmlInput: { "aria-label": "初始余额" } }}
           />
         )}
-        typePlaceholder="选择账户类型"
       />
     </Stack>
   );

@@ -324,7 +324,12 @@ describe("余额调整", () => {
           {...baseProps}
           account={placeholderAccount}
           holderOptions={[
-            { display_name: "淞文", email: null, user_id: memberId },
+            {
+              display_color: "sky",
+              display_name: "淞文",
+              email: null,
+              user_id: memberId,
+            },
           ]}
           placeholderHolderOptions={[
             { display_name: "奶奶", placeholder_id: placeholderId },
