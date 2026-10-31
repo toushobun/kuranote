@@ -162,7 +162,7 @@ export function applyAmountKeypadKey(
 
   if (key === "+" || key === "-") {
     const currentValue = resolveCurrentDisplayValue(
-      { ...state, displayValue: state.displayValue || "0" },
+      withEmptyDisplayAsZero(state),
       options,
     );
     if (!currentValue) return state;
@@ -230,10 +230,7 @@ export function confirmAmountKeypadState(
   state: AmountKeypadState,
   options: AmountInputOptions = {},
 ) {
-  const displayState =
-    state.displayValue.trim().length === 0
-      ? { ...state, displayValue: "0" }
-      : state;
+  const displayState = withEmptyDisplayAsZero(state);
   const resolvedValue = resolveCurrentDisplayValue(displayState, options);
   const normalizedValue =
     resolvedValue === null ? null : normalizeMoneyText(resolvedValue, options);
@@ -253,6 +250,12 @@ export function confirmAmountKeypadState(
     state: createAmountKeypadState(normalizedValue),
     value: normalizedValue,
   };
+}
+
+function withEmptyDisplayAsZero(state: AmountKeypadState): AmountKeypadState {
+  return state.displayValue.trim().length === 0
+    ? { ...state, displayValue: "0" }
+    : state;
 }
 
 function buildNextDigitDisplayValue(

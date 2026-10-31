@@ -169,6 +169,40 @@ describe("transactionAmountInput", () => {
     },
   );
 
+  it.each(["", "   "])(
+    "空白显示值 %j 在运算与确认时都视为 0",
+    (displayValue) => {
+      const state = createAmountKeypadState(displayValue);
+      expect(confirmAmountKeypadState(state)).toMatchObject({
+        ok: true,
+        value: "0",
+      });
+      const nextState = applyAmountKeypadKey(state, "-");
+      expect(nextState).toMatchObject({
+        displayValue: "0",
+        pendingValue: "0",
+        operator: "-",
+      });
+      expect(confirmAmountKeypadState(nextState)).toMatchObject({
+        ok: true,
+        value: "0",
+      });
+    },
+  );
+
+  it("表达式中途退格删空后再按运算键会按 0 继续计算", () => {
+    let state = createAmountKeypadState("5");
+    for (const key of ["-", "backspace", "+"] as const) {
+      state = applyAmountKeypadKey(state, key);
+    }
+
+    expect(getAmountKeypadExpressionText(state)).toBe("5 - 0 +");
+    expect(confirmAmountKeypadState(state)).toMatchObject({
+      ok: true,
+      value: "5",
+    });
+  });
+
   it("支持简单加减后确认", () => {
     const options = { currency: "USD" };
     let state = createAmountKeypadState();
