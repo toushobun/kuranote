@@ -284,6 +284,42 @@ describe("TransactionStepFlow 换商家", () => {
     );
   });
 
+  it("建议到达时正在编辑明细，不删除该明细，草稿可以继续保存", async () => {
+    await switchToLife(["storage"], {
+      whileWaiting: async () => {
+        click("编辑明细 1");
+        fireEvent.change(
+          await screen.findByRole("textbox", { name: "搜索小分类" }),
+          { target: { value: "咖啡" } },
+        );
+        fireEvent.click(await screen.findByRole("button", { name: "咖啡" }));
+      },
+    });
+    click("保存修改");
+    await screen.findByLabelText("金额计算器");
+    click("关闭金额键盘");
+    await waitKeypadClosed();
+    expect(screen.getAllByText("饮料 · 咖啡")).toHaveLength(2);
+    expect(screen.queryByText("日用品 · 收纳")).toBeNull();
+  });
+
+  it("建议到达时正在输入明细金额，不删除该明细，金额可以继续确认", async () => {
+    await switchToLife(["storage"], {
+      whileWaiting: async () => {
+        click("修改明细 1 金额：待输入");
+        await screen.findByLabelText("金额计算器");
+        pressItemAmountKey("8");
+      },
+    });
+    pressItemAmountKey("确定");
+    await waitKeypadClosed();
+    expect(
+      screen.getByRole("button", { name: "修改明细 1 金额：¥8" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("餐饮 · 午餐")).toBeInTheDocument();
+    expect(screen.queryByText("日用品 · 收纳")).toBeNull();
+  });
+
   it("重新选同一个商家时明细不变", async () => {
     const { props, rerender } = quickSetup();
     click("7-Eleven");

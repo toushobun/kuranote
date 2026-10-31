@@ -69,7 +69,7 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
       initialValues,
     });
   // 开始等待建议时的小票；之后与之不同即视为用户动过小票
-  //（选账户、加 / 删明细、改分类 / 金额 / 特殊状态 / 关联、改备注 / 时间）。
+  //（选账户、加 / 删 / 编辑明细、改分类 / 金额 / 特殊状态 / 关联、改备注 / 时间）。
   const receiptSnapshot = JSON.stringify([
     form.itemSummaries.map((item) => [
       item.id,
@@ -82,6 +82,10 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     form.payments.map((payment) => [payment.accountId, payment.amount]),
     form.note,
     form.transactionAtValue,
+    // 打开明细编辑抽屉或金额键盘也算动过，避免晚到的建议删掉正在编辑的明细。
+    form.isSheetOpen,
+    form.editingItemId,
+    amountItemId,
   ]);
   const waitStartSnapshot = useRef(receiptSnapshot);
   const timeInitialized = !!form.transactionAtValue;
