@@ -58,7 +58,10 @@ async function addLunchItem() {
   click("确定");
   await screen.findByLabelText("金额计算器");
   click("关闭金额键盘");
-  await waitFor(() =>
+  await waitKeypadClosed();
+}
+function waitKeypadClosed() {
+  return waitFor(() =>
     expect(screen.queryByLabelText("金额计算器")).not.toBeInTheDocument(),
   );
 }
@@ -127,7 +130,7 @@ describe("TransactionStepFlow", () => {
   });
 
   it.each(["返回选择商家", "修改商家：7-Eleven"])(
-    "通过%s回到选择商家，换商家后直接回到小票并保留明细",
+    "通过%s回到选择商家，换商家后直接回到小票，保留已填明细并追加新商家的常用明细",
     async (entry) => {
       const { props, rerender } = quickSetup({
         initialMerchantId: "seven",
@@ -157,10 +160,95 @@ describe("TransactionStepFlow", () => {
       ).toBeInTheDocument();
       expect(screen.getByText("餐饮 · 午餐")).toBeInTheDocument();
       expect(screen.getByText("日用品 · 收纳")).toBeInTheDocument();
-      expect(screen.queryByText("饮料 · 咖啡")).toBeNull();
-      expect(screen.queryByText("自动")).toBeNull();
+      expect(screen.getByText("饮料 · 咖啡")).toBeInTheDocument();
+      expectAutomaticItems(1);
     },
   );
+});
+
+describe("TransactionStepFlow 换商家", () => {
+  // 快速路线选 7-Eleven（自动明细：午餐、咖啡），再从小票换成 LIFE超市。
+  async function switchToLife(
+    automaticCategoryIds: string[],
+    touch?: () => Promise<void>,
+  ) {
+    const view = quickSetup();
+    click("7-Eleven");
+    expect(await screen.findByText("从商家记账")).toBeInTheDocument();
+    await touch?.();
+    click("修改商家：7-Eleven");
+    click("LIFE超市");
+    view.rerender(
+      <TransactionStepFlow
+        {...view.props}
+        suggestionsMerchantId="life"
+        suggestions={{ ...quickSuggestions, automaticCategoryIds }}
+      />,
+    );
+    return view;
+  }
+
+  it("去掉上一个商家没填金额的自动明细，同一分类不重复追加并留作新商家的自动明细", async () => {
+    await switchToLife(["coffee", "storage"]);
+    expect(screen.queryByText("餐饮 · 午餐")).toBeNull();
+    expect(screen.getAllByText("饮料 · 咖啡")).toHaveLength(1);
+    expect(screen.getByText("日用品 · 收纳")).toBeInTheDocument();
+    expectAutomaticItems(2);
+  });
+
+  it("保留填了金额的自动明细，不再追加同一分类的空明细", async () => {
+    await switchToLife(["lunch", "storage"], async () => {
+      click("修改明细 1 金额：待输入");
+      await screen.findByLabelText("金额计算器");
+      pressItemAmountKey("8");
+      pressItemAmountKey("确定");
+      await waitKeypadClosed();
+    });
+    expect(screen.getAllByText("餐饮 · 午餐")).toHaveLength(1);
+    expect(screen.queryByText("饮料 · 咖啡")).toBeNull();
+    expect(screen.getByText("日用品 · 收纳")).toBeInTheDocument();
+    expectAutomaticItems(1);
+  });
+
+  it("保留改了分类的自动明细", async () => {
+    await switchToLife([], async () => {
+      click("编辑明细 1");
+      fireEvent.change(
+        await screen.findByRole("textbox", { name: "搜索小分类" }),
+        { target: { value: "收纳" } },
+      );
+      fireEvent.click(await screen.findByRole("button", { name: "收纳" }));
+      click("保存修改");
+      await screen.findByLabelText("金额计算器");
+      click("关闭金额键盘");
+      await waitKeypadClosed();
+    });
+    expect(screen.getByText("日用品 · 收纳")).toBeInTheDocument();
+    expect(screen.queryByText("餐饮 · 午餐")).toBeNull();
+    expect(screen.queryByText("饮料 · 咖啡")).toBeNull();
+    expect(screen.queryByText(/已按你的习惯/)).toBeNull();
+  });
+
+  it("保留手动添加的空明细", async () => {
+    await switchToLife(["storage"], addLunchItem);
+    expect(screen.getAllByText("餐饮 · 午餐")).toHaveLength(1);
+    expect(screen.queryByText("饮料 · 咖啡")).toBeNull();
+    expectAutomaticItems(1);
+  });
+
+  it("重新选同一个商家时明细不变", async () => {
+    const { props, rerender } = quickSetup();
+    click("7-Eleven");
+    expect(await screen.findByText("从商家记账")).toBeInTheDocument();
+    click("删除明细 1");
+    click("修改商家：7-Eleven");
+    click("7-Eleven");
+    rerender(
+      <TransactionStepFlow {...props} suggestions={{ ...quickSuggestions }} />,
+    );
+    expect(screen.queryByText("餐饮 · 午餐")).toBeNull();
+    expectAutomaticItems(1);
+  });
 });
 
 describe("TransactionStepFlow 进入小票", () => {
