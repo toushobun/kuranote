@@ -117,6 +117,8 @@ export function AccountForm({
               onChange={(event) => form.setBalance(event.target.value)}
               slotProps={{
                 htmlInput: {
+                  // 信用卡欠款等需要负数，金额键盘只对这里开放负数。
+                  "data-amount-allow-negative": "true",
                   "data-amount-currency": form.currency,
                   "data-amount-input": "true",
                   inputMode: "decimal",

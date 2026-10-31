@@ -14,7 +14,7 @@ export const accountFormMessages = {
   createSubtitle: (ledgerName: string) =>
     `账户管理 〉 新增账户 · ${ledgerName}`,
   createErrorTitle: "新增账户失败",
-  loading: "新增账户页面准备中，请稍等。",
+  loading: "新增账户页面加载中",
   previewLabel: "预览",
   previewNamePlaceholder: "账户名称",
   basicSection: "基本信息",

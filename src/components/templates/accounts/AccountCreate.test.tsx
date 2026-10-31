@@ -90,4 +90,31 @@ describe("AccountCreateTemplate", () => {
     expect(await screen.findByText("账户名称已存在。")).toBeInTheDocument();
     expect(screen.getByText("新增账户失败")).toBeInTheDocument();
   });
+
+  it("初始金额可以用金额键盘输入负数并随表单提交", async () => {
+    const createAccountAction = vi.fn<AccountStateAction>(async () => ({}));
+    renderAccountCreate({ createAccountAction });
+    fireEvent.change(screen.getByLabelText(/账户名称/), {
+      target: { value: "楽天カード" },
+    });
+    fireEvent.click(screen.getByRole("radio", { name: "信用卡" }));
+
+    // 点初始金额唤起金额键盘：0 − 12800 后确认。
+    fireEvent.focus(screen.getByLabelText("初始金额"));
+    for (const name of ["减", "1", "2", "8", "0", "0"]) {
+      fireEvent.click(await screen.findByRole("button", { name }));
+    }
+    fireEvent.click(screen.getByRole("button", { name: "确认" }));
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("初始金额")).toHaveValue("-12800"),
+    );
+    // 等金额键盘关闭、页面恢复可操作后再保存。
+    fireEvent.click(await screen.findByRole("button", { name: "保存账户" }));
+
+    await waitFor(() => expect(createAccountAction).toHaveBeenCalledOnce());
+    expect(createAccountAction.mock.calls[0]?.[1].get("initialBalance")).toBe(
+      "-12800",
+    );
+  });
 });

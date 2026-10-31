@@ -62,6 +62,7 @@ export function TransactionAmountKeypadLauncher() {
   const ignoreFocusRef = useRef(false);
   const [activeInput, setActiveInput] = useState<HTMLInputElement | null>(null);
   const [currency, setCurrency] = useState<string | undefined>();
+  const [allowNegative, setAllowNegative] = useState(false);
   const [value, setValue] = useState("");
 
   useEffect(() => {
@@ -71,6 +72,8 @@ export function TransactionAmountKeypadLauncher() {
 
       setActiveInput(event.target);
       setCurrency(event.target.dataset.amountCurrency || undefined);
+      // 输入框用 data-amount-allow-negative 显式开启负数（如账户初始金额）。
+      setAllowNegative(event.target.dataset.amountAllowNegative === "true");
       setValue(event.target.value);
     }
 
@@ -116,6 +119,7 @@ export function TransactionAmountKeypadLauncher() {
       }}
     >
       <TransactionAmountKeypad
+        allowNegative={allowNegative}
         currency={currency}
         value={value}
         onChange={setValue}
