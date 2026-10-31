@@ -58,7 +58,29 @@ async function addLunchItem() {
   click("确定");
   await screen.findByLabelText("金额计算器");
   click("关闭金额键盘");
-  await waitFor(() =>
+  await waitKeypadClosed();
+}
+// 编辑第 1 条明细（午餐）并保存；金额为空，关闭随后弹出的金额键盘。
+async function editLunchItem(change: () => void | Promise<void>) {
+  click("编辑明细 1");
+  await screen.findByRole("button", { name: "保存修改" });
+  await change();
+  click("保存修改");
+  await screen.findByLabelText("金额计算器");
+  click("关闭金额键盘");
+  await waitKeypadClosed();
+}
+function changeLunchToStorage() {
+  return editLunchItem(async () => {
+    fireEvent.change(
+      await screen.findByRole("textbox", { name: "搜索小分类" }),
+      { target: { value: "收纳" } },
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "收纳" }));
+  });
+}
+function waitKeypadClosed() {
+  return waitFor(() =>
     expect(screen.queryByLabelText("金额计算器")).not.toBeInTheDocument(),
   );
 }
@@ -127,7 +149,7 @@ describe("TransactionStepFlow", () => {
   });
 
   it.each(["返回选择商家", "修改商家：7-Eleven"])(
-    "通过%s回到选择商家，换商家后直接回到小票并保留明细",
+    "通过%s回到选择商家，换商家后直接回到小票，保留已填明细并追加新商家的常用明细",
     async (entry) => {
       const { props, rerender } = quickSetup({
         initialMerchantId: "seven",
@@ -157,10 +179,160 @@ describe("TransactionStepFlow", () => {
       ).toBeInTheDocument();
       expect(screen.getByText("餐饮 · 午餐")).toBeInTheDocument();
       expect(screen.getByText("日用品 · 收纳")).toBeInTheDocument();
-      expect(screen.queryByText("饮料 · 咖啡")).toBeNull();
-      expect(screen.queryByText("自动")).toBeNull();
+      expect(screen.getByText("饮料 · 咖啡")).toBeInTheDocument();
+      expectAutomaticItems(1);
     },
   );
+});
+
+describe("TransactionStepFlow 换商家", () => {
+  // 快速路线选 7-Eleven（自动明细：午餐、咖啡），再从小票换成 LIFE超市。
+  // beforeSwitch 在换商家前操作小票，whileWaiting 在 LIFE超市 的建议到达前操作。
+  async function switchToLife(
+    automaticCategoryIds: string[],
+    {
+      beforeSwitch,
+      whileWaiting,
+    }: {
+      beforeSwitch?: () => Promise<void>;
+      whileWaiting?: () => Promise<void>;
+    } = {},
+  ) {
+    const view = quickSetup();
+    click("7-Eleven");
+    expect(await screen.findByText("从商家记账")).toBeInTheDocument();
+    await beforeSwitch?.();
+    click("修改商家：7-Eleven");
+    click("LIFE超市");
+    await whileWaiting?.();
+    view.rerender(
+      <TransactionStepFlow
+        {...view.props}
+        suggestionsMerchantId="life"
+        suggestions={{ ...quickSuggestions, automaticCategoryIds }}
+      />,
+    );
+    return view;
+  }
+
+  it("去掉上一个商家没填金额的自动明细，同一分类不重复追加并留作新商家的自动明细", async () => {
+    await switchToLife(["coffee", "storage"]);
+    expect(screen.queryByText("餐饮 · 午餐")).toBeNull();
+    expect(screen.getAllByText("饮料 · 咖啡")).toHaveLength(1);
+    expect(screen.getByText("日用品 · 收纳")).toBeInTheDocument();
+    expectAutomaticItems(2);
+  });
+
+  it("保留填了金额的自动明细，不再追加同一分类的空明细", async () => {
+    await switchToLife(["lunch", "storage"], {
+      beforeSwitch: async () => {
+        click("修改明细 1 金额：待输入");
+        await screen.findByLabelText("金额计算器");
+        pressItemAmountKey("8");
+        pressItemAmountKey("确定");
+        await waitKeypadClosed();
+      },
+    });
+    expect(screen.getAllByText("餐饮 · 午餐")).toHaveLength(1);
+    expect(screen.queryByText("饮料 · 咖啡")).toBeNull();
+    expect(screen.getByText("日用品 · 收纳")).toBeInTheDocument();
+    expectAutomaticItems(1);
+  });
+
+  it("保留改了分类的自动明细", async () => {
+    await switchToLife([], { beforeSwitch: changeLunchToStorage });
+    expect(screen.getByText("日用品 · 收纳")).toBeInTheDocument();
+    expect(screen.queryByText("餐饮 · 午餐")).toBeNull();
+    expect(screen.queryByText("饮料 · 咖啡")).toBeNull();
+    expect(screen.queryByText(/已按你的习惯/)).toBeNull();
+  });
+
+  it("保留手动添加的空明细", async () => {
+    await switchToLife(["storage"], { beforeSwitch: addLunchItem });
+    expect(screen.getAllByText("餐饮 · 午餐")).toHaveLength(1);
+    expect(screen.queryByText("饮料 · 咖啡")).toBeNull();
+    expectAutomaticItems(1);
+  });
+
+  it.each<[string, () => Promise<void>]>([
+    ["改了分类", changeLunchToStorage],
+    [
+      "设了待报销",
+      () =>
+        editLunchItem(() => {
+          fireEvent.click(screen.getByRole("checkbox", { name: "待报销" }));
+        }),
+    ],
+    [
+      "改了备注",
+      async () => {
+        click("修改备注：添加备注");
+        fireEvent.change(screen.getByRole("textbox", { name: "备注" }), {
+          target: { value: "一起吃午餐" },
+        });
+        click("完成");
+        await waitFor(() =>
+          expect(screen.queryByRole("textbox", { name: "备注" })).toBeNull(),
+        );
+      },
+    ],
+  ])("建议到达前%s时，不再应用新商家的建议", async (_, touch) => {
+    await switchToLife(["storage"], { whileWaiting: touch });
+    expect(screen.getByText("饮料 · 咖啡")).toBeInTheDocument();
+    expect(screen.queryAllByText("日用品 · 收纳").length).toBeLessThanOrEqual(
+      1,
+    );
+  });
+
+  it("建议到达时正在编辑明细，不删除该明细，草稿可以继续保存", async () => {
+    await switchToLife(["storage"], {
+      whileWaiting: async () => {
+        click("编辑明细 1");
+        fireEvent.change(
+          await screen.findByRole("textbox", { name: "搜索小分类" }),
+          { target: { value: "咖啡" } },
+        );
+        fireEvent.click(await screen.findByRole("button", { name: "咖啡" }));
+      },
+    });
+    click("保存修改");
+    await screen.findByLabelText("金额计算器");
+    click("关闭金额键盘");
+    await waitKeypadClosed();
+    expect(screen.getAllByText("饮料 · 咖啡")).toHaveLength(2);
+    expect(screen.queryByText("日用品 · 收纳")).toBeNull();
+  });
+
+  it("建议到达时正在输入明细金额，不删除该明细，金额可以继续确认", async () => {
+    await switchToLife(["storage"], {
+      whileWaiting: async () => {
+        click("修改明细 1 金额：待输入");
+        await screen.findByLabelText("金额计算器");
+        pressItemAmountKey("8");
+      },
+    });
+    pressItemAmountKey("确定");
+    await waitKeypadClosed();
+    expect(
+      screen.getByRole("button", { name: "修改明细 1 金额：¥8" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("餐饮 · 午餐")).toBeInTheDocument();
+    expect(screen.queryByText("日用品 · 收纳")).toBeNull();
+  });
+
+  it("重新选同一个商家时明细不变", async () => {
+    const { props, rerender } = quickSetup();
+    click("7-Eleven");
+    expect(await screen.findByText("从商家记账")).toBeInTheDocument();
+    click("删除明细 1");
+    click("修改商家：7-Eleven");
+    click("7-Eleven");
+    rerender(
+      <TransactionStepFlow {...props} suggestions={{ ...quickSuggestions }} />,
+    );
+    expect(screen.queryByText("餐饮 · 午餐")).toBeNull();
+    expectAutomaticItems(1);
+  });
 });
 
 describe("TransactionStepFlow 进入小票", () => {
@@ -338,6 +510,17 @@ describe("TransactionStepFlow 进入小票", () => {
     quickSetup({ initialMerchantId: "seven" });
     expect(heading("从商家记账")).toBeInTheDocument();
     expect(receiptLine("更换支付账户 1")).toHaveTextContent("PayPay");
+    expectAutomaticItems(2);
+  });
+
+  it("URL 预选商家超时后，挂载时填入的当前时间不算动过小票，仍补上晚到的建议", () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const { props, rerender } = quickSetup({
+      initialMerchantId: "seven",
+      suggestionsMerchantId: "life",
+    });
+    waitQuickRouteTimeout();
+    rerender(<TransactionStepFlow {...props} suggestionsMerchantId="seven" />);
     expectAutomaticItems(2);
   });
 
