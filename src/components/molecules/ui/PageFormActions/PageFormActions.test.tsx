@@ -30,4 +30,10 @@ describe("PageFormActions", () => {
     expect(screen.getByLabelText("保存中").closest("button")).toBeDisabled();
     expect(screen.queryByText("保存账户")).toBeNull();
   });
+
+  it("submitDisabled 时禁用保存但仍显示文字", () => {
+    render(<PageFormActions {...props} submitDisabled />);
+
+    expect(screen.getByRole("button", { name: "保存账户" })).toBeDisabled();
+  });
 });

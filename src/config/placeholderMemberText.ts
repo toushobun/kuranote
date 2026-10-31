@@ -54,6 +54,4 @@ export const placeholderMemberText = {
     `邀请你以「${name}」的身份加入账本。加入后，记在「${name}」名下的账户与记录会归到你名下。`,
   accountHolderGroupLabel: "待邀请成员",
   accountHolderOptionLabel: (name: string) => `${name}（待邀请）`,
-  accountHolderHelper:
-    "持有人用于标识该账户的主要使用者，可选择一位成员或一位待邀请成员，最多 1 个。",
 } as const;

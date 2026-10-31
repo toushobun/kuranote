@@ -3,10 +3,9 @@ import {
   fireEvent,
   render,
   screen,
-  waitFor,
   within,
 } from "@testing-library/react";
-import { StrictMode, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { routePaths } from "config/paths";
@@ -47,12 +46,7 @@ const bankAccount = {
 
 const baseProps = {
   accounts: [],
-  archiveAccountAction: vi.fn(async () => ({})),
   baseCurrency: "JPY",
-  initialErrorMessage: null,
-  holderOptions: [],
-  ledgerName: "家庭账本",
-  updateAccountAction: vi.fn(async () => ({})),
 };
 
 describe("AccountsTemplate", () => {
@@ -106,198 +100,6 @@ describe("AccountsTemplate", () => {
       inset: "0",
       position: "fixed",
     });
-  });
-
-  it("传入错误信息时显示错误反馈弹窗", () => {
-    renderWithUserTheme(
-      <AccountsTemplate
-        {...baseProps}
-        initialErrorKey="error-key-1"
-        initialErrorMessage="账户新增失败。"
-      />,
-    );
-
-    expect(screen.getByRole("alert")).toBeInTheDocument();
-    expect(screen.getByText("账户操作失败")).toBeInTheDocument();
-    expect(screen.getByText("账户新增失败。")).toBeInTheDocument();
-  });
-
-  it("Server Action 返回错误状态时弹窗且不修改当前 URL", async () => {
-    window.history.replaceState(null, "", "/accounts?tab=all");
-    const updateAccountAction = vi.fn(async () => ({
-      error: "账户保存失败。",
-      errorKey: "action-error-key-1",
-    }));
-    const { container } = renderWithUserTheme(
-      <AccountsTemplate
-        {...baseProps}
-        accounts={[bankAccount]}
-        updateAccountAction={updateAccountAction}
-      />,
-    );
-
-    fireEvent.click(within(container).getByText("三菱UFJ银行"));
-    fireEvent.submit(document.querySelector("form") as HTMLFormElement);
-
-    await waitFor(() => {
-      expect(screen.getByText("账户保存失败。")).toBeInTheDocument();
-    });
-    const alert = screen.getByRole("alert");
-    const dialog = screen.getByRole("dialog");
-    expect(alert).toBeVisible();
-    expect(dialog).toBeVisible();
-    expect(container).not.toContainElement(alert);
-    expect(
-      Number(getComputedStyle(alert.closest(".MuiSnackbar-root")!).zIndex),
-    ).toBeGreaterThan(
-      Number(getComputedStyle(dialog.closest(".MuiModal-root")!).zIndex),
-    );
-    expect(updateAccountAction).toHaveBeenCalled();
-    expect(routerReplaceMock).not.toHaveBeenCalled();
-    expect(`${window.location.pathname}${window.location.search}`).toBe(
-      "/accounts?tab=all",
-    );
-  });
-
-  it("无错误信息时不显示错误反馈弹窗", () => {
-    const { container } = renderWithUserTheme(
-      <AccountsTemplate {...baseProps} />,
-    );
-
-    expect(within(container).queryByRole("alert")).toBeNull();
-  });
-
-  it("关闭错误弹窗后再次收到相同错误信息也会重新弹出", () => {
-    window.history.replaceState(null, "", "/accounts?tab=all");
-    const { rerender } = renderWithUserTheme(
-      <AccountsTemplate
-        {...baseProps}
-        initialErrorKey="error-key-1"
-        initialErrorMessage="账户新增失败。"
-      />,
-    );
-
-    expect(screen.getByText("账户新增失败。")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "关闭" }));
-
-    expect(routerReplaceMock).not.toHaveBeenCalled();
-
-    rerender(
-      <UserThemeProvider>
-        <AccountsTemplate
-          {...baseProps}
-          initialErrorKey={null}
-          initialErrorMessage={null}
-        />
-      </UserThemeProvider>,
-    );
-
-    window.history.replaceState(null, "", "/accounts?tab=all");
-    rerender(
-      <UserThemeProvider>
-        <AccountsTemplate
-          {...baseProps}
-          initialErrorKey="error-key-2"
-          initialErrorMessage="账户新增失败。"
-        />
-      </UserThemeProvider>,
-    );
-
-    expect(screen.getByRole("alert")).toBeInTheDocument();
-    expect(screen.getByText("账户新增失败。")).toBeInTheDocument();
-  });
-
-  it("相同错误信息但 errorKey 不同时，会各自入队并叠加显示", () => {
-    const { rerender } = renderWithUserTheme(
-      <AccountsTemplate
-        {...baseProps}
-        initialErrorKey="error-key-1"
-        initialErrorMessage="账户新增失败。"
-      />,
-    );
-
-    rerender(
-      <UserThemeProvider>
-        <AccountsTemplate
-          {...baseProps}
-          initialErrorKey="error-key-2"
-          initialErrorMessage="账户新增失败。"
-        />
-      </UserThemeProvider>,
-    );
-
-    expect(screen.getAllByRole("alert")).toHaveLength(2);
-    expect(screen.getAllByText("账户新增失败。")).toHaveLength(2);
-  });
-
-  it("StrictMode 下同一个 errorKey 的 effect 重复执行也只入队一次", () => {
-    render(
-      <StrictMode>
-        <UserThemeProvider>
-          <AccountsTemplate
-            {...baseProps}
-            initialErrorKey="error-key-1"
-            initialErrorMessage="账户新增失败。"
-          />
-        </UserThemeProvider>
-      </StrictMode>,
-    );
-
-    expect(screen.getAllByRole("alert")).toHaveLength(1);
-  });
-
-  it("多条错误反馈可以叠加显示，互不覆盖", () => {
-    const { rerender } = renderWithUserTheme(
-      <AccountsTemplate
-        {...baseProps}
-        initialErrorKey="error-key-1"
-        initialErrorMessage="账户新增失败。"
-      />,
-    );
-
-    rerender(
-      <UserThemeProvider>
-        <AccountsTemplate
-          {...baseProps}
-          initialErrorKey="error-key-2"
-          initialErrorMessage="账户更新失败。请确认账户名称是否重复，或稍后重试。"
-        />
-      </UserThemeProvider>,
-    );
-
-    expect(screen.getAllByRole("alert")).toHaveLength(2);
-    expect(screen.getByText("账户新增失败。")).toBeInTheDocument();
-    expect(
-      screen.getByText("账户更新失败。请确认账户名称是否重复，或稍后重试。"),
-    ).toBeInTheDocument();
-  });
-
-  it("关闭其中一条错误反馈时，其他仍在队列中的反馈不受影响", () => {
-    const { rerender } = renderWithUserTheme(
-      <AccountsTemplate
-        {...baseProps}
-        initialErrorKey="error-key-1"
-        initialErrorMessage="账户新增失败。"
-      />,
-    );
-
-    rerender(
-      <UserThemeProvider>
-        <AccountsTemplate
-          {...baseProps}
-          initialErrorKey="error-key-2"
-          initialErrorMessage="账户更新失败。请确认账户名称是否重复，或稍后重试。"
-        />
-      </UserThemeProvider>,
-    );
-
-    fireEvent.click(screen.getAllByRole("button", { name: "关闭" })[0]);
-
-    expect(screen.queryByText("账户新增失败。")).toBeNull();
-    expect(
-      screen.getByText("账户更新失败。请确认账户名称是否重复，或稍后重试。"),
-    ).toBeInTheDocument();
   });
 
   it("保存修改成功后显示反馈并清除结果参数", () => {
@@ -395,35 +197,13 @@ describe("AccountsTemplate", () => {
     ).toBeNull();
   });
 
-  it("编辑账户弹窗打开时保存成功会关闭弹窗并显示保存成功反馈", async () => {
-    const account = bankAccount;
-    const { container, rerender } = renderWithUserTheme(
-      <AccountsTemplate {...baseProps} accounts={[account]} />,
+  it("点账户卡片进入编辑账户页", () => {
+    const { container } = renderWithUserTheme(
+      <AccountsTemplate {...baseProps} accounts={[bankAccount]} />,
     );
 
-    fireEvent.click(within(container).getByText("三菱UFJ银行"));
     expect(
-      screen.getByRole("heading", { name: "编辑账户" }),
-    ).toBeInTheDocument();
-
-    window.history.replaceState(null, "", "/accounts?result=updated");
-    rerender(
-      <UserThemeProvider>
-        <AccountsTemplate
-          {...baseProps}
-          accounts={[account]}
-          saveResult="updated"
-        />
-      </UserThemeProvider>,
-    );
-
-    await waitFor(() => {
-      expect(
-        screen.queryByRole("heading", { name: "编辑账户" }),
-      ).not.toBeInTheDocument();
-    });
-    await waitFor(() => {
-      expect(screen.getByRole("status")).toHaveTextContent("保存成功");
-    });
+      within(container).getByRole("link", { name: /三菱UFJ银行/ }),
+    ).toHaveAttribute("href", `/accounts/${bankAccount.id}/edit`);
   });
 });

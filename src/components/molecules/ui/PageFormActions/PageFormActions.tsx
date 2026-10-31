@@ -11,15 +11,18 @@ type PageFormActionsProps = {
   cancelLabel: string;
   pending?: boolean;
   pendingLabel: string;
+  /** 输入无效等情况下禁止提交（提交中也会禁用）。 */
+  submitDisabled?: boolean;
   submitLabel: string;
 };
 
-/** 新增页表单底部的「取消 / 保存」圆角按钮组：取消回到来源页，提交中显示加载。 */
+/** 新增 / 编辑页表单底部的「取消 / 保存」圆角按钮组：取消回到来源页，提交中显示加载。 */
 export function PageFormActions({
   cancelHref,
   cancelLabel,
   pending = false,
   pendingLabel,
+  submitDisabled = false,
   submitLabel,
 }: PageFormActionsProps) {
   return (
@@ -34,7 +37,7 @@ export function PageFormActions({
         {cancelLabel}
       </Button>
       <PrimaryActionButton
-        disabled={pending}
+        disabled={pending || submitDisabled}
         fullWidth
         sx={submitButtonSx}
         type="submit"

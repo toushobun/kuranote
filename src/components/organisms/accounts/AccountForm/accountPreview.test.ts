@@ -65,6 +65,24 @@ describe("buildAccountPreviewHolders", () => {
       }),
     ).toEqual([]);
   });
+
+  it("非活跃成员持有人始终显示在所选持有人前面", () => {
+    const preserved = {
+      display_color: "amber" as const,
+      display_name: "前成员",
+      email: null,
+      user_id: "user-x",
+    };
+
+    expect(
+      buildAccountPreviewHolders({
+        holderOptions,
+        placeholderOptions,
+        preservedHolderOptions: [preserved],
+        selection: { id: "p-1", kind: "placeholder" },
+      }).map((holder) => holder.display_name),
+    ).toEqual(["前成员", "奶奶"]);
+  });
 });
 
 describe("getAccountPreviewBalance", () => {

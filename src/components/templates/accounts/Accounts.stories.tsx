@@ -1,17 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import type { AccountHolderOption, Account } from "types/accounts";
+import type { Account } from "types/accounts";
 
 import { AccountsTemplate } from "./Accounts";
-
-const holderOptions: AccountHolderOption[] = [
-  {
-    user_id: "user-1",
-    display_color: "sky" as const,
-    display_name: "本地开发用户",
-    email: "local1@example.test",
-  },
-];
 
 const accounts: Account[] = [
   {
@@ -57,11 +48,7 @@ const meta = {
   component: AccountsTemplate,
   args: {
     accounts,
-    archiveAccountAction: async () => ({}),
     baseCurrency: "JPY",
-    holderOptions,
-    ledgerName: "家庭账本",
-    updateAccountAction: async () => ({}),
   },
 } satisfies Meta<typeof AccountsTemplate>;
 
@@ -76,14 +63,6 @@ export const Empty: Story = {
   name: "无账户",
   args: {
     accounts: [],
-  },
-};
-
-export const WithError: Story = {
-  name: "错误反馈弹窗",
-  args: {
-    initialErrorKey: "story-error-key-1",
-    initialErrorMessage: "账户新增失败。请确认账户名称是否重复，或稍后重试。",
   },
 };
 
@@ -111,20 +90,6 @@ export const ArchiveSucceeded: Story = {
 export const MultipleHolders: Story = {
   name: "多持有人多账户",
   args: {
-    holderOptions: [
-      {
-        user_id: "user-1",
-        display_color: "sakura" as const,
-        display_name: "本地开发用户",
-        email: "local1@example.test",
-      },
-      {
-        user_id: "user-2",
-        display_color: "lime" as const,
-        display_name: "本地开发用户2",
-        email: "local2@example.test",
-      },
-    ],
     accounts: [
       {
         id: "00000000-0000-4000-8000-000000000001",

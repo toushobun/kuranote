@@ -4,6 +4,7 @@ import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { AccountTypeIcon } from "atoms/accounts/AccountTypeIcon/AccountTypeIcon";
@@ -28,7 +29,8 @@ type AccountCardProps = {
   holders?: AccountHolder[];
   actions?: ReactNode;
   footer?: ReactNode;
-  onClick?: () => void;
+  /** 有值时整张卡片是链接（例：编辑账户页）。 */
+  href?: string;
 };
 
 export function AccountCard({
@@ -39,7 +41,7 @@ export function AccountCard({
   holders = [],
   actions,
   footer,
-  onClick,
+  href,
 }: AccountCardProps) {
   const card = (
     <DataItemCard>
@@ -124,12 +126,12 @@ export function AccountCard({
     </DataItemCard>
   );
 
-  if (!onClick) {
+  if (!href) {
     return card;
   }
 
   return (
-    <ButtonBase component="div" onClick={onClick} sx={cardButtonSx}>
+    <ButtonBase component={Link} href={href} sx={cardButtonSx}>
       {card}
     </ButtonBase>
   );
