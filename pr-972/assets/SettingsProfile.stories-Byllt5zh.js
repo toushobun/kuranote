@@ -1,0 +1,34 @@
+import{c as e,i as t}from"./preload-helper-D2yxXLVK.js";import{t as n}from"./react-DAMDAfNa.js";import{t as r}from"./jsx-runtime-Dwpk6tgA.js";import{d as i,s as a}from"./iframe-B-amQSmT.js";import{t as o}from"./createSvgIcon-CYdEV714.js";import{n as ee,t as s}from"./Stack-Blj2xom2.js";import{t as c}from"./createSvgIcon-Bo37FxEW.js";import{n as te,t as l}from"./Box-DSmGrtHm.js";import{n as u,t as d}from"./SettingsPageLayout-DO7mDy8I.js";import{_ as f,b as p,d as m,f as h,g,h as _,l as v,m as y,o as b,r as ne,u as x,v as S,y as C}from"./userProfileFixtures-CyNsihKp.js";import{d as w,f as T,t as E}from"./settingsMessages-CWDDoA2b.js";import{a as D,n as O,r as k}from"./SettingsEntryList-A8cuvtVl.js";import{n as re,t as ie}from"./ProfileAccountLinking-DROXoQqo.js";import{n as ae,t as A}from"./ProfileNicknameDialog-CpoK7t0l.js";import{n as j,t as M}from"./ProfilePasswordDialog-CWfqeXj4.js";import{n as N,t as P}from"./ProfileSummaryCard-Cp1-d-ua.js";import{n as F,t as I}from"./LogoutRounded-DndhfFyH.js";var L,R,z=t((()=>{c(),L=r(),R=o([(0,L.jsx)(`path`,{d:`M14 12h4v1.5h-4zm0 3h4v1.5h-4z`},`0`),(0,L.jsx)(`path`,{d:`M20 7h-5V4c0-1.1-.9-2-2-2h-2c-1.1 0-2 .9-2 2v3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2m-9 0V4h2v5h-2zm9 13H4V9h5c0 1.1.9 2 2 2h2c1.1 0 2-.9 2-2h5z`},`1`),(0,L.jsx)(`circle`,{cx:`9`,cy:`13.5`,r:`1.5`},`2`),(0,L.jsx)(`path`,{d:`M11.08 16.18c-.64-.28-1.34-.43-2.08-.43s-1.44.15-2.08.43c-.56.24-.92.78-.92 1.39V18h6v-.43c0-.61-.36-1.15-.92-1.39`},`3`)],`BadgeOutlined`)})),B,V,H=t((()=>{c(),B=r(),V=o((0,B.jsx)(`path`,{d:`M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2M9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9zm9 14H6V10h12zm-6-3c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2`}),`LockOutlined`)}));function U({changePasswordAction:e,currentLedgerId:t,googleIdentity:n,googleIdentityLinkFeedback:r,ledgers:a,linkGoogleIdentityAction:o,logoutAction:s,profile:c,requestPasswordChangeOtpAction:l,unlinkGoogleIdentityAction:u,updateAvatarAction:f,updateDisplayNameAction:p}){let[m,h]=(0,G.useState)(!1),[g,_]=(0,G.useState)(!1);return(0,W.jsxs)(d,{back:{href:i.settings,label:T.backToSettings},subtitle:T.subtitle,title:T.title,children:[(0,W.jsxs)(ee,{spacing:1.25,children:[(0,W.jsx)(P,{avatarUrl:c.avatarUrl,displayName:c.displayName,email:c.email,updateAvatarAction:f}),(0,W.jsx)(k,{label:T.profileGroupLabel,children:(0,W.jsx)(O,{icon:R,isLast:!0,label:w.nickname,onClick:()=>h(!0),trailing:c.displayName})}),(0,W.jsxs)(k,{label:T.securityGroupLabel,children:[(0,W.jsx)(O,{icon:V,isLast:!1,label:w.password,onClick:()=>_(!0)}),(0,W.jsx)(ie,{googleIdentity:n,isLast:!0,linkAction:o,linkFeedback:r,unlinkAction:u})]}),(0,W.jsx)(k,{label:T.accountActionsGroupLabel,children:(0,W.jsx)(te,{component:`form`,action:s,sx:{m:0},children:(0,W.jsx)(O,{icon:I,isLast:!0,label:w.logout,tone:`danger`,type:`submit`})})})]}),(0,W.jsx)(A,{action:p,currentDisplayName:c.displayName,currentLedgerId:t,ledgers:a,onClose:()=>h(!1),open:m}),(0,W.jsx)(M,{changePasswordAction:e,email:c.email,onClose:()=>_(!1),open:g,requestOtpAction:l})]})}var W,G,K=t((()=>{W=r(),z(),H(),F(),l(),s(),G=e(n()),a(),E(),re(),ae(),j(),N(),D(),u(),U.__docgenInfo={description:``,methods:[],displayName:`SettingsProfileTemplate`,props:{changePasswordAction:{required:!0,tsType:{name:`ChangePasswordAction`},description:``},currentLedgerId:{required:!0,tsType:{name:`union`,raw:`string | null`,elements:[{name:`string`},{name:`null`}]},description:``},googleIdentity:{required:!0,tsType:{name:`GoogleIdentityStatus`},description:``},googleIdentityLinkFeedback:{required:!0,tsType:{name:`union`,raw:`GoogleIdentityLinkFeedback | null`,elements:[{name:`GoogleIdentityLinkFeedback`},{name:`null`}]},description:``},ledgers:{required:!0,tsType:{name:`unknown`},description:``},linkGoogleIdentityAction:{required:!0,tsType:{name:`GoogleIdentityLinkAction`},description:``},logoutAction:{required:!0,tsType:{name:`ServerAction`},description:``},profile:{required:!0,tsType:{name:`signature`,type:`object`,raw:`{
+  avatarUrl: string | null;
+  displayName: string;
+  email: string | null;
+}`,signature:{properties:[{key:`avatarUrl`,value:{name:`union`,raw:`string | null`,elements:[{name:`string`},{name:`null`}],required:!0}},{key:`displayName`,value:{name:`string`,required:!0}},{key:`email`,value:{name:`union`,raw:`string | null`,elements:[{name:`string`},{name:`null`}],required:!0}}]}},description:``},requestPasswordChangeOtpAction:{required:!0,tsType:{name:`PasswordChangeOtpAction`},description:``},unlinkGoogleIdentityAction:{required:!0,tsType:{name:`GoogleIdentityLinkAction`},description:``},updateAvatarAction:{required:!0,tsType:{name:`AvatarAction`},description:``},updateDisplayNameAction:{required:!0,tsType:{name:`DisplayNameAction`},description:``}}}})),q,J,Y,X,Z,Q,$;t((()=>{v(),K(),q={title:`Templates/Settings/SettingsProfileTemplate`,component:U,args:{changePasswordAction:_,currentLedgerId:b,googleIdentity:p,googleIdentityLinkFeedback:null,ledgers:h,linkGoogleIdentityAction:x,logoutAction:()=>void 0,profile:m,requestPasswordChangeOtpAction:f,unlinkGoogleIdentityAction:S,updateAvatarAction:y,updateDisplayNameAction:g}},J={name:`个人主页（有账本）`},Y={name:`个人主页（有头像）`,args:{profile:{...m,avatarUrl:`https://avatars.githubusercontent.com/u/92347214?v=4`}}},X={name:`个人主页（无账本，保存时不弹同步确认）`,args:{currentLedgerId:null,ledgers:[]}},Z={name:`昵称保存失败`,args:{updateDisplayNameAction:ne}},Q={name:`Google 绑定成功后回到个人主页`,args:{googleIdentity:C,googleIdentityLinkFeedback:{kind:`success`}}},J.parameters={...J.parameters,docs:{...J.parameters?.docs,source:{originalSource:`{
+  name: "个人主页（有账本）"
+}`,...J.parameters?.docs?.source}}},Y.parameters={...Y.parameters,docs:{...Y.parameters?.docs,source:{originalSource:`{
+  name: "个人主页（有头像）",
+  args: {
+    profile: {
+      ...profileFixture,
+      avatarUrl: "https://avatars.githubusercontent.com/u/92347214?v=4"
+    }
+  }
+}`,...Y.parameters?.docs?.source}}},X.parameters={...X.parameters,docs:{...X.parameters?.docs,source:{originalSource:`{
+  name: "个人主页（无账本，保存时不弹同步确认）",
+  args: {
+    currentLedgerId: null,
+    ledgers: []
+  }
+}`,...X.parameters?.docs?.source}}},Z.parameters={...Z.parameters,docs:{...Z.parameters?.docs,source:{originalSource:`{
+  name: "昵称保存失败",
+  args: {
+    updateDisplayNameAction: failedDisplayNameAction
+  }
+}`,...Z.parameters?.docs?.source}}},Q.parameters={...Q.parameters,docs:{...Q.parameters?.docs,source:{originalSource:`{
+  name: "Google 绑定成功后回到个人主页",
+  args: {
+    googleIdentity: unlinkableGoogleIdentity,
+    googleIdentityLinkFeedback: {
+      kind: "success"
+    }
+  }
+}`,...Q.parameters?.docs?.source}}},$=[`Default`,`WithAvatar`,`WithoutLedgers`,`SaveFailed`,`GoogleLinked`]}))();export{J as Default,Q as GoogleLinked,Z as SaveFailed,Y as WithAvatar,X as WithoutLedgers,$ as __namedExportsOrder,q as default};

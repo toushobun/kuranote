@@ -1,0 +1,1 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";function t(e,t=window.location.pathname){let r=e.startsWith(`/`)?e:`/${e}`;return t.endsWith(n)?`${t.slice(0,-12)}${r}`:r}var n,r=e((()=>{n=`/iframe.html`}));export{t as n,r as t};
