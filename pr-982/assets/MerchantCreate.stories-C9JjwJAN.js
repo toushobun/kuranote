@@ -1,0 +1,3 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";import{n as t,r as n}from"./MerchantCreate-D_NFl5q6.js";var r,i,a;e((()=>{n(),r={title:`Templates/Merchants/MerchantCreateTemplate`,component:t,args:{createMerchantAction:async()=>({}),fetchIconAction:async()=>({iconUrl:`https://t2.gstatic.com/faviconV2?url=https://example.com`,success:`网站图标已获取，保存后会缓存`}),ledgerId:`ledger-1`,ledgerName:`家庭账本`,tags:[]}},i={name:`新增商家页面`},i.parameters={...i.parameters,docs:{...i.parameters?.docs,source:{originalSource:`{
+  name: "新增商家页面"
+}`,...i.parameters?.docs?.source}}},a=[`Default`]}))();export{i as Default,a as __namedExportsOrder,r as default};
