@@ -240,6 +240,14 @@ describe("AccountForm 编辑", () => {
     expect(formData.getAll("currency")).toEqual(["JPY"]);
   });
 
+  it("账户币种不在常见清单里时也显示为当前币种", () => {
+    renderEditForm({ currency: "HKD" });
+
+    expect(screen.getByRole("combobox", { name: "货币" })).toHaveTextContent(
+      "HKD",
+    );
+  });
+
   it("没有交易时可以修改币种且不显示说明", () => {
     renderEditForm();
 

@@ -62,6 +62,10 @@ export function AccountForm({
     placeholderHolderOptions,
   });
   const adjustment = form.balanceAdjustment;
+  // 编辑时以账户自己的币种求候选：不在常见清单里的币种（例如导入的账户）也要能显示。
+  const currencyOptions = getAccountCurrencyOptions(
+    account?.currency ?? defaultCurrency,
+  );
   // 已有交易（含初始余额）的账户不能改币种（#910），服务端仍会再次校验。
   const currencyLocked = account?.has_transactions ?? false;
   // 编辑时余额没变就不提交目标余额，避免记一笔 0 元调整。
@@ -142,7 +146,7 @@ export function AccountForm({
               sx={{ flex: "0 0 38%", minWidth: 0 }}
               value={form.currency}
             >
-              {getAccountCurrencyOptions(defaultCurrency).map((option) => (
+              {currencyOptions.map((option) => (
                 <MenuItem key={option.value} value={option.value}>
                   {option.label}
                 </MenuItem>
@@ -179,8 +183,10 @@ export function AccountForm({
             />
           </Stack>
           <Typography
-            color={amountHelper.color}
-            sx={{ fontWeight: amountHelper.emphasized ? 700 : 400 }}
+            sx={{
+              color: amountHelper.color,
+              fontWeight: amountHelper.emphasized ? 700 : 400,
+            }}
             variant="body2"
           >
             {amountHelper.text}
@@ -248,7 +254,7 @@ function getAmountHelper({
 }): { color: string; emphasized: boolean; text: string } {
   if (adjustment && !adjustment.valid) {
     return {
-      color: "error",
+      color: "error.main",
       emphasized: false,
       text: balanceAdjustmentText.invalidBalance,
     };
@@ -266,7 +272,7 @@ function getAmountHelper({
   }
 
   return {
-    color: "textSecondary",
+    color: "text.secondary",
     emphasized: false,
     text: isEdit
       ? accountFormMessages.currentBalanceHelper
