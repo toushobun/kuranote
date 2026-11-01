@@ -29,7 +29,10 @@ type AccountHolderAvatarPickerProps = {
   holderOptions: AccountHolderOption[];
   onChange: (selection: AccountHolderSelection) => void;
   placeholderOptions?: AccountPlaceholderHolderOption[];
-  /** 编辑时已离开账本的成员持有人：选中但不可操作，也不随表单提交（数据库保存时保留）。 */
+  /**
+   * 编辑时已离开账本的成员持有人：不可操作，也不随表单提交。没选新持有人时显示为选中
+   * （数据库保存时保留）；选了新持有人时会被替换，显示为未选中。
+   */
   preservedHolderOptions?: AccountHolderOption[];
   selection: AccountHolderSelection;
 };
@@ -105,7 +108,7 @@ export function AccountHolderAvatarPicker({
                 ariaLabel={accountFormMessages.preservedHolderLabel(
                   getAccountHolderLabel(option),
                 )}
-                checked
+                checked={selection === null}
                 disabled
                 key={option.user_id}
                 label={getAccountHolderLabel(option)}

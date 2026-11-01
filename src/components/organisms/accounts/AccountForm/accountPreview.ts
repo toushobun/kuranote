@@ -14,14 +14,16 @@ export function buildAccountPreviewHolders({
 }: {
   holderOptions: AccountHolderOption[];
   placeholderOptions: AccountPlaceholderHolderOption[];
-  /** 编辑时保存会保留的非活跃成员持有人，始终显示在前面。 */
+  /**
+   * 编辑时的非活跃成员持有人：只在不选新持有人时由数据库保留；
+   * 选了新成员或占位时会被替换，预览按保存后的结果只显示新持有人。
+   */
   preservedHolderOptions?: AccountHolderOption[];
   selection: AccountHolderSelection;
 }): AccountHolder[] {
-  return [
-    ...preservedHolderOptions.map(toMemberHolder),
-    ...buildSelectedHolders({ holderOptions, placeholderOptions, selection }),
-  ];
+  if (selection === null) return preservedHolderOptions.map(toMemberHolder);
+
+  return buildSelectedHolders({ holderOptions, placeholderOptions, selection });
 }
 
 function buildSelectedHolders({

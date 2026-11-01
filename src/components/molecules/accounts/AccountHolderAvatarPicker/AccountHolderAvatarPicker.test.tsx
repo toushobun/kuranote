@@ -105,6 +105,22 @@ describe("AccountHolderAvatarPicker", () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
+  it("选了新持有人时非活跃成员持有人显示为未选中（保存时会被替换）", () => {
+    render(
+      <AccountHolderAvatarPicker
+        holderOptions={accountHolderOptionsFixture}
+        onChange={vi.fn()}
+        preservedHolderOptions={[inactiveAccountHolderOptionFixture]}
+        selection={{ id: wife!.user_id, kind: "member" }}
+      />,
+    );
+
+    expect(
+      screen.getByRole("checkbox", { name: "前成员（非活跃）" }),
+    ).not.toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "妻子" })).toBeChecked();
+  });
+
   it("只有非活跃成员持有人时也显示成员分组", () => {
     render(
       <AccountHolderAvatarPicker

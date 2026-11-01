@@ -37,7 +37,8 @@ export const accountFormMessages = {
   holderHelper: "用于标识该账户的主要使用者，最多选择 1 位，可不选",
   noHolderOptions: "当前账本没有可选持有人。",
   preservedHolderLabel: (name: string) => `${name}（非活跃）`,
-  preservedHolderHelper: "非活跃成员持有人保存时会保留，不能在这里修改",
+  preservedHolderHelper:
+    "非活跃成员持有人不能在这里选择；不选新持有人时保存会保留，选了新持有人则会被替换",
   cancel: "取消",
   save: "保存账户",
   saveChanges: "保存修改",

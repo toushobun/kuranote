@@ -310,21 +310,70 @@ describe("AccountForm 编辑", () => {
     expect(screen.queryByText("该账户已有交易记录，不能修改币种。")).toBeNull();
   });
 
-  it("非活跃成员持有人选中且不可操作，不随表单提交", async () => {
-    const { action } = renderEditForm({
-      holders: [createMemberAccountHolder(inactiveAccountHolderOptionFixture)],
+  describe("非活跃成员持有人", () => {
+    function renderWithInactiveHolder() {
+      return renderEditForm({
+        holders: [
+          createMemberAccountHolder(inactiveAccountHolderOptionFixture),
+        ],
+      });
+    }
+
+    function getPreservedCheckbox() {
+      return screen.getByRole("checkbox", { name: "前成员（非活跃）" });
+    }
+
+    it("不选新持有人时显示为选中且不可操作，保存不提交持有人（由数据库保留）", async () => {
+      const { action } = renderWithInactiveHolder();
+
+      expect(getPreservedCheckbox()).toBeChecked();
+      expect(getPreservedCheckbox()).toBeDisabled();
+      expect(within(getPreview()).getByText("前成员")).toBeInTheDocument();
+
+      const formData = await submitEditForm(action);
+      expect(formData.getAll("holderUserIds")).toEqual([]);
+      expect(formData.get("holderPlaceholderId")).toBeNull();
     });
 
-    const preserved = screen.getByRole("checkbox", {
-      name: "前成员（非活跃）",
-    });
-    expect(preserved).toBeChecked();
-    expect(preserved).toBeDisabled();
-    expect(within(getPreview()).getByText("前成员")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("checkbox", { name: "妻子" }));
+    it("选了新成员时预览只显示新持有人，原持有人显示为未选中", async () => {
+      const { action } = renderWithInactiveHolder();
 
-    const formData = await submitEditForm(action);
-    expect(formData.getAll("holderUserIds")).toEqual([wife!.user_id]);
+      fireEvent.click(screen.getByRole("checkbox", { name: "妻子" }));
+
+      expect(getPreservedCheckbox()).not.toBeChecked();
+      const preview = within(getPreview());
+      expect(preview.getByText("妻子")).toBeInTheDocument();
+      expect(preview.queryByText("前成员")).toBeNull();
+      const formData = await submitEditForm(action);
+      expect(formData.getAll("holderUserIds")).toEqual([wife!.user_id]);
+    });
+
+    it("选了待邀请成员时预览只显示该占位，提交占位 ID", async () => {
+      const { action } = renderWithInactiveHolder();
+
+      fireEvent.click(screen.getByRole("checkbox", { name: "奶奶" }));
+
+      expect(getPreservedCheckbox()).not.toBeChecked();
+      const preview = within(getPreview());
+      expect(preview.getByText("奶奶（待邀请）")).toBeInTheDocument();
+      expect(preview.queryByText("前成员")).toBeNull();
+      const formData = await submitEditForm(action);
+      expect(formData.get("holderPlaceholderId")).toBe(
+        accountPlaceholderHolderOptionsFixture[0]!.placeholder_id,
+      );
+      expect(formData.getAll("holderUserIds")).toEqual([]);
+    });
+
+    it("取消新选择后恢复显示原持有人", () => {
+      renderWithInactiveHolder();
+      const wifeCheckbox = screen.getByRole("checkbox", { name: "妻子" });
+
+      fireEvent.click(wifeCheckbox);
+      fireEvent.click(wifeCheckbox);
+
+      expect(getPreservedCheckbox()).toBeChecked();
+      expect(within(getPreview()).getByText("前成员")).toBeInTheDocument();
+    });
   });
 
   describe("占位持有人", () => {
