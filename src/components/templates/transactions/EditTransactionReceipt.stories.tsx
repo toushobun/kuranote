@@ -1,9 +1,10 @@
-import { ReceiptCreationProvider } from "organisms/transactions/ReceiptCreationProvider/ReceiptCreationProvider";
-import { receiptCreationData } from "test/mocks/receiptCreation";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { userEvent, within } from "storybook/test";
 import { transactionErrorCodes } from "internal/transaction";
-import { transactionEntryStoryDecorators } from "organisms/transactions/transactionStepFlowStoryUtils";
+import {
+  transactionEntryStoryDecorators,
+  receiptCreationStoryDecorator,
+} from "organisms/transactions/transactionStepFlowStoryUtils";
 import type { TransactionFormInitialValues } from "organisms/transactions/TransactionForm/TransactionForm.types";
 import { receiptItemsOptions } from "test/mocks/transactionReceipt";
 import { flowFixture } from "test/mocks/transactionStepFlow";
@@ -51,11 +52,10 @@ const meta = {
   component: EditTransactionReceiptTemplate,
   decorators: [
     ...transactionEntryStoryDecorators,
+    receiptCreationStoryDecorator,
     (Story) => (
       <NewTransactionVisualFrame>
-        <ReceiptCreationProvider data={receiptCreationData()}>
-          <Story />
-        </ReceiptCreationProvider>
+        <Story />
       </NewTransactionVisualFrame>
     ),
   ],

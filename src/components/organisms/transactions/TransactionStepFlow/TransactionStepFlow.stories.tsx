@@ -1,8 +1,9 @@
-import { ReceiptCreationProvider } from "organisms/transactions/ReceiptCreationProvider/ReceiptCreationProvider";
-import { receiptCreationData } from "test/mocks/receiptCreation";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, userEvent, waitFor, within } from "storybook/test";
-import { transactionEntryStoryDecorators } from "organisms/transactions/transactionStepFlowStoryUtils";
+import {
+  transactionEntryStoryDecorators,
+  receiptCreationStoryDecorator,
+} from "organisms/transactions/transactionStepFlowStoryUtils";
 import {
   receiptItemsOptions,
   receiptSuggestions,
@@ -74,13 +75,7 @@ export const QuickEntryLoading: Story = {
 
 export const ChangeMerchant: Story = {
   name: "小票商家抽屉（已填内容保留）",
-  decorators: [
-    (Story) => (
-      <ReceiptCreationProvider data={receiptCreationData()}>
-        <Story />
-      </ReceiptCreationProvider>
-    ),
-  ],
+  decorators: [receiptCreationStoryDecorator],
   args: {
     itemsOptions: {
       ...receiptItemsOptions,

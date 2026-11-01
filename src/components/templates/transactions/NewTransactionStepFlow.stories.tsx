@@ -1,7 +1,8 @@
-import { ReceiptCreationProvider } from "organisms/transactions/ReceiptCreationProvider/ReceiptCreationProvider";
-import { receiptCreationData } from "test/mocks/receiptCreation";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { transactionEntryStoryDecorators } from "organisms/transactions/transactionStepFlowStoryUtils";
+import {
+  transactionEntryStoryDecorators,
+  receiptCreationStoryDecorator,
+} from "organisms/transactions/transactionStepFlowStoryUtils";
 import { receiptItemsOptions } from "test/mocks/transactionReceipt";
 import { flowFixture } from "test/mocks/transactionStepFlow";
 import { NewTransactionStepFlow } from "./NewTransactionStepFlow";
@@ -12,11 +13,7 @@ const meta = {
   component: NewTransactionStepFlow,
   decorators: [
     ...transactionEntryStoryDecorators,
-    (Story) => (
-      <ReceiptCreationProvider data={receiptCreationData()}>
-        <Story />
-      </ReceiptCreationProvider>
-    ),
+    receiptCreationStoryDecorator,
   ],
   args: {
     action: async () => ({}),
