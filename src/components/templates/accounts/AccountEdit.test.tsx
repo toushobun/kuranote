@@ -1,14 +1,17 @@
+import { setupGuardHistoryMock } from "test/mockGuardHistory";
+setupGuardHistoryMock();
+
+vi.mock("next/navigation", () => import("test/mocks/navigation"));
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
+import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
 import {
   accountHolderOptionsFixture,
   accountPlaceholderHolderOptionsFixture,
 } from "test/mocks/accountHolders";
 import { bankAccountFixture } from "test/mocks/accounts";
-import { UserThemeProvider } from "theme/UserThemeProvider";
 import type { AccountStateAction } from "types/accounts";
 
 import { AccountEditTemplate } from "./AccountEdit";
@@ -17,20 +20,18 @@ function renderAccountEdit(
   props: Partial<ComponentProps<typeof AccountEditTemplate>> = {},
 ) {
   return render(
-    <UserThemeProvider>
-      <ConfirmDialogProvider>
-        <AccountEditTemplate
-          account={bankAccountFixture}
-          archiveAccountAction={vi.fn<AccountStateAction>(async () => ({}))}
-          baseCurrency="JPY"
-          holderOptions={accountHolderOptionsFixture}
-          ledgerName="家庭账本"
-          placeholderHolderOptions={accountPlaceholderHolderOptionsFixture}
-          updateAccountAction={vi.fn<AccountStateAction>(async () => ({}))}
-          {...props}
-        />
-      </ConfirmDialogProvider>
-    </UserThemeProvider>,
+    <ConfirmDialogTestProviders>
+      <AccountEditTemplate
+        account={bankAccountFixture}
+        archiveAccountAction={vi.fn<AccountStateAction>(async () => ({}))}
+        baseCurrency="JPY"
+        holderOptions={accountHolderOptionsFixture}
+        ledgerName="家庭账本"
+        placeholderHolderOptions={accountPlaceholderHolderOptionsFixture}
+        updateAccountAction={vi.fn<AccountStateAction>(async () => ({}))}
+        {...props}
+      />
+    </ConfirmDialogTestProviders>,
   );
 }
 
@@ -166,10 +167,9 @@ describe("AccountEditTemplate", () => {
         fireEvent.click(screen.getByRole("link", { name }));
 
         expect(await screen.findByText("尚未保存")).toBeInTheDocument();
-        expect(screen.getByRole("link", { name: "放弃修改" })).toHaveAttribute(
-          "href",
-          "/accounts",
-        );
+        expect(
+          screen.getByRole("button", { name: "放弃修改" }),
+        ).toBeInTheDocument();
       },
     );
 
@@ -206,10 +206,9 @@ describe("AccountEditTemplate", () => {
       fireEvent.click(screen.getByRole("link", { name: "首页" }));
 
       expect(await screen.findByText("尚未保存")).toBeInTheDocument();
-      expect(screen.getByRole("link", { name: "放弃修改" })).toHaveAttribute(
-        "href",
-        "/dashboard",
-      );
+      expect(
+        screen.getByRole("button", { name: "放弃修改" }),
+      ).toBeInTheDocument();
     });
 
     it("余额无效时在确认里点保存也不会提交", async () => {

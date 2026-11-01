@@ -6,6 +6,8 @@ import {
   useState,
 } from "react";
 
+import { useUnsavedChangesCoordinator } from "providers/UnsavedChangesGuardProvider/UnsavedChangesGuardProvider";
+
 import { transactionErrorCodes } from "internal/transaction";
 import type {
   TransactionActionState,
@@ -19,13 +21,14 @@ function copyFormData(formData: FormData) {
 }
 
 export function useLinkedTransactionEditAction(action: TransactionStateAction) {
+  const { runAction } = useUnsavedChangesCoordinator();
   const pendingConfirmationRef = useRef<FormData | null>(null);
   const [dismissedState, setDismissedState] =
     useState<TransactionActionState | null>(null);
 
   const actionWithConfirmation = useCallback(
     async (previousState: TransactionActionState, formData: FormData) => {
-      const nextState = await action(previousState, formData);
+      const nextState = await runAction(() => action(previousState, formData));
       if (
         nextState.errorCode ===
         transactionErrorCodes.linkedSyncConfirmationRequired
@@ -34,7 +37,7 @@ export function useLinkedTransactionEditAction(action: TransactionStateAction) {
       }
       return nextState;
     },
-    [action],
+    [action, runAction],
   );
   const [state, formAction, isPending] = useActionState(
     actionWithConfirmation,

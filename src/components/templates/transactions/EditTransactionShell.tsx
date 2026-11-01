@@ -1,24 +1,14 @@
 "use client";
 
-import {
-  useActionState,
-  useCallback,
-  useEffect,
-  useState,
-  type ReactNode,
-} from "react";
+import { useActionState, useState, type ReactNode } from "react";
 
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Dialog from "@mui/material/Dialog";
-import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material/DialogContent";
-import DialogContentText from "@mui/material/DialogContentText";
-import DialogTitle from "@mui/material/DialogTitle";
 import Stack from "@mui/material/Stack";
-import Link from "next/link";
 
-import { routePaths } from "config/paths";
+import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog/UnsavedChangesDialog";
+import { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
+
 import { flowMessages } from "config/transactionStepFlowMessages";
 import {
   transactionErrorCodes,
@@ -34,7 +24,10 @@ import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLay
 import { EditTransactionDirtyProvider } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
 import { LinkedTransactionSyncConfirmationDialog } from "organisms/transactions/LinkedTransactionSyncConfirmationDialog/LinkedTransactionSyncConfirmationDialog";
 import { designTokens } from "theme/theme";
-import type { TransactionStateAction } from "types/transactions";
+import type {
+  TransactionActionState,
+  TransactionStateAction,
+} from "types/transactions";
 import { transactionEditRestrictionMessages } from "utils/transactionMessages";
 
 import { TransactionPageTopBar } from "./TransactionPageTopBar";
@@ -72,33 +65,18 @@ export function EditTransactionShell({
   transactionRecordId,
 }: EditTransactionShellProps) {
   const readOnly = editRestriction !== null;
-  const [deleteState, deleteFormAction] = useActionState(deleteAction, {});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [isExitDialogOpen, setIsExitDialogOpen] = useState(false);
+  const guard = useUnsavedChangesGuard({
+    isDirty: hasUnsavedChanges && !readOnly,
+    saveFormId,
+  });
+  const [deleteState, deleteFormAction] = useActionState(
+    (state: TransactionActionState, data: FormData) =>
+      guard.runAction(() => deleteAction(state, data)),
+    {},
+  );
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [dismissedDeleteState, setDismissedDeleteState] = useState(deleteState);
-
-  const markDirty = useCallback(() => setHasUnsavedChanges(true), []);
-
-  useEffect(() => {
-    if (!hasUnsavedChanges) return;
-
-    function handleBeforeUnload(event: BeforeUnloadEvent) {
-      event.preventDefault();
-      event.returnValue = "";
-    }
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [hasUnsavedChanges]);
-
-  function handleSaveAndExit() {
-    const form = document.getElementById(saveFormId);
-    if (!(form instanceof HTMLFormElement)) return;
-
-    setIsExitDialogOpen(false);
-    form.requestSubmit();
-  }
 
   function handleConfirmDelete() {
     const form = document.getElementById(deleteTransactionFormId);
@@ -109,11 +87,9 @@ export function EditTransactionShell({
   }
 
   return (
-    <EditTransactionDirtyProvider onDirty={markDirty}>
+    <EditTransactionDirtyProvider onDirty={setHasUnsavedChanges}>
       <Stack spacing={0}>
         <TransactionPageTopBar
-          hasUnsavedChanges={hasUnsavedChanges}
-          onClose={() => setIsExitDialogOpen(true)}
           title={
             readOnly
               ? transactionEditRestrictionMessages.pageTitle
@@ -147,27 +123,7 @@ export function EditTransactionShell({
           value={transactionRecordId}
         />
       </form>
-      <Dialog
-        aria-labelledby="unsaved-transaction-dialog-title"
-        onClose={() => setIsExitDialogOpen(false)}
-        open={isExitDialogOpen}
-      >
-        <DialogTitle id="unsaved-transaction-dialog-title">
-          尚未保存
-        </DialogTitle>
-        <DialogContent>
-          <DialogContentText>修正的内容尚未保存，是否保存？</DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setIsExitDialogOpen(false)}>继续编辑</Button>
-          <Button component={Link} href={routePaths.transactions} color="error">
-            放弃修改
-          </Button>
-          <Button onClick={handleSaveAndExit} variant="contained">
-            保存
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <UnsavedChangesDialog {...guard.dialogProps} />
       <DeleteConfirmationDialog
         description={
           hasLinkedIncomeItems
@@ -181,7 +137,6 @@ export function EditTransactionShell({
       />
       <LinkedTransactionSyncConfirmationDialog
         onCancel={() => {
-          setHasUnsavedChanges(true);
           editAction.cancelConfirmation();
         }}
         onConfirm={editAction.confirmSync}
@@ -191,7 +146,6 @@ export function EditTransactionShell({
         bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
         description={editAction.state.error}
         onClose={() => {
-          setHasUnsavedChanges(true);
           editAction.closeFailure();
         }}
         open={editAction.isFailureOpen}

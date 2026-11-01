@@ -46,6 +46,8 @@ import {
   transactionSubmitButtonSx,
   transactionSummarySurfaceSx,
 } from "../TransactionForm/TransactionForm.styles";
+import { useDirtySnapshot } from "molecules/ui/UnsavedChangesDialog/useDirtySnapshot";
+
 import { useEditTransactionDirty } from "../EditTransactionDirtyContext/EditTransactionDirtyContext";
 import {
   formatSignedCurrencyAmount,
@@ -103,7 +105,7 @@ export function TransferTransactionForm({
   title = "新增记账",
   typeNavigation,
 }: TransferTransactionFormProps) {
-  const markEditDirty = useEditTransactionDirty();
+  const reportEditDirty = useEditTransactionDirty();
   const [selectedAccountId, setSelectedAccountId] = useState(
     initialValues?.accountId ?? "",
   );
@@ -138,6 +140,15 @@ export function TransferTransactionForm({
     transactionDate,
     transactionTime,
   );
+
+  const dirtySnapshot = JSON.stringify([
+    selectedAccountId,
+    selectedTargetAccountId,
+    transferAmount,
+    note,
+    transactionAtValue,
+  ]);
+  useDirtySnapshot(dirtySnapshot, reportEditDirty, Boolean(transactionAtValue));
 
   const sourceAccount = accountOptions.find((a) => a.id === selectedAccountId);
   const targetAccount = accountOptions.find(
@@ -290,7 +301,6 @@ export function TransferTransactionForm({
               label="转出账户"
               name="accountId"
               onChange={(e) => {
-                markEditDirty?.();
                 setSelectedAccountId(e.target.value);
                 if (fieldErrors.accountId) {
                   setFieldErrors((prev) => ({ ...prev, accountId: undefined }));
@@ -342,7 +352,6 @@ export function TransferTransactionForm({
               label="转入账户"
               name="transferTargetAccountId"
               onChange={(e) => {
-                markEditDirty?.();
                 setSelectedTargetAccountId(e.target.value);
                 if (fieldErrors.targetAccountId) {
                   setFieldErrors((prev) => ({
@@ -396,7 +405,6 @@ export function TransferTransactionForm({
               hiddenLabel
               name="transferAmount"
               onChange={(e) => {
-                markEditDirty?.();
                 setTransferAmount(e.target.value);
                 if (fieldErrors.transferAmount) {
                   setFieldErrors((prev) => ({
@@ -430,11 +438,9 @@ export function TransferTransactionForm({
           <TransactionDateTimePicker
             date={transactionDate}
             onDateChange={(date) => {
-              markEditDirty?.();
               setTransactionDate(date);
             }}
             onTimeChange={(time) => {
-              markEditDirty?.();
               setTransactionTime(time);
             }}
             time={transactionTime}
@@ -454,7 +460,6 @@ export function TransferTransactionForm({
               multiline
               name="note"
               onChange={(e) => {
-                markEditDirty?.();
                 setNote(e.target.value);
               }}
               placeholder="记录这次转账的用途…"

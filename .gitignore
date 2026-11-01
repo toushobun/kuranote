@@ -37,3 +37,4 @@ storybook-static
 next-env.d.ts
 tsconfig.tsbuildinfo
 .vercel
+tests/browser/unsaved-changes/public/

@@ -1,4 +1,10 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { UnsavedChangesDialog } from "./UnsavedChangesDialog";
@@ -8,6 +14,19 @@ afterEach(() => {
 });
 
 describe("UnsavedChangesDialog", () => {
+  it("关闭后返回触发元素的焦点，但不把长页滚回触发元素", async () => {
+    render(<button>原触发按钮</button>);
+    const trigger = screen.getByRole("button", { name: "原触发按钮" });
+    trigger.focus();
+    const focus = vi.spyOn(trigger, "focus");
+    const props = { onCancel: vi.fn(), onDiscard: vi.fn(), onSave: vi.fn() };
+    const view = render(<UnsavedChangesDialog {...props} open />);
+    view.rerender(<UnsavedChangesDialog {...props} open={false} />);
+    await waitFor(() =>
+      expect(focus).toHaveBeenCalledWith({ preventScroll: true }),
+    );
+    focus.mockRestore();
+  });
   it("显示未保存提示和操作按钮", () => {
     render(
       <UnsavedChangesDialog

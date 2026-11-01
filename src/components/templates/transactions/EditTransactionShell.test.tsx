@@ -1,3 +1,7 @@
+import { setupGuardHistoryMock } from "test/mockGuardHistory";
+setupGuardHistoryMock();
+
+vi.mock("next/navigation", () => import("test/mocks/navigation"));
 import {
   cleanup,
   fireEvent,
@@ -15,7 +19,7 @@ import {
   transactionLinkedEditErrorTitles,
   type TransactionEditRestriction,
 } from "internal/transaction";
-import { UserThemeProvider } from "theme/UserThemeProvider";
+import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
 import type { TransactionStateAction } from "types/transactions";
 import { transactionEditRestrictionMessages } from "utils/transactionMessages";
 
@@ -68,16 +72,16 @@ function DirtyReportingInput() {
       aria-label="编辑临时输入"
       defaultValue=""
       name="note"
-      onChange={() => markEditDirty?.()}
+      onChange={(event) => markEditDirty?.(event.target.value !== "")}
     />
   );
 }
 
 function renderShell(props: Parameters<typeof ShellHarness>[0] = {}) {
   return render(
-    <UserThemeProvider>
+    <ConfirmDialogTestProviders>
       <ShellHarness {...props} />
-    </UserThemeProvider>,
+    </ConfirmDialogTestProviders>,
   );
 }
 
@@ -347,14 +351,13 @@ describe("EditTransactionShell", () => {
     fireEvent.change(within(container).getByLabelText("编辑临时输入"), {
       target: { value: "已修改" },
     });
-    fireEvent.click(within(container).getByRole("button", { name: "关闭" }));
+    fireEvent.click(within(container).getByRole("link", { name: "关闭" }));
     expect(
       screen.getByText("修正的内容尚未保存，是否保存？"),
     ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "放弃修改" })).toHaveAttribute(
-      "href",
-      routePaths.transactions,
-    );
+    expect(
+      screen.getByRole("button", { name: "放弃修改" }),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "继续编辑" }));
     expect(
       screen.getByText("修正的内容尚未保存，是否保存？"),
@@ -369,7 +372,7 @@ describe("EditTransactionShell", () => {
     fireEvent.change(within(container).getByLabelText("编辑临时输入"), {
       target: { value: "已修改" },
     });
-    fireEvent.click(within(container).getByRole("button", { name: "关闭" }));
+    fireEvent.click(within(container).getByRole("link", { name: "关闭" }));
     fireEvent.click(screen.getByRole("button", { name: "保存" }));
     expect(requestSubmit).toHaveBeenCalledTimes(1);
     expect(requestSubmit.mock.contexts[0]).toHaveProperty("id", saveFormId);
