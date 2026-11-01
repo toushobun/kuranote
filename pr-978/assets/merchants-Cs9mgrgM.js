@@ -1,0 +1,1 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";function t(e,t=`?`){let n=e?.trim()??``;return n.length===0?t:Array.from(n)[0]?.toUpperCase()??t}function n(e){if(!e)return null;try{return new URL(e).hostname.replace(/^www\./,``)||null}catch{return null}}var r=e((()=>{}));export{n,r,t};
