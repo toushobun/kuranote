@@ -98,9 +98,11 @@ export const twoPayments = [
   { accountId: "cash", amount: "3000" },
 ];
 
-/** 小票：已选 7-Eleven 与 PayPay，两条已填金额的明细。 */
+/** 小票测试数据：PayPay 付款与两条已填金额的明细。 */
 export const receiptFlowFixture: Partial<TransactionStepFlowProps> = {
-  initialMerchantId: "seven",
-  initialAccountId: "paypay",
-  itemsOptions: { ...receiptItemsOptions, initialItems: filledItems },
+  itemsOptions: {
+    ...receiptItemsOptions,
+    initialItems: filledItems,
+    initialPayments: [{ accountId: "paypay", amount: null }],
+  },
 };

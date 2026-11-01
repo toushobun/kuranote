@@ -47,14 +47,9 @@ export type TransactionStepFlowProps = {
   accounts: TransactionAccountOption[];
   suggestions?: MerchantEntrySuggestions;
   itemsOptions?: ItemsStepOptions;
-  /** 预选商家时直接进入小票。 */
-  initialMerchantId?: string;
-  initialAccountId?: string;
   onClose: () => void;
   onMethodChange: (method: TransactionEntryMethod) => void;
   onMerchantSelect: (merchant: FlowMerchant) => void;
   onAccountSelect: (account: TransactionAccountOption) => void;
-  onAddMerchant?: (name?: string) => void;
   onAddPresets: () => void;
-  onAddAccount?: () => void;
 };

@@ -364,8 +364,8 @@ describe("Merchant Server Actions", () => {
 
   it.each([
     {
-      expected: `/transactions/new?type=expense&merchantId=${merchantId}`,
-      name: "合法 returnTo 时带着新商家 ID 返回来源页面",
+      expected: "/transactions/new?type=expense",
+      name: "合法 returnTo 时直接返回来源页面",
       returnTo: "/transactions/new?type=expense",
     },
     {

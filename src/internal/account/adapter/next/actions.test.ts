@@ -139,8 +139,8 @@ describe("Account Server Actions", () => {
 
   it.each([
     {
-      expected: `/transactions/new?type=transfer&accountId=${accountId}`,
-      name: "合法 returnTo 时带着新账户 ID 返回来源页面",
+      expected: "/transactions/new?type=transfer",
+      name: "合法 returnTo 时直接返回来源页面",
       returnTo: "/transactions/new?type=transfer",
     },
     {

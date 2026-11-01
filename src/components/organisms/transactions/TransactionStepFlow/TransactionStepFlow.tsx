@@ -63,7 +63,6 @@ function TransactionStepFlowSession(input: TransactionStepFlowProps) {
               saving={w.saving}
               onBack={w.backToMerchant}
               onAccountSelect={props.onAccountSelect}
-              onAddAccount={props.onAddAccount}
             />
           ) : (
             <MerchantStep
@@ -73,10 +72,9 @@ function TransactionStepFlowSession(input: TransactionStepFlowProps) {
               loadingMerchantId={w.loadingMerchantId}
               onSelect={w.selectMerchant}
               onAddMerchant={
-                props.onAddMerchant ??
-                (creation?.addMerchant
+                creation?.addMerchant
                   ? (name) => creation.addMerchant?.(w.selectMerchant, name)
-                  : undefined)
+                  : undefined
               }
               onAddPresets={props.onAddPresets}
             />

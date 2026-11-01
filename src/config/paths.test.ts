@@ -15,7 +15,6 @@ import {
   transactionsMonthHref,
   transactionsNewEntryHref,
   transactionsResultHref,
-  withQueryParam,
   transactionsSearchHref,
 } from "./paths";
 
@@ -156,14 +155,5 @@ describe("transaction entry paths", () => {
     expect(
       transactionsNewEntryHref({ method: "standard", type: "income" }),
     ).toBe("/transactions/new?method=standard&type=income");
-  });
-
-  it("追加查询参数时保留原有参数并覆盖同名参数", () => {
-    expect(
-      withQueryParam("/transactions/new?merchantId=a", "accountId", "b"),
-    ).toBe("/transactions/new?merchantId=a&accountId=b");
-    expect(
-      withQueryParam("/transactions/new?accountId=a", "accountId", "b"),
-    ).toBe("/transactions/new?accountId=b");
   });
 });

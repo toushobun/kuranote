@@ -121,12 +121,6 @@ export function transactionsSearchHref(query: string) {
   return routeWithQuery(routePaths.transactionsSearch, { q: query });
 }
 
-// 新增商家 / 账户成功后附在 returnTo 上的新建 ID，记一笔据此自动选中（#943）。
-export const createdIdParams = {
-  account: "accountId",
-  merchant: "merchantId",
-} as const;
-
 export const transactionEntryMethodParam = "method";
 
 /** 记一笔的记账方式入口：从商家记账不带 method；标准记账可带页签。 */
@@ -151,13 +145,6 @@ export const transactionEntryApiPaths = {
       merchantId,
     })}`,
 };
-
-/** 在站内路径上追加或覆盖一个查询参数，保留原有参数与锚点。 */
-export function withQueryParam(path: string, key: string, value: string) {
-  const url = new URL(path, "http://localhost");
-  url.searchParams.set(key, value);
-  return `${url.pathname}${url.search}${url.hash}`;
-}
 
 export function transactionEditHref(
   transactionRecordId: string,

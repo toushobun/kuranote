@@ -43,7 +43,6 @@ export function ReadOnlyReceipt({
       saving={false}
       onBack={() => {}}
       onAccountSelect={() => {}}
-      onAddAccount={() => {}}
     />
   );
 }

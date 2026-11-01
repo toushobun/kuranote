@@ -320,7 +320,7 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
           selectedAccount={w.pickerSelectedAccount}
           hasDetails={f.itemSummaries.length > 0}
           onSelect={w.selectAccount}
-          onAddAccount={props.onAddAccount ?? creation?.addAccount}
+          onAddAccount={creation?.addAccount}
         />
       </TransactionBottomEditorDrawer>
       <TransactionItemAmountDrawer

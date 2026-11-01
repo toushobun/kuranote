@@ -1,4 +1,4 @@
-import { loadReceiptCreationView } from "internal/transaction/adapter/next/loadReceiptCreationView";
+import { loadReceiptCreationView } from "../loadReceiptCreationView";
 import { ReceiptCreationProvider } from "organisms/transactions/ReceiptCreationProvider/ReceiptCreationProvider";
 import { redirect } from "next/navigation";
 

@@ -475,13 +475,10 @@ describe("AccountService 占位持有人", () => {
       repository,
     ).listTransactionHolderOptions({ ledgerId, userId });
 
-    expect(options).toHaveLength(2);
-    expect(options).toEqual(
-      expect.arrayContaining([
-        { id: placeholderId, name: "奶奶" },
-        { id: holderUserId, name: "妻子" },
-      ]),
-    );
+    expect(options).toEqual([
+      { id: placeholderId, name: "奶奶" },
+      { id: holderUserId, name: "妻子" },
+    ]);
     expect(repository.listAccounts).toHaveBeenCalledWith(ledgerId, true);
     expect(vi.mocked(repository.listUsers).mock.calls).toEqual([
       [[holderUserId]],

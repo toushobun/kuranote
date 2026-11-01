@@ -2,12 +2,7 @@
 
 import { redirect } from "next/navigation";
 
-import {
-  accountResultValues,
-  accountsResultHref,
-  createdIdParams,
-  withQueryParam,
-} from "config/paths";
+import { accountResultValues, accountsResultHref } from "config/paths";
 import {
   parseArchiveAccountForm,
   parseCreateAccountForm,
@@ -85,13 +80,9 @@ export async function createAccount(
     return getActionErrorState(error, accountErrorCodes.createFailed);
   }
 
-  // 从记一笔等页面进入时，新增成功后带着新账户 ID 返回来源页面。
+  // 从记一笔等页面进入时，新增成功后直接返回来源页面。
   const returnTo = getSafeNextPath(formData.get("returnTo"));
-  redirect(
-    returnTo
-      ? withQueryParam(returnTo, createdIdParams.account, accountId)
-      : accountsResultHref(accountResultValues.created),
-  );
+  redirect(returnTo ?? accountsResultHref(accountResultValues.created));
 }
 
 export async function updateAccount(

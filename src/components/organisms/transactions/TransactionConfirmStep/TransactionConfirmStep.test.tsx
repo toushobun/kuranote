@@ -409,10 +409,10 @@ describe("TransactionConfirmStep", () => {
 
   it("换币种后小数位超出：显示真实金额并标红，合计与提示条正确，重新输入后可以保存", async () => {
     renderConfirmFlow({
-      initialAccountId: "cny",
       itemsOptions: {
         ...receiptItemsOptions,
         initialItems: [{ categoryId: "lunch", amount: "12.55" }],
+        initialPayments: [{ accountId: "cny", amount: null }],
       },
     });
     await openCurrencyConfirm("现金 JPY");
@@ -581,8 +581,15 @@ describe("TransactionConfirmStep", () => {
 
   it("缺少账户和明细时提示、标红并禁用保存，点提示打开对应入口", async () => {
     renderConfirmFlow({
-      initialAccountId: undefined,
-      itemsOptions: receiptItemsOptions,
+      itemsOptions: {
+        ...receiptItemsOptions,
+        initialPayments: [{ accountId: "", amount: null }],
+      },
+      suggestions: {
+        ...receiptSuggestions,
+        automaticCategoryIds: [],
+        recommendedAccountIds: [],
+      },
     });
     expect(line("更换支付账户 1")).toHaveAttribute("data-invalid", "true");
     expect(screen.getByText("请添加明细", { selector: "p" })).toHaveAttribute(

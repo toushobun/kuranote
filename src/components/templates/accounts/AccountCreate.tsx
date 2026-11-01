@@ -27,7 +27,7 @@ export type AccountCreateTemplateProps = {
   holderOptions: AccountHolderOption[];
   ledgerName: string;
   placeholderHolderOptions?: AccountPlaceholderHolderOption[];
-  /** 从记一笔等页面进入时的来源路径：保存后带着新账户回去，取消也回到这里。 */
+  /** 从记一笔等页面进入时的来源路径：保存和取消均直接返回这里。 */
   returnTo?: string | null;
 };
 

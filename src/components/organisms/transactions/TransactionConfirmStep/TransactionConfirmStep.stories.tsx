@@ -22,12 +22,33 @@ const meta = {
       ...receiptItemsOptions,
     },
   },
+  render: (args) => (
+    <TransactionStepFlow
+      {...args}
+      itemsOptions={{
+        ...args.itemsOptions,
+        categoryOptions: args.itemsOptions?.categoryOptions ?? [],
+        initialPayments:
+          args.itemsOptions?.initialPayments ??
+          receiptFlowFixture.itemsOptions?.initialPayments,
+      }}
+    />
+  ),
+  play: ({ canvasElement }) => enterReceipt(canvasElement),
   parameters: { viewport: { defaultViewport: "mobile2" } },
 } satisfies Meta<typeof TransactionStepFlow>;
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-function clickButton(canvasElement: HTMLElement, name: string | RegExp) {
+async function enterReceipt(canvasElement: HTMLElement, merchant = "7-Eleven") {
+  const body = within(canvasElement.ownerDocument.body);
+  if (body.queryByRole("textbox", { name: "搜索商家" })) {
+    await userEvent.click(body.getByRole("button", { name: merchant }));
+    await body.findByRole("button", { name: "更换支付账户 1" });
+  }
+}
+async function clickButton(canvasElement: HTMLElement, name: string | RegExp) {
+  await enterReceipt(canvasElement);
   return userEvent.click(
     within(canvasElement.ownerDocument.body).getByRole("button", { name }),
   );
@@ -36,30 +57,30 @@ function clickButton(canvasElement: HTMLElement, name: string | RegExp) {
 export const QuickEntry: Story = {
   name: "快速路线：自动明细待输入（设计图 8 ②）",
   args: {
-    initialAccountId: undefined,
     suggestionsMerchantId: "seven",
     suggestions: { ...receiptSuggestions, recommendedAccountIds: ["paypay"] },
     itemsOptions: receiptItemsOptions,
   },
 };
 export const FirstVisit: Story = {
+  play: ({ canvasElement }) => enterReceipt(canvasElement, "星巴克"),
   name: "第一次去的商家：选择收支账户（设计图 8 ③）",
   args: {
-    initialMerchantId: "coffee",
-    initialAccountId: undefined,
     suggestionsMerchantId: "coffee",
     suggestions: {
       automaticCategoryIds: [],
       quickAmounts: [],
       recommendedAccountIds: [],
     },
-    itemsOptions: receiptItemsOptions,
+    itemsOptions: {
+      ...receiptItemsOptions,
+      initialPayments: [{ accountId: "", amount: null }],
+    },
   },
 };
 export const MultiAccountBalanced: Story = {
   name: "多账户已对上（设计图 8 ④）",
   args: {
-    initialMerchantId: "life",
     itemsOptions: {
       ...receiptItemsOptions,
       initialItems: [

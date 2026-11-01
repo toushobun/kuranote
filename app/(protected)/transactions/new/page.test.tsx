@@ -61,7 +61,7 @@ vi.mock("templates/transactions/NewTransactionVisualFrame", () => ({
   NewTransactionVisualFrame: mocks.NewTransactionVisualFrame,
 }));
 
-vi.mock("internal/transaction/adapter/next/loadReceiptCreationView", () => ({
+vi.mock("../loadReceiptCreationView", () => ({
   loadReceiptCreationView: vi.fn(async () => null),
 }));
 
