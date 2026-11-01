@@ -142,14 +142,10 @@ function EditTransactionReceipt({
         readOnly={readOnly}
       />
       <ReceiptMerchantDrawer
-        open={!readOnly && w.merchantPicker.open}
-        suspended={w.merchantPicker.suspended}
-        onClose={w.merchantPicker.closePicker}
+        picker={w.merchantPicker}
         merchants={props.merchantOptions}
         merchantTags={props.merchantTags}
         frequentMerchants={props.frequentMerchants}
-        onSelect={w.merchantPicker.selectMerchant}
-        onAddMerchant={!readOnly ? w.merchantPicker.onAddMerchant : undefined}
       />
     </>
   );

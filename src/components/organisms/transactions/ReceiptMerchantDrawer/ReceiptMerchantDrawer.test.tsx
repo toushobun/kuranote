@@ -7,7 +7,7 @@ import {
   submitReceiptCreation,
   waitMerchantDrawerClosed,
 } from "test/receiptCreation";
-import { expectFeedbackInBodyPortal } from "test/feedbackPortal";
+import { expectInBodyPortal } from "test/bodyPortal";
 import { ReceiptMerchantDrawer } from "./ReceiptMerchantDrawer";
 import { useReceiptMerchantPicker } from "./useReceiptMerchantPicker";
 
@@ -20,11 +20,7 @@ function Harness({ onSelect }: { onSelect: (merchant: FlowMerchant) => void }) {
         merchants={flowFixture.merchants}
         merchantTags={flowFixture.merchantTags}
         frequentMerchants={flowFixture.frequentMerchants}
-        open={picker.open}
-        suspended={picker.suspended}
-        onClose={picker.closePicker}
-        onSelect={picker.selectMerchant}
-        onAddMerchant={picker.onAddMerchant}
+        picker={picker}
       />
     </main>
   );
@@ -42,11 +38,11 @@ function setup() {
 describe("ReceiptMerchantDrawer", () => {
   it("抽屉通过 body Portal 打开，取消不选择商家，选中后关闭", async () => {
     const { container, onSelect } = setup();
-    const drawer = screen
-      .getByRole("heading", { name: "商家" })
-      .closest(".MuiDrawer-root");
-    expect(drawer?.parentElement).toBe(document.body);
-    expect(container).not.toContainElement(drawer as HTMLElement);
+    expectInBodyPortal(
+      screen.getByRole("heading", { name: "商家" }),
+      ".MuiDrawer-root",
+      container,
+    );
     fireEvent.click(screen.getByRole("button", { name: "关闭商家编辑" }));
     await waitMerchantDrawerClosed();
     expect(onSelect).not.toHaveBeenCalled();
@@ -63,9 +59,7 @@ describe("ReceiptMerchantDrawer", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "新增商家" }));
     const dialog = await screen.findByRole("dialog", { name: /新增商家/ });
-    expect(dialog.closest(".MuiDialog-root")?.parentElement).toBe(
-      document.body,
-    );
+    expectInBodyPortal(dialog, ".MuiDialog-root", container);
     expect(await screen.findByLabelText(/商家名称/)).toHaveValue("新商家");
     fireEvent.click(screen.getByRole("button", { name: "取消" }));
     expect(
@@ -79,7 +73,7 @@ describe("ReceiptMerchantDrawer", () => {
       id: "new-merchant",
       name: "新商家",
     });
-    expectFeedbackInBodyPortal(feedback, container);
+    expectInBodyPortal(feedback, ".MuiSnackbar-root", container);
     await waitMerchantDrawerClosed();
   });
 });

@@ -1,5 +1,5 @@
 import type { TransactionFormInitialValues } from "organisms/transactions/TransactionForm/TransactionForm.types";
-import { expectFeedbackInBodyPortal } from "test/feedbackPortal";
+import { expectInBodyPortal } from "test/bodyPortal";
 import { ReceiptCreationProvider } from "organisms/transactions/ReceiptCreationProvider/ReceiptCreationProvider";
 import {
   receiptCreationData,
@@ -616,13 +616,11 @@ describe("TransactionStepFlow 页内新增", () => {
       { accountId: "paypay", amount: null },
     ]);
     const flowDialog = screen.getByRole("dialog");
-    expect(flowDialog.closest(".MuiDialog-root")?.parentElement).toBe(
-      document.body,
-    );
+    expectInBodyPortal(flowDialog, ".MuiDialog-root", container);
     click("修改商家：7-Eleven");
     click("新增商家");
     const feedback = await submitReceiptCreation("merchant", "新商家");
-    expectFeedbackInBodyPortal(feedback, container, flowDialog);
+    expectInBodyPortal(feedback, ".MuiSnackbar-root", container, flowDialog);
     await screen.findByRole("button", { name: "修改商家：新商家" });
     expect(saveButton().closest("form")).toBe(form);
     expect(new FormData(form).getAll("itemAmount")).toEqual(["800"]);

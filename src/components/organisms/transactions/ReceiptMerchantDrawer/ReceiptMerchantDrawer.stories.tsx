@@ -6,10 +6,14 @@ const meta = {
   title: "Organisms/Transactions/ReceiptMerchantDrawer",
   component: ReceiptMerchantDrawer,
   args: {
-    open: true,
-    suspended: false,
-    onClose: () => {},
-    onSelect: () => {},
+    picker: {
+      open: true,
+      suspended: false,
+      openPicker: () => {},
+      closePicker: () => {},
+      selectMerchant: () => {},
+      onAddMerchant: undefined,
+    },
     merchants: flowFixture.merchants,
     merchantTags: flowFixture.merchantTags,
     frequentMerchants: flowFixture.frequentMerchants,
@@ -21,5 +25,5 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = { name: "选择商家" };
 export const WithCreation: Story = {
   name: "有新增商家权限",
-  args: { onAddMerchant: () => {} },
+  args: { picker: { ...meta.args.picker, onAddMerchant: () => {} } },
 };

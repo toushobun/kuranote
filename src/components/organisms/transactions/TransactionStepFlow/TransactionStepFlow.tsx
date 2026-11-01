@@ -76,14 +76,10 @@ function TransactionStepFlowSession(input: TransactionStepFlowProps) {
         </DialogContent>
       </WizardDialog>
       <ReceiptMerchantDrawer
-        open={w.merchantPicker.open}
-        suspended={w.merchantPicker.suspended}
-        onClose={w.merchantPicker.closePicker}
+        picker={w.merchantPicker}
         merchants={props.merchants}
         merchantTags={props.merchantTags}
         frequentMerchants={props.frequentMerchants}
-        onSelect={w.merchantPicker.selectMerchant}
-        onAddMerchant={w.merchantPicker.onAddMerchant}
         onAddPresets={props.onAddPresets}
       />
       <EntryMethodDrawer
