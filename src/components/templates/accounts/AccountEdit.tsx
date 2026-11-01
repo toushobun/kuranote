@@ -1,7 +1,6 @@
 "use client";
 
-import Box from "@mui/material/Box";
-import { useActionState, useEffect, useState, type MouseEvent } from "react";
+import { useActionState, useEffect, useState } from "react";
 
 import { accountFormMessages } from "config/accountMessages";
 import { routePaths } from "config/paths";
@@ -70,23 +69,29 @@ export function AccountEditTemplate({
       event.returnValue = "";
     }
 
+    // 页面内的返回 / 取消和 AppShell 底部导航都是链接：在 document 捕获阶段拦下，先弹确认。
+    function interceptLeave(event: MouseEvent) {
+      if (event.defaultPrevented || event.button !== 0) return;
+      const link =
+        event.target instanceof Element
+          ? event.target.closest<HTMLAnchorElement>("a[href]")
+          : null;
+      const href = link?.getAttribute("href");
+      // 离开确认自己的「放弃修改」也是链接，弹框打开时放行。
+      if (!href || link?.closest('[role="dialog"]')) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      setLeaveHref(href);
+    }
+
     window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+    document.addEventListener("click", interceptLeave, true);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener("click", interceptLeave, true);
+    };
   }, [isDirty]);
-
-  function interceptLeave(event: MouseEvent<HTMLElement>) {
-    if (!isDirty || leaveHref !== null) return;
-    const link =
-      event.target instanceof Element
-        ? event.target.closest<HTMLAnchorElement>("a[href]")
-        : null;
-    const href = link?.getAttribute("href");
-    if (!href) return;
-
-    event.preventDefault();
-    event.stopPropagation();
-    setLeaveHref(href);
-  }
 
   function saveAndLeave() {
     setLeaveHref(null);
@@ -95,59 +100,56 @@ export function AccountEditTemplate({
   }
 
   return (
-    // 返回按钮与「取消」都是链接：捕获阶段拦下，未保存时先弹确认。
-    <Box onClickCapture={interceptLeave} sx={{ display: "contents" }}>
-      <SettingsPageLayout
-        action={
-          <form action={archiveFormAction} id={archiveAccountFormId}>
-            <input name="accountId" readOnly type="hidden" value={account.id} />
-            <ArchiveAccountButton
-              disabled={archivePending}
-              formId={archiveAccountFormId}
-              label={accountFormMessages.archive}
-              size="small"
-              sx={settingsPageActionButtonSx}
-            />
-          </form>
-        }
-        back={{
-          href: routePaths.accounts,
-          label: accountFormMessages.backToAccounts,
-        }}
-        subtitle={accountFormMessages.editSubtitle(ledgerName)}
-        title={accountFormMessages.editTitle}
-      >
-        <AccountForm
-          account={account}
-          action={updateFormAction}
-          defaultCurrency={baseCurrency}
-          holderOptions={holderOptions}
-          id={editAccountFormId}
-          onDirtyChange={setIsDirty}
-          pending={updatePending}
-          placeholderHolderOptions={placeholderHolderOptions}
-        />
-        {/* 当前余额输入框沿用记账的金额键盘。 */}
-        {canWriteTransactions ? <TransactionAmountKeypadLauncher /> : null}
-        <ActionFailureFeedback
-          aboveModal
-          bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
-          state={updateState}
-          title={accountFormMessages.editErrorTitle}
-        />
-        <ActionFailureFeedback
-          aboveModal
-          bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
-          state={archiveState}
-          title={accountFormMessages.archiveErrorTitle}
-        />
-        <UnsavedChangesDialog
-          discardHref={leaveHref ?? undefined}
-          onCancel={() => setLeaveHref(null)}
-          onSave={saveAndLeave}
-          open={leaveHref !== null}
-        />
-      </SettingsPageLayout>
-    </Box>
+    <SettingsPageLayout
+      action={
+        <form action={archiveFormAction} id={archiveAccountFormId}>
+          <input name="accountId" readOnly type="hidden" value={account.id} />
+          <ArchiveAccountButton
+            disabled={archivePending}
+            formId={archiveAccountFormId}
+            label={accountFormMessages.archive}
+            size="small"
+            sx={settingsPageActionButtonSx}
+          />
+        </form>
+      }
+      back={{
+        href: routePaths.accounts,
+        label: accountFormMessages.backToAccounts,
+      }}
+      subtitle={accountFormMessages.editSubtitle(ledgerName)}
+      title={accountFormMessages.editTitle}
+    >
+      <AccountForm
+        account={account}
+        action={updateFormAction}
+        defaultCurrency={baseCurrency}
+        holderOptions={holderOptions}
+        id={editAccountFormId}
+        onDirtyChange={setIsDirty}
+        pending={updatePending}
+        placeholderHolderOptions={placeholderHolderOptions}
+      />
+      {/* 当前余额输入框沿用记账的金额键盘。 */}
+      {canWriteTransactions ? <TransactionAmountKeypadLauncher /> : null}
+      <ActionFailureFeedback
+        aboveModal
+        bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
+        state={updateState}
+        title={accountFormMessages.editErrorTitle}
+      />
+      <ActionFailureFeedback
+        aboveModal
+        bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
+        state={archiveState}
+        title={accountFormMessages.archiveErrorTitle}
+      />
+      <UnsavedChangesDialog
+        discardHref={leaveHref ?? undefined}
+        onCancel={() => setLeaveHref(null)}
+        onSave={saveAndLeave}
+        open={leaveHref !== null}
+      />
+    </SettingsPageLayout>
   );
 }

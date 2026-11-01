@@ -14,6 +14,7 @@ import {
   getAccountBalanceAdjustment,
   getAccountEditHolderDefaults,
   isAccountFormDirty,
+  isSameBalanceText,
   type AccountFormValues,
 } from "./accountEditValues";
 import {
@@ -51,20 +52,28 @@ export function useAccountForm({
   const [currency, setCurrency] = useState(
     account?.currency ?? defaultCurrency,
   );
-  const [balance, setBalance] = useState(
-    account ? String(account.current_balance) : "0",
-  );
+  const currentBalanceText = account ? String(account.current_balance) : "0";
+  const [balance, setBalance] = useState(currentBalanceText);
   const [balanceAdjustmentNote, setBalanceAdjustmentNote] = useState("");
   const [holderSelection, setHolderSelection] =
     useState<AccountHolderSelection>(editHolders?.selection ?? null);
   const [initialValues] = useState<AccountFormValues>(() => ({
     balance,
-    balanceAdjustmentNote,
     currency,
     holderSelection,
     name,
     type,
   }));
+  // 页面停留期间账户余额被外部改变（例如刷新后收到新的 props）时，以最新余额为基准：
+  // 用户没改过余额就跟着更新，避免拿旧余额算出差值、误提交余额调整；改过的目标余额保留。
+  const [balanceBaseline, setBalanceBaseline] = useState(currentBalanceText);
+  if (currentBalanceText !== balanceBaseline) {
+    setBalanceBaseline(currentBalanceText);
+    if (isSameBalanceText(balanceBaseline, balance)) {
+      setBalance(currentBalanceText);
+      setBalanceAdjustmentNote("");
+    }
+  }
 
   return {
     balance,
@@ -74,14 +83,16 @@ export function useAccountForm({
     balanceAdjustmentNote,
     currency,
     holderSelection,
-    isDirty: isAccountFormDirty(initialValues, {
-      balance,
-      balanceAdjustmentNote,
-      currency,
-      holderSelection,
-      name,
-      type,
-    }),
+    isDirty: isAccountFormDirty(
+      { ...initialValues, balance: balanceBaseline },
+      {
+        balance,
+        currency,
+        holderSelection,
+        name,
+        type,
+      },
+    ),
     name,
     placeholderOptions,
     preservedHolderOptions,

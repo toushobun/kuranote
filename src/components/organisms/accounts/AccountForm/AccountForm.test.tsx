@@ -26,16 +26,22 @@ function renderAccountForm(
   const action = vi.fn(async (formData: FormData) => {
     void formData;
   });
-  render(
+  const renderForm = (formProps: typeof props) => (
     <AccountForm
       action={action}
       defaultCurrency="JPY"
       holderOptions={accountHolderOptionsFixture}
       placeholderHolderOptions={accountPlaceholderHolderOptionsFixture}
-      {...props}
-    />,
+      {...formProps}
+    />
   );
-  return { action };
+  const view = render(renderForm(props));
+  return {
+    action,
+    /** 保留表单状态，只换传入的 props（例如刷新后收到新的账户）。 */
+    rerender: (nextProps: typeof props) =>
+      view.rerender(renderForm({ ...props, ...nextProps })),
+  };
 }
 
 function getPreview() {
@@ -211,6 +217,53 @@ describe("AccountForm 编辑", () => {
 
     expect(screen.queryByText(/将增加/)).toBeNull();
     expect(screen.queryByLabelText("余额调整备注")).toBeNull();
+  });
+
+  describe("页面停留期间账户余额被外部改变", () => {
+    const refreshedAccount = { ...bankAccountFixture, current_balance: 90000 };
+
+    it("没改过余额时跟着最新余额，保存不提交目标余额", async () => {
+      const onDirtyChange = vi.fn();
+      const { action, rerender } = renderAccountForm({
+        account: bankAccountFixture,
+        onDirtyChange,
+      });
+
+      rerender({ account: refreshedAccount });
+
+      expect(screen.getByLabelText("当前余额")).toHaveValue("90000");
+      expect(screen.queryByText(/将减少|将增加/)).toBeNull();
+      expect(onDirtyChange).toHaveBeenLastCalledWith(false);
+      const formData = await submitEditForm(action);
+      expect(formData.has("targetBalance")).toBe(false);
+    });
+
+    it("改过的目标余额保留，并按最新余额重新计算差值", async () => {
+      const { action, rerender } = renderEditForm();
+      fireEvent.change(screen.getByLabelText("当前余额"), {
+        target: { value: "80000" },
+      });
+
+      rerender({ account: refreshedAccount });
+
+      expect(screen.getByLabelText("当前余额")).toHaveValue("80000");
+      expect(screen.getByText("将减少 ¥10,000")).toBeInTheDocument();
+      const formData = await submitEditForm(action);
+      expect(formData.get("targetBalance")).toBe("80000");
+    });
+  });
+
+  it("无效余额时由任何入口提交都被拦下，不会只保存其他字段", () => {
+    const { action } = renderEditForm();
+    fireEvent.change(screen.getByLabelText("当前余额"), {
+      target: { value: "abc" },
+    });
+
+    fireEvent.submit(
+      screen.getByRole("button", { name: "保存修改" }).closest("form")!,
+    );
+
+    expect(action).not.toHaveBeenCalled();
   });
 
   it("无效余额时提示并禁止保存", () => {

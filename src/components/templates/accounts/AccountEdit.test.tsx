@@ -198,6 +198,51 @@ describe("AccountEditTemplate", () => {
       );
     });
 
+    it("点页面外的链接（例如底部导航）也先弹确认", async () => {
+      render(<a href="/dashboard">首页</a>);
+      renderAccountEdit();
+      changeName("三菱UFJ");
+
+      fireEvent.click(screen.getByRole("link", { name: "首页" }));
+
+      expect(await screen.findByText("尚未保存")).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "放弃修改" })).toHaveAttribute(
+        "href",
+        "/dashboard",
+      );
+    });
+
+    it("余额无效时在确认里点保存也不会提交", async () => {
+      const updateAccountAction = vi.fn<AccountStateAction>(async () => ({}));
+      renderAccountEdit({ updateAccountAction });
+      fireEvent.change(screen.getByLabelText("当前余额"), {
+        target: { value: "12.345" },
+      });
+      fireEvent.click(screen.getByRole("link", { name: "取消" }));
+
+      fireEvent.click(await screen.findByRole("button", { name: "保存" }));
+
+      await waitFor(() => expect(screen.queryByText("尚未保存")).toBeNull());
+      expect(updateAccountAction).not.toHaveBeenCalled();
+      expect(
+        screen.getByText("请输入最多两位小数的有效余额。"),
+      ).toBeInTheDocument();
+    });
+
+    it("余额改回原值后，写过的调整备注不算修改", () => {
+      renderAccountEdit();
+      const balance = screen.getByLabelText("当前余额");
+      fireEvent.change(balance, { target: { value: "90000" } });
+      fireEvent.change(screen.getByLabelText("余额调整备注"), {
+        target: { value: "对账" },
+      });
+      fireEvent.change(balance, { target: { value: "85000" } });
+
+      fireEvent.click(screen.getByRole("link", { name: "取消" }));
+
+      expect(screen.queryByText("尚未保存")).toBeNull();
+    });
+
     it("没有修改或改回原值时直接离开，不弹确认", () => {
       renderAccountEdit();
       fireEvent.click(screen.getByRole("link", { name: "取消" }));

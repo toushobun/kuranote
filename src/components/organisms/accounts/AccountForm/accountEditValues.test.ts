@@ -103,7 +103,6 @@ describe("getAccountBalanceAdjustment", () => {
 describe("isAccountFormDirty", () => {
   const initial: AccountFormValues = {
     balance: "85000",
-    balanceAdjustmentNote: "",
     currency: "JPY",
     holderSelection: { id: "user-a", kind: "member" },
     name: "三菱UFJ银行",
@@ -126,7 +125,6 @@ describe("isAccountFormDirty", () => {
     ["货币", { currency: "USD" }],
     ["余额", { balance: "80000" }],
     ["余额输入中途", { balance: "-" }],
-    ["余额调整备注", { balanceAdjustmentNote: "对账" }],
     ["持有人", { holderSelection: null }],
     [
       "持有人换成占位",
