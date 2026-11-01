@@ -6,7 +6,7 @@ import {
 export { receiptCreationPayments } from "test/mocks/receiptCreation";
 import { receiptCreationData } from "test/mocks/receiptCreation";
 export { receiptCreationData } from "test/mocks/receiptCreation";
-import { fireEvent, screen } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import {
   ReceiptCreationProvider,
@@ -67,4 +67,10 @@ export function expectCreatedReceiptPayment(
     receiptCreationPayments.map((payment) => payment.amount),
   );
   expect(data.getAll("itemAmount")).toEqual(["800"]);
+}
+
+export function waitMerchantDrawerClosed() {
+  return waitFor(() =>
+    expect(screen.queryByRole("heading", { name: "商家" })).toBeNull(),
+  );
 }

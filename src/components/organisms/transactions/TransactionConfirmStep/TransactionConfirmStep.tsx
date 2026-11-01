@@ -140,7 +140,7 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
                   value={f.selectedMerchant?.name ?? m.selectMerchant}
                   error={!f.selectedMerchant}
                   readOnly={readOnly}
-                  onClick={props.onBack}
+                  onClick={props.onMerchantClick}
                 >
                   <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
                     {f.selectedMerchant?.name ?? m.selectMerchant}

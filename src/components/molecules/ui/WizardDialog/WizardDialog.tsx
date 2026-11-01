@@ -1,6 +1,5 @@
 "use client";
 
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import Box from "@mui/material/Box";
 import Dialog from "@mui/material/Dialog";
@@ -27,8 +26,6 @@ type WizardDialogProps = {
   disableEnterTransition?: boolean;
   headerContent?: ReactNode;
   titleAction?: ReactNode;
-  /** 传入时左上角为返回 ←，关闭 × 移到右上角（不再显示 `titleAction`）。 */
-  back?: { label: string; onClick: () => void };
   onClose: () => void;
   open: boolean;
   title?: string;
@@ -45,7 +42,6 @@ export function WizardDialog({
   disableEnterTransition = false,
   headerContent,
   titleAction,
-  back,
   onClose,
   open,
   title,
@@ -104,30 +100,18 @@ export function WizardDialog({
               ? [
                   wizardDialogTitleRowSx,
                   !headerContent && wizardDialogTitleOnlyRowSx,
-                  titleAction && !back
-                    ? { gridTemplateColumns: "40px 1fr auto" }
-                    : {},
+                  titleAction ? { gridTemplateColumns: "40px 1fr auto" } : {},
                 ]
               : undefined
           }
         >
-          {back ? (
-            <IconButton
-              aria-label={back.label}
-              disabled={disabled}
-              onClick={back.onClick}
-            >
-              <ArrowBackRoundedIcon />
-            </IconButton>
-          ) : (
-            closeButton
-          )}
+          {closeButton}
           {title ? (
             <Typography component="h2" id={headingId} sx={wizardDialogTitleSx}>
               {title}
             </Typography>
           ) : null}
-          {back ? closeButton : titleAction}
+          {titleAction}
         </Box>
         {headerContent}
       </Box>

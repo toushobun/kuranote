@@ -2,7 +2,7 @@ import Dialog from "@mui/material/Dialog";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { flowMessages as m } from "config/transactionStepFlowMessages";
-import { expectFeedbackInBodyPortal } from "test/feedbackPortal";
+import { expectInBodyPortal } from "test/bodyPortal";
 import {
   ReceiptCreationTestProviders,
   submitReceiptCreation,
@@ -48,7 +48,7 @@ describe("ReceiptCreationProvider", () => {
           ? m.merchantCreated("测试新增")
           : m.accountCreated("测试新增"),
       );
-      expectFeedbackInBodyPortal(feedback, container, flowDialog);
+      expectInBodyPortal(feedback, ".MuiSnackbar-root", container, flowDialog);
       expect(flowDialog).toBeInTheDocument();
     },
   );

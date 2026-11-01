@@ -7,8 +7,7 @@ import type {
   FrequentMerchant,
   TransactionEditRestriction,
 } from "internal/transaction";
-import { TransactionBottomEditorDrawer } from "molecules/transactions/TransactionBottomEditorDrawer/TransactionBottomEditorDrawer";
-import { MerchantStep } from "organisms/transactions/MerchantStep/MerchantStep";
+import { ReceiptMerchantDrawer } from "organisms/transactions/ReceiptMerchantDrawer/ReceiptMerchantDrawer";
 import type { FlowMerchant } from "organisms/transactions/MerchantStep/MerchantStep.types";
 import { TransactionConfirmStep } from "organisms/transactions/TransactionConfirmStep/TransactionConfirmStep";
 import type { TransactionFormInitialValues } from "organisms/transactions/TransactionForm/TransactionForm.types";
@@ -139,27 +138,15 @@ function EditTransactionReceipt({
         action={formAction}
         saving={saving}
         submitLabel={m.saveEdit}
-        onBack={w.openMerchantPicker}
+        onMerchantClick={w.merchantPicker.openPicker}
         readOnly={readOnly}
       />
-      <TransactionBottomEditorDrawer
-        open={w.merchantPickerOpen}
-        suspended={!!creation?.editor}
-        title={m.merchant}
-        onClose={w.closeMerchantPicker}
-      >
-        <MerchantStep
-          merchants={props.merchantOptions}
-          merchantTags={props.merchantTags}
-          frequentMerchants={props.frequentMerchants}
-          onSelect={w.selectMerchant}
-          onAddMerchant={
-            !readOnly && creation?.addMerchant
-              ? (name) => creation.addMerchant?.(w.selectMerchant, name)
-              : undefined
-          }
-        />
-      </TransactionBottomEditorDrawer>
+      <ReceiptMerchantDrawer
+        picker={w.merchantPicker}
+        merchants={props.merchantOptions}
+        merchantTags={props.merchantTags}
+        frequentMerchants={props.frequentMerchants}
+      />
     </>
   );
 }

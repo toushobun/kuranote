@@ -1,9 +1,12 @@
+import type { TransactionFormInitialValues } from "organisms/transactions/TransactionForm/TransactionForm.types";
+import { expectInBodyPortal } from "test/bodyPortal";
 import { ReceiptCreationProvider } from "organisms/transactions/ReceiptCreationProvider/ReceiptCreationProvider";
 import {
   receiptCreationData,
   receiptCreationPayments,
   expectCreatedReceiptPayment,
   submitReceiptCreation,
+  waitMerchantDrawerClosed,
 } from "test/receiptCreation";
 import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -111,34 +114,36 @@ describe("TransactionStepFlow", () => {
     ).toBeNull();
   });
 
-  it("小票页左上角返回、标题「从商家记账」、右上角关闭，不显示切换方式", () => {
+  it("小票页显示关闭和标题「从商家记账」，没有返回或切换方式", () => {
     quickSetup();
     click("7-Eleven");
     expect(heading("从商家记账")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "返回选择商家" }),
-    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /返回/ })).toBeNull();
     expect(
       screen.getByRole("button", { name: "关闭记账" }),
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "切换方式" })).toBeNull();
   });
 
-  it("关闭时继续记账保留内容，放弃才关闭", async () => {
-    const { props } = setup();
-    click("关闭记账");
-    expect(screen.getByText("已填写的内容不会保存。")).toBeInTheDocument();
-    click("继续记账");
-    expect(props.onClose).not.toHaveBeenCalled();
-    await waitFor(() =>
-      expect(
-        screen.queryByText("已填写的内容不会保存。"),
-      ).not.toBeInTheDocument(),
-    );
-    click("关闭记账");
-    click("放弃");
-    await waitFor(() => expect(props.onClose).toHaveBeenCalledOnce());
-  });
+  it.each([false, true])(
+    "小票已打开为 %s 时关闭：继续记账保留内容，放弃才关闭",
+    async (receipt) => {
+      const { props } = quickSetup();
+      if (receipt) click("7-Eleven");
+      click("关闭记账");
+      expect(screen.getByText("已填写的内容不会保存。")).toBeInTheDocument();
+      click("继续记账");
+      expect(props.onClose).not.toHaveBeenCalled();
+      await waitFor(() =>
+        expect(
+          screen.queryByText("已填写的内容不会保存。"),
+        ).not.toBeInTheDocument(),
+      );
+      click("关闭记账");
+      click("放弃");
+      await waitFor(() => expect(props.onClose).toHaveBeenCalledOnce());
+    },
+  );
 
   it("关闭后重新打开不保留上次内容", () => {
     const view = quickSetup();
@@ -156,48 +161,85 @@ describe("TransactionStepFlow", () => {
     expect(props.onMethodChange).toHaveBeenCalledWith("transfer");
   });
 
-  it.each(["返回选择商家", "修改商家：7-Eleven"])(
-    "通过%s回到选择商家，换商家后直接回到小票，保留已填明细并追加新商家的常用明细",
-    async (entry) => {
-      const { props, rerender } = quickSetup({
-        suggestions: { ...quickSuggestions, automaticCategoryIds: [] },
-        itemsOptions: {
-          ...receiptItemsOptions,
-          initialItems: filledItems,
-          initialPayments: [{ accountId: "paypay", amount: null }],
-        },
-      });
-      click("7-Eleven");
-      click(entry);
-      expect(heading("记一笔")).toBeInTheDocument();
-      click("LIFE超市");
-      expect(props.onMerchantSelect).toHaveBeenLastCalledWith(
-        flowFixture.merchants[0],
-      );
-      expect(heading("从商家记账")).toBeInTheDocument();
-      // 晚到的新商家建议不覆盖已填内容。
-      rerender(
-        <TransactionStepFlow
-          {...props}
-          suggestionsMerchantId="life"
-          suggestions={{
-            ...quickSuggestions,
-            automaticCategoryIds: ["coffee"],
-          }}
-        />,
-      );
-      expect(
-        screen.getByRole("button", { name: "修改商家：LIFE超市" }),
-      ).toBeInTheDocument();
-      expect(screen.getByText("餐饮 · 午餐")).toBeInTheDocument();
-      expect(screen.getByText("日用品 · 收纳")).toBeInTheDocument();
-      expect(screen.getByText("饮料 · 咖啡")).toBeInTheDocument();
-      expectAutomaticItems(1);
-    },
-  );
+  it("通过小票商家入口打开抽屉，保留已填明细并追加新商家的常用明细", async () => {
+    const { props, rerender } = quickSetup({
+      suggestions: { ...quickSuggestions, automaticCategoryIds: [] },
+      itemsOptions: {
+        ...receiptItemsOptions,
+        initialItems: filledItems,
+        initialPayments: [{ accountId: "paypay", amount: null }],
+      },
+    });
+    click("7-Eleven");
+    click("修改商家：7-Eleven");
+    expect(screen.getByRole("heading", { name: "商家" })).toBeInTheDocument();
+    click("LIFE超市");
+    expect(props.onMerchantSelect).toHaveBeenLastCalledWith(
+      flowFixture.merchants[0],
+    );
+    await waitFor(() => expect(heading("从商家记账")).toBeInTheDocument());
+    // 晚到的新商家建议不覆盖已填内容。
+    rerender(
+      <TransactionStepFlow
+        {...props}
+        suggestionsMerchantId="life"
+        suggestions={{
+          ...quickSuggestions,
+          automaticCategoryIds: ["coffee"],
+        }}
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: "修改商家：LIFE超市" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("餐饮 · 午餐")).toBeInTheDocument();
+    expect(screen.getByText("日用品 · 收纳")).toBeInTheDocument();
+    expect(screen.getByText("饮料 · 咖啡")).toBeInTheDocument();
+    expectAutomaticItems(1);
+  });
 });
 
 describe("TransactionStepFlow 换商家", () => {
+  it("抽屉内换商家立即关闭且不触发快速路线，超过两秒仍留在同一个小票", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const view = quickSetup({ suggestions: noHistory });
+    click("7-Eleven");
+    const form = saveButton().closest("form");
+    click("修改商家：7-Eleven");
+    click("LIFE超市");
+    await waitMerchantDrawerClosed();
+    expect(
+      screen.getByRole("button", { name: "修改商家：LIFE超市" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("progressbar")).toBeNull();
+    expect(onMerchantScreen()).toBe(false);
+    expect(saveButton().closest("form")).toBe(form);
+    waitQuickRouteTimeout();
+    expect(saveButton().closest("form")).toBe(form);
+    expect(heading("从商家记账")).toBeInTheDocument();
+    view.rerender(
+      <TransactionStepFlow
+        {...view.props}
+        suggestionsMerchantId="life"
+        suggestions={quickSuggestions}
+      />,
+    );
+    expect(receiptLine("更换支付账户 1")).toHaveTextContent("PayPay");
+  });
+
+  it("用户手动选择的账户不被新商家的推荐账户覆盖", async () => {
+    await switchToLife(["storage"], {
+      beforeSwitch: async () => {
+        click("更换支付账户 1");
+        selectAccount("现金 JPY");
+        await waitFor(() =>
+          expect(screen.queryByRole("radio", { name: "现金 JPY" })).toBeNull(),
+        );
+      },
+    });
+    expect(receiptLine("更换支付账户 1")).toHaveTextContent("现金");
+  });
+
   // 快速路线选 7-Eleven（自动明细：午餐、咖啡），再从小票换成 LIFE超市。
   // beforeSwitch 在换商家前操作小票，whileWaiting 在 LIFE超市 的建议到达前操作。
   async function switchToLife(
@@ -216,6 +258,7 @@ describe("TransactionStepFlow 换商家", () => {
     await beforeSwitch?.();
     click("修改商家：7-Eleven");
     click("LIFE超市");
+    await waitMerchantDrawerClosed();
     await whileWaiting?.();
     view.rerender(
       <TransactionStepFlow
@@ -339,6 +382,7 @@ describe("TransactionStepFlow 换商家", () => {
     click("删除明细 1");
     click("修改商家：7-Eleven");
     click("7-Eleven");
+    await waitMerchantDrawerClosed();
     rerender(
       <TransactionStepFlow {...props} suggestions={{ ...quickSuggestions }} />,
     );
@@ -546,27 +590,47 @@ describe("TransactionStepFlow 编辑明细", () => {
 });
 
 describe("TransactionStepFlow 页内新增", () => {
+  function setupCreationFlow(
+    initialPayments: TransactionFormInitialValues["payments"] = receiptCreationPayments,
+  ) {
+    const view = renderEntryComponent(
+      <ReceiptCreationProvider data={receiptCreationData()}>
+        <TransactionStepFlow
+          {...flowFixture}
+          suggestionsMerchantId="seven"
+          suggestions={noHistory}
+          itemsOptions={{
+            ...receiptItemsOptions,
+            initialItems: [{ categoryId: "lunch", amount: "800" }],
+            initialPayments,
+          }}
+        />
+      </ReceiptCreationProvider>,
+    );
+    click("7-Eleven");
+    return { ...view, form: saveButton().closest("form")! };
+  }
+
+  it("从小票商家抽屉新增后自动选中并留在原小票，成功提示挂载到 body", async () => {
+    const { container, form } = setupCreationFlow([
+      { accountId: "paypay", amount: null },
+    ]);
+    const flowDialog = screen.getByRole("dialog");
+    expectInBodyPortal(flowDialog, ".MuiDialog-root", container);
+    click("修改商家：7-Eleven");
+    click("新增商家");
+    const feedback = await submitReceiptCreation("merchant", "新商家");
+    expectInBodyPortal(feedback, ".MuiSnackbar-root", container, flowDialog);
+    await screen.findByRole("button", { name: "修改商家：新商家" });
+    expect(saveButton().closest("form")).toBe(form);
+    expect(new FormData(form).getAll("itemAmount")).toEqual(["800"]);
+    expect(new FormData(form).get("accountId")).toBe("paypay");
+  });
+
   it.each([1, 2])(
     "在新增小票第 %i 行取消不改内容，保存后只替换发起行",
     async (row) => {
-      renderEntryComponent(
-        <ReceiptCreationProvider data={receiptCreationData()}>
-          <TransactionStepFlow
-            {...flowFixture}
-            suggestionsMerchantId="seven"
-            suggestions={noHistory}
-            itemsOptions={{
-              ...receiptItemsOptions,
-              initialItems: [{ categoryId: "lunch", amount: "800" }],
-              initialPayments: receiptCreationPayments,
-            }}
-          />
-        </ReceiptCreationProvider>,
-      );
-      click("7-Eleven");
-      const form = screen
-        .getByRole("button", { name: "保存记账" })
-        .closest("form")!;
+      const { form } = setupCreationFlow();
       const before = [...new FormData(form).entries()];
       click(`更换支付账户 ${row}`);
       click("新增账户");

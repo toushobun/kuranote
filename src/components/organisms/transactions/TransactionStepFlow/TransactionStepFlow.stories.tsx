@@ -1,6 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, userEvent, waitFor, within } from "storybook/test";
-import { transactionEntryStoryDecorators } from "organisms/transactions/transactionStepFlowStoryUtils";
+import {
+  transactionEntryStoryDecorators,
+  receiptCreationStoryDecorator,
+} from "organisms/transactions/transactionStepFlowStoryUtils";
 import {
   receiptItemsOptions,
   receiptSuggestions,
@@ -70,8 +73,9 @@ export const QuickEntryLoading: Story = {
   },
 };
 
-export const BackToMerchant: Story = {
-  name: "小票返回选择商家（已填内容保留）",
+export const ChangeMerchant: Story = {
+  name: "小票商家抽屉（已填内容保留）",
+  decorators: [receiptCreationStoryDecorator],
   args: {
     itemsOptions: {
       ...receiptItemsOptions,
@@ -81,7 +85,7 @@ export const BackToMerchant: Story = {
   },
   play: async ({ canvasElement }) => {
     await selectMerchant(canvasElement, "7-Eleven");
-    await selectMerchant(canvasElement, "返回选择商家");
+    await selectMerchant(canvasElement, "修改商家：7-Eleven");
   },
 };
 

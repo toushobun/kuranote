@@ -91,7 +91,7 @@ export function useTransactionConfirmStep(
   const emptyPayment = form.payments.find((payment) => !payment.accountId);
   const issues = [
     ...(!form.selectedMerchant
-      ? [{ message: m.selectMerchant, onClick: props.onBack }]
+      ? [{ message: m.selectMerchant, onClick: props.onMerchantClick }]
       : []),
     ...(accountError
       ? [

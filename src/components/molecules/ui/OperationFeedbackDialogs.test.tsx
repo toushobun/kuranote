@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { UserThemeProvider } from "theme/UserThemeProvider";
 import { designTokens, theme } from "theme/theme";
-import { expectFeedbackInBodyPortal } from "test/feedbackPortal";
+import { expectInBodyPortal } from "test/bodyPortal";
 
 import {
   ActionPromptDialog,
@@ -67,7 +67,11 @@ describe("SuccessFeedbackDialog", () => {
     );
 
     expect(screen.getByRole("status")).toHaveTextContent("复制成功");
-    expectFeedbackInBodyPortal(screen.getByRole("status"), container);
+    expectInBodyPortal(
+      screen.getByRole("status"),
+      ".MuiSnackbar-root",
+      container,
+    );
   });
 
   it("3 秒后自动触发关闭回调", () => {
