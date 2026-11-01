@@ -1,3 +1,5 @@
+import { loadReceiptCreationView } from "internal/transaction/adapter/next/loadReceiptCreationView";
+import { ReceiptCreationProvider } from "organisms/transactions/ReceiptCreationProvider/ReceiptCreationProvider";
 import {
   saveEditTransaction,
   updateBalanceAdjustmentTransaction,
@@ -74,27 +76,32 @@ export default async function TransactionEditPage({
     );
   }
 
+  const receiptCreation = !editRestriction
+    ? await loadReceiptCreationView()
+    : null;
   return (
     <NewTransactionVisualFrame>
       <TransactionIncomeLinksProvider value={incomeLinksValue}>
-        <EditTransactionReceiptTemplate
-          accountOptions={view.accountOptions}
-          action={saveEditTransaction}
-          archivedAccountOptions={view.archivedAccountOptions}
-          canDelete={canDelete}
-          categoryOptions={view.categoryOptions}
-          deleteAction={voidTransaction}
-          editRestriction={editRestriction}
-          frequentMerchants={view.frequentMerchants}
-          initialValues={initialValues}
-          ledgerId={view.ledgerId}
-          merchantOptions={view.merchantOptions}
-          merchantTags={view.merchantTags}
-          multiAccountPaymentEnabled={view.multiAccountPaymentEnabled}
-          transactionItemSpecialStatusEnabled={
-            view.transactionItemSpecialStatusEnabled
-          }
-        />
+        <ReceiptCreationProvider data={receiptCreation}>
+          <EditTransactionReceiptTemplate
+            accountOptions={view.accountOptions}
+            action={saveEditTransaction}
+            archivedAccountOptions={view.archivedAccountOptions}
+            canDelete={canDelete}
+            categoryOptions={view.categoryOptions}
+            deleteAction={voidTransaction}
+            editRestriction={editRestriction}
+            frequentMerchants={view.frequentMerchants}
+            initialValues={initialValues}
+            ledgerId={view.ledgerId}
+            merchantOptions={view.merchantOptions}
+            merchantTags={view.merchantTags}
+            multiAccountPaymentEnabled={view.multiAccountPaymentEnabled}
+            transactionItemSpecialStatusEnabled={
+              view.transactionItemSpecialStatusEnabled
+            }
+          />
+        </ReceiptCreationProvider>
       </TransactionIncomeLinksProvider>
     </NewTransactionVisualFrame>
   );

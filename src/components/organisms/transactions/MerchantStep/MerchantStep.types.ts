@@ -10,7 +10,7 @@ export type MerchantStepProps = {
   /** 快速路线读取建议期间，被点中的商家显示加载状态。 */
   loadingMerchantId?: string | null;
   onSelect: (merchant: FlowMerchant) => void;
-  /** 不传时不显示「新增商家」入口（编辑记账，#962）。 */
+  /** 不传时不显示「新增商家」入口（无管理权限时不传）。 */
   onAddMerchant?: (name?: string) => void;
   /** 不传时不显示「从预设添加」入口（编辑记账，#962）。 */
   onAddPresets?: () => void;

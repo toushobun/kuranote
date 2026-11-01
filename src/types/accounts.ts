@@ -6,7 +6,9 @@ export { accountTypeOptions } from "internal/account";
 
 export type { AccountHolderRole, AccountType };
 
-export type AccountActionState = ActionState;
+export type AccountActionState = ActionState & {
+  createdAccount?: import("types/transactions").TransactionAccountOption;
+};
 
 export type AccountStateAction = (
   previousState: AccountActionState,

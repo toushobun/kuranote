@@ -1,3 +1,10 @@
+import { ReceiptCreationProvider } from "organisms/transactions/ReceiptCreationProvider/ReceiptCreationProvider";
+import {
+  receiptCreationData,
+  receiptCreationPayments,
+  expectCreatedReceiptPayment,
+  submitReceiptCreation,
+} from "test/receiptCreation";
 import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -555,4 +562,45 @@ describe("TransactionStepFlow 编辑明细", () => {
       );
     expect(!!screen.queryByLabelText("金额计算器")).toBe(opens);
   });
+});
+
+describe("TransactionStepFlow 页内新增", () => {
+  it.each([1, 2])(
+    "在新增小票第 %i 行取消不改内容，保存后只替换发起行",
+    async (row) => {
+      renderEntryComponent(
+        <ReceiptCreationProvider data={receiptCreationData()}>
+          <TransactionStepFlow
+            {...flowFixture}
+            initialMerchantId="seven"
+            onAddMerchant={undefined}
+            onAddAccount={undefined}
+            suggestionsMerchantId="seven"
+            suggestions={noHistory}
+            itemsOptions={{
+              ...receiptItemsOptions,
+              initialItems: [{ categoryId: "lunch", amount: "800" }],
+              initialPayments: receiptCreationPayments,
+            }}
+          />
+        </ReceiptCreationProvider>,
+      );
+      const form = screen
+        .getByRole("button", { name: "保存记账" })
+        .closest("form")!;
+      const before = [...new FormData(form).entries()];
+      click(`更换支付账户 ${row}`);
+      click("新增账户");
+      fireEvent.change(await screen.findByLabelText(/账户名称/), {
+        target: { value: "取消的内容" },
+      });
+      click("取消");
+      await screen.findByRole("button", { name: "新增账户" });
+      expect([...new FormData(form).entries()]).toEqual(before);
+      click("新增账户");
+      await submitReceiptCreation("account", "新账户");
+      await screen.findByRole("button", { name: `更换支付账户 ${row}` });
+      expectCreatedReceiptPayment(form, row);
+    },
+  );
 });

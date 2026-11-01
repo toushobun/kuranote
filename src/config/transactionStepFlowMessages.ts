@@ -1,6 +1,9 @@
 import { merchantRecentTransactionLimit } from "@/constants/recentUsage";
 
 export const flowMessages = {
+  creationClose: "关闭",
+  merchantCreated: (name: string) => `已新增商家「${name}」并选中`,
+  accountCreated: (name: string) => `已新增账户「${name}」并选中`,
   title: "从商家记账",
   merchantTitle: "记一笔",
   backToMerchant: "返回选择商家",

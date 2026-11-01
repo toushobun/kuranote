@@ -47,6 +47,10 @@ vi.mock("templates/transactions/NewTransactionVisualFrame", () => ({
   NewTransactionVisualFrame: mocks.NewTransactionVisualFrame,
 }));
 
+vi.mock("internal/transaction/adapter/next/loadReceiptCreationView", () => ({
+  loadReceiptCreationView: vi.fn(async () => null),
+}));
+
 import TransactionEditPage from "./page";
 
 function createEditView() {
@@ -107,7 +111,11 @@ async function renderTemplateElement() {
   const child = element.props.children as ReactElement<Record<string, unknown>>;
   return child.type === mocks.EditTransferTransactionTemplate
     ? child
-    : (child.props.children as ReactElement<Record<string, unknown>>);
+    : (
+        child.props.children as ReactElement<{
+          children: ReactElement<Record<string, unknown>>;
+        }>
+      ).props.children;
 }
 
 describe("TransactionEditPage", () => {

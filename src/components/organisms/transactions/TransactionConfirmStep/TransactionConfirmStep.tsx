@@ -1,4 +1,5 @@
 "use client";
+import { useReceiptCreation } from "organisms/transactions/ReceiptCreationProvider/ReceiptCreationProvider";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -44,6 +45,7 @@ import { useTransactionConfirmStep } from "./useTransactionConfirmStep";
  * `readOnly`（#962）时只显示内容：没有铅笔、×、可点金额、提示条与保存按钮。
  */
 export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
+  const creation = useReceiptCreation();
   const f = props.form;
   const readOnly = !!props.readOnly;
   // 付款未对上时，点提示条定位到支付区。
@@ -308,6 +310,7 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
       )}
       <TransactionBottomEditorDrawer
         open={!!w.pickerPayment}
+        suspended={!!creation?.editor}
         title={m.accounts}
         onClose={() => w.setAccountPickerKey(null)}
       >
@@ -317,7 +320,7 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
           selectedAccount={w.pickerSelectedAccount}
           hasDetails={f.itemSummaries.length > 0}
           onSelect={w.selectAccount}
-          onAddAccount={props.onAddAccount}
+          onAddAccount={props.onAddAccount ?? creation?.addAccount}
         />
       </TransactionBottomEditorDrawer>
       <TransactionItemAmountDrawer

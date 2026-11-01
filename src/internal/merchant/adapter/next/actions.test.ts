@@ -22,6 +22,7 @@ const mocks = vi.hoisted(() => ({
   archiveMerchant: vi.fn(),
   archiveTag: vi.fn(),
   createAlias: vi.fn(),
+  getMerchant: vi.fn(),
   createMerchant: vi.fn(),
   createTag: vi.fn(),
   fetchMerchantIcon: vi.fn(),
@@ -124,6 +125,7 @@ beforeEach(() => {
         archiveMerchant: mocks.archiveMerchant,
         archiveTag: mocks.archiveTag,
         createAlias: mocks.createAlias,
+        getMerchant: mocks.getMerchant,
         createMerchant: mocks.createMerchant,
         createTag: mocks.createTag,
         fetchMerchantIcon: mocks.fetchMerchantIcon,
@@ -676,5 +678,32 @@ describe("loadMerchantPresets", () => {
     expectErrorState(second, merchantErrorMessages.merchant_preset_load_failed);
     expect(first.errorKey).not.toBe(second.errorKey);
     spy.mockRestore();
+  });
+});
+
+describe("createMerchant 弹层模式", () => {
+  it("返回已保存的商家头像与分类，不跳转", async () => {
+    mocks.createMerchant.mockResolvedValue(merchantId);
+    mocks.getMerchant.mockResolvedValue({
+      id: merchantId,
+      display_name: "LIFE",
+      icon_url: "https://example.com/icon.png",
+      tags: [],
+    });
+    const result = await createMerchant(
+      {},
+      merchantForm({ presentation: "dialog" }),
+    );
+    expect(result).toEqual({
+      createdMerchant: {
+        id: merchantId,
+        name: "LIFE",
+        icon_url: "https://example.com/icon.png",
+        tags: [],
+      },
+    });
+    expect(mocks.createMerchant).toHaveBeenCalledOnce();
+    expect(mocks.revalidateMerchantMutation).toHaveBeenCalled();
+    expect(mocks.redirect).not.toHaveBeenCalled();
   });
 });

@@ -1,4 +1,6 @@
 "use client";
+import { SelectionSectionHeader } from "molecules/transactions/SelectionSectionHeader/SelectionSectionHeader";
+import { useLayoutEffect, useRef } from "react";
 import RadioButtonCheckedRoundedIcon from "@mui/icons-material/RadioButtonCheckedRounded";
 import RadioButtonUncheckedRoundedIcon from "@mui/icons-material/RadioButtonUncheckedRounded";
 import Alert from "@mui/material/Alert";
@@ -21,6 +23,13 @@ import { useAccountStep } from "./useAccountStep";
 /** 收支账户列表（#943）：任务 9 起在小票的账户选择抽屉里使用，标题由抽屉显示。 */
 export function AccountStep(props: AccountStepProps) {
   const w = useAccountStep(props);
+  const selectRef = useRef(w.selectAccount);
+  useLayoutEffect(() => {
+    selectRef.current = w.selectAccount;
+  });
+  const addAccount = props.onAddAccount
+    ? () => props.onAddAccount?.((account) => selectRef.current(account))
+    : undefined;
   const accountList = (accounts: TransactionAccountOption[]) => (
     <List disablePadding>
       {accounts.map((account) => (
@@ -75,7 +84,7 @@ export function AccountStep(props: AccountStepProps) {
       }
       action={
         props.onAddAccount && (
-          <Button variant="contained" onClick={props.onAddAccount}>
+          <Button variant="contained" onClick={addAccount}>
             {m.addAccount}
           </Button>
         )
@@ -85,16 +94,12 @@ export function AccountStep(props: AccountStepProps) {
     <Stack spacing={2} role="radiogroup" aria-label={m.accounts}>
       {w.recommended.length > 0 ? (
         <>
-          <Stack
-            direction="row"
-            spacing={1}
-            sx={{ alignItems: "baseline", flexWrap: "wrap" }}
-          >
-            <Typography sx={{ fontWeight: "bold" }}>{m.recommended}</Typography>
-            <Typography variant="caption" color="textSecondary">
-              {m.recommendationHint}
-            </Typography>
-          </Stack>
+          <SelectionSectionHeader
+            title={m.recommended}
+            hint={m.recommendationHint}
+            addLabel={m.addAccount}
+            onAdd={addAccount}
+          />
           {accountList(w.recommended)}
           {w.others.length > 0 && (
             <>
@@ -108,7 +113,11 @@ export function AccountStep(props: AccountStepProps) {
       ) : (
         <>
           <Alert severity="info">{m.noHistory}</Alert>
-          <Typography sx={{ fontWeight: "bold" }}>{m.allAccounts}</Typography>
+          <SelectionSectionHeader
+            title={m.allAccounts}
+            addLabel={m.addAccount}
+            onAdd={addAccount}
+          />
           {accountList(props.accounts)}
         </>
       )}

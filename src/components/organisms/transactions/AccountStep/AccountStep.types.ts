@@ -7,6 +7,8 @@ export type AccountStepProps = {
   selectedAccount?: TransactionAccountOption;
   hasDetails?: boolean;
   onSelect: (account: TransactionAccountOption) => void;
-  /** 不传时不显示「新增账户」入口（编辑记账，#962）。 */
-  onAddAccount?: () => void;
+  /** 不传时不显示「新增账户」入口（无管理权限时不传）。 */
+  onAddAccount?: (
+    onCreated: (account: TransactionAccountOption) => Promise<boolean | void>,
+  ) => void;
 };

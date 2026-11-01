@@ -16,7 +16,7 @@ import { useNewTransactionStepFlow } from "./useNewTransactionStepFlow";
 
 type NewTransactionStepFlowProps = Pick<
   TransactionStepFlowProps,
-  "action" | "frequentMerchants" | "initialAccountId" | "initialMerchantId"
+  "action" | "frequentMerchants"
 > & {
   accountOptions: TransactionAccountOption[];
   addPresetsAction: MerchantPresetStateAction;
@@ -49,8 +49,6 @@ export function NewTransactionStepFlow(props: NewTransactionStepFlowProps) {
           transactionItemSpecialStatusEnabled:
             props.transactionItemSpecialStatusEnabled,
         }}
-        initialAccountId={props.initialAccountId}
-        initialMerchantId={props.initialMerchantId}
         {...w.flowHandlers}
       />
       {w.presetsOpen ? (

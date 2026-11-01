@@ -131,21 +131,15 @@ export const transactionEntryMethodParam = "method";
 
 /** 记一笔的记账方式入口：从商家记账不带 method；标准记账可带页签。 */
 export function transactionsNewEntryHref({
-  accountId,
-  merchantId,
   method,
   type,
 }: {
-  accountId?: string | null;
-  merchantId?: string | null;
   method: TransactionEntryMethod;
   type?: TransactionRecordType;
 }) {
   return routeWithQuery(routePaths.transactionsNew, {
     [transactionEntryMethodParam]: method === "merchant" ? null : method,
     type: method === "standard" ? type : null,
-    [createdIdParams.merchant]: merchantId,
-    [createdIdParams.account]: accountId,
   });
 }
 

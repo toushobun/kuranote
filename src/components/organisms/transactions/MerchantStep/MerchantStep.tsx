@@ -1,4 +1,5 @@
 "use client";
+import { SelectionSectionHeader } from "molecules/transactions/SelectionSectionHeader/SelectionSectionHeader";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import Box from "@mui/material/Box";
@@ -130,11 +131,17 @@ export function MerchantStep(props: MerchantStepProps) {
           </Box>
         </>
       )}
+      <SelectionSectionHeader
+        title={w.keyword || w.tagId ? m.results : m.merchants}
+        addLabel={m.addMerchant}
+        onAdd={
+          props.onAddMerchant
+            ? () => props.onAddMerchant?.(w.keyword || undefined)
+            : undefined
+        }
+      />
       {w.filtered.length > 0 ? (
         <>
-          <Typography sx={{ fontWeight: "bold" }}>
-            {w.keyword || w.tagId ? m.results : m.merchants}
-          </Typography>
           <List disablePadding>
             {w.filtered.map((merchant) => (
               <ListItemButton

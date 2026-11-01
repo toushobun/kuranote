@@ -55,3 +55,8 @@ export const NoSearchResults: Story = {
     );
   },
 };
+
+export const WithoutCreatePermission: Story = {
+  name: "无管理权限（隐藏新增入口）",
+  args: { onAddMerchant: undefined },
+};

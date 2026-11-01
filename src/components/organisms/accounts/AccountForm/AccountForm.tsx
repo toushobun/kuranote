@@ -40,6 +40,7 @@ type AccountFormProps = {
   id?: string;
   /** 输入与初始值是否不同（改回原值算未修改），用于未保存离开确认。 */
   onDirtyChange?: (dirty: boolean) => void;
+  onCancel?: () => void;
   pending?: boolean;
   placeholderHolderOptions?: AccountPlaceholderHolderOption[];
   // 新增成功或取消后返回的站内路径（例如记一笔），由服务端再次校验。
@@ -57,6 +58,7 @@ export function AccountForm({
   holderOptions,
   id,
   onDirtyChange,
+  onCancel,
   pending = false,
   placeholderHolderOptions = [],
   returnTo = null,
@@ -249,7 +251,9 @@ export function AccountForm({
       </AccountFormSection>
 
       <PageFormActions
-        cancelHref={returnTo ?? routePaths.accounts}
+        {...(onCancel
+          ? { onCancel }
+          : { cancelHref: returnTo ?? routePaths.accounts })}
         cancelLabel={accountFormMessages.cancel}
         pending={pending}
         pendingLabel={accountFormMessages.saving}

@@ -1,4 +1,13 @@
 import {
+  ReceiptCreationTestProviders,
+  receiptCreationData,
+  receiptCreationPayments,
+  expectCreatedReceiptPayment,
+  submitReceiptCreationForm,
+  submitReceiptCreation,
+} from "test/receiptCreation";
+import type { ReceiptCreationData } from "organisms/transactions/ReceiptCreationProvider/ReceiptCreationProvider";
+import {
   cleanup,
   fireEvent,
   render,
@@ -10,7 +19,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { MerchantEntrySuggestions } from "internal/transaction";
 import type { TransactionFormInitialValues } from "organisms/transactions/TransactionForm/TransactionForm.types";
-import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
 import {
   receiptItemsOptions,
   receiptSuggestions,
@@ -45,6 +53,7 @@ const noHistory: MerchantEntrySuggestions = {
 
 function renderReceipt(
   overrides: Partial<Parameters<typeof EditTransactionReceiptTemplate>[0]> = {},
+  creation: ReceiptCreationData = null,
 ) {
   return render(
     <EditTransactionReceiptTemplate
@@ -63,7 +72,13 @@ function renderReceipt(
       transactionItemSpecialStatusEnabled={false}
       {...overrides}
     />,
-    { wrapper: ConfirmDialogTestProviders },
+    {
+      wrapper: ({ children }) => (
+        <ReceiptCreationTestProviders data={creation}>
+          {children}
+        </ReceiptCreationTestProviders>
+      ),
+    },
   );
 }
 
@@ -98,6 +113,85 @@ describe("EditTransactionReceiptTemplate", () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+  });
+
+  it.each(["merchant", "account"] as const)(
+    "打开并取消新增 %s 不改变小票也不触发未保存",
+    async (kind) => {
+      renderReceipt({}, receiptCreationData());
+      const before = [...new FormData(receiptForm()).entries()];
+      if (kind === "merchant") await openMerchantPicker();
+      else click("更换支付账户 1");
+      click(kind === "merchant" ? "新增商家" : "新增账户");
+      const field = await screen.findByLabelText(
+        kind === "merchant" ? /商家名称/ : /账户名称/,
+      );
+      fireEvent.change(field, { target: { value: "取消的内容" } });
+      click("取消");
+      await waitFor(() =>
+        expect(
+          screen.queryByRole("button", { name: "取消" }),
+        ).not.toBeInTheDocument(),
+      );
+      expect([...new FormData(receiptForm()).entries()]).toEqual(before);
+      // 弹层输入不进入编辑小票的 dirty provider，关闭小票仍为普通链接。
+      expect(document.querySelector('a[aria-label="关闭"]')).not.toBeNull();
+    },
+  );
+
+  it.each([true, false])(
+    "新增异币种账户复用确认，确认结果为 %s",
+    async (accept) => {
+      renderReceipt({}, receiptCreationData({ currency: "CNY" }));
+      click("更换支付账户 1");
+      click("新增账户");
+      await submitReceiptCreationForm("account", "新账户");
+      await screen.findByRole("heading", { name: "切换为 新账户 账户？" });
+      click(accept ? "切换" : "取消");
+      await waitFor(() =>
+        expect(new FormData(receiptForm()).get("accountId")).toBe(
+          accept ? "new-account" : "paypay",
+        ),
+      );
+      if (accept)
+        expect(
+          await screen.findByText("已新增账户「新账户」并选中"),
+        ).toBeInTheDocument();
+      else expect(screen.queryByText("已新增账户「新账户」并选中")).toBeNull();
+      expect(new FormData(receiptForm()).getAll("itemAmount")).toEqual(["800"]);
+    },
+  );
+
+  it("新增商家替换商家但保留金额、备注和付款", async () => {
+    renderReceipt({}, receiptCreationData());
+    await openMerchantPicker();
+    click("新增商家");
+    await submitReceiptCreation("merchant", "新商家");
+    await screen.findByRole("button", { name: "修改商家：新商家" });
+    const data = new FormData(receiptForm());
+    expect(data.get("merchantId")).toBe("new-merchant");
+    expect(data.getAll("itemAmount")).toEqual(["800"]);
+    expect(data.get("note")).toBe(initialValues.note);
+    expect(data.get("accountId")).toBe("paypay");
+  });
+
+  it.each([1, 2])("新增账户替换发起的第 %i 行付款并保留其他行", async (row) => {
+    renderReceipt(
+      {
+        initialValues: {
+          ...initialValues,
+          payments: receiptCreationPayments,
+        },
+      },
+      receiptCreationData(),
+    );
+    click(`更换支付账户 ${row}`);
+    click("新增账户");
+    await submitReceiptCreation("account", "新账户");
+    await screen.findByRole("button", { name: `更换支付账户 ${row}` });
+    const data = new FormData(receiptForm());
+    expectCreatedReceiptPayment(receiptForm(), row);
+    expect(data.get("note")).toBe(initialValues.note);
   });
 
   it("显示预填的小票，保存修改下方是删除", () => {

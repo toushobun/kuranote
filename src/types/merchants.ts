@@ -1,7 +1,11 @@
 import type { MerchantPresetOptions } from "internal/merchant";
 import type { ActionState } from "types/actions";
 
-export type MerchantActionState = ActionState;
+export type MerchantActionState = ActionState & {
+  createdMerchant?: import("types/transactions").TransactionMerchantOption & {
+    tags: MerchantTag[];
+  };
+};
 
 export type MerchantStateAction = (
   previousState: MerchantActionState,

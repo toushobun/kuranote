@@ -13,11 +13,14 @@ import { transactionBottomEditorDrawerMessages as m } from "config/transactionMe
 
 export function TransactionBottomEditorDrawer({
   open,
+  suspended = false,
   title,
   onClose,
   children,
 }: {
   open: boolean;
+  /** 上层新增弹层打开时隐藏抽屉但保留选择组件，关闭后恢复。 */
+  suspended?: boolean;
   title: string;
   onClose: () => void;
   children: ReactNode;
@@ -25,9 +28,13 @@ export function TransactionBottomEditorDrawer({
   return (
     <Drawer
       anchor="bottom"
-      open={open}
+      open={open && !suspended}
+      ModalProps={{ keepMounted: suspended }}
       onClose={onClose}
-      sx={{ zIndex: amountKeypadZIndex }}
+      sx={{
+        zIndex: amountKeypadZIndex,
+        visibility: suspended ? "hidden" : undefined,
+      }}
       slotProps={{
         paper: {
           sx: {

@@ -143,18 +143,10 @@ describe("transaction setup paths", () => {
 });
 
 describe("transaction entry paths", () => {
-  it("从商家记账不带 method，可带回商家与账户", () => {
+  it("从商家记账不带 method", () => {
     expect(transactionsNewEntryHref({ method: "merchant" })).toBe(
       "/transactions/new",
     );
-    expect(
-      transactionsNewEntryHref({
-        accountId: "account-1",
-        merchantId: "merchant-1",
-        method: "merchant",
-        type: "income",
-      }),
-    ).toBe("/transactions/new?merchantId=merchant-1&accountId=account-1");
   });
 
   it("账户周转只带 method，标准记账带页签", () => {

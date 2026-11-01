@@ -1,4 +1,7 @@
 "use client";
+import { useReceiptCreation } from "organisms/transactions/ReceiptCreationProvider/ReceiptCreationProvider";
+import { mergeReceiptOptions } from "organisms/transactions/ReceiptCreationProvider/useReceiptCreationState";
+
 import Button from "@mui/material/Button";
 import DialogContent from "@mui/material/DialogContent";
 import { TransactionConfirmStep } from "../TransactionConfirmStep/TransactionConfirmStep";
@@ -13,7 +16,13 @@ import { useTransactionStepFlow } from "./useTransactionStepFlow";
 export function TransactionStepFlow(props: TransactionStepFlowProps) {
   return props.open ? <TransactionStepFlowSession {...props} /> : null;
 }
-function TransactionStepFlowSession(props: TransactionStepFlowProps) {
+function TransactionStepFlowSession(input: TransactionStepFlowProps) {
+  const creation = useReceiptCreation();
+  const props = {
+    ...input,
+    merchants: mergeReceiptOptions(input.merchants, creation?.merchants),
+    accounts: mergeReceiptOptions(input.accounts, creation?.accounts),
+  };
   const w = useTransactionStepFlow(props);
   const receipt = w.screen === "receipt";
   return (
@@ -63,7 +72,12 @@ function TransactionStepFlowSession(props: TransactionStepFlowProps) {
               frequentMerchants={props.frequentMerchants}
               loadingMerchantId={w.loadingMerchantId}
               onSelect={w.selectMerchant}
-              onAddMerchant={props.onAddMerchant}
+              onAddMerchant={
+                props.onAddMerchant ??
+                (creation?.addMerchant
+                  ? (name) => creation.addMerchant?.(w.selectMerchant, name)
+                  : undefined)
+              }
               onAddPresets={props.onAddPresets}
             />
           )}
