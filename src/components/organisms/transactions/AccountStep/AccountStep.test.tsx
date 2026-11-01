@@ -137,6 +137,12 @@ describe("AccountStep", () => {
       "aria-checked",
       "true",
     );
+    // 确认框消失后，异步选择流程还需要解除 busy，才能再次点击账户。
+    await waitFor(() =>
+      expect(
+        screen.getByRole("radio", { name: "招商银行卡 CNY" }),
+      ).not.toHaveAttribute("aria-disabled", "true"),
+    );
     selectAccount("招商银行卡 CNY");
     click("切换");
     await waitFor(() =>
