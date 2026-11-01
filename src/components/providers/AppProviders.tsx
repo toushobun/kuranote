@@ -2,7 +2,9 @@
 
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
-import type { ReactNode } from "react";
+import { useLayoutEffect, type ReactNode } from "react";
+
+import { subscribeUnsavedChangesHistory } from "molecules/ui/UnsavedChangesDialog/unsavedChangesHistory";
 
 import { theme } from "theme/theme";
 
@@ -11,6 +13,7 @@ type AppProvidersProps = {
 };
 
 export function AppProviders({ children }: AppProvidersProps) {
+  useLayoutEffect(() => subscribeUnsavedChangesHistory(), []);
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />

@@ -1,3 +1,6 @@
+import { setupGuardHistoryMock } from "test/mockGuardHistory";
+setupGuardHistoryMock();
+
 import {
   cleanup,
   fireEvent,
@@ -69,7 +72,7 @@ function TransferEditInput() {
     <input
       aria-label="转账编辑临时输入"
       defaultValue=""
-      onChange={() => markEditDirty?.()}
+      onChange={(event) => markEditDirty?.(event.target.value !== "")}
     />
   );
 }
@@ -564,7 +567,7 @@ describe("EditTransferTransactionTemplate", () => {
     fireEvent.change(within(container).getByLabelText("转账编辑临时输入"), {
       target: { value: "已修改" },
     });
-    fireEvent.click(within(container).getByRole("button", { name: "关闭" }));
+    fireEvent.click(within(container).getByRole("link", { name: "关闭" }));
     expect(
       screen.getByText("修正的内容尚未保存，是否保存？"),
     ).toBeInTheDocument();

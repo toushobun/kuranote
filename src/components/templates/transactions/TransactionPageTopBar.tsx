@@ -10,38 +10,24 @@ import Link from "next/link";
 
 import { routePaths } from "config/paths";
 
-/** 新增 / 编辑记账页的顶栏：返回明细、居中标题、右侧操作。有未保存修改时返回改为 `onClose`。 */
+/** 新增 / 编辑记账页的顶栏：返回明细、居中标题、右侧操作。离开确认由页面的公共守卫统一处理。 */
 export function TransactionPageTopBar({
   action,
-  hasUnsavedChanges = false,
-  onClose,
   title,
 }: {
   action?: ReactNode;
-  hasUnsavedChanges?: boolean;
-  onClose?: () => void;
   title: string;
 }) {
   return (
     <Box sx={newTransactionTopBarSx}>
-      {hasUnsavedChanges && onClose ? (
-        <IconButton
-          aria-label="关闭"
-          onClick={onClose}
-          sx={newTransactionCloseButtonSx}
-        >
-          <ArrowBackRoundedIcon />
-        </IconButton>
-      ) : (
-        <IconButton
-          aria-label="关闭"
-          component={Link}
-          href={routePaths.transactions}
-          sx={newTransactionCloseButtonSx}
-        >
-          <ArrowBackRoundedIcon />
-        </IconButton>
-      )}
+      <IconButton
+        aria-label="关闭"
+        component={Link}
+        href={routePaths.transactions}
+        sx={newTransactionCloseButtonSx}
+      >
+        <ArrowBackRoundedIcon />
+      </IconButton>
       <Typography component="h1" variant="h5" sx={newTransactionTitleSx}>
         {title}
       </Typography>

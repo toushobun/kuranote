@@ -6,6 +6,8 @@ import {
   useState,
 } from "react";
 
+import { runWithUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/unsavedChangesHistory";
+
 import { transactionErrorCodes } from "internal/transaction";
 import type {
   TransactionActionState,
@@ -25,7 +27,9 @@ export function useLinkedTransactionEditAction(action: TransactionStateAction) {
 
   const actionWithConfirmation = useCallback(
     async (previousState: TransactionActionState, formData: FormData) => {
-      const nextState = await action(previousState, formData);
+      const nextState = await runWithUnsavedChangesGuard(() =>
+        action(previousState, formData),
+      );
       if (
         nextState.errorCode ===
         transactionErrorCodes.linkedSyncConfirmationRequired

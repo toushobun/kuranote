@@ -4,50 +4,41 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
-import Link from "next/link";
+import { useId } from "react";
+
+import { unsavedChangesMessages as m } from "config/unsavedChangesMessages";
 
 export type UnsavedChangesDialogProps = {
   description?: string;
-  discardHref?: string;
   onCancel: () => void;
-  onDiscard?: () => void;
+  onDiscard: () => void;
   onSave: () => void;
   open: boolean;
   title?: string;
 };
 
 export function UnsavedChangesDialog({
-  description = "修正的内容尚未保存，是否保存？",
-  discardHref,
+  description = m.description,
   onCancel,
   onDiscard,
   onSave,
   open,
-  title = "尚未保存",
+  title = m.title,
 }: UnsavedChangesDialogProps) {
+  const titleId = useId();
   return (
-    <Dialog
-      aria-labelledby="unsaved-changes-dialog-title"
-      onClose={onCancel}
-      open={open}
-    >
-      <DialogTitle id="unsaved-changes-dialog-title">{title}</DialogTitle>
+    <Dialog aria-labelledby={titleId} onClose={onCancel} open={open}>
+      <DialogTitle id={titleId}>{title}</DialogTitle>
       <DialogContent>
         <DialogContentText>{description}</DialogContentText>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onCancel}>继续编辑</Button>
-        {discardHref ? (
-          <Button component={Link} href={discardHref} color="error">
-            放弃修改
-          </Button>
-        ) : (
-          <Button onClick={onDiscard} color="error">
-            放弃修改
-          </Button>
-        )}
+        <Button onClick={onCancel}>{m.continueEditing}</Button>
+        <Button onClick={onDiscard} color="error">
+          {m.discard}
+        </Button>
         <Button onClick={onSave} variant="contained">
-          保存
+          {m.save}
         </Button>
       </DialogActions>
     </Dialog>

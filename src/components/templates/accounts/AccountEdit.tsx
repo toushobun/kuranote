@@ -1,12 +1,15 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
+
+import { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
+import { runWithUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/unsavedChangesHistory";
 
 import { accountFormMessages } from "config/accountMessages";
 import { routePaths } from "config/paths";
 import { ArchiveAccountButton } from "molecules/accounts/ArchiveAccountButton";
 import { ActionFailureFeedback } from "molecules/ui/OperationFeedbackDialogs";
-import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog";
+import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog/UnsavedChangesDialog";
 import { AccountForm } from "organisms/accounts/AccountForm/AccountForm";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { TransactionAmountKeypadLauncher } from "organisms/transactions/TransactionAmountKeypadLauncher/TransactionAmountKeypadLauncher";
@@ -50,54 +53,20 @@ export function AccountEditTemplate({
   updateAccountAction,
 }: AccountEditTemplateProps) {
   const [updateState, updateFormAction, updatePending] = useActionState(
-    updateAccountAction,
+    (state: AccountActionState, data: FormData) =>
+      runWithUnsavedChangesGuard(() => updateAccountAction(state, data)),
     initialAccountActionState,
   );
   const [archiveState, archiveFormAction, archivePending] = useActionState(
-    archiveAccountAction,
+    (state: AccountActionState, data: FormData) =>
+      runWithUnsavedChangesGuard(() => archiveAccountAction(state, data)),
     initialAccountActionState,
   );
   const [isDirty, setIsDirty] = useState(false);
-  // 有未保存修改时点返回 / 取消先确认，这里记下原本要去的地址。
-  const [leaveHref, setLeaveHref] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!isDirty) return;
-
-    function handleBeforeUnload(event: BeforeUnloadEvent) {
-      event.preventDefault();
-      event.returnValue = "";
-    }
-
-    // 页面内的返回 / 取消和 AppShell 底部导航都是链接：在 document 捕获阶段拦下，先弹确认。
-    function interceptLeave(event: MouseEvent) {
-      if (event.defaultPrevented || event.button !== 0) return;
-      const link =
-        event.target instanceof Element
-          ? event.target.closest<HTMLAnchorElement>("a[href]")
-          : null;
-      const href = link?.getAttribute("href");
-      // 离开确认自己的「放弃修改」也是链接，弹框打开时放行。
-      if (!href || link?.closest('[role="dialog"]')) return;
-
-      event.preventDefault();
-      event.stopPropagation();
-      setLeaveHref(href);
-    }
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    document.addEventListener("click", interceptLeave, true);
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      document.removeEventListener("click", interceptLeave, true);
-    };
-  }, [isDirty]);
-
-  function saveAndLeave() {
-    setLeaveHref(null);
-    const form = document.getElementById(editAccountFormId);
-    if (form instanceof HTMLFormElement) form.requestSubmit();
-  }
+  const guard = useUnsavedChangesGuard({
+    isDirty,
+    saveFormId: editAccountFormId,
+  });
 
   return (
     <SettingsPageLayout
@@ -144,12 +113,7 @@ export function AccountEditTemplate({
         state={archiveState}
         title={accountFormMessages.archiveErrorTitle}
       />
-      <UnsavedChangesDialog
-        discardHref={leaveHref ?? undefined}
-        onCancel={() => setLeaveHref(null)}
-        onSave={saveAndLeave}
-        open={leaveHref !== null}
-      />
+      <UnsavedChangesDialog {...guard.dialogProps} />
     </SettingsPageLayout>
   );
 }

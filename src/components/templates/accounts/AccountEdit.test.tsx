@@ -1,3 +1,7 @@
+import { setupGuardHistoryMock } from "test/mockGuardHistory";
+setupGuardHistoryMock();
+
+vi.mock("next/navigation", () => import("test/mocks/navigation"));
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -166,10 +170,9 @@ describe("AccountEditTemplate", () => {
         fireEvent.click(screen.getByRole("link", { name }));
 
         expect(await screen.findByText("尚未保存")).toBeInTheDocument();
-        expect(screen.getByRole("link", { name: "放弃修改" })).toHaveAttribute(
-          "href",
-          "/accounts",
-        );
+        expect(
+          screen.getByRole("button", { name: "放弃修改" }),
+        ).toBeInTheDocument();
       },
     );
 
@@ -206,10 +209,9 @@ describe("AccountEditTemplate", () => {
       fireEvent.click(screen.getByRole("link", { name: "首页" }));
 
       expect(await screen.findByText("尚未保存")).toBeInTheDocument();
-      expect(screen.getByRole("link", { name: "放弃修改" })).toHaveAttribute(
-        "href",
-        "/dashboard",
-      );
+      expect(
+        screen.getByRole("button", { name: "放弃修改" }),
+      ).toBeInTheDocument();
     });
 
     it("余额无效时在确认里点保存也不会提交", async () => {
