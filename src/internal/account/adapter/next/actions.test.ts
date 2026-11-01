@@ -19,6 +19,7 @@ import {
 } from "internal/account/errors";
 
 const mocks = vi.hoisted(() => ({
+  listTransactionOptionsWithHolders: vi.fn(),
   archive: vi.fn(),
   create: vi.fn(),
   createRequestContainer: vi.fn(),
@@ -73,6 +74,8 @@ beforeEach(() => {
   mocks.createRequestContainer.mockReturnValue({
     account: {
       service: {
+        listTransactionOptionsWithHolders:
+          mocks.listTransactionOptionsWithHolders,
         archive: mocks.archive,
         create: mocks.create,
         getView: vi.fn(),
@@ -86,6 +89,22 @@ beforeEach(() => {
 });
 
 describe("Account Server Actions", () => {
+  it("弹层模式返回持有人账户选项并失效缓存，不跳转", async () => {
+    const account = {
+      id: accountId,
+      name: "现金",
+      currency: "JPY",
+      type: "cash",
+      holders: [{ display_name: "我" }],
+    };
+    mocks.listTransactionOptionsWithHolders.mockResolvedValue([account]);
+    const data = createFormData();
+    data.set("presentation", "dialog");
+    expect(await createAccount({}, data)).toEqual({ createdAccount: account });
+    expect(mocks.create).toHaveBeenCalledOnce();
+    expect(mocks.redirect).not.toHaveBeenCalled();
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/accounts");
+  });
   it("同维度重名返回权威文案与新错误标识且不跳转", async () => {
     const message = accountErrorMessages[accountErrorCodes.nameDuplicate];
     mocks.create.mockRejectedValue(
@@ -120,8 +139,8 @@ describe("Account Server Actions", () => {
 
   it.each([
     {
-      expected: `/transactions/new?type=transfer&accountId=${accountId}`,
-      name: "合法 returnTo 时带着新账户 ID 返回来源页面",
+      expected: "/transactions/new?type=transfer",
+      name: "合法 returnTo 时直接返回来源页面",
       returnTo: "/transactions/new?type=transfer",
     },
     {

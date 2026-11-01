@@ -2,6 +2,7 @@
 
 import Stack from "@mui/material/Stack";
 
+import { merchantText } from "config/merchantText";
 import { routePaths } from "config/paths";
 import { PageFormActions } from "molecules/ui/PageFormActions/PageFormActions";
 import { MerchantDetailsFields } from "organisms/merchants/MerchantDetailsFields/MerchantDetailsFields";
@@ -15,6 +16,7 @@ type MerchantFormProps = {
   fetchIconAction: MerchantIconStateAction;
   initialName?: string;
   ledgerId: string;
+  onCancel?: () => void;
   pending?: boolean;
   // 新增成功或取消后返回的站内路径（例如记一笔），由服务端再次校验。
   returnTo?: string | null;
@@ -26,6 +28,7 @@ export function MerchantForm({
   fetchIconAction,
   initialName,
   ledgerId,
+  onCancel,
   pending = false,
   returnTo = null,
   tags = [],
@@ -49,11 +52,13 @@ export function MerchantForm({
       />
       <MerchantTagsField tags={tags} />
       <PageFormActions
-        cancelHref={returnTo ?? routePaths.merchants}
-        cancelLabel="取消"
+        {...(onCancel
+          ? { onCancel }
+          : { cancelHref: returnTo ?? routePaths.merchants })}
+        cancelLabel={merchantText.cancel}
         pending={pending}
-        pendingLabel="新增中"
-        submitLabel="保存商家"
+        pendingLabel={merchantText.creating}
+        submitLabel={merchantText.saveMerchant}
       />
     </Stack>
   );

@@ -3,6 +3,7 @@ import { fireEvent, screen, within } from "@testing-library/react";
 import {
   renderEntryComponent,
   renderTransactionFlow,
+  clickEntryButton,
 } from "./transactionStepFlow";
 import { receiptFlowFixture } from "./mocks/transactionReceipt";
 import { ReadOnlyReceipt } from "./ReadOnlyReceipt";
@@ -14,7 +15,26 @@ import type {
 export function renderConfirmFlow(
   overrides: Partial<TransactionStepFlowProps> = {},
 ) {
-  return renderTransactionFlow({ ...receiptFlowFixture, ...overrides });
+  const itemsOptions = {
+    ...(overrides.itemsOptions ?? receiptFlowFixture.itemsOptions),
+    initialPayments:
+      overrides.itemsOptions?.initialPayments ??
+      receiptFlowFixture.itemsOptions?.initialPayments,
+    categoryOptions:
+      overrides.itemsOptions?.categoryOptions ??
+      receiptFlowFixture.itemsOptions?.categoryOptions ??
+      [],
+  };
+  const view = renderTransactionFlow({
+    ...receiptFlowFixture,
+    ...overrides,
+    itemsOptions,
+    suggestionsMerchantId:
+      overrides.suggestionsMerchantId ??
+      (itemsOptions.initialItems?.length ? undefined : "seven"),
+  });
+  clickEntryButton("7-Eleven");
+  return view;
 }
 export function pressItemAmountKey(name: string) {
   fireEvent.click(

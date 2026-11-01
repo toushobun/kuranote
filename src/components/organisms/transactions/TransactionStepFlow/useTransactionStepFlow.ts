@@ -30,32 +30,22 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     {},
   );
   // 等待建议数据的商家；只应用一次，超时后动过小票或已有输入时清空。
-  const pendingQuickMerchantId = useRef<string | null>(
-    props.initialMerchantId ?? null,
-  );
+  const pendingQuickMerchantId = useRef<string | null>(null);
   // 从小票换商家：建议到达时替换上一个商家没动过的自动明细，而不是跳过。
   const replacingAutomaticItems = useRef(false);
   // 快速路线等待建议数据期间停在选择商家，被点中的商家显示加载状态。
   const [loadingMerchantId, setLoadingMerchantId] = useState<string | null>(
     null,
   );
-  // 带商家进入时同样等待建议，但已经停在小票，不显示商家的加载状态。
-  const [waitingInitialSuggestions, setWaitingInitialSuggestions] = useState(
-    !!props.initialMerchantId,
-  );
-  const [screen, setScreen] = useState<TransactionStepFlowScreen>(
-    props.initialMerchantId ? "receipt" : "merchant",
-  );
-  const [receiptVisited, setReceiptVisited] = useState(
-    !!props.initialMerchantId,
-  );
+  const [screen, setScreen] = useState<TransactionStepFlowScreen>("merchant");
+  const [receiptVisited, setReceiptVisited] = useState(false);
   const baseItemsOptions = props.itemsOptions ?? { categoryOptions: [] };
   const [initialValues] = useState<TransactionFormInitialValues>(() => ({
     items: baseItemsOptions.initialItems ?? [],
-    merchantId: props.initialMerchantId ?? "",
+    merchantId: "",
     note: "",
     payments: baseItemsOptions.initialPayments ?? [
-      { accountId: props.initialAccountId ?? "", amount: null },
+      { accountId: "", amount: null },
     ],
     transactionAt: "",
     type: "expense",
@@ -107,7 +97,6 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
   function stopWaiting() {
     pendingQuickMerchantId.current = null;
     setLoadingMerchantId(null);
-    setWaitingInitialSuggestions(false);
   }
   function showReceipt() {
     setScreen("receipt");
@@ -173,7 +162,7 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     // 按商家标识同步异步到达的建议，pending 标识保证只应用一次。
     applySuggestions();
   }, [suggestionsReady, props.suggestions, merchant?.id, loadingMerchantId]);
-  const waiting = !!loadingMerchantId || waitingInitialSuggestions;
+  const waiting = !!loadingMerchantId;
   useEffect(() => {
     if (!waiting) return;
     // 获取失败按「没有建议」处理会直接到达；一直没有结果时也不阻断手动记账。
@@ -181,7 +170,6 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     // 超时后保留等待中的商家，晚到的建议在用户动过小票之前仍可补上。
     const timer = setTimeout(() => {
       setLoadingMerchantId(null);
-      setWaitingInitialSuggestions(false);
       showReceipt();
     }, quickRouteSuggestionTimeoutMs);
     return () => clearTimeout(timer);

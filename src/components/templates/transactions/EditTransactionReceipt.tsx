@@ -1,4 +1,6 @@
 "use client";
+import { useReceiptCreation } from "organisms/transactions/ReceiptCreationProvider/ReceiptCreationProvider";
+import { mergeReceiptOptions } from "organisms/transactions/ReceiptCreationProvider/useReceiptCreationState";
 
 import { flowMessages as m } from "config/transactionStepFlowMessages";
 import type {
@@ -78,11 +80,23 @@ export function EditTransactionReceiptTemplate(
 function EditTransactionReceipt({
   formAction,
   saving,
-  ...props
+  ...input
 }: EditTransactionReceiptTemplateProps & {
   formAction: (formData: FormData) => void;
   saving: boolean;
 }) {
+  const creation = useReceiptCreation();
+  const props = {
+    ...input,
+    merchantOptions: mergeReceiptOptions(
+      input.merchantOptions,
+      creation?.merchants,
+    ),
+    accountOptions: mergeReceiptOptions(
+      input.accountOptions,
+      creation?.accounts,
+    ),
+  };
   const readOnly = props.editRestriction !== null;
   const accountOptions = useEditAccountOptions(
     props.accountOptions,
@@ -130,6 +144,7 @@ function EditTransactionReceipt({
       />
       <TransactionBottomEditorDrawer
         open={w.merchantPickerOpen}
+        suspended={!!creation?.editor}
         title={m.merchant}
         onClose={w.closeMerchantPicker}
       >
@@ -138,6 +153,11 @@ function EditTransactionReceipt({
           merchantTags={props.merchantTags}
           frequentMerchants={props.frequentMerchants}
           onSelect={w.selectMerchant}
+          onAddMerchant={
+            !readOnly && creation?.addMerchant
+              ? (name) => creation.addMerchant?.(w.selectMerchant, name)
+              : undefined
+          }
         />
       </TransactionBottomEditorDrawer>
     </>

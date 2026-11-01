@@ -1,3 +1,10 @@
+import { ReceiptCreationProvider } from "organisms/transactions/ReceiptCreationProvider/ReceiptCreationProvider";
+import {
+  receiptCreationData,
+  receiptCreationPayments,
+  expectCreatedReceiptPayment,
+  submitReceiptCreation,
+} from "test/receiptCreation";
 import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -105,7 +112,8 @@ describe("TransactionStepFlow", () => {
   });
 
   it("小票页左上角返回、标题「从商家记账」、右上角关闭，不显示切换方式", () => {
-    setup({ initialMerchantId: "seven" });
+    quickSetup();
+    click("7-Eleven");
     expect(heading("从商家记账")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "返回选择商家" }),
@@ -133,11 +141,11 @@ describe("TransactionStepFlow", () => {
   });
 
   it("关闭后重新打开不保留上次内容", () => {
-    const view = renderEntryComponent(
-      <TransactionStepFlow {...flowFixture} initialMerchantId="seven" />,
-    );
-    view.rerender(<TransactionStepFlow {...flowFixture} open={false} />);
-    view.rerender(<TransactionStepFlow {...flowFixture} />);
+    const view = quickSetup();
+    click("7-Eleven");
+    expect(onMerchantScreen()).toBe(false);
+    view.rerender(<TransactionStepFlow {...view.props} open={false} />);
+    view.rerender(<TransactionStepFlow {...view.props} />);
     expect(onMerchantScreen()).toBe(true);
   });
 
@@ -152,10 +160,14 @@ describe("TransactionStepFlow", () => {
     "通过%s回到选择商家，换商家后直接回到小票，保留已填明细并追加新商家的常用明细",
     async (entry) => {
       const { props, rerender } = quickSetup({
-        initialMerchantId: "seven",
-        initialAccountId: "paypay",
-        itemsOptions: { ...receiptItemsOptions, initialItems: filledItems },
+        suggestions: { ...quickSuggestions, automaticCategoryIds: [] },
+        itemsOptions: {
+          ...receiptItemsOptions,
+          initialItems: filledItems,
+          initialPayments: [{ accountId: "paypay", amount: null }],
+        },
       });
+      click("7-Eleven");
       click(entry);
       expect(heading("记一笔")).toBeInTheDocument();
       click("LIFE超市");
@@ -505,30 +517,6 @@ describe("TransactionStepFlow 进入小票", () => {
     expect(receiptLine("更换支付账户 1")).toHaveTextContent("PayPay");
     expectAutomaticItems(2);
   });
-
-  it("URL 预选商家时直接进入小票并应用建议", () => {
-    quickSetup({ initialMerchantId: "seven" });
-    expect(heading("从商家记账")).toBeInTheDocument();
-    expect(receiptLine("更换支付账户 1")).toHaveTextContent("PayPay");
-    expectAutomaticItems(2);
-  });
-
-  it("URL 预选商家超时后，挂载时填入的当前时间不算动过小票，仍补上晚到的建议", () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    const { props, rerender } = quickSetup({
-      initialMerchantId: "seven",
-      suggestionsMerchantId: "life",
-    });
-    waitQuickRouteTimeout();
-    rerender(<TransactionStepFlow {...props} suggestionsMerchantId="seven" />);
-    expectAutomaticItems(2);
-  });
-
-  it("URL 同时带账户时保留该账户，不换成推荐账户", () => {
-    quickSetup({ initialMerchantId: "seven", initialAccountId: "cash" });
-    expect(receiptLine("更换支付账户 1")).toHaveTextContent("现金");
-    expectAutomaticItems(2);
-  });
 });
 
 describe("TransactionStepFlow 编辑明细", () => {
@@ -537,13 +525,13 @@ describe("TransactionStepFlow 编辑明细", () => {
     ["金额为空时打开金额键盘", "", true],
   ])("保存修改后，%s", async (_, amount, opens) => {
     quickSetup({
-      initialMerchantId: "seven",
-      initialAccountId: "paypay",
+      suggestions: noHistory,
       itemsOptions: {
         ...receiptItemsOptions,
         initialItems: [{ categoryId: "lunch", amount }],
       },
     });
+    click("7-Eleven");
     click("编辑明细 1");
     await screen.findByRole("button", { name: "保存修改" });
     click("保存修改");
@@ -555,4 +543,43 @@ describe("TransactionStepFlow 编辑明细", () => {
       );
     expect(!!screen.queryByLabelText("金额计算器")).toBe(opens);
   });
+});
+
+describe("TransactionStepFlow 页内新增", () => {
+  it.each([1, 2])(
+    "在新增小票第 %i 行取消不改内容，保存后只替换发起行",
+    async (row) => {
+      renderEntryComponent(
+        <ReceiptCreationProvider data={receiptCreationData()}>
+          <TransactionStepFlow
+            {...flowFixture}
+            suggestionsMerchantId="seven"
+            suggestions={noHistory}
+            itemsOptions={{
+              ...receiptItemsOptions,
+              initialItems: [{ categoryId: "lunch", amount: "800" }],
+              initialPayments: receiptCreationPayments,
+            }}
+          />
+        </ReceiptCreationProvider>,
+      );
+      click("7-Eleven");
+      const form = screen
+        .getByRole("button", { name: "保存记账" })
+        .closest("form")!;
+      const before = [...new FormData(form).entries()];
+      click(`更换支付账户 ${row}`);
+      click("新增账户");
+      fireEvent.change(await screen.findByLabelText(/账户名称/), {
+        target: { value: "取消的内容" },
+      });
+      click("取消");
+      await screen.findByRole("button", { name: "新增账户" });
+      expect([...new FormData(form).entries()]).toEqual(before);
+      click("新增账户");
+      await submitReceiptCreation("account", "新账户");
+      await screen.findByRole("button", { name: `更换支付账户 ${row}` });
+      expectCreatedReceiptPayment(form, row);
+    },
+  );
 });

@@ -56,9 +56,7 @@ export const flowFixture: TransactionStepFlowProps = {
   onMethodChange: () => {},
   onMerchantSelect: () => {},
   onAccountSelect: () => {},
-  onAddMerchant: () => {},
   onAddPresets: () => {},
-  onAddAccount: () => {},
 };
 
 export const merchantStepFixture = {
@@ -66,12 +64,12 @@ export const merchantStepFixture = {
   merchantTags: flowFixture.merchantTags,
   frequentMerchants: flowFixture.frequentMerchants,
   onSelect: flowFixture.onMerchantSelect,
-  onAddMerchant: flowFixture.onAddMerchant,
+  onAddMerchant: () => {},
   onAddPresets: flowFixture.onAddPresets,
 };
 export const accountStepFixture = {
   accounts: flowFixture.accounts,
   recommendedAccountIds: flowFixture.suggestions?.recommendedAccountIds,
   onSelect: flowFixture.onAccountSelect,
-  onAddAccount: flowFixture.onAddAccount,
+  onAddAccount: () => {},
 };

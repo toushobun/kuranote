@@ -25,6 +25,18 @@ function setup(overrides: Partial<MerchantStepProps> = {}) {
   return props;
 }
 describe("MerchantStep", () => {
+  it("标题右侧新增按钮传出搜索词", () => {
+    const props = setup();
+    fireEvent.change(screen.getByLabelText("搜索商家"), {
+      target: { value: "LIFE" },
+    });
+    click("新增商家");
+    expect(props.onAddMerchant).toHaveBeenCalledWith("LIFE");
+  });
+  it("已有商家但无 handler 时隐藏新增入口", () => {
+    setup({ onAddMerchant: undefined });
+    expect(screen.queryByRole("button", { name: "新增商家" })).toBeNull();
+  });
   it("常用商家按传入顺序排列，不足八个不补占位", () => {
     setup();
     const buttons = screen
@@ -71,7 +83,7 @@ describe("MerchantStep", () => {
     expect(props.onAddMerchant).toHaveBeenCalledWith();
   });
 
-  it("不传新增回调时不显示新增商家与从预设添加（编辑记账）", () => {
+  it("不传新增回调时不显示新增商家与从预设添加", () => {
     const { unmount } = renderEntryComponent(
       <MerchantStep
         {...merchantStepFixture}

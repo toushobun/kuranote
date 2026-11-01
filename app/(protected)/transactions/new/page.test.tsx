@@ -61,6 +61,10 @@ vi.mock("templates/transactions/NewTransactionVisualFrame", () => ({
   NewTransactionVisualFrame: mocks.NewTransactionVisualFrame,
 }));
 
+vi.mock("../loadReceiptCreationView", () => ({
+  loadReceiptCreationView: vi.fn(async () => null),
+}));
+
 import TransactionsNewPage from "./page";
 
 const accountId = "00000000-0000-4000-8000-000000000101";
@@ -105,7 +109,14 @@ async function renderPage(params: Record<string, string> = {}) {
   >;
   return {
     element: result,
-    template: provider.props.children as ReactElement<Record<string, unknown>>,
+    template: (() => {
+      const child = provider.props.children as ReactElement<
+        Record<string, unknown>
+      >;
+      return child.props.data !== undefined
+        ? (child.props.children as ReactElement<Record<string, unknown>>)
+        : child;
+    })(),
   };
 }
 
@@ -207,27 +218,6 @@ describe("TransactionsNewPage", () => {
     expect(template.props).toEqual({
       accountOptions: baseView.accountOptions,
       action: mocks.createTransaction,
-    });
-  });
-
-  it("新建商家 / 账户后返回时预选商家与账户", async () => {
-    const { template } = await renderPage({ accountId, merchantId });
-
-    expect(template.props).toMatchObject({
-      initialAccountId: accountId,
-      initialMerchantId: merchantId,
-    });
-  });
-
-  it("不属于当前账本的返回参数被忽略", async () => {
-    const { template } = await renderPage({
-      accountId: "other",
-      merchantId: "other",
-    });
-
-    expect(template.props).toMatchObject({
-      initialAccountId: undefined,
-      initialMerchantId: undefined,
     });
   });
 });

@@ -1,8 +1,8 @@
+import { BottomSlideTransition } from "molecules/ui/BottomSlideTransition";
 import Box from "@mui/material/Box";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
-import Slide, { type SlideProps } from "@mui/material/Slide";
-import { forwardRef, type ReactNode } from "react";
+import { type ReactNode } from "react";
 
 import { useUserTheme } from "theme/UserThemeProvider";
 import { designTokens } from "theme/theme";
@@ -31,12 +31,6 @@ type AccountFormDialogShellProps = {
   titleId?: string;
 };
 
-const BottomSheetTransition = forwardRef<unknown, SlideProps>(
-  function BottomSheetTransition(props, ref) {
-    return <Slide direction="up" ref={ref} {...props} />;
-  },
-);
-
 export function AccountFormDialogShell({
   children,
   illustrationSlot,
@@ -52,7 +46,7 @@ export function AccountFormDialogShell({
       maxWidth="xs"
       onClose={onClose}
       open={open}
-      slots={{ transition: BottomSheetTransition }}
+      slots={{ transition: BottomSlideTransition }}
       slotProps={{
         paper: {
           sx: {

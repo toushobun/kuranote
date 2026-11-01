@@ -21,7 +21,7 @@ export function useAccountStep({
     (account) => !recommended.some((item) => item.id === account.id),
   );
   async function selectAccount(value: TransactionAccountOption) {
-    if (busy) return;
+    if (busy) return false;
     setBusy(true);
     try {
       if (
@@ -38,8 +38,9 @@ export function useAccountStep({
           confirmLabel: m.switch,
         }))
       )
-        return;
+        return false;
       onSelect(value);
+      return true;
     } finally {
       setBusy(false);
     }

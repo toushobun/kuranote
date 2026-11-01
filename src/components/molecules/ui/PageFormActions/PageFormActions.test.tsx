@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import { PageFormActions } from "./PageFormActions";
 
@@ -11,6 +11,22 @@ const props = {
 };
 
 describe("PageFormActions", () => {
+  it("弹层取消是普通按钮，只执行回调", () => {
+    const onCancel = vi.fn();
+    render(
+      <PageFormActions
+        cancelLabel={props.cancelLabel}
+        pendingLabel={props.pendingLabel}
+        submitLabel={props.submitLabel}
+        onCancel={onCancel}
+      />,
+    );
+    const cancel = screen.getByRole("button", { name: "取消" });
+    expect(cancel).toHaveAttribute("type", "button");
+    fireEvent.click(cancel);
+    expect(onCancel).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("link")).toBeNull();
+  });
   it("取消链接回到指定页面，保存为提交按钮", () => {
     render(<PageFormActions {...props} />);
 

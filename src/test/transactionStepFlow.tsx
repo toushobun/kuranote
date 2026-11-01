@@ -9,15 +9,20 @@ import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
 export function renderEntryComponent(ui: ReactElement) {
   return render(ui, { wrapper: ConfirmDialogTestProviders });
 }
-export function createEntryCallbacks() {
+function createFlowCallbacks() {
   return {
     onClose: vi.fn(),
     onMethodChange: vi.fn(),
     onMerchantSelect: vi.fn(),
     onAccountSelect: vi.fn(),
+    onAddPresets: vi.fn(),
+  };
+}
+export function createEntryCallbacks() {
+  return {
+    ...createFlowCallbacks(),
     onAddMerchant: vi.fn(),
     onAddAccount: vi.fn(),
-    onAddPresets: vi.fn(),
   };
 }
 export function clickEntryButton(name: string) {
@@ -30,6 +35,6 @@ export function selectEntryAccount(name = "PayPay JPY") {
 export function renderTransactionFlow(
   overrides: Partial<TransactionStepFlowProps> = {},
 ) {
-  const props = { ...flowFixture, ...createEntryCallbacks(), ...overrides };
+  const props = { ...flowFixture, ...createFlowCallbacks(), ...overrides };
   return { ...renderEntryComponent(<TransactionStepFlow {...props} />), props };
 }

@@ -1,7 +1,10 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MerchantEntrySuggestions } from "internal/transaction";
-import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
+import {
+  ReceiptCreationTestProviders,
+  submitReceiptCreation,
+} from "test/receiptCreation";
 import { receiptItemsOptions } from "test/mocks/transactionReceipt";
 import { flowFixture } from "test/mocks/transactionStepFlow";
 import { NewTransactionStepFlow } from "./NewTransactionStepFlow";
@@ -55,7 +58,7 @@ function setup(
       transactionItemSpecialStatusEnabled={false}
       {...overrides}
     />,
-    { wrapper: ConfirmDialogTestProviders },
+    { wrapper: ReceiptCreationTestProviders },
   );
 }
 
@@ -169,29 +172,22 @@ describe("NewTransactionStepFlow", () => {
     await waitFor(() => expect(paymentLine()).toHaveTextContent("PayPay"));
   });
 
-  it("新建商家返回后直接进入小票并读取该商家的建议", async () => {
-    setup({ initialMerchantId: "life" });
-    expect(onMerchantScreen()).toBe(false);
-    expect(
-      screen.getByRole("button", { name: "修改商家：LIFE超市" }),
-    ).toBeInTheDocument();
-    expect(
-      requests.some((request) => request.url.includes("merchantId=life")),
-    ).toBe(true);
-  });
-
-  it("搜索不到时新增商家带上关键词并返回从商家记账", () => {
+  it("搜索不到时在当前页新增并预填商家名称，保存后选中", async () => {
     setup();
     fireEvent.change(screen.getByLabelText("搜索商家"), {
       target: { value: "全家" },
     });
     click("新增商家“全家”");
-    expect(router.push).toHaveBeenCalledWith(
-      "/merchants/new?name=%E5%85%A8%E5%AE%B6&returnTo=%2Ftransactions%2Fnew",
-    );
+    expect(screen.getByLabelText(/商家名称/)).toHaveValue("全家");
+    await submitReceiptCreation("merchant", "全家");
+    respond("merchantId=new-merchant", noHistory);
+    expect(
+      await screen.findByRole("button", { name: "修改商家：全家" }),
+    ).toBeInTheDocument();
+    expect(router.push).not.toHaveBeenCalled();
   });
 
-  it("新增账户时带着当前商家返回", async () => {
+  it("新增账户后选中发起的付款行并保留小票", async () => {
     setup({ accountOptions: [] });
     selectMerchant("7-Eleven");
     respond("merchantId=seven", noHistory);
@@ -199,9 +195,13 @@ describe("NewTransactionStepFlow", () => {
       await screen.findByRole("button", { name: "更换支付账户 1" }),
     );
     click("新增账户");
-    expect(router.push).toHaveBeenCalledWith(
-      "/accounts/new?returnTo=%2Ftransactions%2Fnew%3FmerchantId%3Dseven",
-    );
+    await submitReceiptCreation("account", "新账户");
+    await screen.findByRole("button", { name: "更换支付账户 1" });
+    expect(paymentLine()).toHaveTextContent("新账户");
+    expect(
+      screen.getByRole("button", { name: "修改商家：7-Eleven" }),
+    ).toBeInTheDocument();
+    expect(router.push).not.toHaveBeenCalled();
   });
 
   it("没有商家时从预设添加在当前页面打开，添加后返回记一笔", () => {

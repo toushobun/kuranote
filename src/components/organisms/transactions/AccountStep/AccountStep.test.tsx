@@ -28,6 +28,17 @@ function currencySetup(hasDetails = true) {
   return setup({ selectedAccount: flowFixture.accounts[1], hasDetails });
 }
 describe("AccountStep", () => {
+  it.each([
+    { recommendedAccountIds: [] },
+    { recommendedAccountIds: ["paypay"] },
+  ])("第一个分组标题显示唯一新增入口：%j", ({ recommendedAccountIds }) => {
+    setup({ recommendedAccountIds });
+    expect(screen.getAllByRole("button", { name: "新增账户" })).toHaveLength(1);
+  });
+  it("已有账户但无 handler 时隐藏新增入口", () => {
+    setup({ onAddAccount: undefined });
+    expect(screen.queryByRole("button", { name: "新增账户" })).toBeNull();
+  });
   it("推荐账户按传入顺序显示且不重复截取，其他账户按原顺序", () => {
     setup({ recommendedAccountIds: ["paypay", "cash", "cny", "bank"] });
     expect(screen.getByText("按这家商家最近 20 笔记录")).toBeInTheDocument();
@@ -63,7 +74,7 @@ describe("AccountStep", () => {
     click("新增账户");
     expect(props.onAddAccount).toHaveBeenCalledOnce();
   });
-  it("不传新增回调时没有账户也不显示新增入口（编辑记账）", () => {
+  it("不传新增回调时没有账户也不显示新增入口", () => {
     setup({ accounts: [], onAddAccount: undefined });
     expect(screen.getByText("还没有收支账户")).toBeInTheDocument();
     expect(screen.queryByRole("button")).not.toBeInTheDocument();

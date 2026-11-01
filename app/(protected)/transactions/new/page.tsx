@@ -1,3 +1,5 @@
+import { loadReceiptCreationView } from "../loadReceiptCreationView";
+import { ReceiptCreationProvider } from "organisms/transactions/ReceiptCreationProvider/ReceiptCreationProvider";
 import { redirect } from "next/navigation";
 
 import { transactionEditHref } from "config/paths";
@@ -57,7 +59,9 @@ export default async function TransactionsNewPage({
     );
   }
 
-  const entry = resolveNewTransactionEntry(params, view);
+  const entry = resolveNewTransactionEntry(params);
+  const receiptCreation =
+    entry.method === "merchant" ? await loadReceiptCreationView() : null;
   const incomeLinksValue = {
     loadRefundGroupItemsAction: loadRefundPickerGroupItems,
     loadRefundMoreGroupsAction: loadRefundPickerGroupPage,
@@ -73,23 +77,23 @@ export default async function TransactionsNewPage({
     <NewTransactionVisualFrame>
       <TransactionIncomeLinksProvider value={incomeLinksValue}>
         {entry.method === "merchant" ? (
-          <NewTransactionStepFlow
-            action={createTransaction}
-            accountOptions={view.accountOptions}
-            addPresetsAction={addMerchantPresets}
-            categoryOptions={view.categoryOptions}
-            frequentMerchants={frequentMerchants}
-            initialAccountId={entry.initialAccountId}
-            initialMerchantId={entry.initialMerchantId}
-            ledgerId={ledgerId}
-            loadPresetsAction={loadMerchantPresets}
-            merchantOptions={view.merchantOptions}
-            merchantTags={merchantTags}
-            multiAccountPaymentEnabled={view.multiAccountPaymentEnabled}
-            transactionItemSpecialStatusEnabled={
-              view.transactionItemSpecialStatusEnabled
-            }
-          />
+          <ReceiptCreationProvider data={receiptCreation}>
+            <NewTransactionStepFlow
+              action={createTransaction}
+              accountOptions={view.accountOptions}
+              addPresetsAction={addMerchantPresets}
+              categoryOptions={view.categoryOptions}
+              frequentMerchants={frequentMerchants}
+              ledgerId={ledgerId}
+              loadPresetsAction={loadMerchantPresets}
+              merchantOptions={view.merchantOptions}
+              merchantTags={merchantTags}
+              multiAccountPaymentEnabled={view.multiAccountPaymentEnabled}
+              transactionItemSpecialStatusEnabled={
+                view.transactionItemSpecialStatusEnabled
+              }
+            />
+          </ReceiptCreationProvider>
         ) : entry.method === "transfer" ? (
           <NewTransferTransactionTemplate
             accountOptions={view.accountOptions}

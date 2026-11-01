@@ -8,12 +8,7 @@ import type {
 
 import { redirect } from "next/navigation";
 
-import {
-  createdIdParams,
-  merchantResultValues,
-  merchantsResultHref,
-  withQueryParam,
-} from "config/paths";
+import { merchantResultValues, merchantsResultHref } from "config/paths";
 import { merchantText } from "config/merchantText";
 import { createRequestContainer } from "internal/container";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
@@ -86,24 +81,33 @@ export const createMerchant: MerchantStateAction =
 
     let merchantId: string;
     try {
-      merchantId = await (
-        await getMerchantService()
-      ).createMerchant({
+      const service = await getMerchantService();
+      merchantId = await service.createMerchant({
         ledgerId: currentLedger.id,
         ...validation.value,
       });
+      revalidateMerchantMutation();
+      if (formData.get("presentation") === "dialog") {
+        const merchant = await service.getMerchant({
+          ledgerId: currentLedger.id,
+          merchantId,
+        });
+        return {
+          createdMerchant: {
+            id: merchant.id,
+            name: merchant.display_name,
+            icon_url: merchant.icon_url,
+            tags: merchant.tags,
+          },
+        };
+      }
     } catch (error) {
       return actionErrorState(error, merchantErrorCodes.createFailed, "create");
     }
 
-    revalidateMerchantMutation();
-    // 从记一笔等页面进入时，新增成功后带着新商家 ID 返回来源页面。
+    // 从记一笔等页面进入时，新增成功后直接返回来源页面。
     const returnTo = getSafeNextPath(formData.get("returnTo"));
-    redirect(
-      returnTo
-        ? withQueryParam(returnTo, createdIdParams.merchant, merchantId)
-        : merchantsResultHref(merchantResultValues.created),
-    );
+    redirect(returnTo ?? merchantsResultHref(merchantResultValues.created));
   };
 
 export const fetchMerchantIcon: MerchantIconStateAction =

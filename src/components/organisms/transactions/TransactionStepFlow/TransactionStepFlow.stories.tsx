@@ -73,14 +73,14 @@ export const QuickEntryLoading: Story = {
 export const BackToMerchant: Story = {
   name: "小票返回选择商家（已填内容保留）",
   args: {
-    initialMerchantId: "seven",
-    initialAccountId: "paypay",
     itemsOptions: {
       ...receiptItemsOptions,
       initialItems: [{ categoryId: "lunch", amount: "498" }],
+      initialPayments: [{ accountId: "paypay", amount: null }],
     },
   },
   play: async ({ canvasElement }) => {
+    await selectMerchant(canvasElement, "7-Eleven");
     await selectMerchant(canvasElement, "返回选择商家");
   },
 };
