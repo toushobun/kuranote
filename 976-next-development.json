@@ -1,191 +1,463 @@
 {
   "baseUrl": "http://localhost:3097",
-  "records": [
-    {
-      "step": "进入真实 AccountEdit",
-      "mounts": 2,
-      "unmounts": 1,
-      "length": 3,
-      "marker": null,
-      "sameInput": true,
-      "value": "三菱UFJ银行",
-      "rscRequests": 0,
-      "currentIndex": 2
-    },
-    {
-      "step": "修改后添加哨兵",
-      "mounts": 2,
-      "unmounts": 1,
-      "length": 4,
-      "marker": "sentinel",
-      "sameInput": true,
-      "value": "未保存账户",
-      "rscRequests": 0,
-      "currentIndex": 3
-    },
-    {
-      "step": "后退并继续编辑 3 次",
-      "mounts": 2,
-      "unmounts": 1,
-      "length": 4,
-      "marker": "sentinel",
-      "sameInput": true,
-      "value": "未保存账户",
-      "rscRequests": 0,
-      "currentIndex": 3
-    },
-    {
-      "step": "刷新原生确认选择留在页面",
-      "mounts": 2,
-      "unmounts": 1,
-      "length": 4,
-      "marker": "sentinel",
-      "sameInput": true,
-      "value": "未保存账户",
-      "rscRequests": 0,
-      "currentIndex": 3
-    },
-    {
-      "step": "连续后退两次后继续编辑",
-      "mounts": 2,
-      "unmounts": 1,
-      "length": 4,
-      "marker": "sentinel",
-      "sameInput": true,
-      "value": "未保存账户",
-      "rscRequests": 0,
-      "currentIndex": 3
-    },
-    {
-      "step": "改回原值清理哨兵",
-      "mounts": 2,
-      "unmounts": 1,
-      "length": 4,
-      "marker": "base",
-      "sameInput": true,
-      "value": "三菱UFJ银行",
-      "rscRequests": 0,
-      "currentIndex": 2
-    },
-    {
-      "step": "前进进入失效哨兵后返回基准",
-      "mounts": 2,
-      "unmounts": 1,
-      "length": 4,
-      "marker": "base",
-      "sameInput": true,
-      "value": "三菱UFJ银行",
-      "rscRequests": 0,
-      "currentIndex": 2
-    },
-    {
-      "step": "再次修改复用哨兵",
-      "mounts": 2,
-      "unmounts": 1,
-      "length": 4,
-      "marker": "sentinel",
-      "sameInput": true,
-      "value": "再次修改",
-      "rscRequests": 0,
-      "currentIndex": 3
-    },
-    {
-      "step": "放弃后回到来源页",
-      "mounts": 2,
-      "unmounts": 2,
-      "length": 4,
-      "marker": null,
-      "sameInput": false,
-      "rscRequests": 0,
-      "currentIndex": 1
-    },
-    {
-      "step": "前进重新进入 B，使用初始数据",
-      "mounts": 4,
-      "unmounts": 3,
-      "length": 4,
-      "marker": "base",
-      "sameInput": false,
-      "value": "三菱UFJ银行",
-      "rscRequests": 0,
-      "currentIndex": 2
-    },
-    {
-      "step": "再次前进到旧哨兵，自动回基准且不复活草稿",
-      "mounts": 4,
-      "unmounts": 3,
-      "length": 4,
-      "marker": "base",
-      "sameInput": false,
-      "value": "三菱UFJ银行",
-      "rscRequests": 0,
-      "currentIndex": 2
-    },
-    {
-      "step": "重复进入并修改 1",
-      "mounts": 6,
-      "unmounts": 5,
-      "length": 4,
-      "marker": "sentinel",
-      "sameInput": false,
-      "value": "重复进入",
-      "rscRequests": 1,
-      "currentIndex": 3
-    },
-    {
-      "step": "重复进入并修改 2",
-      "mounts": 8,
-      "unmounts": 7,
-      "length": 4,
-      "marker": "sentinel",
-      "sameInput": false,
-      "value": "重复进入",
-      "rscRequests": 2,
-      "currentIndex": 3
-    },
-    {
-      "step": "重复进入并修改 3",
-      "mounts": 10,
-      "unmounts": 9,
-      "length": 4,
-      "marker": "sentinel",
-      "sameInput": false,
-      "value": "重复进入",
-      "rscRequests": 3,
-      "currentIndex": 3
-    },
-    {
-      "step": "真实 Server Action 失败后恢复保护",
-      "mounts": 12,
-      "unmounts": 11,
-      "length": 4,
-      "marker": "sentinel",
-      "sameInput": false,
-      "value": "保存失败",
-      "rscRequests": 4,
-      "currentIndex": 3
-    },
-    {
-      "step": "真实 Server Action 成功跳转",
-      "mounts": 12,
-      "unmounts": 12,
-      "length": 4,
-      "marker": null,
-      "sameInput": false,
-      "rscRequests": 4,
-      "currentIndex": 3
-    },
-    {
-      "step": "成功保存后再次进入，无修改不回退也不确认",
-      "mounts": 14,
-      "unmounts": 13,
-      "length": 5,
-      "marker": null,
-      "sameInput": false,
-      "value": "三菱UFJ银行",
-      "rscRequests": 5,
-      "currentIndex": 4
-    }
-  ],
-  "errors": []
+  "account": {
+    "records": [
+      {
+        "step": "编辑账户：AppShell 普通导航到 B 后滚到顶部",
+        "mounts": 2,
+        "unmounts": 1,
+        "length": 3,
+        "marker": null,
+        "sameForm": true,
+        "scrollX": 0,
+        "scrollY": 0,
+        "scrollRestoration": "auto",
+        "scrollSamples": [
+          320,
+          0
+        ],
+        "rscRequests": 0,
+        "currentIndex": 2
+      },
+      {
+        "step": "在 scrollY=200 首次修改并添加哨兵",
+        "mounts": 2,
+        "unmounts": 1,
+        "length": 4,
+        "marker": "sentinel",
+        "sameForm": true,
+        "scrollX": 0,
+        "scrollY": 200,
+        "scrollRestoration": "manual",
+        "scrollSamples": [
+          320,
+          0,
+          200
+        ],
+        "rscRequests": 0,
+        "currentIndex": 3
+      },
+      {
+        "step": "浏览器后退→继续编辑 3 次，仍停在 2000",
+        "mounts": 2,
+        "unmounts": 1,
+        "length": 4,
+        "marker": "sentinel",
+        "sameForm": true,
+        "scrollX": 0,
+        "scrollY": 2000,
+        "scrollRestoration": "manual",
+        "scrollSamples": [],
+        "rscRequests": 0,
+        "currentIndex": 3
+      },
+      {
+        "step": "刷新原生提示取消，表单与滚动位置保留",
+        "mounts": 2,
+        "unmounts": 1,
+        "length": 4,
+        "marker": "sentinel",
+        "sameForm": true,
+        "scrollX": 0,
+        "scrollY": 2000,
+        "scrollRestoration": "manual",
+        "scrollSamples": [],
+        "rscRequests": 0,
+        "currentIndex": 3
+      },
+      {
+        "step": "连续两次浏览器后退后继续编辑",
+        "mounts": 2,
+        "unmounts": 1,
+        "length": 4,
+        "marker": "sentinel",
+        "sameForm": true,
+        "scrollX": 0,
+        "scrollY": 2000,
+        "scrollRestoration": "manual",
+        "scrollSamples": [],
+        "rscRequests": 0,
+        "currentIndex": 3
+      },
+      {
+        "step": "长页下方改回原值，scrollY 保持 2000",
+        "mounts": 2,
+        "unmounts": 1,
+        "length": 4,
+        "marker": "base",
+        "sameForm": true,
+        "scrollX": 0,
+        "scrollY": 2000,
+        "scrollRestoration": "auto",
+        "scrollSamples": [],
+        "rscRequests": 0,
+        "currentIndex": 2
+      },
+      {
+        "step": "前进到失效哨兵后回基准，scrollY 保持 2000",
+        "mounts": 2,
+        "unmounts": 1,
+        "length": 4,
+        "marker": "base",
+        "sameForm": true,
+        "scrollX": 0,
+        "scrollY": 2000,
+        "scrollRestoration": "auto",
+        "scrollSamples": [],
+        "rscRequests": 0,
+        "currentIndex": 2
+      },
+      {
+        "step": "重新修改复用哨兵，scrollY 保持 2000",
+        "mounts": 2,
+        "unmounts": 1,
+        "length": 4,
+        "marker": "sentinel",
+        "sameForm": true,
+        "scrollX": 0,
+        "scrollY": 2000,
+        "scrollRestoration": "manual",
+        "scrollSamples": [],
+        "rscRequests": 0,
+        "currentIndex": 3
+      },
+      {
+        "step": "编辑账户：确认放弃仅回到 A，恢复来源页 scrollY=320",
+        "mounts": 2,
+        "unmounts": 2,
+        "length": 4,
+        "marker": null,
+        "sameForm": false,
+        "scrollX": 0,
+        "scrollY": 320,
+        "scrollRestoration": "auto",
+        "scrollSamples": [
+          320
+        ],
+        "rscRequests": 0,
+        "currentIndex": 1
+      },
+      {
+        "step": "正常前进重入 B，表单为初始数据",
+        "mounts": 4,
+        "unmounts": 3,
+        "length": 4,
+        "marker": "base",
+        "sameForm": false,
+        "scrollX": 0,
+        "scrollY": 2000,
+        "scrollRestoration": "auto",
+        "scrollSamples": [
+          320,
+          2000
+        ],
+        "rscRequests": 0,
+        "currentIndex": 2
+      },
+      {
+        "step": "再次前进到旧哨兵，不复活草稿、不改变滚动位置",
+        "mounts": 4,
+        "unmounts": 3,
+        "length": 4,
+        "marker": "base",
+        "sameForm": false,
+        "scrollX": 0,
+        "scrollY": 2000,
+        "scrollRestoration": "auto",
+        "scrollSamples": [
+          320,
+          2000
+        ],
+        "rscRequests": 0,
+        "currentIndex": 2
+      },
+      {
+        "step": "重复进入并修改 1",
+        "mounts": 6,
+        "unmounts": 5,
+        "length": 4,
+        "marker": "sentinel",
+        "sameForm": false,
+        "scrollX": 0,
+        "scrollY": 0,
+        "scrollRestoration": "manual",
+        "scrollSamples": [
+          320,
+          2000,
+          320,
+          0
+        ],
+        "rscRequests": 1,
+        "currentIndex": 3
+      },
+      {
+        "step": "编辑账户：确认放弃仅回到 A，恢复来源页 scrollY=320",
+        "mounts": 6,
+        "unmounts": 6,
+        "length": 4,
+        "marker": null,
+        "sameForm": false,
+        "scrollX": 0,
+        "scrollY": 320,
+        "scrollRestoration": "auto",
+        "scrollSamples": [
+          320,
+          2000,
+          320,
+          0,
+          320
+        ],
+        "rscRequests": 1,
+        "currentIndex": 1
+      },
+      {
+        "step": "重复进入并修改 2",
+        "mounts": 8,
+        "unmounts": 7,
+        "length": 4,
+        "marker": "sentinel",
+        "sameForm": false,
+        "scrollX": 0,
+        "scrollY": 0,
+        "scrollRestoration": "manual",
+        "scrollSamples": [
+          320,
+          2000,
+          320,
+          0,
+          320,
+          0
+        ],
+        "rscRequests": 2,
+        "currentIndex": 3
+      },
+      {
+        "step": "编辑账户：确认放弃仅回到 A，恢复来源页 scrollY=320",
+        "mounts": 8,
+        "unmounts": 8,
+        "length": 4,
+        "marker": null,
+        "sameForm": false,
+        "scrollX": 0,
+        "scrollY": 320,
+        "scrollRestoration": "auto",
+        "scrollSamples": [
+          320,
+          2000,
+          320,
+          0,
+          320,
+          0,
+          320
+        ],
+        "rscRequests": 2,
+        "currentIndex": 1
+      },
+      {
+        "step": "重复进入并修改 3",
+        "mounts": 10,
+        "unmounts": 9,
+        "length": 4,
+        "marker": "sentinel",
+        "sameForm": false,
+        "scrollX": 0,
+        "scrollY": 0,
+        "scrollRestoration": "manual",
+        "scrollSamples": [
+          320,
+          2000,
+          320,
+          0,
+          320,
+          0,
+          320,
+          0
+        ],
+        "rscRequests": 3,
+        "currentIndex": 3
+      },
+      {
+        "step": "编辑账户：确认放弃仅回到 A，恢复来源页 scrollY=320",
+        "mounts": 10,
+        "unmounts": 10,
+        "length": 4,
+        "marker": null,
+        "sameForm": false,
+        "scrollX": 0,
+        "scrollY": 320,
+        "scrollRestoration": "auto",
+        "scrollSamples": [
+          320,
+          2000,
+          320,
+          0,
+          320,
+          0,
+          320,
+          0,
+          320
+        ],
+        "rscRequests": 3,
+        "currentIndex": 1
+      },
+      {
+        "step": "真实保存失败后恢复保护，保存前清理不改变滚动位置",
+        "mounts": 12,
+        "unmounts": 11,
+        "length": 4,
+        "marker": "sentinel",
+        "sameForm": false,
+        "scrollX": 0,
+        "scrollY": 2000,
+        "scrollRestoration": "manual",
+        "scrollSamples": [
+          320,
+          2000,
+          320,
+          0,
+          320,
+          0,
+          320,
+          0,
+          320,
+          0,
+          2000
+        ],
+        "rscRequests": 4,
+        "currentIndex": 3
+      },
+      {
+        "step": "真实保存成功跳转，AppShell 普通导航回到顶部",
+        "mounts": 12,
+        "unmounts": 12,
+        "length": 4,
+        "marker": null,
+        "sameForm": false,
+        "scrollX": 0,
+        "scrollY": 0,
+        "scrollRestoration": "auto",
+        "scrollSamples": [
+          320,
+          2000,
+          320,
+          0,
+          320,
+          0,
+          320,
+          0,
+          320,
+          0,
+          2000,
+          0
+        ],
+        "rscRequests": 4,
+        "currentIndex": 3
+      }
+    ],
+    "errors": []
+  },
+  "receipt": {
+    "records": [
+      {
+        "step": "编辑小票：AppShell 普通导航到 B 后滚到顶部",
+        "mounts": 2,
+        "unmounts": 1,
+        "length": 3,
+        "marker": null,
+        "sameForm": true,
+        "scrollX": 0,
+        "scrollY": 0,
+        "scrollRestoration": "auto",
+        "scrollSamples": [
+          320,
+          0
+        ],
+        "rscRequests": 0,
+        "currentIndex": 2
+      },
+      {
+        "step": "receipt：真实 AppShell 浏览器后退取消后保持 2000",
+        "mounts": 2,
+        "unmounts": 1,
+        "length": 4,
+        "marker": "sentinel",
+        "sameForm": true,
+        "scrollX": 0,
+        "scrollY": 2000,
+        "scrollRestoration": "manual",
+        "scrollSamples": [],
+        "rscRequests": 0,
+        "currentIndex": 3
+      },
+      {
+        "step": "编辑小票：确认放弃仅回到 A，恢复来源页 scrollY=320",
+        "mounts": 2,
+        "unmounts": 2,
+        "length": 4,
+        "marker": null,
+        "sameForm": false,
+        "scrollX": 0,
+        "scrollY": 320,
+        "scrollRestoration": "auto",
+        "scrollSamples": [
+          320
+        ],
+        "rscRequests": 0,
+        "currentIndex": 1
+      }
+    ],
+    "errors": []
+  },
+  "transfer": {
+    "records": [
+      {
+        "step": "编辑转账：AppShell 普通导航到 B 后滚到顶部",
+        "mounts": 2,
+        "unmounts": 1,
+        "length": 3,
+        "marker": null,
+        "sameForm": true,
+        "scrollX": 0,
+        "scrollY": 0,
+        "scrollRestoration": "auto",
+        "scrollSamples": [
+          320,
+          0
+        ],
+        "rscRequests": 0,
+        "currentIndex": 2
+      },
+      {
+        "step": "transfer：真实 AppShell 浏览器后退取消后保持 2000",
+        "mounts": 2,
+        "unmounts": 1,
+        "length": 4,
+        "marker": "sentinel",
+        "sameForm": true,
+        "scrollX": 0,
+        "scrollY": 2000,
+        "scrollRestoration": "manual",
+        "scrollSamples": [],
+        "rscRequests": 0,
+        "currentIndex": 3
+      },
+      {
+        "step": "编辑转账：确认放弃仅回到 A，恢复来源页 scrollY=320",
+        "mounts": 2,
+        "unmounts": 2,
+        "length": 4,
+        "marker": null,
+        "sameForm": false,
+        "scrollX": 0,
+        "scrollY": 320,
+        "scrollRestoration": "auto",
+        "scrollSamples": [
+          320
+        ],
+        "rscRequests": 0,
+        "currentIndex": 1
+      }
+    ],
+    "errors": []
+  }
 }
