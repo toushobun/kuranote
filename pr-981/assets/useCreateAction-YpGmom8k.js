@@ -1,0 +1,1 @@
+import{c as e,i as t}from"./preload-helper-D2yxXLVK.js";import{t as n}from"./react-DAMDAfNa.js";function r(e,t,n,r){return(0,i.useActionState)((t,i)=>(r&&i.set(`presentation`,`dialog`),e(t,i).then(e=>{let t=n(e);return t&&r?.(t),e})),t)}var i,a=t((()=>{i=e(n())}));export{r as n,a as t};
