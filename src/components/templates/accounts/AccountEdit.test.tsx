@@ -134,4 +134,79 @@ describe("AccountEditTemplate", () => {
       "-500",
     );
   });
+
+  it("删除处理中禁用删除按钮，避免重复提交", async () => {
+    renderAccountEdit({
+      archiveAccountAction: vi.fn<AccountStateAction>(
+        () => new Promise(() => {}),
+      ),
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "删除" }));
+    fireEvent.click(await screen.findByRole("button", { name: "删除账户" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "删除" })).toBeDisabled(),
+    );
+  });
+
+  describe("未保存离开确认", () => {
+    function changeName(value: string) {
+      fireEvent.change(screen.getByLabelText(/账户名称/), {
+        target: { value },
+      });
+    }
+
+    it.each(["返回账户管理", "取消"])(
+      "有修改时点「%s」先弹确认，放弃修改回到原本要去的页面",
+      async (name) => {
+        renderAccountEdit();
+        changeName("三菱UFJ");
+
+        fireEvent.click(screen.getByRole("link", { name }));
+
+        expect(await screen.findByText("尚未保存")).toBeInTheDocument();
+        expect(screen.getByRole("link", { name: "放弃修改" })).toHaveAttribute(
+          "href",
+          "/accounts",
+        );
+      },
+    );
+
+    it("继续编辑关闭确认并保留输入", async () => {
+      renderAccountEdit();
+      changeName("三菱UFJ");
+      fireEvent.click(screen.getByRole("link", { name: "取消" }));
+
+      fireEvent.click(await screen.findByRole("button", { name: "继续编辑" }));
+
+      await waitFor(() => expect(screen.queryByText("尚未保存")).toBeNull());
+      expect(screen.getByLabelText(/账户名称/)).toHaveValue("三菱UFJ");
+    });
+
+    it("在确认里点保存会提交编辑表单", async () => {
+      const updateAccountAction = vi.fn<AccountStateAction>(async () => ({}));
+      renderAccountEdit({ updateAccountAction });
+      changeName("三菱UFJ");
+      fireEvent.click(screen.getByRole("link", { name: "取消" }));
+
+      fireEvent.click(await screen.findByRole("button", { name: "保存" }));
+
+      await waitFor(() => expect(updateAccountAction).toHaveBeenCalledOnce());
+      expect(updateAccountAction.mock.calls[0]?.[1].get("name")).toBe(
+        "三菱UFJ",
+      );
+    });
+
+    it("没有修改或改回原值时直接离开，不弹确认", () => {
+      renderAccountEdit();
+      fireEvent.click(screen.getByRole("link", { name: "取消" }));
+      expect(screen.queryByText("尚未保存")).toBeNull();
+
+      changeName("三菱UFJ");
+      changeName(bankAccountFixture.name);
+      fireEvent.click(screen.getByRole("link", { name: "取消" }));
+      expect(screen.queryByText("尚未保存")).toBeNull();
+    });
+  });
 });

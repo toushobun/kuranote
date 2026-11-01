@@ -8,6 +8,7 @@ import { useConfirmDialog } from "providers/ConfirmDialogProvider/ConfirmDialogP
 type DestructiveSubmitButtonProps = {
   confirmLabel?: ReactNode;
   description: ReactNode;
+  disabled?: boolean;
   formId?: string;
   fullWidth?: boolean;
   label: ReactNode;
@@ -20,6 +21,7 @@ type DestructiveSubmitButtonProps = {
 export function DestructiveSubmitButton({
   confirmLabel,
   description,
+  disabled = false,
   formId,
   fullWidth = false,
   label,
@@ -48,6 +50,7 @@ export function DestructiveSubmitButton({
   return (
     <Button
       color="error"
+      disabled={disabled}
       form={formId}
       fullWidth={fullWidth}
       onClick={confirmSubmit}

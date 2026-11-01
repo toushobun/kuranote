@@ -7,6 +7,7 @@ import { DestructiveSubmitButton } from "molecules/ui/DestructiveSubmitButton/De
 
 type ArchiveAccountButtonProps = {
   description?: ReactNode;
+  disabled?: boolean;
   formId?: string;
   label?: ReactNode;
   size?: ButtonProps["size"];
@@ -16,6 +17,7 @@ type ArchiveAccountButtonProps = {
 
 export function ArchiveAccountButton({
   description = "删除后该账户将从账户列表中隐藏，历史记录不会被删除。",
+  disabled,
   formId,
   label = "删除账户",
   size,
@@ -26,6 +28,7 @@ export function ArchiveAccountButton({
     <DestructiveSubmitButton
       confirmLabel="删除账户"
       description={description}
+      disabled={disabled}
       formId={formId}
       label={label}
       size={size}

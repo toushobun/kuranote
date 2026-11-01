@@ -13,6 +13,8 @@ import type { Account } from "types/accounts";
 import {
   getAccountBalanceAdjustment,
   getAccountEditHolderDefaults,
+  isAccountFormDirty,
+  type AccountFormValues,
 } from "./accountEditValues";
 
 const [me] = accountHolderOptionsFixture;
@@ -96,4 +98,41 @@ describe("getAccountBalanceAdjustment", () => {
       });
     },
   );
+});
+
+describe("isAccountFormDirty", () => {
+  const initial: AccountFormValues = {
+    balance: "85000",
+    balanceAdjustmentNote: "",
+    currency: "JPY",
+    holderSelection: { id: "user-a", kind: "member" },
+    name: "三菱UFJ银行",
+    type: "bank",
+  };
+
+  it("与初始值相同时不算修改", () => {
+    expect(isAccountFormDirty(initial, { ...initial })).toBe(false);
+  });
+
+  it("余额数值相同（写法不同）时不算修改", () => {
+    expect(
+      isAccountFormDirty(initial, { ...initial, balance: "85000.00" }),
+    ).toBe(false);
+  });
+
+  it.each<[string, Partial<AccountFormValues>]>([
+    ["名称", { name: "三菱UFJ" }],
+    ["类型", { type: "cash" }],
+    ["货币", { currency: "USD" }],
+    ["余额", { balance: "80000" }],
+    ["余额输入中途", { balance: "-" }],
+    ["余额调整备注", { balanceAdjustmentNote: "对账" }],
+    ["持有人", { holderSelection: null }],
+    [
+      "持有人换成占位",
+      { holderSelection: { id: "user-a", kind: "placeholder" } },
+    ],
+  ])("改了%s时算修改", (_, change) => {
+    expect(isAccountFormDirty(initial, { ...initial, ...change })).toBe(true);
+  });
 });

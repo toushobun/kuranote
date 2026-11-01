@@ -13,6 +13,8 @@ import type {
 import {
   getAccountBalanceAdjustment,
   getAccountEditHolderDefaults,
+  isAccountFormDirty,
+  type AccountFormValues,
 } from "./accountEditValues";
 import {
   buildAccountPreviewHolders,
@@ -55,6 +57,14 @@ export function useAccountForm({
   const [balanceAdjustmentNote, setBalanceAdjustmentNote] = useState("");
   const [holderSelection, setHolderSelection] =
     useState<AccountHolderSelection>(editHolders?.selection ?? null);
+  const [initialValues] = useState<AccountFormValues>(() => ({
+    balance,
+    balanceAdjustmentNote,
+    currency,
+    holderSelection,
+    name,
+    type,
+  }));
 
   return {
     balance,
@@ -64,6 +74,14 @@ export function useAccountForm({
     balanceAdjustmentNote,
     currency,
     holderSelection,
+    isDirty: isAccountFormDirty(initialValues, {
+      balance,
+      balanceAdjustmentNote,
+      currency,
+      holderSelection,
+      name,
+      type,
+    }),
     name,
     placeholderOptions,
     preservedHolderOptions,

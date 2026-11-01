@@ -6,7 +6,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
 import { accountFormMessages } from "config/accountMessages";
 import { balanceAdjustmentText } from "config/balanceAdjustmentText";
@@ -36,6 +36,10 @@ type AccountFormProps = {
   action: ServerAction;
   defaultCurrency: string;
   holderOptions: AccountHolderOption[];
+  /** 页面在离开确认里点「保存」时按这个 id 提交表单。 */
+  id?: string;
+  /** 输入与初始值是否不同（改回原值算未修改），用于未保存离开确认。 */
+  onDirtyChange?: (dirty: boolean) => void;
   pending?: boolean;
   placeholderHolderOptions?: AccountPlaceholderHolderOption[];
   // 新增成功或取消后返回的站内路径（例如记一笔），由服务端再次校验。
@@ -51,6 +55,8 @@ export function AccountForm({
   action,
   defaultCurrency,
   holderOptions,
+  id,
+  onDirtyChange,
   pending = false,
   placeholderHolderOptions = [],
   returnTo = null,
@@ -62,6 +68,9 @@ export function AccountForm({
     placeholderHolderOptions,
   });
   const adjustment = form.balanceAdjustment;
+  useEffect(() => {
+    onDirtyChange?.(form.isDirty);
+  }, [form.isDirty, onDirtyChange]);
   // 编辑时以账户自己的币种求候选：不在常见清单里的币种（例如导入的账户）也要能显示。
   const currencyOptions = getAccountCurrencyOptions(
     account?.currency ?? defaultCurrency,
@@ -81,7 +90,7 @@ export function AccountForm({
   });
 
   return (
-    <Stack component="form" action={action} spacing={2}>
+    <Stack component="form" action={action} id={id} spacing={2}>
       {account ? (
         <input name="accountId" readOnly type="hidden" value={account.id} />
       ) : null}

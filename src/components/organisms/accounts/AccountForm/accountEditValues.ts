@@ -89,3 +89,34 @@ export function getAccountBalanceAdjustment(
 
   return { delta, valid };
 }
+
+export type AccountFormValues = {
+  balance: string;
+  balanceAdjustmentNote: string;
+  currency: string;
+  holderSelection: AccountHolderSelection;
+  name: string;
+  type: string | null;
+};
+
+/** 表单是否改过：与初始值比较，改回原值不算修改；余额按数值比较（85000 与 85000.00 相同）。 */
+export function isAccountFormDirty(
+  initial: AccountFormValues,
+  current: AccountFormValues,
+) {
+  return (
+    initial.name !== current.name ||
+    initial.type !== current.type ||
+    initial.currency !== current.currency ||
+    initial.balanceAdjustmentNote !== current.balanceAdjustmentNote ||
+    !isSameBalanceText(initial.balance, current.balance) ||
+    initial.holderSelection?.kind !== current.holderSelection?.kind ||
+    initial.holderSelection?.id !== current.holderSelection?.id
+  );
+}
+
+function isSameBalanceText(initial: string, current: string) {
+  if (initial.trim() === current.trim()) return true;
+  const { delta, valid } = getAccountBalanceAdjustment(current, initial);
+  return valid && delta === 0;
+}
