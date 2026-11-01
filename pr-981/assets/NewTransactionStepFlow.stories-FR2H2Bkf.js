@@ -1,0 +1,8 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";import{t}from"./jsx-runtime-Dwpk6tgA.js";import{i as n,r}from"./AccountStep-DhwGx_OH.js";import{n as i,r as a}from"./transactionStepFlow-jHa4zbU7.js";import{c as o,s}from"./useReceiptMerchantPicker-Btd7NgVw.js";import{i as c,t as l}from"./transactionReceipt-2ga2S0GT.js";import{n as u,t as d}from"./NewTransactionStepFlow-Bc0pGv1W.js";import{n as f,t as p}from"./receiptCreation-CidvhGSQ.js";var m,h,g,_,v;e((()=>{m=t(),o(),p(),r(),l(),a(),u(),h={title:`Templates/Transactions/NewTransactionStepFlow`,component:d,decorators:[...n,e=>(0,m.jsx)(s,{data:f(),children:(0,m.jsx)(e,{})})],args:{action:async()=>({}),accountOptions:i.accounts,addPresetsAction:async()=>({}),categoryOptions:c.categoryOptions,frequentMerchants:i.frequentMerchants,ledgerId:`ledger-1`,loadPresetsAction:async()=>({}),merchantOptions:i.merchants,merchantTags:i.merchantTags,multiAccountPaymentEnabled:!0,transactionItemSpecialStatusEnabled:!1},parameters:{viewport:{defaultViewport:`mobile2`}}},g={name:`从商家记账`},_={name:`常用商家为空（含获取失败）`,args:{frequentMerchants:[]}},g.parameters={...g.parameters,docs:{...g.parameters?.docs,source:{originalSource:`{
+  name: "从商家记账"
+}`,...g.parameters?.docs?.source}}},_.parameters={..._.parameters,docs:{..._.parameters?.docs,source:{originalSource:`{
+  name: "常用商家为空（含获取失败）",
+  args: {
+    frequentMerchants: []
+  }
+}`,..._.parameters?.docs?.source}}},v=[`Default`,`NoFrequentMerchants`]}))();export{g as Default,_ as NoFrequentMerchants,v as __namedExportsOrder,h as default};
