@@ -4,33 +4,51 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
-import { useId } from "react";
+import { useId, useLayoutEffect, useRef } from "react";
 
 import { unsavedChangesMessages as m } from "config/unsavedChangesMessages";
 
 export type UnsavedChangesDialogProps = {
-  description?: string;
   onCancel: () => void;
   onDiscard: () => void;
   onSave: () => void;
   open: boolean;
-  title?: string;
 };
 
 export function UnsavedChangesDialog({
-  description = m.description,
   onCancel,
   onDiscard,
   onSave,
   open,
-  title = m.title,
 }: UnsavedChangesDialogProps) {
   const titleId = useId();
+  const previousFocus = useRef<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    if (open)
+      previousFocus.current =
+        document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null;
+  }, [open]);
   return (
-    <Dialog aria-labelledby={titleId} onClose={onCancel} open={open}>
-      <DialogTitle id={titleId}>{title}</DialogTitle>
+    <Dialog
+      aria-labelledby={titleId}
+      disableRestoreFocus
+      onClose={onCancel}
+      open={open}
+      slotProps={{
+        transition: {
+          onExited: () => {
+            // 保留键盘焦点返回，但不让屏幕外的原触发元素把长页重新滚回上方。
+            if (previousFocus.current?.isConnected)
+              previousFocus.current.focus({ preventScroll: true });
+          },
+        },
+      }}
+    >
+      <DialogTitle id={titleId}>{m.title}</DialogTitle>
       <DialogContent>
-        <DialogContentText>{description}</DialogContentText>
+        <DialogContentText>{m.description}</DialogContentText>
       </DialogContent>
       <DialogActions>
         <Button onClick={onCancel}>{m.continueEditing}</Button>

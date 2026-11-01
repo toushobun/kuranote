@@ -8,7 +8,6 @@ import Stack from "@mui/material/Stack";
 
 import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog/UnsavedChangesDialog";
 import { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
-import { runWithUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/unsavedChangesHistory";
 
 import { flowMessages } from "config/transactionStepFlowMessages";
 import {
@@ -66,19 +65,18 @@ export function EditTransactionShell({
   transactionRecordId,
 }: EditTransactionShellProps) {
   const readOnly = editRestriction !== null;
-  const [deleteState, deleteFormAction] = useActionState(
-    (state: TransactionActionState, data: FormData) =>
-      runWithUnsavedChangesGuard(() => deleteAction(state, data)),
-    {},
-  );
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [dismissedDeleteState, setDismissedDeleteState] = useState(deleteState);
-
   const guard = useUnsavedChangesGuard({
     isDirty: hasUnsavedChanges && !readOnly,
     saveFormId,
   });
+  const [deleteState, deleteFormAction] = useActionState(
+    (state: TransactionActionState, data: FormData) =>
+      guard.runAction(() => deleteAction(state, data)),
+    {},
+  );
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [dismissedDeleteState, setDismissedDeleteState] = useState(deleteState);
 
   function handleConfirmDelete() {
     const form = document.getElementById(deleteTransactionFormId);

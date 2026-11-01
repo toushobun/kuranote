@@ -9,6 +9,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { useState } from "react";
+import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
 import { describe, expect, it, vi } from "vitest";
 
 import { routerMock } from "test/mocks/navigation";
@@ -20,20 +21,30 @@ vi.mock("next/navigation", () => import("test/mocks/navigation"));
 
 function Harness({ save = () => {} }: { save?: () => void }) {
   const [value, setValue] = useState("");
-  const guard = useUnsavedChangesGuard({ isDirty: value !== "", onSave: save });
+  const guard = useUnsavedChangesGuard({
+    isDirty: value !== "",
+    saveFormId: "guard-test-form",
+  });
   return (
     <>
-      <input
-        aria-label="内容"
-        value={value}
-        onChange={(event) => setValue(event.target.value)}
-      />
+      <form
+        id="guard-test-form"
+        onSubmit={(event) => {
+          event.preventDefault();
+          save();
+        }}
+      >
+        <input
+          aria-label="内容"
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+        />
+      </form>
       <a href="/accounts">取消</a>
       <a href="/dashboard">底部导航</a>
       <a href="/dashboard" target="_blank">
         新标签
       </a>
-      <button onClick={() => guard.requestLeave(save)}>关闭按钮</button>
       <UnsavedChangesDialog {...guard.dialogProps} />
     </>
   );
@@ -41,7 +52,9 @@ function Harness({ save = () => {} }: { save?: () => void }) {
 
 function setup(save?: () => void) {
   routerMock.push.mockClear();
-  const view = render(<Harness save={save} />);
+  const view = render(<Harness save={save} />, {
+    wrapper: ConfirmDialogTestProviders,
+  });
   fireEvent.change(screen.getByLabelText("内容"), {
     target: { value: "修改" },
   });
@@ -49,17 +62,14 @@ function setup(save?: () => void) {
 }
 
 describe("useUnsavedChangesGuard", () => {
-  it.each(["取消", "底部导航", "关闭按钮"])(
-    "拦截%s，继续编辑保留输入",
-    async (name) => {
-      setup();
-      fireEvent.click(screen.getByText(name));
-      expect(screen.getByRole("dialog")).toBeInTheDocument();
-      fireEvent.click(screen.getByRole("button", { name: "继续编辑" }));
-      expect(screen.getByLabelText("内容")).toHaveValue("修改");
-      expect(routerMock.push).not.toHaveBeenCalled();
-    },
-  );
+  it.each(["取消", "底部导航"])("拦截%s，继续编辑保留输入", async (name) => {
+    setup();
+    fireEvent.click(screen.getByText(name));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "继续编辑" }));
+    expect(screen.getByLabelText("内容")).toHaveValue("修改");
+    expect(routerMock.push).not.toHaveBeenCalled();
+  });
 
   it("放弃只执行原目标导航一次", async () => {
     setup();

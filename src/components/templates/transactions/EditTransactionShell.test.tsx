@@ -19,7 +19,7 @@ import {
   transactionLinkedEditErrorTitles,
   type TransactionEditRestriction,
 } from "internal/transaction";
-import { UserThemeProvider } from "theme/UserThemeProvider";
+import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
 import type { TransactionStateAction } from "types/transactions";
 import { transactionEditRestrictionMessages } from "utils/transactionMessages";
 
@@ -79,9 +79,9 @@ function DirtyReportingInput() {
 
 function renderShell(props: Parameters<typeof ShellHarness>[0] = {}) {
   return render(
-    <UserThemeProvider>
+    <ConfirmDialogTestProviders>
       <ShellHarness {...props} />
-    </UserThemeProvider>,
+    </ConfirmDialogTestProviders>,
   );
 }
 

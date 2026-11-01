@@ -6,13 +6,12 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
+import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
 import {
   accountHolderOptionsFixture,
   accountPlaceholderHolderOptionsFixture,
 } from "test/mocks/accountHolders";
 import { bankAccountFixture } from "test/mocks/accounts";
-import { UserThemeProvider } from "theme/UserThemeProvider";
 import type { AccountStateAction } from "types/accounts";
 
 import { AccountEditTemplate } from "./AccountEdit";
@@ -21,20 +20,18 @@ function renderAccountEdit(
   props: Partial<ComponentProps<typeof AccountEditTemplate>> = {},
 ) {
   return render(
-    <UserThemeProvider>
-      <ConfirmDialogProvider>
-        <AccountEditTemplate
-          account={bankAccountFixture}
-          archiveAccountAction={vi.fn<AccountStateAction>(async () => ({}))}
-          baseCurrency="JPY"
-          holderOptions={accountHolderOptionsFixture}
-          ledgerName="家庭账本"
-          placeholderHolderOptions={accountPlaceholderHolderOptionsFixture}
-          updateAccountAction={vi.fn<AccountStateAction>(async () => ({}))}
-          {...props}
-        />
-      </ConfirmDialogProvider>
-    </UserThemeProvider>,
+    <ConfirmDialogTestProviders>
+      <AccountEditTemplate
+        account={bankAccountFixture}
+        archiveAccountAction={vi.fn<AccountStateAction>(async () => ({}))}
+        baseCurrency="JPY"
+        holderOptions={accountHolderOptionsFixture}
+        ledgerName="家庭账本"
+        placeholderHolderOptions={accountPlaceholderHolderOptionsFixture}
+        updateAccountAction={vi.fn<AccountStateAction>(async () => ({}))}
+        {...props}
+      />
+    </ConfirmDialogTestProviders>,
   );
 }
 

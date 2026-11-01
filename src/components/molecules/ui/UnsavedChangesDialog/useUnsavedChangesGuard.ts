@@ -1,29 +1,27 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useEffectEvent, useState } from "react";
+import { useCallback, useEffect, useEffectEvent, useState } from "react";
 
-import {
-  activateUnsavedChangesHistory,
-  getUnsavedChangesHistory,
-  subscribeUnsavedChangesHistory,
-} from "./unsavedChangesHistory";
+import { useUnsavedChangesCoordinator } from "providers/UnsavedChangesGuardProvider/UnsavedChangesGuardProvider";
 
 type LeaveIntent = { type: "back" } | { type: "action"; action: () => void };
 
 export function useUnsavedChangesGuard({
   isDirty,
-  onSave,
   saveFormId,
 }: {
   isDirty: boolean;
-} & (
-  | { onSave: () => void; saveFormId?: never }
-  | { onSave?: never; saveFormId: string }
-)) {
+  saveFormId: string;
+}) {
   const router = useRouter();
   const [intent, setIntent] = useState<LeaveIntent | null>(null);
-  const [history] = useState(getUnsavedChangesHistory);
+  const coordinator = useUnsavedChangesCoordinator();
+  const [history] = useState(coordinator.createHistory);
+  const runAction = useCallback(
+    <T>(action: () => Promise<T>) => history.runAction(action),
+    [history],
+  );
 
   const beforeUnload = useEffectEvent((event: BeforeUnloadEvent) => {
     if (!isDirty || !history.shouldBlockUnload()) return;
@@ -74,29 +72,16 @@ export function useUnsavedChangesGuard({
   });
 
   useEffect(() => {
-    const isCurrentConnection = history.connect(() =>
+    const unregister = coordinator.register(history, () =>
       setIntent((current) => current ?? { type: "back" }),
     );
-    const deactivate = activateUnsavedChangesHistory(history);
-    const unsubscribe = subscribeUnsavedChangesHistory();
     const click = (event: MouseEvent) => interceptClick(event);
     document.addEventListener("click", click, true);
     return () => {
       document.removeEventListener("click", click, true);
-      queueMicrotask(() => {
-        // Strict Mode 重执行 effect 时沿用同一个会话，不清理新连接的历史。
-        if (!isCurrentConnection()) {
-          unsubscribe();
-          return;
-        }
-        // 清理遍历仍需接收 popstate，完成后再移除监听。
-        void history.dispose().then(() => {
-          if (isCurrentConnection()) deactivate();
-          unsubscribe();
-        });
-      });
+      unregister();
     };
-  }, [history]);
+  }, [coordinator, history]);
 
   useEffect(() => {
     if (!isDirty) return;
@@ -109,23 +94,15 @@ export function useUnsavedChangesGuard({
     void history.setDirty(isDirty);
   }, [history, isDirty]);
 
-  function requestLeave(action: () => void) {
-    if (isDirty) setIntent((current) => current ?? { type: "action", action });
-    else void history.leave(action);
-  }
-
   return {
-    requestLeave,
+    runAction,
     dialogProps: {
       open: intent !== null,
       onCancel: () => setIntent(null),
       onSave: () => {
         setIntent(null);
-        if (onSave) onSave();
-        else {
-          const form = document.getElementById(saveFormId);
-          if (form instanceof HTMLFormElement) form.requestSubmit();
-        }
+        const form = document.getElementById(saveFormId);
+        if (form instanceof HTMLFormElement) form.requestSubmit();
       },
       onDiscard: () => {
         if (!intent) return;

@@ -1,10 +1,13 @@
 "use client";
 
+import type { TransactionFormInitialValues } from "../../../../../src/components/organisms/transactions/TransactionForm/TransactionForm.types";
+import type { save as saveAction } from "../actions";
+
 import { EditTransactionReceiptTemplate } from "../../../../../src/components/templates/transactions/EditTransactionReceipt";
 import { flowFixture } from "../../../../../src/test/mocks/transactionStepFlow";
 import { receiptItemsOptions } from "../../../../../src/test/mocks/transactionReceipt";
 
-const initialValues = {
+const initialValues: TransactionFormInitialValues = {
   items: [{ amount: "800", categoryId: "lunch", specialStatus: null }],
   merchantId: "seven",
   note: "编辑前备注",
@@ -14,7 +17,7 @@ const initialValues = {
   type: "expense",
 };
 
-export default function Receipt({ save }) {
+export default function Receipt({ save }: { save: typeof saveAction }) {
   return (
     <>
       <EditTransactionReceiptTemplate

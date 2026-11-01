@@ -2,22 +2,61 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createGuardHistoryPort } from "test/guardHistory";
 
-import {
-  activateUnsavedChangesHistory,
-  runWithUnsavedChangesGuard,
-  UnsavedChangesHistory,
-} from "./unsavedChangesHistory";
+import { UnsavedChangesHistory } from "./unsavedChangesHistory";
 
 function setup() {
   const browser = createGuardHistoryPort();
   const blocked = vi.fn();
-  const guard = new UnsavedChangesHistory(browser.port, blocked);
+  const guard = new UnsavedChangesHistory(
+    browser.port,
+    blocked,
+    "test-history",
+  );
   guard.connect();
   browser.onPop(() => guard.handlePopState());
   return { ...browser, guard, blocked };
 }
 
 describe("UnsavedChangesHistory", () => {
+  it("回退到基准、复用哨兵和取消后退都保留当前位置，完成后恢复原滚动模式", async () => {
+    const { guard, port, flush } = setup();
+    port.scrollTo({ x: 0, y: 200 });
+    await guard.setDirty(true);
+    port.scrollTo({ x: 0, y: 2000 });
+    await guard.setDirty(false);
+    expect(port.scrollPosition()).toEqual({ x: 0, y: 2000 });
+    expect(port.scrollRestoration()).toBe("auto");
+    await guard.setDirty(true);
+    expect(port.scrollPosition().y).toBe(2000);
+    port.go(-1);
+    await flush();
+    expect(port.scrollPosition().y).toBe(2000);
+    expect(port.scrollRestoration()).toBe("manual");
+  });
+
+  it("保存前内部清理保留位置，原本 manual 的滚动模式不被改成 auto", async () => {
+    const { guard, port } = setup();
+    port.setScrollRestoration("manual");
+    await guard.setDirty(true);
+    port.scrollTo({ x: 12, y: 2100 });
+    await guard.runAction(async () => {
+      expect(port.scrollPosition()).toEqual({ x: 12, y: 2100 });
+      expect(port.scrollRestoration()).toBe("manual");
+    });
+    expect(port.scrollPosition().y).toBe(2100);
+    expect(port.scrollRestoration()).toBe("manual");
+  });
+
+  it("非安全上下文不提供 randomUUID 时也能创建和启动守卫", async () => {
+    vi.stubGlobal("crypto", undefined);
+    try {
+      const { guard, entries } = setup();
+      await guard.setDirty(true);
+      expect(entries).toHaveLength(3);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
   it("未修改不添加历史；保护只追加一条并保留 Next 状态", async () => {
     const { guard, entries, port } = setup();
     await guard.setDirty(false);
@@ -93,16 +132,11 @@ describe("UnsavedChangesHistory", () => {
       expect(guard.shouldBlockUnload()).toBe(true);
       return { error: "保存失败" };
     });
-    const deactivate = activateUnsavedChangesHistory(guard);
-    try {
-      await expect(runWithUnsavedChangesGuard(action)).resolves.toEqual({
-        error: "保存失败",
-      });
-      expect(index()).toBe(2);
-      expect(entries).toHaveLength(3);
-    } finally {
-      deactivate();
-    }
+    await expect(guard.runAction(action)).resolves.toEqual({
+      error: "保存失败",
+    });
+    expect(index()).toBe(2);
+    expect(entries).toHaveLength(3);
   });
 
   it("服务端成功跳转信号不重新保护；普通异常仍恢复", async () => {
@@ -132,12 +166,6 @@ describe("UnsavedChangesHistory", () => {
     await guard.setDirty(true);
     expect(isOld()).toBe(false);
     expect(entries).toHaveLength(3);
-  });
-
-  it("未注册守卫的 action 原样运行", async () => {
-    await expect(runWithUnsavedChangesGuard(async () => "完成")).resolves.toBe(
-      "完成",
-    );
   });
 
   it("保存期间后退先回到提交页，失败后仍可正常确认离开", async () => {

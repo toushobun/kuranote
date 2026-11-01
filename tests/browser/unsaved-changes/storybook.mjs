@@ -44,7 +44,7 @@ try {
       () => history.state?.kuranoteUnsavedChanges?.position === "sentinel",
     );
     const historyLength = await page.evaluate(() => history.length);
-    await page.evaluate(() => history.back());
+    await page.goBack({ waitUntil: "commit" });
     const dialog = page.getByRole("dialog", { name: "尚未保存" });
     await dialog.waitFor();
     assert.equal(
@@ -57,6 +57,7 @@ try {
     );
     await page.screenshot({
       path: path.join(output, `storybook-${story.name}.png`),
+      animations: "disabled",
     });
     await page.getByRole("button", { name: "继续编辑" }).click();
     await dialog.waitFor({ state: "hidden" });

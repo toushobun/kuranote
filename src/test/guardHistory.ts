@@ -10,6 +10,8 @@ export function createGuardHistoryPort() {
   ];
   let index = 1;
   let onPop = () => {};
+  let position = { x: 0, y: 0 };
+  let mode: ScrollRestoration = "auto";
   const port: GuardHistoryPort = {
     state: () => entries[index]!,
     href: () => (index === 0 ? "/previous" : "/edit"),
@@ -26,6 +28,15 @@ export function createGuardHistoryPort() {
         onPop();
       });
     }),
+    scrollPosition: () => position,
+    scrollTo: vi.fn((next) => {
+      position = { x: next.x, y: next.y };
+    }),
+    scrollRestoration: () => mode,
+    setScrollRestoration: vi.fn((next) => {
+      mode = next;
+    }),
+    afterTraversal: (callback) => queueMicrotask(callback),
   };
   return {
     port,

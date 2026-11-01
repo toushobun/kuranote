@@ -3,7 +3,6 @@
 import { useActionState, useState } from "react";
 
 import { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
-import { runWithUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/unsavedChangesHistory";
 
 import { accountFormMessages } from "config/accountMessages";
 import { routePaths } from "config/paths";
@@ -52,21 +51,21 @@ export function AccountEditTemplate({
   placeholderHolderOptions = [],
   updateAccountAction,
 }: AccountEditTemplateProps) {
-  const [updateState, updateFormAction, updatePending] = useActionState(
-    (state: AccountActionState, data: FormData) =>
-      runWithUnsavedChangesGuard(() => updateAccountAction(state, data)),
-    initialAccountActionState,
-  );
-  const [archiveState, archiveFormAction, archivePending] = useActionState(
-    (state: AccountActionState, data: FormData) =>
-      runWithUnsavedChangesGuard(() => archiveAccountAction(state, data)),
-    initialAccountActionState,
-  );
   const [isDirty, setIsDirty] = useState(false);
   const guard = useUnsavedChangesGuard({
     isDirty,
     saveFormId: editAccountFormId,
   });
+  const [updateState, updateFormAction, updatePending] = useActionState(
+    (state: AccountActionState, data: FormData) =>
+      guard.runAction(() => updateAccountAction(state, data)),
+    initialAccountActionState,
+  );
+  const [archiveState, archiveFormAction, archivePending] = useActionState(
+    (state: AccountActionState, data: FormData) =>
+      guard.runAction(() => archiveAccountAction(state, data)),
+    initialAccountActionState,
+  );
 
   return (
     <SettingsPageLayout

@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { UnsavedChangesGuardProvider } from "providers/UnsavedChangesGuardProvider/UnsavedChangesGuardProvider";
+
 import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import { UserThemeProvider } from "theme/UserThemeProvider";
 
@@ -11,7 +13,9 @@ export function ConfirmDialogTestProviders({
 }) {
   return (
     <UserThemeProvider>
-      <ConfirmDialogProvider>{children}</ConfirmDialogProvider>
+      <UnsavedChangesGuardProvider>
+        <ConfirmDialogProvider>{children}</ConfirmDialogProvider>
+      </UnsavedChangesGuardProvider>
     </UserThemeProvider>
   );
 }

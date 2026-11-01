@@ -1,6 +1,10 @@
 const stateKey = "kuranoteUnsavedChanges";
 
-type Marker = { id: string; position: "base" | "sentinel" };
+type Marker = {
+  id: string;
+  position: "base" | "sentinel";
+  scrollRestoration: ScrollRestoration;
+};
 type HistoryState = Record<string, unknown> & {
   [stateKey]?: Marker;
 };
@@ -11,11 +15,21 @@ export type GuardHistoryPort = {
   replace: (state: HistoryState) => void;
   push: (state: HistoryState) => void;
   go: (delta: number) => void;
+  scrollPosition: () => { x: number; y: number };
+  scrollTo: (position: { x: number; y: number }) => void;
+  scrollRestoration: () => ScrollRestoration;
+  setScrollRestoration: (mode: ScrollRestoration) => void;
+  afterTraversal: (callback: () => void) => void;
 };
 
 /** 只遍历同 URL 的内部记录；实际路由离开由调用方在清理完成后执行。 */
 export class UnsavedChangesHistory {
-  private id: string = crypto.randomUUID();
+  private originalScrollMode: ScrollRestoration | null = null;
+  private savedScroll: {
+    x: number;
+    y: number;
+    mode: ScrollRestoration;
+  } | null = null;
   private href = "";
   private dirty = false;
   private hasSentinel = false;
@@ -30,6 +44,7 @@ export class UnsavedChangesHistory {
   constructor(
     private readonly port: GuardHistoryPort,
     private onBack: () => void,
+    private id: string,
   ) {}
 
   connect(onBack?: () => void) {
@@ -38,6 +53,7 @@ export class UnsavedChangesHistory {
     this.suspended = false;
     this.leaving = false;
     const marker = this.marker();
+    this.originalScrollMode = marker?.scrollRestoration ?? null;
     if (marker?.position === "sentinel") {
       this.id = marker.id;
       this.href = this.port.href();
@@ -65,7 +81,12 @@ export class UnsavedChangesHistory {
   private write(position: Marker["position"], push = false) {
     const state = {
       ...this.port.state(),
-      [stateKey]: { id: this.id, position },
+      [stateKey]: {
+        id: this.id,
+        position,
+        scrollRestoration:
+          this.originalScrollMode ?? this.port.scrollRestoration(),
+      },
     };
     if (push) this.port.push(state);
     else this.port.replace(state);
@@ -79,9 +100,41 @@ export class UnsavedChangesHistory {
 
   private move(position: Marker["position"]) {
     if (this.marker()?.position === position) return Promise.resolve();
+    this.preserveScroll();
     return new Promise<void>((done) => {
       this.traversal = { position, done };
       this.port.go(position === "base" ? -1 : 1);
+    });
+  }
+
+  private preserveScroll() {
+    this.savedScroll ??= {
+      ...this.port.scrollPosition(),
+      mode: this.originalScrollMode ?? this.port.scrollRestoration(),
+    };
+    // 只修改内部记录的恢复模式，真正来源页的浏览器滚动恢复保持原样。
+    if (this.port.href() === this.href)
+      this.port.setScrollRestoration("manual");
+    this.port.scrollTo(this.savedScroll);
+  }
+
+  private restoreScroll(done: () => void = () => {}) {
+    this.port.afterTraversal(() => {
+      if (this.savedScroll) {
+        this.port.scrollTo(this.savedScroll);
+        if (!this.traversal) {
+          const protecting =
+            this.dirty &&
+            this.hasSentinel &&
+            !this.leaving &&
+            (!this.suspended || this.saving);
+          this.port.setScrollRestoration(
+            protecting ? "manual" : this.savedScroll.mode,
+          );
+          this.savedScroll = null;
+        }
+      }
+      done();
     });
   }
 
@@ -96,6 +149,9 @@ export class UnsavedChangesHistory {
   private async arm() {
     if (this.href && this.port.href() !== this.href) return;
     this.href = this.port.href();
+    this.originalScrollMode ??= this.port.scrollRestoration();
+    // 基准和哨兵都必须在遍历之前设为 manual；popstate 才修改目标模式已太晚。
+    this.port.setScrollRestoration("manual");
     if (this.hasSentinel) {
       await this.move("sentinel");
       return;
@@ -113,6 +169,7 @@ export class UnsavedChangesHistory {
   handlePopState() {
     const marker = this.marker();
     if (this.saving && this.hasSentinel) {
+      this.preserveScroll();
       if (this.port.href() !== this.href) {
         this.port.go(1);
         return true;
@@ -129,6 +186,7 @@ export class UnsavedChangesHistory {
       !this.suspended &&
       (marker?.id !== this.id || this.port.href() !== this.href)
     ) {
+      this.preserveScroll();
       // 浏览器可能用第二次 back 取消尚未完成的 forward，因此在这里重新发出恢复。
       this.port.go(1);
       return true;
@@ -143,10 +201,11 @@ export class UnsavedChangesHistory {
       this.hasSentinel = true;
     }
     if (marker?.id !== this.id || this.port.href() !== this.href) return;
+    this.preserveScroll();
     if (this.traversal?.position === marker.position) {
       const { done } = this.traversal;
       this.traversal = null;
-      done();
+      this.restoreScroll(done);
       return true;
     }
     if (this.traversal?.position === "sentinel" && marker.position === "base") {
@@ -163,6 +222,8 @@ export class UnsavedChangesHistory {
     } else if (marker.position === "sentinel" && !this.dirty) {
       // 前进碰到已失效的内部记录时回到基准，不复活已放弃的输入。
       void this.enqueue(() => this.move("base"));
+    } else {
+      this.restoreScroll();
     }
     // 同 URL 的哨兵遍历不交给 Next，避免连续后退时异步路由恢复覆盖当前记录。
     return true;
@@ -181,8 +242,8 @@ export class UnsavedChangesHistory {
 
   async runAction<T>(action: () => Promise<T>): Promise<T> {
     this.suspended = true;
-    await this.enqueue(() => this.remove());
     this.saving = true;
+    await this.enqueue(() => this.remove());
     try {
       const result = await action();
       this.saving = false;
@@ -201,6 +262,8 @@ export class UnsavedChangesHistory {
       if (!redirect) {
         this.suspended = false;
         await this.setDirty(this.dirty);
+      } else if (this.port.href() === this.href && this.originalScrollMode) {
+        this.port.setScrollRestoration(this.originalScrollMode);
       }
       throw error;
     }
@@ -210,55 +273,4 @@ export class UnsavedChangesHistory {
     this.suspended = true;
     return this.enqueue(() => this.remove());
   }
-}
-
-let activeHistory: UnsavedChangesHistory | null = null;
-let pageHistory: { href: string; history: UnsavedChangesHistory } | null = null;
-let listenerCount = 0;
-
-function handlePopState(event: PopStateEvent) {
-  if (activeHistory?.handlePopState()) event.stopImmediatePropagation();
-}
-
-/** AppProviders 在 layout effect 中注册，保证先于 Next 的 popstate effect。 */
-export function subscribeUnsavedChangesHistory() {
-  if (listenerCount++ === 0)
-    window.addEventListener("popstate", handlePopState, true);
-  return () => {
-    if (--listenerCount === 0)
-      window.removeEventListener("popstate", handlePopState, true);
-  };
-}
-
-export function getUnsavedChangesHistory() {
-  const create = () =>
-    new UnsavedChangesHistory(
-      {
-        state: () => window.history.state,
-        href: () => window.location.href,
-        replace: (state) =>
-          window.history.replaceState(state, "", window.location.href),
-        push: (state) =>
-          window.history.pushState(state, "", window.location.href),
-        go: (delta) => window.history.go(delta),
-      },
-      () => {},
-    );
-  if (typeof window === "undefined") return create();
-  if (pageHistory?.href !== window.location.href) {
-    pageHistory = { href: window.location.href, history: create() };
-  }
-  return pageHistory.history;
-}
-
-export function activateUnsavedChangesHistory(history: UnsavedChangesHistory) {
-  activeHistory = history;
-  return () => {
-    if (activeHistory === history) activeHistory = null;
-  };
-}
-
-/** 保存及删除通过同一入口先清理哨兵，服务端成功跳转不经过离开确认。 */
-export function runWithUnsavedChangesGuard<T>(action: () => Promise<T>) {
-  return activeHistory ? activeHistory.runAction(action) : action();
 }

@@ -32,9 +32,16 @@ export function setupGuardHistoryMock() {
     const forward = vi
       .spyOn(window.history, "forward")
       .mockImplementation(() => window.history.go(1));
+    const scroll = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+    const originalFrame = window.requestAnimationFrame;
+    window.requestAnimationFrame = (callback) => {
+      queueMicrotask(() => callback(0));
+      return 0;
+    };
     restore = () => {
-      for (const mock of [state, push, replace, go, back, forward])
+      for (const mock of [state, push, replace, go, back, forward, scroll])
         mock.mockRestore();
+      window.requestAnimationFrame = originalFrame;
     };
   });
   afterEach(async () => {
