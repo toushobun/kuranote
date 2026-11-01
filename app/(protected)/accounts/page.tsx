@@ -1,10 +1,6 @@
 import { redirect } from "next/navigation";
 
 import { accountResultValues, accountsNewHref } from "config/paths";
-import {
-  archiveAccount,
-  updateAccount,
-} from "internal/account/adapter/next/actions";
 import { loadAccountsView } from "internal/account/adapter/next/loadAccountsView";
 import { getSafeNextPath } from "lib/navigation/safeNextPath";
 import {
@@ -42,10 +38,10 @@ export default async function AccountsPage({
 
   return (
     <AccountsTemplate
+      accounts={view.accounts}
+      baseCurrency={view.baseCurrency}
+      canManageAccounts={view.canManageAccounts}
       saveResult={getAccountSaveResult(params.result)}
-      {...view}
-      archiveAccountAction={archiveAccount}
-      updateAccountAction={updateAccount}
     />
   );
 }

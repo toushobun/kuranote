@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   accountHolderOptionsFixture,
   accountPlaceholderHolderOptionsFixture,
+  inactiveAccountHolderOptionFixture,
 } from "test/mocks/accountHolders";
 import type {
   AccountHolderOption,
@@ -17,10 +18,12 @@ function AccountHolderAvatarPickerPreview({
   holderOptions,
   initialSelection,
   placeholderOptions,
+  preservedHolderOptions,
 }: {
   holderOptions: AccountHolderOption[];
   initialSelection: AccountHolderSelection;
   placeholderOptions: AccountPlaceholderHolderOption[];
+  preservedHolderOptions?: AccountHolderOption[];
 }) {
   const [selection, setSelection] = useState(initialSelection);
   return (
@@ -28,6 +31,7 @@ function AccountHolderAvatarPickerPreview({
       holderOptions={holderOptions}
       onChange={setSelection}
       placeholderOptions={placeholderOptions}
+      preservedHolderOptions={preservedHolderOptions}
       selection={selection}
     />
   );
@@ -63,4 +67,8 @@ export const MembersOnly: Story = {
 export const NoOptions: Story = {
   name: "没有可选持有人",
   args: { holderOptions: [], placeholderOptions: [] },
+};
+export const WithInactiveHolder: Story = {
+  name: "编辑时有非活跃成员持有人",
+  args: { preservedHolderOptions: [inactiveAccountHolderOptionFixture] },
 };

@@ -29,6 +29,11 @@ type AccountHolderAvatarPickerProps = {
   holderOptions: AccountHolderOption[];
   onChange: (selection: AccountHolderSelection) => void;
   placeholderOptions?: AccountPlaceholderHolderOption[];
+  /**
+   * 编辑时已离开账本的成员持有人：不可操作，也不随表单提交。没选新持有人时显示为选中
+   * （数据库保存时保留）；选了新持有人时会被替换，显示为未选中。
+   */
+  preservedHolderOptions?: AccountHolderOption[];
   selection: AccountHolderSelection;
 };
 
@@ -40,13 +45,16 @@ export function AccountHolderAvatarPicker({
   holderOptions,
   onChange,
   placeholderOptions = [],
+  preservedHolderOptions = [],
   selection,
 }: AccountHolderAvatarPickerProps) {
   const memberGroupId = useId();
   const placeholderGroupId = useId();
   const hasPlaceholderOptions = placeholderOptions.length > 0;
+  const hasMemberOptions =
+    holderOptions.length > 0 || preservedHolderOptions.length > 0;
 
-  if (holderOptions.length === 0 && !hasPlaceholderOptions) {
+  if (!hasMemberOptions && !hasPlaceholderOptions) {
     return (
       <Typography color="textSecondary" variant="body2">
         {accountFormMessages.noHolderOptions}
@@ -56,7 +64,7 @@ export function AccountHolderAvatarPicker({
 
   return (
     <Stack direction="row" spacing={2} sx={{ alignItems: "stretch" }}>
-      {holderOptions.length > 0 ? (
+      {hasMemberOptions ? (
         <Box
           aria-label={accountFormMessages.holderSection}
           id={memberGroupId}
@@ -91,11 +99,28 @@ export function AccountHolderAvatarPicker({
               />
             );
           })}
+          {preservedHolderOptions.map((option) => {
+            const colorToken = themeColorTokens[option.display_color];
+            return (
+              <HolderAvatarOption
+                accent={colorToken.accent}
+                avatarBackground={colorToken.chipBackground}
+                ariaLabel={accountFormMessages.preservedHolderLabel(
+                  getAccountHolderLabel(option),
+                )}
+                checked={selection === null}
+                disabled
+                key={option.user_id}
+                label={getAccountHolderLabel(option)}
+                selectedTextColor={colorToken.chipText}
+              />
+            );
+          })}
         </Box>
       ) : null}
       {hasPlaceholderOptions ? (
         <>
-          {holderOptions.length > 0 ? (
+          {hasMemberOptions ? (
             <Divider flexItem orientation="vertical" />
           ) : null}
           <Stack spacing={1} sx={{ minWidth: 0 }}>
@@ -145,10 +170,12 @@ export function AccountHolderAvatarPicker({
 
 function HolderAvatarOption({
   accent = "var(--user-theme-action-text)",
+  ariaLabel,
   avatarBackground = "var(--user-theme-field-card-selected-bg)",
   badge,
   checked,
   dashed = false,
+  disabled = false,
   label,
   name,
   onToggle,
@@ -156,23 +183,30 @@ function HolderAvatarOption({
   value,
 }: {
   accent?: string;
+  ariaLabel?: string;
   avatarBackground?: string;
   badge?: ReactNode;
   checked: boolean;
   dashed?: boolean;
+  disabled?: boolean;
   label: string;
-  name: string;
-  onToggle: () => void;
+  name?: string;
+  onToggle?: () => void;
   selectedTextColor?: string;
-  value: string;
+  value?: string;
 }) {
   return (
-    <Box component="label" sx={optionLabelSx}>
+    <Box
+      component="label"
+      sx={[optionLabelSx, disabled ? disabledOptionLabelSx : {}]}
+    >
       <input
-        aria-label={label}
+        aria-label={ariaLabel ?? label}
         checked={checked}
+        disabled={disabled}
         name={name}
         onChange={onToggle}
+        readOnly={!onToggle}
         style={visuallyHiddenInputStyle}
         type="checkbox"
         value={value}
@@ -210,6 +244,11 @@ function HolderAvatarOption({
     </Box>
   );
 }
+
+const disabledOptionLabelSx = {
+  cursor: "default",
+  opacity: 0.6,
+};
 
 const avatarGroupSx = {
   display: "flex",

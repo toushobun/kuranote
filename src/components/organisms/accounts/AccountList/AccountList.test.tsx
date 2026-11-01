@@ -1,17 +1,9 @@
-import { cleanup, fireEvent, render, within } from "@testing-library/react";
-import type { ReactNode } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, within } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 
 import type { Account } from "types/accounts";
 
 import { AccountList } from "./AccountList";
-
-vi.mock("../AccountEditDialog/AccountEditDialog", () => ({
-  AccountEditDialog: ({ account }: { account: Account | null }): ReactNode =>
-    account ? (
-      <div data-testid="account-edit-dialog">{account.name}</div>
-    ) : null,
-}));
 
 afterEach(() => {
   cleanup();
@@ -32,9 +24,6 @@ const baseAccount: Account = {
 
 const baseProps = {
   accounts: [],
-  archiveAccountAction: vi.fn(async () => {}),
-  holderOptions: [],
-  updateAccountAction: vi.fn(async () => {}),
 };
 
 describe("AccountList", () => {
@@ -85,36 +74,26 @@ describe("AccountList", () => {
     expect(within(container).getByText("PayPay")).toBeInTheDocument();
   });
 
-  it("点击账户时打开编辑弹窗", () => {
+  it("能管理账户时点账户进入编辑账户页", () => {
     const { container } = render(
       <AccountList {...baseProps} accounts={[baseAccount]} />,
     );
 
-    fireEvent.click(within(container).getByRole("button"));
-
-    expect(
-      within(container).getByTestId("account-edit-dialog"),
-    ).toHaveTextContent("三菱UFJ银行");
+    expect(within(container).getByRole("link")).toHaveAttribute(
+      "href",
+      `/accounts/${baseAccount.id}/edit`,
+    );
   });
 
-  it("编辑账户保存成功后关闭编辑弹窗", () => {
-    const { container, rerender } = render(
-      <AccountList {...baseProps} accounts={[baseAccount]} />,
-    );
-
-    fireEvent.click(within(container).getByRole("button"));
-    expect(
-      within(container).getByTestId("account-edit-dialog"),
-    ).toBeInTheDocument();
-
-    rerender(
+  it("不能管理账户时账户卡片不是链接", () => {
+    const { container } = render(
       <AccountList
         {...baseProps}
         accounts={[baseAccount]}
-        saveResult="updated"
+        canManageAccounts={false}
       />,
     );
 
-    expect(within(container).queryByTestId("account-edit-dialog")).toBeNull();
+    expect(within(container).queryByRole("link")).toBeNull();
   });
 });

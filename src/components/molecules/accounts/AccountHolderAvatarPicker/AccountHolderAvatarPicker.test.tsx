@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   accountHolderOptionsFixture,
   accountPlaceholderHolderOptionsFixture,
+  inactiveAccountHolderOptionFixture,
 } from "test/mocks/accountHolders";
 
 import { AccountHolderAvatarPicker } from "./AccountHolderAvatarPicker";
@@ -81,6 +82,57 @@ describe("AccountHolderAvatarPicker", () => {
       id: grandma?.placeholder_id,
       kind: "placeholder",
     });
+  });
+
+  it("非活跃成员持有人显示为选中且不可操作，不带提交名", () => {
+    const onChange = vi.fn();
+    render(
+      <AccountHolderAvatarPicker
+        holderOptions={accountHolderOptionsFixture}
+        onChange={onChange}
+        preservedHolderOptions={[inactiveAccountHolderOptionFixture]}
+        selection={null}
+      />,
+    );
+
+    const preserved = screen.getByRole("checkbox", {
+      name: "前成员（非活跃）",
+    });
+    expect(preserved).toBeChecked();
+    expect(preserved).toBeDisabled();
+    expect(preserved).not.toHaveAttribute("name");
+    fireEvent.click(preserved);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("选了新持有人时非活跃成员持有人显示为未选中（保存时会被替换）", () => {
+    render(
+      <AccountHolderAvatarPicker
+        holderOptions={accountHolderOptionsFixture}
+        onChange={vi.fn()}
+        preservedHolderOptions={[inactiveAccountHolderOptionFixture]}
+        selection={{ id: wife!.user_id, kind: "member" }}
+      />,
+    );
+
+    expect(
+      screen.getByRole("checkbox", { name: "前成员（非活跃）" }),
+    ).not.toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "妻子" })).toBeChecked();
+  });
+
+  it("只有非活跃成员持有人时也显示成员分组", () => {
+    render(
+      <AccountHolderAvatarPicker
+        holderOptions={[]}
+        onChange={vi.fn()}
+        preservedHolderOptions={[inactiveAccountHolderOptionFixture]}
+        selection={null}
+      />,
+    );
+
+    expect(screen.getByRole("group", { name: "持有人" })).toBeInTheDocument();
+    expect(screen.queryByText("当前账本没有可选持有人。")).toBeNull();
   });
 
   it("没有任何候选时显示说明", () => {

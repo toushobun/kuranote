@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import type { AccountHolderSelection } from "molecules/accounts/accountHolderSelection";
+
 import {
   buildAccountPreviewHolders,
   getAccountPreviewBalance,
@@ -64,6 +66,35 @@ describe("buildAccountPreviewHolders", () => {
         selection: { id: "user-x", kind: "member" },
       }),
     ).toEqual([]);
+  });
+
+  describe("编辑时有非活跃成员持有人", () => {
+    const preserved = {
+      display_color: "amber" as const,
+      display_name: "前成员",
+      email: null,
+      user_id: "user-x",
+    };
+
+    function previewNames(selection: AccountHolderSelection) {
+      return buildAccountPreviewHolders({
+        holderOptions,
+        placeholderOptions,
+        preservedHolderOptions: [preserved],
+        selection,
+      }).map((holder) => holder.display_name);
+    }
+
+    it("没选新持有人时保留显示非活跃持有人", () => {
+      expect(previewNames(null)).toEqual(["前成员"]);
+    });
+
+    it.each<[string, AccountHolderSelection, string]>([
+      ["成员", { id: "user-b", kind: "member" }, "妻子"],
+      ["待邀请成员", { id: "p-1", kind: "placeholder" }, "奶奶"],
+    ])("选了新的%s时按保存结果只显示新持有人", (_, selection, name) => {
+      expect(previewNames(selection)).toEqual([name]);
+    });
   });
 });
 

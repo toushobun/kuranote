@@ -200,6 +200,10 @@ export function accountsNewHref(returnTo?: string | null) {
   return routeWithQuery(routePaths.accountsNew, { returnTo });
 }
 
+export function accountEditHref(accountId: string) {
+  return `${routePaths.accounts}/${encodeURIComponent(accountId)}/edit`;
+}
+
 export function accountsResultHref(result: AccountResultValue) {
   return routeWithQuery(routePaths.accounts, { result });
 }

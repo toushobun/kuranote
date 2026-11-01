@@ -1,6 +1,6 @@
-import { cleanup, fireEvent, render, within } from "@testing-library/react";
+import { cleanup, render, within } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { designTokens, theme } from "theme/theme";
 
@@ -119,14 +119,10 @@ describe("AccountCard", () => {
     ).toBeInTheDocument();
   });
 
-  it("点击卡片时触发回调", () => {
-    const onClick = vi.fn();
-    const { container } = render(
-      <AccountCard {...baseProps} onClick={onClick} />,
-    );
+  it("传入 href 时整张卡片是链接", () => {
+    const href = "/accounts/account-1/edit";
+    const { container } = render(<AccountCard {...baseProps} href={href} />);
 
-    fireEvent.click(within(container).getByRole("button"));
-
-    expect(onClick).toHaveBeenCalledTimes(1);
+    expect(within(container).getByRole("link")).toHaveAttribute("href", href);
   });
 });

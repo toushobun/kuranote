@@ -215,7 +215,7 @@ export const Clickable: Story = {
         share_ratio: null,
       },
     ],
-    onClick: () => {},
+    href: "/accounts/00000000-0000-4000-8000-000000000001/edit",
   },
 };
 

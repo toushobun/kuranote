@@ -1,6 +1,6 @@
 "use client";
 
-import Button from "@mui/material/Button";
+import Button, { type ButtonProps } from "@mui/material/Button";
 import { useRef, type MouseEvent, type ReactNode } from "react";
 
 import { useConfirmDialog } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
@@ -8,20 +8,26 @@ import { useConfirmDialog } from "providers/ConfirmDialogProvider/ConfirmDialogP
 type DestructiveSubmitButtonProps = {
   confirmLabel?: ReactNode;
   description: ReactNode;
+  disabled?: boolean;
   formId?: string;
   fullWidth?: boolean;
   label: ReactNode;
+  size?: ButtonProps["size"];
   startIcon?: ReactNode;
+  sx?: ButtonProps["sx"];
   title: ReactNode;
 };
 
 export function DestructiveSubmitButton({
   confirmLabel,
   description,
+  disabled = false,
   formId,
   fullWidth = false,
   label,
+  size,
   startIcon,
+  sx,
   title,
 }: DestructiveSubmitButtonProps) {
   const confirm = useConfirmDialog();
@@ -44,10 +50,13 @@ export function DestructiveSubmitButton({
   return (
     <Button
       color="error"
+      disabled={disabled}
       form={formId}
       fullWidth={fullWidth}
       onClick={confirmSubmit}
+      size={size}
       startIcon={startIcon}
+      sx={sx}
       type="button"
       variant="outlined"
     >

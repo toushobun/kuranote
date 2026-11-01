@@ -2,22 +2,15 @@
 
 import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { CreateButton } from "atoms/ui/CreateButton";
 import { accountPageMessages } from "config/accountMessages";
 import { routePaths } from "config/paths";
-import {
-  FailureFeedbackDialog,
-  SuccessFeedbackDialog,
-} from "molecules/ui/OperationFeedbackDialogs";
+import { SuccessFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
 import { AccountList } from "organisms/accounts/AccountList/AccountList";
 import { AccountSummaryCard } from "organisms/accounts/AccountSummaryCard/AccountSummaryCard";
-import {
-  bottomNavigationLayout,
-  stackedFeedbackBottomOffset,
-} from "organisms/navigation/bottomNavigationLayout";
-import { TransactionAmountKeypadLauncher } from "organisms/transactions/TransactionAmountKeypadLauncher/TransactionAmountKeypadLauncher";
+import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import {
   SettingsPageLayout,
   settingsPageActionButtonSx,
@@ -25,100 +18,34 @@ import {
 import { useClearQueryParam } from "templates/useClearQueryParam";
 import {
   accountTypeOptions,
-  type AccountActionState,
-  type AccountHolderOption,
-  type AccountPlaceholderHolderOption,
   type Account,
-  type AccountStateAction,
   type AccountType,
 } from "types/accounts";
 
 export type AccountSaveResult = "archived" | "created" | "updated";
 
-type ErrorFeedback = {
-  id: string;
-  message: string;
-};
-
 type AccountsTemplateProps = {
   accounts: Account[];
-  archiveAccountAction: AccountStateAction;
   baseCurrency: string;
   canManageAccounts?: boolean;
-  canWriteTransactions?: boolean;
-  initialErrorKey?: string | null;
-  initialErrorMessage?: string | null;
-  holderOptions: AccountHolderOption[];
-  ledgerName: string;
-  placeholderHolderOptions?: AccountPlaceholderHolderOption[];
   saveResult?: AccountSaveResult | null;
-  updateAccountAction: AccountStateAction;
 };
 
 type AccountTypeFilter = AccountType | "all";
 
-const initialAccountActionState: AccountActionState = {};
-
 export function AccountsTemplate({
   accounts,
-  archiveAccountAction,
   baseCurrency,
   canManageAccounts = true,
-  canWriteTransactions = true,
-  initialErrorKey = null,
-  initialErrorMessage = null,
-  holderOptions,
-  placeholderHolderOptions = [],
   saveResult = null,
-  updateAccountAction,
 }: AccountsTemplateProps) {
   const [selectedType, setSelectedType] = useState<AccountTypeFilter>("all");
-  const [errorFeedbacks, setErrorFeedbacks] = useState<ErrorFeedback[]>([]);
-  const errorFeedbackIdRef = useRef(0);
-  const enqueuedErrorKeysRef = useRef(new Set<string>());
   const [activeSaveResult, setActiveSaveResult] = useState(saveResult);
   const [isSaveSuccessOpen, setIsSaveSuccessOpen] = useState(
     saveResult !== null,
   );
   const [previousSaveResult, setPreviousSaveResult] = useState(saveResult);
-  const [updateActionState, updateFormAction] = useActionState(
-    updateAccountAction,
-    initialAccountActionState,
-  );
-  const [archiveActionState, archiveFormAction] = useActionState(
-    archiveAccountAction,
-    initialAccountActionState,
-  );
   const clearResultParam = useClearQueryParam("result");
-
-  useEffect(() => {
-    const actionStates = [
-      {
-        error: initialErrorMessage ?? undefined,
-        errorKey: initialErrorKey ?? undefined,
-      },
-      updateActionState,
-      archiveActionState,
-    ];
-
-    for (const state of actionStates) {
-      if (!state.error || !state.errorKey) continue;
-      if (enqueuedErrorKeysRef.current.has(state.errorKey)) continue;
-      enqueuedErrorKeysRef.current.add(state.errorKey);
-
-      errorFeedbackIdRef.current += 1;
-      const id = `${state.errorKey}-${errorFeedbackIdRef.current}`;
-      setErrorFeedbacks((feedbacks) => [
-        ...feedbacks,
-        { id, message: state.error as string },
-      ]);
-    }
-  }, [
-    archiveActionState,
-    initialErrorKey,
-    initialErrorMessage,
-    updateActionState,
-  ]);
 
   if (saveResult !== previousSaveResult) {
     setPreviousSaveResult(saveResult);
@@ -140,12 +67,6 @@ export function AccountsTemplate({
     selectedType !== "all" && filteredAccounts.length === 0;
   const saveSuccessDialogText =
     accountSaveSuccessDialogTextByResult[activeSaveResult ?? "updated"];
-
-  function closeErrorFeedback(id: string) {
-    setErrorFeedbacks((feedbacks) =>
-      feedbacks.filter((feedback) => feedback.id !== id),
-    );
-  }
 
   function closeSaveSuccessDialog() {
     setIsSaveSuccessOpen(false);
@@ -196,7 +117,6 @@ export function AccountsTemplate({
 
         <AccountList
           accounts={filteredAccounts}
-          archiveAccountAction={archiveFormAction}
           canManageAccounts={canManageAccounts}
           emptyDescription={
             isFilteredEmpty
@@ -206,25 +126,9 @@ export function AccountsTemplate({
                 : "当前账本还没有可查看的账户。"
           }
           emptyTitle={isFilteredEmpty ? "该类型下还没有账户" : undefined}
-          holderOptions={holderOptions}
-          placeholderHolderOptions={placeholderHolderOptions}
-          saveResult={saveResult}
-          updateAccountAction={updateFormAction}
         />
       </Stack>
 
-      {canWriteTransactions ? <TransactionAmountKeypadLauncher /> : null}
-      {errorFeedbacks.map((feedback, index) => (
-        <FailureFeedbackDialog
-          aboveModal
-          key={feedback.id}
-          bottomOffset={stackedFeedbackBottomOffset(index)}
-          description={feedback.message}
-          onClose={() => closeErrorFeedback(feedback.id)}
-          open
-          title="账户操作失败"
-        />
-      ))}
       <SuccessFeedbackDialog
         bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
         description={saveSuccessDialogText.description}

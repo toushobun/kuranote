@@ -1,7 +1,6 @@
 export const balanceAdjustmentText = {
   title: "余额调整",
   failureTitle: "操作失败",
-  balanceLabel: "当前余额",
   noteLabel: "余额调整备注",
   increase: "将增加",
   decrease: "将减少",
