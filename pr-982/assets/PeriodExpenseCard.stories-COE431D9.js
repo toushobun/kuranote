@@ -1,0 +1,17 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";import{t}from"./jsx-runtime-Dwpk6tgA.js";import{_ as n,v as r}from"./iframe-D8seZUxl.js";import{g as i,o as a}from"./transactions-D09W4osf.js";import{n as o,t as s}from"./Typography-CWKirwdW.js";import{n as c,t as l}from"./SectionCard-DjEJxE4T.js";function u({expense:e,label:t,recordCount:r}){return(0,d.jsxs)(l,{sx:{borderRadius:`${n.radius.md}px`,flex:1,p:1.8},children:[(0,d.jsx)(o,{sx:{color:`text.secondary`,fontSize:12,mb:.6},children:t}),(0,d.jsxs)(o,{sx:{color:`var(--user-theme-negative-amount)`,fontSize:20,fontWeight:900,lineHeight:1.2},children:[`-`,a(e)]}),r>0?(0,d.jsxs)(o,{sx:{color:`text.secondary`,fontSize:11,mt:.4},children:[`共 `,r,` 笔记录`]}):null]})}var d,f=e((()=>{d=t(),s(),c(),r(),i(),u.__docgenInfo={description:``,methods:[],displayName:`PeriodExpenseCard`,props:{expense:{required:!0,tsType:{name:`string`},description:``},label:{required:!0,tsType:{name:`string`},description:``},recordCount:{required:!0,tsType:{name:`number`},description:``}}}})),p,m,h,g,_;e((()=>{f(),p={title:`Molecules/Dashboard/PeriodExpenseCard`,component:u,args:{label:`今日支出`,expense:`3200`,recordCount:5}},m={name:`周期支出卡片`},h={name:`本周支出`,args:{label:`本周支出`,expense:`18500`,recordCount:12}},g={name:`无支出`,args:{label:`今日支出`,expense:`0`,recordCount:0}},m.parameters={...m.parameters,docs:{...m.parameters?.docs,source:{originalSource:`{
+  name: "周期支出卡片"
+}`,...m.parameters?.docs?.source}}},h.parameters={...h.parameters,docs:{...h.parameters?.docs,source:{originalSource:`{
+  name: "本周支出",
+  args: {
+    label: "本周支出",
+    expense: "18500",
+    recordCount: 12
+  }
+}`,...h.parameters?.docs?.source}}},g.parameters={...g.parameters,docs:{...g.parameters?.docs,source:{originalSource:`{
+  name: "无支出",
+  args: {
+    label: "今日支出",
+    expense: "0",
+    recordCount: 0
+  }
+}`,...g.parameters?.docs?.source}}},_=[`Default`,`Weekly`,`Zero`]}))();export{m as Default,h as Weekly,g as Zero,_ as __namedExportsOrder,p as default};
