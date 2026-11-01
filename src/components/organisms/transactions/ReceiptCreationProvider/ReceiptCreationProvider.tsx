@@ -1,12 +1,12 @@
 "use client";
 import { createContext, useContext, type ReactNode } from "react";
-import Alert from "@mui/material/Alert";
-import Snackbar from "@mui/material/Snackbar";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import IconButton from "@mui/material/IconButton";
 import { BottomSlideTransition } from "molecules/ui/BottomSlideTransition";
+import { SuccessFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
+import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import {
   MerchantCreateBody,
@@ -91,16 +91,13 @@ export function ReceiptCreationProvider({
           )}
         </DialogContent>
       </Dialog>
-      <Snackbar
+      <SuccessFeedbackDialog
+        aboveModal
+        bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
         open={!!w.message}
-        autoHideDuration={5000}
         onClose={w.clearMessage}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert severity="success" onClose={w.clearMessage}>
-          {w.message}
-        </Alert>
-      </Snackbar>
+        title={w.message}
+      />
     </ReceiptCreationContext.Provider>
   );
 }

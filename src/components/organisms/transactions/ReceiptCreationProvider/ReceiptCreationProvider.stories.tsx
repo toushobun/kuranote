@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { userEvent, within } from "storybook/test";
+import { expect, userEvent, within } from "storybook/test";
+import { flowMessages as m } from "config/transactionStepFlowMessages";
 import { NewTransactionStepFlow } from "templates/transactions/NewTransactionStepFlow";
 import { transactionEntryStoryDecorators } from "organisms/transactions/transactionStepFlowStoryUtils";
 import { receiptItemsOptions } from "test/mocks/transactionReceipt";
@@ -65,10 +66,15 @@ async function saveCreation(context: Canvas, kind: "merchant" | "account") {
       name: kind === "merchant" ? "保存商家" : "保存账户",
     }),
   );
-  await body.findByText(
+  const feedback = await body.findByRole("status");
+  await expect(feedback).toHaveTextContent(
     kind === "merchant"
-      ? "已新增商家「全家」并选中"
-      : "已新增账户「家庭现金」并选中",
+      ? m.merchantCreated("全家")
+      : m.accountCreated("家庭现金"),
+  );
+  await expect(feedback).toBeVisible();
+  await expect(feedback.closest(".MuiSnackbar-root")?.parentElement).toBe(
+    context.canvasElement.ownerDocument.body,
   );
 }
 export const MerchantDialog: Story = {

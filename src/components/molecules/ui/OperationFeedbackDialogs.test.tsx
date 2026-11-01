@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { UserThemeProvider } from "theme/UserThemeProvider";
 import { designTokens, theme } from "theme/theme";
+import { expectFeedbackInBodyPortal } from "test/feedbackPortal";
 
 import {
   ActionPromptDialog,
@@ -66,7 +67,7 @@ describe("SuccessFeedbackDialog", () => {
     );
 
     expect(screen.getByRole("status")).toHaveTextContent("复制成功");
-    expect(container).not.toContainElement(screen.getByRole("status"));
+    expectFeedbackInBodyPortal(screen.getByRole("status"), container);
   });
 
   it("3 秒后自动触发关闭回调", () => {
