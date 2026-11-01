@@ -6,6 +6,7 @@ import Button from "@mui/material/Button";
 import DialogContent from "@mui/material/DialogContent";
 import { TransactionConfirmStep } from "../TransactionConfirmStep/TransactionConfirmStep";
 import { WizardDialog } from "molecules/ui/WizardDialog/WizardDialog";
+import { ReceiptMerchantDrawer } from "organisms/transactions/ReceiptMerchantDrawer/ReceiptMerchantDrawer";
 import { MerchantStep } from "organisms/transactions/MerchantStep/MerchantStep";
 import { EntryMethodDrawer } from "organisms/transactions/EntryMethodDrawer/EntryMethodDrawer";
 import { flowMessages as m } from "config/transactionStepFlowMessages";
@@ -33,15 +34,12 @@ function TransactionStepFlowSession(input: TransactionStepFlowProps) {
         onClose={() => void w.requestClose()}
         closeLabel={m.close}
         title={receipt ? m.title : m.merchantTitle}
-        back={
-          receipt
-            ? { label: m.backToMerchant, onClick: w.backToMerchant }
-            : undefined
-        }
         titleAction={
-          <Button size="small" onClick={() => w.setMethodOpen(true)}>
-            {m.switchMethod}
-          </Button>
+          !receipt && (
+            <Button size="small" onClick={() => w.setMethodOpen(true)}>
+              {m.switchMethod}
+            </Button>
+          )
         }
       >
         <DialogContent
@@ -61,7 +59,7 @@ function TransactionStepFlowSession(input: TransactionStepFlowProps) {
               errorMessage={w.saveState.error}
               successMessage={w.saveState.success}
               saving={w.saving}
-              onBack={w.backToMerchant}
+              onMerchantClick={w.merchantPicker.openPicker}
               onAccountSelect={props.onAccountSelect}
             />
           ) : (
@@ -70,17 +68,24 @@ function TransactionStepFlowSession(input: TransactionStepFlowProps) {
               merchantTags={props.merchantTags}
               frequentMerchants={props.frequentMerchants}
               loadingMerchantId={w.loadingMerchantId}
-              onSelect={w.selectMerchant}
-              onAddMerchant={
-                creation?.addMerchant
-                  ? (name) => creation.addMerchant?.(w.selectMerchant, name)
-                  : undefined
-              }
+              onSelect={w.merchantPicker.selectMerchant}
+              onAddMerchant={w.merchantPicker.onAddMerchant}
               onAddPresets={props.onAddPresets}
             />
           )}
         </DialogContent>
       </WizardDialog>
+      <ReceiptMerchantDrawer
+        open={w.merchantPicker.open}
+        suspended={w.merchantPicker.suspended}
+        onClose={w.merchantPicker.closePicker}
+        merchants={props.merchants}
+        merchantTags={props.merchantTags}
+        frequentMerchants={props.frequentMerchants}
+        onSelect={w.merchantPicker.selectMerchant}
+        onAddMerchant={w.merchantPicker.onAddMerchant}
+        onAddPresets={props.onAddPresets}
+      />
       <EntryMethodDrawer
         currentMethod="merchant"
         open={w.methodOpen}

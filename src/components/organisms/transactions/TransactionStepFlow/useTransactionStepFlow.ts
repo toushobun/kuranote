@@ -8,6 +8,7 @@ import {
 } from "react";
 import { useTransactionReceiptForm } from "organisms/transactions/TransactionConfirmStep/useTransactionReceiptForm";
 import type { TransactionFormInitialValues } from "organisms/transactions/TransactionForm/TransactionForm.types";
+import { useReceiptMerchantPicker } from "organisms/transactions/ReceiptMerchantDrawer/useReceiptMerchantPicker";
 import { useConfirmDialog } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import type { ActionState } from "types/actions";
 import type { TransactionStepFlowProps } from "./TransactionStepFlow.types";
@@ -38,7 +39,6 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     null,
   );
   const [screen, setScreen] = useState<TransactionStepFlowScreen>("merchant");
-  const [receiptVisited, setReceiptVisited] = useState(false);
   const baseItemsOptions = props.itemsOptions ?? { categoryOptions: [] };
   const [initialValues] = useState<TransactionFormInitialValues>(() => ({
     items: baseItemsOptions.initialItems ?? [],
@@ -100,7 +100,6 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
   }
   function showReceipt() {
     setScreen("receipt");
-    setReceiptVisited(true);
   }
   const applySuggestions = useEffectEvent(() => {
     if (!suggestionsReady || pendingQuickMerchantId.current !== merchant?.id)
@@ -179,14 +178,9 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     if (!waiting && receiptSnapshot !== waitStartSnapshot.current)
       pendingQuickMerchantId.current = null;
   }, [waiting, receiptSnapshot]);
-  function backToMerchant() {
-    stopWaiting();
-    setAmountItemId(null);
-    setScreen("merchant");
-  }
   function selectMerchant(value: FlowMerchant) {
-    // 从小票返回换商家或已有明细时不走快速路线，直接回到小票，建议到达后替换自动明细。
-    const quick = !receiptVisited && !form.itemSummaries.length;
+    // 已进入小票后换商家不走快速路线，留在小票，建议到达后替换自动明细。
+    const quick = screen === "merchant" && !form.itemSummaries.length;
     const replacing = !quick && value.id !== form.selectedMerchantId;
     pendingQuickMerchantId.current = quick || replacing ? value.id : null;
     replacingAutomaticItems.current = replacing;
@@ -196,6 +190,7 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     if (quick) setLoadingMerchantId(value.id);
     else showReceipt();
   }
+  const merchantPicker = useReceiptMerchantPicker(selectMerchant);
   async function requestClose() {
     if (
       await confirm({
@@ -231,8 +226,7 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     methodOpen,
     setMethodOpen,
     loadingMerchantId,
-    backToMerchant,
-    selectMerchant,
+    merchantPicker,
     requestClose,
   };
 }

@@ -56,6 +56,3 @@ export const Submitting: Story = {
 export const WithoutTitle: Story = {
   args: { title: undefined, ariaLabel: "操作完成" },
 };
-export const WithBack: Story = {
-  args: { back: { label: "返回", onClick: () => {} } },
-};

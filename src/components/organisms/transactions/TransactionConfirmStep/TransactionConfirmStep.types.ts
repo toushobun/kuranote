@@ -20,7 +20,7 @@ export type TransactionConfirmStepProps = TransactionReceiptProps & {
   errorMessage?: string;
   successMessage?: string;
   saving: boolean;
-  onBack: () => void;
+  onMerchantClick: () => void;
   onAccountSelect?: (account: TransactionAccountOption) => void;
   /** 只读详情（#962，编辑页的 `editRestriction`）：只显示内容，不能修改。 */
   readOnly?: boolean;

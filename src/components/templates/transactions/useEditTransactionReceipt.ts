@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useReceiptMerchantPicker } from "organisms/transactions/ReceiptMerchantDrawer/useReceiptMerchantPicker";
 import type { FlowMerchant } from "organisms/transactions/MerchantStep/MerchantStep.types";
 import { useTransactionReceiptForm } from "organisms/transactions/TransactionConfirmStep/useTransactionReceiptForm";
 import type { TransactionFormInitialValues } from "organisms/transactions/TransactionForm/TransactionForm.types";
@@ -40,12 +40,11 @@ export function useEditTransactionReceipt({
         : initialValues.merchantId || undefined,
       ledgerId,
     });
-  const [merchantPickerOpen, setMerchantPickerOpen] = useState(false);
+  const merchantPicker = useReceiptMerchantPicker(selectMerchant);
 
   function selectMerchant(merchant: FlowMerchant) {
     receipt.form.handleMerchantChange(merchant.id);
     loadSuggestions(merchant.id);
-    setMerchantPickerOpen(false);
   }
 
   return {
@@ -55,9 +54,6 @@ export function useEditTransactionReceipt({
       suggestionsMerchantId === receipt.form.selectedMerchantId
         ? suggestions
         : undefined,
-    merchantPickerOpen,
-    openMerchantPicker: () => setMerchantPickerOpen(true),
-    closeMerchantPicker: () => setMerchantPickerOpen(false),
-    selectMerchant,
+    merchantPicker,
   };
 }

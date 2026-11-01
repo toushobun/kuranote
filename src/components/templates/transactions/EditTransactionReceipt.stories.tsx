@@ -1,3 +1,5 @@
+import { ReceiptCreationProvider } from "organisms/transactions/ReceiptCreationProvider/ReceiptCreationProvider";
+import { receiptCreationData } from "test/mocks/receiptCreation";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { userEvent, within } from "storybook/test";
 import { transactionErrorCodes } from "internal/transaction";
@@ -51,7 +53,9 @@ const meta = {
     ...transactionEntryStoryDecorators,
     (Story) => (
       <NewTransactionVisualFrame>
-        <Story />
+        <ReceiptCreationProvider data={receiptCreationData()}>
+          <Story />
+        </ReceiptCreationProvider>
       </NewTransactionVisualFrame>
     ),
   ],
@@ -91,7 +95,7 @@ export const MultiAccount: Story = {
 };
 
 export const ChangeMerchant: Story = {
-  name: "点商家换商家（没有新增商家入口）",
+  name: "小票商家抽屉（支持新增商家）",
   play: async ({ canvasElement }) => {
     await userEvent.click(
       await within(canvasElement).findByRole("button", {

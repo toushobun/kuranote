@@ -41,7 +41,7 @@ export function ReadOnlyReceipt({
       onAmountItemChange={() => {}}
       action={() => {}}
       saving={false}
-      onBack={() => {}}
+      onMerchantClick={() => {}}
       onAccountSelect={() => {}}
     />
   );
