@@ -104,6 +104,65 @@ describe("unsavedChangesCoordinator", () => {
     expect(child.close).toHaveBeenCalledOnce();
     expect(parent.close).not.toHaveBeenCalled();
   });
+  it("弹层切换方式先回基准再 replace，后退一次返回来源页", async () => {
+    const b = setup();
+    b.register(false, null);
+    const drawer = b.register(false, 1);
+    await b.flush();
+    expect(b.index()).toBe(2);
+    const replace = vi.fn(() => {
+      expect(b.index()).toBe(1);
+      b.port.replace({
+        __NA: true,
+        __PRIVATE_NEXTJS_INTERNALS_TREE: { tree: "另一记账方式" },
+      });
+    });
+    const navigation = drawer.guard.navigate(replace);
+    expect(replace).not.toHaveBeenCalled();
+    await b.flush();
+    await navigation;
+    expect(replace).toHaveBeenCalledOnce();
+    expect(b.index()).toBe(1);
+    await b.back();
+    expect(b.index()).toBe(0);
+    expect(b.port.push).toHaveBeenCalledOnce();
+  });
+  it("预设添加的服务端 replace 在提交清理后执行，不遗留中间页", async () => {
+    const b = setup();
+    b.register(false, null);
+    const presets = b.register(false, 2);
+    await b.flush();
+    const redirect = { digest: "NEXT_REDIRECT;replace;/edit;307" };
+    const action = presets.guard.runAction(async () => {
+      expect(b.index()).toBe(1);
+      b.port.replace({
+        __NA: true,
+        __PRIVATE_NEXTJS_INTERNALS_TREE: { tree: "添加成功" },
+      });
+      throw redirect;
+    });
+    await b.flush();
+    await expect(action).rejects.toBe(redirect);
+    expect(b.index()).toBe(1);
+    await b.back();
+    expect(b.index()).toBe(0);
+    expect(b.port.push).toHaveBeenCalledOnce();
+  });
+  it("预设添加返回失败状态时重新武装弹层守卫", async () => {
+    const b = setup();
+    b.register(false, null);
+    const presets = b.register(false, 2);
+    await b.flush();
+    const state = await presets.guard.runAction(async () => {
+      expect(b.index()).toBe(1);
+      return { error: "添加失败" };
+    });
+    await b.flush();
+    expect(state.error).toBe("添加失败");
+    expect(b.index()).toBe(2);
+    await b.back();
+    expect(presets.close).toHaveBeenCalledOnce();
+  });
   it("PR1 页面放弃只后退一次，滚动与 Next 状态保持，失效哨兵前进回基准", async () => {
     const b = setup();
     b.port.scrollTo({ x: 0, y: 2000 });
