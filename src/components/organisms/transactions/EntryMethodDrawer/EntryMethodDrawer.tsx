@@ -28,7 +28,7 @@ export function EntryMethodDrawer({
   onClose,
   onMethodChange,
 }: EntryMethodDrawerProps) {
-  useBackLayer(open, onClose);
+  const { navigate } = useBackLayer(open, onClose);
   return (
     <Drawer
       sx={{ zIndex: (theme) => theme.zIndex.modal + 1 }}
@@ -61,14 +61,19 @@ export function EntryMethodDrawer({
               key={method.id}
               disabled={"disabled" in method && method.disabled}
               onClick={() => {
-                onClose();
                 if (
                   method.id !== currentMethod &&
                   (method.id === "merchant" ||
                     method.id === "transfer" ||
                     method.id === "standard")
-                )
-                  onMethodChange(method.id);
+                ) {
+                  void navigate(() => {
+                    onClose();
+                    onMethodChange(method.id);
+                  });
+                } else {
+                  onClose();
+                }
               }}
               sx={rowSx}
             >
