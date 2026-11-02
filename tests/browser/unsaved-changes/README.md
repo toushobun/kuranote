@@ -79,7 +79,7 @@ PR2 的后退与前进必须点击 Chrome 工具栏按钮。原有 `guard:check`
 
 证据提交在 screenshots/976 分支，业务实现为 051fdcc68。iPhone／Android 实机验收继续由人工处理。
 
-## PR2 第 3 轮补充场景（尚待真实工具栏验收）
+## PR2 第 3 轮补充场景
 
 验证应用的 `/new?empty=1` 提供模拟预设成功的 Server Action。成功时以内联状态关闭弹层，并为当前 **同一个** `NewTransactionStepFlow` 客户端实例补入测试商家；不强制重新挂载。这用来覆盖同页成功后仍然要保护新小票的情形。
 
@@ -90,4 +90,20 @@ PR2 的后退与前进必须点击 Chrome 工具栏按钮。原有 `guard:check`
 3. 在同一个页面选择商家进入小票，编辑可保存字段（如备注），再点击工具栏后退；必须弹「尚未保存」，「继续编辑」保留内容，「放弃修改」只回来源页一次。
 4. 对比操作前后的 `toolbar-probe`：记下 URL、history 条数／索引、base/sentinel、组件挂载／卸载和 RSC 请求数。保存原始记录，并在 PR 正文补上真实结果后才勾选相应验收项。
 
-**目前状态：** 代码与 Vitest 回归已经补充；第 2、3 轮这两个成功导航场景的真实开发／生产工具栏记录尚未采集。上面的第 1 轮截图和 JSON 不代表本轮通过。
+### 第 3 轮工具栏验收结果
+
+维护者实际点击 Chrome 工具栏后退，代理操作页面内容（含确认框按钮）并采集只读指标；验证脚本不发起后退或前进。基于 `f9ccba5e9`，开发与生产模式分别执行。
+
+| 模式 | 切换方式后退         | 预设成功后的 URL／挂载          | 小票后退 RSC 增量 | 继续编辑                                  | 放弃                 |
+| ---- | -------------------- | ------------------------------- | ----------------- | ----------------------------------------- | -------------------- |
+| 开发 | 一次回来源页，索引 0 | 同页，mounts 2／unmounts 1 不变 | 0（2→2）          | 备注与表单实例保留，history.length 4 不变 | 一次回来源页，索引 0 |
+| 生产 | 一次回来源页，索引 0 | 同页，mounts 1／unmounts 0 不变 | 0（14→14）        | 备注与表单实例保留，history.length 4 不变 | 一次回来源页，索引 0 |
+
+开发模式从 404 页后退到首页时，`output#toolbar-probe` 存在但内容为空（原因未查明，生产模式无此现象）。首轮因断言读取 probe 索引而记为失败，此后改由 Navigation API 读取索引并单独补采；两份记录都保留。
+
+修复前预演发现：`router.refresh()` 经 Next 的 HistoryUpdater 重写当前记录，丢弃自定义 state，抹掉基准标记后守卫后退失效（开发模式直接离开，生产模式后退被吞）。Vitest 当时 mock 了 refresh，未能覆盖；现由 `nextReplaceState` 模拟。预演使用 `page.goBack()`，只用于诊断，不作为工具栏证据。
+
+- [开发原始记录](https://github.com/toushobun/kuranote/tree/5f7337a9c84aa4cf68b470448b68dfd76c53dcde/976-pr2-round3/toolbar-dev) · [开发切换方式补采](https://github.com/toushobun/kuranote/tree/5f7337a9c84aa4cf68b470448b68dfd76c53dcde/976-pr2-round3/toolbar-dev-retake-A) · [生产原始记录](https://github.com/toushobun/kuranote/tree/5f7337a9c84aa4cf68b470448b68dfd76c53dcde/976-pr2-round3/toolbar-prod)
+- 修复前失败记录：[开发](https://github.com/toushobun/kuranote/tree/5f7337a9c84aa4cf68b470448b68dfd76c53dcde/976-pr2-round3/pre-fix-rehearsal-dev) · [生产](https://github.com/toushobun/kuranote/tree/5f7337a9c84aa4cf68b470448b68dfd76c53dcde/976-pr2-round3/pre-fix-rehearsal-prod)
+
+上面第 1 轮的截图和 JSON 只代表第 1 轮。iPhone／Android 实机验收继续由人工处理。
