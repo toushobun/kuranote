@@ -101,7 +101,10 @@ export function MerchantEditTemplate({
   }, [update.state, completeSave]);
   useEffect(() => {
     if (createAlias.state.successKey || createAlias.state.errorKey)
-      void completeSave(Boolean(createAlias.state.success), "merchant-alias-form");
+      void completeSave(
+        Boolean(createAlias.state.success),
+        "merchant-alias-form",
+      );
   }, [createAlias.state, completeSave]);
   const aliasPending =
     createAlias.pending || archiveAlias.pending || setPreferred.pending;
