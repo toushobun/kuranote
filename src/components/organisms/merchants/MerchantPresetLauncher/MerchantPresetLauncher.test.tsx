@@ -158,6 +158,66 @@ describe("MerchantPresetLauncher", () => {
       screen.getByRole("heading", { name: "从预设添加商家" }),
     ).toBeInTheDocument();
   });
+  it("预设成功后原页不重挂载，进入小票修改仍拦截后退", async () => {
+    routerMock.refresh.mockClear();
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json({
+        automaticCategoryIds: [],
+        quickAmounts: [],
+        recommendedAccountIds: [],
+      }),
+    );
+    const base = {
+      action,
+      accountOptions: flowFixture.accounts,
+      addPresetsAction: async () => ({ success: "已添加 3 个商家" }),
+      categoryOptions: receiptItemsOptions.categoryOptions,
+      frequentMerchants: [],
+      ledgerId: "ledger-1",
+      loadPresetsAction: async () => ({
+        options: createMerchantPresetOptions(),
+      }),
+      merchantTags: [],
+      multiAccountPaymentEnabled: true,
+      transactionItemSpecialStatusEnabled: false,
+    };
+    try {
+      const view = render(
+        <NewTransactionStepFlow {...base} merchantOptions={[]} />,
+        { wrapper: ConfirmDialogTestProviders },
+      );
+      const heading = screen.getByRole("heading", { name: "记一笔" });
+      fireEvent.click(screen.getByRole("button", { name: "从预设添加" }));
+      fireEvent.click(await screen.findByRole("button", { name: "全部选择" }));
+      fireEvent.click(screen.getByRole("button", { name: /添加 \\d+ 个商家/ }));
+      await waitFor(() => expect(routerMock.refresh).toHaveBeenCalledOnce());
+      await waitFor(() =>
+        expect(
+          screen.queryByRole("heading", { name: "从预设添加商家" }),
+        ).toBeNull(),
+      );
+      expect(screen.getByRole("heading", { name: "记一笔" })).toBe(heading);
+      // 模拟 refresh 更新服务端选项，但保留原客户端组件实例。
+      view.rerender(
+        <NewTransactionStepFlow
+          {...base}
+          merchantOptions={flowFixture.merchants}
+        />,
+      );
+      fireEvent.click(screen.getByRole("button", { name: /^7-Eleven/ }));
+      await screen.findByText("这家商家还没有记录");
+      await backFromGuard();
+      expect(
+        await screen.findByRole("dialog", { name: "尚未保存" }),
+      ).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "继续编辑" }));
+      await waitFor(() =>
+        expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull(),
+      );
+    } finally {
+      fetchMock.mockRestore();
+    }
+  });
   it.each([false, true])(
     "新增首屏的常用商家层加载完成为%s时后退只关最上层，前进不复活",
     async (loaded) => {
