@@ -261,12 +261,22 @@ describe("NewTransactionStepFlow", () => {
     );
   });
 
-  it("切换方式时替换为对应方式的地址", () => {
+  it("切换方式清理哨兵后替换地址，后退一次离开记一笔", async () => {
     setup();
     click("切换方式");
+    await waitFor(() => expect(guardHistory().index()).toBe(2));
     click("账户周转");
-    expect(router.replace).toHaveBeenCalledWith(
-      "/transactions/new?method=transfer",
+    expect(router.replace).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(router.replace).toHaveBeenCalledWith(
+        "/transactions/new?method=transfer",
+      ),
     );
+    expect(guardHistory().index()).toBe(1);
+    expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe(
+      "base",
+    );
+    await act(async () => window.history.back());
+    expect(guardHistory().index()).toBe(0);
   });
 });
