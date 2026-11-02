@@ -19,6 +19,10 @@ export function useNewTransactionStepFlow({ ledgerId }: { ledgerId: string }) {
     presetsOpen,
     presetsReturnTo: returnTo,
     closePresets: () => setPresetsOpen(false),
+    onPresetsAdded: () => {
+      setPresetsOpen(false);
+      router.refresh();
+    },
     flowHandlers: {
       onClose: () => router.push(routePaths.transactions),
       onMethodChange: changeMethod,
