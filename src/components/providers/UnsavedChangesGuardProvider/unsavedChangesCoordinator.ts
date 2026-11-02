@@ -102,6 +102,14 @@ export function createUnsavedChangesCoordinator(
           !entry.suspended &&
           history.shouldBlockUnload(),
         needsCleanup: () => history.needsCleanup(),
+        navigate(action: () => void) {
+          if (!isCurrent(entry)) {
+            action();
+            return Promise.resolve();
+          }
+          // 路由变化必须等待内部哨兵清理，不能与 router.replace 并发。
+          return history.leave(action);
+        },
         async leave(action: () => void) {
           if (entry.layer === null) return history.leave(action);
           // UI 关闭与后退关闭都只停用本层；setDirty(false) 的内部遍历不会派发下一次后退。
@@ -113,13 +121,25 @@ export function createUnsavedChangesCoordinator(
         async runAction<T>(action: () => Promise<T>): Promise<T> {
           if (!isCurrent(entry)) return action();
           entry.suspended = true;
+          let redirecting = false;
           try {
             // 子层保存不能清理父表单的保护；只有本实例独占保护时才清理历史。
             if (protecting()) return await action();
             return await history.runAction(action);
+          } catch (error) {
+            // Next 的成功重定向尚未完成时，不能重新压入被清理的哨兵。
+            redirecting =
+              typeof error === "object" &&
+              error !== null &&
+              "digest" in error &&
+              typeof error.digest === "string" &&
+              error.digest.startsWith("NEXT_REDIRECT;");
+            throw error;
           } finally {
-            entry.suspended = false;
-            await sync();
+            if (!redirecting) {
+              entry.suspended = false;
+              await sync();
+            }
           }
         },
       };
