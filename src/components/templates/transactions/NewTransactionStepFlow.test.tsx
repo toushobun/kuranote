@@ -267,10 +267,9 @@ describe("NewTransactionStepFlow", () => {
     await waitFor(() => expect(guardHistory().index()).toBe(2));
     click("账户周转");
     expect(router.replace).not.toHaveBeenCalled();
-    await waitFor(() =>
-      expect(router.replace).toHaveBeenCalledWith(
-        "/transactions/new?method=transfer",
-      ),
+    await waitFor(() => expect(router.replace).toHaveBeenCalledOnce());
+    expect(router.replace).toHaveBeenCalledWith(
+      "/transactions/new?method=transfer",
     );
     expect(guardHistory().index()).toBe(1);
     expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe(
