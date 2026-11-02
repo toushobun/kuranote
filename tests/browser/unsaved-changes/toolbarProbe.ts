@@ -6,6 +6,7 @@ type ProbeWindow = Window & {
     entries?: () => Array<{ url: string; index: number }>;
   };
 };
+const probeEvents = ["popstate", "scroll", "input", "click", "transitionend"];
 
 /** 为工具栏验收暴露只读 DOM 记录，不从验证代码触发后退或前进。 */
 export function installToolbarProbe(output: HTMLElement) {
@@ -50,6 +51,15 @@ export function installToolbarProbe(output: HTMLElement) {
           ),
         };
       }),
+      feedback: [
+        ...document.querySelectorAll<HTMLElement>(".MuiSnackbar-root"),
+      ].map((node) => ({
+        text: node.textContent,
+        zIndex: getComputedStyle(node).zIndex,
+        bodyPortal: node.parentElement === document.body,
+        opacity: getComputedStyle(node.querySelector(".MuiAlert-root") ?? node)
+          .opacity,
+      })),
       dialogs: [...document.querySelectorAll<HTMLElement>(".MuiModal-root")]
         .filter((node) => getComputedStyle(node).visibility !== "hidden")
         .map((node) => ({
@@ -77,7 +87,7 @@ export function installToolbarProbe(output: HTMLElement) {
   });
   const resources = new PerformanceObserver(schedule);
   resources.observe({ type: "resource", buffered: true });
-  for (const event of ["popstate", "scroll", "input", "click"])
+  for (const event of probeEvents)
     window.addEventListener(event, schedule, true);
   const navigation = (window as ProbeWindow).navigation;
   const onEntryChange = () => {
@@ -93,7 +103,7 @@ export function installToolbarProbe(output: HTMLElement) {
     navigation?.removeEventListener("currententrychange", onEntryChange);
     mutations.disconnect();
     resources.disconnect();
-    for (const event of ["popstate", "scroll", "input", "click"])
+    for (const event of probeEvents)
       window.removeEventListener(event, schedule, true);
   };
 }
