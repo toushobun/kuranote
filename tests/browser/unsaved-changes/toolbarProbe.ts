@@ -12,6 +12,7 @@ export function installToolbarProbe(output: HTMLElement) {
   const formIds = new WeakMap<Element, number>();
   let nextFormId = 0;
   let pending = false;
+  const traversals: Array<{ index: number | null; marker: unknown }> = [];
   const render = () => {
     pending = false;
     const probe = window as ProbeWindow;
@@ -23,6 +24,8 @@ export function installToolbarProbe(output: HTMLElement) {
       unmounts: probe.probeUnmounts ?? 0,
       historyLength: history.length,
       historyIndex: probe.navigation?.currentEntry?.index ?? null,
+      historyStateKeys: Object.keys(history.state ?? {}),
+      traversals,
       historyEntries:
         probe.navigation
           ?.entries?.()
@@ -77,10 +80,17 @@ export function installToolbarProbe(output: HTMLElement) {
   for (const event of ["popstate", "scroll", "input", "click"])
     window.addEventListener(event, schedule, true);
   const navigation = (window as ProbeWindow).navigation;
-  navigation?.addEventListener("currententrychange", schedule);
+  const onEntryChange = () => {
+    traversals.push({
+      index: navigation?.currentEntry?.index ?? null,
+      marker: history.state?.kuranoteUnsavedChanges ?? null,
+    });
+    schedule();
+  };
+  navigation?.addEventListener("currententrychange", onEntryChange);
   schedule();
   return () => {
-    navigation?.removeEventListener("currententrychange", schedule);
+    navigation?.removeEventListener("currententrychange", onEntryChange);
     mutations.disconnect();
     resources.disconnect();
     for (const event of ["popstate", "scroll", "input", "click"])

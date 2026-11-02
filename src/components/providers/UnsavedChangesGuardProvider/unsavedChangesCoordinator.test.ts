@@ -120,11 +120,20 @@ describe("unsavedChangesCoordinator", () => {
     page.release();
     await b.flush();
     expect(b.index()).toBe(0);
+    const nextNavigation = vi.fn();
+    b.onPop(() => {
+      const event = new PopStateEvent("popstate");
+      const stop = vi.spyOn(event, "stopImmediatePropagation");
+      b.coordinator.handlePopState(event);
+      if (!stop.mock.calls.length) nextNavigation();
+    });
     b.port.go(1);
     await b.flush();
+    expect(nextNavigation).toHaveBeenCalledOnce();
     b.port.go(1);
     await b.flush();
     expect(b.index()).toBe(1);
+    expect(nextNavigation).toHaveBeenCalledOnce();
     expect(page.close).toHaveBeenCalledOnce();
   });
   it("普通导航后的新页面重新连接 Provider 的状态机，保护不沿用旧 URL", async () => {

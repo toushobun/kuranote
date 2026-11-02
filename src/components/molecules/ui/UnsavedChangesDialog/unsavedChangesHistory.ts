@@ -201,6 +201,8 @@ export class UnsavedChangesHistory {
       this.hasSentinel = true;
     }
     if (marker?.id !== this.id || this.port.href() !== this.href) return;
+    // 页面离开后的正常前进必须交给 Next；只有内部遍历才消费干净的基准记录。
+    if (marker.position === "base" && !this.dirty && !this.traversal) return;
     this.preserveScroll();
     if (this.traversal?.position === marker.position) {
       const { done } = this.traversal;
