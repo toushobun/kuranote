@@ -5,7 +5,7 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
-import { useCallback, useId } from "react";
+import { useCallback, useEffect, useId } from "react";
 import { WizardDialog } from "molecules/ui/WizardDialog/WizardDialog";
 import { presetChecklistToggleAllButtonSx } from "molecules/ui/GroupedPresetChecklist/presetChecklistStyles";
 
@@ -24,6 +24,7 @@ export type MerchantPresetDialogProps = {
   action: MerchantPresetStateAction;
   options: MerchantPresetOptions;
   onClose: () => void;
+  onSaved?: () => void;
   /** 添加成功后返回的站内路径（例如记一笔），由服务端再次校验。 */
   returnTo?: string | null;
 };
@@ -33,6 +34,7 @@ export function MerchantPresetDialog({
   action,
   options,
   onClose,
+  onSaved,
   returnTo = null,
 }: MerchantPresetDialogProps) {
   const formId = useId();
@@ -41,8 +43,16 @@ export function MerchantPresetDialog({
     (state, data) => runAction(() => action(state, data)),
     [action, runAction],
   );
-  const dialog = useMerchantPresetDialog(options, guardedAction, returnTo);
+  const dialog = useMerchantPresetDialog(
+    options,
+    guardedAction,
+    returnTo,
+    !!onSaved,
+  );
   const pending = dialog.submission.pending;
+  useEffect(() => {
+    if (dialog.submission.state.success) onSaved?.();
+  }, [dialog.submission.state.success, onSaved]);
   function requestClose() {
     if (!pending) onClose();
   }
