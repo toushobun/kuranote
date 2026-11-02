@@ -43,7 +43,7 @@ export function AccountCreateTemplate(props: AccountCreateTemplateProps) {
   const formId = "create-account-form";
   const guard = useUnsavedChangesForm(formId, props.createAccountAction);
   return (
-    <BackLayerScope level={transactionBackLayerLevels.receiptEditor}>
+    <BackLayerScope level={transactionBackLayerLevels.pageOverlay}>
       <SettingsPageLayout
         back={{
           href: props.returnTo ?? routePaths.accounts,

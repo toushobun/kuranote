@@ -10,7 +10,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 const router = vi.hoisted(() => ({ replace: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
@@ -30,20 +30,17 @@ vi.mock("organisms/transactions/TransactionForm/TransactionForm", () => ({
     errorMessage,
     formId,
     initialType,
-    onSubmitDisabledChange,
     setupHrefs,
     transactionItemSpecialStatusEnabled,
   }: {
     errorMessage: string | null;
     formId?: string;
     initialType?: "expense" | "income";
-    onSubmitDisabledChange?: (disabled: boolean) => void;
     setupHrefs?: { account: string; merchant: string };
     transactionItemSpecialStatusEnabled?: boolean;
   }): ReactNode => {
     const reportDirty = useEditTransactionDirty();
     const [isItemPickerOpen, setIsItemPickerOpen] = useState(false);
-    useEffect(() => onSubmitDisabledChange?.(false), [onSubmitDisabledChange]);
     const type = initialType ?? "expense";
     const label = type === "income" ? "收入" : "支出";
     const itemPicker = (

@@ -13,6 +13,7 @@ import {
 import { useUnsavedChangesCoordinator } from "providers/UnsavedChangesGuardProvider/UnsavedChangesGuardProvider";
 
 type LeaveIntent = { type: "back" } | { type: "action"; action: () => void };
+type SaveIntent = { formId: string; leave: LeaveIntent };
 
 export function useUnsavedChangesGuard({
   isDirty,
@@ -31,12 +32,19 @@ export function useUnsavedChangesGuard({
   disabled?: boolean;
 }) {
   const router = useRouter();
-  const saveIntent = useRef<LeaveIntent | null>(null);
+  const saveIntent = useRef<SaveIntent | null>(null);
   const [intent, setIntent] = useState<LeaveIntent | null>(null);
   const coordinator = useUnsavedChangesCoordinator();
   const [history] = useState(coordinator.createGuard);
   const runAction = useCallback(
-    <T>(action: () => Promise<T>) => history.runAction(action),
+    async <T,>(action: () => Promise<T>) => {
+      try {
+        return await history.runAction(action);
+      } finally {
+        // 普通表单提交结束或失败后，不得保留旧的离开意图。
+        saveIntent.current = null;
+      }
+    },
     [history],
   );
 
@@ -50,10 +58,11 @@ export function useUnsavedChangesGuard({
     [history, back],
   );
   const completeSave = useCallback(
-    (success: boolean) => {
-      const leave = saveIntent.current;
+    (success: boolean, formId: string) => {
+      const saved = saveIntent.current;
+      if (saved?.formId !== formId) return Promise.resolve();
       saveIntent.current = null;
-      if (success && leave) return followIntent(leave);
+      if (success) return followIntent(saved.leave);
       return Promise.resolve();
     },
     [followIntent],
@@ -168,9 +177,11 @@ export function useUnsavedChangesGuard({
           ? undefined
           : () => {
               setIntent(null);
+              saveIntent.current = null;
               const form = document.getElementById(saveFormId);
               if (form instanceof HTMLFormElement) {
-                saveIntent.current = form.checkValidity() ? intent : null;
+                if (form.checkValidity() && intent)
+                  saveIntent.current = { formId: saveFormId, leave: intent };
                 form.requestSubmit();
               }
             },

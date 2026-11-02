@@ -69,7 +69,6 @@ type UseTransactionFormOptions = Pick<
   | "categoryOptions"
   | "initialType"
   | "merchantOptions"
-  | "onSubmitDisabledChange"
 > & {
   initialValues?: TransactionFormInitialValues;
   deferPickerAmount?: boolean;
@@ -82,7 +81,6 @@ export function useTransactionForm({
   initialType,
   initialValues,
   merchantOptions,
-  onSubmitDisabledChange,
   deferPickerAmount = false,
   onPickerItemCommit,
 }: UseTransactionFormOptions) {
@@ -250,10 +248,6 @@ export function useTransactionForm({
     allNormalCategoryOptions.length === 0 ||
     !transactionAtValue ||
     (paymentFields.isMultiAccount && !paymentReconciliation.isBalanced);
-
-  useEffect(() => {
-    onSubmitDisabledChange?.(isSubmitDisabled);
-  }, [isSubmitDisabled, onSubmitDisabledChange]);
 
   const signedTotalAmount =
     allDisplayItems.length > 0

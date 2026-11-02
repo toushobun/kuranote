@@ -63,7 +63,6 @@ export function TransactionForm({
   loadReimbursementSearchPageAction,
   refundPickerView,
   reimbursementPickerView,
-  onSubmitDisabledChange,
   setupHrefs,
   submitLabel = "保存记账",
   title = "新增记账",
@@ -85,7 +84,6 @@ export function TransactionForm({
     categoryOptions,
     initialType,
     merchantOptions,
-    onSubmitDisabledChange,
   });
   const {
     accountFieldRef,

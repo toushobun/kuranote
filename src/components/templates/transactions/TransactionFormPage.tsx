@@ -197,7 +197,7 @@ function TransactionTypeSlidePanels({
 
 export function NewTransactionTemplate(props: TransactionFormTemplateProps) {
   return (
-    <BackLayerScope level={transactionBackLayerLevels.receiptEditor}>
+    <BackLayerScope level={transactionBackLayerLevels.pageOverlay}>
       <NewTransactionFormView {...props} />
       <TransactionAmountKeypadLauncher />
     </BackLayerScope>
@@ -212,7 +212,7 @@ export function NewTransferTransactionTemplate({
   const guard = useUnsavedChangesForm("new-transfer-transaction-form", action);
   const [actionState, formAction] = useActionState(guard.action, {});
   return (
-    <BackLayerScope level={transactionBackLayerLevels.receiptEditor}>
+    <BackLayerScope level={transactionBackLayerLevels.pageOverlay}>
       <EditTransactionDirtyProvider onDirty={guard.onDirtyChange}>
         <Stack spacing={0}>
           <TransactionPageTopBar
@@ -289,7 +289,7 @@ function GuardedPanel({
     <EditTransactionDirtyProvider onDirty={onDirty}>
       <BackLayerScope
         level={
-          activeType === type ? transactionBackLayerLevels.receiptEditor : null
+          activeType === type ? transactionBackLayerLevels.pageOverlay : null
         }
       >
         {children}
@@ -500,7 +500,7 @@ export function EditTransferTransactionTemplate({
   );
 
   return (
-    <BackLayerScope level={transactionBackLayerLevels.receiptEditor}>
+    <BackLayerScope level={transactionBackLayerLevels.pageOverlay}>
       <EditTransactionShell
         action={action}
         canDelete={canDelete}

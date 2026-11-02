@@ -96,8 +96,12 @@ export function MerchantEditTemplate({
   );
   const completeSave = guard.completeSave;
   useEffect(() => {
+    if (update.state.successKey || update.state.errorKey)
+      void completeSave(Boolean(update.state.success), "merchant-edit-form");
+  }, [update.state, completeSave]);
+  useEffect(() => {
     if (createAlias.state.successKey || createAlias.state.errorKey)
-      void completeSave(Boolean(createAlias.state.success));
+      void completeSave(Boolean(createAlias.state.success), "merchant-alias-form");
   }, [createAlias.state, completeSave]);
   const aliasPending =
     createAlias.pending || archiveAlias.pending || setPreferred.pending;

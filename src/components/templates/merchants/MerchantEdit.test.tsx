@@ -269,6 +269,44 @@ describe("MerchantEdit 多表单守卫", () => {
       expect(screen.getByRole("dialog", { name: "尚未保存" })).toBeVisible();
     },
   );
+  it("确认保存基本资料失败后再新增别名成功，不会离开或丢失基本资料草稿", async () => {
+    routerMock.push.mockClear();
+    const update = vi.fn<MerchantStateAction>(async () => ({
+      error: "基本资料保存失败",
+      errorKey: "details-failed",
+    }));
+    const alias = vi.fn<MerchantStateAction>(async () => ({
+      success: "别名添加成功",
+      successKey: "alias-saved",
+    }));
+    renderTemplate({
+      updateMerchantAction: update,
+      createMerchantAliasAction: alias,
+    });
+    changeDetails();
+    await backFromGuard();
+    const backCalls = vi.mocked(window.history.back).mock.calls.length;
+    fireEvent.click(
+      within(screen.getByRole("dialog", { name: "尚未保存" })).getByRole(
+        "button",
+        { name: "保存" },
+      ),
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent("基本资料保存失败"),
+    );
+    changeAlias();
+    fireEvent.click(screen.getByRole("button", { name: "添加别名" }));
+    await waitFor(() => expect(alias).toHaveBeenCalledOnce());
+    await waitFor(() =>
+      expect(screen.getByRole("textbox", { name: "别名" })).toHaveValue(""),
+    );
+    expect(window.history.back).toHaveBeenCalledTimes(backCalls);
+    expect(routerMock.push).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(/商家名称/)).toHaveValue("修改后的商家");
+    await backFromGuard();
+    expect(screen.getByRole("dialog", { name: "尚未保存" })).toBeVisible();
+  });
   it("保存基本资料成功后只更新该表单基线，别名草稿继续受到保护", async () => {
     const update = vi.fn<MerchantStateAction>(async () => ({
       success: "保存成功",

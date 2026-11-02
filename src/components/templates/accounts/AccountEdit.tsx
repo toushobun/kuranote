@@ -72,7 +72,7 @@ export function AccountEditTemplate({
   );
 
   return (
-    <BackLayerScope level={transactionBackLayerLevels.receiptEditor}>
+    <BackLayerScope level={transactionBackLayerLevels.pageOverlay}>
       <SettingsPageLayout
         action={
           <form action={archiveFormAction} id={archiveAccountFormId}>

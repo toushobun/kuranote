@@ -108,7 +108,7 @@ export function BalanceAdjustmentEditForm({
     startTransition(() => remove(form));
   }
   return (
-    <BackLayerScope level={transactionBackLayerLevels.receiptEditor}>
+    <BackLayerScope level={transactionBackLayerLevels.pageOverlay}>
       <Stack spacing={2} sx={{ p: 2 }}>
         <Typography variant="h5">{text.title}</Typography>
         {editRestriction ? (

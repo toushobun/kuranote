@@ -12,6 +12,7 @@ import { useOptionalUnsavedChangesCoordinator } from "providers/UnsavedChangesGu
 
 export const transactionBackLayerLevels = {
   flow: 0,
+  pageOverlay: 1,
   receiptEditor: 1,
   creation: 2,
 } as const;
