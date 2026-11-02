@@ -6,7 +6,7 @@ import type {
   MerchantPresetStateAction,
 } from "types/merchants";
 
-import { redirect, RedirectType } from "next/navigation";
+import { redirect } from "next/navigation";
 
 import { merchantResultValues, merchantsResultHref } from "config/paths";
 import { merchantText } from "config/merchantText";
@@ -396,12 +396,8 @@ export const addMerchantPresets: MerchantPresetStateAction =
     // 同页弹层不依赖 redirect 重新挂载；由客户端关闭并刷新商家选项。
     if (formData.get("presentation") === "dialog")
       return { success: merchantPresetMessages.success(count) };
-    // 其他来源仍沿用服务端跳转；returnTo 的 replace 不留下中间历史记录。
-    const returnTo = getSafeNextPath(formData.get("returnTo"));
-    redirect(
-      returnTo ?? merchantsResultHref(merchantResultValues.presetsAdded, count),
-      returnTo ? RedirectType.replace : RedirectType.push,
-    );
+    // 商家管理页保留原有的结果页跳转。
+    redirect(merchantsResultHref(merchantResultValues.presetsAdded, count));
   };
 
 /** 打开预设弹框时才读取，不向客户端发送完整模板。 */
