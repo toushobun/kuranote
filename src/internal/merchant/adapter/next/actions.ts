@@ -10,6 +10,7 @@ import { redirect, RedirectType } from "next/navigation";
 
 import { merchantResultValues, merchantsResultHref } from "config/paths";
 import { merchantText } from "config/merchantText";
+import { merchantPresetMessages } from "config/merchantPresetMessages";
 import { createRequestContainer } from "internal/container";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
 import { revalidateMerchantMutation } from "internal/merchant/adapter/next/revalidate";
@@ -392,7 +393,10 @@ export const addMerchantPresets: MerchantPresetStateAction =
       );
     }
     revalidateMerchantMutation();
-    // 记一笔内的预设弹层先回基准，再 replace；不能 push 留下中间页。
+    // 同页弹层不依赖 redirect 重新挂载；由客户端关闭并刷新商家选项。
+    if (formData.get("presentation") === "dialog")
+      return { success: merchantPresetMessages.success(count) };
+    // 其他来源仍沿用服务端跳转；returnTo 的 replace 不留下中间历史记录。
     const returnTo = getSafeNextPath(formData.get("returnTo"));
     redirect(
       returnTo ?? merchantsResultHref(merchantResultValues.presetsAdded, count),
