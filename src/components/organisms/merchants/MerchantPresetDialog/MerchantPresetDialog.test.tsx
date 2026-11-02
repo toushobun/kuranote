@@ -20,7 +20,11 @@ function renderDialog(
 ) {
   const onClose = vi.fn();
   render(
-    <MerchantPresetDialog action={action} onClose={onClose} options={options} />,
+    <MerchantPresetDialog
+      action={action}
+      onClose={onClose}
+      options={options}
+    />,
   );
   return { options, onClose };
 }
