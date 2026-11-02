@@ -1,5 +1,7 @@
 "use client";
 
+import { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
+import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog/UnsavedChangesDialog";
 import Button from "@mui/material/Button";
 import { useCallback, useRef, useState } from "react";
 
@@ -49,6 +51,17 @@ export function MerchantEditTemplate({
   setPreferredMerchantAliasAction,
   updateMerchantAction,
 }: MerchantEditTemplateProps) {
+  const [detailsDirty, setDetailsDirty] = useState(false);
+  const [aliasDirty, setAliasDirty] = useState(false);
+  const guard = useUnsavedChangesGuard({
+    isDirty: detailsDirty || aliasDirty,
+    saveFormId:
+      detailsDirty && aliasDirty
+        ? null
+        : aliasDirty
+          ? "merchant-alias-form"
+          : "merchant-edit-form",
+  });
   const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
   const [aliasFeedbackOperation, setAliasFeedbackOperation] =
     useState<AliasFeedbackOperation | null>(null);
@@ -56,45 +69,56 @@ export function MerchantEditTemplate({
   const update = useMerchantsActionState(updateMerchantAction, {
     merchantId: merchant.id,
     operation: "update",
+    runAction: aliasDirty ? guard.runInPlaceAction : guard.runAction,
   });
   const archive = useMerchantsActionState(archiveMerchantAction, {
     merchantId: merchant.id,
     operation: "archive",
+    runAction: guard.runAction,
   });
   const createAlias = useMerchantsActionState(createMerchantAliasAction, {
     merchantId: merchant.id,
     operation: "createAlias",
+    runAction: guard.runInPlaceAction,
   });
   const archiveAlias = useMerchantsActionState(archiveMerchantAliasAction, {
     merchantId: merchant.id,
     operation: "archiveAlias",
+    runAction: guard.runInPlaceAction,
   });
   const setPreferred = useMerchantsActionState(
     setPreferredMerchantAliasAction,
-    { merchantId: merchant.id, operation: "setPreferred" },
+    {
+      merchantId: merchant.id,
+      operation: "setPreferred",
+      runAction: guard.runInPlaceAction,
+    },
   );
   const aliasPending =
     createAlias.pending || archiveAlias.pending || setPreferred.pending;
+  const createAliasDispatch = createAlias.action;
+  const archiveAliasDispatch = archiveAlias.action;
+  const setPreferredDispatch = setPreferred.action;
   const createAliasAction = useCallback(
     (formData: FormData) => {
       setAliasFeedbackOperation("createAlias");
-      createAlias.action(formData);
+      createAliasDispatch(formData);
     },
-    [createAlias.action],
+    [createAliasDispatch],
   );
   const archiveAliasAction = useCallback(
     (formData: FormData) => {
       setAliasFeedbackOperation("archiveAlias");
-      archiveAlias.action(formData);
+      archiveAliasDispatch(formData);
     },
-    [archiveAlias.action],
+    [archiveAliasDispatch],
   );
   const setPreferredAliasAction = useCallback(
     (formData: FormData) => {
       setAliasFeedbackOperation("setPreferred");
-      setPreferred.action(formData);
+      setPreferredDispatch(formData);
     },
-    [setPreferred.action],
+    [setPreferredDispatch],
   );
   const aliasFeedback =
     aliasFeedbackOperation === "createAlias"
@@ -142,10 +166,14 @@ export function MerchantEditTemplate({
       <SectionCard sx={{ p: { xs: 2, sm: 3 } }}>
         <MerchantEditForm
           action={update.action}
+          id="merchant-edit-form"
+          onDirtyChange={setDetailsDirty}
+          savedKey={update.state.successKey}
+          stayOnSave={aliasDirty}
           fetchIconAction={fetchIconAction}
           ledgerId={ledgerId}
           merchant={merchant}
-          pending={update.pending}
+          pending={update.pending || aliasPending}
           tags={tags}
         />
       </SectionCard>
@@ -154,15 +182,18 @@ export function MerchantEditTemplate({
         <MerchantDisplayNameEditor
           archiveAliasAction={archiveAliasAction}
           createAliasAction={createAliasAction}
+          formId="merchant-alias-form"
+          onDirtyChange={setAliasDirty}
+          savedKey={createAlias.state.successKey}
           merchant={merchant}
-          pending={aliasPending}
+          pending={aliasPending || update.pending}
           setPreferredAliasAction={setPreferredAliasAction}
         />
       </SectionCard>
 
-      <MerchantFailureFeedback
+      <MerchantDisplayNameFeedback
         state={update.state}
-        title={merchantText.editErrorTitle}
+        errorTitle={merchantText.editErrorTitle}
       />
       <MerchantFailureFeedback
         state={archive.state}
@@ -187,6 +218,7 @@ export function MerchantEditTemplate({
           title={merchantText.archiveConfirmTitle}
         />
       ) : null}
+      <UnsavedChangesDialog {...guard.dialogProps} />
     </SettingsPageLayout>
   );
 }

@@ -17,8 +17,8 @@ export default function Layout({ children }: { children: ReactNode }) {
       >
         {children}
         <ToolbarMetrics />
-        {/* 留出长页滚动空间，避免浏览器因页面高度不足而钳制验证位置。 */}
-        <div aria-hidden style={{ height: 3200 }} />
+        {/* 验证填充只提供滚动空间，不作为跨路由的浏览器滚动锚点。 */}
+        <div aria-hidden style={{ height: 3200, overflowAnchor: "none" }} />
       </AppShell>
     </RootLayoutShell>
   );

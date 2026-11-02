@@ -1,3 +1,7 @@
+import { setupGuardHistoryMock } from "test/mockGuardHistory";
+import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
+setupGuardHistoryMock();
+vi.mock("next/navigation", () => import("test/mocks/navigation"));
 import { cleanup, fireEvent, render, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -47,7 +51,9 @@ afterEach(() => {
 
 describe("CategoriesTemplate", () => {
   it("显示分类管理标题、当前账本说明和返回设置链接", () => {
-    const { container } = render(<CategoriesTemplate {...baseProps} />);
+    const { container } = render(<CategoriesTemplate {...baseProps} />, {
+      wrapper: ConfirmDialogTestProviders,
+    });
 
     expect(
       within(container).getByRole("heading", { name: "分类管理" }),
@@ -61,7 +67,9 @@ describe("CategoriesTemplate", () => {
   });
 
   it("显示新增入口和默认折叠的分类列表", () => {
-    const { container } = render(<CategoriesTemplate {...baseProps} />);
+    const { container } = render(<CategoriesTemplate {...baseProps} />, {
+      wrapper: ConfirmDialogTestProviders,
+    });
     const canvas = within(container);
 
     expect(

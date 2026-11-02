@@ -9,7 +9,6 @@ import {
 import {
   BackLayerScope,
   transactionBackLayerLevels,
-  useBackLayerLevel,
 } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
 import { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
 import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog/UnsavedChangesDialog";
@@ -56,15 +55,7 @@ export function ReceiptCreationProvider({
   return (
     <ReceiptCreationContext.Provider value={w}>
       {children}
-      {w.editor && (
-        <BackLayerScope
-          level={
-            w.editor.navigation ? transactionBackLayerLevels.creation : null
-          }
-        >
-          <ReceiptCreationEditor w={w} data={data} />
-        </BackLayerScope>
-      )}
+      {w.editor && <ReceiptCreationEditor w={w} data={data} />}
       <SuccessFeedbackDialog
         aboveModal
         bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
@@ -85,19 +76,18 @@ function ReceiptCreationEditor({
 }) {
   const [dirty, setDirty] = useState(false);
   const formId = useId();
-  const level = useBackLayerLevel();
+  const level = transactionBackLayerLevels.creation;
   const guard = useUnsavedChangesGuard({
     isDirty: dirty,
     saveFormId: formId,
     onClose: w.close,
     layer: level,
-    active: level !== null,
     disabled: w.pending,
   });
-  const close = level !== null ? guard.requestClose : w.close;
+  const close = guard.requestClose;
   return (
     <>
-      <BackLayerScope level={level === null ? null : level + 1}>
+      <BackLayerScope level={level + 1}>
         <Dialog
           open={!!w.editor}
           aria-labelledby="receipt-creation-title"

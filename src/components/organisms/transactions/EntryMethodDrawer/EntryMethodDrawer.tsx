@@ -21,12 +21,14 @@ type EntryMethodDrawerProps = {
   open: boolean;
   onClose: () => void;
   onMethodChange: (method: TransactionEntryMethod) => void;
+  requestNavigate?: (action: () => void) => void;
 };
 export function EntryMethodDrawer({
   currentMethod,
   open,
   onClose,
   onMethodChange,
+  requestNavigate,
 }: EntryMethodDrawerProps) {
   const { navigate } = useBackLayer(open, onClose);
   return (
@@ -67,10 +69,12 @@ export function EntryMethodDrawer({
                     method.id === "transfer" ||
                     method.id === "standard")
                 ) {
-                  void navigate(() => {
+                  const change = () => {
                     onClose();
                     onMethodChange(method.id);
-                  });
+                  };
+                  if (requestNavigate) requestNavigate(change);
+                  else void navigate(change);
                 } else {
                   onClose();
                 }

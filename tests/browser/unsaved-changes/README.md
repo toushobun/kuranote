@@ -107,3 +107,17 @@ PR2 的后退与前进必须点击 Chrome 工具栏按钮。原有 `guard:check`
 - 修复前失败记录：[开发](https://github.com/toushobun/kuranote/tree/5f7337a9c84aa4cf68b470448b68dfd76c53dcde/976-pr2-round3/pre-fix-rehearsal-dev) · [生产](https://github.com/toushobun/kuranote/tree/5f7337a9c84aa4cf68b470448b68dfd76c53dcde/976-pr2-round3/pre-fix-rehearsal-prod)
 
 上面第 1 轮的截图和 JSON 只代表第 1 轮。iPhone／Android 实机验收继续由人工处理。
+
+## PR3 验证范围与表单语义
+
+- `/merchant-create`、`/merchant-edit` 直接使用新增商家和 MerchantEdit 真实组件，沿用 AppShell、底部导航及滚动恢复；Server Action 使用虚构数据，不访问生产数据库。
+- `guard:check` 在开发与生产模式同时检查商家页连续三次后退取消：2000px 滚动保持、表单 DOM 不变、挂载/卸载计数不变、内部导航 RSC 增量为 0，历史仅增加一个哨兵。放弃只返回来源页一次并恢复 320px。
+- MerchantEdit 的基本资料和标签共用一个提交表单，别名是另一个表单。两个提交区都有修改时确认框只提供继续编辑和放弃；只有一个提交区 dirty 时，保存提交该表单。
+- 有别名草稿时直接保存基本资料，服务端返回同页成功状态并 revalidate；成功只更新该表单的基线，其他草稿仍保护。验证应用执行真实 Next revalidation，再检查后退、滚动、实例和 RSC。
+- 标准新增页只保护当前面板，隐藏面板保留输入但不参与确认；切回时按原始快照恢复保护。Vitest 覆盖面板切换、对应保存目标、改回原值和未确认金额草稿。
+- 编辑小票显式启用与新增小票相同的弹层栈，PR2 中“编辑页不启用”的说明属于当时记录。Vitest 验证逐层返回，子层放弃保留父小票和抽屉搜索，父页最终只真正返回一次。
+- 验证布局中的公共空白填充块仅提供长页滚动空间，禁用其自身的 overflow anchoring，避免异步返回时把测试填充误当成跨路由锚点。真实 AppShell 的滚动实现保持不变。
+
+Next 在同页 revalidation 后会使可见 Link 重新预取，关闭确认框时恢复显示的底部导航也可能触发预取。因此 JSON 同时记录总 RSC、`next-router-prefetch` 请求和真正路由请求，分别报告；不能把正常预取误记为守卫触发的同 URL 路由加载。
+
+JSON 输出仍为 `compatibility.json`，新增 `merchantCreate`、`merchantEdit` 分组。生产验证可用 `UNSAVED_GUARD_OUTPUT` 指向独立目录，保留两种模式的原始结果。

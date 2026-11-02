@@ -63,3 +63,20 @@ export async function addPresets(
     success: merchantPresetMessages.success(data.getAll("selectedKeys").length),
   };
 }
+
+export async function saveMerchantDetails(
+  previous: ActionState,
+  data: FormData,
+): Promise<ActionState> {
+  if (data.get("presentation") === "dialog") {
+    const { revalidatePath } = await import("next/cache");
+    revalidatePath("/merchant-edit");
+    return { success: "保存成功", successKey: String(Date.now()) };
+  }
+  return save(previous, data);
+}
+export async function saveAlias(): Promise<ActionState> {
+  const { revalidatePath } = await import("next/cache");
+  revalidatePath("/merchant-edit");
+  return { success: "添加成功", successKey: String(Date.now()) };
+}

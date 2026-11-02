@@ -73,11 +73,25 @@ async function newSession(browser, link, formId) {
   page.setDefaultNavigationTimeout(15000);
   const cdp = await page.context().newCDPSession(page);
   const rsc = [];
+  const prefetchRsc = [];
+  const resetRsc = () => {
+    rsc.length = 0;
+    prefetchRsc.length = 0;
+  };
+  const pendingRequests = new Set();
+  page.on("request", (request) => pendingRequests.add(request.url()));
+  page.on("requestfinished", (request) =>
+    pendingRequests.delete(request.url()),
+  );
+  page.on("requestfailed", (request) => pendingRequests.delete(request.url()));
   const errors = [];
   const records = [];
   page.on("request", (request) => {
-    if (request.headers().rsc === "1" || request.url().includes("_rsc="))
+    if (request.headers().rsc === "1" || request.url().includes("_rsc=")) {
       rsc.push(request.url());
+      if (request.headers()["next-router-prefetch"] === "1")
+        prefetchRsc.push(request.url());
+    }
   });
   page.on("pageerror", (error) => {
     errors.push(error.message);
@@ -114,6 +128,8 @@ async function newSession(browser, link, formId) {
       step,
       ...state,
       rscRequests: rsc.length,
+      prefetchRscRequests: prefetchRsc.length,
+      navigationRscRequests: rsc.length - prefetchRsc.length,
       currentIndex: navigation.currentIndex,
     };
     records.push(row);
@@ -139,7 +155,10 @@ async function newSession(browser, link, formId) {
     "点击编辑入口本身不能滚动来源页",
   );
   await page.locator(`#${formId}`).waitFor();
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("networkidle").catch((error) => {
+    console.error("尚未完成的浏览器请求", [...pendingRequests]);
+    throw error;
+  });
   await page.evaluate((id) => {
     window.probeForm = document.getElementById(id);
   }, formId);
@@ -154,7 +173,7 @@ async function newSession(browser, link, formId) {
     .getByRole("link", { name: "首页", exact: true })
     .waitFor();
   await keepScroll(page, 0, "auto");
-  rsc.length = 0;
+  resetRsc();
   const baseline = await record(`${link}：AppShell 普通导航到 B 后滚到顶部`);
   async function backAndCancel(y) {
     await page.evaluate(() => {
@@ -185,6 +204,7 @@ async function newSession(browser, link, formId) {
     await page.getByRole("button", { name: "放弃修改" }).click();
     await page.waitForURL(sourceUrl);
     await page.getByRole("heading", { name: "离开守卫兼容性验证" }).waitFor();
+    await page.waitForLoadState("networkidle");
     await keepScroll(page, sourceScroll, "auto");
     await record(
       `${link}：确认放弃仅回到 A，恢复来源页 scrollY=${sourceScroll}`,
@@ -195,6 +215,7 @@ async function newSession(browser, link, formId) {
     records,
     errors,
     rsc,
+    resetRsc,
     baseline,
     record,
     backAndCancel,
@@ -378,6 +399,104 @@ async function checkOtherPage(browser, kind) {
   await page.close();
   return { records, errors };
 }
+async function checkMerchant(browser, edit) {
+  const formId = edit ? "merchant-edit-form" : "create-merchant-form";
+  const session = await newSession(
+    browser,
+    edit ? "编辑商家" : "新增商家",
+    formId,
+  );
+  const {
+    page,
+    baseline,
+    record,
+    records,
+    errors,
+    rsc,
+    resetRsc,
+    backAndCancel,
+    discardAndCheckSource,
+  } = session;
+  const name = page.getByRole("textbox", { name: /商家名称/ });
+  await name.fill("商家草稿");
+  await name.blur();
+  await position(page, "sentinel");
+  await scroll(page, 2000);
+  for (let index = 0; index < 3; index++) await backAndCancel(2000);
+  const row = await record("商家页连续后退取消：保留滚动、表单和路由实例");
+  assert.equal(row.mounts, baseline.mounts);
+  assert.equal(row.unmounts, baseline.unmounts);
+  assert.equal(row.sameForm, true);
+  assert.equal(row.length, baseline.length + 1);
+  assert.equal(rsc.length, 0);
+  if (edit) {
+    await setValueWithoutScrolling(
+      page.getByRole("textbox", { name: "别名", exact: true }),
+      "别名草稿",
+    );
+    await browserBack(page);
+    assert.equal(
+      await page
+        .getByRole("dialog", { name: "尚未保存" })
+        .getByRole("button", { name: "保存", exact: true })
+        .count(),
+      0,
+    );
+    await cancel(page);
+    // 保存基本资料返回同页成功状态并触发真实 Next revalidation，别名继续保护。
+    await page.getByRole("button", { name: "保存修改", exact: true }).click();
+    await page
+      .getByRole("status")
+      .getByText("保存成功", { exact: true })
+      .waitFor();
+    await page.waitForLoadState("networkidle");
+    await position(page, "sentinel");
+    await page.getByRole("textbox", { name: "别名", exact: true }).blur();
+    await scroll(page, 2000);
+    // revalidation 会让可见 Link 重新预取，待滚动后的可见区域稳定再统计内部后退请求。
+    await page.evaluate(
+      () => new Promise((resolve) => requestIdleCallback(resolve)),
+    );
+    await page.waitForLoadState("networkidle");
+    resetRsc();
+    await backAndCancel(2000);
+    const afterSave = await record(
+      "部分保存并 revalidate 后，别名仍保护且不重挂载",
+    );
+    assert.equal(afterSave.mounts, baseline.mounts);
+    assert.equal(afterSave.sameForm, true);
+    assert.equal(afterSave.navigationRscRequests, 0);
+    assert.equal(
+      await page
+        .getByRole("textbox", { name: "别名", exact: true })
+        .inputValue(),
+      "别名草稿",
+    );
+  }
+  await discardAndCheckSource();
+  await page
+    .getByRole("link", { name: edit ? "编辑商家" : "新增商家", exact: true })
+    .click();
+  await page.locator(`#${formId}`).waitFor();
+  await name.fill("失败商家");
+  await page
+    .getByRole("button", { name: edit ? "保存修改" : "保存商家", exact: true })
+    .click();
+  await page.getByText("验证用保存失败", { exact: true }).waitFor();
+  await position(page, "sentinel");
+  await record("商家真实 Server Action 失败后继续保护");
+  await name.fill("成功商家");
+  await page
+    .getByRole("button", { name: edit ? "保存修改" : "保存商家", exact: true })
+    .click();
+  await page.waitForURL(`${sourceUrl}?saved=1`);
+  await keepScroll(page, 0, "auto");
+  assert.equal(await page.getByRole("dialog", { name: "尚未保存" }).count(), 0);
+  await record("商家真实保存成功直接跳转，不弹离开确认");
+  assert.deepEqual(errors, []);
+  await page.close();
+  return { records, errors };
+}
 await fs.mkdir(output, { recursive: true });
 const browser = await chromium.launch({
   channel: process.env.PLAYWRIGHT_CHANNEL ?? "chrome",
@@ -387,9 +506,15 @@ try {
   const account = await checkAccount(browser);
   const receipt = await checkOtherPage(browser, "receipt");
   const transfer = await checkOtherPage(browser, "transfer");
+  const merchantCreate = await checkMerchant(browser, false);
+  const merchantEdit = await checkMerchant(browser, true);
   await fs.writeFile(
     path.join(output, "compatibility.json"),
-    JSON.stringify({ baseUrl, account, receipt, transfer }, null, 2),
+    JSON.stringify(
+      { baseUrl, account, receipt, transfer, merchantCreate, merchantEdit },
+      null,
+      2,
+    ),
   );
 } finally {
   await browser.close();

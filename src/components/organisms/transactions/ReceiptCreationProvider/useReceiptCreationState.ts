@@ -6,7 +6,7 @@ import type { FlowMerchant } from "organisms/transactions/MerchantStep/MerchantS
 import type { TransactionAccountOption } from "types/transactions";
 import type { ReceiptCreationData } from "./ReceiptCreationProvider";
 
-type Editor = { navigation?: boolean } & (
+type Editor =
   | {
       type: "merchant";
       name?: string;
@@ -17,8 +17,7 @@ type Editor = { navigation?: boolean } & (
       onCreated: (
         value: TransactionAccountOption,
       ) => Promise<boolean | void> | void;
-    }
-);
+    };
 export function useReceiptCreationState(data: ReceiptCreationData) {
   const [editor, setEditor] = useState<Editor | null>(null);
   const [merchants, setMerchants] = useState<FlowMerchant[]>([]);
@@ -64,17 +63,12 @@ export function useReceiptCreationState(data: ReceiptCreationData) {
     trackAction,
     clearMessage: () => setMessage(""),
     addMerchant: data
-      ? (
-          onCreated: (value: FlowMerchant) => void,
-          name?: string,
-          navigation = false,
-        ) => setEditor({ type: "merchant", onCreated, name, navigation })
+      ? (onCreated: (value: FlowMerchant) => void, name?: string) =>
+          setEditor({ type: "merchant", onCreated, name })
       : undefined,
     addAccount: data
-      ? (
-          onCreated: Extract<Editor, { type: "account" }>["onCreated"],
-          navigation = false,
-        ) => setEditor({ type: "account", onCreated, navigation })
+      ? (onCreated: Extract<Editor, { type: "account" }>["onCreated"]) =>
+          setEditor({ type: "account", onCreated })
       : undefined,
     merchantCreated: (merchant: FlowMerchant) => {
       if (editor?.type !== "merchant") return;

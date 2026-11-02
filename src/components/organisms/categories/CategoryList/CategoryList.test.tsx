@@ -1,3 +1,7 @@
+import { backFromGuard, setupGuardHistoryMock } from "test/mockGuardHistory";
+import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
+setupGuardHistoryMock();
+vi.mock("next/navigation", () => import("test/mocks/navigation"));
 import {
   cleanup,
   fireEvent,
@@ -10,7 +14,6 @@ import { ThemeProvider } from "@mui/material/styles";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { categoryErrorCodes, categoryErrorMessages } from "internal/category";
-import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import {
   cancelSortable,
   dragSortable,
@@ -18,7 +21,6 @@ import {
   mockSortableRects,
 } from "test/sortable";
 import { designTokens, theme } from "theme/theme";
-import { UserThemeProvider } from "theme/UserThemeProvider";
 
 import { CategoryList } from "./CategoryList";
 
@@ -81,18 +83,16 @@ function renderList(
   expandFirst = true,
 ) {
   const result = render(
-    <UserThemeProvider>
-      <ConfirmDialogProvider>
-        <CategoryList
-          archiveCategoryAction={vi.fn(async () => {})}
-          categories={categories}
-          onReorderError={vi.fn()}
-          reorderCategoryAction={vi.fn(async () => ({}))}
-          updateCategoryAction={vi.fn(async () => {})}
-          {...overrides}
-        />
-      </ConfirmDialogProvider>
-    </UserThemeProvider>,
+    <ConfirmDialogTestProviders>
+      <CategoryList
+        archiveCategoryAction={vi.fn(async () => {})}
+        categories={categories}
+        onReorderError={vi.fn()}
+        reorderCategoryAction={vi.fn(async () => ({}))}
+        updateCategoryAction={vi.fn(async () => {})}
+        {...overrides}
+      />
+    </ConfirmDialogTestProviders>,
   );
 
   expandFirstCategoryIfNeeded(expandFirst);
@@ -105,20 +105,18 @@ function renderListWithTheme(
   expandFirst = true,
 ) {
   const result = render(
-    <UserThemeProvider>
-      <ThemeProvider theme={theme}>
-        <ConfirmDialogProvider>
-          <CategoryList
-            archiveCategoryAction={vi.fn(async () => {})}
-            categories={categories}
-            onReorderError={vi.fn()}
-            reorderCategoryAction={vi.fn(async () => ({}))}
-            updateCategoryAction={vi.fn(async () => {})}
-            {...overrides}
-          />
-        </ConfirmDialogProvider>
-      </ThemeProvider>
-    </UserThemeProvider>,
+    <ThemeProvider theme={theme}>
+      <ConfirmDialogTestProviders>
+        <CategoryList
+          archiveCategoryAction={vi.fn(async () => {})}
+          categories={categories}
+          onReorderError={vi.fn()}
+          reorderCategoryAction={vi.fn(async () => ({}))}
+          updateCategoryAction={vi.fn(async () => {})}
+          {...overrides}
+        />
+      </ConfirmDialogTestProviders>
+    </ThemeProvider>,
   );
 
   expandFirstCategoryIfNeeded(expandFirst);
@@ -181,7 +179,7 @@ describe("CategoryList", () => {
       name: "尚未保存",
     });
     expect(
-      within(confirmDialog).getByText("有未保存的修改，确定要放弃吗？"),
+      within(confirmDialog).getByText("修正的内容尚未保存，是否保存？"),
     ).toBeInTheDocument();
     expect(screen.getByDisplayValue("新的外食")).toBeInTheDocument();
     expect(screen.getByLabelText("当前分类图标：☕")).toBeInTheDocument();
@@ -663,5 +661,42 @@ describe("CategoryList", () => {
     const { container } = renderList({ categories: [] });
 
     expect(within(container).getByText("还没有分类")).toBeInTheDocument();
+  });
+});
+
+describe("分类编辑抽屉后退", () => {
+  it("干净抽屉后退只关抽屉，前进不重新打开", async () => {
+    renderList();
+    fireEvent.click(screen.getByRole("button", { name: "编辑餐饮" }));
+    await backFromGuard();
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "编辑分类" })).toBeNull(),
+    );
+    expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
+    expect(window.history.back).toHaveBeenCalledOnce();
+    window.history.forward();
+    await waitFor(() =>
+      expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe(
+        "base",
+      ),
+    );
+    expect(screen.queryByRole("dialog", { name: "编辑分类" })).toBeNull();
+  });
+  it("修改后后退可从公共确认保存到分类表单", async () => {
+    const updateCategoryAction = vi.fn(async () => {});
+    renderList({ updateCategoryAction });
+    fireEvent.click(screen.getByRole("button", { name: "编辑餐饮" }));
+    fireEvent.change(screen.getByRole("textbox", { name: /分类名称/ }), {
+      target: { value: "新分类" },
+    });
+    await backFromGuard();
+    fireEvent.click(
+      within(screen.getByRole("dialog", { name: "尚未保存" })).getByRole(
+        "button",
+        { name: "保存" },
+      ),
+    );
+    await waitFor(() => expect(updateCategoryAction).toHaveBeenCalledOnce());
+    expect(window.history.back).toHaveBeenCalledOnce();
   });
 });

@@ -1,4 +1,6 @@
 "use client";
+import { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
+import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog/UnsavedChangesDialog";
 
 import { rectSortingStrategy } from "@dnd-kit/sortable";
 import ArchiveRoundedIcon from "@mui/icons-material/ArchiveRounded";
@@ -221,7 +223,7 @@ export function CategoryList({
     setSearchQuery,
     isPending,
     openEditor,
-    requestCloseEditor,
+    editorDirty,
     resetEditor,
     selectedType,
     setEditingIconName,
@@ -236,6 +238,14 @@ export function CategoryList({
     reorderCategoryAction,
   });
 
+  const guard = useUnsavedChangesGuard({
+    isDirty: editorDirty,
+    saveFormId: "category-edit-form",
+    layer: 0,
+    active: isEditorOpen,
+    onClose: closeEditor,
+  });
+  const requestCloseEditor = guard.requestClose;
   useCategoryActionSuccess(updateState, closeEditor);
   useCategoryActionSuccess(archiveState, closeEditor);
 
@@ -444,7 +454,9 @@ export function CategoryList({
           {editingCategory ? (
             <Stack
               component="form"
-              action={updateCategoryAction}
+              action={(data) =>
+                guard.runAction(async () => updateCategoryAction(data))
+              }
               id="category-edit-form"
               spacing={2.5}
             >
@@ -477,7 +489,12 @@ export function CategoryList({
           submitLabel="保存"
         >
           {editingCategory && canManageCategories ? (
-            <Stack component="form" action={archiveCategoryAction}>
+            <Stack
+              component="form"
+              action={(data) =>
+                guard.runAction(async () => archiveCategoryAction(data))
+              }
+            >
               <input
                 name="categoryId"
                 type="hidden"
@@ -495,6 +512,7 @@ export function CategoryList({
           ) : null}
         </CategoryDialogActions>
       </Dialog>
+      <UnsavedChangesDialog {...guard.dialogProps} />
     </Stack>
   );
 }

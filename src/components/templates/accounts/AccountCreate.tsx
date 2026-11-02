@@ -1,4 +1,6 @@
 "use client";
+import { useUnsavedChangesForm } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesForm";
+import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog/UnsavedChangesDialog";
 import { useCreateAction } from "molecules/ui/useCreateAction/useCreateAction";
 
 import { accountFormMessages } from "config/accountMessages";
@@ -34,6 +36,8 @@ export type AccountCreateTemplateProps = {
 };
 
 export function AccountCreateTemplate(props: AccountCreateTemplateProps) {
+  const formId = "create-account-form";
+  const guard = useUnsavedChangesForm(formId, props.createAccountAction);
   return (
     <SettingsPageLayout
       back={{
@@ -45,7 +49,13 @@ export function AccountCreateTemplate(props: AccountCreateTemplateProps) {
       subtitle={accountFormMessages.createSubtitle(props.ledgerName)}
       title={accountFormMessages.createTitle}
     >
-      <AccountCreateBody {...props} />
+      <AccountCreateBody
+        {...props}
+        formId={formId}
+        onDirtyChange={guard.onDirtyChange}
+        createAccountAction={guard.action}
+      />
+      <UnsavedChangesDialog {...guard.dialogProps} />
     </SettingsPageLayout>
   );
 }

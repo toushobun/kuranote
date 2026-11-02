@@ -69,4 +69,11 @@ describe("UnsavedChangesDialog", () => {
     expect(onDiscard).toHaveBeenCalledOnce();
     expect(onSave).toHaveBeenCalledOnce();
   });
+  it("多个提交区有修改时不提供含糊的保存按钮", () => {
+    render(
+      <UnsavedChangesDialog open onCancel={vi.fn()} onDiscard={vi.fn()} />,
+    );
+    expect(screen.queryByRole("button", { name: "保存" })).toBeNull();
+    expect(screen.getAllByRole("button")).toHaveLength(2);
+  });
 });

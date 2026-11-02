@@ -35,7 +35,10 @@ import {
   validateUpdateMerchantForm,
   validateUpdateMerchantTagForm,
 } from "internal/merchant/schema";
-import { createErrorState } from "internal/shared/adapter/next/actionState";
+import {
+  createErrorState,
+  createSuccessState,
+} from "internal/shared/adapter/next/actionState";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
 import { getSafeNextPath } from "lib/navigation/safeNextPath";
@@ -153,6 +156,10 @@ export const updateMerchant: MerchantStateAction =
       return actionErrorState(error, merchantErrorCodes.updateFailed, "update");
     }
 
+    if (formData.get("presentation") === "dialog") {
+      revalidateMerchantMutation(validation.value.merchantId);
+      return createSuccessState(merchantText.saveSuccess);
+    }
     revalidateMerchantMutation();
     redirect(merchantsResultHref(merchantResultValues.updated));
   };
@@ -204,7 +211,7 @@ export const createMerchantAlias: MerchantStateAction =
     }
 
     revalidateMerchantMutation(validation.value.merchantId);
-    return { success: merchantText.createAliasSuccess };
+    return createSuccessState(merchantText.createAliasSuccess);
   };
 
 export const archiveMerchantAlias: MerchantStateAction =

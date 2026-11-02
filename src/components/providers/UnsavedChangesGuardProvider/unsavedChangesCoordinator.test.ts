@@ -231,4 +231,20 @@ describe("unsavedChangesCoordinator", () => {
     expect(next.guard.shouldBlockUnload()).toBe(false);
     expect(b.index()).toBe(0);
   });
+  it("同页保存期间不解除草稿保护，revalidate 后补回当前哨兵且不增加历史", async () => {
+    const b = setup();
+    const page = b.register(true, null);
+    await b.flush();
+    await page.guard.runInPlaceAction(async () => {
+      expect(page.guard.shouldBlockUnload()).toBe(true);
+      expect(b.index()).toBe(2);
+      b.nextReplaceState();
+      return { success: "保存成功" };
+    });
+    await b.flush();
+    expect(b.port.state()?.kuranoteUnsavedChanges?.position).toBe("sentinel");
+    expect(b.port.push).toHaveBeenCalledOnce();
+    await b.back();
+    expect(page.close).toHaveBeenCalledOnce();
+  });
 });

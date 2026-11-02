@@ -5,7 +5,7 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { merchantText } from "config/merchantText";
 import { designTokens } from "theme/theme";
@@ -17,6 +17,9 @@ import { MerchantNameOptions } from "../MerchantNameOptions/MerchantNameOptions"
 type MerchantDisplayNameEditorProps = {
   archiveAliasAction: ServerAction;
   createAliasAction: ServerAction;
+  formId?: string;
+  onDirtyChange?: (dirty: boolean) => void;
+  savedKey?: string;
   merchant: Merchant;
   pending?: boolean;
   setPreferredAliasAction: ServerAction;
@@ -25,11 +28,23 @@ type MerchantDisplayNameEditorProps = {
 export function MerchantDisplayNameEditor({
   archiveAliasAction,
   createAliasAction,
+  formId,
+  onDirtyChange,
+  savedKey,
   merchant,
   pending = false,
   setPreferredAliasAction,
 }: MerchantDisplayNameEditorProps) {
   const [alias, setAlias] = useState("");
+  useEffect(() => {
+    onDirtyChange?.(alias !== "");
+  }, [alias, onDirtyChange]);
+  useEffect(() => {
+    if (savedKey) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 别名提交成功后清空已保存的草稿。
+      setAlias("");
+    }
+  }, [savedKey]);
   return (
     <Stack spacing={1}>
       <Stack spacing={0.5}>
@@ -51,11 +66,13 @@ export function MerchantDisplayNameEditor({
 
       <Stack
         component="form"
+        id={formId}
         action={createAliasAction}
         direction="row"
         spacing={1}
       >
         <TextField
+          disabled={pending}
           autoComplete="off"
           fullWidth
           label={merchantText.aliasLabel}

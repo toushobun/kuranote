@@ -1,5 +1,4 @@
 "use client";
-import { useBackLayerLevel } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
 import { useState } from "react";
 import type { FlowMerchant } from "organisms/transactions/MerchantStep/MerchantStep.types";
 import { useReceiptCreation } from "organisms/transactions/ReceiptCreationProvider/ReceiptCreationProvider";
@@ -8,7 +7,6 @@ import { useReceiptCreation } from "organisms/transactions/ReceiptCreationProvid
 export function useReceiptMerchantPicker(
   onSelect: (merchant: FlowMerchant) => void,
 ) {
-  const level = useBackLayerLevel();
   const creation = useReceiptCreation();
   const [open, setOpen] = useState(false);
   function selectMerchant(merchant: FlowMerchant) {
@@ -21,8 +19,7 @@ export function useReceiptMerchantPicker(
     closePicker: () => setOpen(false),
     selectMerchant,
     onAddMerchant: creation?.addMerchant
-      ? (name?: string) =>
-          creation.addMerchant?.(selectMerchant, name, level !== null)
+      ? (name?: string) => creation.addMerchant?.(selectMerchant, name)
       : undefined,
     suspended: !!creation?.editor,
   };

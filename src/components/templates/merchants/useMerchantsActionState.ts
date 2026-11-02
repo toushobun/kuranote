@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 
+import type { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
 import type { MerchantActionState, MerchantStateAction } from "types/merchants";
 
 type MerchantActionOperation =
@@ -21,6 +22,7 @@ type MerchantActionOperation =
 type UseMerchantsActionStateOptions = {
   merchantId?: string;
   operation: MerchantActionOperation;
+  runAction?: ReturnType<typeof useUnsavedChangesGuard>["runAction"];
 };
 
 type TrackedMerchantActionState = {
@@ -36,7 +38,7 @@ const initialTrackedActionState: TrackedMerchantActionState = {
 
 export function useMerchantsActionState(
   action: MerchantStateAction,
-  { merchantId, operation }: UseMerchantsActionStateOptions,
+  { merchantId, operation, runAction }: UseMerchantsActionStateOptions,
 ) {
   const trackedAction = useCallback(
     async (
@@ -45,7 +47,8 @@ export function useMerchantsActionState(
     ): Promise<TrackedMerchantActionState> => {
       const submissionToken = formData.get(submissionTokenField);
       formData.delete(submissionTokenField);
-      const actionState = await action(previousState.actionState, formData);
+      const invoke = () => action(previousState.actionState, formData);
+      const actionState = await (runAction ? runAction(invoke) : invoke());
 
       return {
         actionState,
@@ -53,7 +56,7 @@ export function useMerchantsActionState(
           typeof submissionToken === "string" ? submissionToken : undefined,
       };
     },
-    [action],
+    [action, runAction],
   );
   const [trackedState, dispatchAction, isActionPending] = useActionState(
     trackedAction,

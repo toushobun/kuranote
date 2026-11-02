@@ -22,6 +22,7 @@ type MerchantDetailsFieldsProps = {
   merchantId?: string;
   name: string;
   note: string;
+  onPreviewIconChange?: (url: string) => void;
   onNameChange: (value: string) => void;
   onNoteChange: (value: string) => void;
   onWebsiteUrlChange: (value: string) => void;
@@ -37,6 +38,7 @@ export function MerchantDetailsFields({
   merchantId,
   name,
   note,
+  onPreviewIconChange,
   onNameChange,
   onNoteChange,
   onWebsiteUrlChange,
@@ -129,6 +131,7 @@ export function MerchantDetailsFields({
           onChange={(event) => {
             onWebsiteUrlChange(event.target.value);
             setIconUrl(undefined);
+            onPreviewIconChange?.("");
             setFeedbackText(null);
             setPreviewStatus("idle");
           }}
@@ -153,6 +156,7 @@ export function MerchantDetailsFields({
                 return;
               }
               setIconUrl(state.iconUrl);
+              onPreviewIconChange?.(state.iconUrl ?? "");
               setFeedbackText(state.success ?? merchantText.iconSuccess);
               setPreviewStatus("success");
             } catch {

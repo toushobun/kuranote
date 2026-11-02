@@ -43,7 +43,7 @@ export function MerchantForm({
 
   const [tagIds, setTagIds] = useState<string[]>([]);
   useDirtySnapshot(
-    JSON.stringify([details.name, details.note, details.websiteUrl, tagIds]),
+    JSON.stringify([details.snapshot, tagIds]),
     onDirtyChange ?? null,
     true,
   );
@@ -57,6 +57,7 @@ export function MerchantForm({
         ledgerId={ledgerId}
         name={details.name}
         note={details.note}
+        onPreviewIconChange={details.setPreviewIconUrl}
         onNameChange={details.setName}
         onNoteChange={details.setNote}
         onWebsiteUrlChange={details.setWebsiteUrl}

@@ -1,12 +1,14 @@
-import { setupGuardHistoryMock } from "test/mockGuardHistory";
+import { describeUnsavedFormPage } from "test/unsavedFormPage";
+import { backFromGuard, setupGuardHistoryMock } from "test/mockGuardHistory";
 setupGuardHistoryMock();
 
 import {
   cleanup,
   fireEvent,
-  render,
+  render as rtlRender,
   within,
   screen,
+  waitFor,
 } from "@testing-library/react";
 import { type ReactNode, useEffect, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -26,17 +28,20 @@ import { useEditTransactionDirty } from "organisms/transactions/EditTransactionD
 vi.mock("organisms/transactions/TransactionForm/TransactionForm", () => ({
   TransactionForm: ({
     errorMessage,
+    formId,
     initialType,
     onSubmitDisabledChange,
     setupHrefs,
     transactionItemSpecialStatusEnabled,
   }: {
     errorMessage: string | null;
+    formId?: string;
     initialType?: "expense" | "income";
     onSubmitDisabledChange?: (disabled: boolean) => void;
     setupHrefs?: { account: string; merchant: string };
     transactionItemSpecialStatusEnabled?: boolean;
   }): ReactNode => {
+    const reportDirty = useEditTransactionDirty();
     const [isItemPickerOpen, setIsItemPickerOpen] = useState(false);
     useEffect(() => onSubmitDisabledChange?.(false), [onSubmitDisabledChange]);
     const type = initialType ?? "expense";
@@ -52,16 +57,21 @@ vi.mock("organisms/transactions/TransactionForm/TransactionForm", () => ({
       </>
     );
     return (
-      <div
+      <form
+        id={formId}
         data-add-account-href={setupHrefs?.account}
         data-add-merchant-href={setupHrefs?.merchant}
         data-testid={`transaction-form-${type}`}
       >
-        <input aria-label={`${label}临时输入`} defaultValue="" />
+        <input
+          aria-label={`${label}临时输入`}
+          defaultValue=""
+          onChange={(event) => reportDirty?.(event.target.value !== "")}
+        />
         <input name="type" type="hidden" value={type} />
         {itemPicker}
         {errorMessage ? <div role="alert">{errorMessage}</div> : null}
-      </div>
+      </form>
     );
   },
 }));
@@ -98,6 +108,7 @@ vi.mock(
       readOnly?: boolean;
       sourceType?: string;
     }): ReactNode => {
+      const reportDirty = useEditTransactionDirty();
       if (initialValues) {
         return (
           <form
@@ -120,7 +131,11 @@ vi.mock(
           data-add-account-href={addAccountHref}
           data-testid="transfer-transaction-form"
         >
-          <input aria-label="转账临时输入" defaultValue="" />
+          <input
+            aria-label="转账临时输入"
+            defaultValue=""
+            onChange={(event) => reportDirty?.(event.target.value !== "")}
+          />
           {errorMessage ? <div role="alert">{errorMessage}</div> : null}
         </div>
       );
@@ -151,6 +166,8 @@ vi.mock(
     ),
   }),
 );
+const render = (ui: ReactNode, options?: Parameters<typeof rtlRender>[1]) =>
+  rtlRender(ui, { wrapper: ConfirmDialogTestProviders, ...options });
 describe("\u65B0\u589E\u8BB0\u8D26\u9875\u9762", () => {
   afterEach(() => {
     cleanup();
@@ -352,13 +369,15 @@ describe("\u65B0\u589E\u8BB0\u8D26\u9875\u9762", () => {
         within(activePanel).getByRole("region", { name: "特殊状态" }),
       ).toBeInTheDocument();
     });
-    it("顶部可切换记账方式，当前为标准记账", () => {
+    it("顶部可切换记账方式，当前为标准记账", async () => {
       const { container } = render(<NewTransactionTemplate {...baseProps} />);
       fireEvent.click(
         within(container).getByRole("button", { name: "切换方式" }),
       );
       fireEvent.click(screen.getByRole("button", { name: "从商家记账" }));
-      expect(router.replace).toHaveBeenCalledWith("/transactions/new");
+      await waitFor(() =>
+        expect(router.replace).toHaveBeenCalledWith("/transactions/new"),
+      );
     });
     it("各页签的添加账户 / 商家入口带着标准记账与对应页签的 returnTo", () => {
       const { container } = render(<NewTransactionTemplate {...baseProps} />);
@@ -572,4 +591,88 @@ describe("EditTransferTransactionTemplate", () => {
       screen.getByText("修正的内容尚未保存，是否保存？"),
     ).toBeInTheDocument();
   });
+});
+
+describe("标准页当前面板守卫", () => {
+  function renderStandard(initialType: "expense" | "income" = "expense") {
+    render(
+      <NewTransactionTemplate
+        accountOptions={[]}
+        action={async () => ({})}
+        categoryOptions={[]}
+        errorMessage={null}
+        frequentCategoryIds={[]}
+        initialType={initialType}
+        ledgerName="家庭账本"
+        merchantOptions={[]}
+        multiAccountPaymentEnabled={false}
+        transactionItemSpecialStatusEnabled={false}
+      />,
+      { wrapper: ConfirmDialogTestProviders },
+    );
+  }
+  it.each(["expense", "income"] as const)(
+    "%s 修改后保护当前面板，隐藏后不保护，切回仍保留草稿",
+    async (type) => {
+      renderStandard(type);
+      fireEvent.change(
+        screen.getByLabelText(
+          type === "income" ? "收入临时输入" : "支出临时输入",
+        ),
+        { target: { value: "未保存" } },
+      );
+      await backFromGuard();
+      fireEvent.click(screen.getByRole("button", { name: "继续编辑" }));
+      await screen.findByRole("button", { name: "转账" });
+      fireEvent.click(screen.getByRole("button", { name: "转账" }));
+      await waitFor(() =>
+        expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe(
+          "base",
+        ),
+      );
+      const unload = new Event("beforeunload", { cancelable: true });
+      window.dispatchEvent(unload);
+      expect(unload.defaultPrevented).toBe(false);
+      fireEvent.click(screen.getByRole("button", { name: "收支" }));
+      expect(
+        screen.getByLabelText(
+          type === "income" ? "收入临时输入" : "支出临时输入",
+        ),
+      ).toHaveValue("未保存");
+      await backFromGuard();
+      const submit = vi
+        .spyOn(HTMLFormElement.prototype, "requestSubmit")
+        .mockImplementation(() => {});
+      fireEvent.click(
+        within(screen.getByRole("dialog", { name: "尚未保存" })).getByRole(
+          "button",
+          { name: "保存" },
+        ),
+      );
+      expect(submit.mock.instances[0]).toHaveAttribute(
+        "id",
+        `new-${type}-transaction-form`,
+      );
+      submit.mockRestore();
+    },
+  );
+});
+
+describeUnsavedFormPage({
+  render: () => {
+    render(
+      <NewTransferTransactionTemplate
+        accountOptions={[]}
+        action={async () => ({})}
+      />,
+    );
+  },
+  change: () =>
+    fireEvent.change(screen.getByLabelText("转账临时输入"), {
+      target: { value: "转账草稿" },
+    }),
+  restore: () =>
+    fireEvent.change(screen.getByLabelText("转账临时输入"), {
+      target: { value: "" },
+    }),
 });

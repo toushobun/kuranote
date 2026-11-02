@@ -68,10 +68,10 @@ type UseTransactionFormOptions = Pick<
   | "accountOptions"
   | "categoryOptions"
   | "initialType"
-  | "initialValues"
   | "merchantOptions"
   | "onSubmitDisabledChange"
 > & {
+  initialValues?: TransactionFormInitialValues;
   deferPickerAmount?: boolean;
   onPickerItemCommit?: (itemId: number) => void;
 };

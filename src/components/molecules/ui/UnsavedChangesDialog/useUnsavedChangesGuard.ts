@@ -22,7 +22,7 @@ export function useUnsavedChangesGuard({
   disabled = false,
 }: {
   isDirty: boolean;
-  saveFormId: string;
+  saveFormId: string | null;
   onClose?: () => void;
   /** 页面不传；只有真正的子弹层才传入层级。 */
   layer?: number | null;
@@ -114,12 +114,23 @@ export function useUnsavedChangesGuard({
     return () => window.removeEventListener("beforeunload", unload);
   }, [isDirty]);
 
+  // Next 的同页 revalidation 可在动作返回后的提交阶段重写 history.state；每次提交后同步登记。
   useLayoutEffect(() => {
     void history.update(isDirty, layer, active);
-  }, [history, isDirty, layer, active]);
+  });
 
   return {
     runAction,
+    runInPlaceAction: useCallback(
+      <T>(action: () => Promise<T>) => history.runInPlaceAction(action),
+      [history],
+    ),
+    requestNavigate: (action: () => void) => {
+      if (!active || disabled) return;
+      if (isDirty)
+        setIntent((current) => current ?? { type: "action", action });
+      else void history.leave(action);
+    },
     requestClose: () => {
       if (!active || disabled || !onClose) return;
       if (isDirty)
@@ -129,11 +140,14 @@ export function useUnsavedChangesGuard({
     dialogProps: {
       open: intent !== null,
       onCancel: () => setIntent(null),
-      onSave: () => {
-        setIntent(null);
-        const form = document.getElementById(saveFormId);
-        if (form instanceof HTMLFormElement) form.requestSubmit();
-      },
+      onSave:
+        saveFormId === null
+          ? undefined
+          : () => {
+              setIntent(null);
+              const form = document.getElementById(saveFormId);
+              if (form instanceof HTMLFormElement) form.requestSubmit();
+            },
       onDiscard: () => {
         if (!intent) return;
         setIntent(null);
