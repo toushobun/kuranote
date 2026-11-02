@@ -1,0 +1,1 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";function t(e){return{error:e,errorKey:crypto.randomUUID()}}function n(e){return{success:e,successKey:crypto.randomUUID()}}var r=e((()=>{}));export{n,r,t};
