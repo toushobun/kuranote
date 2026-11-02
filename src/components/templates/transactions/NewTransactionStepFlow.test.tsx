@@ -272,9 +272,7 @@ describe("NewTransactionStepFlow", () => {
       "/transactions/new?method=transfer",
     );
     expect(guardHistory().index()).toBe(1);
-    expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe(
-      "base",
-    );
+    expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe("base");
     await act(async () => window.history.back());
     expect(guardHistory().index()).toBe(0);
   });
