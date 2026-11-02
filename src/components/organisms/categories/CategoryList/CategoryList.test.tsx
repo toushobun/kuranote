@@ -3,6 +3,7 @@ import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
 setupGuardHistoryMock();
 vi.mock("next/navigation", () => import("test/mocks/navigation"));
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -698,5 +699,28 @@ describe("分类编辑抽屉后退", () => {
     );
     await waitFor(() => expect(updateCategoryAction).toHaveBeenCalledOnce());
     expect(window.history.back).toHaveBeenCalledOnce();
+  });
+  it("同步 dispatch 提交期间不移除再恢复哨兵", async () => {
+    const updateCategoryAction = vi.fn(() => {});
+    renderList({ updateCategoryAction });
+    fireEvent.click(screen.getByRole("button", { name: "编辑餐饮" }));
+    fireEvent.change(screen.getByRole("textbox", { name: /分类名称/ }), {
+      target: { value: "新的分类" },
+    });
+    await waitFor(() =>
+      expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe(
+        "sentinel",
+      ),
+    );
+    const go = vi.mocked(window.history.go);
+    go.mockClear();
+    await act(async () => {
+      fireEvent.submit(document.getElementById("category-edit-form")!);
+    });
+    expect(updateCategoryAction).toHaveBeenCalledOnce();
+    expect(go).not.toHaveBeenCalled();
+    expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe(
+      "sentinel",
+    );
   });
 });

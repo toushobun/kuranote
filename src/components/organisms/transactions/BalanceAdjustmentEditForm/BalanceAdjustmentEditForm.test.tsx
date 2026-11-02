@@ -1,3 +1,8 @@
+import { setupGuardHistoryMock } from "test/mockGuardHistory";
+import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
+import { describeUnsavedFormPage } from "test/unsavedFormPage";
+setupGuardHistoryMock();
+vi.mock("next/navigation", () => import("test/mocks/navigation"));
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   cleanup,
@@ -7,8 +12,6 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { UserThemeProvider } from "theme/UserThemeProvider";
-import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import { BalanceAdjustmentEditForm } from "./BalanceAdjustmentEditForm";
 import type {
   BalanceAdjustmentEditInitialValues,
@@ -40,17 +43,15 @@ function setup(
   const action = vi.fn(async () => ({}));
   const deleteAction = vi.fn(async () => ({}));
   render(
-    <UserThemeProvider>
-      <ConfirmDialogProvider>
-        <BalanceAdjustmentEditForm
-          initialValues={{ ...initialValues, accountArchived: archived }}
-          action={action}
-          canDelete={canDelete}
-          deleteAction={deleteAction}
-          editRestriction={editRestriction}
-        />
-      </ConfirmDialogProvider>
-    </UserThemeProvider>,
+    <ConfirmDialogTestProviders>
+      <BalanceAdjustmentEditForm
+        initialValues={{ ...initialValues, accountArchived: archived }}
+        action={action}
+        canDelete={canDelete}
+        deleteAction={deleteAction}
+        editRestriction={editRestriction}
+      />
+    </ConfirmDialogTestProviders>,
   );
   return { action, deleteAction };
 }
@@ -118,4 +119,18 @@ describe("BalanceAdjustmentEditForm", () => {
     expect(screen.getByRole("button", { name: "删除" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "保存修改" })).toBeEnabled();
   });
+});
+
+describeUnsavedFormPage({
+  render: () => {
+    setup();
+  },
+  change: () =>
+    fireEvent.change(screen.getByLabelText("备注（选填）"), {
+      target: { value: "修改盘点" },
+    }),
+  restore: () =>
+    fireEvent.change(screen.getByLabelText("备注（选填）"), {
+      target: { value: initialValues.note },
+    }),
 });

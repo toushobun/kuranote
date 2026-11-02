@@ -3,7 +3,7 @@
 import { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
 import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog/UnsavedChangesDialog";
 import Button from "@mui/material/Button";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { routePaths } from "config/paths";
 import { merchantPageMessages, merchantText } from "config/merchantText";
@@ -94,6 +94,11 @@ export function MerchantEditTemplate({
       runAction: guard.runInPlaceAction,
     },
   );
+  const completeSave = guard.completeSave;
+  useEffect(() => {
+    if (createAlias.state.successKey || createAlias.state.errorKey)
+      void completeSave(Boolean(createAlias.state.success));
+  }, [createAlias.state, completeSave]);
   const aliasPending =
     createAlias.pending || archiveAlias.pending || setPreferred.pending;
   const createAliasDispatch = createAlias.action;

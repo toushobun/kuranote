@@ -6,6 +6,7 @@ import {
   useEffect,
   useEffectEvent,
   useLayoutEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -30,12 +31,32 @@ export function useUnsavedChangesGuard({
   disabled?: boolean;
 }) {
   const router = useRouter();
+  const saveIntent = useRef<LeaveIntent | null>(null);
   const [intent, setIntent] = useState<LeaveIntent | null>(null);
   const coordinator = useUnsavedChangesCoordinator();
   const [history] = useState(coordinator.createGuard);
   const runAction = useCallback(
     <T>(action: () => Promise<T>) => history.runAction(action),
     [history],
+  );
+
+  const back = useCallback(() => {
+    if (layer !== null && onClose) onClose();
+    else window.history.back();
+  }, [layer, onClose]);
+  const followIntent = useCallback(
+    (leave: LeaveIntent) =>
+      history.leave(leave.type === "back" ? back : leave.action),
+    [history, back],
+  );
+  const completeSave = useCallback(
+    (success: boolean) => {
+      const leave = saveIntent.current;
+      saveIntent.current = null;
+      if (success && leave) return followIntent(leave);
+      return Promise.resolve();
+    },
+    [followIntent],
   );
 
   const beforeUnload = useEffectEvent((event: BeforeUnloadEvent) => {
@@ -90,9 +111,7 @@ export function useUnsavedChangesGuard({
   const requestBack = useEffectEvent(() => {
     if (!active || disabled) return;
     if (!isDirty) {
-      void history.leave(
-        layer !== null && onClose ? onClose : () => window.history.back(),
-      );
+      void history.leave(back);
       return;
     }
     setIntent((current) => current ?? { type: "back" });
@@ -121,6 +140,7 @@ export function useUnsavedChangesGuard({
 
   return {
     runAction,
+    completeSave,
     runInPlaceAction: useCallback(
       <T>(action: () => Promise<T>) => history.runInPlaceAction(action),
       [history],
@@ -139,25 +159,26 @@ export function useUnsavedChangesGuard({
     },
     dialogProps: {
       open: intent !== null,
-      onCancel: () => setIntent(null),
+      onCancel: () => {
+        saveIntent.current = null;
+        setIntent(null);
+      },
       onSave:
         saveFormId === null
           ? undefined
           : () => {
               setIntent(null);
               const form = document.getElementById(saveFormId);
-              if (form instanceof HTMLFormElement) form.requestSubmit();
+              if (form instanceof HTMLFormElement) {
+                saveIntent.current = form.checkValidity() ? intent : null;
+                form.requestSubmit();
+              }
             },
       onDiscard: () => {
         if (!intent) return;
         setIntent(null);
-        void history.leave(
-          intent.type === "back"
-            ? layer !== null && onClose
-              ? onClose
-              : () => window.history.back()
-            : intent.action,
-        );
+        saveIntent.current = null;
+        void followIntent(intent);
       },
     },
   };

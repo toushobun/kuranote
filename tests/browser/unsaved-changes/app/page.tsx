@@ -13,6 +13,24 @@ export default function Page() {
         <Link href="/new?empty=1" prefetch={false}>
           无商家新增记账
         </Link>
+        <Link href="/standard" prefetch={false}>
+          标准支出
+        </Link>
+        <Link href="/standard?type=income" prefetch={false}>
+          标准收入
+        </Link>
+        <Link href="/new-transfer" prefetch={false}>
+          新增转账
+        </Link>
+        <Link href="/account-create" prefetch={false}>
+          新增账户
+        </Link>
+        <Link href="/category" prefetch={false}>
+          分类管理
+        </Link>
+        <Link href="/balance" prefetch={false}>
+          余额调整
+        </Link>
         <Link href="/merchant-create" prefetch={false}>
           新增商家
         </Link>

@@ -121,3 +121,18 @@ PR2 的后退与前进必须点击 Chrome 工具栏按钮。原有 `guard:check`
 Next 在同页 revalidation 后会使可见 Link 重新预取，关闭确认框时恢复显示的底部导航也可能触发预取。因此 JSON 同时记录总 RSC、`next-router-prefetch` 请求和真正路由请求，分别报告；不能把正常预取误记为守卫触发的同 URL 路由加载。
 
 JSON 输出仍为 `compatibility.json`，新增 `merchantCreate`、`merchantEdit` 分组。生产验证可用 `UNSAVED_GUARD_OUTPUT` 指向独立目录，保留两种模式的原始结果。
+
+## PR3 第 1 轮 review 补充
+
+新增 `/standard`（含 `?type=income`）、`/new-transfer`、`/account-create`、`/category`、`/balance`，直接组合真实标准记账页、转账页、账户页、分类列表和余额调整表单。`/transactions/new` 提供真实切换方式后的目标，避免只验证一个不存在的路由。
+
+`guard:check` 增加以下自动化场景：
+
+- 标准支出／收入切换到转账再切回，连续三次后退取消；核对滚动、表单实例、单哨兵及内部路由 RSC。随后放弃草稿并切换记账方式，后退一次返回来源。
+- 新增账户／转账先后退关闭金额键盘，再连续三次后退取消，最后放弃只回来源一次。
+- 编辑小票有草稿时先后退关闭商家抽屉，再后退确认父页；分类编辑放弃只关抽屉，前进不复活，真实保存成功不离开分类列表。
+- 余额调整先关闭时间层，再确认父页；商家别名单独 dirty 时，从确认框保存后继续原来的后退／链接动作。
+
+默认运行全部分组；调试单组可设置 `UNSAVED_GUARD_CASES=standard,newAccount`。输出仍为 `compatibility.json`，分组包括既有 PR1 回归与上述新增场景。
+
+本轮开发模式自动化已跑通。生产模式新增场景、PR2 两项原生 Chrome 工具栏操作以及手机实机统一留到最终验收，不能用这里的 Playwright 导航替代工具栏验收。上文历史验证结果只代表各自标注的源码版本。

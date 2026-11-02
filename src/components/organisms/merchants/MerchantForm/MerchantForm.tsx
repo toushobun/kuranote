@@ -53,6 +53,7 @@ export function MerchantForm({
         <input name="returnTo" readOnly type="hidden" value={returnTo} />
       ) : null}
       <MerchantDetailsFields
+        previewIconUrl={details.previewIconUrl}
         fetchIconAction={fetchIconAction}
         ledgerId={ledgerId}
         name={details.name}

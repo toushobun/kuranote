@@ -1,3 +1,4 @@
+import { routerMock } from "test/mocks/navigation";
 import { describeUnsavedFormPage } from "test/unsavedFormPage";
 import { backFromGuard, setupGuardHistoryMock } from "test/mockGuardHistory";
 import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
@@ -324,6 +325,43 @@ describe("MerchantEdit 多表单守卫", () => {
     );
     submit.mockRestore();
   });
+});
+
+describe("MerchantEdit 别名保存后继续离开", () => {
+  it.each(["后退", "链接"])(
+    "从%s确认保存别名成功后只继续一次原离开意图",
+    async (kind) => {
+      routerMock.push.mockClear();
+      const alias = vi.fn<MerchantStateAction>(async () => ({
+        success: "添加成功",
+        successKey: "alias-saved",
+      }));
+      renderTemplate({ createMerchantAliasAction: alias });
+      fireEvent.change(screen.getByRole("textbox", { name: "别名" }), {
+        target: { value: "别名草稿" },
+      });
+      if (kind === "后退") await backFromGuard();
+      else fireEvent.click(screen.getByRole("link", { name: "返回商家管理" }));
+      fireEvent.click(
+        within(screen.getByRole("dialog", { name: "尚未保存" })).getByRole(
+          "button",
+          { name: "保存" },
+        ),
+      );
+      await waitFor(() => expect(alias).toHaveBeenCalledOnce());
+      if (kind === "后退") {
+        await waitFor(() =>
+          expect(window.history.back).toHaveBeenCalledTimes(2),
+        );
+        expect(routerMock.push).not.toHaveBeenCalled();
+      } else {
+        await waitFor(() =>
+          expect(routerMock.push).toHaveBeenCalledExactlyOnceWith("/merchants"),
+        );
+        expect(window.history.back).not.toHaveBeenCalled();
+      }
+    },
+  );
 });
 
 describeUnsavedFormPage({

@@ -148,7 +148,7 @@ export function useTransactionForm({
       return;
     }
     if (!initialValues && initialType) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- 新增页外层 tab 切换时同步内部类型，编辑页有 initialValues 时忽略。
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 标准页外层页签切换时同步类型；带初始快照的新增／编辑小票保留自身状态。
       setSelectedType(initialType);
       setIsSheetOpen(false);
       setEditingItemId(null);

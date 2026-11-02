@@ -52,8 +52,6 @@ type TransactionPaymentFieldsProps = {
   onAmountCommit: (key: number) => void;
   onRemovePayment: (key: number) => void;
   payments: TransactionPaymentRow[];
-  /** 只读详情（#928）：账户不可选，不显示添加 / 删除付款账户。 */
-  readOnly?: boolean;
   reconciliation: TransactionPaymentReconciliation;
   /** 没有账户且未显示添加账户提示卡片时，在字段下方提示先新增账户。 */
   showEmptyAccountHelper: boolean;
@@ -74,7 +72,6 @@ export function TransactionPaymentFields({
   onAmountCommit,
   onRemovePayment,
   payments,
-  readOnly = false,
   reconciliation,
   showEmptyAccountHelper,
 }: TransactionPaymentFieldsProps) {
@@ -88,7 +85,6 @@ export function TransactionPaymentFields({
   const primaryCurrency = primaryAccount?.currency;
   // 入口只取决于账本开关与可选账户，不受字段错误等其他状态影响（#930 / #931）。
   const addPaymentButton =
-    !readOnly &&
     multiAccountPaymentEnabled &&
     canAddPaymentRow({
       accountOptions,
@@ -128,7 +124,6 @@ export function TransactionPaymentFields({
           }
           select
           slotProps={{
-            input: { readOnly },
             select: {
               displayEmpty: true,
               IconComponent: KeyboardArrowRightRoundedIcon,
@@ -185,7 +180,6 @@ export function TransactionPaymentFields({
               }
               select
               slotProps={{
-                input: { readOnly },
                 select: {
                   displayEmpty: true,
                   IconComponent: KeyboardArrowRightRoundedIcon,
@@ -235,17 +229,15 @@ export function TransactionPaymentFields({
               onCommit={() => onAmountCommit(payment.key)}
               rowNumber={rowNumber}
             />
-            {readOnly ? null : (
-              <IconButton
-                aria-label={transactionPaymentFieldsMessages.removePayment(
-                  rowNumber,
-                )}
-                onClick={() => onRemovePayment(payment.key)}
-                sx={removePaymentButtonSx}
-              >
-                <DeleteOutlineRoundedIcon fontSize="small" />
-              </IconButton>
-            )}
+            <IconButton
+              aria-label={transactionPaymentFieldsMessages.removePayment(
+                rowNumber,
+              )}
+              onClick={() => onRemovePayment(payment.key)}
+              sx={removePaymentButtonSx}
+            >
+              <DeleteOutlineRoundedIcon fontSize="small" />
+            </IconButton>
           </Box>
         );
       })}

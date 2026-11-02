@@ -80,3 +80,15 @@ export async function saveAlias(): Promise<ActionState> {
   revalidatePath("/merchant-edit");
   return { success: "添加成功", successKey: String(Date.now()) };
 }
+
+export async function saveCategory(
+  _previous: ActionState,
+  data: FormData,
+): Promise<ActionState> {
+  if (String(data.get("name")).includes("失败"))
+    return { error: "分类验证失败", errorKey: String(Date.now()) };
+  return { success: "保存成功", successKey: String(Date.now()) };
+}
+export async function reorderCategory(): Promise<ActionState> {
+  return {};
+}

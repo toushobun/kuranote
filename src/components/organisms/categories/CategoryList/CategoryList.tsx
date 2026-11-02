@@ -454,9 +454,7 @@ export function CategoryList({
           {editingCategory ? (
             <Stack
               component="form"
-              action={(data) =>
-                guard.runAction(async () => updateCategoryAction(data))
-              }
+              action={updateCategoryAction}
               id="category-edit-form"
               spacing={2.5}
             >
@@ -489,12 +487,7 @@ export function CategoryList({
           submitLabel="保存"
         >
           {editingCategory && canManageCategories ? (
-            <Stack
-              component="form"
-              action={(data) =>
-                guard.runAction(async () => archiveCategoryAction(data))
-              }
-            >
+            <Stack component="form" action={archiveCategoryAction}>
               <input
                 name="categoryId"
                 type="hidden"

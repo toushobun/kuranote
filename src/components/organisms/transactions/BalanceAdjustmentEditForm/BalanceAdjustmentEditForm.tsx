@@ -1,6 +1,13 @@
 "use client";
 
 import { useActionState, useEffect, useState, useTransition } from "react";
+import {
+  BackLayerScope,
+  transactionBackLayerLevels,
+} from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
+import { useDirtySnapshot } from "molecules/ui/UnsavedChangesDialog/useDirtySnapshot";
+import { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
+import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog/UnsavedChangesDialog";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
@@ -43,8 +50,9 @@ export function BalanceAdjustmentEditForm({
   editRestriction: TransactionEditRestriction | null;
 }) {
   const readOnly = editRestriction !== null;
-  const [state, submit, pending] = useActionState(action, {});
-  const [deleteState, remove, deleting] = useActionState(deleteAction, {});
+  const formId = "edit-balance-adjustment-form";
+  const [note, setNote] = useState(initialValues.note);
+  const [dirty, setDirty] = useState(false);
   const [, startTransition] = useTransition();
   const confirm = useConfirmDialog();
   const [transactionDate, setTransactionDate] = useState("");
@@ -65,6 +73,25 @@ export function BalanceAdjustmentEditForm({
     transactionDate,
     transactionTime,
   );
+  useDirtySnapshot(
+    JSON.stringify([note, transactionAtValue]),
+    setDirty,
+    Boolean(transactionAtValue),
+  );
+  const guard = useUnsavedChangesGuard({
+    isDirty: dirty && !readOnly,
+    saveFormId: formId,
+  });
+  const [state, submit, pending] = useActionState(
+    (previous: Awaited<ReturnType<TransactionStateAction>>, data: FormData) =>
+      guard.runAction(() => action(previous, data)),
+    {},
+  );
+  const [deleteState, remove, deleting] = useActionState(
+    (previous: Awaited<ReturnType<TransactionStateAction>>, data: FormData) =>
+      guard.runAction(() => deleteAction(previous, data)),
+    {},
+  );
   const failure = deleteState.error ? deleteState : state;
   async function requestDelete() {
     if (
@@ -81,82 +108,90 @@ export function BalanceAdjustmentEditForm({
     startTransition(() => remove(form));
   }
   return (
-    <Stack spacing={2} sx={{ p: 2 }}>
-      <Typography variant="h5">{text.title}</Typography>
-      {editRestriction ? (
-        <TransactionEditRestrictionAlert reason={editRestriction} />
-      ) : null}
-      {initialValues.accountArchived ? (
-        <Alert severity="info">
-          {balanceAdjustmentErrorMessages.archivedAccount}
-        </Alert>
-      ) : null}
-      <form action={submit}>
-        <ReadOnlyFieldset readOnly={readOnly}>
-          <Stack spacing={2}>
-            <input
-              type="hidden"
-              name="transactionRecordId"
-              value={initialValues.transactionRecordId}
-            />
-            <input type="hidden" name="timeZoneOffsetMinutes" value={offset} />
-            <TextField
-              label={text.account}
-              value={initialValues.accountName}
-              slotProps={{ input: { readOnly: true } }}
-            />
-            <TextField
-              label={text.amount}
-              value={formatTransactionRowAmount(
-                "balance_adjustment",
-                initialValues.signedDelta,
-                initialValues.currency,
+    <BackLayerScope level={transactionBackLayerLevels.receiptEditor}>
+      <Stack spacing={2} sx={{ p: 2 }}>
+        <Typography variant="h5">{text.title}</Typography>
+        {editRestriction ? (
+          <TransactionEditRestrictionAlert reason={editRestriction} />
+        ) : null}
+        {initialValues.accountArchived ? (
+          <Alert severity="info">
+            {balanceAdjustmentErrorMessages.archivedAccount}
+          </Alert>
+        ) : null}
+        <form id={formId} action={submit}>
+          <ReadOnlyFieldset readOnly={readOnly}>
+            <Stack spacing={2}>
+              <input
+                type="hidden"
+                name="transactionRecordId"
+                value={initialValues.transactionRecordId}
+              />
+              <input
+                type="hidden"
+                name="timeZoneOffsetMinutes"
+                value={offset}
+              />
+              <TextField
+                label={text.account}
+                value={initialValues.accountName}
+                slotProps={{ input: { readOnly: true } }}
+              />
+              <TextField
+                label={text.amount}
+                value={formatTransactionRowAmount(
+                  "balance_adjustment",
+                  initialValues.signedDelta,
+                  initialValues.currency,
+                )}
+                slotProps={{ input: { readOnly: true } }}
+              />
+              <input
+                type="hidden"
+                name="transactionAt"
+                value={transactionAtValue}
+              />
+              <TransactionDateTimePicker
+                date={transactionDate}
+                fieldLabel={text.time}
+                onDateChange={setTransactionDate}
+                onTimeChange={setTransactionTime}
+                time={transactionTime}
+              />
+              <TextField
+                label={text.note}
+                multiline
+                name="note"
+                value={note}
+                onChange={(event) => setNote(event.target.value)}
+                slotProps={{ htmlInput: { maxLength: 2000 } }}
+              />
+              {readOnly ? null : (
+                <PrimaryActionButton
+                  type="submit"
+                  disabled={pending || deleting || !transactionAtValue}
+                >
+                  {text.save}
+                </PrimaryActionButton>
               )}
-              slotProps={{ input: { readOnly: true } }}
-            />
-            <input
-              type="hidden"
-              name="transactionAt"
-              value={transactionAtValue}
-            />
-            <TransactionDateTimePicker
-              date={transactionDate}
-              fieldLabel={text.time}
-              onDateChange={setTransactionDate}
-              onTimeChange={setTransactionTime}
-              time={transactionTime}
-            />
-            <TextField
-              label={text.note}
-              multiline
-              name="note"
-              defaultValue={initialValues.note}
-              slotProps={{ htmlInput: { maxLength: 2000 } }}
-            />
-            {readOnly ? null : (
-              <PrimaryActionButton
-                type="submit"
-                disabled={pending || deleting || !transactionAtValue}
-              >
-                {text.save}
-              </PrimaryActionButton>
-            )}
-          </Stack>
-        </ReadOnlyFieldset>
-      </form>
-      {canDelete ? (
-        <Button
-          color="error"
-          onClick={requestDelete}
-          disabled={initialValues.accountArchived || pending || deleting}
-        >
-          {text.remove}
+            </Stack>
+          </ReadOnlyFieldset>
+        </form>
+        {canDelete ? (
+          <Button
+            color="error"
+            onClick={requestDelete}
+            disabled={initialValues.accountArchived || pending || deleting}
+          >
+            {text.remove}
+          </Button>
+        ) : null}
+        <Button component={Link} href={routePaths.transactions}>
+          {text.cancel}
         </Button>
-      ) : null}
-      <Button component={Link} href={routePaths.transactions}>
-        {text.cancel}
-      </Button>
-      <ActionFailureFeedback state={failure} title={text.failureTitle} />
-    </Stack>
+        <ActionFailureFeedback state={failure} title={text.failureTitle} />
+        <UnsavedChangesDialog {...guard.dialogProps} />
+      </Stack>
+    </BackLayerScope>
   );
 }

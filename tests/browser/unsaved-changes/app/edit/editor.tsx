@@ -11,7 +11,7 @@ export default function Editor({ save }: { save: typeof saveAction }) {
       account={bankAccountFixture}
       archiveAccountAction={save}
       baseCurrency="JPY"
-      canWriteTransactions={false}
+      canWriteTransactions
       holderOptions={accountHolderOptionsFixture}
       ledgerName="兼容性测试账本"
       updateAccountAction={save}

@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { useState, type ComponentProps } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { merchantErrorCodes, merchantErrorMessages } from "internal/merchant";
@@ -8,6 +9,8 @@ import { MerchantDetailsFields } from "./MerchantDetailsFields";
 afterEach(cleanup);
 
 const baseProps = {
+  previewIconUrl: "",
+  onPreviewIconChange: vi.fn(),
   fetchIconAction: vi.fn(
     async (_previous: unknown, _formData: FormData) => ({}),
   ),
@@ -20,16 +23,27 @@ const baseProps = {
   websiteUrl: "https://www.amazon.co.jp",
 };
 
+function FieldsHarness(props: ComponentProps<typeof MerchantDetailsFields>) {
+  const [iconUrl, setIconUrl] = useState(props.previewIconUrl);
+  return (
+    <MerchantDetailsFields
+      {...props}
+      previewIconUrl={iconUrl}
+      onPreviewIconChange={(url) => {
+        setIconUrl(url);
+        props.onPreviewIconChange(url);
+      }}
+    />
+  );
+}
+
 describe("MerchantDetailsFields", () => {
   it("显示当前值且不会随网址自动请求图标", () => {
     const fetchIconAction = vi.fn(
       async (_previous: unknown, _formData: FormData) => ({}),
     );
     const { container } = render(
-      <MerchantDetailsFields
-        {...baseProps}
-        fetchIconAction={fetchIconAction}
-      />,
+      <FieldsHarness {...baseProps} fetchIconAction={fetchIconAction} />,
     );
 
     expect(screen.getByLabelText(/商家名称/)).toHaveValue("Amazon");
@@ -54,7 +68,7 @@ describe("MerchantDetailsFields", () => {
       async (_previous: unknown, _formData: FormData) => ({}),
     );
     render(
-      <MerchantDetailsFields
+      <FieldsHarness
         {...baseProps}
         fetchIconAction={fetchIconAction}
         name=""
@@ -91,7 +105,7 @@ describe("MerchantDetailsFields", () => {
       }),
     );
     const { container } = render(
-      <MerchantDetailsFields
+      <FieldsHarness
         {...baseProps}
         fetchIconAction={fetchIconAction}
         merchantId="00000000-0000-4000-8000-000000001001"
@@ -124,12 +138,7 @@ describe("MerchantDetailsFields", () => {
           merchantErrorMessages[merchantErrorCodes.merchantIconFetchFailed],
       }),
     );
-    render(
-      <MerchantDetailsFields
-        {...baseProps}
-        fetchIconAction={fetchIconAction}
-      />,
-    );
+    render(<FieldsHarness {...baseProps} fetchIconAction={fetchIconAction} />);
 
     fireEvent.click(screen.getByRole("button", { name: "获取图标" }));
 
@@ -142,9 +151,9 @@ describe("MerchantDetailsFields", () => {
 
   it("直接显示数据库中已缓存的图标", () => {
     const { container } = render(
-      <MerchantDetailsFields
+      <FieldsHarness
         {...baseProps}
-        initialIconUrl="https://t2.gstatic.com/faviconV2?url=https://example.com"
+        previewIconUrl="https://t2.gstatic.com/faviconV2?url=https://example.com"
       />,
     );
 
@@ -157,9 +166,9 @@ describe("MerchantDetailsFields", () => {
 
   it("网址变化时清除旧预览，避免保存不匹配的图标", () => {
     const { container } = render(
-      <MerchantDetailsFields
+      <FieldsHarness
         {...baseProps}
-        initialIconUrl="https://t2.gstatic.com/faviconV2?url=https://example.com"
+        previewIconUrl="https://t2.gstatic.com/faviconV2?url=https://example.com"
       />,
     );
 

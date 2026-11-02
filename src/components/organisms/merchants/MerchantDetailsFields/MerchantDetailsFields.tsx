@@ -17,12 +17,12 @@ import { MerchantAvatar } from "../MerchantAvatar/MerchantAvatar";
 
 type MerchantDetailsFieldsProps = {
   fetchIconAction: MerchantIconStateAction;
-  initialIconUrl?: string | null;
+  previewIconUrl: string;
   ledgerId: string;
   merchantId?: string;
   name: string;
   note: string;
-  onPreviewIconChange?: (url: string) => void;
+  onPreviewIconChange: (url: string) => void;
   onNameChange: (value: string) => void;
   onNoteChange: (value: string) => void;
   onWebsiteUrlChange: (value: string) => void;
@@ -33,7 +33,7 @@ type IconPreviewStatus = "error" | "idle" | "loading" | "success";
 
 export function MerchantDetailsFields({
   fetchIconAction,
-  initialIconUrl,
+  previewIconUrl,
   ledgerId,
   merchantId,
   name,
@@ -44,9 +44,8 @@ export function MerchantDetailsFields({
   onWebsiteUrlChange,
   websiteUrl,
 }: MerchantDetailsFieldsProps) {
-  const [iconUrl, setIconUrl] = useState(initialIconUrl ?? undefined);
   const [previewStatus, setPreviewStatus] = useState<IconPreviewStatus>(
-    initialIconUrl ? "success" : "idle",
+    previewIconUrl ? "success" : "idle",
   );
   const [feedbackText, setFeedbackText] = useState<string | null>(null);
   const canFetch = websiteUrl.trim().length > 0;
@@ -75,7 +74,7 @@ export function MerchantDetailsFields({
 
   return (
     <Stack spacing={2}>
-      <input name="previewIconUrl" type="hidden" value={iconUrl ?? ""} />
+      <input name="previewIconUrl" type="hidden" value={previewIconUrl} />
       <Stack direction="row" spacing={2} sx={{ alignItems: "center", px: 0.5 }}>
         <MerchantAvatar
           loading={previewStatus === "loading"}
@@ -85,7 +84,7 @@ export function MerchantDetailsFields({
           }}
           padding={1}
           size={{ xs: 84, sm: 96 }}
-          src={iconUrl}
+          src={previewIconUrl || undefined}
           toneKey={merchantId ?? `new-merchant:${ledgerId}`}
         />
         <Stack spacing={0.5} sx={{ flex: 1 }}>
@@ -130,8 +129,7 @@ export function MerchantDetailsFields({
           name="websiteUrl"
           onChange={(event) => {
             onWebsiteUrlChange(event.target.value);
-            setIconUrl(undefined);
-            onPreviewIconChange?.("");
+            onPreviewIconChange("");
             setFeedbackText(null);
             setPreviewStatus("idle");
           }}
@@ -155,8 +153,7 @@ export function MerchantDetailsFields({
                 setPreviewStatus("error");
                 return;
               }
-              setIconUrl(state.iconUrl);
-              onPreviewIconChange?.(state.iconUrl ?? "");
+              onPreviewIconChange(state.iconUrl ?? "");
               setFeedbackText(state.success ?? merchantText.iconSuccess);
               setPreviewStatus("success");
             } catch {

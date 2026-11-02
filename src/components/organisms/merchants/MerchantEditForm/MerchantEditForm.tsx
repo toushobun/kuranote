@@ -72,7 +72,7 @@ export function MerchantEditForm({
       >
         <MerchantDetailsFields
           fetchIconAction={fetchIconAction}
-          initialIconUrl={merchant.icon_url}
+          previewIconUrl={details.previewIconUrl}
           ledgerId={ledgerId}
           merchantId={merchant.id}
           name={details.name}

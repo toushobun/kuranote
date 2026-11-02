@@ -1,3 +1,4 @@
+import { renderDirtyForm } from "test/dirtyForm";
 import {
   act,
   cleanup,
@@ -95,7 +96,7 @@ describe("TransactionForm", () => {
     { withAmountKeypad = false } = {},
   ) {
     const action = vi.fn(async () => undefined);
-    const view = render(
+    const view = renderDirtyForm(
       <UserThemeProvider>
         <ConfirmDialogProvider>
           <TransactionForm
@@ -154,6 +155,32 @@ describe("TransactionForm", () => {
     if (!input) throw new Error("发生时间提交字段不存在");
     return input.value;
   }
+  it("新增表单完成本地时间初始化仍干净，修改备注后还原恢复干净", () => {
+    const { container, onDirty } = renderForm();
+    expect(getSubmittedTransactionAt(container)).not.toBe("");
+    expect(onDirty).toHaveBeenLastCalledWith(false);
+    const note = container.querySelector('textarea[name="note"]')!;
+    fireEvent.change(note, { target: { value: "新增草稿" } });
+    expect(onDirty).toHaveBeenLastCalledWith(true);
+    fireEvent.change(note, { target: { value: "" } });
+    expect(onDirty).toHaveBeenLastCalledWith(false);
+  });
+  it.each(["明细抽屉", "金额键盘", "商家选择器", "日期时间"])(
+    "新增表单仅打开%s以及未确认草稿不算父表单修改",
+    (kind) => {
+      const { container, onDirty } = renderForm({}, { withAmountKeypad: true });
+      if (kind === "明细抽屉" || kind === "金额键盘") {
+        openSheet(container);
+        const amount = screen.getByRole("textbox", { name: "金额" });
+        if (kind === "金额键盘") act(() => amount.focus());
+        else fireEvent.change(amount, { target: { value: "123" } });
+      } else if (kind === "商家选择器")
+        fireEvent.mouseDown(getCombobox(container, "商家"));
+      else
+        fireEvent.click(screen.getByRole("button", { name: "选择记账时间" }));
+      expect(onDirty.mock.calls.some(([dirty]) => dirty)).toBe(false);
+    },
+  );
   it("显示移动端记账顶部操作区", () => {
     const { container } = renderForm({ ledgerName: "家庭账本" });
     expect(

@@ -274,6 +274,30 @@ function newTransactionSetupHrefs(type: TransactionType) {
   };
 }
 
+function GuardedPanel({
+  type,
+  activeType,
+  onDirty,
+  children,
+}: {
+  type: TransactionRecordType;
+  activeType: TransactionRecordType;
+  onDirty: (dirty: boolean) => void;
+  children: ReactNode;
+}) {
+  return (
+    <EditTransactionDirtyProvider onDirty={onDirty}>
+      <BackLayerScope
+        level={
+          activeType === type ? transactionBackLayerLevels.receiptEditor : null
+        }
+      >
+        {children}
+      </BackLayerScope>
+    </EditTransactionDirtyProvider>
+  );
+}
+
 function NewTransactionFormView({
   accountOptions,
   action,
@@ -325,10 +349,6 @@ function NewTransactionFormView({
   const lastNormalTypeRef = useRef<TransactionType>(
     initialType === "income" ? "income" : "expense",
   );
-  const [, setSubmitDisabledByType] = useState<
-    Record<TransactionRecordType, boolean>
-  >({ expense: true, income: true, transfer: true });
-
   useEffect(() => {
     if (activeType !== "transfer") {
       lastNormalTypeRef.current = activeType;
@@ -347,111 +367,81 @@ function NewTransactionFormView({
   const panels = useMemo(
     () => ({
       expense: (
-        <EditTransactionDirtyProvider onDirty={reportDirty.expense}>
-          <BackLayerScope
-            level={
-              activeType === "expense"
-                ? transactionBackLayerLevels.receiptEditor
-                : null
+        <GuardedPanel
+          type="expense"
+          activeType={activeType}
+          onDirty={reportDirty.expense}
+        >
+          <TransactionForm
+            action={formAction}
+            accountOptions={accountOptions}
+            categoryOptions={categoryOptions}
+            errorMessage={activeErrorMessage}
+            frequentCategoryIds={frequentCategoryIds}
+            formId="new-expense-transaction-form"
+            hideHeader
+            initialType="expense"
+            merchantOptions={merchantOptions}
+            refundPickerView={refundPickerView}
+            loadRefundGroupItemsAction={loadRefundGroupItemsAction}
+            loadRefundMoreGroupsAction={loadRefundMoreGroupsAction}
+            loadRefundSearchPageAction={loadRefundSearchPageAction}
+            setupHrefs={newTransactionSetupHrefs("expense")}
+            multiAccountPaymentEnabled={multiAccountPaymentEnabled}
+            transactionItemSpecialStatusEnabled={
+              transactionItemSpecialStatusEnabled
             }
-          >
-            <TransactionForm
-              action={formAction}
-              accountOptions={accountOptions}
-              categoryOptions={categoryOptions}
-              errorMessage={activeErrorMessage}
-              frequentCategoryIds={frequentCategoryIds}
-              formId="new-expense-transaction-form"
-              hideHeader
-              initialType="expense"
-              merchantOptions={merchantOptions}
-              refundPickerView={refundPickerView}
-              loadRefundGroupItemsAction={loadRefundGroupItemsAction}
-              loadRefundMoreGroupsAction={loadRefundMoreGroupsAction}
-              loadRefundSearchPageAction={loadRefundSearchPageAction}
-              setupHrefs={newTransactionSetupHrefs("expense")}
-              multiAccountPaymentEnabled={multiAccountPaymentEnabled}
-              transactionItemSpecialStatusEnabled={
-                transactionItemSpecialStatusEnabled
-              }
-              onSubmitDisabledChange={(disabled) =>
-                setSubmitDisabledByType((prev) => ({
-                  ...prev,
-                  expense: disabled,
-                }))
-              }
-            />
-          </BackLayerScope>
-        </EditTransactionDirtyProvider>
+          />
+        </GuardedPanel>
       ),
       income: (
-        <EditTransactionDirtyProvider onDirty={reportDirty.income}>
-          <BackLayerScope
-            level={
-              activeType === "income"
-                ? transactionBackLayerLevels.receiptEditor
-                : null
+        <GuardedPanel
+          type="income"
+          activeType={activeType}
+          onDirty={reportDirty.income}
+        >
+          <TransactionForm
+            action={formAction}
+            accountOptions={accountOptions}
+            categoryOptions={categoryOptions}
+            errorMessage={activeErrorMessage}
+            frequentCategoryIds={frequentCategoryIds}
+            formId="new-income-transaction-form"
+            hideHeader
+            initialType="income"
+            merchantOptions={merchantOptions}
+            refundPickerView={refundPickerView}
+            loadRefundGroupItemsAction={loadRefundGroupItemsAction}
+            loadRefundMoreGroupsAction={loadRefundMoreGroupsAction}
+            loadRefundSearchPageAction={loadRefundSearchPageAction}
+            setupHrefs={newTransactionSetupHrefs("income")}
+            multiAccountPaymentEnabled={multiAccountPaymentEnabled}
+            transactionItemSpecialStatusEnabled={
+              transactionItemSpecialStatusEnabled
             }
-          >
-            <TransactionForm
-              action={formAction}
-              accountOptions={accountOptions}
-              categoryOptions={categoryOptions}
-              errorMessage={activeErrorMessage}
-              frequentCategoryIds={frequentCategoryIds}
-              formId="new-income-transaction-form"
-              hideHeader
-              initialType="income"
-              merchantOptions={merchantOptions}
-              refundPickerView={refundPickerView}
-              loadRefundGroupItemsAction={loadRefundGroupItemsAction}
-              loadRefundMoreGroupsAction={loadRefundMoreGroupsAction}
-              loadRefundSearchPageAction={loadRefundSearchPageAction}
-              setupHrefs={newTransactionSetupHrefs("income")}
-              multiAccountPaymentEnabled={multiAccountPaymentEnabled}
-              transactionItemSpecialStatusEnabled={
-                transactionItemSpecialStatusEnabled
-              }
-              onSubmitDisabledChange={(disabled) =>
-                setSubmitDisabledByType((prev) => ({
-                  ...prev,
-                  income: disabled,
-                }))
-              }
-            />
-          </BackLayerScope>
-        </EditTransactionDirtyProvider>
+          />
+        </GuardedPanel>
       ),
       transfer: (
-        <EditTransactionDirtyProvider onDirty={reportDirty.transfer}>
-          <BackLayerScope
-            level={
-              activeType === "transfer"
-                ? transactionBackLayerLevels.receiptEditor
-                : null
-            }
-          >
-            <TransferTransactionForm
-              action={formAction}
-              accountOptions={accountOptions}
-              addAccountHref={accountsNewHref(
-                transactionsNewEntryHref({
-                  method: "standard",
-                  type: "transfer",
-                }),
-              )}
-              errorMessage={activeErrorMessage}
-              formId="new-transfer-transaction-form"
-              hideHeader
-              onSubmitDisabledChange={(disabled) =>
-                setSubmitDisabledByType((prev) => ({
-                  ...prev,
-                  transfer: disabled,
-                }))
-              }
-            />
-          </BackLayerScope>
-        </EditTransactionDirtyProvider>
+        <GuardedPanel
+          type="transfer"
+          activeType={activeType}
+          onDirty={reportDirty.transfer}
+        >
+          <TransferTransactionForm
+            action={formAction}
+            accountOptions={accountOptions}
+            addAccountHref={accountsNewHref(
+              transactionsNewEntryHref({
+                method: "standard",
+                type: "transfer",
+              }),
+            )}
+            errorMessage={activeErrorMessage}
+            formId="new-transfer-transaction-form"
+            hideHeader
+          />
+        </GuardedPanel>
       ),
     }),
     [
@@ -510,30 +500,32 @@ export function EditTransferTransactionTemplate({
   );
 
   return (
-    <EditTransactionShell
-      action={action}
-      canDelete={canDelete}
-      deleteAction={deleteAction}
-      editRestriction={editRestriction}
-      hasLinkedIncomeItems={false}
-      saveFormId={editTransferTransactionFormId}
-      transactionRecordId={initialValues.transactionRecordId}
-    >
-      {(editAction) => (
-        <>
-          <TransferTransactionForm
-            action={editAction.formAction}
-            accountOptions={accountOptions}
-            formId={editTransferTransactionFormId}
-            hideHeader
-            hideSubmitButton={readOnly}
-            initialValues={initialValues}
-            readOnly={readOnly}
-            sourceType="transfer"
-          />
-          {readOnly ? null : <TransactionAmountKeypadLauncher />}
-        </>
-      )}
-    </EditTransactionShell>
+    <BackLayerScope level={transactionBackLayerLevels.receiptEditor}>
+      <EditTransactionShell
+        action={action}
+        canDelete={canDelete}
+        deleteAction={deleteAction}
+        editRestriction={editRestriction}
+        hasLinkedIncomeItems={false}
+        saveFormId={editTransferTransactionFormId}
+        transactionRecordId={initialValues.transactionRecordId}
+      >
+        {(editAction) => (
+          <>
+            <TransferTransactionForm
+              action={editAction.formAction}
+              accountOptions={accountOptions}
+              formId={editTransferTransactionFormId}
+              hideHeader
+              hideSubmitButton={readOnly}
+              initialValues={initialValues}
+              readOnly={readOnly}
+              sourceType="transfer"
+            />
+            {readOnly ? null : <TransactionAmountKeypadLauncher />}
+          </>
+        )}
+      </EditTransactionShell>
+    </BackLayerScope>
   );
 }
