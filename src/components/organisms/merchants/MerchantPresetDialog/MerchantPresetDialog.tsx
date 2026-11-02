@@ -40,11 +40,7 @@ export function MerchantPresetDialog({
     (state, data) => runAction(() => action(state, data)),
     [action, runAction],
   );
-  const dialog = useMerchantPresetDialog(
-    options,
-    guardedAction,
-    !!onSaved,
-  );
+  const dialog = useMerchantPresetDialog(options, guardedAction, !!onSaved);
   const pending = dialog.submission.pending;
   useEffect(() => {
     if (dialog.submission.state.success) onSaved?.();
