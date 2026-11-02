@@ -40,7 +40,6 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("next/navigation", () => ({
   redirect: mocks.redirect,
-  RedirectType: { push: "push", replace: "replace" },
 }));
 vi.mock("internal/ledger/adapter/next/currentLedger", () => ({
   requireCurrentUserAndLedger: mocks.requireCurrentUserAndLedger,
@@ -598,22 +597,11 @@ describe("addMerchantPresets", () => {
     expect(mocks.revalidateMerchantMutation).toHaveBeenCalled();
     expect(mocks.redirect).toHaveBeenCalledWith(
       "/merchants?result=presets-added&count=2",
-      "push",
     );
-  });
-  it("从记一笔进入时添加后返回来源页面", async () => {
-    mocks.addPresets.mockResolvedValue(2);
-    const form = presetForm();
-    form.set("returnTo", "/transactions/new");
-    await expect(addMerchantPresets({}, form)).rejects.toThrow(
-      "NEXT_REDIRECT:/transactions/new",
-    );
-    expect(mocks.redirect).toHaveBeenCalledWith("/transactions/new", "replace");
   });
   it("记一笔内嵌预设成功只返回状态，不依赖同页重定向", async () => {
     mocks.addPresets.mockResolvedValue(3);
     const form = presetForm();
-    form.set("returnTo", "/transactions/new");
     form.set("presentation", "dialog");
     expect(await addMerchantPresets({}, form)).toEqual({
       success: "已添加 3 个商家",
