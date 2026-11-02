@@ -90,8 +90,13 @@ export const ChangeMerchant: Story = {
 };
 
 export const CloseConfirmation: Story = {
-  name: "关闭确认",
+  name: "小票关闭的公共确认",
+  args: QuickEntry.args,
   play: async ({ canvasElement }) => {
-    await selectMerchant(canvasElement, "关闭记账");
+    const body = await selectMerchant(canvasElement, "7-Eleven");
+    await userEvent.click(body.getByRole("button", { name: "关闭记账" }));
+    await expect(
+      await body.findByRole("dialog", { name: "尚未保存" }),
+    ).toBeVisible();
   },
 };

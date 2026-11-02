@@ -8,6 +8,9 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import { BackLayerScope } from "./BackLayerScope";
+import { TransactionBottomEditorDrawer } from "molecules/transactions/TransactionBottomEditorDrawer/TransactionBottomEditorDrawer";
+import { expectInBodyPortal } from "test/bodyPortal";
 import { useState } from "react";
 import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
 import { describe, expect, it, vi } from "vitest";
@@ -46,6 +49,29 @@ function Harness({ save = () => {} }: { save?: () => void }) {
         新标签
       </a>
       <UnsavedChangesDialog {...guard.dialogProps} />
+    </>
+  );
+}
+
+function LayerHarness({ enabled = true }: { enabled?: boolean }) {
+  const [open, setOpen] = useState(true);
+  const page = useUnsavedChangesGuard({
+    isDirty: false,
+    saveFormId: "background-form",
+  });
+  return (
+    <>
+      <p>底层页面</p>
+      <BackLayerScope level={enabled ? 1 : null}>
+        <TransactionBottomEditorDrawer
+          open={open}
+          title="选择商家"
+          onClose={() => setOpen(false)}
+        >
+          <button onClick={() => setOpen(false)}>选中商家</button>
+        </TransactionBottomEditorDrawer>
+      </BackLayerScope>
+      <UnsavedChangesDialog {...page.dialogProps} />
     </>
   );
 }
@@ -103,5 +129,52 @@ describe("useUnsavedChangesGuard", () => {
     const unload = new Event("beforeunload", { cancelable: true });
     window.dispatchEvent(unload);
     expect(unload.defaultPrevented).toBe(false);
+  });
+  it.each(["关闭", "遮罩", "选中"])(
+    "UI %s最后一层后回基准，内部 popstate 不离开底层，前进不复活弹层",
+    async (method) => {
+      const { container } = render(<LayerHarness />, {
+        wrapper: ConfirmDialogTestProviders,
+      });
+      const drawerTitle = screen.getByRole("heading", { name: "选择商家" });
+      expectInBodyPortal(drawerTitle, ".MuiDrawer-root", container);
+      await waitFor(() =>
+        expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe(
+          "sentinel",
+        ),
+      );
+      if (method === "关闭")
+        fireEvent.click(
+          screen.getByRole("button", { name: "关闭选择商家编辑" }),
+        );
+      if (method === "选中")
+        fireEvent.click(screen.getByRole("button", { name: "选中商家" }));
+      if (method === "遮罩")
+        fireEvent.click(document.querySelector(".MuiBackdrop-root")!);
+      await waitFor(() =>
+        expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe(
+          "base",
+        ),
+      );
+      await waitFor(() =>
+        expect(screen.queryByRole("heading", { name: "选择商家" })).toBeNull(),
+      );
+      await act(async () => window.history.forward());
+      expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe(
+        "base",
+      );
+      expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
+      expect(screen.getByText("底层页面")).toBeInTheDocument();
+      expect(window.history.pushState).toHaveBeenCalledOnce();
+    },
+  );
+  it("编辑页未启用作用域时共享抽屉不登记哨兵", async () => {
+    render(<LayerHarness enabled={false} />, {
+      wrapper: ConfirmDialogTestProviders,
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(window.history.pushState).not.toHaveBeenCalled();
   });
 });

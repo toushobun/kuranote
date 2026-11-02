@@ -1,3 +1,4 @@
+import { confirmDialogZIndex } from "theme/zIndex";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -32,6 +33,7 @@ export function UnsavedChangesDialog({
   }, [open]);
   return (
     <Dialog
+      sx={{ zIndex: confirmDialogZIndex }}
       aria-labelledby={titleId}
       disableRestoreFocus
       onClose={onCancel}

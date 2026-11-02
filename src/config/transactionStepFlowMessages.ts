@@ -108,10 +108,6 @@ export const flowMessages = {
   checkAccount: "请完善收支账户，点一下去填写",
   invalidTime: "请选择有效时间",
 
-  abandonTitle: "放弃这笔记账？",
-  abandonDescription: "已填写的内容不会保存。",
-  continue: "继续记账",
-  abandon: "放弃",
   cancel: "取消",
   switch: "切换",
   currencyTitle: (name: string) => `切换为 ${name} 账户？`,

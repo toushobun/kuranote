@@ -1,5 +1,19 @@
 "use client";
-import { createContext, useContext, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useId,
+  useState,
+  type ReactNode,
+} from "react";
+import {
+  BackLayerScope,
+  transactionBackLayerLevels,
+  useBackLayerLevel,
+} from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
+import { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
+import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog/UnsavedChangesDialog";
+import { appZIndex } from "theme/zIndex";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
@@ -42,55 +56,15 @@ export function ReceiptCreationProvider({
   return (
     <ReceiptCreationContext.Provider value={w}>
       {children}
-      <Dialog
-        open={!!w.editor}
-        aria-labelledby="receipt-creation-title"
-        fullScreen
-        onClose={w.close}
-        slots={{ transition: BottomSlideTransition }}
-      >
-        <DialogTitle
-          id="receipt-creation-title"
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 1,
-            pt: "calc(16px + env(safe-area-inset-top))",
-          }}
+      {w.editor && (
+        <BackLayerScope
+          level={
+            w.editor.navigation ? transactionBackLayerLevels.creation : null
+          }
         >
-          <IconButton
-            aria-label={m.creationClose}
-            disabled={w.pending}
-            onClick={w.close}
-          >
-            <CloseRoundedIcon />
-          </IconButton>
-          {w.editor?.type === "merchant" ? m.addMerchant : m.addAccount}
-        </DialogTitle>
-        <DialogContent sx={{ bgcolor: "background.default", p: 2.5 }}>
-          {data && w.editor?.type === "merchant" && (
-            <MerchantCreateBody
-              {...data.merchant}
-              createMerchantAction={w.trackAction(
-                data.merchant.createMerchantAction,
-              )}
-              initialName={w.editor.name}
-              onCancel={w.close}
-              onCreated={w.merchantCreated}
-            />
-          )}
-          {data && w.editor?.type === "account" && (
-            <AccountCreateBody
-              {...data.account}
-              createAccountAction={w.trackAction(
-                data.account.createAccountAction,
-              )}
-              onCancel={w.close}
-              onCreated={w.accountCreated}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+          <ReceiptCreationEditor w={w} data={data} />
+        </BackLayerScope>
+      )}
       <SuccessFeedbackDialog
         aboveModal
         bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
@@ -99,5 +73,90 @@ export function ReceiptCreationProvider({
         title={w.message}
       />
     </ReceiptCreationContext.Provider>
+  );
+}
+
+function ReceiptCreationEditor({
+  w,
+  data,
+}: {
+  w: ReturnType<typeof useReceiptCreationState>;
+  data: ReceiptCreationData;
+}) {
+  const [dirty, setDirty] = useState(false);
+  const formId = useId();
+  const level = useBackLayerLevel();
+  const guard = useUnsavedChangesGuard({
+    isDirty: dirty,
+    saveFormId: formId,
+    onClose: w.close,
+    active: level !== null,
+    disabled: w.pending,
+  });
+  const close = level !== null ? guard.requestClose : w.close;
+  return (
+    <>
+      <BackLayerScope level={level === null ? null : level + 1}>
+        <Dialog
+          open={!!w.editor}
+          aria-labelledby="receipt-creation-title"
+          fullScreen
+          sx={{ zIndex: appZIndex.dropdown }}
+          onClose={close}
+          slots={{ transition: BottomSlideTransition }}
+        >
+          <DialogTitle
+            id="receipt-creation-title"
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              pt: "calc(16px + env(safe-area-inset-top))",
+            }}
+          >
+            <IconButton
+              aria-label={m.creationClose}
+              disabled={w.pending}
+              onClick={close}
+            >
+              <CloseRoundedIcon />
+            </IconButton>
+            {w.editor?.type === "merchant" ? m.addMerchant : m.addAccount}
+          </DialogTitle>
+          <DialogContent sx={{ bgcolor: "background.default", p: 2.5 }}>
+            {data && w.editor?.type === "merchant" && (
+              <MerchantCreateBody
+                {...data.merchant}
+                formId={formId}
+                onDirtyChange={setDirty}
+                createMerchantAction={w.trackAction((state, dataValue) =>
+                  guard.runAction(() =>
+                    data.merchant.createMerchantAction(state, dataValue),
+                  ),
+                )}
+                initialName={w.editor.name}
+                onCancel={close}
+                onCreated={w.merchantCreated}
+              />
+            )}
+            {data && w.editor?.type === "account" && (
+              <AccountCreateBody
+                {...data.account}
+                formId={formId}
+                onDirtyChange={setDirty}
+                createAccountAction={w.trackAction((state, dataValue) =>
+                  guard.runAction(() =>
+                    data.account.createAccountAction(state, dataValue),
+                  ),
+                )}
+                onCancel={close}
+                onCreated={w.accountCreated}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+      </BackLayerScope>
+      <UnsavedChangesDialog {...guard.dialogProps} />
+    </>
   );
 }

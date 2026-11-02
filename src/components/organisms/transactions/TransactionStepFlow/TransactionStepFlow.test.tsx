@@ -1,3 +1,6 @@
+import { StrictMode } from "react";
+import { setupGuardHistoryMock, backFromGuard } from "test/mockGuardHistory";
+setupGuardHistoryMock();
 import type { TransactionFormInitialValues } from "organisms/transactions/TransactionForm/TransactionForm.types";
 import { expectInBodyPortal } from "test/bodyPortal";
 import { ReceiptCreationProvider } from "organisms/transactions/ReceiptCreationProvider/ReceiptCreationProvider";
@@ -125,25 +128,52 @@ describe("TransactionStepFlow", () => {
     expect(screen.queryByRole("button", { name: "切换方式" })).toBeNull();
   });
 
-  it.each([false, true])(
-    "小票已打开为 %s 时关闭：继续记账保留内容，放弃才关闭",
-    async (receipt) => {
-      const { props } = quickSetup();
-      if (receipt) click("7-Eleven");
-      click("关闭记账");
-      expect(screen.getByText("已填写的内容不会保存。")).toBeInTheDocument();
-      click("继续记账");
-      expect(props.onClose).not.toHaveBeenCalled();
-      await waitFor(() =>
-        expect(
-          screen.queryByText("已填写的内容不会保存。"),
-        ).not.toBeInTheDocument(),
-      );
-      click("关闭记账");
-      click("放弃");
-      await waitFor(() => expect(props.onClose).toHaveBeenCalledOnce());
-    },
-  );
+  it("StrictMode 重挂载只启用一条哨兵，最终卸载回到基准", async () => {
+    const view = renderEntryComponent(
+      <StrictMode>
+        <TransactionStepFlow {...flowFixture} />
+      </StrictMode>,
+    );
+    await waitFor(() =>
+      expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe(
+        "sentinel",
+      ),
+    );
+    expect(window.history.pushState).toHaveBeenCalledOnce();
+    view.unmount();
+    await waitFor(() =>
+      expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe(
+        "base",
+      ),
+    );
+    expect(screen.queryByRole("button", { name: "关闭记账" })).toBeNull();
+  });
+
+  it("首屏未修改直接关闭，搜索商家不算修改", async () => {
+    const { props } = quickSetup();
+    fireEvent.change(screen.getByRole("textbox", { name: "搜索商家" }), {
+      target: { value: "关键词" },
+    });
+    click("关闭记账");
+    await waitFor(() => expect(props.onClose).toHaveBeenCalledOnce());
+    expect(screen.queryByText("尚未保存")).toBeNull();
+  });
+  it("小票修改后关闭：继续编辑保留内容，放弃只关闭本流程", async () => {
+    const { props } = quickSetup();
+    click("7-Eleven");
+    click("关闭记账");
+    expect(
+      screen.getByRole("dialog", { name: "尚未保存" }),
+    ).toBeInTheDocument();
+    click("继续编辑");
+    expect(props.onClose).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull(),
+    );
+    click("关闭记账");
+    click("放弃修改");
+    await waitFor(() => expect(props.onClose).toHaveBeenCalledOnce());
+  });
 
   it("关闭后重新打开不保留上次内容", () => {
     const view = quickSetup();
@@ -638,6 +668,7 @@ describe("TransactionStepFlow 页内新增", () => {
         target: { value: "取消的内容" },
       });
       click("取消");
+      click("放弃修改");
       await screen.findByRole("button", { name: "新增账户" });
       expect([...new FormData(form).entries()]).toEqual(before);
       click("新增账户");
@@ -646,4 +677,101 @@ describe("TransactionStepFlow 页内新增", () => {
       expectCreatedReceiptPayment(form, row);
     },
   );
+  it("后退先确认全屏商家自身，放弃后保留父小票和抽屉搜索，再后退只关抽屉", async () => {
+    const { container, form } = setupCreationFlow();
+    const before = [...new FormData(form).entries()];
+    click("修改商家：7-Eleven");
+    const search = screen.getByRole("textbox", { name: "搜索商家" });
+    fireEvent.change(search, { target: { value: "LIFE" } });
+    click("新增商家");
+    const name = await screen.findByLabelText(/商家名称/);
+    fireEvent.change(name, { target: { value: "子层草稿" } });
+    const editor = name.closest(".MuiDialog-root")!;
+    await backFromGuard();
+    const confirmation = await screen.findByRole("dialog", {
+      name: "尚未保存",
+    });
+    expectInBodyPortal(
+      confirmation,
+      ".MuiDialog-root",
+      container,
+      editor as HTMLElement,
+    );
+    expect(
+      Number(getComputedStyle(confirmation.closest(".MuiDialog-root")!).zIndex),
+    ).toBeGreaterThan(Number(getComputedStyle(editor).zIndex));
+    click("继续编辑");
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull(),
+    );
+    expect(name).toHaveValue("子层草稿");
+    await backFromGuard(2);
+    await screen.findByRole("dialog", { name: "尚未保存" });
+    click("放弃修改");
+    await waitFor(() => expect(editor).not.toBeInTheDocument());
+    expect(screen.getByRole("textbox", { name: "搜索商家" })).toBe(search);
+    expect(search).toHaveValue("LIFE");
+    expect([...new FormData(form).entries()]).toEqual(before);
+    await backFromGuard();
+    await waitMerchantDrawerClosed();
+    expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
+    expect(saveButton().closest("form")).toBe(form);
+    await backFromGuard();
+    await screen.findByRole("dialog", { name: "尚未保存" });
+  });
+  it("全屏商家预填是初值，输入还原后后退直接关闭且不改父数据", async () => {
+    const { form } = setupCreationFlow();
+    const before = [...new FormData(form).entries()];
+    click("修改商家：7-Eleven");
+    fireEvent.change(screen.getByRole("textbox", { name: "搜索商家" }), {
+      target: { value: "预填名称" },
+    });
+    click("新增商家");
+    const name = await screen.findByLabelText(/商家名称/);
+    expect(name).toHaveValue("预填名称");
+    fireEvent.change(name, { target: { value: "修改" } });
+    fireEvent.change(name, { target: { value: "预填名称" } });
+    await backFromGuard();
+    await screen.findByRole("button", { name: "新增商家" });
+    expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
+    expect([...new FormData(form).entries()]).toEqual(before);
+  });
+  it.each(["备注", "支付账户", "金额", "明细"])(
+    "后退按%s编辑层的取消语义关闭，不确认父小票",
+    async (kind) => {
+      const { form } = setupCreationFlow();
+      if (kind === "备注") click("修改备注：添加备注");
+      if (kind === "支付账户") click("更换支付账户 1");
+      if (kind === "金额") {
+        fireEvent.click(
+          screen.getByRole("button", { name: /^修改明细 1 金额/ }),
+        );
+        await screen.findByLabelText("金额计算器");
+      }
+      if (kind === "明细") click("编辑明细 1");
+      await backFromGuard();
+      await waitFor(() =>
+        expect(screen.getByRole("button", { name: "关闭记账" })).toBeVisible(),
+      );
+      expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
+      expect(saveButton().closest("form")).toBe(form);
+    },
+  );
+  it("新增账户的金额键盘后退丢弃草稿，第二次后退关闭干净的账户层", async () => {
+    const { form } = setupCreationFlow();
+    const before = [...new FormData(form).entries()];
+    click("更换支付账户 1");
+    click("新增账户");
+    const balance = await screen.findByLabelText("初始金额");
+    fireEvent.focus(balance);
+    await screen.findByLabelText("金额计算器");
+    pressItemAmountKey("8");
+    await backFromGuard();
+    await waitKeypadClosed();
+    expect(balance).toHaveValue("0");
+    await backFromGuard();
+    await screen.findByRole("button", { name: "新增账户" });
+    expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
+    expect([...new FormData(form).entries()]).toEqual(before);
+  });
 });

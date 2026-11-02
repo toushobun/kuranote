@@ -15,6 +15,8 @@ import type {
 
 export type MerchantCreateTemplateProps = {
   onCancel?: () => void;
+  formId?: string;
+  onDirtyChange?: (dirty: boolean) => void;
   onCreated?: (
     entity: NonNullable<
       import("types/merchants").MerchantActionState["createdMerchant"]
@@ -54,6 +56,8 @@ export function MerchantCreateBody({
   ledgerId,
   returnTo = null,
   onCancel,
+  formId,
+  onDirtyChange,
   onCreated,
   tags,
 }: MerchantCreateTemplateProps) {
@@ -69,6 +73,8 @@ export function MerchantCreateBody({
     <>
       <SectionCard sx={{ p: { xs: 2, sm: 3 } }}>
         <MerchantForm
+          id={formId}
+          onDirtyChange={onDirtyChange}
           action={formAction}
           fetchIconAction={fetchIconAction}
           initialName={initialName}

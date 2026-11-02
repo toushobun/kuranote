@@ -7,6 +7,9 @@ export default function Page() {
       <div
         style={{ position: "fixed", top: 100, zIndex: 2, background: "white" }}
       >
+        <Link href="/new" prefetch={false}>
+          新增记账
+        </Link>
         <Link href="/edit" prefetch={false}>
           编辑账户
         </Link>

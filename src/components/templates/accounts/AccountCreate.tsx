@@ -16,6 +16,8 @@ import type {
 
 export type AccountCreateTemplateProps = {
   onCancel?: () => void;
+  formId?: string;
+  onDirtyChange?: (dirty: boolean) => void;
   onCreated?: (
     entity: NonNullable<
       import("types/accounts").AccountActionState["createdAccount"]
@@ -56,6 +58,8 @@ export function AccountCreateBody({
   placeholderHolderOptions = [],
   returnTo = null,
   onCancel,
+  formId,
+  onDirtyChange,
   onCreated,
 }: AccountCreateTemplateProps) {
   const [state, formAction, pending] = useCreateAction(
@@ -68,6 +72,8 @@ export function AccountCreateBody({
   return (
     <>
       <AccountForm
+        id={formId}
+        onDirtyChange={onDirtyChange}
         action={formAction}
         defaultCurrency={baseCurrency}
         holderOptions={holderOptions}

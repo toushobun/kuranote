@@ -58,7 +58,7 @@ export class UnsavedChangesHistory {
       this.id = marker.id;
       this.href = this.port.href();
       this.hasSentinel = true;
-    } else if (marker?.id !== this.id) {
+    } else if (marker?.id !== this.id || this.port.href() !== this.href) {
       // 成功跳转后再次通过 Link 进入的是新记录，旧会话不能再假定前方存在哨兵。
       this.hasSentinel = false;
       this.href = this.port.href();

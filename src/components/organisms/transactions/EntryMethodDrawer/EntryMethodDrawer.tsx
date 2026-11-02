@@ -1,4 +1,5 @@
 "use client";
+import { useBackLayer } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import Box from "@mui/material/Box";
@@ -27,6 +28,7 @@ export function EntryMethodDrawer({
   onClose,
   onMethodChange,
 }: EntryMethodDrawerProps) {
+  useBackLayer(open, onClose);
   return (
     <Drawer
       sx={{ zIndex: (theme) => theme.zIndex.modal + 1 }}

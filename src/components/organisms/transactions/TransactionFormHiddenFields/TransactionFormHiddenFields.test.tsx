@@ -1,3 +1,6 @@
+import { setupGuardHistoryMock } from "test/mockGuardHistory";
+setupGuardHistoryMock();
+
 import { screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { renderConfirmFlow } from "test/transactionConfirmStep";

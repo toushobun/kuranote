@@ -1,4 +1,5 @@
 "use client";
+import { useBackLayerLevel } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
 import { useReceiptCreation } from "organisms/transactions/ReceiptCreationProvider/ReceiptCreationProvider";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import Alert from "@mui/material/Alert";
@@ -45,6 +46,7 @@ import { useTransactionConfirmStep } from "./useTransactionConfirmStep";
  * `readOnly`（#962）时只显示内容：没有铅笔、×、可点金额、提示条与保存按钮。
  */
 export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
+  const level = useBackLayerLevel();
   const creation = useReceiptCreation();
   const f = props.form;
   const readOnly = !!props.readOnly;
@@ -320,7 +322,11 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
           selectedAccount={w.pickerSelectedAccount}
           hasDetails={f.itemSummaries.length > 0}
           onSelect={w.selectAccount}
-          onAddAccount={creation?.addAccount}
+          onAddAccount={
+            creation?.addAccount
+              ? (onCreated) => creation.addAccount?.(onCreated, level !== null)
+              : undefined
+          }
         />
       </TransactionBottomEditorDrawer>
       <TransactionItemAmountDrawer

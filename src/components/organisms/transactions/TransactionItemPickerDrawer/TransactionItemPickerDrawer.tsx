@@ -1,3 +1,4 @@
+import { useBackLayer } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
 import { useMemo, useState } from "react";
 
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
@@ -143,6 +144,7 @@ export function TransactionItemPickerDrawer({
   incomeLinksEnabled = true,
   incomeCategoriesDisabled = false,
 }: TransactionItemPickerDrawerProps) {
+  useBackLayer(open, closeDrawer);
   const selectedCategoryType = filteredCategoryOptions.find(
     (category) => category.id === pickerCategoryId,
   )?.type;

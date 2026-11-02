@@ -1,4 +1,4 @@
-import { cleanup } from "@testing-library/react";
+import { act, waitFor, cleanup } from "@testing-library/react";
 import { afterEach, beforeEach, vi } from "vitest";
 
 import { createGuardHistoryPort } from "./guardHistory";
@@ -48,5 +48,15 @@ export function setupGuardHistoryMock() {
     cleanup();
     await browser.flush();
     restore();
+  });
+}
+
+export async function backFromGuard(count = 1) {
+  await waitFor(() => {
+    if (window.history.state?.kuranoteUnsavedChanges?.position !== "sentinel")
+      throw new Error("等待守卫哨兵");
+  });
+  await act(async () => {
+    for (let index = 0; index < count; index++) window.history.back();
   });
 }

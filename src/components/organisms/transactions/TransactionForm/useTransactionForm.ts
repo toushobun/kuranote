@@ -803,6 +803,7 @@ export function useTransactionForm({
   }
 
   return {
+    dirtySnapshot,
     note,
     addItem,
     accountFieldRef,

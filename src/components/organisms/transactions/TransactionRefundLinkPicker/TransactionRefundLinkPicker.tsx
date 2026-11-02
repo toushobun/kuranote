@@ -1,3 +1,4 @@
+import { useBackLayer } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import LinkOffRoundedIcon from "@mui/icons-material/LinkOffRounded";
 import SwapHorizRoundedIcon from "@mui/icons-material/SwapHorizRounded";
@@ -74,6 +75,7 @@ export function TransactionRefundLinkPicker({
     setOpen(true);
   };
   const close = () => setOpen(false);
+  useBackLayer(open, close, 1);
   const confirm = () => {
     onChange(draftValue);
     close();

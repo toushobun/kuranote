@@ -1,5 +1,6 @@
 "use client";
 
+import { useBackLayer } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
 import { useEffect, useRef, useState } from "react";
 
 import Drawer from "@mui/material/Drawer";
@@ -105,6 +106,7 @@ export function TransactionAmountKeypadLauncher() {
     closeKeypad();
   }
 
+  useBackLayer(!!activeInput, closeKeypad);
   return (
     <Drawer
       anchor="bottom"

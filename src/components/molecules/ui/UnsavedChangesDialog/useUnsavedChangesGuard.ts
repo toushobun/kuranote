@@ -1,23 +1,39 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useEffectEvent, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useLayoutEffect,
+  useState,
+} from "react";
 
 import { useUnsavedChangesCoordinator } from "providers/UnsavedChangesGuardProvider/UnsavedChangesGuardProvider";
+
+import { useBackLayerLevel } from "./BackLayerScope";
 
 type LeaveIntent = { type: "back" } | { type: "action"; action: () => void };
 
 export function useUnsavedChangesGuard({
   isDirty,
   saveFormId,
+  onClose,
+  active = true,
+  disabled = false,
 }: {
   isDirty: boolean;
   saveFormId: string;
+  onClose?: () => void;
+  active?: boolean;
+  disabled?: boolean;
 }) {
   const router = useRouter();
   const [intent, setIntent] = useState<LeaveIntent | null>(null);
   const coordinator = useUnsavedChangesCoordinator();
-  const [history] = useState(coordinator.createHistory);
+  const [history] = useState(coordinator.createGuard);
+  const level = useBackLayerLevel();
+  const layer = onClose && level !== null ? level : null;
   const runAction = useCallback(
     <T>(action: () => Promise<T>) => history.runAction(action),
     [history],
@@ -29,6 +45,7 @@ export function useUnsavedChangesGuard({
     event.returnValue = "";
   });
   const interceptClick = useEffectEvent((event: MouseEvent) => {
+    if (!active || disabled || !history.isTop()) return;
     if (
       event.defaultPrevented ||
       event.button !== 0 ||
@@ -71,10 +88,16 @@ export function useUnsavedChangesGuard({
     setIntent((current) => current ?? { type: "action", action: navigate });
   });
 
-  useEffect(() => {
-    const unregister = coordinator.register(history, () =>
-      setIntent((current) => current ?? { type: "back" }),
-    );
+  const requestBack = useEffectEvent(() => {
+    if (!active || disabled) return;
+    if (!isDirty && onClose) {
+      void history.leave(onClose);
+      return;
+    }
+    setIntent((current) => current ?? { type: "back" });
+  });
+  useLayoutEffect(() => {
+    const unregister = history.register(() => requestBack());
     const click = (event: MouseEvent) => interceptClick(event);
     document.addEventListener("click", click, true);
     return () => {
@@ -90,12 +113,18 @@ export function useUnsavedChangesGuard({
     return () => window.removeEventListener("beforeunload", unload);
   }, [isDirty]);
 
-  useEffect(() => {
-    void history.setDirty(isDirty);
-  }, [history, isDirty]);
+  useLayoutEffect(() => {
+    void history.update(isDirty, layer, active);
+  }, [history, isDirty, layer, active]);
 
   return {
     runAction,
+    requestClose: () => {
+      if (!active || disabled || !onClose) return;
+      if (isDirty)
+        setIntent((current) => current ?? { type: "action", action: onClose });
+      else void history.leave(onClose);
+    },
     dialogProps: {
       open: intent !== null,
       onCancel: () => setIntent(null),
@@ -108,7 +137,9 @@ export function useUnsavedChangesGuard({
         if (!intent) return;
         setIntent(null);
         void history.leave(
-          intent.type === "back" ? () => window.history.back() : intent.action,
+          intent.type === "back"
+            ? (onClose ?? (() => window.history.back()))
+            : intent.action,
         );
       },
     },

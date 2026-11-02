@@ -1,3 +1,6 @@
+import { setupGuardHistoryMock } from "test/mockGuardHistory";
+setupGuardHistoryMock();
+
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MerchantEntrySuggestions } from "internal/transaction";
@@ -213,10 +216,10 @@ describe("NewTransactionStepFlow", () => {
     );
   });
 
-  it("关闭并确认放弃后回到明细列表", async () => {
+  it("首屏无修改时关闭直接回到明细列表", async () => {
     setup();
     click("关闭记账");
-    click("放弃");
+    expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
     await waitFor(() =>
       expect(router.push).toHaveBeenCalledWith("/transactions"),
     );

@@ -13,3 +13,36 @@ export async function save(
   }
   redirect("/dashboard?saved=1");
 }
+
+export async function createMerchant(
+  _state: import("../../../../src/types/merchants").MerchantActionState,
+  data: FormData,
+): Promise<import("../../../../src/types/merchants").MerchantActionState> {
+  return {
+    createdMerchant: {
+      id: "new-merchant",
+      name: String(data.get("name")),
+      icon_url: null,
+      tags: [],
+    },
+  };
+}
+export async function createAccount(
+  _state: import("../../../../src/types/accounts").AccountActionState,
+  data: FormData,
+): Promise<import("../../../../src/types/accounts").AccountActionState> {
+  return {
+    createdAccount: {
+      id: "new-account",
+      name: String(data.get("name")),
+      currency: "JPY",
+      type: "cash",
+      holders: [],
+    },
+  };
+}
+export async function fetchMerchantIcon(): Promise<
+  import("../../../../src/types/merchants").MerchantIconActionState
+> {
+  return {};
+}
