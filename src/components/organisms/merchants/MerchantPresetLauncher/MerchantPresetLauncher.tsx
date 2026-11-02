@@ -17,6 +17,7 @@ type MerchantPresetLauncherProps = {
   action: MerchantPresetStateAction;
   loadAction: MerchantPresetLoadAction;
   onClose: () => void;
+  onSaved?: () => void;
   returnTo?: string | null;
 };
 
@@ -25,6 +26,7 @@ export function MerchantPresetLauncher({
   action,
   loadAction,
   onClose,
+  onSaved,
   returnTo,
 }: MerchantPresetLauncherProps) {
   const state = useMerchantPresetLoader(loadAction);
@@ -35,6 +37,7 @@ export function MerchantPresetLauncher({
         action={action}
         options={state.options}
         onClose={onClose}
+        onSaved={onSaved}
         returnTo={returnTo}
       />
     );
