@@ -223,6 +223,16 @@ export class UnsavedChangesHistory {
     if (marker?.id !== this.id || this.port.href() !== this.href) {
       // 已离开内部记录：之后再前进回来时位置未知，不能按另一条记录推断。
       this.position = null;
+      // 推断失误（如无标记的孤儿记录）使内部遍历落到其他页时结束等待，避免操作队列卡死。
+      if (this.traversal) {
+        const { done } = this.traversal;
+        this.traversal = null;
+        if (this.savedScroll) {
+          this.port.setScrollRestoration(this.savedScroll.mode);
+          this.savedScroll = null;
+        }
+        done();
+      }
       return;
     }
     this.position = marker.position;

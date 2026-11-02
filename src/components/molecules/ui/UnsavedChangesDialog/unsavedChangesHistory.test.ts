@@ -282,5 +282,25 @@ describe("UnsavedChangesHistory", () => {
       expect(index()).toBe(1);
       expect(blocked).not.toHaveBeenCalled();
     });
+
+    it("无标记的孤儿记录被误判后落到其他页，结束遍历且后续 setDirty 仍能执行", async () => {
+      const { guard, port, flush, index } = setup();
+      // 守卫重新登记前，同 URL 留下一条已被抹掉标记的旧记录。
+      port.push({ __NA: true });
+      guard.connect();
+      await guard.setDirty(true);
+      await guard.setDirty(false);
+      expect(index()).toBe(2);
+      port.go(-1);
+      await flush();
+      expect(index()).toBe(0);
+      expect(port.scrollRestoration()).toBe("auto");
+      let settled = false;
+      void guard.setDirty(true).then(() => {
+        settled = true;
+      });
+      await flush();
+      expect(settled).toBe(true);
+    });
   });
 });
