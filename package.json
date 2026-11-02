@@ -18,7 +18,12 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "type-check": "tsc --noEmit",
-    "check": "tsc --noEmit && eslint . && prettier . --check && npm test"
+    "check": "tsc --noEmit && eslint . && prettier . --check && npm test",
+    "guard:dev": "node tests/browser/unsaved-changes/prepare.mjs && next dev tests/browser/unsaved-changes --port 3097",
+    "guard:build": "node tests/browser/unsaved-changes/prepare.mjs && next build tests/browser/unsaved-changes",
+    "guard:start": "next start tests/browser/unsaved-changes --port 3098",
+    "guard:check": "tsc --noEmit --project tests/browser/unsaved-changes/tsconfig.json && node tests/browser/unsaved-changes/check.mjs",
+    "guard:storybook": "node tests/browser/unsaved-changes/storybook.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

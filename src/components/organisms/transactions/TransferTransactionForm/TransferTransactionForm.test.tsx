@@ -9,6 +9,7 @@ import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import * as transactionsUtils from "utils/transactions";
+import { EditTransactionDirtyProvider } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
 
 import { TransferTransactionForm } from "./TransferTransactionForm";
 
@@ -60,15 +61,18 @@ function renderForm(
   props: Partial<React.ComponentProps<typeof TransferTransactionForm>> = {},
 ) {
   const action = vi.fn(async () => undefined);
+  const onDirty = vi.fn();
   const view = render(
-    <TransferTransactionForm
-      action={action}
-      accountOptions={[jpyAccount1, jpyAccount2]}
-      {...props}
-    />,
+    <EditTransactionDirtyProvider onDirty={onDirty}>
+      <TransferTransactionForm
+        action={action}
+        accountOptions={[jpyAccount1, jpyAccount2]}
+        {...props}
+      />
+    </EditTransactionDirtyProvider>,
   );
 
-  return { action, ...view };
+  return { action, onDirty, ...view };
 }
 
 function getSaveButton(container: HTMLElement) {
@@ -76,6 +80,26 @@ function getSaveButton(container: HTMLElement) {
 }
 
 describe("TransferTransactionForm", () => {
+  it("修改后报告未保存，金额与备注改回初始值恢复未修改", () => {
+    const { onDirty } = renderForm();
+    expect(onDirty).toHaveBeenLastCalledWith(false);
+    fireEvent.change(screen.getByRole("textbox", { name: "金额" }), {
+      target: { value: "100" },
+    });
+    expect(onDirty).toHaveBeenLastCalledWith(true);
+    fireEvent.change(screen.getByRole("textbox", { name: "金额" }), {
+      target: { value: "" },
+    });
+    expect(onDirty).toHaveBeenLastCalledWith(false);
+    fireEvent.change(screen.getByRole("textbox", { name: "备注（选填）" }), {
+      target: { value: "临时备注" },
+    });
+    expect(onDirty).toHaveBeenLastCalledWith(true);
+    fireEvent.change(screen.getByRole("textbox", { name: "备注（选填）" }), {
+      target: { value: "" },
+    });
+    expect(onDirty).toHaveBeenLastCalledWith(false);
+  });
   it("能渲染转出账户、转入账户、金额、日期时间、备注、保存按钮", () => {
     const { container } = renderForm();
     const sourceAccountSelect = within(container).getByRole("combobox", {

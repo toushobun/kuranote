@@ -10,7 +10,8 @@ const transactionActionModuleMocks = vi.hoisted(() => ({
   revalidateTransactionMutation: vi.fn(),
 }));
 
-vi.mock("next/navigation", () => ({
+vi.mock("next/navigation", async () => ({
+  ...(await import("test/mocks/navigation")),
   redirect: transactionActionModuleMocks.redirect,
 }));
 vi.mock("internal/container", () => ({

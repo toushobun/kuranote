@@ -18,14 +18,18 @@ function copyFormData(formData: FormData) {
   return copy;
 }
 
-export function useLinkedTransactionEditAction(action: TransactionStateAction) {
+/** runAction 由调用方的未保存守卫提供，保存与删除共用同一实例。 */
+export function useLinkedTransactionEditAction(
+  action: TransactionStateAction,
+  runAction: <T>(action: () => Promise<T>) => Promise<T>,
+) {
   const pendingConfirmationRef = useRef<FormData | null>(null);
   const [dismissedState, setDismissedState] =
     useState<TransactionActionState | null>(null);
 
   const actionWithConfirmation = useCallback(
     async (previousState: TransactionActionState, formData: FormData) => {
-      const nextState = await action(previousState, formData);
+      const nextState = await runAction(() => action(previousState, formData));
       if (
         nextState.errorCode ===
         transactionErrorCodes.linkedSyncConfirmationRequired
@@ -34,7 +38,7 @@ export function useLinkedTransactionEditAction(action: TransactionStateAction) {
       }
       return nextState;
     },
-    [action],
+    [action, runAction],
   );
   const [state, formAction, isPending] = useActionState(
     actionWithConfirmation,

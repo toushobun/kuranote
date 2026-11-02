@@ -1,3 +1,7 @@
+import { setupGuardHistoryMock } from "test/mockGuardHistory";
+setupGuardHistoryMock();
+
+vi.mock("next/navigation", () => import("test/mocks/navigation"));
 import {
   ReceiptCreationTestProviders,
   receiptCreationData,
@@ -83,7 +87,9 @@ function renderReceipt(
 }
 
 function click(name: string | RegExp) {
-  fireEvent.click(screen.getByRole("button", { name }));
+  fireEvent.click(
+    screen.getByRole(name === "关闭" ? "link" : "button", { name }),
+  );
 }
 
 function receiptForm() {
@@ -328,7 +334,7 @@ describe("EditTransactionReceiptTemplate", () => {
     fireEvent.click(
       within(drawer).getAllByRole("button", { name: /^星巴克/ })[0]!,
     );
-    fireEvent.click(await screen.findByRole("button", { name: "关闭" }));
+    fireEvent.click(await screen.findByRole("link", { name: "关闭" }));
 
     expect(
       await screen.findByText("修正的内容尚未保存，是否保存？"),
@@ -359,7 +365,7 @@ describe("EditTransactionReceiptTemplate", () => {
     });
     click("完成");
     // 抽屉关闭动画结束前背景会被 aria-hidden。
-    fireEvent.click(await screen.findByRole("button", { name: "关闭" }));
+    fireEvent.click(await screen.findByRole("link", { name: "关闭" }));
 
     expect(
       await screen.findByText("修正的内容尚未保存，是否保存？"),

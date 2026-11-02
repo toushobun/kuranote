@@ -1,3 +1,4 @@
+import { UnsavedChangesGuardProvider } from "../src/components/providers/UnsavedChangesGuardProvider/UnsavedChangesGuardProvider";
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import type { Preview } from "@storybook/nextjs-vite";
@@ -22,7 +23,9 @@ const preview: Preview = {
           {...(parameters.userTheme as UserThemeParameters | undefined)}
         >
           <div style={defaultUserThemeCssVariables as CSSProperties}>
-            <Story />
+            <UnsavedChangesGuardProvider>
+              <Story />
+            </UnsavedChangesGuardProvider>
           </div>
         </UserThemeProvider>
       </ThemeProvider>

@@ -1,3 +1,7 @@
+import { getTransactionActionModuleMocks } from "internal/transaction/adapter/next/actions.testUtils";
+import { setupGuardHistoryMock } from "test/mockGuardHistory";
+setupGuardHistoryMock();
+
 import {
   cleanup,
   fireEvent,
@@ -16,7 +20,6 @@ import {
   transactionErrorCodes,
   transactionLinkedEditErrorMessages,
 } from "internal/transaction/errors";
-import { getTransactionActionModuleMocks } from "internal/transaction/adapter/next/actions.testUtils";
 import { updateTransaction } from "internal/transaction/adapter/next/actions";
 import {
   createLinkedTransactionEditService,

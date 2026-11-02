@@ -4,6 +4,8 @@ import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import type { ReactNode } from "react";
 
+import { UnsavedChangesGuardProvider } from "./UnsavedChangesGuardProvider/UnsavedChangesGuardProvider";
+
 import { theme } from "theme/theme";
 
 type AppProvidersProps = {
@@ -14,7 +16,7 @@ export function AppProviders({ children }: AppProvidersProps) {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      {children}
+      <UnsavedChangesGuardProvider>{children}</UnsavedChangesGuardProvider>
     </ThemeProvider>
   );
 }

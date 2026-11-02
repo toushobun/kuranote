@@ -9,6 +9,8 @@ import {
   type FormEvent,
 } from "react";
 
+import { useDirtySnapshot } from "molecules/ui/UnsavedChangesDialog/useDirtySnapshot";
+
 import { useEditTransactionDirty } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
 import { useConfirmDialog } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import type {
@@ -84,7 +86,7 @@ export function useTransactionForm({
   deferPickerAmount = false,
   onPickerItemCommit,
 }: UseTransactionFormOptions) {
-  const markEditDirty = useEditTransactionDirty();
+  const reportEditDirty = useEditTransactionDirty();
   const confirm = useConfirmDialog();
   const nextItemIdRef = useRef((initialValues?.items.length ?? 0) + 1);
   const merchantFieldRef = useRef<HTMLDivElement>(null);
@@ -223,6 +225,25 @@ export function useTransactionForm({
     transactionDate,
     transactionTime,
   );
+  const dirtySnapshot = JSON.stringify([
+    selectedType,
+    selectedMerchantId,
+    allDisplayItems.map((item) => [
+      item.categoryId,
+      item.amount,
+      item.specialStatus,
+      item.refundCandidate?.id ?? null,
+      item.reimbursementCandidate?.id ?? null,
+    ]),
+    paymentFields.payments.map((payment) => [
+      payment.accountId,
+      payment.amount,
+    ]),
+    note,
+    transactionAtValue,
+  ]);
+  useDirtySnapshot(dirtySnapshot, reportEditDirty, Boolean(transactionAtValue));
+
   const isSubmitDisabled =
     accountOptions.length === 0 ||
     merchantOptions.length === 0 ||
@@ -263,7 +284,6 @@ export function useTransactionForm({
     refundCandidate: TransactionRefundCandidate | null,
     reimbursementCandidate: TransactionRefundCandidate | null,
   ) {
-    markEditDirty?.();
     const categoryType = categoryById.get(categoryId)?.type ?? selectedType;
     const itemId = nextItemIdRef.current;
     nextItemIdRef.current += 1;
@@ -303,7 +323,6 @@ export function useTransactionForm({
     itemId: number,
     values: Partial<Omit<TransactionFormItem, "id">>,
   ) {
-    markEditDirty?.();
     const mergeValues = (item: TransactionFormItem) => {
       if (item.id !== itemId) return item;
       const nextItem = { ...item, ...values };
@@ -332,7 +351,6 @@ export function useTransactionForm({
     refundCandidate: TransactionRefundCandidate | null,
     reimbursementCandidate: TransactionRefundCandidate | null,
   ) {
-    markEditDirty?.();
     const categoryType = categoryById.get(categoryId)?.type ?? selectedType;
     const businessStatus = getFormItemBusinessStatus(
       specialStatus,
@@ -399,7 +417,6 @@ export function useTransactionForm({
   }
 
   function removeItem(itemId: number) {
-    markEditDirty?.();
     setItemsByType((current) => ({
       expense: current.expense.filter((item) => item.id !== itemId),
       income: current.income.filter((item) => item.id !== itemId),
@@ -544,7 +561,6 @@ export function useTransactionForm({
 
   function handleMerchantChange(merchantId: string) {
     // 重新选了同一个商家不算修改（#962）。
-    if (merchantId !== selectedMerchantId) markEditDirty?.();
     setSelectedMerchantId(merchantId);
     if (fieldErrors.merchant) {
       setFieldErrors((current) => ({ ...current, merchant: undefined }));
@@ -553,7 +569,6 @@ export function useTransactionForm({
 
   function handlePaymentAccountChange(key: number, accountId: string) {
     if (key !== paymentFields.payments[0]?.key) {
-      markEditDirty?.();
       paymentFields.changeAccount(key, accountId);
       clearAccountFieldError();
       return;
@@ -562,7 +577,6 @@ export function useTransactionForm({
   }
 
   function handlePaymentAmountChange(key: number, amount: string) {
-    markEditDirty?.();
     paymentFields.changeAmount(key, amount);
     clearAccountFieldError();
   }
@@ -588,7 +602,7 @@ export function useTransactionForm({
       if (!confirmed) return;
       setItemsByType((current) => ({ ...current, income: [] }));
     }
-    markEditDirty?.();
+
     // 首行预填当前明细合计（单账户时它实际承担的金额，没有明细时为 0），新增行为 0。
     paymentFields.addPayment(
       reconcileTransactionPayments({
@@ -601,7 +615,6 @@ export function useTransactionForm({
   }
 
   function handleRemovePayment(key: number) {
-    markEditDirty?.();
     paymentFields.removePayment(key, selectedAccount?.currency);
     clearAccountFieldError();
   }
@@ -614,7 +627,6 @@ export function useTransactionForm({
 
   // 首个付款账户决定记录币种，切换时同步检查退款 / 报销关联的币种。
   function handlePrimaryAccountChange(key: number, accountId: string) {
-    markEditDirty?.();
     paymentFields.changeAccount(key, accountId);
     const nextAccount = accountOptions.find(
       (account) => account.id === accountId,
@@ -743,16 +755,13 @@ export function useTransactionForm({
     event?: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) {
     if (event) setNote(event.target.value);
-    markEditDirty?.();
   }
 
   function handleDateChange(date: string) {
-    markEditDirty?.();
     setTransactionDate(date);
   }
 
   function handleTimeChange(time: string) {
-    markEditDirty?.();
     setTransactionTime(time);
   }
 

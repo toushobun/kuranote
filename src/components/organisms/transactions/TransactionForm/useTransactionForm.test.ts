@@ -105,6 +105,58 @@ function createInitialValues() {
 }
 
 describe("useTransactionForm", () => {
+  it("修改再还原备注、商家和付款行后恢复未修改；选择器草稿不计入父表单", () => {
+    const { result } = renderTransactionFormHook();
+    expect(mocks.markEditDirty).toHaveBeenLastCalledWith(false);
+    act(() =>
+      result.current.handleNoteChange({
+        target: { value: "临时备注" },
+      } as Parameters<typeof result.current.handleNoteChange>[0]),
+    );
+    expect(mocks.markEditDirty).toHaveBeenLastCalledWith(true);
+    act(() =>
+      result.current.handleNoteChange({ target: { value: "" } } as Parameters<
+        typeof result.current.handleNoteChange
+      >[0]),
+    );
+    expect(mocks.markEditDirty).toHaveBeenLastCalledWith(false);
+    act(() => result.current.handleMerchantChange("merchant-1"));
+    expect(mocks.markEditDirty).toHaveBeenLastCalledWith(true);
+    act(() => result.current.handleMerchantChange(""));
+    expect(mocks.markEditDirty).toHaveBeenLastCalledWith(false);
+    act(() => {
+      result.current.openSheet();
+      result.current.handlePickerCategoryToggle("expense-child");
+      result.current.handlePickerAmountChange("1200");
+    });
+    expect(mocks.markEditDirty).toHaveBeenLastCalledWith(false);
+    act(() => result.current.closeSheet());
+    expect(mocks.markEditDirty).toHaveBeenLastCalledWith(false);
+  });
+
+  it("多账户付款实时输入立即算修改，还原金额后恢复干净", () => {
+    const { result } = renderTransactionFormHook({
+      initialValues: {
+        items: [
+          { categoryId: "expense-child", amount: "1200", specialStatus: null },
+        ],
+        merchantId: "merchant-1",
+        note: "",
+        payments: [
+          { accountId: "account-1", amount: "800" },
+          { accountId: "account-2", amount: "400" },
+        ],
+        transactionAt: "2026-10-29T03:20:10.000Z",
+        type: "expense",
+      },
+    });
+    expect(mocks.markEditDirty).toHaveBeenLastCalledWith(false);
+    const first = result.current.payments[0]!.key;
+    act(() => result.current.handlePaymentAmountChange(first, "900"));
+    expect(mocks.markEditDirty).toHaveBeenLastCalledWith(true);
+    act(() => result.current.handlePaymentAmountChange(first, "800"));
+    expect(mocks.markEditDirty).toHaveBeenLastCalledWith(false);
+  });
   beforeEach(() => vi.clearAllMocks());
 
   it("按分类类型初始化明细并计算收支净额", async () => {

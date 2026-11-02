@@ -1,3 +1,6 @@
+import { setupGuardHistoryMock } from "test/mockGuardHistory";
+setupGuardHistoryMock();
+
 import {
   cleanup,
   fireEvent,
@@ -17,7 +20,7 @@ import {
 } from "./TransactionFormPage";
 import { routePaths } from "config/paths";
 import type { TransactionEditRestriction } from "internal/transaction";
-import { UserThemeProvider } from "theme/UserThemeProvider";
+import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
 import { transactionEditRestrictionMessages } from "utils/transactionMessages";
 import { useEditTransactionDirty } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
 vi.mock("organisms/transactions/TransactionForm/TransactionForm", () => ({
@@ -69,7 +72,7 @@ function TransferEditInput() {
     <input
       aria-label="转账编辑临时输入"
       defaultValue=""
-      onChange={() => markEditDirty?.()}
+      onChange={(event) => markEditDirty?.(event.target.value !== "")}
     />
   );
 }
@@ -458,7 +461,7 @@ describe("EditTransferTransactionTemplate", () => {
     editRestriction?: TransactionEditRestriction | null;
   } = {}) {
     return render(
-      <UserThemeProvider>
+      <ConfirmDialogTestProviders>
         <EditTransferTransactionTemplate
           archivedAccountOptions={archivedAccountOptions}
           canDelete={canDelete}
@@ -482,7 +485,7 @@ describe("EditTransferTransactionTemplate", () => {
             type: "transfer",
           }}
         />
-      </UserThemeProvider>,
+      </ConfirmDialogTestProviders>,
     );
   }
   it("转入账户已归档时并入账户选项，只读详情显示原账户名称与币种", () => {
@@ -564,7 +567,7 @@ describe("EditTransferTransactionTemplate", () => {
     fireEvent.change(within(container).getByLabelText("转账编辑临时输入"), {
       target: { value: "已修改" },
     });
-    fireEvent.click(within(container).getByRole("button", { name: "关闭" }));
+    fireEvent.click(within(container).getByRole("link", { name: "关闭" }));
     expect(
       screen.getByText("修正的内容尚未保存，是否保存？"),
     ).toBeInTheDocument();
