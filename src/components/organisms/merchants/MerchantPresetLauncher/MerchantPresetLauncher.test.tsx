@@ -146,9 +146,7 @@ describe("MerchantPresetLauncher", () => {
       { wrapper: ConfirmDialogTestProviders },
     );
     fireEvent.click(screen.getByRole("button", { name: "从预设添加" }));
-    fireEvent.click(
-      await screen.findByRole("button", { name: "全部选择" }),
-    );
+    fireEvent.click(await screen.findByRole("button", { name: "全部选择" }));
     fireEvent.click(screen.getByRole("button", { name: /添加 \d+ 个商家/ }));
     await waitFor(() => expect(save).toHaveBeenCalledOnce());
     await waitFor(() =>
