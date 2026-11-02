@@ -1,6 +1,7 @@
 "use client";
 import {
   createContext,
+  useCallback,
   useContext,
   useEffectEvent,
   useLayoutEffect,
@@ -47,4 +48,19 @@ export function useBackLayer(open: boolean, onClose: () => void, offset = 0) {
   useLayoutEffect(() => {
     if (level !== null) void entry?.update(false, level + offset, open);
   }, [entry, level, open, offset]);
+
+  const navigate = useCallback(
+    (action: () => void) => {
+      if (level !== null && entry) return entry.navigate(action);
+      action();
+      return Promise.resolve();
+    },
+    [entry, level],
+  );
+  const runAction = useCallback(
+    <T,>(action: () => Promise<T>) =>
+      level !== null && entry ? entry.runAction(action) : action(),
+    [entry, level],
+  );
+  return { navigate, runAction };
 }
