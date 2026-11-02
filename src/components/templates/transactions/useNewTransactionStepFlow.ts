@@ -1,7 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { routePaths, transactionsNewEntryHref } from "config/paths";
+import { routePaths } from "config/paths";
 import { useTransactionEntryMethodChange } from "organisms/transactions/TransactionEntryMethodSwitch/useTransactionEntryMethodChange";
 import { useMerchantEntrySuggestions } from "./useMerchantEntrySuggestions";
 
@@ -12,12 +12,10 @@ export function useNewTransactionStepFlow({ ledgerId }: { ledgerId: string }) {
     useMerchantEntrySuggestions({ ledgerId });
   const [presetsOpen, setPresetsOpen] = useState(false);
 
-  const returnTo = transactionsNewEntryHref({ method: "merchant" });
   return {
     suggestions,
     suggestionsMerchantId,
     presetsOpen,
-    presetsReturnTo: returnTo,
     closePresets: () => setPresetsOpen(false),
     onPresetsAdded: () => {
       setPresetsOpen(false);
