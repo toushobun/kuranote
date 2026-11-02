@@ -6,7 +6,7 @@ import type {
   MerchantPresetStateAction,
 } from "types/merchants";
 
-import { redirect } from "next/navigation";
+import { redirect, RedirectType } from "next/navigation";
 
 import { merchantResultValues, merchantsResultHref } from "config/paths";
 import { merchantText } from "config/merchantText";
@@ -392,10 +392,11 @@ export const addMerchantPresets: MerchantPresetStateAction =
       );
     }
     revalidateMerchantMutation();
-    // 从记一笔进入时添加后返回来源页面。
+    // 记一笔内的预设弹层先回基准，再 replace；不能 push 留下中间页。
+    const returnTo = getSafeNextPath(formData.get("returnTo"));
     redirect(
-      getSafeNextPath(formData.get("returnTo")) ??
-        merchantsResultHref(merchantResultValues.presetsAdded, count),
+      returnTo ?? merchantsResultHref(merchantResultValues.presetsAdded, count),
+      returnTo ? RedirectType.replace : RedirectType.push,
     );
   };
 
