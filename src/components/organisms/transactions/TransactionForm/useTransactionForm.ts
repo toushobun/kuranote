@@ -65,10 +65,7 @@ import {
 
 type UseTransactionFormOptions = Pick<
   TransactionFormProps,
-  | "accountOptions"
-  | "categoryOptions"
-  | "initialType"
-  | "merchantOptions"
+  "accountOptions" | "categoryOptions" | "initialType" | "merchantOptions"
 > & {
   initialValues?: TransactionFormInitialValues;
   deferPickerAmount?: boolean;
