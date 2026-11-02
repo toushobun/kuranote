@@ -1,6 +1,7 @@
 "use server";
 
 import type { ActionState } from "../../../../src/types/actions";
+import { merchantPresetMessages } from "../../../../src/config/merchantPresetMessages";
 
 import { redirect } from "next/navigation";
 
@@ -54,8 +55,11 @@ export async function loadPresets(): Promise<
     await import("../../../../src/test/mocks/merchantPresets");
   return { options: createMerchantPresetOptions() };
 }
-export async function addPresets(): Promise<
-  import("../../../../src/types/merchants").MerchantActionState
-> {
-  return {};
+export async function addPresets(
+  _state: import("../../../../src/types/merchants").MerchantActionState,
+  data: FormData,
+): Promise<import("../../../../src/types/merchants").MerchantActionState> {
+  return {
+    success: merchantPresetMessages.success(data.getAll("selectedKeys").length),
+  };
 }
