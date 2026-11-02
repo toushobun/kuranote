@@ -610,6 +610,17 @@ describe("addMerchantPresets", () => {
     );
     expect(mocks.redirect).toHaveBeenCalledWith("/transactions/new", "replace");
   });
+  it("记一笔内嵌预设成功只返回状态，不依赖同页重定向", async () => {
+    mocks.addPresets.mockResolvedValue(3);
+    const form = presetForm();
+    form.set("returnTo", "/transactions/new");
+    form.set("presentation", "dialog");
+    expect(await addMerchantPresets({}, form)).toEqual({
+      success: "已添加 3 个商家",
+    });
+    expect(mocks.revalidateMerchantMutation).toHaveBeenCalledOnce();
+    expect(mocks.redirect).not.toHaveBeenCalled();
+  });
   it("非法表单返回集中错误文案，不写入或跳转", async () => {
     expectErrorState(
       await addMerchantPresets({}, new FormData()),
