@@ -79,7 +79,6 @@ PR2 的后退与前进必须点击 Chrome 工具栏按钮。原有 `guard:check`
 
 证据提交在 screenshots/976 分支，业务实现为 051fdcc68。iPhone／Android 实机验收继续由人工处理。
 
-
 ## PR2 第 3 轮补充场景（尚待真实工具栏验收）
 
 验证应用的 `/new?empty=1` 提供模拟预设成功的 Server Action。成功时以内联状态关闭弹层，并为当前 **同一个** `NewTransactionStepFlow` 客户端实例补入测试商家；不强制重新挂载。这用来覆盖同页成功后仍然要保护新小票的情形。
