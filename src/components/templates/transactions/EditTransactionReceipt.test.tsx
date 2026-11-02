@@ -1,5 +1,6 @@
-import { setupGuardHistoryMock } from "test/mockGuardHistory";
-setupGuardHistoryMock();
+import { routerMock } from "test/mocks/navigation";
+import { setupGuardHistoryMock, backFromGuard } from "test/mockGuardHistory";
+const guardHistory = setupGuardHistoryMock();
 
 vi.mock("next/navigation", () => import("test/mocks/navigation"));
 import {
@@ -371,4 +372,47 @@ describe("EditTransactionReceiptTemplate", () => {
       await screen.findByText("修正的内容尚未保存，是否保存？"),
     ).toBeInTheDocument();
   });
+  it.each(["商家", "账户", "金额", "新增账户"])(
+    "真实编辑小票打开%s层后仍确认页面，不多压哨兵、不改父表单",
+    async (kind) => {
+      routerMock.push.mockClear();
+      renderReceipt({}, receiptCreationData());
+      click("修改备注：编辑前备注");
+      fireEvent.change(await screen.findByRole("textbox", { name: "备注" }), {
+        target: { value: "父小票修改" },
+      });
+      click("完成");
+      await findCloseLink();
+      const form = receiptForm();
+      const before = [...new FormData(form).entries()];
+      if (kind === "商家") await openMerchantPicker();
+      if (kind === "金额") click("修改明细 1 金额：¥800");
+      if (kind === "账户" || kind === "新增账户") click("更换支付账户 1");
+      if (kind === "新增账户") {
+        click("新增账户");
+        fireEvent.change(await screen.findByLabelText(/账户名称/), {
+          target: { value: "子层修改" },
+        });
+      }
+      window.scrollTo(0, 2000);
+      await backFromGuard();
+      click("继续编辑");
+      await waitFor(() =>
+        expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull(),
+      );
+      expect(receiptForm()).toBe(form);
+      expect([...new FormData(form).entries()]).toEqual(before);
+      expect(window.scrollY).toBe(2000);
+      expect(window.history.pushState).toHaveBeenCalledOnce();
+      if (kind === "新增账户")
+        expect(screen.getByLabelText(/账户名称/)).toHaveValue("子层修改");
+      if (kind === "金额")
+        expect(screen.getByLabelText("金额计算器")).toBeVisible();
+      await backFromGuard();
+      click("放弃修改");
+      await waitFor(() => expect(guardHistory().index()).toBe(0));
+      expect(window.history.back).toHaveBeenCalledTimes(3);
+      expect(routerMock.push).not.toHaveBeenCalled();
+    },
+  );
 });

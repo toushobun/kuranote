@@ -1,5 +1,6 @@
 "use client";
 
+import { useBackLayer } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -40,6 +41,7 @@ export function MerchantPresetDialog({
   function requestClose() {
     if (!pending) onClose();
   }
+  useBackLayer(true, requestClose);
   return (
     <>
       <WizardDialog

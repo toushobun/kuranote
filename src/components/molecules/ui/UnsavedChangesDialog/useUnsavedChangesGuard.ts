@@ -11,20 +11,21 @@ import {
 
 import { useUnsavedChangesCoordinator } from "providers/UnsavedChangesGuardProvider/UnsavedChangesGuardProvider";
 
-import { useBackLayerLevel } from "./BackLayerScope";
-
 type LeaveIntent = { type: "back" } | { type: "action"; action: () => void };
 
 export function useUnsavedChangesGuard({
   isDirty,
   saveFormId,
   onClose,
+  layer = null,
   active = true,
   disabled = false,
 }: {
   isDirty: boolean;
   saveFormId: string;
   onClose?: () => void;
+  /** 页面不传；只有真正的子弹层才传入层级。 */
+  layer?: number | null;
   active?: boolean;
   disabled?: boolean;
 }) {
@@ -32,8 +33,6 @@ export function useUnsavedChangesGuard({
   const [intent, setIntent] = useState<LeaveIntent | null>(null);
   const coordinator = useUnsavedChangesCoordinator();
   const [history] = useState(coordinator.createGuard);
-  const level = useBackLayerLevel();
-  const layer = onClose && level !== null ? level : null;
   const runAction = useCallback(
     <T>(action: () => Promise<T>) => history.runAction(action),
     [history],
@@ -45,7 +44,7 @@ export function useUnsavedChangesGuard({
     event.returnValue = "";
   });
   const interceptClick = useEffectEvent((event: MouseEvent) => {
-    if (!active || disabled || !history.isTop()) return;
+    if (!active || disabled || !history.isLinkOwner()) return;
     if (
       event.defaultPrevented ||
       event.button !== 0 ||
@@ -90,8 +89,10 @@ export function useUnsavedChangesGuard({
 
   const requestBack = useEffectEvent(() => {
     if (!active || disabled) return;
-    if (!isDirty && onClose) {
-      void history.leave(onClose);
+    if (!isDirty) {
+      void history.leave(
+        layer !== null && onClose ? onClose : () => window.history.back(),
+      );
       return;
     }
     setIntent((current) => current ?? { type: "back" });
@@ -138,7 +139,9 @@ export function useUnsavedChangesGuard({
         setIntent(null);
         void history.leave(
           intent.type === "back"
-            ? (onClose ?? (() => window.history.back()))
+            ? layer !== null && onClose
+              ? onClose
+              : () => window.history.back()
             : intent.action,
         );
       },

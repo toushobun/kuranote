@@ -46,3 +46,16 @@ export async function fetchMerchantIcon(): Promise<
 > {
   return {};
 }
+
+export async function loadPresets(): Promise<
+  import("../../../../src/types/merchants").MerchantPresetLoadState
+> {
+  const { createMerchantPresetOptions } =
+    await import("../../../../src/test/mocks/merchantPresets");
+  return { options: createMerchantPresetOptions() };
+}
+export async function addPresets(): Promise<
+  import("../../../../src/types/merchants").MerchantActionState
+> {
+  return {};
+}

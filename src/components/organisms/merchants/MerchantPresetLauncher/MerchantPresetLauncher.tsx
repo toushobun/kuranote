@@ -1,5 +1,6 @@
 "use client";
 
+import { useBackLayer } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
 import { merchantPresetMessages as messages } from "config/merchantPresetMessages";
 import { LoadingState } from "molecules/ui/LoadingState";
 import { ActionFailureFeedback } from "molecules/ui/OperationFeedbackDialogs";
@@ -27,6 +28,7 @@ export function MerchantPresetLauncher({
   returnTo,
 }: MerchantPresetLauncherProps) {
   const state = useMerchantPresetLoader(loadAction);
+  useBackLayer(!state.options, onClose);
   if (state.options)
     return (
       <MerchantPresetDialog

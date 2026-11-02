@@ -1,5 +1,6 @@
-import { setupGuardHistoryMock } from "test/mockGuardHistory";
-setupGuardHistoryMock();
+import { routerMock } from "test/mocks/navigation";
+import { setupGuardHistoryMock, backFromGuard } from "test/mockGuardHistory";
+const guardHistory = setupGuardHistoryMock();
 
 vi.mock("next/navigation", () => import("test/mocks/navigation"));
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -252,5 +253,31 @@ describe("AccountEditTemplate", () => {
       fireEvent.click(screen.getByRole("link", { name: "取消" }));
       expect(screen.queryByText("尚未保存")).toBeNull();
     });
+  });
+  it("真实编辑账户打开金额键盘后仍由页面守卫处理后退，滚动与表单不变，放弃只退一次", async () => {
+    routerMock.push.mockClear();
+    renderAccountEdit();
+    const name = screen.getByLabelText(/账户名称/);
+    const form = name.closest("form");
+    fireEvent.change(name, { target: { value: "修改账户" } });
+    fireEvent.focus(screen.getByLabelText("当前余额"));
+    const keypad = await screen.findByLabelText("金额计算器");
+    window.scrollTo(0, 2000);
+    await backFromGuard();
+    fireEvent.click(await screen.findByRole("button", { name: "继续编辑" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull(),
+    );
+    expect(screen.getByLabelText(/账户名称/)).toBe(name);
+    expect(name.closest("form")).toBe(form);
+    expect(name).toHaveValue("修改账户");
+    expect(keypad).toBeVisible();
+    expect(window.scrollY).toBe(2000);
+    expect(window.history.pushState).toHaveBeenCalledOnce();
+    await backFromGuard();
+    fireEvent.click(await screen.findByRole("button", { name: "放弃修改" }));
+    await waitFor(() => expect(guardHistory().index()).toBe(0));
+    expect(window.history.back).toHaveBeenCalledTimes(3);
+    expect(routerMock.push).not.toHaveBeenCalled();
   });
 });

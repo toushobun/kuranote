@@ -1,3 +1,10 @@
+import { setupGuardHistoryMock, backFromGuard } from "test/mockGuardHistory";
+setupGuardHistoryMock();
+import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
+import { NewTransactionStepFlow } from "templates/transactions/NewTransactionStepFlow";
+import { flowFixture } from "test/mocks/transactionStepFlow";
+import { receiptItemsOptions } from "test/mocks/transactionReceipt";
+import { routerMock } from "test/mocks/navigation";
 import {
   act,
   fireEvent,
@@ -112,4 +119,53 @@ describe("MerchantPresetLauncher", () => {
     ).not.toBeInTheDocument();
     expect(latestLoad).toHaveBeenCalledOnce();
   });
+  it.each([false, true])(
+    "新增首屏的常用商家层加载完成为%s时后退只关最上层，前进不复活",
+    async (loaded) => {
+      routerMock.push.mockClear();
+      const { loadAction, resolve } = createPendingLoad();
+      render(
+        <NewTransactionStepFlow
+          action={action}
+          accountOptions={flowFixture.accounts}
+          addPresetsAction={action}
+          categoryOptions={receiptItemsOptions.categoryOptions}
+          frequentMerchants={[]}
+          ledgerId="ledger-1"
+          loadPresetsAction={loadAction}
+          merchantOptions={[]}
+          merchantTags={[]}
+          multiAccountPaymentEnabled
+          transactionItemSpecialStatusEnabled={false}
+        />,
+        { wrapper: ConfirmDialogTestProviders },
+      );
+      expect(window.history.pushState).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole("button", { name: "从预设添加" }));
+      if (loaded)
+        await act(async () =>
+          resolve({ options: createMerchantPresetOptions() }),
+        );
+      await screen.findByRole("heading", { name: "从预设添加商家" });
+      await backFromGuard();
+      await waitFor(() =>
+        expect(
+          screen.queryByRole("heading", { name: "从预设添加商家" }),
+        ).toBeNull(),
+      );
+      expect(
+        screen.getByRole("heading", { name: "记一笔" }),
+      ).toBeInTheDocument();
+      expect(routerMock.push).not.toHaveBeenCalled();
+      expect(window.history.pushState).toHaveBeenCalledOnce();
+      expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe(
+        "base",
+      );
+      await act(async () => window.history.forward());
+      expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe(
+        "base",
+      );
+      expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
+    },
+  );
 });

@@ -10,6 +10,9 @@ export default function Page() {
         <Link href="/new" prefetch={false}>
           新增记账
         </Link>
+        <Link href="/new?empty=1" prefetch={false}>
+          无商家新增记账
+        </Link>
         <Link href="/edit" prefetch={false}>
           编辑账户
         </Link>

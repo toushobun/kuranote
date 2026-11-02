@@ -22,15 +22,14 @@ function setup() {
 }
 
 describe("unsavedChangesCoordinator", () => {
-  it("后退按全屏层、商家抽屉、小票、底层页面逐层处理，整栈只有一个哨兵", async () => {
+  it("后退按全屏层、商家抽屉、页面逐层处理，整栈只有一个哨兵", async () => {
     const b = setup();
     const page = b.register(true, null);
-    const receipt = b.register(true, 0);
     const drawer = b.register(false, 1);
     const editor = b.register(true, 2);
     await b.flush();
     expect(b.entries).toHaveLength(3);
-    for (const layer of [editor, drawer, receipt]) {
+    for (const layer of [editor, drawer]) {
       await b.back();
       expect(layer.close).toHaveBeenCalledOnce();
       layer.release();

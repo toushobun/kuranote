@@ -38,7 +38,7 @@ export function useBackLayerLevel() {
 export function useBackLayer(open: boolean, onClose: () => void, offset = 0) {
   const level = useBackLayerLevel();
   const coordinator = useOptionalUnsavedChangesCoordinator();
-  const [entry] = useState(() => coordinator?.createGuard());
+  const [entry] = useState(() => coordinator?.createGuard(false));
   const close = useEffectEvent(onClose);
   useLayoutEffect(() => {
     if (level === null) return;

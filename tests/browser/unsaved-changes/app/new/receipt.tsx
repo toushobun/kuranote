@@ -1,6 +1,5 @@
 "use client";
-import { useState } from "react";
-import { TransactionStepFlow } from "../../../../../src/components/organisms/transactions/TransactionStepFlow/TransactionStepFlow";
+import { NewTransactionStepFlow } from "../../../../../src/components/templates/transactions/NewTransactionStepFlow";
 import { ReceiptCreationProvider } from "../../../../../src/components/organisms/transactions/ReceiptCreationProvider/ReceiptCreationProvider";
 import { flowFixture } from "../../../../../src/test/mocks/transactionStepFlow";
 import { receiptItemsOptions } from "../../../../../src/test/mocks/transactionReceipt";
@@ -10,49 +9,42 @@ import {
   createAccount,
   fetchMerchantIcon,
   save,
+  loadPresets,
+  addPresets,
 } from "../actions";
 
-export default function NewReceipt() {
-  const [open, setOpen] = useState(true);
+export default function NewReceipt({ empty }: { empty: boolean }) {
   return (
-    <>
-      <h1>新增流程后退验证</h1>
-      <button onClick={() => setOpen(true)}>重新打开新增流程</button>
-      <ReceiptCreationProvider
-        data={{
-          merchant: {
-            createMerchantAction: createMerchant,
-            fetchIconAction: fetchMerchantIcon,
-            ledgerId: "ledger-1",
-            ledgerName: "验证账本",
-            tags: [],
-          },
-          account: {
-            createAccountAction: createAccount,
-            baseCurrency: "JPY",
-            holderOptions: accountHolderOptionsFixture,
-            ledgerName: "验证账本",
-          },
-        }}
-      >
-        <TransactionStepFlow
-          {...flowFixture}
-          action={save}
-          open={open}
-          onClose={() => setOpen(false)}
-          suggestionsMerchantId="seven"
-          suggestions={{
-            recommendedAccountIds: [],
-            automaticCategoryIds: [],
-            quickAmounts: [],
-          }}
-          itemsOptions={{
-            ...receiptItemsOptions,
-            initialItems: [{ categoryId: "lunch", amount: "800" }],
-            initialPayments: [{ accountId: "paypay", amount: null }],
-          }}
-        />
-      </ReceiptCreationProvider>
-    </>
+    <ReceiptCreationProvider
+      data={{
+        merchant: {
+          createMerchantAction: createMerchant,
+          fetchIconAction: fetchMerchantIcon,
+          ledgerId: "ledger-1",
+          ledgerName: "验证账本",
+          tags: [],
+        },
+        account: {
+          createAccountAction: createAccount,
+          baseCurrency: "JPY",
+          holderOptions: accountHolderOptionsFixture,
+          ledgerName: "验证账本",
+        },
+      }}
+    >
+      <NewTransactionStepFlow
+        action={save}
+        accountOptions={flowFixture.accounts}
+        addPresetsAction={addPresets}
+        categoryOptions={receiptItemsOptions.categoryOptions}
+        frequentMerchants={empty ? [] : flowFixture.frequentMerchants}
+        ledgerId="ledger-1"
+        loadPresetsAction={loadPresets}
+        merchantOptions={empty ? [] : flowFixture.merchants}
+        merchantTags={flowFixture.merchantTags}
+        multiAccountPaymentEnabled
+        transactionItemSpecialStatusEnabled={false}
+      />
+    </ReceiptCreationProvider>
   );
 }

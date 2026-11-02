@@ -5,6 +5,7 @@ import {
 
 type Entry = {
   dirty: boolean;
+  handlesLinks: boolean;
   layer: number | null;
   active: boolean;
   suspended: boolean;
@@ -21,10 +22,13 @@ export function createUnsavedChangesCoordinator(
   const entries = new Set<Entry>();
   let order = 0;
   let connectedHref = "";
-  const top = () =>
+  const ordered = () =>
     [...entries]
-      .filter((entry) => entry.active && (entry.dirty || entry.layer !== null))
-      .sort((a, b) => (a.layer ?? -1) - (b.layer ?? -1) || a.order - b.order)
+      .filter((entry) => entry.active)
+      .sort((a, b) => (a.layer ?? -1) - (b.layer ?? -1) || a.order - b.order);
+  const top = () =>
+    ordered()
+      .filter((entry) => entry.dirty || entry.layer !== null)
       .at(-1);
   const protecting = () =>
     [...entries].some(
@@ -46,9 +50,10 @@ export function createUnsavedChangesCoordinator(
     handlePopState(event: PopStateEvent) {
       if (history.handlePopState()) event.stopImmediatePropagation();
     },
-    createGuard() {
+    createGuard(handlesLinks = true) {
       const entry: Entry = {
         dirty: false,
+        handlesLinks,
         layer: null,
         active: false,
         suspended: false,
@@ -77,7 +82,15 @@ export function createUnsavedChangesCoordinator(
           Object.assign(entry, { dirty, layer, active });
           return sync();
         },
-        isTop: () => top() === entry || (!top() && entry.active),
+        isLinkOwner: () => {
+          const guards = ordered().filter(
+            (item) => item.handlesLinks && !item.suspended,
+          );
+          return (
+            (guards.filter((item) => item.dirty).at(-1) ?? guards.at(-1)) ===
+            entry
+          );
+        },
         shouldBlockUnload: () =>
           entry.active &&
           entry.dirty &&

@@ -128,25 +128,30 @@ describe("TransactionStepFlow", () => {
     expect(screen.queryByRole("button", { name: "切换方式" })).toBeNull();
   });
 
-  it("StrictMode 重挂载只启用一条哨兵，最终卸载回到基准", async () => {
+  it("StrictMode 重挂载的干净首屏不压哨兵，卸载不产生历史遍历", async () => {
     const view = renderEntryComponent(
       <StrictMode>
         <TransactionStepFlow {...flowFixture} />
       </StrictMode>,
     );
-    await waitFor(() =>
-      expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe(
-        "sentinel",
-      ),
-    );
-    expect(window.history.pushState).toHaveBeenCalledOnce();
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(window.history.pushState).not.toHaveBeenCalled();
     view.unmount();
-    await waitFor(() =>
-      expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe(
-        "base",
-      ),
-    );
-    expect(screen.queryByRole("button", { name: "关闭记账" })).toBeNull();
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(window.history.go).not.toHaveBeenCalled();
+  });
+  it("快速路线仍在等待建议时关闭不弹无法保存的确认", async () => {
+    const { props } = quickSetup({ suggestionsMerchantId: "life" });
+    click("7-Eleven");
+    expect(onMerchantScreen()).toBe(true);
+    expect(screen.queryByRole("button", { name: "保存记账" })).toBeNull();
+    click("关闭记账");
+    await waitFor(() => expect(props.onClose).toHaveBeenCalledOnce());
+    expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
   });
 
   it("首屏未修改直接关闭，搜索商家不算修改", async () => {

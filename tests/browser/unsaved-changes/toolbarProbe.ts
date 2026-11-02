@@ -1,7 +1,10 @@
 type ProbeWindow = Window & {
   probeMounts?: number;
   probeUnmounts?: number;
-  navigation?: { currentEntry?: { index: number } };
+  navigation?: EventTarget & {
+    currentEntry?: { index: number };
+    entries?: () => Array<{ url: string; index: number }>;
+  };
 };
 
 /** 为工具栏验收暴露只读 DOM 记录，不从验证代码触发后退或前进。 */
@@ -20,6 +23,10 @@ export function installToolbarProbe(output: HTMLElement) {
       unmounts: probe.probeUnmounts ?? 0,
       historyLength: history.length,
       historyIndex: probe.navigation?.currentEntry?.index ?? null,
+      historyEntries:
+        probe.navigation
+          ?.entries?.()
+          .map(({ url, index }) => ({ url, index })) ?? [],
       marker:
         (
           history.state as {
@@ -69,8 +76,11 @@ export function installToolbarProbe(output: HTMLElement) {
   resources.observe({ type: "resource", buffered: true });
   for (const event of ["popstate", "scroll", "input", "click"])
     window.addEventListener(event, schedule, true);
+  const navigation = (window as ProbeWindow).navigation;
+  navigation?.addEventListener("currententrychange", schedule);
   schedule();
   return () => {
+    navigation?.removeEventListener("currententrychange", schedule);
     mutations.disconnect();
     resources.disconnect();
     for (const event of ["popstate", "scroll", "input", "click"])

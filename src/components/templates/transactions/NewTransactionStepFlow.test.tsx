@@ -1,7 +1,13 @@
-import { setupGuardHistoryMock } from "test/mockGuardHistory";
-setupGuardHistoryMock();
+import { setupGuardHistoryMock, backFromGuard } from "test/mockGuardHistory";
+const guardHistory = setupGuardHistoryMock();
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MerchantEntrySuggestions } from "internal/transaction";
 import {
@@ -214,6 +220,36 @@ describe("NewTransactionStepFlow", () => {
       "data-return-to",
       "/transactions/new",
     );
+  });
+
+  it("首屏干净后退返回来源页，不压哨兵、不 push 明细页", async () => {
+    setup();
+    await act(async () => window.history.back());
+    expect(guardHistory().index()).toBe(0);
+    expect(window.history.back).toHaveBeenCalledOnce();
+    expect(window.history.pushState).not.toHaveBeenCalled();
+    expect(router.push).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
+  });
+  it("小票修改后后退可继续编辑，放弃只真正后退一次且不 push", async () => {
+    setup();
+    selectMerchant("7-Eleven");
+    respond("merchantId=seven", noHistory);
+    await screen.findByText("这家商家还没有记录");
+    window.scrollTo(0, 2000);
+    await backFromGuard();
+    await screen.findByRole("dialog", { name: "尚未保存" });
+    click("继续编辑");
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull(),
+    );
+    expect(window.scrollY).toBe(2000);
+    expect(guardHistory().index()).toBe(2);
+    await backFromGuard();
+    click("放弃修改");
+    await waitFor(() => expect(guardHistory().index()).toBe(0));
+    expect(window.history.back).toHaveBeenCalledTimes(3);
+    expect(router.push).not.toHaveBeenCalled();
   });
 
   it("首屏无修改时关闭直接回到明细列表", async () => {

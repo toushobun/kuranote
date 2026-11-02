@@ -53,10 +53,16 @@ function Harness({ save = () => {} }: { save?: () => void }) {
   );
 }
 
-function LayerHarness({ enabled = true }: { enabled?: boolean }) {
+function LayerHarness({
+  enabled = true,
+  dirty = false,
+}: {
+  enabled?: boolean;
+  dirty?: boolean;
+}) {
   const [open, setOpen] = useState(true);
   const page = useUnsavedChangesGuard({
-    isDirty: false,
+    isDirty: dirty,
     saveFormId: "background-form",
   });
   return (
@@ -69,6 +75,7 @@ function LayerHarness({ enabled = true }: { enabled?: boolean }) {
           onClose={() => setOpen(false)}
         >
           <button onClick={() => setOpen(false)}>选中商家</button>
+          <a href="/dashboard">抽屉内站内链接</a>
         </TransactionBottomEditorDrawer>
       </BackLayerScope>
       <UnsavedChangesDialog {...page.dialogProps} />
@@ -176,5 +183,23 @@ describe("useUnsavedChangesGuard", () => {
       await Promise.resolve();
     });
     expect(window.history.pushState).not.toHaveBeenCalled();
+  });
+  it("上方纯取消抽屉里的链接仍由底层 dirty 守卫确认并清理哨兵", async () => {
+    routerMock.push.mockClear();
+    render(<LayerHarness dirty />, { wrapper: ConfirmDialogTestProviders });
+    fireEvent.click(screen.getByRole("link", { name: "抽屉内站内链接" }));
+    expect(
+      screen.getByRole("dialog", { name: "尚未保存" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "继续编辑" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull(),
+    );
+    fireEvent.click(screen.getByRole("link", { name: "抽屉内站内链接" }));
+    fireEvent.click(screen.getByRole("button", { name: "放弃修改" }));
+    await waitFor(() =>
+      expect(routerMock.push).toHaveBeenCalledExactlyOnceWith("/dashboard"),
+    );
+    expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe("base");
   });
 });

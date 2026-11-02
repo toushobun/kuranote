@@ -11,7 +11,6 @@ import { useTransactionReceiptForm } from "organisms/transactions/TransactionCon
 import type { TransactionFormInitialValues } from "organisms/transactions/TransactionForm/TransactionForm.types";
 import { useReceiptMerchantPicker } from "organisms/transactions/ReceiptMerchantDrawer/useReceiptMerchantPicker";
 import { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
-import { useDirtySnapshot } from "molecules/ui/UnsavedChangesDialog/useDirtySnapshot";
 import type { ActionState } from "types/actions";
 import type { TransactionStepFlowProps } from "./TransactionStepFlow.types";
 import type { FlowMerchant } from "organisms/transactions/MerchantStep/MerchantStep.types";
@@ -25,7 +24,10 @@ export type TransactionStepFlowScreen = "merchant" | "receipt";
 // 自动添加的明细及当时的分类，用于判断换商家时是否还没动过。
 type AutomaticItem = { id: number; categoryId: string };
 
-export function useTransactionStepFlow(props: TransactionStepFlowProps) {
+export function useTransactionStepFlow(
+  props: TransactionStepFlowProps,
+  dirty: boolean,
+) {
   // 等待建议数据的商家；只应用一次，超时后动过小票或已有输入时清空。
   const pendingQuickMerchantId = useRef<string | null>(null);
   // 从小票换商家：建议到达时替换上一个商家没动过的自动明细，而不是跳过。
@@ -54,11 +56,9 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
       itemsOptions: baseItemsOptions,
       initialValues,
     });
-  const [dirty, setDirty] = useState(false);
   const formId = useId();
-  useDirtySnapshot(form.dirtySnapshot, setDirty, !!form.transactionAtValue);
   const guard = useUnsavedChangesGuard({
-    isDirty: dirty,
+    isDirty: screen === "receipt" && dirty,
     saveFormId: formId,
     onClose: props.onClose,
   });

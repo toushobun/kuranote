@@ -90,6 +90,7 @@ function ReceiptCreationEditor({
     isDirty: dirty,
     saveFormId: formId,
     onClose: w.close,
+    layer: level,
     active: level !== null,
     disabled: w.pending,
   });
