@@ -11,6 +11,7 @@ import { vi } from "vitest";
 import { describe, expect, it } from "vitest";
 
 import { buildStatisticsViewData } from "internal/statistics/service/read/statisticsView";
+import { describeAcrossDefaultLocales } from "test/defaultCollationLocale";
 
 const records = [
   { id: "expense-1", merchant_id: "merchant-super", type: "normal" as const },
@@ -85,6 +86,35 @@ const categories = [
     type: "income" as const,
   },
 ];
+
+describeAcrossDefaultLocales("支出排行榜的同额排序", () => {
+  it("金额与笔数都相同时按固定 locale 的名称排序", () => {
+    const names = ["Alpha", "妻子", "奶奶"];
+    const view = buildStatisticsViewData({
+      categories,
+      currency: "JPY",
+      items: names.map((name) => ({
+        amount: "100",
+        category_id: "category-daily",
+        transaction_record_id: name,
+      })),
+      ledgerName: "家庭账本",
+      merchants: names.map((name) => ({ id: name, name })),
+      month: "2026-06",
+      records: names.map((name) => ({
+        id: name,
+        merchant_id: name,
+        type: "normal" as const,
+      })),
+    });
+
+    expect(view.merchantExpenseRanking.map((rank) => rank.name)).toEqual([
+      "奶奶",
+      "妻子",
+      "Alpha",
+    ]);
+  });
+});
 
 describe("buildStatisticsViewData", () => {
   it("按月份交易生成基础汇总和支出排行榜", () => {

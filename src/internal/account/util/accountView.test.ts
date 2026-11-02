@@ -3,6 +3,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildAccountHolderOptions,
   buildAccountsWithHolders,
   buildDisplayColorByUserId,
   buildHolderOptions,
@@ -16,6 +17,7 @@ import type {
   AccountMemberDisplaySetting,
   AccountUser,
 } from "internal/account/repository/accountRepository";
+import { describeAcrossDefaultLocales } from "test/defaultCollationLocale";
 import { getStableFallbackThemeColorKey } from "theme/themeColorTokens";
 
 function createAccount(id: string): AccountData {
@@ -242,5 +244,46 @@ describe("Account view builders", () => {
     expect(colors.get("user-b")).toBe("sky");
     expect(colors.get("user-a")).toBeDefined();
     expect(colors.get("user-a")).not.toBe("not-a-color");
+  });
+});
+
+describeAcrossDefaultLocales("持有人候选的排序", () => {
+  const names = ["Alpha", "妻子", "奶奶"];
+  const sortedNames = ["奶奶", "妻子", "Alpha"];
+  const appUserById = new Map(
+    names.map((name) => [
+      name,
+      createAppUser({ displayName: name, userId: name }),
+    ]),
+  );
+
+  it("交易筛选的持有人候选按固定 locale 排序", () => {
+    const options = buildAccountHolderOptions({
+      appUserById,
+      holders: names.map((name) =>
+        createHolder({ accountId: "account-a", holderId: name, userId: name }),
+      ),
+      placeholderById: new Map(),
+    });
+
+    expect(options.map((option) => option.name)).toEqual(sortedNames);
+  });
+
+  it("账户持有人候选按固定 locale 排序", () => {
+    const options = buildHolderOptions({
+      appUserById,
+      displayColorByUserId: new Map(),
+      members: names.map((name) => createMember(name)),
+    });
+
+    expect(options.map((option) => option.display_name)).toEqual(sortedNames);
+  });
+
+  it("占位候选按固定 locale 排序", () => {
+    const options = buildPlaceholderHolderOptions(
+      names.map((name) => ({ displayName: name, id: name })),
+    );
+
+    expect(options.map((option) => option.display_name)).toEqual(sortedNames);
   });
 });

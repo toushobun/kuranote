@@ -1,5 +1,6 @@
 import type { CurrentLedger } from "internal/ledger";
 import type { CategorySummaryDbRow } from "internal/db-types";
+import { compareDisplayText } from "utils/collections";
 import {
   unassignedAccountHolderId,
   unassignedAccountHolderLabel,
@@ -162,7 +163,7 @@ async function loadMemberOptions(
     )
   )
     .map((member) => ({ id: member.id, name: member.display_name }))
-    .sort((left, right) => left.name.localeCompare(right.name));
+    .sort((left, right) => compareDisplayText(left.name, right.name));
 }
 
 export function buildFormCategoryOptions(

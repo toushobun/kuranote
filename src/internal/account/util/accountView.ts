@@ -13,6 +13,7 @@ import type {
 } from "internal/account/repository/accountRepository";
 import type { AccountHolderRole } from "internal/account/entity/accountHolderRole";
 import type { LedgerPlaceholderMemberSummary } from "internal/ledger";
+import { compareDisplayText } from "utils/collections";
 
 type AccountHolderViewBase = {
   display_name: string;
@@ -168,7 +169,7 @@ export function buildAccountHolderOptions({
 
   return [...nameById]
     .map(([id, name]) => ({ id, name }))
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .sort((a, b) => compareDisplayText(a.name, b.name));
 }
 
 export function buildHolderOptions({
@@ -200,7 +201,8 @@ export function buildHolderOptions({
     })
     .filter((option): option is AccountHolderOptionView => option !== null)
     .sort((a, b) =>
-      (a.display_name || a.email || "").localeCompare(
+      compareDisplayText(
+        a.display_name || a.email || "",
         b.display_name || b.email || "",
       ),
     );
@@ -215,7 +217,7 @@ export function buildPlaceholderHolderOptions(
       display_name: placeholder.displayName,
       placeholder_id: placeholder.id,
     }))
-    .sort((a, b) => a.display_name.localeCompare(b.display_name));
+    .sort((a, b) => compareDisplayText(a.display_name, b.display_name));
 }
 
 export function buildDisplayColorByUserId({

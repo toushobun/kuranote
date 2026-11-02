@@ -4,6 +4,13 @@ export type PaginationResult<T> = {
   totalCount: number;
 };
 
+const displayTextCollationLocale = "zh-Hans-CN";
+
+/** 比较名称等显示文本：固定排序 locale，顺序不随运行环境的默认 locale 变化。 */
+export function compareDisplayText(a: string, b: string) {
+  return a.localeCompare(b, displayTextCollationLocale);
+}
+
 /** 把数组按固定大小切成若干段，最后一段可以不满。 */
 export function chunkArray<T>(values: T[], size: number): T[][] {
   const chunks: T[][] = [];

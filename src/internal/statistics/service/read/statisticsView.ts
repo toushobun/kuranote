@@ -2,7 +2,7 @@ import {
   addSignedAmount,
   calculateRecordNetAmount,
 } from "utils/transactionRecordAmounts";
-import { groupByKey } from "utils/collections";
+import { compareDisplayText, groupByKey } from "utils/collections";
 import type { CategoryType } from "internal/category";
 import type { TransactionRecordStorageType } from "internal/transaction";
 import {
@@ -222,6 +222,6 @@ function toSortedRanking(
 
       if (countDiff !== 0) return countDiff;
 
-      return a.name.localeCompare(b.name);
+      return compareDisplayText(a.name, b.name);
     });
 }
