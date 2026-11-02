@@ -37,7 +37,7 @@ export function useUnsavedChangesGuard({
   const coordinator = useUnsavedChangesCoordinator();
   const [history] = useState(coordinator.createGuard);
   const runAction = useCallback(
-    async <T,>(action: () => Promise<T>) => {
+    async <T>(action: () => Promise<T>) => {
       try {
         return await history.runAction(action);
       } finally {
