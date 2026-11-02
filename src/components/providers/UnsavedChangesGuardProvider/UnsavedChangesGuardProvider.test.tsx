@@ -7,7 +7,7 @@ import {
 } from "./UnsavedChangesGuardProvider";
 
 describe("UnsavedChangesGuardProvider", () => {
-  it("不同 Provider 的实例和保存入口互不共享，不按地址缓存守卫", async () => {
+  it("不同 Provider 的实例和后退拦截互不共享，不按地址缓存守卫", () => {
     const first = renderHook(useUnsavedChangesCoordinator, {
       wrapper: UnsavedChangesGuardProvider,
     });
@@ -19,28 +19,25 @@ describe("UnsavedChangesGuardProvider", () => {
     expect(historyA).not.toBe(historyB);
     const releaseA = first.result.current.register(historyA, () => {});
     const releaseB = second.result.current.register(historyB, () => {});
-    const runA = vi
-      .spyOn(historyA, "runAction")
-      .mockImplementation((action) => action());
-    const runB = vi
-      .spyOn(historyB, "runAction")
-      .mockImplementation((action) => action());
-    await first.result.current.runAction(async () => "A");
-    expect(runA).toHaveBeenCalledOnce();
-    expect(runB).not.toHaveBeenCalled();
+    const popA = vi.spyOn(historyA, "handlePopState").mockReturnValue(true);
+    const popB = vi.spyOn(historyB, "handlePopState").mockReturnValue(true);
+    const event = new PopStateEvent("popstate");
+    const stop = vi.spyOn(event, "stopImmediatePropagation");
+    first.result.current.handlePopState(event);
+    expect(stop).toHaveBeenCalledOnce();
+    expect(popA).toHaveBeenCalledOnce();
+    expect(popB).not.toHaveBeenCalled();
     releaseA();
-    first.unmount();
-    await second.result.current.runAction(async () => "B");
-    expect(runB).toHaveBeenCalledOnce();
     releaseB();
   });
 
-  it("没有注册表单时直接执行保存，不创建隐式全局守卫", async () => {
+  it("没有注册表单时不拦截后退，不创建隐式全局守卫", () => {
     const { result } = renderHook(useUnsavedChangesCoordinator, {
       wrapper: UnsavedChangesGuardProvider,
     });
-    await expect(result.current.runAction(async () => "完成")).resolves.toBe(
-      "完成",
-    );
+    const event = new PopStateEvent("popstate");
+    const stop = vi.spyOn(event, "stopImmediatePropagation");
+    result.current.handlePopState(event);
+    expect(stop).not.toHaveBeenCalled();
   });
 });

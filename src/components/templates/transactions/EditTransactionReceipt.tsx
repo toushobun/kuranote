@@ -21,7 +21,6 @@ import type {
 import { EditTransactionShell } from "./EditTransactionShell";
 import { useEditAccountOptions } from "./useEditAccountOptions";
 import { useEditTransactionReceipt } from "./useEditTransactionReceipt";
-import { useLinkedTransactionEditAction } from "./useLinkedTransactionEditAction";
 
 const editReceiptFormId = "edit-transaction-receipt-form";
 
@@ -48,7 +47,6 @@ type EditTransactionReceiptTemplateProps = {
 export function EditTransactionReceiptTemplate(
   props: EditTransactionReceiptTemplateProps,
 ) {
-  const editAction = useLinkedTransactionEditAction(props.action);
   const transactionRecordId = props.initialValues.transactionRecordId;
   if (!transactionRecordId) {
     throw new Error("transactionRecordId is required for edit transaction.");
@@ -56,9 +54,9 @@ export function EditTransactionReceiptTemplate(
 
   return (
     <EditTransactionShell
+      action={props.action}
       canDelete={props.canDelete}
       deleteAction={props.deleteAction}
-      editAction={editAction}
       editRestriction={props.editRestriction}
       hasLinkedIncomeItems={props.initialValues.items.some(
         (item) => item.businessStatus?.incomeLinkRole != null,
@@ -66,11 +64,13 @@ export function EditTransactionReceiptTemplate(
       saveFormId={editReceiptFormId}
       transactionRecordId={transactionRecordId}
     >
-      <EditTransactionReceipt
-        {...props}
-        formAction={editAction.formAction}
-        saving={editAction.isPending}
-      />
+      {(editAction) => (
+        <EditTransactionReceipt
+          {...props}
+          formAction={editAction.formAction}
+          saving={editAction.isPending}
+        />
+      )}
     </EditTransactionShell>
   );
 }

@@ -48,7 +48,6 @@ import type {
 import { EditTransactionShell } from "./EditTransactionShell";
 import { TransactionPageTopBar } from "./TransactionPageTopBar";
 import { useEditAccountOptions } from "./useEditAccountOptions";
-import { useLinkedTransactionEditAction } from "./useLinkedTransactionEditAction";
 
 export type TransactionFormTemplateProps = {
   accountOptions: TransactionAccountOption[];
@@ -409,7 +408,6 @@ export function EditTransferTransactionTemplate({
   editRestriction,
   initialValues,
 }: EditTransferTransactionTemplateProps) {
-  const editAction = useLinkedTransactionEditAction(action);
   const readOnly = editRestriction !== null;
   const accountOptions = useEditAccountOptions(
     availableAccountOptions,
@@ -418,25 +416,29 @@ export function EditTransferTransactionTemplate({
 
   return (
     <EditTransactionShell
+      action={action}
       canDelete={canDelete}
       deleteAction={deleteAction}
-      editAction={editAction}
       editRestriction={editRestriction}
       hasLinkedIncomeItems={false}
       saveFormId={editTransferTransactionFormId}
       transactionRecordId={initialValues.transactionRecordId}
     >
-      <TransferTransactionForm
-        action={editAction.formAction}
-        accountOptions={accountOptions}
-        formId={editTransferTransactionFormId}
-        hideHeader
-        hideSubmitButton={readOnly}
-        initialValues={initialValues}
-        readOnly={readOnly}
-        sourceType="transfer"
-      />
-      {readOnly ? null : <TransactionAmountKeypadLauncher />}
+      {(editAction) => (
+        <>
+          <TransferTransactionForm
+            action={editAction.formAction}
+            accountOptions={accountOptions}
+            formId={editTransferTransactionFormId}
+            hideHeader
+            hideSubmitButton={readOnly}
+            initialValues={initialValues}
+            readOnly={readOnly}
+            sourceType="transfer"
+          />
+          {readOnly ? null : <TransactionAmountKeypadLauncher />}
+        </>
+      )}
     </EditTransactionShell>
   );
 }

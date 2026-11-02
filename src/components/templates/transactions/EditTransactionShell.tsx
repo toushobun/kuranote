@@ -31,16 +31,20 @@ import type {
 import { transactionEditRestrictionMessages } from "utils/transactionMessages";
 
 import { TransactionPageTopBar } from "./TransactionPageTopBar";
-import type { useLinkedTransactionEditAction } from "./useLinkedTransactionEditAction";
+import { useLinkedTransactionEditAction } from "./useLinkedTransactionEditAction";
 
 const deleteTransactionFormId = "delete-transaction-form";
 
 type EditTransactionShellProps = {
+  /** 保存编辑的 Server Action，与删除经同一个未保存守卫执行。 */
+  action: TransactionStateAction;
   canDelete: boolean;
   /** 编辑表单（含自己的保存按钮），删除按钮显示在它下方。 */
-  children: ReactNode;
+  children: (edit: {
+    formAction: (formData: FormData) => void;
+    isPending: boolean;
+  }) => ReactNode;
   deleteAction: TransactionStateAction;
-  editAction: ReturnType<typeof useLinkedTransactionEditAction>;
   editRestriction: TransactionEditRestriction | null;
   hasLinkedIncomeItems: boolean;
   /** 离开确认里的「保存」按这个 id 提交编辑表单。 */
@@ -55,10 +59,10 @@ type EditTransactionShellProps = {
  * 商家搜索等抽屉里的输入不算。
  */
 export function EditTransactionShell({
+  action,
   canDelete,
   children,
   deleteAction,
-  editAction,
   editRestriction,
   hasLinkedIncomeItems,
   saveFormId,
@@ -70,6 +74,7 @@ export function EditTransactionShell({
     isDirty: hasUnsavedChanges && !readOnly,
     saveFormId,
   });
+  const editAction = useLinkedTransactionEditAction(action, guard.runAction);
   const [deleteState, deleteFormAction] = useActionState(
     (state: TransactionActionState, data: FormData) =>
       guard.runAction(() => deleteAction(state, data)),
@@ -101,7 +106,7 @@ export function EditTransactionShell({
             <TransactionEditRestrictionAlert reason={editRestriction} />
           </Box>
         ) : null}
-        {children}
+        {children(editAction)}
         {canDelete ? (
           <Button
             color="error"

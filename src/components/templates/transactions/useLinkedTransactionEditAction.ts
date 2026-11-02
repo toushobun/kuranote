@@ -6,8 +6,6 @@ import {
   useState,
 } from "react";
 
-import { useUnsavedChangesCoordinator } from "providers/UnsavedChangesGuardProvider/UnsavedChangesGuardProvider";
-
 import { transactionErrorCodes } from "internal/transaction";
 import type {
   TransactionActionState,
@@ -20,8 +18,11 @@ function copyFormData(formData: FormData) {
   return copy;
 }
 
-export function useLinkedTransactionEditAction(action: TransactionStateAction) {
-  const { runAction } = useUnsavedChangesCoordinator();
+/** runAction 由调用方的未保存守卫提供，保存与删除共用同一实例。 */
+export function useLinkedTransactionEditAction(
+  action: TransactionStateAction,
+  runAction: <T>(action: () => Promise<T>) => Promise<T>,
+) {
   const pendingConfirmationRef = useRef<FormData | null>(null);
   const [dismissedState, setDismissedState] =
     useState<TransactionActionState | null>(null);

@@ -7,6 +7,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -23,10 +24,11 @@ import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
 import type { TransactionStateAction } from "types/transactions";
 import { transactionEditRestrictionMessages } from "utils/transactionMessages";
 
+import { UnsavedChangesHistory } from "molecules/ui/UnsavedChangesDialog/unsavedChangesHistory";
+import { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
 import { useEditTransactionDirty } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
 
 import { EditTransactionShell } from "./EditTransactionShell";
-import { useLinkedTransactionEditAction } from "./useLinkedTransactionEditAction";
 
 const saveFormId = "edit-test-form";
 
@@ -44,22 +46,23 @@ function ShellHarness({
   editRestriction?: TransactionEditRestriction | null;
   hasLinkedIncomeItems?: boolean;
 }) {
-  const editAction = useLinkedTransactionEditAction(action);
   return (
     <EditTransactionShell
+      action={action}
       canDelete={canDelete}
       deleteAction={deleteAction}
-      editAction={editAction}
       editRestriction={editRestriction}
       hasLinkedIncomeItems={hasLinkedIncomeItems}
       saveFormId={saveFormId}
       transactionRecordId="00000000-0000-4000-8000-000000009001"
     >
-      <form action={editAction.formAction} id={saveFormId}>
-        <DirtyReportingInput />
-        <input aria-label="未报告的输入" defaultValue="" />
-        <button type="submit">保存修改</button>
-      </form>
+      {(editAction) => (
+        <form action={editAction.formAction} id={saveFormId}>
+          <DirtyReportingInput />
+          <input aria-label="未报告的输入" defaultValue="" />
+          <button type="submit">保存修改</button>
+        </form>
+      )}
     </EditTransactionShell>
   );
 }
@@ -75,6 +78,12 @@ function DirtyReportingInput() {
       onChange={(event) => markEditDirty?.(event.target.value !== "")}
     />
   );
+}
+
+// 模拟 PR2 的弹层守卫：比页面守卫更晚注册。
+function LaterRegisteredGuard() {
+  useUnsavedChangesGuard({ isDirty: false, saveFormId: "later-form" });
+  return null;
 }
 
 function renderShell(props: Parameters<typeof ShellHarness>[0] = {}) {
@@ -376,5 +385,31 @@ describe("EditTransactionShell", () => {
     fireEvent.click(screen.getByRole("button", { name: "保存" }));
     expect(requestSubmit).toHaveBeenCalledTimes(1);
     expect(requestSubmit.mock.contexts[0]).toHaveProperty("id", saveFormId);
+  });
+
+  it("之后注册了其他守卫时，保存与删除仍经外框自己的守卫执行", async () => {
+    const runners: UnsavedChangesHistory[] = [];
+    vi.spyOn(UnsavedChangesHistory.prototype, "runAction").mockImplementation(
+      function (this: UnsavedChangesHistory, run) {
+        runners.push(this);
+        return run();
+      },
+    );
+    const action = vi.fn(async () => ({}));
+    const deleteAction = vi.fn(async () => ({}));
+    const { container } = render(
+      <ConfirmDialogTestProviders>
+        <ShellHarness action={action} deleteAction={deleteAction} />
+        <LaterRegisteredGuard />
+      </ConfirmDialogTestProviders>,
+    );
+
+    await clickSave(container);
+    await waitFor(() => expect(action).toHaveBeenCalledOnce());
+    await clickDelete(container);
+    await waitFor(() => expect(deleteAction).toHaveBeenCalledOnce());
+
+    expect(runners).toHaveLength(2);
+    expect(runners[0]).toBe(runners[1]);
   });
 });

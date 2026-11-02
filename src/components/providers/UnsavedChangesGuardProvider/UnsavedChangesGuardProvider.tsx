@@ -54,8 +54,6 @@ function createCoordinator(prefix: string) {
     handlePopState: (event: PopStateEvent) => {
       if (current()?.handlePopState()) event.stopImmediatePropagation();
     },
-    runAction: <T,>(action: () => Promise<T>) =>
-      current()?.runAction(action) ?? action(),
   };
 }
 
