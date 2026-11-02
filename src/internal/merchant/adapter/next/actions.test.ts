@@ -38,7 +38,10 @@ const mocks = vi.hoisted(() => ({
   updateTag: vi.fn(),
 }));
 
-vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
+vi.mock("next/navigation", () => ({
+  redirect: mocks.redirect,
+  RedirectType: { push: "push", replace: "replace" },
+}));
 vi.mock("internal/ledger/adapter/next/currentLedger", () => ({
   requireCurrentUserAndLedger: mocks.requireCurrentUserAndLedger,
 }));
@@ -593,6 +596,10 @@ describe("addMerchantPresets", () => {
       selectedKeys: ["amazon"],
     });
     expect(mocks.revalidateMerchantMutation).toHaveBeenCalled();
+    expect(mocks.redirect).toHaveBeenCalledWith(
+      "/merchants?result=presets-added&count=2",
+      "push",
+    );
   });
   it("从记一笔进入时添加后返回来源页面", async () => {
     mocks.addPresets.mockResolvedValue(2);
@@ -601,6 +608,7 @@ describe("addMerchantPresets", () => {
     await expect(addMerchantPresets({}, form)).rejects.toThrow(
       "NEXT_REDIRECT:/transactions/new",
     );
+    expect(mocks.redirect).toHaveBeenCalledWith("/transactions/new", "replace");
   });
   it("非法表单返回集中错误文案，不写入或跳转", async () => {
     expectErrorState(
