@@ -156,4 +156,20 @@ describe("unsavedChangesCoordinator", () => {
     expect(first.close).not.toHaveBeenCalled();
     href.mockRestore();
   });
+  it("离开后的新页面先挂载、旧登记后清理时，不在新页面追加旧表单的保护记录", async () => {
+    const b = setup();
+    const first = b.register(true, null);
+    await b.flush();
+    await first.guard.leave(() => b.port.go(-1));
+    await b.flush();
+    expect(b.index()).toBe(0);
+    const next = b.register(false, null);
+    await b.flush();
+    expect(b.port.push).toHaveBeenCalledOnce();
+    expect(b.index()).toBe(0);
+    first.release();
+    await b.flush();
+    expect(next.guard.shouldBlockUnload()).toBe(false);
+    expect(b.index()).toBe(0);
+  });
 });

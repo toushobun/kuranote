@@ -5,6 +5,7 @@ import {
 
 type Entry = {
   dirty: boolean;
+  href: string;
   handlesLinks: boolean;
   layer: number | null;
   active: boolean;
@@ -22,9 +23,11 @@ export function createUnsavedChangesCoordinator(
   const entries = new Set<Entry>();
   let order = 0;
   let connectedHref = "";
+  const isCurrent = (entry: Entry) =>
+    entry.active && entry.href === connectedHref;
   const ordered = () =>
     [...entries]
-      .filter((entry) => entry.active)
+      .filter(isCurrent)
       .sort((a, b) => (a.layer ?? -1) - (b.layer ?? -1) || a.order - b.order);
   const top = () =>
     ordered()
@@ -33,7 +36,7 @@ export function createUnsavedChangesCoordinator(
   const protecting = () =>
     [...entries].some(
       (entry) =>
-        entry.active &&
+        isCurrent(entry) &&
         !entry.suspended &&
         (entry.dirty || entry.layer !== null),
     );
@@ -53,6 +56,7 @@ export function createUnsavedChangesCoordinator(
     createGuard(handlesLinks = true) {
       const entry: Entry = {
         dirty: false,
+        href: "",
         handlesLinks,
         layer: null,
         active: false,
@@ -68,6 +72,7 @@ export function createUnsavedChangesCoordinator(
             connectedHref = port.href();
           }
           entries.add(entry);
+          entry.href = port.href();
           entry.onBack = onBack;
           const connection = ++entry.connection;
           return () =>
@@ -92,7 +97,7 @@ export function createUnsavedChangesCoordinator(
           );
         },
         shouldBlockUnload: () =>
-          entry.active &&
+          isCurrent(entry) &&
           entry.dirty &&
           !entry.suspended &&
           history.shouldBlockUnload(),
@@ -106,7 +111,7 @@ export function createUnsavedChangesCoordinator(
           action();
         },
         async runAction<T>(action: () => Promise<T>): Promise<T> {
-          if (!entry.active) return action();
+          if (!isCurrent(entry)) return action();
           entry.suspended = true;
           try {
             // 子层保存不能清理父表单的保护；只有本实例独占保护时才清理历史。
