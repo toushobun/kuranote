@@ -189,7 +189,7 @@ describe("MerchantPresetLauncher", () => {
       const heading = screen.getByRole("heading", { name: "记一笔" });
       fireEvent.click(screen.getByRole("button", { name: "从预设添加" }));
       fireEvent.click(await screen.findByRole("button", { name: "全部选择" }));
-      fireEvent.click(screen.getByRole("button", { name: /添加 \\d+ 个商家/ }));
+      fireEvent.click(screen.getByRole("button", { name: /添加 \d+ 个商家/ }));
       await waitFor(() => expect(routerMock.refresh).toHaveBeenCalledOnce());
       await waitFor(() =>
         expect(
