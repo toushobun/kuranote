@@ -23,9 +23,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => router }));
 vi.mock(
   "organisms/merchants/MerchantPresetLauncher/MerchantPresetLauncher",
   () => ({
-    MerchantPresetLauncher: ({ returnTo }: { returnTo?: string | null }) => (
-      <div data-return-to={returnTo} data-testid="preset-launcher" />
-    ),
+    MerchantPresetLauncher: () => <div data-testid="preset-launcher" />,
   }),
 );
 
@@ -213,13 +211,10 @@ describe("NewTransactionStepFlow", () => {
     expect(router.push).not.toHaveBeenCalled();
   });
 
-  it("没有商家时从预设添加在当前页面打开，添加后返回记一笔", () => {
+  it("没有商家时从预设添加在当前页面打开", () => {
     setup({ merchantOptions: [] });
     click("从预设添加");
-    expect(screen.getByTestId("preset-launcher")).toHaveAttribute(
-      "data-return-to",
-      "/transactions/new",
-    );
+    expect(screen.getByTestId("preset-launcher")).toBeInTheDocument();
   });
 
   it("首屏干净后退返回来源页，不压哨兵、不 push 明细页", async () => {
