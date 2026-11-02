@@ -1,4 +1,5 @@
 "use client";
+import { useBackLayer } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
 import { useState } from "react";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import Box from "@mui/material/Box";
@@ -39,6 +40,7 @@ export function TransactionItemAmountDrawer({
   onConfirm,
   onClose,
 }: TransactionItemAmountDrawerProps) {
+  useBackLayer(open, onClose);
   const [draft, setDraft] = useState(value);
   // 键盘每次打开或点快捷金额时重新挂载，从草稿重新开始（清掉未完成的算式）。
   const [revision, setRevision] = useState(0);

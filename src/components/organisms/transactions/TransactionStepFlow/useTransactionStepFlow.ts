@@ -4,15 +4,15 @@ import {
   useEffect,
   useEffectEvent,
   useRef,
+  useId,
   useState,
 } from "react";
 import { useTransactionReceiptForm } from "organisms/transactions/TransactionConfirmStep/useTransactionReceiptForm";
 import type { TransactionFormInitialValues } from "organisms/transactions/TransactionForm/TransactionForm.types";
 import { useReceiptMerchantPicker } from "organisms/transactions/ReceiptMerchantDrawer/useReceiptMerchantPicker";
-import { useConfirmDialog } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
+import { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
 import type { ActionState } from "types/actions";
 import type { TransactionStepFlowProps } from "./TransactionStepFlow.types";
-import { flowMessages as m } from "config/transactionStepFlowMessages";
 import type { FlowMerchant } from "organisms/transactions/MerchantStep/MerchantStep.types";
 
 // 快速路线：选完商家后最多等待建议数据这么久，超时则直接进入小票；
@@ -24,12 +24,10 @@ export type TransactionStepFlowScreen = "merchant" | "receipt";
 // 自动添加的明细及当时的分类，用于判断换商家时是否还没动过。
 type AutomaticItem = { id: number; categoryId: string };
 
-export function useTransactionStepFlow(props: TransactionStepFlowProps) {
-  const confirm = useConfirmDialog();
-  const [saveState, saveAction, saving] = useActionState<ActionState, FormData>(
-    props.action,
-    {},
-  );
+export function useTransactionStepFlow(
+  props: TransactionStepFlowProps,
+  dirty: boolean,
+) {
   // 等待建议数据的商家；只应用一次，超时后动过小票或已有输入时清空。
   const pendingQuickMerchantId = useRef<string | null>(null);
   // 从小票换商家：建议到达时替换上一个商家没动过的自动明细，而不是跳过。
@@ -58,6 +56,16 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
       itemsOptions: baseItemsOptions,
       initialValues,
     });
+  const formId = useId();
+  const guard = useUnsavedChangesGuard({
+    isDirty: screen === "receipt" && dirty,
+    saveFormId: formId,
+    onClose: props.onClose,
+  });
+  const [saveState, saveAction, saving] = useActionState<ActionState, FormData>(
+    (state, data) => guard.runAction(() => props.action(state, data)),
+    {},
+  );
   // 开始等待建议时的小票；之后与之不同即视为用户动过小票
   //（选账户、加 / 删 / 编辑明细、改分类 / 金额 / 特殊状态 / 关联、改备注 / 时间）。
   const receiptSnapshot = JSON.stringify([
@@ -191,17 +199,6 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     else showReceipt();
   }
   const merchantPicker = useReceiptMerchantPicker(selectMerchant);
-  async function requestClose() {
-    if (
-      await confirm({
-        title: m.abandonTitle,
-        description: m.abandonDescription,
-        cancelLabel: m.continue,
-        confirmLabel: m.abandon,
-      })
-    )
-      props.onClose();
-  }
   return {
     screen,
     saveState,
@@ -227,6 +224,8 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     setMethodOpen,
     loadingMerchantId,
     merchantPicker,
-    requestClose,
+    requestClose: guard.requestClose,
+    dialogProps: guard.dialogProps,
+    formId,
   };
 }

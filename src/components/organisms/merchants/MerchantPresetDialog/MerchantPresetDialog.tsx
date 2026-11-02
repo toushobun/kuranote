@@ -1,10 +1,11 @@
 "use client";
 
+import { useBackLayer } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
-import { useId } from "react";
+import { useCallback, useEffect, useId } from "react";
 import { WizardDialog } from "molecules/ui/WizardDialog/WizardDialog";
 import { presetChecklistToggleAllButtonSx } from "molecules/ui/GroupedPresetChecklist/presetChecklistStyles";
 
@@ -23,8 +24,7 @@ export type MerchantPresetDialogProps = {
   action: MerchantPresetStateAction;
   options: MerchantPresetOptions;
   onClose: () => void;
-  /** 添加成功后返回的站内路径（例如记一笔），由服务端再次校验。 */
-  returnTo?: string | null;
+  onSaved?: () => void;
 };
 
 /** 内容随关闭卸载；重新打开时清空本次勾选与失败反馈。 */
@@ -32,11 +32,19 @@ export function MerchantPresetDialog({
   action,
   options,
   onClose,
-  returnTo = null,
+  onSaved,
 }: MerchantPresetDialogProps) {
   const formId = useId();
-  const dialog = useMerchantPresetDialog(options, action, returnTo);
+  const { runAction } = useBackLayer(true, requestClose);
+  const guardedAction = useCallback<MerchantPresetStateAction>(
+    (state, data) => runAction(() => action(state, data)),
+    [action, runAction],
+  );
+  const dialog = useMerchantPresetDialog(options, guardedAction, !!onSaved);
   const pending = dialog.submission.pending;
+  useEffect(() => {
+    if (dialog.submission.state.success) onSaved?.();
+  }, [dialog.submission.state.success, onSaved]);
   function requestClose() {
     if (!pending) onClose();
   }

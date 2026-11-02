@@ -1,4 +1,8 @@
 "use client";
+import {
+  BackLayerScope,
+  transactionBackLayerLevels,
+} from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
 import { MerchantPresetLauncher } from "organisms/merchants/MerchantPresetLauncher/MerchantPresetLauncher";
 import type { FlowMerchant } from "organisms/transactions/MerchantStep/MerchantStep.types";
 import { TransactionStepFlow } from "organisms/transactions/TransactionStepFlow/TransactionStepFlow";
@@ -52,12 +56,14 @@ export function NewTransactionStepFlow(props: NewTransactionStepFlowProps) {
         {...w.flowHandlers}
       />
       {w.presetsOpen ? (
-        <MerchantPresetLauncher
-          action={props.addPresetsAction}
-          loadAction={props.loadPresetsAction}
-          onClose={w.closePresets}
-          returnTo={w.presetsReturnTo}
-        />
+        <BackLayerScope level={transactionBackLayerLevels.creation}>
+          <MerchantPresetLauncher
+            action={props.addPresetsAction}
+            loadAction={props.loadPresetsAction}
+            onClose={w.closePresets}
+            onSaved={w.onPresetsAdded}
+          />
+        </BackLayerScope>
       ) : null}
     </>
   );

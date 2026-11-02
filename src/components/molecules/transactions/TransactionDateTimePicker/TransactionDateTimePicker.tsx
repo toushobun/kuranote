@@ -1,5 +1,6 @@
 "use client";
 
+import { useBackLayer } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import AccessTimeOutlinedIcon from "@mui/icons-material/AccessTimeOutlined";
@@ -165,6 +166,9 @@ export function TransactionDateTimePicker({
     setVisibleMonth(new Date(pickerYear, pickerMonth, 1));
     setMonthPickerOpen(false);
   }
+
+  useBackLayer(open && !editor, closeDrawer);
+  useBackLayer(monthPickerOpen, () => setMonthPickerOpen(false), 1);
 
   function closeDrawer() {
     setMonthPickerOpen(false);

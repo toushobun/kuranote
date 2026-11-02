@@ -10,6 +10,7 @@ import { redirect } from "next/navigation";
 
 import { merchantResultValues, merchantsResultHref } from "config/paths";
 import { merchantText } from "config/merchantText";
+import { merchantPresetMessages } from "config/merchantPresetMessages";
 import { createRequestContainer } from "internal/container";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
 import { revalidateMerchantMutation } from "internal/merchant/adapter/next/revalidate";
@@ -392,11 +393,11 @@ export const addMerchantPresets: MerchantPresetStateAction =
       );
     }
     revalidateMerchantMutation();
-    // 从记一笔进入时添加后返回来源页面。
-    redirect(
-      getSafeNextPath(formData.get("returnTo")) ??
-        merchantsResultHref(merchantResultValues.presetsAdded, count),
-    );
+    // 同页弹层不依赖 redirect 重新挂载；由客户端关闭并刷新商家选项。
+    if (formData.get("presentation") === "dialog")
+      return { success: merchantPresetMessages.success(count) };
+    // 商家管理页保留原有的结果页跳转。
+    redirect(merchantsResultHref(merchantResultValues.presetsAdded, count));
   };
 
 /** 打开预设弹框时才读取，不向客户端发送完整模板。 */

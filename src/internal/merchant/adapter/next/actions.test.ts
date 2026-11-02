@@ -38,7 +38,9 @@ const mocks = vi.hoisted(() => ({
   updateTag: vi.fn(),
 }));
 
-vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
+vi.mock("next/navigation", () => ({
+  redirect: mocks.redirect,
+}));
 vi.mock("internal/ledger/adapter/next/currentLedger", () => ({
   requireCurrentUserAndLedger: mocks.requireCurrentUserAndLedger,
 }));
@@ -593,14 +595,19 @@ describe("addMerchantPresets", () => {
       selectedKeys: ["amazon"],
     });
     expect(mocks.revalidateMerchantMutation).toHaveBeenCalled();
-  });
-  it("从记一笔进入时添加后返回来源页面", async () => {
-    mocks.addPresets.mockResolvedValue(2);
-    const form = presetForm();
-    form.set("returnTo", "/transactions/new");
-    await expect(addMerchantPresets({}, form)).rejects.toThrow(
-      "NEXT_REDIRECT:/transactions/new",
+    expect(mocks.redirect).toHaveBeenCalledWith(
+      "/merchants?result=presets-added&count=2",
     );
+  });
+  it("记一笔内嵌预设成功只返回状态，不依赖同页重定向", async () => {
+    mocks.addPresets.mockResolvedValue(3);
+    const form = presetForm();
+    form.set("presentation", "dialog");
+    expect(await addMerchantPresets({}, form)).toEqual({
+      success: "已添加 3 个商家",
+    });
+    expect(mocks.revalidateMerchantMutation).toHaveBeenCalledOnce();
+    expect(mocks.redirect).not.toHaveBeenCalled();
   });
   it("非法表单返回集中错误文案，不写入或跳转", async () => {
     expectErrorState(

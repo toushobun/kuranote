@@ -1,3 +1,5 @@
+import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import { routerMock } from "./mocks/navigation";
 import type { ReactNode } from "react";
 
 import { UnsavedChangesGuardProvider } from "providers/UnsavedChangesGuardProvider/UnsavedChangesGuardProvider";
@@ -12,10 +14,12 @@ export function ConfirmDialogTestProviders({
   children: ReactNode;
 }) {
   return (
-    <UserThemeProvider>
-      <UnsavedChangesGuardProvider>
-        <ConfirmDialogProvider>{children}</ConfirmDialogProvider>
-      </UnsavedChangesGuardProvider>
-    </UserThemeProvider>
+    <AppRouterContext.Provider value={routerMock}>
+      <UserThemeProvider>
+        <UnsavedChangesGuardProvider>
+          <ConfirmDialogProvider>{children}</ConfirmDialogProvider>
+        </UnsavedChangesGuardProvider>
+      </UserThemeProvider>
+    </AppRouterContext.Provider>
   );
 }

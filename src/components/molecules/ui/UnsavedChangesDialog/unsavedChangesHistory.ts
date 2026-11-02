@@ -33,6 +33,7 @@ export class UnsavedChangesHistory {
   private href = "";
   private dirty = false;
   private hasSentinel = false;
+  private position: Marker["position"] | null = null;
   private suspended = false;
   private leaving = false;
   private saving = false;
@@ -58,11 +59,12 @@ export class UnsavedChangesHistory {
       this.id = marker.id;
       this.href = this.port.href();
       this.hasSentinel = true;
-    } else if (marker?.id !== this.id) {
+    } else if (marker?.id !== this.id || this.port.href() !== this.href) {
       // 成功跳转后再次通过 Link 进入的是新记录，旧会话不能再假定前方存在哨兵。
       this.hasSentinel = false;
       this.href = this.port.href();
     }
+    this.position = this.hasSentinel && marker ? marker.position : null;
     return () => this.connection === connection;
   }
 
@@ -90,6 +92,18 @@ export class UnsavedChangesHistory {
     };
     if (push) this.port.push(state);
     else this.port.replace(state);
+    this.position = position;
+  }
+
+  /** Next 的内部 replaceState（如 router.refresh）会丢弃自定义 state，同 URL 的内部记录按已知位置补回标记。 */
+  private restoreMarker(position: Marker["position"] | null) {
+    if (
+      position &&
+      this.hasSentinel &&
+      !this.marker() &&
+      this.port.href() === this.href
+    )
+      this.write(position);
   }
 
   private enqueue(action: () => void | Promise<void>) {
@@ -99,6 +113,7 @@ export class UnsavedChangesHistory {
   }
 
   private move(position: Marker["position"]) {
+    this.restoreMarker(this.position);
     if (this.marker()?.position === position) return Promise.resolve();
     this.preserveScroll();
     return new Promise<void>((done) => {
@@ -167,6 +182,11 @@ export class UnsavedChangesHistory {
   }
 
   handlePopState() {
+    // 同 URL 的内部记录只有基准和哨兵两条，到达无标记的记录时只可能是遍历目标或另一条。
+    this.restoreMarker(
+      this.traversal?.position ??
+        (this.position && (this.position === "base" ? "sentinel" : "base")),
+    );
     const marker = this.marker();
     if (this.saving && this.hasSentinel) {
       this.preserveScroll();
@@ -200,7 +220,24 @@ export class UnsavedChangesHistory {
       this.href = this.port.href();
       this.hasSentinel = true;
     }
-    if (marker?.id !== this.id || this.port.href() !== this.href) return;
+    if (marker?.id !== this.id || this.port.href() !== this.href) {
+      // 已离开内部记录：之后再前进回来时位置未知，不能按另一条记录推断。
+      this.position = null;
+      // 推断失误（如无标记的孤儿记录）使内部遍历落到其他页时结束等待，避免操作队列卡死。
+      if (this.traversal) {
+        const { done } = this.traversal;
+        this.traversal = null;
+        if (this.savedScroll) {
+          this.port.setScrollRestoration(this.savedScroll.mode);
+          this.savedScroll = null;
+        }
+        done();
+      }
+      return;
+    }
+    this.position = marker.position;
+    // 页面离开后的正常前进必须交给 Next；只有内部遍历才消费干净的基准记录。
+    if (marker.position === "base" && !this.dirty && !this.traversal) return;
     this.preserveScroll();
     if (this.traversal?.position === marker.position) {
       const { done } = this.traversal;

@@ -1,7 +1,14 @@
 "use client";
+import { useState } from "react";
+import { EditTransactionDirtyProvider } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
 import { useReceiptCreation } from "organisms/transactions/ReceiptCreationProvider/ReceiptCreationProvider";
 import { mergeReceiptOptions } from "organisms/transactions/ReceiptCreationProvider/useReceiptCreationState";
 
+import {
+  BackLayerScope,
+  transactionBackLayerLevels,
+} from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
+import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog/UnsavedChangesDialog";
 import Button from "@mui/material/Button";
 import DialogContent from "@mui/material/DialogContent";
 import { TransactionConfirmStep } from "../TransactionConfirmStep/TransactionConfirmStep";
@@ -15,22 +22,37 @@ import { useTransactionStepFlow } from "./useTransactionStepFlow";
 
 /** 从商家记账（#943 任务 9）：两屏——选择商家 → 小票（确认页）。 */
 export function TransactionStepFlow(props: TransactionStepFlowProps) {
-  return props.open ? <TransactionStepFlowSession {...props} /> : null;
+  return props.open ? (
+    <BackLayerScope level={transactionBackLayerLevels.flow}>
+      <TransactionStepFlowSession {...props} />
+    </BackLayerScope>
+  ) : null;
 }
-function TransactionStepFlowSession(input: TransactionStepFlowProps) {
+function TransactionStepFlowSession(props: TransactionStepFlowProps) {
+  const [dirty, setDirty] = useState(false);
+  return (
+    <EditTransactionDirtyProvider onDirty={setDirty}>
+      <TransactionStepFlowContent {...props} dirty={dirty} />
+    </EditTransactionDirtyProvider>
+  );
+}
+function TransactionStepFlowContent(
+  input: TransactionStepFlowProps & { dirty: boolean },
+) {
   const creation = useReceiptCreation();
   const props = {
     ...input,
     merchants: mergeReceiptOptions(input.merchants, creation?.merchants),
     accounts: mergeReceiptOptions(input.accounts, creation?.accounts),
   };
-  const w = useTransactionStepFlow(props);
+  const w = useTransactionStepFlow(props, input.dirty);
   const receipt = w.screen === "receipt";
   return (
-    <>
+    <BackLayerScope level={transactionBackLayerLevels.receiptEditor}>
       <WizardDialog
         open={props.open}
         disableEnterTransition
+        disabled={w.saving}
         onClose={() => void w.requestClose()}
         closeLabel={m.close}
         title={receipt ? m.title : m.merchantTitle}
@@ -48,6 +70,7 @@ function TransactionStepFlowSession(input: TransactionStepFlowProps) {
           {receipt ? (
             <TransactionConfirmStep
               {...w.itemsOptions}
+              formId={w.formId}
               form={w.form}
               automaticItemIds={w.automaticItemIds}
               amountItemId={w.amountItemId}
@@ -88,6 +111,7 @@ function TransactionStepFlowSession(input: TransactionStepFlowProps) {
         onClose={() => w.setMethodOpen(false)}
         onMethodChange={props.onMethodChange}
       />
-    </>
+      <UnsavedChangesDialog {...w.dialogProps} />
+    </BackLayerScope>
   );
 }

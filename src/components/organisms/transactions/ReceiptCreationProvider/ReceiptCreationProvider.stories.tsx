@@ -90,3 +90,18 @@ export const AccountSaved: Story = {
   name: "新增账户后选中",
   play: (context) => saveCreation(context, "account"),
 };
+
+export const MerchantUnsavedConfirmation: Story = {
+  name: "全屏商家关闭时确认只覆盖当前层",
+  play: async (context) => {
+    await openMerchant(context);
+    const body = within(context.canvasElement.ownerDocument.body);
+    await userEvent.type(await body.findByLabelText(/商家名称/), "商家草稿");
+    await userEvent.click(body.getByRole("button", { name: m.creationClose }));
+    const confirmation = await body.findByRole("dialog", { name: "尚未保存" });
+    await expect(confirmation).toBeVisible();
+    await expect(confirmation.closest(".MuiDialog-root")?.parentElement).toBe(
+      context.canvasElement.ownerDocument.body,
+    );
+  },
+};

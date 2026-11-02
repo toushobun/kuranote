@@ -1,4 +1,13 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { setupGuardHistoryMock, backFromGuard } from "test/mockGuardHistory";
+const guardHistory = setupGuardHistoryMock();
+
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MerchantEntrySuggestions } from "internal/transaction";
 import {
@@ -14,9 +23,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => router }));
 vi.mock(
   "organisms/merchants/MerchantPresetLauncher/MerchantPresetLauncher",
   () => ({
-    MerchantPresetLauncher: ({ returnTo }: { returnTo?: string | null }) => (
-      <div data-return-to={returnTo} data-testid="preset-launcher" />
-    ),
+    MerchantPresetLauncher: () => <div data-testid="preset-launcher" />,
   }),
 );
 
@@ -204,30 +211,64 @@ describe("NewTransactionStepFlow", () => {
     expect(router.push).not.toHaveBeenCalled();
   });
 
-  it("没有商家时从预设添加在当前页面打开，添加后返回记一笔", () => {
+  it("没有商家时从预设添加在当前页面打开", () => {
     setup({ merchantOptions: [] });
     click("从预设添加");
-    expect(screen.getByTestId("preset-launcher")).toHaveAttribute(
-      "data-return-to",
-      "/transactions/new",
-    );
+    expect(screen.getByTestId("preset-launcher")).toBeInTheDocument();
   });
 
-  it("关闭并确认放弃后回到明细列表", async () => {
+  it("首屏干净后退返回来源页，不压哨兵、不 push 明细页", async () => {
+    setup();
+    await act(async () => window.history.back());
+    expect(guardHistory().index()).toBe(0);
+    expect(window.history.back).toHaveBeenCalledOnce();
+    expect(window.history.pushState).not.toHaveBeenCalled();
+    expect(router.push).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
+  });
+  it("小票修改后后退可继续编辑，放弃只真正后退一次且不 push", async () => {
+    setup();
+    selectMerchant("7-Eleven");
+    respond("merchantId=seven", noHistory);
+    await screen.findByText("这家商家还没有记录");
+    window.scrollTo(0, 2000);
+    await backFromGuard();
+    await screen.findByRole("dialog", { name: "尚未保存" });
+    click("继续编辑");
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull(),
+    );
+    expect(window.scrollY).toBe(2000);
+    expect(guardHistory().index()).toBe(2);
+    await backFromGuard();
+    click("放弃修改");
+    await waitFor(() => expect(guardHistory().index()).toBe(0));
+    expect(window.history.back).toHaveBeenCalledTimes(3);
+    expect(router.push).not.toHaveBeenCalled();
+  });
+
+  it("首屏无修改时关闭直接回到明细列表", async () => {
     setup();
     click("关闭记账");
-    click("放弃");
+    expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
     await waitFor(() =>
       expect(router.push).toHaveBeenCalledWith("/transactions"),
     );
   });
 
-  it("切换方式时替换为对应方式的地址", () => {
+  it("切换方式清理哨兵后替换地址，后退一次离开记一笔", async () => {
     setup();
     click("切换方式");
+    await waitFor(() => expect(guardHistory().index()).toBe(2));
     click("账户周转");
+    expect(router.replace).not.toHaveBeenCalled();
+    await waitFor(() => expect(router.replace).toHaveBeenCalledOnce());
     expect(router.replace).toHaveBeenCalledWith(
       "/transactions/new?method=transfer",
     );
+    expect(guardHistory().index()).toBe(1);
+    expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe("base");
+    await act(async () => window.history.back());
+    expect(guardHistory().index()).toBe(0);
   });
 });

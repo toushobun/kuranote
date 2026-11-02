@@ -3,7 +3,7 @@
 import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { merchantText } from "config/merchantText";
 import type { MerchantTag } from "types/merchants";
@@ -11,13 +11,19 @@ import type { MerchantTag } from "types/merchants";
 type MerchantTagsFieldProps = {
   initialTagIds?: string[];
   tags: MerchantTag[];
+  onSelectionChange?: (ids: string[]) => void;
 };
 
 export function MerchantTagsField({
   initialTagIds = [],
   tags,
+  onSelectionChange,
 }: MerchantTagsFieldProps) {
   const [selectedIds, setSelectedIds] = useState(() => new Set(initialTagIds));
+
+  useEffect(() => {
+    onSelectionChange?.([...selectedIds].sort());
+  }, [selectedIds, onSelectionChange]);
 
   function toggleTag(tagId: string) {
     setSelectedIds((current) => {

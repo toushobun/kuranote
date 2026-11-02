@@ -1,5 +1,6 @@
 "use client";
 
+import { useBackLayer } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
 import { merchantPresetMessages as messages } from "config/merchantPresetMessages";
 import { LoadingState } from "molecules/ui/LoadingState";
 import { ActionFailureFeedback } from "molecules/ui/OperationFeedbackDialogs";
@@ -16,7 +17,7 @@ type MerchantPresetLauncherProps = {
   action: MerchantPresetStateAction;
   loadAction: MerchantPresetLoadAction;
   onClose: () => void;
-  returnTo?: string | null;
+  onSaved?: () => void;
 };
 
 /** 弹框打开才读取数据；读取失败沿用 Action 失败反馈。 */
@@ -24,16 +25,17 @@ export function MerchantPresetLauncher({
   action,
   loadAction,
   onClose,
-  returnTo,
+  onSaved,
 }: MerchantPresetLauncherProps) {
   const state = useMerchantPresetLoader(loadAction);
+  useBackLayer(!state.options, onClose);
   if (state.options)
     return (
       <MerchantPresetDialog
         action={action}
         options={state.options}
         onClose={onClose}
-        returnTo={returnTo}
+        onSaved={onSaved}
       />
     );
   return (

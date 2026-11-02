@@ -1,3 +1,10 @@
+import { setupGuardHistoryMock, backFromGuard } from "test/mockGuardHistory";
+const guardHistory = setupGuardHistoryMock();
+import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
+import { NewTransactionStepFlow } from "templates/transactions/NewTransactionStepFlow";
+import { flowFixture } from "test/mocks/transactionStepFlow";
+import { receiptItemsOptions } from "test/mocks/transactionReceipt";
+import { routerMock } from "test/mocks/navigation";
 import {
   act,
   fireEvent,
@@ -112,4 +119,154 @@ describe("MerchantPresetLauncher", () => {
     ).not.toBeInTheDocument();
     expect(latestLoad).toHaveBeenCalledOnce();
   });
+  it("预设提交先清理历史哨兵，失败后可继续留在弹层", async () => {
+    const save = vi.fn(async () => {
+      expect(guardHistory().index()).toBe(1);
+      expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe(
+        "base",
+      );
+      return { error: merchantErrorMessages.merchant_preset_add_failed };
+    });
+    render(
+      <NewTransactionStepFlow
+        action={action}
+        accountOptions={flowFixture.accounts}
+        addPresetsAction={save}
+        categoryOptions={receiptItemsOptions.categoryOptions}
+        frequentMerchants={[]}
+        ledgerId="ledger-1"
+        loadPresetsAction={async () => ({
+          options: createMerchantPresetOptions(),
+        })}
+        merchantOptions={[]}
+        merchantTags={[]}
+        multiAccountPaymentEnabled
+        transactionItemSpecialStatusEnabled={false}
+      />,
+      { wrapper: ConfirmDialogTestProviders },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "从预设添加" }));
+    fireEvent.click(await screen.findByRole("button", { name: "全部选择" }));
+    fireEvent.click(screen.getByRole("button", { name: /添加 \d+ 个商家/ }));
+    await waitFor(() => expect(save).toHaveBeenCalledOnce());
+    await waitFor(() =>
+      expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe(
+        "sentinel",
+      ),
+    );
+    expect(
+      screen.getByRole("heading", { name: "从预设添加商家" }),
+    ).toBeInTheDocument();
+  });
+  it("预设成功后原页不重挂载，进入小票修改仍拦截后退", async () => {
+    routerMock.refresh.mockClear();
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      Response.json({
+        automaticCategoryIds: [],
+        quickAmounts: [],
+        recommendedAccountIds: [],
+      }),
+    );
+    const base = {
+      action,
+      accountOptions: flowFixture.accounts,
+      addPresetsAction: async () => ({ success: "已添加 3 个商家" }),
+      categoryOptions: receiptItemsOptions.categoryOptions,
+      frequentMerchants: [],
+      ledgerId: "ledger-1",
+      loadPresetsAction: async () => ({
+        options: createMerchantPresetOptions(),
+      }),
+      merchantTags: [],
+      multiAccountPaymentEnabled: true,
+      transactionItemSpecialStatusEnabled: false,
+    };
+    try {
+      const view = render(
+        <NewTransactionStepFlow {...base} merchantOptions={[]} />,
+        { wrapper: ConfirmDialogTestProviders },
+      );
+      const heading = screen.getByRole("heading", { name: "记一笔" });
+      fireEvent.click(screen.getByRole("button", { name: "从预设添加" }));
+      fireEvent.click(await screen.findByRole("button", { name: "全部选择" }));
+      fireEvent.click(screen.getByRole("button", { name: /添加 \d+ 个商家/ }));
+      await waitFor(() => expect(routerMock.refresh).toHaveBeenCalledOnce());
+      await waitFor(() =>
+        expect(
+          screen.queryByRole("heading", { name: "从预设添加商家" }),
+        ).toBeNull(),
+      );
+      expect(screen.getByRole("heading", { name: "记一笔" })).toBe(heading);
+      await waitFor(() => expect(guardHistory().index()).toBe(1));
+      // 模拟 refresh 更新服务端选项：Next 抹掉当前记录的标记，但保留原客户端组件实例。
+      guardHistory().nextReplaceState();
+      view.rerender(
+        <NewTransactionStepFlow
+          {...base}
+          merchantOptions={flowFixture.merchants}
+        />,
+      );
+      fireEvent.click(screen.getByRole("button", { name: /^7-Eleven/ }));
+      await screen.findByText("这家商家还没有记录");
+      await backFromGuard();
+      expect(
+        await screen.findByRole("dialog", { name: "尚未保存" }),
+      ).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "继续编辑" }));
+      await waitFor(() =>
+        expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull(),
+      );
+    } finally {
+      fetchMock.mockRestore();
+    }
+  });
+  it.each([false, true])(
+    "新增首屏的常用商家层加载完成为%s时后退只关最上层，前进不复活",
+    async (loaded) => {
+      routerMock.push.mockClear();
+      const { loadAction, resolve } = createPendingLoad();
+      render(
+        <NewTransactionStepFlow
+          action={action}
+          accountOptions={flowFixture.accounts}
+          addPresetsAction={action}
+          categoryOptions={receiptItemsOptions.categoryOptions}
+          frequentMerchants={[]}
+          ledgerId="ledger-1"
+          loadPresetsAction={loadAction}
+          merchantOptions={[]}
+          merchantTags={[]}
+          multiAccountPaymentEnabled
+          transactionItemSpecialStatusEnabled={false}
+        />,
+        { wrapper: ConfirmDialogTestProviders },
+      );
+      expect(window.history.pushState).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole("button", { name: "从预设添加" }));
+      if (loaded)
+        await act(async () =>
+          resolve({ options: createMerchantPresetOptions() }),
+        );
+      await screen.findByRole("heading", { name: "从预设添加商家" });
+      await backFromGuard();
+      await waitFor(() =>
+        expect(
+          screen.queryByRole("heading", { name: "从预设添加商家" }),
+        ).toBeNull(),
+      );
+      expect(
+        screen.getByRole("heading", { name: "记一笔" }),
+      ).toBeInTheDocument();
+      expect(routerMock.push).not.toHaveBeenCalled();
+      expect(window.history.pushState).toHaveBeenCalledOnce();
+      expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe(
+        "base",
+      );
+      await act(async () => window.history.forward());
+      expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe(
+        "base",
+      );
+      expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
+    },
+  );
 });

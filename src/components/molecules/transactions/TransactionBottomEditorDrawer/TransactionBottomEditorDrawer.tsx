@@ -1,4 +1,5 @@
 "use client";
+import { useBackLayer } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
 import type { ReactNode } from "react";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import Drawer from "@mui/material/Drawer";
@@ -25,6 +26,7 @@ export function TransactionBottomEditorDrawer({
   onClose: () => void;
   children: ReactNode;
 }) {
+  useBackLayer(open && !suspended, onClose);
   return (
     <Drawer
       anchor="bottom"

@@ -1,4 +1,4 @@
-import { cleanup } from "@testing-library/react";
+import { act, waitFor, cleanup } from "@testing-library/react";
 import { afterEach, beforeEach, vi } from "vitest";
 
 import { createGuardHistoryPort } from "./guardHistory";
@@ -32,14 +32,41 @@ export function setupGuardHistoryMock() {
     const forward = vi
       .spyOn(window.history, "forward")
       .mockImplementation(() => window.history.go(1));
-    const scroll = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+    const scroll = vi
+      .spyOn(window, "scrollTo")
+      .mockImplementation((options: number | ScrollToOptions = 0, y = 0) => {
+        browser.port.scrollTo(
+          typeof options === "number"
+            ? { x: options, y }
+            : {
+                x: options.left ?? browser.port.scrollPosition().x,
+                y: options.top ?? browser.port.scrollPosition().y,
+              },
+        );
+      });
+    const scrollX = vi
+      .spyOn(window, "scrollX", "get")
+      .mockImplementation(() => browser.port.scrollPosition().x);
+    const scrollY = vi
+      .spyOn(window, "scrollY", "get")
+      .mockImplementation(() => browser.port.scrollPosition().y);
     const originalFrame = window.requestAnimationFrame;
     window.requestAnimationFrame = (callback) => {
       queueMicrotask(() => callback(0));
       return 0;
     };
     restore = () => {
-      for (const mock of [state, push, replace, go, back, forward, scroll])
+      for (const mock of [
+        state,
+        push,
+        replace,
+        go,
+        back,
+        forward,
+        scroll,
+        scrollX,
+        scrollY,
+      ])
         mock.mockRestore();
       window.requestAnimationFrame = originalFrame;
     };
@@ -48,5 +75,16 @@ export function setupGuardHistoryMock() {
     cleanup();
     await browser.flush();
     restore();
+  });
+  return () => browser;
+}
+
+export async function backFromGuard(count = 1) {
+  await waitFor(() => {
+    if (window.history.state?.kuranoteUnsavedChanges?.position !== "sentinel")
+      throw new Error("等待守卫哨兵");
+  });
+  await act(async () => {
+    for (let index = 0; index < count; index++) window.history.back();
   });
 }

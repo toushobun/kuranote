@@ -208,4 +208,99 @@ describe("UnsavedChangesHistory", () => {
     expect(index()).toBe(2);
     expect(entries).toHaveLength(3);
   });
+
+  describe("Next 内部更新抹掉标记", () => {
+    it("基准标记被抹掉后重新保护回到原哨兵，后退仍确认且不新增记录", async () => {
+      const { guard, port, flush, blocked, index, entries, nextReplaceState } =
+        setup();
+      await guard.setDirty(true);
+      await guard.setDirty(false);
+      nextReplaceState();
+      await guard.setDirty(true);
+      expect(index()).toBe(2);
+      port.go(-1);
+      await flush();
+      expect(index()).toBe(2);
+      expect(blocked).toHaveBeenCalledOnce();
+      expect(entries).toHaveLength(3);
+    });
+
+    it("基准标记被抹掉后重复清理不越过真正的来源页", async () => {
+      const { guard, port, index, nextReplaceState } = setup();
+      await guard.setDirty(true);
+      await guard.setDirty(false);
+      vi.mocked(port.go).mockClear();
+      nextReplaceState();
+      await guard.setDirty(false);
+      expect(port.go).not.toHaveBeenCalled();
+      expect(index()).toBe(1);
+    });
+
+    it("基准标记被抹掉时补回后保留 Next 的最新状态", async () => {
+      const { guard, entries, nextReplaceState } = setup();
+      await guard.setDirty(true);
+      await guard.setDirty(false);
+      nextReplaceState();
+      await guard.setDirty(false);
+      expect(entries[1]).toMatchObject({
+        __PRIVATE_NEXTJS_INTERNALS_TREE: { tree: "刷新后" },
+        kuranoteUnsavedChanges: { position: "base" },
+      });
+    });
+
+    it("哨兵标记被抹掉后后退仍确认，放弃只回来源页一次", async () => {
+      const { guard, port, flush, blocked, index, nextReplaceState } = setup();
+      await guard.setDirty(true);
+      nextReplaceState();
+      port.go(-1);
+      await flush();
+      expect(index()).toBe(2);
+      expect(blocked).toHaveBeenCalledOnce();
+      await guard.leave(() => port.go(-1));
+      await flush();
+      expect(index()).toBe(0);
+    });
+
+    it("哨兵标记被抹掉后改回干净，只退回基准一次", async () => {
+      const { guard, index, nextReplaceState } = setup();
+      await guard.setDirty(true);
+      nextReplaceState();
+      await guard.setDirty(false);
+      expect(index()).toBe(1);
+    });
+
+    it("干净基准被抹掉后离开再前进，不把它当成失效哨兵再次退出", async () => {
+      const { guard, port, flush, blocked, index, nextReplaceState } = setup();
+      await guard.setDirty(true);
+      await guard.setDirty(false);
+      nextReplaceState();
+      port.go(-1);
+      await flush();
+      expect(index()).toBe(0);
+      port.go(1);
+      await flush();
+      expect(index()).toBe(1);
+      expect(blocked).not.toHaveBeenCalled();
+    });
+
+    it("无标记的孤儿记录被误判后落到其他页，结束遍历且后续 setDirty 仍能执行", async () => {
+      const { guard, port, flush, index } = setup();
+      // 守卫重新登记前，同 URL 留下一条已被抹掉标记的旧记录。
+      port.push({ __NA: true });
+      guard.connect();
+      await guard.setDirty(true);
+      await guard.setDirty(false);
+      expect(index()).toBe(2);
+      port.go(-1);
+      await flush();
+      expect(index()).toBe(0);
+      expect(port.scrollRestoration()).toBe("auto");
+      let settled = false;
+      void guard.setDirty(true).then(() => {
+        settled = true;
+      });
+      await flush();
+      expect(settled).toBe(true);
+    });
+  });
 });
