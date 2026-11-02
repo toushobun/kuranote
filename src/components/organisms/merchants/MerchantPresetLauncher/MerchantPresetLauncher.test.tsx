@@ -1,5 +1,5 @@
 import { setupGuardHistoryMock, backFromGuard } from "test/mockGuardHistory";
-setupGuardHistoryMock();
+const guardHistory = setupGuardHistoryMock();
 import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
 import { NewTransactionStepFlow } from "templates/transactions/NewTransactionStepFlow";
 import { flowFixture } from "test/mocks/transactionStepFlow";
@@ -118,6 +118,47 @@ describe("MerchantPresetLauncher", () => {
       screen.queryByRole("button", { name: "全部选择" }),
     ).not.toBeInTheDocument();
     expect(latestLoad).toHaveBeenCalledOnce();
+  });
+  it("预设提交先清理历史哨兵，失败后可继续留在弹层", async () => {
+    const save = vi.fn(async () => {
+      expect(guardHistory().index()).toBe(1);
+      expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe(
+        "base",
+      );
+      return { error: merchantErrorMessages.merchant_preset_add_failed };
+    });
+    render(
+      <NewTransactionStepFlow
+        action={action}
+        accountOptions={flowFixture.accounts}
+        addPresetsAction={save}
+        categoryOptions={receiptItemsOptions.categoryOptions}
+        frequentMerchants={[]}
+        ledgerId="ledger-1"
+        loadPresetsAction={async () => ({
+          options: createMerchantPresetOptions(),
+        })}
+        merchantOptions={[]}
+        merchantTags={[]}
+        multiAccountPaymentEnabled
+        transactionItemSpecialStatusEnabled={false}
+      />,
+      { wrapper: ConfirmDialogTestProviders },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "从预设添加" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "全部选择" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /添加 \d+ 个商家/ }));
+    await waitFor(() => expect(save).toHaveBeenCalledOnce());
+    await waitFor(() =>
+      expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe(
+        "sentinel",
+      ),
+    );
+    expect(
+      screen.getByRole("heading", { name: "从预设添加商家" }),
+    ).toBeInTheDocument();
   });
   it.each([false, true])(
     "新增首屏的常用商家层加载完成为%s时后退只关最上层，前进不复活",
