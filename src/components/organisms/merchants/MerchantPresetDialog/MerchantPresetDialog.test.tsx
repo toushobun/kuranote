@@ -59,6 +59,25 @@ describe("MerchantPresetDialog", () => {
     await waitFor(() => expect(action).toHaveBeenCalledTimes(1));
     expect(action.mock.calls[0]![1].get("returnTo")).toBe("/transactions/new");
   });
+  it("内嵌预设成功后通知父层刷新", async () => {
+    const saved = vi.fn();
+    const save = vi.fn<MerchantPresetStateAction>().mockResolvedValue({
+      success: "已添加 3 个商家",
+    });
+    render(
+      <MerchantPresetDialog
+        action={save}
+        onClose={vi.fn()}
+        onSaved={saved}
+        options={createMerchantPresetOptions()}
+        returnTo="/transactions/new"
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "全部选择" }));
+    fireEvent.click(screen.getByRole("button", { name: "添加 3 个商家" }));
+    await waitFor(() => expect(saved).toHaveBeenCalledOnce());
+    expect(save.mock.calls[0]![1].get("presentation")).toBe("dialog");
+  });
   it("提交期间按钮、勾选与关闭锁定，仍可展开查看，禁止重复提交", async () => {
     let resolve!: (value: MerchantActionState) => void;
     const action = vi.fn<MerchantPresetStateAction>(
