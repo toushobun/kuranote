@@ -5,7 +5,7 @@ import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
-import { useId } from "react";
+import { useCallback, useId } from "react";
 import { WizardDialog } from "molecules/ui/WizardDialog/WizardDialog";
 import { presetChecklistToggleAllButtonSx } from "molecules/ui/GroupedPresetChecklist/presetChecklistStyles";
 
@@ -36,12 +36,16 @@ export function MerchantPresetDialog({
   returnTo = null,
 }: MerchantPresetDialogProps) {
   const formId = useId();
-  const dialog = useMerchantPresetDialog(options, action, returnTo);
+  const { runAction } = useBackLayer(true, requestClose);
+  const guardedAction = useCallback<MerchantPresetStateAction>(
+    (state, data) => runAction(() => action(state, data)),
+    [action, runAction],
+  );
+  const dialog = useMerchantPresetDialog(options, guardedAction, returnTo);
   const pending = dialog.submission.pending;
   function requestClose() {
     if (!pending) onClose();
   }
-  useBackLayer(true, requestClose);
   return (
     <>
       <WizardDialog
