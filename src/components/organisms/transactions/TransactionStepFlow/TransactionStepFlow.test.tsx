@@ -189,11 +189,13 @@ describe("TransactionStepFlow", () => {
     expect(onMerchantScreen()).toBe(true);
   });
 
-  it("通过外框打开方式抽屉并把选择通知外部", () => {
+  it("通过外框打开方式抽屉，清理历史后通知外部切换方式", async () => {
     const { props } = setup();
     click("切换方式");
     click("账户周转");
-    expect(props.onMethodChange).toHaveBeenCalledWith("transfer");
+    await waitFor(() =>
+      expect(props.onMethodChange).toHaveBeenCalledWith("transfer"),
+    );
   });
 
   it("通过小票商家入口打开抽屉，保留已填明细并追加新商家的常用明细", async () => {
