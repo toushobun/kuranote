@@ -197,7 +197,9 @@ describe("MerchantPresetLauncher", () => {
         ).toBeNull(),
       );
       expect(screen.getByRole("heading", { name: "记一笔" })).toBe(heading);
-      // 模拟 refresh 更新服务端选项，但保留原客户端组件实例。
+      await waitFor(() => expect(guardHistory().index()).toBe(1));
+      // 模拟 refresh 更新服务端选项：Next 抹掉当前记录的标记，但保留原客户端组件实例。
+      guardHistory().nextReplaceState();
       view.rerender(
         <NewTransactionStepFlow
           {...base}

@@ -42,6 +42,13 @@ export function createGuardHistoryPort() {
     port,
     entries,
     index: () => index,
+    /** 模拟 Next 的 HistoryUpdater：refresh 等更新只写内部状态，丢弃当前记录的自定义 state。 */
+    nextReplaceState: () => {
+      entries[index] = {
+        __NA: true,
+        __PRIVATE_NEXTJS_INTERNALS_TREE: { tree: "刷新后" },
+      };
+    },
     onPop: (callback: () => void) => {
       onPop = callback;
     },
