@@ -10,6 +10,7 @@ export function useMerchantPresetDialog(
   options: MerchantPresetOptions,
   action: MerchantPresetStateAction,
   returnTo: string | null = null,
+  inline = false,
 ) {
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const checklist = options.templateVersion === null ? null : options;
@@ -30,6 +31,7 @@ export function useMerchantPresetDialog(
     formData.set("templateVersion", String(options.templateVersion));
     for (const key of selection.keys) formData.append("selectedKeys", key);
     if (returnTo) formData.set("returnTo", returnTo);
+    if (inline) formData.set("presentation", "dialog");
     submission.action(formData);
   }
   return {
