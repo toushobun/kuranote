@@ -62,7 +62,6 @@ export function NewTransactionStepFlow(props: NewTransactionStepFlowProps) {
             loadAction={props.loadPresetsAction}
             onClose={w.closePresets}
             onSaved={w.onPresetsAdded}
-            returnTo={w.presetsReturnTo}
           />
         </BackLayerScope>
       ) : null}
