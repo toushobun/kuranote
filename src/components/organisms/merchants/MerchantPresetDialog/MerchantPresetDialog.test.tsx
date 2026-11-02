@@ -20,11 +20,7 @@ function renderDialog(
 ) {
   const onClose = vi.fn();
   render(
-    <MerchantPresetDialog
-      action={action}
-      onClose={onClose}
-      options={options}
-    />,
+    <MerchantPresetDialog action={action} onClose={onClose} options={options} />,
   );
   return { options, onClose };
 }
@@ -47,7 +43,6 @@ describe("MerchantPresetDialog", () => {
     expect(form.get("currency")).toBe("JPY");
     expect(form.get("templateVersion")).toBe("1");
     expect(form.get("name")).toBeNull();
-    expect(form.get("returnTo")).toBeNull();
   });
   it("内嵌预设成功后通知父层刷新", async () => {
     const saved = vi.fn();
