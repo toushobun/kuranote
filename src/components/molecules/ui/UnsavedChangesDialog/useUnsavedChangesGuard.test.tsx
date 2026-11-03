@@ -43,6 +43,15 @@ function Harness({ save = () => {} }: { save?: () => void }) {
           onChange={(event) => setValue(event.target.value)}
         />
       </form>
+      <button
+        onClick={() =>
+          guard.requestNavigate(() =>
+            routerMock.replace("/transactions/new?method=transfer"),
+          )
+        }
+      >
+        切换方式
+      </button>
       <a href="/accounts">取消</a>
       <a href="/dashboard">底部导航</a>
       <a href="/dashboard" target="_blank">
@@ -201,5 +210,22 @@ describe("useUnsavedChangesGuard", () => {
       expect(routerMock.push).toHaveBeenCalledExactlyOnceWith("/dashboard"),
     );
     expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe("base");
+  });
+  it("程序导航也先确认，取消不导航，放弃只执行一次路由替换", async () => {
+    routerMock.replace.mockClear();
+    setup();
+    fireEvent.click(screen.getByRole("button", { name: "切换方式" }));
+    fireEvent.click(screen.getByRole("button", { name: "继续编辑" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull(),
+    );
+    expect(routerMock.replace).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "切换方式" }));
+    fireEvent.click(screen.getByRole("button", { name: "放弃修改" }));
+    await waitFor(() => expect(routerMock.replace).toHaveBeenCalledOnce());
+    expect(routerMock.replace).toHaveBeenCalledWith(
+      "/transactions/new?method=transfer",
+    );
+    expect(window.history.pushState).toHaveBeenCalledOnce();
   });
 });

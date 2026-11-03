@@ -1,4 +1,8 @@
 "use client";
+import {
+  BackLayerScope,
+  transactionBackLayerLevels,
+} from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
 
 import { useActionState, useState } from "react";
 
@@ -68,51 +72,53 @@ export function AccountEditTemplate({
   );
 
   return (
-    <SettingsPageLayout
-      action={
-        <form action={archiveFormAction} id={archiveAccountFormId}>
-          <input name="accountId" readOnly type="hidden" value={account.id} />
-          <ArchiveAccountButton
-            disabled={archivePending}
-            formId={archiveAccountFormId}
-            label={accountFormMessages.archive}
-            size="small"
-            sx={settingsPageActionButtonSx}
-          />
-        </form>
-      }
-      back={{
-        href: routePaths.accounts,
-        label: accountFormMessages.backToAccounts,
-      }}
-      subtitle={accountFormMessages.editSubtitle(ledgerName)}
-      title={accountFormMessages.editTitle}
-    >
-      <AccountForm
-        account={account}
-        action={updateFormAction}
-        defaultCurrency={baseCurrency}
-        holderOptions={holderOptions}
-        id={editAccountFormId}
-        onDirtyChange={setIsDirty}
-        pending={updatePending}
-        placeholderHolderOptions={placeholderHolderOptions}
-      />
-      {/* 当前余额输入框沿用记账的金额键盘。 */}
-      {canWriteTransactions ? <TransactionAmountKeypadLauncher /> : null}
-      <ActionFailureFeedback
-        aboveModal
-        bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
-        state={updateState}
-        title={accountFormMessages.editErrorTitle}
-      />
-      <ActionFailureFeedback
-        aboveModal
-        bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
-        state={archiveState}
-        title={accountFormMessages.archiveErrorTitle}
-      />
-      <UnsavedChangesDialog {...guard.dialogProps} />
-    </SettingsPageLayout>
+    <BackLayerScope level={transactionBackLayerLevels.pageOverlay}>
+      <SettingsPageLayout
+        action={
+          <form action={archiveFormAction} id={archiveAccountFormId}>
+            <input name="accountId" readOnly type="hidden" value={account.id} />
+            <ArchiveAccountButton
+              disabled={archivePending}
+              formId={archiveAccountFormId}
+              label={accountFormMessages.archive}
+              size="small"
+              sx={settingsPageActionButtonSx}
+            />
+          </form>
+        }
+        back={{
+          href: routePaths.accounts,
+          label: accountFormMessages.backToAccounts,
+        }}
+        subtitle={accountFormMessages.editSubtitle(ledgerName)}
+        title={accountFormMessages.editTitle}
+      >
+        <AccountForm
+          account={account}
+          action={updateFormAction}
+          defaultCurrency={baseCurrency}
+          holderOptions={holderOptions}
+          id={editAccountFormId}
+          onDirtyChange={setIsDirty}
+          pending={updatePending}
+          placeholderHolderOptions={placeholderHolderOptions}
+        />
+        {/* 当前余额输入框沿用记账的金额键盘。 */}
+        {canWriteTransactions ? <TransactionAmountKeypadLauncher /> : null}
+        <ActionFailureFeedback
+          aboveModal
+          bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
+          state={updateState}
+          title={accountFormMessages.editErrorTitle}
+        />
+        <ActionFailureFeedback
+          aboveModal
+          bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
+          state={archiveState}
+          title={accountFormMessages.archiveErrorTitle}
+        />
+        <UnsavedChangesDialog {...guard.dialogProps} />
+      </SettingsPageLayout>
+    </BackLayerScope>
   );
 }

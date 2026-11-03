@@ -1,3 +1,7 @@
+import { setupGuardHistoryMock } from "test/mockGuardHistory";
+import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
+setupGuardHistoryMock();
+vi.mock("next/navigation", () => import("test/mocks/navigation"));
 import {
   cleanup,
   fireEvent,
@@ -14,9 +18,7 @@ import {
   categoryWriteErrorMessages,
 } from "internal/category";
 import { SuccessFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
-import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import { dragSortable, dropSortable, mockSortableRects } from "test/sortable";
-import { UserThemeProvider } from "theme/UserThemeProvider";
 
 import type {
   CategoryActionState,
@@ -67,24 +69,22 @@ function renderTemplate({
   updateCategoryAction?: CategoryStateAction;
 } = {}) {
   return render(
-    <UserThemeProvider>
-      <ConfirmDialogProvider>
-        <CategoriesActionStateTemplate
-          archiveCategoryAction={archiveCategoryAction}
-          canManageCategories
-          categories={categories}
-          createCategoryAction={createCategoryAction}
-          ledgerName="家庭账本"
-          parentOptions={categories.map((category) => ({
-            id: category.id,
-            name: category.name,
-            type: category.type,
-          }))}
-          reorderCategoryAction={reorderCategoryAction}
-          updateCategoryAction={updateCategoryAction}
-        />
-      </ConfirmDialogProvider>
-    </UserThemeProvider>,
+    <ConfirmDialogTestProviders>
+      <CategoriesActionStateTemplate
+        archiveCategoryAction={archiveCategoryAction}
+        canManageCategories
+        categories={categories}
+        createCategoryAction={createCategoryAction}
+        ledgerName="家庭账本"
+        parentOptions={categories.map((category) => ({
+          id: category.id,
+          name: category.name,
+          type: category.type,
+        }))}
+        reorderCategoryAction={reorderCategoryAction}
+        updateCategoryAction={updateCategoryAction}
+      />
+    </ConfirmDialogTestProviders>,
   );
 }
 
@@ -99,8 +99,9 @@ async function confirmCategoryArchive() {
   );
 }
 
+const replaceLocation = window.history.replaceState.bind(window.history);
 beforeEach(() => {
-  window.history.replaceState(null, "", "/categories");
+  replaceLocation(null, "", "/categories");
 });
 
 afterEach(() => {

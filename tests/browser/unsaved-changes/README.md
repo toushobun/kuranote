@@ -107,3 +107,32 @@ PR2 的后退与前进必须点击 Chrome 工具栏按钮。原有 `guard:check`
 - 修复前失败记录：[开发](https://github.com/toushobun/kuranote/tree/5f7337a9c84aa4cf68b470448b68dfd76c53dcde/976-pr2-round3/pre-fix-rehearsal-dev) · [生产](https://github.com/toushobun/kuranote/tree/5f7337a9c84aa4cf68b470448b68dfd76c53dcde/976-pr2-round3/pre-fix-rehearsal-prod)
 
 上面第 1 轮的截图和 JSON 只代表第 1 轮。iPhone／Android 实机验收继续由人工处理。
+
+## PR3 验证范围与表单语义
+
+- `/merchant-create`、`/merchant-edit` 直接使用新增商家和 MerchantEdit 真实组件，沿用 AppShell、底部导航及滚动恢复；Server Action 使用虚构数据，不访问生产数据库。
+- `guard:check` 在开发与生产模式同时检查商家页连续三次后退取消：2000px 滚动保持、表单 DOM 不变、挂载/卸载计数不变、内部导航 RSC 增量为 0，历史仅增加一个哨兵。放弃只返回来源页一次并恢复 320px。
+- MerchantEdit 的基本资料和标签共用一个提交表单，别名是另一个表单。两个提交区都有修改时确认框只提供继续编辑和放弃；只有一个提交区 dirty 时，保存提交该表单。
+- 有别名草稿时直接保存基本资料，服务端返回同页成功状态并 revalidate；成功只更新该表单的基线，其他草稿仍保护。验证应用执行真实 Next revalidation，再检查后退、滚动、实例和 RSC。
+- 标准新增页只保护当前面板，隐藏面板保留输入但不参与确认；切回时按原始快照恢复保护。Vitest 覆盖面板切换、对应保存目标、改回原值和未确认金额草稿。
+- 编辑小票显式启用与新增小票相同的弹层栈，PR2 中“编辑页不启用”的说明属于当时记录。Vitest 验证逐层返回，子层放弃保留父小票和抽屉搜索，父页最终只真正返回一次。
+- 验证布局中的公共空白填充块仅提供长页滚动空间，禁用其自身的 overflow anchoring，避免异步返回时把测试填充误当成跨路由锚点。真实 AppShell 的滚动实现保持不变。
+
+Next 在同页 revalidation 后会使可见 Link 重新预取，关闭确认框时恢复显示的底部导航也可能触发预取。因此 JSON 同时记录总 RSC、`next-router-prefetch` 请求和真正路由请求，分别报告；不能把正常预取误记为守卫触发的同 URL 路由加载。
+
+JSON 输出仍为 `compatibility.json`，新增 `merchantCreate`、`merchantEdit` 分组。生产验证可用 `UNSAVED_GUARD_OUTPUT` 指向独立目录，保留两种模式的原始结果。
+
+## PR3 第 1 轮 review 补充
+
+新增 `/standard`（含 `?type=income`）、`/new-transfer`、`/account-create`、`/category`、`/balance`，直接组合真实标准记账页、转账页、账户页、分类列表和余额调整表单。`/transactions/new` 提供真实切换方式后的目标，避免只验证一个不存在的路由。
+
+`guard:check` 增加以下自动化场景：
+
+- 标准支出／收入切换到转账再切回，连续三次后退取消；核对滚动、表单实例、单哨兵及内部路由 RSC。随后放弃草稿并切换记账方式，后退一次返回来源。
+- 新增账户／转账先后退关闭金额键盘，再连续三次后退取消，最后放弃只回来源一次。
+- 编辑小票有草稿时先后退关闭商家抽屉，再后退确认父页；分类编辑放弃只关抽屉，前进不复活，真实保存成功不离开分类列表。
+- 余额调整先关闭时间层，再确认父页；商家别名单独 dirty 时，从确认框保存后继续原来的后退／链接动作。
+
+默认运行全部分组；调试单组可设置 `UNSAVED_GUARD_CASES=standard,newAccount`。输出仍为 `compatibility.json`，分组包括既有 PR1 回归与上述新增场景。
+
+本轮开发模式自动化已跑通。生产模式新增场景、PR2 两项原生 Chrome 工具栏操作以及手机实机统一留到最终验收，不能用这里的 Playwright 导航替代工具栏验收。上文历史验证结果只代表各自标注的源码版本。

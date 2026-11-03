@@ -12,7 +12,7 @@ import { unsavedChangesMessages as m } from "config/unsavedChangesMessages";
 export type UnsavedChangesDialogProps = {
   onCancel: () => void;
   onDiscard: () => void;
-  onSave: () => void;
+  onSave?: () => void;
   open: boolean;
 };
 
@@ -50,16 +50,20 @@ export function UnsavedChangesDialog({
     >
       <DialogTitle id={titleId}>{m.title}</DialogTitle>
       <DialogContent>
-        <DialogContentText>{m.description}</DialogContentText>
+        <DialogContentText>
+          {onSave ? m.description : m.discardDescription}
+        </DialogContentText>
       </DialogContent>
       <DialogActions>
         <Button onClick={onCancel}>{m.continueEditing}</Button>
         <Button onClick={onDiscard} color="error">
           {m.discard}
         </Button>
-        <Button onClick={onSave} variant="contained">
-          {m.save}
-        </Button>
+        {onSave && (
+          <Button onClick={onSave} variant="contained">
+            {m.save}
+          </Button>
+        )}
       </DialogActions>
     </Dialog>
   );

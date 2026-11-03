@@ -1,3 +1,8 @@
+import { describeUnsavedFormPage } from "test/unsavedFormPage";
+import { setupGuardHistoryMock } from "test/mockGuardHistory";
+import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
+setupGuardHistoryMock();
+vi.mock("next/navigation", () => import("test/mocks/navigation"));
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -22,6 +27,7 @@ function renderAccountCreate(
       placeholderHolderOptions={accountPlaceholderHolderOptionsFixture}
       {...props}
     />,
+    { wrapper: ConfirmDialogTestProviders },
   );
 }
 
@@ -131,4 +137,18 @@ describe("AccountCreateTemplate", () => {
       );
     },
   );
+});
+
+describeUnsavedFormPage({
+  render: () => {
+    renderAccountCreate();
+  },
+  change: () =>
+    fireEvent.change(screen.getByLabelText(/账户名称/), {
+      target: { value: "守卫测试" },
+    }),
+  restore: () =>
+    fireEvent.change(screen.getByLabelText(/账户名称/), {
+      target: { value: "" },
+    }),
 });

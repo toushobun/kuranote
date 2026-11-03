@@ -1,15 +1,9 @@
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  within,
-} from "@testing-library/react";
+import { cleanup, fireEvent, screen, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import * as transactionsUtils from "utils/transactions";
-import { EditTransactionDirtyProvider } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
+import { renderDirtyForm } from "test/dirtyForm";
 
 import { TransferTransactionForm } from "./TransferTransactionForm";
 
@@ -61,18 +55,15 @@ function renderForm(
   props: Partial<React.ComponentProps<typeof TransferTransactionForm>> = {},
 ) {
   const action = vi.fn(async () => undefined);
-  const onDirty = vi.fn();
-  const view = render(
-    <EditTransactionDirtyProvider onDirty={onDirty}>
-      <TransferTransactionForm
-        action={action}
-        accountOptions={[jpyAccount1, jpyAccount2]}
-        {...props}
-      />
-    </EditTransactionDirtyProvider>,
+  const view = renderDirtyForm(
+    <TransferTransactionForm
+      action={action}
+      accountOptions={[jpyAccount1, jpyAccount2]}
+      {...props}
+    />,
   );
 
-  return { action, onDirty, ...view };
+  return { action, ...view };
 }
 
 function getSaveButton(container: HTMLElement) {

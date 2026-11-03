@@ -1,4 +1,10 @@
 "use client";
+import {
+  BackLayerScope,
+  transactionBackLayerLevels,
+} from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
+import { useUnsavedChangesForm } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesForm";
+import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog/UnsavedChangesDialog";
 import { useCreateAction } from "molecules/ui/useCreateAction/useCreateAction";
 
 import { accountFormMessages } from "config/accountMessages";
@@ -34,19 +40,29 @@ export type AccountCreateTemplateProps = {
 };
 
 export function AccountCreateTemplate(props: AccountCreateTemplateProps) {
+  const formId = "create-account-form";
+  const guard = useUnsavedChangesForm(formId, props.createAccountAction);
   return (
-    <SettingsPageLayout
-      back={{
-        href: props.returnTo ?? routePaths.accounts,
-        label: props.returnTo
-          ? accountFormMessages.back
-          : accountFormMessages.backToAccounts,
-      }}
-      subtitle={accountFormMessages.createSubtitle(props.ledgerName)}
-      title={accountFormMessages.createTitle}
-    >
-      <AccountCreateBody {...props} />
-    </SettingsPageLayout>
+    <BackLayerScope level={transactionBackLayerLevels.pageOverlay}>
+      <SettingsPageLayout
+        back={{
+          href: props.returnTo ?? routePaths.accounts,
+          label: props.returnTo
+            ? accountFormMessages.back
+            : accountFormMessages.backToAccounts,
+        }}
+        subtitle={accountFormMessages.createSubtitle(props.ledgerName)}
+        title={accountFormMessages.createTitle}
+      >
+        <AccountCreateBody
+          {...props}
+          formId={formId}
+          onDirtyChange={guard.onDirtyChange}
+          createAccountAction={guard.action}
+        />
+        <UnsavedChangesDialog {...guard.dialogProps} />
+      </SettingsPageLayout>
+    </BackLayerScope>
   );
 }
 

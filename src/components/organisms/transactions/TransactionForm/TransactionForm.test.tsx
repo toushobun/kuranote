@@ -1,3 +1,4 @@
+import { renderDirtyForm } from "test/dirtyForm";
 import {
   act,
   cleanup,
@@ -8,7 +9,7 @@ import {
   within,
 } from "@testing-library/react";
 import { createTheme } from "@mui/material/styles";
-import { type ReactNode, useState, type ComponentProps } from "react";
+import { type ReactNode, type ComponentProps } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { routePaths } from "config/paths";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
@@ -25,10 +26,8 @@ import {
   amountInputCommitEvent,
   TransactionAmountKeypadLauncher,
 } from "../TransactionAmountKeypadLauncher/TransactionAmountKeypadLauncher";
-import {
-  TransactionForm,
-  type TransactionFormInitialValues,
-} from "./TransactionForm";
+import { TransactionForm } from "./TransactionForm";
+import type { TransactionFormInitialValues } from "./TransactionForm.types";
 vi.mock("next/link", () => ({
   default: ({
     children,
@@ -97,7 +96,7 @@ describe("TransactionForm", () => {
     { withAmountKeypad = false } = {},
   ) {
     const action = vi.fn(async () => undefined);
-    const view = render(
+    const view = renderDirtyForm(
       <UserThemeProvider>
         <ConfirmDialogProvider>
           <TransactionForm
@@ -156,24 +155,32 @@ describe("TransactionForm", () => {
     if (!input) throw new Error("发生时间提交字段不存在");
     return input.value;
   }
-  function createInitialValues(): TransactionFormInitialValues {
-    return {
-      payments: [{ accountId: accountOptions[0].id, amount: null }],
-      items: [{ amount: "1200", categoryId: categoryOptions[0].id }],
-      merchantId: merchantOptions[0].id,
-      note: "",
-      transactionAt: "2026-06-05T03:20:10.000Z",
-      transactionRecordId: "00000000-0000-4000-8000-000000009001",
-      type: "expense" as const,
-    };
-  }
-  function formatExpectedDateTimeParts(value: string) {
-    const date = new Date(value);
-    const pad = (part: number) => String(part).padStart(2, "0");
-    const dateValue = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-    const timeValue = `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
-    return { dateValue, timeValue };
-  }
+  it("新增表单完成本地时间初始化仍干净，修改备注后还原恢复干净", () => {
+    const { container, onDirty } = renderForm();
+    expect(getSubmittedTransactionAt(container)).not.toBe("");
+    expect(onDirty).toHaveBeenLastCalledWith(false);
+    const note = container.querySelector('textarea[name="note"]')!;
+    fireEvent.change(note, { target: { value: "新增草稿" } });
+    expect(onDirty).toHaveBeenLastCalledWith(true);
+    fireEvent.change(note, { target: { value: "" } });
+    expect(onDirty).toHaveBeenLastCalledWith(false);
+  });
+  it.each(["明细抽屉", "金额键盘", "商家选择器", "日期时间"])(
+    "新增表单仅打开%s以及未确认草稿不算父表单修改",
+    (kind) => {
+      const { container, onDirty } = renderForm({}, { withAmountKeypad: true });
+      if (kind === "明细抽屉" || kind === "金额键盘") {
+        openSheet(container);
+        const amount = screen.getByRole("textbox", { name: "金额" });
+        if (kind === "金额键盘") act(() => amount.focus());
+        else fireEvent.change(amount, { target: { value: "123" } });
+      } else if (kind === "商家选择器")
+        fireEvent.mouseDown(getCombobox(container, "商家"));
+      else
+        fireEvent.click(screen.getByRole("button", { name: "选择记账时间" }));
+      expect(onDirty.mock.calls.some(([dirty]) => dirty)).toBe(false);
+    },
+  );
   it("显示移动端记账顶部操作区", () => {
     const { container } = renderForm({ ledgerName: "家庭账本" });
     expect(
@@ -192,31 +199,6 @@ describe("TransactionForm", () => {
     const errorMessage = "保存失败，请稍后重试。";
     renderForm({ errorMessage });
     expect(screen.getByText(errorMessage)).toBeInTheDocument();
-  });
-  it("编辑模式下回填发生日期和时间", () => {
-    const transactionAt = "2026-06-05T03:20:10.000Z";
-    const expected = formatExpectedDateTimeParts(transactionAt);
-    const { container } = renderForm({
-      initialValues: createInitialValues(),
-    });
-    expect(
-      within(container).getByRole("button", { name: "选择记账时间" }),
-    ).toHaveTextContent(expected.timeValue);
-    expect(getSubmittedTransactionAt(container)).toBe(
-      `${expected.dateValue}T${expected.timeValue}`,
-    );
-  });
-  it("编辑模式提交已有明细的持久化 ID", () => {
-    const initialValues = createInitialValues();
-    const persistedId = "00000000-0000-4000-8000-000000000201";
-    initialValues.items[0].id = persistedId;
-    const { container } = renderForm({ initialValues });
-
-    expect(
-      container.querySelector<HTMLInputElement>(
-        'input[name="itemPersistedId"]',
-      ),
-    ).toHaveValue(persistedId);
   });
   it("时刻默认开启并保留具体时间", () => {
     vi.useFakeTimers();
@@ -447,41 +429,6 @@ describe("TransactionForm", () => {
       "true",
     );
   });
-  it("启用后回填、取消并重新勾选待报销", () => {
-    const initialValues = createInitialValues();
-    initialValues.items = [
-      {
-        ...initialValues.items[0],
-        specialStatus: "pendingReimbursement",
-      },
-    ];
-    const { container } = renderForm({
-      initialValues,
-      transactionItemSpecialStatusEnabled: true,
-    });
-
-    expect(within(container).getByText("合计 - ¥ 1200")).toBeInTheDocument();
-    expect(
-      container.querySelector<HTMLInputElement>(
-        'input[name="itemSpecialStatus"]',
-      )?.value,
-    ).toBe("pendingReimbursement");
-
-    fireEvent.click(
-      within(container).getByRole("button", { name: "编辑明细 1 分类" }),
-    );
-    const checkbox = screen.getByRole("checkbox", { name: "待报销" });
-    expect(checkbox).toBeChecked();
-    fireEvent.click(checkbox);
-    fireEvent.click(checkbox);
-    fireEvent.click(screen.getByRole("button", { name: "保存修改" }));
-
-    expect(
-      container.querySelector<HTMLInputElement>(
-        'input[name="itemSpecialStatus"]',
-      )?.value,
-    ).toBe("pendingReimbursement");
-  });
   it("收入明细和合计显示正号与账户币种", () => {
     const usdAccountOptions = [
       { ...accountOptions[0], currency: "USD", name: "美元现金" },
@@ -592,6 +539,16 @@ describe("TransactionForm", () => {
       container.querySelector<HTMLInputElement>('input[name="type"]');
     expect(typeInput?.value).toBe("expense");
   });
+  function createNewTransactionFixture(): TransactionFormInitialValues {
+    return {
+      payments: [{ accountId: accountOptions[0].id, amount: null }],
+      items: [{ amount: "1200", categoryId: categoryOptions[0].id }],
+      merchantId: merchantOptions[0].id,
+      note: "",
+      transactionAt: "",
+      type: "expense",
+    };
+  }
   describe("多账户付款", () => {
     const multiAccountOptions = [
       ...accountOptions,
@@ -608,18 +565,55 @@ describe("TransactionForm", () => {
       currency: "JPY",
     };
 
-    function renderMultiAccountForm(
-      props: Partial<ComponentProps<typeof TransactionForm>> = {},
+    async function renderMultiAccountForm(
+      props: Partial<ComponentProps<typeof TransactionForm>> & {
+        fixture?: TransactionFormInitialValues;
+      } = {},
       options: Parameters<typeof renderForm>[1] = {},
     ) {
-      return renderForm(
+      const { fixture, ...formProps } = props;
+      const view = renderForm(
         {
           accountOptions: multiAccountOptions,
           multiAccountPaymentEnabled: true,
-          ...props,
+          ...formProps,
         },
         options,
       );
+      if (fixture) {
+        const form = view.container.querySelector("form")!;
+        fireEvent.change(form.querySelector('input[name="merchantId"]')!, {
+          target: { value: fixture.merchantId },
+        });
+        fireEvent.change(form.querySelector('input[name="accountId"]')!, {
+          target: { value: fixture.payments[0].accountId },
+        });
+        for (const item of fixture.items) {
+          const category = categoryOptions.find(
+            (candidate) => candidate.id === item.categoryId,
+          )!;
+          addItemViaSheet(view.container, category.name, item.amount);
+        }
+        if (screen.queryByRole("heading", { name: "添加明细" }))
+          fireEvent.click(screen.getByRole("button", { name: "关闭" }));
+        await waitFor(() =>
+          expect(view.container).not.toHaveAttribute("aria-hidden", "true"),
+        );
+        for (let index = 1; index < fixture.payments.length; index++)
+          clickAddPayment(view.container);
+        if (fixture.payments.length > 1) {
+          fixture.payments.forEach((payment, index) => {
+            const inputs = form.querySelectorAll(
+              'input[name="paymentAccountId"]',
+            );
+            fireEvent.change(inputs[index], {
+              target: { value: payment.accountId },
+            });
+            changePaymentAmount(index + 1, payment.amount ?? "");
+          });
+        }
+      }
+      return view;
     }
     function getFieldValues(container: HTMLElement, name: string) {
       return Array.from(
@@ -678,7 +672,7 @@ describe("TransactionForm", () => {
     }
     function createMultiAccountInitialValues(): TransactionFormInitialValues {
       return {
-        ...createInitialValues(),
+        ...createNewTransactionFixture(),
         expectedRecordUpdatedAt: "2026-06-05T03:21:00.000+00:00",
         payments: [
           { accountId: cash!.id, amount: "500" },
@@ -687,9 +681,9 @@ describe("TransactionForm", () => {
       };
     }
 
-    it("默认与原来一样只有一个账户选择，并提供添加付款账户入口", () => {
-      const { container } = renderMultiAccountForm({
-        initialValues: createInitialValues(),
+    it("默认与原来一样只有一个账户选择，并提供添加付款账户入口", async () => {
+      const { container } = await renderMultiAccountForm({
+        fixture: createNewTransactionFixture(),
       });
 
       expect(getFieldValues(container, "accountId")).toEqual([cash!.id]);
@@ -699,9 +693,9 @@ describe("TransactionForm", () => {
       ).toBeInTheDocument();
     });
 
-    it("账本未开启多账户付款时不显示添加付款账户入口", () => {
-      const { container } = renderMultiAccountForm({
-        initialValues: createInitialValues(),
+    it("账本未开启多账户付款时不显示添加付款账户入口", async () => {
+      const { container } = await renderMultiAccountForm({
+        fixture: createNewTransactionFixture(),
         multiAccountPaymentEnabled: false,
       });
 
@@ -711,9 +705,9 @@ describe("TransactionForm", () => {
       ).not.toBeInTheDocument();
     });
 
-    it("展开时首行预填明细合计、新增行为 0，删到 1 行自动回到单账户", () => {
-      const { container } = renderMultiAccountForm({
-        initialValues: createInitialValues(),
+    it("展开时首行预填明细合计、新增行为 0，删到 1 行自动回到单账户", async () => {
+      const { container } = await renderMultiAccountForm({
+        fixture: createNewTransactionFixture(),
       });
 
       clickAddPayment(container);
@@ -733,17 +727,17 @@ describe("TransactionForm", () => {
       expect(getFieldValues(container, "paymentAmount")).toEqual([]);
     });
 
-    it("还没有明细时添加付款账户，两行都是 0", () => {
-      const { container } = renderMultiAccountForm();
+    it("还没有明细时添加付款账户，两行都是 0", async () => {
+      const { container } = await renderMultiAccountForm();
 
       clickAddPayment(container);
 
       expect(getFieldValues(container, "paymentAmount")).toEqual(["0", "0"]);
     });
 
-    it("输入首行金额时下一行不变，确定后自动补足差额", () => {
-      const { container } = renderMultiAccountForm({
-        initialValues: createInitialValues(),
+    it("输入首行金额时下一行不变，确定后自动补足差额", async () => {
+      const { container } = await renderMultiAccountForm({
+        fixture: createNewTransactionFixture(),
       });
       clickAddPayment(container);
       selectPaymentAccount(2, card!.name);
@@ -761,9 +755,9 @@ describe("TransactionForm", () => {
       expect(getSaveButton(container)).toBeEnabled();
     });
 
-    it("修改最后一行金额导致不平衡时显示差额且不能保存", () => {
-      const { container } = renderMultiAccountForm({
-        initialValues: createInitialValues(),
+    it("修改最后一行金额导致不平衡时显示差额且不能保存", async () => {
+      const { container } = await renderMultiAccountForm({
+        fixture: createNewTransactionFixture(),
       });
       clickAddPayment(container);
       selectPaymentAccount(2, card!.name);
@@ -779,11 +773,11 @@ describe("TransactionForm", () => {
       expect(getSaveButton(container)).toBeDisabled();
     });
 
-    it("删除付款行时金额归还到上一行", () => {
-      const { container } = renderMultiAccountForm({
+    it("删除付款行时金额归还到上一行", async () => {
+      const { container } = await renderMultiAccountForm({
         accountOptions: [...multiAccountOptions, thirdCard],
-        initialValues: {
-          ...createInitialValues(),
+        fixture: {
+          ...createNewTransactionFixture(),
           payments: [
             { accountId: cash!.id, amount: "500" },
             { accountId: card!.id, amount: "700" },
@@ -799,9 +793,9 @@ describe("TransactionForm", () => {
       expect(getFieldValues(container, "paymentAmount")).toEqual(["1200", "0"]);
     });
 
-    it("修改明细金额时不改动付款分配", () => {
-      const { container } = renderMultiAccountForm({
-        initialValues: createMultiAccountInitialValues(),
+    it("修改明细金额时不改动付款分配", async () => {
+      const { container } = await renderMultiAccountForm({
+        fixture: createMultiAccountInitialValues(),
       });
       addItemViaSheet(container, "日用品", "300");
 
@@ -814,9 +808,9 @@ describe("TransactionForm", () => {
       );
     });
 
-    it("首行金额不变时确定也重新计算下一行，补上明细变化产生的差额", () => {
-      const { container } = renderMultiAccountForm({
-        initialValues: createMultiAccountInitialValues(),
+    it("首行金额不变时确定也重新计算下一行，补上明细变化产生的差额", async () => {
+      const { container } = await renderMultiAccountForm({
+        fixture: createMultiAccountInitialValues(),
       });
       addItemViaSheet(container, "日用品", "300");
 
@@ -849,9 +843,9 @@ describe("TransactionForm", () => {
       }
 
       // 两行付款、首行 1200，打开首行计算器并改为 500（尚未确认）。
-      function openFirstPaymentKeypadAndType500() {
-        const rendered = renderMultiAccountForm(
-          { initialValues: createInitialValues() },
+      async function openFirstPaymentKeypadAndType500() {
+        const rendered = await renderMultiAccountForm(
+          { fixture: createNewTransactionFixture() },
           { withAmountKeypad: true },
         );
         clickAddPayment(rendered.container);
@@ -871,7 +865,7 @@ describe("TransactionForm", () => {
       }
 
       it("按键输入时付款金额和下一行都不变，点确认后写入并补足差额", async () => {
-        const { container, keypad } = openFirstPaymentKeypadAndType500();
+        const { container, keypad } = await openFirstPaymentKeypadAndType500();
 
         expect(getFieldValues(container, "paymentAmount")).toEqual([
           "1200",
@@ -886,7 +880,7 @@ describe("TransactionForm", () => {
       });
 
       it("关闭计算器但不点确认时，付款金额和下一行都不变", async () => {
-        const { container, keypad } = openFirstPaymentKeypadAndType500();
+        const { container, keypad } = await openFirstPaymentKeypadAndType500();
 
         fireEvent.keyDown(keypad, { key: "Escape" });
         await waitFor(() =>
@@ -900,8 +894,8 @@ describe("TransactionForm", () => {
       });
 
       it("改明细产生差额后，打开首行计算器直接确认即补上差额", async () => {
-        const { container } = renderMultiAccountForm(
-          { initialValues: createMultiAccountInitialValues() },
+        const { container } = await renderMultiAccountForm(
+          { fixture: createMultiAccountInitialValues() },
           { withAmountKeypad: true },
         );
         addItemViaSheet(container, "日用品", "300");
@@ -925,8 +919,8 @@ describe("TransactionForm", () => {
     });
 
     it("新增行未填金额时提交前提示并阻止保存", async () => {
-      const { action, container } = renderMultiAccountForm({
-        initialValues: createInitialValues(),
+      const { action, container } = await renderMultiAccountForm({
+        fixture: createNewTransactionFixture(),
       });
       clickAddPayment(container);
       selectPaymentAccount(2, card!.name);
@@ -942,9 +936,9 @@ describe("TransactionForm", () => {
       expect(action).not.toHaveBeenCalled();
     });
 
-    it("付款行数达到同币种账户数量后不显示添加入口", () => {
-      const { container } = renderMultiAccountForm({
-        initialValues: createMultiAccountInitialValues(),
+    it("付款行数达到同币种账户数量后不显示添加入口", async () => {
+      const { container } = await renderMultiAccountForm({
+        fixture: createMultiAccountInitialValues(),
       });
 
       expect(
@@ -952,9 +946,9 @@ describe("TransactionForm", () => {
       ).toBeNull();
     });
 
-    it("多账户时收入分类不可选，回到单账户后恢复", () => {
-      const { container } = renderMultiAccountForm({
-        initialValues: createMultiAccountInitialValues(),
+    it("多账户时收入分类不可选，回到单账户后恢复", async () => {
+      const { container } = await renderMultiAccountForm({
+        fixture: createMultiAccountInitialValues(),
       });
       openSheet(container);
 
@@ -991,8 +985,8 @@ describe("TransactionForm", () => {
       }
 
       it("确认后删除收入明细并进入多账户，首行预填支出合计", async () => {
-        const { container } = renderMultiAccountForm({
-          initialValues: createInitialValues(),
+        const { container } = await renderMultiAccountForm({
+          fixture: createNewTransactionFixture(),
         });
         const dialog = await clickAddPaymentWithIncome(container);
 
@@ -1010,8 +1004,8 @@ describe("TransactionForm", () => {
       });
 
       it("取消后保持单账户与收入明细", async () => {
-        const { container } = renderMultiAccountForm({
-          initialValues: createInitialValues(),
+        const { container } = await renderMultiAccountForm({
+          fixture: createNewTransactionFixture(),
         });
         const dialog = await clickAddPaymentWithIncome(container);
 
@@ -1023,122 +1017,14 @@ describe("TransactionForm", () => {
       });
     });
 
-    it("编辑既有多账户记录时按原样回填付款明细与记录版本，不改动直接提交", async () => {
-      const { action, container } = renderMultiAccountForm({
-        initialValues: createMultiAccountInitialValues(),
-      });
-
-      expect(getFieldValues(container, "accountId")).toEqual([]);
-      expect(getFieldValues(container, "paymentAccountId")).toEqual([
-        cash!.id,
-        card!.id,
-      ]);
-      expect(getFieldValues(container, "paymentAmount")).toEqual([
-        "500",
-        "700",
-      ]);
-      expect(getFieldValues(container, "expectedRecordUpdatedAt")).toEqual([
-        "2026-06-05T03:21:00.000+00:00",
-      ]);
-
-      await submitForm(container);
-
-      expect(action).toHaveBeenCalledOnce();
-      const formData = (action.mock.calls[0] as unknown[])[0] as FormData;
-      expect(formData.has("accountId")).toBe(false);
-      expect(formData.getAll("paymentAccountId")).toEqual([cash!.id, card!.id]);
-      expect(formData.getAll("paymentAmount")).toEqual(["500", "700"]);
-    });
-
-    it("保存前汇总显示首个账户与账户数", () => {
-      renderMultiAccountForm({
-        initialValues: createMultiAccountInitialValues(),
+    it("保存前汇总显示首个账户与账户数", async () => {
+      await renderMultiAccountForm({
+        fixture: createMultiAccountInitialValues(),
       });
 
       expect(
         screen.getByText("日元现金（JPY） 等 2 个账户"),
       ).toBeInTheDocument();
-    });
-  });
-
-  describe("只读详情", () => {
-    const cardAccount = {
-      id: "00000000-0000-4000-8000-000000000046",
-      name: "信用卡",
-      currency: "JPY",
-    };
-
-    function renderReadOnlyForm(initialValues: TransactionFormInitialValues) {
-      return renderForm(
-        {
-          accountOptions: [...accountOptions, cardAccount],
-          hideSubmitButton: true,
-          initialValues,
-          multiAccountPaymentEnabled: true,
-          readOnly: true,
-        },
-        { withAmountKeypad: true },
-      );
-    }
-
-    function expectSelectDoesNotOpen(container: HTMLElement, name: string) {
-      fireEvent.mouseDown(getCombobox(container, name));
-      expect(screen.queryByRole("listbox")).toBeNull();
-    }
-
-    it("单账户记录的字段、明细抽屉、计算器都不能操作", () => {
-      const { action, container } = renderReadOnlyForm({
-        ...createInitialValues(),
-        note: "他人的备注",
-      });
-
-      expectSelectDoesNotOpen(container, "商家");
-      expectSelectDoesNotOpen(container, "账户");
-      expect(
-        within(container).queryByRole("button", { name: "添加明细" }),
-      ).toBeNull();
-      expect(
-        within(container).queryByRole("button", { name: "添加付款账户" }),
-      ).toBeNull();
-
-      const itemButton = within(container).getByRole("button", {
-        name: "编辑明细 1 分类",
-      });
-      expect(itemButton).toBeDisabled();
-      fireEvent.click(itemButton);
-      expect(screen.queryByRole("heading", { name: "添加明细" })).toBeNull();
-
-      const amountInput = within(container).getByLabelText("明细 1 金额");
-      expect(amountInput).toBeDisabled();
-      act(() => amountInput.focus());
-      expect(screen.queryByLabelText("金额计算器")).toBeNull();
-
-      expect(within(container).getByDisplayValue("他人的备注")).toBeDisabled();
-      expect(
-        container.querySelector('button[aria-label="编辑明细 1 金额"]'),
-      ).toBeDisabled();
-      expect(action).not.toHaveBeenCalled();
-    });
-
-    it("多账户记录显示各付款账户，但不能修改、删除或添加付款账户", () => {
-      const { container } = renderReadOnlyForm({
-        ...createInitialValues(),
-        payments: [
-          { accountId: accountOptions[0].id, amount: "500" },
-          { accountId: cardAccount.id, amount: "700" },
-        ],
-      });
-
-      expectSelectDoesNotOpen(container, "付款账户 1");
-      expectSelectDoesNotOpen(container, "付款账户 2");
-      expect(within(container).getByLabelText("付款金额 1")).toBeDisabled();
-      expect(within(container).getByLabelText("付款金额 2")).toHaveValue("700");
-      expect(
-        within(container).queryByRole("button", { name: "删除付款账户 1" }),
-      ).toBeNull();
-      expect(
-        within(container).queryByRole("button", { name: "添加付款账户" }),
-      ).toBeNull();
     });
   });
 
@@ -1279,73 +1165,6 @@ describe("TransactionForm \u7F16\u8F91\u7C7B\u578B\u5207\u6362", () => {
       />,
     );
   }
-  function renderEditFormWithTypeSwitch(
-    baseInitialValues: TransactionFormInitialValues,
-  ) {
-    function Wrapper() {
-      const [activeType, setActiveType] = useState<"expense" | "income">(
-        baseInitialValues.type,
-      );
-      const currentInitialValues: TransactionFormInitialValues =
-        activeType === baseInitialValues.type
-          ? baseInitialValues
-          : { ...baseInitialValues, type: activeType, items: [] };
-      const typeNavigation = (
-        <div>
-          <button
-            aria-pressed={activeType === "expense"}
-            onClick={() => setActiveType("expense")}
-          >
-            支出
-          </button>
-          <button
-            aria-pressed={activeType === "income"}
-            onClick={() => setActiveType("income")}
-          >
-            收入
-          </button>
-        </div>
-      );
-      return (
-        <TransactionForm
-          key={activeType}
-          action={vi.fn(async () => undefined)}
-          accountOptions={accountOptions}
-          categoryOptions={categoryOptions}
-          frequentCategoryIds={categoryOptions.map((category) => category.id)}
-          merchantOptions={merchantOptions}
-          initialValues={currentInitialValues}
-          typeNavigation={typeNavigation}
-        />
-      );
-    }
-    return render(<Wrapper />);
-  }
-  function createInitialValues(
-    type: "expense" | "income" = "expense",
-  ): TransactionFormInitialValues {
-    return {
-      payments: [{ accountId: accountOptions[0].id, amount: null }],
-      items: [
-        {
-          amount: type === "expense" ? "1200" : "300000",
-          categoryId: type === "expense" ? expenseCategoryId : incomeCategoryId,
-        },
-      ],
-      merchantId: merchantOptions[0].id,
-      note: "编辑前备注",
-      transactionAt: "2026-06-05T03:20:10.000Z",
-      transactionRecordId: "00000000-0000-4000-8000-000000009001",
-      type,
-    };
-  }
-  function getHiddenInput(container: HTMLElement, name: string) {
-    const input = container.querySelector<HTMLInputElement>(
-      `input[name="${name}"]`,
-    );
-    if (!input) throw new Error(`${name} hidden input 不存在`);
-    return input;
-  }
   function getSubmittedCategoryIds(container: HTMLElement) {
     return Array.from(
       container.querySelectorAll<HTMLInputElement>(
@@ -1383,79 +1202,6 @@ describe("TransactionForm \u7F16\u8F91\u7C7B\u578B\u5207\u6362", () => {
     });
     clickSheetAddButton();
   }
-  it("编辑支出时 hidden type 默认为 expense", () => {
-    const { container } = renderForm({
-      initialValues: createInitialValues(),
-    });
-    expect(getHiddenInput(container, "type").value).toBe("expense");
-  });
-  it("编辑收入时 hidden type 默认为 income", () => {
-    const { container } = renderForm({
-      initialValues: createInitialValues("income"),
-    });
-    expect(getHiddenInput(container, "type").value).toBe("income");
-  });
-  it("编辑收入时不显示报销和退款关联选择器", () => {
-    const { container } = renderForm({
-      initialValues: createInitialValues("income"),
-      transactionItemSpecialStatusEnabled: true,
-    });
-
-    openSheet(container);
-
-    expect(screen.queryByText("报销关联")).not.toBeInTheDocument();
-    expect(screen.queryByText("退款关联")).not.toBeInTheDocument();
-  });
-  it("编辑支出点击收入后 hidden type 变为 income，且旧支出分类不会继续提交", () => {
-    const { container } = renderEditFormWithTypeSwitch(createInitialValues());
-    expect(getSubmittedCategoryIds(container)).toEqual([expenseCategoryId]);
-    fireEvent.click(within(container).getByRole("button", { name: "收入" }));
-    expect(getHiddenInput(container, "type").value).toBe("income");
-    expect(getSubmittedCategoryIds(container)).toEqual([]);
-  });
-  it("编辑收入点击支出后 hidden type 变为 expense，且旧收入分类不会继续提交", () => {
-    const { container } = renderEditFormWithTypeSwitch(
-      createInitialValues("income"),
-    );
-    expect(getSubmittedCategoryIds(container)).toEqual([incomeCategoryId]);
-    fireEvent.click(within(container).getByRole("button", { name: "支出" }));
-    expect(getHiddenInput(container, "type").value).toBe("expense");
-    expect(getSubmittedCategoryIds(container)).toEqual([]);
-  });
-  it("明细抽屉同时显示支出和收入分类，可混合追加", () => {
-    const { container } = renderForm({
-      initialValues: createInitialValues(),
-    });
-    openSheet(container);
-    expect(
-      screen.getByRole("button", { name: "食材/调料" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "固定收入" }),
-    ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "固定收入" }));
-    addItemViaSheet(container, "工资", "300000");
-    expect(getSubmittedCategoryIds(container)).toEqual([
-      expenseCategoryId,
-      incomeCategoryId,
-    ]);
-  });
-  it("编辑切换到支出后弹框显示所有分类，可追加支出明细", () => {
-    const { container } = renderEditFormWithTypeSwitch(
-      createInitialValues("income"),
-    );
-    fireEvent.click(within(container).getByRole("button", { name: "支出" }));
-    openSheet(container);
-    expect(
-      screen.getByRole("button", { name: "食材/调料" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "餐饮" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "固定收入" }),
-    ).toBeInTheDocument();
-    addItemViaSheet(container, "餐饮", "800");
-    expect(getSubmittedCategoryIds(container)).toEqual([expenseCategoryId]);
-  });
   it("新增记账可同时添加支出和收入明细，两者均会提交", () => {
     const { container } = renderForm();
     openSheet(container);

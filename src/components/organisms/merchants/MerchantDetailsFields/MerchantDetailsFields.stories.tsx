@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { useState } from "react";
+import { useMerchantDetails } from "../useMerchantDetails";
 import { expect, userEvent, within } from "storybook/test";
 
 import { merchantErrorCodes, merchantErrorMessages } from "internal/merchant";
@@ -15,8 +15,26 @@ const fetchIconAction: MerchantIconStateAction = async () => ({
 const meta = {
   title: "Organisms/Merchants/MerchantDetailsFields",
   component: MerchantDetailsFields,
+  render: function FieldsStory(args) {
+    const details = useMerchantDetails(args);
+    return (
+      <MerchantDetailsFields
+        {...args}
+        name={details.name}
+        note={details.note}
+        websiteUrl={details.websiteUrl}
+        previewIconUrl={details.previewIconUrl}
+        onNameChange={details.setName}
+        onNoteChange={details.setNote}
+        onWebsiteUrlChange={details.setWebsiteUrl}
+        onPreviewIconChange={details.setPreviewIconUrl}
+      />
+    );
+  },
   args: {
     fetchIconAction,
+    previewIconUrl: "",
+    onPreviewIconChange: () => {},
     ledgerId: "ledger-1",
     name: "示例商家",
     note: "",
@@ -35,23 +53,6 @@ export const Idle: Story = { name: "获取前" };
 export const EmptyFields: Story = {
   name: "空值：聚焦与失焦对照",
   args: { name: "", websiteUrl: "", note: "" },
-  render: function EmptyFieldsStory(args) {
-    const [name, setName] = useState(args.name);
-    const [websiteUrl, setWebsiteUrl] = useState(args.websiteUrl);
-    const [note, setNote] = useState(args.note);
-
-    return (
-      <MerchantDetailsFields
-        {...args}
-        name={name}
-        websiteUrl={websiteUrl}
-        note={note}
-        onNameChange={setName}
-        onWebsiteUrlChange={setWebsiteUrl}
-        onNoteChange={setNote}
-      />
-    );
-  },
 };
 
 export const NameFocused: Story = {
@@ -107,7 +108,7 @@ export const Loading: Story = {
 
 export const Success: Story = {
   args: {
-    initialIconUrl: "https://t2.gstatic.com/faviconV2?url=https://example.com",
+    previewIconUrl: "https://t2.gstatic.com/faviconV2?url=https://example.com",
   },
   name: "获取成功",
 };

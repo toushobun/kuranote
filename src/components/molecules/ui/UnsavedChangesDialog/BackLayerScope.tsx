@@ -12,13 +12,14 @@ import { useOptionalUnsavedChangesCoordinator } from "providers/UnsavedChangesGu
 
 export const transactionBackLayerLevels = {
   flow: 0,
+  pageOverlay: 1,
   receiptEditor: 1,
   creation: 2,
 } as const;
 
 const BackLayerContext = createContext<number | null>(null);
 
-/** 显式启用新增流程；共享抽屉在编辑页和独立页面中不自动改变后退语义。 */
+/** 由页面显式启用弹层后退栈；隐藏面板和无作用域调用方不自动登记。 */
 export function BackLayerScope({
   level,
   children,

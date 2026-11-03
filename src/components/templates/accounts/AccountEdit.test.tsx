@@ -254,7 +254,7 @@ describe("AccountEditTemplate", () => {
       expect(screen.queryByText("尚未保存")).toBeNull();
     });
   });
-  it("真实编辑账户打开金额键盘后仍由页面守卫处理后退，滚动与表单不变，放弃只退一次", async () => {
+  it("真实编辑账户后退先关闭金额键盘，再确认页面，滚动与表单不变", async () => {
     routerMock.push.mockClear();
     renderAccountEdit();
     const name = screen.getByLabelText(/账户名称/);
@@ -264,6 +264,11 @@ describe("AccountEditTemplate", () => {
     const keypad = await screen.findByLabelText("金额计算器");
     window.scrollTo(0, 2000);
     await backFromGuard();
+    await waitFor(() =>
+      expect(screen.queryByLabelText("金额计算器")).toBeNull(),
+    );
+    expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
+    await backFromGuard();
     fireEvent.click(await screen.findByRole("button", { name: "继续编辑" }));
     await waitFor(() =>
       expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull(),
@@ -271,13 +276,13 @@ describe("AccountEditTemplate", () => {
     expect(screen.getByLabelText(/账户名称/)).toBe(name);
     expect(name.closest("form")).toBe(form);
     expect(name).toHaveValue("修改账户");
-    expect(keypad).toBeVisible();
+    expect(keypad).not.toBeInTheDocument();
     expect(window.scrollY).toBe(2000);
     expect(window.history.pushState).toHaveBeenCalledOnce();
     await backFromGuard();
     fireEvent.click(await screen.findByRole("button", { name: "放弃修改" }));
     await waitFor(() => expect(guardHistory().index()).toBe(0));
-    expect(window.history.back).toHaveBeenCalledTimes(3);
+    expect(window.history.back).toHaveBeenCalledTimes(4);
     expect(routerMock.push).not.toHaveBeenCalled();
   });
 });

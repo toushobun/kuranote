@@ -1,4 +1,8 @@
 "use client";
+import {
+  BackLayerScope,
+  transactionBackLayerLevels,
+} from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
 import { useReceiptCreation } from "organisms/transactions/ReceiptCreationProvider/ReceiptCreationProvider";
 import { mergeReceiptOptions } from "organisms/transactions/ReceiptCreationProvider/useReceiptCreationState";
 
@@ -53,25 +57,27 @@ export function EditTransactionReceiptTemplate(
   }
 
   return (
-    <EditTransactionShell
-      action={props.action}
-      canDelete={props.canDelete}
-      deleteAction={props.deleteAction}
-      editRestriction={props.editRestriction}
-      hasLinkedIncomeItems={props.initialValues.items.some(
-        (item) => item.businessStatus?.incomeLinkRole != null,
-      )}
-      saveFormId={editReceiptFormId}
-      transactionRecordId={transactionRecordId}
-    >
-      {(editAction) => (
-        <EditTransactionReceipt
-          {...props}
-          formAction={editAction.formAction}
-          saving={editAction.isPending}
-        />
-      )}
-    </EditTransactionShell>
+    <BackLayerScope level={transactionBackLayerLevels.receiptEditor}>
+      <EditTransactionShell
+        action={props.action}
+        canDelete={props.canDelete}
+        deleteAction={props.deleteAction}
+        editRestriction={props.editRestriction}
+        hasLinkedIncomeItems={props.initialValues.items.some(
+          (item) => item.businessStatus?.incomeLinkRole != null,
+        )}
+        saveFormId={editReceiptFormId}
+        transactionRecordId={transactionRecordId}
+      >
+        {(editAction) => (
+          <EditTransactionReceipt
+            {...props}
+            formAction={editAction.formAction}
+            saving={editAction.isPending}
+          />
+        )}
+      </EditTransactionShell>
+    </BackLayerScope>
   );
 }
 

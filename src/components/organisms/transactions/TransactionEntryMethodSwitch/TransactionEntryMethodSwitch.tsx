@@ -9,8 +9,10 @@ import { useTransactionEntryMethodChange } from "./useTransactionEntryMethodChan
 /** 账户周转、标准记账页面顶部的「切换方式」按钮与方式选择抽屉。 */
 export function TransactionEntryMethodSwitch({
   currentMethod,
+  requestNavigate,
 }: {
   currentMethod: TransactionEntryMethod;
+  requestNavigate?: (action: () => void) => void;
 }) {
   const [open, setOpen] = useState(false);
   const changeMethod = useTransactionEntryMethodChange();
@@ -24,6 +26,7 @@ export function TransactionEntryMethodSwitch({
         open={open}
         onClose={() => setOpen(false)}
         onMethodChange={changeMethod}
+        requestNavigate={requestNavigate}
       />
     </>
   );

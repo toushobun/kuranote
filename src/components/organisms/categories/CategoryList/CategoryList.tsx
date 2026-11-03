@@ -1,4 +1,6 @@
 "use client";
+import { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
+import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog/UnsavedChangesDialog";
 
 import { rectSortingStrategy } from "@dnd-kit/sortable";
 import ArchiveRoundedIcon from "@mui/icons-material/ArchiveRounded";
@@ -221,7 +223,7 @@ export function CategoryList({
     setSearchQuery,
     isPending,
     openEditor,
-    requestCloseEditor,
+    editorDirty,
     resetEditor,
     selectedType,
     setEditingIconName,
@@ -236,6 +238,14 @@ export function CategoryList({
     reorderCategoryAction,
   });
 
+  const guard = useUnsavedChangesGuard({
+    isDirty: editorDirty,
+    saveFormId: "category-edit-form",
+    layer: 0,
+    active: isEditorOpen,
+    onClose: closeEditor,
+  });
+  const requestCloseEditor = guard.requestClose;
   useCategoryActionSuccess(updateState, closeEditor);
   useCategoryActionSuccess(archiveState, closeEditor);
 
@@ -495,6 +505,7 @@ export function CategoryList({
           ) : null}
         </CategoryDialogActions>
       </Dialog>
+      <UnsavedChangesDialog {...guard.dialogProps} />
     </Stack>
   );
 }

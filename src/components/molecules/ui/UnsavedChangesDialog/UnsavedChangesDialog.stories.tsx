@@ -19,3 +19,8 @@ export const Default: Story = {
     open: true,
   },
 };
+
+export const MultipleDirtyForms: Story = {
+  name: "多个表单未保存（只继续或放弃）",
+  args: { open: true, onCancel: () => undefined, onDiscard: () => undefined },
+};

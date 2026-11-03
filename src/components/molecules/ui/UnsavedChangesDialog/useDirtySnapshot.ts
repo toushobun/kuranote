@@ -5,11 +5,17 @@ export function useDirtySnapshot(
   snapshot: string,
   onDirtyChange: ((dirty: boolean) => void) | null,
   ready: boolean,
+  savedKey?: string,
 ) {
   const initial = useRef<string | null>(null);
+  const lastSavedKey = useRef(savedKey);
   useEffect(() => {
     if (!ready) return;
+    if (savedKey && savedKey !== lastSavedKey.current) {
+      initial.current = snapshot;
+      lastSavedKey.current = savedKey;
+    }
     initial.current ??= snapshot;
     onDirtyChange?.(snapshot !== initial.current);
-  }, [snapshot, onDirtyChange, ready]);
+  }, [snapshot, onDirtyChange, ready, savedKey]);
 }

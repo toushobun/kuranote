@@ -118,6 +118,14 @@ export function createUnsavedChangesCoordinator(
           await sync();
           action();
         },
+        async runInPlaceAction<T>(action: () => Promise<T>): Promise<T> {
+          // 同页保存只提交一个区域，其他草稿始终受保护；同步补回 Next revalidate 丢掉的标记。
+          try {
+            return await action();
+          } finally {
+            await sync();
+          }
+        },
         async runAction<T>(action: () => Promise<T>): Promise<T> {
           if (!isCurrent(entry)) return action();
           entry.suspended = true;

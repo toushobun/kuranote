@@ -79,7 +79,6 @@ type TransferTransactionFormProps = {
   hideSubmitButton?: boolean;
   initialValues?: TransferEditInitialValues;
   ledgerName?: string;
-  onSubmitDisabledChange?: (disabled: boolean) => void;
   /** 只读详情（#928）：整体禁用，不能修改任何字段。 */
   readOnly?: boolean;
   sourceType?: TransactionRecordType;
@@ -98,7 +97,6 @@ export function TransferTransactionForm({
   hideSubmitButton = false,
   initialValues,
   ledgerName,
-  onSubmitDisabledChange,
   readOnly = false,
   sourceType,
   submitLabel,
@@ -172,10 +170,6 @@ export function TransferTransactionForm({
 
   const isSubmitDisabled =
     hasTooFewAccounts || !transactionAtValue || !timeZoneOffsetMinutes;
-
-  useEffect(() => {
-    onSubmitDisabledChange?.(isSubmitDisabled);
-  }, [isSubmitDisabled, onSubmitDisabledChange]);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     if (!transactionAtValue) {

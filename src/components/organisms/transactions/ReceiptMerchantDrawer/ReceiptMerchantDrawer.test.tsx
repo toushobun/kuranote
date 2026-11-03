@@ -1,3 +1,5 @@
+import { setupGuardHistoryMock } from "test/mockGuardHistory";
+setupGuardHistoryMock();
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { FlowMerchant } from "organisms/transactions/MerchantStep/MerchantStep.types";

@@ -1,4 +1,6 @@
 "use client";
+import { useUnsavedChangesForm } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesForm";
+import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog/UnsavedChangesDialog";
 import { useCreateAction } from "molecules/ui/useCreateAction/useCreateAction";
 
 import { routePaths } from "config/paths";
@@ -33,6 +35,8 @@ export type MerchantCreateTemplateProps = {
 };
 
 export function MerchantCreateTemplate(props: MerchantCreateTemplateProps) {
+  const formId = "create-merchant-form";
+  const guard = useUnsavedChangesForm(formId, props.createMerchantAction);
   return (
     <SettingsPageLayout
       back={{
@@ -44,7 +48,13 @@ export function MerchantCreateTemplate(props: MerchantCreateTemplateProps) {
       subtitle={merchantPageMessages.createSubtitle(props.ledgerName)}
       title={merchantText.create}
     >
-      <MerchantCreateBody {...props} />
+      <MerchantCreateBody
+        {...props}
+        formId={formId}
+        onDirtyChange={guard.onDirtyChange}
+        createMerchantAction={guard.action}
+      />
+      <UnsavedChangesDialog {...guard.dialogProps} />
     </SettingsPageLayout>
   );
 }

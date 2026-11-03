@@ -14,9 +14,16 @@ import { useMerchantsActionState } from "./useMerchantsActionState";
 
 afterEach(cleanup);
 
-function ActionStateHarness({ action }: { action: MerchantStateAction }) {
+function ActionStateHarness({
+  action,
+  runAction,
+}: {
+  action: MerchantStateAction;
+  runAction?: Parameters<typeof useMerchantsActionState>[1]["runAction"];
+}) {
   const result = useMerchantsActionState(action, {
     operation: "setPreferred",
+    runAction,
   });
 
   return (
@@ -83,5 +90,27 @@ describe("useMerchantsActionState", () => {
     expect(screen.getByTestId("action-state")).toHaveTextContent(
       "无法切换显示名",
     );
+  });
+  it("提交通过调用方绑定的守卫执行，仍保留原返回状态", async () => {
+    const order: string[] = [];
+    const action = vi.fn<MerchantStateAction>(async () => {
+      order.push("提交");
+      return { success: "成功" };
+    });
+    const runAction: NonNullable<
+      Parameters<typeof useMerchantsActionState>[1]["runAction"]
+    > = async (invoke) => {
+      order.push("守卫开始");
+      const value = await invoke();
+      order.push("守卫结束");
+      return value;
+    };
+    render(<ActionStateHarness action={action} runAction={runAction} />);
+    fireEvent.click(screen.getByRole("button", { name: "切换显示名" }));
+    await waitFor(() =>
+      expect(screen.getByTestId("action-state")).toHaveTextContent("成功"),
+    );
+    expect(order).toEqual(["守卫开始", "提交", "守卫结束"]);
+    expect(action).toHaveBeenCalledOnce();
   });
 });

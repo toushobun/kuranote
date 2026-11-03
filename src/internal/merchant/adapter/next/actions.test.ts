@@ -387,6 +387,17 @@ describe("Merchant Server Actions", () => {
     ).rejects.toThrow(`NEXT_REDIRECT:${expected}`);
   });
 
+  it("保留别名草稿时更新基本资料返回成功状态并刷新当前商家，不跳转", async () => {
+    const data = merchantForm();
+    data.set("presentation", "dialog");
+    await expect(runAction(updateMerchant, data)).resolves.toMatchObject({
+      success: "保存成功",
+      successKey: expect.any(String),
+    });
+    expect(mocks.revalidateMerchantMutation).toHaveBeenCalledWith(merchantId);
+    expect(mocks.redirect).not.toHaveBeenCalled();
+  });
+
   it("商家操作成功后按流程导航或返回 inline 状态", async () => {
     for (const [action, path] of [
       [createMerchant, "/merchants?result=created"],
@@ -396,7 +407,7 @@ describe("Merchant Server Actions", () => {
       await expect(runAction(action)).rejects.toThrow(`NEXT_REDIRECT:${path}`);
     }
 
-    await expect(runAction(createMerchantAlias)).resolves.toEqual({
+    await expect(runAction(createMerchantAlias)).resolves.toMatchObject({
       success: "添加成功",
     });
     await expect(runAction(archiveMerchantAlias)).resolves.toEqual({

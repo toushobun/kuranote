@@ -373,7 +373,7 @@ describe("EditTransactionReceiptTemplate", () => {
     ).toBeInTheDocument();
   });
   it.each(["商家", "账户", "金额", "新增账户"])(
-    "真实编辑小票打开%s层后仍确认页面，不多压哨兵、不改父表单",
+    "编辑小票打开%s层后逐层返回，父表单与滚动保留",
     async (kind) => {
       routerMock.push.mockClear();
       renderReceipt({}, receiptCreationData());
@@ -396,22 +396,26 @@ describe("EditTransactionReceiptTemplate", () => {
       }
       window.scrollTo(0, 2000);
       await backFromGuard();
-      click("继续编辑");
-      await waitFor(() =>
-        expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull(),
-      );
+      if (kind === "新增账户") {
+        click("继续编辑");
+        expect(screen.getByLabelText(/账户名称/)).toHaveValue("子层修改");
+        await backFromGuard();
+        click("放弃修改");
+        await screen.findByRole("button", { name: "新增账户" });
+        await backFromGuard();
+      }
+      await findCloseLink();
+      expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
       expect(receiptForm()).toBe(form);
       expect([...new FormData(form).entries()]).toEqual(before);
       expect(window.scrollY).toBe(2000);
       expect(window.history.pushState).toHaveBeenCalledOnce();
-      if (kind === "新增账户")
-        expect(screen.getByLabelText(/账户名称/)).toHaveValue("子层修改");
-      if (kind === "金额")
-        expect(screen.getByLabelText("金额计算器")).toBeVisible();
+      await backFromGuard();
+      click("继续编辑");
+      await findCloseLink();
       await backFromGuard();
       click("放弃修改");
       await waitFor(() => expect(guardHistory().index()).toBe(0));
-      expect(window.history.back).toHaveBeenCalledTimes(3);
       expect(routerMock.push).not.toHaveBeenCalled();
     },
   );

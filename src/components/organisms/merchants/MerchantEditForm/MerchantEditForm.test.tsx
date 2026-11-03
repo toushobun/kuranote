@@ -1,4 +1,10 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createMerchantRow } from "@/test/mocks/merchants";
@@ -44,5 +50,40 @@ describe("MerchantEditForm", () => {
 
     expect(container.querySelector('button[type="submit"]')).toBeDisabled();
     expect(screen.getByLabelText("保存中")).toBeInTheDocument();
+  });
+  it("标签与基本资料都按快照比较，还原后恢复干净", async () => {
+    const dirty = vi.fn();
+    const merchant = createMerchantRow({ tags: [] });
+    render(
+      <MerchantEditForm
+        action={vi.fn()}
+        fetchIconAction={vi.fn()}
+        ledgerId="ledger-1"
+        merchant={merchant}
+        tags={[
+          {
+            id: "tag-1",
+            name: "常去",
+            icon: "🏪",
+            sort_order: 0,
+            merchant_count: 0,
+          },
+        ]}
+        onDirtyChange={dirty}
+      />,
+    );
+    expect(dirty).toHaveBeenLastCalledWith(false);
+    fireEvent.click(screen.getByRole("button", { name: "🏪 常去" }));
+    await waitFor(() => expect(dirty).toHaveBeenLastCalledWith(true));
+    fireEvent.click(screen.getByRole("button", { name: "🏪 常去" }));
+    await waitFor(() => expect(dirty).toHaveBeenLastCalledWith(false));
+    fireEvent.change(screen.getByLabelText(/商家名称/), {
+      target: { value: "其他" },
+    });
+    expect(dirty).toHaveBeenLastCalledWith(true);
+    fireEvent.change(screen.getByLabelText(/商家名称/), {
+      target: { value: merchant.name },
+    });
+    expect(dirty).toHaveBeenLastCalledWith(false);
   });
 });

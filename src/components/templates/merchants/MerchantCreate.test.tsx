@@ -1,3 +1,8 @@
+import { describeUnsavedFormPage } from "test/unsavedFormPage";
+import { setupGuardHistoryMock } from "test/mockGuardHistory";
+import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
+setupGuardHistoryMock();
+vi.mock("next/navigation", () => import("test/mocks/navigation"));
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -78,6 +83,7 @@ function renderMerchantCreate(
       tags={[]}
       {...props}
     />,
+    { wrapper: ConfirmDialogTestProviders },
   );
 }
 
@@ -98,3 +104,17 @@ async function submitMerchantCreate(
   await waitFor(() => expect(createMerchantAction).toHaveBeenCalledOnce());
   return createMerchantAction.mock.calls[0]?.[1];
 }
+
+describeUnsavedFormPage({
+  render: () => {
+    renderMerchantCreate();
+  },
+  change: () =>
+    fireEvent.change(screen.getByLabelText(/商家名称/), {
+      target: { value: "守卫测试" },
+    }),
+  restore: () =>
+    fireEvent.change(screen.getByLabelText(/商家名称/), {
+      target: { value: "" },
+    }),
+});

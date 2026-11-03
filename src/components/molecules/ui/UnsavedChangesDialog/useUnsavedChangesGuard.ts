@@ -6,12 +6,14 @@ import {
   useEffect,
   useEffectEvent,
   useLayoutEffect,
+  useRef,
   useState,
 } from "react";
 
 import { useUnsavedChangesCoordinator } from "providers/UnsavedChangesGuardProvider/UnsavedChangesGuardProvider";
 
 type LeaveIntent = { type: "back" } | { type: "action"; action: () => void };
+type SaveIntent = { formId: string; leave: LeaveIntent };
 
 export function useUnsavedChangesGuard({
   isDirty,
@@ -22,7 +24,7 @@ export function useUnsavedChangesGuard({
   disabled = false,
 }: {
   isDirty: boolean;
-  saveFormId: string;
+  saveFormId: string | null;
   onClose?: () => void;
   /** 页面不传；只有真正的子弹层才传入层级。 */
   layer?: number | null;
@@ -30,12 +32,40 @@ export function useUnsavedChangesGuard({
   disabled?: boolean;
 }) {
   const router = useRouter();
+  const saveIntent = useRef<SaveIntent | null>(null);
   const [intent, setIntent] = useState<LeaveIntent | null>(null);
   const coordinator = useUnsavedChangesCoordinator();
   const [history] = useState(coordinator.createGuard);
   const runAction = useCallback(
-    <T>(action: () => Promise<T>) => history.runAction(action),
+    async <T>(action: () => Promise<T>) => {
+      try {
+        return await history.runAction(action);
+      } finally {
+        // 普通表单提交结束或失败后，不得保留旧的离开意图。
+        saveIntent.current = null;
+      }
+    },
     [history],
+  );
+
+  const back = useCallback(() => {
+    if (layer !== null && onClose) onClose();
+    else window.history.back();
+  }, [layer, onClose]);
+  const followIntent = useCallback(
+    (leave: LeaveIntent) =>
+      history.leave(leave.type === "back" ? back : leave.action),
+    [history, back],
+  );
+  const completeSave = useCallback(
+    (success: boolean, formId: string) => {
+      const saved = saveIntent.current;
+      if (saved?.formId !== formId) return Promise.resolve();
+      saveIntent.current = null;
+      if (success) return followIntent(saved.leave);
+      return Promise.resolve();
+    },
+    [followIntent],
   );
 
   const beforeUnload = useEffectEvent((event: BeforeUnloadEvent) => {
@@ -90,9 +120,7 @@ export function useUnsavedChangesGuard({
   const requestBack = useEffectEvent(() => {
     if (!active || disabled) return;
     if (!isDirty) {
-      void history.leave(
-        layer !== null && onClose ? onClose : () => window.history.back(),
-      );
+      void history.leave(back);
       return;
     }
     setIntent((current) => current ?? { type: "back" });
@@ -114,12 +142,24 @@ export function useUnsavedChangesGuard({
     return () => window.removeEventListener("beforeunload", unload);
   }, [isDirty]);
 
+  // Next 的同页 revalidation 可在动作返回后的提交阶段重写 history.state；每次提交后同步登记。
   useLayoutEffect(() => {
     void history.update(isDirty, layer, active);
-  }, [history, isDirty, layer, active]);
+  });
 
   return {
     runAction,
+    completeSave,
+    runInPlaceAction: useCallback(
+      <T>(action: () => Promise<T>) => history.runInPlaceAction(action),
+      [history],
+    ),
+    requestNavigate: (action: () => void) => {
+      if (!active || disabled) return;
+      if (isDirty)
+        setIntent((current) => current ?? { type: "action", action });
+      else void history.leave(action);
+    },
     requestClose: () => {
       if (!active || disabled || !onClose) return;
       if (isDirty)
@@ -128,22 +168,28 @@ export function useUnsavedChangesGuard({
     },
     dialogProps: {
       open: intent !== null,
-      onCancel: () => setIntent(null),
-      onSave: () => {
+      onCancel: () => {
+        saveIntent.current = null;
         setIntent(null);
-        const form = document.getElementById(saveFormId);
-        if (form instanceof HTMLFormElement) form.requestSubmit();
       },
+      onSave:
+        saveFormId === null
+          ? undefined
+          : () => {
+              setIntent(null);
+              saveIntent.current = null;
+              const form = document.getElementById(saveFormId);
+              if (form instanceof HTMLFormElement) {
+                if (form.checkValidity() && intent)
+                  saveIntent.current = { formId: saveFormId, leave: intent };
+                form.requestSubmit();
+              }
+            },
       onDiscard: () => {
         if (!intent) return;
         setIntent(null);
-        void history.leave(
-          intent.type === "back"
-            ? layer !== null && onClose
-              ? onClose
-              : () => window.history.back()
-            : intent.action,
-        );
+        saveIntent.current = null;
+        void followIntent(intent);
       },
     },
   };

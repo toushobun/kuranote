@@ -73,11 +73,25 @@ async function newSession(browser, link, formId) {
   page.setDefaultNavigationTimeout(15000);
   const cdp = await page.context().newCDPSession(page);
   const rsc = [];
+  const prefetchRsc = [];
+  const resetRsc = () => {
+    rsc.length = 0;
+    prefetchRsc.length = 0;
+  };
+  const pendingRequests = new Set();
+  page.on("request", (request) => pendingRequests.add(request.url()));
+  page.on("requestfinished", (request) =>
+    pendingRequests.delete(request.url()),
+  );
+  page.on("requestfailed", (request) => pendingRequests.delete(request.url()));
   const errors = [];
   const records = [];
   page.on("request", (request) => {
-    if (request.headers().rsc === "1" || request.url().includes("_rsc="))
+    if (request.headers().rsc === "1" || request.url().includes("_rsc=")) {
       rsc.push(request.url());
+      if (request.headers()["next-router-prefetch"] === "1")
+        prefetchRsc.push(request.url());
+    }
   });
   page.on("pageerror", (error) => {
     errors.push(error.message);
@@ -114,6 +128,8 @@ async function newSession(browser, link, formId) {
       step,
       ...state,
       rscRequests: rsc.length,
+      prefetchRscRequests: prefetchRsc.length,
+      navigationRscRequests: rsc.length - prefetchRsc.length,
       currentIndex: navigation.currentIndex,
     };
     records.push(row);
@@ -139,7 +155,10 @@ async function newSession(browser, link, formId) {
     "点击编辑入口本身不能滚动来源页",
   );
   await page.locator(`#${formId}`).waitFor();
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("networkidle").catch((error) => {
+    console.error("尚未完成的浏览器请求", [...pendingRequests]);
+    throw error;
+  });
   await page.evaluate((id) => {
     window.probeForm = document.getElementById(id);
   }, formId);
@@ -154,7 +173,7 @@ async function newSession(browser, link, formId) {
     .getByRole("link", { name: "首页", exact: true })
     .waitFor();
   await keepScroll(page, 0, "auto");
-  rsc.length = 0;
+  resetRsc();
   const baseline = await record(`${link}：AppShell 普通导航到 B 后滚到顶部`);
   async function backAndCancel(y) {
     await page.evaluate(() => {
@@ -185,6 +204,7 @@ async function newSession(browser, link, formId) {
     await page.getByRole("button", { name: "放弃修改" }).click();
     await page.waitForURL(sourceUrl);
     await page.getByRole("heading", { name: "离开守卫兼容性验证" }).waitFor();
+    await page.waitForLoadState("networkidle");
     await keepScroll(page, sourceScroll, "auto");
     await record(
       `${link}：确认放弃仅回到 A，恢复来源页 scrollY=${sourceScroll}`,
@@ -195,6 +215,7 @@ async function newSession(browser, link, formId) {
     records,
     errors,
     rsc,
+    resetRsc,
     baseline,
     record,
     backAndCancel,
@@ -378,18 +399,355 @@ async function checkOtherPage(browser, kind) {
   await page.close();
   return { records, errors };
 }
+async function checkMerchant(browser, edit) {
+  const formId = edit ? "merchant-edit-form" : "create-merchant-form";
+  const session = await newSession(
+    browser,
+    edit ? "编辑商家" : "新增商家",
+    formId,
+  );
+  const {
+    page,
+    baseline,
+    record,
+    records,
+    errors,
+    rsc,
+    resetRsc,
+    backAndCancel,
+    discardAndCheckSource,
+  } = session;
+  const name = page.getByRole("textbox", { name: /商家名称/ });
+  await name.fill("商家草稿");
+  await name.blur();
+  await position(page, "sentinel");
+  await scroll(page, 2000);
+  for (let index = 0; index < 3; index++) await backAndCancel(2000);
+  const row = await record("商家页连续后退取消：保留滚动、表单和路由实例");
+  assert.equal(row.mounts, baseline.mounts);
+  assert.equal(row.unmounts, baseline.unmounts);
+  assert.equal(row.sameForm, true);
+  assert.equal(row.length, baseline.length + 1);
+  assert.equal(rsc.length, 0);
+  if (edit) {
+    await setValueWithoutScrolling(
+      page.getByRole("textbox", { name: "别名", exact: true }),
+      "别名草稿",
+    );
+    await browserBack(page);
+    assert.equal(
+      await page
+        .getByRole("dialog", { name: "尚未保存" })
+        .getByRole("button", { name: "保存", exact: true })
+        .count(),
+      0,
+    );
+    await cancel(page);
+    // 保存基本资料返回同页成功状态并触发真实 Next revalidation，别名继续保护。
+    await page.getByRole("button", { name: "保存修改", exact: true }).click();
+    await page
+      .getByRole("status")
+      .getByText("保存成功", { exact: true })
+      .waitFor();
+    await page.waitForLoadState("networkidle");
+    await position(page, "sentinel");
+    await page.getByRole("textbox", { name: "别名", exact: true }).blur();
+    await scroll(page, 2000);
+    // revalidation 会让可见 Link 重新预取，待滚动后的可见区域稳定再统计内部后退请求。
+    await page.evaluate(
+      () => new Promise((resolve) => requestIdleCallback(resolve)),
+    );
+    await page.waitForLoadState("networkidle");
+    resetRsc();
+    await backAndCancel(2000);
+    const afterSave = await record(
+      "部分保存并 revalidate 后，别名仍保护且不重挂载",
+    );
+    assert.equal(afterSave.mounts, baseline.mounts);
+    assert.equal(afterSave.sameForm, true);
+    assert.equal(afterSave.navigationRscRequests, 0);
+    assert.equal(
+      await page
+        .getByRole("textbox", { name: "别名", exact: true })
+        .inputValue(),
+      "别名草稿",
+    );
+  }
+  await discardAndCheckSource();
+  await page
+    .getByRole("link", { name: edit ? "编辑商家" : "新增商家", exact: true })
+    .click();
+  await page.locator(`#${formId}`).waitFor();
+  await name.fill("失败商家");
+  await page
+    .getByRole("button", { name: edit ? "保存修改" : "保存商家", exact: true })
+    .click();
+  await page.getByText("验证用保存失败", { exact: true }).waitFor();
+  await position(page, "sentinel");
+  await record("商家真实 Server Action 失败后继续保护");
+  await name.fill("成功商家");
+  await page
+    .getByRole("button", { name: edit ? "保存修改" : "保存商家", exact: true })
+    .click();
+  await page.waitForURL(`${sourceUrl}?saved=1`);
+  await keepScroll(page, 0, "auto");
+  assert.equal(await page.getByRole("dialog", { name: "尚未保存" }).count(), 0);
+  await record("商家真实保存成功直接跳转，不弹离开确认");
+  assert.deepEqual(errors, []);
+  await page.close();
+  return { records, errors };
+}
+function assertInternalRecord(row, baseline) {
+  assert.equal(row.mounts, baseline.mounts);
+  assert.equal(row.unmounts, baseline.unmounts);
+  assert.equal(row.sameForm, true);
+  assert.equal(row.length, baseline.length + 1);
+  assert.equal(row.navigationRscRequests, 0);
+}
+async function finishSession(session) {
+  assert.deepEqual(session.errors, []);
+  await session.page.close();
+  return { records: session.records, errors: session.errors };
+}
+async function checkStandard(browser, income = false) {
+  const type = income ? "income" : "expense";
+  const session = await newSession(
+    browser,
+    income ? "标准收入" : "标准支出",
+    `new-${type}-transaction-form`,
+  );
+  const { page, baseline, record, backAndCancel } = session;
+  const note = page.locator(
+    `#new-${type}-transaction-form textarea[name="note"]`,
+  );
+  assert.equal(
+    await page.evaluate(
+      () => history.state?.kuranoteUnsavedChanges?.position ?? null,
+    ),
+    null,
+  );
+  await note.fill("标准页草稿");
+  await note.blur();
+  await position(page, "sentinel");
+  await page.getByRole("button", { name: "转账", exact: true }).click();
+  await position(page, "base");
+  await page
+    .locator('#new-transfer-transaction-form textarea[name="note"]')
+    .fill("转账面板草稿");
+  await position(page, "sentinel");
+  await page.getByRole("button", { name: "收支", exact: true }).click();
+  assert.equal(await note.inputValue(), "标准页草稿");
+  await scroll(page, 2000);
+  for (let index = 0; index < 3; index++) await backAndCancel(2000);
+  assertInternalRecord(
+    await record("标准页切换面板后三次取消，保持滚动、实例与单哨兵"),
+    baseline,
+  );
+  await page.getByRole("button", { name: "切换方式" }).click();
+  await page.getByRole("button", { name: "账户周转", exact: true }).click();
+  await page.getByRole("dialog", { name: "尚未保存" }).waitFor();
+  await page.getByRole("button", { name: "放弃修改" }).click();
+  await page.waitForURL(`${baseUrl}/transactions/new?method=transfer`);
+  await page.locator("#new-transfer-transaction-form").waitFor();
+  await browserBack(page);
+  await page.waitForURL(sourceUrl);
+  await page.getByRole("heading", { name: "离开守卫兼容性验证" }).waitFor();
+  await keepScroll(page, 320, "auto");
+  const row = await record("标准页放弃并切换方式后，后退一次回来源");
+  assert.equal(row.currentIndex, baseline.currentIndex - 1);
+  return finishSession(session);
+}
+async function closeAmountLayer(page, field) {
+  await field.click();
+  await page.getByLabel("金额计算器", { exact: true }).waitFor();
+  const y = await page.evaluate(() => scrollY);
+  await browserBack(page);
+  await page
+    .getByLabel("金额计算器", { exact: true })
+    .waitFor({ state: "hidden" });
+  assert.equal(await page.getByRole("dialog", { name: "尚未保存" }).count(), 0);
+  await keepScroll(page, y);
+}
+async function checkNewForm(browser, account = false) {
+  const formId = account
+    ? "create-account-form"
+    : "new-transfer-transaction-form";
+  const session = await newSession(
+    browser,
+    account ? "新增账户" : "新增转账",
+    formId,
+  );
+  const { page, baseline, record, backAndCancel, discardAndCheckSource } =
+    session;
+  const input = account
+    ? page.getByRole("textbox", { name: /账户名称/ })
+    : page.getByRole("textbox", { name: "备注（选填）" });
+  await input.fill("新增表单草稿");
+  await input.blur();
+  await position(page, "sentinel");
+  await closeAmountLayer(
+    page,
+    page.getByRole("textbox", {
+      name: account ? "初始金额" : "金额",
+      exact: true,
+    }),
+  );
+  await scroll(page, 2000);
+  for (let index = 0; index < 3; index++) await backAndCancel(2000);
+  assertInternalRecord(
+    await record("新增表单关闭键盘后三次取消，父草稿和历史不变"),
+    baseline,
+  );
+  await discardAndCheckSource();
+  return finishSession(session);
+}
+async function checkReceiptLayers(browser) {
+  const session = await newSession(
+    browser,
+    "编辑小票",
+    "edit-transaction-receipt-form",
+  );
+  const { page, baseline, record, discardAndCheckSource } = session;
+  await page.getByRole("button", { name: "修改备注：编辑前备注" }).click();
+  await page
+    .getByRole("textbox", { name: "备注", exact: true })
+    .fill("父小票草稿");
+  await page.getByRole("button", { name: "完成", exact: true }).click();
+  await page.getByRole("button", { name: /^修改商家：/ }).click();
+  await page.getByRole("group", { name: "常用商家" }).waitFor();
+  const y = await page.evaluate(() => scrollY);
+  await browserBack(page);
+  await page
+    .getByRole("group", { name: "常用商家" })
+    .waitFor({ state: "hidden" });
+  await page.getByRole("link", { name: "关闭", exact: true }).waitFor();
+  assert.equal(await page.getByRole("dialog", { name: "尚未保存" }).count(), 0);
+  await keepScroll(page, y);
+  assertInternalRecord(
+    await record("编辑小票第一次后退只关闭商家抽屉，保留父草稿"),
+    baseline,
+  );
+  await discardAndCheckSource();
+  return finishSession(session);
+}
+async function checkCategory(browser) {
+  const session = await newSession(browser, "分类管理", "category-page");
+  const { page, baseline, record, backAndCancel } = session;
+  await page.getByRole("button", { name: "编辑餐饮" }).click();
+  const name = page.getByRole("textbox", { name: /分类名称/ });
+  await name.fill("分类草稿");
+  await position(page, "sentinel");
+  await backAndCancel(await page.evaluate(() => scrollY));
+  assert.equal(await name.inputValue(), "分类草稿");
+  assertInternalRecord(
+    await record("分类后退取消保留编辑层和父页面"),
+    baseline,
+  );
+  await browserBack(page);
+  await page.getByRole("button", { name: "放弃修改" }).click();
+  await page
+    .getByRole("dialog", { name: "编辑分类" })
+    .waitFor({ state: "hidden" });
+  await position(page, "base");
+  await page.goForward({ waitUntil: "commit" });
+  await position(page, "base");
+  assert.equal(await page.getByRole("dialog", { name: "编辑分类" }).count(), 0);
+  await record("分类放弃只关抽屉，前进不复活编辑层");
+  await page.getByRole("button", { name: "编辑餐饮" }).click();
+  await page.getByRole("textbox", { name: /分类名称/ }).fill("保存分类");
+  await page
+    .getByRole("dialog", { name: "编辑分类" })
+    .getByRole("button", { name: "保存", exact: true })
+    .click();
+  await page
+    .getByRole("dialog", { name: "编辑分类" })
+    .waitFor({ state: "hidden" });
+  await position(page, "base");
+  await record("真实分类保存成功关闭抽屉，保持页面");
+  await browserBack(page);
+  await page.waitForURL(sourceUrl);
+  await keepScroll(page, 320, "auto");
+  await record("分类列表后退一次回来源");
+  return finishSession(session);
+}
+async function checkBalance(browser) {
+  const session = await newSession(
+    browser,
+    "余额调整",
+    "edit-balance-adjustment-form",
+  );
+  const { page, baseline, record, backAndCancel, discardAndCheckSource } =
+    session;
+  await page
+    .getByRole("textbox", { name: "备注（选填）" })
+    .fill("余额调整草稿");
+  await page.getByRole("button", { name: "选择记账时间" }).click();
+  await browserBack(page);
+  await page.getByRole("textbox", { name: "备注（选填）" }).waitFor();
+  assert.equal(await page.getByRole("dialog", { name: "尚未保存" }).count(), 0);
+  await scroll(page, 2000);
+  await backAndCancel(2000);
+  assertInternalRecord(
+    await record("余额调整先关时间层，再确认页面且保留草稿"),
+    baseline,
+  );
+  await discardAndCheckSource();
+  return finishSession(session);
+}
+async function checkAliasSave(browser, viaLink = false) {
+  const session = await newSession(browser, "编辑商家", "merchant-alias-form");
+  const { page, baseline, record } = session;
+  await page
+    .getByRole("textbox", { name: "别名", exact: true })
+    .fill("单独别名草稿");
+  await position(page, "sentinel");
+  if (viaLink) await page.getByRole("link", { name: "返回商家管理" }).click();
+  else await browserBack(page);
+  await page
+    .getByRole("dialog", { name: "尚未保存" })
+    .getByRole("button", { name: "保存", exact: true })
+    .click();
+  await page.waitForURL(viaLink ? `${baseUrl}/merchants` : sourceUrl);
+  await page.getByRole("heading", { name: "离开守卫兼容性验证" }).waitFor();
+  const row = await record("别名保存成功后继续原离开意图");
+  assert.equal(
+    row.currentIndex,
+    viaLink ? baseline.currentIndex + 1 : baseline.currentIndex - 1,
+  );
+  assert.equal(row.length, baseline.length + 1);
+  return finishSession(session);
+}
 await fs.mkdir(output, { recursive: true });
 const browser = await chromium.launch({
   channel: process.env.PLAYWRIGHT_CHANNEL ?? "chrome",
   headless: true,
 });
 try {
-  const account = await checkAccount(browser);
-  const receipt = await checkOtherPage(browser, "receipt");
-  const transfer = await checkOtherPage(browser, "transfer");
+  const cases = {
+    account: () => checkAccount(browser),
+    receipt: () => checkOtherPage(browser, "receipt"),
+    transfer: () => checkOtherPage(browser, "transfer"),
+    merchantCreate: () => checkMerchant(browser, false),
+    merchantEdit: () => checkMerchant(browser, true),
+    standard: () => checkStandard(browser),
+    standardIncome: () => checkStandard(browser, true),
+    newTransfer: () => checkNewForm(browser),
+    newAccount: () => checkNewForm(browser, true),
+    receiptLayers: () => checkReceiptLayers(browser),
+    category: () => checkCategory(browser),
+    balance: () => checkBalance(browser),
+    aliasBack: () => checkAliasSave(browser),
+    aliasLink: () => checkAliasSave(browser, true),
+  };
+  const result = { baseUrl };
+  for (const name of process.env.UNSAVED_GUARD_CASES?.split(",") ??
+    Object.keys(cases)) {
+    if (!cases[name]) throw new Error(`未知验证组：${name}`);
+    result[name] = await cases[name]();
+  }
   await fs.writeFile(
     path.join(output, "compatibility.json"),
-    JSON.stringify({ baseUrl, account, receipt, transfer }, null, 2),
+    JSON.stringify(result, null, 2),
   );
 } finally {
   await browser.close();
