@@ -295,6 +295,9 @@ describe("MerchantEdit 多表单守卫", () => {
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent("基本资料保存失败"),
     );
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull(),
+    );
     changeAlias();
     fireEvent.click(screen.getByRole("button", { name: "添加别名" }));
     await waitFor(() => expect(alias).toHaveBeenCalledOnce());
