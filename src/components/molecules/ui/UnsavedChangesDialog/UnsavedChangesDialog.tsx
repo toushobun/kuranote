@@ -74,6 +74,7 @@ export function UnsavedChangesDialog({
 // 三个按钮统一为同高的文字按钮，只用颜色和字重区分轻重，避免填充按钮显得又高又胖。
 const actionButtonSx = {
   minHeight: 36,
+  minWidth: 0,
   px: 1.25,
   py: 0,
 } as const;
