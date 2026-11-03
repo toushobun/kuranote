@@ -3,7 +3,7 @@ import { useReceiptCreation } from "organisms/transactions/ReceiptCreationProvid
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
+import { EditTransactionActionButton } from "molecules/transactions/EditTransactionActionButton/EditTransactionActionButton";
 import ButtonBase from "@mui/material/ButtonBase";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
@@ -264,10 +264,8 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
             </Box>
           </Box>
           {!readOnly && (
-            <Button
+            <EditTransactionActionButton
               variant="contained"
-              size="large"
-              fullWidth
               type="submit"
               loading={props.saving}
               disabled={
@@ -275,7 +273,7 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
               }
             >
               {props.saving ? m.saving : (props.submitLabel ?? m.save)}
-            </Button>
+            </EditTransactionActionButton>
           )}
         </Stack>
       </Box>

@@ -19,6 +19,7 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
+import { EditTransactionActionButton } from "molecules/transactions/EditTransactionActionButton/EditTransactionActionButton";
 import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { ReadOnlyFieldset } from "atoms/ui/ReadOnlyFieldset";
 import { routePaths } from "config/paths";
@@ -103,6 +104,9 @@ export function TransferTransactionForm({
   title = "新增记账",
   typeNavigation,
 }: TransferTransactionFormProps) {
+  const SubmitButton = initialValues
+    ? EditTransactionActionButton
+    : PrimaryActionButton;
   const reportEditDirty = useEditTransactionDirty();
   const [selectedAccountId, setSelectedAccountId] = useState(
     initialValues?.accountId ?? "",
@@ -506,14 +510,14 @@ export function TransferTransactionForm({
           </Box>
 
           {hideSubmitButton ? null : (
-            <PrimaryActionButton
+            <SubmitButton
               disabled={isSubmitDisabled}
               size="large"
               type="submit"
-              sx={transactionSubmitButtonSx}
+              sx={initialValues ? { mt: 0.25 } : transactionSubmitButtonSx}
             >
               {effectiveSubmitLabel}
-            </PrimaryActionButton>
+            </SubmitButton>
           )}
         </Stack>
       </ReadOnlyFieldset>

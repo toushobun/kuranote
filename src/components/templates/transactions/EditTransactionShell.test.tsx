@@ -1,3 +1,4 @@
+import { expectEditTransactionActionButton } from "test/editTransactionActionButton";
 import { setupGuardHistoryMock } from "test/mockGuardHistory";
 setupGuardHistoryMock();
 
@@ -181,6 +182,7 @@ describe("EditTransactionShell", () => {
       saveButton.compareDocumentPosition(deleteButton) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+    expectEditTransactionActionButton(deleteButton);
     fireEvent.click(deleteButton);
     const dialog = screen.getByRole("dialog", { name: "删除记账？" });
     expect(

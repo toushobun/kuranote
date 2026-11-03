@@ -1,3 +1,4 @@
+import { expectEditTransactionActionButton } from "test/editTransactionActionButton";
 import { cleanup, fireEvent, screen, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -71,6 +72,24 @@ function getSaveButton(container: HTMLElement) {
 }
 
 describe("TransferTransactionForm", () => {
+  it("编辑转账使用与删除共用的底部操作尺寸", () => {
+    renderForm({
+      initialValues: {
+        accountId: jpyAccount1.id,
+        note: "",
+        transactionAt: "2026-06-05T03:20:10.000Z",
+        transactionRecordId: "00000000-0000-4000-8000-000000009002",
+        transferAmount: "5000",
+        transferTargetAccountId: jpyAccount2.id,
+        type: "transfer",
+      },
+    });
+    const button = screen.getByRole("button", { name: "保存修改" });
+    expectEditTransactionActionButton(button);
+    expect(button).toHaveAttribute("type", "submit");
+    expect(button).toBeEnabled();
+  });
+
   it("修改后报告未保存，金额与备注改回初始值恢复未修改", () => {
     const { onDirty } = renderForm();
     expect(onDirty).toHaveBeenLastCalledWith(false);

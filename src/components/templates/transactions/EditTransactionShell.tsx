@@ -3,7 +3,7 @@
 import { useActionState, useState, type ReactNode } from "react";
 
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
+import { EditTransactionActionButton } from "molecules/transactions/EditTransactionActionButton/EditTransactionActionButton";
 import Stack from "@mui/material/Stack";
 
 import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog/UnsavedChangesDialog";
@@ -23,7 +23,6 @@ import {
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { EditTransactionDirtyProvider } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
 import { LinkedTransactionSyncConfirmationDialog } from "organisms/transactions/LinkedTransactionSyncConfirmationDialog/LinkedTransactionSyncConfirmationDialog";
-import { designTokens } from "theme/theme";
 import type {
   TransactionActionState,
   TransactionStateAction,
@@ -108,16 +107,14 @@ export function EditTransactionShell({
         ) : null}
         {children(editAction)}
         {canDelete ? (
-          <Button
+          <EditTransactionActionButton
             color="error"
-            fullWidth
             onClick={() => setIsDeleteDialogOpen(true)}
-            size="large"
             variant="outlined"
-            sx={editTransactionDeleteButtonSx}
+            sx={{ mt: 1.5 }}
           >
             {flowMessages.delete}
-          </Button>
+          </EditTransactionActionButton>
         ) : null}
       </Stack>
       <form action={deleteFormAction} id={deleteTransactionFormId}>
@@ -175,12 +172,4 @@ export function EditTransactionShell({
 
 const editRestrictionAlertSx = {
   pb: 1.5,
-};
-
-const editTransactionDeleteButtonSx = {
-  borderRadius: `${designTokens.radius.md}px`,
-  fontSize: "1rem",
-  fontWeight: 800,
-  minHeight: 48,
-  mt: 1.5,
 };

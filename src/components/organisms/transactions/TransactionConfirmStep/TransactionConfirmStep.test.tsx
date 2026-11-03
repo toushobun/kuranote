@@ -1,6 +1,7 @@
 import { setupGuardHistoryMock } from "test/mockGuardHistory";
 setupGuardHistoryMock();
 
+import { expectEditTransactionActionButton } from "test/editTransactionActionButton";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -67,6 +68,7 @@ function renderMultiAccount(lunchAmount = "10000") {
 describe("TransactionConfirmStep", () => {
   it("小票从上到下显示抬头、明细、合计（含支出）、支付与备注", () => {
     renderConfirmFlow();
+    expectEditTransactionActionButton(saveButton());
     expect(headerRow("商家")).toHaveTextContent("7-Eleven");
     expect(headerRow("时间")).toHaveTextContent(/\d{2}:\d{2}$/);
     expect(line("编辑明细 1")).toHaveTextContent("餐饮 · 午餐¥8,000");
