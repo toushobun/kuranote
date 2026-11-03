@@ -84,6 +84,30 @@ describe("UnsavedChangesDialog", () => {
       expect(button).not.toHaveClass("MuiButton-contained");
     }
   });
+  it.each([true, false])(
+    "按钮文字间距不受文案长度影响（包含保存：%s）",
+    (withSave) => {
+      render(
+        <UnsavedChangesDialog
+          onCancel={vi.fn()}
+          onDiscard={vi.fn()}
+          onSave={withSave ? vi.fn() : undefined}
+          open
+        />,
+      );
+
+      const buttons = screen.getAllByRole("button");
+      expect(buttons).toHaveLength(withSave ? 3 : 2);
+      expect(getComputedStyle(buttons[0]!.parentElement!).gap).toBe("4px");
+
+      for (const button of buttons) {
+        const style = getComputedStyle(button);
+        expect(style.minWidth).toBe("0px");
+        expect(style.paddingLeft).toBe("10px");
+        expect(style.paddingRight).toBe("10px");
+      }
+    },
+  );
   it("多个提交区有修改时不提供含糊的保存按钮", () => {
     render(
       <UnsavedChangesDialog open onCancel={vi.fn()} onDiscard={vi.fn()} />,
