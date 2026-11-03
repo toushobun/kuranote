@@ -4,6 +4,7 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import { EditTransactionActionButton } from "molecules/transactions/EditTransactionActionButton/EditTransactionActionButton";
+import Button from "@mui/material/Button";
 import ButtonBase from "@mui/material/ButtonBase";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
@@ -45,6 +46,9 @@ import { useTransactionConfirmStep } from "./useTransactionConfirmStep";
  * `readOnly`（#962）时只显示内容：没有铅笔、×、可点金额、提示条与保存按钮。
  */
 export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
+  const SubmitButton = props.initialValues
+    ? EditTransactionActionButton
+    : Button;
   const creation = useReceiptCreation();
   const f = props.form;
   const readOnly = !!props.readOnly;
@@ -264,7 +268,9 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
             </Box>
           </Box>
           {!readOnly && (
-            <EditTransactionActionButton
+            <SubmitButton
+              fullWidth
+              size="large"
               variant="contained"
               type="submit"
               loading={props.saving}
@@ -273,7 +279,7 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
               }
             >
               {props.saving ? m.saving : (props.submitLabel ?? m.save)}
-            </EditTransactionActionButton>
+            </SubmitButton>
           )}
         </Stack>
       </Box>

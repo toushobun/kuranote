@@ -1,3 +1,4 @@
+import { expectEditTransactionActionButton } from "test/editTransactionActionButton";
 import { routerMock } from "test/mocks/navigation";
 import { setupGuardHistoryMock, backFromGuard } from "test/mockGuardHistory";
 const guardHistory = setupGuardHistoryMock();
@@ -120,6 +121,17 @@ describe("EditTransactionReceiptTemplate", () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+  });
+
+  it("编辑小票保存与删除复用相同的底部按钮尺寸", () => {
+    renderReceipt();
+    for (const name of ["保存修改", "删除"]) {
+      expectEditTransactionActionButton(screen.getByRole("button", { name }));
+    }
+    expect(screen.getByRole("button", { name: "保存修改" })).toHaveAttribute(
+      "type",
+      "submit",
+    );
   });
 
   it.each(["merchant", "account"] as const)(

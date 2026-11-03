@@ -1,7 +1,7 @@
 import { setupGuardHistoryMock } from "test/mockGuardHistory";
 setupGuardHistoryMock();
 
-import { expectEditTransactionActionButton } from "test/editTransactionActionButton";
+import Button from "@mui/material/Button";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -12,6 +12,7 @@ import {
   renderReadOnlyReceipt,
 } from "test/transactionConfirmStep";
 import {
+  renderEntryComponent,
   clickEntryButton as click,
   selectEntryAccount as selectAccount,
 } from "test/transactionStepFlow";
@@ -66,9 +67,39 @@ function renderMultiAccount(lunchAmount = "10000") {
 }
 
 describe("TransactionConfirmStep", () => {
+  it("新增小票保存按钮保留原生 MUI 样式与提交属性", () => {
+    renderConfirmFlow();
+    renderEntryComponent(
+      <Button fullWidth size="large" type="submit" variant="contained">
+        原生按钮参照
+      </Button>,
+    );
+    const button = saveButton();
+    const actual = getComputedStyle(button);
+    const baseline = getComputedStyle(
+      screen.getByRole("button", { name: "原生按钮参照" }),
+    );
+    for (const property of [
+      "minHeight",
+      "fontSize",
+      "fontWeight",
+      "borderRadius",
+      "padding",
+      "background",
+      "color",
+    ] as const) {
+      expect(actual[property]).toBe(baseline[property]);
+    }
+    expect(button).toHaveClass(
+      "MuiButton-contained",
+      "MuiButton-fullWidth",
+      "MuiButton-sizeLarge",
+    );
+    expect(button).toHaveAttribute("type", "submit");
+  });
+
   it("小票从上到下显示抬头、明细、合计（含支出）、支付与备注", () => {
     renderConfirmFlow();
-    expectEditTransactionActionButton(saveButton());
     expect(headerRow("商家")).toHaveTextContent("7-Eleven");
     expect(headerRow("时间")).toHaveTextContent(/\d{2}:\d{2}$/);
     expect(line("编辑明细 1")).toHaveTextContent("餐饮 · 午餐¥8,000");
