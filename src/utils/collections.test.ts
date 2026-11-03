@@ -1,11 +1,24 @@
 import { describe, expect, it } from "vitest";
 
+import { describeAcrossDefaultLocales } from "test/defaultCollationLocale";
+
 import {
   chunkArray,
+  compareDisplayText,
   groupByKey,
   mergeUniqueById,
   paginateItems,
 } from "./collections";
+
+describeAcrossDefaultLocales("compareDisplayText", () => {
+  it("汉字按拼音排序并排在拉丁字母之前", () => {
+    expect(["Alpha", "妻子", "奶奶"].sort(compareDisplayText)).toEqual([
+      "奶奶",
+      "妻子",
+      "Alpha",
+    ]);
+  });
+});
 
 describe("groupByKey", () => {
   it("按 key 分组并保持组内原有顺序", () => {

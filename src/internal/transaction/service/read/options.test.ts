@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { CategorySummaryDbRow } from "internal/db-types";
+import { describeAcrossDefaultLocales } from "test/defaultCollationLocale";
 
 import {
   buildFormCategoryOptions,
@@ -122,6 +123,65 @@ describe("buildFormCategoryOptions", () => {
 const ledgerId = "00000000-0000-4000-8000-000000000032";
 const userId = "00000000-0000-4000-8000-000000000031";
 
+function loadFilterOptions({
+  listTransactionHolderOptions = vi.fn().mockResolvedValue([]),
+  memberNames = [],
+}: {
+  listTransactionHolderOptions?: Parameters<
+    typeof loadTransactionFilterOptions
+  >[0]["accountQueryService"]["listTransactionHolderOptions"];
+  memberNames?: string[];
+}) {
+  return loadTransactionFilterOptions(
+    {
+      accountQueryService: {
+        getTransactionContext: vi.fn(),
+        listTransactionHolderOptions,
+        listTransactionOptionsWithHolders: vi.fn(),
+        listTransactionOptions: vi.fn().mockResolvedValue([]),
+      },
+      categoryQueryService: {
+        findSummariesByIds: vi.fn(),
+        listActiveSummaries: vi.fn().mockResolvedValue([]),
+      },
+      currentUserId: userId,
+      merchantQueryService: {
+        findSummariesByIds: vi.fn(),
+        listActiveOptionsWithTags: vi.fn(),
+        listActiveOptions: vi.fn().mockResolvedValue([]),
+      },
+      transactionRepository: {
+        findUserSummaries: vi
+          .fn()
+          .mockResolvedValue(
+            memberNames.map((name) => ({ display_name: name, id: name })),
+          ),
+        listActiveMemberIds: vi.fn().mockResolvedValue(memberNames),
+      },
+    },
+    {
+      baseCurrency: "JPY",
+      currentUserRole: "owner",
+      id: ledgerId,
+      name: "家庭账本",
+    },
+  );
+}
+
+describeAcrossDefaultLocales("成员候选的排序", () => {
+  it("交易筛选的成员候选按固定 locale 排序", async () => {
+    const options = await loadFilterOptions({
+      memberNames: ["Alpha", "妻子", "奶奶"],
+    });
+
+    expect(options.members.map((member) => member.name)).toEqual([
+      "奶奶",
+      "妻子",
+      "Alpha",
+    ]);
+  });
+});
+
 describe("loadTransactionFilterOptions", () => {
   it("持有人候选来自账户模块，末尾追加「未指定持有人」", async () => {
     const listTransactionHolderOptions = vi.fn().mockResolvedValue([
@@ -129,36 +189,7 @@ describe("loadTransactionFilterOptions", () => {
       { id: userId, name: "我" },
     ]);
 
-    const options = await loadTransactionFilterOptions(
-      {
-        accountQueryService: {
-          getTransactionContext: vi.fn(),
-          listTransactionHolderOptions,
-          listTransactionOptionsWithHolders: vi.fn(),
-          listTransactionOptions: vi.fn().mockResolvedValue([]),
-        },
-        categoryQueryService: {
-          findSummariesByIds: vi.fn(),
-          listActiveSummaries: vi.fn().mockResolvedValue([]),
-        },
-        currentUserId: userId,
-        merchantQueryService: {
-          findSummariesByIds: vi.fn(),
-          listActiveOptionsWithTags: vi.fn(),
-          listActiveOptions: vi.fn().mockResolvedValue([]),
-        },
-        transactionRepository: {
-          findUserSummaries: vi.fn().mockResolvedValue([]),
-          listActiveMemberIds: vi.fn().mockResolvedValue([]),
-        },
-      },
-      {
-        baseCurrency: "JPY",
-        currentUserRole: "owner",
-        id: ledgerId,
-        name: "家庭账本",
-      },
-    );
+    const options = await loadFilterOptions({ listTransactionHolderOptions });
 
     expect(listTransactionHolderOptions).toHaveBeenCalledWith({
       ledgerId,

@@ -21,7 +21,11 @@ import type {
   TransactionAmountSummary,
   TransactionSharedPaymentSummary,
 } from "internal/transaction/service/read/transactionReadModels";
-import { groupByKey, paginateItems } from "utils/collections";
+import {
+  compareDisplayText,
+  groupByKey,
+  paginateItems,
+} from "utils/collections";
 
 import {
   resolveAccountScope,
@@ -204,7 +208,7 @@ export function buildTransactionGroupSummaryPage({
       return b.latestTransactionAt.localeCompare(a.latestTransactionAt);
     }
 
-    return a.label.localeCompare(b.label, "zh-Hans-CN");
+    return compareDisplayText(a.label, b.label);
   });
   const groupPage = paginateItems(sortedGroups, offset, pageSize);
 
