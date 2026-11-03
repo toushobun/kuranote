@@ -54,13 +54,15 @@ export function UnsavedChangesDialog({
           {onSave ? m.description : m.discardDescription}
         </DialogContentText>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onCancel}>{m.continueEditing}</Button>
-        <Button onClick={onDiscard} color="error">
+      <DialogActions sx={actionsSx}>
+        <Button onClick={onCancel} sx={continueEditingButtonSx}>
+          {m.continueEditing}
+        </Button>
+        <Button onClick={onDiscard} color="error" sx={actionButtonSx}>
           {m.discard}
         </Button>
         {onSave && (
-          <Button onClick={onSave} variant="contained">
+          <Button onClick={onSave} sx={saveButtonSx}>
             {m.save}
           </Button>
         )}
@@ -68,3 +70,31 @@ export function UnsavedChangesDialog({
     </Dialog>
   );
 }
+
+// 三个按钮统一为同高的文字按钮，只用颜色和字重区分轻重，避免填充按钮显得又高又胖。
+const actionButtonSx = {
+  minHeight: 36,
+  px: 1.25,
+  py: 0,
+} as const;
+
+const continueEditingButtonSx = {
+  ...actionButtonSx,
+  color: "text.secondary",
+} as const;
+
+const saveButtonSx = {
+  ...actionButtonSx,
+  fontWeight: 900,
+} as const;
+
+// 按钮不贴弹框边缘；间距用 gap 统一，取消 MUI 默认的相邻按钮左外边距。
+const actionsSx = {
+  gap: 0.5,
+  pb: 1.75,
+  pt: 1,
+  px: 2,
+  "& > :not(style) ~ :not(style)": {
+    ml: 0,
+  },
+} as const;

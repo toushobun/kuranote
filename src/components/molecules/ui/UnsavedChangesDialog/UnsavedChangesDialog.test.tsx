@@ -69,6 +69,21 @@ describe("UnsavedChangesDialog", () => {
     expect(onDiscard).toHaveBeenCalledOnce();
     expect(onSave).toHaveBeenCalledOnce();
   });
+  it("所有操作按钮都是文字按钮，不使用填充样式", () => {
+    render(
+      <UnsavedChangesDialog
+        onCancel={vi.fn()}
+        onDiscard={vi.fn()}
+        onSave={vi.fn()}
+        open
+      />,
+    );
+
+    for (const button of screen.getAllByRole("button")) {
+      expect(button).toHaveClass("MuiButton-text");
+      expect(button).not.toHaveClass("MuiButton-contained");
+    }
+  });
   it("多个提交区有修改时不提供含糊的保存按钮", () => {
     render(
       <UnsavedChangesDialog open onCancel={vi.fn()} onDiscard={vi.fn()} />,
