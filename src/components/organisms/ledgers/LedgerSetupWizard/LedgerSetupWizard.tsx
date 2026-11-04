@@ -1,20 +1,13 @@
 "use client";
 
-import BookmarkRoundedIcon from "@mui/icons-material/BookmarkRounded";
 import Alert from "@mui/material/Alert";
-import Box from "@mui/material/Box";
 import { useId, useState } from "react";
-import {
-  BackLayerScope,
-  useBackLayer,
-} from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
+import { BackLayerScope } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
 import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog/UnsavedChangesDialog";
 import { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
 import { WizardDialog } from "molecules/ui/WizardDialog/WizardDialog";
 
-import { LedgerSetupAbandonButton } from "organisms/ledgers/LedgerSetupAbandonButton/LedgerSetupAbandonButton";
 import { ledgerSetupWizardMessages } from "config/ledgerSetupMessages";
-import { ActionPromptDialog } from "molecules/ui/OperationFeedbackDialogs";
 import { StepProgress } from "molecules/ui/StepProgress/StepProgress";
 import type { LedgerBasicInfoValues } from "organisms/ledgers/LedgerBasicInfoFields/LedgerBasicInfoFields";
 import { LedgerSetupCompleteScreen } from "organisms/ledgers/LedgerSetupCompleteScreen/LedgerSetupCompleteScreen";
@@ -26,10 +19,8 @@ import type { LedgerSetupWizardActions } from "./ledgerSetupWizardStepTypes";
 import { useLedgerSetupWizard } from "./useLedgerSetupWizard";
 
 const wizardLayer = 0;
-const stepDraftLayer = 1;
 
 const stepLabels = ledgerSetupWizardSteps.map(({ label }) => label);
-const closeConfirmMessages = ledgerSetupWizardMessages.closeConfirm;
 
 type LedgerSetupWizardProps = {
   actions: LedgerSetupWizardActions;
@@ -70,20 +61,16 @@ function LedgerSetupWizardContent({
   const wizard = useLedgerSetupWizard({
     initialNotice,
     initialProgress,
-    onClose,
   });
   const [dirty, setDirty] = useState(false);
   const guard = useUnsavedChangesGuard({
-    active: open && dirty,
+    active: open,
     disabled: wizard.busy,
     isDirty: dirty,
-    layer: stepDraftLayer,
-    onClose: wizard.closeLater,
+    layer: wizardLayer,
+    onClose,
     saveFormId: null,
   });
-  useBackLayer(open, wizard.requestClose);
-  useBackLayer(open && wizard.closeConfirmOpen, wizard.continueSetup, 2);
-  const requestClose = dirty ? guard.requestClose : wizard.requestClose;
   const { Component: StepComponent, key, label } = wizard.currentStep;
 
   return (
@@ -95,7 +82,7 @@ function LedgerSetupWizardContent({
         }
         closeLabel={ledgerSetupWizardMessages.close}
         disabled={wizard.busy}
-        onClose={requestClose}
+        onClose={guard.requestClose}
         open={open}
         headerContent={
           wizard.completeScreen ? undefined : (
@@ -123,7 +110,7 @@ function LedgerSetupWizardContent({
         {wizard.completeScreen ? (
           <LedgerSetupCompleteScreen
             completion={wizard.completeScreen}
-            onClose={wizard.requestClose}
+            onClose={guard.requestClose}
             titleId={titleId}
           />
         ) : (
@@ -142,7 +129,6 @@ function LedgerSetupWizardContent({
             onProgressRefresh={wizard.refreshProgress}
             onRestore={wizard.restoreProgress}
             onSetupCompleted={wizard.markSetupCompleted}
-            onSetupUnavailable={wizard.markSetupUnavailable}
             progress={wizard.progress}
             step={wizard.step}
             stepLabel={label}
@@ -151,31 +137,6 @@ function LedgerSetupWizardContent({
       </WizardDialog>
 
       <UnsavedChangesDialog {...guard.dialogProps} />
-      <ActionPromptDialog
-        disabled={wizard.busy}
-        description={closeConfirmMessages.description}
-        extraAction={
-          wizard.progress && (
-            <Box sx={{ mt: 1 }}>
-              <LedgerSetupAbandonButton
-                onBusyChange={wizard.setBusy}
-                action={actions.abandonSetup}
-                ledgerId={wizard.progress.setup.id}
-                ledgerName={wizard.progress.setup.name}
-                onSuccess={wizard.closeLater}
-              />
-            </Box>
-          )
-        }
-        icon={<BookmarkRoundedIcon />}
-        onClose={wizard.continueSetup}
-        onPrimary={wizard.continueSetup}
-        onSecondary={wizard.closeLater}
-        open={wizard.closeConfirmOpen}
-        primaryLabel={closeConfirmMessages.continue}
-        secondaryLabel={closeConfirmMessages.later}
-        title={closeConfirmMessages.title}
-      />
     </>
   );
 }

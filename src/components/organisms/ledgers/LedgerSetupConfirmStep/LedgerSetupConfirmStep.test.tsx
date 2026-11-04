@@ -225,7 +225,7 @@ describe("LedgerSetupConfirmStep", () => {
   });
 
   describe("完成创建", () => {
-    it("完成写入成功后进入邀请步骤，关闭时不再提示稍后继续", async () => {
+    it("完成写入成功后进入邀请步骤，可直接关闭", async () => {
       const progress = createLedgerSetupConfirmProgressFixture();
       const { completeSetup, onClose } = renderConfirmStep({ progress });
 
@@ -235,9 +235,9 @@ describe("LedgerSetupConfirmStep", () => {
       expect(completeSetup).toHaveBeenCalledWith({
         ledgerId: progress.setup.id,
       });
-      expect(onClose).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
       expect(
-        screen.queryByRole("dialog", { name: "稍后再继续？" }),
+        screen.queryByRole("dialog", { name: "尚未保存" }),
       ).not.toBeInTheDocument();
     });
 
@@ -291,7 +291,7 @@ describe("LedgerSetupConfirmStep", () => {
       ).not.toBeDisabled();
     });
 
-    it("创建中账本不存在时显示失败提示，锁定操作且关闭时不再提示稍后继续", async () => {
+    it("创建中账本不存在时显示失败提示，锁定操作且可直接关闭", async () => {
       const message = ledgerSetupErrorMessages[ledgerSetupErrorCodes.notFound];
       const completeSetup = vi.fn<LedgerSetupCompleteAction>(async () => ({
         error: message,
@@ -310,9 +310,9 @@ describe("LedgerSetupConfirmStep", () => {
 
       clickCloseWizard();
 
-      expect(onClose).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
       expect(
-        screen.queryByRole("dialog", { name: "稍后再继续？" }),
+        screen.queryByRole("dialog", { name: "尚未保存" }),
       ).not.toBeInTheDocument();
     });
 

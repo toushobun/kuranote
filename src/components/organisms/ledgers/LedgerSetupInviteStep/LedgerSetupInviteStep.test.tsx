@@ -251,14 +251,14 @@ describe("LedgerSetupInviteStep", () => {
       ).not.toBeInTheDocument();
     });
 
-    it("点击「×」直接关闭向导，不提示稍后继续", async () => {
+    it("点击「×」直接关闭向导", async () => {
       const { onClose } = await renderLedgerSetupWizardAtInviteStep();
 
       clickCloseWizard();
 
-      expect(onClose).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
       expect(
-        screen.queryByRole("dialog", { name: "稍后再继续？" }),
+        screen.queryByRole("dialog", { name: "尚未保存" }),
       ).not.toBeInTheDocument();
     });
   });

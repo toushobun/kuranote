@@ -8,7 +8,6 @@ import { designTokens, theme } from "theme/theme";
 import { expectInBodyPortal } from "test/bodyPortal";
 
 import {
-  ActionPromptDialog,
   ConfirmationDialog,
   DeleteConfirmationDialog,
   FailureFeedbackDialog,
@@ -276,85 +275,6 @@ describe("ConfirmationDialog", () => {
     expect(screen.getByTestId("custom-illustration")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "返回" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "继续" })).toBeInTheDocument();
-  });
-});
-
-describe("ActionPromptDialog", () => {
-  function renderPrompt(disabled = false, extraAction?: ReactNode) {
-    const handlers = {
-      onClose: vi.fn(),
-      onPrimary: vi.fn(),
-      onSecondary: vi.fn(),
-    };
-
-    render(
-      <ThemeProvider theme={theme}>
-        <ActionPromptDialog
-          {...handlers}
-          disabled={disabled}
-          extraAction={extraAction}
-          description="进度已保存。"
-          icon={<span data-testid="prompt-icon" />}
-          open
-          primaryLabel="继续创建"
-          secondaryLabel="稍后再说"
-          title="稍后再继续？"
-        />
-      </ThemeProvider>,
-    );
-
-    return handlers;
-  }
-
-  it("显示图标、标题、正文以及上下排列的主按钮与文字按钮", () => {
-    renderPrompt();
-
-    const dialog = screen.getByRole("dialog", { name: "稍后再继续？" });
-    expect(dialog).toHaveAccessibleDescription("进度已保存。");
-    expect(screen.getByTestId("prompt-icon")).toBeInTheDocument();
-    expect(
-      screen.getAllByRole("button").map((button) => button.textContent),
-    ).toEqual(["继续创建", "稍后再说"]);
-    expect(screen.getByRole("button", { name: "继续创建" })).toHaveClass(
-      "MuiButton-contained",
-    );
-    expect(screen.getByRole("button", { name: "稍后再说" })).toHaveClass(
-      "MuiButton-text",
-    );
-  });
-
-  it("附加操作可独立点击且不进入无障碍说明", () => {
-    const onExtra = vi.fn();
-    renderPrompt(false, <button onClick={onExtra}>附加操作</button>);
-    expect(screen.getByRole("dialog")).toHaveAccessibleDescription(
-      "进度已保存。",
-    );
-    fireEvent.click(screen.getByRole("button", { name: "附加操作" }));
-    expect(onExtra).toHaveBeenCalledOnce();
-  });
-
-  it("主按钮、文字按钮与 Esc 分别触发各自回调", () => {
-    const handlers = renderPrompt();
-
-    fireEvent.click(screen.getByRole("button", { name: "继续创建" }));
-    fireEvent.click(screen.getByRole("button", { name: "稍后再说" }));
-    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
-
-    expect(handlers.onPrimary).toHaveBeenCalledTimes(1);
-    expect(handlers.onSecondary).toHaveBeenCalledTimes(1);
-    expect(handlers.onClose).toHaveBeenCalledTimes(1);
-  });
-  it("处理中禁用两个操作并阻止 Esc 关闭", () => {
-    const handlers = renderPrompt(true);
-    for (const name of ["继续创建", "稍后再说"]) {
-      const button = screen.getByRole("button", { name });
-      expect(button).toBeDisabled();
-      fireEvent.click(button);
-    }
-    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
-    expect(handlers.onPrimary).not.toHaveBeenCalled();
-    expect(handlers.onSecondary).not.toHaveBeenCalled();
-    expect(handlers.onClose).not.toHaveBeenCalled();
   });
 });
 

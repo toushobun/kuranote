@@ -790,8 +790,14 @@ async function checkLedgerSetup(browser) {
     "账本创建向导",
     "ledger-setup-page",
   );
-  const { page, record } = session;
-  const resume = page.getByRole("button", { name: "继续创建", exact: true });
+  const { page, baseline, record } = session;
+  const resume = page.getByRole("button", {
+    name: "继续创建家庭账本",
+    exact: true,
+  });
+  await page.getByText("你还没有任何账本").waitFor();
+  const wizard = page.getByRole("dialog", { name: "创建账本" });
+  const close = wizard.getByRole("button", { name: "关闭创建账本向导" });
   await resume.click();
   const account = page.getByRole("checkbox", { name: "现金" });
   await account.uncheck();
@@ -818,22 +824,59 @@ async function checkLedgerSetup(browser) {
   await record("向导：后退静默关闭子层并保留名称，添加后清空名称草稿");
 
   await browserBack(page);
-  assert.equal(
-    await prompt.getByRole("button", { name: "保存", exact: true }).count(),
-    0,
-  );
+  await prompt.waitFor();
+  assert.deepEqual(await prompt.getByRole("button").allTextContents(), [
+    "继续编辑",
+    "放弃修改",
+  ]);
+  await cancel(page);
+  assert.equal(await added.isChecked(), true);
+  assert.equal(await account.isChecked(), false);
+
+  await close.click();
   await prompt.getByRole("button", { name: "放弃修改" }).click();
-  await resume.waitFor();
-  await position(page, "base");
+  async function assertWizardClosed(step) {
+    await wizard.waitFor({ state: "hidden" });
+    await resume.waitFor();
+    const closed = await record(step);
+    assert.equal(closed.scrollRestoration, "auto");
+    assert.equal(closed.currentIndex, baseline.currentIndex);
+    assert.equal(closed.unmounts, baseline.unmounts);
+    assert.equal(await prompt.count(), 0);
+    return closed;
+  }
+  const discarded =
+    await assertWizardClosed("向导：关闭确认只放弃当前账户修改");
   await resume.click();
+  await account.waitFor();
   assert.equal(await account.isChecked(), true);
+  assert.equal(await added.count(), 0);
+  await close.click();
+  const closed = await assertWizardClosed("向导：恢复已保存进度后直接点击关闭");
+  assert.equal(closed.length, discarded.length);
+
+  await resume.click();
+  await account.waitFor();
   await position(page, "sentinel");
   await browserBack(page);
-  const existingPrompt = page.getByRole("dialog", { name: "稍后再继续？" });
-  await existingPrompt.getByRole("button", { name: "稍后再说" }).click();
+  const backed = await assertWizardClosed("向导：清洁状态后退只关闭向导");
+  assert.equal(backed.length, closed.length);
+
+  const abandon = page.getByRole("button", { name: "放弃创建", exact: true });
+  await abandon.click();
+  const danger = page.getByRole("dialog", { name: "放弃创建「家庭账本」？" });
+  await danger.getByRole("button", { name: "取消" }).click();
   await resume.waitFor();
-  await position(page, "base");
-  await record("向导：丢弃当前输入后仍可恢复已保存进度，保留原关闭提示");
+  await abandon.click();
+  await danger.getByRole("button", { name: "放弃创建" }).click();
+  await resume.waitFor({ state: "detached" });
+  await record("账本管理：零已完成账本时仍可在外层确认放弃创建");
+
+  await browserBack(page);
+  await page.waitForURL(sourceUrl);
+  await page.getByRole("heading", { name: "离开守卫兼容性验证" }).waitFor();
+  const returned = await record("向导关闭后下一次后退正常返回来源页");
+  assert.equal(returned.currentIndex, baseline.currentIndex - 1);
   return finishSession(session);
 }
 async function checkBalance(browser) {

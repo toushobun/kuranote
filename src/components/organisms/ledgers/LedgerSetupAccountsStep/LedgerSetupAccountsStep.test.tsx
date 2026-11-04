@@ -270,8 +270,8 @@ describe("LedgerSetupAccountsStep", () => {
     expect(getAccountCheckbox("现金")).toBeChecked();
   });
 
-  it("保存中禁用操作栏与关闭按钮，并显示 loading", async () => {
-    renderAccountsStep({
+  it("保存中禁用操作栏、关闭按钮和浏览器后退，并显示 loading", async () => {
+    const { onClose } = renderAccountsStep({
       saveDraft: vi.fn<LedgerSetupDraftSaveAction>(() => new Promise(() => {})),
     });
 
@@ -289,8 +289,10 @@ describe("LedgerSetupAccountsStep", () => {
     expect(screen.getByRole("button", { name: "添加银行卡" })).toBeDisabled();
 
     clickCloseWizard();
+    await backFromGuard();
+    expect(onClose).not.toHaveBeenCalled();
     expect(
-      screen.queryByRole("dialog", { name: "稍后再继续？" }),
+      screen.queryByRole("dialog", { name: "尚未保存" }),
     ).not.toBeInTheDocument();
   });
 

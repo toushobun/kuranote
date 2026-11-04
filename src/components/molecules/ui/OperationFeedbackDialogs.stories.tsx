@@ -1,10 +1,7 @@
-import BookmarkRoundedIcon from "@mui/icons-material/BookmarkRounded";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import {
-  ActionPromptDialog,
   ConfirmationDialog,
   DeleteConfirmationDialog,
   FailureFeedbackDialog,
@@ -114,45 +111,4 @@ export const CustomConfirmation: Story = {
       title="继续这个操作？"
     />
   ),
-};
-
-export const ActionPrompt: StoryObj<typeof ActionPromptDialog> = {
-  name: "主按钮 + 文字按钮提示",
-  args: {
-    description:
-      "目前的进度已保存。账本会显示为「创建中」，你可以随时回来继续完成。",
-    icon: <BookmarkRoundedIcon />,
-    onClose: () => undefined,
-    onPrimary: () => undefined,
-    onSecondary: () => undefined,
-    open: true,
-    primaryLabel: "继续创建",
-    secondaryLabel: "稍后再说",
-    title: "稍后再继续？",
-  },
-  render: (args) => <ActionPromptDialog {...args} />,
-};
-
-export const ActionPromptWithExtraAction: StoryObj<typeof ActionPromptDialog> =
-  {
-    ...ActionPrompt,
-    name: "带附加操作的提示",
-    args: {
-      ...ActionPrompt.args,
-      extraAction: (
-        <Box sx={{ mt: 1 }}>
-          <Button onClick={() => undefined}>其他操作</Button>
-        </Box>
-      ),
-    },
-  };
-
-export const ActionPromptDisabled: StoryObj<typeof ActionPromptDialog> = {
-  ...ActionPrompt,
-  name: "提示操作处理中",
-  args: {
-    ...ActionPrompt.args,
-    disabled: true,
-    description: "正在处理，请稍候。",
-  },
 };
