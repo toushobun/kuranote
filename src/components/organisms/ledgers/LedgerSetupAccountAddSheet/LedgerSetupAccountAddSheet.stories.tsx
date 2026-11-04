@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { useArgs } from "storybook/preview-api";
 import { userEvent, within } from "storybook/test";
 
 import { ledgerSetupTemplateFixture } from "test/mocks/ledgerSetup";
@@ -14,10 +15,21 @@ const meta = {
       { name: "楽天銀行", templateKey: "楽天銀行", type: "bank" },
     ],
     candidates: ledgerSetupTemplateFixture.accountCandidates.bank,
+    name: "",
     onAdd: () => {},
     onClose: () => {},
+    onNameChange: () => {},
     open: true,
     type: "bank",
+  },
+  render: function Render(args) {
+    const [, updateArgs] = useArgs();
+    return (
+      <LedgerSetupAccountAddSheet
+        {...args}
+        onNameChange={(name) => updateArgs({ name })}
+      />
+    );
   },
   parameters: { viewport: { defaultViewport: "mobile2" } },
 } satisfies Meta<typeof LedgerSetupAccountAddSheet>;

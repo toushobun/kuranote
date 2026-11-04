@@ -795,17 +795,29 @@ async function checkLedgerSetup(browser) {
   await resume.click();
   const account = page.getByRole("checkbox", { name: "现金" });
   await account.uncheck();
-  await page.getByRole("button", { name: "添加银行卡" }).click();
+  const addBank = page.getByRole("button", { name: "添加银行卡" });
+  await addBank.click();
   const sheet = page.getByRole("dialog", { name: "添加银行卡" });
-  await sheet.getByRole("textbox", { name: "账户名称" }).fill("未添加账户");
+  const name = sheet.getByRole("textbox", { name: "账户名称" });
+  const prompt = page.getByRole("dialog", { name: "尚未保存" });
+  await name.fill("未添加账户");
   await browserBack(page);
-  await page.getByRole("button", { name: "放弃修改" }).click();
   await sheet.waitFor({ state: "hidden" });
+  assert.equal(await prompt.count(), 0);
   assert.equal(await account.isChecked(), false);
-  await record("向导：后退放弃新增账户只关闭子层，保留父步骤草稿");
+  await addBank.click();
+  assert.equal(await name.inputValue(), "未添加账户");
+  await sheet.getByRole("button", { name: "添加" }).click();
+  await sheet.waitFor({ state: "hidden" });
+  const added = page.getByRole("checkbox", { name: "未添加账户" });
+  assert.equal(await added.isChecked(), true);
+  await addBank.click();
+  assert.equal(await name.inputValue(), "");
+  await sheet.getByRole("button", { name: "关闭" }).click();
+  await sheet.waitFor({ state: "hidden" });
+  await record("向导：后退静默关闭子层并保留名称，添加后清空名称草稿");
 
   await browserBack(page);
-  const prompt = page.getByRole("dialog", { name: "尚未保存" });
   assert.equal(
     await prompt.getByRole("button", { name: "保存", exact: true }).count(),
     0,

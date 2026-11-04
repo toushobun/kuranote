@@ -47,6 +47,9 @@ export function useLedgerSetupAccountsStep(
     open: boolean;
     type: LedgerSetupAccountType;
   }>({ open: false, type: "bank" });
+  const [draftNames, setDraftNames] = useState<
+    Partial<Record<LedgerSetupAccountType, string>>
+  >({});
 
   const accounts = rows.map(({ account }) => account);
   const checkedAccounts = rows
@@ -70,6 +73,14 @@ export function useLedgerSetupAccountsStep(
     return { ...draft, accounts: { items: checkedAccounts, skipped } };
   }
 
+  function closeAddSheet() {
+    setAddSheet((current) => ({ ...current, open: false }));
+  }
+
+  function changeDraftName(name: string) {
+    setDraftNames((current) => ({ ...current, [addSheet.type]: name }));
+  }
+
   return {
     addSheet: {
       ...addSheet,
@@ -80,11 +91,12 @@ export function useLedgerSetupAccountsStep(
           : (progress.template?.accountCandidates[addSheet.type] ?? []),
       onAdd(account: LedgerSetupDraftAccount) {
         setRows((current) => [...current, { account, checked: true }]);
-        setAddSheet((current) => ({ ...current, open: false }));
+        changeDraftName("");
+        closeAddSheet();
       },
-      onClose() {
-        setAddSheet((current) => ({ ...current, open: false }));
-      },
+      name: draftNames[addSheet.type] ?? "",
+      onClose: closeAddSheet,
+      onNameChange: changeDraftName,
     },
     checkedCount: checkedAccounts.length,
     failureState: draftSave.failureState,
