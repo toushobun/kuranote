@@ -13,6 +13,7 @@ import Typography from "@mui/material/Typography";
 import { useId, useState } from "react";
 
 import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
+import { useBackLayer } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
 import { designTokens } from "theme/theme";
 import type {
   EmojiIconGroup,
@@ -48,6 +49,7 @@ export function GroupedIconPicker({
     group.options.some((option) => option.emoji === draftValue),
   );
   const closePicker = () => setDraftValue(null);
+  useBackLayer(draftValue !== null, closePicker, 1);
 
   return (
     <>

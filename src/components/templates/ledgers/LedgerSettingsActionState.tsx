@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, type ComponentProps } from "react";
+import { useState, type ComponentProps } from "react";
 
 import type {
   LedgerSettingsActionState,
@@ -22,10 +22,18 @@ export function LedgerSettingsActionStateTemplate({
   updateLedgerSettingsAction,
   ...templateProps
 }: LedgerSettingsActionStateTemplateProps) {
-  const [actionState, formAction] = useActionState(
-    updateLedgerSettingsAction,
+  const [actionState, setActionState] = useState(
     initialLedgerSettingsActionState,
   );
+
+  async function formAction(formData: FormData) {
+    const result = await updateLedgerSettingsAction(
+      initialLedgerSettingsActionState,
+      formData,
+    );
+    setActionState(result);
+    return result;
+  }
 
   return (
     <LedgerSettingsTemplate

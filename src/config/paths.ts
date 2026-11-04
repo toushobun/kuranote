@@ -69,9 +69,6 @@ type TransactionResultValue =
 type AccountResultValue =
   (typeof accountResultValues)[keyof typeof accountResultValues];
 
-type LedgerSettingsResultValue =
-  (typeof ledgerSettingsResultValues)[keyof typeof ledgerSettingsResultValues];
-
 export type LedgerSwitchResultValue =
   (typeof ledgerSwitchResultValues)[keyof typeof ledgerSwitchResultValues];
 
@@ -166,15 +163,6 @@ export function ledgersResultHref(result: LedgerSwitchResultValue) {
 
 export function ledgerSettingsHref(ledgerId: string) {
   return `${routePaths.ledgers}/${encodeURIComponent(ledgerId)}/settings`;
-}
-
-export function ledgerSettingsResultHref(
-  ledgerId: string,
-  result: LedgerSettingsResultValue,
-) {
-  const searchParams = new URLSearchParams({ result });
-
-  return `${ledgerSettingsHref(ledgerId)}?${searchParams.toString()}`;
 }
 
 export function accountsNewHref(returnTo?: string | null) {

@@ -2,7 +2,7 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ledgerSettingsResultValues, routePaths } from "config/paths";
+import { routePaths } from "config/paths";
 import {
   ledgerSettingsErrorCodes,
   ledgerSettingsErrorMessages,
@@ -193,9 +193,10 @@ describe("updateLedgerSettings", () => {
       runAction(
         createLedgerFormData({ transactionItemSpecialStatusEnabled: "true" }),
       ),
-    ).rejects.toThrow(
-      `NEXT_REDIRECT:/ledgers/${ledgerId}/settings?result=${ledgerSettingsResultValues.updated}`,
-    );
+    ).resolves.toMatchObject({
+      success: "账本设置已保存。",
+      successKey: expect.any(String),
+    });
 
     expect(mocks.updateService).toHaveBeenCalledWith({
       intent: "ledger",
@@ -213,9 +214,9 @@ describe("updateLedgerSettings", () => {
   });
 
   it("成员设置表单保存时传递成员信息", async () => {
-    await expect(runAction(createMemberFormData())).rejects.toThrow(
-      "NEXT_REDIRECT:",
-    );
+    await expect(runAction(createMemberFormData())).resolves.toMatchObject({
+      successKey: expect.any(String),
+    });
 
     expect(mocks.updateService).toHaveBeenCalledWith({
       intent: "member",

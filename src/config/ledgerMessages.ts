@@ -7,6 +7,7 @@ export const ledgerPageMessages = {
 } as const;
 
 export const ledgerSettingsPageMessages = {
+  saved: "账本设置已保存。",
   title: "账本设置",
   subtitle: "管理账本信息与成员设置",
   backToLedgers: "返回账本管理",

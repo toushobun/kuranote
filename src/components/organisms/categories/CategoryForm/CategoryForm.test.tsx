@@ -8,6 +8,9 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
+import { backFromGuard, setupGuardHistoryMock } from "test/mockGuardHistory";
+
 import { CategoryForm } from "./CategoryForm";
 
 const parentOptions = [
@@ -15,12 +18,20 @@ const parentOptions = [
   { id: "income-root", name: "💰 工资", type: "income" as const },
 ];
 
-function renderForm(options = parentOptions) {
+const history = setupGuardHistoryMock();
+
+function renderForm(
+  options = parentOptions,
+  createCategoryAction = vi.fn(async (_data: FormData) => {
+    void _data;
+  }),
+) {
   return render(
     <CategoryForm
-      createCategoryAction={vi.fn(async () => {})}
+      createCategoryAction={createCategoryAction}
       parentOptions={options}
     />,
+    { wrapper: ConfirmDialogTestProviders },
   );
 }
 
@@ -29,16 +40,48 @@ afterEach(() => {
 });
 
 describe("CategoryForm", () => {
+  it("后退先关闭选择器，再保护分类草稿，放弃只关闭新增对话框", async () => {
+    renderForm();
+    fireEvent.click(screen.getByRole("button", { name: "新增分类" }));
+    const name = screen.getByRole("textbox", { name: "分类名称" });
+    fireEvent.change(name, { target: { value: "草稿" } });
+    fireEvent.mouseDown(screen.getByRole("combobox", { name: "上级分类" }));
+
+    await backFromGuard();
+    await waitFor(() =>
+      expect(screen.queryByRole("listbox")).not.toBeInTheDocument(),
+    );
+    expect(
+      screen.queryByRole("dialog", { name: "尚未保存" }),
+    ).not.toBeInTheDocument();
+
+    await backFromGuard();
+    fireEvent.click(screen.getByRole("button", { name: "继续编辑" }));
+    expect(name).toHaveValue("草稿");
+    await backFromGuard();
+    fireEvent.click(screen.getByRole("button", { name: "放弃修改" }));
+    await waitFor(() => expect(name).not.toBeInTheDocument());
+    expect(history().index()).toBe(1);
+  });
+
+  it("改回初始值后按 Esc 直接关闭", async () => {
+    renderForm();
+    fireEvent.click(screen.getByRole("button", { name: "新增分类" }));
+    const name = screen.getByRole("textbox", { name: "分类名称" });
+    fireEvent.change(name, { target: { value: "草稿" } });
+    fireEvent.change(name, { target: { value: "" } });
+    fireEvent.keyDown(name, { key: "Escape" });
+    await waitFor(() => expect(name).not.toBeInTheDocument());
+    expect(
+      screen.queryByRole("dialog", { name: "尚未保存" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("确认图标后提交名称与图标", async () => {
     const createCategoryAction = vi.fn<(data: FormData) => Promise<void>>(
       async () => {},
     );
-    render(
-      <CategoryForm
-        createCategoryAction={createCategoryAction}
-        parentOptions={parentOptions}
-      />,
-    );
+    renderForm(parentOptions, createCategoryAction);
     fireEvent.click(screen.getByRole("button", { name: "新增分类" }));
     fireEvent.change(screen.getByRole("textbox", { name: "分类名称" }), {
       target: { value: "验收分类" },

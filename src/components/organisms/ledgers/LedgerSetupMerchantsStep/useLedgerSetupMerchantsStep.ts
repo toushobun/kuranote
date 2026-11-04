@@ -1,5 +1,7 @@
 "use client";
 
+import { useLedgerSetupStepDirty } from "organisms/ledgers/LedgerSetupWizard/useLedgerSetupStepDirty";
+
 import { useMemo, useState } from "react";
 
 import type { LedgerSetupDraft } from "internal/ledger";
@@ -27,6 +29,7 @@ export function useLedgerSetupMerchantsStep(
   const [selectedKeys, setSelectedKeys] = useState<string[]>(() => [
     ...draft.merchants.selectedKeys,
   ]);
+  useLedgerSetupStepDirty([...selectedKeys].sort(), options.onDirtyChange);
   const checklist = useMemo(
     () => (template ? buildMerchantChecklist(template) : null),
     [template],

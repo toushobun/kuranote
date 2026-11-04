@@ -1,7 +1,15 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import type { LedgerSetupDraftAccount } from "internal/ledger";
+import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
+import { backFromGuard, setupGuardHistoryMock } from "test/mockGuardHistory";
 import { ledgerSetupTemplateFixture } from "test/mocks/ledgerSetup";
 
 import { LedgerSetupAccountAddSheet } from "./LedgerSetupAccountAddSheet";
@@ -12,6 +20,8 @@ import {
   getAccountNameInput,
   submitAccountAddSheet,
 } from "./ledgerSetupAccountAddSheetTestUtils";
+
+setupGuardHistoryMock();
 
 const bankCandidates = ledgerSetupTemplateFixture.accountCandidates.bank;
 
@@ -34,12 +44,27 @@ function renderSheet({
       open
       type="bank"
     />,
+    { wrapper: ConfirmDialogTestProviders },
   );
 
   return { onAdd, onClose, sheet: getAccountAddSheet("银行卡") };
 }
 
 describe("LedgerSetupAccountAddSheet", () => {
+  it("后退确认只处理新增账户草稿", async () => {
+    const { onAdd, onClose, sheet } = renderSheet();
+    changeAccountName(sheet, "手填账户");
+    await backFromGuard();
+    fireEvent.click(screen.getByRole("button", { name: "继续编辑" }));
+    await waitFor(() =>
+      expect(getAccountNameInput(sheet)).toHaveValue("手填账户"),
+    );
+    await backFromGuard();
+    fireEvent.click(screen.getByRole("button", { name: "放弃修改" }));
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+    expect(onAdd).not.toHaveBeenCalled();
+  });
+
   it("显示标题、输入框、常用候选与添加按钮", () => {
     const { sheet } = renderSheet();
 
@@ -60,12 +85,12 @@ describe("LedgerSetupAccountAddSheet", () => {
     }
   });
 
-  it("点击「×」关闭弹层", () => {
+  it("点击「×」关闭弹层", async () => {
     const { onClose, sheet } = renderSheet();
 
     fireEvent.click(within(sheet).getByRole("button", { name: "关闭" }));
 
-    expect(onClose).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
   });
 
   it("点击候选 Chip 将名称填入输入框并高亮，可以继续编辑", () => {

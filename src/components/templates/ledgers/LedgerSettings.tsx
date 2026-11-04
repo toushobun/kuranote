@@ -20,7 +20,15 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  startTransition,
+  useEffect,
+  useEffectEvent,
+  useId,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { SoftCard } from "atoms/ui/SoftCard";
@@ -32,6 +40,12 @@ import {
   FailureFeedbackDialog,
   SuccessFeedbackDialog,
 } from "molecules/ui/OperationFeedbackDialogs";
+import {
+  BackLayerScope,
+  useSelectBackLayer,
+} from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
+import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog/UnsavedChangesDialog";
+import { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
 import { AccountFormDialogShell } from "organisms/accounts/AccountFormDialogShell/AccountFormDialogShell";
 import { LedgerDeletion } from "organisms/ledgers/LedgerDeletion/LedgerDeletion";
 import type { DeleteLedgerAction } from "organisms/ledgers/LedgerDeletion/useLedgerDeletion";
@@ -47,7 +61,6 @@ import { useClearQueryParam } from "templates/useClearQueryParam";
 import { designTokens } from "theme/theme";
 import { themeColorTokens, type ThemeColorKey } from "theme/themeColorTokens";
 import { typographyStyles } from "theme/typographyTokens";
-import type { ServerAction } from "types/actions";
 import {
   ledgerCurrencyOptions,
   ledgerMemberColorOptions,
@@ -55,10 +68,74 @@ import {
   ledgerRoleOptions,
   type LedgerInviteStateAction,
   type LedgerPlaceholderMemberActions,
+  type LedgerSettingsActionState,
   type LedgerSettingsMember,
   type LedgerSettingsView,
   type LoadLedgerDeletionImpactAction,
 } from "types/ledgers";
+
+type SettingsAction = (
+  data: FormData,
+) => Promise<LedgerSettingsActionState | void>;
+
+function useSettingsForm({
+  fields,
+  action,
+  onSaved,
+  onClose,
+}: {
+  fields: Record<string, string>;
+  action: SettingsAction;
+  onSaved: () => void;
+  onClose?: () => void;
+}) {
+  const formId = useId();
+  const [baseline, setBaseline] = useState(() => Object.values(fields));
+  const [pending, setPending] = useState(false);
+  const [completion, setCompletion] = useState<{ success: boolean } | null>(
+    null,
+  );
+  const guard = useUnsavedChangesGuard({
+    isDirty: Object.values(fields).some(
+      (value, index) => value !== baseline[index],
+    ),
+    saveFormId: formId,
+    layer: onClose ? 0 : null,
+    onClose,
+  });
+
+  const finishSave = useEffectEvent((success: boolean) => {
+    void guard.completeSave(success, formId);
+    if (success) onSaved();
+  });
+  useEffect(() => {
+    if (!completion) return;
+    // 等 Next 提交同页刷新与新基线，再执行确认框记录的导航。
+    finishSave(completion.success);
+  }, [completion]);
+
+  async function submit(data: FormData) {
+    if (pending) return;
+    const submitted = Object.keys(fields).map((field) =>
+      String(data.get(field) ?? fields[field]),
+    );
+    setPending(true);
+    try {
+      const result = await guard.runInPlaceAction(() => action(data));
+      startTransition(() => {
+        if (result?.success) setBaseline(submitted);
+        setCompletion({ success: Boolean(result?.success) });
+        setPending(false);
+      });
+    } catch (error) {
+      void guard.completeSave(false, formId);
+      setPending(false);
+      throw error;
+    }
+  }
+
+  return { formId, guard, pending, submit };
+}
 
 export type LedgerSettingsSaveResult = "updated";
 
@@ -77,10 +154,18 @@ type LedgerSettingsTemplateProps = LedgerSettingsView & {
   /** 只有 owner/admin 会传入；其他成员只读占位摘要。 */
   placeholderMemberActions?: LedgerPlaceholderMemberActions | null;
   saveResult?: LedgerSettingsSaveResult | null;
-  updateLedgerSettingsAction: ServerAction;
+  updateLedgerSettingsAction: SettingsAction;
 };
 
-export function LedgerSettingsTemplate({
+export function LedgerSettingsTemplate(props: LedgerSettingsTemplateProps) {
+  return (
+    <BackLayerScope level={0}>
+      <LedgerSettingsContent {...props} />
+    </BackLayerScope>
+  );
+}
+
+function LedgerSettingsContent({
   canEditLedger,
   deleteLedgerAction,
   loadDeletionImpactAction,
@@ -111,6 +196,17 @@ export function LedgerSettingsTemplate({
   const [multiAccountPaymentEnabled, setMultiAccountPaymentEnabled] = useState(
     ledger.multiAccountPaymentEnabled ?? false,
   );
+  const currencyMenu = useSelectBackLayer(1);
+  const form = useSettingsForm({
+    fields: {
+      ledgerName,
+      baseCurrency,
+      transactionItemSpecialStatusEnabled: String(specialStatusEnabled),
+      multiAccountPaymentEnabled: String(multiAccountPaymentEnabled),
+    },
+    action: updateLedgerSettingsAction,
+    onSaved: () => setIsSaveSuccessOpen(true),
+  });
   const enqueuedErrorKeysRef = useRef(new Set<string>());
   const errorFeedbackIdRef = useRef(0);
   const clearResultParam = useClearQueryParam("result");
@@ -146,7 +242,7 @@ export function LedgerSettingsTemplate({
   function closeSaveSuccessDialog() {
     setIsSaveSuccessOpen(false);
 
-    clearResultParam();
+    if (saveResult !== null) clearResultParam();
   }
 
   return (
@@ -160,7 +256,8 @@ export function LedgerSettingsTemplate({
     >
       <Stack
         component="form"
-        action={updateLedgerSettingsAction}
+        action={form.submit}
+        id={form.formId}
         spacing={1.45}
         sx={formSx}
       >
@@ -182,7 +279,7 @@ export function LedgerSettingsTemplate({
               <SettingsField icon={<HomeRoundedIcon />} label="账本名称">
                 <TextField
                   autoComplete="off"
-                  disabled={!canEditLedger}
+                  disabled={!canEditLedger || form.pending}
                   fullWidth
                   name="ledgerName"
                   onChange={(event) => setLedgerName(event.target.value)}
@@ -196,13 +293,16 @@ export function LedgerSettingsTemplate({
 
               <SettingsField icon={<CurrencyYenRoundedIcon />} label="默认货币">
                 <TextField
-                  disabled={!canEditLedger}
+                  disabled={!canEditLedger || form.pending}
                   fullWidth
                   name="baseCurrency"
                   onChange={(event) => setBaseCurrency(event.target.value)}
                   required
                   select
-                  slotProps={{ htmlInput: { "aria-label": "默认货币" } }}
+                  slotProps={{
+                    htmlInput: { "aria-label": "默认货币" },
+                    select: currencyMenu,
+                  }}
                   value={baseCurrency}
                 >
                   {ledgerCurrencyOptions.map((option) => (
@@ -235,7 +335,7 @@ export function LedgerSettingsTemplate({
           value={String(specialStatusEnabled)}
         />
         <LedgerSpecialStatusSetting
-          canEdit={canEditLedger}
+          canEdit={canEditLedger && !form.pending}
           enabled={specialStatusEnabled}
           onChange={setSpecialStatusEnabled}
         />
@@ -246,7 +346,7 @@ export function LedgerSettingsTemplate({
           value={String(multiAccountPaymentEnabled)}
         />
         <LedgerMultiAccountPaymentSetting
-          canEdit={canEditLedger}
+          canEdit={canEditLedger && !form.pending}
           enabled={multiAccountPaymentEnabled}
           onChange={setMultiAccountPaymentEnabled}
         />
@@ -308,7 +408,7 @@ export function LedgerSettingsTemplate({
             取消
           </Button>
           <PrimaryActionButton
-            disabled={!canEditLedger}
+            disabled={!canEditLedger || form.pending}
             fullWidth
             type="submit"
           >
@@ -322,10 +422,12 @@ export function LedgerSettingsTemplate({
         currentUserId={currentUser.userId}
         ledger={ledger}
         member={selectedMember}
+        onSaved={() => setIsSaveSuccessOpen(true)}
         onClose={() => setSelectedMember(null)}
         updateLedgerSettingsAction={updateLedgerSettingsAction}
       />
 
+      <UnsavedChangesDialog {...form.guard.dialogProps} />
       {errorFeedbacks.map((feedback, index) => (
         <FailureFeedbackDialog
           aboveModal
@@ -339,7 +441,7 @@ export function LedgerSettingsTemplate({
       ))}
       <SuccessFeedbackDialog
         bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
-        description="账本设置已保存。"
+        description={ledgerSettingsPageMessages.saved}
         onClose={closeSaveSuccessDialog}
         open={isSaveSuccessOpen}
         title="保存成功"
@@ -487,6 +589,7 @@ function MemberSettingsDialog({
   ledger,
   member,
   onClose,
+  onSaved,
   updateLedgerSettingsAction,
 }: {
   canManageMembers: boolean;
@@ -494,7 +597,8 @@ function MemberSettingsDialog({
   ledger: LedgerSettingsView["ledger"];
   member: LedgerSettingsMember | null;
   onClose: () => void;
-  updateLedgerSettingsAction: ServerAction;
+  onSaved: () => void;
+  updateLedgerSettingsAction: SettingsAction;
 }) {
   if (!member) return null;
 
@@ -506,6 +610,7 @@ function MemberSettingsDialog({
       ledger={ledger}
       member={member}
       onClose={onClose}
+      onSaved={onSaved}
       updateLedgerSettingsAction={updateLedgerSettingsAction}
     />
   );
@@ -517,6 +622,7 @@ function MemberSettingsDialogContent({
   ledger,
   member,
   onClose,
+  onSaved,
   updateLedgerSettingsAction,
 }: {
   canManageMembers: boolean;
@@ -524,21 +630,38 @@ function MemberSettingsDialogContent({
   ledger: LedgerSettingsView["ledger"];
   member: LedgerSettingsMember;
   onClose: () => void;
-  updateLedgerSettingsAction: ServerAction;
+  onSaved: () => void;
+  updateLedgerSettingsAction: SettingsAction;
 }) {
   const [displayName, setDisplayName] = useState(member.displayName);
   const [displayColor, setDisplayColor] = useState(member.displayColor);
   const [role, setRole] = useState(member.role);
+  const roleMenu = useSelectBackLayer(1);
 
   const isSelf = member.userId === currentUserId;
   const canEditProfile = canManageMembers || isSelf;
   const canEditRole = canManageMembers && member.role !== "owner";
 
+  const form = useSettingsForm({
+    fields: {
+      memberDisplayName: displayName,
+      memberDisplayColor: displayColor,
+      memberRole: role,
+    },
+    action: updateLedgerSettingsAction,
+    onClose,
+    onSaved: () => {
+      onClose();
+      onSaved();
+    },
+  });
+
   return (
-    <AccountFormDialogShell onClose={onClose} open>
+    <AccountFormDialogShell onClose={form.guard.requestClose} open>
       <Stack
         component="form"
-        action={updateLedgerSettingsAction}
+        action={form.submit}
+        id={form.formId}
         key={member.userId}
         spacing={2.2}
       >
@@ -555,7 +678,11 @@ function MemberSettingsDialogContent({
           <Typography component="h2" sx={dialogTitleSx}>
             成员设置
           </Typography>
-          <IconButton aria-label="关闭" onClick={onClose} sx={dialogCloseSx}>
+          <IconButton
+            aria-label="关闭"
+            onClick={form.guard.requestClose}
+            sx={dialogCloseSx}
+          >
             <CloseRoundedIcon />
           </IconButton>
         </Stack>
@@ -567,7 +694,7 @@ function MemberSettingsDialogContent({
         <SettingsField icon={<PersonRoundedIcon />} label="当前账本昵称">
           <TextField
             autoComplete="off"
-            disabled={!canEditProfile}
+            disabled={!canEditProfile || form.pending}
             fullWidth
             name={canEditProfile ? "memberDisplayName" : undefined}
             onChange={(event) => setDisplayName(event.target.value)}
@@ -606,7 +733,7 @@ function MemberSettingsDialogContent({
                   <ColorRadio
                     checked={colorKey === displayColor}
                     colorKey={colorKey}
-                    disabled={!canEditProfile}
+                    disabled={!canEditProfile || form.pending}
                     key={colorKey}
                     onChange={setDisplayColor}
                   />
@@ -626,7 +753,7 @@ function MemberSettingsDialogContent({
           label="成员权限"
         >
           <TextField
-            disabled={!canEditRole}
+            disabled={!canEditRole || form.pending}
             fullWidth
             name={canEditRole ? "memberRole" : undefined}
             onChange={(event) =>
@@ -634,7 +761,10 @@ function MemberSettingsDialogContent({
             }
             required={canEditRole}
             select
-            slotProps={{ htmlInput: { "aria-label": "成员权限" } }}
+            slotProps={{
+              htmlInput: { "aria-label": "成员权限" },
+              select: roleMenu,
+            }}
             value={role}
           >
             {ledgerRoleOptions.map((option) => (
@@ -656,7 +786,7 @@ function MemberSettingsDialogContent({
         <Stack direction="row" spacing={1.5} sx={{ pt: 0.4 }}>
           <Button
             fullWidth
-            onClick={onClose}
+            onClick={form.guard.requestClose}
             sx={cancelButtonSx}
             type="button"
             variant="outlined"
@@ -664,7 +794,7 @@ function MemberSettingsDialogContent({
             取消
           </Button>
           <PrimaryActionButton
-            disabled={!canEditProfile}
+            disabled={!canEditProfile || form.pending}
             fullWidth
             type="submit"
           >
@@ -672,6 +802,7 @@ function MemberSettingsDialogContent({
           </PrimaryActionButton>
         </Stack>
       </Stack>
+      <UnsavedChangesDialog {...form.guard.dialogProps} />
     </AccountFormDialogShell>
   );
 }

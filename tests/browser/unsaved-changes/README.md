@@ -136,3 +136,11 @@ JSON 输出仍为 `compatibility.json`，新增 `merchantCreate`、`merchantEdit
 默认运行全部分组；调试单组可设置 `UNSAVED_GUARD_CASES=standard,newAccount`。输出仍为 `compatibility.json`，分组包括既有 PR1 回归与上述新增场景。
 
 本轮开发模式自动化已跑通。生产模式新增场景、PR2 两项原生 Chrome 工具栏操作以及手机实机统一留到最终验收，不能用这里的 Playwright 导航替代工具栏验收。上文历史验证结果只代表各自标注的源码版本。
+
+## #987 账本设置、分类创建与账本创建向导
+
+使用既有 Chrome / Playwright 脚本，设置 `UNSAVED_GUARD_CASES=categoryCreate,ledgerSettings,ledgerSetup` 可只运行以下场景：
+
+- 分类创建：后退先关闭选择菜单，继续编辑保留输入，放弃只关闭新增对话框，前进不恢复已关闭弹层。验证通过公共对话框提交的成功与失败。
+- 账本设置：成员保存触发真实 Next `revalidatePath` 后，账本草稿仍受保护。验证账本保存失败后的后退，以及确认保存成功后返回来源。
+- 创建向导：从虚构的已保存进度恢复到账户步骤，后退按新增账户和账户步骤的顺序处理。放弃当前输入后重新打开仍能恢复进度，干净关闭沿用「稍后再继续？」提示。

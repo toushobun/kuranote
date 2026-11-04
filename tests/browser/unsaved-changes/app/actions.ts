@@ -87,8 +87,25 @@ export async function saveCategory(
 ): Promise<ActionState> {
   if (String(data.get("name")).includes("失败"))
     return { error: "分类验证失败", errorKey: String(Date.now()) };
+  const { revalidatePath } = await import("next/cache");
+  revalidatePath("/category");
   return { success: "保存成功", successKey: String(Date.now()) };
 }
 export async function reorderCategory(): Promise<ActionState> {
+  return {};
+}
+
+export async function saveLedgerSettings(
+  _previous: ActionState,
+  data: FormData,
+): Promise<ActionState> {
+  if (String(data.get("ledgerName")).includes("失败"))
+    return { error: "账本设置验证失败", errorKey: String(Date.now()) };
+  const { revalidatePath } = await import("next/cache");
+  revalidatePath("/ledger-settings");
+  return { success: "保存成功", successKey: String(Date.now()) };
+}
+
+export async function unusedLedgerInvite(): Promise<ActionState> {
   return {};
 }

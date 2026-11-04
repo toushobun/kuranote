@@ -3,7 +3,13 @@
 import BookmarkRoundedIcon from "@mui/icons-material/BookmarkRounded";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
-import { useId } from "react";
+import { useId, useState } from "react";
+import {
+  BackLayerScope,
+  useBackLayer,
+} from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
+import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog/UnsavedChangesDialog";
+import { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
 import { WizardDialog } from "molecules/ui/WizardDialog/WizardDialog";
 
 import { LedgerSetupAbandonButton } from "organisms/ledgers/LedgerSetupAbandonButton/LedgerSetupAbandonButton";
@@ -18,6 +24,9 @@ import type { LedgerSetupProgress } from "types/ledgers";
 import { ledgerSetupWizardSteps } from "./ledgerSetupWizardSteps";
 import type { LedgerSetupWizardActions } from "./ledgerSetupWizardStepTypes";
 import { useLedgerSetupWizard } from "./useLedgerSetupWizard";
+
+const wizardLayer = 0;
+const stepDraftLayer = 1;
 
 const stepLabels = ledgerSetupWizardSteps.map(({ label }) => label);
 const closeConfirmMessages = ledgerSetupWizardMessages.closeConfirm;
@@ -40,11 +49,19 @@ type LedgerSetupWizardProps = {
  * 负责顶部标题与步骤进度、当前步骤状态与切换、关闭确认；步骤内容见 ledgerSetupWizardSteps。
  * 第 6 步「完成」后显示完成页（不属于步骤注册表，不显示标题与进度条）。
  */
-export function LedgerSetupWizard({
+export function LedgerSetupWizard(props: LedgerSetupWizardProps) {
+  return (
+    <BackLayerScope level={wizardLayer}>
+      <LedgerSetupWizardContent {...props} />
+    </BackLayerScope>
+  );
+}
+
+function LedgerSetupWizardContent({
   actions,
   defaultRootCategoryNames,
   defaults,
-  initialNotice = null,
+  initialNotice,
   onClose,
   open,
   progress: initialProgress,
@@ -55,6 +72,18 @@ export function LedgerSetupWizard({
     initialProgress,
     onClose,
   });
+  const [dirty, setDirty] = useState(false);
+  const guard = useUnsavedChangesGuard({
+    active: open && dirty,
+    disabled: wizard.busy,
+    isDirty: dirty,
+    layer: stepDraftLayer,
+    onClose: wizard.closeLater,
+    saveFormId: null,
+  });
+  useBackLayer(open, wizard.requestClose);
+  useBackLayer(open && wizard.closeConfirmOpen, wizard.continueSetup, 2);
+  const requestClose = dirty ? guard.requestClose : wizard.requestClose;
   const { Component: StepComponent, key, label } = wizard.currentStep;
 
   return (
@@ -66,7 +95,7 @@ export function LedgerSetupWizard({
         }
         closeLabel={ledgerSetupWizardMessages.close}
         disabled={wizard.busy}
-        onClose={wizard.requestClose}
+        onClose={requestClose}
         open={open}
         headerContent={
           wizard.completeScreen ? undefined : (
@@ -104,6 +133,7 @@ export function LedgerSetupWizard({
             defaults={defaults}
             key={`${key}:${wizard.progress?.setup.id ?? "new"}:${wizard.progressRevision}`}
             onBusyChange={wizard.setBusy}
+            onDirtyChange={setDirty}
             onFinish={wizard.finish}
             onGoToStep={wizard.goToStep}
             onNext={wizard.goNext}
@@ -120,6 +150,7 @@ export function LedgerSetupWizard({
         )}
       </WizardDialog>
 
+      <UnsavedChangesDialog {...guard.dialogProps} />
       <ActionPromptDialog
         disabled={wizard.busy}
         description={closeConfirmMessages.description}

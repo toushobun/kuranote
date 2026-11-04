@@ -1,5 +1,7 @@
 "use client";
 
+import { useLedgerSetupStepDirty } from "organisms/ledgers/LedgerSetupWizard/useLedgerSetupStepDirty";
+
 import { useState } from "react";
 
 import {
@@ -50,6 +52,7 @@ export function useLedgerSetupAccountsStep(
   const checkedAccounts = rows
     .filter(({ checked }) => checked)
     .map(({ account }) => account);
+  useLedgerSetupStepDirty(checkedAccounts, options.onDirtyChange);
   // 列表（含取消勾选的账户）达到上限时不能继续添加，保证保存的账户数不超过上限。
   const limitReached = rows.length >= ledgerSetupLimits.maxAccounts;
 
