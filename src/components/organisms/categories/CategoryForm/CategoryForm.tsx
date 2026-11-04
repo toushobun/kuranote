@@ -6,7 +6,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
-import { useId, useState } from "react";
+import { useEffect, useEffectEvent, useId, useRef, useState } from "react";
 
 import { CreateButton } from "atoms/ui/CreateButton";
 import {
@@ -28,7 +28,6 @@ import type { TransactionType } from "types/transactions";
 
 import { CategoryDialogActions } from "../CategoryDialogActions/CategoryDialogActions";
 import { CategoryIconField } from "../CategoryIconField/CategoryIconField";
-import { useCategoryActionSuccess } from "../useCategoryActionSuccess";
 
 type CategoryFormProps = {
   createCategoryAction: CategoryAction;
@@ -86,7 +85,16 @@ function CategoryFormContent({
     onClose: closeDialog,
     saveFormId: formId,
   });
-  useCategoryActionSuccess(createState, closeDialog);
+  const previousCreateState = useRef(createState);
+  const finishSave = useEffectEvent(async (state: CategoryActionState) => {
+    await guard.completeSave(Boolean(state.success), formId);
+    if (state.success) closeDialog();
+  });
+  useEffect(() => {
+    if (previousCreateState.current === createState) return;
+    previousCreateState.current = createState;
+    if (createState) void finishSave(createState);
+  }, [createState]);
 
   return (
     <>

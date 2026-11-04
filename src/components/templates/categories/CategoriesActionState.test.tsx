@@ -1,3 +1,4 @@
+import { routerMock } from "test/mocks/navigation";
 import { setupGuardHistoryMock } from "test/mockGuardHistory";
 import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
 setupGuardHistoryMock();
@@ -111,6 +112,42 @@ afterEach(() => {
 });
 
 describe("CategoriesActionStateTemplate", () => {
+  it.each([true, false])(
+    "确认保存结果为 %s 时按结果处理原导航",
+    async (success) => {
+      const createCategoryAction = vi
+        .fn<CategoryStateAction>()
+        .mockResolvedValueOnce(
+          success ? { success: "新增成功" } : { error: "新增失败" },
+        )
+        .mockResolvedValueOnce({ success: "重试成功" });
+      renderTemplate({ createCategoryAction });
+      routerMock.push.mockClear();
+      const returnLink = screen.getByRole("link", { name: "返回设置" });
+      fireEvent.click(screen.getByRole("button", { name: "新增分类" }));
+      const name = screen.getByRole("textbox", { name: "分类名称" });
+      fireEvent.change(name, { target: { value: "分类草稿" } });
+      fireEvent.click(returnLink);
+      const prompt = screen.getByRole("dialog", { name: "尚未保存" });
+      fireEvent.click(within(prompt).getByRole("button", { name: "保存" }));
+
+      if (success) {
+        await waitFor(() =>
+          expect(routerMock.push).toHaveBeenCalledExactlyOnceWith("/settings"),
+        );
+        await waitFor(() => expect(name).not.toBeInTheDocument());
+      } else {
+        await screen.findByText("新增失败", { exact: true });
+        expect(name).toHaveValue("分类草稿");
+        expect(routerMock.push).not.toHaveBeenCalled();
+        const form = await screen.findByRole("dialog", { name: "新增分类" });
+        fireEvent.click(within(form).getByRole("button", { name: "新增分类" }));
+        await waitFor(() => expect(name).not.toBeInTheDocument());
+        expect(routerMock.push).not.toHaveBeenCalled();
+      }
+    },
+  );
+
   it.each([
     ["新增", "新增分类", "新增分类", "新增成功"],
     ["编辑", "编辑餐饮", "保存", "保存成功"],

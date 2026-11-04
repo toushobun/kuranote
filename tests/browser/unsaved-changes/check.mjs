@@ -707,21 +707,27 @@ async function checkCategoryCreate(browser) {
   assert.equal(await page.evaluate(() => history.length), length);
   await record("新增分类：后退先关菜单，放弃只关闭新增，前进不复活弹层");
   await page.getByRole("button", { name: "新增分类" }).click();
+  const returnLink = page.getByRole("link", {
+    name: "返回设置",
+    includeHidden: true,
+  });
   await name.fill("失败的分类");
   await position(page, "sentinel");
-  await browserBack(page);
+  // 对话框遮住了页面链接，直接派发点击以验证守卫捕获的导航意图。
+  await returnLink.dispatchEvent("click");
   await page.getByRole("button", { name: "保存", exact: true }).click();
   await page.getByText("分类验证失败", { exact: true }).waitFor();
+  assert.equal(new URL(page.url()).pathname, "/category");
   await browserBack(page);
   await cancel(page);
   assert.equal(await name.inputValue(), "失败的分类");
-  await record("新增分类：保存失败后仍保护草稿");
+  await record("新增分类：确认保存失败后留在原页并继续保护草稿");
   await name.fill("保存新增分类");
-  await browserBack(page);
+  await returnLink.dispatchEvent("click");
   await page.getByRole("button", { name: "保存", exact: true }).click();
+  await page.waitForURL("**/settings");
   await heading.waitFor({ state: "hidden" });
-  await position(page, "base");
-  await record("新增分类：确认保存成功，停留在分类页");
+  await record("新增分类：确认保存成功后继续原导航");
   return finishSession(session);
 }
 async function checkLedgerSettings(browser) {
