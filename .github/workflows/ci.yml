@@ -529,6 +529,10 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+    # 同一 PR 的发布与清理串行；不同 PR 不互相取消排队作业。
+    concurrency:
+      group: gh-pages-storybook-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
 
     steps:
       - name: Download Storybook artifact
@@ -537,7 +541,24 @@ jobs:
           name: storybook-static
           path: storybook-static
 
+      - name: Check PR is still open
+        id: pr-state
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          state="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.state')"
+          if [ "$state" = "open" ]; then
+            echo "open=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "open=false" >> "$GITHUB_OUTPUT"
+            echo "PR is no longer open; skip stale Storybook preview deployment."
+          fi
+
       - name: Deploy Storybook preview
+        if: steps.pr-state.outputs.open == 'true'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -547,6 +568,7 @@ jobs:
           keep_files: true
 
       - name: Comment Storybook preview link
+        if: steps.pr-state.outputs.open == 'true'
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           header: storybook-preview

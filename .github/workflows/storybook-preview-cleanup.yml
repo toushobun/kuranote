@@ -1,0 +1,64 @@
+name: Cleanup Storybook preview
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  cleanup:
+    name: Remove closed PR Storybook preview
+    runs-on: ubuntu-latest
+    # 仅同一 PR 的发布和清理串行，防止其他 PR 取消排队中的清理。
+    concurrency:
+      group: gh-pages-storybook-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          fetch-depth: 1
+
+      - name: Remove closed PR preview
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+
+          # PR 如果在清理作业开始前重新打开，不能删除它的预览。
+          state="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.state')"
+          if [[ "$state" != "closed" ]]; then
+            echo "PR #${PR_NUMBER} is open; skip preview cleanup."
+            exit 0
+          fi
+
+          preview_dir="pr-${PR_NUMBER}"
+          if [[ ! -d "$preview_dir" ]]; then
+            echo "No preview directory for PR #${PR_NUMBER}; nothing to clean."
+            exit 0
+          fi
+
+          git rm -r --quiet -- "$preview_dir"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: 清理 PR #${PR_NUMBER} 的 Storybook 预览"
+          # 不同 PR 可并行更新 gh-pages，冲突时基于最新远端提交重试。
+          for attempt in 1 2 3 4 5; do
+            if git push origin HEAD:gh-pages; then
+              exit 0
+            fi
+            if [[ "$attempt" -eq 5 ]]; then
+              echo "Failed to push Storybook cleanup after 5 attempts." >&2
+              exit 1
+            fi
+            git fetch origin gh-pages
+            git rebase origin/gh-pages
+            sleep "$attempt"
+          done
