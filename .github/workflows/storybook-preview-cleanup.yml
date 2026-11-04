@@ -6,14 +6,15 @@ on:
 
 permissions:
   contents: write
+  pull-requests: read
 
 jobs:
   cleanup:
     name: Remove closed PR Storybook preview
     runs-on: ubuntu-latest
-    # 与 CI 的 Storybook 发布共用并发组，避免关闭 PR 时和旧构建互相覆盖。
+    # 仅同一 PR 的发布和清理串行，防止其他 PR 取消排队中的清理。
     concurrency:
-      group: gh-pages-storybook
+      group: gh-pages-storybook-${{ github.event.pull_request.number }}
       cancel-in-progress: false
 
     steps:
@@ -48,4 +49,16 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "chore: 清理 PR #${PR_NUMBER} 的 Storybook 预览"
-          git push origin HEAD:gh-pages
+          # 不同 PR 可并行更新 gh-pages，冲突时基于最新远端提交重试。
+          for attempt in 1 2 3 4 5; do
+            if git push origin HEAD:gh-pages; then
+              exit 0
+            fi
+            if [[ "$attempt" -eq 5 ]]; then
+              echo "Failed to push Storybook cleanup after 5 attempts." >&2
+              exit 1
+            fi
+            git fetch origin gh-pages
+            git rebase origin/gh-pages
+            sleep "$attempt"
+          done
