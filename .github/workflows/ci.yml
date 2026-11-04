@@ -529,9 +529,9 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    # 与 PR 关闭后的清理作业串行，避免写入 gh-pages 时发生竞争。
+    # 同一 PR 的发布与清理串行；不同 PR 不互相取消排队作业。
     concurrency:
-      group: gh-pages-storybook
+      group: gh-pages-storybook-${{ github.event.pull_request.number }}
       cancel-in-progress: false
 
     steps:
@@ -548,6 +548,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         shell: bash
         run: |
+          set -euo pipefail
           state="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.state')"
           if [ "$state" = "open" ]; then
             echo "open=true" >> "$GITHUB_OUTPUT"
