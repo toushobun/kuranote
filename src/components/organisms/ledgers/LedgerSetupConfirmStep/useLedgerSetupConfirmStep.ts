@@ -14,11 +14,7 @@ import { buildLedgerSetupConfirmSummary } from "utils/ledgerSetupSummary";
 
 type UseLedgerSetupConfirmStepOptions = Pick<
   LedgerSetupWizardStepProps,
-  | "actions"
-  | "onBusyChange"
-  | "onProgressRefresh"
-  | "onSetupCompleted"
-  | "onSetupUnavailable"
+  "actions" | "onBusyChange" | "onProgressRefresh" | "onSetupCompleted"
 > & {
   progress: LedgerSetupProgress;
 };
@@ -28,7 +24,6 @@ export function useLedgerSetupConfirmStep({
   onBusyChange,
   onProgressRefresh,
   onSetupCompleted,
-  onSetupUnavailable,
   progress,
 }: UseLedgerSetupConfirmStepOptions) {
   const summary = useMemo(
@@ -74,7 +69,6 @@ export function useLedgerSetupConfirmStep({
 
     if (state.notFound) {
       setIsUnavailable(true);
-      onSetupUnavailable();
     }
 
     setFailureState(state);

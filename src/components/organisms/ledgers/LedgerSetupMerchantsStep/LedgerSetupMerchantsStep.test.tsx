@@ -276,7 +276,7 @@ describe("LedgerSetupMerchantsStep", () => {
 
     clickCloseWizard();
     expect(
-      screen.queryByRole("dialog", { name: "稍后再继续？" }),
+      screen.queryByRole("dialog", { name: "尚未保存" }),
     ).not.toBeInTheDocument();
   });
 

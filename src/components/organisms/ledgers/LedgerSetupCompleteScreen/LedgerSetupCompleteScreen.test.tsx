@@ -1,6 +1,6 @@
-import { fireEvent, screen, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   clickCloseWizard,
@@ -10,6 +10,8 @@ import {
   waitForInviteEntry,
 } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardTestUtils";
 import { createLedgerSetupConfirmProgressFixture } from "test/mocks/ledgerSetup";
+import { setupGuardHistoryMock } from "test/mockGuardHistory";
+import { routerMock } from "test/mocks/navigation";
 import type { LedgerSetupInviteMembers } from "types/ledgers";
 
 vi.mock("next/link", () => ({
@@ -26,6 +28,12 @@ vi.mock("next/link", () => ({
     </a>
   ),
 }));
+
+setupGuardHistoryMock();
+
+afterEach(() => {
+  routerMock.push.mockClear();
+});
 
 const twoPlaceholderMembers: LedgerSetupInviteMembers = {
   pendingInvites: [],
@@ -104,24 +112,28 @@ describe("LedgerSetupCompleteScreen", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("「开始记账」先关闭向导再导航到记一笔", async () => {
-    const { onClose } = await renderCompleteScreen();
+  it("「开始记账」清理向导历史后导航到记一笔", async () => {
+    await renderCompleteScreen();
 
     const link = screen.getByRole("link", { name: "开始记账" });
     expect(link).toHaveAttribute("href", "/transactions/new");
 
     fireEvent.click(link);
-    expect(onClose).toHaveBeenCalledTimes(1);
+    await waitFor(() =>
+      expect(routerMock.push).toHaveBeenCalledWith("/transactions/new"),
+    );
   });
 
-  it("「去首页看看」先关闭向导再导航到首页", async () => {
-    const { onClose } = await renderCompleteScreen();
+  it("「去首页看看」清理向导历史后导航到首页", async () => {
+    await renderCompleteScreen();
 
     const link = screen.getByRole("link", { name: "去首页看看" });
     expect(link).toHaveAttribute("href", "/dashboard");
 
     fireEvent.click(link);
-    expect(onClose).toHaveBeenCalledTimes(1);
+    await waitFor(() =>
+      expect(routerMock.push).toHaveBeenCalledWith("/dashboard"),
+    );
   });
 
   it("只保留「×」，点击后直接关闭向导", async () => {
@@ -129,9 +141,9 @@ describe("LedgerSetupCompleteScreen", () => {
 
     clickCloseWizard();
 
-    expect(onClose).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
     expect(
-      screen.queryByRole("dialog", { name: "稍后再继续？" }),
+      screen.queryByRole("dialog", { name: "尚未保存" }),
     ).not.toBeInTheDocument();
   });
 });

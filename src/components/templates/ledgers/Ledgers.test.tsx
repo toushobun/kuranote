@@ -23,11 +23,14 @@ import {
   createLedgerSetupWizardLauncherActionMocks,
   getCurrentStepItem,
 } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardTestUtils";
+import { setupGuardHistoryMock } from "test/mockGuardHistory";
 import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
 import { createLedgerSetupProgressFixture } from "test/mocks/ledgerSetup";
 import { designTokens, theme } from "theme/theme";
 
 import { LedgersTemplate } from "./Ledgers";
+
+setupGuardHistoryMock();
 
 const routerReplaceMock = vi.hoisted(() => vi.fn());
 
@@ -76,7 +79,9 @@ function renderTemplate(
 }
 
 /** 有创建中账本时的渲染：「新增账本」「继续创建」都打开该账本的向导（只有「新增账本」提示）。 */
-function renderWithSetupInProgress() {
+function renderWithSetupInProgress(
+  overrides: Partial<ComponentProps<typeof LedgersTemplate>> = {},
+) {
   const progress = createLedgerSetupProgressFixture({
     name: "爸妈账本",
     step: 2,
@@ -90,6 +95,7 @@ function renderWithSetupInProgress() {
       step: progress.setup.step,
     },
     setupWizardActions,
+    ...overrides,
   });
   return setupWizardActions;
 }
@@ -294,8 +300,19 @@ describe("LedgersTemplate", () => {
 });
 
 describe("LedgersTemplate 放弃创建", () => {
-  it("创建中条目提供二次确认的放弃操作", async () => {
-    const actions = renderWithSetupInProgress();
+  it("没有已完成账本时仍可恢复进度，并在向导外二次确认放弃创建", async () => {
+    const actions = renderWithSetupInProgress({
+      currentLedgerId: "",
+      ledgers: [],
+    });
+    expect(screen.getByText("你还没有任何账本")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /继续创建爸妈账本/ }));
+    const wizard = await screen.findByRole("dialog", { name: "创建账本" });
+    expect(getCurrentStepItem()).toHaveTextContent("账户");
+    fireEvent.click(
+      within(wizard).getByRole("button", { name: "关闭创建账本向导" }),
+    );
+    await waitFor(() => expect(wizard).not.toBeInTheDocument());
     const dialog = await openLedgerSetupAbandonConfirm("爸妈账本");
     confirmLedgerSetupAbandon(dialog);
     await waitFor(() =>

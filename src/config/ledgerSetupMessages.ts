@@ -1,13 +1,6 @@
 /** 创建账本向导（#395）的界面文案。错误文案以 internal/ledger 的错误定义为准，不在此重复。 */
 export const ledgerSetupWizardMessages = {
   close: "关闭创建账本向导",
-  closeConfirm: {
-    continue: "继续创建",
-    description:
-      "目前的进度已保存。账本会显示为「创建中」，你可以随时回来继续完成。",
-    later: "稍后再说",
-    title: "稍后再继续？",
-  },
   dismissNotice: "关闭提示",
   next: "下一步",
   previous: "上一步",

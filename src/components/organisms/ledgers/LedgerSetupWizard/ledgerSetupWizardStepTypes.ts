@@ -48,8 +48,6 @@ export type LedgerSetupWizardStepProps = {
   onRestore: (progress: LedgerSetupProgress) => void;
   /** 第 5 步完成写入成功：骨架保存完成页统计并进入第 6 步。 */
   onSetupCompleted: () => void;
-  /** 创建中账本已在其他页面完成或不存在：进度已无法继续，关闭向导时不再提示稍后继续。 */
-  onSetupUnavailable: () => void;
   /** 当前创建中账本进度；第 1 步尚未提交时为 null。 */
   progress: LedgerSetupProgress | null;
   /** 当前步骤（从 1 开始），与 ledger.setup_step 对应。 */

@@ -30,26 +30,21 @@ function getResumeStep(progress: LedgerSetupProgress | null) {
 type UseLedgerSetupWizardOptions = {
   initialNotice?: string | null;
   initialProgress: LedgerSetupProgress | null;
-  onClose: () => void;
 };
 
 export function useLedgerSetupWizard({
   initialNotice = null,
   initialProgress,
-  onClose,
 }: UseLedgerSetupWizardOptions) {
   const [progress, setProgress] = useState(initialProgress);
   const [step, setStep] = useState(() => getResumeStep(initialProgress));
   // 进度被服务端重新读取的内容替换时递增，使当前步骤按新进度重新初始化。
   const [progressRevision, setProgressRevision] = useState(0);
-  const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
   // 步骤保存中：锁定「×」与关闭，避免保存过程中关闭向导。
   const [busy, setBusy] = useState(false);
   // 向导顶部的提示：打开时已有创建中账本、恢复到其他创建中账本时说明本次填写的内容未保存，
   // 预设内容已更新时说明需要重新确认。
   const [notice, setNotice] = useState<string | null>(initialNotice);
-  // 创建中账本已在其他页面完成或不存在：没有可稍后继续的进度。
-  const [setupUnavailable, setSetupUnavailable] = useState(false);
   // 完成写入成功时保存的完成页统计；完成后草稿已过期，不再从进度计算。
   const [completion, setCompletion] = useState<LedgerSetupCompletion | null>(
     null,
@@ -59,26 +54,14 @@ export function useLedgerSetupWizard({
     (LedgerSetupCompletion & { placeholderMemberCount: number }) | null
   >(null);
 
-  // 账本已创建（创建中）且尚未完成写入时，进度已保存在服务端，关闭前提示可稍后继续。
-  const needsCloseConfirm =
-    progress !== null && !setupUnavailable && step <= ledgerSetupLastDraftStep;
-
   return {
     busy,
-    closeConfirmOpen,
     completeScreen,
     currentStep: ledgerSetupWizardSteps[step - 1],
     notice,
     progress,
     progressRevision,
     step,
-    closeLater() {
-      setCloseConfirmOpen(false);
-      onClose();
-    },
-    continueSetup() {
-      setCloseConfirmOpen(false);
-    },
     dismissNotice() {
       setNotice(null);
     },
@@ -112,9 +95,6 @@ export function useLedgerSetupWizard({
       });
       setStep(ledgerSetupLastDraftStep + 1);
     },
-    markSetupUnavailable() {
-      setSetupUnavailable(true);
-    },
     goPrevious() {
       setStep((current) => clampStep(current - 1));
     },
@@ -122,16 +102,6 @@ export function useLedgerSetupWizard({
       setProgress(nextProgress);
       setProgressRevision((current) => current + 1);
       setNotice(ledgerSetupWizardMessages.templateUpdatedNotice);
-    },
-    requestClose() {
-      if (busy) return;
-
-      if (needsCloseConfirm) {
-        setCloseConfirmOpen(true);
-        return;
-      }
-
-      onClose();
     },
     restoreProgress(nextProgress: LedgerSetupProgress) {
       setProgress(nextProgress);
