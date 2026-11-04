@@ -10,6 +10,7 @@ import {
 import { ledgerSetupBasicInfoMessages } from "config/ledgerSetupMessages";
 import type { LedgerBasicInfoValues } from "organisms/ledgers/LedgerBasicInfoFields/LedgerBasicInfoFields";
 import type { LedgerSetupWizardStepProps } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardStepTypes";
+import { useLedgerSetupStepDirty } from "organisms/ledgers/LedgerSetupWizard/useLedgerSetupStepDirty";
 import { useConfirmDialog } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import type {
   LedgerSetupBasicInfoActionState,
@@ -39,6 +40,8 @@ type UseLedgerSetupBasicInfoStepOptions = Pick<
   LedgerSetupWizardStepProps,
   | "actions"
   | "defaults"
+  | "onBusyChange"
+  | "onDirtyChange"
   | "onNext"
   | "onProgressChange"
   | "onRestore"
@@ -48,6 +51,8 @@ type UseLedgerSetupBasicInfoStepOptions = Pick<
 export function useLedgerSetupBasicInfoStep({
   actions,
   defaults,
+  onBusyChange,
+  onDirtyChange,
   onNext,
   onProgressChange,
   onRestore,
@@ -58,12 +63,19 @@ export function useLedgerSetupBasicInfoStep({
   const [values, setValues] = useState(() =>
     getInitialValues(progress, defaults),
   );
+  useLedgerSetupStepDirty(values, onDirtyChange);
   const [actionState, formAction, isPending] = useActionState(
     async (
       previousState: LedgerSetupBasicInfoActionState,
       formData: FormData,
     ) => {
-      const nextState = await actions.submitBasicInfo(previousState, formData);
+      let nextState: LedgerSetupBasicInfoActionState;
+      onBusyChange(true);
+      try {
+        nextState = await actions.submitBasicInfo(previousState, formData);
+      } finally {
+        onBusyChange(false);
+      }
 
       if (nextState.progress) {
         if (nextState.restored) {

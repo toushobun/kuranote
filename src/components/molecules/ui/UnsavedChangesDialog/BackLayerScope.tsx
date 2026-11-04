@@ -37,6 +37,14 @@ export function useBackLayerLevel() {
   return useContext(BackLayerContext);
 }
 
+/** MUI Select 的菜单用同一弹层栈处理浏览器后退。 */
+export function useSelectBackLayer(offset: number) {
+  const [open, setOpen] = useState(false);
+  const onClose = () => setOpen(false);
+  useBackLayer(open, onClose, offset);
+  return { open, onClose, onOpen: () => setOpen(true) };
+}
+
 export function useBackLayer(open: boolean, onClose: () => void, offset = 0) {
   const level = useBackLayerLevel();
   const coordinator = useOptionalUnsavedChangesCoordinator();

@@ -14,6 +14,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useRef, type ReactNode } from "react";
 
+import { useSelectBackLayer } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
 import { ledgerBasicInfoFieldMessages } from "config/ledgerMessages";
 import type { LedgerCreateDefaults } from "internal/ledger";
 import { themeColorTokens, type ThemeColorKey } from "theme/themeColorTokens";
@@ -36,6 +37,7 @@ export function LedgerBasicInfoFields({
   onChange,
   values,
 }: LedgerBasicInfoFieldsProps) {
+  const currencyMenu = useSelectBackLayer(2);
   const ledgerNameInputRef = useRef<HTMLInputElement>(null);
 
   function update(patch: Partial<LedgerBasicInfoValues>) {
@@ -110,6 +112,7 @@ export function LedgerBasicInfoFields({
               ),
             },
             select: {
+              ...currencyMenu,
               labelId: "create-ledger-currency-label",
             },
           }}

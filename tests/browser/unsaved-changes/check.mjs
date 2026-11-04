@@ -64,8 +64,28 @@ async function setValueWithoutScrolling(locator, value) {
     element.dispatchEvent(new Event("input", { bubbles: true }));
   }, value);
 }
+async function dismissReloadPrompt(page) {
+  let nativePrompt = false;
+  page.once("dialog", async (dialog) => {
+    assert.equal(dialog.type(), "beforeunload");
+    nativePrompt = true;
+    await dialog.dismiss();
+  });
+  await page.reload().catch(() => {});
+  assert.equal(nativePrompt, true);
+}
 async function browserBack(page) {
   await page.goBack({ waitUntil: "commit" });
+}
+async function forwardPastInactiveSentinel(page) {
+  const popCount = await page.evaluate(() => window.probePops.length);
+  await page.goForward({ waitUntil: "commit" });
+  // 先等前进及守卫回到基准的两次遍历，避免读到前进前的旧基准。
+  await page.waitForFunction(
+    (count) => window.probePops.length >= count + 2,
+    popCount,
+  );
+  await position(page, "base");
 }
 async function newSession(browser, link, formId) {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
@@ -250,14 +270,7 @@ async function checkAccount(browser) {
   assert.equal(restored.rscRequests, 0);
   assert.equal(restored.length, baseline.length + 1);
 
-  let nativePrompt = false;
-  page.once("dialog", async (dialog) => {
-    assert.equal(dialog.type(), "beforeunload");
-    nativePrompt = true;
-    await dialog.dismiss();
-  });
-  await page.reload().catch(() => {});
-  assert.equal(nativePrompt, true);
+  await dismissReloadPrompt(page);
   await keepScroll(page, 2000);
   await record("刷新原生提示取消，表单与滚动位置保留");
 
@@ -649,8 +662,7 @@ async function checkCategory(browser) {
     .getByRole("dialog", { name: "编辑分类" })
     .waitFor({ state: "hidden" });
   await position(page, "base");
-  await page.goForward({ waitUntil: "commit" });
-  await position(page, "base");
+  await forwardPastInactiveSentinel(page);
   assert.equal(await page.getByRole("dialog", { name: "编辑分类" }).count(), 0);
   await record("分类放弃只关抽屉，前进不复活编辑层");
   await page.getByRole("button", { name: "编辑餐饮" }).click();
@@ -668,6 +680,142 @@ async function checkCategory(browser) {
   await page.waitForURL(sourceUrl);
   await keepScroll(page, 320, "auto");
   await record("分类列表后退一次回来源");
+  return finishSession(session);
+}
+async function checkCategoryCreate(browser) {
+  const session = await newSession(browser, "分类管理", "category-page");
+  const { page, record } = session;
+  const heading = page.getByRole("heading", { name: "新增分类" });
+  await page.getByRole("button", { name: "新增分类" }).click();
+  await position(page, "sentinel");
+  const name = page.getByRole("textbox", { name: "分类名称" });
+  await name.fill("创建草稿");
+  await page.getByRole("combobox", { name: "上级分类" }).click();
+  await browserBack(page);
+  await page.getByRole("listbox").waitFor({ state: "hidden" });
+  assert.equal(await name.inputValue(), "创建草稿");
+  const length = await page.evaluate(() => history.length);
+  await browserBack(page);
+  await cancel(page);
+  assert.equal(await name.inputValue(), "创建草稿");
+  await browserBack(page);
+  await page.getByRole("button", { name: "放弃修改" }).click();
+  await heading.waitFor({ state: "hidden" });
+  await position(page, "base");
+  await forwardPastInactiveSentinel(page);
+  assert.equal(await heading.count(), 0);
+  assert.equal(await page.evaluate(() => history.length), length);
+  await record("新增分类：后退先关菜单，放弃只关闭新增，前进不复活弹层");
+  await page.getByRole("button", { name: "新增分类" }).click();
+  await name.fill("失败的分类");
+  await position(page, "sentinel");
+  await browserBack(page);
+  await page.getByRole("button", { name: "保存", exact: true }).click();
+  await page.getByText("分类验证失败", { exact: true }).waitFor();
+  await browserBack(page);
+  await cancel(page);
+  assert.equal(await name.inputValue(), "失败的分类");
+  await record("新增分类：保存失败后仍保护草稿");
+  await name.fill("保存新增分类");
+  await browserBack(page);
+  await page.getByRole("button", { name: "保存", exact: true }).click();
+  await heading.waitFor({ state: "hidden" });
+  await position(page, "base");
+  await record("新增分类：确认保存成功，停留在分类页");
+  return finishSession(session);
+}
+async function checkLedgerSettings(browser) {
+  const session = await newSession(browser, "账本设置", "ledger-settings-page");
+  const { page, record, baseline } = session;
+  const name = page.getByRole("textbox", { name: "账本名称" });
+  await name.fill("保留账本草稿");
+  await position(page, "sentinel");
+  await page.getByRole("button", { name: /验证成员/ }).click();
+  await page.getByRole("textbox", { name: "当前账本昵称" }).fill("已保存成员");
+  const member = page.getByRole("dialog").filter({ hasText: "成员设置" });
+  await member.getByRole("button", { name: "保存修改" }).click();
+  await member.waitFor({ state: "hidden" });
+  await position(page, "sentinel");
+  await browserBack(page);
+  await cancel(page);
+  assert.equal(await name.inputValue(), "保留账本草稿");
+  await record("成员保存触发 revalidatePath 后仍保护账本草稿");
+
+  await page.getByRole("link", { name: "返回账本管理" }).click();
+  await cancel(page);
+  await page
+    .getByRole("navigation")
+    .getByRole("link", { name: "首页", exact: true })
+    .click();
+  await cancel(page);
+  await dismissReloadPrompt(page);
+  assert.equal(await name.inputValue(), "保留账本草稿");
+  await record("账本设置：页面返回、底部导航和刷新均保护草稿");
+
+  await name.fill("失败的账本名称");
+  await page.getByRole("button", { name: "保存修改" }).click();
+  await page.getByText("账本设置验证失败", { exact: true }).waitFor();
+  await browserBack(page);
+  await cancel(page);
+  assert.equal(await name.inputValue(), "失败的账本名称");
+  await record("账本设置保存失败后继续保护");
+
+  await name.fill("保存账本名称");
+  await browserBack(page);
+  await page.getByRole("button", { name: "保存", exact: true }).click();
+  await page.waitForURL(sourceUrl);
+  await page.getByRole("heading", { name: "离开守卫兼容性验证" }).waitFor();
+  const returned = await record("账本设置确认保存后只返回来源一次");
+  assert.equal(returned.currentIndex, baseline.currentIndex - 1);
+  await page.goForward({ waitUntil: "commit" });
+  await name.waitFor();
+  assert.equal(await name.inputValue(), "验证账本");
+  await forwardPastInactiveSentinel(page);
+  const forwarded = await record(
+    "账本设置确认保存后可正常前进，失效哨兵不恢复草稿",
+  );
+  assert.equal(forwarded.currentIndex, baseline.currentIndex);
+  assert.equal(forwarded.length, returned.length);
+  return finishSession(session);
+}
+async function checkLedgerSetup(browser) {
+  const session = await newSession(
+    browser,
+    "账本创建向导",
+    "ledger-setup-page",
+  );
+  const { page, record } = session;
+  const resume = page.getByRole("button", { name: "继续创建", exact: true });
+  await resume.click();
+  const account = page.getByRole("checkbox", { name: "现金" });
+  await account.uncheck();
+  await page.getByRole("button", { name: "添加银行卡" }).click();
+  const sheet = page.getByRole("dialog", { name: "添加银行卡" });
+  await sheet.getByRole("textbox", { name: "账户名称" }).fill("未添加账户");
+  await browserBack(page);
+  await page.getByRole("button", { name: "放弃修改" }).click();
+  await sheet.waitFor({ state: "hidden" });
+  assert.equal(await account.isChecked(), false);
+  await record("向导：后退放弃新增账户只关闭子层，保留父步骤草稿");
+
+  await browserBack(page);
+  const prompt = page.getByRole("dialog", { name: "尚未保存" });
+  assert.equal(
+    await prompt.getByRole("button", { name: "保存", exact: true }).count(),
+    0,
+  );
+  await prompt.getByRole("button", { name: "放弃修改" }).click();
+  await resume.waitFor();
+  await position(page, "base");
+  await resume.click();
+  assert.equal(await account.isChecked(), true);
+  await position(page, "sentinel");
+  await browserBack(page);
+  const existingPrompt = page.getByRole("dialog", { name: "稍后再继续？" });
+  await existingPrompt.getByRole("button", { name: "稍后再说" }).click();
+  await resume.waitFor();
+  await position(page, "base");
+  await record("向导：丢弃当前输入后仍可恢复已保存进度，保留原关闭提示");
   return finishSession(session);
 }
 async function checkBalance(browser) {
@@ -735,6 +883,9 @@ try {
     newAccount: () => checkNewForm(browser, true),
     receiptLayers: () => checkReceiptLayers(browser),
     category: () => checkCategory(browser),
+    categoryCreate: () => checkCategoryCreate(browser),
+    ledgerSettings: () => checkLedgerSettings(browser),
+    ledgerSetup: () => checkLedgerSetup(browser),
     balance: () => checkBalance(browser),
     aliasBack: () => checkAliasSave(browser),
     aliasLink: () => checkAliasSave(browser, true),

@@ -5,6 +5,7 @@ import {
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { backFromGuard, setupGuardHistoryMock } from "test/mockGuardHistory";
 import { mockMatchMedia } from "test/matchMedia";
 import { createLedgerSetupProgressFixture } from "test/mocks/ledgerSetup";
 
@@ -21,6 +22,8 @@ import {
   renderLedgerSetupWizardAtInviteStep,
   waitForInviteEntry,
 } from "./ledgerSetupWizardTestUtils";
+
+setupGuardHistoryMock();
 
 let restoreMatchMedia: (() => void) | null = null;
 
@@ -149,6 +152,22 @@ describe("LedgerSetupWizard", () => {
   });
 
   describe("关闭", () => {
+    it("后退保护首次创建的未提交输入，继续编辑保留内容", async () => {
+      const { onClose } = renderLedgerSetupWizard();
+      const name = screen.getByRole("textbox", { name: "账本名称" });
+      fireEvent.change(name, { target: { value: "未提交的账本" } });
+      await backFromGuard();
+      const dialog = within(screen.getByRole("dialog", { name: "尚未保存" }));
+      expect(
+        dialog.queryByRole("button", { name: "保存" }),
+      ).not.toBeInTheDocument();
+      fireEvent.click(dialog.getByRole("button", { name: "继续编辑" }));
+      expect(name).toHaveValue("未提交的账本");
+      await backFromGuard();
+      fireEvent.click(screen.getByRole("button", { name: "放弃修改" }));
+      await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+    });
+
     it("第 1 步且尚未创建账本时直接关闭", () => {
       const { onClose } = renderLedgerSetupWizard();
 

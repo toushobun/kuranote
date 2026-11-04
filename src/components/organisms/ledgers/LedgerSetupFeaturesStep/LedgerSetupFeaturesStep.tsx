@@ -2,6 +2,8 @@
 
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { useLedgerSetupStepDirty } from "organisms/ledgers/LedgerSetupWizard/useLedgerSetupStepDirty";
+
 import { useState } from "react";
 
 import {
@@ -43,6 +45,10 @@ function LedgerSetupFeaturesStepContent(
   );
   const [multiAccountPaymentEnabled, setMultiAccountPaymentEnabled] = useState(
     draft.features.multiAccountPaymentEnabled,
+  );
+  useLedgerSetupStepDirty(
+    [specialStatusEnabled, multiAccountPaymentEnabled],
+    props.onDirtyChange,
   );
   const nextDraft = {
     ...draft,

@@ -7,11 +7,14 @@ import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { useId } from "react";
+import { useId, useState } from "react";
 
 import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { ledgerSetupAccountsMessages } from "config/ledgerSetupMessages";
 import { AccountFormDialogShell } from "organisms/accounts/AccountFormDialogShell/AccountFormDialogShell";
+import { useBackLayerLevel } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
+import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog/UnsavedChangesDialog";
+import { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
 import { designTokens } from "theme/theme";
 import { getAccountTypeLabel } from "utils/accounts";
 
@@ -32,33 +35,63 @@ type LedgerSetupAccountAddSheetProps = UseLedgerSetupAccountAddFormOptions & {
  * 弹层关闭后内容卸载，再次打开时输入重新开始。
  */
 export function LedgerSetupAccountAddSheet({
+  onAdd,
   onClose,
   open,
   ...formOptions
 }: LedgerSetupAccountAddSheetProps) {
   const titleId = useId();
+  const [dirty, setDirty] = useState(false);
+  const wizardLayer = useBackLayerLevel();
+  const guard = useUnsavedChangesGuard({
+    active: open,
+    isDirty: dirty,
+    layer: (wizardLayer ?? 0) + 2,
+    onClose: () => {
+      setDirty(false);
+      onClose();
+    },
+    saveFormId: null,
+  });
 
   return (
-    <AccountFormDialogShell onClose={onClose} open={open} titleId={titleId}>
+    <AccountFormDialogShell
+      onClose={guard.requestClose}
+      open={open}
+      titleId={titleId}
+    >
       <LedgerSetupAccountAddForm
         {...formOptions}
-        onClose={onClose}
+        onAdd={(account) => {
+          setDirty(false);
+          onAdd(account);
+        }}
+        onClose={guard.requestClose}
+        onDirtyChange={setDirty}
         titleId={titleId}
       />
+      <UnsavedChangesDialog {...guard.dialogProps} />
     </AccountFormDialogShell>
   );
 }
 
 function LedgerSetupAccountAddForm({
   onClose,
+  onDirtyChange,
   titleId,
   ...formOptions
 }: UseLedgerSetupAccountAddFormOptions & {
   onClose: () => void;
+  onDirtyChange: (dirty: boolean) => void;
   titleId: string;
 }) {
   const { candidates, changeName, handleSubmit, name, nameError } =
     useLedgerSetupAccountAddForm(formOptions);
+  function updateName(value: string) {
+    changeName(value);
+    onDirtyChange(value !== "");
+  }
+
   const typeLabel = getAccountTypeLabel(formOptions.type);
 
   return (
@@ -77,7 +110,7 @@ function LedgerSetupAccountAddForm({
         error={nameError !== null}
         fullWidth
         helperText={nameError}
-        onChange={(event) => changeName(event.target.value)}
+        onChange={(event) => updateName(event.target.value)}
         placeholder={sheetMessages.namePlaceholder}
         slotProps={{ htmlInput: { "aria-label": sheetMessages.nameLabel } }}
         value={name}
@@ -104,7 +137,7 @@ function LedgerSetupAccountAddForm({
                 }
                 key={candidate.name}
                 label={candidate.name}
-                onClick={() => changeName(candidate.name)}
+                onClick={() => updateName(candidate.name)}
                 sx={candidate.selected ? selectedChipSx : chipSx}
                 variant="outlined"
               />

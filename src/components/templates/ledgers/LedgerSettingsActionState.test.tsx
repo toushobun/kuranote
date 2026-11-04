@@ -4,6 +4,7 @@ import {
   render,
   screen,
   within,
+  waitFor,
 } from "@testing-library/react";
 import { type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -12,7 +13,8 @@ import {
   ledgerSettingsErrorCodes,
   ledgerSettingsErrorMessages,
 } from "internal/ledger";
-import { UserThemeProvider } from "theme/UserThemeProvider";
+import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
+import { backFromGuard, setupGuardHistoryMock } from "test/mockGuardHistory";
 import type {
   LedgerSettingsActionState,
   LedgerSettingsStateAction,
@@ -22,6 +24,7 @@ import type {
 import { LedgerSettingsActionStateTemplate } from "./LedgerSettingsActionState";
 
 const routerReplaceMock = vi.hoisted(() => vi.fn());
+setupGuardHistoryMock();
 const inviteAction = vi.fn(async () => ({}));
 
 vi.mock("next/navigation", () => ({
@@ -68,7 +71,7 @@ const view: LedgerSettingsView = {
 };
 
 function renderWithUserTheme(children: ReactNode) {
-  return render(<UserThemeProvider>{children}</UserThemeProvider>);
+  return render(children, { wrapper: ConfirmDialogTestProviders });
 }
 
 function renderTemplate(action: LedgerSettingsStateAction) {
@@ -94,6 +97,41 @@ afterEach(() => {
 });
 
 describe("LedgerSettingsActionStateTemplate", () => {
+  it("成员保存成功后仍保护账本草稿，账本保存后更新自己的基线", async () => {
+    const action = vi.fn(
+      async (_state: LedgerSettingsActionState, data: FormData) => ({
+        success: "保存成功",
+        successKey: String(data.get("intent")),
+      }),
+    );
+    renderTemplate(action);
+    const name = screen.getByLabelText("账本名称");
+    fireEvent.change(name, { target: { value: "旅行账本" } });
+    fireEvent.click(screen.getByRole("button", { name: /配偶/ }));
+    const member = screen.getByRole("dialog");
+    fireEvent.change(within(member).getByLabelText("当前账本昵称"), {
+      target: { value: "新昵称" },
+    });
+    fireEvent.click(within(member).getByRole("button", { name: "保存修改" }));
+    await waitFor(() => expect(member).not.toBeInTheDocument());
+    expect(name).toHaveValue("旅行账本");
+
+    await backFromGuard();
+    const prompt = screen.getByRole("dialog", { name: "尚未保存" });
+    fireEvent.click(within(prompt).getByRole("button", { name: "继续编辑" }));
+    await waitFor(() => expect(prompt).not.toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "保存修改" }));
+    await waitFor(() => {
+      expect(action.mock.calls.map(([, data]) => data.get("intent"))).toEqual([
+        "member",
+        "ledger",
+      ]);
+      expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe(
+        "base",
+      );
+    });
+  });
+
   it("基础信息保存失败时显示反馈、保留输入且 URL 保持干净", async () => {
     const action = vi.fn(
       async (
@@ -127,6 +165,10 @@ describe("LedgerSettingsActionStateTemplate", () => {
     const submittedFormData = action.mock.calls[0]?.[1];
     expect(submittedFormData?.get("intent")).toBe("ledger");
     expect(submittedFormData?.get("ledgerName")).toBe("旅行账本");
+    await backFromGuard();
+    expect(
+      screen.getByRole("dialog", { name: "尚未保存" }),
+    ).toBeInTheDocument();
   });
 
   it("成员设置保存失败时保持弹窗和用户输入", async () => {

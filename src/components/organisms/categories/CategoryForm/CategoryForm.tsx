@@ -6,9 +6,16 @@ import DialogTitle from "@mui/material/DialogTitle";
 import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import { CreateButton } from "atoms/ui/CreateButton";
+import {
+  BackLayerScope,
+  transactionBackLayerLevels,
+  useSelectBackLayer,
+} from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
+import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog/UnsavedChangesDialog";
+import { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
 import { defaultCategoryEmoji } from "config/categoryEmojis";
 import { settingsPageActionButtonSx } from "templates/layout/SettingsPageLayout";
 import {
@@ -33,11 +40,22 @@ function isTransactionType(value: string): value is TransactionType {
   return value === "expense" || value === "income";
 }
 
-export function CategoryForm({
+const layer = transactionBackLayerLevels.pageOverlay;
+
+export function CategoryForm(props: CategoryFormProps) {
+  return (
+    <BackLayerScope level={layer}>
+      <CategoryFormContent {...props} />
+    </BackLayerScope>
+  );
+}
+
+function CategoryFormContent({
   createCategoryAction,
   createState,
   parentOptions,
 }: CategoryFormProps) {
+  const formId = useId();
   const [open, setOpen] = useState(false);
   const [categoryName, setCategoryName] = useState("");
   const [selectedType, setSelectedType] = useState<TransactionType>("expense");
@@ -55,6 +73,19 @@ export function CategoryForm({
     setIconName(defaultCategoryEmoji);
   }
 
+  const typeMenu = useSelectBackLayer(1);
+  const parentMenu = useSelectBackLayer(1);
+  const guard = useUnsavedChangesGuard({
+    active: open,
+    isDirty:
+      categoryName !== "" ||
+      selectedType !== "expense" ||
+      selectedParentId !== "" ||
+      iconName !== defaultCategoryEmoji,
+    layer,
+    onClose: closeDialog,
+    saveFormId: formId,
+  });
   useCategoryActionSuccess(createState, closeDialog);
 
   return (
@@ -68,9 +99,15 @@ export function CategoryForm({
         新增分类
       </CreateButton>
 
-      <Dialog fullWidth maxWidth="sm" onClose={closeDialog} open={open}>
+      <Dialog fullWidth maxWidth="sm" onClose={guard.requestClose} open={open}>
         <DialogTitle>新增分类</DialogTitle>
-        <Stack component="form" action={createCategoryAction}>
+        <Stack
+          component="form"
+          action={(data) =>
+            guard.runInPlaceAction(async () => createCategoryAction(data))
+          }
+          id={formId}
+        >
           <DialogContent dividers>
             <Stack spacing={2.5}>
               <TextField
@@ -99,6 +136,7 @@ export function CategoryForm({
                 }}
                 required
                 select
+                slotProps={{ select: typeMenu }}
                 value={selectedType}
               >
                 {categoryTypeOptions.map((option) => (
@@ -115,6 +153,7 @@ export function CategoryForm({
                 name="parentId"
                 onChange={(event) => setSelectedParentId(event.target.value)}
                 select
+                slotProps={{ select: parentMenu }}
                 value={selectedParentId}
               >
                 <MenuItem value="">无上级分类</MenuItem>
@@ -129,11 +168,12 @@ export function CategoryForm({
             </Stack>
           </DialogContent>
           <CategoryDialogActions
-            onCancel={closeDialog}
+            onCancel={guard.requestClose}
             submitLabel="新增分类"
           />
         </Stack>
       </Dialog>
+      <UnsavedChangesDialog {...guard.dialogProps} />
     </>
   );
 }

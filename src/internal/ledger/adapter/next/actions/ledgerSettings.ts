@@ -1,12 +1,7 @@
 "use server";
 
-import { redirect } from "next/navigation";
-
-import {
-  ledgerSettingsHref,
-  ledgerSettingsResultHref,
-  ledgerSettingsResultValues,
-} from "config/paths";
+import { ledgerSettingsHref } from "config/paths";
+import { ledgerSettingsPageMessages } from "config/ledgerMessages";
 import { createRequestContainer } from "internal/container";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
 import { revalidateLedgerMutation } from "internal/ledger/adapter/next/revalidateLedger";
@@ -16,7 +11,10 @@ import {
   type LedgerSettingsErrorCode,
 } from "internal/ledger/errors/ledgerSettings";
 import { validateUpdateLedgerSettingsForm } from "internal/ledger/schema/ledgerSettingsForm";
-import { createErrorState } from "internal/shared/adapter/next/actionState";
+import {
+  createErrorState,
+  createSuccessState,
+} from "internal/shared/adapter/next/actionState";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
 import type { LedgerSettingsActionState } from "types/ledgers";
@@ -79,10 +77,5 @@ export async function updateLedgerSettings(
   }
 
   revalidateLedgerMutation([ledgerSettingsHref(values.ledgerId)]);
-  redirect(
-    ledgerSettingsResultHref(
-      values.ledgerId,
-      ledgerSettingsResultValues.updated,
-    ),
-  );
+  return createSuccessState(ledgerSettingsPageMessages.saved);
 }

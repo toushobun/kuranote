@@ -25,6 +25,12 @@ export default function Page() {
         <Link href="/account-create" prefetch={false}>
           新增账户
         </Link>
+        <Link href="/ledger-setup" prefetch={false}>
+          账本创建向导
+        </Link>
+        <Link href="/ledger-settings" prefetch={false}>
+          账本设置
+        </Link>
         <Link href="/category" prefetch={false}>
           分类管理
         </Link>

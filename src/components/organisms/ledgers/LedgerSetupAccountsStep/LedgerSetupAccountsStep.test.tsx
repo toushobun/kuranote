@@ -27,7 +27,10 @@ import {
   createLedgerSetupProgressFixture,
   ledgerSetupTemplateFixture,
 } from "test/mocks/ledgerSetup";
+import { backFromGuard, setupGuardHistoryMock } from "test/mockGuardHistory";
 import type { LedgerSetupDraftSaveAction } from "types/ledgers";
+
+setupGuardHistoryMock();
 
 function createAccountsProgress(
   items: LedgerSetupDraftAccount[] = [{ name: "现金", type: "cash" }],
@@ -68,6 +71,25 @@ function openAddSheet(typeLabel: string) {
 }
 
 describe("LedgerSetupAccountsStep", () => {
+  it("放弃新增账户只关闭子层，再次后退才保护账户步骤", async () => {
+    const { onClose, saveDraft } = renderAccountsStep();
+    fireEvent.click(getAccountCheckbox("现金"));
+    const sheet = openAddSheet("银行卡");
+    changeAccountName(sheet, "未添加账户");
+
+    await backFromGuard();
+    const prompt = screen.getByRole("dialog", { name: "尚未保存" });
+    fireEvent.click(within(prompt).getByRole("button", { name: "放弃修改" }));
+    await waitFor(() => expect(sheet).not.toBeInTheDocument());
+    await waitFor(() => expect(getAccountCheckbox("现金")).not.toBeChecked());
+    expect(onClose).not.toHaveBeenCalled();
+    expect(saveDraft).not.toHaveBeenCalled();
+
+    await backFromGuard();
+    fireEvent.click(screen.getByRole("button", { name: "继续编辑" }));
+    await waitFor(() => expect(getAccountCheckbox("现金")).not.toBeChecked());
+  });
+
   it("显示引导文案与按类型分组的卡片，默认只有勾选的「现金」", () => {
     renderAccountsStep();
 

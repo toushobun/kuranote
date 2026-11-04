@@ -10,12 +10,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ledgerFeatureSettingMessages } from "config/ledgerMessages";
 import { loadLedgerDeletionImpactWith } from "test/ledgerDeletion";
-import { UserThemeProvider } from "theme/UserThemeProvider";
+import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
+import { setupGuardHistoryMock } from "test/mockGuardHistory";
 import type { LedgerSettingsView } from "types/ledgers";
 
 import { LedgerSettingsTemplate } from "./LedgerSettings";
 
 const routerReplaceMock = vi.hoisted(() => vi.fn());
+setupGuardHistoryMock();
 const inviteAction = vi.fn(async () => ({}));
 
 vi.mock("next/navigation", () => ({
@@ -30,7 +32,7 @@ afterEach(() => {
 });
 
 function renderWithUserTheme(children: ReactNode) {
-  return render(<UserThemeProvider>{children}</UserThemeProvider>);
+  return render(children, { wrapper: ConfirmDialogTestProviders });
 }
 
 const ownerUserId = "00000000-0000-4000-8000-000000000031";
