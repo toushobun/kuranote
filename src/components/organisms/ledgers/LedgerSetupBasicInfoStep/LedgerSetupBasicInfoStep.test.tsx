@@ -1,4 +1,10 @@
-import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -134,7 +140,7 @@ describe("LedgerSetupBasicInfoStep", () => {
   });
 
   it("提交失败时显示反馈并保留输入", async () => {
-    renderLedgerSetupWizard({
+    const { onClose } = renderLedgerSetupWizard({
       submitBasicInfo: createSubmitMock({
         error: ledgerCreateErrorMessages[ledgerCreateErrorCodes.createFailed],
         errorKey: "error-1",
@@ -144,12 +150,14 @@ describe("LedgerSetupBasicInfoStep", () => {
     fireEvent.change(screen.getByLabelText("我的显示名"), {
       target: { value: "旅人" },
     });
-    clickNext();
+    await act(async () => clickNext());
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       ledgerCreateErrorMessages[ledgerCreateErrorCodes.createFailed],
     );
     expect(screen.getByLabelText("我的显示名")).toHaveValue("旅人");
+    expect(getCurrentStepItem()).toHaveTextContent("基本信息");
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it("提交中下一步显示加载状态并禁用", async () => {
