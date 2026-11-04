@@ -12,6 +12,7 @@ import {
   changeAccountName,
   clickAccountCandidate,
   getAccountAddSheet,
+  getAccountNameInput,
   submitAccountAddSheet,
 } from "organisms/ledgers/LedgerSetupAccountAddSheet/ledgerSetupAccountAddSheetTestUtils";
 import {
@@ -70,24 +71,60 @@ function openAddSheet(typeLabel: string) {
   return getAccountAddSheet(typeLabel);
 }
 
+async function expectSheetClosed(sheet: HTMLElement) {
+  await waitFor(() => expect(sheet).not.toBeInTheDocument());
+  expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
+  expect(getCurrentStepItem()).toHaveTextContent("账户");
+}
+
+async function closeAddSheet(sheet: HTMLElement) {
+  fireEvent.click(within(sheet).getByRole("button", { name: "关闭" }));
+  await expectSheetClosed(sheet);
+}
+
 describe("LedgerSetupAccountsStep", () => {
-  it("放弃新增账户只关闭子层，再次后退才保护账户步骤", async () => {
+  it("后退静默关闭新增账户弹层，再次后退才保护已添加账户", async () => {
     const { onClose, saveDraft } = renderAccountsStep();
-    fireEvent.click(getAccountCheckbox("现金"));
+    const wallet = openAddSheet("电子钱包");
+    changeAccountName(wallet, "新钱包");
+    submitAccountAddSheet(wallet);
+    await expectSheetClosed(wallet);
+
     const sheet = openAddSheet("银行卡");
     changeAccountName(sheet, "未添加账户");
 
     await backFromGuard();
-    const prompt = screen.getByRole("dialog", { name: "尚未保存" });
-    fireEvent.click(within(prompt).getByRole("button", { name: "放弃修改" }));
-    await waitFor(() => expect(sheet).not.toBeInTheDocument());
-    await waitFor(() => expect(getAccountCheckbox("现金")).not.toBeChecked());
+    await expectSheetClosed(sheet);
+    const reopened = openAddSheet("银行卡");
+    expect(getAccountNameInput(reopened)).toHaveValue("未添加账户");
+    await closeAddSheet(reopened);
     expect(onClose).not.toHaveBeenCalled();
     expect(saveDraft).not.toHaveBeenCalled();
 
     await backFromGuard();
-    fireEvent.click(screen.getByRole("button", { name: "继续编辑" }));
-    await waitFor(() => expect(getAccountCheckbox("现金")).not.toBeChecked());
+    const prompt = screen.getByRole("dialog", { name: "尚未保存" });
+    fireEvent.click(within(prompt).getByRole("button", { name: "继续编辑" }));
+    await waitFor(() => expect(getAccountCheckbox("新钱包")).toBeChecked());
+  });
+
+  it("关闭后分别恢复银行卡和电子钱包的名称草稿", async () => {
+    renderAccountsStep();
+    const bank = openAddSheet("银行卡");
+    changeAccountName(bank, "三井住友");
+    await closeAddSheet(bank);
+
+    const wallet = openAddSheet("电子钱包");
+    expect(getAccountNameInput(wallet)).toHaveValue("");
+    changeAccountName(wallet, "家用钱包");
+    fireEvent.keyDown(wallet, { key: "Escape" });
+    await expectSheetClosed(wallet);
+
+    const reopenedBank = openAddSheet("银行卡");
+    expect(getAccountNameInput(reopenedBank)).toHaveValue("三井住友");
+    await closeAddSheet(reopenedBank);
+    expect(getAccountNameInput(openAddSheet("电子钱包"))).toHaveValue(
+      "家用钱包",
+    );
   });
 
   it("显示引导文案与按类型分组的卡片，默认只有勾选的「现金」", () => {
@@ -351,11 +388,15 @@ describe("LedgerSetupAccountsStep", () => {
 
       const sheet = openAddSheet("银行卡");
       clickAccountCandidate(sheet, "三菱UFJ銀行");
-      submitAccountAddSheet(sheet);
+      await closeAddSheet(sheet);
+      const reopened = openAddSheet("银行卡");
+      expect(getAccountNameInput(reopened)).toHaveValue("三菱UFJ銀行");
+      expect(
+        within(reopened).getByRole("button", { name: "三菱UFJ銀行" }),
+      ).toHaveAttribute("aria-pressed", "true");
+      submitAccountAddSheet(reopened);
 
-      await waitFor(() =>
-        expect(screen.queryByRole("dialog", { name: "添加银行卡" })).toBeNull(),
-      );
+      await expectSheetClosed(reopened);
       const bankCheckboxes = within(getAccountCard("银行卡")).getAllByRole(
         "checkbox",
       );
@@ -369,6 +410,9 @@ describe("LedgerSetupAccountsStep", () => {
         screen.getByRole("button", { name: "下一步 · 已选 3 个" }),
       ).toBeInTheDocument();
 
+      const emptySheet = openAddSheet("银行卡");
+      expect(getAccountNameInput(emptySheet)).toHaveValue("");
+      await closeAddSheet(emptySheet);
       clickNext();
       await waitFor(() => expect(saveDraft).toHaveBeenCalledTimes(1));
       expect(getSavedInput(saveDraft).draft.accounts.items).toContainEqual({

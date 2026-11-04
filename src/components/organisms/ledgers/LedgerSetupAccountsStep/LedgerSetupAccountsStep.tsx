@@ -149,14 +149,7 @@ function LedgerSetupAccountsStepContent(
         ))}
       </Stack>
 
-      <LedgerSetupAccountAddSheet
-        accounts={step.addSheet.accounts}
-        candidates={step.addSheet.candidates}
-        onAdd={step.addSheet.onAdd}
-        onClose={step.addSheet.onClose}
-        open={step.addSheet.open}
-        type={step.addSheet.type}
-      />
+      <LedgerSetupAccountAddSheet {...step.addSheet} />
       <ActionFailureFeedback
         state={step.failureState}
         title={ledgerSetupWizardMessages.saveErrorTitle}

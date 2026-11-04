@@ -17,6 +17,8 @@ export type UseLedgerSetupAccountAddFormOptions = {
   accounts: readonly LedgerSetupDraftAccount[];
   /** 当前类型的候选名称；现金或无模板币种时为空。 */
   candidates: readonly string[];
+  name: string;
+  onNameChange: (name: string) => void;
   onAdd: (account: LedgerSetupDraftAccount) => void;
   type: LedgerSetupAccountType;
 };
@@ -32,10 +34,11 @@ function getNameError(name: string, isTaken: boolean) {
 export function useLedgerSetupAccountAddForm({
   accounts,
   candidates,
+  name,
   onAdd,
+  onNameChange,
   type,
 }: UseLedgerSetupAccountAddFormOptions) {
-  const [name, setName] = useState("");
   // 空名称只在提交时提示，避免刚打开弹层就显示错误。
   const [requiredErrorVisible, setRequiredErrorVisible] = useState(false);
   const trimmedName = name.trim();
@@ -51,7 +54,7 @@ export function useLedgerSetupAccountAddForm({
         );
 
   function changeName(value: string) {
-    setName(value);
+    onNameChange(value);
     setRequiredErrorVisible(false);
   }
 
@@ -80,7 +83,6 @@ export function useLedgerSetupAccountAddForm({
     })),
     changeName,
     handleSubmit,
-    name,
     nameError,
   };
 }
