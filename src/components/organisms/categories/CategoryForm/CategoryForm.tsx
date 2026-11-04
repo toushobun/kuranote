@@ -86,14 +86,14 @@ function CategoryFormContent({
     saveFormId: formId,
   });
   const previousCreateState = useRef(createState);
-  const finishSave = useEffectEvent(async (state: CategoryActionState) => {
-    await guard.completeSave(Boolean(state.success), formId);
-    if (state.success) closeDialog();
+  const finishSave = useEffectEvent((state: CategoryActionState) => {
+    const completion = guard.completeSave(Boolean(state.success), formId);
+    if (state.success) void completion.then(closeDialog);
   });
   useEffect(() => {
     if (previousCreateState.current === createState) return;
     previousCreateState.current = createState;
-    if (createState) void finishSave(createState);
+    if (createState) finishSave(createState);
   }, [createState]);
 
   return (
