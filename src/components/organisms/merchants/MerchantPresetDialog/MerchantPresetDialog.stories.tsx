@@ -27,7 +27,7 @@ export const AlreadyAdded: Story = {
 export const NoTemplate: Story = {
   args: {
     options: {
-      currency: "USD",
+      region: null,
       templateVersion: null,
       groups: [],
       items: [],

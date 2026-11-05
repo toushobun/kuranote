@@ -1,19 +1,14 @@
 import { describe, expect, it } from "vitest";
-
 import { merchantTagEmojiValues } from "config/merchantTagEmojis";
 import { ledgerSetupLimits } from "internal/ledger/entity/ledgerSetup";
+import { getLedgerSetupTemplate } from "./getLedgerSetupTemplate";
 import {
-  getLedgerSetupTemplate,
   ledgerSetupAccountTypes,
   ledgerSetupCashAccount,
-  registeredLedgerSetupTemplates,
-} from "internal/ledger/entity/ledgerSetupTemplate/ledgerSetupTemplate";
-
+  ledgerSetupRegions,
+} from "./ledgerSetupTemplate";
 const normalize = (value: string) => value.trim().toLowerCase();
-
-/** 与 PostgreSQL length() 一致，按字符（code point）计数。 */
 const charLength = (value: string) => [...value].length;
-
 function findDuplicates(values: readonly string[]) {
   const seen = new Set<string>();
   return values.filter((value) => {
@@ -22,228 +17,236 @@ function findDuplicates(values: readonly string[]) {
     return false;
   });
 }
-
-describe("getLedgerSetupTemplate", () => {
-  it("JPY 返回已注册的模板", () => {
-    expect(getLedgerSetupTemplate("JPY")).toMatchObject({
-      currency: "JPY",
-      version: 1,
+describe("地区模板", () => {
+  const template = getLedgerSetupTemplate("jp")!;
+  it("日文原名与新增通用名别名保留正确的语言标记", () => {
+    const aliases = (key: string) =>
+      template.merchants.find((merchant) => merchant.key === key)!.aliases;
+    expect(aliases("amazon")).toEqual(
+      expect.arrayContaining([
+        { alias: "Amazon", locale: "en" },
+        { alias: "Amazonプライム", locale: "ja" },
+      ]),
+    );
+    expect(aliases("docomo")).toContainEqual({
+      alias: "NTTドコモ",
+      locale: "ja",
+    });
+    expect(aliases("property_management")).toContainEqual({
+      alias: "家賃",
+      locale: "ja",
+    });
+    expect(aliases("prefectural_mutual_aid")).toContainEqual({
+      alias: "県民共済",
+      locale: "ja",
     });
   });
-
-  it.each(["CNY", "USD", "XXX", ""])("未注册的币种 %s 返回 null", (code) => {
-    expect(getLedgerSetupTemplate(code)).toBeNull();
-  });
-
-  it("现金账户固定为一项「现金」", () => {
-    expect(ledgerSetupCashAccount).toEqual({ name: "现金", type: "cash" });
-    expect(ledgerSetupAccountTypes).toEqual([
-      "cash",
-      "bank",
-      "credit_card",
-      "e_money",
+  it("按地区提供账户候选，币种不是模板入口", () => {
+    expect(template.region).toBe("jp");
+    expect(template.version).toBe(2);
+    expect(getLedgerSetupTemplate("JPY")).toBeNull();
+    expect(getLedgerSetupTemplate("cn")?.accountCandidates.e_money).toEqual([
+      "支付宝",
+      "微信支付",
+      "云闪付",
+      "数字人民币",
     ]);
+    expect(ledgerSetupCashAccount).toEqual({ name: "现金", type: "cash" });
+    expect(ledgerSetupAccountTypes).toHaveLength(4);
   });
-});
-
-describe("JPY 预设模板内容", () => {
-  const template = getLedgerSetupTemplate("JPY");
-
-  it("按定稿收录 14 个标签与去重后 94 家商家", () => {
-    expect(template?.merchantTags).toHaveLength(14);
-    expect(template?.merchants).toHaveLength(94);
-  });
-
-  it("默认勾选 7 个标签", () => {
+  it("商家唯一目录收录日本117家和中国独有79家", () => {
+    expect(template.merchants).toHaveLength(196);
     expect(
-      template?.merchantTags
-        .filter((tag) => tag.defaultSelected)
-        .map((tag) => tag.name),
-    ).toEqual([
+      template.merchants.filter((m) => m.regions.includes("jp")),
+    ).toHaveLength(117);
+    expect(
+      template.merchants.filter((m) => !m.regions.includes("jp")),
+    ).toHaveLength(79);
+    expect(new Set(template.merchants.map((m) => m.key)).size).toBe(196);
+    expect(getLedgerSetupTemplate("cn")?.merchants).toBe(template.merchants);
+  });
+  it("8个分类中只有前5类默认勾选", () => {
+    expect(template.merchantTags.map((t) => t.name)).toEqual([
       "超市",
       "便利店",
       "餐饮",
-      "咖啡甜品",
-      "药妆店",
-      "生活杂货",
-      "电商",
+      "购物",
+      "网购·订阅",
+      "交通",
+      "生活缴费",
+      "公共服务",
+    ]);
+    expect(template.merchantTags.map((t) => t.defaultSelected)).toEqual([
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
     ]);
   });
-
-  it("多标签商家只定义一次并关联多个标签", () => {
-    const tagKeysByName = new Map(
-      template?.merchants.map((merchant) => [merchant.name, merchant.tagKeys]),
-    );
-
-    expect(tagKeysByName.get("Amazon")).toEqual(["ecommerce", "subscription"]);
-    expect(tagKeysByName.get("Apple")).toEqual(["electronics", "subscription"]);
-    expect(tagKeysByName.get("楽天")).toEqual(["ecommerce", "telecom"]);
+  it("共用商家只定义一次，跨分类保留全部标签", () => {
+    expect(template.merchants.find((m) => m.key === "apple")).toMatchObject({
+      name: "苹果",
+      regions: ["jp", "cn"],
+      tagKeys: ["shopping", "online_subscription"],
+    });
   });
-
-  it("账户候选按类型收录", () => {
-    expect(template?.accountCandidates.bank).toHaveLength(11);
-    expect(template?.accountCandidates.credit_card).toHaveLength(10);
-    expect(template?.accountCandidates.e_money).toHaveLength(11);
+  it("通用名之外均有官网，同一商家内部名称和别名去重", () => {
+    for (const merchant of template.merchants) {
+      expect(merchant.websiteUrl !== null || merchant.generic).toBe(true);
+      expect(
+        findDuplicates(
+          [merchant.name, ...merchant.aliases.map((a) => a.alias)].map(
+            normalize,
+          ),
+        ),
+        merchant.key,
+      ).toEqual([]);
+    }
   });
 });
+describe.each(ledgerSetupRegions)("%s 模板约束", (region) => {
+  const template = getLedgerSetupTemplate(region)!;
+  it("标签 key 与名称唯一，每个标签至少一个商家", () => {
+    const tagKeys = template.merchantTags.map(({ key }) => key);
 
-describe.each(registeredLedgerSetupTemplates.map((t) => [t.currency, t]))(
-  "%s 模板约束",
-  (_currency, template) => {
-    it("模板版本为正整数", () => {
-      expect(Number.isInteger(template.version)).toBe(true);
-      expect(template.version).toBeGreaterThan(0);
-    });
-
-    it("所有商家显示名与别名（trim + 忽略大小写）全局唯一", () => {
-      const names = template.merchants.flatMap((merchant) => [
-        merchant.name,
-        ...merchant.aliases.map(({ alias }) => alias),
-      ]);
-
-      expect(findDuplicates(names.map(normalize))).toEqual([]);
-    });
-
-    it("标签 key 与名称唯一，每个标签至少一个商家", () => {
-      const tagKeys = template.merchantTags.map(({ key }) => key);
-
-      expect(findDuplicates(tagKeys)).toEqual([]);
+    expect(findDuplicates(tagKeys)).toEqual([]);
+    expect(
+      findDuplicates(template.merchantTags.map(({ name }) => normalize(name))),
+    ).toEqual([]);
+    for (const key of tagKeys) {
       expect(
-        findDuplicates(
-          template.merchantTags.map(({ name }) => normalize(name)),
-        ),
-      ).toEqual([]);
-      for (const key of tagKeys) {
-        expect(
-          template.merchants.some(({ tagKeys: keys }) => keys.includes(key)),
-          key,
-        ).toBe(true);
+        template.merchants.some(({ tagKeys: keys }) => keys.includes(key)),
+        key,
+      ).toBe(true);
+    }
+  });
+
+  it("标签排序唯一", () => {
+    expect(
+      findDuplicates(
+        template.merchantTags.map(({ sortOrder }) => String(sortOrder)),
+      ),
+    ).toEqual([]);
+  });
+
+  it("商家 key 唯一，商家的标签 key 都存在且不重复", () => {
+    const tagKeys = new Set(template.merchantTags.map(({ key }) => key));
+
+    expect(findDuplicates(template.merchants.map(({ key }) => key))).toEqual(
+      [],
+    );
+    for (const merchant of template.merchants) {
+      expect(merchant.tagKeys.length, merchant.key).toBeGreaterThan(0);
+      expect(findDuplicates(merchant.tagKeys), merchant.key).toEqual([]);
+      for (const tagKey of merchant.tagKeys) {
+        expect(tagKeys.has(tagKey), `${merchant.key}:${tagKey}`).toBe(true);
       }
-    });
+    }
+  });
 
-    it("标签排序唯一", () => {
-      expect(
-        findDuplicates(
-          template.merchantTags.map(({ sortOrder }) => String(sortOrder)),
-        ),
-      ).toEqual([]);
-    });
+  it("key 符合草稿约束", () => {
+    const keys = [
+      ...template.merchantTags.map(({ key }) => key),
+      ...template.merchants.map(({ key }) => key),
+    ];
 
-    it("商家 key 唯一，商家的标签 key 都存在且不重复", () => {
-      const tagKeys = new Set(template.merchantTags.map(({ key }) => key));
-
-      expect(findDuplicates(template.merchants.map(({ key }) => key))).toEqual(
-        [],
+    for (const key of keys) {
+      expect(key).toMatch(/^[a-z0-9_]+$/);
+      expect(key.length).toBeLessThanOrEqual(
+        ledgerSetupLimits.templateKeyMaxLength,
       );
-      for (const merchant of template.merchants) {
-        expect(merchant.tagKeys.length, merchant.key).toBeGreaterThan(0);
-        expect(findDuplicates(merchant.tagKeys), merchant.key).toEqual([]);
-        for (const tagKey of merchant.tagKeys) {
-          expect(tagKeys.has(tagKey), `${merchant.key}:${tagKey}`).toBe(true);
-        }
-      }
-    });
+    }
+  });
 
-    it("key 符合草稿约束", () => {
-      const keys = [
-        ...template.merchantTags.map(({ key }) => key),
-        ...template.merchants.map(({ key }) => key),
-      ];
-
-      for (const key of keys) {
-        expect(key).toMatch(/^[a-z0-9_]+$/);
-        expect(key.length).toBeLessThanOrEqual(
-          ledgerSetupLimits.templateKeyMaxLength,
-        );
-      }
-    });
-
-    it("名称与别名长度、locale 符合各表约束", () => {
-      for (const tag of template.merchantTags) {
-        expect(charLength(tag.name.trim())).toBeGreaterThan(0);
-        expect(charLength(tag.name.trim())).toBeLessThanOrEqual(
-          ledgerSetupLimits.merchantTagNameMaxLength,
-        );
-      }
-
-      for (const merchant of template.merchants) {
-        expect(charLength(merchant.name.trim())).toBeGreaterThan(0);
-        expect(charLength(merchant.name.trim())).toBeLessThanOrEqual(
-          ledgerSetupLimits.merchantNameMaxLength,
-        );
-        expect(merchant.aliases.length).toBeLessThanOrEqual(
-          ledgerSetupLimits.maxMerchantAliases,
-        );
-        expect(merchant.tagKeys.length).toBeLessThanOrEqual(
-          ledgerSetupLimits.maxMerchantTagKeys,
-        );
-
-        for (const { alias, locale } of merchant.aliases) {
-          expect(alias).toBe(alias.trim());
-          expect(charLength(alias)).toBeGreaterThan(0);
-          expect(charLength(alias)).toBeLessThanOrEqual(
-            ledgerSetupLimits.aliasMaxLength,
-          );
-          expect(charLength(locale.trim())).toBeGreaterThanOrEqual(
-            ledgerSetupLimits.aliasLocaleMinLength,
-          );
-          expect(charLength(locale.trim())).toBeLessThanOrEqual(
-            ledgerSetupLimits.aliasLocaleMaxLength,
-          );
-        }
-      }
-    });
-
-    it("标签 icon 符合 merchant_tags 约束且可在标签编辑中选择", () => {
-      for (const { icon } of template.merchantTags) {
-        expect(charLength(icon)).toBeGreaterThan(0);
-        expect(charLength(icon)).toBeLessThanOrEqual(
-          ledgerSetupLimits.merchantTagIconMaxLength,
-        );
-        expect(merchantTagEmojiValues.has(icon), icon).toBe(true);
-      }
-    });
-
-    it("官网 URL 均为 https://", () => {
-      for (const { websiteUrl } of template.merchants) {
-        if (websiteUrl !== null) {
-          expect(new URL(websiteUrl).protocol).toBe("https:");
-        }
-      }
-    });
-
-    it("官网 origin 可由数据库侧 merchant_favicon_url 按相同结果提取", () => {
-      // 数据库侧只从 URL 开头提取小写 ASCII 主机名生成头像地址，
-      // 模板官网需满足该形式，否则完成写入时 iconUrl 校验会不一致。
-      for (const { websiteUrl } of template.merchants) {
-        if (websiteUrl !== null) {
-          expect(websiteUrl).toMatch(/^https:\/\/[a-z0-9.-]+(?:[/?#]|$)/);
-          expect(websiteUrl.startsWith(`${new URL(websiteUrl).origin}`)).toBe(
-            true,
-          );
-        }
-      }
-    });
-
-    it("条数不超过完成写入的上限", () => {
-      expect(template.merchantTags.length).toBeLessThanOrEqual(
-        ledgerSetupLimits.maxMerchantTags,
+  it("名称与别名长度、locale 符合各表约束", () => {
+    for (const tag of template.merchantTags) {
+      expect(charLength(tag.name.trim())).toBeGreaterThan(0);
+      expect(charLength(tag.name.trim())).toBeLessThanOrEqual(
+        ledgerSetupLimits.merchantTagNameMaxLength,
       );
-      expect(template.merchants.length).toBeLessThanOrEqual(
-        ledgerSetupLimits.maxMerchants,
-      );
-    });
+    }
 
-    it("账户候选在同一类型内不重复且长度合法", () => {
-      for (const candidates of Object.values(template.accountCandidates)) {
-        expect(findDuplicates(candidates.map(normalize))).toEqual([]);
-        for (const name of candidates) {
-          expect(charLength(name.trim())).toBeGreaterThan(0);
-          expect(charLength(name.trim())).toBeLessThanOrEqual(
-            ledgerSetupLimits.accountNameMaxLength,
-          );
-        }
+    for (const merchant of template.merchants) {
+      expect(charLength(merchant.name.trim())).toBeGreaterThan(0);
+      expect(charLength(merchant.name.trim())).toBeLessThanOrEqual(
+        ledgerSetupLimits.merchantNameMaxLength,
+      );
+      expect(merchant.aliases.length).toBeLessThanOrEqual(
+        ledgerSetupLimits.maxMerchantAliases,
+      );
+      expect(merchant.tagKeys.length).toBeLessThanOrEqual(
+        ledgerSetupLimits.maxMerchantTagKeys,
+      );
+
+      for (const { alias, locale } of merchant.aliases) {
+        expect(alias).toBe(alias.trim());
+        expect(charLength(alias)).toBeGreaterThan(0);
+        expect(charLength(alias)).toBeLessThanOrEqual(
+          ledgerSetupLimits.aliasMaxLength,
+        );
+        expect(charLength(locale.trim())).toBeGreaterThanOrEqual(
+          ledgerSetupLimits.aliasLocaleMinLength,
+        );
+        expect(charLength(locale.trim())).toBeLessThanOrEqual(
+          ledgerSetupLimits.aliasLocaleMaxLength,
+        );
       }
-    });
-  },
-);
+    }
+  });
+
+  it("标签 icon 符合 merchant_tags 约束且可在标签编辑中选择", () => {
+    for (const { icon } of template.merchantTags) {
+      expect(charLength(icon)).toBeGreaterThan(0);
+      expect(charLength(icon)).toBeLessThanOrEqual(
+        ledgerSetupLimits.merchantTagIconMaxLength,
+      );
+      expect(merchantTagEmojiValues.has(icon), icon).toBe(true);
+    }
+  });
+
+  it("官网 URL 均为 https://", () => {
+    for (const { websiteUrl } of template.merchants) {
+      if (websiteUrl !== null) {
+        expect(new URL(websiteUrl).protocol).toBe("https:");
+      }
+    }
+  });
+
+  it("官网 origin 可由数据库侧 merchant_favicon_url 按相同结果提取", () => {
+    // 数据库侧只从 URL 开头提取小写 ASCII 主机名生成头像地址，
+    // 模板官网需满足该形式，否则完成写入时 iconUrl 校验会不一致。
+    for (const { websiteUrl } of template.merchants) {
+      if (websiteUrl !== null) {
+        expect(websiteUrl).toMatch(/^https:\/\/[a-z0-9.-]+(?:[/?#]|$)/);
+        expect(websiteUrl.startsWith(`${new URL(websiteUrl).origin}`)).toBe(
+          true,
+        );
+      }
+    }
+  });
+
+  it("条数不超过完成写入的上限", () => {
+    expect(template.merchantTags.length).toBeLessThanOrEqual(
+      ledgerSetupLimits.maxMerchantTags,
+    );
+    expect(template.merchants.length).toBeLessThanOrEqual(
+      ledgerSetupLimits.maxMerchants,
+    );
+  });
+
+  it("账户候选在同一类型内不重复且长度合法", () => {
+    for (const candidates of Object.values(template.accountCandidates)) {
+      expect(findDuplicates(candidates.map(normalize))).toEqual([]);
+      for (const name of candidates) {
+        expect(charLength(name.trim())).toBeGreaterThan(0);
+        expect(charLength(name.trim())).toBeLessThanOrEqual(
+          ledgerSetupLimits.accountNameMaxLength,
+        );
+      }
+    }
+  });
+});

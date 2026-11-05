@@ -13,10 +13,15 @@ import {
   type ValidationResult,
 } from "internal/shared/schema/formValidation";
 import { getFormText, isUuid } from "utils/formData";
+import {
+  isLedgerSetupRegion,
+  type LedgerSetupRegion,
+} from "internal/ledger/entity/ledgerSetupTemplate/ledgerSetupTemplate";
 
 export type LedgerSetupBasicInfoValues = CreateLedgerValues & {
   /** 已有创建中账本时为该账本 ID（更新基本信息）；尚未创建时为 null（创建账本）。 */
   ledgerId: string | null;
+  livingRegion: LedgerSetupRegion;
 };
 
 /**
@@ -41,5 +46,12 @@ export function validateLedgerSetupBasicInfoForm(
     return invalid(ledgerSetupErrorCodes.notFound);
   }
 
-  return valid({ ...basicInfo.value, ledgerId: ledgerId || null });
+  const livingRegion = formData.get("livingRegion");
+  if (!isLedgerSetupRegion(livingRegion))
+    return invalid(ledgerSetupErrorCodes.regionRequired);
+  return valid({
+    ...basicInfo.value,
+    ledgerId: ledgerId || null,
+    livingRegion,
+  });
 }

@@ -9,6 +9,18 @@ export const merchantTagEmojiGroups = [
 
 export const merchantTagEmojiOptions = [
   {
+    emoji: "🌐",
+    groupId: "retail",
+    keywords: ["网购", "订阅", "网络"],
+    label: "网购·订阅",
+  },
+  {
+    emoji: "🧾",
+    groupId: "service",
+    keywords: ["缴费", "账单", "生活"],
+    label: "生活缴费",
+  },
+  {
     emoji: "🛒",
     groupId: "retail",
     keywords: ["超市", "采购", "购物"],

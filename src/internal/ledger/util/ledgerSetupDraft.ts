@@ -1,15 +1,15 @@
-import type { LedgerCurrency } from "internal/ledger/entity/ledgerCurrency";
 import {
-  getLedgerSetupTemplate,
   ledgerSetupCashAccount,
   type LedgerSetupAccountType,
   type LedgerSetupTemplate,
+  type LedgerSetupRegion,
 } from "internal/ledger/entity/ledgerSetupTemplate/ledgerSetupTemplate";
 import type {
   LedgerSetupDraft,
   LedgerSetupDraftAccount,
   StoredLedgerSetupDraft,
 } from "internal/ledger/schema/ledgerSetupDraft";
+import { getLedgerSetupTemplate } from "internal/ledger/entity/ledgerSetupTemplate/getLedgerSetupTemplate";
 
 /**
  * 功能开关默认值，与新建账本的 ledger.transaction_item_special_status_enabled、
@@ -43,14 +43,13 @@ function defaultSelectedMerchantKeys(template: LedgerSetupTemplate | null) {
 }
 
 /**
- * 根据账本默认货币对应的模板生成默认草稿：账户只有「现金」，
+ * 根据账本生活地区对应的模板生成默认草稿：账户只有「现金」，
  * 商家为默认勾选标签下的全部商家，功能开关与现有账本设置的默认值一致。
  */
 export function createDefaultLedgerSetupDraft(
-  currency: LedgerCurrency,
+  region: LedgerSetupRegion | null,
+  template: LedgerSetupTemplate | null = getLedgerSetupTemplate(region),
 ): LedgerSetupDraft {
-  const template = getLedgerSetupTemplate(currency);
-
   return {
     accounts: {
       items: [{ ...ledgerSetupCashAccount }],
@@ -58,10 +57,18 @@ export function createDefaultLedgerSetupDraft(
     },
     features: { ...defaultLedgerSetupFeatures },
     merchants: {
-      selectedKeys: defaultSelectedMerchantKeys(template),
+      selectedKeys: defaultSelectedMerchantKeys(
+        template && {
+          ...template,
+          merchants: template.merchants.filter(
+            (m) => region !== null && m.regions.includes(region),
+          ),
+        },
+      ),
       skipped: false,
     },
-    templateCurrency: currency,
+    schemaVersion: 2,
+    templateRegion: region,
     templateVersion: templateVersionOf(template),
   };
 }
@@ -72,18 +79,41 @@ function isAccountTemplateKeyValid(
   templateKey: string,
 ) {
   if (!template || type === ledgerSetupCashAccount.type) return false;
-  return template.accountCandidates[type].includes(templateKey);
+  return Object.values(template.accountCandidatesByRegion).some((candidates) =>
+    candidates[type].includes(templateKey),
+  );
 }
 
-/** 判断草稿记录的模板币种、版本与引用的模板 key 是否与当前模板一致。 */
+/** 恢复与保存共用地区范围，防止恢复后的草稿再次被判为过期。 */
+function merchantKeysForRegions(
+  template: LedgerSetupTemplate | null,
+  region: LedgerSetupRegion | null,
+  additionalRegions: readonly LedgerSetupRegion[] = [],
+) {
+  const regions = [region, ...additionalRegions];
+  return new Set(
+    template?.merchants
+      .filter((merchant) =>
+        merchant.regions.some((region) => regions.includes(region)),
+      )
+      .map(({ key }) => key),
+  );
+}
+
+/** 判断草稿记录的模板地区、版本与引用的模板 key 是否与当前模板一致。 */
 export function isLedgerSetupDraftMatchingTemplate(
   draft: LedgerSetupDraft,
+  template: LedgerSetupTemplate | null = getLedgerSetupTemplate(
+    draft.templateRegion,
+  ),
 ): boolean {
-  const template = getLedgerSetupTemplate(draft.templateCurrency);
-
   if (draft.templateVersion !== templateVersionOf(template)) return false;
 
-  const merchantKeys = new Set(template?.merchants.map(({ key }) => key));
+  const merchantKeys = merchantKeysForRegions(
+    template,
+    draft.templateRegion,
+    draft.merchants.additionalRegions,
+  );
 
   return (
     draft.merchants.selectedKeys.every((key) => merchantKeys.has(key)) &&
@@ -96,17 +126,21 @@ export function isLedgerSetupDraftMatchingTemplate(
 }
 
 /**
- * 按账本当前默认货币的模板补全并校正草稿：缺失的部分使用默认值；
- * 模板币种或版本与当前不一致时，无法匹配当前模板的商家 key 被丢弃，
+ * 按账本当前生活地区的模板补全并校正草稿：缺失的部分使用默认值；
+ * 模板地区或版本与当前不一致时，无法匹配当前模板的商家 key 被丢弃，
  * 账户保留名称但丢弃无法匹配的候选 key。
  */
 export function resolveLedgerSetupDraft(
   stored: StoredLedgerSetupDraft,
-  currency: LedgerCurrency,
+  region: LedgerSetupRegion | null,
+  template: LedgerSetupTemplate | null = getLedgerSetupTemplate(region),
 ): LedgerSetupDraft {
-  const template = getLedgerSetupTemplate(currency);
-  const defaults = createDefaultLedgerSetupDraft(currency);
-  const merchantKeys = new Set(template?.merchants.map(({ key }) => key));
+  const defaults = createDefaultLedgerSetupDraft(region, template);
+  const merchantKeys = merchantKeysForRegions(
+    template,
+    region,
+    stored.merchants?.additionalRegions,
+  );
 
   const accounts = stored.accounts
     ? {
@@ -134,34 +168,8 @@ export function resolveLedgerSetupDraft(
     accounts,
     features: stored.features ?? defaults.features,
     merchants,
-    templateCurrency: currency,
+    schemaVersion: 2,
+    templateRegion: region,
     templateVersion: templateVersionOf(template),
   };
-}
-
-function accountNameScopeKey({
-  name,
-  type,
-}: Pick<LedgerSetupDraftAccount, "name" | "type">) {
-  return `${type}\u0000${name.trim().toLowerCase()}`;
-}
-
-/**
- * 草稿内账户名称是否重复。唯一范围与 #781 一致（账本 + 名称 + 类型 + 货币 + 持有人）；
- * 向导中货币均为账本默认货币、持有人均为当前用户，因此按「类型 + 名称（忽略大小写）」判断。
- */
-export function hasDuplicateLedgerSetupAccountName(
-  accounts: readonly LedgerSetupDraftAccount[],
-): boolean {
-  const keys = accounts.map(accountNameScopeKey);
-  return new Set(keys).size !== keys.length;
-}
-
-/** 同一类型下是否已有与 account 同名的账户。判断规则与 hasDuplicateLedgerSetupAccountName 相同。 */
-export function isLedgerSetupAccountNameTaken(
-  accounts: readonly Pick<LedgerSetupDraftAccount, "name" | "type">[],
-  account: Pick<LedgerSetupDraftAccount, "name" | "type">,
-): boolean {
-  const key = accountNameScopeKey(account);
-  return accounts.some((item) => accountNameScopeKey(item) === key);
 }

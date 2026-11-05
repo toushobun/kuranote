@@ -18,9 +18,10 @@ import {
 
 const ledgerId = "00000000-0000-4000-8000-000000000001";
 
-const draft = createDefaultLedgerSetupDraft("JPY");
+const draft = createDefaultLedgerSetupDraft("jp");
 
 const payload = {
+  templateRegion: "jp" as const,
   accounts: [{ name: "现金", type: "cash" as const }],
   merchantTags: [],
   merchants: [],
@@ -30,6 +31,7 @@ const payload = {
 
 const basicInfo = {
   baseCurrency: "JPY",
+  livingRegion: "jp" as const,
   displayColor: "amber" as const,
   displayName: "淞文",
   ledgerName: "家庭账本",
@@ -68,6 +70,7 @@ describe("createSupabaseLedgerSetupRepository.create", () => {
     });
     expect(supabase.rpc).toHaveBeenCalledWith("create_ledger_setup", {
       p_base_currency: "JPY",
+      p_living_region: "jp",
       p_display_color: "amber",
       p_display_name: "淞文",
       p_name: "家庭账本",
@@ -116,6 +119,7 @@ describe("createSupabaseLedgerSetupRepository.create", () => {
 
 const setupRow = {
   base_currency: "JPY",
+  living_region: "jp",
   ledger_id: ledgerId,
   ledger_name: "家庭账本",
   setup_draft: {
@@ -135,6 +139,7 @@ describe("createSupabaseLedgerSetupRepository.findCurrentUserSetupLedger", () =>
       repository.findCurrentUserSetupLedger(userId),
     ).resolves.toEqual({
       baseCurrency: "JPY",
+      livingRegion: "jp" as const,
       displayColor: "amber",
       displayName: "淞文",
       id: ledgerId,
@@ -209,7 +214,10 @@ describe("createSupabaseLedgerSetupRepository.findCurrentUserSetupLedger", () =>
   });
 
   it.each([
-    ["草稿不是 object", { base_currency: "JPY", setup_draft: [] }],
+    [
+      "草稿不是 object",
+      { base_currency: "JPY", living_region: "jp", setup_draft: [] },
+    ],
     ["默认货币不是可选值", { base_currency: "XXX", setup_draft: {} }],
   ])("%s时视为数据异常", async (_label, row) => {
     const { repository } = createRepository({
@@ -290,10 +298,7 @@ describe("createSupabaseLedgerSetupRepository.saveDraft", () => {
     ["ledger_setup_step_invalid", ledgerSetupErrorCodes.stepInvalid],
     ["ledger_setup_draft_invalid", ledgerSetupErrorCodes.draftInvalid],
     ["ledger_setup_draft_too_large", ledgerSetupErrorCodes.draftTooLarge],
-    [
-      "ledger_setup_draft_currency_mismatch",
-      ledgerSetupErrorCodes.currencyMismatch,
-    ],
+    ["ledger_setup_region_mismatch", ledgerSetupErrorCodes.regionMismatch],
   ] as const)("RPC details 返回 %s 时映射为 %s", async (details, code) => {
     const { repository } = createRepository({
       error: { details, message: "业务错误" },
@@ -329,6 +334,7 @@ describe("createSupabaseLedgerSetupRepository.updateBasicInfo", () => {
       "update_ledger_setup_basic_info",
       {
         p_base_currency: "JPY",
+        p_living_region: "jp",
         p_display_color: "amber",
         p_display_name: "淞文",
         p_ledger_id: ledgerId,

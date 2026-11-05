@@ -1,273 +1,99 @@
 import { describe, expect, it } from "vitest";
-
-import { getLedgerSetupTemplate } from "internal/ledger/entity/ledgerSetupTemplate/ledgerSetupTemplate";
-import type { LedgerSetupDraft } from "internal/ledger/schema/ledgerSetupDraft";
+import { getLedgerSetupTemplate } from "internal/ledger/entity/ledgerSetupTemplate/getLedgerSetupTemplate";
+import { parseStoredLedgerSetupDraft } from "internal/ledger/schema/ledgerSetupDraft";
 import {
   createDefaultLedgerSetupDraft,
-  hasDuplicateLedgerSetupAccountName,
-  isLedgerSetupAccountNameTaken,
-  isLedgerSetupDraftMatchingTemplate,
   resolveLedgerSetupDraft,
-} from "internal/ledger/util/ledgerSetupDraft";
-
-const jpyTemplate = getLedgerSetupTemplate("JPY");
-
-function withDraft(overrides: Partial<LedgerSetupDraft>): LedgerSetupDraft {
-  return { ...createDefaultLedgerSetupDraft("JPY"), ...overrides };
-}
-
-describe("createDefaultLedgerSetupDraft", () => {
-  it("JPY 默认只有现金账户，商家为默认勾选标签下的全部商家", () => {
-    const draft = createDefaultLedgerSetupDraft("JPY");
-
-    expect(draft).toMatchObject({
-      accounts: { items: [{ name: "现金", type: "cash" }], skipped: false },
-      features: {
-        multiAccountPaymentEnabled: false,
-        specialStatusEnabled: false,
-      },
-      merchants: { skipped: false },
+  isLedgerSetupDraftMatchingTemplate,
+} from "./ledgerSetupDraft";
+describe("地区草稿", () => {
+  it("默认只选本地区前五类商家，多分类商家只算一次", () => {
+    const draft = createDefaultLedgerSetupDraft("jp");
+    expect(draft.accounts.items).toEqual([{ name: "现金", type: "cash" }]);
+    expect(draft.merchants.selectedKeys).toContain("apple");
+    expect(draft.merchants.selectedKeys).not.toContain("hema");
+    expect(draft.merchants.selectedKeys).not.toContain("jr_east");
+    expect(new Set(draft.merchants.selectedKeys).size).toBe(
+      draft.merchants.selectedKeys.length,
+    );
+    expect(isLedgerSetupDraftMatchingTemplate(draft)).toBe(true);
+  });
+  it("中国默认选择中国商家和共用商家", () => {
+    const draft = createDefaultLedgerSetupDraft("cn");
+    expect(draft.merchants.selectedKeys).toContain("hema");
+    expect(draft.merchants.selectedKeys).toContain("starbucks");
+    expect(draft.merchants.selectedKeys).not.toContain("aeon");
+  });
+  it("旧草稿保留账户、商家勾选和跳过状态，不重选新增商家", () => {
+    const stored = parseStoredLedgerSetupDraft({
       templateCurrency: "JPY",
-      templateVersion: jpyTemplate?.version,
-    });
-    expect(draft.merchants.selectedKeys).toHaveLength(50);
-    expect(draft.merchants.selectedKeys).toEqual(
-      expect.arrayContaining(["aeon", "seven_eleven", "amazon", "rakuten"]),
-    );
-    expect(draft.merchants.selectedKeys).not.toContain("uniqlo");
-  });
-
-  it("多标签商家只要任一所属标签默认勾选即选中", () => {
-    const { selectedKeys } = createDefaultLedgerSetupDraft("JPY").merchants;
-
-    // Amazon：电商（默认）+ 订阅服务；Apple：家电数码 + 订阅服务（都不默认）。
-    expect(selectedKeys).toContain("amazon");
-    expect(selectedKeys).not.toContain("apple");
-    expect(new Set(selectedKeys).size).toBe(selectedKeys.length);
-  });
-
-  it("无模板币种没有预设商家，模板版本为 null", () => {
-    expect(createDefaultLedgerSetupDraft("USD")).toEqual({
-      accounts: { items: [{ name: "现金", type: "cash" }], skipped: false },
-      features: {
-        multiAccountPaymentEnabled: false,
-        specialStatusEnabled: false,
-      },
-      merchants: { selectedKeys: [], skipped: false },
-      templateCurrency: "USD",
-      templateVersion: null,
-    });
-  });
-});
-
-describe("resolveLedgerSetupDraft", () => {
-  it("空草稿补全为当前币种的默认草稿", () => {
-    expect(resolveLedgerSetupDraft({}, "JPY")).toEqual(
-      createDefaultLedgerSetupDraft("JPY"),
-    );
-  });
-
-  it("货币变更后只剩功能开关时，账户与商家按新币种恢复默认", () => {
-    expect(
-      resolveLedgerSetupDraft(
-        {
-          features: {
-            multiAccountPaymentEnabled: true,
-            specialStatusEnabled: true,
-          },
-        },
-        "USD",
-      ),
-    ).toEqual({
-      ...createDefaultLedgerSetupDraft("USD"),
-      features: {
-        multiAccountPaymentEnabled: true,
-        specialStatusEnabled: true,
-      },
-    });
-  });
-
-  it("草稿与当前模板一致时保持不变", () => {
-    const draft = withDraft({
+      templateVersion: 1,
       accounts: {
-        items: [
-          { name: "现金", type: "cash" },
-          { name: "楽天銀行（生活费）", templateKey: "楽天銀行", type: "bank" },
-        ],
+        items: [{ name: "改名的账户", type: "bank", templateKey: "旧候选" }],
         skipped: true,
       },
-      merchants: { selectedKeys: ["amazon", "netflix"], skipped: true },
-    });
-
-    expect(resolveLedgerSetupDraft(draft, "JPY")).toEqual(draft);
-  });
-
-  it("模板版本变化时丢弃无法匹配的商家 key 与账户候选 key，保留其余选择", () => {
-    const resolved = resolveLedgerSetupDraft(
-      {
-        ...withDraft({
-          accounts: {
-            items: [
-              { name: "旧银行", templateKey: "旧银行", type: "bank" },
-              {
-                name: "楽天カード",
-                templateKey: "楽天カード",
-                type: "credit_card",
-              },
-            ],
-            skipped: false,
-          },
-          merchants: {
-            selectedKeys: ["amazon", "removed_merchant", "amazon"],
-            skipped: false,
-          },
-        }),
-        templateVersion: 999,
+      merchants: {
+        selectedKeys: ["apple", "aeon", "失效key", "aeon"],
+        skipped: true,
       },
-      "JPY",
-    );
-
-    expect(resolved).toEqual(
-      withDraft({
-        accounts: {
-          items: [
-            { name: "旧银行", type: "bank" },
-            {
-              name: "楽天カード",
-              templateKey: "楽天カード",
-              type: "credit_card",
-            },
-          ],
-          skipped: false,
-        },
-        merchants: { selectedKeys: ["amazon"], skipped: false },
-      }),
-    );
-  });
-
-  it("草稿币种与账本当前默认货币不一致时按当前币种模板校正", () => {
-    const resolved = resolveLedgerSetupDraft(
-      withDraft({
-        accounts: {
-          items: [{ name: "楽天銀行", templateKey: "楽天銀行", type: "bank" }],
-          skipped: false,
-        },
-        merchants: { selectedKeys: ["amazon"], skipped: false },
-      }),
-      "USD",
-    );
-
-    expect(resolved).toEqual({
+      features: { specialStatusEnabled: true },
+    })!;
+    const draft = resolveLedgerSetupDraft(stored, "jp");
+    expect(draft).toMatchObject({
+      schemaVersion: 2,
+      templateRegion: "jp",
+      templateVersion: 2,
       accounts: {
-        items: [{ name: "楽天銀行", type: "bank" }],
-        skipped: false,
+        items: [{ name: "改名的账户", type: "bank" }],
+        skipped: true,
       },
+      merchants: { selectedKeys: ["apple", "aeon"], skipped: true },
       features: {
+        specialStatusEnabled: true,
         multiAccountPaymentEnabled: false,
-        specialStatusEnabled: false,
       },
-      merchants: { selectedKeys: [], skipped: false },
-      templateCurrency: "USD",
-      templateVersion: null,
     });
+    expect(draft.accounts.items[0]).not.toHaveProperty("templateKey");
   });
-
-  it("现金账户的候选 key 视为无法匹配", () => {
-    const resolved = resolveLedgerSetupDraft(
-      withDraft({
-        accounts: {
-          items: [{ name: "现金", templateKey: "现金", type: "cash" }],
-          skipped: false,
-        },
-      }),
-      "JPY",
+  it("追加地区合法选择可保存，默认不自动增加任何勾选", () => {
+    const draft = createDefaultLedgerSetupDraft("jp");
+    const before = [...draft.merchants.selectedKeys];
+    draft.merchants.additionalRegions = ["cn"];
+    expect(draft.merchants.selectedKeys).toEqual(before);
+    draft.merchants.selectedKeys.push("hema");
+    expect(isLedgerSetupDraftMatchingTemplate(draft)).toBe(true);
+    draft.merchants.additionalRegions = [];
+    expect(isLedgerSetupDraftMatchingTemplate(draft)).toBe(false);
+  });
+  it.each([false, true])(
+    "恢复与保存按相同追加地区范围过滤商家：%s",
+    (additional) => {
+      const draft = createDefaultLedgerSetupDraft("jp");
+      draft.merchants.additionalRegions = additional ? ["cn"] : [];
+      draft.merchants.selectedKeys = ["apple", "aeon", "hema"];
+      const resolved = resolveLedgerSetupDraft(draft, "jp");
+      expect(resolved.merchants.selectedKeys).toEqual(
+        additional ? ["apple", "aeon", "hema"] : ["apple", "aeon"],
+      );
+      expect(isLedgerSetupDraftMatchingTemplate(resolved)).toBe(true);
+    },
+  );
+  it("模板升级保留现有可匹配项，剔除失效key", () => {
+    const draft = createDefaultLedgerSetupDraft("jp");
+    draft.templateVersion = 1;
+    draft.merchants.selectedKeys = ["starbucks", "不存在"];
+    expect(isLedgerSetupDraftMatchingTemplate(draft)).toBe(false);
+    expect(resolveLedgerSetupDraft(draft, "jp").merchants.selectedKeys).toEqual(
+      ["starbucks"],
     );
-
-    expect(resolved.accounts.items).toEqual([{ name: "现金", type: "cash" }]);
+    expect(getLedgerSetupTemplate("jp")?.version).toBe(2);
   });
-});
-
-describe("isLedgerSetupDraftMatchingTemplate", () => {
-  it("默认草稿与模板一致", () => {
-    expect(
-      isLedgerSetupDraftMatchingTemplate(createDefaultLedgerSetupDraft("JPY")),
-    ).toBe(true);
-    expect(
-      isLedgerSetupDraftMatchingTemplate(createDefaultLedgerSetupDraft("USD")),
-    ).toBe(true);
-  });
-
-  it.each<[string, Partial<LedgerSetupDraft>]>([
-    ["模板版本不同", { templateVersion: 999 }],
-    ["无模板币种带有版本", { templateCurrency: "USD", templateVersion: 1 }],
-    [
-      "无模板币种选择商家",
-      {
-        merchants: { selectedKeys: ["amazon"], skipped: false },
-        templateCurrency: "USD",
-        templateVersion: null,
-      },
-    ],
-    [
-      "商家 key 不存在",
-      {
-        merchants: { selectedKeys: ["unknown"], skipped: false },
-      },
-    ],
-    [
-      "账户候选 key 不属于该类型",
-      {
-        accounts: {
-          items: [{ name: "PayPay", templateKey: "PayPay", type: "bank" }],
-          skipped: false,
-        },
-      },
-    ],
-  ])("%s时不一致", (_label, overrides) => {
-    expect(isLedgerSetupDraftMatchingTemplate(withDraft(overrides))).toBe(
-      false,
+  it("未知地区不猜测默认模板，缺失部分独立补全", () => {
+    expect(resolveLedgerSetupDraft({}, null)).toEqual(
+      createDefaultLedgerSetupDraft(null),
     );
-  });
-});
-
-describe("hasDuplicateLedgerSetupAccountName", () => {
-  it("同一类型内名称忽略大小写与首尾空格重复", () => {
-    expect(
-      hasDuplicateLedgerSetupAccountName([
-        { name: "PayPay", type: "e_money" },
-        { name: " paypay ", type: "e_money" },
-      ]),
-    ).toBe(true);
-  });
-
-  it("不同类型可以同名", () => {
-    expect(
-      hasDuplicateLedgerSetupAccountName([
-        { name: "PayPay", type: "e_money" },
-        { name: "PayPay", type: "bank" },
-      ]),
-    ).toBe(false);
-  });
-});
-
-describe("isLedgerSetupAccountNameTaken", () => {
-  const accounts = [
-    { name: "PayPay", type: "e_money" as const },
-    { name: "現金", type: "cash" as const },
-  ];
-
-  it("同一类型下名称忽略大小写与首尾空格相同时视为已有", () => {
-    expect(
-      isLedgerSetupAccountNameTaken(accounts, {
-        name: " paypay ",
-        type: "e_money",
-      }),
-    ).toBe(true);
-  });
-
-  it("不同类型的同名账户不视为已有", () => {
-    expect(
-      isLedgerSetupAccountNameTaken(accounts, { name: "PayPay", type: "bank" }),
-    ).toBe(false);
+    expect(createDefaultLedgerSetupDraft(null).merchants.selectedKeys).toEqual(
+      [],
+    );
   });
 });

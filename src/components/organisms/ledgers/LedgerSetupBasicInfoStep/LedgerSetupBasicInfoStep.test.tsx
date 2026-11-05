@@ -5,7 +5,8 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { mockIntlTimeZone } from "test/mockIntlTimeZone";
 
 import {
   ledgerCreateErrorCodes,
@@ -27,6 +28,13 @@ import type {
   LedgerSetupBasicInfoActionState,
   LedgerSetupBasicInfoStateAction,
 } from "types/ledgers";
+
+beforeEach(() => {
+  mockIntlTimeZone("Asia/Tokyo");
+});
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 function createSubmitMock(
   result: LedgerSetupBasicInfoActionState = {
@@ -66,6 +74,31 @@ describe("LedgerSetupBasicInfoStep", () => {
     expect(screen.getByLabelText("琥珀橙")).toBeChecked();
   });
 
+  it.each([
+    ["Asia/Tokyo", "日本"],
+    ["Asia/Shanghai", "中国"],
+  ])("按浏览器时区 %s 预选 %s", (timeZone, region) => {
+    mockIntlTimeZone(timeZone);
+    renderLedgerSetupWizard();
+    expect(screen.getByRole("radio", { name: region })).toBeChecked();
+  });
+
+  it("其他时区不预选地区，未选择时不能提交", async () => {
+    mockIntlTimeZone("UTC");
+    const submit = createSubmitMock();
+    renderLedgerSetupWizard({ submitBasicInfo: submit });
+    const japan = screen.getByRole("radio", { name: "日本" });
+    expect(japan).not.toBeChecked();
+    expect(screen.getByRole("radio", { name: "中国" })).not.toBeChecked();
+    expect(japan).toBeInvalid();
+    await act(async () => clickNext());
+    expect(submit).not.toHaveBeenCalled();
+    fireEvent.click(japan);
+    clickNext();
+    await waitFor(() => expect(submit).toHaveBeenCalledOnce());
+    expect(getSubmittedFormData(submit)).toMatchObject({ livingRegion: "jp" });
+  });
+
   it("已有创建中账本时显示该账本的基本信息", () => {
     renderLedgerSetupWizard({
       progress: createLedgerSetupProgressFixture({
@@ -98,6 +131,7 @@ describe("LedgerSetupBasicInfoStep", () => {
     expect(getSubmittedFormData(submit)).toEqual({
       baseCurrency: "JPY",
       ledgerId: "",
+      livingRegion: "jp",
       ledgerName: "旅行账本",
       memberDisplayColor: "amber",
       memberDisplayName: "DENG SONGWEN",
@@ -213,87 +247,21 @@ describe("LedgerSetupBasicInfoStep", () => {
     ).not.toBeInTheDocument();
   });
 
-  describe("修改默认货币", () => {
-    function renderWithSelections(hasTemplateSelections: boolean) {
-      const submit = createSubmitMock();
-      renderLedgerSetupWizard({
-        progress: createLedgerSetupProgressFixture({
-          hasTemplateSelections,
-          step: 1,
-        }),
-        submitBasicInfo: submit,
-      });
-      return submit;
-    }
-
-    it("草稿中已有账户 / 商家选择时提交前二次确认，确认后提交", async () => {
-      const submit = renderWithSelections(true);
-
-      selectCurrency("USD 美元");
-      clickNext();
-
-      const confirmDialog = await screen.findByRole("dialog", {
-        name: "修改默认货币",
-      });
-      expect(confirmDialog).toHaveTextContent(
-        "修改默认货币会清空已选的账户和商家，确定继续吗？",
-      );
-      expect(submit).not.toHaveBeenCalled();
-
-      fireEvent.click(
-        within(confirmDialog).getByRole("button", { name: "确定修改" }),
-      );
-
-      await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
-      expect(getSubmittedFormData(submit)).toMatchObject({
-        baseCurrency: "USD",
-      });
+  it("修改默认货币直接提交，不再显示清空选择确认", async () => {
+    const submit = createSubmitMock();
+    renderLedgerSetupWizard({
+      progress: createLedgerSetupProgressFixture({ step: 1 }),
+      submitBasicInfo: submit,
     });
-
-    it("取消二次确认时不提交", async () => {
-      const submit = renderWithSelections(true);
-
-      selectCurrency("USD 美元");
-      clickNext();
-      fireEvent.click(
-        within(
-          await screen.findByRole("dialog", { name: "修改默认货币" }),
-        ).getByRole("button", { name: "取消" }),
-      );
-
-      await waitFor(() => {
-        expect(
-          screen.queryByRole("dialog", { name: "修改默认货币" }),
-        ).not.toBeInTheDocument();
-      });
-      expect(submit).not.toHaveBeenCalled();
-      expect(getCurrentStepItem()).toHaveTextContent("基本信息");
-    });
-
-    it("草稿中没有选择时不需要确认", async () => {
-      const submit = renderWithSelections(false);
-
-      selectCurrency("USD 美元");
-      clickNext();
-
-      await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
-      expect(
-        screen.queryByRole("dialog", { name: "修改默认货币" }),
-      ).not.toBeInTheDocument();
-    });
-
-    it("货币未变化时不需要确认", async () => {
-      const submit = renderWithSelections(true);
-
-      fireEvent.change(screen.getByLabelText("账本名称"), {
-        target: { value: "新名字" },
-      });
-      clickNext();
-
-      await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
-      expect(
-        screen.queryByRole("dialog", { name: "修改默认货币" }),
-      ).not.toBeInTheDocument();
+    selectCurrency("USD 美元");
+    clickNext();
+    await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
+    expect(
+      screen.queryByRole("dialog", { name: "修改默认货币" }),
+    ).not.toBeInTheDocument();
+    expect(getSubmittedFormData(submit)).toMatchObject({
+      baseCurrency: "USD",
+      livingRegion: "jp",
     });
   });
 });

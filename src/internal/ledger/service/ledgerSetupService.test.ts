@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { getLedgerSetupTemplate } from "internal/ledger/entity/ledgerSetupTemplate/ledgerSetupTemplate";
+import { getLedgerSetupTemplate } from "internal/ledger/entity/ledgerSetupTemplate/getLedgerSetupTemplate";
 import {
   ledgerCreateErrorCodes,
   ledgerCreateErrorMessages,
@@ -26,7 +26,7 @@ import {
 const ledgerId = "00000000-0000-4000-8000-000000000001";
 const userId = "00000000-0000-4000-8000-000000000031";
 
-const draft = createDefaultLedgerSetupDraft("JPY");
+const draft = createDefaultLedgerSetupDraft("jp");
 
 function createRecord(
   storedDraft: StoredLedgerSetupDraft,
@@ -34,6 +34,7 @@ function createRecord(
 ): LedgerSetupRecord {
   return {
     baseCurrency: "JPY",
+    livingRegion: "jp" as const,
     displayColor: "amber",
     displayName: "淞文",
     id: ledgerId,
@@ -46,6 +47,7 @@ function createRecord(
 
 const basicInfo = {
   baseCurrency: "JPY",
+  livingRegion: "jp" as const,
   displayColor: "amber" as const,
   displayName: "淞文",
   ledgerName: "家庭账本",
@@ -146,10 +148,11 @@ describe("createLedgerSetupService.getCurrentUserSetup", () => {
 
     await expect(service.getCurrentUserSetup()).resolves.toEqual({
       baseCurrency: "JPY",
+      livingRegion: "jp" as const,
       displayColor: "amber",
       displayName: "淞文",
       draft,
-      hasTemplateSelections: false,
+
       id: ledgerId,
       name: "家庭账本",
       step: 2,
@@ -162,7 +165,7 @@ describe("createLedgerSetupService.getCurrentUserSetup", () => {
   it.each([
     ["已保存账户选择", { accounts: draft.accounts }],
     ["已保存商家选择", { merchants: draft.merchants }],
-  ])("%s时标记为已有模板相关选择", async (_label, storedDraft) => {
+  ])("%s在恢复时保留原内容", async (_label, storedDraft) => {
     const service = createLedgerSetupService({
       currentUserId: userId,
       ledgerSetupRepository: createRepository({
@@ -173,7 +176,7 @@ describe("createLedgerSetupService.getCurrentUserSetup", () => {
     });
 
     await expect(service.getCurrentUserSetup()).resolves.toMatchObject({
-      hasTemplateSelections: true,
+      draft: storedDraft,
     });
   });
 
@@ -209,7 +212,7 @@ describe("createLedgerSetupService.getTemplate", () => {
       ledgerSetupRepository: createRepository(),
     });
 
-    expect(service.getTemplate("JPY")).toBe(getLedgerSetupTemplate("JPY"));
+    expect(service.getTemplate("jp")).toEqual(getLedgerSetupTemplate("jp"));
     expect(service.getTemplate("USD")).toBeNull();
   });
 });
@@ -275,29 +278,28 @@ describe("createLedgerSetupService.complete", () => {
 
     expect(ledgerSetupRepository.complete).toHaveBeenCalledWith({
       ledgerId,
-      payload: {
+      payload: expect.objectContaining({
+        templateRegion: "jp",
         accounts: [{ name: "PayPay", type: "e_money" }],
-        merchantTags: [{ icon: "🎬", key: "subscription", name: "订阅服务" }],
         merchants: [
-          {
-            aliases: [
-              { alias: "网飞", locale: "zh" },
-              { alias: "ネットフリックス", locale: "ja" },
-            ],
-            iconUrl:
-              "https://www.google.com/s2/favicons?domain_url=https%3A%2F%2Fwww.netflix.com&sz=128",
-            name: "Netflix",
-            tagKeys: ["subscription"],
-            websiteUrl: "https://www.netflix.com/jp/",
-          },
+          expect.objectContaining({
+            name: "网飞",
+            tagKeys: ["online_subscription"],
+            aliases: expect.arrayContaining([
+              { alias: "Netflix", locale: "en" },
+            ]),
+          }),
+        ],
+        merchantTags: [
+          { icon: "🌐", key: "online_subscription", name: "网购·订阅" },
         ],
         multiAccountPaymentEnabled: true,
         specialStatusEnabled: true,
-      },
+      }),
     });
   });
 
-  it("草稿币种与账本当前默认货币不一致时按当前币种模板丢弃无法匹配的商家", async () => {
+  it("换币种保留地区模板和原有商家选择", async () => {
     const ledgerSetupRepository = createRepository({
       findCurrentUserSetupLedger: vi.fn(async () =>
         createRecord(draft, { baseCurrency: "USD" }),
@@ -312,13 +314,15 @@ describe("createLedgerSetupService.complete", () => {
 
     expect(ledgerSetupRepository.complete).toHaveBeenCalledWith({
       ledgerId,
-      payload: {
+      payload: expect.objectContaining({
         accounts: [{ name: "现金", type: "cash" }],
-        merchantTags: [],
-        merchants: [],
+        merchantTags: expect.any(Array),
+        merchants: expect.arrayContaining([
+          expect.objectContaining({ name: "永旺" }),
+        ]),
         multiAccountPaymentEnabled: false,
         specialStatusEnabled: false,
-      },
+      }),
     });
   });
 
@@ -501,7 +505,7 @@ describe("createLedgerSetupService.saveDraft", () => {
     [
       "无模板币种选择了商家",
       {
-        ...createDefaultLedgerSetupDraft("USD"),
+        ...createDefaultLedgerSetupDraft(null),
         merchants: { selectedKeys: ["amazon"], skipped: false },
       },
     ],
@@ -527,7 +531,7 @@ describe("createLedgerSetupService.saveDraft", () => {
   it.each([
     [ledgerSetupErrorCodes.notFound, NotFoundError],
     [ledgerSetupErrorCodes.notInProgress, ConflictError],
-    [ledgerSetupErrorCodes.currencyMismatch, ConflictError],
+    [ledgerSetupErrorCodes.regionMismatch, ConflictError],
     [ledgerSetupErrorCodes.draftTooLarge, ValidationError],
   ] as const)(
     "数据库返回 %s 时转换为对应应用错误",

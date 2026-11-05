@@ -1,6 +1,6 @@
 import {
   buildLedgerSetupMerchantPayload,
-  getLedgerSetupTemplate,
+  type LedgerSetupService,
 } from "internal/ledger";
 import type { MerchantPresetOptions } from "internal/merchant/entity/merchantPresetOptions";
 import {
@@ -27,27 +27,31 @@ export interface MerchantPresetService {
 export function createMerchantPresetService({
   merchantService,
   repository,
+  templateService,
 }: {
   merchantService: Pick<MerchantService, "assertCanManage">;
   repository: MerchantPresetRepository;
+  templateService: Pick<LedgerSetupService, "getTemplate">;
 }): MerchantPresetService {
   async function loadContext(ledgerId: string) {
     await merchantService.assertCanManage({ ledgerId });
-    const currency = await repository.getCurrency(ledgerId);
-    const template = getLedgerSetupTemplate(currency);
+    const region = await repository.getRegion(ledgerId);
+    const template = templateService.getTemplate(region ?? "jp");
+    const existing = await repository.listExistingNames(ledgerId);
     const addedKeys = template
       ? getAddedMerchantPresetKeys(
           template,
-          await repository.listExistingNames(ledgerId),
+          [...existing.names, ...existing.aliases],
+          existing.names,
         )
       : [];
-    return { currency, template, addedKeys };
+    return { region, template, addedKeys };
   }
   return {
     async load(ledgerId) {
-      const { currency, template, addedKeys } = await loadContext(ledgerId);
+      const { region, template, addedKeys } = await loadContext(ledgerId);
       return {
-        currency,
+        region,
         templateVersion: template?.version ?? null,
         ...(template
           ? buildMerchantChecklist(template)
@@ -62,10 +66,16 @@ export function createMerchantPresetService({
       if (
         !parsed.success ||
         !template ||
-        parsed.data.currency !== options.currency ||
         parsed.data.templateVersion !== template.version ||
         parsed.data.selectedKeys.some(
-          (key) => !template.merchants.some((merchant) => merchant.key === key),
+          (key) =>
+            !template.merchants.some(
+              (merchant) =>
+                merchant.key === key &&
+                merchant.regions.some((region) =>
+                  parsed.data.regions.includes(region),
+                ),
+            ),
         )
       ) {
         throw new ValidationError(
@@ -79,7 +89,6 @@ export function createMerchantPresetService({
       );
       return repository.add({
         ledgerId,
-        currency: options.currency,
         payload: buildLedgerSetupMerchantPayload(keys, template),
       });
     },

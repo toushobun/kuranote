@@ -20,17 +20,12 @@ export const ledgerSetupWizardMessages = {
   },
   saveErrorTitle: "创建进度保存失败",
   submitting: "保存中",
-  /** 保存草稿时预设模板已更新或默认货币已变更，向导已按最新进度刷新。 */
+  /** 保存草稿时预设模板已更新或生活地区已变更，向导已按最新进度刷新。 */
   templateUpdatedNotice: "预设内容已更新，请重新确认",
   title: "创建账本",
 } as const;
 
 export const ledgerSetupBasicInfoMessages = {
-  currencyChangeConfirm: {
-    confirm: "确定修改",
-    description: "修改默认货币会清空已选的账户和商家，确定继续吗？",
-    title: "修改默认货币",
-  },
   description: "这些信息之后都可以在账本设置中修改",
   errorTitle: "账本保存失败",
   title: "先给账本起个名字吧",
@@ -61,21 +56,12 @@ export const ledgerSetupAccountsMessages = {
 
 /** 第 3 步「商家」。商家标签名与商家名取自预设模板，不在此重复。 */
 export const ledgerSetupMerchantsMessages = {
-  checklist: {
-    groupCheckboxLabel: (tagName: string) => `选择「${tagName}」的全部商家`,
-    groupSelectedCount: (selected: number, total: number) =>
-      `已选 ${selected} / ${total} 家`,
-    selectAll: "全选",
-    selectNone: "全不选",
-  },
-  description: "为你准备了常用商家，按分类勾选即可，展开可逐个调整",
+  description: "之后可以在商家管理中修改名称和别名",
   nextWithCount: (count: number) => `下一步 · 已选 ${count} 家`,
   noTemplate: {
     description: "可以跳过此步，之后在商家管理中添加",
-    title: "暂无该币种的预设商家",
+    title: "请先选择生活地区",
   },
-  selectAll: "全部选择",
-  selectNone: "全不选",
   title: "挑选常去的商家",
 } as const;
 

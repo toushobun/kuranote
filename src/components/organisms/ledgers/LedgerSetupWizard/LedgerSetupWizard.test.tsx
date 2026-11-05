@@ -5,7 +5,8 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { mockIntlTimeZone } from "test/mockIntlTimeZone";
 
 import { backFromGuard, setupGuardHistoryMock } from "test/mockGuardHistory";
 import { mockMatchMedia } from "test/matchMedia";
@@ -27,6 +28,13 @@ import {
   renderLedgerSetupWizardAtInviteStep,
   waitForInviteEntry,
 } from "./ledgerSetupWizardTestUtils";
+
+beforeEach(() => {
+  mockIntlTimeZone("Asia/Tokyo");
+});
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 setupGuardHistoryMock();
 

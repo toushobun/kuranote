@@ -813,7 +813,7 @@ async function checkLedgerSetup(browser) {
   assert.equal(await account.isChecked(), false);
   await addBank.click();
   assert.equal(await name.inputValue(), "未添加账户");
-  await sheet.getByRole("button", { name: "添加" }).click();
+  await sheet.getByRole("button", { name: "添加", exact: true }).click();
   await sheet.waitFor({ state: "hidden" });
   const added = page.getByRole("checkbox", { name: "未添加账户" });
   assert.equal(await added.isChecked(), true);

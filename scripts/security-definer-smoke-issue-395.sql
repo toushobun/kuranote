@@ -526,12 +526,13 @@ begin
 end;
 $$;
 
--- 完成写入 RPC（实施拆分第 2 项）：成功写入、跳过、非法 payload、权限、GUC、货币变更清空草稿。
+-- 完成写入 RPC：成功写入、跳过、非法 payload、权限、GUC、换币种保留草稿。
 create function pg_temp.completion_payload()
 returns jsonb
 language sql
 as $$
     select '{
+        "templateRegion": "jp",
         "accounts": [
             {"type": "cash", "name": "现金"},
             {"type": "bank", "name": " 楽天銀行 "},
@@ -602,7 +603,7 @@ declare
     v_placeholder_id uuid;
     v_token text;
     v_draft jsonb := '{
-        "templateCurrency": "JPY",
+        "templateRegion": "jp",
         "templateVersion": 1,
         "accounts": {"skipped": false, "items": [{"type": "cash", "name": "现金"}]},
         "merchants": {"skipped": false, "selectedKeys": ["amazon"]},
@@ -658,7 +659,7 @@ begin
         'display_color_invalid'
     );
 
-    select public.create_ledger_setup('Wizard Ledger', 'JPY', 'Wizard Owner', 'sky')
+    select public.create_ledger_setup('Wizard Ledger', 'JPY', 'Wizard Owner', 'sky', 'jp')
       into v_setup_ledger_id;
 
     -- 草稿的模板币种必须与账本默认货币一致。
@@ -668,10 +669,10 @@ begin
         format(
             'select public.save_ledger_setup_draft(%L, 4, %L::jsonb)',
             v_setup_ledger_id,
-            v_draft || '{"templateCurrency": "USD"}'::jsonb
+            v_draft || '{"templateRegion": "cn"}'::jsonb
         ),
         '22023',
-        'ledger_setup_draft_currency_mismatch'
+        'ledger_setup_region_mismatch'
     );
 
     -- 货币不变时草稿不动。
@@ -682,13 +683,13 @@ begin
         raise exception 'update_ledger_setup_basic_info must keep draft when currency unchanged';
     end if;
 
-    -- 货币变化时清空与模板相关的部分，保留其他内容。
+    -- 货币变化时保留完整草稿。
     perform public.update_ledger_setup_basic_info(
         v_setup_ledger_id, 'Wizard Renamed', 'USD', 'Wizard Owner', 'sky'
     );
     if (select setup_draft from public.ledger where id = v_setup_ledger_id)
-       <> '{"features": {"specialStatusEnabled": true}}'::jsonb then
-        raise exception 'update_ledger_setup_basic_info must reset template draft when currency changed';
+       <> v_draft then
+        raise exception 'update_ledger_setup_basic_info must keep draft when currency changed';
     end if;
 
     perform public.update_ledger_setup_basic_info(
@@ -737,7 +738,7 @@ begin
             '{merchants}',
             (select jsonb_agg(jsonb_build_object(
                 'name', 'M' || i, 'websiteUrl', null, 'tagKeys', '[]'::jsonb, 'aliases', '[]'::jsonb
-            )) from generate_series(1, 201) i)
+            )) from generate_series(1, 301) i)
         )
     ]
     loop

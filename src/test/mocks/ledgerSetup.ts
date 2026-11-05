@@ -14,10 +14,22 @@ export const ledgerSetupTemplateFixture: LedgerSetupTemplate = {
     credit_card: ["楽天カード", "JCBカード"],
     e_money: ["PayPay", "Suica"],
   },
-  currency: "JPY",
+  region: "jp",
+  accountCandidatesByRegion: {
+    jp: {
+      bank: ["三菱UFJ銀行", "楽天銀行", "ゆうちょ銀行"],
+      credit_card: ["楽天カード", "JCBカード"],
+      e_money: ["PayPay", "Suica"],
+    },
+    cn: {
+      bank: ["工商银行"],
+      credit_card: ["工商银行信用卡"],
+      e_money: ["支付宝", "微信支付"],
+    },
+  },
   merchantTags: [],
   merchants: [],
-  version: 1,
+  version: 2,
 };
 
 /**
@@ -73,6 +85,7 @@ export const ledgerSetupMerchantTemplateFixture: LedgerSetupTemplate = {
   ],
   merchants: [
     {
+      regions: ["jp"],
       aliases: [],
       key: "aeon",
       name: "イオン",
@@ -80,6 +93,7 @@ export const ledgerSetupMerchantTemplateFixture: LedgerSetupTemplate = {
       websiteUrl: "https://www.aeon.com/",
     },
     {
+      regions: ["jp"],
       aliases: [],
       key: "seiyu",
       name: "西友",
@@ -87,6 +101,7 @@ export const ledgerSetupMerchantTemplateFixture: LedgerSetupTemplate = {
       websiteUrl: "https://www.seiyu.co.jp/",
     },
     {
+      regions: ["jp"],
       aliases: [],
       key: "mcdonalds",
       name: "マクドナルド",
@@ -94,6 +109,7 @@ export const ledgerSetupMerchantTemplateFixture: LedgerSetupTemplate = {
       websiteUrl: "https://www.mcdonalds.co.jp/",
     },
     {
+      regions: ["jp"],
       aliases: [],
       key: "gusto",
       name: "ガスト",
@@ -101,6 +117,7 @@ export const ledgerSetupMerchantTemplateFixture: LedgerSetupTemplate = {
       websiteUrl: "https://www.skylark.co.jp/gusto/",
     },
     {
+      regions: ["jp"],
       aliases: [],
       key: "sukiya",
       name: "すき家",
@@ -108,6 +125,7 @@ export const ledgerSetupMerchantTemplateFixture: LedgerSetupTemplate = {
       websiteUrl: "https://www.sukiya.jp/",
     },
     {
+      regions: ["jp"],
       aliases: [],
       key: "apple",
       name: "Apple",
@@ -115,6 +133,7 @@ export const ledgerSetupMerchantTemplateFixture: LedgerSetupTemplate = {
       websiteUrl: "https://www.apple.com/jp/",
     },
     {
+      regions: ["jp"],
       aliases: [],
       key: "yodobashi",
       name: "ヨドバシカメラ",
@@ -122,6 +141,7 @@ export const ledgerSetupMerchantTemplateFixture: LedgerSetupTemplate = {
       websiteUrl: "https://www.yodobashi.com/",
     },
     {
+      regions: ["jp"],
       aliases: [],
       key: "amazon",
       name: "Amazon",
@@ -129,6 +149,7 @@ export const ledgerSetupMerchantTemplateFixture: LedgerSetupTemplate = {
       websiteUrl: "https://www.amazon.co.jp/",
     },
     {
+      regions: ["jp"],
       aliases: [],
       key: "mercari",
       name: "メルカリ",
@@ -136,6 +157,7 @@ export const ledgerSetupMerchantTemplateFixture: LedgerSetupTemplate = {
       websiteUrl: "https://jp.mercari.com/",
     },
     {
+      regions: ["jp"],
       aliases: [],
       key: "netflix",
       name: "Netflix",
@@ -143,6 +165,7 @@ export const ledgerSetupMerchantTemplateFixture: LedgerSetupTemplate = {
       websiteUrl: "https://www.netflix.com/jp/",
     },
     {
+      regions: ["jp"],
       aliases: [],
       key: "hospital",
       name: "病院",
@@ -187,6 +210,7 @@ export function createLedgerSetupProgressFixture(
   return {
     setup: {
       baseCurrency: "JPY",
+      livingRegion: "jp",
       displayColor: "amber",
       displayName: "淞文",
       draft: {
@@ -196,10 +220,11 @@ export function createLedgerSetupProgressFixture(
           specialStatusEnabled: false,
         },
         merchants: { selectedKeys: [], skipped: false },
-        templateCurrency: "JPY",
-        templateVersion: 1,
+        schemaVersion: 2,
+        templateRegion: "jp",
+        templateVersion: 2,
       },
-      hasTemplateSelections: false,
+
       id: ledgerSetupFixtureId,
       name: "家庭账本",
       step: 2,

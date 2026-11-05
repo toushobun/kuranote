@@ -2,6 +2,7 @@ import { createMerchantEntryQueryService } from "internal/transaction/service/me
 import { createMerchantEntryRepository } from "internal/transaction/repository/merchantEntryRepository";
 import { createMerchantPresetRepository } from "internal/merchant/repository/merchantPresetRepository";
 import { createMerchantPresetService } from "internal/merchant/service/merchantPresetService";
+import { getLedgerSetupTemplate } from "internal/ledger/entity/ledgerSetupTemplate/getLedgerSetupTemplate";
 import { createAccountExportQueryService } from "internal/account/service/accountExportQueryService";
 import { createMerchantExportQueryService } from "internal/merchant/service/merchantExportQueryService";
 import { createTransactionExportQueryService } from "internal/transaction/service/transactionExportQueryService";
@@ -428,6 +429,7 @@ export function createRequestContainer(
         merchantContainer = {
           service,
           presetService: createMerchantPresetService({
+            templateService: { getTemplate: getLedgerSetupTemplate },
             merchantService: service,
             repository: createMerchantPresetRepository(
               dependencies.supabase,

@@ -1,15 +1,19 @@
 import type {
   LedgerSetupAccountType,
   LedgerSetupTemplate,
+  LedgerSetupRegion,
 } from "internal/ledger/entity/ledgerSetupTemplate/ledgerSetupTemplate";
 import type { LedgerSetupDraft } from "internal/ledger/schema/ledgerSetupDraft";
 import { buildMerchantFaviconUrl } from "utils/merchants";
+import { getMerchantPresetMatchNames } from "utils/merchantPresets";
 
 /** complete_ledger_setup 的 payload。字段名与 RPC 中的 jsonb 结构一致。 */
 export type LedgerSetupCompletionPayload = {
+  templateRegion: LedgerSetupRegion | null;
   accounts: { name: string; type: LedgerSetupAccountType }[];
   merchantTags: { icon: string; key: string; name: string }[];
   merchants: {
+    matchNames: string[];
     aliases: { alias: string; locale: string }[];
     iconUrl: string | null;
     name: string;
@@ -39,6 +43,7 @@ export function buildLedgerSetupCompletionPayload(
       }));
 
   return {
+    templateRegion: draft.templateRegion,
     accounts,
     ...buildLedgerSetupMerchantPayload(
       draft.merchants.skipped ? [] : draft.merchants.selectedKeys,
@@ -55,6 +60,9 @@ export function buildLedgerSetupMerchantPayload(
   template: LedgerSetupTemplate | null,
 ): Pick<LedgerSetupCompletionPayload, "merchantTags" | "merchants"> {
   const selectedKeys = new Set(keys);
+  const matchNames = template
+    ? getMerchantPresetMatchNames(template)
+    : new Map<string, string[]>();
   const merchants = (template?.merchants ?? []).filter(({ key }) =>
     selectedKeys.has(key),
   );
@@ -66,7 +74,8 @@ export function buildLedgerSetupMerchantPayload(
 
   return {
     merchantTags,
-    merchants: merchants.map(({ aliases, name, tagKeys, websiteUrl }) => ({
+    merchants: merchants.map(({ key, aliases, name, tagKeys, websiteUrl }) => ({
+      matchNames: matchNames.get(key) ?? [],
       aliases: aliases.map(({ alias, locale }) => ({ alias, locale })),
       iconUrl: buildMerchantFaviconUrl(websiteUrl),
       name,

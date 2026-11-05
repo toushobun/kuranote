@@ -103,7 +103,7 @@ describe("MerchantPresetLauncher", () => {
     unmount();
     const latestLoad = vi.fn(async () => ({
       options: {
-        currency: "USD",
+        region: null,
         templateVersion: null,
         groups: [],
         items: [],
@@ -111,9 +111,9 @@ describe("MerchantPresetLauncher", () => {
       },
     }));
     renderLauncher(latestLoad, onClose);
-    expect(await screen.findByText("暂无该币种的预设商家")).toBeInTheDocument();
+    expect(await screen.findByText("你主要在哪里生活？")).toBeInTheDocument();
     await act(async () => resolve({ options: createMerchantPresetOptions() }));
-    expect(screen.getByText("已为你按 USD 准备常用商家")).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "日本" })).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "全部选择" }),
     ).not.toBeInTheDocument();

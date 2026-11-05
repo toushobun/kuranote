@@ -83,6 +83,32 @@ async function closeAddSheet(sheet: HTMLElement) {
 }
 
 describe("LedgerSetupAccountsStep", () => {
+  it("账户候选按地区提供，追加中国不自动添加账户并保留输入名称", async () => {
+    renderAccountsStep();
+    const sheet = openAddSheet("银行卡");
+    expect(
+      within(sheet).getByRole("button", { name: "三菱UFJ銀行" }),
+    ).toBeInTheDocument();
+    expect(
+      within(sheet).queryByRole("button", { name: "工商银行" }),
+    ).not.toBeInTheDocument();
+    changeAccountName(sheet, "未提交的银行");
+    fireEvent.click(
+      within(sheet).getByRole("button", { name: "添加中国账户候选" }),
+    );
+    expect(getAccountNameInput(sheet)).toHaveValue("未提交的银行");
+    expect(
+      within(sheet).getByRole("button", { name: "工商银行" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("checkbox", { name: "工商银行" }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(within(sheet).getByRole("button", { name: "关闭" }));
+    await expectSheetClosed(sheet);
+    expect(getAccountNameInput(openAddSheet("银行卡"))).toHaveValue(
+      "未提交的银行",
+    );
+  });
   it("后退静默关闭新增账户弹层，再次后退才保护已添加账户", async () => {
     const { onClose, saveDraft } = renderAccountsStep();
     const wallet = openAddSheet("电子钱包");

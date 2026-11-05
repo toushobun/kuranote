@@ -25,6 +25,10 @@ import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authe
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
 import { findRpcBusinessError } from "internal/shared/supabase/rpcError";
 import { isThemeColorKey } from "theme/themeColorTokens";
+import {
+  isLedgerSetupRegion,
+  type LedgerSetupRegion,
+} from "internal/ledger/entity/ledgerSetupTemplate/ledgerSetupTemplate";
 
 export type LedgerSetupRpcErrorCode =
   | LedgerCreateErrorCode
@@ -50,15 +54,13 @@ export type CompleteLedgerSetupInput = {
 };
 
 /** 数据库中的创建中账本。草稿为保存时的原样（各部分可能缺失），由 Service 补全。 */
-export type LedgerSetupRecord = Omit<
-  LedgerSetup,
-  "draft" | "hasTemplateSelections"
-> & {
+export type LedgerSetupRecord = Omit<LedgerSetup, "draft"> & {
   storedDraft: StoredLedgerSetupDraft;
 };
 
 export type UpdateLedgerSetupBasicInfoInput = CreateLedgerInput & {
   ledgerId: string;
+  livingRegion: LedgerSetupRegion;
 };
 
 type LedgerDefaultRootCategoryRow = {
@@ -72,6 +74,7 @@ type LedgerSetupRow = {
   ledger_name: string;
   setup_draft: unknown;
   setup_step: number;
+  living_region: unknown;
 };
 
 function isLedgerCurrency(value: string): value is LedgerCurrency {
@@ -80,7 +83,8 @@ function isLedgerCurrency(value: string): value is LedgerCurrency {
 
 const ledgerSetupRpcErrorMap = {
   ...createLedgerRpcErrorMap,
-  ledger_setup_draft_currency_mismatch: ledgerSetupErrorCodes.currencyMismatch,
+  ledger_setup_region_mismatch: ledgerSetupErrorCodes.regionMismatch,
+  ledger_setup_region_required: ledgerSetupErrorCodes.regionRequired,
   ledger_setup_draft_invalid: ledgerSetupErrorCodes.draftInvalid,
   ledger_setup_draft_too_large: ledgerSetupErrorCodes.draftTooLarge,
   ledger_setup_has_members: ledgerSetupErrorCodes.hasMembers,
@@ -99,7 +103,9 @@ const ledgerSetupRpcErrorMap = {
 export interface LedgerSetupRepository {
   abandon(ledgerId: string): Promise<LedgerSetupWriteResult>;
   complete(input: CompleteLedgerSetupInput): Promise<LedgerSetupWriteResult>;
-  create(input: CreateLedgerInput): Promise<CreateLedgerSetupResult>;
+  create(
+    input: CreateLedgerInput & { livingRegion: LedgerSetupRegion },
+  ): Promise<CreateLedgerSetupResult>;
   /** userId 为当前登录用户，用于读取其在该账本中的显示名与个性色。 */
   findCurrentUserSetupLedger(userId: string): Promise<LedgerSetupRecord | null>;
   /** 完成写入时将自动创建的大分类名称（按排序）。默认分类只在数据库中维护。 */
@@ -160,6 +166,7 @@ export function createSupabaseLedgerSetupRepository(
 
     async create(input) {
       const { data, error } = await supabase.rpc("create_ledger_setup", {
+        p_living_region: input.livingRegion,
         p_base_currency: input.baseCurrency,
         p_display_color: input.displayColor,
         p_display_name: input.displayName,
@@ -254,6 +261,9 @@ export function createSupabaseLedgerSetupRepository(
 
       return {
         baseCurrency: row.base_currency,
+        livingRegion: isLedgerSetupRegion(row.living_region)
+          ? row.living_region
+          : null,
         displayColor: displaySetting.display_color,
         displayName: displaySetting.display_name,
         id: row.ledger_id,
@@ -313,6 +323,7 @@ export function createSupabaseLedgerSetupRepository(
 
     async updateBasicInfo(input) {
       const { error } = await supabase.rpc("update_ledger_setup_basic_info", {
+        p_living_region: input.livingRegion,
         p_base_currency: input.baseCurrency,
         p_display_color: input.displayColor,
         p_display_name: input.displayName,

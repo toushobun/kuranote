@@ -2,7 +2,8 @@ export const ledgerSetupErrorCodes = {
   hasMembers: "setup_has_members",
   hasTransactions: "setup_has_transactions",
   accountNameDuplicate: "setup_account_name_duplicate",
-  currencyMismatch: "setup_currency_mismatch",
+  regionMismatch: "setup_region_mismatch",
+  regionRequired: "setup_region_required",
   draftInvalid: "setup_draft_invalid",
   draftTooLarge: "setup_draft_too_large",
   inProgressExists: "setup_in_progress_exists",
@@ -22,8 +23,9 @@ export const ledgerSetupErrorMessages: Record<LedgerSetupErrorCode, string> = {
   [ledgerSetupErrorCodes.hasTransactions]: "该账本已有交易数据，无法放弃创建。",
   [ledgerSetupErrorCodes.accountNameDuplicate]:
     "同一类型下已有同名账户，请修改账户名称。",
-  [ledgerSetupErrorCodes.currencyMismatch]:
-    "账本默认货币已变更，请重新选择账户和商家。",
+  [ledgerSetupErrorCodes.regionMismatch]:
+    "生活地区已变更，请重新确认创建进度。",
+  [ledgerSetupErrorCodes.regionRequired]: "请选择你主要生活的地区。",
   [ledgerSetupErrorCodes.draftInvalid]: "创建进度格式不正确，请重新操作。",
   [ledgerSetupErrorCodes.draftTooLarge]: "创建进度内容过多，请减少选择后重试。",
   [ledgerSetupErrorCodes.inProgressExists]:

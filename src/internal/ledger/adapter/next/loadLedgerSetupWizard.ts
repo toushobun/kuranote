@@ -10,7 +10,7 @@ import type {
   LedgerSetupWizardView,
 } from "types/ledgers";
 
-/** 读取当前用户的创建中账本（草稿已补全）及其默认货币对应的预设模板。 */
+/** 读取当前用户的创建中账本（草稿已补全）及其生活地区对应的预设模板。 */
 export async function readLedgerSetupProgress(
   setupService: Pick<
     RequestContainer["ledger"]["setupService"],
@@ -20,7 +20,7 @@ export async function readLedgerSetupProgress(
   const setup = await setupService.getCurrentUserSetup();
 
   return setup
-    ? { setup, template: setupService.getTemplate(setup.baseCurrency) }
+    ? { setup, template: setupService.getTemplate(setup.livingRegion) }
     : null;
 }
 

@@ -75,7 +75,7 @@ describe("readLedgerSetupProgress", () => {
         getTemplate: mocks.getTemplate,
       }),
     ).resolves.toEqual({ setup: progress.setup, template });
-    expect(mocks.getTemplate).toHaveBeenCalledWith("JPY");
+    expect(mocks.getTemplate).toHaveBeenCalledWith("jp");
   });
 
   it("没有创建中账本时返回 null 且不读取模板", async () => {

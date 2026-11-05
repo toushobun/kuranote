@@ -72,6 +72,21 @@ function expectNextLabel(label: string) {
 }
 
 describe("LedgerSetupMerchantsStep", () => {
+  it("更改地区先保存当前勾选，再返回基本信息步骤", async () => {
+    const { saveDraft } = renderMerchantsStep();
+    fireEvent.click(getTagCheckbox("餐饮"));
+    fireEvent.click(screen.getByRole("button", { name: "更改" }));
+    await waitFor(() =>
+      expect(getCurrentStepItem()).toHaveTextContent("基本信息"),
+    );
+    expect(getSavedInput(saveDraft).draft.merchants.selectedKeys).toEqual([
+      "aeon",
+      "seiyu",
+      "amazon",
+      "mercari",
+    ]);
+    expect(screen.getByRole("radio", { name: "日本" })).toBeChecked();
+  });
   it("显示引导文案与按 sortOrder 排列的商家标签，初始勾选来自草稿", () => {
     renderMerchantsStep();
 
@@ -79,7 +94,7 @@ describe("LedgerSetupMerchantsStep", () => {
       screen.getByRole("heading", { name: "挑选常去的商家" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("为你准备了常用商家，按分类勾选即可，展开可逐个调整"),
+      screen.getByText("之后可以在商家管理中修改名称和别名"),
     ).toBeInTheDocument();
     expect(
       screen
@@ -137,14 +152,18 @@ describe("LedgerSetupMerchantsStep", () => {
     expectNextLabel("下一步 · 已选 4 家");
   });
 
-  it("展开标签后商家行显示官网域名，没有 URL 时不显示副文字", () => {
+  it("展开后商家行不显示网址，无官网时仍有名称", () => {
     renderMerchantsStep();
 
     const restaurant = toggleChecklistGroup("餐饮");
     const publicService = toggleChecklistGroup("政府·公共服务");
 
-    expect(within(restaurant).getByText("skylark.co.jp")).toBeInTheDocument();
-    expect(within(restaurant).getByText("mcdonalds.co.jp")).toBeInTheDocument();
+    expect(
+      within(restaurant).queryByText("skylark.co.jp"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(restaurant).queryByText("mcdonalds.co.jp"),
+    ).not.toBeInTheDocument();
     expect(
       getChecklistItemCheckbox("政府·公共服务", "病院"),
     ).toHaveAccessibleName("病院");
@@ -322,7 +341,7 @@ describe("LedgerSetupMerchantsStep", () => {
     it("显示空状态，不显示勾选列表、顶部按钮与「跳过此步」", () => {
       renderMerchantsStep({ progress: noTemplateProgress() });
 
-      expect(screen.getByText("暂无该币种的预设商家")).toBeInTheDocument();
+      expect(screen.getByText("请先选择生活地区")).toBeInTheDocument();
       expect(
         screen.getByText("可以跳过此步，之后在商家管理中添加"),
       ).toBeInTheDocument();

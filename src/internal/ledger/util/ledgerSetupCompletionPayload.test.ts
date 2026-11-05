@@ -1,162 +1,59 @@
 import { describe, expect, it } from "vitest";
-
-import { getLedgerSetupTemplate } from "internal/ledger/entity/ledgerSetupTemplate/ledgerSetupTemplate";
-import { buildLedgerSetupCompletionPayload } from "internal/ledger/util/ledgerSetupCompletionPayload";
-import {
-  createDefaultLedgerSetupDraft,
-  resolveLedgerSetupDraft,
-} from "internal/ledger/util/ledgerSetupDraft";
+import { getLedgerSetupTemplate } from "internal/ledger/entity/ledgerSetupTemplate/getLedgerSetupTemplate";
+import { createDefaultLedgerSetupDraft } from "./ledgerSetupDraft";
+import { buildLedgerSetupCompletionPayload } from "./ledgerSetupCompletionPayload";
 import { buildMerchantFaviconUrl } from "utils/merchants";
-
-const jpyTemplate = getLedgerSetupTemplate("JPY");
-const jpyDraft = createDefaultLedgerSetupDraft("JPY");
-
 describe("buildLedgerSetupCompletionPayload", () => {
-  it("商家内容只取自代码模板，标签只创建被选中商家所属的标签", () => {
-    const payload = buildLedgerSetupCompletionPayload(
-      {
-        ...jpyDraft,
-        accounts: {
-          items: [
-            { name: "现金", type: "cash" },
-            { name: " 楽天銀行 ", templateKey: "楽天銀行", type: "bank" },
-          ],
-          skipped: false,
-        },
-        features: {
-          multiAccountPaymentEnabled: true,
-          specialStatusEnabled: true,
-        },
-        merchants: { selectedKeys: ["water_bureau", "amazon"], skipped: false },
-      },
-      jpyTemplate,
+  const template = getLedgerSetupTemplate("jp")!;
+  it("显示名中文优先，原名及各语言别名与全部分类一并写入", () => {
+    const draft = createDefaultLedgerSetupDraft("jp");
+    draft.merchants.selectedKeys = ["apple", "apple", "water_bureau"];
+    const payload = buildLedgerSetupCompletionPayload(draft, template);
+    expect(payload.merchants).toHaveLength(2);
+    const apple = payload.merchants.find((m) => m.name === "苹果")!;
+    expect(apple.aliases).toEqual(
+      expect.arrayContaining([
+        { alias: "Apple", locale: "en" },
+        { alias: "アップル", locale: "ja" },
+      ]),
     );
-
-    expect(payload).toEqual({
-      accounts: [
-        { name: "现金", type: "cash" },
-        { name: "楽天銀行", type: "bank" },
-      ],
-      merchantTags: [
-        { icon: "📦", key: "ecommerce", name: "电商" },
-        { icon: "🎬", key: "subscription", name: "订阅服务" },
-        { icon: "⚡", key: "utilities", name: "水电燃气" },
-      ],
-      merchants: [
-        {
-          aliases: [
-            { alias: "亚马逊", locale: "zh" },
-            { alias: "アマゾン", locale: "ja" },
-            { alias: "Amazonプライム", locale: "ja" },
-            { alias: "Prime Video", locale: "en" },
-            { alias: "亚马逊Prime", locale: "zh" },
-          ],
-          iconUrl:
-            "https://www.google.com/s2/favicons?domain_url=https%3A%2F%2Fwww.amazon.co.jp&sz=128",
-          name: "Amazon",
-          tagKeys: ["ecommerce", "subscription"],
-          websiteUrl: "https://www.amazon.co.jp/",
-        },
-        {
-          aliases: [
-            { alias: "自来水", locale: "zh" },
-            { alias: "水道代", locale: "ja" },
-            { alias: "上下水道", locale: "ja" },
-          ],
-          iconUrl: null,
-          name: "水道局",
-          tagKeys: ["utilities"],
-          websiteUrl: null,
-        },
-      ],
-      multiAccountPaymentEnabled: true,
-      specialStatusEnabled: true,
-    });
-  });
-
-  it("默认草稿写入现金账户与默认标签下的商家，多标签商家只出现一次", () => {
-    const payload = buildLedgerSetupCompletionPayload(jpyDraft, jpyTemplate);
-    const merchantNames = payload.merchants.map(({ name }) => name);
-
-    expect(payload.accounts).toEqual([{ name: "现金", type: "cash" }]);
-    expect(payload.merchants).toHaveLength(50);
-    expect(new Set(merchantNames).size).toBe(merchantNames.length);
-    expect(payload.merchantTags.map(({ name }) => name)).toEqual([
-      "超市",
-      "便利店",
-      "餐饮",
-      "咖啡甜品",
-      "药妆店",
-      "生活杂货",
-      "电商",
-      "通讯",
-      "订阅服务",
+    expect(apple.tagKeys).toEqual(["shopping", "online_subscription"]);
+    expect(payload.merchantTags.map((t) => t.key)).toEqual([
+      "shopping",
+      "online_subscription",
+      "living_expenses",
     ]);
-    expect(payload.multiAccountPaymentEnabled).toBe(false);
-    expect(payload.specialStatusEnabled).toBe(false);
+    expect(payload.merchants.find((m) => m.name === "自来水")).toMatchObject({
+      websiteUrl: null,
+      iconUrl: null,
+    });
   });
-
-  it("每个商家的头像地址按官网 origin 生成，无官网时为 null", () => {
-    const payload = buildLedgerSetupCompletionPayload(
-      {
-        ...jpyDraft,
-        merchants: {
-          selectedKeys: (jpyTemplate?.merchants ?? []).map(({ key }) => key),
-          skipped: false,
-        },
-      },
-      jpyTemplate,
-    );
-
-    expect(payload.merchants.length).toBeGreaterThan(0);
-    for (const { iconUrl, websiteUrl } of payload.merchants) {
-      expect(iconUrl).toBe(buildMerchantFaviconUrl(websiteUrl));
-      expect(iconUrl === null).toBe(websiteUrl === null);
-    }
+  it("两地全选共196家，每家只写入一次，头像复用官网规则", () => {
+    const draft = createDefaultLedgerSetupDraft("jp");
+    draft.merchants = {
+      selectedKeys: template.merchants.map((m) => m.key),
+      skipped: false,
+      additionalRegions: ["cn"],
+    };
+    const payload = buildLedgerSetupCompletionPayload(draft, template);
+    expect(payload.merchants).toHaveLength(196);
+    expect(payload.merchantTags).toHaveLength(8);
+    for (const merchant of payload.merchants)
+      expect(merchant.iconUrl).toBe(
+        buildMerchantFaviconUrl(merchant.websiteUrl),
+      );
   });
-
-  it("跳过账户与商家时不写入任何账户、商家与标签", () => {
+  it("跳过时保留草稿但不写入账户商家和标签", () => {
+    const draft = createDefaultLedgerSetupDraft("cn");
+    draft.accounts.skipped = true;
+    draft.merchants.skipped = true;
     expect(
-      buildLedgerSetupCompletionPayload(
-        {
-          ...jpyDraft,
-          accounts: { ...jpyDraft.accounts, skipped: true },
-          merchants: { ...jpyDraft.merchants, skipped: true },
-        },
-        jpyTemplate,
-      ),
-    ).toEqual({
+      buildLedgerSetupCompletionPayload(draft, getLedgerSetupTemplate("cn")),
+    ).toMatchObject({
+      templateRegion: "cn",
       accounts: [],
-      merchantTags: [],
       merchants: [],
-      multiAccountPaymentEnabled: false,
-      specialStatusEnabled: false,
-    });
-  });
-
-  it("无模板币种只写入账户与功能开关", () => {
-    expect(
-      buildLedgerSetupCompletionPayload(
-        createDefaultLedgerSetupDraft("USD"),
-        null,
-      ),
-    ).toEqual({
-      accounts: [{ name: "现金", type: "cash" }],
       merchantTags: [],
-      merchants: [],
-      multiAccountPaymentEnabled: false,
-      specialStatusEnabled: false,
     });
-  });
-
-  it("草稿币种与账本货币不一致时，校正后的草稿不会写入旧币种商家", () => {
-    const resolved = resolveLedgerSetupDraft(jpyDraft, "USD");
-
-    expect(
-      buildLedgerSetupCompletionPayload(
-        resolved,
-        getLedgerSetupTemplate("USD"),
-      ),
-    ).toMatchObject({ merchantTags: [], merchants: [] });
   });
 });

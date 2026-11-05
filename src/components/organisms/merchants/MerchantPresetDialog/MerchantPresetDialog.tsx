@@ -1,19 +1,13 @@
 "use client";
 
 import { useBackLayer } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
-import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
-import Typography from "@mui/material/Typography";
-import Link from "next/link";
 import { useCallback, useEffect, useId } from "react";
 import { WizardDialog } from "molecules/ui/WizardDialog/WizardDialog";
-import { presetChecklistToggleAllButtonSx } from "molecules/ui/GroupedPresetChecklist/presetChecklistStyles";
 
 import { merchantPresetMessages as messages } from "config/merchantPresetMessages";
-import { routePaths } from "config/paths";
 import type { MerchantPresetOptions } from "internal/merchant";
-import { EmptyState } from "molecules/ui/EmptyState";
-import { GroupedPresetChecklist } from "molecules/ui/GroupedPresetChecklist/GroupedPresetChecklist";
+import { MerchantPresetSelector } from "organisms/merchants/MerchantPresetSelector/MerchantPresetSelector";
 import { ActionFailureFeedback } from "molecules/ui/OperationFeedbackDialogs";
 import { WizardActionBar } from "molecules/ui/WizardActionBar/WizardActionBar";
 import { WizardStepLayout } from "molecules/ui/WizardDialog/WizardStepLayout";
@@ -82,48 +76,22 @@ export function MerchantPresetDialog({
             id={formId}
             spacing={2}
           >
-            <Typography color="textSecondary" variant="body2">
-              {messages.description(options.currency)}
-            </Typography>
-            {dialog.checklist ? (
-              <>
-                <Button
-                  disabled={
-                    pending || dialog.selection.availableKeys.length === 0
-                  }
-                  onClick={dialog.toggleAll}
-                  size="small"
-                  sx={presetChecklistToggleAllButtonSx}
-                >
-                  {dialog.selection.allSelected
-                    ? messages.selectNone
-                    : messages.selectAll}
-                </Button>
-                <GroupedPresetChecklist
-                  disabled={pending}
-                  disabledKeys={options.addedKeys}
-                  groups={dialog.checklist.groups}
-                  items={dialog.checklist.items}
-                  messages={messages.checklist}
-                  onChange={dialog.setSelectedKeys}
-                  selectedKeys={dialog.selectedKeys}
-                />
-              </>
-            ) : (
-              <EmptyState
-                title={messages.noTemplate.title}
-                description={messages.noTemplate.description}
-                action={
-                  <Button
-                    component={Link}
-                    href={routePaths.merchantsNew}
-                    variant="contained"
-                  >
-                    {messages.manual}
-                  </Button>
-                }
-              />
-            )}
+            <MerchantPresetSelector
+              {...options}
+              region={dialog.region}
+              recommendationLabel={
+                dialog.region
+                  ? messages.recommendation(dialog.region)
+                  : undefined
+              }
+              onRegionChange={dialog.setRegion}
+              additionalRegions={dialog.additionalRegions}
+              onAdditionalRegionsChange={dialog.setAdditionalRegions}
+              disabled={pending}
+              disabledKeys={options.addedKeys}
+              selectedKeys={dialog.selectedKeys}
+              onChange={dialog.setSelectedKeys}
+            />
           </Stack>
         </WizardStepLayout>
       </WizardDialog>

@@ -147,7 +147,7 @@ export async function submitLedgerSetupBasicInfo(
 
 /**
  * 保存向导第 2 步以后的草稿与 setup_step。成功后返回重新读取的进度。
- * 预设模板已更新或默认货币已变更时不保存，返回重新读取的进度（outdated），
+ * 预设模板已更新或生活地区已变更时不保存，返回重新读取的进度（outdated），
  * 由向导替换状态并提示重新确认；同类型账户重名时由步骤在对应账户处提示。
  */
 export async function saveLedgerSetupDraft(
@@ -179,7 +179,7 @@ export async function saveLedgerSetupDraft(
         !hasLedgerSetupErrorCode(
           error,
           ledgerSetupErrorCodes.templateOutdated,
-          ledgerSetupErrorCodes.currencyMismatch,
+          ledgerSetupErrorCodes.regionMismatch,
         )
       ) {
         throw error;
@@ -214,7 +214,7 @@ export async function saveLedgerSetupDraft(
 /**
  * 向导第 5 步「完成创建」：按数据库中的草稿在同一事务内写入默认数据，
  * 将账本标记为已完成并切换为当前账本。成功后刷新依赖当前账本的页面，由向导进入下一步。
- * 预设内容已更新或默认货币已变更时不写入，返回重新读取的进度（outdated）；
+ * 预设内容已更新或生活地区已变更时不写入，返回重新读取的进度（outdated）；
  * 创建中账本已在其他页面完成或不存在时返回 notFound，由向导提示后关闭。
  */
 export async function completeLedgerSetup(
@@ -244,7 +244,7 @@ export async function completeLedgerSetup(
         !hasLedgerSetupErrorCode(
           error,
           ledgerSetupErrorCodes.templateOutdated,
-          ledgerSetupErrorCodes.currencyMismatch,
+          ledgerSetupErrorCodes.regionMismatch,
         )
       ) {
         throw error;
