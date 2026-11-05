@@ -13,6 +13,8 @@ export const regionPresetMessages = {
     `${region === "jp" ? "🇯🇵" : "🇨🇳"} ${regionNames[region]}常用商家`,
   addMerchants: (region: LedgerSetupRegion) =>
     `添加${regionNames[region]}常用商家`,
+  expandMerchants: (region: LedgerSetupRegion, selected: number) =>
+    `展开${regionNames[region]}常用商家（已选 ${selected} 家）`,
   addCandidates: (region: LedgerSetupRegion) =>
     `添加${regionNames[region]}账户候选`,
   alsoIn: (groups: readonly string[]) => `也在：${groups.join("、")}`,

@@ -48,9 +48,11 @@ export function MerchantPresetSelector(props: MerchantPresetSelectorProps) {
     [],
   );
   const other: LedgerSetupRegion = region === "jp" ? "cn" : "jp";
+  const otherAdded = additionalRegions.includes(other);
+  const otherExpanded = otherAdded && !collapsedRegions.includes(other);
   const visibleItems = items.filter((item) =>
     item.regions.some(
-      (current) => current === region || additionalRegions.includes(current),
+      (current) => current === region || (current === other && otherExpanded),
     ),
   );
   const selection = getPresetSelection(
@@ -59,12 +61,22 @@ export function MerchantPresetSelector(props: MerchantPresetSelectorProps) {
     props.disabledKeys,
   );
 
-  function renderRegion(current: LedgerSetupRegion, additional: boolean) {
-    const regionItems = items.filter(
+  function getRegionItems(current: LedgerSetupRegion) {
+    return items.filter(
       (item) =>
         item.regions.includes(current) &&
-        (!additional || !region || !item.regions.includes(region)),
+        (current === region || !region || !item.regions.includes(region)),
     );
+  }
+
+  function changeSelection(keys: ReadonlySet<string>, next: readonly string[]) {
+    onChange([
+      ...new Set([...selectedKeys.filter((key) => !keys.has(key)), ...next]),
+    ]);
+  }
+
+  function renderRegion(current: LedgerSetupRegion, additional: boolean) {
+    const regionItems = getRegionItems(current);
     const keys = new Set(regionItems.map((item) => item.key));
     const regionGroups = groups
       .map((group) => ({
@@ -98,14 +110,7 @@ export function MerchantPresetSelector(props: MerchantPresetSelectorProps) {
           items={regionItems}
           messages={merchantPresetMessages.checklist}
           selectedKeys={selectedKeys}
-          onChange={(next) =>
-            onChange([
-              ...new Set([
-                ...selectedKeys.filter((key) => !keys.has(key)),
-                ...next,
-              ]),
-            ])
-          }
+          onChange={(next) => changeSelection(keys, next)}
         />
       </Stack>
     );
@@ -160,7 +165,12 @@ export function MerchantPresetSelector(props: MerchantPresetSelectorProps) {
         <>
           <Button
             disabled={disabled || selection.availableKeys.length === 0}
-            onClick={() => onChange(selection.toggleAllKeys)}
+            onClick={() =>
+              changeSelection(
+                new Set(visibleItems.map(({ key }) => key)),
+                selection.toggleAllKeys,
+              )
+            }
             sx={{ alignSelf: "flex-end" }}
           >
             {selection.allSelected
@@ -168,8 +178,7 @@ export function MerchantPresetSelector(props: MerchantPresetSelectorProps) {
               : merchantPresetMessages.selectAll}
           </Button>
           {renderRegion(region, false)}
-          {additionalRegions.includes(other) &&
-          !collapsedRegions.includes(other) ? (
+          {otherExpanded ? (
             renderRegion(other, true)
           ) : (
             <Button
@@ -185,7 +194,16 @@ export function MerchantPresetSelector(props: MerchantPresetSelectorProps) {
               }}
               sx={{ borderStyle: "dashed", minHeight: 52 }}
             >
-              {messages.addMerchants(other)}
+              {otherAdded
+                ? messages.expandMerchants(
+                    other,
+                    getPresetSelection(
+                      getRegionItems(other),
+                      selectedKeys,
+                      props.disabledKeys,
+                    ).keys.length,
+                  )
+                : messages.addMerchants(other)}
             </Button>
           )}
         </>

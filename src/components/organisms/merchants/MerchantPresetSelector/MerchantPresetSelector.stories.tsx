@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { userEvent, within } from "storybook/test";
+import { expect, userEvent, within } from "storybook/test";
 import { MerchantPresetSelectorExample } from "./merchantPresetSelectorTestUtils";
 
 const meta = {
@@ -44,5 +44,10 @@ export const CollapsedChina: Story = {
     await userEvent.click(
       within(canvasElement).getByRole("button", { name: "收起" }),
     );
+    await expect(
+      within(canvasElement).getByRole("button", {
+        name: "展开中国常用商家（已选 1 家）",
+      }),
+    ).toBeInTheDocument();
   },
 };
