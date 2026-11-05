@@ -26,6 +26,7 @@ export type LedgerBasicInfoValues = LedgerCreateDefaults["defaults"];
 type LedgerBasicInfoFieldsProps = {
   onChange: (values: LedgerBasicInfoValues) => void;
   values: LedgerBasicInfoValues;
+  afterCurrency?: ReactNode;
 };
 
 /**
@@ -36,6 +37,7 @@ type LedgerBasicInfoFieldsProps = {
 export function LedgerBasicInfoFields({
   onChange,
   values,
+  afterCurrency,
 }: LedgerBasicInfoFieldsProps) {
   const currencyMenu = useSelectBackLayer(2);
   const ledgerNameInputRef = useRef<HTMLInputElement>(null);
@@ -126,6 +128,7 @@ export function LedgerBasicInfoFields({
         </TextField>
       </BasicInfoField>
 
+      {afterCurrency}
       <BasicInfoField
         helperText={ledgerBasicInfoFieldMessages.displayNameHelper}
         htmlFor="create-ledger-display-name"

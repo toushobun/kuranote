@@ -10,6 +10,7 @@ import {
   ledgerSetupLimits,
   type LedgerSetupAccountType,
   type LedgerSetupDraftAccount,
+  type LedgerSetupRegion,
 } from "internal/ledger";
 import type { LedgerSetupWizardStepProps } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardStepTypes";
 import { useLedgerSetupDraftSave } from "organisms/ledgers/LedgerSetupWizard/useLedgerSetupDraftSave";
@@ -40,6 +41,11 @@ export function useLedgerSetupAccountsStep(
   const { progress } = options;
   const { draft } = progress.setup;
   const draftSave = useLedgerSetupDraftSave(options);
+  const [additionalRegions, setAdditionalRegions] = useState(
+    draft.accounts.additionalRegions ?? [],
+  );
+  const region = progress.setup.livingRegion;
+  const otherRegion: LedgerSetupRegion = region === "jp" ? "cn" : "jp";
   const [rows, setRows] = useState<AccountRow[]>(() =>
     draft.accounts.items.map((account) => ({ account, checked: true })),
   );
@@ -55,7 +61,10 @@ export function useLedgerSetupAccountsStep(
   const checkedAccounts = rows
     .filter(({ checked }) => checked)
     .map(({ account }) => account);
-  useLedgerSetupStepDirty(checkedAccounts, options.onDirtyChange);
+  useLedgerSetupStepDirty(
+    { checkedAccounts, additionalRegions },
+    options.onDirtyChange,
+  );
   // 列表（含取消勾选的账户）达到上限时不能继续添加，保证保存的账户数不超过上限。
   const limitReached = rows.length >= ledgerSetupLimits.maxAccounts;
 
@@ -70,7 +79,14 @@ export function useLedgerSetupAccountsStep(
   }
 
   function buildDraft(skipped: boolean) {
-    return { ...draft, accounts: { items: checkedAccounts, skipped } };
+    return {
+      ...draft,
+      accounts: {
+        items: checkedAccounts,
+        skipped,
+        ...(additionalRegions.length ? { additionalRegions } : {}),
+      },
+    };
   }
 
   function closeAddSheet() {
@@ -88,7 +104,35 @@ export function useLedgerSetupAccountsStep(
       candidates:
         addSheet.type === "cash"
           ? []
-          : (progress.template?.accountCandidates[addSheet.type] ?? []),
+          : [
+              ...new Set([
+                ...(progress.template?.accountCandidates[addSheet.type] ?? []),
+                ...additionalRegions.flatMap(
+                  (current) =>
+                    progress.template?.accountCandidatesByRegion[current][
+                      addSheet.type as "bank" | "credit_card" | "e_money"
+                    ] ?? [],
+                ),
+              ]),
+            ],
+      candidateGroups:
+        addSheet.type === "cash" || !region
+          ? []
+          : [
+              region,
+              ...additionalRegions.filter((current) => current !== region),
+            ].map((current) => ({
+              region: current,
+              names:
+                progress.template?.accountCandidatesByRegion[current][
+                  addSheet.type as "bank" | "credit_card" | "e_money"
+                ] ?? [],
+            })),
+      otherRegion:
+        addSheet.type !== "cash" && !additionalRegions.includes(otherRegion)
+          ? otherRegion
+          : undefined,
+      onAddRegion: () => setAdditionalRegions([otherRegion]),
       onAdd(account: LedgerSetupDraftAccount) {
         setRows((current) => [...current, { account, checked: true }]);
         changeDraftName("");

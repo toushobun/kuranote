@@ -6,8 +6,19 @@ import {
 } from "./merchantPresets";
 
 describe("merchantPresets", () => {
-  const template = getLedgerSetupTemplate("JPY")!;
-  it("按模板标签排序，保留 emoji，并仅显示名称与官网域名", () => {
+  const template = getLedgerSetupTemplate("jp")!;
+  it("正式同名仍判重，跨商家的歧义别名不判重", () => {
+    expect(getAddedMerchantPresetKeys(template, ["邮局"], ["邮局"])).toContain(
+      "post_office",
+    );
+    expect(
+      getAddedMerchantPresetKeys(template, ["中国邮政", "邮局"], ["中国邮政"]),
+    ).not.toContain("post_office");
+    expect(
+      getAddedMerchantPresetKeys(template, ["邮局"], ["邮局"]),
+    ).not.toContain("china_post");
+  });
+  it("按模板标签排序，保留图标并显示别名而不显示网址", () => {
     const checklist = buildMerchantChecklist(template);
     expect(checklist.groups.map(({ key }) => key)).toEqual(
       [...template.merchantTags]

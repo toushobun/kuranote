@@ -8,9 +8,27 @@ import {
 } from "internal/ledger/schema/ledgerSetupDraft";
 import { createDefaultLedgerSetupDraft } from "internal/ledger/util/ledgerSetupDraft";
 
-const draft = createDefaultLedgerSetupDraft("JPY");
+const draft = createDefaultLedgerSetupDraft("jp");
 
 describe("validateLedgerSetupDraftInput", () => {
+  it("商家上限300条，301条拒绝", () => {
+    const makeDraft = (count: number) => ({
+      ...draft,
+      merchants: {
+        selectedKeys: Array.from(
+          { length: count },
+          (_, index) => `merchant_${index}`,
+        ),
+        skipped: false,
+      },
+    });
+    expect(
+      validateLedgerSetupDraftInput({ draft: makeDraft(300), step: 3 }).ok,
+    ).toBe(true);
+    expect(
+      validateLedgerSetupDraftInput({ draft: makeDraft(301), step: 3 }),
+    ).toMatchObject({ ok: false, error: ledgerSetupErrorCodes.draftInvalid });
+  });
   it("步骤在范围内且草稿符合 v1 结构时通过", () => {
     expect(validateLedgerSetupDraftInput({ draft, step: 3 })).toEqual({
       ok: true,
@@ -47,7 +65,7 @@ describe("validateLedgerSetupDraftInput", () => {
   });
 
   it("无模板币种的模板版本可以为 null", () => {
-    const usdDraft = createDefaultLedgerSetupDraft("USD");
+    const usdDraft = createDefaultLedgerSetupDraft(null);
 
     expect(usdDraft.templateVersion).toBeNull();
     expect(validateLedgerSetupDraftInput({ draft: usdDraft, step: 2 }).ok).toBe(
@@ -67,7 +85,7 @@ describe("validateLedgerSetupDraftInput", () => {
     ["null", null],
     ["空对象", {}],
     ["缺少功能开关", { ...draft, features: undefined }],
-    ["未知币种", { ...draft, templateCurrency: "XXX" }],
+    ["未知币种", { ...draft, templateRegion: "XXX" }],
     ["模板版本为 0", { ...draft, templateVersion: 0 }],
     [
       "未知账户类型",
@@ -136,7 +154,7 @@ describe("parseStoredLedgerSetupDraft", () => {
         accounts: [{ type: "cash" }],
         features: { specialStatusEnabled: true },
         merchants: draft.merchants,
-        templateCurrency: "JPY",
+        templateRegion: "jp",
         templateVersion: "1",
       }),
     ).toEqual({
@@ -146,7 +164,7 @@ describe("parseStoredLedgerSetupDraft", () => {
         specialStatusEnabled: true,
       },
       merchants: draft.merchants,
-      templateCurrency: "JPY",
+      templateRegion: "jp",
     });
   });
 
@@ -169,10 +187,10 @@ describe("parseStoredLedgerSetupDraft", () => {
   it("无模板币种的模板版本 null 被保留", () => {
     expect(
       parseStoredLedgerSetupDraft({
-        templateCurrency: "USD",
+        templateRegion: null,
         templateVersion: null,
       }),
-    ).toEqual({ templateCurrency: "USD", templateVersion: null });
+    ).toEqual({ templateRegion: null, templateVersion: null });
   });
 
   it.each([[[]], [null], ["draft"]])("%j 不是 object 时返回 null", (value) => {

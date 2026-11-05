@@ -2,16 +2,16 @@
 
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import Box from "@mui/material/Box";
+import Avatar from "@mui/material/Avatar";
 import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
 import Chip from "@mui/material/Chip";
 import Collapse from "@mui/material/Collapse";
-import Divider from "@mui/material/Divider";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { Fragment, memo, useId, type ReactNode } from "react";
+import { memo, useId, type ReactNode } from "react";
 
 import { designTokens } from "theme/theme";
 
@@ -31,10 +31,12 @@ export type GroupedPresetChecklistItem = {
   name: string;
   /** 名称下方的副文字（例如商家的官网域名）。 */
   secondaryText?: string;
+  iconUrl?: string | null;
 };
 
 /** 组件内显示的文案，由调用方提供（组件不写死业务单位与中文）。 */
 export type GroupedPresetChecklistMessages = {
+  alsoIn?: (names: string[]) => string;
   /** 分组三态复选框的无障碍名称，需包含分组名。 */
   groupCheckboxLabel: (groupName: string) => string;
   /** 分组名下方的已选数量，例如「已选 3 / 5 家」。 */
@@ -87,25 +89,25 @@ export function GroupedPresetChecklist({
 
   return (
     <Box sx={listSx}>
-      {checklist.groups.map((row, index) => (
-        <Fragment key={row.group.key}>
-          {index > 0 ? <Divider /> : null}
-          <ChecklistGroup
-            {...row}
-            disabled={disabled}
-            disabledSet={checklist.disabledSet}
-            messages={messages}
-            onSetItemsChecked={checklist.setItemsChecked}
-            onToggleExpanded={checklist.toggleExpanded}
-            selectedSet={checklist.selectedSet}
-          />
-        </Fragment>
+      {checklist.groups.map((row) => (
+        <ChecklistGroup
+          key={row.group.key}
+          {...row}
+          disabled={disabled}
+          groups={groups}
+          disabledSet={checklist.disabledSet}
+          messages={messages}
+          onSetItemsChecked={checklist.setItemsChecked}
+          onToggleExpanded={checklist.toggleExpanded}
+          selectedSet={checklist.selectedSet}
+        />
       ))}
     </Box>
   );
 }
 
 type ChecklistGroupProps = {
+  groups: readonly GroupedPresetChecklistGroup[];
   addedCount: number;
   disabledSet: ReadonlySet<string>;
   disabled: boolean;
@@ -120,6 +122,7 @@ type ChecklistGroupProps = {
 };
 
 function ChecklistGroup({
+  groups,
   addedCount,
   disabledSet,
   disabled,
@@ -215,6 +218,22 @@ function ChecklistGroup({
               checked={disabledSet.has(item.key) || selectedSet.has(item.key)}
               disabled={disabled || disabledSet.has(item.key)}
               item={item}
+              alsoIn={
+                messages.alsoIn &&
+                groups.some(
+                  (g) => g.key !== group.key && g.itemKeys.includes(item.key),
+                )
+                  ? messages.alsoIn(
+                      groups
+                        .filter(
+                          (g) =>
+                            g.key !== group.key &&
+                            g.itemKeys.includes(item.key),
+                        )
+                        .map((g) => g.name),
+                    )
+                  : undefined
+              }
               key={item.key}
               onSetItemsChecked={onSetItemsChecked}
             />
@@ -226,6 +245,7 @@ function ChecklistGroup({
 }
 
 type ChecklistItemRowProps = {
+  alsoIn?: string;
   added: boolean;
   addedLabel?: string;
   checked: boolean;
@@ -236,6 +256,7 @@ type ChecklistItemRowProps = {
 
 // 勾选单个项目时只有该项目（及其他分组中的同一项目）的行重新渲染。
 const ChecklistItemRow = memo(function ChecklistItemRow({
+  alsoIn,
   added,
   addedLabel,
   checked,
@@ -245,6 +266,7 @@ const ChecklistItemRow = memo(function ChecklistItemRow({
 }: ChecklistItemRowProps) {
   return (
     <FormControlLabel
+      labelPlacement="start"
       control={
         <Checkbox
           checked={checked}
@@ -256,6 +278,21 @@ const ChecklistItemRow = memo(function ChecklistItemRow({
       }
       label={
         <Box component="span" sx={itemContentSx}>
+          {item.iconUrl !== undefined ? (
+            <Avatar
+              aria-hidden
+              alt=""
+              src={item.iconUrl ?? undefined}
+              sx={{
+                bgcolor: "primary.light",
+                color: "primary.contrastText",
+                height: 40,
+                width: 40,
+              }}
+            >
+              {Array.from(item.name)[0]}
+            </Avatar>
+          ) : null}
           <Box component="span" sx={itemLabelSx}>
             <Box component="span" sx={itemNameSx}>
               {item.name}
@@ -266,6 +303,11 @@ const ChecklistItemRow = memo(function ChecklistItemRow({
                 sx={[itemSecondarySx, added && addedTextSx]}
               >
                 {item.secondaryText}
+              </Box>
+            ) : null}
+            {alsoIn ? (
+              <Box component="span" sx={itemSecondarySx}>
+                {alsoIn}
               </Box>
             ) : null}
           </Box>
@@ -285,11 +327,16 @@ const ChecklistItemRow = memo(function ChecklistItemRow({
 });
 
 const listSx = {
-  bgcolor: "background.paper",
-  border: "1px solid",
-  borderColor: "divider",
-  borderRadius: `${designTokens.radius.lg}px`,
-  overflow: "hidden",
+  display: "flex",
+  flexDirection: "column",
+  gap: 1.25,
+  "& > section": {
+    bgcolor: "background.paper",
+    border: "1px solid",
+    borderColor: "divider",
+    borderRadius: `${designTokens.radius.lg}px`,
+    overflow: "hidden",
+  },
 };
 
 // 行高满足手指点击（约 56px）。
@@ -363,6 +410,7 @@ const itemRowSx = {
 
 const itemLabelSx = {
   flex: 1,
+  minWidth: 0,
   display: "flex",
   flexDirection: "column",
 };
@@ -375,7 +423,9 @@ const itemNameSx = {
 const itemSecondarySx = {
   color: "text.secondary",
   fontSize: 12,
-  overflowWrap: "anywhere",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
 };
 
 const itemContentSx = {

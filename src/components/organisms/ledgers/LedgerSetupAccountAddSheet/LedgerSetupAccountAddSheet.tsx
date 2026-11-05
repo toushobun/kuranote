@@ -3,11 +3,12 @@
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import Chip from "@mui/material/Chip";
+import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { useId } from "react";
+import { Fragment, useId } from "react";
 
 import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { ledgerSetupAccountsMessages } from "config/ledgerSetupMessages";
@@ -15,6 +16,7 @@ import { AccountFormDialogShell } from "organisms/accounts/AccountFormDialogShel
 import { useBackLayer } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
 import { designTokens } from "theme/theme";
 import { getAccountTypeLabel } from "utils/accounts";
+import { regionPresetMessages } from "config/regionPresetMessages";
 
 import {
   useLedgerSetupAccountAddForm,
@@ -93,27 +95,43 @@ function LedgerSetupAccountAddForm({
           </Typography>
           <Stack direction="row" sx={candidateListSx}>
             {candidates.map((candidate) => (
-              <Chip
-                aria-label={
-                  candidate.added
-                    ? `${candidate.name} ${sheetMessages.added}`
-                    : candidate.name
-                }
-                aria-pressed={candidate.selected}
-                icon={
-                  candidate.added ? (
-                    <CheckRoundedIcon data-testid="account-candidate-added" />
-                  ) : undefined
-                }
-                key={candidate.name}
-                label={candidate.name}
-                onClick={() => changeName(candidate.name)}
-                sx={candidate.selected ? selectedChipSx : chipSx}
-                variant="outlined"
-              />
+              <Fragment key={candidate.name}>
+                {candidate.regionHeading ? (
+                  <Typography
+                    variant="body2"
+                    sx={{ flexBasis: "100%", color: "text.secondary" }}
+                  >
+                    {regionPresetMessages.names[candidate.regionHeading]}
+                  </Typography>
+                ) : null}
+                <Chip
+                  aria-label={
+                    candidate.added
+                      ? `${candidate.name} ${sheetMessages.added}`
+                      : candidate.name
+                  }
+                  aria-pressed={candidate.selected}
+                  icon={
+                    candidate.added ? (
+                      <CheckRoundedIcon data-testid="account-candidate-added" />
+                    ) : undefined
+                  }
+                  key={candidate.name}
+                  label={candidate.name}
+                  onClick={() => changeName(candidate.name)}
+                  sx={candidate.selected ? selectedChipSx : chipSx}
+                  variant="outlined"
+                />
+              </Fragment>
             ))}
           </Stack>
         </Stack>
+      ) : null}
+
+      {formOptions.otherRegion && formOptions.onAddRegion ? (
+        <Button onClick={formOptions.onAddRegion} variant="outlined">
+          {regionPresetMessages.addCandidates(formOptions.otherRegion)}
+        </Button>
       ) : null}
 
       <PrimaryActionButton fullWidth type="submit">

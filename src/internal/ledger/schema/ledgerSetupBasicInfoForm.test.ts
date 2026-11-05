@@ -11,6 +11,7 @@ function createFormData(overrides: Record<string, string> = {}) {
   const formData = new FormData();
 
   formData.set("baseCurrency", "JPY");
+  formData.set("livingRegion", "jp");
   formData.set("ledgerName", "家庭账本");
   formData.set("memberDisplayColor", "amber");
   formData.set("memberDisplayName", "淞文");
@@ -23,6 +24,7 @@ function createFormData(overrides: Record<string, string> = {}) {
 }
 
 const basicInfo = {
+  livingRegion: "jp",
   baseCurrency: "JPY",
   displayColor: "amber",
   displayName: "淞文",

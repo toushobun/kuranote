@@ -44,14 +44,16 @@ export type {
   LedgerSetupDraftAccount,
 } from "internal/ledger/schema/ledgerSetupDraft";
 export {
-  getLedgerSetupTemplate,
+  isLedgerSetupRegion,
+  ledgerSetupRegions,
+  type LedgerSetupRegion,
   ledgerSetupAccountTypes,
   type LedgerSetupAccountType,
   type LedgerSetupMerchantTagTemplate,
   type LedgerSetupMerchantTemplate,
   type LedgerSetupTemplate,
 } from "internal/ledger/entity/ledgerSetupTemplate/ledgerSetupTemplate";
-export { isLedgerSetupAccountNameTaken } from "internal/ledger/util/ledgerSetupDraft";
+export { isLedgerSetupAccountNameTaken } from "internal/ledger/util/ledgerSetupAccountName";
 export {
   ledgerSettingsErrorCodes,
   ledgerSettingsErrorMessages,
@@ -93,3 +95,9 @@ export {
 export type { LedgerDeletionImpact } from "./entity/ledgerDeletion";
 
 export { buildLedgerSetupMerchantPayload } from "internal/ledger/util/ledgerSetupCompletionPayload";
+export { getLedgerSetupRegionFromTimeZone } from "internal/ledger/util/ledgerSetupRegion";
+export type { LedgerSetupService } from "internal/ledger/service/ledgerSetupService";
+
+export { getLedgerSetupTemplate } from "internal/ledger/entity/ledgerSetupTemplate/getLedgerSetupTemplate";
+
+export { createDefaultLedgerSetupDraft } from "internal/ledger/util/ledgerSetupDraft";

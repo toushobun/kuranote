@@ -1,12 +1,14 @@
 import { z } from "zod";
 
-import { ledgerCurrencies } from "internal/ledger/entity/ledgerCurrency";
 import {
   ledgerSetupDraftMaxBytes,
   ledgerSetupLimits,
   ledgerSetupStepRange,
 } from "internal/ledger/entity/ledgerSetup";
-import { ledgerSetupAccountTypes } from "internal/ledger/entity/ledgerSetupTemplate/ledgerSetupTemplate";
+import {
+  ledgerSetupAccountTypes,
+  ledgerSetupRegions,
+} from "internal/ledger/entity/ledgerSetupTemplate/ledgerSetupTemplate";
 import {
   ledgerSetupErrorCodes,
   type LedgerSetupErrorCode,
@@ -35,9 +37,10 @@ const ledgerSetupDraftAccountSchema = z.object({
   type: z.enum(ledgerSetupAccountTypes),
 });
 
-/** 草稿结构 v1 的各部分。存储时按部分独立解析，便于局部重置。 */
+/** 草稿结构 v2 的各部分。存储时按部分独立解析，便于局部重置。 */
 const ledgerSetupDraftSectionSchemas = {
   accounts: z.object({
+    additionalRegions: z.array(z.enum(ledgerSetupRegions)).max(1).optional(),
     items: z
       .array(ledgerSetupDraftAccountSchema)
       .max(ledgerSetupLimits.maxAccounts),
@@ -50,17 +53,19 @@ const ledgerSetupDraftSectionSchemas = {
   }),
   /** 以商家为单位存储勾选，标签勾选只是对其下商家的批量操作。 */
   merchants: z.object({
+    additionalRegions: z.array(z.enum(ledgerSetupRegions)).max(1).optional(),
     selectedKeys: z
       .array(templateKeySchema)
       .max(ledgerSetupLimits.maxMerchants),
     skipped: z.boolean(),
   }),
-  templateCurrency: z.enum(ledgerCurrencies),
-  /** 所选币种没有模板时为 null。 */
+  schemaVersion: z.literal(2),
+  templateRegion: z.enum(ledgerSetupRegions).nullable(),
+  /** 尚未选择地区时为 null。 */
   templateVersion: z.number().int().positive().nullable(),
 };
 
-/** 向导草稿结构 v1。 */
+/** 向导草稿结构 v2。 */
 export const ledgerSetupDraftSchema = z.object(ledgerSetupDraftSectionSchemas);
 
 export type LedgerSetupDraft = z.infer<typeof ledgerSetupDraftSchema>;
@@ -69,8 +74,7 @@ export type LedgerSetupDraftAccount = z.infer<
 >;
 
 /**
- * 数据库中保存的草稿。刚创建的账本草稿为空对象，修改默认货币后与模板相关的部分
- * 会被移除，因此各部分都可能缺失；缺失部分由 Service 按当前模板补全默认值。
+ * 数据库中保存的草稿。刚创建的账本草稿为空对象，缺失部分由 Service 按地区模板补全。
  */
 export type StoredLedgerSetupDraft = Partial<LedgerSetupDraft>;
 
@@ -87,7 +91,7 @@ function parseSection<T>(
 
 /**
  * 解析数据库中保存的草稿。数据库保证草稿为 JSON object，不是 object 时返回 null；
- * 不符合 v1 结构的部分视为缺失，由 Service 按模板默认值补全。
+ * 不符合当前结构的部分视为缺失，由 Service 按模板默认值补全。
  */
 export function parseStoredLedgerSetupDraft(
   value: unknown,
@@ -106,12 +110,12 @@ export function parseStoredLedgerSetupDraft(
   if (features) draft.features = features;
   const merchants = parseSection(sections.merchants, record, "merchants");
   if (merchants) draft.merchants = merchants;
-  const templateCurrency = parseSection(
-    sections.templateCurrency,
+  const templateRegion = parseSection(
+    sections.templateRegion,
     record,
-    "templateCurrency",
+    "templateRegion",
   );
-  if (templateCurrency) draft.templateCurrency = templateCurrency;
+  if (templateRegion !== undefined) draft.templateRegion = templateRegion;
   const templateVersion = parseSection(
     sections.templateVersion,
     record,

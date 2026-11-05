@@ -476,13 +476,13 @@ $$;
 ALTER FUNCTION "public"."account_has_transactions"("p_ledger_id" "uuid", "p_account_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."add_merchant_presets"("p_ledger_id" "uuid", "p_currency" "text", "p_payload" "jsonb") RETURNS integer
+CREATE OR REPLACE FUNCTION "public"."add_merchant_presets"("p_ledger_id" "uuid", "p_regions" "text"[], "p_payload" "jsonb") RETURNS integer
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
 declare
     v_user_id uuid := auth.uid();
-    v_currency text;
+
     v_item jsonb;
     v_tag jsonb;
     v_tag_key text;
@@ -501,7 +501,7 @@ begin
 
     -- 与商家 / 标签排序使用同一账本锁，两个并发批次不会重复创建商家或标签。
     perform pg_advisory_xact_lock(hashtext(p_ledger_id::text));
-    select l.base_currency into v_currency
+    perform l.id
       from public.ledger l
      where l.id = p_ledger_id and l.is_archived = false and l.setup_status = 'completed'
        for update;
@@ -510,7 +510,14 @@ begin
     if not found or not public.current_user_can_manage_ledger(p_ledger_id) then
         raise exception 'permission_denied' using errcode = '42501', detail = 'permission_denied';
     end if;
-    if p_currency is distinct from v_currency then
+    if p_regions is null or cardinality(p_regions) not between 1 and 2
+       or exists (select 1 from unnest(p_regions) r where r is null or r not in ('jp', 'cn')) then
+        raise exception 'merchant_preset_invalid' using errcode = '22023', detail = 'merchant_preset_invalid';
+    end if;
+    if exists (select 1 from jsonb_array_elements(p_payload -> 'merchants') m
+        where jsonb_typeof(m -> 'matchNames') is distinct from 'array'
+           or jsonb_array_length(m -> 'matchNames') = 0
+           or jsonb_array_length(m -> 'matchNames') > 21) then
         raise exception 'merchant_preset_invalid' using errcode = '22023', detail = 'merchant_preset_invalid';
     end if;
 
@@ -524,12 +531,10 @@ begin
               from public.merchant m
              where m.ledger_id = p_ledger_id
                and m.is_archived = false
-               and exists (
+               and (lower(btrim(m.name)) = lower(btrim(v_item ->> 'name')) or exists (
                    select 1
                      from (
-                         select v_item ->> 'name' as name
-                         union all
-                         select value ->> 'alias' from jsonb_array_elements(v_item -> 'aliases')
+                         select value as name from jsonb_array_elements_text(v_item -> 'matchNames')
                      ) preset
                     where lower(btrim(preset.name)) = lower(btrim(m.name))
                        or exists (
@@ -538,7 +543,7 @@ begin
                               and a.is_archived = false
                               and lower(btrim(a.alias)) = lower(btrim(preset.name))
                        )
-               )
+               ))
         ) then
             continue;
         end if;
@@ -576,7 +581,7 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."add_merchant_presets"("p_ledger_id" "uuid", "p_currency" "text", "p_payload" "jsonb") OWNER TO "postgres";
+ALTER FUNCTION "public"."add_merchant_presets"("p_ledger_id" "uuid", "p_regions" "text"[], "p_payload" "jsonb") OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."account" (
@@ -1205,7 +1210,9 @@ begin
     v_ledger := public.lock_current_user_setup_ledger(p_ledger_id);
 
     perform public.validate_ledger_setup_completion_payload(p_payload);
-
+    if v_ledger.living_region is not null and p_payload ->> 'templateRegion' is distinct from v_ledger.living_region then
+        raise exception 'ledger_setup_region_mismatch' using errcode = '22023', detail = 'ledger_setup_region_mismatch';
+    end if;
     perform set_config('app.ledger_setup_completion_ledger_id', p_ledger_id::text, true);
 
     perform public.initialize_ledger_default_categories(p_ledger_id, v_user_id);
@@ -1660,7 +1667,7 @@ $$;
 ALTER FUNCTION "public"."create_ledger_placeholder_member"("p_ledger_id" "uuid", "p_display_name" "text") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."create_ledger_setup"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") RETURNS "uuid"
+CREATE OR REPLACE FUNCTION "public"."create_ledger_setup"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text", "p_living_region" "text" DEFAULT NULL::"text") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -1686,10 +1693,15 @@ begin
             using errcode = '42501', detail = 'user_inactive';
     end if;
 
+    if p_living_region is not null and p_living_region not in ('jp', 'cn') then
+        raise exception 'ledger_setup_region_required' using errcode = '22023', detail = 'ledger_setup_region_required';
+    end if;
+
     begin
         insert into public.ledger (
             name,
             base_currency,
+            living_region,
             owner_user_id,
             setup_status,
             setup_step,
@@ -1700,6 +1712,7 @@ begin
         values (
             btrim(p_name),
             upper(btrim(p_base_currency)),
+            p_living_region,
             v_user_id,
             'in_progress',
             2,
@@ -1731,7 +1744,7 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."create_ledger_setup"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") OWNER TO "postgres";
+ALTER FUNCTION "public"."create_ledger_setup"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text", "p_living_region" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."ledger_setup_draft_max_bytes"() RETURNS integer
@@ -1762,8 +1775,10 @@ CREATE TABLE IF NOT EXISTS "public"."ledger" (
     "setup_step" smallint,
     "setup_draft" "jsonb",
     "multi_account_payment_enabled" boolean DEFAULT false NOT NULL,
+    "living_region" "text",
     CONSTRAINT "ledger_archive_check" CHECK (((("is_archived" = false) AND ("archived_at" IS NULL) AND ("archived_by" IS NULL)) OR (("is_archived" = true) AND ("archived_at" IS NOT NULL)))),
     CONSTRAINT "ledger_base_currency_check" CHECK (("base_currency" ~ '^[A-Z]{3}$'::"text")),
+    CONSTRAINT "ledger_living_region_check" CHECK (("living_region" = ANY (ARRAY['jp'::"text", 'cn'::"text"]))),
     CONSTRAINT "ledger_name_check" CHECK ((("length"(TRIM(BOTH FROM "name")) >= 1) AND ("length"(TRIM(BOTH FROM "name")) <= 100))),
     CONSTRAINT "ledger_setup_state_check" CHECK (((("setup_status" = 'completed'::"text") AND ("setup_step" IS NULL) AND ("setup_draft" IS NULL)) OR (("setup_status" = 'in_progress'::"text") AND (("setup_step" >= 1) AND ("setup_step" <= 5)) AND ("setup_draft" IS NOT NULL) AND ("jsonb_typeof"("setup_draft") = 'object'::"text") AND ("octet_length"(("setup_draft")::"text") <= "public"."ledger_setup_draft_max_bytes"())))),
     CONSTRAINT "ledger_setup_status_check" CHECK (("setup_status" = ANY (ARRAY['in_progress'::"text", 'completed'::"text"])))
@@ -3095,7 +3110,7 @@ $$;
 ALTER FUNCTION "public"."ensure_ledger_placeholder_members"("p_ledger_id" "uuid", "p_display_names" "text"[]) OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."get_current_user_setup_ledger"() RETURNS TABLE("ledger_id" "uuid", "ledger_name" "text", "base_currency" "text", "setup_step" smallint, "setup_draft" "jsonb")
+CREATE OR REPLACE FUNCTION "public"."get_current_user_setup_ledger"() RETURNS TABLE("ledger_id" "uuid", "ledger_name" "text", "base_currency" "text", "setup_step" smallint, "setup_draft" "jsonb", "living_region" "text")
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -3104,7 +3119,8 @@ CREATE OR REPLACE FUNCTION "public"."get_current_user_setup_ledger"() RETURNS TA
         l.name,
         l.base_currency,
         l.setup_step,
-        l.setup_draft
+        l.setup_draft,
+        l.living_region
     from public.ledger l
     where l.owner_user_id = auth.uid()
       and l.setup_status = 'in_progress'
@@ -6044,10 +6060,9 @@ begin
             using errcode = '22023', detail = 'ledger_setup_draft_too_large';
     end if;
 
-    if p_draft ? 'templateCurrency'
-       and p_draft ->> 'templateCurrency' is distinct from v_ledger.base_currency then
-        raise exception 'ledger_setup_draft_currency_mismatch'
-            using errcode = '22023', detail = 'ledger_setup_draft_currency_mismatch';
+    if p_draft ->> 'templateRegion' is distinct from v_ledger.living_region then
+        raise exception 'ledger_setup_region_mismatch'
+            using errcode = '22023', detail = 'ledger_setup_region_mismatch';
     end if;
 
     perform set_config('app.allow_ledger_setup_update', 'true', true);
@@ -6788,7 +6803,7 @@ $$;
 ALTER FUNCTION "public"."update_ledger_member_settings"("p_ledger_id" "uuid", "p_member_user_id" "uuid", "p_display_name" "text", "p_display_color" "text", "p_role" "text") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."update_ledger_setup_basic_info"("p_ledger_id" "uuid", "p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") RETURNS "void"
+CREATE OR REPLACE FUNCTION "public"."update_ledger_setup_basic_info"("p_ledger_id" "uuid", "p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text", "p_living_region" "text" DEFAULT NULL::"text") RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -6806,6 +6821,9 @@ begin
         p_display_color
     );
 
+    if p_living_region is not null and p_living_region not in ('jp', 'cn') then
+        raise exception 'ledger_setup_region_required' using errcode = '22023', detail = 'ledger_setup_region_required';
+    end if;
     v_currency := upper(btrim(p_base_currency));
 
     perform set_config('app.allow_ledger_setup_update', 'true', true);
@@ -6813,14 +6831,16 @@ begin
     update public.ledger
        set name = btrim(p_name),
            base_currency = v_currency,
+           living_region = coalesce(p_living_region, living_region),
            setup_draft = case
-               when v_ledger.base_currency = v_currency then setup_draft
-               else setup_draft - array[
-                   'templateCurrency',
-                   'templateVersion',
-                   'accounts',
-                   'merchants'
-               ]::text[]
+               when p_living_region is null or p_living_region is not distinct from living_region then setup_draft
+               else setup_draft || jsonb_build_object('templateRegion', p_living_region)
+                   || case when living_region is not null and setup_draft ? 'merchants' then
+                       jsonb_build_object('merchants', (setup_draft -> 'merchants') || jsonb_build_object('additionalRegions', jsonb_build_array(living_region)))
+                      else '{}'::jsonb end
+                   || case when living_region is not null and setup_draft ? 'accounts' then
+                       jsonb_build_object('accounts', (setup_draft -> 'accounts') || jsonb_build_object('additionalRegions', jsonb_build_array(living_region)))
+                      else '{}'::jsonb end
            end,
            updated_by = v_user_id
      where id = p_ledger_id;
@@ -6837,7 +6857,7 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."update_ledger_setup_basic_info"("p_ledger_id" "uuid", "p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") OWNER TO "postgres";
+ALTER FUNCTION "public"."update_ledger_setup_basic_info"("p_ledger_id" "uuid", "p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text", "p_living_region" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."update_linked_transaction_edit"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_merchant_id" "uuid", "p_note" "text", "p_item_updates" "jsonb", "p_payments" "jsonb", "p_expected_record_updated_at" timestamp with time zone DEFAULT NULL::timestamp with time zone) RETURNS "void"
@@ -8201,7 +8221,7 @@ begin
        or jsonb_typeof(p_payload -> 'multiAccountPaymentEnabled') is distinct from 'boolean'
        or jsonb_array_length(p_payload -> 'accounts') > 50
        or jsonb_array_length(p_payload -> 'merchantTags') > 50
-       or jsonb_array_length(p_payload -> 'merchants') > 200 then
+       or jsonb_array_length(p_payload -> 'merchants') > 300 then
         raise exception 'ledger_setup_payload_invalid'
             using errcode = '22023', detail = 'ledger_setup_payload_invalid';
     end if;
@@ -11137,8 +11157,8 @@ REVOKE ALL ON FUNCTION "public"."account_has_transactions"("p_ledger_id" "uuid",
 
 
 
-REVOKE ALL ON FUNCTION "public"."add_merchant_presets"("p_ledger_id" "uuid", "p_currency" "text", "p_payload" "jsonb") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."add_merchant_presets"("p_ledger_id" "uuid", "p_currency" "text", "p_payload" "jsonb") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."add_merchant_presets"("p_ledger_id" "uuid", "p_regions" "text"[], "p_payload" "jsonb") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."add_merchant_presets"("p_ledger_id" "uuid", "p_regions" "text"[], "p_payload" "jsonb") TO "authenticated";
 
 
 
@@ -11206,8 +11226,8 @@ GRANT ALL ON FUNCTION "public"."create_ledger_placeholder_member"("p_ledger_id" 
 
 
 
-REVOKE ALL ON FUNCTION "public"."create_ledger_setup"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."create_ledger_setup"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."create_ledger_setup"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text", "p_living_region" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."create_ledger_setup"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text", "p_living_region" "text") TO "authenticated";
 
 
 
@@ -11577,8 +11597,8 @@ GRANT ALL ON FUNCTION "public"."update_ledger_member_settings"("p_ledger_id" "uu
 
 
 
-REVOKE ALL ON FUNCTION "public"."update_ledger_setup_basic_info"("p_ledger_id" "uuid", "p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."update_ledger_setup_basic_info"("p_ledger_id" "uuid", "p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."update_ledger_setup_basic_info"("p_ledger_id" "uuid", "p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text", "p_living_region" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."update_ledger_setup_basic_info"("p_ledger_id" "uuid", "p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text", "p_living_region" "text") TO "authenticated";
 
 
 

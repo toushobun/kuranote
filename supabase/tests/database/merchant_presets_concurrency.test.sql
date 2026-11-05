@@ -30,11 +30,11 @@ select dblink_exec('preset878_a', $setup$
 $setup$);
 
 create temporary table preset878_query as
-select format('select public.add_merchant_presets(%L, %L, %L::jsonb)',
-  '87800000-0000-4000-8000-000000000002', 'JPY',
+select format('select public.add_merchant_presets(%L, %L::text[], %L::jsonb)',
+  '87800000-0000-4000-8000-000000000002', '{jp}',
   jsonb_build_object('accounts', '[]'::jsonb, 'multiAccountPaymentEnabled', false, 'specialStatusEnabled', false,
     'merchantTags', jsonb_build_array(jsonb_build_object('key','tag','name','并发标签','icon','🛒')),
-    'merchants', jsonb_build_array(jsonb_build_object('name','并发商家','websiteUrl',null,'iconUrl',null,
+    'merchants', jsonb_build_array(jsonb_build_object('matchNames',jsonb_build_array('并发商家','并发别名'),'name','并发商家','websiteUrl',null,'iconUrl',null,
       'aliases',jsonb_build_array(jsonb_build_object('alias','并发别名','locale','zh')),'tagKeys',jsonb_build_array('tag')))
   )::text) as query;
 

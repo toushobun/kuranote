@@ -95,6 +95,7 @@ vi.mock("internal/container", () => ({
 }));
 
 const basicInfo = {
+  livingRegion: "jp",
   baseCurrency: "JPY",
   displayColor: "amber",
   displayName: "淞文",
@@ -107,6 +108,7 @@ function createFormData(overrides: Record<string, string> = {}) {
   const formData = new FormData();
 
   formData.set("baseCurrency", basicInfo.baseCurrency);
+  formData.set("livingRegion", basicInfo.livingRegion);
   formData.set("ledgerName", basicInfo.ledgerName);
   formData.set("memberDisplayColor", basicInfo.displayColor);
   formData.set("memberDisplayName", basicInfo.displayName);
@@ -166,7 +168,7 @@ describe("submitLedgerSetupBasicInfo", () => {
 
     expect(mocks.create).toHaveBeenCalledWith(basicInfo);
     expect(mocks.updateBasicInfo).not.toHaveBeenCalled();
-    expect(mocks.getTemplate).toHaveBeenCalledWith("JPY");
+    expect(mocks.getTemplate).toHaveBeenCalledWith("jp");
     expect(state).toEqual({ progress });
     expect(mocks.revalidateLedgerMutation).toHaveBeenCalledWith();
   });
@@ -371,7 +373,7 @@ describe("saveLedgerSetupDraft", () => {
 
   it.each([
     ledgerSetupErrorCodes.templateOutdated,
-    ledgerSetupErrorCodes.currencyMismatch,
+    ledgerSetupErrorCodes.regionMismatch,
   ])("%s 时重新读取进度并返回 outdated，不作为失败", async (code) => {
     mocks.saveDraft.mockRejectedValue(createSetupError(code));
 
@@ -485,7 +487,7 @@ describe("completeLedgerSetup", () => {
 
   it.each([
     ledgerSetupErrorCodes.templateOutdated,
-    ledgerSetupErrorCodes.currencyMismatch,
+    ledgerSetupErrorCodes.regionMismatch,
   ])("%s 时重新读取进度并返回 outdated，不作为失败", async (code) => {
     mocks.complete.mockRejectedValue(createSetupError(code));
 

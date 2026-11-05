@@ -8,6 +8,7 @@ import {
   ledgerSetupLimits,
   type LedgerSetupAccountType,
   type LedgerSetupDraftAccount,
+  type LedgerSetupRegion,
 } from "internal/ledger";
 
 const sheetMessages = ledgerSetupAccountsMessages.addSheet;
@@ -15,8 +16,14 @@ const sheetMessages = ledgerSetupAccountsMessages.addSheet;
 export type UseLedgerSetupAccountAddFormOptions = {
   /** 已在列表中的账户（含本次取消勾选的），用于重名判断与候选的已添加标记。 */
   accounts: readonly LedgerSetupDraftAccount[];
-  /** 当前类型的候选名称；现金或无模板币种时为空。 */
+  /** 当前类型按地区提供的候选名称；现金不提供候选。 */
   candidates: readonly string[];
+  candidateGroups?: readonly {
+    region: LedgerSetupRegion;
+    names: readonly string[];
+  }[];
+  otherRegion?: LedgerSetupRegion;
+  onAddRegion?: () => void;
   name: string;
   onNameChange: (name: string) => void;
   onAdd: (account: LedgerSetupDraftAccount) => void;
@@ -34,6 +41,7 @@ function getNameError(name: string, isTaken: boolean) {
 export function useLedgerSetupAccountAddForm({
   accounts,
   candidates,
+  candidateGroups,
   name,
   onAdd,
   onNameChange,
@@ -77,6 +85,9 @@ export function useLedgerSetupAccountAddForm({
 
   return {
     candidates: candidates.map((candidate) => ({
+      regionHeading: candidateGroups?.find(
+        (group) => group.names[0] === candidate,
+      )?.region,
       added: isLedgerSetupAccountNameTaken(accounts, { name: candidate, type }),
       name: candidate,
       selected: candidate === selectedCandidate,

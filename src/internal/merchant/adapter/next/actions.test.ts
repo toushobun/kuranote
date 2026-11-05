@@ -588,7 +588,7 @@ describe("reorderMerchants", () => {
 describe("addMerchantPresets", () => {
   function presetForm() {
     const form = new FormData();
-    form.set("currency", "JPY");
+    form.append("regions", "jp");
     form.set("templateVersion", "1");
     form.append("selectedKeys", "amazon");
     return form;
@@ -601,7 +601,7 @@ describe("addMerchantPresets", () => {
       "NEXT_REDIRECT:/merchants?result=presets-added&count=2",
     );
     expect(mocks.addPresets).toHaveBeenCalledWith(ledgerId, {
-      currency: "JPY",
+      regions: ["jp"],
       templateVersion: 1,
       selectedKeys: ["amazon"],
     });
@@ -655,7 +655,7 @@ describe("addMerchantPresets", () => {
 describe("loadMerchantPresets", () => {
   it("按登录用户当前账本读取精简选项，不写入、刷新或导航", async () => {
     const options = {
-      currency: "JPY",
+      regions: ["jp"],
       templateVersion: 1,
       groups: [],
       items: [],

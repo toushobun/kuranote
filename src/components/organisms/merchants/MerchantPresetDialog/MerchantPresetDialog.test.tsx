@@ -44,8 +44,8 @@ describe("MerchantPresetDialog", () => {
     expect(form.getAll("selectedKeys")).toEqual(
       options.items.slice(1).map(({ key }) => key),
     );
-    expect(form.get("currency")).toBe("JPY");
-    expect(form.get("templateVersion")).toBe("1");
+    expect(form.getAll("regions")).toEqual(["jp"]);
+    expect(form.get("templateVersion")).toBe("2");
     expect(form.get("name")).toBeNull();
   });
   it("内嵌预设成功后通知父层刷新", async () => {
@@ -100,18 +100,13 @@ describe("MerchantPresetDialog", () => {
   });
   it("无模板显示空状态与现有手动新增地址", () => {
     renderDialog(undefined, {
-      currency: "USD",
+      region: null,
       templateVersion: null,
       groups: [],
       items: [],
       addedKeys: [],
     });
-    expect(screen.getByText("暂无该币种的预设商家")).toBeInTheDocument();
-    expect(screen.getByText("可以先手动添加商家")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "手动添加" })).toHaveAttribute(
-      "href",
-      "/merchants/new",
-    );
+    expect(screen.getByText("你主要在哪里生活？")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "添加 0 个商家" }),
     ).toBeDisabled();

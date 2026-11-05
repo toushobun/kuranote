@@ -317,7 +317,7 @@ describe("创建中账本数据边界", () => {
 
   it("向导 RPC 只授权给 authenticated，内部函数不对客户端开放", () => {
     for (const signature of [
-      `"create_ledger_setup"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text")`,
+      `"create_ledger_setup"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text", "p_living_region" "text")`,
       `"save_ledger_setup_draft"("p_ledger_id" "uuid", "p_step" integer, "p_draft" "jsonb")`,
       `"get_current_user_setup_ledger"()`,
       `"complete_ledger_setup"("p_ledger_id" "uuid", "p_payload" "jsonb")`,

@@ -17,6 +17,7 @@ import { designTokens } from "theme/theme";
 import { typographyStyles } from "theme/typographyTokens";
 
 import { useLedgerSetupBasicInfoStep } from "./useLedgerSetupBasicInfoStep";
+import { LedgerRegionField } from "molecules/ledgers/LedgerRegionField/LedgerRegionField";
 
 const formId = "ledger-setup-basic-info-form";
 
@@ -25,8 +26,16 @@ const formId = "ledger-setup-basic-info-form";
  * 已有时更新基本信息；成功后进入下一步。
  */
 export function LedgerSetupBasicInfoStep(props: LedgerSetupWizardStepProps) {
-  const { actionState, handleSubmit, isPending, ledgerId, setValues, values } =
-    useLedgerSetupBasicInfoStep(props);
+  const {
+    actionState,
+    handleSubmit,
+    isPending,
+    ledgerId,
+    setValues,
+    values,
+    livingRegion,
+    setLivingRegion,
+  } = useLedgerSetupBasicInfoStep(props);
 
   return (
     <WizardStepLayout
@@ -53,7 +62,17 @@ export function LedgerSetupBasicInfoStep(props: LedgerSetupWizardStepProps) {
           </Typography>
         </Stack>
         <SoftCard sx={cardSx}>
-          <LedgerBasicInfoFields onChange={setValues} values={values} />
+          <LedgerBasicInfoFields
+            onChange={setValues}
+            values={values}
+            afterCurrency={
+              <LedgerRegionField
+                value={livingRegion}
+                onChange={setLivingRegion}
+                disabled={isPending}
+              />
+            }
+          />
         </SoftCard>
       </Stack>
 

@@ -1,5 +1,6 @@
 import type { LedgerCurrency } from "internal/ledger/entity/ledgerCurrency";
 import type { LedgerSetupDraft } from "internal/ledger/schema/ledgerSetupDraft";
+import type { LedgerSetupRegion } from "./ledgerSetupTemplate/ledgerSetupTemplate";
 import type { ThemeColorKey } from "theme/themeColorTokens";
 
 /** 账本创建状态。取值与 ledger.setup_status 的 check 约束一致。 */
@@ -27,26 +28,22 @@ export const ledgerSetupLimits = {
   maxMerchantAliases: 20,
   maxMerchantTagKeys: 20,
   maxMerchantTags: 50,
-  maxMerchants: 200,
+  maxMerchants: 300,
   merchantNameMaxLength: 100,
   merchantTagIconMaxLength: 32,
   merchantTagNameMaxLength: 100,
   templateKeyMaxLength: 100,
 } as const;
 
-/** 当前用户的创建中账本。草稿已按账本当前默认货币的模板补全与校正。 */
+/** 当前用户的创建中账本。草稿已按账本当前生活地区的模板补全与校正。 */
 export type LedgerSetup = {
   baseCurrency: LedgerCurrency;
+  livingRegion: LedgerSetupRegion | null;
   /** 当前用户在该账本中的个性色。 */
   displayColor: ThemeColorKey;
   /** 当前用户在该账本中的显示名。 */
   displayName: string;
   draft: LedgerSetupDraft;
-  /**
-   * 数据库中的草稿是否已保存账户或商家选择。修改默认货币会清空这些选择，
-   * 向导据此决定是否需要二次确认；只有补全出来的默认值时为 false。
-   */
-  hasTemplateSelections: boolean;
   id: string;
   name: string;
   step: number;

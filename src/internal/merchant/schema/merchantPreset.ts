@@ -1,10 +1,14 @@
 import { z } from "zod";
+import { ledgerSetupRegions, ledgerSetupLimits } from "internal/ledger";
 
 export const merchantPresetInputSchema = z
   .object({
-    currency: z.string().min(1).max(3),
+    regions: z.array(z.enum(ledgerSetupRegions)).min(1).max(2),
     templateVersion: z.number().int().positive(),
-    selectedKeys: z.array(z.string().min(1).max(100)).min(1).max(300),
+    selectedKeys: z
+      .array(z.string().min(1).max(100))
+      .min(1)
+      .max(ledgerSetupLimits.maxMerchants),
   })
   .strict();
 
@@ -15,7 +19,7 @@ export function parseMerchantPresetForm(
 ): MerchantPresetInput | null {
   const version = formData.get("templateVersion");
   const parsed = merchantPresetInputSchema.safeParse({
-    currency: formData.get("currency"),
+    regions: formData.getAll("regions"),
     templateVersion:
       typeof version === "string" && version.trim()
         ? Number(version)

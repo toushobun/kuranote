@@ -7,29 +7,33 @@ import {
   ledgerSetupWizardStoryArgs,
   ledgerSetupWizardStoryDecorators,
 } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardStoryUtils";
-import {
-  createLedgerSetupProgressFixture,
-  ledgerSetupMerchantDefaultSelectedKeys,
-  ledgerSetupMerchantTemplateFixture,
-} from "test/mocks/ledgerSetup";
+import { createLedgerSetupProgressFixture } from "test/mocks/ledgerSetup";
 
-function createMerchantsProgress(selectedKeys: string[]) {
+import {
+  createDefaultLedgerSetupDraft,
+  getLedgerSetupTemplate,
+  type LedgerSetupRegion,
+} from "internal/ledger";
+const template = getLedgerSetupTemplate("jp")!;
+const defaultDraft = createDefaultLedgerSetupDraft("jp", template);
+function createMerchantsProgress(
+  selectedKeys = defaultDraft.merchants.selectedKeys,
+  additionalRegions: LedgerSetupRegion[] = [],
+) {
   const base = createLedgerSetupProgressFixture();
   return createLedgerSetupProgressFixture(
     {
       draft: {
         ...base.setup.draft,
-        merchants: { selectedKeys, skipped: false },
+        merchants: { selectedKeys, skipped: false, additionalRegions },
       },
       step: 3,
     },
-    ledgerSetupMerchantTemplateFixture,
+    template,
   );
 }
 
-const defaultProgress = createMerchantsProgress(
-  ledgerSetupMerchantDefaultSelectedKeys,
-);
+const defaultProgress = createMerchantsProgress();
 
 // 第 3 步依赖向导骨架提供的步骤回调与进度，因此在向导中展示。
 const meta = {
@@ -64,13 +68,21 @@ export const SelectNone: Story = {
   args: { progress: createMerchantsProgress([]) },
 };
 
-export const WithoutTemplate: Story = {
-  name: "无模板币种",
+export const AddedChina: Story = {
+  name: "追加中国",
+  args: { progress: createMerchantsProgress(undefined, ["cn"]) },
+};
+export const Partial: Story = {
+  name: "部分选中",
+  args: { progress: createMerchantsProgress(["apple", "starbucks"]) },
+};
+export const DifferentCurrency: Story = {
+  name: "人民币账本使用日本地区",
   args: {
-    progress: createLedgerSetupProgressFixture({
-      baseCurrency: "USD",
-      step: 3,
-    }),
+    progress: {
+      ...defaultProgress,
+      setup: { ...defaultProgress.setup, baseCurrency: "CNY" },
+    },
   },
 };
 

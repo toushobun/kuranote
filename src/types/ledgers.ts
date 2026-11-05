@@ -101,7 +101,7 @@ export type CurrentLedgerStateAction = (
   formData: FormData,
 ) => Promise<CurrentLedgerActionState>;
 
-/** 创建账本向导的进度：创建中账本与其默认货币对应的预设模板（无模板时为 null）。 */
+/** 创建账本向导的进度：创建中账本与其生活地区对应的预设模板（无模板时为 null）。 */
 export type LedgerSetupProgress = {
   setup: LedgerSetup;
   template: LedgerSetupTemplate | null;
@@ -178,7 +178,7 @@ export type LedgerSetupDraftActionState = ActionState & {
   /** 同一类型下有同名账户：由步骤在对应账户处提示，不显示失败弹框。 */
   accountNameDuplicate?: boolean;
   /**
-   * 预设模板已更新或默认货币已变更，草稿未保存：progress 为重新读取的进度，
+   * 预设模板已更新或生活地区已变更，草稿未保存：progress 为重新读取的进度，
    * 向导用它替换状态并提示用户重新确认。
    */
   outdated?: boolean;
@@ -200,7 +200,7 @@ export type LedgerSetupCompleteActionState = ActionState & {
   completed?: boolean;
   /** 创建中账本已在其他页面完成或不存在：向导无法继续，只能关闭。 */
   notFound?: boolean;
-  /** 预设模板已更新或默认货币已变更，未写入：progress 为重新读取的进度。 */
+  /** 预设模板已更新或生活地区已变更，未写入：progress 为重新读取的进度。 */
   outdated?: boolean;
   progress?: LedgerSetupProgress;
 };

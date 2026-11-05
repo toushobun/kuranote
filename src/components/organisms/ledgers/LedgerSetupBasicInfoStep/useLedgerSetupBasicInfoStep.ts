@@ -7,19 +7,19 @@ import {
   type FormEvent,
 } from "react";
 
-import { ledgerSetupBasicInfoMessages } from "config/ledgerSetupMessages";
+import {
+  getLedgerSetupRegionFromTimeZone,
+  type LedgerSetupRegion,
+} from "internal/ledger";
 import type { LedgerBasicInfoValues } from "organisms/ledgers/LedgerBasicInfoFields/LedgerBasicInfoFields";
 import type { LedgerSetupWizardStepProps } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardStepTypes";
 import { useLedgerSetupStepDirty } from "organisms/ledgers/LedgerSetupWizard/useLedgerSetupStepDirty";
-import { useConfirmDialog } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import type {
   LedgerSetupBasicInfoActionState,
   LedgerSetupProgress,
 } from "types/ledgers";
 
 const initialActionState: LedgerSetupBasicInfoActionState = {};
-const currencyChangeConfirm =
-  ledgerSetupBasicInfoMessages.currencyChangeConfirm;
 
 function getInitialValues(
   progress: LedgerSetupProgress | null,
@@ -58,12 +58,19 @@ export function useLedgerSetupBasicInfoStep({
   onRestore,
   progress,
 }: UseLedgerSetupBasicInfoStepOptions) {
-  const confirm = useConfirmDialog();
   const setup = progress?.setup ?? null;
   const [values, setValues] = useState(() =>
     getInitialValues(progress, defaults),
   );
-  useLedgerSetupStepDirty(values, onDirtyChange);
+  const [livingRegion, setLivingRegion] = useState<LedgerSetupRegion | null>(
+    () =>
+      progress
+        ? progress.setup.livingRegion
+        : getLedgerSetupRegionFromTimeZone(
+            Intl.DateTimeFormat().resolvedOptions().timeZone,
+          ),
+  );
+  useLedgerSetupStepDirty({ values, livingRegion }, onDirtyChange);
   const [actionState, formAction, isPending] = useActionState(
     async (
       previousState: LedgerSetupBasicInfoActionState,
@@ -92,27 +99,11 @@ export function useLedgerSetupBasicInfoStep({
     initialActionState,
   );
 
-  // 只有草稿中已保存账户 / 商家选择时，修改默认货币才会清空内容（服务端负责清空）。
-  const needsCurrencyChangeConfirm =
-    setup !== null &&
-    setup.hasTemplateSelections &&
-    values.baseCurrency !== setup.baseCurrency;
-
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (isPending) return;
 
     const formData = new FormData(event.currentTarget);
-
-    if (needsCurrencyChangeConfirm) {
-      const confirmed = await confirm({
-        confirmLabel: currencyChangeConfirm.confirm,
-        description: currencyChangeConfirm.description,
-        title: currencyChangeConfirm.title,
-      });
-
-      if (!confirmed) return;
-    }
 
     startTransition(() => formAction(formData));
   }
@@ -124,5 +115,7 @@ export function useLedgerSetupBasicInfoStep({
     ledgerId: setup?.id ?? "",
     setValues,
     values,
+    livingRegion,
+    setLivingRegion,
   };
 }

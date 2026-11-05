@@ -1,8 +1,9 @@
 import type { LedgerSetup } from "internal/ledger/entity/ledgerSetup";
 import {
-  getLedgerSetupTemplate,
   type LedgerSetupTemplate,
+  type LedgerSetupRegion,
 } from "internal/ledger/entity/ledgerSetupTemplate/ledgerSetupTemplate";
+import { getLedgerSetupTemplate } from "internal/ledger/entity/ledgerSetupTemplate/getLedgerSetupTemplate";
 import {
   ledgerCreateErrorCodes,
   ledgerCreateErrorMessages,
@@ -23,7 +24,6 @@ import { validateLedgerSetupDraftInput } from "internal/ledger/schema/ledgerSetu
 import { toLedgerCreateAppError } from "internal/ledger/service/ledgerService";
 import { buildLedgerSetupCompletionPayload } from "internal/ledger/util/ledgerSetupCompletionPayload";
 import {
-  hasDuplicateLedgerSetupAccountName,
   isLedgerSetupDraftMatchingTemplate,
   resolveLedgerSetupDraft,
 } from "internal/ledger/util/ledgerSetupDraft";
@@ -54,11 +54,13 @@ export type LedgerSetupService = {
    */
   complete(ledgerId: string): Promise<void>;
   /** 创建「创建中」账本，返回新账本 ID。不切换当前账本。 */
-  create(input: CreateLedgerInput): Promise<{ ledgerId: string }>;
+  create(
+    input: CreateLedgerInput & { livingRegion: LedgerSetupRegion },
+  ): Promise<{ ledgerId: string }>;
   /** 当前用户的创建中账本，没有时返回 null。草稿已按当前模板补全与校正。 */
   getCurrentUserSetup(): Promise<LedgerSetup | null>;
-  /** 按币种返回预设模板；该币种没有模板时返回 null。 */
-  getTemplate(currency: string): LedgerSetupTemplate | null;
+  /** 按生活地区返回预设模板；未选择地区时返回 null。 */
+  getTemplate(region: unknown): LedgerSetupTemplate | null;
   /** 完成创建时将自动创建的大分类名称（按排序），供确认一览展示。 */
   listDefaultRootCategoryNames(): Promise<string[]>;
   saveDraft(input: SaveLedgerSetupDraftCommand): Promise<void>;
@@ -89,7 +91,7 @@ function toAppError(code: LedgerSetupRpcErrorCode): AppError {
   if (
     code === ledgerSetupErrorCodes.hasMembers ||
     code === ledgerSetupErrorCodes.hasTransactions ||
-    code === ledgerSetupErrorCodes.currencyMismatch ||
+    code === ledgerSetupErrorCodes.regionMismatch ||
     code === ledgerSetupErrorCodes.inProgressExists ||
     code === ledgerSetupErrorCodes.notInProgress ||
     code === ledgerSetupErrorCodes.templateOutdated
@@ -103,9 +105,12 @@ function toAppError(code: LedgerSetupRpcErrorCode): AppError {
 function toLedgerSetup({ storedDraft, ...setup }: LedgerSetupRecord) {
   return {
     ...setup,
-    draft: resolveLedgerSetupDraft(storedDraft, setup.baseCurrency),
-    hasTemplateSelections:
-      storedDraft.accounts !== undefined || storedDraft.merchants !== undefined,
+    step: setup.livingRegion === null ? 1 : setup.step,
+    draft: resolveLedgerSetupDraft(
+      storedDraft,
+      setup.livingRegion,
+      getLedgerSetupTemplate(setup.livingRegion),
+    ),
   } satisfies LedgerSetup;
 }
 
@@ -147,8 +152,10 @@ export function createLedgerSetupService({
       if (!setup || setup.id !== ledgerId) {
         throw toAppError(ledgerSetupErrorCodes.notFound);
       }
+      if (!setup.livingRegion)
+        throw toAppError(ledgerSetupErrorCodes.regionRequired);
 
-      // 草稿已按账本当前默认货币与模板版本校正：无法匹配当前模板的 key 已丢弃。
+      // 草稿已按账本当前生活地区与模板版本校正：无法匹配当前模板的 key 已丢弃。
       if (hasDuplicateLedgerSetupAccountName(setup.draft.accounts.items)) {
         throw toAppError(ledgerSetupErrorCodes.accountNameDuplicate);
       }
@@ -157,7 +164,7 @@ export function createLedgerSetupService({
         ledgerId,
         payload: buildLedgerSetupCompletionPayload(
           setup.draft,
-          getLedgerSetupTemplate(setup.baseCurrency),
+          getLedgerSetupTemplate(setup.livingRegion),
         ),
       });
 
@@ -180,8 +187,8 @@ export function createLedgerSetupService({
       return findSetup();
     },
 
-    getTemplate(currency) {
-      return getLedgerSetupTemplate(currency);
+    getTemplate(region) {
+      return getLedgerSetupTemplate(region);
     },
 
     listDefaultRootCategoryNames() {
@@ -195,8 +202,13 @@ export function createLedgerSetupService({
         throw toAppError(validation.error);
       }
 
-      // 模板币种与账本默认货币是否一致由 RPC 在持有账本行锁时校验。
-      if (!isLedgerSetupDraftMatchingTemplate(validation.value.draft)) {
+      // 模板地区与账本默认货币是否一致由 RPC 在持有账本行锁时校验。
+      if (
+        !isLedgerSetupDraftMatchingTemplate(
+          validation.value.draft,
+          getLedgerSetupTemplate(validation.value.draft.templateRegion),
+        )
+      ) {
         throw toAppError(ledgerSetupErrorCodes.templateOutdated);
       }
 
@@ -227,3 +239,5 @@ export function createLedgerSetupService({
     },
   };
 }
+
+import { hasDuplicateLedgerSetupAccountName } from "internal/ledger/util/ledgerSetupAccountName";

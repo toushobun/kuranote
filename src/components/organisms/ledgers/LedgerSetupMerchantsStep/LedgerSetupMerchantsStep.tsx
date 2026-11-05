@@ -1,7 +1,5 @@
 "use client";
 
-import { presetChecklistToggleAllButtonSx } from "molecules/ui/GroupedPresetChecklist/presetChecklistStyles";
-import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
@@ -10,7 +8,7 @@ import {
   ledgerSetupWizardMessages,
 } from "config/ledgerSetupMessages";
 import { EmptyState } from "molecules/ui/EmptyState";
-import { GroupedPresetChecklist } from "molecules/ui/GroupedPresetChecklist/GroupedPresetChecklist";
+import { MerchantPresetSelector } from "organisms/merchants/MerchantPresetSelector/MerchantPresetSelector";
 import { ActionFailureFeedback } from "molecules/ui/OperationFeedbackDialogs";
 import { WizardActionBar } from "molecules/ui/WizardActionBar/WizardActionBar";
 import { WizardStepLayout } from "molecules/ui/WizardDialog/WizardStepLayout";
@@ -80,27 +78,18 @@ function LedgerSetupMerchantsStepContent(
           <Typography color="textSecondary" variant="body2">
             {ledgerSetupMerchantsMessages.description}
           </Typography>
-          {checklist ? (
-            <Button
-              disabled={step.isSaving}
-              onClick={step.toggleAll}
-              size="small"
-              sx={presetChecklistToggleAllButtonSx}
-              variant="text"
-            >
-              {step.allSelected
-                ? ledgerSetupMerchantsMessages.selectNone
-                : ledgerSetupMerchantsMessages.selectAll}
-            </Button>
-          ) : null}
         </Stack>
 
         {checklist ? (
-          <GroupedPresetChecklist
+          <MerchantPresetSelector
+            region={props.progress.setup.livingRegion}
+            additionalRegions={step.additionalRegions}
+            onAdditionalRegionsChange={step.setAdditionalRegions}
+            onRequestRegionChange={step.changeRegion}
+            onRegionChange={() => step.changeRegion()}
             disabled={step.isSaving}
             groups={checklist.groups}
             items={checklist.items}
-            messages={ledgerSetupMerchantsMessages.checklist}
             onChange={step.setSelectedKeys}
             selectedKeys={step.selectedKeys}
           />

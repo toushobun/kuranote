@@ -1,4 +1,5 @@
 import type { buildLedgerSetupMerchantPayload } from "internal/ledger";
+import { isLedgerSetupRegion, type LedgerSetupRegion } from "internal/ledger";
 import {
   merchantErrorCodes,
   merchantErrorMessages,
@@ -18,11 +19,13 @@ import {
 } from "internal/shared/supabase/rpcError";
 
 export interface MerchantPresetRepository {
-  getCurrency(ledgerId: string): Promise<string>;
-  listExistingNames(ledgerId: string): Promise<string[]>;
+  getRegion(ledgerId: string): Promise<LedgerSetupRegion | null>;
+  listExistingNames(
+    ledgerId: string,
+  ): Promise<{ names: string[]; aliases: string[] }>;
   add(input: {
     ledgerId: string;
-    currency: string;
+    regions: LedgerSetupRegion[];
     payload: ReturnType<typeof buildLedgerSetupMerchantPayload>;
   }): Promise<number>;
 }
@@ -52,14 +55,20 @@ export function createMerchantPresetRepository(
     throw toRepositoryError(fallback, merchantErrorMessages[fallback]);
   }
   return {
-    async getCurrency(ledgerId) {
+    async getRegion(ledgerId) {
       const { data, error } = await supabase
         .from("ledger")
-        .select("base_currency")
+        .select("living_region")
         .eq("id", ledgerId)
         .single();
-      if (error || !data || typeof data.base_currency !== "string") fail(error);
-      return data.base_currency;
+      if (
+        error ||
+        !data ||
+        (data.living_region !== null &&
+          !isLedgerSetupRegion(data.living_region))
+      )
+        fail(error);
+      return data.living_region;
     },
     async listExistingNames(ledgerId) {
       // 归档等同删除；仅按有效商家和有效别名判重，允许从预设重新添加。
@@ -86,15 +95,15 @@ export function createMerchantPresetRepository(
         if (error) fail(error);
         return (data ?? []) as { alias: string }[];
       });
-      return [
-        ...merchants.map(({ name }) => name),
-        ...aliases.map(({ alias }) => alias),
-      ];
+      return {
+        names: merchants.map(({ name }) => name),
+        aliases: aliases.map(({ alias }) => alias),
+      };
     },
-    async add({ ledgerId, currency, payload }) {
+    async add({ ledgerId, regions, payload }) {
       const { data, error } = await supabase.rpc("add_merchant_presets", {
         p_ledger_id: ledgerId,
-        p_currency: currency,
+        p_regions: regions,
         // 补齐空账户与功能开关字段，以复用 validate_ledger_setup_completion_payload。
         p_payload: {
           accounts: [],

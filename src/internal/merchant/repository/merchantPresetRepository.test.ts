@@ -26,18 +26,18 @@ describe("merchantPresetRepository", () => {
   it("读取当前默认币种，并独立分页读取账本有效商家的正式名与有效别名", async () => {
     const { repository, supabase } = setup({
       queryResponses: [
-        { data: { base_currency: "JPY" } },
+        { data: { living_region: "jp" } },
         { data: [{ name: "Brand" }] },
         { data: [] },
         { data: [{ alias: "Alias" }] },
         { data: [] },
       ],
     });
-    await expect(repository.getCurrency("ledger")).resolves.toBe("JPY");
-    await expect(repository.listExistingNames("ledger")).resolves.toEqual([
-      "Brand",
-      "Alias",
-    ]);
+    await expect(repository.getRegion("ledger")).resolves.toBe("jp");
+    await expect(repository.listExistingNames("ledger")).resolves.toEqual({
+      names: ["Brand"],
+      aliases: ["Alias"],
+    });
     expect(supabase.queries[3]!.calls).toContainEqual({
       method: "eq",
       args: ["merchant.ledger_id", "ledger"],
@@ -59,11 +59,11 @@ describe("merchantPresetRepository", () => {
   it("调用单个原子 RPC 并保留数据库实际新增数量", async () => {
     const { repository, supabase } = setup({ rpcResponse: { data: 2 } });
     await expect(
-      repository.add({ ledgerId: "ledger", currency: "JPY", payload }),
+      repository.add({ ledgerId: "ledger", regions: ["jp"], payload }),
     ).resolves.toBe(2);
     expect(supabase.rpc).toHaveBeenCalledWith("add_merchant_presets", {
       p_ledger_id: "ledger",
-      p_currency: "JPY",
+      p_regions: ["jp"],
       p_payload: {
         accounts: [],
         multiAccountPaymentEnabled: false,
@@ -81,7 +81,7 @@ describe("merchantPresetRepository", () => {
       rpcResponse: { error: { details, message: "private SQL" } },
     });
     await expect(
-      repository.add({ ledgerId: "ledger", currency: "JPY", payload }),
+      repository.add({ ledgerId: "ledger", regions: ["jp"], payload }),
     ).rejects.toBeInstanceOf(type);
   });
   it("原始 message 不能冒充业务 detail，返回安全持久层错误", async () => {
@@ -89,7 +89,7 @@ describe("merchantPresetRepository", () => {
       rpcResponse: { error: { message: "merchant_preset_invalid" } },
     });
     await expect(
-      repository.add({ ledgerId: "ledger", currency: "JPY", payload }),
+      repository.add({ ledgerId: "ledger", regions: ["jp"], payload }),
     ).rejects.toBeInstanceOf(RepositoryError);
     expect(logger.error).toHaveBeenCalled();
   });

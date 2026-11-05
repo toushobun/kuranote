@@ -1,0 +1,75 @@
+import type {
+  LedgerSetupAccountCandidates,
+  LedgerSetupRegion,
+} from "./ledgerSetupTemplate";
+
+export const ledgerSetupAccountCandidates: Record<
+  LedgerSetupRegion,
+  LedgerSetupAccountCandidates
+> = {
+  jp: {
+    bank: [
+      "三菱UFJ銀行",
+      "三井住友銀行",
+      "みずほ銀行",
+      "ゆうちょ銀行",
+      "りそな銀行",
+      "楽天銀行",
+      "住信SBIネット銀行",
+      "PayPay銀行",
+      "ソニー銀行",
+      "イオン銀行",
+      "セブン銀行",
+    ],
+    credit_card: [
+      "楽天カード",
+      "三井住友カード",
+      "JCBカード",
+      "イオンカード",
+      "dカード",
+      "au PAYカード",
+      "PayPayカード",
+      "エポスカード",
+      "セゾンカード",
+      "アメリカン・エキスプレス",
+    ],
+    e_money: [
+      "PayPay",
+      "楽天ペイ",
+      "d払い",
+      "au PAY",
+      "メルペイ",
+      "Suica",
+      "PASMO",
+      "ICOCA",
+      "nanaco",
+      "WAON",
+      "楽天Edy",
+    ],
+  },
+  cn: {
+    bank: [
+      "工商银行",
+      "建设银行",
+      "农业银行",
+      "中国银行",
+      "招商银行",
+      "交通银行",
+      "邮储银行",
+      "平安银行",
+    ],
+    credit_card: [
+      "工商银行信用卡",
+      "建设银行信用卡",
+      "农业银行信用卡",
+      "中国银行信用卡",
+      "招商银行信用卡",
+      "交通银行信用卡",
+      "邮储银行信用卡",
+      "平安银行信用卡",
+      "花呗",
+      "京东白条",
+    ],
+    e_money: ["支付宝", "微信支付", "云闪付", "数字人民币"],
+  },
+};
