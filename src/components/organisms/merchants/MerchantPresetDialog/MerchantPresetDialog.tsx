@@ -79,6 +79,11 @@ export function MerchantPresetDialog({
             <MerchantPresetSelector
               {...options}
               region={dialog.region}
+              recommendationLabel={
+                dialog.region
+                  ? messages.recommendation(dialog.region)
+                  : undefined
+              }
               onRegionChange={dialog.setRegion}
               additionalRegions={dialog.additionalRegions}
               onAdditionalRegionsChange={dialog.setAdditionalRegions}

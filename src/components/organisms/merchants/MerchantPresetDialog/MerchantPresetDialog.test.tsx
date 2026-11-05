@@ -1,5 +1,6 @@
 import {
   act,
+  cleanup,
   fireEvent,
   render,
   screen,
@@ -34,6 +35,7 @@ describe("MerchantPresetDialog", () => {
     const options = createMerchantPresetOptions();
     options.addedKeys = [options.items[0]!.key];
     renderDialog(action, options);
+    expect(screen.getByText("本次按日本常用商家推荐")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "添加 0 个商家" }),
     ).toBeDisabled();
@@ -48,6 +50,26 @@ describe("MerchantPresetDialog", () => {
     expect(form.get("templateVersion")).toBe("2");
     expect(form.get("name")).toBeNull();
   });
+  it.each(["jp", null] as const)(
+    "临时更改地区后重新打开仍使用账本地区：%s",
+    (region) => {
+      const options = { ...createMerchantPresetOptions(), region };
+      const action = vi.fn<MerchantPresetStateAction>().mockResolvedValue({});
+      renderDialog(action, options);
+      if (region) fireEvent.click(screen.getByRole("button", { name: "更改" }));
+      fireEvent.click(screen.getByRole("radio", { name: "中国" }));
+      expect(screen.getByText("本次按中国常用商家推荐")).toBeInTheDocument();
+      expect(action).not.toHaveBeenCalled();
+      cleanup();
+      renderDialog(action, options);
+      if (region) {
+        expect(screen.getByText("本次按日本常用商家推荐")).toBeInTheDocument();
+      } else {
+        expect(screen.getByRole("radio", { name: "日本" })).not.toBeChecked();
+        expect(screen.getByRole("radio", { name: "中国" })).not.toBeChecked();
+      }
+    },
+  );
   it("内嵌预设成功后通知父层刷新", async () => {
     const saved = vi.fn();
     const save = vi.fn<MerchantPresetStateAction>().mockResolvedValue({

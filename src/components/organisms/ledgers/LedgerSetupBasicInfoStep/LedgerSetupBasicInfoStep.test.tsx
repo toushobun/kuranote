@@ -5,7 +5,8 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { mockIntlTimeZone } from "test/mockIntlTimeZone";
 
 import {
   ledgerCreateErrorCodes,
@@ -27,6 +28,13 @@ import type {
   LedgerSetupBasicInfoActionState,
   LedgerSetupBasicInfoStateAction,
 } from "types/ledgers";
+
+beforeEach(() => {
+  mockIntlTimeZone("Asia/Tokyo");
+});
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 function createSubmitMock(
   result: LedgerSetupBasicInfoActionState = {
@@ -66,6 +74,31 @@ describe("LedgerSetupBasicInfoStep", () => {
     expect(screen.getByLabelText("琥珀橙")).toBeChecked();
   });
 
+  it.each([
+    ["Asia/Tokyo", "日本"],
+    ["Asia/Shanghai", "中国"],
+  ])("按浏览器时区 %s 预选 %s", (timeZone, region) => {
+    mockIntlTimeZone(timeZone);
+    renderLedgerSetupWizard();
+    expect(screen.getByRole("radio", { name: region })).toBeChecked();
+  });
+
+  it("其他时区不预选地区，未选择时不能提交", async () => {
+    mockIntlTimeZone("UTC");
+    const submit = createSubmitMock();
+    renderLedgerSetupWizard({ submitBasicInfo: submit });
+    const japan = screen.getByRole("radio", { name: "日本" });
+    expect(japan).not.toBeChecked();
+    expect(screen.getByRole("radio", { name: "中国" })).not.toBeChecked();
+    expect(japan).toBeInvalid();
+    await act(async () => clickNext());
+    expect(submit).not.toHaveBeenCalled();
+    fireEvent.click(japan);
+    clickNext();
+    await waitFor(() => expect(submit).toHaveBeenCalledOnce());
+    expect(getSubmittedFormData(submit)).toMatchObject({ livingRegion: "jp" });
+  });
+
   it("已有创建中账本时显示该账本的基本信息", () => {
     renderLedgerSetupWizard({
       progress: createLedgerSetupProgressFixture({
@@ -92,8 +125,6 @@ describe("LedgerSetupBasicInfoStep", () => {
     fireEvent.change(screen.getByLabelText("账本名称"), {
       target: { value: "旅行账本" },
     });
-    if (!screen.queryByRole("radio", { name: "日本", checked: true }))
-      fireEvent.click(screen.getByRole("radio", { name: "日本" }));
     clickNext();
 
     await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
@@ -115,8 +146,6 @@ describe("LedgerSetupBasicInfoStep", () => {
     });
 
     await goPreviousTo("基本信息");
-    if (!screen.queryByRole("radio", { name: "日本", checked: true }))
-      fireEvent.click(screen.getByRole("radio", { name: "日本" }));
     clickNext();
 
     await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
@@ -134,8 +163,6 @@ describe("LedgerSetupBasicInfoStep", () => {
       }),
     });
 
-    if (!screen.queryByRole("radio", { name: "日本", checked: true }))
-      fireEvent.click(screen.getByRole("radio", { name: "日本" }));
     clickNext();
 
     const alert = await screen.findByRole("alert");
@@ -172,8 +199,6 @@ describe("LedgerSetupBasicInfoStep", () => {
       submitBasicInfo: vi.fn(() => new Promise<never>(() => {})),
     });
 
-    if (!screen.queryByRole("radio", { name: "日本", checked: true }))
-      fireEvent.click(screen.getByRole("radio", { name: "日本" }));
     clickNext();
 
     const button = await screen.findByRole("button", { name: "保存中" });
@@ -192,8 +217,6 @@ describe("LedgerSetupBasicInfoStep", () => {
       submitBasicInfo: createSubmitMock({ progress: restored, restored: true }),
     });
 
-    if (!screen.queryByRole("radio", { name: "日本", checked: true }))
-      fireEvent.click(screen.getByRole("radio", { name: "日本" }));
     clickNext();
 
     await waitFor(() => expect(getCurrentStepItem()).toHaveTextContent("商家"));
@@ -214,8 +237,6 @@ describe("LedgerSetupBasicInfoStep", () => {
   it("正常提交成功时不显示还没创建完的提示", async () => {
     renderLedgerSetupWizard({ submitBasicInfo: createSubmitMock() });
 
-    if (!screen.queryByRole("radio", { name: "日本", checked: true }))
-      fireEvent.click(screen.getByRole("radio", { name: "日本" }));
     clickNext();
 
     await waitFor(() => expect(getCurrentStepItem()).toHaveTextContent("账户"));

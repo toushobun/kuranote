@@ -86,7 +86,6 @@ function LedgerSetupMerchantsStepContent(
             additionalRegions={step.additionalRegions}
             onAdditionalRegionsChange={step.setAdditionalRegions}
             onRequestRegionChange={step.changeRegion}
-            onRegionChange={() => step.changeRegion()}
             disabled={step.isSaving}
             groups={checklist.groups}
             items={checklist.items}

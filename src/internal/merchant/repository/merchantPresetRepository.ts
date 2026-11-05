@@ -25,7 +25,6 @@ export interface MerchantPresetRepository {
   ): Promise<{ names: string[]; aliases: string[] }>;
   add(input: {
     ledgerId: string;
-    regions: LedgerSetupRegion[];
     payload: ReturnType<typeof buildLedgerSetupMerchantPayload>;
   }): Promise<number>;
 }
@@ -100,10 +99,9 @@ export function createMerchantPresetRepository(
         aliases: aliases.map(({ alias }) => alias),
       };
     },
-    async add({ ledgerId, regions, payload }) {
+    async add({ ledgerId, payload }) {
       const { data, error } = await supabase.rpc("add_merchant_presets", {
         p_ledger_id: ledgerId,
-        p_regions: regions,
         // 补齐空账户与功能开关字段，以复用 validate_ledger_setup_completion_payload。
         p_payload: {
           accounts: [],

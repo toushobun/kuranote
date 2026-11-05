@@ -1,3 +1,4 @@
+import type { LedgerSetupRegion } from "internal/ledger";
 import { regionPresetMessages } from "./regionPresetMessages";
 
 export const merchantPresetMessages = {
@@ -7,6 +8,8 @@ export const merchantPresetMessages = {
   manual: "手动添加",
   manualDescription: "自己填写商家名称与信息",
   title: "从预设添加商家",
+  recommendation: (region: LedgerSetupRegion) =>
+    `本次${regionPresetMessages.recommendation(region)}`,
   close: "关闭",
   cancel: "取消",
   selectAll: "全部选择",

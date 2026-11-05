@@ -476,7 +476,7 @@ $$;
 ALTER FUNCTION "public"."account_has_transactions"("p_ledger_id" "uuid", "p_account_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."add_merchant_presets"("p_ledger_id" "uuid", "p_regions" "text"[], "p_payload" "jsonb") RETURNS integer
+CREATE OR REPLACE FUNCTION "public"."add_merchant_presets"("p_ledger_id" "uuid", "p_payload" "jsonb") RETURNS integer
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -509,10 +509,6 @@ begin
     -- 等待锁期间成员权限可能已改变，必须再次校验。
     if not found or not public.current_user_can_manage_ledger(p_ledger_id) then
         raise exception 'permission_denied' using errcode = '42501', detail = 'permission_denied';
-    end if;
-    if p_regions is null or cardinality(p_regions) not between 1 and 2
-       or exists (select 1 from unnest(p_regions) r where r is null or r not in ('jp', 'cn')) then
-        raise exception 'merchant_preset_invalid' using errcode = '22023', detail = 'merchant_preset_invalid';
     end if;
     if exists (select 1 from jsonb_array_elements(p_payload -> 'merchants') m
         where jsonb_typeof(m -> 'matchNames') is distinct from 'array'
@@ -581,7 +577,7 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."add_merchant_presets"("p_ledger_id" "uuid", "p_regions" "text"[], "p_payload" "jsonb") OWNER TO "postgres";
+ALTER FUNCTION "public"."add_merchant_presets"("p_ledger_id" "uuid", "p_payload" "jsonb") OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."account" (
@@ -11157,8 +11153,8 @@ REVOKE ALL ON FUNCTION "public"."account_has_transactions"("p_ledger_id" "uuid",
 
 
 
-REVOKE ALL ON FUNCTION "public"."add_merchant_presets"("p_ledger_id" "uuid", "p_regions" "text"[], "p_payload" "jsonb") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."add_merchant_presets"("p_ledger_id" "uuid", "p_regions" "text"[], "p_payload" "jsonb") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."add_merchant_presets"("p_ledger_id" "uuid", "p_payload" "jsonb") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."add_merchant_presets"("p_ledger_id" "uuid", "p_payload" "jsonb") TO "authenticated";
 
 
 

@@ -17,15 +17,20 @@ export type MerchantPresetSelectorProps = ReturnType<
   typeof buildMerchantChecklist
 > & {
   region: LedgerSetupRegion | null;
+  recommendationLabel?: string;
   additionalRegions: readonly LedgerSetupRegion[];
-  onRegionChange: (region: LedgerSetupRegion) => void;
-  onRequestRegionChange?: () => void;
   onAdditionalRegionsChange: (regions: LedgerSetupRegion[]) => void;
   selectedKeys: readonly string[];
   onChange: (keys: string[]) => void;
   disabledKeys?: readonly string[];
   disabled?: boolean;
-};
+} & (
+    | {
+        onRegionChange: (region: LedgerSetupRegion) => void;
+        onRequestRegionChange?: never;
+      }
+    | { onRequestRegionChange: () => void; onRegionChange?: never }
+  );
 
 /** 向导和商家管理共用分区、追加地区、跨分类联动和已添加状态。 */
 export function MerchantPresetSelector(props: MerchantPresetSelectorProps) {
@@ -39,7 +44,10 @@ export function MerchantPresetSelector(props: MerchantPresetSelectorProps) {
     disabled,
   } = props;
   const [changing, setChanging] = useState(false);
-  const other = region === "jp" ? "cn" : "jp";
+  const [collapsedRegions, setCollapsedRegions] = useState<LedgerSetupRegion[]>(
+    [],
+  );
+  const other: LedgerSetupRegion = region === "jp" ? "cn" : "jp";
   const visibleItems = items.filter((item) =>
     item.regions.some(
       (current) => current === region || additionalRegions.includes(current),
@@ -67,9 +75,21 @@ export function MerchantPresetSelector(props: MerchantPresetSelectorProps) {
     return (
       <Stack spacing={1.5} key={current}>
         {additional ? (
-          <Typography component="h4" sx={{ fontWeight: 700 }}>
-            {messages.names[current]}
-          </Typography>
+          <Stack
+            direction="row"
+            sx={{ alignItems: "center", justifyContent: "space-between" }}
+          >
+            <Typography component="h4" sx={{ fontWeight: 700 }}>
+              {messages.merchantGroup(current)}
+            </Typography>
+            <Button
+              onClick={() =>
+                setCollapsedRegions((regions) => [...regions, current])
+              }
+            >
+              {messages.collapse}
+            </Button>
+          </Stack>
         ) : null}
         <GroupedPresetChecklist
           disabled={disabled}
@@ -106,7 +126,7 @@ export function MerchantPresetSelector(props: MerchantPresetSelectorProps) {
           }}
         >
           <Typography variant="body2">
-            {messages.recommendation(region)}
+            {props.recommendationLabel ?? messages.recommendation(region)}
           </Typography>
           <Button
             disabled={disabled}
@@ -121,14 +141,20 @@ export function MerchantPresetSelector(props: MerchantPresetSelectorProps) {
         </Stack>
       ) : null}
       {!region || changing ? (
-        <LedgerRegionField
-          disabled={disabled}
-          value={region}
-          onChange={(next) => {
-            props.onRegionChange(next);
-            setChanging(false);
-          }}
-        />
+        props.onRegionChange ? (
+          <LedgerRegionField
+            disabled={disabled}
+            value={region}
+            onChange={(next) => {
+              props.onRegionChange?.(next);
+              setChanging(false);
+            }}
+          />
+        ) : (
+          <Button disabled={disabled} onClick={props.onRequestRegionChange}>
+            {messages.change}
+          </Button>
+        )
       ) : null}
       {region ? (
         <>
@@ -142,13 +168,21 @@ export function MerchantPresetSelector(props: MerchantPresetSelectorProps) {
               : merchantPresetMessages.selectAll}
           </Button>
           {renderRegion(region, false)}
-          {additionalRegions.includes(other) ? (
+          {additionalRegions.includes(other) &&
+          !collapsedRegions.includes(other) ? (
             renderRegion(other, true)
           ) : (
             <Button
               disabled={disabled}
               variant="outlined"
-              onClick={() => props.onAdditionalRegionsChange([other])}
+              onClick={() => {
+                props.onAdditionalRegionsChange([
+                  ...new Set([...additionalRegions, other]),
+                ]);
+                setCollapsedRegions((regions) =>
+                  regions.filter((region) => region !== other),
+                );
+              }}
               sx={{ borderStyle: "dashed", minHeight: 52 }}
             >
               {messages.addMerchants(other)}

@@ -202,7 +202,7 @@ export function createLedgerSetupService({
         throw toAppError(validation.error);
       }
 
-      // 模板地区与账本默认货币是否一致由 RPC 在持有账本行锁时校验。
+      // 模板地区与账本生活地区是否一致由 RPC 在持有账本行锁时校验。
       if (
         !isLedgerSetupDraftMatchingTemplate(
           validation.value.draft,

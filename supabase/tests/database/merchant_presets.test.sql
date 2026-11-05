@@ -1,6 +1,6 @@
 begin;
 set local search_path = public, extensions;
-select plan(33);
+select plan(34);
 
 insert into public.ledger (id, name, base_currency, owner_user_id, created_by, updated_by)
 values ('87800000-0000-4000-8000-000000000001', '预设添加测试', 'JPY', '00000000-0000-4000-8000-000000000031', '00000000-0000-4000-8000-000000000031', '00000000-0000-4000-8000-000000000031');
@@ -28,10 +28,10 @@ create function pg_temp.payload(names text[], tag_name text default 'Tag') retur
   );
 $$;
 create function pg_temp.add(names text[], tag_name text default 'Tag') returns integer language sql as $$
-  select public.add_merchant_presets('87800000-0000-4000-8000-000000000001', array['jp'], pg_temp.payload(names, tag_name));
+  select public.add_merchant_presets('87800000-0000-4000-8000-000000000001', pg_temp.payload(names, tag_name));
 $$;
 
-select ok(not has_function_privilege('anon', 'public.add_merchant_presets(uuid,text[],jsonb)', 'execute'), '匿名角色无 RPC 执行权限');
+select ok(not has_function_privilege('anon', 'public.add_merchant_presets(uuid,jsonb)', 'execute'), '匿名角色无 RPC 执行权限');
 select set_config('request.jwt.claim.sub', '', true);
 select throws_ok($$select pg_temp.add(array['New'])$$, '42501', 'auth_required', '拒绝没有登录身份的调用');
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000034', true);
@@ -45,7 +45,8 @@ select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000034
 set local role authenticated;
 select throws_ok($$select pg_temp.add(array['New'])$$, '42501', 'permission_denied', '已移除的管理员身份不能授予管理权限');
 select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000031', true);
-select throws_ok($$select public.add_merchant_presets('87800000-0000-4000-8000-000000000001', array['invalid'], pg_temp.payload(array['New']))$$, '22023', 'merchant_preset_invalid', '事务内拒绝非法地区');
+select ok(not has_function_privilege('service_role', 'public.add_merchant_presets(uuid,jsonb)', 'execute'), '服务角色无 RPC 执行权限');
+select ok(has_function_privilege('authenticated', 'public.add_merchant_presets(uuid,jsonb)', 'execute'), '登录角色具有 RPC 执行权限');
 select is(pg_temp.add(array['eXISTING']), 0, '正式名称忽略大小写命中时跳过');
 select is(pg_temp.add(array['Known']), 0, '预设别名与已有展示别名匹配时跳过');
 select is(pg_temp.add(array['KNOWN_ALIAS']), 0, '预设正式名称与已有别名忽略大小写匹配时跳过');

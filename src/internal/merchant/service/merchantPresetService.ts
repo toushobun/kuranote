@@ -36,7 +36,7 @@ export function createMerchantPresetService({
   async function loadContext(ledgerId: string) {
     await merchantService.assertCanManage({ ledgerId });
     const region = await repository.getRegion(ledgerId);
-    const template = templateService.getTemplate(region ?? "jp")!;
+    const template = templateService.getTemplate(region ?? "jp");
     const existing = await repository.listExistingNames(ledgerId);
     const addedKeys = template
       ? getAddedMerchantPresetKeys(
@@ -89,7 +89,6 @@ export function createMerchantPresetService({
       );
       return repository.add({
         ledgerId,
-        regions: parsed.data.regions,
         payload: buildLedgerSetupMerchantPayload(keys, template),
       });
     },

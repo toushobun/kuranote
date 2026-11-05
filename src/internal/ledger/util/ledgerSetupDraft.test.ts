@@ -65,6 +65,19 @@ describe("地区草稿", () => {
     draft.merchants.additionalRegions = [];
     expect(isLedgerSetupDraftMatchingTemplate(draft)).toBe(false);
   });
+  it.each([false, true])(
+    "恢复与保存按相同追加地区范围过滤商家：%s",
+    (additional) => {
+      const draft = createDefaultLedgerSetupDraft("jp");
+      draft.merchants.additionalRegions = additional ? ["cn"] : [];
+      draft.merchants.selectedKeys = ["apple", "aeon", "hema"];
+      const resolved = resolveLedgerSetupDraft(draft, "jp");
+      expect(resolved.merchants.selectedKeys).toEqual(
+        additional ? ["apple", "aeon", "hema"] : ["apple", "aeon"],
+      );
+      expect(isLedgerSetupDraftMatchingTemplate(resolved)).toBe(true);
+    },
+  );
   it("模板升级保留现有可匹配项，剔除失效key", () => {
     const draft = createDefaultLedgerSetupDraft("jp");
     draft.templateVersion = 1;

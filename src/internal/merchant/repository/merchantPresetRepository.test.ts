@@ -58,12 +58,11 @@ describe("merchantPresetRepository", () => {
   });
   it("调用单个原子 RPC 并保留数据库实际新增数量", async () => {
     const { repository, supabase } = setup({ rpcResponse: { data: 2 } });
-    await expect(
-      repository.add({ ledgerId: "ledger", regions: ["jp"], payload }),
-    ).resolves.toBe(2);
+    await expect(repository.add({ ledgerId: "ledger", payload })).resolves.toBe(
+      2,
+    );
     expect(supabase.rpc).toHaveBeenCalledWith("add_merchant_presets", {
       p_ledger_id: "ledger",
-      p_regions: ["jp"],
       p_payload: {
         accounts: [],
         multiAccountPaymentEnabled: false,
@@ -81,7 +80,7 @@ describe("merchantPresetRepository", () => {
       rpcResponse: { error: { details, message: "private SQL" } },
     });
     await expect(
-      repository.add({ ledgerId: "ledger", regions: ["jp"], payload }),
+      repository.add({ ledgerId: "ledger", payload }),
     ).rejects.toBeInstanceOf(type);
   });
   it("原始 message 不能冒充业务 detail，返回安全持久层错误", async () => {
@@ -89,7 +88,7 @@ describe("merchantPresetRepository", () => {
       rpcResponse: { error: { message: "merchant_preset_invalid" } },
     });
     await expect(
-      repository.add({ ledgerId: "ledger", regions: ["jp"], payload }),
+      repository.add({ ledgerId: "ledger", payload }),
     ).rejects.toBeInstanceOf(RepositoryError);
     expect(logger.error).toHaveBeenCalled();
   });

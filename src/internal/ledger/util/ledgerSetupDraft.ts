@@ -84,6 +84,22 @@ function isAccountTemplateKeyValid(
   );
 }
 
+/** 恢复与保存共用地区范围，防止恢复后的草稿再次被判为过期。 */
+function merchantKeysForRegions(
+  template: LedgerSetupTemplate | null,
+  region: LedgerSetupRegion | null,
+  additionalRegions: readonly LedgerSetupRegion[] = [],
+) {
+  const regions = [region, ...additionalRegions];
+  return new Set(
+    template?.merchants
+      .filter((merchant) =>
+        merchant.regions.some((region) => regions.includes(region)),
+      )
+      .map(({ key }) => key),
+  );
+}
+
 /** 判断草稿记录的模板地区、版本与引用的模板 key 是否与当前模板一致。 */
 export function isLedgerSetupDraftMatchingTemplate(
   draft: LedgerSetupDraft,
@@ -93,14 +109,10 @@ export function isLedgerSetupDraftMatchingTemplate(
 ): boolean {
   if (draft.templateVersion !== templateVersionOf(template)) return false;
 
-  const regions = [
+  const merchantKeys = merchantKeysForRegions(
+    template,
     draft.templateRegion,
-    ...(draft.merchants.additionalRegions ?? []),
-  ];
-  const merchantKeys = new Set(
-    template?.merchants
-      .filter((m) => m.regions.some((region) => regions.includes(region)))
-      .map(({ key }) => key),
+    draft.merchants.additionalRegions,
   );
 
   return (
@@ -124,7 +136,11 @@ export function resolveLedgerSetupDraft(
   template: LedgerSetupTemplate | null = getLedgerSetupTemplate(region),
 ): LedgerSetupDraft {
   const defaults = createDefaultLedgerSetupDraft(region, template);
-  const merchantKeys = new Set(template?.merchants.map(({ key }) => key));
+  const merchantKeys = merchantKeysForRegions(
+    template,
+    region,
+    stored.merchants?.additionalRegions,
+  );
 
   const accounts = stored.accounts
     ? {

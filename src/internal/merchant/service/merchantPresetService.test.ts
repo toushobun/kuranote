@@ -47,7 +47,6 @@ describe("merchantPresetService", () => {
     });
     expect(repository.add).toHaveBeenCalledWith(
       expect.objectContaining({
-        regions: ["cn"],
         payload: expect.objectContaining({
           merchants: expect.arrayContaining([
             expect.objectContaining({ name: "盒马" }),
@@ -78,6 +77,7 @@ describe("merchantPresetService", () => {
     );
   });
   it.each([
+    { ...input, regions: ["cn"] as ("jp" | "cn")[], selectedKeys: ["aeon"] },
     { ...input, selectedKeys: ["not-a-key"] },
     { ...input, templateVersion: -1 },
     { ...input, templateVersion: 999 },
@@ -101,7 +101,6 @@ describe("merchantPresetService", () => {
       await service.add("ledger", input);
       expect(repository.add).toHaveBeenCalledWith({
         ledgerId: "ledger",
-        regions: ["jp"],
         payload: { merchants: [], merchantTags: [] },
       });
     },

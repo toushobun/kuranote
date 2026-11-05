@@ -33,3 +33,16 @@ export const Partial: Story = {
   name: "部分选中",
   args: { initialSelectedKeys: ["apple", "starbucks"] },
 };
+
+export const CollapsedChina: Story = {
+  name: "收起追加地区并保留选择",
+  args: {
+    initialAdditionalRegions: ["cn"],
+    initialSelectedKeys: ["apple", "haidilao"],
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      within(canvasElement).getByRole("button", { name: "收起" }),
+    );
+  },
+};
