@@ -184,7 +184,7 @@ export function MerchantDetailsFields({
         onChange={(event) => onNoteChange(event.target.value)}
         placeholder={merchantText.notePlaceholder}
         size="small"
-        slotProps={{ htmlInput: { maxLength: 100000 } }}
+        slotProps={{ htmlInput: { maxLength: 200000 } }}
         value={note}
       />
     </Stack>
