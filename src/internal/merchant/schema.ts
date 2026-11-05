@@ -18,7 +18,7 @@ import { getFormText } from "utils/formData";
 import { parseWebsiteUrl } from "utils/merchants";
 
 export const merchantNameMaxLength = 100;
-export const merchantNoteMaxLength = 1000;
+export const merchantNoteMaxLength = 100000;
 export const merchantAliasMaxLength = 100;
 export const merchantTagNameMaxLength = 100;
 export const merchantTagIconMaxLength = 32;

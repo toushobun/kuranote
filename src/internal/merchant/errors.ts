@@ -176,7 +176,7 @@ export const merchantErrorMessages: Record<MerchantErrorCode, string> = {
     "分类更新失败。请确认分类名称是否重复，或稍后重试。",
   [merchantErrorCodes.nameRequired]: "请输入商家名称。",
   [merchantErrorCodes.nameTooLong]: "商家名称不能超过 100 个字符。",
-  [merchantErrorCodes.noteTooLong]: "备注不能超过 1000 个字符。",
+  [merchantErrorCodes.noteTooLong]: "备注不能超过 100000 个字符。",
   [merchantErrorCodes.permissionDenied]: "只有账本所有者或管理员可以维护商家。",
   [merchantErrorCodes.updateFailed]:
     "商家更新失败。请确认商家名称是否重复，或稍后重试。",

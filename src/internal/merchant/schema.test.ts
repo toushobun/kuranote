@@ -128,6 +128,22 @@ describe("merchant schema", () => {
     ).toBe(false);
   });
 
+  it("商家备注最多允许 100000 个字符", () => {
+    expect(
+      validateCreateMerchantForm(createFormData({ note: "x".repeat(100000) })),
+    ).toMatchObject({ ok: true, value: { note: "x".repeat(100000) } });
+    expect(
+      validateUpdateMerchantForm(createFormData({ note: "x".repeat(100001) })),
+    ).toEqual({ error: "note_too_long", ok: false });
+    expect(
+      createMerchantRequestSchema.safeParse({
+        name: "LIFE",
+        note: "x".repeat(100001),
+        siteUrl: null,
+      }).success,
+    ).toBe(false);
+  });
+
   it("HTTP 请求体拒绝重复的商家标签 ID", () => {
     expect(
       createMerchantRequestSchema.safeParse({
