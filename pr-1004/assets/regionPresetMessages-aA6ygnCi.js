@@ -1,0 +1,1 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";var t,n,r=e((()=>{t={jp:`日本`,cn:`中国`},n={label:`你主要在哪里生活？`,names:t,recommendation:e=>`按${t[e]}常用商家推荐`,change:`更改`,collapse:`收起`,merchantGroup:e=>`${e===`jp`?`🇯🇵`:`🇨🇳`} ${t[e]}常用商家`,addMerchants:e=>`添加${t[e]}常用商家`,addCandidates:e=>`添加${t[e]}账户候选`,alsoIn:e=>`也在：${e.join(`、`)}`}}));export{n,r as t};
