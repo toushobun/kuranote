@@ -128,17 +128,17 @@ describe("merchant schema", () => {
     ).toBe(false);
   });
 
-  it("商家备注最多允许 100000 个字符", () => {
+  it("商家备注最多允许 200000 个字", () => {
     expect(
-      validateCreateMerchantForm(createFormData({ note: "x".repeat(100000) })),
-    ).toMatchObject({ ok: true, value: { note: "x".repeat(100000) } });
+      validateCreateMerchantForm(createFormData({ note: "x".repeat(200000) })),
+    ).toMatchObject({ ok: true, value: { note: "x".repeat(200000) } });
     expect(
-      validateUpdateMerchantForm(createFormData({ note: "x".repeat(100001) })),
+      validateUpdateMerchantForm(createFormData({ note: "x".repeat(200001) })),
     ).toEqual({ error: "note_too_long", ok: false });
     expect(
       createMerchantRequestSchema.safeParse({
         name: "LIFE",
-        note: "x".repeat(100001),
+        note: "x".repeat(200001),
         siteUrl: null,
       }).success,
     ).toBe(false);
