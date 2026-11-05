@@ -9488,7 +9488,7 @@ CREATE TABLE IF NOT EXISTS "public"."merchant" (
     CONSTRAINT "merchant_icon_fetch_status_check" CHECK (("icon_fetch_status" = ANY (ARRAY['none'::"text", 'pending'::"text", 'success'::"text", 'failed'::"text"]))),
     CONSTRAINT "merchant_icon_url_check" CHECK ((("icon_url" IS NULL) OR ("icon_url" ~ '^https://'::"text"))),
     CONSTRAINT "merchant_name_check" CHECK ((("length"(TRIM(BOTH FROM "name")) >= 1) AND ("length"(TRIM(BOTH FROM "name")) <= 100))),
-    CONSTRAINT "merchant_note_check" CHECK ((("note" IS NULL) OR ("length"("note") <= 1000))),
+    CONSTRAINT "merchant_note_check" CHECK ((("note" IS NULL) OR ("length"("note") <= 100000))),
     CONSTRAINT "merchant_website_url_check" CHECK ((("website_url" IS NULL) OR ("website_url" ~ '^https?://'::"text")))
 );
 
