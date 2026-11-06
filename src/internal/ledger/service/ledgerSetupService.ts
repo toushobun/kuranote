@@ -155,11 +155,7 @@ export function createLedgerSetupService({
       if (!setup.livingRegion)
         throw toAppError(ledgerSetupErrorCodes.regionRequired);
 
-      // 草稿已按账本当前生活地区与模板版本校正：无法匹配当前模板的 key 已丢弃。
-      if (hasDuplicateLedgerSetupAccountName(setup.draft.accounts.items)) {
-        throw toAppError(ledgerSetupErrorCodes.accountNameDuplicate);
-      }
-
+      // 草稿已按账本当前生活地区与模板版本校正：无法匹配当前模板的账户与 key 已丢弃并去重。
       const result = await ledgerSetupRepository.complete({
         ledgerId,
         payload: buildLedgerSetupCompletionPayload(

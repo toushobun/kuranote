@@ -21,7 +21,7 @@ const filledProgress = createLedgerSetupProgressFixture(
       ...base.setup.draft,
       accounts: {
         items: [
-          { name: "现金", type: "cash" },
+          { name: "日元现金", templateKey: "日元现金", type: "cash" },
           { name: "三菱UFJ銀行", templateKey: "三菱UFJ銀行", type: "bank" },
           {
             name: "楽天カード",
@@ -51,7 +51,10 @@ const skippedProgress = createLedgerSetupProgressFixture(
   {
     draft: {
       ...base.setup.draft,
-      accounts: { items: [{ name: "现金", type: "cash" }], skipped: true },
+      accounts: {
+        items: [{ name: "日元现金", templateKey: "日元现金", type: "cash" }],
+        skipped: true,
+      },
       merchants: { selectedKeys: [], skipped: false },
     },
     displayName: "DENG SONGWEN",

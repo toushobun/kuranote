@@ -7,7 +7,7 @@ export function isLedgerSetupRegion(
   return value === "jp" || value === "cn";
 }
 
-/** 向导可创建的账户类型。现金固定一项，其余类型从候选名称中选择或自定义。 */
+/** 向导可创建的账户类型。各类型都只从地区候选名称中勾选。 */
 export const ledgerSetupAccountTypes = [
   "cash",
   "bank",
@@ -16,18 +16,6 @@ export const ledgerSetupAccountTypes = [
 ] as const;
 
 export type LedgerSetupAccountType = (typeof ledgerSetupAccountTypes)[number];
-
-/** 提供候选名称的账户类型（现金不提供候选）。 */
-export type LedgerSetupCandidateAccountType = Exclude<
-  LedgerSetupAccountType,
-  "cash"
->;
-
-/** 现金账户：所有币种共用，向导默认勾选。 */
-export const ledgerSetupCashAccount = {
-  name: "现金",
-  type: "cash",
-} as const satisfies { name: string; type: LedgerSetupAccountType };
 
 /** 商家标签。key 在模板内稳定唯一，草稿与完成写入通过 key 引用。 */
 export type LedgerSetupMerchantTagTemplate = {
@@ -55,12 +43,12 @@ export type LedgerSetupMerchantTemplate = {
   generic?: boolean;
 };
 
+/** 地区账户候选。现金候选的第一项是该地区的默认现金账户。 */
 export type LedgerSetupAccountCandidates = Readonly<
-  Record<LedgerSetupCandidateAccountType, readonly string[]>
+  Record<LedgerSetupAccountType, readonly string[]>
 >;
 
 export type LedgerSetupTemplate = {
-  accountCandidates: LedgerSetupAccountCandidates;
   accountCandidatesByRegion: Readonly<
     Record<LedgerSetupRegion, LedgerSetupAccountCandidates>
   >;

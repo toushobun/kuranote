@@ -53,7 +53,6 @@ export {
   type LedgerSetupMerchantTemplate,
   type LedgerSetupTemplate,
 } from "internal/ledger/entity/ledgerSetupTemplate/ledgerSetupTemplate";
-export { isLedgerSetupAccountNameTaken } from "internal/ledger/util/ledgerSetupAccountName";
 export {
   ledgerSettingsErrorCodes,
   ledgerSettingsErrorMessages,

@@ -30,32 +30,23 @@ export const ledgerSetupBasicInfoMessages = {
   title: "先给账本起个名字吧",
 } as const;
 
-/** 第 2 步「账户」与添加账户底部弹层。账户类型名取自 accountTypeOptions，不在此重复。 */
+/** 第 2 步「账户」。账户类型名取自 accountTypeOptions，账户名取自预设模板，不在此重复。 */
 export const ledgerSetupAccountsMessages = {
-  add: "添加",
-  addSheet: {
-    added: "已添加",
-    candidatesTitle: (typeLabel: string) => `常用${typeLabel}`,
-    close: "关闭",
-    nameDuplicate: "已有同名账户，请修改名称",
-    nameLabel: "账户名称",
-    namePlaceholder: "输入名称或从下方选择",
-    nameRequired: "请输入名称",
-    nameTooLong: (maxLength: number) => `名称不能超过 ${maxLength} 个字`,
-    submit: "添加",
-    title: (typeLabel: string) => `添加${typeLabel}`,
+  checklist: {
+    groupCheckboxLabel: (name: string) => `选择「${name}」的全部账户`,
+    groupSelectedCount: (selected: number, total: number) =>
+      `${selected} / ${total}`,
   },
-  addTypeLabel: (typeLabel: string) => `添加${typeLabel}`,
-  description: "勾选或添加你的账户，之后也可以在账户管理中修改",
+  description: "勾选常用的账户，没有的可以稍后在账户管理中添加",
   limitReached: (maxAccounts: number) =>
-    `账户最多 ${maxAccounts} 个，已达到上限`,
+    `账户最多 ${maxAccounts} 个，请减少勾选`,
   nextWithCount: (count: number) => `下一步 · 已选 ${count} 个`,
   title: "你平时用哪些方式付钱？",
 } as const;
 
 /** 第 3 步「商家」。商家标签名与商家名取自预设模板，不在此重复。 */
 export const ledgerSetupMerchantsMessages = {
-  description: "之后可以在商家管理中修改名称和别名",
+  description: "没有的可以稍后在商家管理中添加，名称和别名也可以修改",
   nextWithCount: (count: number) => `下一步 · 已选 ${count} 家`,
   noTemplate: {
     description: "可以直接进入下一步，之后在商家管理中添加",

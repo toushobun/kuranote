@@ -8,6 +8,7 @@ export const ledgerSetupAccountCandidates: Record<
   LedgerSetupAccountCandidates
 > = {
   jp: {
+    cash: ["日元现金"],
     bank: [
       "三菱UFJ銀行",
       "三井住友銀行",
@@ -48,6 +49,7 @@ export const ledgerSetupAccountCandidates: Record<
     ],
   },
   cn: {
+    cash: ["人民币现金"],
     bank: [
       "工商银行",
       "建设银行",

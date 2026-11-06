@@ -32,7 +32,7 @@ const templateKeySchema = z
 
 const ledgerSetupDraftAccountSchema = z.object({
   name: z.string().trim().min(1).max(ledgerSetupLimits.accountNameMaxLength),
-  /** 来自模板候选时记录候选名称，用于在候选 Chip 上显示已添加状态。 */
+  /** 勾选的模板候选名称。旧草稿中自行添加的账户没有该项，恢复时会被丢弃。 */
   templateKey: templateKeySchema.optional(),
   type: z.enum(ledgerSetupAccountTypes),
 });
@@ -40,7 +40,6 @@ const ledgerSetupDraftAccountSchema = z.object({
 /** 草稿结构 v2 的各部分。存储时按部分独立解析，便于局部重置。 */
 const ledgerSetupDraftSectionSchemas = {
   accounts: z.object({
-    additionalRegions: z.array(z.enum(ledgerSetupRegions)).max(1).optional(),
     items: z
       .array(ledgerSetupDraftAccountSchema)
       .max(ledgerSetupLimits.maxAccounts),

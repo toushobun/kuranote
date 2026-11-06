@@ -13,8 +13,7 @@ export function getLedgerSetupTemplate(
   if (!isLedgerSetupRegion(region)) return null;
   return {
     region,
-    version: 4,
-    accountCandidates: ledgerSetupAccountCandidates[region],
+    version: 5,
     accountCandidatesByRegion: ledgerSetupAccountCandidates,
     merchantTags: ledgerSetupMerchantTags,
     merchants: ledgerSetupMerchants,

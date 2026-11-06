@@ -2,19 +2,16 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi, type Mock } from "vitest";
 
 import {
-  ledgerSetupErrorCodes,
-  ledgerSetupErrorMessages,
+  getLedgerSetupTemplate,
   ledgerSetupWriteErrorMessages,
   type LedgerSetupDraftAccount,
   type LedgerSetupTemplate,
 } from "internal/ledger";
 import {
-  changeAccountName,
-  clickAccountCandidate,
-  getAccountAddSheet,
-  getAccountNameInput,
-  submitAccountAddSheet,
-} from "organisms/ledgers/LedgerSetupAccountAddSheet/ledgerSetupAccountAddSheetTestUtils";
+  getChecklistGroup,
+  getChecklistItemCheckbox,
+  toggleChecklistGroup,
+} from "molecules/ui/GroupedPresetChecklist/groupedPresetChecklistTestUtils";
 import {
   clickCloseWizard,
   clickNext,
@@ -33,8 +30,19 @@ import type { LedgerSetupDraftSaveAction } from "types/ledgers";
 
 setupGuardHistoryMock();
 
+const yenCash: LedgerSetupDraftAccount = {
+  name: "日元现金",
+  templateKey: "日元现金",
+  type: "cash",
+};
+const rakutenBank: LedgerSetupDraftAccount = {
+  name: "楽天銀行",
+  templateKey: "楽天銀行",
+  type: "bank",
+};
+
 function createAccountsProgress(
-  items: LedgerSetupDraftAccount[] = [{ name: "现金", type: "cash" }],
+  items: LedgerSetupDraftAccount[] = [yenCash],
   template: LedgerSetupTemplate | null = ledgerSetupTemplateFixture,
 ) {
   const base = createLedgerSetupProgressFixture({ step: 2 });
@@ -58,162 +66,69 @@ function renderAccountsStep({
   return renderLedgerSetupWizard({ progress, saveDraft });
 }
 
-function getAccountCard(typeLabel: string) {
-  return screen.getByRole("region", { name: typeLabel });
+function getRegionButton(title: string) {
+  return screen.getByRole("button", { name: title });
 }
 
-function getAccountCheckbox(name: string) {
-  return screen.getByRole("checkbox", { name });
+function getTypeCheckbox(typeLabel: string, index = 0) {
+  return within(getChecklistGroup(typeLabel, index)).getByRole("checkbox", {
+    name: `选择「${typeLabel}」的全部账户`,
+  });
 }
 
-function openAddSheet(typeLabel: string) {
-  fireEvent.click(screen.getByRole("button", { name: `添加${typeLabel}` }));
-  return getAccountAddSheet(typeLabel);
-}
-
-async function expectSheetClosed(sheet: HTMLElement) {
-  await waitFor(() => expect(sheet).not.toBeInTheDocument());
-  expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
-  expect(getCurrentStepItem()).toHaveTextContent("账户");
-}
-
-async function closeAddSheet(sheet: HTMLElement) {
-  fireEvent.click(within(sheet).getByRole("button", { name: "关闭" }));
-  await expectSheetClosed(sheet);
+function expectNextLabel(label: string) {
+  expect(screen.getByRole("button", { name: label })).toBeInTheDocument();
 }
 
 describe("LedgerSetupAccountsStep", () => {
-  it("账户候选按地区提供，追加中国不自动添加账户并保留输入名称", async () => {
-    renderAccountsStep();
-    const sheet = openAddSheet("银行卡");
-    expect(
-      within(sheet).getByRole("button", { name: "三菱UFJ銀行" }),
-    ).toBeInTheDocument();
-    expect(
-      within(sheet).queryByRole("button", { name: "工商银行" }),
-    ).not.toBeInTheDocument();
-    changeAccountName(sheet, "未提交的银行");
-    fireEvent.click(
-      within(sheet).getByRole("button", { name: "添加中国账户候选" }),
-    );
-    expect(getAccountNameInput(sheet)).toHaveValue("未提交的银行");
-    expect(
-      within(sheet).getByRole("button", { name: "工商银行" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("checkbox", { name: "工商银行" }),
-    ).not.toBeInTheDocument();
-    fireEvent.click(within(sheet).getByRole("button", { name: "关闭" }));
-    await expectSheetClosed(sheet);
-    expect(getAccountNameInput(openAddSheet("银行卡"))).toHaveValue(
-      "未提交的银行",
-    );
-  });
-  it("后退静默关闭新增账户弹层，再次后退才保护已添加账户", async () => {
-    const { onClose, saveDraft } = renderAccountsStep();
-    const wallet = openAddSheet("电子钱包");
-    changeAccountName(wallet, "新钱包");
-    submitAccountAddSheet(wallet);
-    await expectSheetClosed(wallet);
-
-    const sheet = openAddSheet("银行卡");
-    changeAccountName(sheet, "未添加账户");
-
-    await backFromGuard();
-    await expectSheetClosed(sheet);
-    const reopened = openAddSheet("银行卡");
-    expect(getAccountNameInput(reopened)).toHaveValue("未添加账户");
-    await closeAddSheet(reopened);
-    expect(onClose).not.toHaveBeenCalled();
-    expect(saveDraft).not.toHaveBeenCalled();
-
-    await backFromGuard();
-    const prompt = screen.getByRole("dialog", { name: "尚未保存" });
-    fireEvent.click(within(prompt).getByRole("button", { name: "继续编辑" }));
-    await waitFor(() => expect(getAccountCheckbox("新钱包")).toBeChecked());
-  });
-
-  it("关闭后分别恢复银行卡和电子钱包的名称草稿", async () => {
-    renderAccountsStep();
-    const bank = openAddSheet("银行卡");
-    changeAccountName(bank, "三井住友");
-    await closeAddSheet(bank);
-
-    const wallet = openAddSheet("电子钱包");
-    expect(getAccountNameInput(wallet)).toHaveValue("");
-    changeAccountName(wallet, "家用钱包");
-    fireEvent.keyDown(wallet, { key: "Escape" });
-    await expectSheetClosed(wallet);
-
-    const reopenedBank = openAddSheet("银行卡");
-    expect(getAccountNameInput(reopenedBank)).toHaveValue("三井住友");
-    await closeAddSheet(reopenedBank);
-    expect(getAccountNameInput(openAddSheet("电子钱包"))).toHaveValue(
-      "家用钱包",
-    );
-  });
-
-  it("显示引导文案与按类型分组的卡片，默认只有勾选的「现金」", () => {
+  it("与商家步骤相同按地区分卡、卡内按类型分行，默认只勾生活地区的现金", () => {
     renderAccountsStep();
 
     expect(
       screen.getByRole("heading", { name: "你平时用哪些方式付钱？" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("勾选或添加你的账户，之后也可以在账户管理中修改"),
+      screen.getByText("勾选常用的账户，没有的可以稍后在账户管理中添加"),
     ).toBeInTheDocument();
-    expect(
-      screen
-        .getAllByRole("heading", { level: 4 })
-        .map((heading) => heading.textContent),
-    ).toEqual(["现金", "银行卡", "信用卡", "电子钱包"]);
-    expect(
-      within(getAccountCard("现金")).getByRole("checkbox", { name: "现金" }),
-    ).toBeChecked();
-    expect(screen.getAllByRole("checkbox")).toHaveLength(1);
-    expect(
-      screen.getByRole("button", { name: "下一步 · 已选 1 个" }),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "跳过此步" })).toBeNull();
+    expect(getRegionButton("日本常用账户")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(getRegionButton("中国常用账户")).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    expect(getRegionButton("日本常用账户")).toHaveAccessibleDescription(
+      "已选 1 个",
+    );
+    expect(getTypeCheckbox("现金")).toBeChecked();
+    expect(getChecklistGroup("银行卡")).toHaveTextContent("0 / 3");
+    expectNextLabel("下一步 · 已选 1 个");
+    expect(screen.queryByRole("button", { name: /^添加/ })).toBeNull();
   });
 
-  it("取消勾选后账户仍保留在列表中，可以重新勾选，按钮显示已选数量", () => {
-    renderAccountsStep({
-      progress: createAccountsProgress([
-        { name: "现金", type: "cash" },
-        { name: "PayPay", type: "e_money" },
-      ]),
-    });
+  it("可以整类勾选，也可以展开后逐个勾选", () => {
+    renderAccountsStep();
 
-    expect(
-      screen.getByRole("button", { name: "下一步 · 已选 2 个" }),
-    ).toBeInTheDocument();
+    fireEvent.click(getTypeCheckbox("银行卡"));
+    expectNextLabel("下一步 · 已选 4 个");
 
-    fireEvent.click(getAccountCheckbox("PayPay"));
-    expect(getAccountCheckbox("PayPay")).not.toBeChecked();
-    expect(
-      screen.getByRole("button", { name: "下一步 · 已选 1 个" }),
-    ).toBeInTheDocument();
-
-    fireEvent.click(getAccountCheckbox("现金"));
-    expect(screen.getByRole("button", { name: "下一步" })).toBeEnabled();
-
-    fireEvent.click(getAccountCheckbox("PayPay"));
-    expect(getAccountCheckbox("PayPay")).toBeChecked();
-    expect(
-      screen.getByRole("button", { name: "下一步 · 已选 1 个" }),
-    ).toBeInTheDocument();
+    toggleChecklistGroup("银行卡");
+    fireEvent.click(getChecklistItemCheckbox("银行卡", "楽天銀行"));
+    expect(getTypeCheckbox("银行卡")).toHaveAttribute(
+      "data-indeterminate",
+      "true",
+    );
+    expectNextLabel("下一步 · 已选 3 个");
   });
 
-  it("下一步时只保存勾选的账户，skipped 为 false，setup_step 为第 3 步", async () => {
-    const progress = createAccountsProgress([
-      { name: "现金", type: "cash" },
-      { name: "楽天銀行", templateKey: "楽天銀行", type: "bank" },
-    ]);
+  it("下一步时按模板顺序保存勾选的候选，setup_step 为第 3 步", async () => {
+    const progress = createAccountsProgress([rakutenBank, yenCash]);
     const saveDraft = createSaveDraftMock(progress);
     renderAccountsStep({ progress, saveDraft });
 
-    fireEvent.click(getAccountCheckbox("现金"));
+    fireEvent.click(getRegionButton("中国常用账户"));
+    fireEvent.click(getTypeCheckbox("电子钱包", 1));
     clickNext();
 
     await waitFor(() => expect(getCurrentStepItem()).toHaveTextContent("商家"));
@@ -221,7 +136,12 @@ describe("LedgerSetupAccountsStep", () => {
       draft: {
         ...progress.setup.draft,
         accounts: {
-          items: [{ name: "楽天銀行", templateKey: "楽天銀行", type: "bank" }],
+          items: [
+            yenCash,
+            rakutenBank,
+            { name: "支付宝", templateKey: "支付宝", type: "e_money" },
+            { name: "微信支付", templateKey: "微信支付", type: "e_money" },
+          ],
           skipped: false,
         },
       },
@@ -233,7 +153,7 @@ describe("LedgerSetupAccountsStep", () => {
   it("勾选数为 0 时也可以下一步，保存空的账户列表", async () => {
     const { saveDraft } = renderAccountsStep();
 
-    fireEvent.click(getAccountCheckbox("现金"));
+    fireEvent.click(getTypeCheckbox("现金"));
     clickNext();
 
     await waitFor(() => expect(saveDraft).toHaveBeenCalledTimes(1));
@@ -241,6 +161,41 @@ describe("LedgerSetupAccountsStep", () => {
       items: [],
       skipped: false,
     });
+  });
+
+  it("另一地区有勾选时默认展开", () => {
+    renderAccountsStep({
+      progress: createAccountsProgress([
+        yenCash,
+        { name: "支付宝", templateKey: "支付宝", type: "e_money" },
+      ]),
+    });
+
+    expect(getRegionButton("中国常用账户")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(getRegionButton("中国常用账户")).toHaveAccessibleDescription(
+      "已选 1 个",
+    );
+  });
+
+  it("勾选超过上限时提示并禁用下一步", () => {
+    renderAccountsStep({
+      progress: createAccountsProgress([], getLedgerSetupTemplate("jp")),
+    });
+    fireEvent.click(getRegionButton("中国常用账户"));
+    for (const type of ["现金", "银行卡", "信用卡", "电子钱包"]) {
+      fireEvent.click(getTypeCheckbox(type, 0));
+      fireEvent.click(getTypeCheckbox(type, 1));
+    }
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "账户最多 50 个，请减少勾选",
+    );
+    expect(
+      screen.getByRole("button", { name: /^下一步 · 已选 \d+ 个$/ }),
+    ).toBeDisabled();
   });
 
   it("上一步时保存当前修改，setup_step 不倒退", async () => {
@@ -254,7 +209,7 @@ describe("LedgerSetupAccountsStep", () => {
     // 从第 4 步恢复后返回第 3 步、第 2 步（第 3 步返回时也会保存草稿）。
     await goPreviousTo("商家");
     await goPreviousTo("账户");
-    fireEvent.click(getAccountCheckbox("现金"));
+    fireEvent.click(getTypeCheckbox("现金"));
     await goPreviousTo("基本信息");
 
     expect(saveDraft.mock.lastCall?.[0]).toMatchObject({
@@ -263,24 +218,7 @@ describe("LedgerSetupAccountsStep", () => {
     });
   });
 
-  it("取消勾选并保存后，再次进入该步骤时不再显示已取消的账户", async () => {
-    renderAccountsStep({
-      progress: createAccountsProgress([
-        { name: "现金", type: "cash" },
-        { name: "PayPay", type: "e_money" },
-      ]),
-    });
-
-    fireEvent.click(getAccountCheckbox("PayPay"));
-    clickNext();
-    await waitFor(() => expect(getCurrentStepItem()).toHaveTextContent("商家"));
-    await goPreviousTo("账户");
-
-    expect(screen.queryByRole("checkbox", { name: "PayPay" })).toBeNull();
-    expect(getAccountCheckbox("现金")).toBeChecked();
-  });
-
-  it("保存中禁用操作栏、关闭按钮和浏览器后退，并显示 loading", async () => {
+  it("保存中禁用操作栏、勾选、关闭按钮和浏览器后退，并显示 loading", async () => {
     const { onClose } = renderAccountsStep({
       saveDraft: vi.fn<LedgerSetupDraftSaveAction>(() => new Promise(() => {})),
     });
@@ -295,7 +233,7 @@ describe("LedgerSetupAccountsStep", () => {
     expect(
       screen.getByRole("button", { name: "关闭创建账本向导" }),
     ).toBeDisabled();
-    expect(screen.getByRole("button", { name: "添加银行卡" })).toBeDisabled();
+    expect(getTypeCheckbox("银行卡")).toBeDisabled();
 
     clickCloseWizard();
     await backFromGuard();
@@ -329,7 +267,6 @@ describe("LedgerSetupAccountsStep", () => {
     clickNext();
 
     const alert = await screen.findByRole("alert");
-    expect(alert).toHaveTextContent("创建进度保存失败");
     expect(alert).toHaveTextContent(
       ledgerSetupWriteErrorMessages.draftSaveFailed,
     );
@@ -339,155 +276,21 @@ describe("LedgerSetupAccountsStep", () => {
     ).toBeEnabled();
   });
 
-  it("预设内容已更新时用重新读取的进度刷新列表，并在顶部提示重新确认", async () => {
-    const refreshed = createAccountsProgress([
-      { name: "现金", type: "cash" },
-      { name: "楽天銀行", type: "bank" },
-    ]);
+  it("预设内容已更新时用重新读取的进度刷新勾选，并在顶部提示重新确认", async () => {
+    const refreshed = createAccountsProgress([yenCash, rakutenBank]);
     renderAccountsStep({
       saveDraft: vi.fn(async () => ({ outdated: true, progress: refreshed })),
     });
 
-    fireEvent.click(getAccountCheckbox("现金"));
+    fireEvent.click(getTypeCheckbox("现金"));
     clickNext();
 
     expect(await screen.findByRole("status")).toHaveTextContent(
       "预设内容已更新，请重新确认",
     );
     expect(getCurrentStepItem()).toHaveTextContent("账户");
-    expect(getAccountCheckbox("现金")).toBeChecked();
-    expect(getAccountCheckbox("楽天銀行")).toBeChecked();
+    expect(getTypeCheckbox("现金")).toBeChecked();
+    expectNextLabel("下一步 · 已选 2 个");
     expect(screen.queryByRole("alert")).toBeNull();
-  });
-
-  it("服务端判定同类型账户重名时在对应账户下方提示，不显示失败弹框", async () => {
-    const message =
-      ledgerSetupErrorMessages[ledgerSetupErrorCodes.accountNameDuplicate];
-    renderAccountsStep({
-      progress: createAccountsProgress([
-        { name: "现金", type: "cash" },
-        { name: "PayPay", type: "e_money" },
-        { name: "paypay", type: "e_money" },
-      ]),
-      saveDraft: vi.fn(async () => ({
-        accountNameDuplicate: true,
-        error: message,
-        errorKey: "e1",
-      })),
-    });
-
-    clickNext();
-
-    await waitFor(() =>
-      expect(
-        within(getAccountCard("电子钱包")).getAllByText(message),
-      ).toHaveLength(2),
-    );
-    expect(within(getAccountCard("现金")).queryByText(message)).toBeNull();
-    expect(screen.queryByRole("alert")).toBeNull();
-    expect(getCurrentStepItem()).toHaveTextContent("账户");
-  });
-
-  describe("添加账户", () => {
-    it("从候选添加后关闭弹层，新账户以勾选状态出现在对应卡片末尾", async () => {
-      const { saveDraft } = renderAccountsStep({
-        progress: createAccountsProgress([
-          { name: "现金", type: "cash" },
-          { name: "楽天銀行", type: "bank" },
-        ]),
-      });
-
-      const sheet = openAddSheet("银行卡");
-      clickAccountCandidate(sheet, "三菱UFJ銀行");
-      await closeAddSheet(sheet);
-      const reopened = openAddSheet("银行卡");
-      expect(getAccountNameInput(reopened)).toHaveValue("三菱UFJ銀行");
-      expect(
-        within(reopened).getByRole("button", { name: "三菱UFJ銀行" }),
-      ).toHaveAttribute("aria-pressed", "true");
-      submitAccountAddSheet(reopened);
-
-      await expectSheetClosed(reopened);
-      const bankCheckboxes = within(getAccountCard("银行卡")).getAllByRole(
-        "checkbox",
-      );
-      expect(
-        bankCheckboxes.map(
-          (checkbox) => checkbox.closest("label")?.textContent,
-        ),
-      ).toEqual(["楽天銀行", "三菱UFJ銀行"]);
-      expect(getAccountCheckbox("三菱UFJ銀行")).toBeChecked();
-      expect(
-        screen.getByRole("button", { name: "下一步 · 已选 3 个" }),
-      ).toBeInTheDocument();
-
-      const emptySheet = openAddSheet("银行卡");
-      expect(getAccountNameInput(emptySheet)).toHaveValue("");
-      await closeAddSheet(emptySheet);
-      clickNext();
-      await waitFor(() => expect(saveDraft).toHaveBeenCalledTimes(1));
-      expect(getSavedInput(saveDraft).draft.accounts.items).toContainEqual({
-        name: "三菱UFJ銀行",
-        templateKey: "三菱UFJ銀行",
-        type: "bank",
-      });
-    });
-
-    it("取消勾选的账户也视为已添加，不能再添加同名账户", () => {
-      renderAccountsStep({
-        progress: createAccountsProgress([
-          { name: "现金", type: "cash" },
-          { name: "PayPay", type: "e_money" },
-        ]),
-      });
-
-      fireEvent.click(getAccountCheckbox("PayPay"));
-      const sheet = openAddSheet("电子钱包");
-
-      expect(
-        within(sheet).getByRole("button", { name: "PayPay 已添加" }),
-      ).toBeInTheDocument();
-      changeAccountName(sheet, "paypay");
-      expect(
-        within(sheet).getByText("已有同名账户，请修改名称"),
-      ).toBeInTheDocument();
-    });
-
-    it("现金类型不显示候选", () => {
-      renderAccountsStep();
-
-      const sheet = openAddSheet("现金");
-
-      expect(within(sheet).queryByRole("heading", { level: 3 })).toBeNull();
-    });
-
-    it("当前币种没有模板时不显示候选", () => {
-      renderAccountsStep({
-        progress: createAccountsProgress(undefined, null),
-      });
-
-      const sheet = openAddSheet("银行卡");
-
-      expect(
-        within(sheet).queryByRole("heading", { name: "常用银行卡" }),
-      ).toBeNull();
-    });
-
-    it("账户数达到上限时禁用添加并说明原因", () => {
-      const items = Array.from({ length: 50 }, (_, index) => ({
-        name: `银行 ${index + 1}`,
-        type: "bank" as const,
-      }));
-      renderAccountsStep({ progress: createAccountsProgress(items) });
-
-      for (const label of ["现金", "银行卡", "信用卡", "电子钱包"]) {
-        expect(
-          screen.getByRole("button", { name: `添加${label}` }),
-        ).toBeDisabled();
-      }
-      expect(
-        screen.getByText("账户最多 50 个，已达到上限"),
-      ).toBeInTheDocument();
-    });
   });
 });

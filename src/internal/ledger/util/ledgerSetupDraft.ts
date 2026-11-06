@@ -1,5 +1,4 @@
 import {
-  ledgerSetupCashAccount,
   type LedgerSetupAccountType,
   type LedgerSetupTemplate,
   type LedgerSetupRegion,
@@ -42,8 +41,17 @@ function defaultSelectedMerchantKeys(template: LedgerSetupTemplate | null) {
     .map((merchant) => merchant.key);
 }
 
+/** 生活地区的默认现金账户（地区现金候选的第一项）。 */
+function defaultCashAccounts(
+  template: LedgerSetupTemplate | null,
+  region: LedgerSetupRegion | null,
+): LedgerSetupDraftAccount[] {
+  const name = region && template?.accountCandidatesByRegion[region].cash[0];
+  return name ? [{ name, templateKey: name, type: "cash" }] : [];
+}
+
 /**
- * 根据账本生活地区对应的模板生成默认草稿：账户只有「现金」，
+ * 根据账本生活地区对应的模板生成默认草稿：账户只有生活地区的现金，
  * 商家为默认勾选标签下的全部商家，功能开关与现有账本设置的默认值一致。
  */
 export function createDefaultLedgerSetupDraft(
@@ -52,7 +60,7 @@ export function createDefaultLedgerSetupDraft(
 ): LedgerSetupDraft {
   return {
     accounts: {
-      items: [{ ...ledgerSetupCashAccount }],
+      items: defaultCashAccounts(template, region),
       skipped: false,
     },
     features: { ...defaultLedgerSetupFeatures },
@@ -78,7 +86,7 @@ function isAccountTemplateKeyValid(
   type: LedgerSetupAccountType,
   templateKey: string,
 ) {
-  if (!template || type === ledgerSetupCashAccount.type) return false;
+  if (!template) return false;
   return Object.values(template.accountCandidatesByRegion).some((candidates) =>
     candidates[type].includes(templateKey),
   );
@@ -118,17 +126,46 @@ export function isLedgerSetupDraftMatchingTemplate(
   return (
     draft.merchants.selectedKeys.every((key) => merchantKeys.has(key)) &&
     draft.accounts.items.every(
-      ({ templateKey, type }) =>
-        templateKey === undefined ||
+      ({ name, templateKey, type }) =>
+        templateKey !== undefined &&
+        name === templateKey &&
         isAccountTemplateKeyValid(template, type, templateKey),
     )
   );
 }
 
 /**
+ * 账户只能从模板候选中勾选：丢弃无法匹配候选的账户（含旧草稿中自行添加的账户）；
+ * 旧草稿的通用「现金」换成生活地区的现金。
+ */
+function resolveAccountItems(
+  items: readonly LedgerSetupDraftAccount[],
+  template: LedgerSetupTemplate | null,
+  region: LedgerSetupRegion | null,
+): LedgerSetupDraftAccount[] {
+  const resolved = items.flatMap((account) => {
+    if (
+      account.templateKey !== undefined &&
+      isAccountTemplateKeyValid(template, account.type, account.templateKey)
+    ) {
+      return [{ ...account, name: account.templateKey }];
+    }
+    return account.type === "cash" && account.templateKey === undefined
+      ? defaultCashAccounts(template, region)
+      : [];
+  });
+  const seen = new Set<string>();
+  return resolved.filter(({ templateKey, type }) => {
+    const key = `${type}:${templateKey}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+/**
  * 按账本当前生活地区的模板补全并校正草稿：缺失的部分使用默认值；
- * 模板地区或版本与当前不一致时，无法匹配当前模板的商家 key 被丢弃，
- * 账户保留名称但丢弃无法匹配的候选 key。
+ * 模板地区或版本与当前不一致时，无法匹配当前模板的商家 key 与账户被丢弃。
  */
 export function resolveLedgerSetupDraft(
   stored: StoredLedgerSetupDraft,
@@ -144,14 +181,8 @@ export function resolveLedgerSetupDraft(
 
   const accounts = stored.accounts
     ? {
-        ...stored.accounts,
-        items: stored.accounts.items.map(
-          ({ templateKey, ...account }): LedgerSetupDraftAccount =>
-            templateKey !== undefined &&
-            isAccountTemplateKeyValid(template, account.type, templateKey)
-              ? { ...account, templateKey }
-              : account,
-        ),
+        skipped: stored.accounts.skipped,
+        items: resolveAccountItems(stored.accounts.items, template, region),
       }
     : defaults.accounts;
 

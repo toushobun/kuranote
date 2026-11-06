@@ -59,16 +59,12 @@ export function useLedgerSetupDraftSave({
   const [isSaving, setIsSaving] = useState(false);
   // 失败弹框（ActionFailureFeedback）使用的状态。
   const [failureState, setFailureState] = useState<ActionState>({});
-  const [accountNameDuplicateError, setAccountNameDuplicateError] = useState<
-    string | null
-  >(null);
 
   async function save(direction: SaveDirection, draft: LedgerSetupDraft) {
     if (isSaving) return;
 
     setIsSaving(true);
     onBusyChange(true);
-    setAccountNameDuplicateError(null);
 
     let state: LedgerSetupDraftActionState;
     try {
@@ -100,17 +96,10 @@ export function useLedgerSetupDraftSave({
       return;
     }
 
-    if (state.accountNameDuplicate && state.error) {
-      setAccountNameDuplicateError(state.error);
-      return;
-    }
-
     setFailureState(state);
   }
 
   return {
-    /** 服务端判定同类型账户重名时的文案，由账户步骤在对应账户处显示。 */
-    accountNameDuplicateError,
     failureState,
     isSaving,
     saveAndGoNext(draft: LedgerSetupDraft) {

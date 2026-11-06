@@ -313,7 +313,7 @@ describe("createLedgerSetupService.complete", () => {
     expect(ledgerSetupRepository.complete).toHaveBeenCalledWith({
       ledgerId,
       payload: expect.objectContaining({
-        accounts: [{ name: "现金", type: "cash" }],
+        accounts: [{ name: "日元现金", type: "cash" }],
         merchantTags: expect.any(Array),
         merchants: expect.arrayContaining([
           expect.objectContaining({ name: "永旺" }),
@@ -365,36 +365,6 @@ describe("createLedgerSetupService.complete", () => {
 
     expect(error).toBeInstanceOf(NotFoundError);
     expect(error).toMatchObject({ code: ledgerSetupErrorCodes.notFound });
-    expect(ledgerSetupRepository.complete).not.toHaveBeenCalled();
-  });
-
-  it("草稿中账户名称重复时抛出 ValidationError 且不写入", async () => {
-    const ledgerSetupRepository = createRepository({
-      findCurrentUserSetupLedger: vi.fn(async () =>
-        createRecord({
-          accounts: {
-            items: [
-              { name: "PayPay", type: "e_money" },
-              { name: "paypay", type: "e_money" },
-            ],
-            skipped: false,
-          },
-        }),
-      ),
-    });
-    const service = createLedgerSetupService({
-      currentUserId: userId,
-      ledgerSetupRepository,
-    });
-
-    const error = await service.complete(ledgerId).catch((e: unknown) => e);
-
-    expect(error).toBeInstanceOf(ValidationError);
-    expect(error).toMatchObject({
-      code: ledgerSetupErrorCodes.accountNameDuplicate,
-      message:
-        ledgerSetupErrorMessages[ledgerSetupErrorCodes.accountNameDuplicate],
-    });
     expect(ledgerSetupRepository.complete).not.toHaveBeenCalled();
   });
 
@@ -468,8 +438,8 @@ describe("createLedgerSetupService.saveDraft", () => {
           ...draft,
           accounts: {
             items: [
-              { name: "现金", type: "cash" },
-              { name: " 现金 ", type: "cash" },
+              { name: "日元现金", templateKey: "日元现金", type: "cash" },
+              { name: "日元现金", templateKey: "日元现金", type: "cash" },
             ],
             skipped: false,
           },
@@ -499,6 +469,32 @@ describe("createLedgerSetupService.saveDraft", () => {
     [
       "商家 key 不在模板中",
       { ...draft, merchants: { selectedKeys: ["unknown"], skipped: false } },
+    ],
+    [
+      "账户不是候选",
+      {
+        ...draft,
+        accounts: {
+          items: [{ name: "自己添加的账户", type: "bank" as const }],
+          skipped: false,
+        },
+      },
+    ],
+    [
+      "账户名称与候选不一致",
+      {
+        ...draft,
+        accounts: {
+          items: [
+            {
+              name: "改名的现金",
+              templateKey: "日元现金",
+              type: "cash" as const,
+            },
+          ],
+          skipped: false,
+        },
+      },
     ],
     [
       "无模板币种选择了商家",

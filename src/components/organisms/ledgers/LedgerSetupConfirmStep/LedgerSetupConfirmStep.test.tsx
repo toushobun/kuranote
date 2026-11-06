@@ -85,7 +85,7 @@ describe("LedgerSetupConfirmStep", () => {
       renderConfirmStep();
 
       const card = getCard("账户（2）");
-      expect(within(card).getByText("现金")).toBeInTheDocument();
+      expect(within(card).getByText("日元现金")).toBeInTheDocument();
       expect(within(card).getByText("楽天銀行")).toBeInTheDocument();
       expect(within(card).queryByText("已跳过")).not.toBeInTheDocument();
     });

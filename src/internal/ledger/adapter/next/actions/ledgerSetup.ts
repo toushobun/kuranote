@@ -196,18 +196,11 @@ export async function saveLedgerSetupDraft(
     revalidateLedgerMutation();
     return { progress };
   } catch (error) {
-    const state = createActionErrorState(
+    return createActionErrorState(
       error,
       ledgerSetupWriteErrorMessages.draftSaveFailed,
       "[ledger] ledger setup draft action failed unexpectedly",
     );
-
-    return hasLedgerSetupErrorCode(
-      error,
-      ledgerSetupErrorCodes.accountNameDuplicate,
-    )
-      ? { ...state, accountNameDuplicate: true }
-      : state;
   }
 }
 

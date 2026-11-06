@@ -346,29 +346,14 @@ describe("saveLedgerSetupDraft", () => {
     ledgerSetupErrorCodes.stepInvalid,
     ledgerSetupErrorCodes.draftTooLarge,
     ledgerSetupErrorCodes.notInProgress,
+    ledgerSetupErrorCodes.accountNameDuplicate,
   ])("草稿校验或保存失败（%s）时返回对应安全文案", async (code) => {
     mocks.saveDraft.mockRejectedValue(createSetupError(code));
 
     const state = await saveLedgerSetupDraft(draftInput);
 
     expectErrorState(state, ledgerSetupErrorMessages[code]);
-    expect(state).not.toHaveProperty("accountNameDuplicate");
     expect(mocks.revalidateLedgerMutation).not.toHaveBeenCalled();
-  });
-
-  it("同类型账户重名时返回重名标记与对应文案", async () => {
-    mocks.saveDraft.mockRejectedValue(
-      createSetupError(ledgerSetupErrorCodes.accountNameDuplicate),
-    );
-
-    const state = await saveLedgerSetupDraft(draftInput);
-
-    expect(state).toEqual({
-      accountNameDuplicate: true,
-      error:
-        ledgerSetupErrorMessages[ledgerSetupErrorCodes.accountNameDuplicate],
-      errorKey: expect.any(String),
-    });
   });
 
   it.each([

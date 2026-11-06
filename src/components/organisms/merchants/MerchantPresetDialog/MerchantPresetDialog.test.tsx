@@ -51,7 +51,7 @@ describe("MerchantPresetDialog", () => {
       options.items.slice(1).map(({ key }) => key),
     );
     expect(form.getAll("regions")).toEqual(["jp"]);
-    expect(form.get("templateVersion")).toBe("4");
+    expect(form.get("templateVersion")).toBe(String(options.templateVersion));
     expect(form.get("name")).toBeNull();
   });
   it("旧账本以日本在前，选择中国预设时提交地区而不回填生活地区", async () => {
