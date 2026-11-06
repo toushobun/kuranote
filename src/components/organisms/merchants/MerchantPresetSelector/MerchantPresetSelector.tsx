@@ -171,9 +171,10 @@ function MerchantRegionCard({
 }
 
 const regionCardSx = {
-  bgcolor: "common.white",
+  bgcolor: "var(--user-theme-card-bg)",
+  border: "1px solid var(--user-theme-card-border)",
   borderRadius: `${designTokens.radius.md}px`,
-  boxShadow: 1,
+  boxShadow: "var(--user-theme-card-shadow)",
   overflow: "hidden",
 };
 
@@ -199,8 +200,8 @@ const regionCountSx = {
   px: 1,
   py: 0.25,
   borderRadius: `${designTokens.radius.full}px`,
-  bgcolor: "primary.light",
-  color: "primary.dark",
+  bgcolor: "var(--user-theme-badge-bg)",
+  color: "var(--user-theme-badge-color)",
   fontWeight: 700,
   whiteSpace: "nowrap",
 };

@@ -11,8 +11,8 @@ export const merchantTagEmojiOptions = [
   {
     emoji: "🌐",
     groupId: "retail",
-    keywords: ["网购", "订阅", "网络"],
-    label: "网购·订阅",
+    keywords: ["网购", "网络"],
+    label: "网购",
   },
   {
     emoji: "🧾",
@@ -44,7 +44,12 @@ export const merchantTagEmojiOptions = [
     keywords: ["电商", "网购", "包裹"],
     label: "电商",
   },
-  { emoji: "🛍️", groupId: "retail", keywords: ["购物", "零售"], label: "购物" },
+  {
+    emoji: "🛍️",
+    groupId: "retail",
+    keywords: ["购物", "零售", "订阅"],
+    label: "购物",
+  },
   {
     emoji: "💊",
     groupId: "retail",

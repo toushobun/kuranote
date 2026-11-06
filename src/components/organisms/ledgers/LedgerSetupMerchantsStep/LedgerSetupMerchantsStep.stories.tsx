@@ -61,10 +61,12 @@ export const Default: Story = {
 };
 
 export const ExpandShopping: Story = {
-  name: "展开购物",
+  name: "展开购物·订阅",
   play: async ({ canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await body.findByRole("button", { name: "购物" }));
+    await userEvent.click(
+      await body.findByRole("button", { name: "购物·订阅" }),
+    );
   },
 };
 

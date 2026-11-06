@@ -21,10 +21,10 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 export const Default: Story = { name: "日本优先（默认展开）" };
 export const Expanded: Story = {
-  name: "展开购物",
+  name: "展开购物·订阅",
   play: async ({ canvasElement }) => {
     await userEvent.click(
-      within(canvasElement).getByRole("button", { name: "购物" }),
+      within(canvasElement).getByRole("button", { name: "购物·订阅" }),
     );
   },
 };

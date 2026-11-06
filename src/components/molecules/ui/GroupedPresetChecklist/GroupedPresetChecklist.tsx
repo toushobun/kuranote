@@ -144,6 +144,7 @@ function ChecklistGroup({
           aria-describedby={`${panelId}-count`}
           aria-expanded={expanded}
           aria-label={group.name}
+          disableRipple
           onClick={() => onToggleExpanded(group.key)}
           sx={groupButtonSx}
         >
@@ -294,8 +295,8 @@ const ChecklistItemRow = memo(function ChecklistItemRow({
               alt=""
               src={item.iconUrl ?? undefined}
               sx={{
-                bgcolor: "primary.light",
-                color: "text.primary",
+                bgcolor: "var(--user-theme-avatar-bg)",
+                color: "var(--user-theme-avatar-color)",
                 height: 34,
                 width: 34,
               }}
@@ -343,10 +344,18 @@ const listSx = {
   },
 };
 
+// 按下与悬停的反馈作用于整行（含右侧复选框），使分类行呈现为一个整体。
 const groupRowSx = {
   alignItems: "center",
   display: "flex",
   pr: 0.5,
+  transition: "background-color 150ms",
+  "&:has(> button:active)": {
+    bgcolor: "action.selected",
+  },
+  "@media (hover: hover)": {
+    "&:hover": { bgcolor: "action.hover" },
+  },
 };
 
 const groupButtonSx = {
@@ -361,9 +370,6 @@ const groupButtonSx = {
     outline: "2px solid",
     outlineColor: "primary.main",
     outlineOffset: -2,
-  },
-  "@media (hover: hover)": {
-    "&:hover": { bgcolor: "action.hover" },
   },
 };
 

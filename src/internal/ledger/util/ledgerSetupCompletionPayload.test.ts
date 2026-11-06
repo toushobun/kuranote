@@ -7,9 +7,14 @@ describe("buildLedgerSetupCompletionPayload", () => {
   const template = getLedgerSetupTemplate("jp")!;
   it("显示名中文优先，原名及各语言别名与全部分类一并写入", () => {
     const draft = createDefaultLedgerSetupDraft("jp");
-    draft.merchants.selectedKeys = ["apple", "apple", "water_bureau"];
+    draft.merchants.selectedKeys = [
+      "apple",
+      "apple",
+      "rakuten",
+      "water_bureau",
+    ];
     const payload = buildLedgerSetupCompletionPayload(draft, template);
-    expect(payload.merchants).toHaveLength(2);
+    expect(payload.merchants).toHaveLength(3);
     const apple = payload.merchants.find((m) => m.name === "苹果")!;
     expect(apple.aliases).toEqual(
       expect.arrayContaining([
@@ -17,10 +22,13 @@ describe("buildLedgerSetupCompletionPayload", () => {
         { alias: "アップル", locale: "ja" },
       ]),
     );
-    expect(apple.tagKeys).toEqual(["shopping", "online_subscription"]);
+    expect(apple.tagKeys).toEqual(["shopping"]);
+    expect(payload.merchants.find((m) => m.name === "乐天")?.tagKeys).toEqual([
+      "shopping",
+      "living_expenses",
+    ]);
     expect(payload.merchantTags.map((t) => t.key)).toEqual([
       "shopping",
-      "online_subscription",
       "living_expenses",
     ]);
     expect(payload.merchants.find((m) => m.name === "自来水")).toMatchObject({
@@ -37,7 +45,7 @@ describe("buildLedgerSetupCompletionPayload", () => {
     };
     const payload = buildLedgerSetupCompletionPayload(draft, template);
     expect(payload.merchants).toHaveLength(196);
-    expect(payload.merchantTags).toHaveLength(8);
+    expect(payload.merchantTags).toHaveLength(7);
     for (const merchant of payload.merchants)
       expect(merchant.iconUrl).toBe(
         buildMerchantFaviconUrl(merchant.websiteUrl),

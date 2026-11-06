@@ -1155,7 +1155,7 @@ export const ledgerSetupMerchants = [
     ],
     websiteUrl: "https://www.apple.com/jp/",
     regions: ["jp", "cn"],
-    tagKeys: ["shopping", "online_subscription"],
+    tagKeys: ["shopping"],
     generic: false,
   },
   {
@@ -1185,7 +1185,7 @@ export const ledgerSetupMerchants = [
     ],
     websiteUrl: "https://www.amazon.co.jp/",
     regions: ["jp"],
-    tagKeys: ["online_subscription"],
+    tagKeys: ["shopping"],
     generic: false,
   },
   {
@@ -1215,7 +1215,7 @@ export const ledgerSetupMerchants = [
     ],
     websiteUrl: "https://www.rakuten.co.jp/",
     regions: ["jp"],
-    tagKeys: ["online_subscription", "living_expenses"],
+    tagKeys: ["shopping", "living_expenses"],
     generic: false,
   },
   {
@@ -1233,7 +1233,7 @@ export const ledgerSetupMerchants = [
     ],
     websiteUrl: "https://shopping.yahoo.co.jp/",
     regions: ["jp"],
-    tagKeys: ["online_subscription"],
+    tagKeys: ["shopping"],
     generic: false,
   },
   {
@@ -1251,7 +1251,7 @@ export const ledgerSetupMerchants = [
     ],
     websiteUrl: "https://jp.mercari.com/",
     regions: ["jp"],
-    tagKeys: ["online_subscription"],
+    tagKeys: ["shopping"],
     generic: false,
   },
   {
@@ -1269,7 +1269,7 @@ export const ledgerSetupMerchants = [
     ],
     websiteUrl: "https://zozo.jp/",
     regions: ["jp"],
-    tagKeys: ["online_subscription"],
+    tagKeys: ["shopping"],
     generic: false,
   },
   {
@@ -1287,7 +1287,7 @@ export const ledgerSetupMerchants = [
     ],
     websiteUrl: "https://www.netflix.com/jp/",
     regions: ["jp"],
-    tagKeys: ["online_subscription"],
+    tagKeys: ["shopping"],
     generic: false,
   },
   {
@@ -1301,7 +1301,7 @@ export const ledgerSetupMerchants = [
     ],
     websiteUrl: "https://www.spotify.com/jp/",
     regions: ["jp"],
-    tagKeys: ["online_subscription"],
+    tagKeys: ["shopping"],
     generic: false,
   },
   {
@@ -1335,7 +1335,7 @@ export const ledgerSetupMerchants = [
     ],
     websiteUrl: "https://www.google.com/",
     regions: ["jp"],
-    tagKeys: ["online_subscription"],
+    tagKeys: ["shopping"],
     generic: false,
   },
   {
@@ -1349,7 +1349,7 @@ export const ledgerSetupMerchants = [
     ],
     websiteUrl: "https://www.disneyplus.com/ja-jp",
     regions: ["jp"],
-    tagKeys: ["online_subscription"],
+    tagKeys: ["shopping"],
     generic: false,
   },
   {
@@ -1363,7 +1363,7 @@ export const ledgerSetupMerchants = [
     ],
     websiteUrl: "https://video.unext.jp/",
     regions: ["jp"],
-    tagKeys: ["online_subscription"],
+    tagKeys: ["shopping"],
     generic: false,
   },
   {
@@ -2777,7 +2777,7 @@ export const ledgerSetupMerchants = [
     ],
     websiteUrl: "https://www.taobao.com/",
     regions: ["cn"],
-    tagKeys: ["online_subscription"],
+    tagKeys: ["shopping"],
     generic: false,
   },
   {
@@ -2791,7 +2791,7 @@ export const ledgerSetupMerchants = [
     ],
     websiteUrl: "https://www.tmall.com/",
     regions: ["cn"],
-    tagKeys: ["online_subscription"],
+    tagKeys: ["shopping"],
     generic: false,
   },
   {
@@ -2809,7 +2809,7 @@ export const ledgerSetupMerchants = [
     ],
     websiteUrl: "https://www.jd.com/",
     regions: ["cn"],
-    tagKeys: ["online_subscription"],
+    tagKeys: ["shopping"],
     generic: false,
   },
   {
@@ -2827,7 +2827,7 @@ export const ledgerSetupMerchants = [
     ],
     websiteUrl: "https://www.pinduoduo.com/",
     regions: ["cn"],
-    tagKeys: ["online_subscription"],
+    tagKeys: ["shopping"],
     generic: false,
   },
   {
@@ -2841,7 +2841,7 @@ export const ledgerSetupMerchants = [
     ],
     websiteUrl: "https://www.douyin.com/",
     regions: ["cn"],
-    tagKeys: ["online_subscription"],
+    tagKeys: ["shopping"],
     generic: false,
   },
   {
@@ -2850,7 +2850,7 @@ export const ledgerSetupMerchants = [
     aliases: [],
     websiteUrl: "https://www.goofish.com/",
     regions: ["cn"],
-    tagKeys: ["online_subscription"],
+    tagKeys: ["shopping"],
     generic: false,
   },
   {
@@ -2864,7 +2864,7 @@ export const ledgerSetupMerchants = [
     ],
     websiteUrl: "https://www.vip.com/",
     regions: ["cn"],
-    tagKeys: ["online_subscription"],
+    tagKeys: ["shopping"],
     generic: false,
   },
   {
@@ -2878,7 +2878,7 @@ export const ledgerSetupMerchants = [
     ],
     websiteUrl: "https://www.iqiyi.com/",
     regions: ["cn"],
-    tagKeys: ["online_subscription"],
+    tagKeys: ["shopping"],
     generic: false,
   },
   {
@@ -2892,7 +2892,7 @@ export const ledgerSetupMerchants = [
     ],
     websiteUrl: "https://v.qq.com/",
     regions: ["cn"],
-    tagKeys: ["online_subscription"],
+    tagKeys: ["shopping"],
     generic: false,
   },
   {
@@ -2906,7 +2906,7 @@ export const ledgerSetupMerchants = [
     ],
     websiteUrl: "https://www.youku.com/",
     regions: ["cn"],
-    tagKeys: ["online_subscription"],
+    tagKeys: ["shopping"],
     generic: false,
   },
   {
@@ -2924,7 +2924,7 @@ export const ledgerSetupMerchants = [
     ],
     websiteUrl: "https://www.bilibili.com/",
     regions: ["cn"],
-    tagKeys: ["online_subscription"],
+    tagKeys: ["shopping"],
     generic: false,
   },
   {
@@ -2933,7 +2933,7 @@ export const ledgerSetupMerchants = [
     aliases: [],
     websiteUrl: "https://y.qq.com/",
     regions: ["cn"],
-    tagKeys: ["online_subscription"],
+    tagKeys: ["shopping"],
     generic: false,
   },
   {
@@ -2942,7 +2942,7 @@ export const ledgerSetupMerchants = [
     aliases: [],
     websiteUrl: "https://music.163.com/",
     regions: ["cn"],
-    tagKeys: ["online_subscription"],
+    tagKeys: ["shopping"],
     generic: false,
   },
   {

@@ -43,7 +43,7 @@ describe("地区模板", () => {
   });
   it("按地区提供账户候选，币种不是模板入口", () => {
     expect(template.region).toBe("jp");
-    expect(template.version).toBe(2);
+    expect(template.version).toBe(3);
     expect(getLedgerSetupTemplate("JPY")).toBeNull();
     expect(getLedgerSetupTemplate("cn")?.accountCandidates.e_money).toEqual([
       "支付宝",
@@ -65,19 +65,17 @@ describe("地区模板", () => {
     expect(new Set(template.merchants.map((m) => m.key)).size).toBe(196);
     expect(getLedgerSetupTemplate("cn")?.merchants).toBe(template.merchants);
   });
-  it("8个分类中只有前5类默认勾选", () => {
+  it("7个分类中只有前4类默认勾选", () => {
     expect(template.merchantTags.map((t) => t.name)).toEqual([
       "超市",
       "便利店",
       "餐饮",
-      "购物",
-      "网购·订阅",
+      "购物·订阅",
       "交通",
       "生活缴费",
       "公共服务",
     ]);
     expect(template.merchantTags.map((t) => t.defaultSelected)).toEqual([
-      true,
       true,
       true,
       true,
@@ -91,7 +89,10 @@ describe("地区模板", () => {
     expect(template.merchants.find((m) => m.key === "apple")).toMatchObject({
       name: "苹果",
       regions: ["jp", "cn"],
-      tagKeys: ["shopping", "online_subscription"],
+      tagKeys: ["shopping"],
+    });
+    expect(template.merchants.find((m) => m.key === "rakuten")).toMatchObject({
+      tagKeys: ["shopping", "living_expenses"],
     });
   });
   it("通用名之外均有官网，同一商家内部名称和别名去重", () => {
