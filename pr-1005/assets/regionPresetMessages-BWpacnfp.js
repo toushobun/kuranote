@@ -1,0 +1,1 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";var t,n,r=e((()=>{t={jp:`日本`,cn:`中国`},n={label:`你主要在哪里生活？`,names:t,merchantGroup:e=>`${t[e]}常用商家`,merchantSelectedCount:e=>`已选 ${e} 家`,sharedMerchants:e=>`两地共有的商家已列在${t[e]}分区。`,addCandidates:e=>`添加${t[e]}账户候选`,alsoIn:e=>`也在：${e.join(`、`)}`}}));export{n,r as t};
