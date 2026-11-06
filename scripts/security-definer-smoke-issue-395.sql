@@ -706,7 +706,6 @@ begin
         jsonb_set(pg_temp.completion_payload(), '{accounts,0,name}', to_jsonb(repeat('x', 101))),
         jsonb_set(pg_temp.completion_payload(), '{accounts,0,type}', '"other"'::jsonb),
         jsonb_set(pg_temp.completion_payload(), '{accounts,1}', '{"type": "cash", "name": "现金 ", "currency": "JPY"}'::jsonb),
-        pg_temp.completion_payload() #- '{accounts,0,currency}',
         jsonb_set(pg_temp.completion_payload(), '{accounts,0,currency}', '"cny"'::jsonb),
         jsonb_set(pg_temp.completion_payload(), '{accounts,2,type}', '"bank"'::jsonb),
         jsonb_set(pg_temp.completion_payload(), '{merchants,0,tagKeys}', '["ecommerce", "missing"]'::jsonb),

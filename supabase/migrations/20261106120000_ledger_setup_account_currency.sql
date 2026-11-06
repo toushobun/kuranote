@@ -1,6 +1,8 @@
 -- #1001 创建账本向导：账户候选按地区携带货币（日本 = JPY、中国 = CNY），
 -- 完成写入时按每个账户 payload 中的 currency 创建，不再统一使用账本默认货币。
 -- 生活地区与账本默认货币解耦后，「人民币现金」等账户须保持与名称一致的货币。
+-- 部署顺序为 db push → Vercel 部署：新版应用上线前的旧版应用发送的账户没有 currency，
+-- 此时沿用账本默认货币（与本 migration 之前的行为相同），带 currency 时必须是合法货币代码。
 
 CREATE OR REPLACE FUNCTION "public"."validate_ledger_setup_completion_payload"("p_payload" "jsonb") RETURNS "void"
     LANGUAGE "plpgsql" IMMUTABLE
@@ -29,9 +31,12 @@ begin
            where jsonb_typeof(a.v) <> 'object'
               or jsonb_typeof(a.v -> 'type') is distinct from 'string'
               or jsonb_typeof(a.v -> 'name') is distinct from 'string'
-              or jsonb_typeof(a.v -> 'currency') is distinct from 'string'
+              or jsonb_typeof(a.v -> 'currency') not in ('string', 'null')
               or a.v ->> 'type' not in ('cash', 'bank', 'credit_card', 'e_money')
-              or a.v ->> 'currency' !~ '^[A-Z]{3}$'
+              or (
+                  jsonb_typeof(a.v -> 'currency') = 'string'
+                  and a.v ->> 'currency' !~ '^[A-Z]{3}$'
+              )
               or length(btrim(a.v ->> 'name')) not between 1 and 100
        )
        or (
@@ -198,7 +203,7 @@ begin
             p_ledger_id,
             btrim(v_item.v ->> 'name'),
             v_item.v ->> 'type',
-            v_item.v ->> 'currency',
+            coalesce(v_item.v ->> 'currency', v_ledger.base_currency),
             0,
             v_item.ordinality - 1,
             v_user_id,

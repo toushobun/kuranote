@@ -44,13 +44,18 @@ export function useLedgerSetupWizard({
   const [busy, setBusy] = useState(false);
   // 向导顶部的提示：打开时已有创建中账本、恢复到其他创建中账本时说明本次填写的内容未保存，
   // 预设内容已更新时说明需要重新确认。
-  // 打开时已保存的草稿基于旧版预设：草稿已按新版校正，同样提示重新确认。
+  // 打开时已保存的草稿基于旧版预设：草稿已按新版校正，提示重新确认。
+  // 与入口传入的提示（已有创建中账本）同时出现时两条都显示，预设更新提示不被覆盖。
   const [notice, setNotice] = useState<string | null>(
     () =>
-      initialNotice ??
-      (initialProgress?.setup.templateUpdated
-        ? ledgerSetupWizardMessages.templateUpdatedNotice
-        : null),
+      [
+        initialNotice,
+        initialProgress?.setup.templateUpdated
+          ? ledgerSetupWizardMessages.templateUpdatedNotice
+          : null,
+      ]
+        .filter(Boolean)
+        .join("") || null,
   );
   // 完成写入成功时保存的完成页统计；完成后草稿已过期，不再从进度计算。
   const [completion, setCompletion] = useState<LedgerSetupCompletion | null>(
