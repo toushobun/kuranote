@@ -1,24 +1,24 @@
 "use client";
 
-import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import Box from "@mui/material/Box";
 import Avatar from "@mui/material/Avatar";
-import Button from "@mui/material/Button";
+import ButtonBase from "@mui/material/ButtonBase";
 import Checkbox from "@mui/material/Checkbox";
 import Chip from "@mui/material/Chip";
-import Collapse from "@mui/material/Collapse";
 import FormControlLabel from "@mui/material/FormControlLabel";
-import IconButton from "@mui/material/IconButton";
-import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { memo, useId, type ReactNode } from "react";
 
+import {
+  PresetDisclosureChevron,
+  PresetDisclosurePanel,
+} from "molecules/ui/PresetDisclosure/PresetDisclosure";
 import { designTokens } from "theme/theme";
 
 import { useGroupedPresetChecklist } from "./useGroupedPresetChecklist";
 
 export type GroupedPresetChecklistGroup = {
-  /** emoji 字符串或图标元素，显示在浅色圆形底座中。 */
+  /** emoji 字符串或图标元素，直接显示于分类标题行。 */
   icon: ReactNode;
   /** 分组下的项目 key（显示顺序）。同一项目可以出现在多个分组中。 */
   itemKeys: readonly string[];
@@ -39,7 +39,7 @@ export type GroupedPresetChecklistMessages = {
   alsoIn?: (names: string[]) => string;
   /** 分组三态复选框的无障碍名称，需包含分组名。 */
   groupCheckboxLabel: (groupName: string) => string;
-  /** 分组名下方的已选数量，例如「已选 3 / 5 家」。 */
+  /** 与分组名称同行显示的已选数量。 */
   groupSelectedCount: (
     selected: number,
     total: number,
@@ -47,10 +47,6 @@ export type GroupedPresetChecklistMessages = {
   ) => string;
   /** 禁用且已勾选项目右侧的小标记；未提供时不显示标记。 */
   added?: string;
-  /** 展开区域顶部的「全选」。 */
-  selectAll: string;
-  /** 展开区域顶部的「全不选」。 */
-  selectNone: string;
 };
 
 export type GroupedPresetChecklistProps = {
@@ -67,7 +63,7 @@ export type GroupedPresetChecklistProps = {
 
 /**
  * 「分组 → 项目」两层预设勾选。勾选状态以项目为单位（受控），
- * 分组复选框与展开区域的「全选 / 全不选」只是对其下项目的批量操作。
+ * 分组复选框对其下可选项目进行批量操作。
  * 可同时展开多个分组。
  */
 export function GroupedPresetChecklist({
@@ -139,108 +135,123 @@ function ChecklistGroup({
   const total = items.length - addedCount;
   const allSelected =
     (total > 0 && selectedCount === total) || (total === 0 && addedCount > 0);
-  const itemKeys = items
-    .filter(({ key }) => !disabledSet.has(key))
-    .map(({ key }) => key);
+  const mixed = selectedCount > 0 && !allSelected;
 
   return (
     <Box aria-label={group.name} component="section">
-      {/* 点击行的任意位置展开 / 收起；键盘操作通过右侧的展开按钮。 */}
-      <Box onClick={() => onToggleExpanded(group.key)} sx={groupRowSx}>
-        <Box aria-hidden sx={groupIconSx}>
-          {group.icon}
-        </Box>
-        <Box sx={groupTextSx}>
-          <Typography component="h4" sx={groupNameSx}>
+      <Box sx={groupRowSx}>
+        <ButtonBase
+          aria-controls={expanded ? panelId : undefined}
+          aria-describedby={`${panelId}-count`}
+          aria-expanded={expanded}
+          aria-label={group.name}
+          onClick={() => onToggleExpanded(group.key)}
+          sx={groupButtonSx}
+        >
+          <PresetDisclosureChevron expanded={expanded} />
+          <Box aria-hidden sx={groupIconSx}>
+            {group.icon}
+          </Box>
+          <Typography component="span" sx={groupNameSx}>
             {group.name}
           </Typography>
-          <Typography color="textSecondary" variant="body2">
+          <Typography
+            component="span"
+            id={`${panelId}-count`}
+            color="textSecondary"
+            variant="body2"
+          >
             {messages.groupSelectedCount(selectedCount, total, addedCount)}
           </Typography>
-        </Box>
+        </ButtonBase>
         <Checkbox
           checked={allSelected}
           disabled={disabled || total === 0}
-          indeterminate={selectedCount > 0 && !allSelected}
-          onChange={() => onSetItemsChecked(itemKeys, !allSelected)}
-          // 点击复选框只切换勾选，不展开。
-          onClick={(event) => event.stopPropagation()}
+          indeterminate={mixed}
+          sx={{ minWidth: 44, minHeight: 44 }}
+          onChange={() =>
+            onSetItemsChecked(
+              items
+                .filter(({ key }) => !disabledSet.has(key))
+                .map(({ key }) => key),
+              !allSelected,
+            )
+          }
           slotProps={{
-            input: { "aria-label": messages.groupCheckboxLabel(group.name) },
+            input: {
+              "aria-label": messages.groupCheckboxLabel(group.name),
+              "aria-checked": mixed ? "mixed" : undefined,
+            },
           }}
         />
-        {/* 点击事件冒泡到行，由行统一切换展开状态。 */}
-        <IconButton
-          aria-controls={expanded ? panelId : undefined}
-          aria-expanded={expanded}
-          aria-label={group.name}
-          size="small"
-        >
-          <ExpandMoreRoundedIcon
-            sx={{
-              transform: expanded ? "rotate(180deg)" : "none",
-              transition: `transform ${designTokens.motion.collapse}ms`,
-            }}
-          />
-        </IconButton>
       </Box>
-      <Collapse
-        id={panelId}
-        in={expanded}
-        timeout={designTokens.motion.collapse}
-        unmountOnExit
-      >
+      <PresetDisclosurePanel id={panelId} expanded={expanded}>
         <Box sx={panelSx}>
-          <Stack direction="row" sx={panelActionsSx}>
-            <Button
-              disabled={disabled || total === 0 || allSelected}
-              onClick={() => onSetItemsChecked(itemKeys, true)}
-              size="small"
-              sx={panelActionButtonSx}
-              variant="text"
-            >
-              {messages.selectAll}
-            </Button>
-            <Button
-              disabled={disabled || selectedCount === 0}
-              onClick={() => onSetItemsChecked(itemKeys, false)}
-              size="small"
-              sx={panelActionButtonSx}
-              variant="text"
-            >
-              {messages.selectNone}
-            </Button>
-          </Stack>
-          {items.map((item) => (
-            <ChecklistItemRow
-              added={disabledSet.has(item.key)}
-              addedLabel={messages.added}
-              checked={disabledSet.has(item.key) || selectedSet.has(item.key)}
-              disabled={disabled || disabledSet.has(item.key)}
-              item={item}
-              alsoIn={
-                messages.alsoIn &&
-                groups.some(
-                  (g) => g.key !== group.key && g.itemKeys.includes(item.key),
-                )
-                  ? messages.alsoIn(
-                      groups
-                        .filter(
-                          (g) =>
-                            g.key !== group.key &&
-                            g.itemKeys.includes(item.key),
-                        )
-                        .map((g) => g.name),
-                    )
-                  : undefined
-              }
-              key={item.key}
-              onSetItemsChecked={onSetItemsChecked}
-            />
-          ))}
+          <ChecklistRows
+            group={group}
+            groups={groups}
+            items={items}
+            disabled={disabled}
+            disabledSet={disabledSet}
+            selectedSet={selectedSet}
+            messages={messages}
+            onSetItemsChecked={onSetItemsChecked}
+          />
         </Box>
-      </Collapse>
+      </PresetDisclosurePanel>
     </Box>
+  );
+}
+
+function ChecklistRows({
+  group,
+  groups,
+  items,
+  disabled,
+  disabledSet,
+  selectedSet,
+  messages,
+  onSetItemsChecked,
+}: Pick<
+  ChecklistGroupProps,
+  | "group"
+  | "groups"
+  | "items"
+  | "disabled"
+  | "disabledSet"
+  | "selectedSet"
+  | "messages"
+  | "onSetItemsChecked"
+>) {
+  return (
+    <>
+      {items.map((item) => (
+        <ChecklistItemRow
+          added={disabledSet.has(item.key)}
+          addedLabel={messages.added}
+          checked={disabledSet.has(item.key) || selectedSet.has(item.key)}
+          disabled={disabled || disabledSet.has(item.key)}
+          item={item}
+          alsoIn={
+            messages.alsoIn &&
+            groups.some(
+              (g) => g.key !== group.key && g.itemKeys.includes(item.key),
+            )
+              ? messages.alsoIn(
+                  groups
+                    .filter(
+                      (g) =>
+                        g.key !== group.key && g.itemKeys.includes(item.key),
+                    )
+                    .map((g) => g.name),
+                )
+              : undefined
+          }
+          key={item.key}
+          onSetItemsChecked={onSetItemsChecked}
+        />
+      ))}
+    </>
   );
 }
 
@@ -285,9 +296,9 @@ const ChecklistItemRow = memo(function ChecklistItemRow({
               src={item.iconUrl ?? undefined}
               sx={{
                 bgcolor: "primary.light",
-                color: "primary.contrastText",
-                height: 40,
-                width: 40,
+                color: "text.primary",
+                height: 34,
+                width: 34,
               }}
             >
               {Array.from(item.name)[0]}
@@ -321,7 +332,7 @@ const ChecklistItemRow = memo(function ChecklistItemRow({
           ) : null}
         </Box>
       }
-      sx={[itemRowSx, added && addedItemRowSx]}
+      sx={itemRowSx}
     />
   );
 });
@@ -329,72 +340,53 @@ const ChecklistItemRow = memo(function ChecklistItemRow({
 const listSx = {
   display: "flex",
   flexDirection: "column",
-  gap: 1.25,
+  gap: 0.875,
   "& > section": {
-    bgcolor: "background.paper",
+    bgcolor: "common.white",
     border: "1px solid",
     borderColor: "divider",
-    borderRadius: `${designTokens.radius.lg}px`,
+    borderRadius: `${designTokens.radius.item}px`,
     overflow: "hidden",
   },
 };
 
-// 行高满足手指点击（约 56px）。
 const groupRowSx = {
   alignItems: "center",
-  cursor: "pointer",
   display: "flex",
-  gap: 1.25,
-  minHeight: 64,
-  pl: 1.6,
-  pr: 0.75,
-  py: 0.75,
+  pr: 0.5,
+};
+
+const groupButtonSx = {
+  flex: 1,
+  minWidth: 0,
+  justifyContent: "flex-start",
+  minHeight: 44,
+  gap: 0.75,
+  px: 1,
+  textAlign: "left",
+  "&.Mui-focusVisible": {
+    outline: "2px solid",
+    outlineColor: "primary.main",
+    outlineOffset: -2,
+  },
   "@media (hover: hover)": {
     "&:hover": { bgcolor: "action.hover" },
   },
 };
 
-const groupIconSx = {
-  alignItems: "center",
-  bgcolor: "var(--user-theme-icon-badge-bg)",
-  borderRadius: "50%",
-  display: "inline-flex",
-  flexShrink: 0,
-  fontSize: 20,
-  height: 40,
-  justifyContent: "center",
-  width: 40,
-};
-
-const groupTextSx = {
-  flex: 1,
-  minWidth: 0,
-};
+const groupIconSx = { fontSize: 20, flexShrink: 0 };
 
 const groupNameSx = {
   fontSize: 16,
-  fontWeight: 800,
+  fontWeight: 700,
   overflowWrap: "anywhere",
 };
 
 const panelSx = {
-  bgcolor: designTokens.color.background.subtle,
-  pb: 0.5,
-  pl: { xs: 3, sm: 4 },
-  pr: 1.6,
-};
-
-const panelActionsSx = {
-  gap: 0.5,
-  justifyContent: "flex-end",
-  minHeight: 44,
-  alignItems: "center",
-};
-
-const panelActionButtonSx = {
-  color: "var(--user-theme-action-text)",
-  fontWeight: 800,
-  minHeight: 40,
+  borderTop: "1px dashed",
+  borderColor: "divider",
+  pl: 4.5,
+  pr: 0.5,
 };
 
 const itemRowSx = {
@@ -402,6 +394,7 @@ const itemRowSx = {
   minHeight: 56,
   mx: 0,
   width: "100%",
+  "&:not(:last-child)": { borderBottom: "1px solid", borderColor: "divider" },
   "& .MuiFormControlLabel-label": {
     minWidth: 0,
     width: "100%",
@@ -435,7 +428,3 @@ const itemContentSx = {
   width: "100%",
 };
 const addedTextSx = { color: "text.disabled" };
-const addedItemRowSx = {
-  bgcolor: "action.disabledBackground",
-  borderRadius: `${designTokens.radius.item}px`,
-};

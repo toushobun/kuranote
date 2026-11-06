@@ -731,7 +731,7 @@ describe("商家管理预设入口", () => {
     fireEvent.click(screen.getByRole("button", { name: "新增商家" }));
     expect(loadPresetsAction).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: /从预设添加/ }));
-    await screen.findByRole("button", { name: "全部选择" });
+    await screen.findByRole("checkbox", { name: "选择「超市」的全部商家" });
     expect(loadPresetsAction).toHaveBeenCalledOnce();
     expect(
       screen.getByRole("dialog", { name: "从预设添加商家" }),

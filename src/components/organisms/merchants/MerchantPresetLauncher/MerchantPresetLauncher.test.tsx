@@ -57,10 +57,12 @@ describe("MerchantPresetLauncher", () => {
       screen.getByRole("progressbar", { hidden: true }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "全部选择" }),
+      screen.queryByRole("checkbox", { name: "选择「超市」的全部商家" }),
     ).not.toBeInTheDocument();
     await act(async () => resolve({ options: createMerchantPresetOptions() }));
-    expect(screen.getByRole("button", { name: "全部选择" })).toBeEnabled();
+    expect(
+      screen.getByRole("checkbox", { name: "选择「超市」的全部商家" }),
+    ).toBeEnabled();
     expect(
       screen.getByRole("button", { name: "添加 0 个商家" }),
     ).toBeDisabled();
@@ -94,7 +96,7 @@ describe("MerchantPresetLauncher", () => {
     );
     expect(screen.queryByText("private network data")).not.toBeInTheDocument();
   });
-  it("读取中关闭后忽略旧响应，重新打开读取最新币种", async () => {
+  it("读取中关闭后忽略旧响应，重新打开读取最新预设", async () => {
     const { loadAction: firstLoad, resolve } = createPendingLoad();
     const onClose = vi.fn();
     const { unmount } = renderLauncher(firstLoad, onClose);
@@ -111,11 +113,11 @@ describe("MerchantPresetLauncher", () => {
       },
     }));
     renderLauncher(latestLoad, onClose);
-    expect(await screen.findByText("你主要在哪里生活？")).toBeInTheDocument();
+    expect(await screen.findByText("暂无可用的商家预设")).toBeInTheDocument();
     await act(async () => resolve({ options: createMerchantPresetOptions() }));
-    expect(screen.getByRole("radio", { name: "日本" })).toBeInTheDocument();
+    expect(screen.getByText("暂无可用的商家预设")).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "全部选择" }),
+      screen.queryByRole("checkbox", { name: "选择「超市」的全部商家" }),
     ).not.toBeInTheDocument();
     expect(latestLoad).toHaveBeenCalledOnce();
   });
@@ -146,7 +148,9 @@ describe("MerchantPresetLauncher", () => {
       { wrapper: ConfirmDialogTestProviders },
     );
     fireEvent.click(screen.getByRole("button", { name: "从预设添加" }));
-    fireEvent.click(await screen.findByRole("button", { name: "全部选择" }));
+    fireEvent.click(
+      await screen.findByRole("checkbox", { name: "选择「超市」的全部商家" }),
+    );
     fireEvent.click(screen.getByRole("button", { name: /添加 \d+ 个商家/ }));
     await waitFor(() => expect(save).toHaveBeenCalledOnce());
     await waitFor(() =>
@@ -188,7 +192,9 @@ describe("MerchantPresetLauncher", () => {
       );
       const heading = screen.getByRole("heading", { name: "记一笔" });
       fireEvent.click(screen.getByRole("button", { name: "从预设添加" }));
-      fireEvent.click(await screen.findByRole("button", { name: "全部选择" }));
+      fireEvent.click(
+        await screen.findByRole("checkbox", { name: "选择「超市」的全部商家" }),
+      );
       fireEvent.click(screen.getByRole("button", { name: /添加 \d+ 个商家/ }));
       await waitFor(() => expect(routerMock.refresh).toHaveBeenCalledOnce());
       await waitFor(() =>

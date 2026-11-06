@@ -7,7 +7,7 @@ export function getChecklistGroup(groupName: string, index?: number) {
     : screen.getAllByRole("region", { name: groupName })[index];
 }
 
-/** 分组行右侧的展开按钮（名称为分组名，带 aria-expanded）。 */
+/** 分组标题行的展开按钮（名称为分组名，带 aria-expanded）。 */
 export function getChecklistGroupExpandButton(
   groupName: string,
   index?: number,

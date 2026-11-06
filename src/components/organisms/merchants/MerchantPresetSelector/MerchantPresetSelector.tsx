@@ -1,83 +1,63 @@
 "use client";
 
-import Button from "@mui/material/Button";
+import ButtonBase from "@mui/material/ButtonBase";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { regionPresetMessages as messages } from "config/regionPresetMessages";
 import { merchantPresetMessages } from "config/merchantPresetMessages";
 import type { LedgerSetupRegion } from "internal/ledger";
-import { LedgerRegionField } from "molecules/ledgers/LedgerRegionField/LedgerRegionField";
 import { GroupedPresetChecklist } from "molecules/ui/GroupedPresetChecklist/GroupedPresetChecklist";
-import type { buildMerchantChecklist } from "utils/merchantPresets";
-import { designTokens } from "theme/theme";
 import { getPresetSelection } from "molecules/ui/GroupedPresetChecklist/presetSelection";
+import type { buildMerchantChecklist } from "utils/merchantPresets";
+import {
+  PresetDisclosureChevron,
+  PresetDisclosurePanel,
+} from "molecules/ui/PresetDisclosure/PresetDisclosure";
+import { designTokens } from "theme/theme";
 
 export type MerchantPresetSelectorProps = ReturnType<
   typeof buildMerchantChecklist
 > & {
   region: LedgerSetupRegion | null;
-  recommendationLabel?: string;
   additionalRegions: readonly LedgerSetupRegion[];
   onAdditionalRegionsChange: (regions: LedgerSetupRegion[]) => void;
   selectedKeys: readonly string[];
   onChange: (keys: string[]) => void;
   disabledKeys?: readonly string[];
   disabled?: boolean;
-} & (
-    | {
-        onRegionChange: (region: LedgerSetupRegion) => void;
-        onRequestRegionChange?: never;
-      }
-    | { onRequestRegionChange: () => void; onRegionChange?: never }
-  );
+};
 
-/** 向导和商家管理共用分区、追加地区、跨分类联动和已添加状态。 */
-export function MerchantPresetSelector(props: MerchantPresetSelectorProps) {
-  const {
-    region,
-    additionalRegions,
-    items,
-    groups,
-    onChange,
+export function MerchantPresetSelector({
+  region,
+  additionalRegions,
+  onAdditionalRegionsChange,
+  items,
+  groups,
+  onChange,
+  selectedKeys,
+  disabledKeys,
+  disabled,
+}: MerchantPresetSelectorProps) {
+  const primary = region ?? "jp";
+  const secondary = primary === "jp" ? "cn" : "jp";
+  const primaryItems = items.filter((item) => item.regions.includes(primary));
+  const secondaryItems = items.filter(
+    (item) =>
+      item.regions.includes(secondary) && !item.regions.includes(primary),
+  );
+  const secondaryCount = getPresetSelection(
+    secondaryItems,
     selectedKeys,
-    disabled,
-  } = props;
-  const [changing, setChanging] = useState(false);
-  const [collapsedRegions, setCollapsedRegions] = useState<LedgerSetupRegion[]>(
-    [],
+    disabledKeys,
+  ).length;
+  const [secondaryExpanded, setSecondaryExpanded] = useState(
+    secondaryCount > 0,
   );
-  const other: LedgerSetupRegion = region === "jp" ? "cn" : "jp";
-  const otherAdded = additionalRegions.includes(other);
-  const otherExpanded = otherAdded && !collapsedRegions.includes(other);
-  const visibleItems = items.filter((item) =>
-    item.regions.some(
-      (current) => current === region || (current === other && otherExpanded),
-    ),
-  );
-  const selection = getPresetSelection(
-    visibleItems,
-    selectedKeys,
-    props.disabledKeys,
-  );
+  const panelId = useId();
 
-  function getRegionItems(current: LedgerSetupRegion) {
-    return items.filter(
-      (item) =>
-        item.regions.includes(current) &&
-        (current === region || !region || !item.regions.includes(region)),
-    );
-  }
-
-  function changeSelection(keys: ReadonlySet<string>, next: readonly string[]) {
-    onChange([
-      ...new Set([...selectedKeys.filter((key) => !keys.has(key)), ...next]),
-    ]);
-  }
-
-  function renderRegion(current: LedgerSetupRegion, additional: boolean) {
-    const regionItems = getRegionItems(current);
-    const keys = new Set(regionItems.map((item) => item.key));
+  function renderChecklist(regionItems: typeof items, additional = false) {
+    const keys = new Set(regionItems.map(({ key }) => key));
     const regionGroups = groups
       .map((group) => ({
         ...group,
@@ -85,129 +65,75 @@ export function MerchantPresetSelector(props: MerchantPresetSelectorProps) {
       }))
       .filter((group) => group.itemKeys.length > 0);
     return (
-      <Stack spacing={1.5} key={current}>
-        {additional ? (
-          <Stack
-            direction="row"
-            sx={{ alignItems: "center", justifyContent: "space-between" }}
-          >
-            <Typography component="h4" sx={{ fontWeight: 700 }}>
-              {messages.merchantGroup(current)}
-            </Typography>
-            <Button
-              onClick={() =>
-                setCollapsedRegions((regions) => [...regions, current])
-              }
-            >
-              {messages.collapse}
-            </Button>
-          </Stack>
-        ) : null}
-        <GroupedPresetChecklist
-          disabled={disabled}
-          disabledKeys={props.disabledKeys}
-          groups={regionGroups}
-          items={regionItems}
-          messages={merchantPresetMessages.checklist}
-          selectedKeys={selectedKeys}
-          onChange={(next) => changeSelection(keys, next)}
-        />
-      </Stack>
+      <GroupedPresetChecklist
+        disabled={disabled}
+        disabledKeys={disabledKeys}
+        groups={regionGroups}
+        items={regionItems}
+        messages={merchantPresetMessages.checklist}
+        selectedKeys={selectedKeys}
+        onChange={(next) => {
+          if (
+            additional &&
+            next.length &&
+            !additionalRegions.includes(secondary)
+          ) {
+            onAdditionalRegionsChange([...additionalRegions, secondary]);
+          }
+          onChange([...selectedKeys.filter((key) => !keys.has(key)), ...next]);
+        }}
+      />
     );
   }
 
   return (
-    <Stack spacing={2}>
-      {region ? (
-        <Stack
-          direction="row"
-          sx={{
-            alignItems: "center",
-            justifyContent: "space-between",
-            bgcolor: "action.hover",
-            borderRadius: `${designTokens.radius.item}px`,
-            px: 1.5,
-            py: 0.5,
-          }}
-        >
-          <Typography variant="body2">
-            {props.recommendationLabel ?? messages.recommendation(region)}
-          </Typography>
-          <Button
-            disabled={disabled}
-            onClick={() =>
-              props.onRequestRegionChange
-                ? props.onRequestRegionChange()
-                : setChanging((value) => !value)
-            }
+    <Stack spacing={1}>
+      <Typography component="h4" sx={{ fontWeight: 700 }}>
+        {messages.merchantGroup(primary)}
+      </Typography>
+      {renderChecklist(primaryItems)}
+      <Stack component="section">
+        <Typography component="h4">
+          <ButtonBase
+            aria-controls={secondaryExpanded ? panelId : undefined}
+            aria-expanded={secondaryExpanded}
+            onClick={() => setSecondaryExpanded((value) => !value)}
+            sx={secondaryHeaderSx}
           >
-            {messages.change}
-          </Button>
-        </Stack>
-      ) : null}
-      {!region || changing ? (
-        props.onRegionChange ? (
-          <LedgerRegionField
-            disabled={disabled}
-            value={region}
-            onChange={(next) => {
-              props.onRegionChange?.(next);
-              setChanging(false);
-            }}
-          />
-        ) : (
-          <Button disabled={disabled} onClick={props.onRequestRegionChange}>
-            {messages.change}
-          </Button>
-        )
-      ) : null}
-      {region ? (
-        <>
-          <Button
-            disabled={disabled || selection.availableKeys.length === 0}
-            onClick={() =>
-              changeSelection(
-                new Set(visibleItems.map(({ key }) => key)),
-                selection.toggleAllKeys,
-              )
-            }
-            sx={{ alignSelf: "flex-end" }}
-          >
-            {selection.allSelected
-              ? merchantPresetMessages.selectNone
-              : merchantPresetMessages.selectAll}
-          </Button>
-          {renderRegion(region, false)}
-          {otherExpanded ? (
-            renderRegion(other, true)
-          ) : (
-            <Button
-              disabled={disabled}
-              variant="outlined"
-              onClick={() => {
-                props.onAdditionalRegionsChange([
-                  ...new Set([...additionalRegions, other]),
-                ]);
-                setCollapsedRegions((regions) =>
-                  regions.filter((region) => region !== other),
-                );
-              }}
-              sx={{ borderStyle: "dashed", minHeight: 52 }}
+            <PresetDisclosureChevron expanded={secondaryExpanded} />
+            {messages.merchantGroup(secondary)}
+            <Typography
+              component="span"
+              color="textSecondary"
+              variant="body2"
+              sx={{ ml: "auto" }}
             >
-              {otherAdded
-                ? messages.expandMerchants(
-                    other,
-                    getPresetSelection(
-                      getRegionItems(other),
-                      selectedKeys,
-                      props.disabledKeys,
-                    ).keys.length,
-                  )
-                : messages.addMerchants(other)}
-            </Button>
-          )}
-        </>
-      ) : null}
+              {messages.merchantSelectedCount(secondaryCount)}
+            </Typography>
+          </ButtonBase>
+        </Typography>
+        <PresetDisclosurePanel id={panelId} expanded={secondaryExpanded}>
+          <Stack spacing={1} sx={{ pt: 1 }}>
+            <Typography color="textSecondary" variant="body2">
+              {messages.sharedMerchants(primary)}
+            </Typography>
+            {renderChecklist(secondaryItems, true)}
+          </Stack>
+        </PresetDisclosurePanel>
+      </Stack>
     </Stack>
   );
 }
+
+const secondaryHeaderSx = {
+  border: "1px dashed",
+  borderColor: "divider",
+  borderRadius: `${designTokens.radius.item}px`,
+  gap: 1,
+  justifyContent: "flex-start",
+  minHeight: 44,
+  px: 1.5,
+  width: "100%",
+  fontWeight: 700,
+  "&.Mui-focusVisible": { outline: "2px solid", outlineColor: "primary.main" },
+};
