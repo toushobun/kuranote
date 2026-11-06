@@ -132,7 +132,7 @@ describe("LedgerSetupMerchantsStep", () => {
 
     const restaurant = getChecklistGroupExpandButton("餐饮", 0);
     fireEvent.click(japan);
-    await waitFor(() => expect(restaurant).not.toBeInTheDocument());
+    await waitFor(() => expect(restaurant).not.toBeVisible());
     expectNextLabel("下一步 · 已选 2 家");
     fireEvent.click(japan);
     const dining = toggleChecklistGroup("餐饮", 0);

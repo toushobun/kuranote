@@ -127,7 +127,7 @@ describe("MerchantPresetSelector", () => {
     fireEvent.click(regionButton);
     expect(regionButton).toHaveTextContent("已选 1 家");
     expect(regionButton).toHaveAttribute("aria-expanded", "false");
-    await waitFor(() => expect(merchant).not.toBeInTheDocument());
+    await waitFor(() => expect(merchant).not.toBeVisible());
     fireEvent.click(regionButton);
     expect(
       expand("餐饮", 1).getByRole("checkbox", { name: /海底捞/ }),

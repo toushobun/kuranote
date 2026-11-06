@@ -36,6 +36,7 @@ export function PresetDisclosurePanel({
 }) {
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const timeout = reducedMotion ? 0 : duration;
+  // 首次展开时才挂载；收起后保留（inert + 隐藏），避免再次展开时重建整列行造成卡顿。
   return (
     <Collapse
       id={id}
@@ -44,7 +45,6 @@ export function PresetDisclosurePanel({
       timeout={timeout}
       easing={easing}
       mountOnEnter
-      unmountOnExit
     >
       <Fade in={expanded} timeout={timeout} easing={easing}>
         {children}
