@@ -149,7 +149,16 @@ describe("LedgerSetupConfirmStep", () => {
     it.each([
       [
         "跳过",
-        { items: [{ name: "现金", type: "cash" as const }], skipped: true },
+        {
+          items: [
+            {
+              name: "日元现金",
+              templateKey: "日元现金",
+              type: "cash" as const,
+            },
+          ],
+          skipped: true,
+        },
       ],
       ["0 个", { items: [], skipped: false }],
     ])("账户%s时显示已跳过样式与提示", (_label, accounts) => {
@@ -161,7 +170,7 @@ describe("LedgerSetupConfirmStep", () => {
       expect(card).toHaveTextContent("已跳过");
       expect(card).toHaveTextContent("记账前需要先添加账户");
       expect(card).toHaveStyle({ borderStyle: "dashed" });
-      expect(within(card).queryByText("现金")).not.toBeInTheDocument();
+      expect(within(card).queryByText("日元现金")).not.toBeInTheDocument();
       expect(getEditButton("账户")).toBeInTheDocument();
     });
 

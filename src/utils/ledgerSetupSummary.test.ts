@@ -33,7 +33,10 @@ describe("buildLedgerSetupConfirmSummary", () => {
   it("跳过或数量为 0 时视为已跳过", () => {
     const summary = buildLedgerSetupConfirmSummary(
       createLedgerSetupConfirmProgressFixture({
-        accounts: { items: [{ name: "现金", type: "cash" }], skipped: true },
+        accounts: {
+          items: [{ name: "日元现金", templateKey: "日元现金", type: "cash" }],
+          skipped: true,
+        },
         merchants: { selectedKeys: [], skipped: false },
       }),
     );

@@ -234,24 +234,6 @@ describe("LedgerSetupBasicInfoStep", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("恢复到的创建中账本基于旧版预设时，同时提示预设内容已更新", async () => {
-    const restored = createLedgerSetupProgressFixture({
-      name: "之前的账本",
-      step: 3,
-      templateUpdated: true,
-    });
-    renderLedgerSetupWizard({
-      submitBasicInfo: createSubmitMock({ progress: restored, restored: true }),
-    });
-
-    clickNext();
-
-    await waitFor(() => expect(getCurrentStepItem()).toHaveTextContent("商家"));
-    expect(screen.getByRole("status")).toHaveTextContent(
-      `${ledgerSetupErrorMessages[ledgerSetupErrorCodes.inProgressExists]}预设内容已更新，请重新确认`,
-    );
-  });
-
   it("正常提交成功时不显示还没创建完的提示", async () => {
     renderLedgerSetupWizard({ submitBasicInfo: createSubmitMock() });
 

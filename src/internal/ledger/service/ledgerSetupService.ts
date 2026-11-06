@@ -103,19 +103,14 @@ function toAppError(code: LedgerSetupRpcErrorCode): AppError {
 }
 
 function toLedgerSetup({ storedDraft, ...setup }: LedgerSetupRecord) {
-  const draft = resolveLedgerSetupDraft(
-    storedDraft,
-    setup.livingRegion,
-    getLedgerSetupTemplate(setup.livingRegion),
-  );
-
   return {
     ...setup,
     step: setup.livingRegion === null ? 1 : setup.step,
-    draft,
-    templateUpdated:
-      storedDraft.templateVersion !== undefined &&
-      storedDraft.templateVersion !== draft.templateVersion,
+    draft: resolveLedgerSetupDraft(
+      storedDraft,
+      setup.livingRegion,
+      getLedgerSetupTemplate(setup.livingRegion),
+    ),
   } satisfies LedgerSetup;
 }
 

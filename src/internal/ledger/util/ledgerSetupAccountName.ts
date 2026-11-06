@@ -12,7 +12,7 @@ function accountNameScopeKey({
  * 向导中货币均为账本默认货币、持有人均为当前用户，因此按「类型 + 名称（忽略大小写）」判断。
  */
 export function hasDuplicateLedgerSetupAccountName(
-  accounts: readonly LedgerSetupDraftAccount[],
+  accounts: readonly Pick<LedgerSetupDraftAccount, "name" | "type">[],
 ): boolean {
   const keys = accounts.map(accountNameScopeKey);
   return new Set(keys).size !== keys.length;

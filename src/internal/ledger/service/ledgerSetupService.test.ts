@@ -156,34 +156,11 @@ describe("createLedgerSetupService.getCurrentUserSetup", () => {
       id: ledgerId,
       name: "家庭账本",
       step: 2,
-      templateUpdated: false,
     });
     expect(
       ledgerSetupRepository.findCurrentUserSetupLedger,
     ).toHaveBeenCalledWith(userId);
   });
-
-  it.each([
-    ["基于当前版本", draft.templateVersion, false],
-    ["基于旧版本", 1, true],
-  ])(
-    "已保存草稿%s的预设时 templateUpdated 为 %s",
-    async (_label, templateVersion, templateUpdated) => {
-      const service = createLedgerSetupService({
-        currentUserId: userId,
-        ledgerSetupRepository: createRepository({
-          findCurrentUserSetupLedger: vi.fn(async () =>
-            createRecord({ ...draft, templateVersion }),
-          ),
-        }),
-      });
-
-      await expect(service.getCurrentUserSetup()).resolves.toMatchObject({
-        draft: { templateVersion: draft.templateVersion },
-        templateUpdated,
-      });
-    },
-  );
 
   it.each([
     ["已保存账户选择", { accounts: draft.accounts }],
@@ -498,7 +475,13 @@ describe("createLedgerSetupService.saveDraft", () => {
       {
         ...draft,
         accounts: {
-          items: [{ name: "自己添加的账户", type: "bank" as const }],
+          items: [
+            {
+              name: "不存在的银行",
+              templateKey: "不存在的银行",
+              type: "bank" as const,
+            },
+          ],
           skipped: false,
         },
       },

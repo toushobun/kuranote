@@ -126,7 +126,7 @@ const setupRow = {
   ledger_name: "家庭账本",
   setup_draft: {
     accounts: [],
-    features: { specialStatusEnabled: true },
+    features: { multiAccountPaymentEnabled: false, specialStatusEnabled: true },
   },
   setup_step: 3,
 };
@@ -147,7 +147,7 @@ describe("createSupabaseLedgerSetupRepository.findCurrentUserSetupLedger", () =>
       id: ledgerId,
       name: "家庭账本",
       step: 3,
-      // #931 之前保存的草稿没有多账户付款开关，解析时按默认关闭补全。
+      // 不符合结构的部分（accounts）被丢弃。
       storedDraft: {
         features: {
           multiAccountPaymentEnabled: false,

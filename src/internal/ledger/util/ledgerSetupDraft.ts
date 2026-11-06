@@ -139,35 +139,20 @@ export function isLedgerSetupDraftMatchingTemplate(
     draft.merchants.selectedKeys.every((key) => merchantKeys.has(key)) &&
     draft.accounts.items.every(
       ({ name, templateKey, type }) =>
-        templateKey !== undefined &&
         name === templateKey &&
         isAccountTemplateKeyValid(template, type, templateKey),
     )
   );
 }
 
-/**
- * 账户只能从模板候选中勾选：丢弃无法匹配候选的账户（含旧草稿中自行添加的账户）；
- * 旧草稿的通用「现金」换成生活地区的现金。
- */
+/** 账户只能从模板候选中勾选：丢弃模板更新后已不存在的候选，并去重。 */
 function resolveAccountItems(
   items: readonly LedgerSetupDraftAccount[],
   template: LedgerSetupTemplate | null,
-  region: LedgerSetupRegion | null,
 ): LedgerSetupDraftAccount[] {
-  const resolved = items.flatMap((account) => {
-    if (
-      account.templateKey !== undefined &&
-      isAccountTemplateKeyValid(template, account.type, account.templateKey)
-    ) {
-      return [{ ...account, name: account.templateKey }];
-    }
-    return account.type === "cash" && account.templateKey === undefined
-      ? defaultCashAccounts(template, region)
-      : [];
-  });
   const seen = new Set<string>();
-  return resolved.filter(({ templateKey, type }) => {
+  return items.filter(({ templateKey, type }) => {
+    if (!isAccountTemplateKeyValid(template, type, templateKey)) return false;
     const key = `${type}:${templateKey}`;
     if (seen.has(key)) return false;
     seen.add(key);
@@ -194,7 +179,7 @@ export function resolveLedgerSetupDraft(
   const accounts = stored.accounts
     ? {
         skipped: stored.accounts.skipped,
-        items: resolveAccountItems(stored.accounts.items, template, region),
+        items: resolveAccountItems(stored.accounts.items, template),
       }
     : defaults.accounts;
 
