@@ -1,8 +1,6 @@
 "use client";
 
-import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import ButtonBase from "@mui/material/ButtonBase";
-import Collapse from "@mui/material/Collapse";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useId, useState } from "react";
@@ -12,6 +10,10 @@ import type { LedgerSetupRegion } from "internal/ledger";
 import { GroupedPresetChecklist } from "molecules/ui/GroupedPresetChecklist/GroupedPresetChecklist";
 import { getPresetSelection } from "molecules/ui/GroupedPresetChecklist/presetSelection";
 import type { buildMerchantChecklist } from "utils/merchantPresets";
+import {
+  PresetDisclosureChevron,
+  PresetDisclosurePanel,
+} from "molecules/ui/PresetDisclosure/PresetDisclosure";
 import { designTokens } from "theme/theme";
 
 export type MerchantPresetSelectorProps = ReturnType<
@@ -98,13 +100,7 @@ export function MerchantPresetSelector({
             onClick={() => setSecondaryExpanded((value) => !value)}
             sx={secondaryHeaderSx}
           >
-            <ChevronRightRoundedIcon
-              aria-hidden
-              fontSize="small"
-              sx={{
-                transform: secondaryExpanded ? "rotate(90deg)" : undefined,
-              }}
-            />
+            <PresetDisclosureChevron expanded={secondaryExpanded} />
             {messages.merchantGroup(secondary)}
             <Typography
               component="span"
@@ -116,20 +112,14 @@ export function MerchantPresetSelector({
             </Typography>
           </ButtonBase>
         </Typography>
-        <Collapse
-          id={panelId}
-          inert={!secondaryExpanded}
-          in={secondaryExpanded}
-          mountOnEnter
-          unmountOnExit
-        >
+        <PresetDisclosurePanel id={panelId} expanded={secondaryExpanded}>
           <Stack spacing={1} sx={{ pt: 1 }}>
             <Typography color="textSecondary" variant="body2">
               {messages.sharedMerchants(primary)}
             </Typography>
             {renderChecklist(secondaryItems, true)}
           </Stack>
-        </Collapse>
+        </PresetDisclosurePanel>
       </Stack>
     </Stack>
   );

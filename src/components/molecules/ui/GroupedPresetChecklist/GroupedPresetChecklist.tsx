@@ -1,18 +1,18 @@
 "use client";
 
-import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import Box from "@mui/material/Box";
 import Avatar from "@mui/material/Avatar";
 import ButtonBase from "@mui/material/ButtonBase";
 import Checkbox from "@mui/material/Checkbox";
 import Chip from "@mui/material/Chip";
-import Collapse from "@mui/material/Collapse";
 import FormControlLabel from "@mui/material/FormControlLabel";
-import Fade from "@mui/material/Fade";
-import useMediaQuery from "@mui/material/useMediaQuery";
 import Typography from "@mui/material/Typography";
 import { memo, useId, type ReactNode } from "react";
 
+import {
+  PresetDisclosureChevron,
+  PresetDisclosurePanel,
+} from "molecules/ui/PresetDisclosure/PresetDisclosure";
 import { designTokens } from "theme/theme";
 
 import { useGroupedPresetChecklist } from "./useGroupedPresetChecklist";
@@ -75,7 +75,6 @@ export function GroupedPresetChecklist({
   onChange,
   selectedKeys,
 }: GroupedPresetChecklistProps) {
-  const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const checklist = useGroupedPresetChecklist({
     disabledKeys,
     groups,
@@ -94,7 +93,6 @@ export function GroupedPresetChecklist({
           groups={groups}
           disabledSet={checklist.disabledSet}
           messages={messages}
-          reducedMotion={reducedMotion}
           onSetItemsChecked={checklist.setItemsChecked}
           onToggleExpanded={checklist.toggleExpanded}
           selectedSet={checklist.selectedSet}
@@ -110,7 +108,6 @@ type ChecklistGroupProps = {
   disabledSet: ReadonlySet<string>;
   disabled: boolean;
   expanded: boolean;
-  reducedMotion: boolean;
   group: GroupedPresetChecklistGroup;
   items: readonly GroupedPresetChecklistItem[];
   messages: GroupedPresetChecklistMessages;
@@ -126,7 +123,6 @@ function ChecklistGroup({
   disabledSet,
   disabled,
   expanded,
-  reducedMotion,
   group,
   items,
   messages,
@@ -140,10 +136,6 @@ function ChecklistGroup({
   const allSelected =
     (total > 0 && selectedCount === total) || (total === 0 && addedCount > 0);
   const mixed = selectedCount > 0 && !allSelected;
-  const duration = reducedMotion
-    ? 0
-    : presetMotion[expanded ? "enter" : "exit"];
-  const easing = presetEasing[expanded ? "enter" : "exit"];
 
   return (
     <Box aria-label={group.name} component="section">
@@ -156,15 +148,7 @@ function ChecklistGroup({
           onClick={() => onToggleExpanded(group.key)}
           sx={groupButtonSx}
         >
-          <ChevronRightRoundedIcon
-            aria-hidden
-            fontSize="small"
-            sx={{
-              color: "text.secondary",
-              transform: expanded ? "rotate(90deg)" : undefined,
-              transition: `transform ${duration}ms ${easing}`,
-            }}
-          />
+          <PresetDisclosureChevron expanded={expanded} />
           <Box aria-hidden sx={groupIconSx}>
             {group.icon}
           </Box>
@@ -201,34 +185,20 @@ function ChecklistGroup({
           }}
         />
       </Box>
-      <Collapse
-        id={panelId}
-        inert={!expanded}
-        in={expanded}
-        timeout={reducedMotion ? 0 : presetMotion}
-        easing={presetEasing}
-        mountOnEnter
-        unmountOnExit
-      >
-        <Fade
-          in={expanded}
-          timeout={reducedMotion ? 0 : presetMotion}
-          easing={presetEasing}
-        >
-          <Box sx={panelSx}>
-            <ChecklistRows
-              group={group}
-              groups={groups}
-              items={items}
-              disabled={disabled}
-              disabledSet={disabledSet}
-              selectedSet={selectedSet}
-              messages={messages}
-              onSetItemsChecked={onSetItemsChecked}
-            />
-          </Box>
-        </Fade>
-      </Collapse>
+      <PresetDisclosurePanel id={panelId} expanded={expanded}>
+        <Box sx={panelSx}>
+          <ChecklistRows
+            group={group}
+            groups={groups}
+            items={items}
+            disabled={disabled}
+            disabledSet={disabledSet}
+            selectedSet={selectedSet}
+            messages={messages}
+            onSetItemsChecked={onSetItemsChecked}
+          />
+        </Box>
+      </PresetDisclosurePanel>
     </Box>
   );
 }
@@ -366,12 +336,6 @@ const ChecklistItemRow = memo(function ChecklistItemRow({
     />
   );
 });
-
-const presetMotion = { enter: 220, exit: 180 };
-const presetEasing = {
-  enter: "cubic-bezier(0.2, 0, 0, 1)",
-  exit: "cubic-bezier(0.4, 0, 0.6, 1)",
-};
 
 const listSx = {
   display: "flex",

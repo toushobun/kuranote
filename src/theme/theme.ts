@@ -37,8 +37,15 @@ export const designTokens = {
     disabled: 0.56,
   },
   motion: {
-    // 折叠 / 展开动画统一时长（毫秒），所有 Collapse 共用。
+    // 通用折叠 / 展开时长（毫秒）。
     collapse: 280,
+    presetDisclosure: {
+      duration: { enter: 220, exit: 180 },
+      easing: {
+        enter: "cubic-bezier(0.2, 0, 0, 1)",
+        exit: "cubic-bezier(0.4, 0, 0.6, 1)",
+      },
+    },
   },
   typography: {
     fontFamily: typographyFontFamilies,
