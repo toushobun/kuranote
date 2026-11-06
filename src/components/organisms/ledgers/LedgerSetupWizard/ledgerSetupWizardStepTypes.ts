@@ -50,8 +50,6 @@ export type LedgerSetupWizardStepProps = {
   onSetupCompleted: () => void;
   /** 当前创建中账本进度；第 1 步尚未提交时为 null。 */
   progress: LedgerSetupProgress | null;
-  /** 放弃原草稿后，第 1 步不再预填账本名称和生活地区。 */
-  restarted?: boolean;
   /** 当前步骤（从 1 开始），与 ledger.setup_step 对应。 */
   step: number;
   /** 当前步骤的标签。 */

@@ -72,6 +72,7 @@ function LedgerSetupWizardContent({
   });
   const [dirty, setDirty] = useState(false);
   const [abandoning, setAbandoning] = useState(false);
+  const draft = wizard.notice === "draft" ? wizard.progress?.setup : null;
   const busy = wizard.busy || abandoning;
   const guard = useUnsavedChangesGuard({
     active: open,
@@ -102,7 +103,7 @@ function LedgerSetupWizardContent({
                 label={ledgerSetupWizardMessages.progressLabel}
                 steps={stepLabels}
               />
-              {wizard.notice ? (
+              {draft || wizard.notice === "templateUpdated" ? (
                 <Alert
                   closeText={ledgerSetupWizardMessages.dismissNotice}
                   onClose={wizard.dismissNotice}
@@ -111,14 +112,14 @@ function LedgerSetupWizardContent({
                   severity="info"
                   sx={noticeSx}
                 >
-                  {wizard.notice === "draft" && wizard.progress ? (
+                  {draft ? (
                     <>
                       {ledgerSetupEntryMessages.draftNotice}
                       <LedgerSetupAbandonButton
                         action={actions.abandonSetup}
                         disabled={busy}
-                        ledgerId={wizard.progress.setup.id}
-                        ledgerName={wizard.progress.setup.name}
+                        ledgerId={draft.id}
+                        ledgerName={draft.name}
                         onBusyChange={setAbandoning}
                         onSuccess={() => {
                           setAbandoning(false);
@@ -165,7 +166,6 @@ function LedgerSetupWizardContent({
               onRestore={wizard.restoreProgress}
               onSetupCompleted={wizard.markSetupCompleted}
               progress={wizard.progress}
-              restarted={wizard.restarted}
               step={wizard.step}
               stepLabel={label}
             />

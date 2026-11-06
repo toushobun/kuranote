@@ -12,6 +12,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createLedgerSetupWizardLauncherActionMocks,
   getCurrentStepItem,
+  ledgerSetupWizardTestDefaults,
 } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardTestUtils";
 import {
   ledgerSetupAbandonMessages,
@@ -215,7 +216,7 @@ describe("LedgerSetupWizardLauncher", () => {
     );
   }
 
-  it("确认放弃后清空第 1 步，关闭向导时刷新入口", async () => {
+  it("确认放弃后用新建默认值重置第 1 步，关闭向导时刷新入口", async () => {
     const { abandonSetup, progress } = openDraft(1);
     const name = await screen.findByRole("textbox", { name: "账本名称" });
     fireEvent.change(name, { target: { value: "未保存的名称" } });
@@ -236,13 +237,20 @@ describe("LedgerSetupWizardLauncher", () => {
     );
     confirmLedgerSetupAbandon(await openRestartConfirm());
     await waitFor(() => expect(restart).toBeDisabled());
+    expect(
+      within(restart).getByRole("progressbar", {
+        name: ledgerSetupAbandonMessages.pending,
+      }),
+    ).toBeInTheDocument();
     expect(close).toBeDisabled();
     expect(next).toBeDisabled();
     expect(abandonSetup).toHaveBeenCalledWith({ ledgerId: progress.setup.id });
 
     await act(async () => finish());
     expect(getCurrentStepItem()).toHaveTextContent("基本信息");
-    expect(screen.getByRole("textbox", { name: "账本名称" })).toHaveValue("");
+    expect(screen.getByRole("textbox", { name: "账本名称" })).toHaveValue(
+      ledgerSetupWizardTestDefaults.ledgerName,
+    );
     expect(within(dialog).queryByRole("status")).not.toBeInTheDocument();
     expect(routerRefreshMock).not.toHaveBeenCalled();
 

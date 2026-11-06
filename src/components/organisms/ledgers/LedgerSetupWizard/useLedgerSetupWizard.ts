@@ -33,7 +33,6 @@ export function useLedgerSetupWizard({
   initialNotice = null,
   initialProgress,
 }: UseLedgerSetupWizardOptions) {
-  const [restarted, setRestarted] = useState(false);
   const [progress, setProgress] = useState(initialProgress);
   const [step, setStep] = useState(() => getResumeStep(initialProgress));
   // 进度被服务端重新读取的内容替换时递增，使当前步骤按新进度重新初始化。
@@ -57,7 +56,6 @@ export function useLedgerSetupWizard({
     notice,
     progress,
     progressRevision,
-    restarted,
     step,
     dismissNotice() {
       setNotice(null);
@@ -107,7 +105,6 @@ export function useLedgerSetupWizard({
       setNotice("draft");
     },
     resetDraft() {
-      setRestarted(true);
       setProgress(null);
       setStep(1);
       setNotice(null);

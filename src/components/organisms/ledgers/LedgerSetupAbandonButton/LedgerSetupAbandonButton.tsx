@@ -36,14 +36,14 @@ export function LedgerSetupAbandonButton(props: {
         variant="text"
         sx={props.restart ? restartSx : undefined}
       >
-        {props.restart ? (
-          ledgerSetupEntryMessages.restart
-        ) : flow.pending ? (
+        {flow.pending ? (
           <CircularProgress
             aria-label={messages.pending}
             color="inherit"
             size={18}
           />
+        ) : props.restart ? (
+          ledgerSetupEntryMessages.restart
         ) : (
           messages.abandon
         )}
