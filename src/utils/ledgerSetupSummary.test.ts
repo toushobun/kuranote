@@ -45,7 +45,7 @@ describe("buildLedgerSetupConfirmSummary", () => {
     expect(summary.merchants).toEqual({ count: 0, skipped: true, tags: [] });
   });
 
-  it("无模板币种时商家视为已跳过", () => {
+  it("没有地区模板时商家视为已跳过", () => {
     const summary = buildLedgerSetupConfirmSummary(
       createLedgerSetupConfirmProgressFixture({}, null),
     );

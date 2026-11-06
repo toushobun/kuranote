@@ -432,22 +432,6 @@ describe("createLedgerSetupService.saveDraft", () => {
     [{ draft, step: 6 }, ledgerSetupErrorCodes.stepInvalid],
     [{ draft: [], step: 2 }, ledgerSetupErrorCodes.draftInvalid],
     [{ draft: { accounts: [] }, step: 2 }, ledgerSetupErrorCodes.draftInvalid],
-    [
-      {
-        draft: {
-          ...draft,
-          accounts: {
-            items: [
-              { name: "日元现金", templateKey: "日元现金", type: "cash" },
-              { name: "日元现金", templateKey: "日元现金", type: "cash" },
-            ],
-            skipped: false,
-          },
-        },
-        step: 2,
-      },
-      ledgerSetupErrorCodes.accountNameDuplicate,
-    ],
   ])("输入不合法时抛出 ValidationError 且不访问数据库", async (input, code) => {
     const ledgerSetupRepository = createRepository();
     const service = createLedgerSetupService({
@@ -503,7 +487,7 @@ describe("createLedgerSetupService.saveDraft", () => {
       },
     ],
     [
-      "无模板币种选择了商家",
+      "没有地区模板却选择了商家",
       {
         ...createDefaultLedgerSetupDraft(null),
         merchants: { selectedKeys: ["amazon"], skipped: false },

@@ -187,7 +187,7 @@ describe("LedgerSetupConfirmStep", () => {
           merchants: { selectedKeys: [], skipped: false },
         }),
       ],
-      ["无模板币种", createLedgerSetupConfirmProgressFixture({}, null)],
+      ["没有地区模板", createLedgerSetupConfirmProgressFixture({}, null)],
     ])("商家%s时显示已跳过样式与提示", (_label, progress) => {
       renderConfirmStep({ progress });
 
@@ -327,10 +327,10 @@ describe("LedgerSetupConfirmStep", () => {
 
     it("其他失败时显示模块错误文案并停留在确认一览", async () => {
       const message =
-        ledgerSetupErrorMessages[ledgerSetupErrorCodes.accountNameDuplicate];
+        ledgerSetupErrorMessages[ledgerSetupErrorCodes.payloadInvalid];
       const completeSetup = vi.fn<LedgerSetupCompleteAction>(async () => ({
         error: message,
-        errorKey: "duplicate",
+        errorKey: "payload-invalid",
       }));
       renderConfirmStep({ completeSetup });
 

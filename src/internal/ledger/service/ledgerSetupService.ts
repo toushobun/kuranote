@@ -208,14 +208,6 @@ export function createLedgerSetupService({
         throw toAppError(ledgerSetupErrorCodes.templateOutdated);
       }
 
-      if (
-        hasDuplicateLedgerSetupAccountName(
-          validation.value.draft.accounts.items,
-        )
-      ) {
-        throw toAppError(ledgerSetupErrorCodes.accountNameDuplicate);
-      }
-
       const result = await ledgerSetupRepository.saveDraft({
         ...validation.value,
         ledgerId,
@@ -235,5 +227,3 @@ export function createLedgerSetupService({
     },
   };
 }
-
-import { hasDuplicateLedgerSetupAccountName } from "internal/ledger/util/ledgerSetupAccountName";

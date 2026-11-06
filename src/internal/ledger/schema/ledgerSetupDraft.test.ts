@@ -29,7 +29,7 @@ describe("validateLedgerSetupDraftInput", () => {
       validateLedgerSetupDraftInput({ draft: makeDraft(301), step: 3 }),
     ).toMatchObject({ ok: false, error: ledgerSetupErrorCodes.draftInvalid });
   });
-  it("步骤在范围内且草稿符合 v1 结构时通过", () => {
+  it("步骤在范围内且草稿符合 v2 结构时通过", () => {
     expect(validateLedgerSetupDraftInput({ draft, step: 3 })).toEqual({
       ok: true,
       value: { draft, step: 3 },
@@ -73,13 +73,13 @@ describe("validateLedgerSetupDraftInput", () => {
     });
   });
 
-  it("无模板币种的模板版本可以为 null", () => {
-    const usdDraft = createDefaultLedgerSetupDraft(null);
+  it("没有地区模板时模板版本可以为 null", () => {
+    const noRegionDraft = createDefaultLedgerSetupDraft(null);
 
-    expect(usdDraft.templateVersion).toBeNull();
-    expect(validateLedgerSetupDraftInput({ draft: usdDraft, step: 2 }).ok).toBe(
-      true,
-    );
+    expect(noRegionDraft.templateVersion).toBeNull();
+    expect(
+      validateLedgerSetupDraftInput({ draft: noRegionDraft, step: 2 }).ok,
+    ).toBe(true);
   });
 
   it.each([0, 6, 2.5, "3", null])("步骤为 %s 时返回步骤错误", (step) => {
@@ -206,7 +206,7 @@ describe("parseStoredLedgerSetupDraft", () => {
     });
   });
 
-  it("无模板币种的模板版本 null 被保留", () => {
+  it("没有地区模板时模板版本 null 被保留", () => {
     expect(
       parseStoredLedgerSetupDraft({
         templateRegion: null,
