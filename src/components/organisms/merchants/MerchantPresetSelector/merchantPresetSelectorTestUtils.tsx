@@ -9,7 +9,7 @@ import { buildMerchantChecklist } from "utils/merchantPresets";
 import { MerchantPresetSelector } from "./MerchantPresetSelector";
 
 export function merchantRegionButtonName(region: LedgerSetupRegion) {
-  return { name: regionPresetMessages.merchantGroup(region).title };
+  return { name: regionPresetMessages.merchantGroup(region) };
 }
 
 /** Story 与组件测试共用真实服务端模板的展示数据和受控状态。 */

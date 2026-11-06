@@ -120,7 +120,7 @@ function MerchantRegionCard({
   const panelId = useId();
   const titleId = `${panelId}-title`;
   const countId = `${panelId}-count`;
-  const { flag, title } = messages.merchantGroup(region);
+  const title = messages.merchantGroup(region);
 
   return (
     <Box component="section" sx={regionCardSx}>
@@ -136,9 +136,8 @@ function MerchantRegionCard({
           <PresetDisclosureChevron expanded={expanded} />
           <Box
             component="img"
-            src={flag.src}
-            alt={flag.emoji}
-            aria-hidden
+            src={`/flags/${region}.svg`}
+            alt=""
             sx={{ width: 20, height: 14, flexShrink: 0 }}
           />
           <span id={titleId}>{title}</span>
