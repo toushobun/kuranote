@@ -68,11 +68,6 @@ function LedgerSetupAccountsStepContent(
             label: ledgerSetupWizardMessages.previous,
             onClick: step.goPrevious,
           }}
-          skip={{
-            disabled: step.isSaving,
-            label: ledgerSetupWizardMessages.skip,
-            onClick: step.skip,
-          }}
         />
       }
     >

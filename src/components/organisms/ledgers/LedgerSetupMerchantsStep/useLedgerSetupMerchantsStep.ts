@@ -84,9 +84,5 @@ export function useLedgerSetupMerchantsStep(
         skipped: draft.merchants.skipped,
       });
     },
-    // 跳过时保留当前勾选，返回该步骤时可以恢复；完成写入时不创建商家。
-    skip() {
-      void save("next", { selectedKeys, skipped: true });
-    },
   };
 }

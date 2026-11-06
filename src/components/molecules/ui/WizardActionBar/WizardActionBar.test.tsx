@@ -13,24 +13,20 @@ describe("WizardActionBar", () => {
     expect(onNext).toHaveBeenCalledTimes(1);
   });
 
-  it("显示上一步、下一步与跳过此步并分别回调", () => {
+  it("显示上一步与下一步并回调", () => {
     const onPrevious = vi.fn();
-    const onSkip = vi.fn();
     render(
       <WizardActionBar
         next={{ label: "下一步", onClick: vi.fn() }}
         previous={{ label: "上一步", onClick: onPrevious }}
-        skip={{ label: "跳过此步", onClick: onSkip }}
       />,
     );
 
     expect(
       screen.getAllByRole("button").map((button) => button.textContent),
-    ).toEqual(["跳过此步", "上一步", "下一步"]);
+    ).toEqual(["上一步", "下一步"]);
     fireEvent.click(screen.getByRole("button", { name: "上一步" }));
-    fireEvent.click(screen.getByRole("button", { name: "跳过此步" }));
     expect(onPrevious).toHaveBeenCalledTimes(1);
-    expect(onSkip).toHaveBeenCalledTimes(1);
   });
 
   it("处理中时下一步显示加载状态并禁用", () => {

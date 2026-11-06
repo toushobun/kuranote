@@ -31,7 +31,7 @@ type UseLedgerSetupDraftSaveOptions = Pick<
 type SaveDirection = "next" | "previous";
 
 /**
- * 保存时记录的 setup_step：「下一步 / 跳过此步」为下一步；
+ * 保存时记录的 setup_step：「下一步」为下一步；
  * 「上一步」不倒退，取已保存步骤与当前步骤中较大的值。
  */
 function getSetupStepToSave(

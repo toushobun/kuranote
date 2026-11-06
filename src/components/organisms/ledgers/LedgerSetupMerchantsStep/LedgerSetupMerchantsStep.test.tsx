@@ -19,7 +19,6 @@ import {
   createSaveDraftMock,
   getCurrentStepItem,
   getSavedInput,
-  goPreviousTo,
   renderLedgerSetupWizard,
 } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardTestUtils";
 import { merchantRegionButtonName } from "organisms/merchants/MerchantPresetSelector/merchantPresetSelectorTestUtils";
@@ -105,9 +104,7 @@ describe("LedgerSetupMerchantsStep", () => {
       "true",
     );
     expectNextLabel("下一步 · 已选 7 家");
-    expect(
-      screen.getByRole("button", { name: "跳过此步" }),
-    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "跳过此步" })).toBeNull();
   });
 
   it("草稿中的勾选优先于标签的默认勾选", () => {
@@ -215,37 +212,6 @@ describe("LedgerSetupMerchantsStep", () => {
     });
   });
 
-  it("跳过此步时 skipped 为 true，并保留当前勾选", async () => {
-    const { saveDraft } = renderMerchantsStep();
-
-    fireEvent.click(screen.getByRole("button", { name: "跳过此步" }));
-
-    await waitFor(() => expect(getCurrentStepItem()).toHaveTextContent("功能"));
-    expect(getSavedInput(saveDraft)).toMatchObject({
-      draft: {
-        merchants: {
-          selectedKeys: ledgerSetupMerchantDefaultSelectedKeys,
-          skipped: true,
-        },
-      },
-      step: 4,
-    });
-  });
-
-  it("跳过后返回该步骤时恢复勾选", async () => {
-    renderMerchantsStep({
-      progress: createMerchantsProgress({ selectedKeys: [] }),
-    });
-
-    fireEvent.click(getTagCheckbox("家电数码"));
-    fireEvent.click(screen.getByRole("button", { name: "跳过此步" }));
-    await waitFor(() => expect(getCurrentStepItem()).toHaveTextContent("功能"));
-    await goPreviousTo("商家");
-
-    expect(getTagCheckbox("家电数码")).toBeChecked();
-    expectNextLabel("下一步 · 已选 2 家");
-  });
-
   it("上一步时保存当前勾选并保留原有的跳过状态，setup_step 不倒退", async () => {
     const progress = createMerchantsProgress({ skipped: true });
     const saveDraft = createSaveDraftMock(progress);
@@ -278,7 +244,6 @@ describe("LedgerSetupMerchantsStep", () => {
       await screen.findByRole("progressbar", { name: "保存中" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "上一步" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "跳过此步" })).toBeDisabled();
     expect(getTagCheckbox("超市")).toBeDisabled();
     expect(getChecklistItemCheckbox("餐饮", "ガスト")).toBeDisabled();
     expect(
@@ -330,16 +295,15 @@ describe("LedgerSetupMerchantsStep", () => {
     const noTemplateProgress = () =>
       createMerchantsProgress({ selectedKeys: [], template: null });
 
-    it("显示空状态，不显示勾选列表与「跳过此步」", () => {
+    it("显示空状态，不显示勾选列表", () => {
       renderMerchantsStep({ progress: noTemplateProgress() });
 
       expect(screen.getByText("请先选择生活地区")).toBeInTheDocument();
       expect(
-        screen.getByText("可以跳过此步，之后在商家管理中添加"),
+        screen.getByText("可以直接进入下一步，之后在商家管理中添加"),
       ).toBeInTheDocument();
       expect(screen.queryByRole("checkbox")).toBeNull();
       expect(screen.queryByRole("button", { name: "全部选择" })).toBeNull();
-      expect(screen.queryByRole("button", { name: "跳过此步" })).toBeNull();
       expect(screen.getByRole("button", { name: "上一步" })).toBeEnabled();
       expectNextLabel("下一步");
     });
