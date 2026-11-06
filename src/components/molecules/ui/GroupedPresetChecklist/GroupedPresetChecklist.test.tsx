@@ -45,8 +45,6 @@ const messages: GroupedPresetChecklistMessages = {
   added: "已添加",
   groupSelectedCount: (selected, total, added) =>
     `已选 ${selected} / ${total} 个${added ? ` · 已添加 ${added} 个` : ""}`,
-  selectAll: "全选",
-  selectNone: "全不选",
 };
 
 /** 受控渲染：内部保存勾选状态，并返回 onChange spy。 */
@@ -129,9 +127,7 @@ describe("GroupedPresetChecklist", () => {
     expect(expandButton).toHaveAttribute("aria-expanded", "false");
 
     // 点击行内的分组名（行的其他部分）也会展开。
-    fireEvent.click(
-      within(getChecklistGroup("水果")).getByRole("heading", { name: "水果" }),
-    );
+    fireEvent.click(within(getChecklistGroup("水果")).getByText("水果"));
     expect(expandButton).toHaveAttribute("aria-expanded", "true");
     expect(getChecklistItemCheckbox("水果", "苹果")).toBeInTheDocument();
 
@@ -153,26 +149,6 @@ describe("GroupedPresetChecklist", () => {
       "aria-expanded",
       "true",
     );
-  });
-
-  it("展开区域顶部的「全选」「全不选」只作用于该分组", () => {
-    const { onChange } = renderChecklist(["carrot"]);
-
-    const fruit = toggleChecklistGroup("水果");
-    fireEvent.click(within(fruit).getByRole("button", { name: "全选" }));
-    expect(onChange).toHaveBeenLastCalledWith([
-      "apple",
-      "banana",
-      "cherry",
-      "carrot",
-    ]);
-    expect(within(fruit).getByRole("button", { name: "全选" })).toBeDisabled();
-
-    fireEvent.click(within(fruit).getByRole("button", { name: "全不选" }));
-    expect(onChange).toHaveBeenLastCalledWith(["carrot"]);
-    expect(
-      within(fruit).getByRole("button", { name: "全不选" }),
-    ).toBeDisabled();
   });
 
   it("同一项目出现在多个分组时勾选状态联动，数量按各分组分别计算", () => {
@@ -197,7 +173,7 @@ describe("GroupedPresetChecklist", () => {
     expect(getChecklistGroup("水果")).toHaveTextContent("已选 1 / 3 个");
   });
 
-  it("disabled 时禁用全部复选框与展开区域的按钮", () => {
+  it("disabled 时禁用全部复选框，仍可展开浏览", () => {
     render(
       <GroupedPresetChecklist
         disabled
@@ -209,11 +185,10 @@ describe("GroupedPresetChecklist", () => {
       />,
     );
 
-    const fruit = toggleChecklistGroup("水果");
+    toggleChecklistGroup("水果");
 
     expect(getGroupCheckbox("水果")).toBeDisabled();
     expect(getChecklistItemCheckbox("水果", "苹果")).toBeDisabled();
-    expect(within(fruit).getByRole("button", { name: "全选" })).toBeDisabled();
   });
 });
 
@@ -231,11 +206,11 @@ describe("GroupedPresetChecklist 已添加项目", () => {
       within(group).getByRole("checkbox", { name: "选择水果全部" }),
     );
     expect(onChange).toHaveBeenLastCalledWith(["banana", "cherry"]);
-    fireEvent.click(within(group).getByRole("button", { name: "全不选" }));
+    fireEvent.click(getGroupCheckbox("水果"));
     expect(onChange).toHaveBeenLastCalledWith([]);
     expect(getChecklistItemCheckbox("水果", "苹果")).toBeChecked();
   });
-  it("整个分组已添加时分组复选框勾选禁用，两种批量按钮均禁用", () => {
+  it("整个分组已添加时分组复选框勾选禁用", () => {
     renderChecklist([], ["apple", "banana", "cherry"]);
     const group = toggleChecklistGroup("水果");
     expect(
@@ -243,10 +218,6 @@ describe("GroupedPresetChecklist 已添加项目", () => {
     ).toBeChecked();
     expect(
       within(group).getByRole("checkbox", { name: "选择水果全部" }),
-    ).toBeDisabled();
-    expect(within(group).getByRole("button", { name: "全选" })).toBeDisabled();
-    expect(
-      within(group).getByRole("button", { name: "全不选" }),
     ).toBeDisabled();
     expect(
       within(group).getByText("已选 0 / 0 个 · 已添加 3 个"),

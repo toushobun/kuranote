@@ -14,18 +14,22 @@ import {
   getLedgerSetupTemplate,
   type LedgerSetupRegion,
 } from "internal/ledger";
-const template = getLedgerSetupTemplate("jp")!;
-const defaultDraft = createDefaultLedgerSetupDraft("jp", template);
 function createMerchantsProgress(
-  selectedKeys = defaultDraft.merchants.selectedKeys,
-  additionalRegions: LedgerSetupRegion[] = [],
+  livingRegion: LedgerSetupRegion = "jp",
+  selectedKeys?: string[],
 ) {
+  const template = getLedgerSetupTemplate(livingRegion)!;
+  const draft = createDefaultLedgerSetupDraft(livingRegion, template);
   const base = createLedgerSetupProgressFixture();
   return createLedgerSetupProgressFixture(
     {
+      livingRegion,
       draft: {
         ...base.setup.draft,
-        merchants: { selectedKeys, skipped: false, additionalRegions },
+        merchants: {
+          selectedKeys: selectedKeys ?? draft.merchants.selectedKeys,
+          skipped: false,
+        },
       },
       step: 3,
     },
@@ -55,26 +59,42 @@ export const Default: Story = {
   name: "默认（收起）",
 };
 
-export const ExpandRestaurant: Story = {
-  name: "展开餐饮",
+export const ExpandShopping: Story = {
+  name: "展开购物",
   play: async ({ canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await body.findByRole("button", { name: "餐饮" }));
+    await userEvent.click(await body.findByRole("button", { name: "购物" }));
   },
 };
 
 export const SelectNone: Story = {
   name: "全不选",
-  args: { progress: createMerchantsProgress([]) },
+  args: { progress: createMerchantsProgress("jp", []) },
 };
 
+export const ChinaFirst: Story = {
+  name: "中国优先",
+  args: { progress: createMerchantsProgress("cn") },
+};
 export const AddedChina: Story = {
-  name: "追加中国",
-  args: { progress: createMerchantsProgress(undefined, ["cn"]) },
+  name: "展开中国",
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    await userEvent.click(
+      await body.findByRole("button", { name: /中国常用商家/ }),
+    );
+  },
 };
 export const Partial: Story = {
   name: "部分选中",
-  args: { progress: createMerchantsProgress(["apple", "starbucks"]) },
+  args: {
+    progress: createMerchantsProgress(
+      "jp",
+      defaultProgress.setup.draft.merchants.selectedKeys.filter(
+        (key) => key !== "apple",
+      ),
+    ),
+  },
 };
 export const DifferentCurrency: Story = {
   name: "人民币账本使用日本地区",

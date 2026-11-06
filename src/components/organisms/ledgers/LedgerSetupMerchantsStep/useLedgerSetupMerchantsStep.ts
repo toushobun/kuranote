@@ -2,7 +2,7 @@
 
 import { useLedgerSetupStepDirty } from "organisms/ledgers/LedgerSetupWizard/useLedgerSetupStepDirty";
 
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useState } from "react";
 
 import type { LedgerSetupDraft } from "internal/ledger";
 import type { LedgerSetupWizardStepProps } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardStepTypes";
@@ -23,12 +23,7 @@ export function useLedgerSetupMerchantsStep(
   const { progress } = options;
   const { draft } = progress.setup;
   const { template } = progress;
-  const changingRegion = useRef(false);
-  const draftSave = useLedgerSetupDraftSave({
-    ...options,
-    onPrevious: () =>
-      changingRegion.current ? options.onGoToStep(1) : options.onPrevious(),
-  });
+  const draftSave = useLedgerSetupDraftSave(options);
   const [additionalRegions, setAdditionalRegions] = useState(
     draft.merchants.additionalRegions ?? [],
   );
@@ -73,10 +68,6 @@ export function useLedgerSetupMerchantsStep(
     setSelectedKeys,
     additionalRegions,
     setAdditionalRegions,
-    changeRegion() {
-      changingRegion.current = true;
-      void save("previous", { selectedKeys, skipped: draft.merchants.skipped });
-    },
     // 没有模板时没有可选商家，下一步按跳过保存。
     goNext() {
       void save(
@@ -88,7 +79,6 @@ export function useLedgerSetupMerchantsStep(
     },
     // 返回上一步时保留原有的跳过状态，只保存勾选的修改。
     goPrevious() {
-      changingRegion.current = false;
       void save("previous", {
         selectedKeys,
         skipped: draft.merchants.skipped,

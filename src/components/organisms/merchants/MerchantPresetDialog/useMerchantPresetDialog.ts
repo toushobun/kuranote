@@ -13,13 +13,12 @@ export function useMerchantPresetDialog(
   inline = false,
 ) {
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
-  const [region, setRegion] = useState(options.region);
+  const region = options.region ?? "jp";
   const [additionalRegions, setAdditionalRegions] = useState<
     LedgerSetupRegion[]
   >([]);
-  const checklist = options.templateVersion === null ? null : options;
   const selection = getPresetSelection(
-    checklist?.items ?? [],
+    options.items,
     selectedKeys,
     options.addedKeys,
   );
@@ -27,33 +26,25 @@ export function useMerchantPresetDialog(
   function submit(formData: FormData) {
     if (
       submission.pending ||
-      selection.keys.length === 0 ||
+      selection.length === 0 ||
       options.templateVersion === null
     )
       return;
-    if (!region) return;
     for (const value of [
       region,
       ...additionalRegions.filter((value) => value !== region),
     ])
       formData.append("regions", value);
     formData.set("templateVersion", String(options.templateVersion));
-    for (const key of selection.keys) formData.append("selectedKeys", key);
+    for (const key of selection) formData.append("selectedKeys", key);
     if (inline) formData.set("presentation", "dialog");
     submission.action(formData);
   }
   return {
-    checklist,
-    region,
-    setRegion(next: LedgerSetupRegion) {
-      if (region && region !== next) setAdditionalRegions([region]);
-      setRegion(next);
-    },
     additionalRegions,
     setAdditionalRegions,
-    selection,
     setSelectedKeys,
-    selectedKeys: selection.keys,
+    selectedKeys: selection,
     submission,
     submit,
   };

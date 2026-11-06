@@ -27,10 +27,6 @@ import {
 } from "test/mocks/ledgerSetup";
 import type { LedgerSetupDraftSaveAction } from "types/ledgers";
 
-const allMerchantKeys = ledgerSetupMerchantTemplateFixture.merchants.map(
-  ({ key }) => key,
-);
-
 function createMerchantsProgress({
   selectedKeys = ledgerSetupMerchantDefaultSelectedKeys,
   skipped = false,
@@ -72,21 +68,6 @@ function expectNextLabel(label: string) {
 }
 
 describe("LedgerSetupMerchantsStep", () => {
-  it("更改地区先保存当前勾选，再返回基本信息步骤", async () => {
-    const { saveDraft } = renderMerchantsStep();
-    fireEvent.click(getTagCheckbox("餐饮"));
-    fireEvent.click(screen.getByRole("button", { name: "更改" }));
-    await waitFor(() =>
-      expect(getCurrentStepItem()).toHaveTextContent("基本信息"),
-    );
-    expect(getSavedInput(saveDraft).draft.merchants.selectedKeys).toEqual([
-      "aeon",
-      "seiyu",
-      "amazon",
-      "mercari",
-    ]);
-    expect(screen.getByRole("radio", { name: "日本" })).toBeChecked();
-  });
   it("显示引导文案与按 sortOrder 排列的商家标签，初始勾选来自草稿", () => {
     renderMerchantsStep();
 
@@ -97,9 +78,12 @@ describe("LedgerSetupMerchantsStep", () => {
       screen.getByText("之后可以在商家管理中修改名称和别名"),
     ).toBeInTheDocument();
     expect(
+      screen.getByRole("heading", { name: "日本常用商家" }),
+    ).toBeInTheDocument();
+    expect(
       screen
-        .getAllByRole("heading", { level: 4 })
-        .map((heading) => heading.textContent),
+        .getAllByRole("region")
+        .map((node) => node.getAttribute("aria-label")),
     ).toEqual([
       "超市",
       "餐饮",
@@ -109,10 +93,10 @@ describe("LedgerSetupMerchantsStep", () => {
       "政府·公共服务",
     ]);
     expect(getTagCheckbox("餐饮")).toBeChecked();
-    expect(getChecklistGroup("餐饮")).toHaveTextContent("已选 3 / 3 家");
+    expect(getChecklistGroup("餐饮")).toHaveTextContent("3 / 3");
     expect(getTagCheckbox("家电数码")).not.toBeChecked();
     // 订阅服务中只有 Amazon 因「电商」默认勾选而被选中。
-    expect(getChecklistGroup("订阅服务")).toHaveTextContent("已选 1 / 3 家");
+    expect(getChecklistGroup("订阅服务")).toHaveTextContent("1 / 3");
     expect(getTagCheckbox("订阅服务")).toHaveAttribute(
       "data-indeterminate",
       "true",
@@ -129,7 +113,7 @@ describe("LedgerSetupMerchantsStep", () => {
     });
 
     expect(getTagCheckbox("餐饮")).not.toBeChecked();
-    expect(getChecklistGroup("订阅服务")).toHaveTextContent("已选 1 / 3 家");
+    expect(getChecklistGroup("订阅服务")).toHaveTextContent("1 / 3");
     expectNextLabel("下一步 · 已选 1 家");
   });
 
@@ -170,34 +154,16 @@ describe("LedgerSetupMerchantsStep", () => {
     expect(within(publicService).queryByText(/\./)).toBeNull();
   });
 
-  it("顶部按钮未全选时为「全部选择」，全选后切换为「全不选」", () => {
+  it("只通过分类复选框批量选择，无地区更改或额外全选按钮", () => {
     renderMerchantsStep();
-
-    fireEvent.click(screen.getByRole("button", { name: "全部选择" }));
-    expectNextLabel(`下一步 · 已选 ${allMerchantKeys.length} 家`);
-    expect(getTagCheckbox("家电数码")).toBeChecked();
-
-    fireEvent.click(screen.getByRole("button", { name: "全不选" }));
-    expectNextLabel("下一步");
-    expect(getTagCheckbox("餐饮")).not.toBeChecked();
+    toggleChecklistGroup("餐饮");
     expect(
-      screen.getByRole("button", { name: "全部选择" }),
-    ).toBeInTheDocument();
-  });
-
-  it("逐个勾选到全部商家时顶部按钮也切换为「全不选」", () => {
-    renderMerchantsStep({
-      progress: createMerchantsProgress({
-        selectedKeys: allMerchantKeys.filter((key) => key !== "hospital"),
-      }),
-    });
-
-    toggleChecklistGroup("政府·公共服务");
-    fireEvent.click(getChecklistItemCheckbox("政府·公共服务", "病院"));
-
-    // 引导区与展开区域顶部各有一个「全不选」。
-    expect(screen.queryByRole("button", { name: "全部选择" })).toBeNull();
-    expect(screen.getAllByRole("button", { name: "全不选" })).toHaveLength(2);
+      screen.queryByRole("button", { name: /^(更改|全部选择|全选|全不选)$/ }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(getTagCheckbox("餐饮"));
+    expectNextLabel("下一步 · 已选 4 家");
+    fireEvent.click(getTagCheckbox("餐饮"));
+    expectNextLabel("下一步 · 已选 7 家");
   });
 
   it("下一步时保存勾选的商家，skipped 为 false，setup_step 为第 4 步", async () => {
@@ -273,7 +239,7 @@ describe("LedgerSetupMerchantsStep", () => {
     });
   });
 
-  it("保存中禁用勾选、顶部按钮、操作栏与关闭按钮", async () => {
+  it("保存中禁用勾选、操作栏与关闭按钮", async () => {
     renderMerchantsStep({
       saveDraft: vi.fn<LedgerSetupDraftSaveAction>(() => new Promise(() => {})),
     });
@@ -286,7 +252,6 @@ describe("LedgerSetupMerchantsStep", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "上一步" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "跳过此步" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "全部选择" })).toBeDisabled();
     expect(getTagCheckbox("超市")).toBeDisabled();
     expect(getChecklistItemCheckbox("餐饮", "ガスト")).toBeDisabled();
     expect(
@@ -338,7 +303,7 @@ describe("LedgerSetupMerchantsStep", () => {
     const noTemplateProgress = () =>
       createMerchantsProgress({ selectedKeys: [], template: null });
 
-    it("显示空状态，不显示勾选列表、顶部按钮与「跳过此步」", () => {
+    it("显示空状态，不显示勾选列表与「跳过此步」", () => {
       renderMerchantsStep({ progress: noTemplateProgress() });
 
       expect(screen.getByText("请先选择生活地区")).toBeInTheDocument();

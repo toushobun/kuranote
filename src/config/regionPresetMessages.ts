@@ -5,16 +5,11 @@ const regionNames = { jp: "日本", cn: "中国" } as const;
 export const regionPresetMessages = {
   label: "你主要在哪里生活？",
   names: regionNames,
-  recommendation: (region: LedgerSetupRegion) =>
-    `按${regionNames[region]}常用商家推荐`,
-  change: "更改",
-  collapse: "收起",
   merchantGroup: (region: LedgerSetupRegion) =>
-    `${region === "jp" ? "🇯🇵" : "🇨🇳"} ${regionNames[region]}常用商家`,
-  addMerchants: (region: LedgerSetupRegion) =>
-    `添加${regionNames[region]}常用商家`,
-  expandMerchants: (region: LedgerSetupRegion, selected: number) =>
-    `展开${regionNames[region]}常用商家（已选 ${selected} 家）`,
+    `${regionNames[region]}常用商家`,
+  merchantSelectedCount: (selected: number) => `已选 ${selected} 家`,
+  sharedMerchants: (region: LedgerSetupRegion) =>
+    `两地共有的商家已列在${regionNames[region]}分区。`,
   addCandidates: (region: LedgerSetupRegion) =>
     `添加${regionNames[region]}账户候选`,
   alsoIn: (groups: readonly string[]) => `也在：${groups.join("、")}`,

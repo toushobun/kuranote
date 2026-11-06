@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { toggleChecklistGroup } from "molecules/ui/GroupedPresetChecklist/groupedPresetChecklistTestUtils";
 import { MerchantPresetSelectorExample } from "./merchantPresetSelectorTestUtils";
@@ -10,7 +16,7 @@ function expand(name: string, index = 0) {
 describe("MerchantPresetSelector", () => {
   it("默认8类全部收起，勾选分类不会展开", () => {
     render(<MerchantPresetSelectorExample />);
-    expect(screen.getAllByRole("button", { expanded: false })).toHaveLength(8);
+    expect(screen.getAllByRole("button", { expanded: false })).toHaveLength(9);
     expect(
       screen.queryByRole("checkbox", { name: /苹果/ }),
     ).not.toBeInTheDocument();
@@ -60,115 +66,66 @@ describe("MerchantPresetSelector", () => {
     expect(box).not.toBeChecked();
     expect(changed.mock.lastCall?.[0]).toEqual([]);
   });
-  it("追加中国另起一组，共用商家不重复，新增地区全部不勾", () => {
+  it.each([
+    ["jp", "日本", "中国"],
+    ["cn", "中国", "日本"],
+  ] as const)("按生活地区排序：%s", (region, primary, secondary) => {
+    render(<MerchantPresetSelectorExample initialRegion={region} />);
+    expect(
+      screen
+        .getAllByRole("heading", { level: 4 })
+        .map((node) => node.textContent),
+    ).toEqual([`${primary}常用商家`, `${secondary}常用商家已选 0 家`]);
+    expect(
+      screen.getByRole("button", { name: new RegExp(secondary) }),
+    ).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("展开只浏览，首次勾选才登记地区，收起时保留唯一计数", async () => {
     const changed = vi.fn();
-    render(<MerchantPresetSelectorExample onChange={changed} />);
-    fireEvent.click(screen.getByRole("button", { name: "添加中国常用商家" }));
+    const added = vi.fn();
+    render(
+      <MerchantPresetSelectorExample
+        onChange={changed}
+        onAdditionalRegionsChange={added}
+      />,
+    );
+    const regionButton = screen.getByRole("button", { name: /中国常用商家/ });
+    fireEvent.click(regionButton);
+    expect(added).not.toHaveBeenCalled();
     expect(changed).not.toHaveBeenCalled();
     expand("餐饮");
-    expand("餐饮", 1);
+    const secondary = expand("餐饮", 1);
+    const merchant = secondary.getByRole("checkbox", { name: /海底捞/ });
+    expect(merchant).not.toBeChecked();
     expect(screen.getAllByRole("checkbox", { name: /星巴克/ })).toHaveLength(1);
-    expect(screen.getByRole("checkbox", { name: /海底捞/ })).not.toBeChecked();
-    fireEvent.click(screen.getByRole("checkbox", { name: /海底捞/ }));
-    expect(changed.mock.lastCall?.[0]).toContain("haidilao");
-    expect(changed.mock.lastCall?.[0]).toContain("starbucks");
-  });
-  it("收起追加组保留勾选，再次展开恢复选择且共用商家不重复", () => {
-    const changed = vi.fn();
-    render(<MerchantPresetSelectorExample onChange={changed} />);
-    fireEvent.click(screen.getByRole("button", { name: "添加中国常用商家" }));
-    expect(
-      screen.getByRole("heading", { name: "🇨🇳 中国常用商家" }),
-    ).toBeInTheDocument();
-    expand("餐饮", 1);
-    fireEvent.click(screen.getByRole("checkbox", { name: /海底捞/ }));
-    const keys = changed.mock.lastCall?.[0];
-    fireEvent.click(screen.getByRole("button", { name: "收起" }));
-    expect(
-      screen.queryByRole("heading", { name: "🇨🇳 中国常用商家" }),
-    ).not.toBeInTheDocument();
-    expect(changed.mock.lastCall?.[0]).toEqual(keys);
-    fireEvent.click(
-      screen.getByRole("button", { name: "展开中国常用商家（已选 1 家）" }),
+    fireEvent.click(merchant);
+    expect(added).toHaveBeenCalledExactlyOnceWith(["cn"]);
+    expect(changed.mock.lastCall?.[0]).toEqual(
+      expect.arrayContaining(["haidilao", "starbucks"]),
     );
-    expand("餐饮", 1);
-    expect(screen.getByRole("checkbox", { name: /海底捞/ })).toBeChecked();
-    expand("餐饮");
-    expect(screen.getAllByRole("checkbox", { name: /星巴克/ })).toHaveLength(1);
-  });
-  it("未勾选的追加地区收起后仍显示展开入口和零计数", () => {
-    render(<MerchantPresetSelectorExample initialSelectedKeys={[]} />);
-    fireEvent.click(screen.getByRole("button", { name: "添加中国常用商家" }));
-    fireEvent.click(screen.getByRole("button", { name: "收起" }));
+    fireEvent.click(regionButton);
+    expect(regionButton).toHaveTextContent("已选 1 家");
+    expect(regionButton).toHaveAttribute("aria-expanded", "false");
+    await waitFor(() => expect(merchant).not.toBeInTheDocument());
+    fireEvent.click(regionButton);
     expect(
-      screen.queryByRole("button", { name: "添加中国常用商家" }),
-    ).not.toBeInTheDocument();
-    fireEvent.click(
-      screen.getByRole("button", { name: "展开中国常用商家（已选 0 家）" }),
+      expand("餐饮", 1).getByRole("checkbox", { name: /海底捞/ }),
+    ).toBeChecked();
+  });
+
+  it("恢复有已选商家的第二地区并显示已选数量", () => {
+    render(
+      <MerchantPresetSelectorExample
+        initialAdditionalRegions={["cn"]}
+        initialSelectedKeys={["haidilao"]}
+      />,
     );
     expect(
-      screen.getByRole("heading", { name: "🇨🇳 中国常用商家" }),
-    ).toBeInTheDocument();
-  });
-  it.each([
-    {
-      region: "jp",
-      other: "cn",
-      name: "中国",
-      primary: "aeon",
-      hidden: "haidilao",
-      unselectedHidden: "hema",
-      group: "餐饮",
-    },
-    {
-      region: "cn",
-      other: "jp",
-      name: "日本",
-      primary: "hema",
-      hidden: "aeon",
-      unselectedHidden: "jr_east",
-      group: "超市",
-    },
-  ] as const)(
-    "收起$name后全选及全不选只操作显示地区并保留隐藏选择",
-    ({ region, other, name, primary, hidden, unselectedHidden, group }) => {
-      const changed = vi.fn();
-      render(
-        <MerchantPresetSelectorExample
-          initialRegion={region}
-          initialAdditionalRegions={[other]}
-          initialSelectedKeys={["starbucks", hidden]}
-          onChange={changed}
-        />,
-      );
-      fireEvent.click(screen.getByRole("button", { name: "收起" }));
-      const expandLabel = `展开${name}常用商家（已选 1 家）`;
-      expect(
-        screen.getByRole("button", { name: expandLabel }),
-      ).toBeInTheDocument();
-      fireEvent.click(screen.getByRole("button", { name: "全部选择" }));
-      expect(changed.mock.lastCall?.[0]).toContain(primary);
-      expect(changed.mock.lastCall?.[0]).toContain(hidden);
-      expect(changed.mock.lastCall?.[0]).not.toContain(unselectedHidden);
-      fireEvent.click(screen.getByRole("button", { name: "全不选" }));
-      expect(changed.mock.lastCall?.[0]).toEqual([hidden]);
-      fireEvent.click(screen.getByRole("button", { name: expandLabel }));
-      const additional = expand(group, 1);
-      expect(
-        additional.getByRole("checkbox", {
-          name: region === "jp" ? /海底捞/ : /永旺/,
-        }),
-      ).toBeChecked();
-      fireEvent.click(screen.getByRole("button", { name: "全部选择" }));
-      expect(changed.mock.lastCall?.[0]).toContain(unselectedHidden);
-    },
-  );
-  it("更改主要地区保留原选择并显示原地区追加组", () => {
-    render(<MerchantPresetSelectorExample initialSelectedKeys={["aeon"]} />);
-    fireEvent.click(screen.getByRole("button", { name: "更改" }));
-    fireEvent.click(screen.getByRole("radio", { name: "中国" }));
-    expect(screen.getByText("按中国常用商家推荐")).toBeInTheDocument();
-    const japan = expand("超市", 1);
-    expect(japan.getByRole("checkbox", { name: /永旺/ })).toBeChecked();
+      screen.getByRole("button", { name: /中国常用商家.*已选 1 家/ }),
+    ).toHaveAttribute("aria-expanded", "true");
+    expect(
+      expand("餐饮", 1).getByRole("checkbox", { name: /海底捞/ }),
+    ).toBeChecked();
   });
 });

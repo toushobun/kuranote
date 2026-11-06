@@ -2,6 +2,7 @@
 
 import { useBackLayer } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
 import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { useCallback, useEffect, useId } from "react";
 import { WizardDialog } from "molecules/ui/WizardDialog/WizardDialog";
 
@@ -60,10 +61,10 @@ export function MerchantPresetDialog({
                 onClick: requestClose,
               }}
               next={{
-                label: messages.submit(dialog.selection.keys.length),
+                label: messages.submit(dialog.selectedKeys.length),
                 loading: pending,
                 loadingLabel: messages.submitting,
-                disabled: dialog.selection.keys.length === 0,
+                disabled: dialog.selectedKeys.length === 0,
                 type: "submit",
                 form: formId,
               }}
@@ -76,22 +77,27 @@ export function MerchantPresetDialog({
             id={formId}
             spacing={2}
           >
-            <MerchantPresetSelector
-              {...options}
-              region={dialog.region}
-              recommendationLabel={
-                dialog.region
-                  ? messages.recommendation(dialog.region)
-                  : undefined
-              }
-              onRegionChange={dialog.setRegion}
-              additionalRegions={dialog.additionalRegions}
-              onAdditionalRegionsChange={dialog.setAdditionalRegions}
-              disabled={pending}
-              disabledKeys={options.addedKeys}
-              selectedKeys={dialog.selectedKeys}
-              onChange={dialog.setSelectedKeys}
-            />
+            {options.templateVersion === null ? (
+              <Typography color="textSecondary" variant="body2">
+                {messages.noTemplate}
+              </Typography>
+            ) : (
+              <>
+                <Typography color="textSecondary" variant="body2">
+                  {messages.description}
+                </Typography>
+                <MerchantPresetSelector
+                  {...options}
+                  region={options.region}
+                  additionalRegions={dialog.additionalRegions}
+                  onAdditionalRegionsChange={dialog.setAdditionalRegions}
+                  disabled={pending}
+                  disabledKeys={options.addedKeys}
+                  selectedKeys={dialog.selectedKeys}
+                  onChange={dialog.setSelectedKeys}
+                />
+              </>
+            )}
           </Stack>
         </WizardStepLayout>
       </WizardDialog>

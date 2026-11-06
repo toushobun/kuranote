@@ -70,7 +70,7 @@ function LedgerSetupMerchantsStepContent(
         />
       }
     >
-      <Stack spacing={2}>
+      <Stack spacing={1}>
         <Stack spacing={0.75}>
           <Typography component="h3" sx={titleSx}>
             {ledgerSetupMerchantsMessages.title}
@@ -85,7 +85,6 @@ function LedgerSetupMerchantsStepContent(
             region={props.progress.setup.livingRegion}
             additionalRegions={step.additionalRegions}
             onAdditionalRegionsChange={step.setAdditionalRegions}
-            onRequestRegionChange={step.changeRegion}
             disabled={step.isSaving}
             groups={checklist.groups}
             items={checklist.items}

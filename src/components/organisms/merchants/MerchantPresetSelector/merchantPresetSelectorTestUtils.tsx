@@ -13,13 +13,15 @@ export function MerchantPresetSelectorExample({
   initialAdditionalRegions = [],
   initialRegion = "jp",
   onChange,
+  onAdditionalRegionsChange,
 }: {
   initialSelectedKeys?: string[];
   initialAdditionalRegions?: LedgerSetupRegion[];
   initialRegion?: LedgerSetupRegion;
+  onAdditionalRegionsChange?: (regions: LedgerSetupRegion[]) => void;
   onChange?: (keys: string[]) => void;
 }) {
-  const [region, setRegion] = useState(initialRegion);
+  const region = initialRegion;
   const [additionalRegions, setAdditionalRegions] = useState(
     initialAdditionalRegions,
   );
@@ -33,10 +35,9 @@ export function MerchantPresetSelectorExample({
       {...checklist}
       region={region}
       additionalRegions={additionalRegions}
-      onAdditionalRegionsChange={setAdditionalRegions}
-      onRegionChange={(next) => {
-        setAdditionalRegions([region]);
-        setRegion(next);
+      onAdditionalRegionsChange={(regions) => {
+        setAdditionalRegions(regions);
+        onAdditionalRegionsChange?.(regions);
       }}
       selectedKeys={selectedKeys}
       onChange={(keys) => {

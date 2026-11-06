@@ -67,8 +67,6 @@ const meta = {
     messages: {
       groupCheckboxLabel: (name) => `选择「${name}」的全部项目`,
       groupSelectedCount: (selected, total) => `已选 ${selected} / ${total} 家`,
-      selectAll: "全选",
-      selectNone: "全不选",
     },
     onChange: () => {},
     selectedKeys: ["aeon", "seiyu", "life"],
@@ -107,8 +105,6 @@ export const AlreadyAdded: Story = {
       groupCheckboxLabel: (name) => `选择「${name}」的全部项目`,
       groupSelectedCount: (selected, total, added) =>
         `已选 ${selected} / ${total} 家${added ? ` · 已添加 ${added} 家` : ""}`,
-      selectAll: "全选",
-      selectNone: "全不选",
     },
   },
 };
