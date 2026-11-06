@@ -46,10 +46,11 @@ export function buildLedgerSetupCompletionPayload(
   const accounts = draft.accounts.skipped
     ? []
     : draft.accounts.items.flatMap(({ name, templateKey, type }) => {
-        const region =
-          templateKey === undefined
-            ? null
-            : findLedgerSetupAccountRegion(template, type, templateKey);
+        const region = findLedgerSetupAccountRegion(
+          template,
+          type,
+          templateKey,
+        );
         return region
           ? [
               {

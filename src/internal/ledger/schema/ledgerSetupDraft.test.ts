@@ -29,7 +29,7 @@ describe("validateLedgerSetupDraftInput", () => {
       validateLedgerSetupDraftInput({ draft: makeDraft(301), step: 3 }),
     ).toMatchObject({ ok: false, error: ledgerSetupErrorCodes.draftInvalid });
   });
-  it("步骤在范围内且草稿符合 v1 结构时通过", () => {
+  it("步骤在范围内且草稿符合 v2 结构时通过", () => {
     expect(validateLedgerSetupDraftInput({ draft, step: 3 })).toEqual({
       ok: true,
       value: { draft, step: 3 },
@@ -41,7 +41,14 @@ describe("validateLedgerSetupDraftInput", () => {
       draft: {
         ...draft,
         accounts: {
-          items: [{ extra: true, name: " 楽天銀行 ", type: "bank" }],
+          items: [
+            {
+              extra: true,
+              name: " 楽天銀行 ",
+              templateKey: "楽天銀行",
+              type: "bank",
+            },
+          ],
           skipped: false,
         },
         unknown: 1,
@@ -55,7 +62,9 @@ describe("validateLedgerSetupDraftInput", () => {
         draft: {
           ...draft,
           accounts: {
-            items: [{ name: "楽天銀行", type: "bank" }],
+            items: [
+              { name: "楽天銀行", templateKey: "楽天銀行", type: "bank" },
+            ],
             skipped: false,
           },
         },
@@ -64,13 +73,13 @@ describe("validateLedgerSetupDraftInput", () => {
     });
   });
 
-  it("无模板币种的模板版本可以为 null", () => {
-    const usdDraft = createDefaultLedgerSetupDraft(null);
+  it("没有地区模板时模板版本可以为 null", () => {
+    const noRegionDraft = createDefaultLedgerSetupDraft(null);
 
-    expect(usdDraft.templateVersion).toBeNull();
-    expect(validateLedgerSetupDraftInput({ draft: usdDraft, step: 2 }).ok).toBe(
-      true,
-    );
+    expect(noRegionDraft.templateVersion).toBeNull();
+    expect(
+      validateLedgerSetupDraftInput({ draft: noRegionDraft, step: 2 }).ok,
+    ).toBe(true);
   });
 
   it.each([0, 6, 2.5, "3", null])("步骤为 %s 时返回步骤错误", (step) => {
@@ -95,10 +104,23 @@ describe("validateLedgerSetupDraftInput", () => {
       },
     ],
     [
+      "账户缺少 templateKey",
+      {
+        ...draft,
+        accounts: {
+          items: [{ name: "自己添加的账户", type: "bank" }],
+          skipped: false,
+        },
+      },
+    ],
+    [
       "账户名称为空",
       {
         ...draft,
-        accounts: { items: [{ name: "  ", type: "cash" }], skipped: false },
+        accounts: {
+          items: [{ name: "  ", templateKey: "日元现金", type: "cash" }],
+          skipped: false,
+        },
       },
     ],
     [
@@ -109,6 +131,7 @@ describe("validateLedgerSetupDraftInput", () => {
           items: [
             {
               name: "x".repeat(ledgerSetupLimits.accountNameMaxLength + 1),
+              templateKey: "楽天銀行",
               type: "bank",
             },
           ],
@@ -123,7 +146,11 @@ describe("validateLedgerSetupDraftInput", () => {
         accounts: {
           items: Array.from(
             { length: ledgerSetupLimits.maxAccounts + 1 },
-            (_, index) => ({ name: `银行${index}`, type: "bank" }),
+            (_, index) => ({
+              name: `银行${index}`,
+              templateKey: `银行${index}`,
+              type: "bank",
+            }),
           ),
           skipped: false,
         },
@@ -158,11 +185,6 @@ describe("parseStoredLedgerSetupDraft", () => {
         templateVersion: "1",
       }),
     ).toEqual({
-      // #931 之前保存的功能开关没有多账户付款，按默认关闭补全。
-      features: {
-        multiAccountPaymentEnabled: false,
-        specialStatusEnabled: true,
-      },
       merchants: draft.merchants,
       templateRegion: "jp",
     });
@@ -184,7 +206,7 @@ describe("parseStoredLedgerSetupDraft", () => {
     });
   });
 
-  it("无模板币种的模板版本 null 被保留", () => {
+  it("没有地区模板时模板版本 null 被保留", () => {
     expect(
       parseStoredLedgerSetupDraft({
         templateRegion: null,

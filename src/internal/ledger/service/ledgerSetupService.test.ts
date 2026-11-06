@@ -156,34 +156,11 @@ describe("createLedgerSetupService.getCurrentUserSetup", () => {
       id: ledgerId,
       name: "家庭账本",
       step: 2,
-      templateUpdated: false,
     });
     expect(
       ledgerSetupRepository.findCurrentUserSetupLedger,
     ).toHaveBeenCalledWith(userId);
   });
-
-  it.each([
-    ["基于当前版本", draft.templateVersion, false],
-    ["基于旧版本", 1, true],
-  ])(
-    "已保存草稿%s的预设时 templateUpdated 为 %s",
-    async (_label, templateVersion, templateUpdated) => {
-      const service = createLedgerSetupService({
-        currentUserId: userId,
-        ledgerSetupRepository: createRepository({
-          findCurrentUserSetupLedger: vi.fn(async () =>
-            createRecord({ ...draft, templateVersion }),
-          ),
-        }),
-      });
-
-      await expect(service.getCurrentUserSetup()).resolves.toMatchObject({
-        draft: { templateVersion: draft.templateVersion },
-        templateUpdated,
-      });
-    },
-  );
 
   it.each([
     ["已保存账户选择", { accounts: draft.accounts }],
@@ -455,22 +432,6 @@ describe("createLedgerSetupService.saveDraft", () => {
     [{ draft, step: 6 }, ledgerSetupErrorCodes.stepInvalid],
     [{ draft: [], step: 2 }, ledgerSetupErrorCodes.draftInvalid],
     [{ draft: { accounts: [] }, step: 2 }, ledgerSetupErrorCodes.draftInvalid],
-    [
-      {
-        draft: {
-          ...draft,
-          accounts: {
-            items: [
-              { name: "日元现金", templateKey: "日元现金", type: "cash" },
-              { name: "日元现金", templateKey: "日元现金", type: "cash" },
-            ],
-            skipped: false,
-          },
-        },
-        step: 2,
-      },
-      ledgerSetupErrorCodes.accountNameDuplicate,
-    ],
   ])("输入不合法时抛出 ValidationError 且不访问数据库", async (input, code) => {
     const ledgerSetupRepository = createRepository();
     const service = createLedgerSetupService({
@@ -498,7 +459,13 @@ describe("createLedgerSetupService.saveDraft", () => {
       {
         ...draft,
         accounts: {
-          items: [{ name: "自己添加的账户", type: "bank" as const }],
+          items: [
+            {
+              name: "不存在的银行",
+              templateKey: "不存在的银行",
+              type: "bank" as const,
+            },
+          ],
           skipped: false,
         },
       },
@@ -520,7 +487,7 @@ describe("createLedgerSetupService.saveDraft", () => {
       },
     ],
     [
-      "无模板币种选择了商家",
+      "没有地区模板却选择了商家",
       {
         ...createDefaultLedgerSetupDraft(null),
         merchants: { selectedKeys: ["amazon"], skipped: false },

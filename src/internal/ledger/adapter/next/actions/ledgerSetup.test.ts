@@ -132,8 +132,7 @@ function createSetupError(code: LedgerSetupErrorCode) {
     return new NotFoundError(code, message);
   }
 
-  return code === ledgerSetupErrorCodes.accountNameDuplicate ||
-    code === ledgerSetupErrorCodes.payloadInvalid
+  return code === ledgerSetupErrorCodes.payloadInvalid
     ? new ValidationError(code, message)
     : new ConflictError(code, message);
 }
@@ -346,7 +345,6 @@ describe("saveLedgerSetupDraft", () => {
     ledgerSetupErrorCodes.stepInvalid,
     ledgerSetupErrorCodes.draftTooLarge,
     ledgerSetupErrorCodes.notInProgress,
-    ledgerSetupErrorCodes.accountNameDuplicate,
   ])("草稿校验或保存失败（%s）时返回对应安全文案", async (code) => {
     mocks.saveDraft.mockRejectedValue(createSetupError(code));
 
@@ -498,7 +496,6 @@ describe("completeLedgerSetup", () => {
   });
 
   it.each([
-    ledgerSetupErrorCodes.accountNameDuplicate,
     ledgerSetupErrorCodes.payloadInvalid,
     ledgerSetupErrorCodes.notInProgress,
   ])("完成写入被拒（%s）时返回对应安全文案", async (code) => {

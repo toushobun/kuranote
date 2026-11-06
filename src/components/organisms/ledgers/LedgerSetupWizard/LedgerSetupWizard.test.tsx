@@ -96,23 +96,6 @@ describe("LedgerSetupWizard", () => {
       expect(
         screen.getByRole("heading", { name: "挑选常去的商家" }),
       ).toBeInTheDocument();
-      expect(
-        screen.queryByText("预设内容已更新，请重新确认"),
-      ).not.toBeInTheDocument();
-    });
-
-    it("恢复基于旧版预设的草稿时提示预设内容已更新", () => {
-      renderLedgerSetupWizard({
-        progress: createLedgerSetupProgressFixture({
-          step: 2,
-          templateUpdated: true,
-        }),
-      });
-
-      expectCurrentStep("账户");
-      expect(
-        screen.getByText("预设内容已更新，请重新确认"),
-      ).toBeInTheDocument();
     });
 
     it("可以通过上一步 / 下一步在步骤之间切换", async () => {

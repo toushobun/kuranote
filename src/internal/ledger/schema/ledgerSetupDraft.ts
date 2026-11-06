@@ -32,8 +32,8 @@ const templateKeySchema = z
 
 const ledgerSetupDraftAccountSchema = z.object({
   name: z.string().trim().min(1).max(ledgerSetupLimits.accountNameMaxLength),
-  /** 勾选的模板候选名称。旧草稿中自行添加的账户没有该项，恢复时会被丢弃。 */
-  templateKey: templateKeySchema.optional(),
+  /** 勾选的模板候选名称（账户只能从候选中勾选，name 与之相同）。 */
+  templateKey: templateKeySchema,
   type: z.enum(ledgerSetupAccountTypes),
 });
 
@@ -46,8 +46,7 @@ const ledgerSetupDraftSectionSchemas = {
     skipped: z.boolean(),
   }),
   features: z.object({
-    /** #931 之前保存的草稿没有该项，按默认关闭补全，不丢弃同一部分的其他开关。 */
-    multiAccountPaymentEnabled: z.boolean().default(false),
+    multiAccountPaymentEnabled: z.boolean(),
     specialStatusEnabled: z.boolean(),
   }),
   /** 以商家为单位存储勾选，标签勾选只是对其下商家的批量操作。 */

@@ -29,15 +29,14 @@ describe("地区草稿", () => {
       { name: "人民币现金", templateKey: "人民币现金", type: "cash" },
     ]);
   });
-  it("旧草稿保留预设账户、商家勾选和跳过状态，不重选新增商家", () => {
+  it("模板版本变化时保留仍在候选中的账户与商家及跳过状态，丢弃失效项并去重", () => {
     const stored = parseStoredLedgerSetupDraft({
-      templateCurrency: "JPY",
+      ...createDefaultLedgerSetupDraft("jp"),
       templateVersion: 1,
       accounts: {
         items: [
-          { name: "现金", type: "cash" },
-          { name: "改名的账户", type: "bank", templateKey: "旧候选" },
-          { name: "自己添加的账户", type: "bank" },
+          { name: "旧候选", type: "bank", templateKey: "旧候选" },
+          { name: "三井住友銀行", type: "bank", templateKey: "三井住友銀行" },
           { name: "三井住友銀行", type: "bank", templateKey: "三井住友銀行" },
         ],
         skipped: true,
@@ -46,26 +45,18 @@ describe("地区草稿", () => {
         selectedKeys: ["apple", "aeon", "失效key", "aeon"],
         skipped: true,
       },
-      features: { specialStatusEnabled: true },
     })!;
     const draft = resolveLedgerSetupDraft(stored, "jp");
     expect(draft).toMatchObject({
-      schemaVersion: 2,
       templateRegion: "jp",
-      templateVersion: 5,
+      templateVersion: getLedgerSetupTemplate("jp")!.version,
       accounts: {
-        // 旧草稿的「现金」对应生活地区的现金，不在候选中的账户不再保留。
         items: [
-          { name: "日元现金", templateKey: "日元现金", type: "cash" },
           { name: "三井住友銀行", templateKey: "三井住友銀行", type: "bank" },
         ],
         skipped: true,
       },
       merchants: { selectedKeys: ["apple", "aeon"], skipped: true },
-      features: {
-        specialStatusEnabled: true,
-        multiAccountPaymentEnabled: false,
-      },
     });
   });
   it("追加地区合法选择可保存，默认不自动增加任何勾选", () => {

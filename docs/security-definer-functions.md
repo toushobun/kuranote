@@ -378,9 +378,9 @@ migration 在新增 CHECK 之前，把残留的匿名待接受邀请（`placehol
 
 ## Issue #1001：向导账户按候选地区的货币创建
 
-`20261106120000_ledger_setup_account_currency.sql` 重新定义 `validate_ledger_setup_completion_payload(jsonb)` 与 `complete_ledger_setup(uuid,jsonb)`，权限边界不变。
+`20261106120000_ledger_setup_account_currency.sql` 与 `20261106140000_require_ledger_setup_account_currency.sql` 重新定义 `validate_ledger_setup_completion_payload(jsonb)` 与 `complete_ledger_setup(uuid,jsonb)`，权限边界不变。
 
-| 函数                                              | 变更                                                                                                                                                            |
-| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `validate_ledger_setup_completion_payload(jsonb)` | 账户可带 `currency`：存在时必须是 3 位大写货币代码，否则 `ledger_setup_payload_invalid`。                                                                       |
-| `complete_ledger_setup(uuid,jsonb)`               | 账户按 payload 中的 `currency`（候选所属地区的货币：日本 JPY、中国 CNY）创建；缺少 `currency` 时沿用账本默认货币，兼容 db push 先于 Vercel 部署期间的旧版应用。 |
+| 函数                                              | 变更                                                                                               |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `validate_ledger_setup_completion_payload(jsonb)` | 账户必须带 `currency`（3 位大写货币代码），缺少或不合法时 `ledger_setup_payload_invalid`。         |
+| `complete_ledger_setup(uuid,jsonb)`               | 账户按 payload 中的 `currency`（候选所属地区的货币：日本 JPY、中国 CNY）创建，与账本默认货币无关。 |

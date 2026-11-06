@@ -1,7 +1,6 @@
 export const ledgerSetupErrorCodes = {
   hasMembers: "setup_has_members",
   hasTransactions: "setup_has_transactions",
-  accountNameDuplicate: "setup_account_name_duplicate",
   regionMismatch: "setup_region_mismatch",
   regionRequired: "setup_region_required",
   draftInvalid: "setup_draft_invalid",
@@ -21,8 +20,6 @@ export const ledgerSetupErrorMessages: Record<LedgerSetupErrorCode, string> = {
   [ledgerSetupErrorCodes.hasMembers]:
     "该账本已有其他成员或邀请，无法放弃创建。",
   [ledgerSetupErrorCodes.hasTransactions]: "该账本已有交易数据，无法放弃创建。",
-  [ledgerSetupErrorCodes.accountNameDuplicate]:
-    "同一类型下已有同名账户，请修改账户名称。",
   [ledgerSetupErrorCodes.regionMismatch]:
     "生活地区已变更，请重新确认创建进度。",
   [ledgerSetupErrorCodes.regionRequired]: "请选择你主要生活的地区。",

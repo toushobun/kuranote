@@ -1231,7 +1231,7 @@ begin
             p_ledger_id,
             btrim(v_item.v ->> 'name'),
             v_item.v ->> 'type',
-            coalesce(v_item.v ->> 'currency', v_ledger.base_currency),
+            v_item.v ->> 'currency',
             0,
             v_item.ordinality - 1,
             v_user_id,
@@ -8230,12 +8230,9 @@ begin
            where jsonb_typeof(a.v) <> 'object'
               or jsonb_typeof(a.v -> 'type') is distinct from 'string'
               or jsonb_typeof(a.v -> 'name') is distinct from 'string'
-              or jsonb_typeof(a.v -> 'currency') not in ('string', 'null')
+              or jsonb_typeof(a.v -> 'currency') is distinct from 'string'
               or a.v ->> 'type' not in ('cash', 'bank', 'credit_card', 'e_money')
-              or (
-                  jsonb_typeof(a.v -> 'currency') = 'string'
-                  and a.v ->> 'currency' !~ '^[A-Z]{3}$'
-              )
+              or a.v ->> 'currency' !~ '^[A-Z]{3}$'
               or length(btrim(a.v ->> 'name')) not between 1 and 100
        )
        or (
