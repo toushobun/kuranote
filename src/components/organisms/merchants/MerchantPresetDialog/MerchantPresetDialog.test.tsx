@@ -8,6 +8,7 @@ import {
 } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { createMerchantPresetOptions } from "test/mocks/merchantPresets";
+import { merchantRegionButtonName } from "../MerchantPresetSelector/merchantPresetSelectorTestUtils";
 import type {
   MerchantActionState,
   MerchantPresetStateAction,
@@ -61,15 +62,23 @@ describe("MerchantPresetDialog", () => {
     );
     const action = vi.fn<MerchantPresetStateAction>().mockResolvedValue({});
     renderDialog(action, options);
-    expect(
-      screen.getByRole("heading", { name: "日本常用商家" }),
-    ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /中国常用商家/ }));
+    const japan = screen.getByRole("button", merchantRegionButtonName("jp"));
+    const china = screen.getByRole("button", merchantRegionButtonName("cn"));
+    expect(japan).toHaveAttribute("aria-expanded", "true");
+    expect(china).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(china);
+    expect(china).toHaveAttribute("aria-expanded", "true");
     const boxes = screen.getAllByRole("checkbox", {
       name: "选择「超市」的全部商家",
     });
     expect(boxes.every((box) => !(box as HTMLInputElement).checked)).toBe(true);
     fireEvent.click(boxes[1]!);
+    expect(japan).toHaveAccessibleDescription("已选 0 家");
+    expect(china).toHaveAccessibleDescription("已选 1 家");
+    fireEvent.click(japan);
+    fireEvent.click(china);
+    expect(japan).toHaveAttribute("aria-expanded", "false");
+    expect(china).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(screen.getByRole("button", { name: "添加 1 个商家" }));
     await waitFor(() => expect(action).toHaveBeenCalledOnce());
     const form = action.mock.calls[0]![1];

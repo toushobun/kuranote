@@ -7,7 +7,10 @@ import {
 } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { toggleChecklistGroup } from "molecules/ui/GroupedPresetChecklist/groupedPresetChecklistTestUtils";
-import { MerchantPresetSelectorExample } from "./merchantPresetSelectorTestUtils";
+import {
+  merchantRegionButtonName,
+  MerchantPresetSelectorExample,
+} from "./merchantPresetSelectorTestUtils";
 
 function expand(name: string, index = 0) {
   return within(toggleChecklistGroup(name, index));
@@ -67,19 +70,33 @@ describe("MerchantPresetSelector", () => {
     expect(changed.mock.lastCall?.[0]).toEqual([]);
   });
   it.each([
-    ["jp", "日本", "中国"],
-    ["cn", "中国", "日本"],
-  ] as const)("按生活地区排序：%s", (region, primary, secondary) => {
-    render(<MerchantPresetSelectorExample initialRegion={region} />);
-    expect(
-      screen
-        .getAllByRole("heading", { level: 4 })
-        .map((node) => node.textContent),
-    ).toEqual([`${primary}常用商家`, `${secondary}常用商家已选 0 家`]);
-    expect(
-      screen.getByRole("button", { name: new RegExp(secondary) }),
-    ).toHaveAttribute("aria-expanded", "false");
-  });
+    ["jp", "cn"],
+    ["cn", "jp"],
+  ] as const)(
+    "生活地区 %s 在前且默认展开，两组都能折叠",
+    (primary, secondary) => {
+      render(<MerchantPresetSelectorExample initialRegion={primary} />);
+      const primaryButton = screen.getByRole(
+        "button",
+        merchantRegionButtonName(primary),
+      );
+      const secondaryButton = screen.getByRole(
+        "button",
+        merchantRegionButtonName(secondary),
+      );
+      expect(
+        screen
+          .getAllByRole("heading", { level: 4 })
+          .map((heading) => within(heading).getByRole("button")),
+      ).toEqual([primaryButton, secondaryButton]);
+      expect(primaryButton).toHaveAttribute("aria-expanded", "true");
+      expect(secondaryButton).toHaveAttribute("aria-expanded", "false");
+      fireEvent.click(primaryButton);
+      expect(primaryButton).toHaveAttribute("aria-expanded", "false");
+      fireEvent.click(secondaryButton);
+      expect(secondaryButton).toHaveAttribute("aria-expanded", "true");
+    },
+  );
 
   it("展开只浏览，首次勾选才登记地区，收起时保留唯一计数", async () => {
     const changed = vi.fn();
@@ -90,7 +107,10 @@ describe("MerchantPresetSelector", () => {
         onAdditionalRegionsChange={added}
       />,
     );
-    const regionButton = screen.getByRole("button", { name: /中国常用商家/ });
+    const regionButton = screen.getByRole(
+      "button",
+      merchantRegionButtonName("cn"),
+    );
     fireEvent.click(regionButton);
     expect(added).not.toHaveBeenCalled();
     expect(changed).not.toHaveBeenCalled();
@@ -122,7 +142,10 @@ describe("MerchantPresetSelector", () => {
       />,
     );
     expect(
-      screen.getByRole("button", { name: /中国常用商家.*已选 1 家/ }),
+      screen.getByRole("button", {
+        ...merchantRegionButtonName("cn"),
+        description: "已选 1 家",
+      }),
     ).toHaveAttribute("aria-expanded", "true");
     expect(
       expand("餐饮", 1).getByRole("checkbox", { name: /海底捞/ }),

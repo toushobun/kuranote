@@ -2,11 +2,13 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi, type Mock } from "vitest";
 
 import {
+  getLedgerSetupTemplate,
   ledgerSetupWriteErrorMessages,
   type LedgerSetupTemplate,
 } from "internal/ledger";
 import {
   getChecklistGroup,
+  getChecklistGroupExpandButton,
   getChecklistItemCheckbox,
   toggleChecklistGroup,
 } from "molecules/ui/GroupedPresetChecklist/groupedPresetChecklistTestUtils";
@@ -20,6 +22,7 @@ import {
   goPreviousTo,
   renderLedgerSetupWizard,
 } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardTestUtils";
+import { merchantRegionButtonName } from "organisms/merchants/MerchantPresetSelector/merchantPresetSelectorTestUtils";
 import {
   createLedgerSetupProgressFixture,
   ledgerSetupMerchantDefaultSelectedKeys,
@@ -115,6 +118,30 @@ describe("LedgerSetupMerchantsStep", () => {
     expect(getTagCheckbox("餐饮")).not.toBeChecked();
     expect(getChecklistGroup("订阅服务")).toHaveTextContent("1 / 3");
     expectNextLabel("下一步 · 已选 1 家");
+  });
+
+  it("地区计数之和等于下一步的数量，收起第一地区后保留勾选", async () => {
+    renderMerchantsStep({
+      progress: createMerchantsProgress({
+        selectedKeys: ["starbucks", "haidilao"],
+        template: getLedgerSetupTemplate("jp"),
+      }),
+    });
+    const japan = screen.getByRole("button", merchantRegionButtonName("jp"));
+    const china = screen.getByRole("button", merchantRegionButtonName("cn"));
+    expect(japan).toHaveAccessibleDescription("已选 1 家");
+    expect(china).toHaveAccessibleDescription("已选 1 家");
+    expectNextLabel("下一步 · 已选 2 家");
+
+    const restaurant = getChecklistGroupExpandButton("餐饮", 0);
+    fireEvent.click(japan);
+    await waitFor(() => expect(restaurant).not.toBeInTheDocument());
+    expectNextLabel("下一步 · 已选 2 家");
+    fireEvent.click(japan);
+    const dining = toggleChecklistGroup("餐饮", 0);
+    expect(
+      within(dining).getByRole("checkbox", { name: /星巴克/ }),
+    ).toBeChecked();
   });
 
   it("多标签商家在各标签下联动，已选数量按去重后的商家计算", () => {
