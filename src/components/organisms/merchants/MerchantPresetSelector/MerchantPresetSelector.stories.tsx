@@ -1,6 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { userEvent, within } from "storybook/test";
-import { MerchantPresetSelectorExample } from "./merchantPresetSelectorTestUtils";
+import {
+  merchantRegionButtonName,
+  MerchantPresetSelectorExample,
+} from "./merchantPresetSelectorTestUtils";
 
 const meta = {
   title: "Organisms/Merchants/MerchantPresetSelector",
@@ -16,7 +19,7 @@ const meta = {
 } satisfies Meta<typeof MerchantPresetSelectorExample>;
 export default meta;
 type Story = StoryObj<typeof meta>;
-export const Default: Story = { name: "默认收起" };
+export const Default: Story = { name: "日本优先（默认展开）" };
 export const Expanded: Story = {
   name: "展开购物",
   play: async ({ canvasElement }) => {
@@ -29,7 +32,7 @@ export const AddedChina: Story = {
   name: "追加中国",
   play: async ({ canvasElement }) => {
     await userEvent.click(
-      within(canvasElement).getByRole("button", { name: /中国常用商家/ }),
+      within(canvasElement).getByRole("button", merchantRegionButtonName("cn")),
     );
   },
 };

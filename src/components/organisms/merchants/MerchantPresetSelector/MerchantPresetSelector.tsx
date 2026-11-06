@@ -1,9 +1,10 @@
 "use client";
 
+import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { useId, useState } from "react";
+import { useId, useState, type ReactElement } from "react";
 import { regionPresetMessages as messages } from "config/regionPresetMessages";
 import { merchantPresetMessages } from "config/merchantPresetMessages";
 import type { LedgerSetupRegion } from "internal/ledger";
@@ -46,16 +47,6 @@ export function MerchantPresetSelector({
     (item) =>
       item.regions.includes(secondary) && !item.regions.includes(primary),
   );
-  const secondaryCount = getPresetSelection(
-    secondaryItems,
-    selectedKeys,
-    disabledKeys,
-  ).length;
-  const [secondaryExpanded, setSecondaryExpanded] = useState(
-    secondaryCount > 0,
-  );
-  const panelId = useId();
-
   function renderChecklist(regionItems: typeof items, additional = false) {
     const keys = new Set(regionItems.map(({ key }) => key));
     const regionGroups = groups
@@ -87,53 +78,130 @@ export function MerchantPresetSelector({
   }
 
   return (
-    <Stack spacing={1}>
-      <Typography component="h4" sx={{ fontWeight: 700 }}>
-        {messages.merchantGroup(primary)}
-      </Typography>
-      {renderChecklist(primaryItems)}
-      <Stack component="section">
-        <Typography component="h4">
-          <ButtonBase
-            aria-controls={secondaryExpanded ? panelId : undefined}
-            aria-expanded={secondaryExpanded}
-            onClick={() => setSecondaryExpanded((value) => !value)}
-            sx={secondaryHeaderSx}
+    <Stack spacing={1.5}>
+      {([primary, secondary] as const).map((groupRegion) => {
+        const additional = groupRegion === secondary;
+        const regionItems = additional ? secondaryItems : primaryItems;
+        const count = getPresetSelection(
+          regionItems,
+          selectedKeys,
+          disabledKeys,
+        ).length;
+        return (
+          <MerchantRegionCard
+            key={groupRegion}
+            region={groupRegion}
+            count={count}
+            defaultExpanded={!additional || count > 0}
+            hint={additional ? messages.sharedMerchants(primary) : undefined}
           >
-            <PresetDisclosureChevron expanded={secondaryExpanded} />
-            {messages.merchantGroup(secondary)}
-            <Typography
-              component="span"
-              color="textSecondary"
-              variant="body2"
-              sx={{ ml: "auto" }}
-            >
-              {messages.merchantSelectedCount(secondaryCount)}
-            </Typography>
-          </ButtonBase>
-        </Typography>
-        <PresetDisclosurePanel id={panelId} expanded={secondaryExpanded}>
-          <Stack spacing={1} sx={{ pt: 1 }}>
-            <Typography color="textSecondary" variant="body2">
-              {messages.sharedMerchants(primary)}
-            </Typography>
-            {renderChecklist(secondaryItems, true)}
-          </Stack>
-        </PresetDisclosurePanel>
-      </Stack>
+            {renderChecklist(regionItems, additional)}
+          </MerchantRegionCard>
+        );
+      })}
     </Stack>
   );
 }
 
-const secondaryHeaderSx = {
-  border: "1px dashed",
-  borderColor: "divider",
-  borderRadius: `${designTokens.radius.item}px`,
+function MerchantRegionCard({
+  region,
+  count,
+  defaultExpanded,
+  hint,
+  children,
+}: {
+  region: LedgerSetupRegion;
+  count: number;
+  defaultExpanded: boolean;
+  hint?: string;
+  children: ReactElement;
+}) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+  const panelId = useId();
+  const titleId = `${panelId}-title`;
+  const countId = `${panelId}-count`;
+  const { flag, title } = messages.merchantGroup(region);
+
+  return (
+    <Box component="section" sx={regionCardSx}>
+      <Typography component="h4" aria-labelledby={titleId}>
+        <ButtonBase
+          aria-controls={expanded ? panelId : undefined}
+          aria-describedby={countId}
+          aria-expanded={expanded}
+          aria-labelledby={titleId}
+          onClick={() => setExpanded((value) => !value)}
+          sx={regionHeaderSx}
+        >
+          <PresetDisclosureChevron expanded={expanded} />
+          <Box
+            component="img"
+            src={flag.src}
+            alt={flag.emoji}
+            aria-hidden
+            sx={{ width: 20, height: 14, flexShrink: 0 }}
+          />
+          <span id={titleId}>{title}</span>
+          <Typography
+            component="span"
+            id={countId}
+            variant="caption"
+            sx={regionCountSx}
+          >
+            {messages.merchantSelectedCount(count)}
+          </Typography>
+        </ButtonBase>
+      </Typography>
+      <PresetDisclosurePanel id={panelId} expanded={expanded}>
+        <Box>
+          {hint && (
+            <Typography
+              color="textSecondary"
+              variant="caption"
+              component="p"
+              sx={{ px: 1.5, pb: 1 }}
+            >
+              {hint}
+            </Typography>
+          )}
+          {children}
+        </Box>
+      </PresetDisclosurePanel>
+    </Box>
+  );
+}
+
+const regionCardSx = {
+  bgcolor: "common.white",
+  borderRadius: `${designTokens.radius.md}px`,
+  boxShadow: 1,
+  overflow: "hidden",
+};
+
+const regionHeaderSx = {
   gap: 1,
   justifyContent: "flex-start",
-  minHeight: 44,
+  minHeight: 52,
   px: 1.5,
   width: "100%",
+  typography: "body1",
   fontWeight: 700,
-  "&.Mui-focusVisible": { outline: "2px solid", outlineColor: "primary.main" },
+  textAlign: "left",
+  "& .MuiSvgIcon-root": { color: "primary.dark", flexShrink: 0 },
+  "&.Mui-focusVisible": {
+    outline: "2px solid",
+    outlineColor: "primary.main",
+    outlineOffset: -2,
+  },
+};
+
+const regionCountSx = {
+  ml: "auto",
+  px: 1,
+  py: 0.25,
+  borderRadius: `${designTokens.radius.full}px`,
+  bgcolor: "primary.light",
+  color: "primary.dark",
+  fontWeight: 700,
+  whiteSpace: "nowrap",
 };

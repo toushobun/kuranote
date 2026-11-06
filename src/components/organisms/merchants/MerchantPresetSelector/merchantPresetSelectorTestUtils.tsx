@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { regionPresetMessages } from "config/regionPresetMessages";
 import {
   createDefaultLedgerSetupDraft,
   getLedgerSetupTemplate,
@@ -6,6 +7,10 @@ import {
 } from "internal/ledger";
 import { buildMerchantChecklist } from "utils/merchantPresets";
 import { MerchantPresetSelector } from "./MerchantPresetSelector";
+
+export function merchantRegionButtonName(region: LedgerSetupRegion) {
+  return { name: regionPresetMessages.merchantGroup(region).title };
+}
 
 /** Story 与组件测试共用真实服务端模板的展示数据和受控状态。 */
 export function MerchantPresetSelectorExample({

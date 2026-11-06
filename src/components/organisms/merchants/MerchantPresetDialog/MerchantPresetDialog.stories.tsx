@@ -52,14 +52,23 @@ export const Submitting: Story = {
 };
 
 const template = getLedgerSetupTemplate("jp")!;
+const regionalOptions = {
+  ...buildMerchantChecklist(template),
+  addedKeys: ["don_quijote", "matsumoto_kiyoshi"],
+  templateVersion: template.version,
+};
+
+export const RegionalGroups: Story = {
+  name: "从预设添加（地区分组）",
+  args: { options: { ...regionalOptions, region: "jp" } },
+};
+
 export const LegacyLedger: Story = {
   name: "旧账本",
   args: {
     options: {
-      ...buildMerchantChecklist(template),
+      ...regionalOptions,
       region: null,
-      addedKeys: ["don_quijote", "matsumoto_kiyoshi"],
-      templateVersion: template.version,
     },
   },
   play: async ({ canvasElement }) => {

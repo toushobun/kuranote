@@ -8,6 +8,7 @@ import {
   ledgerSetupWizardStoryDecorators,
 } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardStoryUtils";
 import { createLedgerSetupProgressFixture } from "test/mocks/ledgerSetup";
+import { merchantRegionButtonName } from "organisms/merchants/MerchantPresetSelector/merchantPresetSelectorTestUtils";
 
 import {
   createDefaultLedgerSetupDraft,
@@ -56,7 +57,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  name: "默认（收起）",
+  name: "日本优先（默认展开）",
 };
 
 export const ExpandShopping: Story = {
@@ -77,11 +78,29 @@ export const ChinaFirst: Story = {
   args: { progress: createMerchantsProgress("cn") },
 };
 export const AddedChina: Story = {
-  name: "展开中国",
+  name: "日本收起、中国餐饮展开",
   play: async ({ canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body);
     await userEvent.click(
-      await body.findByRole("button", { name: /中国常用商家/ }),
+      await body.findByRole("button", merchantRegionButtonName("jp")),
+    );
+    await userEvent.click(
+      await body.findByRole("button", merchantRegionButtonName("cn")),
+    );
+    await userEvent.click(
+      await body.findByRole("button", { name: "餐饮", expanded: false }),
+    );
+    await userEvent.click(
+      await body.findByRole("checkbox", { name: /海底捞/ }),
+    );
+  },
+};
+export const BothCollapsed: Story = {
+  name: "两组都收起",
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    await userEvent.click(
+      await body.findByRole("button", merchantRegionButtonName("jp")),
     );
   },
 };

@@ -13,7 +13,6 @@ import {
   PresetDisclosureChevron,
   PresetDisclosurePanel,
 } from "molecules/ui/PresetDisclosure/PresetDisclosure";
-import { designTokens } from "theme/theme";
 
 import { useGroupedPresetChecklist } from "./useGroupedPresetChecklist";
 
@@ -338,15 +337,9 @@ const ChecklistItemRow = memo(function ChecklistItemRow({
 });
 
 const listSx = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 0.875,
   "& > section": {
-    bgcolor: "common.white",
-    border: "1px solid",
+    borderTop: "1px solid",
     borderColor: "divider",
-    borderRadius: `${designTokens.radius.item}px`,
-    overflow: "hidden",
   },
 };
 
@@ -383,10 +376,11 @@ const groupNameSx = {
 };
 
 const panelSx = {
-  borderTop: "1px dashed",
+  borderTop: "1px solid",
   borderColor: "divider",
-  pl: 4.5,
-  pr: 0.5,
+  ml: 2,
+  mr: 0.5,
+  pl: 2.5,
 };
 
 const itemRowSx = {
