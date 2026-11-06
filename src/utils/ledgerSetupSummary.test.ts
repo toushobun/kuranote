@@ -11,7 +11,7 @@ describe("buildLedgerSetupConfirmSummary", () => {
     );
 
     expect(summary.accounts).toEqual({
-      names: ["现金", "楽天銀行"],
+      names: ["日元现金", "楽天銀行"],
       skipped: false,
     });
     // Apple、Amazon 分别属于两个标签，只算一次。

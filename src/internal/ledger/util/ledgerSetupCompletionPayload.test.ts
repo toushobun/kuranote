@@ -51,6 +51,24 @@ describe("buildLedgerSetupCompletionPayload", () => {
         buildMerchantFaviconUrl(merchant.websiteUrl),
       );
   });
+  it("账户按候选所属地区的货币写入，与账本生活地区无关", () => {
+    const draft = createDefaultLedgerSetupDraft("cn");
+    draft.accounts.items = [
+      { name: "人民币现金", templateKey: "人民币现金", type: "cash" },
+      { name: "日元现金", templateKey: "日元现金", type: "cash" },
+      { name: "PayPay", templateKey: "PayPay", type: "e_money" },
+      { name: "支付宝", templateKey: "支付宝", type: "e_money" },
+    ];
+    expect(
+      buildLedgerSetupCompletionPayload(draft, getLedgerSetupTemplate("cn"))
+        .accounts,
+    ).toEqual([
+      { currency: "CNY", name: "人民币现金", type: "cash" },
+      { currency: "JPY", name: "日元现金", type: "cash" },
+      { currency: "JPY", name: "PayPay", type: "e_money" },
+      { currency: "CNY", name: "支付宝", type: "e_money" },
+    ]);
+  });
   it("跳过时保留草稿但不写入账户商家和标签", () => {
     const draft = createDefaultLedgerSetupDraft("cn");
     draft.accounts.skipped = true;

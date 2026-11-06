@@ -1,16 +1,23 @@
-import type {
-  LedgerSetupAccountType,
-  LedgerSetupTemplate,
-  LedgerSetupRegion,
+import type { LedgerCurrency } from "internal/ledger/entity/ledgerCurrency";
+import {
+  ledgerSetupRegionCurrencies,
+  type LedgerSetupAccountType,
+  type LedgerSetupTemplate,
+  type LedgerSetupRegion,
 } from "internal/ledger/entity/ledgerSetupTemplate/ledgerSetupTemplate";
 import type { LedgerSetupDraft } from "internal/ledger/schema/ledgerSetupDraft";
+import { findLedgerSetupAccountRegion } from "internal/ledger/util/ledgerSetupDraft";
 import { buildMerchantFaviconUrl } from "utils/merchants";
 import { getMerchantPresetMatchNames } from "utils/merchantPresets";
 
 /** complete_ledger_setup 的 payload。字段名与 RPC 中的 jsonb 结构一致。 */
 export type LedgerSetupCompletionPayload = {
   templateRegion: LedgerSetupRegion | null;
-  accounts: { name: string; type: LedgerSetupAccountType }[];
+  accounts: {
+    currency: LedgerCurrency;
+    name: string;
+    type: LedgerSetupAccountType;
+  }[];
   merchantTags: { icon: string; key: string; name: string }[];
   merchants: {
     matchNames: string[];
@@ -26,6 +33,7 @@ export type LedgerSetupCompletionPayload = {
 
 /**
  * 根据已按当前模板校正的草稿与代码模板生成完成写入 payload。
+ * 账户按候选所属地区的货币创建（与账本默认货币无关）；不在候选中的账户不写入。
  * 模板内容（商家名、URL、别名、标签）只取自代码模板，不信任客户端。
  * 商家头像按手动新增商家相同的 favicon 规则直接由官网生成，不在完成写入时逐个抓取。
  * 跳过的步骤不写入任何数据；商家标签只创建被选中商家所属的标签，
@@ -37,10 +45,21 @@ export function buildLedgerSetupCompletionPayload(
 ): LedgerSetupCompletionPayload {
   const accounts = draft.accounts.skipped
     ? []
-    : draft.accounts.items.map(({ name, type }) => ({
-        name: name.trim(),
-        type,
-      }));
+    : draft.accounts.items.flatMap(({ name, templateKey, type }) => {
+        const region =
+          templateKey === undefined
+            ? null
+            : findLedgerSetupAccountRegion(template, type, templateKey);
+        return region
+          ? [
+              {
+                currency: ledgerSetupRegionCurrencies[region],
+                name: name.trim(),
+                type,
+              },
+            ]
+          : [];
+      });
 
   return {
     templateRegion: draft.templateRegion,

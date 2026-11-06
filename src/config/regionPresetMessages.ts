@@ -10,7 +10,7 @@ export const regionPresetMessages = {
   merchantSelectedCount: (selected: number) => `已选 ${selected} 家`,
   sharedMerchants: (region: LedgerSetupRegion) =>
     `两地共有的商家已列在${regionNames[region]}常用商家中`,
-  addCandidates: (region: LedgerSetupRegion) =>
-    `添加${regionNames[region]}账户候选`,
+  accountGroup: (region: LedgerSetupRegion) => `${regionNames[region]}常用账户`,
+  accountSelectedCount: (selected: number) => `已选 ${selected} 个`,
   alsoIn: (groups: readonly string[]) => `也在：${groups.join("、")}`,
 } as const;

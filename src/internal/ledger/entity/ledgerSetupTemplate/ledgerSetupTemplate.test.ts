@@ -4,7 +4,6 @@ import { ledgerSetupLimits } from "internal/ledger/entity/ledgerSetup";
 import { getLedgerSetupTemplate } from "./getLedgerSetupTemplate";
 import {
   ledgerSetupAccountTypes,
-  ledgerSetupCashAccount,
   ledgerSetupRegions,
 } from "./ledgerSetupTemplate";
 const normalize = (value: string) => value.trim().toLowerCase();
@@ -43,15 +42,13 @@ describe("地区模板", () => {
   });
   it("按地区提供账户候选，币种不是模板入口", () => {
     expect(template.region).toBe("jp");
-    expect(template.version).toBe(4);
+    expect(template.version).toBe(5);
     expect(getLedgerSetupTemplate("JPY")).toBeNull();
-    expect(getLedgerSetupTemplate("cn")?.accountCandidates.e_money).toEqual([
-      "支付宝",
-      "微信支付",
-      "云闪付",
-      "数字人民币",
-    ]);
-    expect(ledgerSetupCashAccount).toEqual({ name: "现金", type: "cash" });
+    expect(
+      getLedgerSetupTemplate("cn")?.accountCandidatesByRegion.cn.e_money,
+    ).toEqual(["支付宝", "微信支付", "云闪付", "数字人民币"]);
+    expect(template.accountCandidatesByRegion.jp.cash).toEqual(["日元现金"]);
+    expect(template.accountCandidatesByRegion.cn.cash).toEqual(["人民币现金"]);
     expect(ledgerSetupAccountTypes).toHaveLength(4);
   });
   it("商家唯一目录收录日本115家和中国独有79家", () => {
@@ -239,8 +236,23 @@ describe.each(ledgerSetupRegions)("%s 模板约束", (region) => {
     );
   });
 
+  it("同一类型的账户候选不跨地区重名（按名称确定账户货币）", () => {
+    for (const type of ledgerSetupAccountTypes) {
+      expect(
+        findDuplicates(
+          ledgerSetupRegions.flatMap((r) =>
+            template.accountCandidatesByRegion[r][type].map(normalize),
+          ),
+        ),
+        type,
+      ).toEqual([]);
+    }
+  });
+
   it("账户候选在同一类型内不重复且长度合法", () => {
-    for (const candidates of Object.values(template.accountCandidates)) {
+    for (const candidates of Object.values(
+      template.accountCandidatesByRegion,
+    ).flatMap((byType) => Object.values(byType))) {
       expect(findDuplicates(candidates.map(normalize))).toEqual([]);
       for (const name of candidates) {
         expect(charLength(name.trim())).toBeGreaterThan(0);

@@ -9,19 +9,16 @@ export const ledgerSetupFixtureId = "00000000-0000-4000-8000-000000000001";
 
 /** 测试用的预设模板：只保留账户候选，商家为空。 */
 export const ledgerSetupTemplateFixture: LedgerSetupTemplate = {
-  accountCandidates: {
-    bank: ["三菱UFJ銀行", "楽天銀行", "ゆうちょ銀行"],
-    credit_card: ["楽天カード", "JCBカード"],
-    e_money: ["PayPay", "Suica"],
-  },
   region: "jp",
   accountCandidatesByRegion: {
     jp: {
+      cash: ["日元现金"],
       bank: ["三菱UFJ銀行", "楽天銀行", "ゆうちょ銀行"],
       credit_card: ["楽天カード", "JCBカード"],
       e_money: ["PayPay", "Suica"],
     },
     cn: {
+      cash: ["人民币现金"],
       bank: ["工商银行"],
       credit_card: ["工商银行信用卡"],
       e_money: ["支付宝", "微信支付"],
@@ -214,7 +211,10 @@ export function createLedgerSetupProgressFixture(
       displayColor: "amber",
       displayName: "淞文",
       draft: {
-        accounts: { items: [{ name: "现金", type: "cash" }], skipped: false },
+        accounts: {
+          items: [{ name: "日元现金", templateKey: "日元现金", type: "cash" }],
+          skipped: false,
+        },
         features: {
           multiAccountPaymentEnabled: false,
           specialStatusEnabled: false,
@@ -228,6 +228,7 @@ export function createLedgerSetupProgressFixture(
       id: ledgerSetupFixtureId,
       name: "家庭账本",
       step: 2,
+      templateUpdated: false,
       ...overrides,
     },
     template,
@@ -253,7 +254,7 @@ export function createLedgerSetupConfirmProgressFixture(
         ...base.setup.draft,
         accounts: {
           items: [
-            { name: "现金", type: "cash" },
+            { name: "日元现金", templateKey: "日元现金", type: "cash" },
             { name: "楽天銀行", templateKey: "楽天銀行", type: "bank" },
           ],
           skipped: false,

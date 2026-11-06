@@ -47,4 +47,9 @@ export type LedgerSetup = {
   id: string;
   name: string;
   step: number;
+  /**
+   * 已保存草稿的预设模板版本与当前模板不同：draft 已按当前模板校正
+   * （失效的商家 / 账户已移除），恢复向导时提示用户重新确认。
+   */
+  templateUpdated: boolean;
 };

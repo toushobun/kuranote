@@ -175,8 +175,6 @@ export type SaveLedgerSetupDraftInput = {
 };
 
 export type LedgerSetupDraftActionState = ActionState & {
-  /** 同一类型下有同名账户：由步骤在对应账户处提示，不显示失败弹框。 */
-  accountNameDuplicate?: boolean;
   /**
    * 预设模板已更新或生活地区已变更，草稿未保存：progress 为重新读取的进度，
    * 向导用它替换状态并提示用户重新确认。

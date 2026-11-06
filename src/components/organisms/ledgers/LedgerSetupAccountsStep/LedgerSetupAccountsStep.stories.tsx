@@ -1,21 +1,19 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { userEvent, within } from "storybook/test";
 
+import { getLedgerSetupTemplate } from "internal/ledger";
 import { LedgerSetupWizard } from "organisms/ledgers/LedgerSetupWizard/LedgerSetupWizard";
 import {
   createLedgerSetupWizardStoryActions,
   ledgerSetupWizardStoryArgs,
   ledgerSetupWizardStoryDecorators,
 } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardStoryUtils";
-import {
-  createLedgerSetupProgressFixture,
-  ledgerSetupTemplateFixture,
-} from "test/mocks/ledgerSetup";
+import { createLedgerSetupProgressFixture } from "test/mocks/ledgerSetup";
 
-const defaultProgress = createLedgerSetupProgressFixture(
-  {},
-  ledgerSetupTemplateFixture,
-);
+// 账户候选数量影响画面高度与上限提示，因此使用真实模板。
+const template = getLedgerSetupTemplate("jp")!;
+
+const defaultProgress = createLedgerSetupProgressFixture({}, template);
 
 const multipleAccountsProgress = createLedgerSetupProgressFixture(
   {
@@ -23,7 +21,7 @@ const multipleAccountsProgress = createLedgerSetupProgressFixture(
       ...defaultProgress.setup.draft,
       accounts: {
         items: [
-          { name: "现金", type: "cash" },
+          { name: "日元现金", templateKey: "日元现金", type: "cash" },
           { name: "三菱UFJ銀行", templateKey: "三菱UFJ銀行", type: "bank" },
           { name: "楽天銀行", templateKey: "楽天銀行", type: "bank" },
           {
@@ -32,13 +30,30 @@ const multipleAccountsProgress = createLedgerSetupProgressFixture(
             type: "credit_card",
           },
           { name: "PayPay", templateKey: "PayPay", type: "e_money" },
-          { name: "Suica", templateKey: "Suica", type: "e_money" },
+          { name: "支付宝", templateKey: "支付宝", type: "e_money" },
         ],
         skipped: false,
       },
     },
   },
-  ledgerSetupTemplateFixture,
+  template,
+);
+
+const chinaProgress = createLedgerSetupProgressFixture(
+  {
+    draft: {
+      ...defaultProgress.setup.draft,
+      accounts: {
+        items: [
+          { name: "人民币现金", templateKey: "人民币现金", type: "cash" },
+        ],
+        skipped: false,
+      },
+      templateRegion: "cn",
+    },
+    livingRegion: "cn",
+  },
+  getLedgerSetupTemplate("cn"),
 );
 
 // 第 2 步依赖向导骨架提供的步骤回调与进度，因此在向导中展示。
@@ -58,33 +73,44 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  name: "默认（只有现金）",
+  name: "默认（只勾选生活地区的现金）",
 };
 
 export const MultipleAccounts: Story = {
-  name: "多个账户（含已取消勾选）",
+  name: "多个账户（含另一地区，展开银行卡）",
   args: {
     actions: createLedgerSetupWizardStoryActions(multipleAccountsProgress),
     progress: multipleAccountsProgress,
   },
   play: async ({ canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body);
-    await userEvent.click(
-      await body.findByRole("checkbox", { name: "楽天銀行" }),
-    );
+    const [bank] = await body.findAllByRole("button", { name: "银行卡" });
+    await userEvent.click(bank!);
   },
 };
 
-export const WithoutTemplate: Story = {
-  name: "无模板币种",
+export const ChinaRegion: Story = {
+  name: "生活地区为中国",
   args: {
-    progress: createLedgerSetupProgressFixture({ baseCurrency: "USD" }),
+    actions: createLedgerSetupWizardStoryActions(chinaProgress),
+    progress: chinaProgress,
   },
+};
+
+export const LimitExceeded: Story = {
+  name: "超过账户上限",
   play: async ({ canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body);
     await userEvent.click(
-      await body.findByRole("button", { name: "添加银行卡" }),
+      await body.findByRole("button", { name: "中国常用账户" }),
     );
+    for (const checkbox of await body.findAllByRole("checkbox", {
+      name: /^选择「.+」的全部账户$/,
+    })) {
+      if (!(checkbox as HTMLInputElement).checked) {
+        await userEvent.click(checkbox);
+      }
+    }
   },
 };
 

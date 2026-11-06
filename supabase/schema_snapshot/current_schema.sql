@@ -1231,7 +1231,7 @@ begin
             p_ledger_id,
             btrim(v_item.v ->> 'name'),
             v_item.v ->> 'type',
-            v_ledger.base_currency,
+            coalesce(v_item.v ->> 'currency', v_ledger.base_currency),
             0,
             v_item.ordinality - 1,
             v_user_id,
@@ -8206,7 +8206,7 @@ ALTER FUNCTION "public"."validate_ledger_member_display_setting_member"() OWNER 
 CREATE OR REPLACE FUNCTION "public"."validate_ledger_setup_completion_payload"("p_payload" "jsonb") RETURNS "void"
     LANGUAGE "plpgsql" IMMUTABLE
     SET "search_path" TO 'pg_catalog', 'pg_temp'
-    AS $$
+    AS $_$
 begin
     if p_payload is null
        or jsonb_typeof(p_payload) <> 'object'
@@ -8222,15 +8222,20 @@ begin
             using errcode = '22023', detail = 'ledger_setup_payload_invalid';
     end if;
 
-    -- 账户：类型枚举、名称长度；同一类型内名称（忽略大小写）不重复。
-    -- 向导中账户的币种与持有人都相同，因此与 account_active_name_unique 的范围一致。
+    -- 账户：类型枚举、名称长度、货币代码；同一类型内名称（忽略大小写）不重复。
+    -- 持有人都相同；不同地区的候选名称不重叠，因此按类型 + 名称判重比 account_active_name_unique 更严格。
     if exists (
            select 1
            from jsonb_array_elements(p_payload -> 'accounts') a(v)
            where jsonb_typeof(a.v) <> 'object'
               or jsonb_typeof(a.v -> 'type') is distinct from 'string'
               or jsonb_typeof(a.v -> 'name') is distinct from 'string'
+              or jsonb_typeof(a.v -> 'currency') not in ('string', 'null')
               or a.v ->> 'type' not in ('cash', 'bank', 'credit_card', 'e_money')
+              or (
+                  jsonb_typeof(a.v -> 'currency') = 'string'
+                  and a.v ->> 'currency' !~ '^[A-Z]{3}$'
+              )
               or length(btrim(a.v ->> 'name')) not between 1 and 100
        )
        or (
@@ -8354,7 +8359,7 @@ begin
             using errcode = '22023', detail = 'ledger_setup_payload_invalid';
     end if;
 end;
-$$;
+$_$;
 
 
 ALTER FUNCTION "public"."validate_ledger_setup_completion_payload"("p_payload" "jsonb") OWNER TO "postgres";

@@ -2,8 +2,6 @@ import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import {
-  ledgerSetupErrorCodes,
-  ledgerSetupErrorMessages,
   ledgerSetupWriteErrorMessages,
   type LedgerSetupDraft,
 } from "internal/ledger";
@@ -151,7 +149,6 @@ describe("useLedgerSetupDraftSave", () => {
     expect(onNext).not.toHaveBeenCalled();
     expect(onProgressChange).not.toHaveBeenCalled();
     expect(result.current.failureState).toEqual(failure);
-    expect(result.current.accountNameDuplicateError).toBeNull();
   });
 
   it("saveDraft 抛出异常时返回草稿保存失败的通用提示，不前进并解除保存中", async () => {
@@ -171,24 +168,6 @@ describe("useLedgerSetupDraftSave", () => {
     });
     expect(result.current.isSaving).toBe(false);
     expect(onBusyChange).toHaveBeenLastCalledWith(false);
-  });
-
-  it("账户重名时不显示失败弹框，返回重名文案", async () => {
-    const message =
-      ledgerSetupErrorMessages[ledgerSetupErrorCodes.accountNameDuplicate];
-    const { onNext, result } = renderDraftSave({
-      saveDraft: vi.fn(async () => ({
-        accountNameDuplicate: true,
-        error: message,
-        errorKey: "e1",
-      })),
-    });
-
-    await act(() => result.current.saveAndGoNext(draft));
-
-    expect(onNext).not.toHaveBeenCalled();
-    expect(result.current.accountNameDuplicateError).toBe(message);
-    expect(result.current.failureState).toEqual({});
   });
 
   it("预设内容已更新时用重新读取的进度刷新向导，不前进", async () => {

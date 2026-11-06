@@ -27,6 +27,25 @@ function getResumeStep(progress: LedgerSetupProgress | null) {
   return progress ? clampStep(progress.setup.step) : 1;
 }
 
+/**
+ * 恢复进度时显示的提示：入口或恢复原因的提示（如已有创建中账本），
+ * 加上草稿基于旧版预设时的「预设内容已更新」。两条同时成立时都显示，
+ * 打开向导与第 1 步恢复到其他创建中账本时共用，避免预设更新提示被覆盖。
+ */
+function buildRestoreNotice(
+  notice: string | null,
+  progress: LedgerSetupProgress | null,
+) {
+  const messages = [
+    notice,
+    progress?.setup.templateUpdated
+      ? ledgerSetupWizardMessages.templateUpdatedNotice
+      : null,
+  ].filter((message): message is string => message !== null);
+
+  return messages.length > 0 ? messages.join("") : null;
+}
+
 type UseLedgerSetupWizardOptions = {
   initialNotice?: string | null;
   initialProgress: LedgerSetupProgress | null;
@@ -44,7 +63,9 @@ export function useLedgerSetupWizard({
   const [busy, setBusy] = useState(false);
   // 向导顶部的提示：打开时已有创建中账本、恢复到其他创建中账本时说明本次填写的内容未保存，
   // 预设内容已更新时说明需要重新确认。
-  const [notice, setNotice] = useState<string | null>(initialNotice);
+  const [notice, setNotice] = useState<string | null>(() =>
+    buildRestoreNotice(initialNotice, initialProgress),
+  );
   // 完成写入成功时保存的完成页统计；完成后草稿已过期，不再从进度计算。
   const [completion, setCompletion] = useState<LedgerSetupCompletion | null>(
     null,
@@ -107,7 +128,10 @@ export function useLedgerSetupWizard({
       setProgress(nextProgress);
       setStep(getResumeStep(nextProgress));
       setNotice(
-        ledgerSetupErrorMessages[ledgerSetupErrorCodes.inProgressExists],
+        buildRestoreNotice(
+          ledgerSetupErrorMessages[ledgerSetupErrorCodes.inProgressExists],
+          nextProgress,
+        ),
       );
     },
     setBusy,

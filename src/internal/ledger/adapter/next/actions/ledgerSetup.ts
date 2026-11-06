@@ -148,7 +148,7 @@ export async function submitLedgerSetupBasicInfo(
 /**
  * 保存向导第 2 步以后的草稿与 setup_step。成功后返回重新读取的进度。
  * 预设模板已更新或生活地区已变更时不保存，返回重新读取的进度（outdated），
- * 由向导替换状态并提示重新确认；同类型账户重名时由步骤在对应账户处提示。
+ * 由向导替换状态并提示重新确认。
  */
 export async function saveLedgerSetupDraft(
   input: SaveLedgerSetupDraftInput,
@@ -196,18 +196,11 @@ export async function saveLedgerSetupDraft(
     revalidateLedgerMutation();
     return { progress };
   } catch (error) {
-    const state = createActionErrorState(
+    return createActionErrorState(
       error,
       ledgerSetupWriteErrorMessages.draftSaveFailed,
       "[ledger] ledger setup draft action failed unexpectedly",
     );
-
-    return hasLedgerSetupErrorCode(
-      error,
-      ledgerSetupErrorCodes.accountNameDuplicate,
-    )
-      ? { ...state, accountNameDuplicate: true }
-      : state;
   }
 }
 

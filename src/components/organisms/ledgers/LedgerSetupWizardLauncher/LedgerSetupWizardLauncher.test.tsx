@@ -174,6 +174,33 @@ describe("LedgerSetupWizardLauncher", () => {
     expect(getCurrentStepItem()).toHaveTextContent("商家");
   });
 
+  it.each([
+    [
+      "create",
+      "你有一个账本还没创建完，请先继续创建。预设内容已更新，请重新确认",
+    ],
+    ["continue", "预设内容已更新，请重新确认"],
+  ] as const)(
+    "以 %s 意图恢复基于旧版预设的草稿时显示预设已更新提示",
+    async (intent, notice) => {
+      const progress = createLedgerSetupProgressFixture({
+        step: 3,
+        templateUpdated: true,
+      });
+      renderLauncher(createLedgerSetupWizardLauncherActionMocks(progress));
+
+      if (intent === "create") {
+        clickOpen();
+      } else {
+        fireEvent.click(screen.getByRole("button", { name: "继续" }));
+      }
+
+      const dialog = await findWizardDialog();
+      expect(within(dialog).getByText(notice)).toBeInTheDocument();
+      expect(getCurrentStepItem()).toHaveTextContent("商家");
+    },
+  );
+
   it("以继续意图打开时恢复到上次的步骤，不显示提示", async () => {
     const progress = createLedgerSetupProgressFixture({ step: 3 });
     renderLauncher(createLedgerSetupWizardLauncherActionMocks(progress));

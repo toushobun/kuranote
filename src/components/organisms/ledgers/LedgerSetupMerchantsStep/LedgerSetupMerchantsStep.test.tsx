@@ -77,7 +77,7 @@ describe("LedgerSetupMerchantsStep", () => {
       screen.getByRole("heading", { name: "挑选常去的商家" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("之后可以在商家管理中修改名称和别名"),
+      screen.getByText("没有的可以稍后在商家管理中添加，名称和别名也可以修改"),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "日本常用商家" }),

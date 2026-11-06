@@ -9,7 +9,9 @@ import {
 describe("地区草稿", () => {
   it("默认只选本地区前五类商家，多分类商家只算一次", () => {
     const draft = createDefaultLedgerSetupDraft("jp");
-    expect(draft.accounts.items).toEqual([{ name: "现金", type: "cash" }]);
+    expect(draft.accounts.items).toEqual([
+      { name: "日元现金", templateKey: "日元现金", type: "cash" },
+    ]);
     expect(draft.merchants.selectedKeys).toContain("apple");
     expect(draft.merchants.selectedKeys).not.toContain("hema");
     expect(draft.merchants.selectedKeys).not.toContain("jr");
@@ -23,13 +25,21 @@ describe("地区草稿", () => {
     expect(draft.merchants.selectedKeys).toContain("hema");
     expect(draft.merchants.selectedKeys).toContain("starbucks");
     expect(draft.merchants.selectedKeys).not.toContain("aeon");
+    expect(draft.accounts.items).toEqual([
+      { name: "人民币现金", templateKey: "人民币现金", type: "cash" },
+    ]);
   });
-  it("旧草稿保留账户、商家勾选和跳过状态，不重选新增商家", () => {
+  it("旧草稿保留预设账户、商家勾选和跳过状态，不重选新增商家", () => {
     const stored = parseStoredLedgerSetupDraft({
       templateCurrency: "JPY",
       templateVersion: 1,
       accounts: {
-        items: [{ name: "改名的账户", type: "bank", templateKey: "旧候选" }],
+        items: [
+          { name: "现金", type: "cash" },
+          { name: "改名的账户", type: "bank", templateKey: "旧候选" },
+          { name: "自己添加的账户", type: "bank" },
+          { name: "三井住友銀行", type: "bank", templateKey: "三井住友銀行" },
+        ],
         skipped: true,
       },
       merchants: {
@@ -42,9 +52,13 @@ describe("地区草稿", () => {
     expect(draft).toMatchObject({
       schemaVersion: 2,
       templateRegion: "jp",
-      templateVersion: 4,
+      templateVersion: 5,
       accounts: {
-        items: [{ name: "改名的账户", type: "bank" }],
+        // 旧草稿的「现金」对应生活地区的现金，不在候选中的账户不再保留。
+        items: [
+          { name: "日元现金", templateKey: "日元现金", type: "cash" },
+          { name: "三井住友銀行", templateKey: "三井住友銀行", type: "bank" },
+        ],
         skipped: true,
       },
       merchants: { selectedKeys: ["apple", "aeon"], skipped: true },
@@ -53,7 +67,6 @@ describe("地区草稿", () => {
         multiAccountPaymentEnabled: false,
       },
     });
-    expect(draft.accounts.items[0]).not.toHaveProperty("templateKey");
   });
   it("追加地区合法选择可保存，默认不自动增加任何勾选", () => {
     const draft = createDefaultLedgerSetupDraft("jp");
@@ -86,7 +99,7 @@ describe("地区草稿", () => {
     expect(resolveLedgerSetupDraft(draft, "jp").merchants.selectedKeys).toEqual(
       ["starbucks"],
     );
-    expect(getLedgerSetupTemplate("jp")?.version).toBe(4);
+    expect(getLedgerSetupTemplate("jp")?.version).toBe(5);
   });
   it("未知地区不猜测默认模板，缺失部分独立补全", () => {
     expect(resolveLedgerSetupDraft({}, null)).toEqual(

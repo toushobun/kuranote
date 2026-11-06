@@ -13,6 +13,7 @@ import { mockMatchMedia } from "test/matchMedia";
 import {
   createLedgerSetupProgressFixture,
   createLedgerSetupConfirmProgressFixture,
+  ledgerSetupTemplateFixture,
 } from "test/mocks/ledgerSetup";
 
 import {
@@ -94,6 +95,23 @@ describe("LedgerSetupWizard", () => {
       expectCurrentStep("商家");
       expect(
         screen.getByRole("heading", { name: "挑选常去的商家" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText("预设内容已更新，请重新确认"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("恢复基于旧版预设的草稿时提示预设内容已更新", () => {
+      renderLedgerSetupWizard({
+        progress: createLedgerSetupProgressFixture({
+          step: 2,
+          templateUpdated: true,
+        }),
+      });
+
+      expectCurrentStep("账户");
+      expect(
+        screen.getByText("预设内容已更新，请重新确认"),
       ).toBeInTheDocument();
     });
 
@@ -225,14 +243,14 @@ describe("LedgerSetupWizard", () => {
     });
 
     it.each([
-      { step: 2, label: "账户", checkbox: "现金" },
+      { step: 2, label: "账户", checkbox: "选择「现金」的全部账户" },
       { step: 3, label: "商家", checkbox: "选择「超市」的全部商家" },
     ])(
       "放弃「$label」步骤修改后重新进入时恢复已保存的选择",
       async ({ step, label, checkbox }) => {
         const saved =
           step === 2
-            ? createLedgerSetupProgressFixture()
+            ? createLedgerSetupProgressFixture({}, ledgerSetupTemplateFixture)
             : createLedgerSetupConfirmProgressFixture();
         const progress = { ...saved, setup: { ...saved.setup, step } };
         const { onClose, abandonSetup, saveDraft } = renderLedgerSetupWizard({

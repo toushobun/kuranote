@@ -22,7 +22,9 @@ const draft = createDefaultLedgerSetupDraft("jp");
 
 const payload = {
   templateRegion: "jp" as const,
-  accounts: [{ name: "现金", type: "cash" as const }],
+  accounts: [
+    { currency: "JPY" as const, name: "日元现金", type: "cash" as const },
+  ],
   merchantTags: [],
   merchants: [],
   multiAccountPaymentEnabled: false,
