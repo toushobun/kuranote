@@ -1,4 +1,8 @@
 import {
+  ledgerSetupEntryMessages,
+  ledgerSetupWizardMessages,
+} from "config/ledgerSetupMessages";
+import {
   cleanup,
   fireEvent,
   screen,
@@ -128,6 +132,24 @@ describe("LedgerSetupWizard", () => {
       await waitFor(() => expectCurrentStep("账户"));
       await goPreviousTo("基本信息");
       expect(screen.getByLabelText("账本名称")).toHaveValue("旅行账本");
+    });
+
+    it("预设更新提示不提供重新创建", async () => {
+      const progress = createLedgerSetupProgressFixture({ step: 2 });
+      renderLedgerSetupWizard({
+        progress,
+        saveDraft: vi.fn(async () => ({ outdated: true, progress })),
+      });
+      clickNext();
+      const notice = within(await screen.findByRole("status"));
+      expect(
+        notice.getByText(ledgerSetupWizardMessages.templateUpdatedNotice),
+      ).toBeInTheDocument();
+      expect(
+        notice.queryByRole("button", {
+          name: ledgerSetupEntryMessages.restart,
+        }),
+      ).not.toBeInTheDocument();
     });
 
     it("完成创建后进入第 6 步：第 1～5 步为已完成，第 6 步为当前", async () => {

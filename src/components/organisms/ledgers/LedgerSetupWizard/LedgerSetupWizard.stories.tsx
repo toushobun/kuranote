@@ -7,6 +7,7 @@ import { LedgerSetupWizard } from "./LedgerSetupWizard";
 import {
   createLedgerSetupWizardStoryActions,
   ledgerSetupWizardStoryArgs,
+  ledgerSetupRestartStoryProgress,
   ledgerSetupWizardStoryDecorators,
 } from "./ledgerSetupWizardStoryUtils";
 
@@ -53,4 +54,9 @@ export const CloseConfirm: Story = {
       await body.findByRole("button", { name: "关闭创建账本向导" }),
     );
   },
+};
+
+export const ExistingDraft: Story = {
+  name: "已有草稿提示",
+  args: { progress: ledgerSetupRestartStoryProgress, initialNotice: "draft" },
 };

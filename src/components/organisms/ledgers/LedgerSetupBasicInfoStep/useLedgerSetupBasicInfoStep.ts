@@ -46,6 +46,7 @@ type UseLedgerSetupBasicInfoStepOptions = Pick<
   | "onProgressChange"
   | "onRestore"
   | "progress"
+  | "restarted"
 >;
 
 export function useLedgerSetupBasicInfoStep({
@@ -57,18 +58,24 @@ export function useLedgerSetupBasicInfoStep({
   onProgressChange,
   onRestore,
   progress,
+  restarted,
 }: UseLedgerSetupBasicInfoStepOptions) {
   const setup = progress?.setup ?? null;
   const [values, setValues] = useState(() =>
-    getInitialValues(progress, defaults),
+    getInitialValues(
+      progress,
+      restarted ? { ...defaults, ledgerName: "" } : defaults,
+    ),
   );
   const [livingRegion, setLivingRegion] = useState<LedgerSetupRegion | null>(
     () =>
       progress
         ? progress.setup.livingRegion
-        : getLedgerSetupRegionFromTimeZone(
-            Intl.DateTimeFormat().resolvedOptions().timeZone,
-          ),
+        : restarted
+          ? null
+          : getLedgerSetupRegionFromTimeZone(
+              Intl.DateTimeFormat().resolvedOptions().timeZone,
+            ),
   );
   useLedgerSetupStepDirty({ values, livingRegion }, onDirtyChange);
   const [actionState, formAction, isPending] = useActionState(

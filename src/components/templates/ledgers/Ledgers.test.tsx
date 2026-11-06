@@ -1,3 +1,4 @@
+import { ledgerSetupEntryMessages } from "config/ledgerSetupMessages";
 import {
   openLedgerSetupAbandonConfirm,
   confirmLedgerSetupAbandon,
@@ -159,7 +160,7 @@ describe("LedgersTemplate", () => {
     expect(setupWizardActions.loadWizard).toHaveBeenCalledTimes(1);
     expect(getCurrentStepItem()).toHaveTextContent("账户");
     expect(
-      within(dialog).queryByText("你有一个账本还没创建完，请先继续创建。"),
+      within(dialog).queryByText(ledgerSetupEntryMessages.draftNotice),
     ).not.toBeInTheDocument();
   });
 
@@ -170,7 +171,7 @@ describe("LedgersTemplate", () => {
 
     const dialog = await screen.findByRole("dialog", { name: "创建账本" });
     expect(
-      within(dialog).getByText("你有一个账本还没创建完，请先继续创建。"),
+      within(dialog).getByText(ledgerSetupEntryMessages.draftNotice),
     ).toBeInTheDocument();
   });
 

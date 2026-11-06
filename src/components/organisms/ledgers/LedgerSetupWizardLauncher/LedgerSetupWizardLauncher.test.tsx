@@ -1,4 +1,5 @@
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -12,12 +13,28 @@ import {
   createLedgerSetupWizardLauncherActionMocks,
   getCurrentStepItem,
 } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardTestUtils";
+import {
+  ledgerSetupAbandonMessages,
+  ledgerSetupEntryMessages,
+} from "config/ledgerSetupMessages";
+import {
+  ledgerSetupErrorCodes,
+  ledgerSetupErrorMessages,
+  ledgerSetupWriteErrorMessages,
+} from "internal/ledger";
+import {
+  confirmLedgerSetupAbandon,
+  openLedgerSetupAbandonConfirm,
+} from "test/ledgerSetupAbandon";
+import { setupGuardHistoryMock } from "test/mockGuardHistory";
 import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
 import { createLedgerSetupProgressFixture } from "test/mocks/ledgerSetup";
 import type { LedgerSetupWizardViewActionState } from "types/ledgers";
 
 import { LedgerSetupWizardLauncher } from "./LedgerSetupWizardLauncher";
 import { useLedgerSetupWizardLauncher } from "./useLedgerSetupWizardLauncher";
+
+setupGuardHistoryMock();
 
 const routerRefreshMock = vi.hoisted(() => vi.fn());
 
@@ -169,9 +186,102 @@ describe("LedgerSetupWizardLauncher", () => {
 
     const dialog = await findWizardDialog();
     expect(
-      within(dialog).getByText("你有一个账本还没创建完，请先继续创建。"),
+      within(dialog).getByText(ledgerSetupEntryMessages.draftNotice),
     ).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole("button", {
+        name: ledgerSetupEntryMessages.restart,
+      }),
+    ).toBeEnabled();
     expect(getCurrentStepItem()).toHaveTextContent("商家");
+  });
+
+  function openDraft(step = 3) {
+    const progress = createLedgerSetupProgressFixture({
+      step,
+      name: "旅行账本",
+    });
+    const actions = renderLauncher(
+      createLedgerSetupWizardLauncherActionMocks(progress),
+    );
+    clickOpen();
+    return { progress, abandonSetup: actions.wizard.abandonSetup };
+  }
+
+  function openRestartConfirm() {
+    return openLedgerSetupAbandonConfirm(
+      "旅行账本",
+      ledgerSetupEntryMessages.restart,
+    );
+  }
+
+  it("确认放弃后清空第 1 步，关闭向导时刷新入口", async () => {
+    const { abandonSetup, progress } = openDraft(1);
+    const name = await screen.findByRole("textbox", { name: "账本名称" });
+    fireEvent.change(name, { target: { value: "未保存的名称" } });
+    const dialog = await findWizardDialog();
+    const close = within(dialog).getByRole("button", {
+      name: "关闭创建账本向导",
+    });
+    const next = within(dialog).getByRole("button", { name: "下一步" });
+    const restart = within(dialog).getByRole("button", {
+      name: ledgerSetupEntryMessages.restart,
+    });
+    let finish!: () => void;
+    abandonSetup.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = () => resolve({});
+        }),
+    );
+    confirmLedgerSetupAbandon(await openRestartConfirm());
+    await waitFor(() => expect(restart).toBeDisabled());
+    expect(close).toBeDisabled();
+    expect(next).toBeDisabled();
+    expect(abandonSetup).toHaveBeenCalledWith({ ledgerId: progress.setup.id });
+
+    await act(async () => finish());
+    expect(getCurrentStepItem()).toHaveTextContent("基本信息");
+    expect(screen.getByRole("textbox", { name: "账本名称" })).toHaveValue("");
+    expect(within(dialog).queryByRole("status")).not.toBeInTheDocument();
+    expect(routerRefreshMock).not.toHaveBeenCalled();
+
+    fireEvent.click(close);
+    await waitFor(() => expect(routerRefreshMock).toHaveBeenCalledOnce());
+  });
+
+  it("取消重新创建时保留当前步骤与提示", async () => {
+    const { abandonSetup } = openDraft();
+    const confirm = await openRestartConfirm();
+    fireEvent.click(
+      within(confirm).getByRole("button", {
+        name: ledgerSetupAbandonMessages.cancel,
+      }),
+    );
+    await findWizardDialog();
+    expect(abandonSetup).not.toHaveBeenCalled();
+    expect(getCurrentStepItem()).toHaveTextContent("商家");
+    expect(
+      screen.getByRole("button", { name: ledgerSetupEntryMessages.restart }),
+    ).toBeEnabled();
+  });
+
+  it.each([
+    ledgerSetupErrorMessages[ledgerSetupErrorCodes.hasMembers],
+    ledgerSetupErrorMessages[ledgerSetupErrorCodes.hasTransactions],
+    null,
+  ])("放弃失败后保留当前步骤与提示（%s）", async (error) => {
+    const { abandonSetup } = openDraft();
+    if (error) abandonSetup.mockResolvedValueOnce({ error });
+    else abandonSetup.mockRejectedValueOnce(new Error("network"));
+    confirmLedgerSetupAbandon(await openRestartConfirm());
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      error ?? ledgerSetupWriteErrorMessages.abandonFailed,
+    );
+    expect(getCurrentStepItem()).toHaveTextContent("商家");
+    expect(
+      screen.getByText(ledgerSetupEntryMessages.draftNotice),
+    ).toBeInTheDocument();
   });
 
   it("以继续意图打开时恢复到上次的步骤，不显示提示", async () => {
@@ -183,7 +293,7 @@ describe("LedgerSetupWizardLauncher", () => {
     const dialog = await findWizardDialog();
     expect(getCurrentStepItem()).toHaveTextContent("商家");
     expect(
-      within(dialog).queryByText("你有一个账本还没创建完，请先继续创建。"),
+      within(dialog).queryByText(ledgerSetupEntryMessages.draftNotice),
     ).not.toBeInTheDocument();
   });
 
@@ -201,7 +311,7 @@ describe("LedgerSetupWizardLauncher", () => {
 
     const dialog = await findWizardDialog();
     expect(
-      within(dialog).queryByText("你有一个账本还没创建完，请先继续创建。"),
+      within(dialog).queryByText(ledgerSetupEntryMessages.draftNotice),
     ).not.toBeInTheDocument();
   });
 

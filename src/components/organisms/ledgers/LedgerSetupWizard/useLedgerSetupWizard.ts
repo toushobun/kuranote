@@ -2,11 +2,6 @@
 
 import { useState } from "react";
 
-import { ledgerSetupWizardMessages } from "config/ledgerSetupMessages";
-import {
-  ledgerSetupErrorCodes,
-  ledgerSetupErrorMessages,
-} from "internal/ledger";
 import type { LedgerSetupProgress } from "types/ledgers";
 import { buildLedgerSetupConfirmSummary } from "utils/ledgerSetupSummary";
 
@@ -27,8 +22,10 @@ function getResumeStep(progress: LedgerSetupProgress | null) {
   return progress ? clampStep(progress.setup.step) : 1;
 }
 
+export type LedgerSetupWizardNotice = "draft" | "templateUpdated";
+
 type UseLedgerSetupWizardOptions = {
-  initialNotice?: string | null;
+  initialNotice?: LedgerSetupWizardNotice | null;
   initialProgress: LedgerSetupProgress | null;
 };
 
@@ -36,15 +33,14 @@ export function useLedgerSetupWizard({
   initialNotice = null,
   initialProgress,
 }: UseLedgerSetupWizardOptions) {
+  const [restarted, setRestarted] = useState(false);
   const [progress, setProgress] = useState(initialProgress);
   const [step, setStep] = useState(() => getResumeStep(initialProgress));
   // 进度被服务端重新读取的内容替换时递增，使当前步骤按新进度重新初始化。
   const [progressRevision, setProgressRevision] = useState(0);
   // 步骤保存中：锁定「×」与关闭，避免保存过程中关闭向导。
   const [busy, setBusy] = useState(false);
-  // 向导顶部的提示：打开时已有创建中账本、恢复到其他创建中账本时说明本次填写的内容未保存，
-  // 预设内容已更新时说明需要重新确认。
-  const [notice, setNotice] = useState<string | null>(initialNotice);
+  const [notice, setNotice] = useState(initialNotice);
   // 完成写入成功时保存的完成页统计；完成后草稿已过期，不再从进度计算。
   const [completion, setCompletion] = useState<LedgerSetupCompletion | null>(
     null,
@@ -61,6 +57,7 @@ export function useLedgerSetupWizard({
     notice,
     progress,
     progressRevision,
+    restarted,
     step,
     dismissNotice() {
       setNotice(null);
@@ -93,6 +90,7 @@ export function useLedgerSetupWizard({
         ledgerName: summary.basicInfo.ledgerName,
         merchantCount: summary.merchants.count,
       });
+      setNotice((current) => (current === "draft" ? null : current));
       setStep(ledgerSetupLastDraftStep + 1);
     },
     goPrevious() {
@@ -101,14 +99,18 @@ export function useLedgerSetupWizard({
     refreshProgress(nextProgress: LedgerSetupProgress) {
       setProgress(nextProgress);
       setProgressRevision((current) => current + 1);
-      setNotice(ledgerSetupWizardMessages.templateUpdatedNotice);
+      setNotice("templateUpdated");
     },
     restoreProgress(nextProgress: LedgerSetupProgress) {
       setProgress(nextProgress);
       setStep(getResumeStep(nextProgress));
-      setNotice(
-        ledgerSetupErrorMessages[ledgerSetupErrorCodes.inProgressExists],
-      );
+      setNotice("draft");
+    },
+    resetDraft() {
+      setRestarted(true);
+      setProgress(null);
+      setStep(1);
+      setNotice(null);
     },
     setBusy,
     updateProgress: setProgress,

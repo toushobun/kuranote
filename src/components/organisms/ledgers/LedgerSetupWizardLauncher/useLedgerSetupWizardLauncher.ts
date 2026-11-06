@@ -11,7 +11,7 @@ import type {
 } from "types/ledgers";
 
 /**
- * 打开意图：create = 「新增账本」「创建账本」，已有创建中账本时向导提示「还没创建完」；
+ * 打开意图：create = 「新增账本」「创建账本」，已有创建中账本时向导显示草稿提示；
  * resume = 「继续创建」，用户明确要继续该账本，不显示提示。
  */
 export type LedgerSetupWizardOpenIntent = "create" | "resume";
