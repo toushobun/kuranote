@@ -5,7 +5,7 @@ select plan(14);
 create function pg_temp.region_payload(n integer) returns jsonb language sql as $$
   select jsonb_build_object(
     'templateRegion', 'jp',
-    'accounts', jsonb_build_array(jsonb_build_object('name','现金','type','cash')),
+    'accounts', jsonb_build_array(jsonb_build_object('name','人民币现金','type','cash','currency','CNY')),
     'specialStatusEnabled', false, 'multiAccountPaymentEnabled', false,
     'merchantTags', jsonb_build_array(
       jsonb_build_object('key','shopping','name','购物','icon','🛍️'),
@@ -42,7 +42,7 @@ select is((select count(*) from public.merchant where ledger_id=(select id from 
 select is((select name from public.merchant where ledger_id=(select id from region_setup) and name='苹果'), '苹果', '中文显示名实际写入商家表');
 select is((select a.locale from public.merchant_alias a join public.merchant m on m.id=a.merchant_id where m.ledger_id=(select id from region_setup) and a.alias='Apple'), 'en', '原名别名及locale实际写入');
 select is((select count(*) from public.merchant_tag_links l join public.merchant m on m.id=l.merchant_id where m.ledger_id=(select id from region_setup)), 4::bigint, '每家商家的全部标签关联写入');
-select is((select currency from public.account where ledger_id=(select id from region_setup)), 'USD', '账户货币使用账本币种，与候选地区无关');
+select is((select currency from public.account where ledger_id=(select id from region_setup)), 'CNY', '账户按候选所属地区的货币创建，与账本币种无关');
 select is((select living_region from public.ledger where id=(select id from region_setup)), 'cn', '完成清除草稿后仍保留账本生活地区');
 reset role;
 select * from finish();

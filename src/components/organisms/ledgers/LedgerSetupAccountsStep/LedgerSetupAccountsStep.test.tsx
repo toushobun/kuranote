@@ -180,7 +180,7 @@ describe("LedgerSetupAccountsStep", () => {
     );
   });
 
-  it("勾选超过上限时提示并禁用下一步", () => {
+  it("勾选超过上限时提示并禁用下一步与上一步（不触发必然失败的保存），减少后恢复", () => {
     renderAccountsStep({
       progress: createAccountsProgress([], getLedgerSetupTemplate("jp")),
     });
@@ -196,6 +196,15 @@ describe("LedgerSetupAccountsStep", () => {
     expect(
       screen.getByRole("button", { name: /^下一步 · 已选 \d+ 个$/ }),
     ).toBeDisabled();
+    expect(screen.getByRole("button", { name: "上一步" })).toBeDisabled();
+
+    fireEvent.click(getTypeCheckbox("电子钱包", 0));
+
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /^下一步 · 已选 \d+ 个$/ }),
+    ).toBeEnabled();
+    expect(screen.getByRole("button", { name: "上一步" })).toBeEnabled();
   });
 
   it("上一步时保存当前修改，setup_step 不倒退", async () => {

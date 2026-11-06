@@ -236,6 +236,19 @@ describe.each(ledgerSetupRegions)("%s 模板约束", (region) => {
     );
   });
 
+  it("同一类型的账户候选不跨地区重名（按名称确定账户货币）", () => {
+    for (const type of ledgerSetupAccountTypes) {
+      expect(
+        findDuplicates(
+          ledgerSetupRegions.flatMap((r) =>
+            template.accountCandidatesByRegion[r][type].map(normalize),
+          ),
+        ),
+        type,
+      ).toEqual([]);
+    }
+  });
+
   it("账户候选在同一类型内不重复且长度合法", () => {
     for (const candidates of Object.values(
       template.accountCandidatesByRegion,

@@ -156,11 +156,34 @@ describe("createLedgerSetupService.getCurrentUserSetup", () => {
       id: ledgerId,
       name: "家庭账本",
       step: 2,
+      templateUpdated: false,
     });
     expect(
       ledgerSetupRepository.findCurrentUserSetupLedger,
     ).toHaveBeenCalledWith(userId);
   });
+
+  it.each([
+    ["基于当前版本", draft.templateVersion, false],
+    ["基于旧版本", 1, true],
+  ])(
+    "已保存草稿%s的预设时 templateUpdated 为 %s",
+    async (_label, templateVersion, templateUpdated) => {
+      const service = createLedgerSetupService({
+        currentUserId: userId,
+        ledgerSetupRepository: createRepository({
+          findCurrentUserSetupLedger: vi.fn(async () =>
+            createRecord({ ...draft, templateVersion }),
+          ),
+        }),
+      });
+
+      await expect(service.getCurrentUserSetup()).resolves.toMatchObject({
+        draft: { templateVersion: draft.templateVersion },
+        templateUpdated,
+      });
+    },
+  );
 
   it.each([
     ["已保存账户选择", { accounts: draft.accounts }],
@@ -280,7 +303,7 @@ describe("createLedgerSetupService.complete", () => {
       ledgerId,
       payload: expect.objectContaining({
         templateRegion: "jp",
-        accounts: [{ name: "PayPay", type: "e_money" }],
+        accounts: [{ currency: "JPY", name: "PayPay", type: "e_money" }],
         merchants: [
           expect.objectContaining({
             name: "网飞",
@@ -313,7 +336,7 @@ describe("createLedgerSetupService.complete", () => {
     expect(ledgerSetupRepository.complete).toHaveBeenCalledWith({
       ledgerId,
       payload: expect.objectContaining({
-        accounts: [{ name: "日元现金", type: "cash" }],
+        accounts: [{ currency: "JPY", name: "日元现金", type: "cash" }],
         merchantTags: expect.any(Array),
         merchants: expect.arrayContaining([
           expect.objectContaining({ name: "永旺" }),

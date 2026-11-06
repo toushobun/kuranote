@@ -70,7 +70,8 @@ function LedgerSetupAccountsStepContent(
             onClick: step.goNext,
           }}
           previous={{
-            disabled: step.isSaving,
+            // 上一步同样保存草稿，超限时保存必然失败，因此与下一步一起禁用。
+            disabled: step.isSaving || step.limitExceeded,
             label: ledgerSetupWizardMessages.previous,
             onClick: step.goPrevious,
           }}

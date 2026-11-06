@@ -534,9 +534,9 @@ as $$
     select '{
         "templateRegion": "jp",
         "accounts": [
-            {"type": "cash", "name": "现金"},
-            {"type": "bank", "name": " 楽天銀行 "},
-            {"type": "e_money", "name": "楽天銀行"}
+            {"type": "cash", "name": "现金", "currency": "CNY"},
+            {"type": "bank", "name": " 楽天銀行 ", "currency": "JPY"},
+            {"type": "e_money", "name": "楽天銀行", "currency": "JPY"}
         ],
         "merchantTags": [
             {"key": "ecommerce", "name": "电商", "icon": "📦"},
@@ -705,7 +705,9 @@ begin
         jsonb_set(pg_temp.completion_payload(), '{multiAccountPaymentEnabled}', '"true"'::jsonb),
         jsonb_set(pg_temp.completion_payload(), '{accounts,0,name}', to_jsonb(repeat('x', 101))),
         jsonb_set(pg_temp.completion_payload(), '{accounts,0,type}', '"other"'::jsonb),
-        jsonb_set(pg_temp.completion_payload(), '{accounts,1}', '{"type": "cash", "name": "现金 "}'::jsonb),
+        jsonb_set(pg_temp.completion_payload(), '{accounts,1}', '{"type": "cash", "name": "现金 ", "currency": "JPY"}'::jsonb),
+        pg_temp.completion_payload() #- '{accounts,0,currency}',
+        jsonb_set(pg_temp.completion_payload(), '{accounts,0,currency}', '"cny"'::jsonb),
         jsonb_set(pg_temp.completion_payload(), '{accounts,2,type}', '"bank"'::jsonb),
         jsonb_set(pg_temp.completion_payload(), '{merchants,0,tagKeys}', '["ecommerce", "missing"]'::jsonb),
         jsonb_set(pg_temp.completion_payload(), '{merchants,0,tagKeys}', '["ecommerce", "ecommerce"]'::jsonb),
@@ -823,13 +825,12 @@ begin
        and h.user_id = v_owner_id
        and h.role = 'owner'
      where a.ledger_id = v_setup_ledger_id
-       and a.currency = 'JPY'
        and a.initial_balance = 0
        and a.current_balance = 0
-       and (a.name, a.type, a.sort_order) in (
-           ('现金', 'cash', 0),
-           ('楽天銀行', 'bank', 1),
-           ('楽天銀行', 'e_money', 2)
+       and (a.name, a.type, a.currency, a.sort_order) in (
+           ('现金', 'cash', 'CNY', 0),
+           ('楽天銀行', 'bank', 'JPY', 1),
+           ('楽天銀行', 'e_money', 'JPY', 2)
        );
     if v_count <> 3
        or (select count(*) from public.account where ledger_id = v_setup_ledger_id) <> 3 then

@@ -1,4 +1,5 @@
 import {
+  ledgerSetupRegions,
   type LedgerSetupAccountType,
   type LedgerSetupTemplate,
   type LedgerSetupRegion,
@@ -81,15 +82,26 @@ export function createDefaultLedgerSetupDraft(
   };
 }
 
+/** 账户候选所属的地区（决定账户货币）。不在候选中时为 null。各地区候选名称不重叠。 */
+export function findLedgerSetupAccountRegion(
+  template: LedgerSetupTemplate | null,
+  type: LedgerSetupAccountType,
+  templateKey: string,
+): LedgerSetupRegion | null {
+  if (!template) return null;
+  return (
+    ledgerSetupRegions.find((region) =>
+      template.accountCandidatesByRegion[region][type].includes(templateKey),
+    ) ?? null
+  );
+}
+
 function isAccountTemplateKeyValid(
   template: LedgerSetupTemplate | null,
   type: LedgerSetupAccountType,
   templateKey: string,
 ) {
-  if (!template) return false;
-  return Object.values(template.accountCandidatesByRegion).some((candidates) =>
-    candidates[type].includes(templateKey),
-  );
+  return findLedgerSetupAccountRegion(template, type, templateKey) !== null;
 }
 
 /** 恢复与保存共用地区范围，防止恢复后的草稿再次被判为过期。 */

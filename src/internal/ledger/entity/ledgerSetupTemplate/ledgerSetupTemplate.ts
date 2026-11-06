@@ -1,5 +1,16 @@
+import type { LedgerCurrency } from "internal/ledger/entity/ledgerCurrency";
+
 export const ledgerSetupRegions = ["jp", "cn"] as const;
 export type LedgerSetupRegion = (typeof ledgerSetupRegions)[number];
+
+/**
+ * 各地区账户候选的货币。完成创建时账户按候选所属地区的货币创建，
+ * 与账本默认货币无关（生活地区与默认货币解耦）。
+ */
+export const ledgerSetupRegionCurrencies = {
+  cn: "CNY",
+  jp: "JPY",
+} as const satisfies Record<LedgerSetupRegion, LedgerCurrency>;
 
 export function isLedgerSetupRegion(
   value: unknown,

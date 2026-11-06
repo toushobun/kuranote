@@ -54,7 +54,10 @@ export type CompleteLedgerSetupInput = {
 };
 
 /** 数据库中的创建中账本。草稿为保存时的原样（各部分可能缺失），由 Service 补全。 */
-export type LedgerSetupRecord = Omit<LedgerSetup, "draft"> & {
+export type LedgerSetupRecord = Omit<
+  LedgerSetup,
+  "draft" | "templateUpdated"
+> & {
   storedDraft: StoredLedgerSetupDraft;
 };
 
