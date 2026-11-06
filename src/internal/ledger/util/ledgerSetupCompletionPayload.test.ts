@@ -36,7 +36,7 @@ describe("buildLedgerSetupCompletionPayload", () => {
       iconUrl: null,
     });
   });
-  it("两地全选共196家，每家只写入一次，头像复用官网规则", () => {
+  it("两地全选共194家，每家只写入一次，头像复用官网规则", () => {
     const draft = createDefaultLedgerSetupDraft("jp");
     draft.merchants = {
       selectedKeys: template.merchants.map((m) => m.key),
@@ -44,7 +44,7 @@ describe("buildLedgerSetupCompletionPayload", () => {
       additionalRegions: ["cn"],
     };
     const payload = buildLedgerSetupCompletionPayload(draft, template);
-    expect(payload.merchants).toHaveLength(196);
+    expect(payload.merchants).toHaveLength(194);
     expect(payload.merchantTags).toHaveLength(7);
     for (const merchant of payload.merchants)
       expect(merchant.iconUrl).toBe(

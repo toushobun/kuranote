@@ -43,7 +43,7 @@ describe("地区模板", () => {
   });
   it("按地区提供账户候选，币种不是模板入口", () => {
     expect(template.region).toBe("jp");
-    expect(template.version).toBe(3);
+    expect(template.version).toBe(4);
     expect(getLedgerSetupTemplate("JPY")).toBeNull();
     expect(getLedgerSetupTemplate("cn")?.accountCandidates.e_money).toEqual([
       "支付宝",
@@ -54,15 +54,15 @@ describe("地区模板", () => {
     expect(ledgerSetupCashAccount).toEqual({ name: "现金", type: "cash" });
     expect(ledgerSetupAccountTypes).toHaveLength(4);
   });
-  it("商家唯一目录收录日本117家和中国独有79家", () => {
-    expect(template.merchants).toHaveLength(196);
+  it("商家唯一目录收录日本115家和中国独有79家", () => {
+    expect(template.merchants).toHaveLength(194);
     expect(
       template.merchants.filter((m) => m.regions.includes("jp")),
-    ).toHaveLength(117);
+    ).toHaveLength(115);
     expect(
       template.merchants.filter((m) => !m.regions.includes("jp")),
     ).toHaveLength(79);
-    expect(new Set(template.merchants.map((m) => m.key)).size).toBe(196);
+    expect(new Set(template.merchants.map((m) => m.key)).size).toBe(194);
     expect(getLedgerSetupTemplate("cn")?.merchants).toBe(template.merchants);
   });
   it("7个分类中只有前4类默认勾选", () => {

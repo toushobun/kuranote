@@ -1367,51 +1367,35 @@ export const ledgerSetupMerchants = [
     generic: false,
   },
   {
-    key: "jr_east",
-    name: "JR东日本",
+    key: "jr",
+    name: "JR",
     aliases: [
       {
         alias: "JR東日本",
         locale: "ja",
       },
       {
-        alias: "JR East",
-        locale: "en",
-      },
-    ],
-    websiteUrl: "https://www.jreast.co.jp/",
-    regions: ["jp"],
-    tagKeys: ["transport"],
-    generic: false,
-  },
-  {
-    key: "jr_central",
-    name: "JR东海",
-    aliases: [
-      {
         alias: "JR東海",
         locale: "ja",
       },
       {
-        alias: "JR Central",
-        locale: "en",
+        alias: "JR西日本",
+        locale: "ja",
       },
-    ],
-    websiteUrl: "https://jr-central.co.jp/",
-    regions: ["jp"],
-    tagKeys: ["transport"],
-    generic: false,
-  },
-  {
-    key: "jr_west",
-    name: "JR西日本",
-    aliases: [
       {
-        alias: "JR West",
-        locale: "en",
+        alias: "JR九州",
+        locale: "ja",
+      },
+      {
+        alias: "JR北海道",
+        locale: "ja",
+      },
+      {
+        alias: "JR四国",
+        locale: "ja",
       },
     ],
-    websiteUrl: "https://www.westjr.co.jp/",
+    websiteUrl: "https://www.jreast.co.jp/",
     regions: ["jp"],
     tagKeys: ["transport"],
     generic: false,

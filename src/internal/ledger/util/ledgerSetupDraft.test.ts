@@ -12,7 +12,7 @@ describe("地区草稿", () => {
     expect(draft.accounts.items).toEqual([{ name: "现金", type: "cash" }]);
     expect(draft.merchants.selectedKeys).toContain("apple");
     expect(draft.merchants.selectedKeys).not.toContain("hema");
-    expect(draft.merchants.selectedKeys).not.toContain("jr_east");
+    expect(draft.merchants.selectedKeys).not.toContain("jr");
     expect(new Set(draft.merchants.selectedKeys).size).toBe(
       draft.merchants.selectedKeys.length,
     );
@@ -42,7 +42,7 @@ describe("地区草稿", () => {
     expect(draft).toMatchObject({
       schemaVersion: 2,
       templateRegion: "jp",
-      templateVersion: 3,
+      templateVersion: 4,
       accounts: {
         items: [{ name: "改名的账户", type: "bank" }],
         skipped: true,
@@ -86,7 +86,7 @@ describe("地区草稿", () => {
     expect(resolveLedgerSetupDraft(draft, "jp").merchants.selectedKeys).toEqual(
       ["starbucks"],
     );
-    expect(getLedgerSetupTemplate("jp")?.version).toBe(3);
+    expect(getLedgerSetupTemplate("jp")?.version).toBe(4);
   });
   it("未知地区不猜测默认模板，缺失部分独立补全", () => {
     expect(resolveLedgerSetupDraft({}, null)).toEqual(

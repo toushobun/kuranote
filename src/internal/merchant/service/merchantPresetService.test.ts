@@ -42,7 +42,7 @@ describe("merchantPresetService", () => {
     const { service, repository } = setup("cn");
     await service.add("ledger", {
       regions: ["cn"],
-      templateVersion: 3,
+      templateVersion: 4,
       selectedKeys: ["hema", "starbucks"],
     });
     expect(repository.add).toHaveBeenCalledWith(
@@ -60,7 +60,7 @@ describe("merchantPresetService", () => {
     const { service, repository } = setup("jp", ["邮局"]);
     await service.add("ledger", {
       regions: ["cn"],
-      templateVersion: 3,
+      templateVersion: 4,
       selectedKeys: ["china_post"],
     });
     expect(repository.add).toHaveBeenCalledWith(
@@ -172,7 +172,7 @@ describe("merchantPresetService", () => {
   it("历史地区未知时提供完整目录并要求先选择地区", async () => {
     const options = await setup(null).service.load("ledger");
     expect(options.region).toBeNull();
-    expect(options.items).toHaveLength(196);
-    expect(options.templateVersion).toBe(3);
+    expect(options.items).toHaveLength(194);
+    expect(options.templateVersion).toBe(4);
   });
 });
