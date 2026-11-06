@@ -165,10 +165,6 @@ export function useLedgerSetupAccountsStep(
     goPrevious() {
       void draftSave.saveAndGoPrevious(buildDraft(draft.accounts.skipped));
     },
-    // 跳过时保留当前勾选的账户，返回该步骤时可以恢复；完成写入时不创建账户。
-    skip() {
-      void draftSave.saveAndGoNext(buildDraft(true));
-    },
     openAddSheet(type: LedgerSetupAccountType) {
       setAddSheet({ open: true, type });
     },

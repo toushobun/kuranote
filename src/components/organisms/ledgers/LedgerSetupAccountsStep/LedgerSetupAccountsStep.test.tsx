@@ -174,9 +174,7 @@ describe("LedgerSetupAccountsStep", () => {
     expect(
       screen.getByRole("button", { name: "下一步 · 已选 1 个" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "跳过此步" }),
-    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "跳过此步" })).toBeNull();
   });
 
   it("取消勾选后账户仍保留在列表中，可以重新勾选，按钮显示已选数量", () => {
@@ -245,20 +243,6 @@ describe("LedgerSetupAccountsStep", () => {
     });
   });
 
-  it("跳过此步时 skipped 为 true，并保留当前勾选的账户", async () => {
-    const { saveDraft } = renderAccountsStep();
-
-    fireEvent.click(screen.getByRole("button", { name: "跳过此步" }));
-
-    await waitFor(() => expect(getCurrentStepItem()).toHaveTextContent("商家"));
-    expect(getSavedInput(saveDraft)).toMatchObject({
-      draft: {
-        accounts: { items: [{ name: "现金", type: "cash" }], skipped: true },
-      },
-      step: 3,
-    });
-  });
-
   it("上一步时保存当前修改，setup_step 不倒退", async () => {
     const progress = createAccountsProgress();
     const saveDraft = createSaveDraftMock(progress);
@@ -308,7 +292,6 @@ describe("LedgerSetupAccountsStep", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "保存中" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "上一步" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "跳过此步" })).toBeDisabled();
     expect(
       screen.getByRole("button", { name: "关闭创建账本向导" }),
     ).toBeDisabled();

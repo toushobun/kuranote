@@ -31,14 +31,6 @@ export const PreviousAndNext: Story = {
   },
 };
 
-export const WithSkip: Story = {
-  name: "带跳过此步",
-  args: {
-    previous: { label: "上一步", onClick: () => {} },
-    skip: { label: "跳过此步", onClick: () => {} },
-  },
-};
-
 export const Loading: Story = {
   name: "处理中",
   args: {

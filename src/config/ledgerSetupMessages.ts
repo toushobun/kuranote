@@ -5,7 +5,6 @@ export const ledgerSetupWizardMessages = {
   next: "下一步",
   previous: "上一步",
   progressLabel: "创建进度",
-  skip: "跳过此步",
   stepStatus: {
     completed: "已完成",
     upcoming: "未开始",
@@ -59,7 +58,7 @@ export const ledgerSetupMerchantsMessages = {
   description: "之后可以在商家管理中修改名称和别名",
   nextWithCount: (count: number) => `下一步 · 已选 ${count} 家`,
   noTemplate: {
-    description: "可以跳过此步，之后在商家管理中添加",
+    description: "可以直接进入下一步，之后在商家管理中添加",
     title: "请先选择生活地区",
   },
   title: "挑选常去的商家",

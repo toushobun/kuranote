@@ -57,16 +57,6 @@ function LedgerSetupMerchantsStepContent(
             label: ledgerSetupWizardMessages.previous,
             onClick: step.goPrevious,
           }}
-          // 没有预设商家时无可跳过的内容，下一步即按跳过保存。
-          skip={
-            checklist
-              ? {
-                  disabled: step.isSaving,
-                  label: ledgerSetupWizardMessages.skip,
-                  onClick: step.skip,
-                }
-              : undefined
-          }
         />
       }
     >

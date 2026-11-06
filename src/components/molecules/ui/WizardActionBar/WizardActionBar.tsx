@@ -30,82 +30,57 @@ export type WizardActionBarProps = {
   next: WizardActionBarNextButton;
   /** 「上一步」描边胶囊按钮；省略时「下一步」占满宽度。 */
   previous?: WizardActionBarButton;
-  /** 位于操作栏上方的「跳过此步」文字按钮。 */
-  skip?: WizardActionBarButton;
 };
 
 /** 分步骤流程底部固定操作栏。按钮组合、文字与 loading / disabled 状态由各步骤通过 props 控制。 */
-export function WizardActionBar({
-  next,
-  previous,
-  skip,
-}: WizardActionBarProps) {
+export function WizardActionBar({ next, previous }: WizardActionBarProps) {
   const nextLoading = next.loading ?? false;
   const loadingLabel = next.loadingLabel ?? next.label;
 
   return (
-    <Stack spacing={0.75} sx={actionBarSx}>
-      {skip ? (
+    <Stack direction="row" spacing={1.5} sx={actionBarSx}>
+      {previous ? (
         <Button
-          disabled={skip.disabled}
-          onClick={skip.onClick}
-          sx={skipButtonSx}
+          disabled={previous.disabled}
+          fullWidth
+          onClick={previous.onClick}
+          sx={previousButtonSx}
           type="button"
-          variant="text"
+          variant="outlined"
         >
-          {skip.label}
+          {previous.label}
         </Button>
       ) : null}
-      <Stack direction="row" spacing={1.5}>
-        {previous ? (
-          <Button
-            disabled={previous.disabled}
-            fullWidth
-            onClick={previous.onClick}
-            sx={previousButtonSx}
-            type="button"
-            variant="outlined"
-          >
-            {previous.label}
-          </Button>
-        ) : null}
-        <PrimaryActionButton
-          aria-label={nextLoading ? loadingLabel : undefined}
-          disabled={next.disabled || nextLoading}
-          form={next.form}
-          fullWidth
-          onClick={next.onClick}
-          type={next.type ?? "button"}
-        >
-          {nextLoading ? (
-            <CircularProgress
-              aria-label={loadingLabel}
-              color="inherit"
-              size={22}
-            />
-          ) : (
-            next.label
-          )}
-        </PrimaryActionButton>
-      </Stack>
+      <PrimaryActionButton
+        aria-label={nextLoading ? loadingLabel : undefined}
+        disabled={next.disabled || nextLoading}
+        form={next.form}
+        fullWidth
+        onClick={next.onClick}
+        type={next.type ?? "button"}
+      >
+        {nextLoading ? (
+          <CircularProgress
+            aria-label={loadingLabel}
+            color="inherit"
+            size={22}
+          />
+        ) : (
+          next.label
+        )}
+      </PrimaryActionButton>
     </Stack>
   );
 }
 
+// borderTop 简写会重置颜色，borderColor 必须写在它之后，否则分隔线会变成文字色。
 const actionBarSx = {
   bgcolor: "background.paper",
-  borderColor: "divider",
   borderTop: "1px solid",
+  borderColor: "divider",
   pb: "calc(12px + env(safe-area-inset-bottom))",
   pt: 1.2,
   px: { xs: 2, sm: 3 },
-};
-
-const skipButtonSx = {
-  alignSelf: "center",
-  color: "text.secondary",
-  fontWeight: 700,
-  minHeight: 40,
 };
 
 const previousButtonSx = {
