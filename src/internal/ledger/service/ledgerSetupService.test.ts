@@ -284,15 +284,13 @@ describe("createLedgerSetupService.complete", () => {
         merchants: [
           expect.objectContaining({
             name: "网飞",
-            tagKeys: ["online_subscription"],
+            tagKeys: ["shopping"],
             aliases: expect.arrayContaining([
               { alias: "Netflix", locale: "en" },
             ]),
           }),
         ],
-        merchantTags: [
-          { icon: "🌐", key: "online_subscription", name: "网购·订阅" },
-        ],
+        merchantTags: [{ icon: "🛍️", key: "shopping", name: "购物·订阅" }],
         multiAccountPaymentEnabled: true,
         specialStatusEnabled: true,
       }),

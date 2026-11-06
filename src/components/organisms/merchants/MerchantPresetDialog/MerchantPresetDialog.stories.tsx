@@ -73,7 +73,7 @@ export const LegacyLedger: Story = {
   },
   play: async ({ canvasElement }) => {
     const dialog = within(canvasElement.ownerDocument.body);
-    await userEvent.click(dialog.getByRole("button", { name: "购物" }));
+    await userEvent.click(dialog.getByRole("button", { name: "购物·订阅" }));
     await userEvent.click(dialog.getByRole("checkbox", { name: /^苹果/ }));
   },
 };

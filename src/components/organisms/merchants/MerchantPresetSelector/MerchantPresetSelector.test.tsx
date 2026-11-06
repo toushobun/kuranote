@@ -17,16 +17,16 @@ function expand(name: string, index = 0) {
 }
 
 describe("MerchantPresetSelector", () => {
-  it("默认8类全部收起，勾选分类不会展开", () => {
+  it("默认7类全部收起，勾选分类不会展开", () => {
     render(<MerchantPresetSelectorExample />);
-    expect(screen.getAllByRole("button", { expanded: false })).toHaveLength(9);
+    expect(screen.getAllByRole("button", { expanded: false })).toHaveLength(8);
     expect(
       screen.queryByRole("checkbox", { name: /苹果/ }),
     ).not.toBeInTheDocument();
     fireEvent.click(
-      screen.getByRole("checkbox", { name: "选择「购物」的全部商家" }),
+      screen.getByRole("checkbox", { name: "选择「购物·订阅」的全部商家" }),
     );
-    expect(screen.getByRole("button", { name: "购物" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "购物·订阅" })).toHaveAttribute(
       "aria-expanded",
       "false",
     );
@@ -34,19 +34,19 @@ describe("MerchantPresetSelector", () => {
   it("商家显示头像、中文名与单行别名，不显示网址；跨分类联动并提示也在", () => {
     const changed = vi.fn();
     render(<MerchantPresetSelectorExample onChange={changed} />);
-    const shopping = expand("购物");
-    const online = expand("网购·订阅");
-    expect(shopping.getByText("苹果")).toBeInTheDocument();
-    expect(shopping.getByText(/Apple ·/)).toBeInTheDocument();
-    expect(shopping.getByText("也在：网购·订阅")).toBeInTheDocument();
-    expect(online.getByText("也在：购物")).toBeInTheDocument();
-    expect(screen.queryByText(/apple.com/)).not.toBeInTheDocument();
-    fireEvent.click(shopping.getByRole("checkbox", { name: /苹果/ }));
-    expect(online.getByRole("checkbox", { name: /苹果/ })).not.toBeChecked();
+    const shopping = expand("购物·订阅");
+    const living = expand("生活缴费");
+    expect(shopping.getByText("乐天")).toBeInTheDocument();
+    expect(shopping.getByText(/楽天 ·/)).toBeInTheDocument();
+    expect(shopping.getByText("也在：生活缴费")).toBeInTheDocument();
+    expect(living.getByText("也在：购物·订阅")).toBeInTheDocument();
+    expect(screen.queryByText(/rakuten.co.jp/)).not.toBeInTheDocument();
+    fireEvent.click(shopping.getByRole("checkbox", { name: /乐天/ }));
+    expect(living.getByRole("checkbox", { name: /乐天/ })).not.toBeChecked();
     expect(
-      shopping.getByRole("checkbox", { name: "选择「购物」的全部商家" }),
+      shopping.getByRole("checkbox", { name: "选择「购物·订阅」的全部商家" }),
     ).toHaveAttribute("data-indeterminate", "true");
-    expect(changed.mock.lastCall?.[0]).not.toContain("apple");
+    expect(changed.mock.lastCall?.[0]).not.toContain("rakuten");
   });
   it("三态整类选择按唯一商家操作", () => {
     const changed = vi.fn();
@@ -57,7 +57,7 @@ describe("MerchantPresetSelector", () => {
       />,
     );
     const box = screen.getByRole("checkbox", {
-      name: "选择「购物」的全部商家",
+      name: "选择「购物·订阅」的全部商家",
     });
     expect(box).toHaveAttribute("data-indeterminate", "true");
     fireEvent.click(box);

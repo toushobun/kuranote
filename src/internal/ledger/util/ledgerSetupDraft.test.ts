@@ -42,7 +42,7 @@ describe("地区草稿", () => {
     expect(draft).toMatchObject({
       schemaVersion: 2,
       templateRegion: "jp",
-      templateVersion: 2,
+      templateVersion: 3,
       accounts: {
         items: [{ name: "改名的账户", type: "bank" }],
         skipped: true,
@@ -86,7 +86,7 @@ describe("地区草稿", () => {
     expect(resolveLedgerSetupDraft(draft, "jp").merchants.selectedKeys).toEqual(
       ["starbucks"],
     );
-    expect(getLedgerSetupTemplate("jp")?.version).toBe(2);
+    expect(getLedgerSetupTemplate("jp")?.version).toBe(3);
   });
   it("未知地区不猜测默认模板，缺失部分独立补全", () => {
     expect(resolveLedgerSetupDraft({}, null)).toEqual(
