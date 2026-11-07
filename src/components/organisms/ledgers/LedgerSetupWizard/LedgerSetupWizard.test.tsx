@@ -184,6 +184,9 @@ describe("LedgerSetupWizard 本地草稿", () => {
         await screen.findByText("预设内容已更新，请重新确认。"),
       ).toBeInTheDocument();
       await waitFor(() => expectStep("确认"));
+      expect(
+        screen.queryByRole("button", { name: "重新创建" }),
+      ).not.toBeInTheDocument();
       expect(actions.onClose).not.toHaveBeenCalled();
       submit();
       await waitFor(() => expect(persistSetup).toHaveBeenCalledTimes(2));

@@ -21,7 +21,6 @@ export const ledgerSetupWizardMessages = {
   saveAndExit: "保存并退出",
   cleanExitDescription: "账本还没创建完，要保存当前进度再退出吗？",
   submitting: "保存中",
-  /** 保存草稿时预设模板已更新或生活地区已变更，向导已按最新进度刷新。 */
   title: "创建账本",
 } as const;
 

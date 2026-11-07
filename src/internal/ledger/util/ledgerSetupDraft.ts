@@ -145,7 +145,10 @@ export function isLedgerSetupDraftMatchingTemplate(
   );
 }
 
-/** 账户只能从模板候选中勾选：丢弃模板更新后已不存在的候选，并去重。 */
+/**
+ * 丢弃已不存在的账户候选并去重。草稿 v2 保留 name 供确认页展示，
+ * 账户名称由固定候选决定，因此恢复时用已验证的 templateKey 填写 name。
+ */
 function resolveAccountItems(
   items: readonly LedgerSetupDraftAccount[],
   template: LedgerSetupTemplate | null,
