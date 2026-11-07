@@ -19,9 +19,8 @@ export function useTransactionConfirmStep(
   // 正在换账户 / 填金额的付款行（`TransactionPaymentRow.key`）。
   const [accountPickerKey, setAccountPickerKey] = useState<number | null>(null);
   const [paymentAmountKey, setPaymentAmountKey] = useState<number | null>(null);
-  // 单账户点 × 清空的账户：再选账户时仍按它的币种判断是否需要确认换币种。
-  const [clearedAccount, setClearedAccount] =
-    useState<TransactionAccountOption>();
+  // 单账户点 × 清空后，只保留换币种确认需要的原币种。
+  const [previousCurrency, setPreviousCurrency] = useState<string>();
   const currency = form.selectedAccount?.currency;
   const automaticItemIds = props.automaticItemIds.filter((id) =>
     form.itemSummaries.some((item) => item.id === id),
@@ -64,22 +63,21 @@ export function useTransactionConfirmStep(
           }),
       )
     : props.accountOptions;
-  const pickerSelectedAccount =
-    props.accountOptions.find(
-      (account) => account.id === pickerPayment?.accountId,
-    ) ?? (form.isMultiAccount ? undefined : clearedAccount);
+  const pickerSelectedAccount = props.accountOptions.find(
+    (account) => account.id === pickerPayment?.accountId,
+  );
   function selectAccount(account: TransactionAccountOption) {
     if (accountPickerKey === null) return;
     form.handlePaymentAccountChange(accountPickerKey, account.id);
     props.onAccountSelect?.(account);
-    setClearedAccount(undefined);
+    setPreviousCurrency(undefined);
     setAccountPickerKey(null);
   }
   // 只剩一个付款账户时删除即清空账户，支付行回到「选择收支账户」。
   function removePayment(key: number) {
     if (form.isMultiAccount) form.handleRemovePayment(key);
     else {
-      setClearedAccount(form.selectedAccount ?? clearedAccount);
+      setPreviousCurrency(currency ?? previousCurrency);
       form.handlePaymentAccountChange(key, "");
     }
   }
@@ -163,6 +161,7 @@ export function useTransactionConfirmStep(
     pickerPayment,
     pickerAccounts,
     pickerSelectedAccount,
+    previousCurrency: form.isMultiAccount ? undefined : previousCurrency,
     selectAccount,
     paymentAmountKey,
     setPaymentAmountKey,

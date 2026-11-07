@@ -7,6 +7,7 @@ import {
 } from "react";
 
 import { transactionErrorCodes } from "internal/transaction";
+import type { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
 import type {
   TransactionActionState,
   TransactionStateAction,
@@ -18,10 +19,15 @@ function copyFormData(formData: FormData) {
   return copy;
 }
 
-/** runAction 由调用方的未保存守卫提供，保存与删除共用同一实例。 */
+function requiresSyncConfirmation(state: TransactionActionState) {
+  return (
+    state.errorCode === transactionErrorCodes.linkedSyncConfirmationRequired
+  );
+}
+
 export function useLinkedTransactionEditAction(
   action: TransactionStateAction,
-  runAction: <T>(action: () => Promise<T>) => Promise<T>,
+  runSaveAction: ReturnType<typeof useUnsavedChangesGuard>["runSaveAction"],
 ) {
   const pendingConfirmationRef = useRef<FormData | null>(null);
   const [dismissedState, setDismissedState] =
@@ -29,16 +35,17 @@ export function useLinkedTransactionEditAction(
 
   const actionWithConfirmation = useCallback(
     async (previousState: TransactionActionState, formData: FormData) => {
-      const nextState = await runAction(() => action(previousState, formData));
-      if (
-        nextState.errorCode ===
-        transactionErrorCodes.linkedSyncConfirmationRequired
-      ) {
+      const nextState = await runSaveAction(
+        formData,
+        (data) => action(previousState, data),
+        requiresSyncConfirmation,
+      );
+      if (requiresSyncConfirmation(nextState)) {
         pendingConfirmationRef.current = copyFormData(formData);
       }
       return nextState;
     },
-    [action, runAction],
+    [action, runSaveAction],
   );
   const [state, formAction, isPending] = useActionState(
     actionWithConfirmation,
@@ -46,14 +53,10 @@ export function useLinkedTransactionEditAction(
   );
 
   const isConfirmationOpen = Boolean(
-    state !== dismissedState &&
-    state.error &&
-    state.errorCode === transactionErrorCodes.linkedSyncConfirmationRequired,
+    state !== dismissedState && state.error && requiresSyncConfirmation(state),
   );
   const isFailureOpen = Boolean(
-    state !== dismissedState &&
-    state.error &&
-    state.errorCode !== transactionErrorCodes.linkedSyncConfirmationRequired,
+    state !== dismissedState && state.error && !requiresSyncConfirmation(state),
   );
 
   function cancelConfirmation() {

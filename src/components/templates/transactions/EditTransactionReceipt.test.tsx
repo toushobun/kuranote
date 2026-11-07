@@ -1,4 +1,5 @@
 import { expectEditTransactionActionButton } from "test/editTransactionActionButton";
+import { saveAndLeaveField } from "config/unsavedChanges";
 import { routerMock } from "test/mocks/navigation";
 import { setupGuardHistoryMock, backFromGuard } from "test/mockGuardHistory";
 const guardHistory = setupGuardHistoryMock();
@@ -23,7 +24,11 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { MerchantEntrySuggestions } from "internal/transaction";
+import {
+  transactionErrorCodes,
+  type MerchantEntrySuggestions,
+} from "internal/transaction";
+import type { TransactionStateAction } from "types/transactions";
 import type { TransactionFormInitialValues } from "organisms/transactions/TransactionForm/TransactionForm.types";
 import {
   receiptItemsOptions,
@@ -111,6 +116,18 @@ async function openMerchantPicker() {
 // 没有未保存修改时，顶栏的关闭是直接回到明细的链接。
 function findCloseLink() {
   return screen.findByRole("link", { name: "关闭" });
+}
+
+async function requestLeaveFromDirtyReceipt() {
+  render(<a href="/settings">我的</a>);
+  click("修改备注：编辑前备注");
+  fireEvent.change(screen.getByRole("textbox", { name: "备注" }), {
+    target: { value: "修改后" },
+  });
+  click("完成");
+  await findCloseLink();
+  fireEvent.click(await screen.findByRole("link", { name: "我的" }));
+  click("保存并退出");
 }
 
 describe("EditTransactionReceiptTemplate", () => {
@@ -375,7 +392,9 @@ describe("EditTransactionReceiptTemplate", () => {
   });
 
   it("编辑小票首次不显示校验，弹窗保存失败后修正可再次保存", async () => {
-    const action = vi.fn(async () => ({}));
+    const action = vi.fn<TransactionStateAction>().mockResolvedValue({
+      success: "已保存",
+    });
     renderReceipt({
       action,
       initialValues: {
@@ -385,17 +404,12 @@ describe("EditTransactionReceiptTemplate", () => {
     });
     expect(screen.queryAllByRole("alert")).toHaveLength(0);
     expect(screen.getByRole("button", { name: "保存修改" })).toBeEnabled();
-    click("修改备注：编辑前备注");
-    fireEvent.change(screen.getByRole("textbox", { name: "备注" }), {
-      target: { value: "修改后" },
-    });
-    click("完成");
-    fireEvent.click(await screen.findByRole("link", { name: "关闭" }));
-    click("保存并退出");
+    await requestLeaveFromDirtyReceipt();
     expect(
       await screen.findByText(/还有 1 条明细没填金额/),
     ).toBeInTheDocument();
     expect(action).not.toHaveBeenCalled();
+    expect(routerMock.push).not.toHaveBeenCalled();
     await waitFor(() =>
       expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull(),
     );
@@ -408,7 +422,70 @@ describe("EditTransactionReceiptTemplate", () => {
     await waitFor(() => expect(screen.queryAllByRole("alert")).toHaveLength(0));
     fireEvent.click(await screen.findByRole("button", { name: "保存修改" }));
     await waitFor(() => expect(action).toHaveBeenCalledOnce());
+    expect(action.mock.calls[0]![1].has(saveAndLeaveField)).toBe(false);
+    expect(routerMock.push).not.toHaveBeenCalled();
   });
+
+  it.each([true, false])(
+    "小票在底部导航保存后仅成功时离开（成功：%s）",
+    async (success) => {
+      const action = vi
+        .fn<TransactionStateAction>()
+        .mockResolvedValue(
+          success ? { success: "已保存" } : { error: "记录已被其他成员更新" },
+        );
+      renderReceipt({ action });
+      await requestLeaveFromDirtyReceipt();
+      await waitFor(() => expect(action).toHaveBeenCalledOnce());
+      expect(action.mock.calls[0]![1].get(saveAndLeaveField)).toBe("true");
+      if (success) {
+        await waitFor(() =>
+          expect(routerMock.push).toHaveBeenCalledExactlyOnceWith("/settings"),
+        );
+      } else {
+        await screen.findByText("记录已被其他成员更新");
+        expect(routerMock.push).not.toHaveBeenCalled();
+      }
+    },
+  );
+
+  it.each([true, false])(
+    "保存并退出需要联动确认时，仅确认并成功才离开（确认：%s）",
+    async (confirm) => {
+      const action = vi
+        .fn<TransactionStateAction>()
+        .mockResolvedValueOnce({
+          error: "需要确认同步",
+          errorCode: transactionErrorCodes.linkedSyncConfirmationRequired,
+        })
+        .mockResolvedValue({ success: "已保存" });
+      renderReceipt({ action });
+      await requestLeaveFromDirtyReceipt();
+      const confirmation = await screen.findByRole("dialog", {
+        name: "同步修改关联数据？",
+      });
+      expect(routerMock.push).not.toHaveBeenCalled();
+      fireEvent.click(
+        within(confirmation).getByRole("button", {
+          name: confirm ? "同步修改" : "取消",
+        }),
+      );
+      if (confirm) {
+        await waitFor(() =>
+          expect(routerMock.push).toHaveBeenCalledExactlyOnceWith("/settings"),
+        );
+        expect(action.mock.calls[1]![1].get("confirmSync")).toBe("true");
+        expect(action.mock.calls[1]![1].get(saveAndLeaveField)).toBe("true");
+      } else {
+        fireEvent.click(
+          await screen.findByRole("button", { name: "保存修改" }),
+        );
+        await waitFor(() => expect(action).toHaveBeenCalledTimes(2));
+        expect(action.mock.calls[1]![1].has(saveAndLeaveField)).toBe(false);
+        expect(routerMock.push).not.toHaveBeenCalled();
+      }
+    },
+  );
 
   it("改过小票后返回时提示尚未保存", async () => {
     renderReceipt();

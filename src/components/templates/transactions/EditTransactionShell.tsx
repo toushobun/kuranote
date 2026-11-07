@@ -78,7 +78,10 @@ export function EditTransactionShell({
     saveFormId,
     saveLabel,
   });
-  const editAction = useLinkedTransactionEditAction(action, guard.runAction);
+  const editAction = useLinkedTransactionEditAction(
+    action,
+    guard.runSaveAction,
+  );
   const [deleteState, deleteFormAction] = useActionState(
     (state: TransactionActionState, data: FormData) =>
       guard.runAction(() => deleteAction(state, data)),
@@ -144,6 +147,7 @@ export function EditTransactionShell({
       />
       <LinkedTransactionSyncConfirmationDialog
         onCancel={() => {
+          guard.cancelSave();
           editAction.cancelConfirmation();
         }}
         onConfirm={editAction.confirmSync}

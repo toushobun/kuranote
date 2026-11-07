@@ -363,6 +363,41 @@ async function checkAccount(browser) {
   await page.close();
   return { records, errors };
 }
+async function editReceiptNote(page, original, value) {
+  await page.getByRole("button", { name: "修改备注：" + original }).click();
+  const input = page.getByRole("textbox", { name: "备注", exact: true });
+  assert.equal(
+    await input.evaluate((node) => node === document.activeElement),
+    true,
+  );
+  await input.fill(value);
+  await page.getByRole("button", { name: "完成", exact: true }).click();
+}
+
+async function checkReceiptSave(browser, viaGuard) {
+  const session = await newSession(
+    browser,
+    "编辑小票",
+    "edit-transaction-receipt-form",
+  );
+  const { page, record } = session;
+  await editReceiptNote(page, "编辑前备注", "修改后的备注");
+  if (viaGuard) {
+    await page
+      .getByRole("navigation")
+      .getByRole("link", { name: "我的" })
+      .click();
+    await page.getByRole("button", { name: "保存并退出" }).click();
+    await page.waitForURL("**/settings");
+    await record("编辑小票：保存并退出前往原定的底部导航目标");
+  } else {
+    await page.getByRole("button", { name: "保存修改", exact: true }).click();
+    await page.waitForURL("**/transactions?saved=1");
+    await record("编辑小票：直接保存仍由 Server Action 重定向到明细");
+  }
+  return finishSession(session);
+}
+
 async function checkOtherPage(browser, kind) {
   const receipt = kind === "receipt";
   const session = await newSession(
@@ -383,11 +418,7 @@ async function checkOtherPage(browser, kind) {
     discardAndCheckSource,
   } = session;
   if (receipt) {
-    await page.getByRole("button", { name: "修改备注：编辑前备注" }).click();
-    await page
-      .getByRole("textbox", { name: "备注", exact: true })
-      .fill("修改后的小票备注");
-    await page.getByRole("button", { name: "完成", exact: true }).click();
+    await editReceiptNote(page, "编辑前备注", "修改后的小票备注");
   } else {
     await page
       .getByRole("textbox", { name: "备注（选填）" })
@@ -957,6 +988,8 @@ try {
   const cases = {
     account: () => checkAccount(browser),
     receipt: () => checkOtherPage(browser, "receipt"),
+    receiptSaveAndLeave: () => checkReceiptSave(browser, true),
+    receiptDirectSave: () => checkReceiptSave(browser, false),
     transfer: () => checkOtherPage(browser, "transfer"),
     merchantCreate: () => checkMerchant(browser, false),
     merchantEdit: () => checkMerchant(browser, true),

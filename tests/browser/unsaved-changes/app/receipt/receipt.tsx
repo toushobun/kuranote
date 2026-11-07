@@ -17,7 +17,13 @@ const initialValues: TransactionFormInitialValues = {
   type: "expense",
 };
 
-export default function Receipt({ save }: { save: typeof saveAction }) {
+export default function Receipt({
+  save,
+  remove,
+}: {
+  save: typeof saveAction;
+  remove: typeof saveAction;
+}) {
   return (
     <>
       <EditTransactionReceiptTemplate
@@ -25,7 +31,7 @@ export default function Receipt({ save }: { save: typeof saveAction }) {
         action={save}
         canDelete
         categoryOptions={receiptItemsOptions.categoryOptions}
-        deleteAction={save}
+        deleteAction={remove}
         editRestriction={null}
         frequentMerchants={flowFixture.frequentMerchants}
         initialValues={initialValues}

@@ -9,11 +9,13 @@ export function useAccountStep({
   accounts,
   recommendedAccountIds = [],
   selectedAccount,
+  previousCurrency,
   hasDetails,
   onSelect,
 }: AccountStepProps) {
   const confirm = useConfirmDialog();
   const [busy, setBusy] = useState(false);
+  const comparisonCurrency = selectedAccount?.currency ?? previousCurrency;
   const recommended = recommendedAccountIds.flatMap((id) =>
     accounts.filter((account) => account.id === id),
   );
@@ -26,12 +28,12 @@ export function useAccountStep({
     try {
       if (
         hasDetails &&
-        selectedAccount &&
-        selectedAccount.currency !== value.currency &&
+        comparisonCurrency &&
+        comparisonCurrency !== value.currency &&
         !(await confirm({
           title: m.currencyTitle(value.name),
           description: m.currencyDescription(
-            selectedAccount.currency,
+            comparisonCurrency,
             value.currency,
           ),
           cancelLabel: m.cancel,
