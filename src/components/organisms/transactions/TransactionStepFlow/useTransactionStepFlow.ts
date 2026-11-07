@@ -87,8 +87,7 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     revision: 0,
   });
   const receiptDirty =
-    baseline.revision === autoRevision &&
-    receiptSnapshot !== baseline.snapshot;
+    baseline.revision === autoRevision && receiptSnapshot !== baseline.snapshot;
   const timeInitialized = !!form.transactionAtValue;
   const resetWaitStartSnapshot = useEffectEvent(() => {
     waitStartSnapshot.current = pendingSuggestionSnapshot;
