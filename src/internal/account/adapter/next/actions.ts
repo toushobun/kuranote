@@ -16,7 +16,10 @@ import {
 } from "internal/account/errors";
 import { createRequestContainer } from "internal/container";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
-import { createErrorState } from "internal/shared/adapter/next/actionState";
+import {
+  createErrorState,
+  redirectAfterGuardedSave,
+} from "internal/shared/adapter/next/actionState";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
 import { getSafeNextPath } from "lib/navigation/safeNextPath";
@@ -82,7 +85,10 @@ export async function createAccount(
 
   // 从记一笔等页面进入时，新增成功后直接返回来源页面。
   const returnTo = getSafeNextPath(formData.get("returnTo"));
-  redirect(returnTo ?? accountsResultHref(accountResultValues.created));
+  return redirectAfterGuardedSave(
+    formData,
+    returnTo ?? accountsResultHref(accountResultValues.created),
+  );
 }
 
 export async function updateAccount(
@@ -108,7 +114,10 @@ export async function updateAccount(
   }
 
   revalidateAccountMutation();
-  redirect(accountsResultHref(accountResultValues.updated));
+  return redirectAfterGuardedSave(
+    formData,
+    accountsResultHref(accountResultValues.updated),
+  );
 }
 
 export async function archiveAccount(

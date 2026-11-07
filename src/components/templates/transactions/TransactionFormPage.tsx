@@ -342,7 +342,7 @@ function NewTransactionFormView({
   });
   const [actionState, formAction] = useActionState(
     (state: Awaited<ReturnType<TransactionStateAction>>, data: FormData) =>
-      guard.runAction(() => action(state, data)),
+      guard.runSaveAction(data, (values) => action(state, values)),
     {},
   );
   const activeErrorMessage = actionState.error ?? errorMessage;

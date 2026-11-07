@@ -10,7 +10,7 @@ import {
   createMerchant,
   createAccount,
   fetchMerchantIcon,
-  save,
+  saveReceipt,
   loadPresets,
   addPresets,
 } from "../actions";
@@ -44,7 +44,7 @@ export default function NewReceipt({ empty }: { empty: boolean }) {
       }}
     >
       <NewTransactionStepFlow
-        action={save}
+        action={saveReceipt}
         accountOptions={flowFixture.accounts}
         addPresetsAction={addPresetsWithFixture}
         categoryOptions={receiptItemsOptions.categoryOptions}

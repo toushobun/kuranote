@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { saveAndLeaveField } from "config/unsavedChanges";
 import { getTransactionActionModuleMocks } from "internal/transaction/adapter/next/actions.testUtils";
 import {
   createTransaction,
@@ -83,6 +84,17 @@ describe("Transaction Actions", () => {
     expect(
       transactionActionModuleMocks.revalidateTransactionMutation,
     ).toHaveBeenCalledOnce();
+  });
+  it("新增记账保存并退出时刷新缓存并返回成功，由守卫导航", async () => {
+    const formData = createFormData();
+    formData.set(saveAndLeaveField, "true");
+    expect(await createTransaction({}, formData)).toMatchObject({
+      success: "保存成功",
+    });
+    expect(
+      transactionActionModuleMocks.revalidateTransactionMutation,
+    ).toHaveBeenCalledOnce();
+    expect(transactionActionModuleMocks.redirect).not.toHaveBeenCalled();
   });
 });
 describe("Transaction Action 写入流程", () => {
@@ -212,6 +224,17 @@ describe("Transaction Action 写入流程", () => {
     expect(
       transactionActionModuleMocks.revalidateTransactionMutation,
     ).toHaveBeenCalledOnce();
+  });
+  it("编辑记账保存并退出时刷新缓存并返回成功，由守卫导航", async () => {
+    const formData = createNormalFormData();
+    formData.set(saveAndLeaveField, "true");
+    expect(await updateTransaction({}, formData)).toMatchObject({
+      success: "保存成功",
+    });
+    expect(
+      transactionActionModuleMocks.revalidateTransactionMutation,
+    ).toHaveBeenCalledOnce();
+    expect(transactionActionModuleMocks.redirect).not.toHaveBeenCalled();
   });
   function createBalanceAdjustmentFormData() {
     const formData = new FormData();

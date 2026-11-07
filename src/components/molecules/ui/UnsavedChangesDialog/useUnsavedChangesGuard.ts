@@ -11,6 +11,8 @@ import {
 } from "react";
 
 import { useUnsavedChangesCoordinator } from "providers/UnsavedChangesGuardProvider/UnsavedChangesGuardProvider";
+import { saveAndLeaveField } from "config/unsavedChanges";
+import type { ActionState } from "types/actions";
 
 type LeaveIntent = { type: "back" } | { type: "action"; action: () => void };
 type SaveIntent = { formId: string; leave: LeaveIntent };
@@ -77,6 +79,29 @@ export function useUnsavedChangesGuard({
       return Promise.resolve();
     },
     [followIntent],
+  );
+  const runSaveAction = useCallback(
+    async <T extends ActionState>(
+      formData: FormData,
+      action: (data: FormData) => Promise<T>,
+      shouldRetry?: (state: T) => boolean,
+    ) => {
+      const pending = saveIntent.current;
+      const leave = pending?.formId === saveFormId ? pending : null;
+      if (leave) {
+        saveIntent.current = null;
+        formData.set(saveAndLeaveField, "true");
+      } else {
+        formData.delete(saveAndLeaveField);
+      }
+      const result = await history.runAction(() => action(formData));
+      if (leave && !saveIntent.current) {
+        if (result.success && !result.error) await followIntent(leave.leave);
+        else if (shouldRetry?.(result)) saveIntent.current = leave;
+      }
+      return result;
+    },
+    [followIntent, history, saveFormId],
   );
 
   const beforeUnload = useEffectEvent((event: BeforeUnloadEvent) => {
@@ -160,6 +185,7 @@ export function useUnsavedChangesGuard({
 
   return {
     runAction,
+    runSaveAction,
     // 客户端表单校验拦截提交时，清除未完成的保存后退出意图。
     cancelSave: () => {
       saveIntent.current = null;

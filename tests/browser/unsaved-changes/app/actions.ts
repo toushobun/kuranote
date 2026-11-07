@@ -4,6 +4,8 @@ import type { ActionState } from "../../../../src/types/actions";
 import { merchantPresetMessages } from "../../../../src/config/merchantPresetMessages";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { redirectAfterGuardedSave } from "../../../../src/internal/shared/adapter/next/actionState";
 
 export async function save(
   _previous: ActionState,
@@ -13,6 +15,18 @@ export async function save(
     return { error: "验证用保存失败", errorKey: "probe-failure" };
   }
   redirect("/dashboard?saved=1");
+}
+
+export async function saveReceipt(
+  _previous: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  if (String(formData.get("note") ?? "").includes("失败")) {
+    return { error: "验证用保存失败", errorKey: "probe-failure" };
+  }
+  revalidatePath("/receipt");
+  revalidatePath("/new");
+  return redirectAfterGuardedSave(formData, "/transactions?saved=1");
 }
 
 export async function createMerchant(

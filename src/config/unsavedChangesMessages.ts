@@ -6,4 +6,5 @@ export const unsavedChangesMessages = {
   discard: "放弃修改",
   save: "保存",
   saveAndExit: "保存并退出",
+  saveSuccess: "保存成功",
 } as const;

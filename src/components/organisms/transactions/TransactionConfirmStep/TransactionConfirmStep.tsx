@@ -17,6 +17,7 @@ import {
   type ReactNode,
 } from "react";
 import { keyframes } from "@emotion/react";
+import { flushSync } from "react-dom";
 import { flowMessages as m } from "config/transactionStepFlowMessages";
 import { TransactionDateTimePicker } from "molecules/transactions/TransactionDateTimePicker";
 import {
@@ -61,6 +62,7 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
   const readOnly = !!props.readOnly;
   // 付款未对上时，点提示条定位到支付区。
   const paymentSectionRef = useRef<HTMLDivElement>(null);
+  const noteInputRef = useRef<HTMLTextAreaElement>(null);
   const w = useTransactionConfirmStep(props, paymentSectionRef);
   const [saveAttempts, setSaveAttempts] = useState(0);
   const [pulseCount, setPulseCount] = useState(0);
@@ -290,7 +292,11 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
                   </Typography>
                   <ButtonBase
                     aria-label={m.editReceiptRow(m.note, f.note || m.addNote)}
-                    onClick={() => w.setEditor("note")}
+                    onClick={() => {
+                      // 在点击事件内挂载并聚焦，让 iOS 可以打开软键盘。
+                      flushSync(() => w.setEditor("note"));
+                      noteInputRef.current?.focus({ preventScroll: true });
+                    }}
                     sx={noteRowSx}
                   >
                     <Typography
@@ -332,14 +338,16 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
         onClose={() => w.setEditor(null)}
       >
         <TextField
-          label={m.note}
+          inputRef={noteInputRef}
           multiline
           minRows={4}
           fullWidth
           value={f.note}
           onChange={f.handleNoteChange}
           helperText={m.noteCount(f.note.length)}
-          slotProps={{ htmlInput: { maxLength: m.noteLimit } }}
+          slotProps={{
+            htmlInput: { "aria-label": m.note, maxLength: m.noteLimit },
+          }}
         />
       </TransactionBottomEditorDrawer>
       {w.editor === "time" && (
@@ -365,6 +373,7 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
           accounts={w.pickerAccounts}
           recommendedAccountIds={props.suggestions?.recommendedAccountIds}
           selectedAccount={w.pickerSelectedAccount}
+          previousCurrency={w.previousCurrency}
           hasDetails={f.itemSummaries.length > 0}
           onSelect={w.selectAccount}
           onAddAccount={

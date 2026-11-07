@@ -66,11 +66,15 @@ export function MerchantEditTemplate({
   const [aliasFeedbackOperation, setAliasFeedbackOperation] =
     useState<AliasFeedbackOperation | null>(null);
   const archiveFormRef = useRef<HTMLFormElement>(null);
-  const update = useMerchantsActionState(updateMerchantAction, {
-    merchantId: merchant.id,
-    operation: "update",
-    runAction: aliasDirty ? guard.runInPlaceAction : guard.runAction,
-  });
+  const update = useMerchantsActionState(
+    (state, data) =>
+      aliasDirty
+        ? guard.runInPlaceAction(() => updateMerchantAction(state, data))
+        : guard.runSaveAction(data, (values) =>
+            updateMerchantAction(state, values),
+          ),
+    { merchantId: merchant.id, operation: "update" },
+  );
   const archive = useMerchantsActionState(archiveMerchantAction, {
     merchantId: merchant.id,
     operation: "archive",
@@ -95,10 +99,6 @@ export function MerchantEditTemplate({
     },
   );
   const completeSave = guard.completeSave;
-  useEffect(() => {
-    if (update.state.successKey || update.state.errorKey)
-      void completeSave(Boolean(update.state.success), "merchant-edit-form");
-  }, [update.state, completeSave]);
   useEffect(() => {
     if (createAlias.state.successKey || createAlias.state.errorKey)
       void completeSave(
