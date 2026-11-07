@@ -179,9 +179,31 @@ export function createSupabaseLedgerSetupRepository(
       const row = rows[0];
       if (!row) return null;
 
-      // 数据库约束保证创建中账本的草稿为 JSON object、默认货币为可选值；不符合时视为数据异常。
-      const storedDraft = parseStoredLedgerSetupDraft(row.setup_draft);
-      if (!storedDraft || !isLedgerCurrency(row.base_currency)) {
+      // 草稿与乐观锁时间戳必须取自同一个行快照，避免并发写入夹在两次读取之间。
+      const snapshotResult = await supabase
+        .from("ledger")
+        .select(
+          "name, base_currency, living_region, setup_step, setup_draft, updated_at",
+        )
+        .eq("id", row.ledger_id)
+        .eq("owner_user_id", userId)
+        .eq("setup_status", "in_progress")
+        .eq("is_archived", false)
+        .maybeSingle();
+      const snapshot = snapshotResult.data;
+      if (snapshotResult.error || !snapshot?.updated_at) {
+        logger.error("[ledger] failed to read setup snapshot", {
+          databaseCode: snapshotResult.error?.code,
+          ledgerId: row.ledger_id,
+        });
+        throw toRepositoryError(
+          "ledger_setup_load_failed",
+          ledgerSetupLoadErrorMessages.loadFailed,
+        );
+      }
+
+      const storedDraft = parseStoredLedgerSetupDraft(snapshot.setup_draft);
+      if (!storedDraft || !isLedgerCurrency(snapshot.base_currency)) {
         logger.error("[ledger] invalid ledger setup row", {
           ledgerId: row.ledger_id,
         });
@@ -222,33 +244,17 @@ export function createSupabaseLedgerSetupRepository(
         );
       }
 
-      const timestampResult = await supabase
-        .from("ledger")
-        .select("updated_at")
-        .eq("id", row.ledger_id)
-        .maybeSingle();
-      if (timestampResult.error || !timestampResult.data?.updated_at) {
-        logger.error("[ledger] failed to load setup version", {
-          databaseCode: timestampResult.error?.code,
-          ledgerId: row.ledger_id,
-        });
-        throw toRepositoryError(
-          "ledger_setup_load_failed",
-          ledgerSetupLoadErrorMessages.loadFailed,
-        );
-      }
-
       return {
-        updatedAt: timestampResult.data.updated_at,
-        baseCurrency: row.base_currency,
-        livingRegion: isLedgerSetupRegion(row.living_region)
-          ? row.living_region
+        updatedAt: snapshot.updated_at,
+        baseCurrency: snapshot.base_currency,
+        livingRegion: isLedgerSetupRegion(snapshot.living_region)
+          ? snapshot.living_region
           : null,
         displayColor: displaySetting.display_color,
         displayName: displaySetting.display_name,
         id: row.ledger_id,
-        name: row.ledger_name,
-        step: row.setup_step,
+        name: snapshot.name,
+        step: snapshot.setup_step,
         storedDraft,
       };
     },

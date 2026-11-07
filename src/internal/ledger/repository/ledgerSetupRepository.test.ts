@@ -117,8 +117,17 @@ describe("LedgerSetupRepository.findCurrentUserSetupLedger", () => {
         ],
       },
       [
+        {
+          data: {
+            name: "家庭账本",
+            base_currency: "JPY",
+            living_region: "jp",
+            setup_step: 3,
+            setup_draft: draft,
+            updated_at: "2026-11-07T00:00:00Z",
+          },
+        },
         { data: { display_name: "淞文", display_color: "amber" } },
-        { data: { updated_at: "2026-11-07T00:00:00Z" } },
       ],
     );
     await expect(
@@ -129,7 +138,8 @@ describe("LedgerSetupRepository.findCurrentUserSetupLedger", () => {
       step: 3,
       updatedAt: "2026-11-07T00:00:00Z",
     });
-    expect(supabase.queries[1].table).toBe("ledger");
+    expect(supabase.queries[0].table).toBe("ledger");
+    expect(supabase.queries[1].table).toBe("ledger_member_display_setting");
   });
 
   it("未找到创建中的账本时不读取其他表", async () => {
