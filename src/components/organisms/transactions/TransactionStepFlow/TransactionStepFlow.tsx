@@ -67,7 +67,7 @@ function TransactionStepFlowContent(input: TransactionStepFlowProps) {
               suggestions={w.suggestions}
               merchantHasHistory={w.merchantHasHistory}
               action={w.saveAction}
-               onValidationFailed={w.onValidationFailed}
+              onValidationFailed={w.onValidationFailed}
               errorMessage={w.saveState.error}
               successMessage={w.saveState.success}
               saving={w.saving}
