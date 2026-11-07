@@ -179,9 +179,10 @@ describe("EditTransactionShell", () => {
     });
     fireEvent.click(screen.getByRole("link", { name: "关闭" }));
     expect(
-      within(
-        await screen.findByRole("dialog", { name: "尚未保存" }),
-      ).getByRole("button", { name: label }),
+      within(await screen.findByRole("dialog", { name: "尚未保存" })).getByRole(
+        "button",
+        { name: label },
+      ),
     ).toBeInTheDocument();
   });
 
