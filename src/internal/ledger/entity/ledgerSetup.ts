@@ -47,4 +47,6 @@ export type LedgerSetup = {
   id: string;
   name: string;
   step: number;
+  /** 用于防止另一个标签页覆盖已保存草稿。 */
+  updatedAt?: string | null;
 };

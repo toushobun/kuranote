@@ -11,6 +11,7 @@ export const ledgerSetupErrorCodes = {
   payloadInvalid: "setup_payload_invalid",
   stepInvalid: "setup_step_invalid",
   templateOutdated: "setup_template_outdated",
+  conflict: "setup_conflict",
 } as const;
 
 export type LedgerSetupErrorCode =
@@ -31,6 +32,8 @@ export const ledgerSetupErrorMessages: Record<LedgerSetupErrorCode, string> = {
   [ledgerSetupErrorCodes.notInProgress]: "该账本已完成创建。",
   [ledgerSetupErrorCodes.payloadInvalid]: "创建内容不正确，请返回检查后重试。",
   [ledgerSetupErrorCodes.stepInvalid]: "创建步骤不正确，请重新操作。",
+  [ledgerSetupErrorCodes.conflict]:
+    "账本草稿已在其他页面修改，请保留本页输入并重新打开最新进度后重试。",
   [ledgerSetupErrorCodes.templateOutdated]:
     "预设内容已更新，请重新打开创建向导后再选择。",
 };

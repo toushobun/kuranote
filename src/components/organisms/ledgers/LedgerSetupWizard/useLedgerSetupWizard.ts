@@ -72,7 +72,7 @@ export function useLedgerSetupWizard({
   const [progress, setProgress] = useState<LedgerSetupProgress>(
     () => initialProgress ?? createNewProgress(defaults),
   );
-  const [savedProgress] = useState(initialProgress);
+  const [savedProgress, setSavedProgress] = useState(initialProgress);
   const [step, setStep] = useState(() =>
     initialProgress ? clampStep(initialProgress.setup.step) : 1,
   );
@@ -146,6 +146,7 @@ export function useLedgerSetupWizard({
     // 本地内容更新不会重置当前步骤的 UI 状态。
     updateProgress: setProgress,
     resetDraft() {
+      setSavedProgress(null);
       setProgress(createNewProgress(defaults));
       setProgressRevision((value) => value + 1);
       setStep(1);

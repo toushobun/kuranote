@@ -8,6 +8,7 @@ import {
   ledgerCreateErrorMessages,
   ledgerSetupErrorMessages,
   validateLedgerSetupBasicInfoForm,
+  type LedgerSetupRegion,
 } from "internal/ledger";
 import type { LedgerSetupWizardStepProps } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardStepTypes";
 import type { LedgerBasicInfoValues } from "organisms/ledgers/LedgerBasicInfoFields/LedgerBasicInfoFields";
@@ -44,7 +45,7 @@ export function useLedgerSetupBasicInfoStep({
     });
   }
 
-  function setLivingRegion(region: typeof setup extends never ? never : NonNullable<typeof setup>["livingRegion"]) {
+  function setLivingRegion(region: LedgerSetupRegion | null) {
     if (!progress) return;
     const changed = progress.setup.livingRegion !== region;
     onProgressChange({

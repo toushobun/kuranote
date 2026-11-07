@@ -5,11 +5,9 @@ import {
 } from "internal/ledger/adapter/next/actions/ledgerPlaceholderMember";
 import {
   abandonLedgerSetup,
-  completeLedgerSetup,
+  persistLedgerSetup,
   loadLedgerSetupInviteMembers,
   loadLedgerSetupWizardView,
-  saveLedgerSetupDraft,
-  submitLedgerSetupBasicInfo,
 } from "internal/ledger/adapter/next/actions/ledgerSetup";
 import type { LedgerSetupWizardLauncherActions } from "types/ledgers";
 
@@ -22,7 +20,7 @@ export const ledgerSetupWizardLauncherActions: LedgerSetupWizardLauncherActions 
     loadWizard: loadLedgerSetupWizardView,
     wizard: {
       abandonSetup: abandonLedgerSetup,
-      completeSetup: completeLedgerSetup,
+      persistSetup: persistLedgerSetup,
       // 不使用账本设置页的 createLedgerInvite：它成功后会跳转到账本设置页。
       createInvite: createLedgerSetupInvite,
       loadInviteMembers: loadLedgerSetupInviteMembers,
@@ -30,7 +28,5 @@ export const ledgerSetupWizardLauncherActions: LedgerSetupWizardLauncherActions 
         delete: deleteLedgerPlaceholderMember,
         rename: renameLedgerPlaceholderMember,
       },
-      saveDraft: saveLedgerSetupDraft,
-      submitBasicInfo: submitLedgerSetupBasicInfo,
     },
   };

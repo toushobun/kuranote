@@ -121,17 +121,14 @@ export type LedgerSetupAbandonAction = (input: {
 /** 向导各步骤调用的 Server Action。后续步骤在此追加。 */
 export type LedgerSetupWizardActions = {
   abandonSetup: LedgerSetupAbandonAction;
-  /** 第 5 步完成创建：写入默认数据并切换为当前账本。 */
-  completeSetup: LedgerSetupCompleteAction;
+  /** 保存并退出与完成创建统一走一次原子提交。 */
+  persistSetup: LedgerSetupPersistAction;
   /** 第 6 步邀请成员（与账本设置页相同的邀请写入，成功后不跳转页面）。 */
   createInvite: LedgerInviteStateAction;
   /** 第 6 步读取新账本的待邀请成员与待接受邀请。 */
   loadInviteMembers: LedgerSetupInviteMembersLoadAction;
   /** 第 6 步待邀请成员的改名 / 删除（与账本设置页相同）。 */
   placeholderMemberActions: LedgerPlaceholderMemberActions;
-  /** 第 2 步以后保存草稿与 setup_step。 */
-  saveDraft: LedgerSetupDraftSaveAction;
-  submitBasicInfo: LedgerSetupBasicInfoStateAction;
 };
 
 /** 打开向导时读取向导数据的结果。 */
@@ -154,58 +151,31 @@ export type LedgerSetupInProgressSummary = Pick<
   "id" | "name" | "step"
 >;
 
-export type LedgerSetupBasicInfoActionState = ActionState & {
-  /** 提交成功，或已存在创建中账本时，重新读取的最新进度。 */
-  progress?: LedgerSetupProgress;
-  /** 已存在其他创建中账本，progress 为该账本：向导恢复到该账本而不是进入下一步。 */
-  restored?: boolean;
-};
-
-export type LedgerSetupBasicInfoStateAction = (
-  previousState: LedgerSetupBasicInfoActionState,
-  formData: FormData,
-) => Promise<LedgerSetupBasicInfoActionState>;
-
-/** 保存向导草稿的输入。服务端重新校验账本 ID、步骤与草稿内容。 */
-export type SaveLedgerSetupDraftInput = {
-  draft: LedgerSetupDraft;
-  ledgerId: string;
-  /** 保存后记录的 ledger.setup_step（恢复向导时回到该步骤）。 */
+/** 客户端唯一草稿提交协议，保存退出与完成创建共用同一个事务入口。 */
+export type PersistLedgerSetupInput = {
+  setup: Pick<
+    LedgerSetup,
+    | "id"
+    | "name"
+    | "baseCurrency"
+    | "displayColor"
+    | "displayName"
+    | "livingRegion"
+    | "draft"
+  >;
+  expectedUpdatedAt: string | null;
   step: number;
+  complete: boolean;
 };
 
-export type LedgerSetupDraftActionState = ActionState & {
-  /**
-   * 预设模板已更新或生活地区已变更，草稿未保存：progress 为重新读取的进度，
-   * 向导用它替换状态并提示用户重新确认。
-   */
-  outdated?: boolean;
-  /** 保存成功，或 outdated 时，重新读取的最新进度。 */
-  progress?: LedgerSetupProgress;
-};
-
-export type LedgerSetupDraftSaveAction = (
-  input: SaveLedgerSetupDraftInput,
-) => Promise<LedgerSetupDraftActionState>;
-
-/** 完成创建的输入。服务端重新校验账本 ID，完成内容只取自数据库中的草稿。 */
-export type CompleteLedgerSetupInput = {
-  ledgerId: string;
-};
-
-export type LedgerSetupCompleteActionState = ActionState & {
-  /** 完成写入成功：账本已完成并切换为当前账本。 */
+export type LedgerSetupPersistActionState = ActionState & {
   completed?: boolean;
-  /** 创建中账本已在其他页面完成或不存在：向导无法继续，只能关闭。 */
-  notFound?: boolean;
-  /** 预设模板已更新或生活地区已变更，未写入：progress 为重新读取的进度。 */
-  outdated?: boolean;
-  progress?: LedgerSetupProgress;
+  updatedAt?: string;
 };
 
-export type LedgerSetupCompleteAction = (
-  input: CompleteLedgerSetupInput,
-) => Promise<LedgerSetupCompleteActionState>;
+export type LedgerSetupPersistAction = (
+  input: PersistLedgerSetupInput,
+) => Promise<LedgerSetupPersistActionState>;
 
 /** 读取向导第 6 步「邀请成员」数据的输入。服务端重新校验账本 ID 与权限。 */
 export type LoadLedgerSetupInviteMembersInput = {
