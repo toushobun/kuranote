@@ -222,37 +222,51 @@ describe("TransactionStepFlow", () => {
   });
 
   it.each<[string, () => Promise<void>]>([
-    ["付款账户", async () => {
-      click("更换支付账户 1");
-      selectAccount("现金 JPY");
-      await waitFor(() =>
-        expect(receiptLine("更换支付账户 1")).toHaveTextContent("现金"),
-      );
-    }],
-    ["备注", async () => {
-      click("修改备注：添加备注");
-      fireEvent.change(screen.getByRole("textbox", { name: "备注" }), {
-        target: { value: "手动修改" },
-      });
-      click("完成");
-      await waitFor(() =>
-        expect(screen.queryByRole("textbox", { name: "备注" })).toBeNull(),
-      );
-    }],
-    ["明细", async () => {
-      await addLunchItem();
-    }],
-    ["时间", async () => {
-      fireEvent.click(screen.getByRole("button", { name: /^修改时间：/ }));
-      fireEvent.click(screen.getByRole("button", { name: /时刻/ }));
-      click("选择 12 时");
-      click("选择 30 分");
-      click("选择 47 秒");
-      click("完成");
-      await waitFor(() =>
-        expect(screen.queryByRole("button", { name: "选择 47 秒" })).toBeNull(),
-      );
-    }],
+    [
+      "付款账户",
+      async () => {
+        click("更换支付账户 1");
+        selectAccount("现金 JPY");
+        await waitFor(() =>
+          expect(receiptLine("更换支付账户 1")).toHaveTextContent("现金"),
+        );
+      },
+    ],
+    [
+      "备注",
+      async () => {
+        click("修改备注：添加备注");
+        fireEvent.change(screen.getByRole("textbox", { name: "备注" }), {
+          target: { value: "手动修改" },
+        });
+        click("完成");
+        await waitFor(() =>
+          expect(screen.queryByRole("textbox", { name: "备注" })).toBeNull(),
+        );
+      },
+    ],
+    [
+      "明细",
+      async () => {
+        await addLunchItem();
+      },
+    ],
+    [
+      "时间",
+      async () => {
+        fireEvent.click(screen.getByRole("button", { name: /^修改时间：/ }));
+        fireEvent.click(screen.getByRole("button", { name: /时刻/ }));
+        click("选择 12 时");
+        click("选择 30 分");
+        click("选择 47 秒");
+        click("完成");
+        await waitFor(() =>
+          expect(
+            screen.queryByRole("button", { name: "选择 47 秒" }),
+          ).toBeNull(),
+        );
+      },
+    ],
   ])("手动修改%s后关闭才弹未保存确认", async (_, change) => {
     quickSetup({ suggestions: noHistory });
     click("7-Eleven");
@@ -592,15 +606,15 @@ describe("TransactionStepFlow 进入小票", () => {
       "data-invalid",
       "true",
     );
-    expect(
-      screen.queryByRole("button", { name: "请选择收支账户" }),
-    ).toBeNull();
+    expect(screen.queryByRole("button", { name: "请选择收支账户" })).toBeNull();
     expect(saveButton()).toBeEnabled();
     click("保存记账");
     expect(
       screen.getByRole("button", { name: "请选择收支账户" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "请添加明细" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "请添加明细" }),
+    ).toBeInTheDocument();
     click("更换支付账户 1");
     expect(
       screen.getByText("这家商家还没有记录，按账户顺序显示"),
