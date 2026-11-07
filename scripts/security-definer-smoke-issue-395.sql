@@ -1,12 +1,32 @@
 -- #997 统一草稿提交：无 seed，事务内验证权限、幂等、并发、原子完成。
 begin;
 
-insert into auth.users (id, aud, role, email, raw_user_meta_data)
-values
-  ('99700000-0000-4000-8000-000000000011', 'authenticated', 'authenticated',
-    'issue997-owner@example.test', '{"display_name":"Owner"}'),
-  ('99700000-0000-4000-8000-000000000012', 'authenticated', 'authenticated',
-    'issue997-other@example.test', '{"display_name":"Other"}');
+-- 按项目真实 auth.users 必填字段及 trigger 链路创建测试用户。
+create function pg_temp.create_test_user(p_user_id uuid, p_email text)
+returns void
+language plpgsql
+as $$
+begin
+    insert into auth.users (
+        instance_id, id, aud, role, email, encrypted_password,
+        email_confirmed_at, confirmation_token, recovery_token,
+        email_change_token_new, email_change, phone,
+        phone_change, phone_change_token, email_change_token_current,
+        email_change_confirm_status, reauthentication_token,
+        last_sign_in_at, raw_app_meta_data, raw_user_meta_data,
+        is_super_admin, is_sso_user, is_anonymous, created_at, updated_at
+    ) values (
+        '00000000-0000-0000-0000-000000000000', p_user_id,
+        'authenticated', 'authenticated', p_email,
+        extensions.crypt('not-used', extensions.gen_salt('bf')),
+        pg_catalog.now(), '', '', '', '', null, '', '', '', 0, '',
+        pg_catalog.now(),
+        '{"provider":"email","providers":["email"]}'::jsonb,
+        '{"display_name":"Issue 997 User"}'::jsonb,
+        false, false, false, pg_catalog.now(), pg_catalog.now()
+    );
+end;
+$$;
 
 create function pg_temp.act(p_user_id uuid) returns void language sql as $$
     select pg_catalog.set_config(
@@ -55,6 +75,8 @@ declare
       "merchantTags":[],"merchants":[],
       "specialStatusEnabled":false,"multiAccountPaymentEnabled":false}'::jsonb;
 begin
+    perform pg_temp.create_test_user(v_owner, 'issue997-owner@example.test');
+    perform pg_temp.create_test_user(v_other, 'issue997-other@example.test');
     if has_function_privilege(
         'anon',
         'public.commit_ledger_setup(uuid,timestamptz,text,text,text,text,text,integer,jsonb,boolean,jsonb)',
