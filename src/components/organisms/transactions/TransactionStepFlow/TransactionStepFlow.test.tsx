@@ -166,9 +166,17 @@ describe("TransactionStepFlow", () => {
   it("小票修改后关闭：继续编辑保留内容，放弃只关闭本流程", async () => {
     const { props } = quickSetup();
     click("7-Eleven");
+    click("修改备注：添加备注");
+    fireEvent.change(screen.getByRole("textbox", { name: "备注" }), {
+      target: { value: "手动备注" },
+    });
+    click("完成");
     click("关闭记账");
     expect(
       screen.getByRole("dialog", { name: "尚未保存" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "保存并退出" }),
     ).toBeInTheDocument();
     click("继续编辑");
     expect(props.onClose).not.toHaveBeenCalled();
@@ -441,9 +449,13 @@ describe("TransactionStepFlow 进入小票", () => {
     expect(receiptLine("更换支付账户 1")).toHaveTextContent("PayPay");
     expect(screen.queryByLabelText("金额计算器")).not.toBeInTheDocument();
     expect(
+      screen.queryByText("还有 2 条明细没填金额，点一下去填写"),
+    ).toBeNull();
+    expect(saveButton()).toBeEnabled();
+    click("保存记账");
+    expect(
       screen.getByText("还有 2 条明细没填金额，点一下去填写"),
     ).toBeInTheDocument();
-    expect(saveButton()).toBeDisabled();
   });
 
   it("快速路线没有自动明细：选好推荐账户，明细区只有添加明细", async () => {
@@ -471,7 +483,9 @@ describe("TransactionStepFlow 进入小票", () => {
     expect(
       screen.getByRole("button", { name: "请选择收支账户" }),
     ).toBeInTheDocument();
-    expect(saveButton()).toBeDisabled();
+    expect(saveButton()).toBeEnabled();
+    click("保存记账");
+    expect(screen.getByRole("button", { name: "请添加明细" })).toBeInTheDocument();
     click("更换支付账户 1");
     expect(
       screen.getByText("这家商家还没有记录，按账户顺序显示"),
@@ -724,7 +738,7 @@ describe("TransactionStepFlow 页内新增", () => {
     expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
     expect(saveButton().closest("form")).toBe(form);
     await backFromGuard();
-    await screen.findByRole("dialog", { name: "尚未保存" });
+    expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
   });
   it("全屏商家预填是初值，输入还原后后退直接关闭且不改父数据", async () => {
     const { form } = setupCreationFlow();
