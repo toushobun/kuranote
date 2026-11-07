@@ -68,7 +68,10 @@ export function useLedgerSetupBasicInfoStep({
       new FormData(event.currentTarget),
     );
     if (!validated.ok) {
-      const messages = { ...ledgerCreateErrorMessages, ...ledgerSetupErrorMessages };
+      const messages = {
+        ...ledgerCreateErrorMessages,
+        ...ledgerSetupErrorMessages,
+      };
       setFailure(messages[validated.error]);
       return;
     }
@@ -77,7 +80,10 @@ export function useLedgerSetupBasicInfoStep({
   }
 
   return {
-    actionState: failure || validationError ? { error: failure ?? validationError ?? undefined } : {},
+    actionState:
+      failure || validationError
+        ? { error: failure ?? validationError ?? undefined }
+        : {},
     handleSubmit,
     isPending: false,
     ledgerId: setup?.id ?? "",

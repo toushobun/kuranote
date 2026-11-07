@@ -13,7 +13,9 @@ describe("LedgerSetupConfirmStep", () => {
     renderLedgerSetupWizard({
       progress: createLedgerSetupConfirmProgressFixture(),
     });
-    expect(screen.getByText("以下内容将添加到「家庭账本」")).toBeInTheDocument();
+    expect(
+      screen.getByText("以下内容将添加到「家庭账本」"),
+    ).toBeInTheDocument();
     const account = screen.getByRole("region", { name: "账户（2）" });
     expect(within(account).getByText("日元现金")).toBeInTheDocument();
     expect(within(account).getByText("楽天銀行")).toBeInTheDocument();
@@ -57,10 +59,16 @@ describe("LedgerSetupConfirmStep", () => {
   });
 
   it("重复点击完成只启动一次写入", async () => {
-    let finish: (result: { updatedAt: string; completed: boolean }) => void = () => {};
+    let finish: (result: {
+      updatedAt: string;
+      completed: boolean;
+    }) => void = () => {};
     const persistSetup = createPersistMock();
     persistSetup.mockImplementation(
-      () => new Promise((resolve) => { finish = resolve; }),
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
     );
     renderLedgerSetupWizard({
       progress: createLedgerSetupConfirmProgressFixture(),

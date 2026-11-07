@@ -1,6 +1,4 @@
-import {
-  isLedgerCurrency,
-} from "internal/ledger/entity/ledgerCurrency";
+import { isLedgerCurrency } from "internal/ledger/entity/ledgerCurrency";
 import type { LedgerSetup } from "internal/ledger/entity/ledgerSetup";
 import type { LedgerCreateErrorCode } from "internal/ledger/errors/ledgerCreate";
 import {
@@ -97,7 +95,6 @@ export interface LedgerSetupRepository {
   /** userId 为当前登录用户，用于读取其在该账本中的显示名与个性色。 */
   findCurrentUserSetupLedger(userId: string): Promise<LedgerSetupRecord | null>;
   listDefaultRootCategoryNames(): Promise<string[]>;
-
 }
 
 export function createSupabaseLedgerSetupRepository(
@@ -279,6 +276,5 @@ export function createSupabaseLedgerSetupRepository(
         .sort((a, b) => a.sort_order - b.sort_order)
         .map(({ name }) => name);
     },
-
   };
 }

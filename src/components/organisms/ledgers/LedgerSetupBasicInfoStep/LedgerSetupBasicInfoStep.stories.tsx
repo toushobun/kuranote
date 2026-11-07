@@ -37,7 +37,9 @@ export const ValidationError: Story = {
   name: "本地校验错误",
   play: async ({ canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body);
-    await userEvent.clear(await body.findByRole("textbox", { name: "账本名称" }));
+    await userEvent.clear(
+      await body.findByRole("textbox", { name: "账本名称" }),
+    );
     await clickNext(canvasElement);
   },
 };

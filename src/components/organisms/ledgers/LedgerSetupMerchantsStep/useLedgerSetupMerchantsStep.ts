@@ -21,7 +21,8 @@ export function useLedgerSetupMerchantsStep({
   const selectedKeys = draft.merchants.selectedKeys;
   const additionalRegions = draft.merchants.additionalRegions ?? [];
   const checklist = useMemo(
-    () => progress.template ? buildMerchantChecklist(progress.template) : null,
+    () =>
+      progress.template ? buildMerchantChecklist(progress.template) : null,
     [progress.template],
   );
 

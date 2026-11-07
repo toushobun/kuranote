@@ -109,10 +109,12 @@ describe("persistLedgerSetup", () => {
   });
 
   it("已有另一个创建中账本时显示冲突，不回退到静默恢复", async () => {
-    mocks.persist.mockRejectedValue(new ConflictError(
-      ledgerSetupErrorCodes.inProgressExists,
-      ledgerSetupErrorMessages[ledgerSetupErrorCodes.inProgressExists],
-    ));
+    mocks.persist.mockRejectedValue(
+      new ConflictError(
+        ledgerSetupErrorCodes.inProgressExists,
+        ledgerSetupErrorMessages[ledgerSetupErrorCodes.inProgressExists],
+      ),
+    );
     const state = await persistLedgerSetup(input);
     expect(state.error).toBe(
       ledgerSetupErrorMessages[ledgerSetupErrorCodes.inProgressExists],
@@ -122,10 +124,12 @@ describe("persistLedgerSetup", () => {
   });
 
   it("并发乐观锁冲突也不能标记完成", async () => {
-    mocks.persist.mockRejectedValue(new ConflictError(
-      ledgerSetupErrorCodes.conflict,
-      ledgerSetupErrorMessages[ledgerSetupErrorCodes.conflict],
-    ));
+    mocks.persist.mockRejectedValue(
+      new ConflictError(
+        ledgerSetupErrorCodes.conflict,
+        ledgerSetupErrorMessages[ledgerSetupErrorCodes.conflict],
+      ),
+    );
     const state = await persistLedgerSetup(input);
     expect(state.error).toBe(
       ledgerSetupErrorMessages[ledgerSetupErrorCodes.conflict],
@@ -136,12 +140,16 @@ describe("persistLedgerSetup", () => {
 
 describe("其他向导入口", () => {
   it("外层放弃创建仍调用 abandon", async () => {
-    await expect(abandonLedgerSetup({ ledgerId: progress.setup.id })).resolves.toEqual({});
+    await expect(
+      abandonLedgerSetup({ ledgerId: progress.setup.id }),
+    ).resolves.toEqual({});
     expect(mocks.abandon).toHaveBeenCalledExactlyOnceWith(progress.setup.id);
   });
 
   it("读取邀请成员功能继续使用原有服务", async () => {
-    await expect(loadLedgerSetupInviteMembers({ ledgerId: progress.setup.id })).resolves.toEqual({
+    await expect(
+      loadLedgerSetupInviteMembers({ ledgerId: progress.setup.id }),
+    ).resolves.toEqual({
       members: { pendingInvites: [], placeholderMembers: [] },
     });
   });

@@ -43,7 +43,10 @@ function createRepository(
   };
 }
 
-function makeService(repo = createRepository(), currentUserId: string | null = userId) {
+function makeService(
+  repo = createRepository(),
+  currentUserId: string | null = userId,
+) {
   return {
     repo,
     service: createLedgerSetupService({
@@ -56,7 +59,9 @@ function makeService(repo = createRepository(), currentUserId: string | null = u
 describe("LedgerSetupService.persist", () => {
   it("保存退出只传草稿，不生成完成 payload", async () => {
     const { service, repo } = makeService();
-    await expect(service.persist(command)).resolves.toBe("2026-11-07T03:00:00.000Z");
+    await expect(service.persist(command)).resolves.toBe(
+      "2026-11-07T03:00:00.000Z",
+    );
     expect(repo.persist).toHaveBeenCalledWith({
       ...command,
       payload: null,
@@ -80,19 +85,26 @@ describe("LedgerSetupService.persist", () => {
   it("无效草稿在 Repository 前拒绝", async () => {
     const { service, repo } = makeService();
     const invalid = { ...draft, templateRegion: "cn" as const };
-    await expect(service.persist({ ...command, draft: invalid })).rejects.toBeInstanceOf(ConflictError);
+    await expect(
+      service.persist({ ...command, draft: invalid }),
+    ).rejects.toBeInstanceOf(ConflictError);
     expect(repo.persist).not.toHaveBeenCalled();
   });
 
   it("模板过期返回冲突，保留客户端草稿", async () => {
     const { service, repo } = makeService();
-    await expect(service.persist({
-      ...command,
-      draft: {
-        ...draft,
-        merchants: { selectedKeys: ["unknown-template-merchant"], skipped: false },
-      },
-    })).rejects.toMatchObject({
+    await expect(
+      service.persist({
+        ...command,
+        draft: {
+          ...draft,
+          merchants: {
+            selectedKeys: ["unknown-template-merchant"],
+            skipped: false,
+          },
+        },
+      }),
+    ).rejects.toMatchObject({
       code: ledgerSetupErrorCodes.templateOutdated,
     });
     expect(repo.persist).not.toHaveBeenCalled();
@@ -102,9 +114,11 @@ describe("LedgerSetupService.persist", () => {
     ledgerSetupErrorCodes.conflict,
     ledgerSetupErrorCodes.inProgressExists,
   ])("版本冲突或另一草稿冲突 %s 不静默恢复", async (code) => {
-    const { service } = makeService(createRepository({
-      persist: vi.fn(async () => ({ ok: false as const, code })),
-    }));
+    const { service } = makeService(
+      createRepository({
+        persist: vi.fn(async () => ({ ok: false as const, code })),
+      }),
+    );
     await expect(service.persist(command)).rejects.toMatchObject({
       code,
       message: ledgerSetupErrorMessages[code],
@@ -116,24 +130,28 @@ describe("LedgerSetupService.getCurrentUserSetup", () => {
   it("未登录不读取任何数据", async () => {
     const repo = createRepository();
     const { service } = makeService(repo, null);
-    await expect(service.getCurrentUserSetup()).rejects.toBeInstanceOf(AuthenticationError);
+    await expect(service.getCurrentUserSetup()).rejects.toBeInstanceOf(
+      AuthenticationError,
+    );
     expect(repo.findCurrentUserSetupLedger).not.toHaveBeenCalled();
   });
 
   it("恢复服务端持久化草稿和步骤及版本", async () => {
-    const { service } = makeService(createRepository({
-      findCurrentUserSetupLedger: vi.fn(async () => ({
-        baseCurrency: "JPY" as const,
-        livingRegion: "jp" as const,
-        displayColor: "amber" as const,
-        displayName: "淞文",
-        id: ledgerId,
-        name: "家庭账本",
-        step: 4,
-        updatedAt: "2026-11-07T02:00:00.000Z",
-        storedDraft: draft,
-      })),
-    }));
+    const { service } = makeService(
+      createRepository({
+        findCurrentUserSetupLedger: vi.fn(async () => ({
+          baseCurrency: "JPY" as const,
+          livingRegion: "jp" as const,
+          displayColor: "amber" as const,
+          displayName: "淞文",
+          id: ledgerId,
+          name: "家庭账本",
+          step: 4,
+          updatedAt: "2026-11-07T02:00:00.000Z",
+          storedDraft: draft,
+        })),
+      }),
+    );
     await expect(service.getCurrentUserSetup()).resolves.toMatchObject({
       id: ledgerId,
       draft,

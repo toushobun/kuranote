@@ -44,7 +44,9 @@ describe("LedgerSetupWizard 本地草稿", () => {
     expectStep("功能");
     clickNext();
     expectStep("确认");
-    expect(screen.getByText("以下内容将添加到「旅行账本」")).toBeInTheDocument();
+    expect(
+      screen.getByText("以下内容将添加到「旅行账本」"),
+    ).toBeInTheDocument();
     expect(actions.persistSetup).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "修改基本信息" }));
     expectStep("基本信息");
@@ -71,7 +73,9 @@ describe("LedgerSetupWizard 本地草稿", () => {
       target: { value: "待处理草稿" },
     });
     clickCloseWizard();
-    expect(screen.getByRole("dialog", { name: "尚未保存" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("dialog", { name: "尚未保存" }),
+    ).toBeInTheDocument();
     clickExit("继续编辑");
     expect(screen.getByLabelText("账本名称")).toHaveValue("待处理草稿");
     expect(actions.persistSetup).not.toHaveBeenCalled();
@@ -84,7 +88,9 @@ describe("LedgerSetupWizard 本地草稿", () => {
     clickNext();
     expectStep("商家");
     clickCloseWizard();
-    expect(screen.getByText("账本还没创建完，要保存当前进度再退出吗？")).toBeInTheDocument();
+    expect(
+      screen.getByText("账本还没创建完，要保存当前进度再退出吗？"),
+    ).toBeInTheDocument();
     clickExit("保存并退出");
     await waitFor(() => expect(actions.persistSetup).toHaveBeenCalledOnce());
     expect(actions.persistSetup.mock.calls[0][0]).toMatchObject({
@@ -183,7 +189,9 @@ describe("LedgerSetupWizard 本地草稿", () => {
     clickNext();
     expectStep("确认");
     const card = screen.getByRole("region", { name: "功能" });
-    expect(within(card).getByText("报销与退款状态 · 已开启")).toBeInTheDocument();
+    expect(
+      within(card).getByText("报销与退款状态 · 已开启"),
+    ).toBeInTheDocument();
     expect(actions.persistSetup).not.toHaveBeenCalled();
   });
 });

@@ -144,10 +144,11 @@ export function createLedgerSetupService({
       if (!validation.ok) throw toAppError(validation.error);
 
       const template = getLedgerSetupTemplate(input.livingRegion);
+      if (validation.value.draft.templateRegion !== input.livingRegion)
+        throw toAppError(ledgerSetupErrorCodes.regionMismatch);
       if (
-        validation.value.draft.templateRegion !== input.livingRegion
-      ) throw toAppError(ledgerSetupErrorCodes.regionMismatch);
-      if (!isLedgerSetupDraftMatchingTemplate(validation.value.draft, template)) {
+        !isLedgerSetupDraftMatchingTemplate(validation.value.draft, template)
+      ) {
         throw toAppError(ledgerSetupErrorCodes.templateOutdated);
       }
 

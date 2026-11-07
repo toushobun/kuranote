@@ -101,7 +101,10 @@ function LedgerSetupWizardContent({
       setValidationError(null);
       return true;
     }
-    const messages = { ...ledgerCreateErrorMessages, ...ledgerSetupErrorMessages };
+    const messages = {
+      ...ledgerCreateErrorMessages,
+      ...ledgerSetupErrorMessages,
+    };
     setValidationError(messages[validation.error]);
     wizard.goToBasicInfo();
     return false;

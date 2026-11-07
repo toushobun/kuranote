@@ -25,7 +25,9 @@ function clampStep(step: number) {
   return Math.min(Math.max(step, 1), stepCount);
 }
 
-function createNewProgress(defaults: LedgerBasicInfoValues): LedgerSetupProgress {
+function createNewProgress(
+  defaults: LedgerBasicInfoValues,
+): LedgerSetupProgress {
   const livingRegion = getLedgerSetupRegionFromTimeZone(
     Intl.DateTimeFormat().resolvedOptions().timeZone,
   );
@@ -83,7 +85,9 @@ export function useLedgerSetupWizard({
   const [progressRevision, setProgressRevision] = useState(0);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(initialNotice);
-  const [completion, setCompletion] = useState<LedgerSetupCompletion | null>(null);
+  const [completion, setCompletion] = useState<LedgerSetupCompletion | null>(
+    null,
+  );
   const [completeScreen, setCompleteScreen] = useState<
     (LedgerSetupCompletion & { placeholderMemberCount: number }) | null
   >(null);
@@ -141,7 +145,8 @@ export function useLedgerSetupWizard({
         !Number.isInteger(target) ||
         target < 1 ||
         target >= ledgerSetupLastDraftStep
-      ) return;
+      )
+        return;
       setStep(target);
     },
     markSetupCompleted,

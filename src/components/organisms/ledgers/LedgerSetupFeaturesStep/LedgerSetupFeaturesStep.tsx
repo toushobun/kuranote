@@ -60,12 +60,16 @@ export function LedgerSetupFeaturesStep({
         <LedgerSpecialStatusSetting
           disabledDescription={null}
           enabled={draft.features.specialStatusEnabled}
-          onChange={(specialStatusEnabled) => update({ ...draft.features, specialStatusEnabled })}
+          onChange={(specialStatusEnabled) =>
+            update({ ...draft.features, specialStatusEnabled })
+          }
         />
         <LedgerMultiAccountPaymentSetting
           enabled={draft.features.multiAccountPaymentEnabled}
           enabledDescription={null}
-          onChange={(multiAccountPaymentEnabled) => update({ ...draft.features, multiAccountPaymentEnabled })}
+          onChange={(multiAccountPaymentEnabled) =>
+            update({ ...draft.features, multiAccountPaymentEnabled })
+          }
         />
       </Stack>
     </WizardStepLayout>

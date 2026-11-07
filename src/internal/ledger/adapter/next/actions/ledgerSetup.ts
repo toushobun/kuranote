@@ -69,9 +69,11 @@ export async function persistLedgerSetup(
     !isUuid(setup.id) ||
     !Number.isInteger(input.step) ||
     typeof input.complete !== "boolean" ||
-    !(input.expectedUpdatedAt === null ||
+    !(
+      input.expectedUpdatedAt === null ||
       (typeof input.expectedUpdatedAt === "string" &&
-        Number.isFinite(Date.parse(input.expectedUpdatedAt))))
+        Number.isFinite(Date.parse(input.expectedUpdatedAt)))
+    )
   ) {
     return createErrorState(
       ledgerSetupErrorMessages[ledgerSetupErrorCodes.draftInvalid],
@@ -89,7 +91,9 @@ export async function persistLedgerSetup(
       baseCurrency: setup.baseCurrency,
       displayName: setup.displayName,
       displayColor: setup.displayColor,
-      livingRegion: setup.livingRegion as NonNullable<typeof setup.livingRegion>,
+      livingRegion: setup.livingRegion as NonNullable<
+        typeof setup.livingRegion
+      >,
       step: input.step,
       draft: setup.draft,
       complete: input.complete,

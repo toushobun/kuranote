@@ -13,23 +13,32 @@ import {
 describe("LedgerSetupMerchantsStep", () => {
   it("勾选商家写入本地草稿并跨步骤保留，不调用 RPC", () => {
     const base = createLedgerSetupProgressFixture({ step: 3 });
-    const progress = createLedgerSetupProgressFixture({
-      ...base.setup,
-      draft: {
-        ...base.setup.draft,
-        merchants: { selectedKeys: [], skipped: false },
+    const progress = createLedgerSetupProgressFixture(
+      {
+        ...base.setup,
+        draft: {
+          ...base.setup.draft,
+          merchants: { selectedKeys: [], skipped: false },
+        },
+        step: 3,
       },
-      step: 3,
-    }, ledgerSetupMerchantTemplateFixture);
+      ledgerSetupMerchantTemplateFixture,
+    );
     const actions = renderLedgerSetupWizard({ progress });
-    fireEvent.click(screen.getByRole("checkbox", {
-      name: "选择「餐饮」的全部商家",
-    }));
-    expect(screen.getByRole("button", { name: /下一步 · 已选 3 家/ })).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("checkbox", {
+        name: "选择「餐饮」的全部商家",
+      }),
+    );
+    expect(
+      screen.getByRole("button", { name: /下一步 · 已选 3 家/ }),
+    ).toBeInTheDocument();
     clickNext();
     expect(getCurrentStepItem()).toHaveTextContent("功能");
     fireEvent.click(screen.getByRole("button", { name: "上一步" }));
-    expect(screen.getByRole("button", { name: /下一步 · 已选 3 家/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /下一步 · 已选 3 家/ }),
+    ).toBeInTheDocument();
     expect(actions.persistSetup).not.toHaveBeenCalled();
   });
 });

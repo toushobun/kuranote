@@ -249,7 +249,11 @@ function AsyncLeaveHarness({
   });
   return (
     <>
-      <input aria-label="草稿" value={value} onChange={(event) => setValue(event.target.value)} />
+      <input
+        aria-label="草稿"
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
+      />
       <button onClick={guard.requestClose}>关闭向导</button>
       <UnsavedChangesDialog {...guard.dialogProps} />
     </>
@@ -264,8 +268,12 @@ describe("useUnsavedChangesGuard 显式退出", () => {
       wrapper: ConfirmDialogTestProviders,
     });
     fireEvent.click(screen.getByRole("button", { name: "关闭向导" }));
-    expect(screen.getByText("账本还没创建完，要保存当前进度再退出吗？")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "保存并退出" })).toBeInTheDocument();
+    expect(
+      screen.getByText("账本还没创建完，要保存当前进度再退出吗？"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "保存并退出" }),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "保存并退出" }));
     await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
     await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
@@ -278,7 +286,9 @@ describe("useUnsavedChangesGuard 显式退出", () => {
     render(<AsyncLeaveHarness onSave={onSave} onClose={onClose} />, {
       wrapper: ConfirmDialogTestProviders,
     });
-    fireEvent.change(screen.getByLabelText("草稿"), { target: { value: "跨步内容" } });
+    fireEvent.change(screen.getByLabelText("草稿"), {
+      target: { value: "跨步内容" },
+    });
     fireEvent.click(screen.getByRole("button", { name: "关闭向导" }));
     fireEvent.click(screen.getByRole("button", { name: "保存并退出" }));
     await waitFor(() => expect(onSave).toHaveBeenCalledOnce());

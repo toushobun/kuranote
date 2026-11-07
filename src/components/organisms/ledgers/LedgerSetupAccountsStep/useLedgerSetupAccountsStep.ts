@@ -80,7 +80,9 @@ export function useLedgerSetupAccountsStep({
         draft: {
           ...draft,
           accounts: {
-            items: items.filter(({ key }) => selected.has(key)).map(({ account }) => account),
+            items: items
+              .filter(({ key }) => selected.has(key))
+              .map(({ account }) => account),
             skipped: false,
           },
         },

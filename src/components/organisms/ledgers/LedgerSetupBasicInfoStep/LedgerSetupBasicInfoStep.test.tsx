@@ -16,7 +16,9 @@ describe("LedgerSetupBasicInfoStep", () => {
     renderLedgerSetupWizard();
     expect(screen.getByLabelText("账本名称")).toHaveValue("家庭账本");
     expect(screen.getByRole("radio", { name: "日本" })).toBeChecked();
-    expect(screen.getByRole("combobox", { name: "默认货币" })).toHaveTextContent("JPY 日元");
+    expect(
+      screen.getByRole("combobox", { name: "默认货币" }),
+    ).toHaveTextContent("JPY 日元");
   });
 
   it("无地区不允许前进，前端拒绝且不提交 Action", () => {

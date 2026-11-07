@@ -37,7 +37,8 @@ function makeRepository(
   const logger: Logger = { error: vi.fn(), warn: vi.fn(), info: vi.fn() };
   return {
     repository: createSupabaseLedgerSetupRepository(
-      supabase.client as never, logger,
+      supabase.client as never,
+      logger,
     ),
     supabase,
     logger,
@@ -50,7 +51,8 @@ describe("LedgerSetupRepository.persist", () => {
       data: "2026-11-07T03:00:00.000Z",
     });
     await expect(repository.persist(command)).resolves.toEqual({
-      ok: true, updatedAt: "2026-11-07T03:00:00.000Z",
+      ok: true,
+      updatedAt: "2026-11-07T03:00:00.000Z",
     });
     expect(supabase.rpc).toHaveBeenCalledWith("commit_ledger_setup", {
       p_ledger_id: ledgerId,
@@ -76,7 +78,8 @@ describe("LedgerSetupRepository.persist", () => {
       error: { code: "40001", details, message: "untrusted" },
     });
     await expect(repository.persist(command)).resolves.toEqual({
-      ok: false, code,
+      ok: false,
+      code,
     });
   });
 
@@ -100,20 +103,27 @@ describe("LedgerSetupRepository.persist", () => {
 
 describe("LedgerSetupRepository.findCurrentUserSetupLedger", () => {
   it("从服务端快照恢复最新 updated_at 作为乐观锁版本", async () => {
-    const { repository, supabase } = makeRepository({
-      data: [{
-        ledger_id: ledgerId,
-        ledger_name: "家庭账本",
-        base_currency: "JPY",
-        setup_step: 3,
-        setup_draft: draft,
-        living_region: "jp",
-      }],
-    }, [
-      { data: { display_name: "淞文", display_color: "amber" } },
-      { data: { updated_at: "2026-11-07T00:00:00Z" } },
-    ]);
-    await expect(repository.findCurrentUserSetupLedger(userId)).resolves.toMatchObject({
+    const { repository, supabase } = makeRepository(
+      {
+        data: [
+          {
+            ledger_id: ledgerId,
+            ledger_name: "家庭账本",
+            base_currency: "JPY",
+            setup_step: 3,
+            setup_draft: draft,
+            living_region: "jp",
+          },
+        ],
+      },
+      [
+        { data: { display_name: "淞文", display_color: "amber" } },
+        { data: { updated_at: "2026-11-07T00:00:00Z" } },
+      ],
+    );
+    await expect(
+      repository.findCurrentUserSetupLedger(userId),
+    ).resolves.toMatchObject({
       id: ledgerId,
       name: "家庭账本",
       step: 3,
@@ -124,7 +134,9 @@ describe("LedgerSetupRepository.findCurrentUserSetupLedger", () => {
 
   it("未找到创建中的账本时不读取其他表", async () => {
     const { repository, supabase } = makeRepository({ data: [] });
-    await expect(repository.findCurrentUserSetupLedger(userId)).resolves.toBeNull();
+    await expect(
+      repository.findCurrentUserSetupLedger(userId),
+    ).resolves.toBeNull();
     expect(supabase.queries).toEqual([]);
   });
 });

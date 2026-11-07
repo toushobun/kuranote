@@ -74,7 +74,9 @@ export function createLedgerSetupWizardLauncherActionMocks(
   return {
     loadWizard: vi.fn<LedgerSetupWizardViewLoadAction>(async () => ({
       view: {
-        defaultRootCategoryNames: [...ledgerSetupDefaultRootCategoryNamesFixture],
+        defaultRootCategoryNames: [
+          ...ledgerSetupDefaultRootCategoryNamesFixture,
+        ],
         defaults: ledgerSetupWizardTestDefaults,
         progress,
       },
@@ -130,7 +132,9 @@ export function clickPrevious() {
 
 export async function goPreviousTo(stepLabel: string) {
   clickPrevious();
-  await waitFor(() => expect(getCurrentStepItem()).toHaveTextContent(stepLabel));
+  await waitFor(() =>
+    expect(getCurrentStepItem()).toHaveTextContent(stepLabel),
+  );
 }
 
 export function clickCloseWizard() {
