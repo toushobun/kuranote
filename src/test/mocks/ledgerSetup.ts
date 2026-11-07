@@ -228,6 +228,7 @@ export function createLedgerSetupProgressFixture(
       id: ledgerSetupFixtureId,
       name: "家庭账本",
       step: 2,
+      updatedAt: "2026-11-07T00:00:00.000Z",
       ...overrides,
     },
     template,
