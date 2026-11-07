@@ -7,6 +7,7 @@ import { useReceiptCreation } from "organisms/transactions/ReceiptCreationProvid
 import { mergeReceiptOptions } from "organisms/transactions/ReceiptCreationProvider/useReceiptCreationState";
 
 import { flowMessages as m } from "config/transactionStepFlowMessages";
+import { unsavedChangesMessages } from "config/unsavedChangesMessages";
 import type {
   FrequentMerchant,
   TransactionEditRestriction,
@@ -67,6 +68,7 @@ export function EditTransactionReceiptTemplate(
           (item) => item.businessStatus?.incomeLinkRole != null,
         )}
         saveFormId={editReceiptFormId}
+        saveLabel={unsavedChangesMessages.saveAndExit}
         transactionRecordId={transactionRecordId}
       >
         {(editAction) => (
@@ -74,6 +76,7 @@ export function EditTransactionReceiptTemplate(
             {...props}
             formAction={editAction.formAction}
             saving={editAction.isPending}
+            onValidationFailed={editAction.onValidationFailed}
           />
         )}
       </EditTransactionShell>
@@ -85,10 +88,12 @@ export function EditTransactionReceiptTemplate(
 function EditTransactionReceipt({
   formAction,
   saving,
+  onValidationFailed,
   ...input
 }: EditTransactionReceiptTemplateProps & {
   formAction: (formData: FormData) => void;
   saving: boolean;
+  onValidationFailed: () => void;
 }) {
   const creation = useReceiptCreation();
   const props = {
@@ -143,6 +148,7 @@ function EditTransactionReceipt({
         suggestions={w.suggestions}
         action={formAction}
         saving={saving}
+        onValidationFailed={onValidationFailed}
         submitLabel={m.saveEdit}
         onMerchantClick={w.merchantPicker.openPicker}
         readOnly={readOnly}

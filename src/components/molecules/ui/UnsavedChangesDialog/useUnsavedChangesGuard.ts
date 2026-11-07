@@ -160,6 +160,10 @@ export function useUnsavedChangesGuard({
 
   return {
     runAction,
+    // 前端校验阻止提交时没有 Server Action，清除本次保存时的离开意图。
+    cancelPendingSave: () => {
+      saveIntent.current = null;
+    },
     completeSave,
     runInPlaceAction: useCallback(
       <T>(action: () => Promise<T>) => history.runInPlaceAction(action),

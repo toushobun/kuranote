@@ -1,6 +1,4 @@
 "use client";
-import { useState } from "react";
-import { EditTransactionDirtyProvider } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
 import { useReceiptCreation } from "organisms/transactions/ReceiptCreationProvider/ReceiptCreationProvider";
 import { mergeReceiptOptions } from "organisms/transactions/ReceiptCreationProvider/useReceiptCreationState";
 
@@ -28,24 +26,14 @@ export function TransactionStepFlow(props: TransactionStepFlowProps) {
     </BackLayerScope>
   ) : null;
 }
-function TransactionStepFlowSession(props: TransactionStepFlowProps) {
-  const [dirty, setDirty] = useState(false);
-  return (
-    <EditTransactionDirtyProvider onDirty={setDirty}>
-      <TransactionStepFlowContent {...props} dirty={dirty} />
-    </EditTransactionDirtyProvider>
-  );
-}
-function TransactionStepFlowContent(
-  input: TransactionStepFlowProps & { dirty: boolean },
-) {
+function TransactionStepFlowSession(input: TransactionStepFlowProps) {
   const creation = useReceiptCreation();
   const props = {
     ...input,
     merchants: mergeReceiptOptions(input.merchants, creation?.merchants),
     accounts: mergeReceiptOptions(input.accounts, creation?.accounts),
   };
-  const w = useTransactionStepFlow(props, input.dirty);
+  const w = useTransactionStepFlow(props);
   const receipt = w.screen === "receipt";
   return (
     <BackLayerScope level={transactionBackLayerLevels.receiptEditor}>
@@ -84,6 +72,7 @@ function TransactionStepFlowContent(
               saving={w.saving}
               onMerchantClick={w.merchantPicker.openPicker}
               onAccountSelect={props.onAccountSelect}
+              onValidationFailed={w.cancelPendingSave}
             />
           ) : (
             <MerchantStep

@@ -42,12 +42,15 @@ type EditTransactionShellProps = {
   children: (edit: {
     formAction: (formData: FormData) => void;
     isPending: boolean;
+    onValidationFailed: () => void;
   }) => ReactNode;
   deleteAction: TransactionStateAction;
   editRestriction: TransactionEditRestriction | null;
   hasLinkedIncomeItems: boolean;
   /** 离开确认里的「保存」按这个 id 提交编辑表单。 */
   saveFormId: string;
+  /** 只有编辑小票显示「保存并退出」；转账沿用公共「保存」。 */
+  saveLabel?: string;
   transactionRecordId: string;
 };
 
@@ -65,6 +68,7 @@ export function EditTransactionShell({
   editRestriction,
   hasLinkedIncomeItems,
   saveFormId,
+  saveLabel,
   transactionRecordId,
 }: EditTransactionShellProps) {
   const readOnly = editRestriction !== null;
@@ -72,6 +76,7 @@ export function EditTransactionShell({
   const guard = useUnsavedChangesGuard({
     isDirty: hasUnsavedChanges && !readOnly,
     saveFormId,
+    saveLabel,
   });
   const editAction = useLinkedTransactionEditAction(action, guard.runAction);
   const [deleteState, deleteFormAction] = useActionState(
@@ -105,7 +110,7 @@ export function EditTransactionShell({
             <TransactionEditRestrictionAlert reason={editRestriction} />
           </Box>
         ) : null}
-        {children(editAction)}
+        {children({ ...editAction, onValidationFailed: guard.cancelPendingSave })}
         {canDelete ? (
           <EditTransactionActionButton
             color="error"

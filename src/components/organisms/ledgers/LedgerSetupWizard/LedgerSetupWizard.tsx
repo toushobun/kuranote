@@ -18,6 +18,7 @@ import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog/UnsavedC
 import { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
 import { WizardDialog } from "molecules/ui/WizardDialog/WizardDialog";
 
+import { unsavedChangesMessages } from "config/unsavedChangesMessages";
 import {
   ledgerSetupEntryMessages,
   ledgerSetupWizardMessages,
@@ -166,7 +167,7 @@ function LedgerSetupWizardContent({
     onClose,
     saveFormId: null,
     saveOnLeave: () => persist(false),
-    saveLabel: ledgerSetupWizardMessages.saveAndExit,
+    saveLabel: unsavedChangesMessages.saveAndExit,
     cleanDescription: ledgerSetupWizardMessages.cleanExitDescription,
   });
   const { Component: StepComponent, key } = wizard.currentStep;
