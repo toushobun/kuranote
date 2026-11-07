@@ -1,56 +1,31 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { getLedgerSetupTemplate } from "internal/ledger/entity/ledgerSetupTemplate/getLedgerSetupTemplate";
-import {
-  ledgerCreateErrorCodes,
-  ledgerCreateErrorMessages,
-} from "internal/ledger/errors/ledgerCreate";
 import {
   ledgerSetupErrorCodes,
   ledgerSetupErrorMessages,
 } from "internal/ledger/errors/ledgerSetup";
-import type {
-  LedgerSetupRecord,
-  LedgerSetupRepository,
-} from "internal/ledger/repository/ledgerSetupRepository";
-import type { StoredLedgerSetupDraft } from "internal/ledger/schema/ledgerSetupDraft";
+import type { LedgerSetupRepository } from "internal/ledger/repository/ledgerSetupRepository";
 import { createLedgerSetupService } from "internal/ledger/service/ledgerSetupService";
 import { createDefaultLedgerSetupDraft } from "internal/ledger/util/ledgerSetupDraft";
 import {
-  AuthenticationError,
   ConflictError,
-  NotFoundError,
-  ValidationError,
+  AuthenticationError,
 } from "internal/shared/errors/appError";
 
 const ledgerId = "00000000-0000-4000-8000-000000000001";
 const userId = "00000000-0000-4000-8000-000000000031";
-
 const draft = createDefaultLedgerSetupDraft("jp");
-
-function createRecord(
-  storedDraft: StoredLedgerSetupDraft,
-  overrides: Partial<LedgerSetupRecord> = {},
-): LedgerSetupRecord {
-  return {
-    baseCurrency: "JPY",
-    livingRegion: "jp" as const,
-    displayColor: "amber",
-    displayName: "淞文",
-    id: ledgerId,
-    name: "家庭账本",
-    step: 5,
-    storedDraft,
-    ...overrides,
-  };
-}
-
-const basicInfo = {
+const command = {
+  ledgerId,
+  expectedUpdatedAt: null,
+  name: "家庭账本",
   baseCurrency: "JPY",
-  livingRegion: "jp" as const,
-  displayColor: "amber" as const,
   displayName: "淞文",
-  ledgerName: "家庭账本",
+  displayColor: "amber",
+  livingRegion: "jp" as const,
+  step: 3,
+  draft,
+  complete: false,
 };
 
 function createRepository(
@@ -58,598 +33,112 @@ function createRepository(
 ): LedgerSetupRepository {
   return {
     abandon: vi.fn(async () => ({ ok: true as const })),
-    complete: vi.fn(async () => ({ ok: true as const })),
-    create: vi.fn(async () => ({ ledgerId, ok: true as const })),
+    persist: vi.fn(async () => ({
+      ok: true as const,
+      updatedAt: "2026-11-07T03:00:00.000Z",
+    })),
     findCurrentUserSetupLedger: vi.fn(async () => null),
     listDefaultRootCategoryNames: vi.fn(async () => []),
-    saveDraft: vi.fn(async () => ({ ok: true as const })),
-    updateBasicInfo: vi.fn(async () => ({ ok: true as const })),
     ...overrides,
   };
 }
 
-describe("createLedgerSetupService.create", () => {
-  it("创建成功时返回新账本 ID", async () => {
-    const ledgerSetupRepository = createRepository();
-    const service = createLedgerSetupService({
-      currentUserId: userId,
-      ledgerSetupRepository,
-    });
+function makeService(repo = createRepository(), currentUserId: string | null = userId) {
+  return {
+    repo,
+    service: createLedgerSetupService({
+      currentUserId,
+      ledgerSetupRepository: repo,
+    }),
+  };
+}
 
-    await expect(service.create(basicInfo)).resolves.toEqual({ ledgerId });
-    expect(ledgerSetupRepository.create).toHaveBeenCalledWith(basicInfo);
-  });
-
-  it("已有创建中账本时抛出 ConflictError", async () => {
-    const service = createLedgerSetupService({
-      currentUserId: userId,
-      ledgerSetupRepository: createRepository({
-        create: vi.fn(async () => ({
-          code: ledgerSetupErrorCodes.inProgressExists,
-          ok: false as const,
-        })),
-      }),
-    });
-
-    const error = await service.create(basicInfo).catch((e: unknown) => e);
-    expect(error).toBeInstanceOf(ConflictError);
-    expect(error).toMatchObject({
-      code: ledgerSetupErrorCodes.inProgressExists,
-      message: ledgerSetupErrorMessages[ledgerSetupErrorCodes.inProgressExists],
+describe("LedgerSetupService.persist", () => {
+  it("保存退出只传草稿，不生成完成 payload", async () => {
+    const { service, repo } = makeService();
+    await expect(service.persist(command)).resolves.toBe("2026-11-07T03:00:00.000Z");
+    expect(repo.persist).toHaveBeenCalledWith({
+      ...command,
+      payload: null,
     });
   });
 
-  it("基本信息错误沿用账本创建的错误语义与文案", async () => {
-    const service = createLedgerSetupService({
-      currentUserId: userId,
-      ledgerSetupRepository: createRepository({
-        create: vi.fn(async () => ({
-          code: ledgerCreateErrorCodes.nameRequired,
-          ok: false as const,
-        })),
-      }),
+  it("未提前保存时也能完成，一次事务提交默认类别和带币种账户", async () => {
+    const { service, repo } = makeService();
+    await service.persist({ ...command, step: 5, complete: true });
+    expect(repo.persist).toHaveBeenCalledOnce();
+    const call = vi.mocked(repo.persist).mock.calls[0][0];
+    expect(call.payload).not.toBeNull();
+    expect(call.payload?.accounts[0]).toMatchObject({
+      currency: "JPY",
+      name: "日元现金",
+      type: "cash",
     });
-
-    const error = await service.create(basicInfo).catch((e: unknown) => e);
-    expect(error).toBeInstanceOf(ValidationError);
-    expect(error).toMatchObject({
-      message: ledgerCreateErrorMessages[ledgerCreateErrorCodes.nameRequired],
-    });
+    expect(call.payload?.templateRegion).toBe("jp");
   });
 
-  it("登录失效时抛出 AuthenticationError", async () => {
-    const service = createLedgerSetupService({
-      currentUserId: userId,
-      ledgerSetupRepository: createRepository({
-        create: vi.fn(async () => ({
-          code: ledgerCreateErrorCodes.authRequired,
-          ok: false as const,
-        })),
-      }),
-    });
-
-    await expect(service.create(basicInfo)).rejects.toBeInstanceOf(
-      AuthenticationError,
-    );
-  });
-});
-
-describe("createLedgerSetupService.getCurrentUserSetup", () => {
-  it("按账本当前默认货币的模板补全草稿", async () => {
-    const ledgerSetupRepository = createRepository({
-      findCurrentUserSetupLedger: vi.fn(async () =>
-        createRecord({}, { step: 2 }),
-      ),
-    });
-    const service = createLedgerSetupService({
-      currentUserId: userId,
-      ledgerSetupRepository,
-    });
-
-    await expect(service.getCurrentUserSetup()).resolves.toEqual({
-      baseCurrency: "JPY",
-      livingRegion: "jp" as const,
-      displayColor: "amber",
-      displayName: "淞文",
-      draft,
-
-      id: ledgerId,
-      name: "家庭账本",
-      step: 2,
-    });
-    expect(
-      ledgerSetupRepository.findCurrentUserSetupLedger,
-    ).toHaveBeenCalledWith(userId);
+  it("无效草稿在 Repository 前拒绝", async () => {
+    const { service, repo } = makeService();
+    const invalid = { ...draft, templateRegion: "cn" as const };
+    await expect(service.persist({ ...command, draft: invalid })).rejects.toBeInstanceOf(ConflictError);
+    expect(repo.persist).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ["已保存账户选择", { accounts: draft.accounts }],
-    ["已保存商家选择", { merchants: draft.merchants }],
-  ])("%s在恢复时保留原内容", async (_label, storedDraft) => {
-    const service = createLedgerSetupService({
-      currentUserId: userId,
-      ledgerSetupRepository: createRepository({
-        findCurrentUserSetupLedger: vi.fn(async () =>
-          createRecord(storedDraft),
-        ),
-      }),
-    });
-
-    await expect(service.getCurrentUserSetup()).resolves.toMatchObject({
-      draft: storedDraft,
-    });
-  });
-
-  it("未登录时抛出 AuthenticationError 且不查询", async () => {
-    const ledgerSetupRepository = createRepository();
-    const service = createLedgerSetupService({
-      currentUserId: null,
-      ledgerSetupRepository,
-    });
-
-    await expect(service.getCurrentUserSetup()).rejects.toBeInstanceOf(
-      AuthenticationError,
-    );
-    expect(
-      ledgerSetupRepository.findCurrentUserSetupLedger,
-    ).not.toHaveBeenCalled();
-  });
-
-  it("没有创建中账本时返回 null", async () => {
-    const service = createLedgerSetupService({
-      currentUserId: userId,
-      ledgerSetupRepository: createRepository(),
-    });
-
-    await expect(service.getCurrentUserSetup()).resolves.toBeNull();
-  });
-});
-
-describe("createLedgerSetupService.getTemplate", () => {
-  it("按币种返回模板，没有模板时返回 null", () => {
-    const service = createLedgerSetupService({
-      currentUserId: userId,
-      ledgerSetupRepository: createRepository(),
-    });
-
-    expect(service.getTemplate("jp")).toEqual(getLedgerSetupTemplate("jp"));
-    expect(service.getTemplate("USD")).toBeNull();
-  });
-});
-
-describe("createLedgerSetupService.listDefaultRootCategoryNames", () => {
-  it("返回 Repository 读取的默认大分类名称", async () => {
-    const ledgerSetupRepository = createRepository({
-      listDefaultRootCategoryNames: vi.fn(async () => [
-        "💰 工资收入",
-        "🍽️ 饮食",
-      ]),
-    });
-    const service = createLedgerSetupService({
-      currentUserId: userId,
-      ledgerSetupRepository,
-    });
-
-    await expect(service.listDefaultRootCategoryNames()).resolves.toEqual([
-      "💰 工资收入",
-      "🍽️ 饮食",
-    ]);
-  });
-
-  it("读取失败时不吞掉 Repository 错误", async () => {
-    const error = new Error("load failed");
-    const service = createLedgerSetupService({
-      currentUserId: userId,
-      ledgerSetupRepository: createRepository({
-        listDefaultRootCategoryNames: vi.fn(async () => {
-          throw error;
-        }),
-      }),
-    });
-
-    await expect(service.listDefaultRootCategoryNames()).rejects.toBe(error);
-  });
-});
-
-describe("createLedgerSetupService.complete", () => {
-  it("根据数据库中的草稿与代码模板生成 payload 并完成写入", async () => {
-    const ledgerSetupRepository = createRepository({
-      findCurrentUserSetupLedger: vi.fn(async () =>
-        createRecord({
-          ...draft,
-          accounts: {
-            items: [{ name: "PayPay", templateKey: "PayPay", type: "e_money" }],
-            skipped: false,
-          },
-          features: {
-            multiAccountPaymentEnabled: true,
-            specialStatusEnabled: true,
-          },
-          merchants: { selectedKeys: ["netflix"], skipped: false },
-        }),
-      ),
-    });
-    const service = createLedgerSetupService({
-      currentUserId: userId,
-      ledgerSetupRepository,
-    });
-
-    await service.complete(ledgerId);
-
-    expect(ledgerSetupRepository.complete).toHaveBeenCalledWith({
-      ledgerId,
-      payload: expect.objectContaining({
-        templateRegion: "jp",
-        accounts: [{ currency: "JPY", name: "PayPay", type: "e_money" }],
-        merchants: [
-          expect.objectContaining({
-            name: "网飞",
-            tagKeys: ["shopping"],
-            aliases: expect.arrayContaining([
-              { alias: "Netflix", locale: "en" },
-            ]),
-          }),
-        ],
-        merchantTags: [{ icon: "🛍️", key: "shopping", name: "购物·订阅" }],
-        multiAccountPaymentEnabled: true,
-        specialStatusEnabled: true,
-      }),
-    });
-  });
-
-  it("换币种保留地区模板和原有商家选择", async () => {
-    const ledgerSetupRepository = createRepository({
-      findCurrentUserSetupLedger: vi.fn(async () =>
-        createRecord(draft, { baseCurrency: "USD" }),
-      ),
-    });
-    const service = createLedgerSetupService({
-      currentUserId: userId,
-      ledgerSetupRepository,
-    });
-
-    await service.complete(ledgerId);
-
-    expect(ledgerSetupRepository.complete).toHaveBeenCalledWith({
-      ledgerId,
-      payload: expect.objectContaining({
-        accounts: [{ currency: "JPY", name: "日元现金", type: "cash" }],
-        merchantTags: expect.any(Array),
-        merchants: expect.arrayContaining([
-          expect.objectContaining({ name: "永旺" }),
-        ]),
-        multiAccountPaymentEnabled: false,
-        specialStatusEnabled: false,
-      }),
-    });
-  });
-
-  it("模板版本变化时丢弃已不存在的商家 key", async () => {
-    const ledgerSetupRepository = createRepository({
-      findCurrentUserSetupLedger: vi.fn(async () =>
-        createRecord({
-          ...draft,
-          merchants: { selectedKeys: ["removed", "gu"], skipped: false },
-          templateVersion: 999,
-        }),
-      ),
-    });
-    const service = createLedgerSetupService({
-      currentUserId: userId,
-      ledgerSetupRepository,
-    });
-
-    await service.complete(ledgerId);
-
-    expect(ledgerSetupRepository.complete).toHaveBeenCalledWith({
-      ledgerId,
-      payload: expect.objectContaining({
-        merchants: [expect.objectContaining({ name: "GU" })],
-      }),
-    });
-  });
-
-  it.each([
-    ["没有创建中账本", null],
-    ["创建中账本不是目标账本", createRecord({}, { id: "other" })],
-  ])("%s时抛出 NotFoundError 且不写入", async (_label, record) => {
-    const ledgerSetupRepository = createRepository({
-      findCurrentUserSetupLedger: vi.fn(async () => record),
-    });
-    const service = createLedgerSetupService({
-      currentUserId: userId,
-      ledgerSetupRepository,
-    });
-
-    const error = await service.complete(ledgerId).catch((e: unknown) => e);
-
-    expect(error).toBeInstanceOf(NotFoundError);
-    expect(error).toMatchObject({ code: ledgerSetupErrorCodes.notFound });
-    expect(ledgerSetupRepository.complete).not.toHaveBeenCalled();
-  });
-
-  it.each([
-    [ledgerSetupErrorCodes.notFound, NotFoundError],
-    [ledgerSetupErrorCodes.notInProgress, ConflictError],
-    [ledgerSetupErrorCodes.payloadInvalid, ValidationError],
-  ] as const)(
-    "数据库返回 %s 时转换为对应应用错误",
-    async (code, errorClass) => {
-      const service = createLedgerSetupService({
-        currentUserId: userId,
-        ledgerSetupRepository: createRepository({
-          complete: vi.fn(async () => ({ code, ok: false as const })),
-          findCurrentUserSetupLedger: vi.fn(async () => createRecord({})),
-        }),
-      });
-
-      const error = await service.complete(ledgerId).catch((e: unknown) => e);
-
-      expect(error).toBeInstanceOf(errorClass);
-      expect(error).toMatchObject({
-        code,
-        message: ledgerSetupErrorMessages[code],
-      });
-    },
-  );
-
-  it("登录失效时抛出 AuthenticationError", async () => {
-    const service = createLedgerSetupService({
-      currentUserId: userId,
-      ledgerSetupRepository: createRepository({
-        complete: vi.fn(async () => ({
-          code: ledgerCreateErrorCodes.authRequired,
-          ok: false as const,
-        })),
-        findCurrentUserSetupLedger: vi.fn(async () => createRecord({})),
-      }),
-    });
-
-    await expect(service.complete(ledgerId)).rejects.toBeInstanceOf(
-      AuthenticationError,
-    );
-  });
-});
-
-describe("createLedgerSetupService.saveDraft", () => {
-  it("校验通过后保存草稿", async () => {
-    const ledgerSetupRepository = createRepository();
-    const service = createLedgerSetupService({
-      currentUserId: userId,
-      ledgerSetupRepository,
-    });
-
-    await service.saveDraft({ draft, ledgerId, step: 3 });
-
-    expect(ledgerSetupRepository.saveDraft).toHaveBeenCalledWith({
-      draft,
-      ledgerId,
-      step: 3,
-    });
-  });
-
-  it.each([
-    [{ draft, step: 6 }, ledgerSetupErrorCodes.stepInvalid],
-    [{ draft: [], step: 2 }, ledgerSetupErrorCodes.draftInvalid],
-    [{ draft: { accounts: [] }, step: 2 }, ledgerSetupErrorCodes.draftInvalid],
-  ])("输入不合法时抛出 ValidationError 且不访问数据库", async (input, code) => {
-    const ledgerSetupRepository = createRepository();
-    const service = createLedgerSetupService({
-      currentUserId: userId,
-      ledgerSetupRepository,
-    });
-
-    const error = await service
-      .saveDraft({ ...input, ledgerId })
-      .catch((e: unknown) => e);
-
-    expect(error).toBeInstanceOf(ValidationError);
-    expect(error).toMatchObject({ code });
-    expect(ledgerSetupRepository.saveDraft).not.toHaveBeenCalled();
-  });
-
-  it.each([
-    ["模板版本已变化", { ...draft, templateVersion: 999 }],
-    [
-      "商家 key 不在模板中",
-      { ...draft, merchants: { selectedKeys: ["unknown"], skipped: false } },
-    ],
-    [
-      "账户不是候选",
-      {
+  it("模板过期返回冲突，保留客户端草稿", async () => {
+    const { service, repo } = makeService();
+    await expect(service.persist({
+      ...command,
+      draft: {
         ...draft,
-        accounts: {
-          items: [
-            {
-              name: "不存在的银行",
-              templateKey: "不存在的银行",
-              type: "bank" as const,
-            },
-          ],
-          skipped: false,
-        },
+        merchants: { selectedKeys: ["unknown-template-merchant"], skipped: false },
       },
-    ],
-    [
-      "账户名称与候选不一致",
-      {
-        ...draft,
-        accounts: {
-          items: [
-            {
-              name: "改名的现金",
-              templateKey: "日元现金",
-              type: "cash" as const,
-            },
-          ],
-          skipped: false,
-        },
-      },
-    ],
-    [
-      "没有地区模板却选择了商家",
-      {
-        ...createDefaultLedgerSetupDraft(null),
-        merchants: { selectedKeys: ["amazon"], skipped: false },
-      },
-    ],
-  ])("%s时抛出 ConflictError 且不访问数据库", async (_label, invalidDraft) => {
-    const ledgerSetupRepository = createRepository();
-    const service = createLedgerSetupService({
-      currentUserId: userId,
-      ledgerSetupRepository,
-    });
-
-    const error = await service
-      .saveDraft({ draft: invalidDraft, ledgerId, step: 3 })
-      .catch((e: unknown) => e);
-
-    expect(error).toBeInstanceOf(ConflictError);
-    expect(error).toMatchObject({
+    })).rejects.toMatchObject({
       code: ledgerSetupErrorCodes.templateOutdated,
-      message: ledgerSetupErrorMessages[ledgerSetupErrorCodes.templateOutdated],
     });
-    expect(ledgerSetupRepository.saveDraft).not.toHaveBeenCalled();
+    expect(repo.persist).not.toHaveBeenCalled();
   });
 
   it.each([
-    [ledgerSetupErrorCodes.notFound, NotFoundError],
-    [ledgerSetupErrorCodes.notInProgress, ConflictError],
-    [ledgerSetupErrorCodes.regionMismatch, ConflictError],
-    [ledgerSetupErrorCodes.draftTooLarge, ValidationError],
-  ] as const)(
-    "数据库返回 %s 时转换为对应应用错误",
-    async (code, errorClass) => {
-      const service = createLedgerSetupService({
-        currentUserId: userId,
-        ledgerSetupRepository: createRepository({
-          saveDraft: vi.fn(async () => ({ code, ok: false as const })),
-        }),
-      });
-
-      const error = await service
-        .saveDraft({ draft, ledgerId, step: 2 })
-        .catch((e: unknown) => e);
-
-      expect(error).toBeInstanceOf(errorClass);
-      expect(error).toMatchObject({
-        code,
-        message: ledgerSetupErrorMessages[code],
-      });
-    },
-  );
-});
-
-describe("createLedgerSetupService.updateBasicInfo", () => {
-  it("更新成功时把输入交给 Repository", async () => {
-    const ledgerSetupRepository = createRepository();
-    const service = createLedgerSetupService({
-      currentUserId: userId,
-      ledgerSetupRepository,
+    ledgerSetupErrorCodes.conflict,
+    ledgerSetupErrorCodes.inProgressExists,
+  ])("版本冲突或另一草稿冲突 %s 不静默恢复", async (code) => {
+    const { service } = makeService(createRepository({
+      persist: vi.fn(async () => ({ ok: false as const, code })),
+    }));
+    await expect(service.persist(command)).rejects.toMatchObject({
+      code,
+      message: ledgerSetupErrorMessages[code],
     });
-
-    await service.updateBasicInfo({ ...basicInfo, ledgerId });
-
-    expect(ledgerSetupRepository.updateBasicInfo).toHaveBeenCalledWith({
-      ...basicInfo,
-      ledgerId,
-    });
-  });
-
-  it("非 owner 或不存在时抛出 NotFoundError", async () => {
-    const service = createLedgerSetupService({
-      currentUserId: userId,
-      ledgerSetupRepository: createRepository({
-        updateBasicInfo: vi.fn(async () => ({
-          code: ledgerSetupErrorCodes.notFound,
-          ok: false as const,
-        })),
-      }),
-    });
-
-    await expect(
-      service.updateBasicInfo({ ...basicInfo, ledgerId }),
-    ).rejects.toBeInstanceOf(NotFoundError);
   });
 });
 
-describe("createLedgerSetupService.abandon", () => {
-  const record = createRecord({});
-  it("仅允许放弃当前用户的创建中账本", async () => {
-    const repository = createRepository({
-      findCurrentUserSetupLedger: vi.fn(async () => record),
-    });
-    await createLedgerSetupService({
-      currentUserId: userId,
-      ledgerSetupRepository: repository,
-    }).abandon(ledgerId);
-    expect(repository.findCurrentUserSetupLedger).toHaveBeenCalledWith(userId);
-    expect(repository.abandon).toHaveBeenCalledWith(ledgerId);
+describe("LedgerSetupService.getCurrentUserSetup", () => {
+  it("未登录不读取任何数据", async () => {
+    const repo = createRepository();
+    const { service } = makeService(repo, null);
+    await expect(service.getCurrentUserSetup()).rejects.toBeInstanceOf(AuthenticationError);
+    expect(repo.findCurrentUserSetupLedger).not.toHaveBeenCalled();
   });
-  it.each([
-    ["未登录", null, record, "AuthenticationError"],
-    ["没有自己的创建中账本", userId, null, "NotFoundError"],
-    [
-      "目标不是自己的创建中账本",
-      userId,
-      { ...record, id: "other" },
-      "NotFoundError",
-    ],
-  ])("%s时不调用删除 RPC", async (_label, currentUserId, row, name) => {
-    const repository = createRepository({
-      findCurrentUserSetupLedger: vi.fn(async () => row),
+
+  it("恢复服务端持久化草稿和步骤及版本", async () => {
+    const { service } = makeService(createRepository({
+      findCurrentUserSetupLedger: vi.fn(async () => ({
+        baseCurrency: "JPY",
+        livingRegion: "jp",
+        displayColor: "amber",
+        displayName: "淞文",
+        id: ledgerId,
+        name: "家庭账本",
+        step: 4,
+        updatedAt: "2026-11-07T02:00:00.000Z",
+        storedDraft: draft,
+      })),
+    }));
+    await expect(service.getCurrentUserSetup()).resolves.toMatchObject({
+      id: ledgerId,
+      draft,
+      step: 4,
+      updatedAt: "2026-11-07T02:00:00.000Z",
     });
-    await expect(
-      createLedgerSetupService({
-        currentUserId,
-        ledgerSetupRepository: repository,
-      }).abandon(ledgerId),
-    ).rejects.toMatchObject({ name });
-    expect(repository.abandon).not.toHaveBeenCalled();
-    if (!currentUserId)
-      expect(repository.findCurrentUserSetupLedger).not.toHaveBeenCalled();
   });
-  it.each([
-    [
-      ledgerCreateErrorCodes.authRequired,
-      AuthenticationError,
-      ledgerCreateErrorMessages[ledgerCreateErrorCodes.authRequired],
-    ],
-    [
-      ledgerSetupErrorCodes.notFound,
-      NotFoundError,
-      ledgerSetupErrorMessages[ledgerSetupErrorCodes.notFound],
-    ],
-    [
-      ledgerSetupErrorCodes.notInProgress,
-      ConflictError,
-      ledgerSetupErrorMessages[ledgerSetupErrorCodes.notInProgress],
-    ],
-    [
-      ledgerSetupErrorCodes.hasMembers,
-      ConflictError,
-      ledgerSetupErrorMessages[ledgerSetupErrorCodes.hasMembers],
-    ],
-    [
-      ledgerSetupErrorCodes.hasTransactions,
-      ConflictError,
-      ledgerSetupErrorMessages[ledgerSetupErrorCodes.hasTransactions],
-    ],
-  ] as const)(
-    "RPC 复核返回 %s 时转换为对应应用错误",
-    async (code, ErrorClass, message) => {
-      const repository = createRepository({
-        findCurrentUserSetupLedger: vi.fn(async () => record),
-        abandon: vi.fn(async () => ({ code, ok: false as const })),
-      });
-      const error = await createLedgerSetupService({
-        currentUserId: userId,
-        ledgerSetupRepository: repository,
-      })
-        .abandon(ledgerId)
-        .catch((e: unknown) => e);
-      expect(error).toBeInstanceOf(ErrorClass);
-      expect(error).toMatchObject({ code, message });
-    },
-  );
 });
