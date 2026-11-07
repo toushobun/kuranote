@@ -79,7 +79,7 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     amountItemId,
   ]);
   const waitStartSnapshot = useRef(pendingSuggestionSnapshot);
-  // 复用同一份小票快照判断晚到建议与退出 dirty。商家切换不在快照中。
+  // 自动填入完成后的数据快照是未保存守卫唯一的 dirty 基线；商家选择不计入。
   const cleanReceiptSnapshot = useRef(receiptSnapshot);
   const rebaseAfterSuggestions = useRef(false);
   const [, setBaselineVersion] = useState(0);
@@ -207,7 +207,7 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     // 超时后或换商家后动过小票就丢弃晚到的建议，不覆盖用户输入。
     if (!waiting && pendingSuggestionSnapshot !== waitStartSnapshot.current)
       pendingQuickMerchantId.current = null;
-  }, [waiting, receiptSnapshot]);
+  }, [waiting, pendingSuggestionSnapshot]);
   function selectMerchant(value: FlowMerchant) {
     // 已进入小票后换商家不走快速路线，留在小票，建议到达后替换自动明细。
     const quick = screen === "merchant" && !form.itemSummaries.length;
