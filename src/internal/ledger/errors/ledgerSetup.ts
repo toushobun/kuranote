@@ -1,3 +1,7 @@
+import type { LedgerSetupTemplate } from "internal/ledger/entity/ledgerSetupTemplate/ledgerSetupTemplate";
+import type { LedgerSetupDraft } from "internal/ledger/schema/ledgerSetupDraft";
+import { ConflictError } from "internal/shared/errors/appError";
+
 export const ledgerSetupErrorCodes = {
   hasMembers: "setup_has_members",
   hasTransactions: "setup_has_transactions",
@@ -36,6 +40,18 @@ export const ledgerSetupErrorMessages: Record<LedgerSetupErrorCode, string> = {
     "账本草稿已在其他页面修改，请保留本页输入并重新打开最新进度后重试。",
   [ledgerSetupErrorCodes.templateOutdated]: "预设内容已更新，请重新确认。",
 };
+
+export class LedgerSetupTemplateOutdatedError extends ConflictError {
+  constructor(
+    readonly draft: LedgerSetupDraft,
+    readonly template: LedgerSetupTemplate | null,
+  ) {
+    super(
+      ledgerSetupErrorCodes.templateOutdated,
+      ledgerSetupErrorMessages[ledgerSetupErrorCodes.templateOutdated],
+    );
+  }
+}
 
 /** 创建中账本与向导数据读取查询失败时的文案。 */
 export const ledgerSetupLoadErrorMessages = {

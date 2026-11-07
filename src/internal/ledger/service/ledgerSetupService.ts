@@ -8,6 +8,7 @@ import {
 import {
   ledgerSetupErrorCodes,
   ledgerSetupErrorMessages,
+  LedgerSetupTemplateOutdatedError,
   type LedgerSetupErrorCode,
 } from "internal/ledger/errors/ledgerSetup";
 import type {
@@ -47,18 +48,6 @@ export type LedgerSetupService = {
     },
   ): Promise<string>;
 };
-
-export class LedgerSetupTemplateOutdatedError extends ConflictError {
-  constructor(
-    readonly draft: LedgerSetup["draft"],
-    readonly template: LedgerSetupTemplate | null,
-  ) {
-    super(
-      ledgerSetupErrorCodes.templateOutdated,
-      ledgerSetupErrorMessages[ledgerSetupErrorCodes.templateOutdated],
-    );
-  }
-}
 
 const ledgerSetupErrorCodeSet: ReadonlySet<string> = new Set(
   Object.values(ledgerSetupErrorCodes),

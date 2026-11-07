@@ -9,10 +9,10 @@ import {
   ledgerSetupErrorCodes,
   ledgerSetupErrorMessages,
   ledgerSetupLoadErrorMessages,
+  LedgerSetupTemplateOutdatedError,
   ledgerSetupWriteErrorMessages,
 } from "internal/ledger/errors/ledgerSetup";
 import { persistLedgerSetupSchema } from "internal/ledger/schema/ledgerSetupDraft";
-import { LedgerSetupTemplateOutdatedError } from "internal/ledger/service/ledgerSetupService";
 import { createErrorState } from "internal/shared/adapter/next/actionState";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError, NotFoundError } from "internal/shared/errors/appError";

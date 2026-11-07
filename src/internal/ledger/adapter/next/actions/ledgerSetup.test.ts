@@ -5,8 +5,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ledgerSetupErrorCodes,
   ledgerSetupErrorMessages,
+  LedgerSetupTemplateOutdatedError,
 } from "internal/ledger/errors/ledgerSetup";
-import { LedgerSetupTemplateOutdatedError } from "internal/ledger/service/ledgerSetupService";
 import { ConflictError } from "internal/shared/errors/appError";
 import { createLedgerSetupProgressFixture } from "test/mocks/ledgerSetup";
 
