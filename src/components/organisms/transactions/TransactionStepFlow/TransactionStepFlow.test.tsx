@@ -278,7 +278,9 @@ describe("TransactionStepFlow", () => {
     expect(
       await screen.findByRole("button", { name: "请选择收支账户" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "请添加明细" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "请添加明细" }),
+    ).toBeInTheDocument();
     expect(action).not.toHaveBeenCalled();
     expect(props.onClose).not.toHaveBeenCalled();
     click("更换支付账户 1");
