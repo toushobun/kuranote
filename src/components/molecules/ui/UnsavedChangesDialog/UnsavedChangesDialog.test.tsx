@@ -85,7 +85,7 @@ describe("UnsavedChangesDialog", () => {
     }
   });
   it.each([true, false])(
-    "按钮文字间距不受文案长度影响（包含保存：%s）",
+    "弹窗撑满可用宽度，按钮等分操作区（包含保存：%s）",
     (withSave) => {
       render(
         <UnsavedChangesDialog
@@ -97,11 +97,16 @@ describe("UnsavedChangesDialog", () => {
       );
 
       const buttons = screen.getAllByRole("button");
+      expect(screen.getByRole("dialog")).toHaveClass(
+        "MuiDialog-paperFullWidth",
+      );
       expect(buttons).toHaveLength(withSave ? 3 : 2);
       expect(getComputedStyle(buttons[0]!.parentElement!).gap).toBe("4px");
 
       for (const button of buttons) {
         const style = getComputedStyle(button);
+        expect(style.flexGrow).toBe("1");
+        expect(style.whiteSpace).toBe("nowrap");
         expect(style.minWidth).toBe("0px");
         expect(style.paddingLeft).toBe("10px");
         expect(style.paddingRight).toBe("10px");
