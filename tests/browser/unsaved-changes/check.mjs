@@ -798,87 +798,105 @@ async function checkLedgerSetup(browser) {
   await page.getByText("你还没有任何账本").waitFor();
   const wizard = page.getByRole("dialog", { name: "创建账本" });
   const close = wizard.getByRole("button", { name: "关闭创建账本向导" });
-  await resume.click();
-  const account = page.getByRole("checkbox", { name: "现金" });
-  await account.uncheck();
-  const addBank = page.getByRole("button", { name: "添加银行卡" });
-  await addBank.click();
-  const sheet = page.getByRole("dialog", { name: "添加银行卡" });
-  const name = sheet.getByRole("textbox", { name: "账户名称" });
   const prompt = page.getByRole("dialog", { name: "尚未保存" });
-  await name.fill("未添加账户");
-  await browserBack(page);
-  await sheet.waitFor({ state: "hidden" });
-  assert.equal(await prompt.count(), 0);
-  assert.equal(await account.isChecked(), false);
-  await addBank.click();
-  assert.equal(await name.inputValue(), "未添加账户");
-  await sheet.getByRole("button", { name: "添加", exact: true }).click();
-  await sheet.waitFor({ state: "hidden" });
-  const added = page.getByRole("checkbox", { name: "未添加账户" });
-  assert.equal(await added.isChecked(), true);
-  await addBank.click();
-  assert.equal(await name.inputValue(), "");
-  await sheet.getByRole("button", { name: "关闭" }).click();
-  await sheet.waitFor({ state: "hidden" });
-  await record("向导：后退静默关闭子层并保留名称，添加后清空名称草稿");
+  const save = prompt.getByRole("button", { name: "保存并退出" });
+  const discard = prompt.getByRole("button", { name: "放弃修改" });
+  const continueEditing = prompt.getByRole("button", { name: "继续编辑" });
+  const cash = page.getByRole("checkbox", { name: "日元现金" });
+  const next = wizard.getByRole("button", { name: /^下一步/ });
+  const previous = wizard.getByRole("button", { name: "上一步" });
 
-  await browserBack(page);
+  async function assertWizardClosed(label) {
+    await wizard.waitFor({ state: "hidden" });
+    await resume.waitFor();
+    const result = await record(label);
+    assert.equal(result.scrollRestoration, "auto");
+    assert.equal(result.currentIndex, baseline.currentIndex);
+    assert.equal(result.unmounts, baseline.unmounts);
+    assert.equal(await prompt.count(), 0);
+    return result;
+  }
+
+  await resume.click();
+  await cash.waitFor();
+  assert.equal(await cash.isChecked(), true);
+
+  // 即使无修改也必须显示三个按钮和不提“尚未保存”的提示。
+  await close.click();
   await prompt.waitFor();
   assert.deepEqual(await prompt.getByRole("button").allTextContents(), [
     "继续编辑",
     "放弃修改",
+    "保存并退出",
   ]);
-  await cancel(page);
-  assert.equal(await added.isChecked(), true);
-  assert.equal(await account.isChecked(), false);
+  await prompt.getByText("账本还没创建完，要保存当前进度再退出吗？").waitFor();
+  await continueEditing.click();
+  assert.equal(await cash.isChecked(), true);
+  await record("向导：没有修改仍须确认，继续编辑保留当前输入");
+
+  // 只换到商家步骤，不写库；主动退出时记录步骤。
+  await next.click();
+  await close.click();
+  await save.click();
+  await assertWizardClosed("向导：不修改内容，保存新步骤并退出");
+  await resume.click();
+  await wizard.getByText("商家", { exact: true }).first().waitFor();
+  await previous.click();
+  await cash.waitFor();
+  assert.equal(await cash.isChecked(), true);
+
+  // 本地更改后跨步骤保留，但放弃修改应恢复上次已保存的快照。
+  await cash.uncheck();
+  await next.click();
+  await previous.click();
+  assert.equal(await cash.isChecked(), false);
+  await browserBack(page);
+  await prompt.waitFor();
+  await continueEditing.click();
+  assert.equal(await cash.isChecked(), false);
+  await record("向导：跨步草稿在后退确认后仍保留");
 
   await close.click();
-  await prompt.getByRole("button", { name: "放弃修改" }).click();
-  async function assertWizardClosed(step) {
-    await wizard.waitFor({ state: "hidden" });
-    await resume.waitFor();
-    const closed = await record(step);
-    assert.equal(closed.scrollRestoration, "auto");
-    assert.equal(closed.currentIndex, baseline.currentIndex);
-    assert.equal(closed.unmounts, baseline.unmounts);
-    assert.equal(await prompt.count(), 0);
-    return closed;
-  }
-  const discarded =
-    await assertWizardClosed("向导：关闭确认只放弃当前账户修改");
+  await discard.click();
+  await assertWizardClosed("向导：放弃修改不改写服务器已保存草稿");
   await resume.click();
-  await account.waitFor();
-  assert.equal(await account.isChecked(), true);
-  assert.equal(await added.count(), 0);
-  await close.click();
-  const closed = await assertWizardClosed("向导：恢复已保存进度后直接点击关闭");
-  assert.equal(closed.length, discarded.length);
+  // 上次明确保存的是商家步骤（3），回退查看账户仍为勾选状态。
+  await previous.click();
+  await cash.waitFor();
+  assert.equal(await cash.isChecked(), true);
 
-  await resume.click();
-  await account.waitFor();
+  // 再次通过后退触发没有修改时的退出确认。
   await position(page, "sentinel");
   await browserBack(page);
-  const backed = await assertWizardClosed("向导：清洁状态后退只关闭向导");
-  assert.equal(backed.length, closed.length);
+  await prompt.waitFor();
+  await discard.click();
+  await assertWizardClosed("向导：后退无修改也统一三按钮确认");
 
-  const abandon = page.getByRole("button", { name: "放弃创建", exact: true });
+  const abandon = page.getByRole("button", {
+    name: "放弃创建",
+    exact: true,
+  });
   await abandon.click();
-  const danger = page.getByRole("dialog", { name: "放弃创建「家庭账本」？" });
+  const danger = page.getByRole("dialog", {
+    name: "放弃创建「家庭账本」？",
+  });
   await danger.getByRole("button", { name: "取消" }).click();
   await resume.waitFor();
   await abandon.click();
   await danger.getByRole("button", { name: "放弃创建" }).click();
   await resume.waitFor({ state: "detached" });
-  await record("账本管理：零已完成账本时仍可在外层确认放弃创建");
+  await record("账本管理：外层放弃创建仍需确认，实际删除创建中账本");
 
   await browserBack(page);
   await page.waitForURL(sourceUrl);
-  await page.getByRole("heading", { name: "离开守卫兼容性验证" }).waitFor();
+  await page.getByRole("heading", {
+    name: "离开守卫兼容性验证",
+  }).waitFor();
   const returned = await record("向导关闭后下一次后退正常返回来源页");
   assert.equal(returned.currentIndex, baseline.currentIndex - 1);
   return finishSession(session);
 }
+
 async function checkBalance(browser) {
   const session = await newSession(
     browser,

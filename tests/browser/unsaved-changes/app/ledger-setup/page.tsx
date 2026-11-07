@@ -38,10 +38,14 @@ export default function Page() {
                 setDraft(null);
                 return {};
               },
-              persistSetup: async ({ complete }) => ({
-                completed: complete,
-                updatedAt: "2026-11-07T01:00:00Z",
-              }),
+              persistSetup: async ({ complete, setup, step }) => {
+                const updatedAt = "2026-11-07T01:00:00Z";
+                setDraft({
+                  setup: { ...setup, step, updatedAt },
+                  template: draft?.template ?? progress.template,
+                });
+                return { completed: complete, updatedAt };
+              },
               createInvite: unused,
               loadInviteMembers: unused,
               placeholderMemberActions: { rename: unused, delete: unused },
