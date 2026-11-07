@@ -214,6 +214,12 @@ describe("MerchantPresetLauncher", () => {
       );
       fireEvent.click(screen.getByRole("button", { name: /^7-Eleven/ }));
       await screen.findByText("这家商家还没有记录");
+      // #1016：仅选商家不 dirty，选定付款账户后才测试后退拦截。
+      fireEvent.click(screen.getByRole("button", { name: "更换支付账户 1" }));
+      fireEvent.click(screen.getByRole("radio", { name: "PayPay JPY" }));
+      await waitFor(() =>
+        expect(screen.queryByRole("radiogroup", { name: "收支账户" })).toBeNull(),
+      );
       await backFromGuard();
       expect(
         await screen.findByRole("dialog", { name: "尚未保存" }),
