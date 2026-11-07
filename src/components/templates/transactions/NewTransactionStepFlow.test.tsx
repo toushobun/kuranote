@@ -231,6 +231,12 @@ describe("NewTransactionStepFlow", () => {
     selectMerchant("7-Eleven");
     respond("merchantId=seven", noHistory);
     await screen.findByText("这家商家还没有记录");
+    // #1016：只选商家不是修改，先手动选择付款账户再验证未保存守卫。
+    click("更换支付账户 1");
+    fireEvent.click(screen.getByRole("radio", { name: "PayPay JPY" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("radiogroup", { name: "收支账户" })).toBeNull(),
+    );
     window.scrollTo(0, 2000);
     await backFromGuard();
     await screen.findByRole("dialog", { name: "尚未保存" });
