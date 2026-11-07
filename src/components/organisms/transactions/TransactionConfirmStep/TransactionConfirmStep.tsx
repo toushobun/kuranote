@@ -63,9 +63,11 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
   const paymentSectionRef = useRef<HTMLDivElement>(null);
   const w = useTransactionConfirmStep(props, paymentSectionRef);
   const [saveAttempts, setSaveAttempts] = useState(0);
+  const [pulseCount, setPulseCount] = useState(0);
   const firstIssueRef = useRef<HTMLDivElement>(null);
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     setSaveAttempts((attempts) => attempts + 1);
+    if (saveAttempts > 0) setPulseCount((count) => count + 1);
     if (!readOnly && w.issues.length > 0) {
       event.preventDefault();
       props.onValidationFailed?.();
@@ -152,13 +154,13 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
             saveAttempts > 0 &&
             w.issues.map((issue, index) => (
               <Alert
-                key={`${issue.message}-${saveAttempts}`}
+                key={issue.id}
                 ref={index === 0 ? firstIssueRef : undefined}
                 severity="error"
                 sx={
-                  saveAttempts > 1
+                  pulseCount > 0
                     ? {
-                        animation: `${issuePulse} 600ms ease-in-out`,
+                        animation: `${pulseCount % 2 ? issuePulse : issuePulseAlternate} 600ms ease-in-out`,
                         "@media (prefers-reduced-motion: reduce)": {
                           animation: "none",
                         },
@@ -426,6 +428,12 @@ function HeaderButton({
 const issuePulse = keyframes`
   0%, 100% { opacity: 1; }
   40% { opacity: 0.55; }
+`;
+
+// 交替 animation-name，只有再次提交才重启动画；修改提示文案不重播。
+const issuePulseAlternate = keyframes`
+  0%, 100% { opacity: 1; }
+  40% { opacity: 0.54; }
 `;
 
 const headerButtonSx = {
