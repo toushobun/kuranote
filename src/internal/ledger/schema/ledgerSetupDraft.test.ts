@@ -1,9 +1,18 @@
 import { describe, expect, it } from "vitest";
 
-import { ledgerSetupLimits } from "internal/ledger/entity/ledgerSetup";
+import {
+  ledgerSetupDraftMaxBytes,
+  ledgerSetupLimits,
+} from "internal/ledger/entity/ledgerSetup";
+import { getLedgerSetupTemplate } from "internal/ledger/entity/ledgerSetupTemplate/getLedgerSetupTemplate";
+import {
+  ledgerSetupAccountTypes,
+  ledgerSetupRegions,
+} from "internal/ledger/entity/ledgerSetupTemplate/ledgerSetupTemplate";
 import { ledgerSetupErrorCodes } from "internal/ledger/errors/ledgerSetup";
 import {
   parseStoredLedgerSetupDraft,
+  type LedgerSetupDraft,
   validateLedgerSetupDraftInput,
 } from "internal/ledger/schema/ledgerSetupDraft";
 import { createDefaultLedgerSetupDraft } from "internal/ledger/util/ledgerSetupDraft";
@@ -11,6 +20,55 @@ import { createDefaultLedgerSetupDraft } from "internal/ledger/util/ledgerSetupD
 const draft = createDefaultLedgerSetupDraft("jp");
 
 describe("validateLedgerSetupDraftInput", () => {
+  it.each(ledgerSetupRegions)(
+    "生活地区为 %s 时，全选商家并选满账户仍有草稿空间",
+    (region) => {
+      const template = getLedgerSetupTemplate(region);
+      if (!template) throw new Error("地区模板缺失");
+      const additionalRegion = region === "jp" ? "cn" : "jp";
+      const accounts = ledgerSetupRegions.flatMap((candidateRegion) =>
+        ledgerSetupAccountTypes.flatMap((type) =>
+          template.accountCandidatesByRegion[candidateRegion][type].map(
+            (name) => ({ name, templateKey: name, type }),
+          ),
+        ),
+      );
+      // 选取序列化后占用空间最大的账户，覆盖最坏的合法组合。
+      const items = accounts
+        .sort(
+          (left, right) =>
+            Buffer.byteLength(JSON.stringify(right)) -
+            Buffer.byteLength(JSON.stringify(left)),
+        )
+        .slice(0, ledgerSetupLimits.maxAccounts);
+      const largestDraft: LedgerSetupDraft = {
+        ...createDefaultLedgerSetupDraft(region, template),
+        accounts: { items, skipped: false },
+        merchants: {
+          additionalRegions: [additionalRegion],
+          selectedKeys: template.merchants.map(({ key }) => key),
+          skipped: false,
+        },
+        features: {
+          multiAccountPaymentEnabled: false,
+          specialStatusEnabled: false,
+        },
+      };
+      expect(
+        validateLedgerSetupDraftInput({ draft: largestDraft, step: 5 }).ok,
+      ).toBe(true);
+
+      // jsonb::text 在字符串以外的逗号和冒号后各加一个空格。
+      const jsonbText = JSON.stringify(largestDraft).replace(
+        /"(?:[^"\\]|\\.)*"|[:,]/g,
+        (token) => (token.length === 1 ? `${token} ` : token),
+      );
+      expect(Buffer.byteLength(jsonbText)).toBeLessThanOrEqual(
+        ledgerSetupDraftMaxBytes,
+      );
+    },
+  );
+
   it("商家上限300条，301条拒绝", () => {
     const makeDraft = (count: number) => ({
       ...draft,

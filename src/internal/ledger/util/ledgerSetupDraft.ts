@@ -151,13 +151,15 @@ function resolveAccountItems(
   template: LedgerSetupTemplate | null,
 ): LedgerSetupDraftAccount[] {
   const seen = new Set<string>();
-  return items.filter(({ templateKey, type }) => {
-    if (!isAccountTemplateKeyValid(template, type, templateKey)) return false;
-    const key = `${type}:${templateKey}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+  return items
+    .filter(({ templateKey, type }) => {
+      if (!isAccountTemplateKeyValid(template, type, templateKey)) return false;
+      const key = `${type}:${templateKey}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .map(({ templateKey, type }) => ({ name: templateKey, templateKey, type }));
 }
 
 /**

@@ -170,6 +170,10 @@ export type PersistLedgerSetupInput = {
 export type LedgerSetupPersistActionState = ActionState & {
   completed?: boolean;
   updatedAt?: string;
+  refreshedTemplate?: {
+    draft: LedgerSetup["draft"];
+    template: LedgerSetupProgress["template"];
+  };
 };
 
 export type LedgerSetupPersistAction = (

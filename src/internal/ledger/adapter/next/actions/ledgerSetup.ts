@@ -11,6 +11,8 @@ import {
   ledgerSetupLoadErrorMessages,
   ledgerSetupWriteErrorMessages,
 } from "internal/ledger/errors/ledgerSetup";
+import { persistLedgerSetupSchema } from "internal/ledger/schema/ledgerSetupDraft";
+import { LedgerSetupTemplateOutdatedError } from "internal/ledger/service/ledgerSetupService";
 import { createErrorState } from "internal/shared/adapter/next/actionState";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError, NotFoundError } from "internal/shared/errors/appError";
@@ -63,47 +65,42 @@ export async function persistLedgerSetup(
 ): Promise<LedgerSetupPersistActionState> {
   await getCurrentLedgerContext();
 
-  const setup = input?.setup;
-  if (
-    !setup ||
-    !isUuid(setup.id) ||
-    !Number.isInteger(input.step) ||
-    typeof input.complete !== "boolean" ||
-    !(
-      input.expectedUpdatedAt === null ||
-      (typeof input.expectedUpdatedAt === "string" &&
-        Number.isFinite(Date.parse(input.expectedUpdatedAt)))
-    )
-  ) {
+  const parsed = persistLedgerSetupSchema.safeParse(input);
+  if (!parsed.success) {
     return createErrorState(
       ledgerSetupErrorMessages[ledgerSetupErrorCodes.draftInvalid],
     );
   }
 
+  const { setup, expectedUpdatedAt, step, complete } = parsed.data;
   try {
     const dependencies = await createServerRequestDependencies();
     const service = createRequestContainer(dependencies).ledger.setupService;
     // Service 验证草稿及预设，数据库校验基本信息/权限/锁版本。
     const updatedAt = await service.persist({
       ledgerId: setup.id,
-      expectedUpdatedAt: input.expectedUpdatedAt,
+      expectedUpdatedAt,
       name: setup.name,
       baseCurrency: setup.baseCurrency,
       displayName: setup.displayName,
       displayColor: setup.displayColor,
-      livingRegion: setup.livingRegion as NonNullable<
-        typeof setup.livingRegion
-      >,
-      step: input.step,
+      livingRegion: setup.livingRegion,
+      step,
       draft: setup.draft,
-      complete: input.complete,
+      complete,
     });
     revalidateLedgerMutation();
-    return { updatedAt, completed: input.complete };
+    return { updatedAt, completed: complete };
   } catch (error) {
+    if (error instanceof LedgerSetupTemplateOutdatedError) {
+      return {
+        ...createErrorState(error.message),
+        refreshedTemplate: { draft: error.draft, template: error.template },
+      };
+    }
     return createActionErrorState(
       error,
-      input.complete
+      complete
         ? ledgerSetupWriteErrorMessages.completeFailed
         : ledgerSetupWriteErrorMessages.draftSaveFailed,
       "[ledger] ledger setup commit action failed unexpectedly",

@@ -802,7 +802,9 @@ async function checkLedgerSetup(browser) {
   const save = prompt.getByRole("button", { name: "保存并退出" });
   const discard = prompt.getByRole("button", { name: "放弃修改" });
   const continueEditing = prompt.getByRole("button", { name: "继续编辑" });
-  const cash = page.getByRole("checkbox", { name: "日元现金" });
+  const bank = wizard.getByRole("checkbox", {
+    name: "选择「银行卡」的全部账户",
+  });
   const next = wizard.getByRole("button", { name: /^下一步/ });
   const previous = wizard.getByRole("button", { name: "上一步" });
 
@@ -818,8 +820,8 @@ async function checkLedgerSetup(browser) {
   }
 
   await resume.click();
-  await cash.waitFor();
-  assert.equal(await cash.isChecked(), true);
+  await bank.waitFor();
+  assert.equal(await bank.isChecked(), false);
 
   // 即使无修改也必须显示三个按钮和不提“尚未保存”的提示。
   await close.click();
@@ -831,7 +833,7 @@ async function checkLedgerSetup(browser) {
   ]);
   await prompt.getByText("账本还没创建完，要保存当前进度再退出吗？").waitFor();
   await continueEditing.click();
-  assert.equal(await cash.isChecked(), true);
+  assert.equal(await bank.isChecked(), false);
   await record("向导：没有修改仍须确认，继续编辑保留当前输入");
 
   // 只换到商家步骤，不写库；主动退出时记录步骤。
@@ -842,28 +844,28 @@ async function checkLedgerSetup(browser) {
   await resume.click();
   await wizard.getByText("商家", { exact: true }).first().waitFor();
   await previous.click();
-  await cash.waitFor();
-  assert.equal(await cash.isChecked(), true);
+  await bank.waitFor();
+  assert.equal(await bank.isChecked(), false);
 
   // 本地更改后跨步骤保留，但放弃修改应恢复上次已保存的快照。
-  await cash.uncheck();
+  await bank.check();
   await next.click();
   await previous.click();
-  assert.equal(await cash.isChecked(), false);
+  assert.equal(await bank.isChecked(), true);
   await browserBack(page);
   await prompt.waitFor();
   await continueEditing.click();
-  assert.equal(await cash.isChecked(), false);
+  assert.equal(await bank.isChecked(), true);
   await record("向导：跨步草稿在后退确认后仍保留");
 
   await close.click();
   await discard.click();
   await assertWizardClosed("向导：放弃修改不改写服务器已保存草稿");
   await resume.click();
-  // 上次明确保存的是商家步骤（3），回退查看账户仍为勾选状态。
+  // 上次明确保存的是商家步骤（3），回退查看银行卡仍未勾选。
   await previous.click();
-  await cash.waitFor();
-  assert.equal(await cash.isChecked(), true);
+  await bank.waitFor();
+  assert.equal(await bank.isChecked(), false);
 
   // 再次通过后退触发没有修改时的退出确认。
   await position(page, "sentinel");

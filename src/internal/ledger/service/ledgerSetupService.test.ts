@@ -91,13 +91,18 @@ describe("LedgerSetupService.persist", () => {
     expect(repo.persist).not.toHaveBeenCalled();
   });
 
-  it("模板过期返回冲突，保留客户端草稿", async () => {
+  it("模板过期时返回最新模板与可重新提交的草稿，保留有效选择", async () => {
     const { service, repo } = makeService();
+    const refreshedDraft = {
+      ...draft,
+      merchants: { ...draft.merchants, selectedKeys: [] },
+    };
     await expect(
       service.persist({
         ...command,
         draft: {
           ...draft,
+          templateVersion: 1,
           merchants: {
             selectedKeys: ["unknown-template-merchant"],
             skipped: false,
@@ -106,8 +111,12 @@ describe("LedgerSetupService.persist", () => {
       }),
     ).rejects.toMatchObject({
       code: ledgerSetupErrorCodes.templateOutdated,
+      draft: refreshedDraft,
+      template: { version: draft.templateVersion },
     });
     expect(repo.persist).not.toHaveBeenCalled();
+    await service.persist({ ...command, draft: refreshedDraft });
+    expect(repo.persist).toHaveBeenCalledOnce();
   });
 
   it.each([

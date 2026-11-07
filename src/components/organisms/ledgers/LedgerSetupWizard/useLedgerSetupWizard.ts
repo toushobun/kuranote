@@ -10,7 +10,10 @@ import {
   type LedgerSetup,
 } from "internal/ledger";
 import type { LedgerBasicInfoValues } from "organisms/ledgers/LedgerBasicInfoFields/LedgerBasicInfoFields";
-import type { LedgerSetupProgress } from "types/ledgers";
+import type {
+  LedgerSetupPersistActionState,
+  LedgerSetupProgress,
+} from "types/ledgers";
 import { buildLedgerSetupConfirmSummary } from "utils/ledgerSetupSummary";
 
 import {
@@ -159,6 +162,17 @@ export function useLedgerSetupWizard({
     },
     // 本地内容更新不会重置当前步骤的 UI 状态。
     updateProgress: setProgress,
+    refreshTemplate({
+      draft,
+      template,
+    }: NonNullable<LedgerSetupPersistActionState["refreshedTemplate"]>) {
+      setProgress((current) => ({
+        setup: { ...current.setup, draft },
+        template,
+      }));
+      setProgressRevision((value) => value + 1);
+      setNotice("templateUpdated");
+    },
     resetDraft() {
       setSavedProgress(null);
       clientId.current = "";

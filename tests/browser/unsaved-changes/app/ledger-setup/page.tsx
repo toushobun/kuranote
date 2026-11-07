@@ -2,12 +2,19 @@
 
 import { useState } from "react";
 
+import {
+  createDefaultLedgerSetupDraft,
+  getLedgerSetupTemplate,
+} from "internal/ledger";
 import { LedgersTemplate } from "templates/ledgers/Ledgers";
 import { createLedgerSetupProgressFixture } from "test/mocks/ledgerSetup";
 
 import { Probe } from "../probe";
 
-const progress = createLedgerSetupProgressFixture({ step: 2 });
+const progress = createLedgerSetupProgressFixture(
+  { draft: createDefaultLedgerSetupDraft("jp"), step: 2 },
+  getLedgerSetupTemplate("jp"),
+);
 const unused = async () => ({});
 
 export default function Page() {

@@ -158,6 +158,45 @@ describe("LedgerSetupWizard 本地草稿", () => {
     expectStep("邀请");
   });
 
+  it.each([false, true])(
+    "预设更新后留在向导并可重新提交，完成创建为 %s",
+    async (complete) => {
+      const progress = createLedgerSetupConfirmProgressFixture();
+      const draft = {
+        ...progress.setup.draft,
+        templateVersion: 5,
+      };
+      const persistSetup = createPersistMock();
+      persistSetup.mockResolvedValueOnce({
+        refreshedTemplate: { draft, template: progress.template },
+      });
+      const actions = renderLedgerSetupWizard({ progress, persistSetup });
+      const submit = () => {
+        if (complete) clickCompleteSetup();
+        else {
+          clickCloseWizard();
+          clickExit("保存并退出");
+        }
+      };
+
+      submit();
+      expect(
+        await screen.findByText("预设内容已更新，请重新确认。"),
+      ).toBeInTheDocument();
+      expectStep("确认");
+      expect(actions.onClose).not.toHaveBeenCalled();
+      submit();
+      await waitFor(() => expect(persistSetup).toHaveBeenCalledTimes(2));
+      expect(persistSetup.mock.calls[1][0]).toMatchObject({
+        setup: { draft, id: progress.setup.id },
+        complete,
+        expectedUpdatedAt: progress.setup.updatedAt,
+      });
+      if (complete) await waitFor(() => expectStep("邀请"));
+      else await waitFor(() => expect(actions.onClose).toHaveBeenCalledOnce());
+    },
+  );
+
   it("完成失败不误入邀请页，后续可以重试", async () => {
     const persistSetup = createPersistMock();
     persistSetup.mockResolvedValueOnce({ error: "并发冲突" });

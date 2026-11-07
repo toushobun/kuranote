@@ -8,6 +8,7 @@ import { createErrorState } from "internal/shared/adapter/next/actionState";
 import {
   validateLedgerSetupBasicInfoForm,
   ledgerCreateErrorMessages,
+  ledgerSetupErrorCodes,
   ledgerSetupErrorMessages,
   ledgerSetupWriteErrorMessages,
 } from "internal/ledger";
@@ -83,7 +84,7 @@ function LedgerSetupWizardContent({
   const [validationError, setValidationError] = useState<string | null>(null);
   const [failureState, setFailureState] = useState<ActionState>({});
   const [abandoning, setAbandoning] = useState(false);
-  const draft = wizard.notice === "draft" ? wizard.savedProgress?.setup : null;
+  const draft = wizard.notice ? wizard.savedProgress?.setup : null;
   const busy = wizard.busy || abandoning;
   const unfinished = wizard.step <= 5 && !wizard.completeScreen;
 
@@ -120,6 +121,11 @@ function LedgerSetupWizardContent({
         step: Math.min(wizard.step, 5),
         complete,
       });
+      if (state.refreshedTemplate) {
+        wizard.refreshTemplate(state.refreshedTemplate);
+        setFailureState({});
+        return false;
+      }
       if (!state.updatedAt || (complete && !state.completed)) {
         setFailureState(
           state.error
@@ -193,25 +199,25 @@ function LedgerSetupWizardContent({
                   severity="info"
                   sx={noticeSx}
                 >
+                  {wizard.notice === "templateUpdated"
+                    ? ledgerSetupErrorMessages[
+                        ledgerSetupErrorCodes.templateOutdated
+                      ]
+                    : ledgerSetupEntryMessages.draftNotice}
                   {draft ? (
-                    <>
-                      {ledgerSetupEntryMessages.draftNotice}
-                      <LedgerSetupAbandonButton
-                        action={actions.abandonSetup}
-                        disabled={busy}
-                        ledgerId={draft.id}
-                        ledgerName={draft.name}
-                        onBusyChange={setAbandoning}
-                        onSuccess={() => {
-                          setAbandoning(false);
-                          wizard.resetDraft();
-                        }}
-                        restart
-                      />
-                    </>
-                  ) : (
-                    ledgerSetupWizardMessages.templateUpdatedNotice
-                  )}
+                    <LedgerSetupAbandonButton
+                      action={actions.abandonSetup}
+                      disabled={busy}
+                      ledgerId={draft.id}
+                      ledgerName={draft.name}
+                      onBusyChange={setAbandoning}
+                      onSuccess={() => {
+                        setAbandoning(false);
+                        wizard.resetDraft();
+                      }}
+                      restart
+                    />
+                  ) : null}
                 </Alert>
               ) : null}
             </>

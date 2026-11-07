@@ -6,6 +6,7 @@ import {
   ledgerSetupErrorCodes,
   ledgerSetupErrorMessages,
 } from "internal/ledger/errors/ledgerSetup";
+import { LedgerSetupTemplateOutdatedError } from "internal/ledger/service/ledgerSetupService";
 import { ConflictError } from "internal/shared/errors/appError";
 import { createLedgerSetupProgressFixture } from "test/mocks/ledgerSetup";
 
@@ -99,13 +100,25 @@ describe("persistLedgerSetup", () => {
     expect(state.updatedAt).toBeDefined();
   });
 
-  it("客户端提交非法 ID 时不会访问 Service", async () => {
-    const state = await persistLedgerSetup({
-      ...input,
-      setup: { ...input.setup, id: "bad" },
-    });
+  it.each([
+    ["账本 ID", { ...input, setup: { ...input.setup, id: "bad" } }],
+    ["时间戳", { ...input, expectedUpdatedAt: "2026-11-07" }],
+    ["步骤", { ...input, step: 6 }],
+  ])("客户端提交非法%s时不会访问 Service", async (_field, invalid) => {
+    const state = await persistLedgerSetup(invalid);
     expect(state.error).toBeDefined();
     expect(mocks.persist).not.toHaveBeenCalled();
+  });
+
+  it("预设过期时返回最新草稿与模板，没有写入成功状态", async () => {
+    const { setup, template } = progress;
+    mocks.persist.mockRejectedValue(
+      new LedgerSetupTemplateOutdatedError(setup.draft, template),
+    );
+    const state = await persistLedgerSetup(input);
+    expect(state.refreshedTemplate).toEqual({ draft: setup.draft, template });
+    expect(state.updatedAt).toBeUndefined();
+    expect(mocks.revalidateLedgerMutation).not.toHaveBeenCalled();
   });
 
   it("已有另一个创建中账本时显示冲突，不回退到静默恢复", async () => {

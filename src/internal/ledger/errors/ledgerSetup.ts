@@ -34,8 +34,7 @@ export const ledgerSetupErrorMessages: Record<LedgerSetupErrorCode, string> = {
   [ledgerSetupErrorCodes.stepInvalid]: "创建步骤不正确，请重新操作。",
   [ledgerSetupErrorCodes.conflict]:
     "账本草稿已在其他页面修改，请保留本页输入并重新打开最新进度后重试。",
-  [ledgerSetupErrorCodes.templateOutdated]:
-    "预设内容已更新，请重新打开创建向导后再选择。",
+  [ledgerSetupErrorCodes.templateOutdated]: "预设内容已更新，请重新确认。",
 };
 
 /** 创建中账本与向导数据读取查询失败时的文案。 */
@@ -49,8 +48,6 @@ export const ledgerSetupLoadErrorMessages = {
 /** 创建中账本写入查询失败时的文案。 */
 export const ledgerSetupWriteErrorMessages = {
   abandonFailed: "放弃创建失败，请稍后重试。",
-  basicInfoUpdateFailed: "账本基本信息保存失败，请稍后重试。",
   completeFailed: "账本创建完成失败，请稍后重试。",
-  createFailed: "账本创建失败，请稍后重试。",
   draftSaveFailed: "创建进度保存失败，请稍后重试。",
 } as const;

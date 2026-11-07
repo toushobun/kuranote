@@ -41,8 +41,24 @@ export type LedgerSetupService = {
   getCurrentUserSetup(): Promise<LedgerSetup | null>;
   getTemplate(region: unknown): LedgerSetupTemplate | null;
   listDefaultRootCategoryNames(): Promise<string[]>;
-  persist(input: Omit<PersistLedgerSetupCommand, "payload">): Promise<string>;
+  persist(
+    input: Omit<PersistLedgerSetupCommand, "draft" | "payload"> & {
+      draft: unknown;
+    },
+  ): Promise<string>;
 };
+
+export class LedgerSetupTemplateOutdatedError extends ConflictError {
+  constructor(
+    readonly draft: LedgerSetup["draft"],
+    readonly template: LedgerSetupTemplate | null,
+  ) {
+    super(
+      ledgerSetupErrorCodes.templateOutdated,
+      ledgerSetupErrorMessages[ledgerSetupErrorCodes.templateOutdated],
+    );
+  }
+}
 
 const ledgerSetupErrorCodeSet: ReadonlySet<string> = new Set(
   Object.values(ledgerSetupErrorCodes),
@@ -71,7 +87,6 @@ function toAppError(code: LedgerSetupRpcErrorCode): AppError {
     code === ledgerSetupErrorCodes.regionMismatch ||
     code === ledgerSetupErrorCodes.inProgressExists ||
     code === ledgerSetupErrorCodes.notInProgress ||
-    code === ledgerSetupErrorCodes.templateOutdated ||
     code === ledgerSetupErrorCodes.conflict
   ) {
     return new ConflictError(code, message);
@@ -149,7 +164,14 @@ export function createLedgerSetupService({
       if (
         !isLedgerSetupDraftMatchingTemplate(validation.value.draft, template)
       ) {
-        throw toAppError(ledgerSetupErrorCodes.templateOutdated);
+        throw new LedgerSetupTemplateOutdatedError(
+          resolveLedgerSetupDraft(
+            validation.value.draft,
+            input.livingRegion,
+            template,
+          ),
+          template,
+        );
       }
 
       const result = await ledgerSetupRepository.persist({
