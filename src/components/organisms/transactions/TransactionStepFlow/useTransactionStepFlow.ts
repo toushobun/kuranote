@@ -70,19 +70,22 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     form.payments.map((payment) => [payment.accountId, payment.amount]),
     form.note,
     form.transactionAtValue,
-    // 打开明细编辑抽屉或金额键盘也算动过，避免晚到的建议删掉正在编辑的明细。
+  ]);
+  // 晚到建议的保护还需要临时编辑状态；退出 dirty 只看已经写入小票的内容。
+  const pendingSuggestionSnapshot = JSON.stringify([
+    receiptSnapshot,
     form.isSheetOpen,
     form.editingItemId,
     amountItemId,
   ]);
-  const waitStartSnapshot = useRef(receiptSnapshot);
+  const waitStartSnapshot = useRef(pendingSuggestionSnapshot);
   // 复用同一份小票快照判断晚到建议与退出 dirty。商家切换不在快照中。
   const cleanReceiptSnapshot = useRef(receiptSnapshot);
   const rebaseAfterSuggestions = useRef(false);
   const [, setBaselineVersion] = useState(0);
   const timeInitialized = !!form.transactionAtValue;
   const resetWaitStartSnapshot = useEffectEvent(() => {
-    waitStartSnapshot.current = receiptSnapshot;
+    waitStartSnapshot.current = pendingSuggestionSnapshot;
     cleanReceiptSnapshot.current = receiptSnapshot;
   });
   useEffect(() => {
@@ -202,7 +205,7 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
   }, [waiting, loadingMerchantId]);
   useEffect(() => {
     // 超时后或换商家后动过小票就丢弃晚到的建议，不覆盖用户输入。
-    if (!waiting && receiptSnapshot !== waitStartSnapshot.current)
+    if (!waiting && pendingSuggestionSnapshot !== waitStartSnapshot.current)
       pendingQuickMerchantId.current = null;
   }, [waiting, receiptSnapshot]);
   function selectMerchant(value: FlowMerchant) {
@@ -211,7 +214,7 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     const replacing = !quick && value.id !== form.selectedMerchantId;
     pendingQuickMerchantId.current = quick || replacing ? value.id : null;
     replacingAutomaticItems.current = replacing;
-    waitStartSnapshot.current = receiptSnapshot;
+    waitStartSnapshot.current = pendingSuggestionSnapshot;
     form.handleMerchantChange(value.id);
     props.onMerchantSelect(value);
     if (quick) setLoadingMerchantId(value.id);
