@@ -79,32 +79,33 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     amountItemId,
   ]);
   const waitStartSnapshot = useRef(pendingSuggestionSnapshot);
-  // 自动填入完成后的数据快照是未保存守卫唯一的 dirty 基线；商家选择不计入。
-  const cleanReceiptSnapshot = useRef(receiptSnapshot);
-  const rebaseAfterSuggestions = useRef(false);
-  const [, setBaselineVersion] = useState(0);
+  // 商家选择、推荐账户、自动明细与初始时间不计入修改。
+  // 基线与自动填充版本存在 state 中，避免在 render 期间读取 ref。
+  const [autoRevision, setAutoRevision] = useState(0);
+  const [baseline, setBaseline] = useState({
+    snapshot: receiptSnapshot,
+    revision: 0,
+  });
+  const receiptDirty =
+    baseline.revision === autoRevision &&
+    receiptSnapshot !== baseline.snapshot;
   const timeInitialized = !!form.transactionAtValue;
   const resetWaitStartSnapshot = useEffectEvent(() => {
     waitStartSnapshot.current = pendingSuggestionSnapshot;
-    cleanReceiptSnapshot.current = receiptSnapshot;
   });
   useEffect(() => {
     // 挂载后才填入本地当前时间，不算用户动过小票。
-    if (timeInitialized) resetWaitStartSnapshot();
+    if (!timeInitialized) return;
+    resetWaitStartSnapshot();
+    setAutoRevision((revision) => revision + 1);
   }, [timeInitialized]);
   useLayoutEffect(() => {
-    if (!rebaseAfterSuggestions.current) return;
-    // 推荐账户和明细在渲染完成后才纳入干净基线。
-    cleanReceiptSnapshot.current = receiptSnapshot;
-    rebaseAfterSuggestions.current = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 同步自动填充基线后刷新守卫判断。
-    setBaselineVersion((version) => version + 1);
-  });
+    if (baseline.revision === autoRevision) return;
+    // 自动填充提交后的布局阶段同步干净基线，下一帧才恢复 dirty 判断。
+    setBaseline({ snapshot: receiptSnapshot, revision: autoRevision });
+  }, [autoRevision, baseline.revision, receiptSnapshot]);
   const guard = useUnsavedChangesGuard({
-    isDirty:
-      screen === "receipt" &&
-      !rebaseAfterSuggestions.current &&
-      receiptSnapshot !== cleanReceiptSnapshot.current,
+    isDirty: screen === "receipt" && receiptDirty,
     saveFormId: formId,
     saveLabel: unsavedChangesMessages.saveAndExit,
     onClose: props.onClose,
@@ -137,9 +138,8 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     showReceipt();
     // 已有明细时不覆盖用户输入（换商家时只替换没动过的自动明细）。
     if (!replacing && form.itemSummaries.length > 0) return;
-    // 只有自动应用之前是干净小票，才能刷新基线，避免丢失已有手动修改。
-    if (receiptSnapshot === cleanReceiptSnapshot.current)
-      rebaseAfterSuggestions.current = true;
+    // 只有尚未手动填写的小票才允许自动建议重设干净基线。
+    if (!receiptDirty) setAutoRevision((revision) => revision + 1);
     const recommended = props.accounts.find(
       (account) => account.id === props.suggestions?.recommendedAccountIds[0],
     );
