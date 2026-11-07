@@ -2,58 +2,35 @@
 
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { useLedgerSetupStepDirty } from "organisms/ledgers/LedgerSetupWizard/useLedgerSetupStepDirty";
-
-import { useState } from "react";
 
 import {
   ledgerSetupFeaturesMessages,
   ledgerSetupWizardMessages,
 } from "config/ledgerSetupMessages";
-import { ActionFailureFeedback } from "molecules/ui/OperationFeedbackDialogs";
 import { WizardActionBar } from "molecules/ui/WizardActionBar/WizardActionBar";
 import { WizardStepLayout } from "molecules/ui/WizardDialog/WizardStepLayout";
 import type { LedgerSetupWizardStepProps } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardStepTypes";
-import { useLedgerSetupDraftSave } from "organisms/ledgers/LedgerSetupWizard/useLedgerSetupDraftSave";
 import { LedgerMultiAccountPaymentSetting } from "organisms/ledgers/LedgerMultiAccountPaymentSetting/LedgerMultiAccountPaymentSetting";
 import { LedgerSpecialStatusSetting } from "organisms/ledgers/LedgerSpecialStatusSetting/LedgerSpecialStatusSetting";
 import { typographyStyles } from "theme/typographyTokens";
-import type { LedgerSetupProgress } from "types/ledgers";
 
-/**
- * 向导第 4 步「功能」：复用账本设置页的明细特殊状态与多账户付款开关，选择保存到草稿。
- * 第 4 步只能在第 1 步创建账本后进入，因此始终有进度。
- */
 export function LedgerSetupFeaturesStep({
   progress,
-  ...props
+  onNext,
+  onPrevious,
+  onProgressChange,
 }: LedgerSetupWizardStepProps) {
   if (!progress) return null;
-
-  return <LedgerSetupFeaturesStepContent {...props} progress={progress} />;
-}
-
-function LedgerSetupFeaturesStepContent(
-  props: Omit<LedgerSetupWizardStepProps, "progress"> & {
-    progress: LedgerSetupProgress;
-  },
-) {
-  const { draft } = props.progress.setup;
-  const draftSave = useLedgerSetupDraftSave(props);
-  const [specialStatusEnabled, setSpecialStatusEnabled] = useState(
-    draft.features.specialStatusEnabled,
-  );
-  const [multiAccountPaymentEnabled, setMultiAccountPaymentEnabled] = useState(
-    draft.features.multiAccountPaymentEnabled,
-  );
-  useLedgerSetupStepDirty(
-    [specialStatusEnabled, multiAccountPaymentEnabled],
-    props.onDirtyChange,
-  );
-  const nextDraft = {
-    ...draft,
-    features: { multiAccountPaymentEnabled, specialStatusEnabled },
-  };
+  const { draft } = progress.setup;
+  function update(features: typeof draft.features) {
+    onProgressChange({
+      ...progress,
+      setup: {
+        ...progress.setup,
+        draft: { ...draft, features },
+      },
+    });
+  }
 
   return (
     <WizardStepLayout
@@ -61,14 +38,11 @@ function LedgerSetupFeaturesStepContent(
         <WizardActionBar
           next={{
             label: ledgerSetupWizardMessages.next,
-            loading: draftSave.isSaving,
-            loadingLabel: ledgerSetupWizardMessages.submitting,
-            onClick: () => void draftSave.saveAndGoNext(nextDraft),
+            onClick: onNext,
           }}
           previous={{
-            disabled: draftSave.isSaving,
             label: ledgerSetupWizardMessages.previous,
-            onClick: () => void draftSave.saveAndGoPrevious(nextDraft),
+            onClick: onPrevious,
           }}
         />
       }
@@ -82,26 +56,17 @@ function LedgerSetupFeaturesStepContent(
             {ledgerSetupFeaturesMessages.description}
           </Typography>
         </Stack>
-
-        {/* 新账本还没有明细，关闭状态下「处于报销流程的明细将无法关闭」的说明不适用。 */}
         <LedgerSpecialStatusSetting
           disabledDescription={null}
-          enabled={specialStatusEnabled}
-          onChange={setSpecialStatusEnabled}
+          enabled={draft.features.specialStatusEnabled}
+          onChange={(specialStatusEnabled) => update({ ...draft.features, specialStatusEnabled })}
         />
-
-        {/* 同理，新账本还没有多账户记录，「无法关闭」的说明不适用。 */}
         <LedgerMultiAccountPaymentSetting
-          enabled={multiAccountPaymentEnabled}
+          enabled={draft.features.multiAccountPaymentEnabled}
           enabledDescription={null}
-          onChange={setMultiAccountPaymentEnabled}
+          onChange={(multiAccountPaymentEnabled) => update({ ...draft.features, multiAccountPaymentEnabled })}
         />
       </Stack>
-
-      <ActionFailureFeedback
-        state={draftSave.failureState}
-        title={ledgerSetupWizardMessages.saveErrorTitle}
-      />
     </WizardStepLayout>
   );
 }

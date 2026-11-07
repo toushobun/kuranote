@@ -28,6 +28,7 @@ export type LedgerSetupWizardStepProps = {
   defaults: LedgerBasicInfoValues;
   /** 保存中通知骨架锁定「×」与关闭，避免保存过程中关闭向导。 */
   onDirtyChange?: (dirty: boolean) => void;
+  validationError?: string | null;
   onBusyChange: (busy: boolean) => void;
   /** 跳到指定步骤（确认一览的「修改」）。只允许跳到账本完成前可编辑的步骤，其他值忽略。 */
   onGoToStep: (step: number) => void;

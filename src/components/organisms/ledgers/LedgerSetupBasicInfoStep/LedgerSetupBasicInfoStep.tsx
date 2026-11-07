@@ -22,8 +22,7 @@ import { LedgerRegionField } from "molecules/ledgers/LedgerRegionField/LedgerReg
 const formId = "ledger-setup-basic-info-form";
 
 /**
- * 向导第 1 步「基本信息」。尚无创建中账本时提交即创建账本（创建中），
- * 已有时更新基本信息；成功后进入下一步。
+ * 第 1 步只做本地校验与切换；保存创建中进度由向导统一负责。
  */
 export function LedgerSetupBasicInfoStep(props: LedgerSetupWizardStepProps) {
   const {

@@ -1,88 +1,61 @@
 "use client";
 
-import { useLedgerSetupStepDirty } from "organisms/ledgers/LedgerSetupWizard/useLedgerSetupStepDirty";
+import { useMemo } from "react";
 
-import { useMemo, useState } from "react";
-
-import type { LedgerSetupDraft } from "internal/ledger";
+import type { LedgerSetupDraft, LedgerSetupRegion } from "internal/ledger";
 import type { LedgerSetupWizardStepProps } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardStepTypes";
-import { useLedgerSetupDraftSave } from "organisms/ledgers/LedgerSetupWizard/useLedgerSetupDraftSave";
 import type { LedgerSetupProgress } from "types/ledgers";
 import { buildMerchantChecklist } from "utils/merchantPresets";
 
-type UseLedgerSetupMerchantsStepOptions = Omit<
-  LedgerSetupWizardStepProps,
-  "progress"
-> & {
+type Options = Omit<LedgerSetupWizardStepProps, "progress"> & {
   progress: LedgerSetupProgress;
 };
 
-export function useLedgerSetupMerchantsStep(
-  options: UseLedgerSetupMerchantsStepOptions,
-) {
-  const { progress } = options;
+export function useLedgerSetupMerchantsStep({
+  onNext,
+  onPrevious,
+  onProgressChange,
+  progress,
+}: Options) {
   const { draft } = progress.setup;
-  const { template } = progress;
-  const draftSave = useLedgerSetupDraftSave(options);
-  const [additionalRegions, setAdditionalRegions] = useState(
-    draft.merchants.additionalRegions ?? [],
-  );
-  // 初始勾选直接使用草稿（补全后的默认草稿已按默认勾选标签生成），前端不重新计算默认值。
-  const [selectedKeys, setSelectedKeys] = useState<string[]>(() => [
-    ...draft.merchants.selectedKeys,
-  ]);
-  useLedgerSetupStepDirty(
-    { selectedKeys: [...selectedKeys].sort(), additionalRegions },
-    options.onDirtyChange,
-  );
+  const selectedKeys = draft.merchants.selectedKeys;
+  const additionalRegions = draft.merchants.additionalRegions ?? [];
   const checklist = useMemo(
-    () => (template ? buildMerchantChecklist(template) : null),
-    [template],
+    () => progress.template ? buildMerchantChecklist(progress.template) : null,
+    [progress.template],
   );
 
-  // 勾选以商家为单位存储，多标签商家只算一次。
-  const selectedCount = selectedKeys.length;
-
-  function save(
-    direction: "next" | "previous",
-    merchants: LedgerSetupDraft["merchants"],
-  ) {
-    const nextDraft = {
-      ...draft,
-      merchants: {
-        ...merchants,
-        ...(additionalRegions.length ? { additionalRegions } : {}),
+  function update(merchants: LedgerSetupDraft["merchants"]) {
+    onProgressChange({
+      ...progress,
+      setup: {
+        ...progress.setup,
+        draft: { ...draft, merchants },
       },
-    };
-    return direction === "next"
-      ? draftSave.saveAndGoNext(nextDraft)
-      : draftSave.saveAndGoPrevious(nextDraft);
+    });
   }
 
   return {
     checklist,
-    failureState: draftSave.failureState,
-    isSaving: draftSave.isSaving,
-    selectedCount,
+    failureState: {},
+    isSaving: false,
+    selectedCount: selectedKeys.length,
     selectedKeys,
-    setSelectedKeys,
-    additionalRegions,
-    setAdditionalRegions,
-    // 没有模板时没有可选商家，下一步按跳过保存。
-    goNext() {
-      void save(
-        "next",
-        template
-          ? { selectedKeys, skipped: false }
-          : { selectedKeys: [], skipped: true },
-      );
+    setSelectedKeys(keys: string[]) {
+      update({ ...draft.merchants, selectedKeys: keys, skipped: false });
     },
-    // 返回上一步时保留原有的跳过状态，只保存勾选的修改。
+    additionalRegions,
+    setAdditionalRegions(regions: LedgerSetupRegion[]) {
+      update({ ...draft.merchants, additionalRegions: regions });
+    },
+    goNext() {
+      if (!progress.template) {
+        update({ ...draft.merchants, selectedKeys: [], skipped: true });
+      }
+      onNext();
+    },
     goPrevious() {
-      void save("previous", {
-        selectedKeys,
-        skipped: draft.merchants.skipped,
-      });
+      onPrevious();
     },
   };
 }
