@@ -581,7 +581,7 @@ describe("TransactionStepFlow 进入小票", () => {
     ).toBeInTheDocument();
   });
 
-  it("没有历史：显示还没有记录、选择收支账户并禁用保存，选好账户与明细后可以保存", async () => {
+  it("没有历史：首次不提示，保存时提示缺项，补齐后可以保存", async () => {
     quickSetup({ suggestions: noHistory });
     click("7-Eleven");
     expect(await screen.findByText("这家商家还没有记录")).toBeInTheDocument();
@@ -591,10 +591,13 @@ describe("TransactionStepFlow 进入小票", () => {
       "true",
     );
     expect(
-      screen.getByRole("button", { name: "请选择收支账户" }),
-    ).toBeInTheDocument();
+      screen.queryByRole("button", { name: "请选择收支账户" }),
+    ).toBeNull();
     expect(saveButton()).toBeEnabled();
     click("保存记账");
+    expect(
+      screen.getByRole("button", { name: "请选择收支账户" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "请添加明细" })).toBeInTheDocument();
     click("更换支付账户 1");
     expect(
