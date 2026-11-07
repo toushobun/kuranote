@@ -91,11 +91,11 @@ export function useTransactionConfirmStep(
   const emptyPayment = form.payments.find((payment) => !payment.accountId);
   const issues = [
     ...(!form.selectedMerchant
-      ? [{ message: m.selectMerchant, onClick: props.onMerchantClick }]
+      ? [{ id: "merchant", message: m.selectMerchant, onClick: props.onMerchantClick }]
       : []),
     ...(accountError
       ? [
-          {
+          { id: "account",
             message: !form.selectedAccount
               ? m.selectAccount
               : form.isMultiAccount && !form.paymentReconciliation.isBalanced
@@ -109,11 +109,11 @@ export function useTransactionConfirmStep(
         ]
       : []),
     ...(!form.itemSummaries.length
-      ? [{ message: m.missingItems, onClick: form.openSheet }]
+      ? [{ id: "items", message: m.missingItems, onClick: form.openSheet }]
       : []),
     ...(excessDecimalItems.length
       ? [
-          {
+          { id: "decimals",
             message: m.excessDecimals(excessDecimalItems.length),
             onClick: () => props.onAmountItemChange(excessDecimalItems[0]!.id),
           },
@@ -121,7 +121,7 @@ export function useTransactionConfirmStep(
       : []),
     ...(otherInvalidItems.length
       ? [
-          {
+          { id: "invalidItems",
             message: missingAmounts.length
               ? m.missingAmounts(missingAmounts.length)
               : m.invalidItems,
@@ -133,7 +133,7 @@ export function useTransactionConfirmStep(
         ]
       : []),
     ...(!form.transactionAtValue
-      ? [{ message: m.invalidTime, onClick: () => setEditor("time") }]
+      ? [{ id: "time", message: m.invalidTime, onClick: () => setEditor("time") }]
       : []),
   ];
   return {
