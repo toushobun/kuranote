@@ -97,11 +97,13 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     // 挂载后才填入本地当前时间，不算用户动过小票。
     if (!timeInitialized) return;
     resetWaitStartSnapshot();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 初始本地时间同步后更新自动填充版本。
     setAutoRevision((revision) => revision + 1);
   }, [timeInitialized]);
   useLayoutEffect(() => {
     if (baseline.revision === autoRevision) return;
     // 自动填充提交后的布局阶段同步干净基线，下一帧才恢复 dirty 判断。
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 自动建议应用完成后同步干净基线。
     setBaseline({ snapshot: receiptSnapshot, revision: autoRevision });
   }, [autoRevision, baseline.revision, receiptSnapshot]);
   const guard = useUnsavedChangesGuard({
@@ -189,6 +191,7 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
   });
   useEffect(() => {
     // 按商家标识同步异步到达的建议，pending 标识保证只应用一次。
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 后端建议在此处一次性同步至小票表单。
     applySuggestions();
   }, [suggestionsReady, props.suggestions, merchant?.id, loadingMerchantId]);
   const waiting = !!loadingMerchantId;
