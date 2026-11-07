@@ -61,6 +61,7 @@ export {
 export type { LedgerCreateDefaults } from "internal/ledger/entity/ledgerCreateDefaults";
 export {
   ledgerCurrencies,
+  isLedgerCurrency,
   type LedgerCurrency,
 } from "internal/ledger/entity/ledgerCurrency";
 export type {

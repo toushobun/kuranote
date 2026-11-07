@@ -21,12 +21,13 @@ export function LedgerSetupFeaturesStep({
   onProgressChange,
 }: LedgerSetupWizardStepProps) {
   if (!progress) return null;
-  const { draft } = progress.setup;
+  const current = progress;
+  const { draft } = current.setup;
   function update(features: typeof draft.features) {
     onProgressChange({
-      ...progress,
+      ...current,
       setup: {
-        ...progress.setup,
+        ...current.setup,
         draft: { ...draft, features },
       },
     });

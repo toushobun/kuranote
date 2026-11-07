@@ -5,6 +5,7 @@ import { useState, type FormEvent } from "react";
 import {
   createDefaultLedgerSetupDraft,
   getLedgerSetupTemplate,
+  isLedgerCurrency,
   ledgerCreateErrorMessages,
   ledgerSetupErrorMessages,
   validateLedgerSetupBasicInfoForm,
@@ -32,7 +33,7 @@ export function useLedgerSetupBasicInfoStep({
     : defaults;
 
   function setValues(next: LedgerBasicInfoValues) {
-    if (!progress) return;
+    if (!progress || !isLedgerCurrency(next.baseCurrency)) return;
     onProgressChange({
       ...progress,
       setup: {

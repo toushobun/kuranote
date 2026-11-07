@@ -1,6 +1,5 @@
 import {
-  ledgerCurrencies,
-  type LedgerCurrency,
+  isLedgerCurrency,
 } from "internal/ledger/entity/ledgerCurrency";
 import type { LedgerSetup } from "internal/ledger/entity/ledgerSetup";
 import type { LedgerCreateErrorCode } from "internal/ledger/errors/ledgerCreate";
@@ -71,10 +70,6 @@ type LedgerSetupRow = {
   setup_step: number;
   living_region: unknown;
 };
-
-function isLedgerCurrency(value: string): value is LedgerCurrency {
-  return (ledgerCurrencies as readonly string[]).includes(value);
-}
 
 const ledgerSetupRpcErrorMap = {
   ...createLedgerRpcErrorMap,

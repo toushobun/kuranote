@@ -123,9 +123,9 @@ describe("LedgerSetupService.getCurrentUserSetup", () => {
   it("恢复服务端持久化草稿和步骤及版本", async () => {
     const { service } = makeService(createRepository({
       findCurrentUserSetupLedger: vi.fn(async () => ({
-        baseCurrency: "JPY",
-        livingRegion: "jp",
-        displayColor: "amber",
+        baseCurrency: "JPY" as const,
+        livingRegion: "jp" as const,
+        displayColor: "amber" as const,
         displayName: "淞文",
         id: ledgerId,
         name: "家庭账本",

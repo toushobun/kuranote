@@ -38,12 +38,13 @@ export default function Page() {
                 setDraft(null);
                 return {};
               },
-              completeSetup: unused,
+              persistSetup: async ({ complete }) => ({
+                completed: complete,
+                updatedAt: "2026-11-07T01:00:00Z",
+              }),
               createInvite: unused,
               loadInviteMembers: unused,
               placeholderMemberActions: { rename: unused, delete: unused },
-              saveDraft: unused,
-              submitBasicInfo: unused,
             },
           }}
           updateCurrentLedgerAction={async () => {}}

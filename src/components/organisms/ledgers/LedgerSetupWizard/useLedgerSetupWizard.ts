@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 import {
   createDefaultLedgerSetupDraft,
   getLedgerSetupRegionFromTimeZone,
+  isLedgerCurrency,
   getLedgerSetupTemplate,
   type LedgerSetup,
 } from "internal/ledger";
@@ -30,7 +31,9 @@ function createNewProgress(defaults: LedgerBasicInfoValues): LedgerSetupProgress
   );
   return {
     setup: {
-      baseCurrency: defaults.baseCurrency,
+      baseCurrency: isLedgerCurrency(defaults.baseCurrency)
+        ? defaults.baseCurrency
+        : "JPY",
       displayColor: defaults.displayColor,
       displayName: defaults.displayName,
       draft: createDefaultLedgerSetupDraft(livingRegion),

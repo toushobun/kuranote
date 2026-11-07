@@ -1,10 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { userEvent, within } from "storybook/test";
 
-import {
-  ledgerCreateErrorCodes,
-  ledgerCreateErrorMessages,
-} from "internal/ledger";
 import { LedgerSetupWizard } from "organisms/ledgers/LedgerSetupWizard/LedgerSetupWizard";
 import {
   createLedgerSetupWizardStoryActions,
@@ -18,10 +14,7 @@ const meta = {
   component: LedgerSetupWizard,
   decorators: ledgerSetupWizardStoryDecorators,
   args: {
-    actions: {
-      ...createLedgerSetupWizardStoryActions(null),
-      submitBasicInfo: async (state) => state,
-    },
+    actions: createLedgerSetupWizardStoryActions(null),
     ...ledgerSetupWizardStoryArgs,
     progress: null,
   },
@@ -41,29 +34,16 @@ export const Default: Story = {
 };
 
 export const ValidationError: Story = {
-  name: "校验错误",
-  args: {
-    actions: {
-      ...createLedgerSetupWizardStoryActions(null),
-      submitBasicInfo: async () => ({
-        error: ledgerCreateErrorMessages[ledgerCreateErrorCodes.nameRequired],
-        errorKey: "storybook-error",
-      }),
-    },
-  },
+  name: "本地校验错误",
   play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    await userEvent.clear(await body.findByRole("textbox", { name: "账本名称" }));
     await clickNext(canvasElement);
   },
 };
 
-export const Submitting: Story = {
-  name: "提交中",
-  args: {
-    actions: {
-      ...createLedgerSetupWizardStoryActions(null),
-      submitBasicInfo: () => new Promise(() => {}),
-    },
-  },
+export const LocalStepChange: Story = {
+  name: "纯本地下一步",
   play: async ({ canvasElement }) => {
     await clickNext(canvasElement);
   },
