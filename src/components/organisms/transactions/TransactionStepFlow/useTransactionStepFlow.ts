@@ -9,10 +9,10 @@ import {
   useState,
 } from "react";
 import { useTransactionReceiptForm } from "organisms/transactions/TransactionConfirmStep/useTransactionReceiptForm";
-import { unsavedChangesMessages } from "config/unsavedChangesMessages";
 import type { TransactionFormInitialValues } from "organisms/transactions/TransactionForm/TransactionForm.types";
 import { useReceiptMerchantPicker } from "organisms/transactions/ReceiptMerchantDrawer/useReceiptMerchantPicker";
 import { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
+import { unsavedChangesMessages } from "config/unsavedChangesMessages";
 import type { ActionState } from "types/actions";
 import type { TransactionStepFlowProps } from "./TransactionStepFlow.types";
 import type { FlowMerchant } from "organisms/transactions/MerchantStep/MerchantStep.types";
@@ -56,9 +56,9 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
       initialValues,
     });
   const formId = useId();
-  // 小票只有一份业务快照：不包含商家选择与编辑抽屉的临时状态。
-  // 自动建议 / 初始时间完成后重建基线，只有用户改变付款、明细、备注、时间才算 dirty。
-  const receiptDataSnapshot = JSON.stringify([
+  // 开始等待建议时的小票；之后与之不同即视为用户动过小票
+  //（选账户、加 / 删 / 编辑明细、改分类 / 金额 / 特殊状态 / 关联、改备注 / 时间）。
+  const receiptSnapshot = JSON.stringify([
     form.itemSummaries.map((item) => [
       item.id,
       item.categoryId,
@@ -70,29 +70,38 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     form.payments.map((payment) => [payment.accountId, payment.amount]),
     form.note,
     form.transactionAtValue,
-  ]);
-  // 等待晚到建议时还需检测是否正在编辑，避免替换正在打开的明细。
-  const receiptSnapshot = JSON.stringify([
-    receiptDataSnapshot,
+    // 打开明细编辑抽屉或金额键盘也算动过，避免晚到的建议删掉正在编辑的明细。
     form.isSheetOpen,
     form.editingItemId,
     amountItemId,
   ]);
-  const [autoRevision, setAutoRevision] = useState(0);
-  const [baseline, setBaseline] = useState({
-    snapshot: receiptDataSnapshot,
-    revision: 0,
+  const waitStartSnapshot = useRef(receiptSnapshot);
+  // 复用同一份小票快照判断晚到建议与退出 dirty。商家切换不在快照中。
+  const cleanReceiptSnapshot = useRef(receiptSnapshot);
+  const rebaseAfterSuggestions = useRef(false);
+  const [, setBaselineVersion] = useState(0);
+  const timeInitialized = !!form.transactionAtValue;
+  const resetWaitStartSnapshot = useEffectEvent(() => {
+    waitStartSnapshot.current = receiptSnapshot;
+    cleanReceiptSnapshot.current = receiptSnapshot;
   });
+  useEffect(() => {
+    // 挂载后才填入本地当前时间，不算用户动过小票。
+    if (timeInitialized) resetWaitStartSnapshot();
+  }, [timeInitialized]);
   useLayoutEffect(() => {
-    if (baseline.revision === autoRevision) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 在自动填充提交后的同一帧更新基线，避免把程序填入的内容误判为用户修改。
-    setBaseline({ snapshot: receiptDataSnapshot, revision: autoRevision });
-  }, [autoRevision, baseline.revision, receiptDataSnapshot]);
-  const receiptDirty =
-    baseline.revision === autoRevision &&
-    receiptDataSnapshot !== baseline.snapshot;
+    if (!rebaseAfterSuggestions.current) return;
+    // 推荐账户和明细在渲染完成后才纳入干净基线。
+    cleanReceiptSnapshot.current = receiptSnapshot;
+    rebaseAfterSuggestions.current = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 同步自动填充基线后刷新守卫判断。
+    setBaselineVersion((version) => version + 1);
+  });
   const guard = useUnsavedChangesGuard({
-    isDirty: screen === "receipt" && receiptDirty,
+    isDirty:
+      screen === "receipt" &&
+      !rebaseAfterSuggestions.current &&
+      receiptSnapshot !== cleanReceiptSnapshot.current,
     saveFormId: formId,
     saveLabel: unsavedChangesMessages.saveAndExit,
     onClose: props.onClose,
@@ -101,19 +110,6 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     (state, data) => guard.runAction(() => props.action(state, data)),
     {},
   );
-  const waitStartSnapshot = useRef(receiptSnapshot);
-  const timeInitialized = !!form.transactionAtValue;
-  const resetWaitStartSnapshot = useEffectEvent(() => {
-    waitStartSnapshot.current = receiptSnapshot;
-  });
-  const initialTimeHandled = useRef(false);
-  useEffect(() => {
-    // 挂载后才填入本地当前时间，不算用户动过小票。
-    if (!timeInitialized || initialTimeHandled.current) return;
-    initialTimeHandled.current = true;
-    resetWaitStartSnapshot();
-    setAutoRevision((revision) => revision + 1);
-  }, [timeInitialized]);
   const [methodOpen, setMethodOpen] = useState(false);
   const merchant = props.merchants.find(
     (item) => item.id === form.selectedMerchantId,
@@ -138,8 +134,9 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     showReceipt();
     // 已有明细时不覆盖用户输入（换商家时只替换没动过的自动明细）。
     if (!replacing && form.itemSummaries.length > 0) return;
-    // 本次自动建议属于初始值；但已有人手动修改时不可重置其 dirty 基线。
-    if (!receiptDirty) setAutoRevision((revision) => revision + 1);
+    // 只有自动应用之前是干净小票，才能刷新基线，避免丢失已有手动修改。
+    if (receiptSnapshot === cleanReceiptSnapshot.current)
+      rebaseAfterSuggestions.current = true;
     const recommended = props.accounts.find(
       (account) => account.id === props.suggestions?.recommendedAccountIds[0],
     );
@@ -247,8 +244,8 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     loadingMerchantId,
     merchantPicker,
     requestClose: guard.requestClose,
-    cancelPendingSave: guard.cancelPendingSave,
     dialogProps: guard.dialogProps,
+    onValidationFailed: guard.cancelSave,
     formId,
   };
 }

@@ -78,6 +78,18 @@ export const FirstVisit: Story = {
     },
   },
 };
+export const FirstVisitAfterSave: Story = {
+  name: "第一次去的商家：尝试保存后显示校验提示",
+  args: FirstVisit.args,
+  play: async ({ canvasElement }) => {
+    await enterReceipt(canvasElement, "星巴克");
+    await userEvent.click(
+      within(canvasElement.ownerDocument.body).getByRole("button", {
+        name: "保存记账",
+      }),
+    );
+  },
+};
 export const MultiAccountBalanced: Story = {
   name: "多账户已对上（设计图 8 ④）",
   args: {
@@ -92,7 +104,7 @@ export const MultiAccountBalanced: Story = {
   },
 };
 export const MultiAccountUnbalanced: Story = {
-  name: "多账户未对上（差额、禁用保存）",
+  name: "多账户未对上（差额、保存时提示）",
   args: {
     ...MultiAccountBalanced.args,
     itemsOptions: {
@@ -223,6 +235,17 @@ export const Saving: Story = {
   play: SaveError.play,
 };
 export const Abandon: Story = {
-  name: "小票关闭时确认",
-  play: ({ canvasElement }) => clickButton(canvasElement, "关闭记账"),
+  name: "小票修改后关闭确认（保存并退出）",
+  play: async ({ canvasElement }) => {
+    await clickButton(canvasElement, /^修改备注：/);
+    const body = within(canvasElement.ownerDocument.body);
+    await userEvent.type(
+      body.getByRole("textbox", { name: "备注" }),
+      "临时备注",
+    );
+    await userEvent.click(body.getByRole("button", { name: "完成" }));
+    await userEvent.click(
+      await body.findByRole("button", { name: "关闭记账" }),
+    );
+  },
 };

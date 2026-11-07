@@ -3,6 +3,7 @@
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import { useId, useState } from "react";
+import { unsavedChangesMessages } from "config/unsavedChangesMessages";
 import { ActionFailureFeedback } from "molecules/ui/OperationFeedbackDialogs";
 import { createErrorState } from "internal/shared/adapter/next/actionState";
 import {
@@ -18,7 +19,6 @@ import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog/UnsavedC
 import { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
 import { WizardDialog } from "molecules/ui/WizardDialog/WizardDialog";
 
-import { unsavedChangesMessages } from "config/unsavedChangesMessages";
 import {
   ledgerSetupEntryMessages,
   ledgerSetupWizardMessages,

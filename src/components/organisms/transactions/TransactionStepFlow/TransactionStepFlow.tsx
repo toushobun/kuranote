@@ -22,11 +22,11 @@ import { useTransactionStepFlow } from "./useTransactionStepFlow";
 export function TransactionStepFlow(props: TransactionStepFlowProps) {
   return props.open ? (
     <BackLayerScope level={transactionBackLayerLevels.flow}>
-      <TransactionStepFlowSession {...props} />
+      <TransactionStepFlowContent {...props} />
     </BackLayerScope>
   ) : null;
 }
-function TransactionStepFlowSession(input: TransactionStepFlowProps) {
+function TransactionStepFlowContent(input: TransactionStepFlowProps) {
   const creation = useReceiptCreation();
   const props = {
     ...input,
@@ -67,12 +67,12 @@ function TransactionStepFlowSession(input: TransactionStepFlowProps) {
               suggestions={w.suggestions}
               merchantHasHistory={w.merchantHasHistory}
               action={w.saveAction}
+               onValidationFailed={w.onValidationFailed}
               errorMessage={w.saveState.error}
               successMessage={w.saveState.success}
               saving={w.saving}
               onMerchantClick={w.merchantPicker.openPicker}
               onAccountSelect={props.onAccountSelect}
-              onValidationFailed={w.cancelPendingSave}
             />
           ) : (
             <MerchantStep

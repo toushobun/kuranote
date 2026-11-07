@@ -9,7 +9,8 @@ import ButtonBase from "@mui/material/ButtonBase";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { Fragment, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { Fragment, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { keyframes } from "@emotion/react";
 import { flowMessages as m } from "config/transactionStepFlowMessages";
 import { TransactionDateTimePicker } from "molecules/transactions/TransactionDateTimePicker";
 import {
@@ -54,18 +55,21 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
   const readOnly = !!props.readOnly;
   // 付款未对上时，点提示条定位到支付区。
   const paymentSectionRef = useRef<HTMLDivElement>(null);
-  const firstIssueRef = useRef<HTMLDivElement>(null);
-  const [saveAttempts, setSaveAttempts] = useState(0);
   const w = useTransactionConfirmStep(props, paymentSectionRef);
-  useEffect(() => {
-    if (saveAttempts > 0)
-      firstIssueRef.current?.scrollIntoView?.({ block: "center", behavior: "smooth" });
-  }, [saveAttempts]);
-  function handleReceiptSubmit(event: FormEvent<HTMLFormElement>) {
+  const [saveAttempts, setSaveAttempts] = useState(0);
+  const firstIssueRef = useRef<HTMLDivElement>(null);
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     setSaveAttempts((attempts) => attempts + 1);
-    if (w.issues.length) {
+    if (!readOnly && w.issues.length > 0) {
       event.preventDefault();
       props.onValidationFailed?.();
+      // 第一条提示挂载后再滚动；底部提交与退出弹窗提交共用此入口。
+      window.setTimeout(() => {
+        firstIssueRef.current?.scrollIntoView?.({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 0);
       return;
     }
     f.handleSubmit(event);
@@ -124,7 +128,7 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
         component="form"
         id={props.formId}
         action={props.action}
-        onSubmit={handleReceiptSubmit}
+        onSubmit={handleSubmit}
       >
         <TransactionFormHiddenFields
           form={f}
@@ -142,10 +146,19 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
             saveAttempts > 0 &&
             w.issues.map((issue, index) => (
               <Alert
-                key={`${saveAttempts}-${issue.message}`}
+                key={`${issue.message}-${saveAttempts}`}
                 ref={index === 0 ? firstIssueRef : undefined}
                 severity="error"
-                sx={saveAttempts > 1 ? issueFlashSx : undefined}
+                sx={
+                  saveAttempts > 1
+                    ? {
+                        animation: `${issuePulse} 600ms ease-in-out`,
+                        "@media (prefers-reduced-motion: reduce)": {
+                          animation: "none",
+                        },
+                      }
+                    : undefined
+                }
               >
                 <ButtonBase onClick={issue.onClick} sx={{ textAlign: "left" }}>
                   {issue.message}
@@ -404,15 +417,10 @@ function HeaderButton({
   );
 }
 
-const issueFlashSx = {
-  outline: "2px solid transparent",
-  animation: "receiptIssueFlash 450ms ease-in-out",
-  "@keyframes receiptIssueFlash": {
-    "0%, 100%": { outlineColor: "transparent" },
-    "50%": { outlineColor: "error.main" },
-  },
-  "@media (prefers-reduced-motion: reduce)": { animation: "none" },
-};
+const issuePulse = keyframes`
+  0%, 100% { opacity: 1; }
+  40% { opacity: 0.55; }
+`;
 
 const headerButtonSx = {
   display: "inline-flex",

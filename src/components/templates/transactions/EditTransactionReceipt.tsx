@@ -68,7 +68,7 @@ export function EditTransactionReceiptTemplate(
           (item) => item.businessStatus?.incomeLinkRole != null,
         )}
         saveFormId={editReceiptFormId}
-        saveLabel={unsavedChangesMessages.saveAndExit}
+         saveLabel={unsavedChangesMessages.saveAndExit}
         transactionRecordId={transactionRecordId}
       >
         {(editAction) => (
@@ -76,7 +76,7 @@ export function EditTransactionReceiptTemplate(
             {...props}
             formAction={editAction.formAction}
             saving={editAction.isPending}
-            onValidationFailed={editAction.onValidationFailed}
+             onValidationFailed={editAction.onValidationFailed}
           />
         )}
       </EditTransactionShell>
@@ -147,8 +147,8 @@ function EditTransactionReceipt({
         accountOptions={accountOptions}
         suggestions={w.suggestions}
         action={formAction}
+         onValidationFailed={onValidationFailed}
         saving={saving}
-        onValidationFailed={onValidationFailed}
         submitLabel={m.saveEdit}
         onMerchantClick={w.merchantPicker.openPicker}
         readOnly={readOnly}

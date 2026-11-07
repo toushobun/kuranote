@@ -49,7 +49,7 @@ type EditTransactionShellProps = {
   hasLinkedIncomeItems: boolean;
   /** 离开确认里的「保存」按这个 id 提交编辑表单。 */
   saveFormId: string;
-  /** 只有编辑小票显示「保存并退出」；转账沿用公共「保存」。 */
+  /** 仅小票页覆盖保存文案；转账等保留全局默认值。 */
   saveLabel?: string;
   transactionRecordId: string;
 };
@@ -110,7 +110,7 @@ export function EditTransactionShell({
             <TransactionEditRestrictionAlert reason={editRestriction} />
           </Box>
         ) : null}
-        {children({ ...editAction, onValidationFailed: guard.cancelPendingSave })}
+        {children({ ...editAction, onValidationFailed: guard.cancelSave })}
         {canDelete ? (
           <EditTransactionActionButton
             color="error"

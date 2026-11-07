@@ -160,8 +160,8 @@ export function useUnsavedChangesGuard({
 
   return {
     runAction,
-    // 前端校验阻止提交时没有 Server Action，清除本次保存时的离开意图。
-    cancelPendingSave: () => {
+    // 客户端表单校验拦截提交时，清除未完成的保存后退出意图。
+    cancelSave: () => {
       saveIntent.current = null;
     },
     completeSave,
