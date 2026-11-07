@@ -22,6 +22,10 @@ export function useUnsavedChangesGuard({
   layer = null,
   active = true,
   disabled = false,
+  confirmOnLeave = false,
+  saveOnLeave,
+  saveLabel,
+  cleanDescription,
 }: {
   isDirty: boolean;
   saveFormId: string | null;
@@ -30,8 +34,15 @@ export function useUnsavedChangesGuard({
   layer?: number | null;
   active?: boolean;
   disabled?: boolean;
+  /** 仅指定业务流程启用：即使当前草稿与快照相同，主动退出仍需确认。 */
+  confirmOnLeave?: boolean;
+  /** 纯异步保存入口；成功返回 true，由现有离开意图完成导航。 */
+  saveOnLeave?: () => Promise<boolean>;
+  saveLabel?: string;
+  cleanDescription?: string;
 }) {
   const router = useRouter();
+  const mustConfirm = isDirty || confirmOnLeave;
   const saveIntent = useRef<SaveIntent | null>(null);
   const [intent, setIntent] = useState<LeaveIntent | null>(null);
   const coordinator = useUnsavedChangesCoordinator();
@@ -102,7 +113,7 @@ export function useUnsavedChangesGuard({
       url.origin === window.location.origin
     )
       return;
-    if (!isDirty && !history.needsCleanup()) return;
+    if (!mustConfirm && !history.needsCleanup()) return;
     event.preventDefault();
     event.stopPropagation();
     const navigate = () => {
@@ -110,7 +121,7 @@ export function useUnsavedChangesGuard({
         router.push(url.pathname + url.search + url.hash);
       else window.location.assign(url.href);
     };
-    if (!isDirty) {
+    if (!mustConfirm) {
       void history.leave(navigate);
       return;
     }
@@ -119,7 +130,7 @@ export function useUnsavedChangesGuard({
 
   const requestBack = useEffectEvent(() => {
     if (!active || disabled) return;
-    if (!isDirty) {
+    if (!mustConfirm) {
       void history.leave(back);
       return;
     }
@@ -144,7 +155,7 @@ export function useUnsavedChangesGuard({
 
   // Next 的同页 revalidation 可在动作返回后的提交阶段重写 history.state；每次提交后同步登记。
   useLayoutEffect(() => {
-    void history.update(isDirty, layer, active);
+    void history.update(mustConfirm, layer, active);
   });
 
   return {
@@ -156,25 +167,45 @@ export function useUnsavedChangesGuard({
     ),
     requestNavigate: (action: () => void) => {
       if (!active || disabled) return;
-      if (isDirty)
+      if (mustConfirm)
         setIntent((current) => current ?? { type: "action", action });
       else void history.leave(action);
     },
     requestClose: () => {
       if (!active || disabled || !onClose) return;
-      if (isDirty)
+      if (mustConfirm)
         setIntent((current) => current ?? { type: "action", action: onClose });
       else void history.leave(onClose);
     },
     dialogProps: {
       open: intent !== null,
+      description: !isDirty ? cleanDescription : undefined,
+      saveLabel,
       onCancel: () => {
         saveIntent.current = null;
         setIntent(null);
       },
       onSave:
         saveFormId === null
-          ? undefined
+          ? saveOnLeave
+            ? () => {
+                if (!intent) return;
+                const leave = intent;
+                setIntent(null);
+                // 与普通表单共用 save intent，只有保存成功才执行原离开动作。
+                const formId = "__async_leave__";
+                saveIntent.current = { formId, leave };
+                void (async () => {
+                  try {
+                    const saved = await history.runAction(saveOnLeave);
+                    await completeSave(saved, formId);
+                  } catch {
+                    // 保存回调负责反馈错误；守卫保持当前页面供重试。
+                    saveIntent.current = null;
+                  }
+                })();
+              }
+            : undefined
           : () => {
               setIntent(null);
               saveIntent.current = null;

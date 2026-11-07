@@ -229,3 +229,77 @@ describe("useUnsavedChangesGuard", () => {
     expect(window.history.pushState).toHaveBeenCalledOnce();
   });
 });
+
+function AsyncLeaveHarness({
+  onSave,
+  onClose,
+}: {
+  onSave: () => Promise<boolean>;
+  onClose: () => void;
+}) {
+  const [value, setValue] = useState("");
+  const guard = useUnsavedChangesGuard({
+    isDirty: value !== "",
+    saveFormId: null,
+    confirmOnLeave: true,
+    onClose,
+    saveOnLeave: onSave,
+    saveLabel: "保存并退出",
+    cleanDescription: "账本还没创建完，要保存当前进度再退出吗？",
+  });
+  return (
+    <>
+      <input aria-label="草稿" value={value} onChange={(event) => setValue(event.target.value)} />
+      <button onClick={guard.requestClose}>关闭向导</button>
+      <UnsavedChangesDialog {...guard.dialogProps} />
+    </>
+  );
+}
+
+describe("useUnsavedChangesGuard 显式退出", () => {
+  it("无修改仍提示，保存成功后才关闭", async () => {
+    const onSave = vi.fn(async () => true);
+    const onClose = vi.fn();
+    render(<AsyncLeaveHarness onSave={onSave} onClose={onClose} />, {
+      wrapper: ConfirmDialogTestProviders,
+    });
+    fireEvent.click(screen.getByRole("button", { name: "关闭向导" }));
+    expect(screen.getByText("账本还没创建完，要保存当前进度再退出吗？")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "保存并退出" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "保存并退出" }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+  });
+
+  it("保存失败仍留在原处，可再次保存", async () => {
+    let succeed = false;
+    const onSave = vi.fn(async () => succeed);
+    const onClose = vi.fn();
+    render(<AsyncLeaveHarness onSave={onSave} onClose={onClose} />, {
+      wrapper: ConfirmDialogTestProviders,
+    });
+    fireEvent.change(screen.getByLabelText("草稿"), { target: { value: "跨步内容" } });
+    fireEvent.click(screen.getByRole("button", { name: "关闭向导" }));
+    fireEvent.click(screen.getByRole("button", { name: "保存并退出" }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledOnce());
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("草稿")).toHaveValue("跨步内容");
+    succeed = true;
+    fireEvent.click(screen.getByRole("button", { name: "关闭向导" }));
+    fireEvent.click(screen.getByRole("button", { name: "保存并退出" }));
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+  });
+
+  it("放弃直接离开且不调用保存", async () => {
+    const onSave = vi.fn(async () => true);
+    const onClose = vi.fn();
+    render(<AsyncLeaveHarness onSave={onSave} onClose={onClose} />, {
+      wrapper: ConfirmDialogTestProviders,
+    });
+    fireEvent.click(screen.getByRole("button", { name: "关闭向导" }));
+    fireEvent.click(screen.getByRole("button", { name: "放弃修改" }));
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+    expect(onSave).not.toHaveBeenCalled();
+  });
+});

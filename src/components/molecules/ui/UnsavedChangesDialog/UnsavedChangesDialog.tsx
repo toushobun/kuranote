@@ -14,6 +14,8 @@ export type UnsavedChangesDialogProps = {
   onDiscard: () => void;
   onSave?: () => void;
   open: boolean;
+  description?: string;
+  saveLabel?: string;
 };
 
 export function UnsavedChangesDialog({
@@ -21,6 +23,8 @@ export function UnsavedChangesDialog({
   onDiscard,
   onSave,
   open,
+  description,
+  saveLabel,
 }: UnsavedChangesDialogProps) {
   const titleId = useId();
   const previousFocus = useRef<HTMLElement | null>(null);
@@ -51,7 +55,7 @@ export function UnsavedChangesDialog({
       <DialogTitle id={titleId}>{m.title}</DialogTitle>
       <DialogContent>
         <DialogContentText>
-          {onSave ? m.description : m.discardDescription}
+          {description ?? (onSave ? m.description : m.discardDescription)}
         </DialogContentText>
       </DialogContent>
       <DialogActions sx={actionsSx}>
@@ -63,7 +67,7 @@ export function UnsavedChangesDialog({
         </Button>
         {onSave && (
           <Button onClick={onSave} sx={saveButtonSx}>
-            {m.save}
+            {saveLabel ?? m.save}
           </Button>
         )}
       </DialogActions>
