@@ -384,3 +384,29 @@ migration 在新增 CHECK 之前，把残留的匿名待接受邀请（`placehol
 | ------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | `validate_ledger_setup_completion_payload(jsonb)` | 账户必须带 `currency`（3 位大写货币代码），缺少或不合法时 `ledger_setup_payload_invalid`。         |
 | `complete_ledger_setup(uuid,jsonb)`               | 账户按 payload 中的 `currency`（候选所属地区的货币：日本 JPY、中国 CNY）创建，与账本默认货币无关。 |
+
+## Issue #997：创建向导统一显式提交（取代逐步骤写库）
+
+`20261107110000_commit_ledger_setup_atomically.sql` 新增
+`commit_ledger_setup(uuid,timestamptz,text,text,text,text,text,integer,jsonb,boolean,jsonb)`。
+该函数仅授权 authenticated，撤销 PUBLIC 与 anon 的 EXECUTE。
+`p_ledger_id` 由客户端在首次显式保存时生成；同一所有者与同一 ID
+重复提交相同内容时幂等，不会再次创建账本。
+数据库以 `FOR UPDATE` 锁定账本行，并按客户端上次读取的
+`updated_at` 进行乐观并发校验。内容冲突返回
+`ledger_setup_conflict`，另一个创建中账本违反唯一索引时返回
+`ledger_setup_in_progress_exists`。
+
+用户从第 1～5 步切换仅更改前端内存草稿；退出时
+`p_complete=false` 保存完整草稿和当前步骤，未修改草稿内容的请求只更新步骤。
+在确认页 `p_complete=true` 时，先在同一事务写入完整草稿，
+再调用原有 `complete_ledger_setup` 初始化账户、商家、默认分类等；
+中途出错整个调用回滚。账户币种仍依 #1001 按模板候选所属地区确定，
+独立于账本默认币种；服务端重新校验基本信息、草稿地区与 64 KiB 大小限制。
+
+旧客户端 RPC
+`create_ledger_setup`、`update_ledger_setup_basic_info`、
+`save_ledger_setup_draft` 已 DROP（连同其 EXECUTE 授权），
+不再作为当前调用入口。上文 #395 的逐步骤 RPC 说明仅保留为迁移历史，
+不得作为现行接口规范。外层整个账本的删除仍通过
+`abandon_ledger_setup`；向导内的「放弃修改」不调用它。
