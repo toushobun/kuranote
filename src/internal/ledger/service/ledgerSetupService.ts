@@ -1,8 +1,5 @@
 import type { LedgerSetup } from "internal/ledger/entity/ledgerSetup";
-import {
-  type LedgerSetupTemplate,
-  type LedgerSetupRegion,
-} from "internal/ledger/entity/ledgerSetupTemplate/ledgerSetupTemplate";
+import { type LedgerSetupTemplate } from "internal/ledger/entity/ledgerSetupTemplate/ledgerSetupTemplate";
 import { getLedgerSetupTemplate } from "internal/ledger/entity/ledgerSetupTemplate/getLedgerSetupTemplate";
 import {
   ledgerCreateErrorCodes,
@@ -13,12 +10,11 @@ import {
   ledgerSetupErrorMessages,
   type LedgerSetupErrorCode,
 } from "internal/ledger/errors/ledgerSetup";
-import type { CreateLedgerInput } from "internal/ledger/repository/ledgerRepository";
 import type {
   LedgerSetupRecord,
   LedgerSetupRepository,
   LedgerSetupRpcErrorCode,
-  UpdateLedgerSetupBasicInfoInput,
+  PersistLedgerSetupCommand,
 } from "internal/ledger/repository/ledgerSetupRepository";
 import { validateLedgerSetupDraftInput } from "internal/ledger/schema/ledgerSetupDraft";
 import { toLedgerCreateAppError } from "internal/ledger/service/ledgerService";
@@ -40,31 +36,12 @@ type LedgerSetupServiceDependencies = {
   ledgerSetupRepository: LedgerSetupRepository;
 };
 
-export type SaveLedgerSetupDraftCommand = {
-  draft: unknown;
-  ledgerId: string;
-  step: unknown;
-};
-
 export type LedgerSetupService = {
   abandon(ledgerId: string): Promise<void>;
-  /**
-   * 完成创建：按数据库中的草稿与代码模板生成 payload，在同一事务内写入默认数据，
-   * 将账本标记为已完成并切换为当前账本。
-   */
-  complete(ledgerId: string): Promise<void>;
-  /** 创建「创建中」账本，返回新账本 ID。不切换当前账本。 */
-  create(
-    input: CreateLedgerInput & { livingRegion: LedgerSetupRegion },
-  ): Promise<{ ledgerId: string }>;
-  /** 当前用户的创建中账本，没有时返回 null。草稿已按当前模板补全与校正。 */
   getCurrentUserSetup(): Promise<LedgerSetup | null>;
-  /** 按生活地区返回预设模板；未选择地区时返回 null。 */
   getTemplate(region: unknown): LedgerSetupTemplate | null;
-  /** 完成创建时将自动创建的大分类名称（按排序），供确认一览展示。 */
   listDefaultRootCategoryNames(): Promise<string[]>;
-  saveDraft(input: SaveLedgerSetupDraftCommand): Promise<void>;
-  updateBasicInfo(input: UpdateLedgerSetupBasicInfoInput): Promise<void>;
+  persist(input: Omit<PersistLedgerSetupCommand, "payload">): Promise<string>;
 };
 
 const ledgerSetupErrorCodeSet: ReadonlySet<string> = new Set(
@@ -94,7 +71,8 @@ function toAppError(code: LedgerSetupRpcErrorCode): AppError {
     code === ledgerSetupErrorCodes.regionMismatch ||
     code === ledgerSetupErrorCodes.inProgressExists ||
     code === ledgerSetupErrorCodes.notInProgress ||
-    code === ledgerSetupErrorCodes.templateOutdated
+    code === ledgerSetupErrorCodes.templateOutdated ||
+    code === ledgerSetupErrorCodes.conflict
   ) {
     return new ConflictError(code, message);
   }
@@ -146,39 +124,6 @@ export function createLedgerSetupService({
         throw toAppError(result.code);
       }
     },
-    async complete(ledgerId) {
-      const setup = await findSetup();
-
-      if (!setup || setup.id !== ledgerId) {
-        throw toAppError(ledgerSetupErrorCodes.notFound);
-      }
-      if (!setup.livingRegion)
-        throw toAppError(ledgerSetupErrorCodes.regionRequired);
-
-      // 草稿已按账本当前生活地区与模板版本校正：无法匹配当前模板的账户与 key 已丢弃并去重。
-      const result = await ledgerSetupRepository.complete({
-        ledgerId,
-        payload: buildLedgerSetupCompletionPayload(
-          setup.draft,
-          getLedgerSetupTemplate(setup.livingRegion),
-        ),
-      });
-
-      if (!result.ok) {
-        throw toAppError(result.code);
-      }
-    },
-
-    async create(input) {
-      const result = await ledgerSetupRepository.create(input);
-
-      if (!result.ok) {
-        throw toAppError(result.code);
-      }
-
-      return { ledgerId: result.ledgerId };
-    },
-
     getCurrentUserSetup() {
       return findSetup();
     },
@@ -191,39 +136,31 @@ export function createLedgerSetupService({
       return ledgerSetupRepository.listDefaultRootCategoryNames();
     },
 
-    async saveDraft({ draft, ledgerId, step }) {
-      const validation = validateLedgerSetupDraftInput({ draft, step });
+    async persist(input) {
+      const validation = validateLedgerSetupDraftInput({
+        draft: input.draft,
+        step: input.step,
+      });
+      if (!validation.ok) throw toAppError(validation.error);
 
-      if (!validation.ok) {
-        throw toAppError(validation.error);
-      }
-
-      // 模板地区与账本生活地区是否一致由 RPC 在持有账本行锁时校验。
+      const template = getLedgerSetupTemplate(input.livingRegion);
       if (
-        !isLedgerSetupDraftMatchingTemplate(
-          validation.value.draft,
-          getLedgerSetupTemplate(validation.value.draft.templateRegion),
-        )
-      ) {
+        validation.value.draft.templateRegion !== input.livingRegion
+      ) throw toAppError(ledgerSetupErrorCodes.regionMismatch);
+      if (!isLedgerSetupDraftMatchingTemplate(validation.value.draft, template)) {
         throw toAppError(ledgerSetupErrorCodes.templateOutdated);
       }
 
-      const result = await ledgerSetupRepository.saveDraft({
-        ...validation.value,
-        ledgerId,
+      const result = await ledgerSetupRepository.persist({
+        ...input,
+        draft: validation.value.draft,
+        step: validation.value.step,
+        payload: input.complete
+          ? buildLedgerSetupCompletionPayload(validation.value.draft, template)
+          : null,
       });
-
-      if (!result.ok) {
-        throw toAppError(result.code);
-      }
-    },
-
-    async updateBasicInfo(input) {
-      const result = await ledgerSetupRepository.updateBasicInfo(input);
-
-      if (!result.ok) {
-        throw toAppError(result.code);
-      }
+      if (!result.ok) throw toAppError(result.code);
+      return result.updatedAt;
     },
   };
 }

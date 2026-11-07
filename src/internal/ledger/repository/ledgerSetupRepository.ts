@@ -10,10 +10,7 @@ import {
   ledgerSetupWriteErrorMessages,
   type LedgerSetupErrorCode,
 } from "internal/ledger/errors/ledgerSetup";
-import {
-  createLedgerRpcErrorMap,
-  type CreateLedgerInput,
-} from "internal/ledger/repository/ledgerRepository";
+import { createLedgerRpcErrorMap } from "internal/ledger/repository/ledgerRepository";
 import {
   parseStoredLedgerSetupDraft,
   type LedgerSetupDraft,
@@ -38,29 +35,27 @@ export type LedgerSetupWriteResult =
   | { ok: true }
   | { ok: false; code: LedgerSetupRpcErrorCode };
 
-export type CreateLedgerSetupResult =
-  | { ok: true; ledgerId: string }
+export type PersistLedgerSetupResult =
+  | { ok: true; updatedAt: string }
   | { ok: false; code: LedgerSetupRpcErrorCode };
 
-export type SaveLedgerSetupDraftInput = {
-  draft: LedgerSetupDraft;
+export type PersistLedgerSetupCommand = {
   ledgerId: string;
+  expectedUpdatedAt: string | null;
+  name: string;
+  baseCurrency: string;
+  displayName: string;
+  displayColor: string;
+  livingRegion: LedgerSetupRegion;
   step: number;
-};
-
-export type CompleteLedgerSetupInput = {
-  ledgerId: string;
-  payload: LedgerSetupCompletionPayload;
+  draft: LedgerSetupDraft;
+  complete: boolean;
+  payload: LedgerSetupCompletionPayload | null;
 };
 
 /** 数据库中的创建中账本。草稿为保存时的原样（各部分可能缺失），由 Service 补全。 */
 export type LedgerSetupRecord = Omit<LedgerSetup, "draft"> & {
   storedDraft: StoredLedgerSetupDraft;
-};
-
-export type UpdateLedgerSetupBasicInfoInput = CreateLedgerInput & {
-  ledgerId: string;
-  livingRegion: LedgerSetupRegion;
 };
 
 type LedgerDefaultRootCategoryRow = {
@@ -94,6 +89,7 @@ const ledgerSetupRpcErrorMap = {
   ledger_setup_not_in_progress: ledgerSetupErrorCodes.notInProgress,
   ledger_setup_payload_invalid: ledgerSetupErrorCodes.payloadInvalid,
   ledger_setup_step_invalid: ledgerSetupErrorCodes.stepInvalid,
+  ledger_setup_conflict: ledgerSetupErrorCodes.conflict,
 } as const satisfies Readonly<Record<string, LedgerSetupRpcErrorCode>>;
 
 /**
@@ -102,18 +98,11 @@ const ledgerSetupRpcErrorMap = {
  */
 export interface LedgerSetupRepository {
   abandon(ledgerId: string): Promise<LedgerSetupWriteResult>;
-  complete(input: CompleteLedgerSetupInput): Promise<LedgerSetupWriteResult>;
-  create(
-    input: CreateLedgerInput & { livingRegion: LedgerSetupRegion },
-  ): Promise<CreateLedgerSetupResult>;
+  persist(input: PersistLedgerSetupCommand): Promise<PersistLedgerSetupResult>;
   /** userId 为当前登录用户，用于读取其在该账本中的显示名与个性色。 */
   findCurrentUserSetupLedger(userId: string): Promise<LedgerSetupRecord | null>;
-  /** 完成写入时将自动创建的大分类名称（按排序）。默认分类只在数据库中维护。 */
   listDefaultRootCategoryNames(): Promise<string[]>;
-  saveDraft(input: SaveLedgerSetupDraftInput): Promise<LedgerSetupWriteResult>;
-  updateBasicInfo(
-    input: UpdateLedgerSetupBasicInfoInput,
-  ): Promise<LedgerSetupWriteResult>;
+
 }
 
 export function createSupabaseLedgerSetupRepository(
@@ -141,60 +130,42 @@ export function createSupabaseLedgerSetupRepository(
 
       return { ok: true };
     },
-    async complete({ ledgerId, payload }) {
-      const { error } = await supabase.rpc("complete_ledger_setup", {
-        p_ledger_id: ledgerId,
-        p_payload: payload,
-      });
-
-      if (error) {
-        const code = findRpcBusinessError(error, ledgerSetupRpcErrorMap);
-        if (code) return { code, ok: false };
-
-        logger.error("[ledger] failed to complete ledger setup", {
-          databaseCode: error.code,
-          ledgerId,
-        });
-        throw toRepositoryError(
-          "ledger_setup_complete_failed",
-          ledgerSetupWriteErrorMessages.completeFailed,
-        );
-      }
-
-      return { ok: true };
-    },
-
-    async create(input) {
-      const { data, error } = await supabase.rpc("create_ledger_setup", {
-        p_living_region: input.livingRegion,
+    async persist(input) {
+      const { data, error } = await supabase.rpc("commit_ledger_setup", {
+        p_ledger_id: input.ledgerId,
+        p_expected_updated_at: input.expectedUpdatedAt,
+        p_name: input.name,
         p_base_currency: input.baseCurrency,
-        p_display_color: input.displayColor,
         p_display_name: input.displayName,
-        p_name: input.ledgerName,
+        p_display_color: input.displayColor,
+        p_living_region: input.livingRegion,
+        p_step: input.step,
+        p_draft: input.draft,
+        p_complete: input.complete,
+        p_payload: input.payload,
       });
-
       if (error) {
         const code = findRpcBusinessError(error, ledgerSetupRpcErrorMap);
-        if (code) return { code, ok: false };
-
-        logger.error("[ledger] failed to create ledger setup", {
+        if (code) return { ok: false, code };
+        logger.error("[ledger] failed to commit ledger setup", {
           databaseCode: error.code,
+          ledgerId: input.ledgerId,
         });
         throw toRepositoryError(
-          "ledger_setup_create_failed",
-          ledgerSetupWriteErrorMessages.createFailed,
+          "ledger_setup_commit_failed",
+          input.complete
+            ? ledgerSetupWriteErrorMessages.completeFailed
+            : ledgerSetupWriteErrorMessages.draftSaveFailed,
         );
       }
-
-      if (typeof data !== "string" || data.length === 0) {
-        logger.error("[ledger] create ledger setup returned no ledger id");
+      if (typeof data !== "string" || Number.isNaN(Date.parse(data))) {
+        logger.error("[ledger] ledger setup commit returned invalid timestamp");
         throw toRepositoryError(
-          "ledger_setup_create_failed",
-          ledgerSetupWriteErrorMessages.createFailed,
+          "ledger_setup_commit_failed",
+          ledgerSetupWriteErrorMessages.draftSaveFailed,
         );
       }
-
-      return { ledgerId: data, ok: true };
+      return { ok: true, updatedAt: data };
     },
 
     async findCurrentUserSetupLedger(userId) {
@@ -259,7 +230,24 @@ export function createSupabaseLedgerSetupRepository(
         );
       }
 
+      const timestampResult = await supabase
+        .from("ledger")
+        .select("updated_at")
+        .eq("id", row.ledger_id)
+        .maybeSingle();
+      if (timestampResult.error || !timestampResult.data?.updated_at) {
+        logger.error("[ledger] failed to load setup version", {
+          databaseCode: timestampResult.error?.code,
+          ledgerId: row.ledger_id,
+        });
+        throw toRepositoryError(
+          "ledger_setup_load_failed",
+          ledgerSetupLoadErrorMessages.loadFailed,
+        );
+      }
+
       return {
+        updatedAt: timestampResult.data.updated_at,
         baseCurrency: row.base_currency,
         livingRegion: isLedgerSetupRegion(row.living_region)
           ? row.living_region
@@ -297,55 +285,5 @@ export function createSupabaseLedgerSetupRepository(
         .map(({ name }) => name);
     },
 
-    async saveDraft({ draft, ledgerId, step }) {
-      const { error } = await supabase.rpc("save_ledger_setup_draft", {
-        p_draft: draft,
-        p_ledger_id: ledgerId,
-        p_step: step,
-      });
-
-      if (error) {
-        const code = findRpcBusinessError(error, ledgerSetupRpcErrorMap);
-        if (code) return { code, ok: false };
-
-        logger.error("[ledger] failed to save ledger setup draft", {
-          databaseCode: error.code,
-          ledgerId,
-        });
-        throw toRepositoryError(
-          "ledger_setup_draft_save_failed",
-          ledgerSetupWriteErrorMessages.draftSaveFailed,
-        );
-      }
-
-      return { ok: true };
-    },
-
-    async updateBasicInfo(input) {
-      const { error } = await supabase.rpc("update_ledger_setup_basic_info", {
-        p_living_region: input.livingRegion,
-        p_base_currency: input.baseCurrency,
-        p_display_color: input.displayColor,
-        p_display_name: input.displayName,
-        p_ledger_id: input.ledgerId,
-        p_name: input.ledgerName,
-      });
-
-      if (error) {
-        const code = findRpcBusinessError(error, ledgerSetupRpcErrorMap);
-        if (code) return { code, ok: false };
-
-        logger.error("[ledger] failed to update ledger setup basic info", {
-          databaseCode: error.code,
-          ledgerId: input.ledgerId,
-        });
-        throw toRepositoryError(
-          "ledger_setup_basic_info_update_failed",
-          ledgerSetupWriteErrorMessages.basicInfoUpdateFailed,
-        );
-      }
-
-      return { ok: true };
-    },
   };
 }
