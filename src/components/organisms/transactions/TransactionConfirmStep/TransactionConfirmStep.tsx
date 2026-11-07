@@ -155,6 +155,7 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
             w.issues.map((issue, index) => (
               <Alert
                 key={issue.id}
+                data-pulse={pulseCount}
                 ref={index === 0 ? firstIssueRef : undefined}
                 severity="error"
                 sx={
