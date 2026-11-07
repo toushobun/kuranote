@@ -270,7 +270,7 @@ describe("创建中账本数据边界", () => {
   });
 
   it("创建中账本只创建账本、owner 成员与成员设置，不初始化默认数据也不切换当前账本", () => {
-    const functionSql = getFunctionSql("create_ledger_setup");
+    const functionSql = getFunctionSql("commit_ledger_setup");
 
     expect(functionSql).toContain("'in_progress'");
     expect(functionSql).toContain("public.bootstrap_ledger_owner_member(");
@@ -280,6 +280,18 @@ describe("创建中账本数据边界", () => {
     expect(functionSql).toContain("ledger_setup_in_progress_exists");
     expect(functionSql).not.toContain("initialize_ledger_default_data");
     expect(functionSql).not.toContain("current_ledger_id");
+  });
+
+  it("删除旧的逐步骤写库 RPC", () => {
+    for (const old of [
+      "create_ledger_setup",
+      "update_ledger_setup_basic_info",
+      "save_ledger_setup_draft",
+    ]) {
+      expect(schemaSql).not.toContain(
+        `CREATE OR REPLACE FUNCTION "public"."${old}"`,
+      );
+    }
   });
 
   it("既有账本创建流程不写创建状态，沿用默认值 completed", () => {
@@ -300,25 +312,18 @@ describe("创建中账本数据边界", () => {
       `CREATE OR REPLACE TRIGGER "ledger_guard_setup_state" BEFORE UPDATE OF "setup_status", "setup_step", "setup_draft" ON "public"."ledger"`,
     );
 
-    for (const functionName of [
-      "save_ledger_setup_draft",
-      "update_ledger_setup_basic_info",
-    ]) {
-      const functionSql = getFunctionSql(functionName);
-
-      expect(functionSql).toContain(
-        "public.lock_current_user_setup_ledger(p_ledger_id)",
-      );
-      expect(functionSql).toContain(
-        "set_config('app.allow_ledger_setup_update', 'false', true)",
-      );
-    }
+    const commitSql = getFunctionSql("commit_ledger_setup");
+    expect(commitSql).toContain("for update");
+    expect(commitSql).toContain("p_expected_updated_at");
+    expect(commitSql).toContain("ledger_setup_conflict");
+    expect(commitSql).toContain(
+      "set_config('app.allow_ledger_setup_update', 'false', true)",
+    );
   });
 
   it("向导 RPC 只授权给 authenticated，内部函数不对客户端开放", () => {
     for (const signature of [
-      `"create_ledger_setup"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text", "p_living_region" "text")`,
-      `"save_ledger_setup_draft"("p_ledger_id" "uuid", "p_step" integer, "p_draft" "jsonb")`,
+      `"commit_ledger_setup"("p_ledger_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text", "p_living_region" "text", "p_step" integer, "p_draft" "jsonb", "p_complete" boolean, "p_payload" "jsonb")`,
       `"get_current_user_setup_ledger"()`,
       `"complete_ledger_setup"("p_ledger_id" "uuid", "p_payload" "jsonb")`,
       `"get_ledger_default_root_categories"()`,

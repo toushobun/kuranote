@@ -26,6 +26,7 @@ import {
 import {
   confirmLedgerSetupAbandon,
   openLedgerSetupAbandonConfirm,
+  discardLedgerSetupWizardChanges,
 } from "test/ledgerSetupAbandon";
 import { setupGuardHistoryMock } from "test/mockGuardHistory";
 import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
@@ -255,6 +256,7 @@ describe("LedgerSetupWizardLauncher", () => {
     expect(routerRefreshMock).not.toHaveBeenCalled();
 
     fireEvent.click(close);
+    await discardLedgerSetupWizardChanges();
     await waitFor(() => expect(routerRefreshMock).toHaveBeenCalledOnce());
   });
 
@@ -331,7 +333,7 @@ describe("LedgerSetupWizardLauncher", () => {
     fireEvent.click(
       within(dialog).getByRole("button", { name: "关闭创建账本向导" }),
     );
-
+    await discardLedgerSetupWizardChanges();
     await waitFor(() =>
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
     );

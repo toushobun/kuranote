@@ -127,12 +127,12 @@ export const DifferentCurrency: Story = {
   },
 };
 
-export const Saving: Story = {
-  name: "保存中",
+export const LocalStepChange: Story = {
+  name: "纯本地切换步骤",
   args: {
     actions: {
       ...createLedgerSetupWizardStoryActions(defaultProgress),
-      saveDraft: () => new Promise(() => {}),
+      persistSetup: async () => ({ error: "仅在显式保存或完成时写入" }),
     },
   },
   play: async ({ canvasElement }) => {

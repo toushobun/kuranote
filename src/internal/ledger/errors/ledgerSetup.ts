@@ -1,3 +1,7 @@
+import type { LedgerSetupTemplate } from "internal/ledger/entity/ledgerSetupTemplate/ledgerSetupTemplate";
+import type { LedgerSetupDraft } from "internal/ledger/schema/ledgerSetupDraft";
+import { ConflictError } from "internal/shared/errors/appError";
+
 export const ledgerSetupErrorCodes = {
   hasMembers: "setup_has_members",
   hasTransactions: "setup_has_transactions",
@@ -11,6 +15,7 @@ export const ledgerSetupErrorCodes = {
   payloadInvalid: "setup_payload_invalid",
   stepInvalid: "setup_step_invalid",
   templateOutdated: "setup_template_outdated",
+  conflict: "setup_conflict",
 } as const;
 
 export type LedgerSetupErrorCode =
@@ -31,9 +36,22 @@ export const ledgerSetupErrorMessages: Record<LedgerSetupErrorCode, string> = {
   [ledgerSetupErrorCodes.notInProgress]: "该账本已完成创建。",
   [ledgerSetupErrorCodes.payloadInvalid]: "创建内容不正确，请返回检查后重试。",
   [ledgerSetupErrorCodes.stepInvalid]: "创建步骤不正确，请重新操作。",
-  [ledgerSetupErrorCodes.templateOutdated]:
-    "预设内容已更新，请重新打开创建向导后再选择。",
+  [ledgerSetupErrorCodes.conflict]:
+    "账本草稿已在其他页面修改，请保留本页输入并重新打开最新进度后重试。",
+  [ledgerSetupErrorCodes.templateOutdated]: "预设内容已更新，请重新确认。",
 };
+
+export class LedgerSetupTemplateOutdatedError extends ConflictError {
+  constructor(
+    readonly draft: LedgerSetupDraft,
+    readonly template: LedgerSetupTemplate | null,
+  ) {
+    super(
+      ledgerSetupErrorCodes.templateOutdated,
+      ledgerSetupErrorMessages[ledgerSetupErrorCodes.templateOutdated],
+    );
+  }
+}
 
 /** 创建中账本与向导数据读取查询失败时的文案。 */
 export const ledgerSetupLoadErrorMessages = {
@@ -46,8 +64,6 @@ export const ledgerSetupLoadErrorMessages = {
 /** 创建中账本写入查询失败时的文案。 */
 export const ledgerSetupWriteErrorMessages = {
   abandonFailed: "放弃创建失败，请稍后重试。",
-  basicInfoUpdateFailed: "账本基本信息保存失败，请稍后重试。",
   completeFailed: "账本创建完成失败，请稍后重试。",
-  createFailed: "账本创建失败，请稍后重试。",
   draftSaveFailed: "创建进度保存失败，请稍后重试。",
 } as const;

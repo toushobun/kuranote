@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import {
   ledgerSetupAccountTypes,
@@ -12,11 +12,7 @@ import {
   type LedgerSetupTemplate,
 } from "internal/ledger";
 import type { LedgerSetupWizardStepProps } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardStepTypes";
-import { useLedgerSetupDraftSave } from "organisms/ledgers/LedgerSetupWizard/useLedgerSetupDraftSave";
-import { useLedgerSetupStepDirty } from "organisms/ledgers/LedgerSetupWizard/useLedgerSetupStepDirty";
-import type { LedgerSetupProgress } from "types/ledgers";
 
-/** 同一类型内候选名称唯一，类型 + 名称作为勾选 key。 */
 function getAccountKey({
   name,
   type,
@@ -34,7 +30,6 @@ type AccountPresetItem = {
   regions: LedgerSetupRegion[];
 };
 
-/** 模板候选 → 按地区、类型分组的勾选列表。两地都有的同名候选只列一次。 */
 function buildAccountPresetItems(template: LedgerSetupTemplate) {
   const items = new Map<string, AccountPresetItem>();
   for (const region of ledgerSetupRegions) {
@@ -58,61 +53,41 @@ function buildAccountPresetItems(template: LedgerSetupTemplate) {
   return [...items.values()];
 }
 
-type UseLedgerSetupAccountsStepOptions = Omit<
-  LedgerSetupWizardStepProps,
-  "progress"
-> & {
-  progress: LedgerSetupProgress;
-};
-
-export function useLedgerSetupAccountsStep(
-  options: UseLedgerSetupAccountsStepOptions,
-) {
-  const { progress } = options;
+export function useLedgerSetupAccountsStep({
+  onProgressChange,
+  progress,
+}: LedgerSetupWizardStepProps) {
   const { draft } = progress.setup;
-  const { template } = progress;
-  const draftSave = useLedgerSetupDraftSave(options);
   const items = useMemo(
-    () => (template ? buildAccountPresetItems(template) : []),
-    [template],
+    () => (progress.template ? buildAccountPresetItems(progress.template) : []),
+    [progress.template],
   );
-  // 草稿已在服务端按模板校正，只含模板候选。
-  const [selectedKeys, setSelectedKeys] = useState<string[]>(() =>
-    draft.accounts.items.map(getAccountKey),
-  );
-  useLedgerSetupStepDirty(
-    { selectedKeys: [...selectedKeys].sort() },
-    options.onDirtyChange,
-  );
-  const limitExceeded = selectedKeys.length > ledgerSetupLimits.maxAccounts;
+  const selectedKeys = draft.accounts.items.map(getAccountKey);
 
-  function buildDraft(skipped: boolean) {
-    const selected = new Set(selectedKeys);
-    return {
-      ...draft,
-      accounts: {
-        items: items
-          .filter(({ key }) => selected.has(key))
-          .map(({ account }) => account),
-        skipped,
+  function setSelectedKeys(keys: string[]) {
+    const selected = new Set(keys);
+    onProgressChange({
+      ...progress,
+      setup: {
+        ...progress.setup,
+        draft: {
+          ...draft,
+          accounts: {
+            items: items
+              .filter(({ key }) => selected.has(key))
+              .map(({ account }) => account),
+            skipped: false,
+          },
+        },
       },
-    };
+    });
   }
 
   return {
     checkedCount: selectedKeys.length,
-    failureState: draftSave.failureState,
-    isSaving: draftSave.isSaving,
     items,
-    limitExceeded,
+    limitExceeded: selectedKeys.length > ledgerSetupLimits.maxAccounts,
     selectedKeys,
     setSelectedKeys,
-    goNext() {
-      void draftSave.saveAndGoNext(buildDraft(false));
-    },
-    // 返回上一步时保留原有的跳过状态，只保存账户的修改。
-    goPrevious() {
-      void draftSave.saveAndGoPrevious(buildDraft(draft.accounts.skipped));
-    },
   };
 }

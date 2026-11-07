@@ -3,6 +3,16 @@
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import { useId, useState } from "react";
+import { ActionFailureFeedback } from "molecules/ui/OperationFeedbackDialogs";
+import { createErrorState } from "internal/shared/adapter/next/actionState";
+import {
+  validateLedgerSetupBasicInfoForm,
+  ledgerCreateErrorMessages,
+  ledgerSetupErrorCodes,
+  ledgerSetupErrorMessages,
+  ledgerSetupWriteErrorMessages,
+} from "internal/ledger";
+import type { ActionState } from "types/actions";
 import { BackLayerScope } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
 import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog/UnsavedChangesDialog";
 import { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
@@ -69,20 +79,97 @@ function LedgerSetupWizardContent({
   const wizard = useLedgerSetupWizard({
     initialNotice,
     initialProgress,
+    defaults,
   });
-  const [dirty, setDirty] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [failureState, setFailureState] = useState<ActionState>({});
   const [abandoning, setAbandoning] = useState(false);
-  const draft = wizard.notice === "draft" ? wizard.progress?.setup : null;
+  const draft = wizard.notice === "draft" ? wizard.savedProgress?.setup : null;
   const busy = wizard.busy || abandoning;
+  const unfinished = wizard.step <= 5 && !wizard.completeScreen;
+
+  function validateBasicInfo(): boolean {
+    const { setup } = wizard.progress;
+    const form = new FormData();
+    form.set("ledgerId", setup.id);
+    form.set("ledgerName", setup.name);
+    form.set("baseCurrency", setup.baseCurrency);
+    form.set("memberDisplayName", setup.displayName);
+    form.set("memberDisplayColor", setup.displayColor);
+    form.set("livingRegion", setup.livingRegion ?? "");
+    const validation = validateLedgerSetupBasicInfoForm(form);
+    if (validation.ok) {
+      setValidationError(null);
+      return true;
+    }
+    const messages = {
+      ...ledgerCreateErrorMessages,
+      ...ledgerSetupErrorMessages,
+    };
+    setValidationError(messages[validation.error]);
+    wizard.goToBasicInfo();
+    return false;
+  }
+
+  async function persist(complete: boolean): Promise<boolean> {
+    if (!validateBasicInfo()) return false;
+    wizard.setBusy(true);
+    try {
+      const state = await actions.persistSetup({
+        setup: wizard.getPersistableSetup(),
+        expectedUpdatedAt: wizard.savedProgress?.setup.updatedAt ?? null,
+        step: Math.min(wizard.step, 5),
+        complete,
+      });
+      if (state.refreshedTemplate) {
+        wizard.refreshTemplate(state.refreshedTemplate);
+        setFailureState({});
+        return false;
+      }
+      if (!state.updatedAt || (complete && !state.completed)) {
+        setFailureState(
+          state.error
+            ? state
+            : createErrorState(
+                complete
+                  ? ledgerSetupWriteErrorMessages.completeFailed
+                  : ledgerSetupWriteErrorMessages.draftSaveFailed,
+              ),
+        );
+        return false;
+      }
+      setFailureState({});
+      if (complete) {
+        wizard.markSetupCompleted();
+      }
+      return true;
+    } catch {
+      setFailureState(
+        createErrorState(
+          complete
+            ? ledgerSetupWriteErrorMessages.completeFailed
+            : ledgerSetupWriteErrorMessages.draftSaveFailed,
+        ),
+      );
+      return false;
+    } finally {
+      wizard.setBusy(false);
+    }
+  }
+
   const guard = useUnsavedChangesGuard({
     active: open,
     disabled: busy,
-    isDirty: dirty,
+    isDirty: unfinished && wizard.dirty,
+    confirmOnLeave: unfinished,
     layer: wizardLayer,
     onClose,
     saveFormId: null,
+    saveOnLeave: () => persist(false),
+    saveLabel: ledgerSetupWizardMessages.saveAndExit,
+    cleanDescription: ledgerSetupWizardMessages.cleanExitDescription,
   });
-  const { Component: StepComponent, key, label } = wizard.currentStep;
+  const { Component: StepComponent, key } = wizard.currentStep;
 
   return (
     <>
@@ -112,26 +199,25 @@ function LedgerSetupWizardContent({
                   severity="info"
                   sx={noticeSx}
                 >
+                  {wizard.notice === "templateUpdated"
+                    ? ledgerSetupErrorMessages[
+                        ledgerSetupErrorCodes.templateOutdated
+                      ]
+                    : ledgerSetupEntryMessages.draftNotice}
                   {draft ? (
-                    <>
-                      {ledgerSetupEntryMessages.draftNotice}
-                      <LedgerSetupAbandonButton
-                        action={actions.abandonSetup}
-                        disabled={busy}
-                        ledgerId={draft.id}
-                        ledgerName={draft.name}
-                        onBusyChange={setAbandoning}
-                        onSuccess={() => {
-                          setAbandoning(false);
-                          setDirty(false);
-                          wizard.resetDraft();
-                        }}
-                        restart
-                      />
-                    </>
-                  ) : (
-                    ledgerSetupWizardMessages.templateUpdatedNotice
-                  )}
+                    <LedgerSetupAbandonButton
+                      action={actions.abandonSetup}
+                      disabled={busy}
+                      ledgerId={draft.id}
+                      ledgerName={draft.name}
+                      onBusyChange={setAbandoning}
+                      onSuccess={() => {
+                        setAbandoning(false);
+                        wizard.resetDraft();
+                      }}
+                      restart
+                    />
+                  ) : null}
                 </Alert>
               ) : null}
             </>
@@ -153,27 +239,26 @@ function LedgerSetupWizardContent({
             <StepComponent
               actions={actions}
               defaultRootCategoryNames={defaultRootCategoryNames}
-              defaults={defaults}
-              key={`${key}:${wizard.progress?.setup.id ?? "new"}:${wizard.progressRevision}`}
+              key={`${key}:${wizard.progressRevision}`}
               onBusyChange={wizard.setBusy}
-              onDirtyChange={setDirty}
               onFinish={wizard.finish}
               onGoToStep={wizard.goToStep}
               onNext={wizard.goNext}
               onPrevious={wizard.goPrevious}
               onProgressChange={wizard.updateProgress}
-              onProgressRefresh={wizard.refreshProgress}
-              onRestore={wizard.restoreProgress}
-              onSetupCompleted={wizard.markSetupCompleted}
+              onComplete={() => persist(true)}
+              validationError={validationError}
               progress={wizard.progress}
-              step={wizard.step}
-              stepLabel={label}
             />
           </Box>
         )}
       </WizardDialog>
 
       <UnsavedChangesDialog {...guard.dialogProps} />
+      <ActionFailureFeedback
+        state={failureState}
+        title={ledgerSetupWizardMessages.saveErrorTitle}
+      />
     </>
   );
 }

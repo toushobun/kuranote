@@ -18,9 +18,8 @@ export const ledgerSetupWizardMessages = {
     merchants: "商家",
   },
   saveErrorTitle: "创建进度保存失败",
-  submitting: "保存中",
-  /** 保存草稿时预设模板已更新或生活地区已变更，向导已按最新进度刷新。 */
-  templateUpdatedNotice: "预设内容已更新，请重新确认",
+  saveAndExit: "保存并退出",
+  cleanExitDescription: "账本还没创建完，要保存当前进度再退出吗？",
   title: "创建账本",
 } as const;
 
@@ -79,7 +78,6 @@ export const ledgerSetupConfirmMessages = {
     title: "分类（自动创建）",
   },
   complete: "完成创建",
-  completeErrorTitle: "账本创建失败",
   completing: "创建中",
   description: (ledgerName: string) => `以下内容将添加到「${ledgerName}」`,
   edit: "修改",

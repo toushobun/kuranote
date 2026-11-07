@@ -104,7 +104,7 @@ export const Submitting: Story = {
     actions: {
       ...createLedgerSetupWizardStoryActions(filledProgress),
       abandonSetup: async () => ({}),
-      completeSetup: () => new Promise(() => {}),
+      persistSetup: () => new Promise(() => {}),
     },
   },
   play: async ({ canvasElement }) => {

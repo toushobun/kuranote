@@ -115,6 +115,8 @@ declare
     v_setup_ledger_id uuid;
     v_count integer;
     v_updated_count integer;
+    v_version timestamptz;
+    v_draft jsonb := '{"templateRegion":"jp"}'::jsonb;
 begin
     perform pg_temp.create_test_user(v_owner_id, 'ledger-setup-owner@example.invalid');
     perform pg_temp.create_test_user(v_other_id, 'ledger-setup-other@example.invalid');
@@ -138,8 +140,11 @@ begin
     end if;
 
     -- 创建中账本：只创建账本、owner 成员与成员设置，不初始化业务数据，不切换当前账本。
-    select public.create_ledger_setup(' Setup Ledger ', ' jpy ', ' Setup Owner ', 'sky')
-      into v_setup_ledger_id;
+    v_setup_ledger_id := gen_random_uuid();
+    select public.commit_ledger_setup(
+        v_setup_ledger_id, null, ' Setup Ledger ', ' jpy ', ' Setup Owner ', 'sky',
+        'jp', 2, v_draft, false, null
+    ) into v_version;
 
     if not exists (
         select 1
@@ -150,9 +155,9 @@ begin
           and l.owner_user_id = v_owner_id
           and l.setup_status = 'in_progress'
           and l.setup_step = 2
-          and l.setup_draft = '{}'::jsonb
+          and l.setup_draft = v_draft
     ) then
-        raise exception 'create_ledger_setup ledger smoke test failed';
+        raise exception 'commit_ledger_setup ledger smoke test failed';
     end if;
 
     if not exists (
@@ -168,14 +173,14 @@ begin
           and lds.display_name = 'Setup Owner'
           and lds.display_color = 'sky'
     ) then
-        raise exception 'create_ledger_setup owner member smoke test failed';
+        raise exception 'commit_ledger_setup owner member smoke test failed';
     end if;
 
     if exists (select 1 from public.category where ledger_id = v_setup_ledger_id)
        or exists (select 1 from public.account where ledger_id = v_setup_ledger_id)
        or exists (select 1 from public.merchant where ledger_id = v_setup_ledger_id)
        or exists (select 1 from public.merchant_tags where ledger_id = v_setup_ledger_id) then
-        raise exception 'create_ledger_setup must not initialize default data';
+        raise exception 'commit_ledger_setup must not initialize default data';
     end if;
 
     if not exists (
@@ -184,21 +189,8 @@ begin
         where au.id = v_owner_id
           and au.current_ledger_id = v_completed_ledger_id
     ) then
-        raise exception 'create_ledger_setup must not change current ledger';
+        raise exception 'commit_ledger_setup must not change current ledger';
     end if;
-
-    perform pg_temp.expect_error(
-        'create_ledger_setup duplicate',
-        $sql$select public.create_ledger_setup('Second Setup', 'JPY', 'Owner', 'jade')$sql$,
-        '23505',
-        'ledger_setup_in_progress_exists'
-    );
-    perform pg_temp.expect_error(
-        'create_ledger_setup invalid currency',
-        $sql$select public.create_ledger_setup('Invalid Setup', 'XXX', 'Owner', 'jade')$sql$,
-        '22023',
-        'currency_invalid'
-    );
 
     -- 读取当前用户的创建中账本。
     if not exists (
@@ -208,77 +200,16 @@ begin
           and s.ledger_name = 'Setup Ledger'
           and s.base_currency = 'JPY'
           and s.setup_step = 2
-          and s.setup_draft = '{}'::jsonb
+          and s.setup_draft = v_draft
     ) then
         raise exception 'get_current_user_setup_ledger owner smoke test failed';
     end if;
 
-    -- 保存草稿。
-    perform public.save_ledger_setup_draft(
-        v_setup_ledger_id,
-        3,
-        '{"accounts": [{"type": "cash"}]}'::jsonb
-    );
-
-    if not exists (
-        select 1
-        from public.ledger l
-        where l.id = v_setup_ledger_id
-          and l.setup_step = 3
-          and l.setup_draft = '{"accounts": [{"type": "cash"}]}'::jsonb
-    ) then
-        raise exception 'save_ledger_setup_draft smoke test failed';
-    end if;
-
-    perform pg_temp.expect_error(
-        'save_ledger_setup_draft step too large',
-        format('select public.save_ledger_setup_draft(%L, 6, %L::jsonb)', v_setup_ledger_id, '{}'),
-        '22023',
-        'ledger_setup_step_invalid'
-    );
-    perform pg_temp.expect_error(
-        'save_ledger_setup_draft step too small',
-        format('select public.save_ledger_setup_draft(%L, 0, %L::jsonb)', v_setup_ledger_id, '{}'),
-        '22023',
-        'ledger_setup_step_invalid'
-    );
-    perform pg_temp.expect_error(
-        'save_ledger_setup_draft array draft',
-        format('select public.save_ledger_setup_draft(%L, 3, %L::jsonb)', v_setup_ledger_id, '[]'),
-        '22023',
-        'ledger_setup_draft_invalid'
-    );
-    perform pg_temp.expect_error(
-        'save_ledger_setup_draft null draft',
-        format('select public.save_ledger_setup_draft(%L, 3, null)', v_setup_ledger_id),
-        '22023',
-        'ledger_setup_draft_invalid'
-    );
-    perform pg_temp.expect_error(
-        'save_ledger_setup_draft too large',
-        format(
-            'select public.save_ledger_setup_draft(%L, 3, jsonb_build_object(%L, repeat(%L, 70000)))',
-            v_setup_ledger_id,
-            'note',
-            'x'
-        ),
-        '22023',
-        'ledger_setup_draft_too_large'
-    );
-    perform pg_temp.expect_error(
-        'save_ledger_setup_draft completed ledger',
-        format('select public.save_ledger_setup_draft(%L, 3, %L::jsonb)', v_completed_ledger_id, '{}'),
-        '55000',
-        'ledger_setup_not_in_progress'
-    );
-
-    -- 修改创建中账本的基本信息。
-    perform public.update_ledger_setup_basic_info(
-        v_setup_ledger_id,
-        'Renamed Setup',
-        'usd',
-        'Renamed Owner',
-        'rose'
+    -- 一次提交同时更新基本信息、草稿和步骤。
+    v_draft := v_draft || '{"accounts":{"items":[],"skipped":true}}'::jsonb;
+    perform public.commit_ledger_setup(
+        v_setup_ledger_id, v_version, 'Renamed Setup', 'usd', 'Renamed Owner', 'rose',
+        'jp', 3, v_draft, false, null
     );
 
     if not exists (
@@ -288,41 +219,16 @@ begin
           on lds.ledger_id = l.id
          and lds.user_id = v_owner_id
         where l.id = v_setup_ledger_id
+          and l.setup_step = 3
+          and l.setup_draft = v_draft
           and l.name = 'Renamed Setup'
           and l.base_currency = 'USD'
           and l.setup_status = 'in_progress'
           and lds.display_name = 'Renamed Owner'
           and lds.display_color = 'rose'
     ) then
-        raise exception 'update_ledger_setup_basic_info smoke test failed';
+        raise exception 'commit_ledger_setup update smoke test failed';
     end if;
-
-    perform pg_temp.expect_error(
-        'update_ledger_setup_basic_info completed ledger',
-        format(
-            'select public.update_ledger_setup_basic_info(%L, %L, %L, %L, %L)',
-            v_completed_ledger_id,
-            'Name',
-            'JPY',
-            'Owner',
-            'jade'
-        ),
-        '55000',
-        'ledger_setup_not_in_progress'
-    );
-    perform pg_temp.expect_error(
-        'update_ledger_setup_basic_info invalid color',
-        format(
-            'select public.update_ledger_setup_basic_info(%L, %L, %L, %L, %L)',
-            v_setup_ledger_id,
-            'Name',
-            'JPY',
-            'Owner',
-            'unknown'
-        ),
-        '22023',
-        'display_color_invalid'
-    );
 
     -- 创建中账本不可设为当前账本。
     perform pg_temp.expect_error(
@@ -492,41 +398,15 @@ begin
         raise exception 'get_current_user_setup_ledger other user smoke test failed';
     end if;
 
-    perform pg_temp.expect_error(
-        'save_ledger_setup_draft other user',
-        format('select public.save_ledger_setup_draft(%L, 3, %L::jsonb)', v_setup_ledger_id, '{}'),
-        'P0002',
-        'ledger_setup_not_found'
-    );
-    perform pg_temp.expect_error(
-        'update_ledger_setup_basic_info other user',
-        format(
-            'select public.update_ledger_setup_basic_info(%L, %L, %L, %L, %L)',
-            v_setup_ledger_id,
-            'Name',
-            'JPY',
-            'Other',
-            'jade'
-        ),
-        'P0002',
-        'ledger_setup_not_found'
-    );
-
     -- 其他用户可以拥有自己的创建中账本（唯一约束按 owner 区分）。
-    perform public.create_ledger_setup('Other Setup', 'CNY', 'Other', 'lime');
-
-    perform pg_catalog.set_config('request.jwt.claim.sub', '', true);
-
-    perform pg_temp.expect_error(
-        'create_ledger_setup unauthenticated',
-        $sql$select public.create_ledger_setup('Anonymous Setup', 'JPY', 'Owner', 'jade')$sql$,
-        '42501',
-        'auth_required'
+    perform public.commit_ledger_setup(
+        gen_random_uuid(), null, 'Other Setup', 'CNY', 'Other', 'lime',
+        'cn', 2, '{"templateRegion":"cn"}'::jsonb, false, null
     );
 end;
 $$;
 
--- 完成写入 RPC：成功写入、跳过、非法 payload、权限、GUC、换币种保留草稿。
+-- 完成写入 RPC：成功写入、跳过、非法 payload、权限与 GUC。
 create function pg_temp.completion_payload()
 returns jsonb
 language sql
@@ -659,41 +539,10 @@ begin
         'display_color_invalid'
     );
 
-    select public.create_ledger_setup('Wizard Ledger', 'JPY', 'Wizard Owner', 'sky', 'jp')
-      into v_setup_ledger_id;
-
-    -- 草稿的模板币种必须与账本默认货币一致。
-    perform public.save_ledger_setup_draft(v_setup_ledger_id, 4, v_draft);
-    perform pg_temp.expect_error(
-        'save_ledger_setup_draft currency mismatch',
-        format(
-            'select public.save_ledger_setup_draft(%L, 4, %L::jsonb)',
-            v_setup_ledger_id,
-            v_draft || '{"templateRegion": "cn"}'::jsonb
-        ),
-        '22023',
-        'ledger_setup_region_mismatch'
-    );
-
-    -- 货币不变时草稿不动。
-    perform public.update_ledger_setup_basic_info(
-        v_setup_ledger_id, 'Wizard Renamed', 'JPY', 'Wizard Owner', 'sky'
-    );
-    if (select setup_draft from public.ledger where id = v_setup_ledger_id) <> v_draft then
-        raise exception 'update_ledger_setup_basic_info must keep draft when currency unchanged';
-    end if;
-
-    -- 货币变化时保留完整草稿。
-    perform public.update_ledger_setup_basic_info(
-        v_setup_ledger_id, 'Wizard Renamed', 'USD', 'Wizard Owner', 'sky'
-    );
-    if (select setup_draft from public.ledger where id = v_setup_ledger_id)
-       <> v_draft then
-        raise exception 'update_ledger_setup_basic_info must keep draft when currency changed';
-    end if;
-
-    perform public.update_ledger_setup_basic_info(
-        v_setup_ledger_id, 'Wizard Ledger', 'JPY', 'Wizard Owner', 'sky'
+    v_setup_ledger_id := gen_random_uuid();
+    perform public.commit_ledger_setup(
+        v_setup_ledger_id, null, 'Wizard Ledger', 'JPY', 'Wizard Owner', 'sky',
+        'jp', 4, v_draft, false, null
     );
 
     -- 非法 payload 被拒且不留任何数据。
@@ -931,11 +780,14 @@ begin
 
     -- 跳过账户与商家时也能完成。
     perform pg_temp.sign_in(v_other_id);
-    select public.create_ledger_setup('Skipped Ledger', 'USD', 'Other', 'lime')
-      into v_skip_ledger_id;
+    v_skip_ledger_id := gen_random_uuid();
+    perform public.commit_ledger_setup(
+        v_skip_ledger_id, null, 'Skipped Ledger', 'USD', 'Other', 'lime',
+        'jp', 5, '{"templateRegion":"jp"}'::jsonb, false, null
+    );
     perform public.complete_ledger_setup(
         v_skip_ledger_id,
-        '{"accounts": [], "merchantTags": [], "merchants": [], "multiAccountPaymentEnabled": false, "specialStatusEnabled": false}'::jsonb
+        '{"templateRegion": "jp", "accounts": [], "merchantTags": [], "merchants": [], "multiAccountPaymentEnabled": false, "specialStatusEnabled": false}'::jsonb
     );
 
     if not exists (
@@ -989,10 +841,14 @@ begin
 
     perform pg_temp.create_test_user(v_owner_id, 'merchant-icon-owner@example.invalid');
     perform pg_temp.sign_in(v_owner_id);
-    v_ledger_id := public.create_ledger_setup('Icon Ledger', 'JPY', 'Icon Owner', 'sky');
+    v_ledger_id := gen_random_uuid();
+    perform public.commit_ledger_setup(
+        v_ledger_id, null, 'Icon Ledger', 'JPY', 'Icon Owner', 'sky',
+        'jp', 5, '{"templateRegion":"jp"}'::jsonb, false, null
+    );
     perform public.complete_ledger_setup(
         v_ledger_id,
-        '{"accounts": [], "merchantTags": [], "merchants": [], "multiAccountPaymentEnabled": false, "specialStatusEnabled": false}'::jsonb
+        '{"templateRegion": "jp", "accounts": [], "merchantTags": [], "merchants": [], "multiAccountPaymentEnabled": false, "specialStatusEnabled": false}'::jsonb
     );
 
     insert into public.merchant (
@@ -1137,11 +993,14 @@ begin
     select (public.create_ledger_with_owner_settings('Legacy Categories', 'JPY', 'Owner', 'jade')).id
       into v_legacy_ledger_id;
 
-    select public.create_ledger_setup('Setup Categories', 'USD', 'Owner', 'sky')
-      into v_setup_ledger_id;
+    v_setup_ledger_id := gen_random_uuid();
+    perform public.commit_ledger_setup(
+        v_setup_ledger_id, null, 'Setup Categories', 'USD', 'Owner', 'sky',
+        'jp', 5, '{"templateRegion":"jp"}'::jsonb, false, null
+    );
     perform public.complete_ledger_setup(
         v_setup_ledger_id,
-        '{"accounts": [], "merchantTags": [], "merchants": [], "multiAccountPaymentEnabled": false, "specialStatusEnabled": false}'::jsonb
+        '{"templateRegion": "jp", "accounts": [], "merchantTags": [], "merchants": [], "multiAccountPaymentEnabled": false, "specialStatusEnabled": false}'::jsonb
     );
 
     perform pg_temp.assert_default_categories('/ledgers/new', v_legacy_ledger_id);
@@ -1167,6 +1026,241 @@ begin
        or has_function_privilege('anon', 'public.ledger_default_categories()', 'execute')
        or has_function_privilege('authenticated', 'public.initialize_ledger_default_categories(uuid, uuid)', 'execute') then
         raise exception 'default category function privileges smoke test failed';
+    end if;
+end;
+$$;
+
+-- #997 统一草稿提交的授权、幂等、并发和原子完成。
+do $$
+declare
+    v_owner uuid := '99700000-0000-4000-8000-000000000011';
+    v_other uuid := '99700000-0000-4000-8000-000000000012';
+    v_id uuid := '99700000-0000-4000-8000-000000000001';
+    v_other_id uuid := '99700000-0000-4000-8000-000000000002';
+    v_failed_id uuid := '99700000-0000-4000-8000-000000000003';
+    v_version timestamptz;
+    v_next_version timestamptz;
+    v_invalid_step integer;
+    v_invalid_draft jsonb;
+    v_draft jsonb := '{"schemaVersion":2,"templateRegion":"jp","templateVersion":5,
+      "accounts":{"items":[{"type":"cash","name":"日元现金","templateKey":"日元现金"}],"skipped":false},
+      "merchants":{"selectedKeys":[],"skipped":false},
+      "features":{"specialStatusEnabled":false,"multiAccountPaymentEnabled":false}}'::jsonb;
+    v_payload jsonb := '{"templateRegion":"jp",
+      "accounts":[{"type":"cash","name":"日元现金","currency":"JPY"}],
+      "merchantTags":[],"merchants":[],
+      "specialStatusEnabled":false,"multiAccountPaymentEnabled":false}'::jsonb;
+begin
+    perform pg_temp.create_test_user(v_owner, 'issue997-owner@example.test');
+    perform pg_temp.create_test_user(v_other, 'issue997-other@example.test');
+    if has_function_privilege(
+        'anon',
+        'public.commit_ledger_setup(uuid,timestamptz,text,text,text,text,text,integer,jsonb,boolean,jsonb)',
+        'execute'
+    ) then
+        raise exception 'anonymous must not execute commit_ledger_setup';
+    end if;
+    if not has_function_privilege(
+        'authenticated',
+        'public.commit_ledger_setup(uuid,timestamptz,text,text,text,text,text,integer,jsonb,boolean,jsonb)',
+        'execute'
+    ) then
+        raise exception 'authenticated must be able to execute commit_ledger_setup';
+    end if;
+    if to_regprocedure('public.create_ledger_setup(text,text,text,text,text)') is not null
+       or to_regprocedure('public.update_ledger_setup_basic_info(uuid,text,text,text,text,text)') is not null
+       or to_regprocedure('public.save_ledger_setup_draft(uuid,integer,jsonb)') is not null then
+        raise exception 'old ledger setup RPCs are still present';
+    end if;
+
+    perform pg_temp.sign_in(v_owner);
+    select public.commit_ledger_setup(
+        v_id, null, ' 家庭账本 ', 'jpy', 'Owner', 'amber', 'jp',
+        2, v_draft, false, null
+    ) into v_version;
+
+    if not exists (
+        select 1 from public.ledger
+        where id = v_id and owner_user_id = v_owner
+          and name = '家庭账本' and base_currency = 'JPY'
+          and setup_status = 'in_progress' and setup_step = 2
+          and setup_draft = v_draft
+    ) then
+        raise exception 'first save did not persist full draft';
+    end if;
+    if not exists (
+        select 1 from public.ledger_member lm
+          join public.ledger_member_display_setting dm
+            on dm.ledger_id=lm.ledger_id and dm.user_id=lm.user_id
+        where lm.ledger_id=v_id and lm.user_id=v_owner
+          and lm.role='owner' and dm.display_name='Owner'
+    ) then
+        raise exception 'first save did not bootstrap owner';
+    end if;
+    if exists (select 1 from public.account where ledger_id=v_id)
+       or exists (select 1 from public.category where ledger_id=v_id) then
+        raise exception 'save exit unexpectedly initialized business data';
+    end if;
+
+    -- 相同客户端 UUID 首次请求因响应丢失而再次到达时视为一次提交。
+    if public.commit_ledger_setup(
+        v_id, null, '家庭账本', 'JPY', 'Owner', 'amber', 'jp',
+        2, v_draft, false, null
+    ) is distinct from v_version then
+        raise exception 'first save retry returned different version';
+    end if;
+    if (select count(*) from public.ledger where id=v_id) <> 1 then
+        raise exception 'first save retry duplicated ledger';
+    end if;
+
+    -- 纯进度保存不得更改快照。
+    select public.commit_ledger_setup(
+        v_id, v_version, '家庭账本', 'JPY', 'Owner', 'amber', 'jp',
+        3, v_draft, false, null
+    ) into v_next_version;
+    if not exists (
+        select 1 from public.ledger
+        where id=v_id and setup_step=3 and setup_draft=v_draft
+    ) then
+        raise exception 'step only save lost draft';
+    end if;
+
+    perform pg_temp.expect_error(
+        'stale version conflict',
+        format(
+          'select public.commit_ledger_setup(%L::uuid, %L::timestamptz, %L, %L, %L, %L, %L, 4, %L::jsonb, false, null)',
+          v_id, v_version - interval '1 second',
+          '家庭账本', 'JPY', 'Owner', 'amber', 'jp', v_draft
+        ),
+        '40001', 'ledger_setup_conflict'
+    );
+    if (select setup_step from public.ledger where id=v_id) <> 3 then
+        raise exception 'stale request overwrote progress';
+    end if;
+
+    perform pg_temp.expect_error(
+        'different draft ID forbidden',
+        format(
+          'select public.commit_ledger_setup(%L::uuid, null, %L, %L, %L, %L, %L, 1, %L::jsonb, false, null)',
+          v_other_id, 'Another draft', 'JPY', 'Owner', 'amber', 'jp', v_draft
+        ),
+        '23505', 'ledger_setup_in_progress_exists'
+    );
+
+    perform pg_temp.sign_in(v_other);
+    perform pg_temp.expect_error(
+        'not owner',
+        format(
+          'select public.commit_ledger_setup(%L::uuid, null, %L, %L, %L, %L, %L, 3, %L::jsonb, false, null)',
+          v_id, '家庭账本', 'JPY', 'Owner', 'amber', 'jp', v_draft
+        ),
+        '42501', 'ledger_setup_not_found'
+    );
+    perform pg_catalog.set_config('request.jwt.claim.sub', '', true);
+    perform pg_temp.expect_error(
+        'no auth',
+        format(
+          'select public.commit_ledger_setup(%L::uuid, null, %L, %L, %L, %L, %L, 3, %L::jsonb, false, null)',
+          v_id, '家庭账本', 'JPY', 'Owner', 'amber', 'jp', v_draft
+        ),
+        '42501', 'auth_required'
+    );
+    perform pg_temp.sign_in(v_owner);
+
+    perform pg_temp.expect_error(
+        'draft region mismatch',
+        format(
+          'select public.commit_ledger_setup(%L::uuid, null, %L, %L, %L, %L, %L, 3, %L::jsonb, false, null)',
+          v_id, '家庭账本', 'JPY', 'Owner', 'amber', 'cn', v_draft
+        ),
+        '22023', 'ledger_setup_region_mismatch'
+    );
+    perform pg_temp.expect_error(
+        'draft size',
+        format(
+          'select public.commit_ledger_setup(%L::uuid, null, %L, %L, %L, %L, %L, 3, jsonb_build_object(''templateRegion'', ''jp'', ''note'', repeat(''x'', 70000)), false, null)',
+          v_id, '家庭账本', 'JPY', 'Owner', 'amber', 'jp'
+        ),
+        '22023', 'ledger_setup_draft_too_large'
+    );
+    perform pg_temp.expect_error(
+        'invalid currency',
+        format(
+          'select public.commit_ledger_setup(%L::uuid, null, %L, %L, %L, %L, %L, 3, %L::jsonb, false, null)',
+          v_id, '家庭账本', 'INVALID', 'Owner', 'amber', 'jp', v_draft
+        ),
+        '22023', 'currency_invalid'
+    );
+
+    perform pg_temp.expect_error(
+        'invalid display color',
+        format(
+            'select public.commit_ledger_setup(%L, null, %L, %L, %L, %L, %L, 3, %L::jsonb, false, null)',
+            v_id, '家庭账本', 'JPY', 'Owner', 'unknown', 'jp', v_draft
+        ),
+        '22023', 'display_color_invalid'
+    );
+    foreach v_invalid_step in array array[0, 6] loop
+        perform pg_temp.expect_error(
+            'invalid step',
+            format(
+                'select public.commit_ledger_setup(%L, null, %L, %L, %L, %L, %L, %s, %L::jsonb, false, null)',
+                v_id, '家庭账本', 'JPY', 'Owner', 'amber', 'jp', v_invalid_step, v_draft
+            ),
+            '22023', 'ledger_setup_step_invalid'
+        );
+    end loop;
+    foreach v_invalid_draft in array array[null, '[]'::jsonb] loop
+        perform pg_temp.expect_error(
+            'invalid draft',
+            format(
+                'select public.commit_ledger_setup(%L, null, %L, %L, %L, %L, %L, 3, %L::jsonb, false, null)',
+                v_id, '家庭账本', 'JPY', 'Owner', 'amber', 'jp', v_invalid_draft
+            ),
+            '22023', 'ledger_setup_draft_invalid'
+        );
+    end loop;
+
+    -- 最终确认需要完整事务：先保存到第 5 步再初始化业务数据。
+    select public.commit_ledger_setup(
+        v_id, v_next_version, '家庭账本', 'JPY', 'Owner', 'amber',
+        'jp', 5, v_draft, true, v_payload
+    ) into v_version;
+    if (select setup_status from public.ledger where id=v_id) <> 'completed'
+       or (select count(*) from public.account where ledger_id=v_id) <> 1
+       or (select count(*) from public.category where ledger_id=v_id) = 0 then
+        raise exception 'atomic completion did not write business data';
+    end if;
+    -- 重试完成不可再插入任何初始账户。
+    perform public.commit_ledger_setup(
+        v_id, v_next_version, '家庭账本', 'JPY', 'Owner', 'amber',
+        'jp', 5, v_draft, true, v_payload
+    );
+    if (select count(*) from public.account where ledger_id=v_id) <> 1 then
+        raise exception 'completion retry created duplicated accounts';
+    end if;
+
+    perform pg_temp.expect_error(
+        'cannot save completed ledger',
+        format(
+            'select public.commit_ledger_setup(%L, null, %L, %L, %L, %L, %L, 3, %L::jsonb, false, null)',
+            v_id, '家庭账本', 'JPY', 'Owner', 'amber', 'jp', v_draft
+        ),
+        '23505', 'ledger_setup_not_in_progress'
+    );
+
+    -- 首次直接完成遭遇无效 payload 时整笔事务回滚，不留下 in_progress 记录。
+    perform pg_temp.expect_error(
+        'complete and create rollback',
+        format(
+          'select public.commit_ledger_setup(%L::uuid, null, %L, %L, %L, %L, %L, 5, %L::jsonb, true, %L::jsonb)',
+          v_failed_id, 'Failed create', 'JPY', 'Owner', 'amber', 'jp',
+          v_draft, '{"accounts":[]}'
+        ),
+        '22023', 'ledger_setup_payload_invalid'
+    );
+    if exists (select 1 from public.ledger where id=v_failed_id) then
+        raise exception 'failed complete created a partial ledger';
     end if;
 end;
 $$;

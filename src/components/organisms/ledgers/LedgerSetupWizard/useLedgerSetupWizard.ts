@@ -1,8 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
-import type { LedgerSetupProgress } from "types/ledgers";
+import {
+  createDefaultLedgerSetupDraft,
+  getLedgerSetupRegionFromTimeZone,
+  isLedgerCurrency,
+  getLedgerSetupTemplate,
+  type LedgerSetup,
+} from "internal/ledger";
+import type { LedgerBasicInfoValues } from "organisms/ledgers/LedgerBasicInfoFields/LedgerBasicInfoFields";
+import type {
+  LedgerSetupPersistActionState,
+  LedgerSetupProgress,
+} from "types/ledgers";
 import { buildLedgerSetupConfirmSummary } from "utils/ledgerSetupSummary";
 
 import {
@@ -17,99 +28,159 @@ function clampStep(step: number) {
   return Math.min(Math.max(step, 1), stepCount);
 }
 
-/** 恢复到创建中账本上次的步骤；尚未创建时从第 1 步开始。 */
-function getResumeStep(progress: LedgerSetupProgress | null) {
-  return progress ? clampStep(progress.setup.step) : 1;
+function createNewProgress(
+  defaults: LedgerBasicInfoValues,
+): LedgerSetupProgress {
+  const livingRegion = getLedgerSetupRegionFromTimeZone(
+    Intl.DateTimeFormat().resolvedOptions().timeZone,
+  );
+  return {
+    setup: {
+      baseCurrency: isLedgerCurrency(defaults.baseCurrency)
+        ? defaults.baseCurrency
+        : "JPY",
+      displayColor: defaults.displayColor,
+      displayName: defaults.displayName,
+      draft: createDefaultLedgerSetupDraft(livingRegion),
+      id: "",
+      livingRegion,
+      name: defaults.ledgerName,
+      step: 1,
+      updatedAt: null,
+    },
+    template: getLedgerSetupTemplate(livingRegion),
+  };
+}
+
+function snapshotOf(setup: LedgerSetup) {
+  return JSON.stringify({
+    baseCurrency: setup.baseCurrency,
+    displayColor: setup.displayColor,
+    displayName: setup.displayName,
+    draft: setup.draft,
+    livingRegion: setup.livingRegion,
+    name: setup.name,
+  });
 }
 
 export type LedgerSetupWizardNotice = "draft" | "templateUpdated";
 
 type UseLedgerSetupWizardOptions = {
+  defaults: LedgerBasicInfoValues;
   initialNotice?: LedgerSetupWizardNotice | null;
   initialProgress: LedgerSetupProgress | null;
 };
 
 export function useLedgerSetupWizard({
+  defaults,
   initialNotice = null,
   initialProgress,
 }: UseLedgerSetupWizardOptions) {
-  const [progress, setProgress] = useState(initialProgress);
-  const [step, setStep] = useState(() => getResumeStep(initialProgress));
-  // 进度被服务端重新读取的内容替换时递增，使当前步骤按新进度重新初始化。
+  // 编辑期间只有此处持有完整草稿；持久化快照仅用于比较与乐观锁。
+  const clientId = useRef(initialProgress?.setup.id ?? "");
+  const [progress, setProgress] = useState<LedgerSetupProgress>(
+    () => initialProgress ?? createNewProgress(defaults),
+  );
+  const [savedProgress, setSavedProgress] = useState(initialProgress);
+  const [step, setStep] = useState(() =>
+    initialProgress ? clampStep(initialProgress.setup.step) : 1,
+  );
   const [progressRevision, setProgressRevision] = useState(0);
-  // 步骤保存中：锁定「×」与关闭，避免保存过程中关闭向导。
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(initialNotice);
-  // 完成写入成功时保存的完成页统计；完成后草稿已过期，不再从进度计算。
   const [completion, setCompletion] = useState<LedgerSetupCompletion | null>(
     null,
   );
-  // 第 6 步「完成」后显示完成页（不属于步骤注册表，不计入进度条）。
   const [completeScreen, setCompleteScreen] = useState<
     (LedgerSetupCompletion & { placeholderMemberCount: number }) | null
   >(null);
+
+  function getPersistableSetup(): LedgerSetup {
+    if (!clientId.current) {
+      clientId.current = crypto.randomUUID();
+      const id = clientId.current;
+      // UUID 仅在用户明确保存或完成创建时生成，不在渲染或 effect 中写状态。
+      setProgress((current) => ({
+        ...current,
+        setup: { ...current.setup, id },
+      }));
+    }
+    return { ...progress.setup, id: clientId.current };
+  }
+
+  const dirty =
+    !savedProgress ||
+    snapshotOf(progress.setup) !== snapshotOf(savedProgress.setup);
+
+  function markSetupCompleted() {
+    const summary = buildLedgerSetupConfirmSummary(progress);
+    setCompletion({
+      accountCount: summary.accounts.names.length,
+      ledgerName: summary.basicInfo.ledgerName,
+      merchantCount: summary.merchants.count,
+    });
+    setNotice(null);
+    setStep(ledgerSetupLastDraftStep + 1);
+  }
 
   return {
     busy,
     completeScreen,
     currentStep: ledgerSetupWizardSteps[step - 1],
+    dirty,
     notice,
     progress,
     progressRevision,
+    savedProgress,
     step,
     dismissNotice() {
       setNotice(null);
     },
     finish(placeholderMemberCount: number) {
-      // 第 6 步只会在完成写入成功（已保存统计）后进入。
       if (!completion) return;
       setCompleteScreen({ ...completion, placeholderMemberCount });
     },
     goNext() {
       setStep((current) => clampStep(current + 1));
     },
-    // 只允许跳到完成写入前可编辑的步骤（确认一览之前），不跳到确认一览自身或完成后的步骤。
     goToStep(target: number) {
       if (
         !Number.isInteger(target) ||
         target < 1 ||
         target >= ledgerSetupLastDraftStep
-      ) {
+      )
         return;
-      }
       setStep(target);
     },
-    markSetupCompleted() {
-      if (!progress) return;
-      // 账户数、商家数与确认一览使用同一份汇总，保证两处数字一致。
-      const summary = buildLedgerSetupConfirmSummary(progress);
-      setCompletion({
-        accountCount: summary.accounts.names.length,
-        ledgerName: summary.basicInfo.ledgerName,
-        merchantCount: summary.merchants.count,
-      });
-      setNotice((current) => (current === "draft" ? null : current));
-      setStep(ledgerSetupLastDraftStep + 1);
-    },
+    markSetupCompleted,
     goPrevious() {
       setStep((current) => clampStep(current - 1));
     },
-    refreshProgress(nextProgress: LedgerSetupProgress) {
-      setProgress(nextProgress);
-      setProgressRevision((current) => current + 1);
+    getPersistableSetup,
+    goToBasicInfo() {
+      setStep(1);
+    },
+    // 本地内容更新不会重置当前步骤的 UI 状态。
+    updateProgress: setProgress,
+    refreshTemplate({
+      draft,
+      template,
+    }: NonNullable<LedgerSetupPersistActionState["refreshedTemplate"]>) {
+      setProgress((current) => ({
+        setup: { ...current.setup, draft },
+        template,
+      }));
+      setProgressRevision((value) => value + 1);
       setNotice("templateUpdated");
     },
-    restoreProgress(nextProgress: LedgerSetupProgress) {
-      setProgress(nextProgress);
-      setStep(getResumeStep(nextProgress));
-      setNotice("draft");
-    },
     resetDraft() {
-      setProgress(null);
+      setSavedProgress(null);
+      clientId.current = "";
+      setProgress(createNewProgress(defaults));
+      setProgressRevision((value) => value + 1);
       setStep(1);
       setNotice(null);
     },
     setBusy,
-    updateProgress: setProgress,
   };
 }

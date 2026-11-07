@@ -34,22 +34,22 @@ export function createLedgerSetupWizardStoryActions(
     inviteMembers?: LedgerSetupInviteMembers;
   } = {},
 ): LedgerSetupWizardActions {
-  const state = progress ? { progress } : {};
   const placeholderMemberAction = async () => ({
     successKey: crypto.randomUUID(),
   });
 
   return {
     abandonSetup: async () => ({}),
-    completeSetup: async () => ({ completed: true }),
+    persistSetup: async ({ complete }) => ({
+      completed: complete,
+      updatedAt: "2026-11-07T01:00:00.000Z",
+    }),
     createInvite: async () => ({}),
     loadInviteMembers: async () => ({ members: inviteMembers }),
     placeholderMemberActions: {
       delete: placeholderMemberAction,
       rename: placeholderMemberAction,
     },
-    saveDraft: async () => state,
-    submitBasicInfo: async () => state,
   };
 }
 

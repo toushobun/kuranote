@@ -25,6 +25,21 @@ const ledgerSetupStepSchema = z
   .min(ledgerSetupStepRange.min)
   .max(ledgerSetupStepRange.max);
 
+export const persistLedgerSetupSchema = z.object({
+  setup: z.object({
+    id: z.uuid(),
+    name: z.string(),
+    baseCurrency: z.string(),
+    displayName: z.string(),
+    displayColor: z.string(),
+    livingRegion: z.enum(ledgerSetupRegions),
+    draft: z.unknown(),
+  }),
+  expectedUpdatedAt: z.iso.datetime({ offset: true }).nullable(),
+  step: ledgerSetupStepSchema,
+  complete: z.boolean(),
+});
+
 const templateKeySchema = z
   .string()
   .min(1)

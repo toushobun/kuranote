@@ -1,297 +1,239 @@
-import {
-  ledgerSetupEntryMessages,
-  ledgerSetupWizardMessages,
-} from "config/ledgerSetupMessages";
-import {
-  cleanup,
-  fireEvent,
-  screen,
-  waitFor,
-  within,
-} from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
+
+import { setupGuardHistoryMock } from "test/mockGuardHistory";
 import { mockIntlTimeZone } from "test/mockIntlTimeZone";
-
-import { backFromGuard, setupGuardHistoryMock } from "test/mockGuardHistory";
-import { mockMatchMedia } from "test/matchMedia";
 import {
-  createLedgerSetupProgressFixture,
   createLedgerSetupConfirmProgressFixture,
-  ledgerSetupTemplateFixture,
+  createLedgerSetupProgressFixture,
 } from "test/mocks/ledgerSetup";
-
 import {
   clickCloseWizard,
+  clickCompleteSetup,
   clickNext,
+  clickPrevious,
   completeSetupAndWait,
-  createSaveDraftMock,
-  finishInviteAndWait,
+  createPersistMock,
   getCurrentStepItem,
-  getLedgerSetupWizardDialog,
-  goPreviousTo,
   renderLedgerSetupWizard,
-  renderLedgerSetupWizardAtInviteStep,
-  waitForInviteEntry,
 } from "./ledgerSetupWizardTestUtils";
 
-beforeEach(() => {
-  mockIntlTimeZone("Asia/Tokyo");
-});
-afterEach(() => {
-  vi.restoreAllMocks();
-});
-
 setupGuardHistoryMock();
+beforeEach(() => mockIntlTimeZone("Asia/Tokyo"));
+afterEach(() => vi.restoreAllMocks());
 
-let restoreMatchMedia: (() => void) | null = null;
-
-afterEach(() => {
-  restoreMatchMedia?.();
-  restoreMatchMedia = null;
-});
-
-function expectCurrentStep(label: string) {
+function expectStep(label: string) {
   expect(getCurrentStepItem()).toHaveTextContent(label);
 }
 
-describe("LedgerSetupWizard", () => {
-  describe("响应式", () => {
-    it("移动端（xs）全屏显示", async () => {
-      restoreMatchMedia = mockMatchMedia(true);
-      renderLedgerSetupWizard();
+function clickExit(action: "保存并退出" | "放弃修改" | "继续编辑") {
+  fireEvent.click(screen.getByRole("button", { name: action }));
+}
 
-      await waitFor(() => {
-        expect(getLedgerSetupWizardDialog()).toHaveClass(
-          "MuiDialog-paperFullScreen",
-        );
-      });
+describe("LedgerSetupWizard 本地草稿", () => {
+  it("首次创建直达确认页不写库，确认页展示未持久化的账本名", async () => {
+    const actions = renderLedgerSetupWizard();
+    fireEvent.change(screen.getByLabelText("账本名称"), {
+      target: { value: "旅行账本" },
     });
-
-    it("桌面端（sm 以上）显示为常规弹框", () => {
-      restoreMatchMedia = mockMatchMedia(false);
-      renderLedgerSetupWizard();
-
-      expect(getLedgerSetupWizardDialog()).not.toHaveClass(
-        "MuiDialog-paperFullScreen",
-      );
-    });
+    clickNext();
+    expectStep("账户");
+    clickNext();
+    expectStep("商家");
+    clickNext();
+    expectStep("功能");
+    clickNext();
+    expectStep("确认");
+    expect(
+      screen.getByText("以下内容将添加到「旅行账本」"),
+    ).toBeInTheDocument();
+    expect(actions.persistSetup).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "修改基本信息" }));
+    expectStep("基本信息");
+    expect(screen.getByLabelText("账本名称")).toHaveValue("旅行账本");
   });
 
-  describe("步骤", () => {
-    it("尚未创建账本时从第 1 步开始，只有下一步按钮", () => {
-      renderLedgerSetupWizard();
-
-      expect(
-        screen.getByRole("heading", { name: "创建账本" }),
-      ).toBeInTheDocument();
-      expectCurrentStep("基本信息");
-      expect(screen.getByText("先给账本起个名字吧")).toBeInTheDocument();
-      expect(
-        screen.queryByRole("button", { name: "上一步" }),
-      ).not.toBeInTheDocument();
+  it("恢复时回到持久化步骤，前进和后退都不写库", async () => {
+    const actions = renderLedgerSetupWizard({
+      progress: createLedgerSetupProgressFixture({ step: 3 }),
     });
-
-    it("已有创建中账本时恢复到上次的步骤", () => {
-      renderLedgerSetupWizard({
-        progress: createLedgerSetupProgressFixture({ step: 3 }),
-      });
-
-      expectCurrentStep("商家");
-      expect(
-        screen.getByRole("heading", { name: "挑选常去的商家" }),
-      ).toBeInTheDocument();
-    });
-
-    it("可以通过上一步 / 下一步在步骤之间切换", async () => {
-      renderLedgerSetupWizard({
-        progress: createLedgerSetupProgressFixture({ step: 2 }),
-      });
-
-      expectCurrentStep("账户");
-      clickNext();
-      await waitFor(() => expectCurrentStep("商家"));
-      await goPreviousTo("账户");
-      await goPreviousTo("基本信息");
-      expect(screen.getByLabelText("账本名称")).toHaveValue("家庭账本");
-    });
-
-    it("第 1 步提交成功后进入第 2 步，返回第 1 步时显示保存后的内容", async () => {
-      const progress = createLedgerSetupProgressFixture({
-        name: "旅行账本",
-      });
-      renderLedgerSetupWizard({
-        saveDraft: createSaveDraftMock(progress),
-        submitBasicInfo: vi.fn(async () => ({ progress })),
-      });
-
-      fireEvent.change(screen.getByLabelText("账本名称"), {
-        target: { value: "旅行账本" },
-      });
-      clickNext();
-
-      await waitFor(() => expectCurrentStep("账户"));
-      await goPreviousTo("基本信息");
-      expect(screen.getByLabelText("账本名称")).toHaveValue("旅行账本");
-    });
-
-    it("预设更新提示不提供重新创建", async () => {
-      const progress = createLedgerSetupProgressFixture({ step: 2 });
-      renderLedgerSetupWizard({
-        progress,
-        saveDraft: vi.fn(async () => ({ outdated: true, progress })),
-      });
-      clickNext();
-      const notice = within(await screen.findByRole("status"));
-      expect(
-        notice.getByText(ledgerSetupWizardMessages.templateUpdatedNotice),
-      ).toBeInTheDocument();
-      expect(
-        notice.queryByRole("button", {
-          name: ledgerSetupEntryMessages.restart,
-        }),
-      ).not.toBeInTheDocument();
-    });
-
-    it("完成创建后进入第 6 步：第 1～5 步为已完成，第 6 步为当前", async () => {
-      await renderLedgerSetupWizardAtInviteStep();
-
-      const items = within(
-        screen.getByRole("list", { name: "创建进度" }),
-      ).getAllByRole("listitem");
-      expect(items.map((item) => item.dataset.status)).toEqual([
-        "completed",
-        "completed",
-        "completed",
-        "completed",
-        "completed",
-        "current",
-      ]);
-      expectCurrentStep("邀请");
-    });
-
-    it("第 6 步点击完成后显示完成页：不显示标题与进度条", async () => {
-      await renderLedgerSetupWizardAtInviteStep();
-      await waitForInviteEntry();
-
-      await finishInviteAndWait();
-
-      expect(
-        screen.getByRole("dialog", { name: "一切就绪！" }),
-      ).toBeInTheDocument();
-      expect(
-        screen.queryByRole("heading", { name: "创建账本" }),
-      ).not.toBeInTheDocument();
-      expect(
-        screen.queryByRole("list", { name: "创建进度" }),
-      ).not.toBeInTheDocument();
-    });
+    expectStep("商家");
+    clickPrevious();
+    expectStep("账户");
+    clickPrevious();
+    expectStep("基本信息");
+    clickNext();
+    expectStep("账户");
+    expect(actions.persistSetup).not.toHaveBeenCalled();
   });
 
-  describe("关闭", () => {
-    it("第 1 步没有修改时直接关闭", async () => {
-      const { onClose, submitBasicInfo } = renderLedgerSetupWizard();
-
-      clickCloseWizard();
-
-      await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
-      expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
-      expect(submitBasicInfo).not.toHaveBeenCalled();
+  it("有修改点关闭可继续编辑，草稿不变", () => {
+    const actions = renderLedgerSetupWizard();
+    fireEvent.change(screen.getByLabelText("账本名称"), {
+      target: { value: "待处理草稿" },
     });
+    clickCloseWizard();
+    expect(
+      screen.getByRole("dialog", { name: "尚未保存" }),
+    ).toBeInTheDocument();
+    clickExit("继续编辑");
+    expect(screen.getByLabelText("账本名称")).toHaveValue("待处理草稿");
+    expect(actions.persistSetup).not.toHaveBeenCalled();
+    expect(actions.onClose).not.toHaveBeenCalled();
+  });
 
-    it("第 1 步关闭确认可保留名称，后退放弃时不创建账本", async () => {
-      const { onClose, submitBasicInfo, abandonSetup } =
-        renderLedgerSetupWizard();
-      const name = screen.getByRole("textbox", { name: "账本名称" });
-      fireEvent.change(name, { target: { value: "未提交的账本" } });
+  it("没有修改也确认，保存时只提交当前进度", async () => {
+    const progress = createLedgerSetupProgressFixture({ step: 2 });
+    const actions = renderLedgerSetupWizard({ progress });
+    clickNext();
+    expectStep("商家");
+    clickCloseWizard();
+    expect(
+      screen.getByText("账本还没创建完，要保存当前进度再退出吗？"),
+    ).toBeInTheDocument();
+    clickExit("保存并退出");
+    await waitFor(() => expect(actions.persistSetup).toHaveBeenCalledOnce());
+    expect(actions.persistSetup.mock.calls[0][0]).toMatchObject({
+      step: 3,
+      expectedUpdatedAt: progress.setup.updatedAt,
+      complete: false,
+    });
+    await waitFor(() => expect(actions.onClose).toHaveBeenCalledOnce());
+  });
 
-      clickCloseWizard();
-      const dialog = within(screen.getByRole("dialog", { name: "尚未保存" }));
+  it("首次保存并退出携带客户端 UUID 和完整草稿", async () => {
+    const actions = renderLedgerSetupWizard();
+    clickNext();
+    clickNext();
+    clickCloseWizard();
+    clickExit("保存并退出");
+    await waitFor(() => expect(actions.persistSetup).toHaveBeenCalledOnce());
+    const input = actions.persistSetup.mock.calls[0][0];
+    expect(input.setup.id).toMatch(/^[a-f0-9-]{36}$/);
+    expect(input.expectedUpdatedAt).toBeNull();
+    expect(input.step).toBe(3);
+    expect(input.setup.draft.accounts.items.length).toBeGreaterThan(0);
+  });
+
+  it("放弃修改不会调用 abandon，也不会写库", async () => {
+    const actions = renderLedgerSetupWizard({
+      progress: createLedgerSetupProgressFixture({ step: 3 }),
+    });
+    clickPrevious();
+    clickCloseWizard();
+    clickExit("放弃修改");
+    await waitFor(() => expect(actions.onClose).toHaveBeenCalledOnce());
+    expect(actions.persistSetup).not.toHaveBeenCalled();
+    expect(actions.abandonSetup).not.toHaveBeenCalled();
+  });
+
+  it("保存失败保留草稿并允许再次请求", async () => {
+    const persistSetup = createPersistMock();
+    persistSetup.mockResolvedValueOnce({ error: "服务器保存失败" });
+    const actions = renderLedgerSetupWizard({ persistSetup });
+    fireEvent.change(screen.getByLabelText("账本名称"), {
+      target: { value: "失败后仍保留" },
+    });
+    clickCloseWizard();
+    clickExit("保存并退出");
+    await waitFor(() => expect(actions.persistSetup).toHaveBeenCalledOnce());
+    expect(actions.onClose).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("账本名称")).toHaveValue("失败后仍保留");
+  });
+
+  it("首次未保存也可以从确认页完成创建，且只提交一次", async () => {
+    const actions = renderLedgerSetupWizard();
+    clickNext();
+    clickNext();
+    clickNext();
+    clickNext();
+    expect(actions.persistSetup).not.toHaveBeenCalled();
+    await completeSetupAndWait();
+    expect(actions.persistSetup).toHaveBeenCalledOnce();
+    expect(actions.persistSetup.mock.calls[0][0]).toMatchObject({
+      complete: true,
+      expectedUpdatedAt: null,
+      step: 5,
+    });
+    expectStep("邀请");
+  });
+
+  it.each([false, true])(
+    "预设更新后留在向导并可重新提交，完成创建为 %s",
+    async (complete) => {
+      const progress = createLedgerSetupConfirmProgressFixture();
+      const draft = {
+        ...progress.setup.draft,
+        templateVersion: 5,
+      };
+      const persistSetup = createPersistMock();
+      persistSetup.mockResolvedValueOnce({
+        refreshedTemplate: { draft, template: progress.template },
+      });
+      const actions = renderLedgerSetupWizard({ progress, persistSetup });
+      const submit = () => {
+        if (complete) clickCompleteSetup();
+        else {
+          clickCloseWizard();
+          clickExit("保存并退出");
+        }
+      };
+
+      submit();
       expect(
-        dialog.getByText("修正的内容尚未保存，是否放弃修改？"),
+        await screen.findByText("预设内容已更新，请重新确认。"),
       ).toBeInTheDocument();
+      await waitFor(() => expectStep("确认"));
       expect(
-        dialog.getAllByRole("button").map((button) => button.textContent),
-      ).toEqual(["继续编辑", "放弃修改"]);
-      fireEvent.click(dialog.getByRole("button", { name: "继续编辑" }));
-      expect(name).toHaveValue("未提交的账本");
-      expect(onClose).not.toHaveBeenCalled();
-
-      await backFromGuard();
-      fireEvent.click(screen.getByRole("button", { name: "放弃修改" }));
-      await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
-      expect(submitBasicInfo).not.toHaveBeenCalled();
-      expect(abandonSetup).not.toHaveBeenCalled();
-    });
-
-    it("保存第 1 步后可直接关闭，并从保存的进度恢复第 2 步", async () => {
-      const progress = createLedgerSetupProgressFixture({
-        name: "旅行账本",
-        step: 2,
-      });
-      const { onClose, abandonSetup } = renderLedgerSetupWizard({
-        submitBasicInfo: vi.fn(async () => ({ progress })),
-      });
-      fireEvent.change(screen.getByLabelText("账本名称"), {
-        target: { value: progress.setup.name },
-      });
-      clickNext();
-      await waitFor(() => expectCurrentStep("账户"));
-
-      clickCloseWizard();
-      await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
-      expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
-      expect(abandonSetup).not.toHaveBeenCalled();
-
-      cleanup();
-      renderLedgerSetupWizard({ progress });
-      expectCurrentStep("账户");
-    });
-
-    it.each([
-      { step: 2, label: "账户", checkbox: "选择「现金」的全部账户" },
-      { step: 3, label: "商家", checkbox: "选择「超市」的全部商家" },
-    ])(
-      "放弃「$label」步骤修改后重新进入时恢复已保存的选择",
-      async ({ step, label, checkbox }) => {
-        const saved =
-          step === 2
-            ? createLedgerSetupProgressFixture({}, ledgerSetupTemplateFixture)
-            : createLedgerSetupConfirmProgressFixture();
-        const progress = { ...saved, setup: { ...saved.setup, step } };
-        const { onClose, abandonSetup, saveDraft } = renderLedgerSetupWizard({
-          progress,
-        });
-        const selection = screen.getByRole("checkbox", { name: checkbox });
-        expect(selection).toBeChecked();
-        fireEvent.click(selection);
-        expect(selection).not.toBeChecked();
-
-        clickCloseWizard();
-        const dialog = within(screen.getByRole("dialog", { name: "尚未保存" }));
-        fireEvent.click(dialog.getByRole("button", { name: "放弃修改" }));
-        await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
-        expect(saveDraft).not.toHaveBeenCalled();
-        expect(abandonSetup).not.toHaveBeenCalled();
-
-        cleanup();
-        renderLedgerSetupWizard({ progress });
-        expectCurrentStep(label);
-        expect(screen.getByRole("checkbox", { name: checkbox })).toBeChecked();
-      },
-    );
-
-    it("完成创建后进入邀请步骤（账本已完成），关闭时直接关闭", async () => {
-      const { onClose } = renderLedgerSetupWizard({
-        progress: createLedgerSetupProgressFixture({ step: 5 }),
-      });
-
-      await completeSetupAndWait();
-      clickCloseWizard();
-
-      await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
-      expect(
-        screen.queryByRole("dialog", { name: "尚未保存" }),
+        screen.queryByRole("button", { name: "重新创建" }),
       ).not.toBeInTheDocument();
+      expect(actions.onClose).not.toHaveBeenCalled();
+      submit();
+      await waitFor(() => expect(persistSetup).toHaveBeenCalledTimes(2));
+      expect(persistSetup.mock.calls[1][0]).toMatchObject({
+        setup: { draft, id: progress.setup.id },
+        complete,
+        expectedUpdatedAt: progress.setup.updatedAt,
+      });
+      if (complete) await waitFor(() => expectStep("邀请"));
+      else await waitFor(() => expect(actions.onClose).toHaveBeenCalledOnce());
+    },
+  );
+
+  it("完成失败不误入邀请页，后续可以重试", async () => {
+    const persistSetup = createPersistMock();
+    persistSetup.mockResolvedValueOnce({ error: "并发冲突" });
+    const actions = renderLedgerSetupWizard({
+      progress: createLedgerSetupConfirmProgressFixture(),
+      persistSetup,
     });
+    clickCompleteSetup();
+    await waitFor(() => expect(actions.persistSetup).toHaveBeenCalledOnce());
+    expectStep("确认");
+    expect(actions.onClose).not.toHaveBeenCalled();
+  });
+
+  it("邀请阶段关闭不再弹未保存确认", async () => {
+    const actions = renderLedgerSetupWizard({
+      progress: createLedgerSetupConfirmProgressFixture(),
+    });
+    await completeSetupAndWait();
+    clickCloseWizard();
+    expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
+    await waitFor(() => expect(actions.onClose).toHaveBeenCalledOnce());
+  });
+
+  it("确认页功能卡片来自父层当前草稿", () => {
+    const actions = renderLedgerSetupWizard({
+      progress: createLedgerSetupProgressFixture({ step: 4 }),
+    });
+    fireEvent.click(screen.getByRole("switch", { name: "启用特殊状态" }));
+    clickNext();
+    expectStep("确认");
+    const card = screen.getByRole("region", { name: "功能" });
+    expect(
+      within(card).getByText("报销与退款状态 · 已开启"),
+    ).toBeInTheDocument();
+    expect(actions.persistSetup).not.toHaveBeenCalled();
   });
 });

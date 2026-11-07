@@ -60,3 +60,40 @@ export const ExistingDraft: Story = {
   name: "已有草稿提示",
   args: { progress: ledgerSetupRestartStoryProgress, initialNotice: "draft" },
 };
+
+export const CloseConfirmWithChanges: Story = {
+  name: "关闭确认（有本地修改）",
+  parameters: { viewport: { defaultViewport: "mobile2" } },
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    const field = await body.findByRole("textbox", { name: "账本名称" });
+    await userEvent.clear(field);
+    await userEvent.type(field, "未保存的旅行账本");
+    await userEvent.click(
+      await body.findByRole("button", { name: "关闭创建账本向导" }),
+    );
+  },
+};
+
+export const SaveFailure: Story = {
+  name: "保存并退出失败（草稿保留）",
+  args: {
+    progress: setupProgress,
+    actions: {
+      ...createLedgerSetupWizardStoryActions(setupProgress),
+      persistSetup: async () => ({
+        error: "保存失败，请稍后再试。当前草稿仍留在此页面。",
+      }),
+    },
+  },
+  parameters: { viewport: { defaultViewport: "mobile2" } },
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    await userEvent.click(
+      await body.findByRole("button", { name: "关闭创建账本向导" }),
+    );
+    await userEvent.click(
+      await body.findByRole("button", { name: "保存并退出" }),
+    );
+  },
+};

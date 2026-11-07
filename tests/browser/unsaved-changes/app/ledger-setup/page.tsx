@@ -2,12 +2,19 @@
 
 import { useState } from "react";
 
+import {
+  createDefaultLedgerSetupDraft,
+  getLedgerSetupTemplate,
+} from "internal/ledger";
 import { LedgersTemplate } from "templates/ledgers/Ledgers";
 import { createLedgerSetupProgressFixture } from "test/mocks/ledgerSetup";
 
 import { Probe } from "../probe";
 
-const progress = createLedgerSetupProgressFixture({ step: 2 });
+const progress = createLedgerSetupProgressFixture(
+  { draft: createDefaultLedgerSetupDraft("jp"), step: 2 },
+  getLedgerSetupTemplate("jp"),
+);
 const unused = async () => ({});
 
 export default function Page() {
@@ -38,12 +45,17 @@ export default function Page() {
                 setDraft(null);
                 return {};
               },
-              completeSetup: unused,
+              persistSetup: async ({ complete, setup, step }) => {
+                const updatedAt = "2026-11-07T01:00:00Z";
+                setDraft({
+                  setup: { ...setup, step, updatedAt },
+                  template: draft?.template ?? progress.template,
+                });
+                return { completed: complete, updatedAt };
+              },
               createInvite: unused,
               loadInviteMembers: unused,
               placeholderMemberActions: { rename: unused, delete: unused },
-              saveDraft: unused,
-              submitBasicInfo: unused,
             },
           }}
           updateCurrentLedgerAction={async () => {}}

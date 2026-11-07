@@ -61,6 +61,7 @@ export {
 export type { LedgerCreateDefaults } from "internal/ledger/entity/ledgerCreateDefaults";
 export {
   ledgerCurrencies,
+  isLedgerCurrency,
   type LedgerCurrency,
 } from "internal/ledger/entity/ledgerCurrency";
 export type {
@@ -100,3 +101,5 @@ export type { LedgerSetupService } from "internal/ledger/service/ledgerSetupServ
 export { getLedgerSetupTemplate } from "internal/ledger/entity/ledgerSetupTemplate/getLedgerSetupTemplate";
 
 export { createDefaultLedgerSetupDraft } from "internal/ledger/util/ledgerSetupDraft";
+
+export { validateLedgerSetupBasicInfoForm } from "internal/ledger/schema/ledgerSetupBasicInfoForm";
