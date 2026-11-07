@@ -75,7 +75,7 @@ describe("LedgerSetupConfirmStep", () => {
       persistSetup,
     });
     clickCompleteSetup();
-    expect(screen.getByRole("button", { name: "创建中…" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "创建中" })).toBeDisabled();
     expect(persistSetup).toHaveBeenCalledOnce();
     finish({ updatedAt: "2026-11-07T01:00:00Z", completed: true });
     await waitFor(() => expect(getCurrentStepItem()).toHaveTextContent("邀请"));
