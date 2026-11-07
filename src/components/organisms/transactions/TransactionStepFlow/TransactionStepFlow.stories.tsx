@@ -94,7 +94,15 @@ export const CloseConfirmation: Story = {
   args: QuickEntry.args,
   play: async ({ canvasElement }) => {
     const body = await selectMerchant(canvasElement, "7-Eleven");
-    await userEvent.click(body.getByRole("button", { name: "关闭记账" }));
+    await userEvent.click(body.getByRole("button", { name: /^修改备注：/ }));
+    await userEvent.type(
+      body.getByRole("textbox", { name: "备注" }),
+      "手动添加备注",
+    );
+    await userEvent.click(body.getByRole("button", { name: "完成" }));
+    await userEvent.click(
+      await body.findByRole("button", { name: "关闭记账" }),
+    );
     await expect(
       await body.findByRole("dialog", { name: "尚未保存" }),
     ).toBeVisible();
