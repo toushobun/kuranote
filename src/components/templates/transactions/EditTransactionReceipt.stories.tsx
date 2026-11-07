@@ -81,6 +81,21 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = { name: "编辑记账（预填小票）" };
 
+export const InvalidAfterSave: Story = {
+  name: "编辑小票：点击保存后提示未填金额",
+  args: {
+    initialValues: {
+      ...initialValues,
+      items: [{ amount: "", categoryId: "lunch", specialStatus: null }],
+    },
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      within(canvasElement).getByRole("button", { name: "保存修改" }),
+    );
+  },
+};
+
 export const MultiAccount: Story = {
   name: "多账户付款",
   args: {
