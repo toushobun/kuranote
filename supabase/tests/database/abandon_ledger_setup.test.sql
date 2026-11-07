@@ -104,10 +104,10 @@ select is((select count(*) from public.ledger_member_display_setting where ledge
 select is((select current_ledger_id from public.app_user where id = pg_temp.uid(1)), pg_temp.lid(2), 'current_ledger_id 不受影响');
 select is(current_setting('app.ledger_setup_abandonment_ledger_id', true), '', '清理事务标记');
 set local role authenticated;
-select lives_ok($select public.commit_ledger_setup(
+select lives_ok($$select public.commit_ledger_setup(
     '87500000-0000-4000-8000-000000000199'::uuid, null,
     '重新创建', 'JPY', '我的名字', 'sky', 'jp', 1,
     '{"templateRegion":"jp"}'::jsonb, false, null
-)$, '唯一索引释放后可再次保存新的草稿');
+)$$, '唯一索引释放后可再次保存新的草稿');
 select * from finish();
 rollback;
