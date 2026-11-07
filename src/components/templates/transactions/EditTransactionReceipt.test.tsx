@@ -396,7 +396,9 @@ describe("EditTransactionReceiptTemplate", () => {
       await screen.findByText(/还有 1 条明细没填金额/),
     ).toBeInTheDocument();
     expect(action).not.toHaveBeenCalled();
-    expect(screen.getByRole("dialog", { name: "尚未保存" })).not.toBeVisible();
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull(),
+    );
     click("修改明细 1 金额：待输入");
     pressItemAmountKey("8");
     pressItemAmountKey("确定");
