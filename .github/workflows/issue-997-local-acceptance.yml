@@ -74,3 +74,63 @@ jobs:
         run: |
           tail -120 /tmp/997-next-dev.log 2>/dev/null || true
           tail -120 /tmp/997-next-prod.log 2>/dev/null || true
+
+  storybook-evidence:
+    if: github.head_ref == 'feature/997_ledger_setup_local_draft'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: test-publishable-key
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build-storybook
+      - name: Capture three iPhone 14 stories
+        shell: bash
+        env:
+          PLAYWRIGHT_CHANNEL: chromium
+        run: |
+          python3 -m http.server 6006 --bind 127.0.0.1 --directory storybook-static > /tmp/997-storybook-http.log 2>&1 &
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:6006/iframe.html > /dev/null; then break; fi
+            sleep 2
+          done
+          node scripts/issue-997-storybook-evidence.mjs
+      - name: Publish screenshots/997 branch
+        shell: bash
+        run: |
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          if git ls-remote --exit-code --heads origin refs/heads/screenshots/997 > /dev/null; then
+            git fetch origin refs/heads/screenshots/997
+            git switch -c screenshots/997 FETCH_HEAD
+          else
+            git switch --orphan screenshots/997
+            git rm -r --cached . > /dev/null || true
+          fi
+          mkdir -p issue997
+          cp /tmp/997-shots/997-exit-confirmations.png issue997/997-exit-confirmations.png
+          git add issue997/997-exit-confirmations.png
+          git commit -m "docs: 保存 Issue 997 退出确认界面截图"
+          git push origin HEAD:refs/heads/screenshots/997
+      - name: Upload screenshot artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue-997-storybook-images
+          path: /tmp/997-shots/*.png
+          if-no-files-found: ignore
+      - name: Show Storybook logs
+        if: failure()
+        run: tail -120 /tmp/997-storybook-http.log 2>/dev/null || true
