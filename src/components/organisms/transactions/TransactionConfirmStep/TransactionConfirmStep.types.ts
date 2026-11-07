@@ -21,6 +21,8 @@ export type TransactionConfirmStepProps = TransactionReceiptProps & {
   successMessage?: string;
   saving: boolean;
   onMerchantClick: () => void;
+  /** 客户端校验失败时取消守卫的保存后退出意图。 */
+  onValidationFailed?: () => void;
   onAccountSelect?: (account: TransactionAccountOption) => void;
   /** 只读详情（#962，编辑页的 `editRestriction`）：只显示内容，不能修改。 */
   readOnly?: boolean;

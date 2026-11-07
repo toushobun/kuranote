@@ -166,9 +166,17 @@ describe("TransactionStepFlow", () => {
   it("小票修改后关闭：继续编辑保留内容，放弃只关闭本流程", async () => {
     const { props } = quickSetup();
     click("7-Eleven");
-    click("关闭记账");
+    click("修改备注：添加备注");
+    fireEvent.change(screen.getByRole("textbox", { name: "备注" }), {
+      target: { value: "手动备注" },
+    });
+    click("完成");
+    fireEvent.click(await screen.findByRole("button", { name: "关闭记账" }));
     expect(
       screen.getByRole("dialog", { name: "尚未保存" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "保存并退出" }),
     ).toBeInTheDocument();
     click("继续编辑");
     expect(props.onClose).not.toHaveBeenCalled();
@@ -178,6 +186,130 @@ describe("TransactionStepFlow", () => {
     click("关闭记账");
     click("放弃修改");
     await waitFor(() => expect(props.onClose).toHaveBeenCalledOnce());
+  });
+
+  it.each<[string, TransactionStepFlowProps["suggestions"]]>([
+    ["有历史的商家", quickSuggestions],
+    ["没有历史的商家", noHistory],
+  ])("只选%s时退出不弹确认，自动填写不算修改", async (_, suggestions) => {
+    const { props } = quickSetup({ suggestions });
+    click("7-Eleven");
+    await screen.findByRole("button", { name: "保存记账" });
+    expect(screen.queryAllByRole("alert")).toHaveLength(0);
+    click("关闭记账");
+    await waitFor(() => expect(props.onClose).toHaveBeenCalledOnce());
+    expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
+  });
+
+  it("从小票换商家后自动替换明细，未手动填写时退出也不弹确认", async () => {
+    const { props, rerender } = quickSetup();
+    click("7-Eleven");
+    await screen.findByRole("button", { name: "保存记账" });
+    click("修改商家：7-Eleven");
+    click("LIFE超市");
+    await waitMerchantDrawerClosed();
+    rerender(
+      <TransactionStepFlow
+        {...props}
+        suggestionsMerchantId="life"
+        suggestions={{ ...quickSuggestions, automaticCategoryIds: ["storage"] }}
+      />,
+    );
+    await screen.findByText("日用品 · 收纳");
+    click("关闭记账");
+    await waitFor(() => expect(props.onClose).toHaveBeenCalledOnce());
+    expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
+  });
+
+  it.each<[string, () => Promise<void>]>([
+    [
+      "付款账户",
+      async () => {
+        click("更换支付账户 1");
+        selectAccount("现金 JPY");
+        await waitFor(() =>
+          expect(receiptLine("更换支付账户 1")).toHaveTextContent("现金"),
+        );
+      },
+    ],
+    [
+      "备注",
+      async () => {
+        click("修改备注：添加备注");
+        fireEvent.change(screen.getByRole("textbox", { name: "备注" }), {
+          target: { value: "手动修改" },
+        });
+        click("完成");
+        await waitFor(() =>
+          expect(screen.queryByRole("textbox", { name: "备注" })).toBeNull(),
+        );
+      },
+    ],
+    [
+      "明细",
+      async () => {
+        await addLunchItem();
+      },
+    ],
+    [
+      "时间",
+      async () => {
+        fireEvent.click(screen.getByRole("button", { name: /^修改时间：/ }));
+        fireEvent.click(screen.getByRole("button", { name: /时刻/ }));
+        click("选择 12 时");
+        click("完成");
+        await waitFor(() =>
+          expect(
+            screen.queryByRole("button", { name: "选择 12 时" }),
+          ).toBeNull(),
+        );
+      },
+    ],
+  ])("手动修改%s后关闭才弹未保存确认", async (_, change) => {
+    quickSetup({ suggestions: noHistory });
+    click("7-Eleven");
+    await screen.findByRole("button", { name: "保存记账" });
+    await change();
+    click("关闭记账");
+    expect(
+      await screen.findByRole("dialog", { name: "尚未保存" }),
+    ).toBeInTheDocument();
+  });
+
+  it("退出确认保存校验失败时留在小票，修复后正常保存且无残留离开意图", async () => {
+    const action = vi.fn(async () => ({}));
+    const { props } = quickSetup({ suggestions: noHistory, action });
+    click("7-Eleven");
+    click("修改备注：添加备注");
+    fireEvent.change(screen.getByRole("textbox", { name: "备注" }), {
+      target: { value: "购买日用品" },
+    });
+    click("完成");
+    fireEvent.click(await screen.findByRole("button", { name: "关闭记账" }));
+    click("保存并退出");
+    expect(
+      await screen.findByRole("button", { name: "请选择收支账户" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "请添加明细" }),
+    ).toBeInTheDocument();
+    expect(action).not.toHaveBeenCalled();
+    expect(props.onClose).not.toHaveBeenCalled();
+    click("更换支付账户 1");
+    selectAccount("现金 JPY");
+    await waitFor(() =>
+      expect(receiptLine("更换支付账户 1")).toHaveTextContent("现金"),
+    );
+    await addLunchItem();
+    expect(screen.getByText(/还有 1 条明细没填金额/)).toBeInTheDocument();
+    click("修改明细 1 金额：待输入");
+    pressItemAmountKey("8");
+    pressItemAmountKey("确定");
+    await waitKeypadClosed();
+    expect(screen.queryAllByRole("alert")).toHaveLength(0);
+    click("保存记账");
+    await waitFor(() => expect(action).toHaveBeenCalledOnce());
+    expect(props.onClose).not.toHaveBeenCalled();
   });
 
   it("关闭后重新打开不保留上次内容", () => {
@@ -441,9 +573,13 @@ describe("TransactionStepFlow 进入小票", () => {
     expect(receiptLine("更换支付账户 1")).toHaveTextContent("PayPay");
     expect(screen.queryByLabelText("金额计算器")).not.toBeInTheDocument();
     expect(
+      screen.queryByText("还有 2 条明细没填金额，点一下去填写"),
+    ).toBeNull();
+    expect(saveButton()).toBeEnabled();
+    click("保存记账");
+    expect(
       screen.getByText("还有 2 条明细没填金额，点一下去填写"),
     ).toBeInTheDocument();
-    expect(saveButton()).toBeDisabled();
   });
 
   it("快速路线没有自动明细：选好推荐账户，明细区只有添加明细", async () => {
@@ -459,7 +595,7 @@ describe("TransactionStepFlow 进入小票", () => {
     ).toBeInTheDocument();
   });
 
-  it("没有历史：显示还没有记录、选择收支账户并禁用保存，选好账户与明细后可以保存", async () => {
+  it("没有历史：首次不提示，保存时提示缺项，补齐后可以保存", async () => {
     quickSetup({ suggestions: noHistory });
     click("7-Eleven");
     expect(await screen.findByText("这家商家还没有记录")).toBeInTheDocument();
@@ -468,10 +604,15 @@ describe("TransactionStepFlow 进入小票", () => {
       "data-invalid",
       "true",
     );
+    expect(screen.queryByRole("button", { name: "请选择收支账户" })).toBeNull();
+    expect(saveButton()).toBeEnabled();
+    click("保存记账");
     expect(
       screen.getByRole("button", { name: "请选择收支账户" }),
     ).toBeInTheDocument();
-    expect(saveButton()).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "请添加明细" }),
+    ).toBeInTheDocument();
     click("更换支付账户 1");
     expect(
       screen.getByText("这家商家还没有记录，按账户顺序显示"),
@@ -723,8 +864,9 @@ describe("TransactionStepFlow 页内新增", () => {
     await waitMerchantDrawerClosed();
     expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
     expect(saveButton().closest("form")).toBe(form);
-    await backFromGuard();
-    await screen.findByRole("dialog", { name: "尚未保存" });
+    // 父小票只有自动初始值，不再安装未保存哨兵，普通后退即可离开。
+    await act(async () => window.history.back());
+    expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
   });
   it("全屏商家预填是初值，输入还原后后退直接关闭且不改父数据", async () => {
     const { form } = setupCreationFlow();

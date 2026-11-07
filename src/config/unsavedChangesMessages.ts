@@ -5,4 +5,5 @@ export const unsavedChangesMessages = {
   continueEditing: "继续编辑",
   discard: "放弃修改",
   save: "保存",
+  saveAndExit: "保存并退出",
 } as const;

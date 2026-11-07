@@ -160,6 +160,10 @@ export function useUnsavedChangesGuard({
 
   return {
     runAction,
+    // 客户端表单校验拦截提交时，清除未完成的保存后退出意图。
+    cancelSave: () => {
+      saveIntent.current = null;
+    },
     completeSave,
     runInPlaceAction: useCallback(
       <T>(action: () => Promise<T>) => history.runInPlaceAction(action),

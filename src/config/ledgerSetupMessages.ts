@@ -18,7 +18,6 @@ export const ledgerSetupWizardMessages = {
     merchants: "商家",
   },
   saveErrorTitle: "创建进度保存失败",
-  saveAndExit: "保存并退出",
   cleanExitDescription: "账本还没创建完，要保存当前进度再退出吗？",
   title: "创建账本",
 } as const;

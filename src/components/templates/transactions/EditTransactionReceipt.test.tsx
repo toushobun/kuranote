@@ -30,6 +30,7 @@ import {
   receiptSuggestions,
 } from "test/mocks/transactionReceipt";
 import { flowFixture } from "test/mocks/transactionStepFlow";
+import { pressItemAmountKey } from "test/transactionConfirmStep";
 
 import { EditTransactionReceiptTemplate } from "./EditTransactionReceipt";
 
@@ -352,6 +353,9 @@ describe("EditTransactionReceiptTemplate", () => {
     expect(
       await screen.findByText("修正的内容尚未保存，是否保存？"),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "保存并退出" }),
+    ).toBeInTheDocument();
   });
 
   it("金额键盘显示当前商家的快捷金额", async () => {
@@ -368,6 +372,42 @@ describe("EditTransactionReceiptTemplate", () => {
     expect(
       await screen.findByRole("button", { name: "上次 ¥498" }),
     ).toBeInTheDocument();
+  });
+
+  it("编辑小票首次不显示校验，弹窗保存失败后修正可再次保存", async () => {
+    const action = vi.fn(async () => ({}));
+    renderReceipt({
+      action,
+      initialValues: {
+        ...initialValues,
+        items: [{ categoryId: "lunch", amount: "" }],
+      },
+    });
+    expect(screen.queryAllByRole("alert")).toHaveLength(0);
+    expect(screen.getByRole("button", { name: "保存修改" })).toBeEnabled();
+    click("修改备注：编辑前备注");
+    fireEvent.change(screen.getByRole("textbox", { name: "备注" }), {
+      target: { value: "修改后" },
+    });
+    click("完成");
+    fireEvent.click(await screen.findByRole("link", { name: "关闭" }));
+    click("保存并退出");
+    expect(
+      await screen.findByText(/还有 1 条明细没填金额/),
+    ).toBeInTheDocument();
+    expect(action).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull(),
+    );
+    click("修改明细 1 金额：待输入");
+    pressItemAmountKey("8");
+    pressItemAmountKey("确定");
+    await waitFor(() =>
+      expect(screen.queryByLabelText("金额计算器")).not.toBeInTheDocument(),
+    );
+    await waitFor(() => expect(screen.queryAllByRole("alert")).toHaveLength(0));
+    fireEvent.click(await screen.findByRole("button", { name: "保存修改" }));
+    await waitFor(() => expect(action).toHaveBeenCalledOnce());
   });
 
   it("改过小票后返回时提示尚未保存", async () => {

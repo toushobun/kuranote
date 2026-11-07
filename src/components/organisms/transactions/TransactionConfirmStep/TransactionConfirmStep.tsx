@@ -9,7 +9,14 @@ import ButtonBase from "@mui/material/ButtonBase";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { Fragment, useRef, type ReactNode } from "react";
+import {
+  Fragment,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
+import { keyframes } from "@emotion/react";
 import { flowMessages as m } from "config/transactionStepFlowMessages";
 import { TransactionDateTimePicker } from "molecules/transactions/TransactionDateTimePicker";
 import {
@@ -55,6 +62,27 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
   // 付款未对上时，点提示条定位到支付区。
   const paymentSectionRef = useRef<HTMLDivElement>(null);
   const w = useTransactionConfirmStep(props, paymentSectionRef);
+  const [saveAttempts, setSaveAttempts] = useState(0);
+  const [pulseCount, setPulseCount] = useState(0);
+  const firstIssueRef = useRef<HTMLDivElement>(null);
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    setSaveAttempts((attempts) => attempts + 1);
+    if (saveAttempts > 0) setPulseCount((count) => count + 1);
+    if (!readOnly && w.issues.length > 0) {
+      event.preventDefault();
+      props.onValidationFailed?.();
+      // 第一条提示挂载后再滚动；底部提交与退出弹窗提交共用此入口。
+      window.setTimeout(() => {
+        firstIssueRef.current?.scrollIntoView?.({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 0);
+      return;
+    }
+    f.handleSubmit(event);
+    if (event.defaultPrevented) props.onValidationFailed?.();
+  }
   const currency = w.currency ?? "";
   const totals = summarizeStepReceiptTotals(f.itemSummaries);
   // 单账户的支付金额是这笔记录实际收付的金额，不扣除其他记录的核销。
@@ -108,7 +136,7 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
         component="form"
         id={props.formId}
         action={props.action}
-        onSubmit={f.handleSubmit}
+        onSubmit={handleSubmit}
       >
         <TransactionFormHiddenFields
           form={f}
@@ -122,13 +150,30 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
           {props.successMessage && (
             <Alert severity="success">{props.successMessage}</Alert>
           )}
-          {(readOnly ? [] : w.issues).map((issue) => (
-            <Alert key={issue.message} severity="error">
-              <ButtonBase onClick={issue.onClick} sx={{ textAlign: "left" }}>
-                {issue.message}
-              </ButtonBase>
-            </Alert>
-          ))}
+          {!readOnly &&
+            saveAttempts > 0 &&
+            w.issues.map((issue, index) => (
+              <Alert
+                key={issue.id}
+                data-pulse={pulseCount}
+                ref={index === 0 ? firstIssueRef : undefined}
+                severity="error"
+                sx={
+                  pulseCount > 0
+                    ? {
+                        animation: `${pulseCount % 2 ? issuePulse : issuePulseAlternate} 600ms ease-in-out`,
+                        "@media (prefers-reduced-motion: reduce)": {
+                          animation: "none",
+                        },
+                      }
+                    : undefined
+                }
+              >
+                <ButtonBase onClick={issue.onClick} sx={{ textAlign: "left" }}>
+                  {issue.message}
+                </ButtonBase>
+              </Alert>
+            ))}
           <Box sx={receiptShadowSx}>
             <Box sx={receiptPaperSx}>
               <Stack spacing={0.5} sx={{ alignItems: "center", pb: 1.5 }}>
@@ -274,9 +319,7 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
               variant="contained"
               type="submit"
               loading={props.saving}
-              disabled={
-                w.issues.length > 0 || f.isSubmitDisabled || props.saving
-              }
+              disabled={props.saving}
             >
               {props.saving ? m.saving : (props.submitLabel ?? m.save)}
             </SubmitButton>
@@ -382,6 +425,17 @@ function HeaderButton({
     </ButtonBase>
   );
 }
+
+const issuePulse = keyframes`
+  0%, 100% { opacity: 1; }
+  40% { opacity: 0.55; }
+`;
+
+// 交替 animation-name，只有再次提交才重启动画；修改提示文案不重播。
+const issuePulseAlternate = keyframes`
+  0%, 100% { opacity: 1; }
+  40% { opacity: 0.54; }
+`;
 
 const headerButtonSx = {
   display: "inline-flex",

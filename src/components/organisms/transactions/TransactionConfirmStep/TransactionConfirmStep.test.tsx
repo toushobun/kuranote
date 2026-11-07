@@ -392,7 +392,8 @@ describe("TransactionConfirmStep", () => {
     expect(
       screen.queryByRole("button", { name: "删除支付账户 1" }),
     ).not.toBeInTheDocument();
-    expect(saveButton()).toBeDisabled();
+    expect(saveButton()).toBeEnabled();
+    click("保存记账");
     click("请选择收支账户");
     expect(
       screen.getByRole("radiogroup", { name: "收支账户" }),
@@ -469,7 +470,8 @@ describe("TransactionConfirmStep", () => {
       "¥12.55",
     );
     expect(screen.queryByText("请完善明细分类和金额")).toBeNull();
-    expect(saveButton()).toBeDisabled();
+    expect(saveButton()).toBeEnabled();
+    click("保存记账");
     click("1 条明细金额的小数位超出当前币种，点一下重新输入");
     expect(await screen.findByLabelText("金额计算器")).toBeInTheDocument();
     pressItemAmountKey("1");
@@ -487,7 +489,7 @@ describe("TransactionConfirmStep", () => {
     renderConfirmFlow();
     click("添加付款账户（多个账户一起付）");
     expect(line("更换支付账户 2")).toHaveTextContent("选择收支账户");
-    expect(saveButton()).toBeDisabled();
+    expect(saveButton()).toBeEnabled();
     click("删除支付账户 2");
     expect(
       screen.queryByRole("button", { name: "更换支付账户 2" }),
@@ -541,9 +543,13 @@ describe("TransactionConfirmStep", () => {
     );
     expect(screen.getByRole("status")).toHaveAttribute("data-invalid", "true");
     expect(
+      screen.queryByRole("button", { name: "付款账户未对上，点一下去调整" }),
+    ).toBeNull();
+    click("保存记账");
+    expect(
       screen.getByRole("button", { name: "付款账户未对上，点一下去调整" }),
     ).toBeInTheDocument();
-    expect(saveButton()).toBeDisabled();
+    expect(saveButton()).toBeEnabled();
     click("修改支付账户 2 金额：¥3,000");
     expect(await screen.findByText("现金 的金额")).toBeInTheDocument();
     for (const key of ["退格", "退格", "退格", "退格", "2", "0", "0", "0"])
@@ -632,7 +638,9 @@ describe("TransactionConfirmStep", () => {
       "data-invalid",
       "true",
     );
-    expect(saveButton()).toBeDisabled();
+    expect(saveButton()).toBeEnabled();
+    expect(screen.queryAllByRole("alert")).toHaveLength(0);
+    click("保存记账");
     expect(screen.getAllByRole("alert")).toHaveLength(2);
     click("请添加明细");
     expect(
@@ -648,6 +656,8 @@ describe("TransactionConfirmStep", () => {
       },
     });
     expect(line("编辑明细 1")).toHaveAttribute("data-invalid", "true");
+    expect(screen.queryByText(/还有 1 条明细没填金额/)).toBeNull();
+    click("保存记账");
     click("还有 1 条明细没填金额，点一下去填写");
     pressItemAmountKey("8");
     pressItemAmountKey("确定");
@@ -656,6 +666,7 @@ describe("TransactionConfirmStep", () => {
     );
     expect(line("编辑明细 1")).toHaveTextContent(/¥\s*8/);
     expect(saveButton()).toBeEnabled();
+    expect(screen.queryAllByRole("alert")).toHaveLength(0);
   });
 
   it.each([true, false])(
@@ -683,6 +694,35 @@ describe("TransactionConfirmStep", () => {
       expect(saveButton()).toBeEnabled();
     },
   );
+
+  it("再次保存才重播提示动画，修改金额引起文案变化不闪烁", async () => {
+    renderConfirmFlow({
+      itemsOptions: {
+        ...receiptItemsOptions,
+        initialItems: [
+          { categoryId: "lunch", amount: "" },
+          { categoryId: "storage", amount: "" },
+        ],
+      },
+    });
+    click("保存记账");
+    click("保存记账");
+    const issue = screen.getByRole("alert");
+    const pulseBefore = issue.getAttribute("data-pulse");
+    expect(pulseBefore).toBe("1");
+
+    click("修改明细 1 金额：待输入");
+    pressItemAmountKey("8");
+    pressItemAmountKey("确定");
+    await waitKeypadClosed();
+    const updated = screen.getByRole("alert");
+    expect(updated).toBe(issue);
+    expect(updated).toHaveTextContent("还有 1 条明细没填金额");
+    expect(updated).toHaveAttribute("data-pulse", pulseBefore);
+
+    click("保存记账");
+    expect(screen.getByRole("alert")).toHaveAttribute("data-pulse", "2");
+  });
 });
 
 describe("TransactionConfirmStep 金额键盘", () => {
@@ -761,7 +801,7 @@ describe("TransactionConfirmStep 金额键盘", () => {
     expect(screen.getByRole("status")).toHaveTextContent(
       "付款合计 ¥9,000 / 明细合计 ¥10,000 · 差额 ¥1,000",
     );
-    expect(saveButton()).toBeDisabled();
+    expect(saveButton()).toBeEnabled();
   });
 });
 
