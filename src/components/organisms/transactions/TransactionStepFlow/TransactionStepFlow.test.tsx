@@ -171,7 +171,9 @@ describe("TransactionStepFlow", () => {
       target: { value: "手动备注" },
     });
     click("完成");
-    click("关闭记账");
+    fireEvent.click(
+      await screen.findByRole("button", { name: "关闭记账" }),
+    );
     expect(
       screen.getByRole("dialog", { name: "尚未保存" }),
     ).toBeInTheDocument();
@@ -287,7 +289,9 @@ describe("TransactionStepFlow", () => {
       target: { value: "购买日用品" },
     });
     click("完成");
-    click("关闭记账");
+    fireEvent.click(
+      await screen.findByRole("button", { name: "关闭记账" }),
+    );
     click("保存并退出");
     expect(
       await screen.findByRole("button", { name: "请选择收支账户" }),
@@ -866,7 +870,8 @@ describe("TransactionStepFlow 页内新增", () => {
     await waitMerchantDrawerClosed();
     expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
     expect(saveButton().closest("form")).toBe(form);
-    await backFromGuard();
+    // 父小票只有自动初始值，不再安装未保存哨兵，普通后退即可离开。
+    await act(async () => window.history.back());
     expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
   });
   it("全屏商家预填是初值，输入还原后后退直接关闭且不改父数据", async () => {
