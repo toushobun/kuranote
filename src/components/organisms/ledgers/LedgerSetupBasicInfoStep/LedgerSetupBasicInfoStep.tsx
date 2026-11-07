@@ -28,7 +28,6 @@ export function LedgerSetupBasicInfoStep(props: LedgerSetupWizardStepProps) {
   const {
     actionState,
     handleSubmit,
-    isPending,
     ledgerId,
     setValues,
     values,
@@ -43,8 +42,6 @@ export function LedgerSetupBasicInfoStep(props: LedgerSetupWizardStepProps) {
           next={{
             form: formId,
             label: ledgerSetupWizardMessages.next,
-            loading: isPending,
-            loadingLabel: ledgerSetupWizardMessages.submitting,
             type: "submit",
           }}
         />
@@ -68,7 +65,6 @@ export function LedgerSetupBasicInfoStep(props: LedgerSetupWizardStepProps) {
               <LedgerRegionField
                 value={livingRegion}
                 onChange={setLivingRegion}
-                disabled={isPending}
               />
             }
           />

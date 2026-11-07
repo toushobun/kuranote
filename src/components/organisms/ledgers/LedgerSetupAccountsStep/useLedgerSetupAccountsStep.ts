@@ -12,7 +12,6 @@ import {
   type LedgerSetupTemplate,
 } from "internal/ledger";
 import type { LedgerSetupWizardStepProps } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardStepTypes";
-import type { LedgerSetupProgress } from "types/ledgers";
 
 function getAccountKey({
   name,
@@ -54,16 +53,10 @@ function buildAccountPresetItems(template: LedgerSetupTemplate) {
   return [...items.values()];
 }
 
-type Options = Omit<LedgerSetupWizardStepProps, "progress"> & {
-  progress: LedgerSetupProgress;
-};
-
 export function useLedgerSetupAccountsStep({
-  onNext,
-  onPrevious,
   onProgressChange,
   progress,
-}: Options) {
+}: LedgerSetupWizardStepProps) {
   const { draft } = progress.setup;
   const items = useMemo(
     () => (progress.template ? buildAccountPresetItems(progress.template) : []),
@@ -92,17 +85,9 @@ export function useLedgerSetupAccountsStep({
 
   return {
     checkedCount: selectedKeys.length,
-    failureState: {},
-    isSaving: false,
     items,
     limitExceeded: selectedKeys.length > ledgerSetupLimits.maxAccounts,
     selectedKeys,
     setSelectedKeys,
-    goNext() {
-      onNext();
-    },
-    goPrevious() {
-      onPrevious();
-    },
   };
 }

@@ -15,25 +15,22 @@ import type { LedgerSetupWizardStepProps } from "organisms/ledgers/LedgerSetupWi
 import type { LedgerBasicInfoValues } from "organisms/ledgers/LedgerBasicInfoFields/LedgerBasicInfoFields";
 
 export function useLedgerSetupBasicInfoStep({
-  defaults,
   onNext,
   onProgressChange,
   progress,
   validationError,
 }: LedgerSetupWizardStepProps) {
   const [failure, setFailure] = useState<string | null>(null);
-  const setup = progress?.setup;
-  const values: LedgerBasicInfoValues = setup
-    ? {
-        baseCurrency: setup.baseCurrency,
-        displayColor: setup.displayColor,
-        displayName: setup.displayName,
-        ledgerName: setup.name,
-      }
-    : defaults;
+  const { setup } = progress;
+  const values: LedgerBasicInfoValues = {
+    baseCurrency: setup.baseCurrency,
+    displayColor: setup.displayColor,
+    displayName: setup.displayName,
+    ledgerName: setup.name,
+  };
 
   function setValues(next: LedgerBasicInfoValues) {
-    if (!progress || !isLedgerCurrency(next.baseCurrency)) return;
+    if (!isLedgerCurrency(next.baseCurrency)) return;
     onProgressChange({
       ...progress,
       setup: {
@@ -47,7 +44,6 @@ export function useLedgerSetupBasicInfoStep({
   }
 
   function setLivingRegion(region: LedgerSetupRegion | null) {
-    if (!progress) return;
     const changed = progress.setup.livingRegion !== region;
     onProgressChange({
       ...progress,
@@ -85,11 +81,10 @@ export function useLedgerSetupBasicInfoStep({
         ? { error: failure ?? validationError ?? undefined }
         : {},
     handleSubmit,
-    isPending: false,
-    ledgerId: setup?.id ?? "",
+    ledgerId: setup.id,
     setValues,
     values,
-    livingRegion: setup?.livingRegion ?? null,
+    livingRegion: setup.livingRegion,
     setLivingRegion,
   };
 }

@@ -4,19 +4,13 @@ import { useMemo } from "react";
 
 import type { LedgerSetupDraft, LedgerSetupRegion } from "internal/ledger";
 import type { LedgerSetupWizardStepProps } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardStepTypes";
-import type { LedgerSetupProgress } from "types/ledgers";
 import { buildMerchantChecklist } from "utils/merchantPresets";
-
-type Options = Omit<LedgerSetupWizardStepProps, "progress"> & {
-  progress: LedgerSetupProgress;
-};
 
 export function useLedgerSetupMerchantsStep({
   onNext,
-  onPrevious,
   onProgressChange,
   progress,
-}: Options) {
+}: LedgerSetupWizardStepProps) {
   const { draft } = progress.setup;
   const selectedKeys = draft.merchants.selectedKeys;
   const additionalRegions = draft.merchants.additionalRegions ?? [];
@@ -38,8 +32,6 @@ export function useLedgerSetupMerchantsStep({
 
   return {
     checklist,
-    failureState: {},
-    isSaving: false,
     selectedCount: selectedKeys.length,
     selectedKeys,
     setSelectedKeys(keys: string[]) {
@@ -54,9 +46,6 @@ export function useLedgerSetupMerchantsStep({
         update({ ...draft.merchants, selectedKeys: [], skipped: true });
       }
       onNext();
-    },
-    goPrevious() {
-      onPrevious();
     },
   };
 }

@@ -20,7 +20,6 @@ export const ledgerSetupWizardMessages = {
   saveErrorTitle: "创建进度保存失败",
   saveAndExit: "保存并退出",
   cleanExitDescription: "账本还没创建完，要保存当前进度再退出吗？",
-  submitting: "保存中",
   title: "创建账本",
 } as const;
 
@@ -79,7 +78,6 @@ export const ledgerSetupConfirmMessages = {
     title: "分类（自动创建）",
   },
   complete: "完成创建",
-  completeErrorTitle: "账本创建失败",
   completing: "创建中",
   description: (ledgerName: string) => `以下内容将添加到「${ledgerName}」`,
   edit: "修改",

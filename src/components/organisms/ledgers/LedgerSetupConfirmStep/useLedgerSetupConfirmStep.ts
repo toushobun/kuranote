@@ -3,16 +3,12 @@
 import { useMemo, useRef, useState } from "react";
 
 import type { LedgerSetupWizardStepProps } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardStepTypes";
-import type { ActionState } from "types/actions";
-import type { LedgerSetupProgress } from "types/ledgers";
 import { buildLedgerSetupConfirmSummary } from "utils/ledgerSetupSummary";
 
 type Options = Pick<
   LedgerSetupWizardStepProps,
-  "onBusyChange" | "onComplete"
-> & {
-  progress: LedgerSetupProgress;
-};
+  "onBusyChange" | "onComplete" | "progress"
+>;
 
 export function useLedgerSetupConfirmStep({
   onBusyChange,
@@ -24,11 +20,10 @@ export function useLedgerSetupConfirmStep({
     [progress],
   );
   const [isCompleting, setIsCompleting] = useState(false);
-  const [failureState] = useState<ActionState>({});
   const completingRef = useRef(false);
 
   async function complete() {
-    if (completingRef.current || !onComplete) return;
+    if (completingRef.current) return;
     completingRef.current = true;
     setIsCompleting(true);
     onBusyChange(true);
@@ -42,10 +37,7 @@ export function useLedgerSetupConfirmStep({
   }
 
   return {
-    failureState,
     isCompleting,
-    isLocked: isCompleting,
-    isUnavailable: false,
     summary,
     complete() {
       void complete();

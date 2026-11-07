@@ -54,8 +54,11 @@ describe("LedgerSetupConfirmStep", () => {
       persistSetup,
     });
     clickCompleteSetup();
-    await waitFor(() => expect(persistSetup).toHaveBeenCalledOnce());
     expect(getCurrentStepItem()).toHaveTextContent("确认");
+    expect(
+      await screen.findByText("请重新打开最新账本草稿"),
+    ).toBeInTheDocument();
+    expect(persistSetup).toHaveBeenCalledOnce();
   });
 
   it("重复点击完成只启动一次写入", async () => {
@@ -76,6 +79,8 @@ describe("LedgerSetupConfirmStep", () => {
     });
     clickCompleteSetup();
     expect(screen.getByRole("button", { name: "创建中" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "上一步" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "修改基本信息" })).toBeDisabled();
     expect(persistSetup).toHaveBeenCalledOnce();
     finish({ updatedAt: "2026-11-07T01:00:00Z", completed: true });
     await waitFor(() => expect(getCurrentStepItem()).toHaveTextContent("邀请"));

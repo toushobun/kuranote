@@ -10,13 +10,11 @@ import {
 } from "config/ledgerSetupMessages";
 import { regionPresetMessages } from "config/regionPresetMessages";
 import { ledgerSetupAccountTypes, ledgerSetupLimits } from "internal/ledger";
-import { ActionFailureFeedback } from "molecules/ui/OperationFeedbackDialogs";
 import { RegionPresetSelector } from "molecules/ui/RegionPresetSelector/RegionPresetSelector";
 import { WizardActionBar } from "molecules/ui/WizardActionBar/WizardActionBar";
 import { WizardStepLayout } from "molecules/ui/WizardDialog/WizardStepLayout";
 import type { LedgerSetupWizardStepProps } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardStepTypes";
 import { typographyStyles } from "theme/typographyTokens";
-import type { LedgerSetupProgress } from "types/ledgers";
 import { getAccountTypeLabel } from "utils/accounts";
 
 import { useLedgerSetupAccountsStep } from "./useLedgerSetupAccountsStep";
@@ -29,22 +27,9 @@ const selectorMessages = {
 
 /**
  * 向导第 2 步「账户」：与商家步骤相同，按地区分卡、卡内按账户类型分组勾选模板候选。
- * 不能在此自行添加账户（之后在账户管理中添加）。第 2 步只能在第 1 步创建账本后进入，因此始终有进度。
+ * 自定义账户在账本创建后通过账户管理添加。
  */
-export function LedgerSetupAccountsStep({
-  progress,
-  ...props
-}: LedgerSetupWizardStepProps) {
-  if (!progress) return null;
-
-  return <LedgerSetupAccountsStepContent {...props} progress={progress} />;
-}
-
-function LedgerSetupAccountsStepContent(
-  props: Omit<LedgerSetupWizardStepProps, "progress"> & {
-    progress: LedgerSetupProgress;
-  },
-) {
+export function LedgerSetupAccountsStep(props: LedgerSetupWizardStepProps) {
   const step = useLedgerSetupAccountsStep(props);
   const groups = ledgerSetupAccountTypes.map((type) => ({
     icon: <AccountTypeIcon type={type} />,
@@ -65,15 +50,12 @@ function LedgerSetupAccountsStepContent(
               step.checkedCount > 0
                 ? ledgerSetupAccountsMessages.nextWithCount(step.checkedCount)
                 : ledgerSetupWizardMessages.next,
-            loading: step.isSaving,
-            loadingLabel: ledgerSetupWizardMessages.submitting,
-            onClick: step.goNext,
+            onClick: props.onNext,
           }}
           previous={{
-            // 上一步同样保存草稿，超限时保存必然失败，因此与下一步一起禁用。
-            disabled: step.isSaving || step.limitExceeded,
+            disabled: step.limitExceeded,
             label: ledgerSetupWizardMessages.previous,
-            onClick: step.goPrevious,
+            onClick: props.onPrevious,
           }}
         />
       }
@@ -96,7 +78,6 @@ function LedgerSetupAccountsStepContent(
         </Stack>
 
         <RegionPresetSelector
-          disabled={step.isSaving}
           groups={groups}
           items={step.items}
           messages={selectorMessages}
@@ -105,11 +86,6 @@ function LedgerSetupAccountsStepContent(
           selectedKeys={step.selectedKeys}
         />
       </Stack>
-
-      <ActionFailureFeedback
-        state={step.failureState}
-        title={ledgerSetupWizardMessages.saveErrorTitle}
-      />
     </WizardStepLayout>
   );
 }

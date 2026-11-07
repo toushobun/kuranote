@@ -1,6 +1,5 @@
 import type { ComponentType } from "react";
 
-import type { LedgerBasicInfoValues } from "organisms/ledgers/LedgerBasicInfoFields/LedgerBasicInfoFields";
 import type {
   LedgerSetupProgress,
   LedgerSetupWizardActions,
@@ -24,8 +23,6 @@ export type LedgerSetupWizardStepProps = {
   actions: LedgerSetupWizardActions;
   /** 完成创建时将自动创建的大分类名称（按排序），确认一览展示用。 */
   defaultRootCategoryNames: readonly string[];
-  /** 尚未创建账本时第 1 步使用的默认值。 */
-  defaults: LedgerBasicInfoValues;
   validationError?: string | null;
   onBusyChange: (busy: boolean) => void;
   /** 跳到指定步骤（确认一览的「修改」）。只允许跳到账本完成前可编辑的步骤，其他值忽略。 */
@@ -39,13 +36,9 @@ export type LedgerSetupWizardStepProps = {
   /** 编辑本地草稿，由向导骨架统一管理。 */
   onProgressChange: (progress: LedgerSetupProgress) => void;
   /** 第 5 步由骨架提交完整草稿。 */
-  onComplete?: () => Promise<boolean>;
-  /** 含全部本地草稿的进度；首次创建时 ID 已在客户端生成。 */
-  progress: LedgerSetupProgress | null;
-  /** 当前步骤（从 1 开始），与 ledger.setup_step 对应。 */
-  step: number;
-  /** 当前步骤的标签。 */
-  stepLabel: string;
+  onComplete: () => Promise<boolean>;
+  /** 含全部本地草稿的进度；首次提交时才生成账本 ID。 */
+  progress: LedgerSetupProgress;
 };
 
 export type LedgerSetupWizardStepDefinition = {

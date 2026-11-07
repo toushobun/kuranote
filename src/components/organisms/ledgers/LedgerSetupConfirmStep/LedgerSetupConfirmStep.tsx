@@ -15,14 +15,12 @@ import {
   ledgerSetupConfirmMessages,
   ledgerSetupWizardMessages,
 } from "config/ledgerSetupMessages";
-import { ActionFailureFeedback } from "molecules/ui/OperationFeedbackDialogs";
 import { WizardActionBar } from "molecules/ui/WizardActionBar/WizardActionBar";
 import { WizardStepLayout } from "molecules/ui/WizardDialog/WizardStepLayout";
 import type { LedgerSetupWizardStepProps } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardStepTypes";
 import { designTokens } from "theme/theme";
 import { themeColorTokens } from "theme/themeColorTokens";
 import { typographyStyles } from "theme/typographyTokens";
-import type { LedgerSetupProgress } from "types/ledgers";
 
 import { LedgerSetupSummaryCard } from "./LedgerSetupSummaryCard";
 import { useLedgerSetupConfirmStep } from "./useLedgerSetupConfirmStep";
@@ -42,25 +40,13 @@ const collapsedCategoryCount = 6;
 
 /**
  * 向导第 5 步「确认一览」：汇总将创建的内容，「完成创建」时写入默认数据并切换为当前账本。
- * 第 5 步只能在第 1 步创建账本后进入，因此始终有进度。
  */
 export function LedgerSetupConfirmStep({
-  progress,
-  ...props
-}: LedgerSetupWizardStepProps) {
-  if (!progress) return null;
-
-  return <LedgerSetupConfirmStepContent {...props} progress={progress} />;
-}
-
-function LedgerSetupConfirmStepContent({
   defaultRootCategoryNames,
   onGoToStep,
   onPrevious,
   ...props
-}: Omit<LedgerSetupWizardStepProps, "progress"> & {
-  progress: LedgerSetupProgress;
-}) {
+}: LedgerSetupWizardStepProps) {
   const step = useLedgerSetupConfirmStep(props);
   const {
     accounts,
@@ -76,15 +62,13 @@ function LedgerSetupConfirmStepContent({
       actions={
         <WizardActionBar
           next={{
-            disabled: step.isUnavailable,
             label: messages.complete,
             loading: step.isCompleting,
             loadingLabel: messages.completing,
             onClick: step.complete,
           }}
-          // 草稿在确认一览中没有修改，返回上一步无需保存。
           previous={{
-            disabled: step.isLocked,
+            disabled: step.isCompleting,
             label: ledgerSetupWizardMessages.previous,
             onClick: onPrevious,
           }}
@@ -102,7 +86,7 @@ function LedgerSetupConfirmStepContent({
         </Stack>
 
         <LedgerSetupSummaryCard
-          editDisabled={step.isLocked}
+          editDisabled={step.isCompleting}
           icon={<MenuBookRoundedIcon />}
           onEdit={() => onGoToStep(editSteps.basicInfo)}
           title={messages.basicInfo.title}
@@ -127,7 +111,7 @@ function LedgerSetupConfirmStepContent({
           description={
             accounts.skipped ? messages.accounts.skippedDescription : undefined
           }
-          editDisabled={step.isLocked}
+          editDisabled={step.isCompleting}
           icon={<AccountBalanceWalletRoundedIcon />}
           onEdit={() => onGoToStep(editSteps.accounts)}
           skipped={accounts.skipped}
@@ -158,7 +142,7 @@ function LedgerSetupConfirmStepContent({
               ? messages.merchants.skippedDescription
               : undefined
           }
-          editDisabled={step.isLocked}
+          editDisabled={step.isCompleting}
           icon={<StorefrontRoundedIcon />}
           onEdit={() => onGoToStep(editSteps.merchants)}
           skipped={merchants.skipped}
@@ -196,7 +180,7 @@ function LedgerSetupConfirmStepContent({
         </LedgerSetupSummaryCard>
 
         <LedgerSetupSummaryCard
-          editDisabled={step.isLocked}
+          editDisabled={step.isCompleting}
           icon={<TuneRoundedIcon />}
           onEdit={() => onGoToStep(editSteps.features)}
           title={messages.features.title}
@@ -217,11 +201,6 @@ function LedgerSetupConfirmStepContent({
           </Stack>
         </LedgerSetupSummaryCard>
       </Stack>
-
-      <ActionFailureFeedback
-        state={step.failureState}
-        title={messages.completeErrorTitle}
-      />
     </WizardStepLayout>
   );
 }

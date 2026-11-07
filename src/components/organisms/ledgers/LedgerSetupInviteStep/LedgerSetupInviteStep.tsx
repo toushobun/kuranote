@@ -17,7 +17,6 @@ import { WizardStepLayout } from "molecules/ui/WizardDialog/WizardStepLayout";
 import type { LedgerSetupWizardStepProps } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardStepTypes";
 import { designTokens } from "theme/theme";
 import { typographyStyles } from "theme/typographyTokens";
-import type { LedgerSetupProgress } from "types/ledgers";
 
 import { useLedgerSetupInviteStep } from "./useLedgerSetupInviteStep";
 
@@ -33,24 +32,6 @@ export function LedgerSetupInviteStep({
   onFinish,
   progress,
 }: LedgerSetupWizardStepProps) {
-  if (!progress) return null;
-
-  return (
-    <LedgerSetupInviteStepContent
-      actions={actions}
-      onFinish={onFinish}
-      progress={progress}
-    />
-  );
-}
-
-function LedgerSetupInviteStepContent({
-  actions,
-  onFinish,
-  progress,
-}: Pick<LedgerSetupWizardStepProps, "actions" | "onFinish"> & {
-  progress: LedgerSetupProgress;
-}) {
   const { id: ledgerId, name: ledgerName } = progress.setup;
   const step = useLedgerSetupInviteStep({ actions, ledgerId });
 

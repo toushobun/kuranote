@@ -169,7 +169,7 @@ function LedgerSetupWizardContent({
     saveLabel: ledgerSetupWizardMessages.saveAndExit,
     cleanDescription: ledgerSetupWizardMessages.cleanExitDescription,
   });
-  const { Component: StepComponent, key, label } = wizard.currentStep;
+  const { Component: StepComponent, key } = wizard.currentStep;
 
   return (
     <>
@@ -239,7 +239,6 @@ function LedgerSetupWizardContent({
             <StepComponent
               actions={actions}
               defaultRootCategoryNames={defaultRootCategoryNames}
-              defaults={defaults}
               key={`${key}:${wizard.progressRevision}`}
               onBusyChange={wizard.setBusy}
               onFinish={wizard.finish}
@@ -250,8 +249,6 @@ function LedgerSetupWizardContent({
               onComplete={() => persist(true)}
               validationError={validationError}
               progress={wizard.progress}
-              step={wizard.step}
-              stepLabel={label}
             />
           </Box>
         )}
