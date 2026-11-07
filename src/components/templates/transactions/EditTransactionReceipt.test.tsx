@@ -402,8 +402,13 @@ describe("EditTransactionReceiptTemplate", () => {
     click("修改明细 1 金额：待输入");
     pressItemAmountKey("8");
     pressItemAmountKey("确定");
+    await waitFor(() =>
+      expect(screen.queryByLabelText("金额计算器")).not.toBeInTheDocument(),
+    );
     await waitFor(() => expect(screen.queryAllByRole("alert")).toHaveLength(0));
-    click("保存修改");
+    fireEvent.click(
+      await screen.findByRole("button", { name: "保存修改" }),
+    );
     await waitFor(() => expect(action).toHaveBeenCalledOnce());
   });
 
