@@ -40,8 +40,10 @@ function ShellHarness({
   deleteAction = vi.fn(async () => ({})),
   editRestriction = null,
   hasLinkedIncomeItems = false,
+  saveLabel,
 }: {
   action?: TransactionStateAction;
+  saveLabel?: string;
   canDelete?: boolean;
   deleteAction?: TransactionStateAction;
   editRestriction?: TransactionEditRestriction | null;
@@ -55,6 +57,7 @@ function ShellHarness({
       editRestriction={editRestriction}
       hasLinkedIncomeItems={hasLinkedIncomeItems}
       saveFormId={saveFormId}
+      saveLabel={saveLabel}
       transactionRecordId="00000000-0000-4000-8000-000000009001"
     >
       {(editAction) => (
@@ -165,6 +168,22 @@ describe("EditTransactionShell", () => {
       ).toBeNull();
     },
   );
+
+  it.each([
+    ["未覆盖的编辑页", undefined, "保存"],
+    ["编辑小票", "保存并退出", "保存并退出"],
+  ])("%s保持对应的未保存主按钮文案", async (_, saveLabel, label) => {
+    renderShell({ saveLabel });
+    fireEvent.change(screen.getByRole("textbox", { name: "编辑临时输入" }), {
+      target: { value: "修改" },
+    });
+    fireEvent.click(screen.getByRole("link", { name: "关闭" }));
+    expect(
+      within(
+        await screen.findByRole("dialog", { name: "尚未保存" }),
+      ).getByRole("button", { name: label }),
+    ).toBeInTheDocument();
+  });
 
   it("删除按钮在编辑表单下方，删除前要求确认", () => {
     const requestSubmit = vi
