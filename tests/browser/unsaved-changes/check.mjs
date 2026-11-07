@@ -889,9 +889,11 @@ async function checkLedgerSetup(browser) {
 
   await browserBack(page);
   await page.waitForURL(sourceUrl);
-  await page.getByRole("heading", {
-    name: "离开守卫兼容性验证",
-  }).waitFor();
+  await page
+    .getByRole("heading", {
+      name: "离开守卫兼容性验证",
+    })
+    .waitFor();
   const returned = await record("向导关闭后下一次后退正常返回来源页");
   assert.equal(returned.currentIndex, baseline.currentIndex - 1);
   return finishSession(session);
