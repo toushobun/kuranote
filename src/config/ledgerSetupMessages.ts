@@ -1,5 +1,3 @@
-import { unsavedChangesMessages } from "./unsavedChangesMessages";
-
 /** 创建账本向导（#395）的界面文案。错误文案以 internal/ledger 的错误定义为准，不在此重复。 */
 export const ledgerSetupWizardMessages = {
   close: "关闭创建账本向导",
@@ -20,7 +18,6 @@ export const ledgerSetupWizardMessages = {
     merchants: "商家",
   },
   saveErrorTitle: "创建进度保存失败",
-  saveAndExit: unsavedChangesMessages.saveAndExit,
   cleanExitDescription: "账本还没创建完，要保存当前进度再退出吗？",
   title: "创建账本",
 } as const;
