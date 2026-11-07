@@ -234,7 +234,7 @@ function LedgerSetupWizardContent({
               actions={actions}
               defaultRootCategoryNames={defaultRootCategoryNames}
               defaults={defaults}
-              key={`${key}:${wizard.progress?.setup.id ?? "new"}:${wizard.progressRevision}`}
+              key={`${key}:${wizard.progressRevision}`}
               onBusyChange={wizard.setBusy}
               onFinish={wizard.finish}
               onGoToStep={wizard.goToStep}
