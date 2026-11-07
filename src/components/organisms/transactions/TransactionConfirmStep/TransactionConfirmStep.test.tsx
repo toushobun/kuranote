@@ -694,7 +694,6 @@ describe("TransactionConfirmStep", () => {
       expect(saveButton()).toBeEnabled();
     },
   );
-});
 
   it("再次保存才重播提示动画，修改金额引起文案变化不闪烁", async () => {
     renderConfirmFlow({
@@ -709,8 +708,8 @@ describe("TransactionConfirmStep", () => {
     click("保存记账");
     click("保存记账");
     const issue = screen.getByRole("alert");
-    const animationBefore = getComputedStyle(issue).animationName;
-    expect(animationBefore).not.toBe("none");
+    const pulseBefore = issue.getAttribute("data-pulse");
+    expect(pulseBefore).toBe("1");
 
     click("修改明细 1 金额：待输入");
     pressItemAmountKey("8");
@@ -719,13 +718,12 @@ describe("TransactionConfirmStep", () => {
     const updated = screen.getByRole("alert");
     expect(updated).toBe(issue);
     expect(updated).toHaveTextContent("还有 1 条明细没填金额");
-    expect(getComputedStyle(updated).animationName).toBe(animationBefore);
+    expect(updated).toHaveAttribute("data-pulse", pulseBefore);
 
     click("保存记账");
-    expect(getComputedStyle(screen.getByRole("alert")).animationName).not.toBe(
-      animationBefore,
-    );
+    expect(screen.getByRole("alert")).toHaveAttribute("data-pulse", "2");
   });
+});
 
 describe("TransactionConfirmStep 金额键盘", () => {
   it("按键、快捷金额、清空时小票金额不变，点「确定」才写入", async () => {
