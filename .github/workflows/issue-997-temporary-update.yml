@@ -1,0 +1,48 @@
+# 临时维护任务：为 GitHub-only 工作流生成确定性的 Prettier 格式与 migration 快照。
+# 在提交产物后删除此文件，避免增加长期 CI 开销。
+name: Issue 997 temporary maintenance
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize]
+permissions:
+  contents: write
+jobs:
+  update:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/997_ledger_setup_local_draft'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install formatter
+        run: npm ci
+      - name: Format
+        run: npm run format
+      - name: Supabase CLI
+        uses: supabase/setup-cli@v2
+        with:
+          version: "latest"
+          github-token: ${{ github.token }}
+      - name: Start local Supabase
+        run: supabase start
+      - name: Generate schema snapshot
+        env:
+          CI: "true"
+        run: npm run db:schema:snapshot:update
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup
+      - name: Commit and push generated assets
+        run: |
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add -u
+          if ! git diff --cached --quiet; then
+            git commit -m "style: 格式化 Issue 997 并更新数据库结构快照"
+            git push origin "HEAD:${{ github.head_ref }}"
+          fi
