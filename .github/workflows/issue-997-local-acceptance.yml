@@ -1,0 +1,76 @@
+# 临时 #997 专项验证。完成后删除，生产环境手动验收仍由维护者负责。
+name: Issue 997 focused verification
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize]
+jobs:
+  focused-vitest:
+    if: github.head_ref == 'feature/997_ledger_setup_local_draft'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - name: Vitest 997 regression
+        run: |
+          npx vitest run --maxWorkers=4 \
+            src/components/templates/ledgers/Ledgers.test.tsx \
+            src/components/molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard.test.tsx \
+            src/components/organisms/ledgers/LedgerSetupConfirmStep/LedgerSetupConfirmStep.test.tsx \
+            src/components/organisms/ledgers/LedgerSetupWizardLauncher/LedgerSetupWizardLauncher.test.tsx
+      - run: npm run format:check
+  browser-dev-prod:
+    if: github.head_ref == 'feature/997_ledger_setup_local_draft'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PLAYWRIGHT_CHANNEL: chromium
+      UNSAVED_GUARD_CASES: ledgerSetup
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Real Next dev browser
+        shell: bash
+        run: |
+          npm run guard:dev > /tmp/997-next-dev.log 2>&1 &
+          echo $! > /tmp/997-dev.pid
+          for i in {1..120}; do
+            if curl -fsS http://127.0.0.1:3097/dashboard > /dev/null; then break; fi
+            sleep 2
+          done
+          npm run guard:check || { tail -120 /tmp/997-next-dev.log; exit 1; }
+          kill $(cat /tmp/997-dev.pid) || true
+          pkill -f 'next dev tests/browser/unsaved-changes' || true
+      - name: Real Next production browser
+        shell: bash
+        run: |
+          npm run guard:build
+          npm run guard:start > /tmp/997-next-prod.log 2>&1 &
+          echo $! > /tmp/997-prod.pid
+          for i in {1..120}; do
+            if curl -fsS http://127.0.0.1:3098/dashboard > /dev/null; then break; fi
+            sleep 2
+          done
+          npm run guard:check -- http://127.0.0.1:3098 || { tail -120 /tmp/997-next-prod.log; exit 1; }
+      - name: Upload browser metrics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue-997-browser-dev-prod
+          path: .next/976-evidence/
+          if-no-files-found: ignore
+      - name: Show logs
+        if: failure()
+        run: |
+          tail -120 /tmp/997-next-dev.log 2>/dev/null || true
+          tail -120 /tmp/997-next-prod.log 2>/dev/null || true
