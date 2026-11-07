@@ -1,7 +1,10 @@
 import type { Decorator } from "@storybook/nextjs-vite";
 
 import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
-import { ledgerSetupDefaultRootCategoryNamesFixture } from "test/mocks/ledgerSetup";
+import {
+  createLedgerSetupConfirmProgressFixture,
+  ledgerSetupDefaultRootCategoryNamesFixture,
+} from "test/mocks/ledgerSetup";
 import type {
   LedgerSetupInviteMembers,
   LedgerSetupProgress,
@@ -83,3 +86,9 @@ export function createLedgerSetupWizardLauncherStoryActions(
     wizard: createLedgerSetupWizardStoryActions(progress),
   };
 }
+
+const merchantProgress = createLedgerSetupConfirmProgressFixture();
+export const ledgerSetupRestartStoryProgress = {
+  ...merchantProgress,
+  setup: { ...merchantProgress.setup, name: "旅行账本", step: 3 },
+};

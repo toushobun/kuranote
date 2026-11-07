@@ -1,14 +1,19 @@
 "use client";
 
 import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
 import { useId, useState } from "react";
 import { BackLayerScope } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
 import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog/UnsavedChangesDialog";
 import { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
 import { WizardDialog } from "molecules/ui/WizardDialog/WizardDialog";
 
-import { ledgerSetupWizardMessages } from "config/ledgerSetupMessages";
+import {
+  ledgerSetupEntryMessages,
+  ledgerSetupWizardMessages,
+} from "config/ledgerSetupMessages";
 import { StepProgress } from "molecules/ui/StepProgress/StepProgress";
+import { LedgerSetupAbandonButton } from "organisms/ledgers/LedgerSetupAbandonButton/LedgerSetupAbandonButton";
 import type { LedgerBasicInfoValues } from "organisms/ledgers/LedgerBasicInfoFields/LedgerBasicInfoFields";
 import { LedgerSetupCompleteScreen } from "organisms/ledgers/LedgerSetupCompleteScreen/LedgerSetupCompleteScreen";
 import { designTokens } from "theme/theme";
@@ -16,7 +21,10 @@ import type { LedgerSetupProgress } from "types/ledgers";
 
 import { ledgerSetupWizardSteps } from "./ledgerSetupWizardSteps";
 import type { LedgerSetupWizardActions } from "./ledgerSetupWizardStepTypes";
-import { useLedgerSetupWizard } from "./useLedgerSetupWizard";
+import {
+  useLedgerSetupWizard,
+  type LedgerSetupWizardNotice,
+} from "./useLedgerSetupWizard";
 
 const wizardLayer = 0;
 
@@ -28,7 +36,7 @@ type LedgerSetupWizardProps = {
   defaultRootCategoryNames: readonly string[];
   defaults: LedgerBasicInfoValues;
   /** 打开时显示在顶部提示条的内容（例如已有创建中账本时的提示）。 */
-  initialNotice?: string | null;
+  initialNotice?: LedgerSetupWizardNotice | null;
   onClose: () => void;
   open: boolean;
   /** 打开时的创建中账本进度；有进度时恢复到上次的步骤。 */
@@ -63,9 +71,12 @@ function LedgerSetupWizardContent({
     initialProgress,
   });
   const [dirty, setDirty] = useState(false);
+  const [abandoning, setAbandoning] = useState(false);
+  const draft = wizard.notice === "draft" ? wizard.progress?.setup : null;
+  const busy = wizard.busy || abandoning;
   const guard = useUnsavedChangesGuard({
     active: open,
-    disabled: wizard.busy,
+    disabled: busy,
     isDirty: dirty,
     layer: wizardLayer,
     onClose,
@@ -81,7 +92,7 @@ function LedgerSetupWizardContent({
           wizard.completeScreen ? undefined : ledgerSetupWizardMessages.title
         }
         closeLabel={ledgerSetupWizardMessages.close}
-        disabled={wizard.busy}
+        disabled={busy}
         onClose={guard.requestClose}
         open={open}
         headerContent={
@@ -92,15 +103,35 @@ function LedgerSetupWizardContent({
                 label={ledgerSetupWizardMessages.progressLabel}
                 steps={stepLabels}
               />
-              {wizard.notice ? (
+              {draft || wizard.notice === "templateUpdated" ? (
                 <Alert
                   closeText={ledgerSetupWizardMessages.dismissNotice}
                   onClose={wizard.dismissNotice}
+                  slotProps={{ closeButton: { disabled: abandoning } }}
                   role="status"
                   severity="info"
                   sx={noticeSx}
                 >
-                  {wizard.notice}
+                  {draft ? (
+                    <>
+                      {ledgerSetupEntryMessages.draftNotice}
+                      <LedgerSetupAbandonButton
+                        action={actions.abandonSetup}
+                        disabled={busy}
+                        ledgerId={draft.id}
+                        ledgerName={draft.name}
+                        onBusyChange={setAbandoning}
+                        onSuccess={() => {
+                          setAbandoning(false);
+                          setDirty(false);
+                          wizard.resetDraft();
+                        }}
+                        restart
+                      />
+                    </>
+                  ) : (
+                    ledgerSetupWizardMessages.templateUpdatedNotice
+                  )}
                 </Alert>
               ) : null}
             </>
@@ -114,25 +145,31 @@ function LedgerSetupWizardContent({
             titleId={titleId}
           />
         ) : (
-          <StepComponent
-            actions={actions}
-            defaultRootCategoryNames={defaultRootCategoryNames}
-            defaults={defaults}
-            key={`${key}:${wizard.progress?.setup.id ?? "new"}:${wizard.progressRevision}`}
-            onBusyChange={wizard.setBusy}
-            onDirtyChange={setDirty}
-            onFinish={wizard.finish}
-            onGoToStep={wizard.goToStep}
-            onNext={wizard.goNext}
-            onPrevious={wizard.goPrevious}
-            onProgressChange={wizard.updateProgress}
-            onProgressRefresh={wizard.refreshProgress}
-            onRestore={wizard.restoreProgress}
-            onSetupCompleted={wizard.markSetupCompleted}
-            progress={wizard.progress}
-            step={wizard.step}
-            stepLabel={label}
-          />
+          <Box
+            component="fieldset"
+            disabled={abandoning}
+            sx={{ display: "contents" }}
+          >
+            <StepComponent
+              actions={actions}
+              defaultRootCategoryNames={defaultRootCategoryNames}
+              defaults={defaults}
+              key={`${key}:${wizard.progress?.setup.id ?? "new"}:${wizard.progressRevision}`}
+              onBusyChange={wizard.setBusy}
+              onDirtyChange={setDirty}
+              onFinish={wizard.finish}
+              onGoToStep={wizard.goToStep}
+              onNext={wizard.goNext}
+              onPrevious={wizard.goPrevious}
+              onProgressChange={wizard.updateProgress}
+              onProgressRefresh={wizard.refreshProgress}
+              onRestore={wizard.restoreProgress}
+              onSetupCompleted={wizard.markSetupCompleted}
+              progress={wizard.progress}
+              step={wizard.step}
+              stepLabel={label}
+            />
+          </Box>
         )}
       </WizardDialog>
 

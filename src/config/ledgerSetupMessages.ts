@@ -139,6 +139,8 @@ export const ledgerSetupEntryMessages = {
   continueLedger: (ledgerName: string) => `继续创建${ledgerName}`,
   dashboardSubtitle: "完成创建后，就可以开始记录家庭收支了",
   dashboardTitle: "你的账本还差一点",
+  draftNotice: "你有一个账本草稿，请先完成创建。或",
+  restart: "重新创建",
   inProgressLabel: "创建中",
   loadErrorTitle: "创建账本向导读取失败",
   loading: "正在打开创建账本向导",

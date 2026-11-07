@@ -1,3 +1,4 @@
+import { ledgerSetupEntryMessages } from "config/ledgerSetupMessages";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import type { ComponentProps } from "react";
@@ -18,8 +19,6 @@ import { DashboardTemplate } from "./Dashboard";
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
 }));
-
-const inProgressNotice = "你有一个账本还没创建完，请先继续创建。";
 
 function renderDashboard(
   props: Partial<ComponentProps<typeof DashboardTemplate>> = {},
@@ -185,7 +184,7 @@ describe("DashboardTemplate", () => {
     expect(setupWizardActions.loadWizard).toHaveBeenCalledTimes(1);
     const dialog = await screen.findByRole("dialog", { name: "创建账本" });
     expect(
-      within(dialog).queryByText(inProgressNotice),
+      within(dialog).queryByText(ledgerSetupEntryMessages.draftNotice),
     ).not.toBeInTheDocument();
   });
 
@@ -205,7 +204,9 @@ describe("DashboardTemplate", () => {
     fireEvent.click(screen.getByRole("button", { name: "创建第一个账本" }));
 
     const dialog = await screen.findByRole("dialog", { name: "创建账本" });
-    expect(within(dialog).getByText(inProgressNotice)).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(ledgerSetupEntryMessages.draftNotice),
+    ).toBeInTheDocument();
   });
 
   it("有已完成账本时不显示继续创建卡片", () => {

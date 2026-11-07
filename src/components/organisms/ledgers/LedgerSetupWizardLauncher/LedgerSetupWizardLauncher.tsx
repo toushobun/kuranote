@@ -4,10 +4,6 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 
 import { ledgerSetupEntryMessages } from "config/ledgerSetupMessages";
-import {
-  ledgerSetupErrorCodes,
-  ledgerSetupErrorMessages,
-} from "internal/ledger";
 import { ErrorState } from "molecules/ui/ErrorState";
 import { WizardDialog } from "molecules/ui/WizardDialog/WizardDialog";
 import { LoadingState } from "molecules/ui/LoadingState";
@@ -16,8 +12,6 @@ import { LedgerSetupWizard } from "organisms/ledgers/LedgerSetupWizard/LedgerSet
 import type { useLedgerSetupWizardLauncher } from "./useLedgerSetupWizardLauncher";
 
 const messages = ledgerSetupEntryMessages;
-const inProgressNotice =
-  ledgerSetupErrorMessages[ledgerSetupErrorCodes.inProgressExists];
 
 type LedgerSetupWizardLauncherProps = {
   launcher: ReturnType<typeof useLedgerSetupWizardLauncher>;
@@ -41,9 +35,7 @@ export function LedgerSetupWizardLauncher({
           defaultRootCategoryNames={state.view.defaultRootCategoryNames}
           defaults={state.view.defaults}
           initialNotice={
-            state.intent === "create" && state.view.progress
-              ? inProgressNotice
-              : null
+            state.intent === "create" && state.view.progress ? "draft" : null
           }
           onClose={closeWizard}
           open

@@ -3,7 +3,10 @@
 import { useEffect } from "react";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
-import { ledgerSetupAbandonMessages as messages } from "config/ledgerSetupMessages";
+import {
+  ledgerSetupAbandonMessages as messages,
+  ledgerSetupEntryMessages,
+} from "config/ledgerSetupMessages";
 import { FailureFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
 import type { LedgerSetupAbandonAction } from "types/ledgers";
 import { useAbandonLedgerSetup } from "./useAbandonLedgerSetup";
@@ -11,6 +14,7 @@ import { useAbandonLedgerSetup } from "./useAbandonLedgerSetup";
 export function LedgerSetupAbandonButton(props: {
   action: LedgerSetupAbandonAction;
   disabled?: boolean;
+  restart?: boolean;
   size?: "small" | "medium" | "large";
   ledgerId: string;
   ledgerName: string;
@@ -30,6 +34,7 @@ export function LedgerSetupAbandonButton(props: {
         disabled={props.disabled || flow.pending}
         onClick={() => void flow.abandon()}
         variant="text"
+        sx={props.restart ? restartSx : undefined}
       >
         {flow.pending ? (
           <CircularProgress
@@ -37,6 +42,8 @@ export function LedgerSetupAbandonButton(props: {
             color="inherit"
             size={18}
           />
+        ) : props.restart ? (
+          ledgerSetupEntryMessages.restart
         ) : (
           messages.abandon
         )}
@@ -50,3 +57,11 @@ export function LedgerSetupAbandonButton(props: {
     </>
   );
 }
+
+const restartSx = {
+  minHeight: 44,
+  minWidth: 0,
+  px: 0.5,
+  my: -1,
+  textDecoration: "underline",
+};
