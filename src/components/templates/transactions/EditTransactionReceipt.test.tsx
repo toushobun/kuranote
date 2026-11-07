@@ -353,7 +353,9 @@ describe("EditTransactionReceiptTemplate", () => {
     expect(
       await screen.findByText("修正的内容尚未保存，是否保存？"),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "保存并退出" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "保存并退出" }),
+    ).toBeInTheDocument();
   });
 
   it("金额键盘显示当前商家的快捷金额", async () => {
@@ -390,13 +392,17 @@ describe("EditTransactionReceiptTemplate", () => {
     click("完成");
     fireEvent.click(await screen.findByRole("link", { name: "关闭" }));
     click("保存并退出");
-    expect(await screen.findByText(/还有 1 条明细没填金额/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/还有 1 条明细没填金额/),
+    ).toBeInTheDocument();
     expect(action).not.toHaveBeenCalled();
     expect(screen.getByRole("dialog", { name: "尚未保存" })).not.toBeVisible();
     click("修改明细 1 金额：待输入");
     pressItemAmountKey("8");
     pressItemAmountKey("确定");
-    await waitFor(() => expect(screen.queryAllByRole("alert")).toHaveLength(0));
+    await waitFor(() =>
+      expect(screen.queryAllByRole("alert")).toHaveLength(0),
+    );
     click("保存修改");
     await waitFor(() => expect(action).toHaveBeenCalledOnce());
   });
