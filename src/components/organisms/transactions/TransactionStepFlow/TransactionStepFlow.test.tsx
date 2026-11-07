@@ -188,7 +188,7 @@ describe("TransactionStepFlow", () => {
     await waitFor(() => expect(props.onClose).toHaveBeenCalledOnce());
   });
 
-  it.each([
+  it.each<[string, TransactionStepFlowProps["suggestions"]]>([
     ["有历史的商家", quickSuggestions],
     ["没有历史的商家", noHistory],
   ])("只选%s时退出不弹确认，自动填写不算修改", async (_, suggestions) => {
@@ -221,7 +221,7 @@ describe("TransactionStepFlow", () => {
     expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
   });
 
-  it.each([
+  it.each<[string, () => Promise<void>]>([
     ["付款账户", async () => {
       click("更换支付账户 1");
       selectAccount("现金 JPY");
