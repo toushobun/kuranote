@@ -1,0 +1,1 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";var t,n,r,i,a=e((()=>{t={title:`分类管理`,backToSettings:`返回设置`,subtitle:e=>`整理「${e}」的收支分类`,loading:`分类数据加载中`},n={action:`归档该分类`},r={title:`归档该分类？`,description:`归档后该分类不会在记账选择中显示，确定要归档吗？`,confirm:`归档`},i={placeholder:`搜索分类名称`,emptyTitle:`没有找到匹配的分类`,emptyDescription:`试试其他分类名称，或清空搜索查看全部分类。`}}));export{a,i,n,t as r,r as t};
