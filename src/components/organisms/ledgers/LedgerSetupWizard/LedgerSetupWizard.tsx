@@ -238,7 +238,6 @@ function LedgerSetupWizardContent({
               onNext={wizard.goNext}
               onPrevious={wizard.goPrevious}
               onProgressChange={wizard.updateProgress}
-              onSetupCompleted={() => {}}
               onComplete={() => persist(true)}
               validationError={validationError}
               progress={wizard.progress}

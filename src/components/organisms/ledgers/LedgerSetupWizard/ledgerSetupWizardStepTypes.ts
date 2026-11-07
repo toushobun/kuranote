@@ -26,7 +26,6 @@ export type LedgerSetupWizardStepProps = {
   defaultRootCategoryNames: readonly string[];
   /** 尚未创建账本时第 1 步使用的默认值。 */
   defaults: LedgerBasicInfoValues;
-  /** 保存中通知骨架锁定「×」与关闭，避免保存过程中关闭向导。 */
   validationError?: string | null;
   onBusyChange: (busy: boolean) => void;
   /** 跳到指定步骤（确认一览的「修改」）。只允许跳到账本完成前可编辑的步骤，其他值忽略。 */
@@ -37,20 +36,11 @@ export type LedgerSetupWizardStepProps = {
   onNext: () => void;
   /** 返回上一步。第 1 步不会调用。 */
   onPrevious: () => void;
-  /** 保存成功后用服务端重新读取的进度更新向导。 */
+  /** 编辑本地草稿，由向导骨架统一管理。 */
   onProgressChange: (progress: LedgerSetupProgress) => void;
-  /**
-   * 预设内容已更新（草稿未保存）：用重新读取的进度替换向导状态，
-   * 重新渲染当前步骤，并提示用户重新确认。
-   */
-  onProgressRefresh?: (progress: LedgerSetupProgress) => void;
-  /** 恢复到另一个创建中账本：替换进度并跳到该账本上次的步骤。 */
-  onRestore?: (progress: LedgerSetupProgress) => void;
-  /** 第 5 步完成写入成功：骨架保存完成页统计并进入第 6 步。 */
-  onSetupCompleted: () => void;
   /** 第 5 步由骨架提交完整草稿。 */
   onComplete?: () => Promise<boolean>;
-  /** 当前创建中账本进度；第 1 步尚未提交时为 null。 */
+  /** 含全部本地草稿的进度；首次创建时 ID 已在客户端生成。 */
   progress: LedgerSetupProgress | null;
   /** 当前步骤（从 1 开始），与 ledger.setup_step 对应。 */
   step: number;

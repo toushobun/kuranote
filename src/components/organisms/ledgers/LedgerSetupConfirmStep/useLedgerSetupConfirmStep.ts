@@ -9,7 +9,7 @@ import { buildLedgerSetupConfirmSummary } from "utils/ledgerSetupSummary";
 
 type Options = Pick<
   LedgerSetupWizardStepProps,
-  "onBusyChange" | "onComplete" | "onSetupCompleted"
+  "onBusyChange" | "onComplete"
 > & {
   progress: LedgerSetupProgress;
 };
@@ -17,7 +17,6 @@ type Options = Pick<
 export function useLedgerSetupConfirmStep({
   onBusyChange,
   onComplete,
-  onSetupCompleted,
   progress,
 }: Options) {
   const summary = useMemo(
@@ -34,8 +33,7 @@ export function useLedgerSetupConfirmStep({
     setIsCompleting(true);
     onBusyChange(true);
     try {
-      const succeeded = await onComplete();
-      if (succeeded) onSetupCompleted();
+      await onComplete();
     } finally {
       completingRef.current = false;
       setIsCompleting(false);
