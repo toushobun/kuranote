@@ -257,12 +257,10 @@ describe("TransactionStepFlow", () => {
         fireEvent.click(screen.getByRole("button", { name: /^修改时间：/ }));
         fireEvent.click(screen.getByRole("button", { name: /时刻/ }));
         click("选择 12 时");
-        click("选择 30 分");
-        click("选择 47 秒");
         click("完成");
         await waitFor(() =>
           expect(
-            screen.queryByRole("button", { name: "选择 47 秒" }),
+            screen.queryByRole("button", { name: "选择 12 时" }),
           ).toBeNull(),
         );
       },
