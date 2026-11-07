@@ -400,9 +400,7 @@ describe("EditTransactionReceiptTemplate", () => {
     click("修改明细 1 金额：待输入");
     pressItemAmountKey("8");
     pressItemAmountKey("确定");
-    await waitFor(() =>
-      expect(screen.queryAllByRole("alert")).toHaveLength(0),
-    );
+    await waitFor(() => expect(screen.queryAllByRole("alert")).toHaveLength(0));
     click("保存修改");
     await waitFor(() => expect(action).toHaveBeenCalledOnce());
   });
