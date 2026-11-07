@@ -183,7 +183,7 @@ describe("LedgerSetupWizard 本地草稿", () => {
       expect(
         await screen.findByText("预设内容已更新，请重新确认。"),
       ).toBeInTheDocument();
-      expectStep("确认");
+      await waitFor(() => expectStep("确认"));
       expect(actions.onClose).not.toHaveBeenCalled();
       submit();
       await waitFor(() => expect(persistSetup).toHaveBeenCalledTimes(2));
