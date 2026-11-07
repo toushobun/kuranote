@@ -24,13 +24,17 @@ describe("ReceiptLine", () => {
         />,
       );
       const label = screen.getByText("🍽️ 饮食 · 🍙 早餐");
-      const row = screen.getByRole("button", {
-        name: "编辑明细",
-      }).parentElement!;
-      expect(row).toContainElement(label);
-      for (const name of ["修改金额", "编辑明细", "删除明细"]) {
-        expect(screen.getByRole("button", { name }).parentElement).toBe(row);
-      }
+      const edit = screen.getByRole("button", { name: "编辑明细" });
+      expect(edit.previousElementSibling).toBe(label);
+      const remove = screen.getByRole("button", { name: "删除明细" });
+      const amount = screen.getByRole("button", { name: "修改金额" });
+      const row = remove.parentElement!;
+      expect(row).toContainElement(edit);
+      expect(remove.previousElementSibling).toBe(amount);
+      expect(amount.querySelector("svg")).toHaveAttribute(
+        "aria-hidden",
+        "true",
+      );
       expect(getComputedStyle(row).display).toBe("flex");
       expect(getComputedStyle(row).alignItems).toBe("center");
       const secondRow = screen.getByText(subline).parentElement!;

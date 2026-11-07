@@ -9,8 +9,8 @@ import type { ReactNode } from "react";
 import { designTokens } from "theme/theme";
 
 /**
- * 小票中的明细行 / 支付行（设计图 8）：图标、名称与标签、金额，右侧依次为铅笔与删除 ×。
- * 明细与支付样式统一；没有可删除的内容时 × 位置留空，保持各行铅笔对齐。
+ * 小票中的明细行 / 支付行：名称旁的铅笔编辑明细或账户，金额按钮内的铅笔编辑金额。
+ * 没有可删除的内容时 × 位置留空，保持行尾对齐。
  * `subline`（明细的业务状态标签等）显示在名称下面一行，名称完整显示。
  */
 export function ReceiptLine({
@@ -43,8 +43,18 @@ export function ReceiptLine({
   removeLabel?: string;
   onRemove?: () => void;
 }) {
+  const editButton = onEdit && editLabel && (
+    <IconButton
+      size="small"
+      aria-label={editLabel}
+      onClick={onEdit}
+      sx={actionSx}
+    >
+      <EditOutlinedIcon sx={pencilSx} />
+    </IconButton>
+  );
   return (
-    <Box data-invalid={error || undefined}>
+    <Box data-receipt-line data-invalid={error || undefined}>
       <Box sx={lineSx}>
         {icon && (
           <Box aria-hidden sx={[iconSx, errorLabel && errorTextSx]}>
@@ -67,19 +77,11 @@ export function ReceiptLine({
               {label}
             </Typography>
             {tags}
+            {!labelClickable && editButton}
           </Box>
         </Box>
         {amount}
-        {onEdit && editLabel && (
-          <IconButton
-            size="small"
-            aria-label={editLabel}
-            onClick={onEdit}
-            sx={actionSx}
-          >
-            <EditOutlinedIcon sx={{ fontSize: receiptIconSize }} />
-          </IconButton>
-        )}
+        {labelClickable && editButton}
         {!onEdit ? null : onRemove && removeLabel ? (
           <IconButton
             size="small"
@@ -125,7 +127,10 @@ export function ReceiptAmountButton({
         pending && { color: "error.main" },
       ]}
     >
-      {amount}
+      <Box component="span" sx={amountUnderlineSx}>
+        {amount}
+        <EditOutlinedIcon aria-hidden sx={pencilSx} />
+      </Box>
     </ButtonBase>
   );
 }
@@ -202,6 +207,7 @@ const actionSx = {
   height: actionSize,
   width: actionSize,
 };
+const pencilSx = { fontSize: receiptIconSize, color: "text.disabled" };
 const amountTextSx = {
   flexShrink: 0,
   fontWeight: 700,
@@ -212,11 +218,15 @@ const amountButtonSx = {
   typography: "body2",
   fontWeight: 700,
   color: "text.primary",
-  textDecoration: "underline",
-  textDecorationThickness: 1,
-  textUnderlineOffset: 4,
   borderRadius: `${designTokens.radius.sm}px`,
   px: 0.25,
   minHeight: 32,
   "&.Mui-focusVisible": { outline: "2px solid", outlineColor: "primary.main" },
+};
+const amountUnderlineSx = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 0.5,
+  borderBottom: 1,
+  borderColor: "currentColor",
 };

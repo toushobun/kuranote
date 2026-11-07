@@ -51,7 +51,9 @@ export function expectAutomaticItems(count: number) {
 
 // 以首排铅笔按钮定位包含次排标签的完整小票行。
 export function receiptLine(name: string) {
-  return screen.getByRole("button", { name }).parentElement!.parentElement!;
+  return screen
+    .getByRole("button", { name })
+    .closest<HTMLElement>("[data-receipt-line]")!;
 }
 
 /** 直接渲染只读小票（#962）：已选 7-Eleven，明细与付款按参数预填。 */
