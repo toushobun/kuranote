@@ -295,7 +295,9 @@ describe("useUnsavedChangesGuard 显式退出", () => {
     expect(onClose).not.toHaveBeenCalled();
     expect(screen.getByLabelText("草稿")).toHaveValue("跨步内容");
     succeed = true;
-    fireEvent.click(screen.getByRole("button", { name: "关闭向导" }));
+    const close = await screen.findByRole("button", { name: "关闭向导" });
+    await waitFor(() => expect(close).toBeVisible());
+    fireEvent.click(close);
     fireEvent.click(screen.getByRole("button", { name: "保存并退出" }));
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(onClose).toHaveBeenCalledOnce());

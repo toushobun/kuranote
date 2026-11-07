@@ -83,7 +83,7 @@ function LedgerSetupWizardContent({
   const [validationError, setValidationError] = useState<string | null>(null);
   const [failureState, setFailureState] = useState<ActionState>({});
   const [abandoning, setAbandoning] = useState(false);
-  const draft = wizard.notice === "draft" ? wizard.progress?.setup : null;
+  const draft = wizard.notice === "draft" ? wizard.savedProgress?.setup : null;
   const busy = wizard.busy || abandoning;
   const unfinished = wizard.step <= 5 && !wizard.completeScreen;
 

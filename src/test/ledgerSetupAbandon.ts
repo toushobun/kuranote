@@ -15,3 +15,9 @@ export function confirmLedgerSetupAbandon(dialog: HTMLElement) {
     within(dialog).getByRole("button", { name: messages.abandon }),
   );
 }
+
+/** 任意步骤主动退出都要先通过三按钮确认；此操作只丢弃本地修改。 */
+export async function discardLedgerSetupWizardChanges() {
+  const guard = await screen.findByRole("dialog", { name: "尚未保存" });
+  fireEvent.click(within(guard).getByRole("button", { name: "放弃修改" }));
+}

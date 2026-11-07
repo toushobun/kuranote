@@ -1,6 +1,7 @@
 import { ledgerSetupEntryMessages } from "config/ledgerSetupMessages";
 import {
   openLedgerSetupAbandonConfirm,
+  discardLedgerSetupWizardChanges,
   confirmLedgerSetupAbandon,
 } from "test/ledgerSetupAbandon";
 import {
@@ -313,6 +314,7 @@ describe("LedgersTemplate 放弃创建", () => {
     fireEvent.click(
       within(wizard).getByRole("button", { name: "关闭创建账本向导" }),
     );
+    await discardLedgerSetupWizardChanges();
     await waitFor(() => expect(wizard).not.toBeInTheDocument());
     const dialog = await openLedgerSetupAbandonConfirm("爸妈账本");
     confirmLedgerSetupAbandon(dialog);
