@@ -171,9 +171,7 @@ describe("TransactionStepFlow", () => {
       target: { value: "手动备注" },
     });
     click("完成");
-    fireEvent.click(
-      await screen.findByRole("button", { name: "关闭记账" }),
-    );
+    fireEvent.click(await screen.findByRole("button", { name: "关闭记账" }));
     expect(
       screen.getByRole("dialog", { name: "尚未保存" }),
     ).toBeInTheDocument();
@@ -289,9 +287,7 @@ describe("TransactionStepFlow", () => {
       target: { value: "购买日用品" },
     });
     click("完成");
-    fireEvent.click(
-      await screen.findByRole("button", { name: "关闭记账" }),
-    );
+    fireEvent.click(await screen.findByRole("button", { name: "关闭记账" }));
     click("保存并退出");
     expect(
       await screen.findByRole("button", { name: "请选择收支账户" }),
