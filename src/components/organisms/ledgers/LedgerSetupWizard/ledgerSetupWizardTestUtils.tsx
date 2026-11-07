@@ -62,12 +62,9 @@ function createDefaultActionMocks() {
   };
 }
 
-export function createLedgerSetupWizardActionMocks({
-  progress: _progress,
-  ...overrides
-}: Partial<ReturnType<typeof createDefaultActionMocks>> & {
-  progress?: LedgerSetupProgress | null;
-} = {}) {
+export function createLedgerSetupWizardActionMocks(
+  overrides: Partial<ReturnType<typeof createDefaultActionMocks>> = {},
+) {
   return { ...createDefaultActionMocks(), ...overrides };
 }
 
@@ -82,7 +79,7 @@ export function createLedgerSetupWizardLauncherActionMocks(
         progress,
       },
     })),
-    wizard: createLedgerSetupWizardActionMocks({ progress }),
+    wizard: createLedgerSetupWizardActionMocks(),
   };
 }
 
@@ -90,11 +87,14 @@ export function getPersistedInput(action: Mock<LedgerSetupPersistAction>) {
   return action.mock.calls[0][0];
 }
 
-type RenderOptions = Parameters<typeof createLedgerSetupWizardActionMocks>[0];
+type RenderOptions = Partial<ReturnType<typeof createDefaultActionMocks>> & {
+  progress?: LedgerSetupProgress | null;
+};
 
 export function renderLedgerSetupWizard(options: RenderOptions = {}) {
   const onClose = vi.fn();
-  const actions = createLedgerSetupWizardActionMocks(options);
+  const { progress, ...overrides } = options;
+  const actions = createLedgerSetupWizardActionMocks(overrides);
   render(
     <ConfirmDialogTestProviders>
       <LedgerSetupWizard
@@ -103,7 +103,7 @@ export function renderLedgerSetupWizard(options: RenderOptions = {}) {
         defaults={ledgerSetupWizardTestDefaults}
         onClose={onClose}
         open
-        progress={options.progress ?? null}
+        progress={progress ?? null}
       />
     </ConfirmDialogTestProviders>,
   );

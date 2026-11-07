@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useRef, useState } from "react";
 
 import {
   createDefaultLedgerSetupDraft,
@@ -69,6 +69,7 @@ export function useLedgerSetupWizard({
   initialProgress,
 }: UseLedgerSetupWizardOptions) {
   // 编辑期间只有此处持有完整草稿；持久化快照仅用于比较与乐观锁。
+  const clientId = useRef(initialProgress?.setup.id ?? "");
   const [progress, setProgress] = useState<LedgerSetupProgress>(
     () => initialProgress ?? createNewProgress(defaults),
   );
@@ -84,14 +85,18 @@ export function useLedgerSetupWizard({
     (LedgerSetupCompletion & { placeholderMemberCount: number }) | null
   >(null);
 
-  useEffect(() => {
-    // 客户端生成一次提交 ID；不在服务端渲染期间产生不稳定 UUID。
-    if (progress.setup.id) return;
-    setProgress((current) => ({
-      ...current,
-      setup: { ...current.setup, id: crypto.randomUUID() },
-    }));
-  }, [progress.setup.id]);
+  function getPersistableSetup(): LedgerSetup {
+    if (!clientId.current) {
+      clientId.current = crypto.randomUUID();
+      const id = clientId.current;
+      // UUID 仅在用户明确保存或完成创建时生成，不在渲染或 effect 中写状态。
+      setProgress((current) => ({
+        ...current,
+        setup: { ...current.setup, id },
+      }));
+    }
+    return { ...progress.setup, id: clientId.current };
+  }
 
   const dirty =
     !savedProgress ||
@@ -140,6 +145,7 @@ export function useLedgerSetupWizard({
     goPrevious() {
       setStep((current) => clampStep(current - 1));
     },
+    getPersistableSetup,
     goToBasicInfo() {
       setStep(1);
     },
@@ -147,6 +153,7 @@ export function useLedgerSetupWizard({
     updateProgress: setProgress,
     resetDraft() {
       setSavedProgress(null);
+      clientId.current = "";
       setProgress(createNewProgress(defaults));
       setProgressRevision((value) => value + 1);
       setStep(1);

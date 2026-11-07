@@ -112,7 +112,7 @@ function LedgerSetupWizardContent({
     wizard.setBusy(true);
     try {
       const state = await actions.persistSetup({
-        setup: wizard.progress.setup,
+        setup: wizard.getPersistableSetup(),
         expectedUpdatedAt: wizard.savedProgress?.setup.updatedAt ?? null,
         step: Math.min(wizard.step, 5),
         complete,

@@ -4,7 +4,6 @@ import type {
   LedgerDeletionImpact,
   LedgerPlaceholderMemberSummary,
   LedgerSetup,
-  LedgerSetupDraft,
   LedgerSetupTemplate,
 } from "internal/ledger";
 import type { LedgerCurrency } from "internal/ledger";
