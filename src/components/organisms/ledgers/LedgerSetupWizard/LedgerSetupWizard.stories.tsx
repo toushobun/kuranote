@@ -62,7 +62,7 @@ export const ExistingDraft: Story = {
 };
 
 export const CloseConfirmWithChanges: Story = {
-  name: "关闭确认（有本地修改）",
+  name: "关闭确认（有本地修改，三个等宽按钮）",
   parameters: { viewport: { defaultViewport: "mobile2" } },
   play: async ({ canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body);

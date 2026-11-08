@@ -211,18 +211,20 @@ describe("TransactionConfirmStep", () => {
     expect(line("更换支付账户 1")).toHaveTextContent("¥10,000");
   });
 
-  it("明细和支付行各有一个铅笔和一个 ×，商家名与时间的铅笔紧跟文字", () => {
+  it("明细有两个铅笔，单账户支付只有换账户的铅笔，删除 × 保留", () => {
     renderConfirmFlow();
-    for (const [edit, remove] of [
-      ["编辑明细 1", "删除明细 1"],
-      ["编辑明细 2", "删除明细 2"],
-      ["更换支付账户 1", "删除支付账户 1"],
-    ]) {
+    for (const [edit, remove, pencilCount] of [
+      ["编辑明细 1", "删除明细 1", 2],
+      ["编辑明细 2", "删除明细 2", 2],
+      ["更换支付账户 1", "删除支付账户 1", 1],
+    ] as const) {
       const row = line(edit);
       expect(
         within(row).getByRole("button", { name: remove }),
       ).toBeInTheDocument();
-      expect(within(row).getByTestId("EditOutlinedIcon")).toBeInTheDocument();
+      expect(within(row).getAllByTestId("EditOutlinedIcon")).toHaveLength(
+        pencilCount,
+      );
     }
     for (const label of ["商家", "时间"])
       expect(headerRow(label).lastElementChild).toHaveAttribute(

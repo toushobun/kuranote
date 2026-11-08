@@ -55,7 +55,7 @@ async function clickButton(canvasElement: HTMLElement, name: string | RegExp) {
 }
 
 export const QuickEntry: Story = {
-  name: "快速路线：自动明细待输入（设计图 8 ②）",
+  name: "自动明细待输入：名称与金额各有铅笔",
   args: {
     suggestionsMerchantId: "seven",
     suggestions: { ...receiptSuggestions, recommendedAccountIds: ["paypay"] },
@@ -91,7 +91,7 @@ export const FirstVisitAfterSave: Story = {
   },
 };
 export const MultiAccountBalanced: Story = {
-  name: "多账户已对上（设计图 8 ④）",
+  name: "多账户已对上：可改账户与支付金额",
   args: {
     itemsOptions: {
       ...receiptItemsOptions,
@@ -117,7 +117,7 @@ export const MultiAccountUnbalanced: Story = {
     },
   },
 };
-export const SingleAccount: Story = { name: "单账户（已填金额、空备注）" };
+export const SingleAccount: Story = { name: "单账户：支付金额为纯文字" };
 export const ItemTags: Story = {
   name: "明细两排：首排名称与操作、次排待报销",
   args: {
