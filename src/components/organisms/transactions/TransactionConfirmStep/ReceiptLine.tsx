@@ -17,6 +17,7 @@ export function ReceiptLine({
   icon,
   label,
   truncateLabel = false,
+  compact = false,
   tags,
   subline,
   amount,
@@ -31,6 +32,7 @@ export function ReceiptLine({
   icon?: ReactNode;
   label: string;
   truncateLabel?: boolean;
+  compact?: boolean;
   tags?: ReactNode;
   subline?: ReactNode;
   amount?: ReactNode;
@@ -72,7 +74,7 @@ export function ReceiptLine({
   );
   return (
     <Box data-receipt-line data-invalid={error || undefined}>
-      <Box sx={lineSx}>
+      <Box sx={[lineSx, compact && { minHeight: actionSize }]}>
         {icon && (
           <Box aria-hidden sx={[iconSx, errorLabel && errorTextSx]}>
             {icon}

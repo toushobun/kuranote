@@ -6,6 +6,7 @@ import Typography from "@mui/material/Typography";
 import { resolveTransactionBusinessStatus } from "internal/transaction";
 import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/TransactionBusinessBadge";
 import { flowMessages as m } from "config/transactionStepFlowMessages";
+import { transactionAccentColor } from "theme/transactionColors";
 import { sumAmountTexts } from "../TransactionForm/TransactionForm.utils";
 import type { TransactionItemSummary } from "../TransactionForm/TransactionForm.types";
 import type { useTransactionForm } from "../TransactionForm/useTransactionForm";
@@ -80,6 +81,7 @@ export function ReceiptItemsSection({
         key={item.id}
         label={item.category?.name ?? m.missingCategory}
         truncateLabel
+        compact={!!item.category}
         error={invalidItems.includes(item)}
         errorLabel={invalidItems.includes(item) && !!item.amount.trim()}
         subline={
@@ -134,7 +136,10 @@ export function ReceiptItemsSection({
       )}
       {items.length === 0 &&
         (merchantHasHistory === false ? (
-          <Typography variant="body2" sx={[hintSx, { textAlign: "center" }]}>
+          <Typography
+            variant="body2"
+            sx={[noticeTextSx, { textAlign: "center" }]}
+          >
             {m.noMerchantHistory}
           </Typography>
         ) : (
@@ -188,13 +193,20 @@ export function ReceiptItemsSection({
   );
 }
 
-const hintSx = { color: "text.secondary", display: "block", py: 0.5 };
+const noticeTextSx = { color: "text.secondary", display: "block", py: 0.5 };
+
+// 留白按文字边缘校准，需扣除行高和操作按钮已占用的空间。
+const hintSx = {
+  ...noticeTextSx,
+  "& + [role='group']": { mt: 1.125 },
+};
 
 const groupSx = {
-  borderInlineStart: "3px solid",
-  borderColor: "divider",
-  pl: 1,
-  mb: 1,
+  display: "flex",
+  flexDirection: "column",
+  gap: 0.125,
+  "& + [role='group']": { mt: 2.375 },
+  "& + :not([role='group'])": { mt: 1 },
 };
 
 const groupHeaderSx = {
@@ -202,7 +214,8 @@ const groupHeaderSx = {
   alignItems: "center",
   justifyContent: "space-between",
   gap: 1,
-  color: "text.secondary",
+  color: transactionAccentColor,
+  mb: 0.875,
 };
 
 const subtotalSx = {
