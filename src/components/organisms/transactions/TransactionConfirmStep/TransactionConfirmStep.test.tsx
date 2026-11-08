@@ -104,8 +104,8 @@ describe("TransactionConfirmStep", () => {
     renderConfirmFlow();
     expect(headerRow("商家")).toHaveTextContent("7-Eleven");
     expect(headerRow("时间")).toHaveTextContent(/\d{2}:\d{2}$/);
-    expect(line("编辑明细 1")).toHaveTextContent("午餐¥8,000");
-    expect(line("编辑明细 2")).toHaveTextContent("收纳¥2,000");
+    expect(line("编辑明细 1")).toHaveTextContent("午餐餐饮¥8,000");
+    expect(line("编辑明细 2")).toHaveTextContent("收纳日用品¥2,000");
     const total = screen.getByText("合计").nextElementSibling!;
     expect(total).toHaveTextContent("¥10,000");
     expect(total).toHaveTextContent("支出 ¥10,000");
@@ -244,7 +244,7 @@ describe("TransactionConfirmStep", () => {
     expectAutomaticItems(1);
   });
 
-  it("带 emoji 的分类名只显示一次小分类图标，也不显示默认分类图标", () => {
+  it("小分类在上、大分类在下，各显示一次 emoji 并单行截断", () => {
     renderConfirmFlow({
       itemsOptions: {
         ...receiptEmojiItemsOptions,
@@ -252,12 +252,43 @@ describe("TransactionConfirmStep", () => {
       },
     });
     const row = line("编辑明细 1");
-    expect(row).toHaveTextContent("🍙 午餐");
-    expect(row).not.toHaveTextContent("饮食");
-    expect(row.textContent?.match(/🍙/gu)).toHaveLength(1);
+    const primary = within(row).getByText("🍙 午餐");
+    const secondary = within(row).getByText("🍽️ 饮食");
+    expect(primary.nextElementSibling).toBe(secondary);
+    expect(primary).toHaveClass("MuiTypography-body2", "MuiTypography-noWrap");
+    expect(secondary).toHaveClass(
+      "MuiTypography-caption",
+      "MuiTypography-noWrap",
+    );
     expect(
       within(line("编辑明细 2")).queryByTestId("CategoryRoundedIcon"),
     ).not.toBeInTheDocument();
+  });
+
+  it("只选大分类和未选分类时各显示一层名称", () => {
+    renderConfirmFlow({
+      itemsOptions: {
+        ...receiptItemsOptions,
+        categoryOptions: [
+          {
+            id: "food",
+            name: "餐饮",
+            parentId: null,
+            parentName: null,
+            type: "expense",
+          },
+        ],
+        initialItems: [
+          { categoryId: "food", amount: "800" },
+          { categoryId: "", amount: "200" },
+        ],
+      },
+    });
+    for (const [index, name] of ["餐饮", "未选择分类"].entries()) {
+      const row = line(`编辑明细 ${index + 1}`);
+      expect(within(row).getByText(name)).toHaveClass("MuiTypography-noWrap");
+      expect(row.querySelector(".MuiTypography-caption")).toBeNull();
+    }
   });
 
   it("小票仍显示业务状态「待报销」标签", () => {
@@ -276,7 +307,7 @@ describe("TransactionConfirmStep", () => {
     expect(within(line("编辑明细 1")).getByText("待报销")).toBeInTheDocument();
   });
 
-  it("分类名始终单行截断，业务状态标签仍在第二行", () => {
+  it("业务状态标签独立显示在两层分类名称下方", () => {
     renderConfirmFlow({
       itemsOptions: {
         ...receiptItemsOptions,
@@ -293,7 +324,7 @@ describe("TransactionConfirmStep", () => {
     const name = within(line("编辑明细 1")).getByText("午餐");
     expect(name).toHaveClass("MuiTypography-noWrap");
     const badge = within(line("编辑明细 1")).getByText("待报销");
-    // 首排包含名称、金额与操作，标签在独立的次排。
+    // 名称块、金额与操作在同一行，标签在该行下方。
     expect(name.parentElement!.contains(badge)).toBe(false);
     expect(
       line("编辑明细 1").firstElementChild!.nextElementSibling,
@@ -878,6 +909,7 @@ describe("TransactionConfirmStep 只读", () => {
     });
     expect(screen.getByText("7-Eleven")).toBeInTheDocument();
     expect(screen.getByText("午餐")).toBeInTheDocument();
+    expect(screen.getByText("餐饮")).toHaveClass("MuiTypography-caption");
     expect(screen.getByText("PayPay")).toBeInTheDocument();
     expect(screen.queryAllByRole("button")).toHaveLength(0);
     expect(screen.queryByTestId("EditOutlinedIcon")).not.toBeInTheDocument();

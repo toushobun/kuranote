@@ -7,10 +7,7 @@ import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/Transac
 import { flowMessages as m } from "config/transactionStepFlowMessages";
 import type { TransactionItemSummary } from "../TransactionForm/TransactionForm.types";
 import type { useTransactionForm } from "../TransactionForm/useTransactionForm";
-import {
-  formatReceiptItemCategory,
-  formatStepItemAmount,
-} from "../transactionStepFlowFormat";
+import { formatStepItemAmount } from "../transactionStepFlowFormat";
 import { exceedsCurrencyDecimalPlaces } from "utils/transactionAmountInput";
 import {
   ReceiptAmountButton,
@@ -60,7 +57,6 @@ export function ReceiptItemsSection({
           </Typography>
         ))}
       {items.map((item, index) => {
-        const name = formatReceiptItemCategory(item.category);
         const amount = formatStepItemAmount(item, currency);
         const excessDecimals = exceedsCurrencyDecimalPlaces(
           item.amount,
@@ -75,7 +71,8 @@ export function ReceiptItemsSection({
         return (
           <ReceiptLine
             key={item.id}
-            label={name}
+            label={item.category?.name ?? m.missingCategory}
+            secondaryLabel={item.category?.parentName ?? undefined}
             truncateLabel
             error={invalidItems.includes(item)}
             errorLabel={invalidItems.includes(item) && !!item.amount.trim()}

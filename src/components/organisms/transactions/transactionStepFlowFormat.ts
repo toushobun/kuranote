@@ -69,13 +69,6 @@ export function formatStepItemCategory(category?: TransactionCategoryOption) {
     : m.missingCategory;
 }
 
-/** 小票只显示所选分类的名称。 */
-export function formatReceiptItemCategory(
-  category?: TransactionCategoryOption,
-) {
-  return category?.name ?? m.missingCategory;
-}
-
 /** 分步流程中明细的金额：收入带「+ 」，未填写时显示「待输入」。 */
 export function formatStepItemAmount(
   item: Pick<TransactionItemSummary, "amount" | "category">,
