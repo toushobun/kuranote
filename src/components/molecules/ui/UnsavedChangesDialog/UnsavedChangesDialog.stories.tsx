@@ -12,7 +12,7 @@ export default meta;
 type Story = StoryObj<typeof UnsavedChangesDialog>;
 
 export const Default: Story = {
-  name: "未保存确认（三个等宽按钮）",
+  name: "未保存确认（三个按钮靠右）",
   args: {
     onCancel: () => undefined,
     onDiscard: () => undefined,

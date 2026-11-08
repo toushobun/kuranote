@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatReceiptItemCategory,
   formatStepItemAmount,
   formatStepItemCategory,
   formatStepNetTotal,
@@ -15,6 +16,19 @@ const lunch = {
 };
 
 describe("transactionStepFlowFormat", () => {
+  it("小票显示所选分类本身，未选时显示原提示", () => {
+    expect(formatReceiptItemCategory(lunch)).toBe("午餐");
+    expect(
+      formatReceiptItemCategory({
+        ...lunch,
+        name: "餐饮",
+        parentId: null,
+        parentName: null,
+      }),
+    ).toBe("餐饮");
+    expect(formatReceiptItemCategory()).toBe("未选择分类");
+  });
+
   it("品名按「大分类 · 小分类」显示，没有大分类或未选分类时回退", () => {
     expect(formatStepItemCategory(lunch)).toBe("餐饮 · 午餐");
     expect(

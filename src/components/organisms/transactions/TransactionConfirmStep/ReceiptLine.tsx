@@ -11,11 +11,12 @@ import { designTokens } from "theme/theme";
 /**
  * 小票中的明细行 / 支付行：名称旁的铅笔编辑明细或账户，金额按钮内的铅笔编辑金额。
  * 没有可删除的内容时 × 位置留空，保持行尾对齐。
- * `subline`（明细的业务状态标签等）显示在名称下面一行，名称完整显示。
+ * `subline`（明细的业务状态标签等）显示在名称下面一行。
  */
 export function ReceiptLine({
   icon,
   label,
+  truncateLabel = false,
   tags,
   subline,
   amount,
@@ -29,6 +30,7 @@ export function ReceiptLine({
 }: {
   icon?: ReactNode;
   label: string;
+  truncateLabel?: boolean;
   tags?: ReactNode;
   subline?: ReactNode;
   amount?: ReactNode;
@@ -65,7 +67,7 @@ export function ReceiptLine({
           <Box sx={labelBoxSx}>
             <Typography
               variant="body2"
-              noWrap={!!icon}
+              noWrap={truncateLabel || !!icon}
               component={labelClickable ? ButtonBase : "p"}
               onClick={labelClickable ? onEdit : undefined}
               sx={[
@@ -101,7 +103,7 @@ export function ReceiptLine({
 }
 
 /**
- * 小票中可点击的金额：统一带「待输入」那样的下划线，点击只打开金额键盘。
+ * 小票中可点击的金额和铅笔共用按钮，点击只打开金额键盘。
  * `pending`（金额未填或需重新输入）时显示为强调色。
  */
 export function ReceiptAmountButton({
@@ -127,10 +129,8 @@ export function ReceiptAmountButton({
         pending && { color: "error.main" },
       ]}
     >
-      <Box component="span" sx={amountUnderlineSx}>
-        {amount}
-        <EditOutlinedIcon aria-hidden sx={pencilSx} />
-      </Box>
+      {amount}
+      <EditOutlinedIcon aria-hidden sx={pencilSx} />
     </ButtonBase>
   );
 }
@@ -210,6 +210,7 @@ const actionSx = {
 const pencilSx = { fontSize: receiptIconSize, color: "text.disabled" };
 const amountTextSx = {
   flexShrink: 0,
+  whiteSpace: "nowrap",
   fontWeight: 700,
   fontVariantNumeric: "tabular-nums",
 };
@@ -220,13 +221,7 @@ const amountButtonSx = {
   color: "text.primary",
   borderRadius: `${designTokens.radius.sm}px`,
   px: 0.25,
+  gap: 0.5,
   minHeight: 32,
   "&.Mui-focusVisible": { outline: "2px solid", outlineColor: "primary.main" },
-};
-const amountUnderlineSx = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 0.5,
-  borderBottom: 1,
-  borderColor: "currentColor",
 };

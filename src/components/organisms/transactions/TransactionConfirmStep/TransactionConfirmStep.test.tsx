@@ -104,8 +104,8 @@ describe("TransactionConfirmStep", () => {
     renderConfirmFlow();
     expect(headerRow("商家")).toHaveTextContent("7-Eleven");
     expect(headerRow("时间")).toHaveTextContent(/\d{2}:\d{2}$/);
-    expect(line("编辑明细 1")).toHaveTextContent("餐饮 · 午餐¥8,000");
-    expect(line("编辑明细 2")).toHaveTextContent("日用品 · 收纳¥2,000");
+    expect(line("编辑明细 1")).toHaveTextContent("午餐¥8,000");
+    expect(line("编辑明细 2")).toHaveTextContent("收纳¥2,000");
     const total = screen.getByText("合计").nextElementSibling!;
     expect(total).toHaveTextContent("¥10,000");
     expect(total).toHaveTextContent("支出 ¥10,000");
@@ -118,7 +118,7 @@ describe("TransactionConfirmStep", () => {
     expect(screen.getByText("¥10,000", { selector: "h5" })).toHaveClass(
       "MuiTypography-h5",
     );
-    expect(screen.getByText("餐饮 · 午餐")).toHaveClass("MuiTypography-body2");
+    expect(screen.getByText("午餐")).toHaveClass("MuiTypography-body2");
   });
 
   it("有收入时合计下方显示支出与收入", () => {
@@ -252,7 +252,8 @@ describe("TransactionConfirmStep", () => {
       },
     });
     const row = line("编辑明细 1");
-    expect(row).toHaveTextContent("🍽️ 饮食 · 🍙 午餐");
+    expect(row).toHaveTextContent("🍙 午餐");
+    expect(row).not.toHaveTextContent("饮食");
     expect(row.textContent?.match(/🍙/gu)).toHaveLength(1);
     expect(
       within(line("编辑明细 2")).queryByTestId("CategoryRoundedIcon"),
@@ -275,7 +276,7 @@ describe("TransactionConfirmStep", () => {
     expect(within(line("编辑明细 1")).getByText("待报销")).toBeInTheDocument();
   });
 
-  it("有标签时标签显示在分类名下面一行，分类名完整显示", () => {
+  it("分类名始终单行截断，业务状态标签仍在第二行", () => {
     renderConfirmFlow({
       itemsOptions: {
         ...receiptItemsOptions,
@@ -289,7 +290,8 @@ describe("TransactionConfirmStep", () => {
         ],
       },
     });
-    const name = within(line("编辑明细 1")).getByText("餐饮 · 午餐");
+    const name = within(line("编辑明细 1")).getByText("午餐");
+    expect(name).toHaveClass("MuiTypography-noWrap");
     const badge = within(line("编辑明细 1")).getByText("待报销");
     // 首排包含名称、金额与操作，标签在独立的次排。
     expect(name.parentElement!.contains(badge)).toBe(false);
@@ -342,7 +344,7 @@ describe("TransactionConfirmStep", () => {
   it("明细的 × 删除这条明细，铅笔打开编辑抽屉", async () => {
     renderConfirmFlow();
     click("删除明细 2");
-    expect(screen.queryByText("日用品 · 收纳")).not.toBeInTheDocument();
+    expect(screen.queryByText("收纳")).not.toBeInTheDocument();
     click("编辑明细 1");
     expect(await screen.findByText("编辑明细")).toBeInTheDocument();
   });
@@ -875,7 +877,7 @@ describe("TransactionConfirmStep 只读", () => {
       initialPayments: twoPayments,
     });
     expect(screen.getByText("7-Eleven")).toBeInTheDocument();
-    expect(screen.getByText("餐饮 · 午餐")).toBeInTheDocument();
+    expect(screen.getByText("午餐")).toBeInTheDocument();
     expect(screen.getByText("PayPay")).toBeInTheDocument();
     expect(screen.queryAllByRole("button")).toHaveLength(0);
     expect(screen.queryByTestId("EditOutlinedIcon")).not.toBeInTheDocument();

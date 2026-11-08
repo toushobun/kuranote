@@ -216,7 +216,7 @@ describe("TransactionStepFlow", () => {
         suggestions={{ ...quickSuggestions, automaticCategoryIds: ["storage"] }}
       />,
     );
-    await screen.findByText("日用品 · 收纳");
+    await screen.findByText("收纳");
     click("关闭记账");
     await waitFor(() => expect(props.onClose).toHaveBeenCalledOnce());
     expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
@@ -385,9 +385,9 @@ describe("TransactionStepFlow", () => {
     expect(
       screen.getByRole("button", { name: "修改商家：LIFE超市" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("餐饮 · 午餐")).toBeInTheDocument();
-    expect(screen.getByText("日用品 · 收纳")).toBeInTheDocument();
-    expect(screen.getByText("饮料 · 咖啡")).toBeInTheDocument();
+    expect(screen.getByText("午餐")).toBeInTheDocument();
+    expect(screen.getByText("收纳")).toBeInTheDocument();
+    expect(screen.getByText("咖啡")).toBeInTheDocument();
     expectAutomaticItems(1);
   });
 });
@@ -465,9 +465,9 @@ describe("TransactionStepFlow 换商家", () => {
 
   it("去掉上一个商家没填金额的自动明细，同一分类不重复追加并留作新商家的自动明细", async () => {
     await switchToLife(["coffee", "storage"]);
-    expect(screen.queryByText("餐饮 · 午餐")).toBeNull();
-    expect(screen.getAllByText("饮料 · 咖啡")).toHaveLength(1);
-    expect(screen.getByText("日用品 · 收纳")).toBeInTheDocument();
+    expect(screen.queryByText("午餐")).toBeNull();
+    expect(screen.getAllByText("咖啡")).toHaveLength(1);
+    expect(screen.getByText("收纳")).toBeInTheDocument();
     expectAutomaticItems(2);
   });
 
@@ -481,24 +481,24 @@ describe("TransactionStepFlow 换商家", () => {
         await waitKeypadClosed();
       },
     });
-    expect(screen.getAllByText("餐饮 · 午餐")).toHaveLength(1);
-    expect(screen.queryByText("饮料 · 咖啡")).toBeNull();
-    expect(screen.getByText("日用品 · 收纳")).toBeInTheDocument();
+    expect(screen.getAllByText("午餐")).toHaveLength(1);
+    expect(screen.queryByText("咖啡")).toBeNull();
+    expect(screen.getByText("收纳")).toBeInTheDocument();
     expectAutomaticItems(1);
   });
 
   it("保留改了分类的自动明细", async () => {
     await switchToLife([], { beforeSwitch: changeLunchToStorage });
-    expect(screen.getByText("日用品 · 收纳")).toBeInTheDocument();
-    expect(screen.queryByText("餐饮 · 午餐")).toBeNull();
-    expect(screen.queryByText("饮料 · 咖啡")).toBeNull();
+    expect(screen.getByText("收纳")).toBeInTheDocument();
+    expect(screen.queryByText("午餐")).toBeNull();
+    expect(screen.queryByText("咖啡")).toBeNull();
     expect(screen.queryByText(/已按你的习惯/)).toBeNull();
   });
 
   it("保留手动添加的空明细", async () => {
     await switchToLife(["storage"], { beforeSwitch: addLunchItem });
-    expect(screen.getAllByText("餐饮 · 午餐")).toHaveLength(1);
-    expect(screen.queryByText("饮料 · 咖啡")).toBeNull();
+    expect(screen.getAllByText("午餐")).toHaveLength(1);
+    expect(screen.queryByText("咖啡")).toBeNull();
     expectAutomaticItems(1);
   });
 
@@ -526,10 +526,8 @@ describe("TransactionStepFlow 换商家", () => {
     ],
   ])("建议到达前%s时，不再应用新商家的建议", async (_, touch) => {
     await switchToLife(["storage"], { whileWaiting: touch });
-    expect(screen.getByText("饮料 · 咖啡")).toBeInTheDocument();
-    expect(screen.queryAllByText("日用品 · 收纳").length).toBeLessThanOrEqual(
-      1,
-    );
+    expect(screen.getByText("咖啡")).toBeInTheDocument();
+    expect(screen.queryAllByText("收纳").length).toBeLessThanOrEqual(1);
   });
 
   it("建议到达时正在编辑明细，不删除该明细，草稿可以继续保存", async () => {
@@ -547,8 +545,8 @@ describe("TransactionStepFlow 换商家", () => {
     await screen.findByLabelText("金额计算器");
     click("关闭金额键盘");
     await waitKeypadClosed();
-    expect(screen.getAllByText("饮料 · 咖啡")).toHaveLength(2);
-    expect(screen.queryByText("日用品 · 收纳")).toBeNull();
+    expect(screen.getAllByText("咖啡")).toHaveLength(2);
+    expect(screen.queryByText("收纳")).toBeNull();
   });
 
   it("建议到达时正在输入明细金额，不删除该明细，金额可以继续确认", async () => {
@@ -564,8 +562,8 @@ describe("TransactionStepFlow 换商家", () => {
     expect(
       screen.getByRole("button", { name: "修改明细 1 金额：¥8" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("餐饮 · 午餐")).toBeInTheDocument();
-    expect(screen.queryByText("日用品 · 收纳")).toBeNull();
+    expect(screen.getByText("午餐")).toBeInTheDocument();
+    expect(screen.queryByText("收纳")).toBeNull();
   });
 
   it("重新选同一个商家时明细不变", async () => {
@@ -579,7 +577,7 @@ describe("TransactionStepFlow 换商家", () => {
     rerender(
       <TransactionStepFlow {...props} suggestions={{ ...quickSuggestions }} />,
     );
-    expect(screen.queryByText("餐饮 · 午餐")).toBeNull();
+    expect(screen.queryByText("午餐")).toBeNull();
     expectAutomaticItems(1);
   });
 });
@@ -728,7 +726,7 @@ describe("TransactionStepFlow 进入小票", () => {
     rerender(<TransactionStepFlow {...props} suggestionsMerchantId="seven" />);
     expect(receiptLine("更换支付账户 1").textContent).toBe(account);
     expect(screen.queryByText(/已按你的习惯/)).toBeNull();
-    expect(screen.queryByText("饮料 · 咖啡")).toBeNull();
+    expect(screen.queryByText("咖啡")).toBeNull();
   });
 
   it("加载中点另一个商家时改为加载新商家，只应用新商家的建议", async () => {
