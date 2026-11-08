@@ -13,12 +13,14 @@ type Entry = {
   order: number;
   connection: number;
   onBack: () => void;
+  savedLeave: "route" | "close" | null;
 };
 
 /** 一棵 React 树只持有一组历史记录，表单动作始终绑定自己的登记项。 */
 export function createUnsavedChangesCoordinator(
   port: GuardHistoryPort,
   id: string,
+  onSaveAndLeave?: () => void,
 ) {
   const entries = new Set<Entry>();
   let order = 0;
@@ -49,6 +51,11 @@ export function createUnsavedChangesCoordinator(
     id,
   );
   const sync = () => history.setDirty(protecting());
+  const finishLeave = (entry: Entry) => {
+    if (!entry.savedLeave) return;
+    entry.savedLeave = null;
+    onSaveAndLeave?.();
+  };
   return {
     handlePopState(event: PopStateEvent) {
       if (history.handlePopState()) event.stopImmediatePropagation();
@@ -64,6 +71,7 @@ export function createUnsavedChangesCoordinator(
         order: 0,
         connection: 0,
         onBack: () => {},
+        savedLeave: null,
       };
       return {
         register(onBack: () => void) {
@@ -79,10 +87,13 @@ export function createUnsavedChangesCoordinator(
             queueMicrotask(() => {
               if (entry.connection !== connection) return;
               entries.delete(entry);
+              finishLeave(entry);
               void sync();
             });
         },
         update(dirty: boolean, layer: number | null, active: boolean) {
+          // 同页弹层可能只关闭而不卸载；路由离开则由登记清理确认。
+          if (!active && entry.savedLeave === "close") finishLeave(entry);
           if (active && !entry.active) entry.order = ++order;
           Object.assign(entry, { dirty, layer, active });
           return sync();
@@ -110,13 +121,20 @@ export function createUnsavedChangesCoordinator(
           // 路由变化必须等待内部哨兵清理，不能与 router.replace 并发。
           return history.leave(action);
         },
-        async leave(action: () => void) {
-          if (entry.layer === null) return history.leave(action);
+        async leave(
+          action: () => void,
+          savedLeave: Entry["savedLeave"] = null,
+        ) {
+          const follow = () => {
+            action();
+            entry.savedLeave = savedLeave;
+          };
+          if (entry.layer === null) return history.leave(follow);
           // UI 关闭与后退关闭都只停用本层；setDirty(false) 的内部遍历不会派发下一次后退。
           if (!entry.active) return;
           entry.active = false;
           await sync();
-          action();
+          follow();
         },
         async runInPlaceAction<T>(action: () => Promise<T>): Promise<T> {
           // 同页保存只提交一个区域，其他草稿始终受保护；同步补回 Next revalidate 丢掉的标记。

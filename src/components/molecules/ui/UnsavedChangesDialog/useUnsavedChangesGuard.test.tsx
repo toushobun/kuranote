@@ -11,8 +11,10 @@ import {
 import { BackLayerScope } from "./BackLayerScope";
 import { TransactionBottomEditorDrawer } from "molecules/transactions/TransactionBottomEditorDrawer/TransactionBottomEditorDrawer";
 import { expectInBodyPortal } from "test/bodyPortal";
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
+import { unsavedChangesMessages } from "config/unsavedChangesMessages";
+import type { ActionState } from "types/actions";
 import { describe, expect, it, vi } from "vitest";
 
 import { routerMock } from "test/mocks/navigation";
@@ -227,6 +229,80 @@ describe("useUnsavedChangesGuard", () => {
       "/transactions/new?method=transfer",
     );
     expect(window.history.pushState).toHaveBeenCalledOnce();
+  });
+});
+
+function SaveHarness({ result }: { result: ActionState }) {
+  const guard = useUnsavedChangesGuard({
+    isDirty: true,
+    saveFormId: "save-test",
+    saveLabel: unsavedChangesMessages.saveAndExit,
+  });
+  const [state, submit] = useActionState(
+    (_previous: ActionState, data: FormData) =>
+      guard.runSaveAction(data, async () => result),
+    {},
+  );
+  return (
+    <>
+      <form id="save-test" action={submit}>
+        <button>直接保存</button>
+      </form>
+      {state.success && <p role="status">{state.success}</p>}
+      {state.error && <p role="alert">{state.error}</p>}
+      <a href="/dashboard">前往目的地</a>
+      <UnsavedChangesDialog {...guard.dialogProps} />
+    </>
+  );
+}
+
+describe("useUnsavedChangesGuard 保存反馈", () => {
+  const success = { success: "记录已更新" };
+  function setupSave(result: ActionState, viaGuard: boolean) {
+    routerMock.push.mockClear();
+    const view = render(<SaveHarness result={result} />, {
+      wrapper: ConfirmDialogTestProviders,
+    });
+    if (viaGuard)
+      fireEvent.click(screen.getByRole("link", { name: "前往目的地" }));
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: viaGuard ? unsavedChangesMessages.saveAndExit : "直接保存",
+      }),
+    );
+    return view;
+  }
+
+  it("保存并退出只在目的地提示一次，关闭后重新进入也不重播", async () => {
+    const { rerender } = setupSave(success, true);
+    await waitFor(() =>
+      expect(routerMock.push).toHaveBeenCalledExactlyOnceWith("/dashboard"),
+    );
+    expect(screen.queryByRole("status")).toBeNull();
+    rerender(<h1>目的地</h1>);
+    const feedback = await screen.findByRole("status");
+    expect(feedback).toHaveTextContent(unsavedChangesMessages.saveSuccess);
+    expect(screen.getAllByRole("status")).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "关闭" }));
+    await waitFor(() => expect(screen.queryByRole("status")).toBeNull());
+    rerender(<SaveHarness result={success} />);
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("直接保存仍显示表单自己的成功反馈", async () => {
+    setupSave(success, false);
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      success.success,
+    );
+    expect(screen.getAllByRole("status")).toHaveLength(1);
+    expect(routerMock.push).not.toHaveBeenCalled();
+  });
+
+  it("保存并退出失败时保留原表单并只显示错误", async () => {
+    setupSave({ error: "记录保存失败" }, true);
+    expect(await screen.findByRole("alert")).toHaveTextContent("记录保存失败");
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(routerMock.push).not.toHaveBeenCalled();
   });
 });
 

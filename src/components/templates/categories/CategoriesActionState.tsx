@@ -38,6 +38,7 @@ type CategoriesActionStateTemplateProps = Omit<
   | "archiveState"
   | "createCategoryAction"
   | "createState"
+  | "onCreateFeedback"
   | "onReorderError"
   | "updateCategoryAction"
   | "updateState"
@@ -55,6 +56,9 @@ export function CategoriesActionStateTemplate({
 }: CategoriesActionStateTemplateProps) {
   const [createState, createAction] = useActionState(
     createCategoryAction,
+    initialCategoryActionState,
+  );
+  const [createFeedback, setCreateFeedback] = useState(
     initialCategoryActionState,
   );
   const [updateState, updateAction] = useActionState(
@@ -77,11 +81,12 @@ export function CategoriesActionStateTemplate({
         archiveState={archiveState}
         createCategoryAction={createAction}
         createState={createState}
+        onCreateFeedback={setCreateFeedback}
         onReorderError={setReorderState}
         updateCategoryAction={updateAction}
         updateState={updateState}
       />
-      <CategorySuccessFeedback state={createState} />
+      <CategorySuccessFeedback state={createFeedback} />
       <CategorySuccessFeedback state={updateState} />
       <CategorySuccessFeedback state={archiveState} />
       <ActionFailureFeedback

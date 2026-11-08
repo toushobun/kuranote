@@ -20,6 +20,7 @@ type CategoriesTemplateProps = {
   createCategoryAction: CategoryAction;
   createState?: CategoryActionState;
   ledgerName: string;
+  onCreateFeedback?: (state: CategoryActionState) => void;
   onReorderError: (state: CategoryActionState) => void;
   parentOptions: CategoryParentOption[];
   reorderCategoryAction: CategoryReorderAction;
@@ -35,6 +36,7 @@ export function CategoriesTemplate({
   createCategoryAction,
   createState,
   ledgerName,
+  onCreateFeedback,
   onReorderError,
   parentOptions,
   reorderCategoryAction,
@@ -48,6 +50,7 @@ export function CategoriesTemplate({
           <CategoryForm
             createCategoryAction={createCategoryAction}
             createState={createState}
+            onCreateFeedback={onCreateFeedback}
             parentOptions={parentOptions}
           />
         ) : null

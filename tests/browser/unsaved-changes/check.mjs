@@ -374,27 +374,81 @@ async function editReceiptNote(page, original, value) {
   await page.getByRole("button", { name: "完成", exact: true }).click();
 }
 
-async function checkReceiptSave(browser, viaGuard) {
+async function checkReceiptSave(browser, mode) {
   const session = await newSession(
     browser,
     "编辑小票",
     "edit-transaction-receipt-form",
   );
   const { page, record } = session;
-  await editReceiptNote(page, "编辑前备注", "修改后的备注");
-  if (viaGuard) {
+  await editReceiptNote(
+    page,
+    "编辑前备注",
+    mode === "failure" ? "验证保存失败" : "修改后的备注",
+  );
+  const feedback = page.getByText("保存成功", { exact: true });
+  if (mode === "direct") {
+    await page.getByRole("button", { name: "保存修改", exact: true }).click();
+    await page.waitForURL("**/transactions?saved=1");
+    await paint(page);
+    assert.equal(await feedback.count(), 0);
+    await record("编辑小票：直接保存仍由 Server Action 重定向到明细");
+    return finishSession(session);
+  }
+
+  if (mode === "back") {
+    await position(page, "sentinel");
+    await browserBack(page);
+  } else if (mode === "close") {
+    await page.getByRole("link", { name: "关闭", exact: true }).click();
+  } else {
     await page
       .getByRole("navigation")
       .getByRole("link", { name: "我的" })
       .click();
-    await page.getByRole("button", { name: "保存并退出" }).click();
-    await page.waitForURL("**/settings");
-    await record("编辑小票：保存并退出前往原定的底部导航目标");
-  } else {
-    await page.getByRole("button", { name: "保存修改", exact: true }).click();
-    await page.waitForURL("**/transactions?saved=1");
-    await record("编辑小票：直接保存仍由 Server Action 重定向到明细");
   }
+
+  // 路由完成前持续观察原表单与成功提示是否曾同时出现在页面上。
+  await page.evaluate(() => {
+    window.receiptSuccessBeforeLeaving = false;
+    new MutationObserver(() => {
+      if (!document.getElementById("edit-transaction-receipt-form")) return;
+      window.receiptSuccessBeforeLeaving ||= Array.from(
+        document.querySelectorAll('[role="alert"], [role="status"]'),
+      ).some((node) => node.textContent.trim() === "保存成功");
+    }).observe(document.body, {
+      childList: true,
+      characterData: true,
+      subtree: true,
+    });
+  });
+  await page.getByRole("button", { name: "保存并退出" }).click();
+  if (mode === "failure") {
+    await page.getByText("验证用保存失败", { exact: true }).waitFor();
+    assert.equal(new URL(page.url()).pathname, "/receipt");
+    assert.equal(await feedback.count(), 0);
+    await record("编辑小票：保存并退出失败后留在原页，没有成功提示");
+  } else {
+    const destination =
+      mode === "back"
+        ? sourceUrl
+        : mode === "close"
+          ? "**/transactions"
+          : "**/settings";
+    await page.waitForURL(destination);
+    await feedback.waitFor();
+    assert.equal(await feedback.count(), 1);
+    assert.equal(
+      await page.locator("#edit-transaction-receipt-form").count(),
+      0,
+    );
+    await feedback.waitFor({ state: "hidden" });
+    await record(`编辑小票：${mode} 保存并退出后仅在目的地显示一次成功提示`);
+  }
+  assert.equal(
+    await page.evaluate(() => window.receiptSuccessBeforeLeaving),
+    false,
+  );
   return finishSession(session);
 }
 
@@ -872,6 +926,9 @@ async function checkLedgerSetup(browser) {
   await close.click();
   await save.click();
   await assertWizardClosed("向导：不修改内容，保存新步骤并退出");
+  const feedback = page.getByText("保存成功", { exact: true });
+  await feedback.waitFor();
+  assert.equal(await feedback.count(), 1);
   await resume.click();
   await wizard.getByText("商家", { exact: true }).first().waitFor();
   await previous.click();
@@ -988,8 +1045,11 @@ try {
   const cases = {
     account: () => checkAccount(browser),
     receipt: () => checkOtherPage(browser, "receipt"),
-    receiptSaveAndLeave: () => checkReceiptSave(browser, true),
-    receiptDirectSave: () => checkReceiptSave(browser, false),
+    receiptSaveAndLeave: () => checkReceiptSave(browser, "link"),
+    receiptDirectSave: () => checkReceiptSave(browser, "direct"),
+    receiptSaveFailure: () => checkReceiptSave(browser, "failure"),
+    receiptSaveBack: () => checkReceiptSave(browser, "back"),
+    receiptSaveClose: () => checkReceiptSave(browser, "close"),
     transfer: () => checkOtherPage(browser, "transfer"),
     merchantCreate: () => checkMerchant(browser, false),
     merchantEdit: () => checkMerchant(browser, true),

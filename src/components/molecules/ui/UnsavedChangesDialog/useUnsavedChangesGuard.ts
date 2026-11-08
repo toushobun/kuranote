@@ -14,7 +14,9 @@ import { useUnsavedChangesCoordinator } from "providers/UnsavedChangesGuardProvi
 import { saveAndLeaveField } from "config/unsavedChanges";
 import type { ActionState } from "types/actions";
 
-type LeaveIntent = { type: "back" } | { type: "action"; action: () => void };
+type LeaveIntent =
+  | { type: "back" }
+  | { type: "action" | "close"; action: () => void };
 type SaveIntent = { formId: string; leave: LeaveIntent };
 
 export function useUnsavedChangesGuard({
@@ -66,17 +68,27 @@ export function useUnsavedChangesGuard({
     else window.history.back();
   }, [layer, onClose]);
   const followIntent = useCallback(
-    (leave: LeaveIntent) =>
-      history.leave(leave.type === "back" ? back : leave.action),
-    [history, back],
+    (leave: LeaveIntent, saved = false) => {
+      const closesLayer =
+        layer !== null && !!onClose && leave.type !== "action";
+      return history.leave(
+        leave.type === "back" ? back : leave.action,
+        saved ? (closesLayer ? "close" : "route") : null,
+      );
+    },
+    [history, back, layer, onClose],
+  );
+  const isSavingToLeave = useCallback(
+    (formId: string) => saveIntent.current?.formId === formId,
+    [],
   );
   const completeSave = useCallback(
-    (success: boolean, formId: string) => {
+    async (success: boolean, formId: string) => {
       const saved = saveIntent.current;
-      if (saved?.formId !== formId) return Promise.resolve();
+      if (saved?.formId !== formId) return false;
       saveIntent.current = null;
-      if (success) return followIntent(saved.leave);
-      return Promise.resolve();
+      if (success) await followIntent(saved.leave, true);
+      return true;
     },
     [followIntent],
   );
@@ -96,8 +108,11 @@ export function useUnsavedChangesGuard({
       }
       const result = await history.runAction(() => action(formData));
       if (leave && !saveIntent.current) {
-        if (result.success && !result.error) await followIntent(leave.leave);
-        else if (shouldRetry?.(result)) saveIntent.current = leave;
+        if (result.success && !result.error) {
+          await followIntent(leave.leave, true);
+          return { ...result, success: undefined };
+        }
+        if (shouldRetry?.(result)) saveIntent.current = leave;
       }
       return result;
     },
@@ -191,6 +206,7 @@ export function useUnsavedChangesGuard({
       saveIntent.current = null;
     },
     completeSave,
+    isSavingToLeave,
     runInPlaceAction: useCallback(
       <T>(action: () => Promise<T>) => history.runInPlaceAction(action),
       [history],
@@ -204,7 +220,7 @@ export function useUnsavedChangesGuard({
     requestClose: () => {
       if (!active || disabled || !onClose) return;
       if (mustConfirm)
-        setIntent((current) => current ?? { type: "action", action: onClose });
+        setIntent((current) => current ?? { type: "close", action: onClose });
       else void history.leave(onClose);
     },
     dialogProps: {

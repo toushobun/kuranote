@@ -105,8 +105,9 @@ function useSettingsForm({
   });
 
   const finishSave = useEffectEvent((success: boolean) => {
-    void guard.completeSave(success, formId);
-    if (success) onSaved();
+    void guard.completeSave(success, formId).then((handled) => {
+      if (success && !handled) onSaved();
+    });
   });
   useEffect(() => {
     if (!completion) return;

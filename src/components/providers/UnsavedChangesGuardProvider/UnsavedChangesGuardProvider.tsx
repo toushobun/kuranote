@@ -9,6 +9,9 @@ import {
   type ReactNode,
 } from "react";
 
+import { unsavedChangesMessages } from "config/unsavedChangesMessages";
+import { SuccessFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
+import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { createUnsavedChangesCoordinator } from "./unsavedChangesCoordinator";
 
 const UnsavedChangesGuardContext = createContext<ReturnType<
@@ -22,6 +25,7 @@ export function UnsavedChangesGuardProvider({
   children: ReactNode;
 }) {
   const prefix = useId();
+  const [saveFeedback, setSaveFeedback] = useState({ id: 0, open: false });
   const [coordinator] = useState(() =>
     createUnsavedChangesCoordinator(
       {
@@ -42,6 +46,7 @@ export function UnsavedChangesGuardProvider({
         afterTraversal: (callback) => window.requestAnimationFrame(callback),
       },
       `${prefix}-${Date.now()}`,
+      () => setSaveFeedback(({ id }) => ({ id: id + 1, open: true })),
     ),
   );
   useLayoutEffect(() => {
@@ -52,6 +57,16 @@ export function UnsavedChangesGuardProvider({
   return (
     <UnsavedChangesGuardContext.Provider value={coordinator}>
       {children}
+      <SuccessFeedbackDialog
+        aboveModal
+        bottomOffset={bottomNavigationLayout.feedbackBottomOffset}
+        key={saveFeedback.id}
+        onClose={() =>
+          setSaveFeedback((current) => ({ ...current, open: false }))
+        }
+        open={saveFeedback.open}
+        title={unsavedChangesMessages.saveSuccess}
+      />
     </UnsavedChangesGuardContext.Provider>
   );
 }

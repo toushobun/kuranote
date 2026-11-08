@@ -32,6 +32,7 @@ import { CategoryIconField } from "../CategoryIconField/CategoryIconField";
 type CategoryFormProps = {
   createCategoryAction: CategoryAction;
   createState?: CategoryActionState;
+  onCreateFeedback?: (state: CategoryActionState) => void;
   parentOptions: CategoryParentOption[];
 };
 
@@ -52,6 +53,7 @@ export function CategoryForm(props: CategoryFormProps) {
 function CategoryFormContent({
   createCategoryAction,
   createState,
+  onCreateFeedback,
   parentOptions,
 }: CategoryFormProps) {
   const formId = useId();
@@ -87,8 +89,11 @@ function CategoryFormContent({
   });
   const previousCreateState = useRef(createState);
   const finishSave = useEffectEvent((state: CategoryActionState) => {
-    const completion = guard.completeSave(Boolean(state.success), formId);
-    if (state.success) void completion.then(closeDialog);
+    const success = Boolean(state.success && !state.error);
+    void guard.completeSave(success, formId).then((handled) => {
+      if (success) closeDialog();
+      onCreateFeedback?.(handled ? {} : state);
+    });
   });
   useEffect(() => {
     if (previousCreateState.current === createState) return;
