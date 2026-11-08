@@ -17,6 +17,7 @@ export function ReceiptLine({
   icon,
   label,
   truncateLabel = false,
+  compact = false,
   tags,
   subline,
   amount,
@@ -31,6 +32,11 @@ export function ReceiptLine({
   icon?: ReactNode;
   label: string;
   truncateLabel?: boolean;
+  /**
+   * 分组明细用：行高收紧到操作按钮高度，次排下方补上与首排文字相同的留白，
+   * 让上下文字边缘之间的空隙由外层统一控制（#1022 样式 ④）。
+   */
+  compact?: boolean;
   tags?: ReactNode;
   subline?: ReactNode;
   amount?: ReactNode;
@@ -72,7 +78,7 @@ export function ReceiptLine({
   );
   return (
     <Box data-receipt-line data-invalid={error || undefined}>
-      <Box sx={lineSx}>
+      <Box sx={[lineSx, compact && { minHeight: actionSize }]}>
         {icon && (
           <Box aria-hidden sx={[iconSx, errorLabel && errorTextSx]}>
             {icon}
@@ -100,7 +106,9 @@ export function ReceiptLine({
           <Box sx={{ width: actionSize }} />
         )}
       </Box>
-      {subline && <Box sx={sublineSx}>{subline}</Box>}
+      {subline && (
+        <Box sx={[sublineSx, compact && compactSublineSx]}>{subline}</Box>
+      )}
     </Box>
   );
 }
@@ -198,6 +206,8 @@ const labelBoxSx = {
   minWidth: 0,
   "& .MuiChip-root": { flexShrink: 0 },
 };
+// 与 32px 行高下首排文字到行盒底部的距离一致。
+const compactSublineSx = { pb: 1 };
 const sublineSx = {
   display: "flex",
   flexWrap: "wrap",

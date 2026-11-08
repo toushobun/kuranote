@@ -6,6 +6,7 @@ import Typography from "@mui/material/Typography";
 import { resolveTransactionBusinessStatus } from "internal/transaction";
 import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/TransactionBusinessBadge";
 import { flowMessages as m } from "config/transactionStepFlowMessages";
+import { transactionAccentColor } from "theme/transactionColors";
 import { sumAmountTexts } from "../TransactionForm/TransactionForm.utils";
 import type { TransactionItemSummary } from "../TransactionForm/TransactionForm.types";
 import type { useTransactionForm } from "../TransactionForm/useTransactionForm";
@@ -80,6 +81,7 @@ export function ReceiptItemsSection({
         key={item.id}
         label={item.category?.name ?? m.missingCategory}
         truncateLabel
+        compact={!!item.category}
         error={invalidItems.includes(item)}
         errorLabel={invalidItems.includes(item) && !!item.amount.trim()}
         subline={
@@ -128,13 +130,16 @@ export function ReceiptItemsSection({
   return (
     <>
       {!readOnly && automaticItemIds.length > 0 && (
-        <Typography variant="caption" sx={hintSx}>
+        <Typography variant="caption" sx={automaticNoticeSx}>
           {m.automaticNotice(automaticItemIds.length)}
         </Typography>
       )}
       {items.length === 0 &&
         (merchantHasHistory === false ? (
-          <Typography variant="body2" sx={[hintSx, { textAlign: "center" }]}>
+          <Typography
+            variant="body2"
+            sx={[secondaryTextSx, { textAlign: "center" }]}
+          >
             {m.noMerchantHistory}
           </Typography>
         ) : (
@@ -188,13 +193,26 @@ export function ReceiptItemsSection({
   );
 }
 
-const hintSx = { color: "text.secondary", display: "block", py: 0.5 };
+const secondaryTextSx = { color: "text.secondary", display: "block", py: 0.5 };
+
+/*
+ * 样式 ④ 的留白（#1022），全部按上下文字边缘之间的可见空隙计算：
+ *   A 同组明细之间 20px、B 组标题到本组首条 20px、C 组与组之间 30px、D 提示到首个组标题 16px。
+ * 分组明细行盒 32px（compact），文字上下各已占约 9px；组标题行盒上下约 2px；
+ * 下面的数值是扣除这些已占空间后的补足量。未选分类的明细保留 40px 行盒（上方约 13px），
+ * 所以组后接未选分类时只需补 8px 就是 C。
+ */
+const automaticNoticeSx = {
+  ...secondaryTextSx,
+  "& + [role='group']": { mt: 1.125 }, // D
+};
 
 const groupSx = {
-  borderInlineStart: "3px solid",
-  borderColor: "divider",
-  pl: 1,
-  mb: 1,
+  display: "flex",
+  flexDirection: "column",
+  gap: 0.125, // A
+  "& + [role='group']": { mt: 2.375 }, // C
+  "& + :not([role='group'])": { mt: 1 }, // C（接未选分类）
 };
 
 const groupHeaderSx = {
@@ -202,7 +220,8 @@ const groupHeaderSx = {
   alignItems: "center",
   justifyContent: "space-between",
   gap: 1,
-  color: "text.secondary",
+  color: transactionAccentColor,
+  mb: 0.875, // B
 };
 
 const subtotalSx = {

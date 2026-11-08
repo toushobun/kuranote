@@ -169,6 +169,30 @@ export const SingleCategory: Story = {
     },
   },
 };
+export const GroupedWithAutomaticNotice: Story = {
+  name: "样式 ④：自动添加提示与多组间距（默认主题）",
+  args: {
+    ...QuickEntry.args,
+    suggestions: {
+      ...receiptSuggestions,
+      automaticCategoryIds: ["lunch", "coffee", "points"],
+      recommendedAccountIds: ["paypay"],
+    },
+    itemsOptions: {
+      ...receiptItemsOptions,
+      categoryOptions: receiptItemsOptions.categoryOptions.map((category) =>
+        category.id === "coffee"
+          ? { ...category, parentId: "food", parentName: "🍽️ 饮食" }
+          : category,
+      ),
+    },
+  },
+};
+export const GroupedWithAutomaticNoticeSakura: Story = {
+  ...GroupedWithAutomaticNotice,
+  name: "样式 ④：自动添加提示与多组间距（樱花主题）",
+  parameters: { userTheme: { initialThemeKey: "sakuraStory" } },
+};
 export const ItemTags: Story = {
   name: "明细两排：首排名称与操作、次排待报销",
   args: {
@@ -180,6 +204,24 @@ export const ItemTags: Story = {
           amount: "1200",
           specialStatus: "pendingReimbursement",
         },
+        { categoryId: "points", amount: "100" },
+      ],
+    },
+  },
+};
+export const GroupedSublines: Story = {
+  name: "样式 ④：组内与组末都有次排时的间距",
+  args: {
+    itemsOptions: {
+      ...receiptItemsOptions,
+      initialItems: [
+        {
+          categoryId: "lunch",
+          amount: "1200",
+          specialStatus: "pendingReimbursement",
+        },
+        { categoryId: "lunch", amount: "800" },
+        { categoryId: "storage", amount: "12.55" },
         { categoryId: "points", amount: "100" },
       ],
     },
