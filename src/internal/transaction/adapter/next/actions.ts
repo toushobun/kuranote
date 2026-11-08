@@ -9,7 +9,10 @@ import {
 } from "config/paths";
 import { createRequestContainer } from "internal/container";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
-import { createErrorState } from "internal/shared/adapter/next/actionState";
+import {
+  createErrorState,
+  redirectAfterGuardedSave,
+} from "internal/shared/adapter/next/actionState";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
 import {
@@ -109,7 +112,7 @@ export async function createTransaction(
   }
 
   revalidateTransactionMutation();
-  redirect(createdHref(values.transactionAt));
+  return redirectAfterGuardedSave(formData, createdHref(values.transactionAt));
 }
 
 export async function updateTransaction(
@@ -142,7 +145,10 @@ export async function updateTransaction(
     return appErrorState(error, transactionActionErrorMessages.updateFailed);
   }
   revalidateTransactionMutation();
-  redirect(updatedHref(validation.value.transactionAt));
+  return redirectAfterGuardedSave(
+    formData,
+    updatedHref(validation.value.transactionAt),
+  );
 }
 
 export async function updateTransferTransaction(
@@ -176,7 +182,10 @@ export async function updateTransferTransaction(
     );
   }
   revalidateTransactionMutation();
-  redirect(updatedHref(validation.value.transactionAt));
+  return redirectAfterGuardedSave(
+    formData,
+    updatedHref(validation.value.transactionAt),
+  );
 }
 
 export async function saveEditTransaction(
@@ -239,5 +248,8 @@ export async function updateBalanceAdjustmentTransaction(
     return appErrorState(error, balanceAdjustmentErrorMessages.updateFailed);
   }
   revalidateTransactionMutation();
-  redirect(updatedHref(parsed.data.transactionAt));
+  return redirectAfterGuardedSave(
+    formData,
+    updatedHref(parsed.data.transactionAt),
+  );
 }

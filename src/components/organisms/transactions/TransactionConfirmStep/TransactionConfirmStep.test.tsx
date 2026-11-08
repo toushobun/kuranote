@@ -2,8 +2,10 @@ import { setupGuardHistoryMock } from "test/mockGuardHistory";
 setupGuardHistoryMock();
 
 import Button from "@mui/material/Button";
+import { saveAndLeaveField } from "config/unsavedChanges";
 import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import type { TransactionStepFlowProps } from "../TransactionStepFlow/TransactionStepFlow.types";
 import {
   expectAutomaticItems,
   receiptLine as line,
@@ -400,13 +402,18 @@ describe("TransactionConfirmStep", () => {
     ).toBeInTheDocument();
   });
 
-  it("未选账户时点「选择收支账户」本身也打开账户选择抽屉", () => {
+  it("删除账户后重开抽屉没有选中项，重新选择原账户时写入小票", async () => {
     renderConfirmFlow();
     click("删除支付账户 1");
     click("选择收支账户");
-    expect(
+    const accounts = within(
       screen.getByRole("radiogroup", { name: "收支账户" }),
-    ).toBeInTheDocument();
+    );
+    expect(accounts.queryByRole("radio", { checked: true })).toBeNull();
+    selectAccount("PayPay JPY");
+    await waitFor(() =>
+      expect(line("更换支付账户 1")).toHaveTextContent("PayPayJPY"),
+    );
   });
 
   it("删除唯一账户后再选不同币种的账户，仍按原币种弹出换币种确认", async () => {
@@ -588,6 +595,9 @@ describe("TransactionConfirmStep", () => {
     renderConfirmFlow();
     fireEvent.click(headerRow("备注"));
     const input = screen.getByRole("textbox", { name: "备注" });
+    expect(input).toHaveFocus();
+    expect(input).toHaveAttribute("aria-label", "备注");
+    expect(screen.queryByText("备注", { selector: "label" })).toBeNull();
     expect(input).toHaveAttribute("maxlength", "2000");
     fireEvent.change(input, { target: { value: "一起吃午餐" } });
     expect(screen.getByText("5 / 2000")).toBeInTheDocument();
@@ -684,6 +694,7 @@ describe("TransactionConfirmStep", () => {
       await waitFor(() => expect(action).toHaveBeenCalledOnce());
       expect(screen.getByRole("button", { name: /保存中/ })).toBeDisabled();
       const data = action.mock.calls[0] as unknown as [unknown, FormData];
+      expect(data[1].has(saveAndLeaveField)).toBe(false);
       expect(data[1].get("merchantId")).toBe("seven");
       expect(data[1].get("accountId")).toBe("paypay");
       expect(data[1].getAll("itemAmount")).toEqual(["8000", "2000"]);
@@ -692,6 +703,52 @@ describe("TransactionConfirmStep", () => {
         await screen.findByText(success ? "已保存" : "保存失败，请重试"),
       ).toBeInTheDocument();
       expect(saveButton()).toBeEnabled();
+    },
+  );
+
+  it.each(["成功", "服务端失败", "校验失败"])(
+    "新增小票保存并退出仅在保存成功时关闭（%s）",
+    async (outcome) => {
+      const action = vi
+        .fn<TransactionStepFlowProps["action"]>()
+        .mockResolvedValue(
+          outcome === "成功"
+            ? { success: "已保存" }
+            : { error: "保存失败，请重试" },
+        );
+      const onClose = vi.fn();
+      renderConfirmFlow({
+        action,
+        onClose,
+        itemsOptions:
+          outcome === "校验失败"
+            ? {
+                ...receiptItemsOptions,
+                initialItems: [{ categoryId: "lunch", amount: "" }],
+              }
+            : undefined,
+      });
+      fireEvent.click(headerRow("备注"));
+      fireEvent.change(screen.getByRole("textbox", { name: "备注" }), {
+        target: { value: "新增备注" },
+      });
+      click("完成");
+      fireEvent.click(await screen.findByRole("button", { name: "关闭记账" }));
+      click("保存并退出");
+      if (outcome === "校验失败") {
+        await screen.findByText(/还有 1 条明细没填金额/);
+        expect(action).not.toHaveBeenCalled();
+      } else {
+        await waitFor(() => expect(action).toHaveBeenCalledOnce());
+        expect(action.mock.calls[0]![1].get(saveAndLeaveField)).toBe("true");
+      }
+      if (outcome === "成功")
+        await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+      else {
+        if (outcome === "服务端失败")
+          await screen.findByText("保存失败，请重试");
+        expect(onClose).not.toHaveBeenCalled();
+      }
     },
   );
 

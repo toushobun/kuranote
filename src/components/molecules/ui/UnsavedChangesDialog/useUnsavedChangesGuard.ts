@@ -11,8 +11,12 @@ import {
 } from "react";
 
 import { useUnsavedChangesCoordinator } from "providers/UnsavedChangesGuardProvider/UnsavedChangesGuardProvider";
+import { saveAndLeaveField } from "config/unsavedChanges";
+import type { ActionState } from "types/actions";
 
-type LeaveIntent = { type: "back" } | { type: "action"; action: () => void };
+type LeaveIntent =
+  | { type: "back" }
+  | { type: "action" | "close"; action: () => void };
 type SaveIntent = { formId: string; leave: LeaveIntent };
 
 export function useUnsavedChangesGuard({
@@ -64,19 +68,55 @@ export function useUnsavedChangesGuard({
     else window.history.back();
   }, [layer, onClose]);
   const followIntent = useCallback(
-    (leave: LeaveIntent) =>
-      history.leave(leave.type === "back" ? back : leave.action),
-    [history, back],
+    (leave: LeaveIntent, saved = false) => {
+      const closesLayer =
+        layer !== null && !!onClose && leave.type !== "action";
+      return history.leave(
+        leave.type === "back" ? back : leave.action,
+        saved ? (closesLayer ? "close" : "route") : null,
+      );
+    },
+    [history, back, layer, onClose],
+  );
+  const isSavingToLeave = useCallback(
+    (formId: string) => saveIntent.current?.formId === formId,
+    [],
   );
   const completeSave = useCallback(
-    (success: boolean, formId: string) => {
+    async (success: boolean, formId: string) => {
       const saved = saveIntent.current;
-      if (saved?.formId !== formId) return Promise.resolve();
+      if (saved?.formId !== formId) return false;
       saveIntent.current = null;
-      if (success) return followIntent(saved.leave);
-      return Promise.resolve();
+      if (success) await followIntent(saved.leave, true);
+      return true;
     },
     [followIntent],
+  );
+  const runSaveAction = useCallback(
+    async <T extends ActionState>(
+      formData: FormData,
+      action: (data: FormData) => Promise<T>,
+      shouldRetry?: (state: T) => boolean,
+    ) => {
+      const pending = saveIntent.current;
+      const leave = pending?.formId === saveFormId ? pending : null;
+      if (leave) {
+        saveIntent.current = null;
+        formData.set(saveAndLeaveField, "true");
+      } else {
+        formData.delete(saveAndLeaveField);
+      }
+      const result = await history.runAction(() => action(formData));
+      if (leave && !saveIntent.current) {
+        if (result.success && !result.error) {
+          await followIntent(leave.leave, true);
+          return { ...result, success: undefined };
+        }
+        if (shouldRetry?.(result)) saveIntent.current = leave;
+      }
+      return result;
+    },
+    [followIntent, history, saveFormId],
   );
 
   const beforeUnload = useEffectEvent((event: BeforeUnloadEvent) => {
@@ -160,11 +200,13 @@ export function useUnsavedChangesGuard({
 
   return {
     runAction,
+    runSaveAction,
     // 客户端表单校验拦截提交时，清除未完成的保存后退出意图。
     cancelSave: () => {
       saveIntent.current = null;
     },
     completeSave,
+    isSavingToLeave,
     runInPlaceAction: useCallback(
       <T>(action: () => Promise<T>) => history.runInPlaceAction(action),
       [history],
@@ -178,7 +220,7 @@ export function useUnsavedChangesGuard({
     requestClose: () => {
       if (!active || disabled || !onClose) return;
       if (mustConfirm)
-        setIntent((current) => current ?? { type: "action", action: onClose });
+        setIntent((current) => current ?? { type: "close", action: onClose });
       else void history.leave(onClose);
     },
     dialogProps: {

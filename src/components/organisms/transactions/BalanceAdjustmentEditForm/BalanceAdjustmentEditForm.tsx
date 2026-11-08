@@ -84,7 +84,7 @@ export function BalanceAdjustmentEditForm({
   });
   const [state, submit, pending] = useActionState(
     (previous: Awaited<ReturnType<TransactionStateAction>>, data: FormData) =>
-      guard.runAction(() => action(previous, data)),
+      guard.runSaveAction(data, (values) => action(previous, values)),
     {},
   );
   const [deleteState, remove, deleting] = useActionState(

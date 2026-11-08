@@ -37,7 +37,11 @@ type MerchantEditTemplateProps = {
   updateMerchantAction: MerchantStateAction;
 };
 
-type AliasFeedbackOperation = "archiveAlias" | "createAlias" | "setPreferred";
+type AliasFeedbackOperation =
+  | "archiveAlias"
+  | "createAlias"
+  | "createAliasAndLeave"
+  | "setPreferred";
 
 export function MerchantEditTemplate({
   archiveMerchantAction,
@@ -66,11 +70,15 @@ export function MerchantEditTemplate({
   const [aliasFeedbackOperation, setAliasFeedbackOperation] =
     useState<AliasFeedbackOperation | null>(null);
   const archiveFormRef = useRef<HTMLFormElement>(null);
-  const update = useMerchantsActionState(updateMerchantAction, {
-    merchantId: merchant.id,
-    operation: "update",
-    runAction: aliasDirty ? guard.runInPlaceAction : guard.runAction,
-  });
+  const update = useMerchantsActionState(
+    (state, data) =>
+      aliasDirty
+        ? guard.runInPlaceAction(() => updateMerchantAction(state, data))
+        : guard.runSaveAction(data, (values) =>
+            updateMerchantAction(state, values),
+          ),
+    { merchantId: merchant.id, operation: "update" },
+  );
   const archive = useMerchantsActionState(archiveMerchantAction, {
     merchantId: merchant.id,
     operation: "archive",
@@ -94,15 +102,11 @@ export function MerchantEditTemplate({
       runAction: guard.runInPlaceAction,
     },
   );
-  const completeSave = guard.completeSave;
-  useEffect(() => {
-    if (update.state.successKey || update.state.errorKey)
-      void completeSave(Boolean(update.state.success), "merchant-edit-form");
-  }, [update.state, completeSave]);
+  const { completeSave, isSavingToLeave } = guard;
   useEffect(() => {
     if (createAlias.state.successKey || createAlias.state.errorKey)
       void completeSave(
-        Boolean(createAlias.state.success),
+        Boolean(createAlias.state.success && !createAlias.state.error),
         "merchant-alias-form",
       );
   }, [createAlias.state, completeSave]);
@@ -113,10 +117,14 @@ export function MerchantEditTemplate({
   const setPreferredDispatch = setPreferred.action;
   const createAliasAction = useCallback(
     (formData: FormData) => {
-      setAliasFeedbackOperation("createAlias");
+      setAliasFeedbackOperation(
+        isSavingToLeave("merchant-alias-form")
+          ? "createAliasAndLeave"
+          : "createAlias",
+      );
       createAliasDispatch(formData);
     },
-    [createAliasDispatch],
+    [createAliasDispatch, isSavingToLeave],
   );
   const archiveAliasAction = useCallback(
     (formData: FormData) => {
@@ -133,10 +141,14 @@ export function MerchantEditTemplate({
     [setPreferredDispatch],
   );
   const aliasFeedback =
-    aliasFeedbackOperation === "createAlias"
+    aliasFeedbackOperation === "createAlias" ||
+    aliasFeedbackOperation === "createAliasAndLeave"
       ? {
           errorTitle: merchantText.createAliasErrorTitle,
-          state: createAlias.state,
+          state:
+            aliasFeedbackOperation === "createAliasAndLeave"
+              ? { ...createAlias.state, success: undefined }
+              : createAlias.state,
         }
       : aliasFeedbackOperation === "archiveAlias"
         ? {

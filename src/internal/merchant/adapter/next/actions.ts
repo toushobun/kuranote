@@ -38,6 +38,7 @@ import {
 import {
   createErrorState,
   createSuccessState,
+  redirectAfterGuardedSave,
 } from "internal/shared/adapter/next/actionState";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import { AppError } from "internal/shared/errors/appError";
@@ -111,7 +112,10 @@ export const createMerchant: MerchantStateAction =
 
     // 从记一笔等页面进入时，新增成功后直接返回来源页面。
     const returnTo = getSafeNextPath(formData.get("returnTo"));
-    redirect(returnTo ?? merchantsResultHref(merchantResultValues.created));
+    return redirectAfterGuardedSave(
+      formData,
+      returnTo ?? merchantsResultHref(merchantResultValues.created),
+    );
   };
 
 export const fetchMerchantIcon: MerchantIconStateAction =
@@ -161,7 +165,10 @@ export const updateMerchant: MerchantStateAction =
       return createSuccessState(merchantText.saveSuccess);
     }
     revalidateMerchantMutation();
-    redirect(merchantsResultHref(merchantResultValues.updated));
+    return redirectAfterGuardedSave(
+      formData,
+      merchantsResultHref(merchantResultValues.updated),
+    );
   };
 
 export const archiveMerchant: MerchantStateAction =

@@ -166,6 +166,13 @@ export const AccountPicker: Story = {
   name: "支付行铅笔：账户选择抽屉",
   play: ({ canvasElement }) => clickButton(canvasElement, "更换支付账户 1"),
 };
+export const AccountPickerAfterRemoval: Story = {
+  name: "删除账户后重新选择：没有选中项",
+  play: async ({ canvasElement }) => {
+    await clickButton(canvasElement, "删除支付账户 1");
+    await clickButton(canvasElement, "选择收支账户");
+  },
+};
 export const CurrencyConfirm: Story = {
   name: "换成不同币种的账户：确认框在抽屉之上",
   play: async ({ canvasElement }) => {
@@ -209,7 +216,7 @@ export const PaymentAmountKeypad: Story = {
   },
 };
 export const NoteEditor: Story = {
-  name: "编辑备注",
+  name: "编辑备注：自动聚焦且只显示抽屉标题",
   play: async ({ canvasElement }) => {
     await clickButton(canvasElement, /^修改备注：/);
     await userEvent.type(

@@ -26,6 +26,7 @@ import {
 } from "test/transactionConfirmStep";
 import {
   filledItems,
+  receiptFlowFixture,
   receiptItemsOptions,
   receiptSuggestions,
 } from "test/mocks/transactionReceipt";
@@ -310,6 +311,29 @@ describe("TransactionStepFlow", () => {
     click("保存记账");
     await waitFor(() => expect(action).toHaveBeenCalledOnce());
     expect(props.onClose).not.toHaveBeenCalled();
+  });
+
+  it("从商家记账保存并关闭时，小票上的成功提示不会闪现", async () => {
+    const action = vi.fn(async () => ({ success: "记账成功" }));
+    const { props, rerender } = quickSetup({
+      ...receiptFlowFixture,
+      action,
+      suggestions: noHistory,
+    });
+    click("7-Eleven");
+    await screen.findByRole("button", { name: "保存记账" });
+    click("删除明细 2");
+
+    click("关闭记账");
+    click("保存并退出");
+    await waitFor(() => expect(props.onClose).toHaveBeenCalledOnce());
+    await waitFor(() => expect(saveButton()).toBeEnabled());
+    expect(screen.queryByText("记账成功", { exact: true })).toBeNull();
+    expect(screen.queryByText("保存成功", { exact: true })).toBeNull();
+
+    rerender(<TransactionStepFlow {...props} open={false} />);
+    expect(await screen.findByRole("status")).toHaveTextContent("保存成功");
+    expect(screen.getAllByRole("status")).toHaveLength(1);
   });
 
   it("关闭后重新打开不保留上次内容", () => {

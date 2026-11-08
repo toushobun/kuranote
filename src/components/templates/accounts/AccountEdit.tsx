@@ -62,7 +62,7 @@ export function AccountEditTemplate({
   });
   const [updateState, updateFormAction, updatePending] = useActionState(
     (state: AccountActionState, data: FormData) =>
-      guard.runAction(() => updateAccountAction(state, data)),
+      guard.runSaveAction(data, (values) => updateAccountAction(state, values)),
     initialAccountActionState,
   );
   const [archiveState, archiveFormAction, archivePending] = useActionState(

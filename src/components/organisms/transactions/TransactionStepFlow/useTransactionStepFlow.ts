@@ -112,7 +112,8 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     onClose: props.onClose,
   });
   const [saveState, saveAction, saving] = useActionState<ActionState, FormData>(
-    (state, data) => guard.runAction(() => props.action(state, data)),
+    (state, data) =>
+      guard.runSaveAction(data, (values) => props.action(state, values)),
     {},
   );
   const [methodOpen, setMethodOpen] = useState(false);
