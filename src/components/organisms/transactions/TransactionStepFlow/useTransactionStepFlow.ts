@@ -86,12 +86,12 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
   // 商家选择、推荐账户、自动明细与初始时间不计入修改。
   // 基线与自动填充版本存在 state 中，避免在 render 期间读取 ref。
   const [autoRevision, setAutoRevision] = useState(0);
-  const [baseline, setBaseline] = useState({
-    snapshot: receiptSnapshot,
-    revision: 0,
-  });
-  const receiptDirty =
-    baseline.revision === autoRevision && receiptSnapshot !== baseline.snapshot;
+  const receiptDirty = useEditedSinceAutoFill(receiptSnapshot, autoRevision);
+  // 自动添加提示另有基线：用户改过小票后，换商家带入新内容仍要重新显示。
+  const [noticeRevision, setNoticeRevision] = useState(0);
+  const noticeEdited = useEditedSinceAutoFill(receiptSnapshot, noticeRevision);
+  // 对这笔账单做了任意修改就收起提示，之后改回原样也不再显示。
+  if (noticeEdited && noticeItemIds !== null) setNoticeItemIds(null);
   const timeInitialized = !!form.transactionAtValue;
   const resetWaitStartSnapshot = useEffectEvent(() => {
     waitStartSnapshot.current = pendingSuggestionSnapshot;
@@ -102,13 +102,8 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     resetWaitStartSnapshot();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 初始本地时间同步后更新自动填充版本。
     setAutoRevision((revision) => revision + 1);
+    setNoticeRevision((revision) => revision + 1);
   }, [timeInitialized]);
-  useLayoutEffect(() => {
-    if (baseline.revision === autoRevision) return;
-    // 自动填充提交后的布局阶段同步干净基线，下一帧才恢复 dirty 判断。
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 自动建议应用完成后同步干净基线。
-    setBaseline({ snapshot: receiptSnapshot, revision: autoRevision });
-  }, [autoRevision, baseline.revision, receiptSnapshot]);
   const guard = useUnsavedChangesGuard({
     isDirty: screen === "receipt" && receiptDirty,
     saveFormId: formId,
@@ -146,6 +141,8 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     if (!replacing && form.itemSummaries.length > 0) return;
     // 只有尚未手动填写的小票才允许自动建议重设干净基线。
     if (!receiptDirty) setAutoRevision((revision) => revision + 1);
+    // 自动写入（含换商家时移除没动过的自动明细）不算用户修改。
+    setNoticeRevision((revision) => revision + 1);
     const recommended = props.accounts.find(
       (account) => account.id === props.suggestions?.recommendedAccountIds[0],
     );
@@ -254,39 +251,7 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
             props.suggestions.quickAmounts.length
           )
         : undefined,
-    form: {
-      ...form,
-      handlePickerAdd() {
-        const editing = form.itemSummaries.find(
-          ({ id }) => id === form.editingItemId,
-        );
-        const committed = form.handlePickerAdd();
-        if (
-          committed &&
-          (!editing || editing.categoryId !== form.pickerCategoryId)
-        ) {
-          setNoticeItemIds(null);
-        }
-        return committed;
-      },
-      updateItem(...args: Parameters<typeof form.updateItem>) {
-        const [id, { amount }] = args;
-        const item = form.itemSummaries.find((item) => item.id === id);
-        form.updateItem(...args);
-        if (item && amount !== undefined && amount !== item.amount) {
-          setNoticeItemIds(null);
-        }
-      },
-      removeItem(id: number) {
-        form.removeItem(id);
-        if (noticeItemIds?.includes(id)) setNoticeItemIds(null);
-      },
-      handlePaymentAccountChange(key: number, accountId: string) {
-        const payment = form.payments.find((row) => row.key === key);
-        form.handlePaymentAccountChange(key, accountId);
-        if (payment && payment.accountId !== accountId) setNoticeItemIds(null);
-      },
-    },
+    form,
     itemsOptions,
     showAutomaticNotice: noticeItemIds !== null,
     amountItemId,
@@ -300,4 +265,19 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     onValidationFailed: guard.cancelSave,
     formId,
   };
+}
+
+/**
+ * 自动填充提交后在布局阶段把当前快照记为干净基线（`revision` 变化即重记），
+ * 返回之后快照是否与基线不同。基线存在 state 中，避免在 render 期间读取 ref。
+ */
+function useEditedSinceAutoFill(snapshot: string, revision: number) {
+  const [baseline, setBaseline] = useState({ snapshot, revision: 0 });
+  const settled = baseline.revision === revision;
+  useLayoutEffect(() => {
+    if (settled) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 自动填充应用完成后同步干净基线。
+    setBaseline({ snapshot, revision });
+  }, [settled, snapshot, revision]);
+  return settled && snapshot !== baseline.snapshot;
 }

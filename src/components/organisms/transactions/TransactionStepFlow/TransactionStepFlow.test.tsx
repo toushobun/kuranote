@@ -778,41 +778,45 @@ describe("TransactionStepFlow 进入小票", () => {
 });
 
 describe("TransactionStepFlow 自动添加提示", () => {
-  async function enterWithAutomaticNotice() {
-    quickSetup();
+  async function enterWithAutomaticNotice(
+    overrides: Partial<TransactionStepFlowProps> = {},
+  ) {
+    quickSetup(overrides);
     click("7-Eleven");
     await screen.findByRole("button", { name: "保存记账" });
     expectAutomaticNotice();
   }
 
+  // 对这笔账单做任意修改都收起提示（#1028）。
   it.each([
     ["确认修改金额", confirmLunchAmount],
     ["修改分类", changeLunchToStorage],
     ["新增明细", addLunchItem],
     ["删除自动明细", () => click("删除明细 1")],
     ["更换付款账户", chooseCashPayment],
+    ["修改备注", changeReceiptNote],
+    ["修改时间", changeReceiptTime],
+    ["设为待报销", markLunchPendingReimbursement],
   ])("%s后隐藏提示", async (_, edit) => {
     await enterWithAutomaticNotice();
     await edit();
     expectAutomaticNotice(false);
   });
 
-  it.each([
-    ["修改备注", changeReceiptNote],
-    ["修改时间", changeReceiptTime],
-    ["设为待报销", markLunchPendingReimbursement],
-    [
-      "取消金额输入",
-      async () => {
-        await openLunchAmount();
-        pressItemAmountKey("8");
-        click("关闭金额键盘");
-        await waitKeypadClosed();
-      },
-    ],
-  ])("%s后保留提示", async (_, edit) => {
+  it("没有推荐账户时，第一次选择付款账户也隐藏提示", async () => {
+    await enterWithAutomaticNotice({
+      suggestions: { ...quickSuggestions, recommendedAccountIds: [] },
+    });
+    await chooseCashPayment();
+    expectAutomaticNotice(false);
+  });
+
+  it("取消金额输入后保留提示", async () => {
     await enterWithAutomaticNotice();
-    await edit();
+    await openLunchAmount();
+    pressItemAmountKey("8");
+    click("关闭金额键盘");
+    await waitKeypadClosed();
     expectAutomaticNotice();
   });
 });
