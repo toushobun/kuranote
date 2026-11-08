@@ -7,7 +7,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { TransactionStepFlowProps } from "../TransactionStepFlow/TransactionStepFlow.types";
 import {
-  expectAutomaticItems,
+  expectAutomaticNotice,
   receiptLine as line,
   pressItemAmountKey,
   renderConfirmFlow,
@@ -233,15 +233,14 @@ describe("TransactionConfirmStep", () => {
       );
   });
 
-  it("自动明细只显示添加条数提示，不显示自动标签，删除后条数同步减少", () => {
+  it("自动明细使用固定提示，不显示单条自动标签", () => {
     renderConfirmFlow({
       itemsOptions: receiptEmojiItemsOptions,
       suggestionsMerchantId: "seven",
       suggestions: receiptSuggestions,
     });
-    expectAutomaticItems(2);
-    click("删除明细 2");
-    expectAutomaticItems(1);
+    expectAutomaticNotice();
+    expect(screen.queryByText("自动", { exact: true })).not.toBeInTheDocument();
   });
 
   it("按首次出现顺序分组，每组显示已填金额小计并保留原序号", () => {
@@ -971,11 +970,11 @@ describe("TransactionConfirmStep 只读", () => {
     );
   });
 
-  it("传入自动明细时也不显示自动添加提示", () => {
-    renderReadOnlyReceipt(
-      { ...receiptItemsOptions, initialItems: filledItems },
-      { automaticItemIds: [1, 2] },
-    );
-    expect(screen.queryByText(/已按你的习惯自动添加/)).not.toBeInTheDocument();
+  it("不显示自动添加提示", () => {
+    renderReadOnlyReceipt({
+      ...receiptItemsOptions,
+      initialItems: filledItems,
+    });
+    expectAutomaticNotice(false);
   });
 });

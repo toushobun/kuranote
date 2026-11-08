@@ -212,7 +212,7 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
               <Box sx={sectionSx}>
                 <ReceiptItemsSection
                   form={f}
-                  automaticItemIds={w.automaticItemIds}
+                  showAutomaticNotice={props.showAutomaticNotice}
                   invalidItems={w.invalidItems}
                   merchantHasHistory={props.merchantHasHistory}
                   canAddItem={props.categoryOptions.length > 0}

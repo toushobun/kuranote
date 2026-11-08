@@ -22,9 +22,6 @@ export function useTransactionConfirmStep(
   // 单账户点 × 清空后，只保留换币种确认需要的原币种。
   const [previousCurrency, setPreviousCurrency] = useState<string>();
   const currency = form.selectedAccount?.currency;
-  const automaticItemIds = props.automaticItemIds.filter((id) =>
-    form.itemSummaries.some((item) => item.id === id),
-  );
   const invalidItems = form.itemSummaries.filter(
     (item) => !item.category || !isValidTransactionFormItem(item, currency),
   );
@@ -153,7 +150,6 @@ export function useTransactionConfirmStep(
     editor,
     setEditor,
     currency,
-    automaticItemIds,
     invalidItems,
     canAddPayment,
     accountPickerKey,

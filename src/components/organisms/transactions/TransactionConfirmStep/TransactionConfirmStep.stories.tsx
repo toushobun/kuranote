@@ -39,6 +39,10 @@ const meta = {
 } satisfies Meta<typeof TransactionStepFlow>;
 export default meta;
 type Story = StoryObj<typeof meta>;
+const unselectedAccountItemsOptions = {
+  ...receiptItemsOptions,
+  initialPayments: [{ accountId: "", amount: null }],
+};
 
 async function enterReceipt(canvasElement: HTMLElement, merchant = "7-Eleven") {
   const body = within(canvasElement.ownerDocument.body);
@@ -62,6 +66,18 @@ export const QuickEntry: Story = {
     itemsOptions: receiptItemsOptions,
   },
 };
+export const AutomaticAccountOnly: Story = {
+  name: "只自动选付款账户：显示自动添加提示",
+  args: {
+    ...QuickEntry.args,
+    itemsOptions: unselectedAccountItemsOptions,
+    suggestions: {
+      automaticCategoryIds: [],
+      quickAmounts: [],
+      recommendedAccountIds: ["paypay"],
+    },
+  },
+};
 export const FirstVisit: Story = {
   play: ({ canvasElement }) => enterReceipt(canvasElement, "星巴克"),
   name: "第一次去的商家：选择收支账户（设计图 8 ③）",
@@ -72,10 +88,7 @@ export const FirstVisit: Story = {
       quickAmounts: [],
       recommendedAccountIds: [],
     },
-    itemsOptions: {
-      ...receiptItemsOptions,
-      initialPayments: [{ accountId: "", amount: null }],
-    },
+    itemsOptions: unselectedAccountItemsOptions,
   },
 };
 export const FirstVisitAfterSave: Story = {

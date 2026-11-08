@@ -44,8 +44,7 @@ export const flowMessages = {
   addAccount: "新增账户",
   addItem: "添加明细",
   noMerchantHistory: "这家商家还没有记录",
-  automaticNotice: (count: number) =>
-    `已按你的习惯自动添加 ${count} 条，填金额即可`,
+  automaticNotice: "已按照你的习惯自动添加部分内容",
   total: "合计",
   // 合计下方的小字，各项之间用「 · 」分隔。
   totalBreakdown: {

@@ -141,7 +141,6 @@ function EditTransactionReceipt({
         form={w.form}
         formId={editReceiptFormId}
         initialValues={props.initialValues}
-        automaticItemIds={[]}
         amountItemId={w.amountItemId}
         onAmountItemChange={w.setAmountItemId}
         accountOptions={accountOptions}

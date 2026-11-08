@@ -48,6 +48,10 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     type: "expense",
   }));
   const [automaticItems, setAutomaticItems] = useState<AutomaticItem[]>([]);
+  // null 表示已隐藏，空数组表示只自动选了付款账户。
+  const [noticeItemIds, setNoticeItemIds] = useState<readonly number[] | null>(
+    null,
+  );
   const { form, itemsOptions, amountItemId, setAmountItemId } =
     useTransactionReceiptForm({
       accounts: props.accounts,
@@ -146,7 +150,8 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
       (account) => account.id === props.suggestions?.recommendedAccountIds[0],
     );
     const primary = form.payments[0];
-    if (recommended && primary && !primary.accountId) {
+    const filledAccount = recommended && primary && !primary.accountId;
+    if (filledAccount) {
       form.handlePaymentAccountChange(primary.key, recommended.id);
       props.onAccountSelect(recommended);
     }
@@ -178,16 +183,25 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
         .filter((item) => !removedIds.includes(item.id))
         .map((item) => item.categoryId),
     );
-    setAutomaticItems([
-      ...kept,
-      // 已有同一分类的明细时不重复追加。
-      ...categoryIds
-        .filter((categoryId) => !remainingCategoryIds.has(categoryId))
-        .map((categoryId) => ({
-          id: form.addItem(categoryId, "", null, null, null),
-          categoryId,
-        })),
-    ]);
+    // 已有同一分类的明细时不重复追加。
+    const added = categoryIds
+      .filter((categoryId) => !remainingCategoryIds.has(categoryId))
+      .map((categoryId) => ({
+        id: form.addItem(categoryId, "", null, null, null),
+        categoryId,
+      }));
+    setAutomaticItems([...kept, ...added]);
+    setNoticeItemIds((previous) => {
+      const remaining = (previous ?? kept.map(({ id }) => id)).filter(
+        (id) => !removedIds.includes(id),
+      );
+      if (filledAccount || added.length) {
+        return [...remaining, ...added.map(({ id }) => id)];
+      }
+      // 保留原提示，除非换商家已移除了提示所对应的全部明细。
+      if (!previous) return null;
+      return previous.length > 0 && remaining.length === 0 ? null : remaining;
+    });
   });
   useEffect(() => {
     // 按商家标识同步异步到达的建议，pending 标识保证只应用一次。
@@ -240,9 +254,41 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
             props.suggestions.quickAmounts.length
           )
         : undefined,
-    form,
+    form: {
+      ...form,
+      handlePickerAdd() {
+        const editing = form.itemSummaries.find(
+          ({ id }) => id === form.editingItemId,
+        );
+        const committed = form.handlePickerAdd();
+        if (
+          committed &&
+          (!editing || editing.categoryId !== form.pickerCategoryId)
+        ) {
+          setNoticeItemIds(null);
+        }
+        return committed;
+      },
+      updateItem(...args: Parameters<typeof form.updateItem>) {
+        const [id, { amount }] = args;
+        const item = form.itemSummaries.find((item) => item.id === id);
+        form.updateItem(...args);
+        if (item && amount !== undefined && amount !== item.amount) {
+          setNoticeItemIds(null);
+        }
+      },
+      removeItem(id: number) {
+        form.removeItem(id);
+        if (noticeItemIds?.includes(id)) setNoticeItemIds(null);
+      },
+      handlePaymentAccountChange(key: number, accountId: string) {
+        const payment = form.payments.find((row) => row.key === key);
+        form.handlePaymentAccountChange(key, accountId);
+        if (payment && payment.accountId !== accountId) setNoticeItemIds(null);
+      },
+    },
     itemsOptions,
-    automaticItemIds: automaticItems.map((item) => item.id),
+    showAutomaticNotice: noticeItemIds !== null,
     amountItemId,
     setAmountItemId,
     methodOpen,
