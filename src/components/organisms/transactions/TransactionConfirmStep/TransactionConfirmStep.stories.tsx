@@ -118,8 +118,8 @@ export const MultiAccountUnbalanced: Story = {
   },
 };
 export const SingleAccount: Story = { name: "单账户：支付金额为纯文字" };
-export const ReceiptCategoryNames: Story = {
-  name: "两层分类：长名称、大金额与仅大分类",
+export const GroupedCategories: Story = {
+  name: "多组小计：长名称、大金额与仅大分类",
   args: {
     itemsOptions: {
       ...receiptItemsOptions,
@@ -150,8 +150,21 @@ export const ReceiptCategoryNames: Story = {
       initialItems: [
         { categoryId: "lunch", amount: "8000" },
         { categoryId: "personal-care", amount: "12345678" },
-        { categoryId: "gifts", amount: "123456" },
+        { categoryId: "gifts", amount: "12345678" },
+        { categoryId: "points", amount: "100" },
         { categoryId: "food", amount: "1200" },
+      ],
+    },
+  },
+};
+export const SingleCategory: Story = {
+  name: "单组无小计，未选分类的明细排在分组之后",
+  args: {
+    itemsOptions: {
+      ...receiptItemsOptions,
+      initialItems: [
+        { categoryId: "", amount: "200" },
+        { categoryId: "lunch", amount: "680" },
       ],
     },
   },

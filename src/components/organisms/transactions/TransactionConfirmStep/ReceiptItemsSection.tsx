@@ -1,10 +1,12 @@
 "use client";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import { resolveTransactionBusinessStatus } from "internal/transaction";
 import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/TransactionBusinessBadge";
 import { flowMessages as m } from "config/transactionStepFlowMessages";
+import { sumAmountTexts } from "../TransactionForm/TransactionForm.utils";
 import type { TransactionItemSummary } from "../TransactionForm/TransactionForm.types";
 import type { useTransactionForm } from "../TransactionForm/useTransactionForm";
 import { formatStepItemAmount } from "../transactionStepFlowFormat";
@@ -15,7 +17,14 @@ import {
   ReceiptLine,
 } from "./ReceiptLine";
 
-/** 小票的明细区：提示、每条明细（标签、金额、铅笔、×）与「＋ 添加明细」。 */
+type IndexedItem = { item: TransactionItemSummary; index: number };
+type ItemGroup = {
+  label: string;
+  category: NonNullable<TransactionItemSummary["category"]>;
+  entries: IndexedItem[];
+};
+
+/** 小票的明细区：按大分类分组，保留每条明细原有的操作序号。 */
 export function ReceiptItemsSection({
   form,
   automaticItemIds,
@@ -35,6 +44,87 @@ export function ReceiptItemsSection({
 }) {
   const currency = form.selectedAccount?.currency ?? "";
   const items = form.itemSummaries;
+  const groups = new Map<string, ItemGroup>();
+  const uncategorized: IndexedItem[] = [];
+  items.forEach((item, index) => {
+    const category = item.category;
+    const entry = { item, index };
+    if (!category) {
+      uncategorized.push(entry);
+      return;
+    }
+    const id = category.parentId ?? category.id;
+    const group = groups.get(id);
+    if (group) {
+      group.entries.push(entry);
+    } else {
+      groups.set(id, {
+        label: category.parentName ?? category.name,
+        category,
+        entries: [entry],
+      });
+    }
+  });
+
+  function renderItem({ item, index }: IndexedItem) {
+    const amount = formatStepItemAmount(item, currency);
+    const excessDecimals = exceedsCurrencyDecimalPlaces(item.amount, currency);
+    const businessStatus =
+      item.businessStatus ??
+      resolveTransactionBusinessStatus({
+        currency,
+        specialStatus: item.specialStatus,
+      });
+    return (
+      <ReceiptLine
+        key={item.id}
+        label={item.category?.name ?? m.missingCategory}
+        truncateLabel
+        error={invalidItems.includes(item)}
+        errorLabel={invalidItems.includes(item) && !!item.amount.trim()}
+        subline={
+          (businessStatus || excessDecimals) && (
+            <>
+              {businessStatus && (
+                <TransactionBusinessBadge
+                  currency={currency}
+                  status={businessStatus}
+                />
+              )}
+              {excessDecimals && (
+                <Typography variant="caption" sx={{ color: "error.main" }}>
+                  {m.excessDecimalsHint}
+                </Typography>
+              )}
+            </>
+          )
+        }
+        amount={
+          readOnly ? (
+            <ReceiptAmountText
+              amount={amount}
+              income={item.category?.type === "income"}
+            />
+          ) : (
+            <ReceiptAmountButton
+              label={m.editAmount(index + 1, amount)}
+              amount={amount}
+              pending={!item.amount.trim() || excessDecimals}
+              income={item.category?.type === "income"}
+              onClick={() => onAmount(item.id)}
+            />
+          )
+        }
+        {...(!readOnly && {
+          editLabel: m.editItem(index + 1),
+          onEdit: () => form.openItemSheet(item.id),
+          removeLabel: m.removeItem(index + 1),
+          onRemove: () => form.removeItem(item.id),
+        })}
+      />
+    );
+  }
+
   return (
     <>
       {!readOnly && automaticItemIds.length > 0 && (
@@ -56,68 +146,34 @@ export function ReceiptItemsSection({
             {m.missingItems}
           </Typography>
         ))}
-      {items.map((item, index) => {
-        const amount = formatStepItemAmount(item, currency);
-        const excessDecimals = exceedsCurrencyDecimalPlaces(
-          item.amount,
-          currency,
-        );
-        const businessStatus =
-          item.businessStatus ??
-          resolveTransactionBusinessStatus({
-            currency,
-            specialStatus: item.specialStatus,
-          });
-        return (
-          <ReceiptLine
-            key={item.id}
-            label={item.category?.name ?? m.missingCategory}
-            secondaryLabel={item.category?.parentName ?? undefined}
-            truncateLabel
-            error={invalidItems.includes(item)}
-            errorLabel={invalidItems.includes(item) && !!item.amount.trim()}
-            subline={
-              (businessStatus || excessDecimals) && (
-                <>
-                  {businessStatus && (
-                    <TransactionBusinessBadge
-                      currency={currency}
-                      status={businessStatus}
-                    />
-                  )}
-                  {excessDecimals && (
-                    <Typography variant="caption" sx={{ color: "error.main" }}>
-                      {m.excessDecimalsHint}
-                    </Typography>
-                  )}
-                </>
-              )
-            }
-            amount={
-              readOnly ? (
-                <ReceiptAmountText
-                  amount={amount}
-                  income={item.category?.type === "income"}
-                />
-              ) : (
-                <ReceiptAmountButton
-                  label={m.editAmount(index + 1, amount)}
-                  amount={amount}
-                  pending={!item.amount.trim() || excessDecimals}
-                  income={item.category?.type === "income"}
-                  onClick={() => onAmount(item.id)}
-                />
-              )
-            }
-            {...(!readOnly && {
-              editLabel: m.editItem(index + 1),
-              onEdit: () => form.openItemSheet(item.id),
-              removeLabel: m.removeItem(index + 1),
-              onRemove: () => form.removeItem(item.id),
-            })}
-          />
-        );
-      })}
+      {[...groups].map(([id, { label, category, entries }]) => (
+        <Box key={id} role="group" aria-label={label} sx={groupSx}>
+          <Box sx={groupHeaderSx}>
+            <Typography
+              variant="caption"
+              noWrap
+              sx={{ minWidth: 0, fontWeight: 700 }}
+            >
+              {label}
+            </Typography>
+            {groups.size > 1 && (
+              <Typography variant="caption" sx={subtotalSx}>
+                {formatStepItemAmount(
+                  {
+                    amount: String(
+                      sumAmountTexts(entries.map(({ item }) => item.amount)),
+                    ),
+                    category,
+                  },
+                  currency,
+                )}
+              </Typography>
+            )}
+          </Box>
+          {entries.map(renderItem)}
+        </Box>
+      ))}
+      {uncategorized.map(renderItem)}
       {!readOnly && (
         <Button
           fullWidth
@@ -133,3 +189,25 @@ export function ReceiptItemsSection({
 }
 
 const hintSx = { color: "text.secondary", display: "block", py: 0.5 };
+
+const groupSx = {
+  borderInlineStart: "3px solid",
+  borderColor: "divider",
+  pl: 1,
+  mb: 1,
+};
+
+const groupHeaderSx = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 1,
+  color: "text.secondary",
+};
+
+const subtotalSx = {
+  flexShrink: 0,
+  whiteSpace: "nowrap",
+  fontWeight: 700,
+  fontVariantNumeric: "tabular-nums",
+};
