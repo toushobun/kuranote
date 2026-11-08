@@ -119,7 +119,7 @@ export const MultiAccountUnbalanced: Story = {
 };
 export const SingleAccount: Story = { name: "单账户：支付金额为纯文字" };
 export const ReceiptCategoryNames: Story = {
-  name: "小分类单行：长名称、大金额与仅大分类",
+  name: "两层分类：长名称、大金额与仅大分类",
   args: {
     itemsOptions: {
       ...receiptItemsOptions,
@@ -129,14 +129,14 @@ export const ReceiptCategoryNames: Story = {
           id: "personal-care",
           name: "🧴 洗护用品",
           parentId: "daily",
-          parentName: "日用品",
+          parentName: "🛒 日用杂货",
           type: "expense",
         },
         {
           id: "gifts",
           name: "🎁 节日与人情往来礼品及伴手礼",
           parentId: "social",
-          parentName: "人情往来",
+          parentName: "🧧 人情往来",
           type: "expense",
         },
         {

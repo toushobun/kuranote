@@ -16,6 +16,7 @@ import { designTokens } from "theme/theme";
 export function ReceiptLine({
   icon,
   label,
+  secondaryLabel,
   truncateLabel = false,
   tags,
   subline,
@@ -30,6 +31,7 @@ export function ReceiptLine({
 }: {
   icon?: ReactNode;
   label: string;
+  secondaryLabel?: string;
   truncateLabel?: boolean;
   tags?: ReactNode;
   subline?: ReactNode;
@@ -55,9 +57,24 @@ export function ReceiptLine({
       <EditOutlinedIcon sx={pencilSx} />
     </IconButton>
   );
+  const primaryLabel = (
+    <Typography
+      variant="body2"
+      noWrap={truncateLabel || !!icon}
+      component={labelClickable ? ButtonBase : "p"}
+      onClick={labelClickable ? onEdit : undefined}
+      sx={[
+        { minWidth: 0 },
+        labelClickable && labelButtonSx,
+        errorLabel && errorTextSx,
+      ]}
+    >
+      {label}
+    </Typography>
+  );
   return (
     <Box data-receipt-line data-invalid={error || undefined}>
-      <Box sx={lineSx}>
+      <Box sx={[lineSx, !!secondaryLabel && { minHeight: 48 }]}>
         {icon && (
           <Box aria-hidden sx={[iconSx, errorLabel && errorTextSx]}>
             {icon}
@@ -65,19 +82,22 @@ export function ReceiptLine({
         )}
         <Box sx={labelColumnSx}>
           <Box sx={labelBoxSx}>
-            <Typography
-              variant="body2"
-              noWrap={truncateLabel || !!icon}
-              component={labelClickable ? ButtonBase : "p"}
-              onClick={labelClickable ? onEdit : undefined}
-              sx={[
-                { minWidth: 0 },
-                labelClickable && labelButtonSx,
-                errorLabel && errorTextSx,
-              ]}
-            >
-              {label}
-            </Typography>
+            {secondaryLabel ? (
+              <Box sx={{ minWidth: 0 }}>
+                {primaryLabel}
+                <Typography
+                  component="p"
+                  variant="caption"
+                  color="textSecondary"
+                  noWrap
+                  sx={{ fontWeight: "fontWeightRegular" }}
+                >
+                  {secondaryLabel}
+                </Typography>
+              </Box>
+            ) : (
+              primaryLabel
+            )}
             {tags}
             {!labelClickable && editButton}
           </Box>

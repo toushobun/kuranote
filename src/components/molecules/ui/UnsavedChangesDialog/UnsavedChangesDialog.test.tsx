@@ -85,7 +85,7 @@ describe("UnsavedChangesDialog", () => {
     }
   });
   it.each([true, false])(
-    "弹窗撑满可用宽度，按钮按文案宽度靠右（包含保存：%s）",
+    "弹窗按内容决定宽度，按钮按文案宽度靠右（包含保存：%s）",
     (withSave) => {
       render(
         <UnsavedChangesDialog
@@ -97,7 +97,7 @@ describe("UnsavedChangesDialog", () => {
       );
 
       const buttons = screen.getAllByRole("button");
-      expect(screen.getByRole("dialog")).toHaveClass(
+      expect(screen.getByRole("dialog")).not.toHaveClass(
         "MuiDialog-paperFullWidth",
       );
       expect(buttons).toHaveLength(withSave ? 3 : 2);
@@ -108,7 +108,6 @@ describe("UnsavedChangesDialog", () => {
       for (const button of buttons) {
         const style = getComputedStyle(button);
         expect(style.flexGrow).not.toBe("1");
-        expect(style.whiteSpace).toBe("nowrap");
         expect(style.minWidth).toBe("0px");
         expect(style.paddingLeft).toBe("10px");
         expect(style.paddingRight).toBe("10px");

@@ -42,8 +42,6 @@ export function UnsavedChangesDialog({
       disableRestoreFocus
       onClose={onCancel}
       open={open}
-      fullWidth
-      maxWidth="xs"
       slotProps={{
         transition: {
           onExited: () => {
@@ -60,7 +58,7 @@ export function UnsavedChangesDialog({
           {description ?? (onSave ? m.description : m.discardDescription)}
         </DialogContentText>
       </DialogContent>
-      <DialogActions sx={actionsSx}>
+      <DialogActions sx={[actionsSx, !!onSave && narrowSaveActionsSx]}>
         <Button onClick={onCancel} sx={continueEditingButtonSx}>
           {m.continueEditing}
         </Button>
@@ -83,9 +81,6 @@ const actionButtonSx = {
   minWidth: 0,
   px: 1.25,
   py: 0,
-  whiteSpace: "nowrap",
-  // 320px 视口仍保留操作区边距，最长的「保存并退出」也能与其余按钮同排。
-  "@media (max-width: 350px)": { px: 0.5 },
 } as const;
 
 const continueEditingButtonSx = {
@@ -106,5 +101,12 @@ const actionsSx = {
   px: 2,
   "& > :not(style) ~ :not(style)": {
     ml: 0,
+  },
+} as const;
+
+// 三个按钮在 320px 视口需要缩小横向内边距，避免文案折行。
+const narrowSaveActionsSx = {
+  "@media (max-width: 350px)": {
+    "& > .MuiButton-root": { px: 0.5 },
   },
 } as const;
