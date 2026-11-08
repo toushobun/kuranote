@@ -118,6 +118,44 @@ export const MultiAccountUnbalanced: Story = {
   },
 };
 export const SingleAccount: Story = { name: "单账户：支付金额为纯文字" };
+export const ReceiptCategoryNames: Story = {
+  name: "小分类单行：长名称、大金额与仅大分类",
+  args: {
+    itemsOptions: {
+      ...receiptItemsOptions,
+      categoryOptions: [
+        ...receiptItemsOptions.categoryOptions,
+        {
+          id: "personal-care",
+          name: "🧴 洗护用品",
+          parentId: "daily",
+          parentName: "日用品",
+          type: "expense",
+        },
+        {
+          id: "gifts",
+          name: "🎁 节日与人情往来礼品及伴手礼",
+          parentId: "social",
+          parentName: "人情往来",
+          type: "expense",
+        },
+        {
+          id: "food",
+          name: "🍽️ 饮食",
+          parentId: null,
+          parentName: null,
+          type: "expense",
+        },
+      ],
+      initialItems: [
+        { categoryId: "lunch", amount: "8000" },
+        { categoryId: "personal-care", amount: "12345678" },
+        { categoryId: "gifts", amount: "123456" },
+        { categoryId: "food", amount: "1200" },
+      ],
+    },
+  },
+};
 export const ItemTags: Story = {
   name: "明细两排：首排名称与操作、次排待报销",
   args: {

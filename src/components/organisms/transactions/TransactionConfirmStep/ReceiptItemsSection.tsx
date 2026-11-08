@@ -8,8 +8,8 @@ import { flowMessages as m } from "config/transactionStepFlowMessages";
 import type { TransactionItemSummary } from "../TransactionForm/TransactionForm.types";
 import type { useTransactionForm } from "../TransactionForm/useTransactionForm";
 import {
+  formatReceiptItemCategory,
   formatStepItemAmount,
-  formatStepItemCategory,
 } from "../transactionStepFlowFormat";
 import { exceedsCurrencyDecimalPlaces } from "utils/transactionAmountInput";
 import {
@@ -60,7 +60,7 @@ export function ReceiptItemsSection({
           </Typography>
         ))}
       {items.map((item, index) => {
-        const name = formatStepItemCategory(item.category);
+        const name = formatReceiptItemCategory(item.category);
         const amount = formatStepItemAmount(item, currency);
         const excessDecimals = exceedsCurrencyDecimalPlaces(
           item.amount,
@@ -76,6 +76,7 @@ export function ReceiptItemsSection({
           <ReceiptLine
             key={item.id}
             label={name}
+            truncateLabel
             error={invalidItems.includes(item)}
             errorLabel={invalidItems.includes(item) && !!item.amount.trim()}
             subline={

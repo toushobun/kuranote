@@ -79,13 +79,13 @@ export function UnsavedChangesDialog({
 
 // 三个按钮统一为同高的文字按钮，只用颜色和字重区分轻重，避免填充按钮显得又高又胖。
 const actionButtonSx = {
-  flex: 1,
   minHeight: 36,
   minWidth: 0,
   px: 1.25,
   py: 0,
   whiteSpace: "nowrap",
-  "@media (max-width: 374px)": { px: 0 },
+  // 320px 视口仍保留操作区边距，最长的「保存并退出」也能与其余按钮同排。
+  "@media (max-width: 350px)": { px: 0.5 },
 } as const;
 
 const continueEditingButtonSx = {
@@ -104,7 +104,6 @@ const actionsSx = {
   pb: 1.75,
   pt: 1,
   px: 2,
-  "@media (max-width: 374px)": { px: 0.5 },
   "& > :not(style) ~ :not(style)": {
     ml: 0,
   },
