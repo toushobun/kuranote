@@ -74,7 +74,7 @@ export function ReceiptLine({
   );
   return (
     <Box data-receipt-line data-invalid={error || undefined}>
-      <Box sx={lineSx}>
+      <Box sx={[lineSx, !!secondaryLabel && { minHeight: 48 }]}>
         {icon && (
           <Box aria-hidden sx={[iconSx, errorLabel && errorTextSx]}>
             {icon}
@@ -90,6 +90,7 @@ export function ReceiptLine({
                   variant="caption"
                   color="textSecondary"
                   noWrap
+                  sx={{ fontWeight: "fontWeightRegular" }}
                 >
                   {secondaryLabel}
                 </Typography>
