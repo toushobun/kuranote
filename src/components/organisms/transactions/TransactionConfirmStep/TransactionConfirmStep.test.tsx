@@ -104,8 +104,8 @@ describe("TransactionConfirmStep", () => {
     renderConfirmFlow();
     expect(headerRow("商家")).toHaveTextContent("7-Eleven");
     expect(headerRow("时间")).toHaveTextContent(/\d{2}:\d{2}$/);
-    expect(line("编辑明细 1")).toHaveTextContent("午餐餐饮¥8,000");
-    expect(line("编辑明细 2")).toHaveTextContent("收纳日用品¥2,000");
+    expect(line("编辑明细 1")).toHaveTextContent("午餐¥8,000");
+    expect(line("编辑明细 2")).toHaveTextContent("收纳¥2,000");
     const total = screen.getByText("合计").nextElementSibling!;
     expect(total).toHaveTextContent("¥10,000");
     expect(total).toHaveTextContent("支出 ¥10,000");
@@ -244,32 +244,42 @@ describe("TransactionConfirmStep", () => {
     expectAutomaticItems(1);
   });
 
-  it("小分类在上、大分类在下，各显示一次 emoji 并单行截断", () => {
+  it("按首次出现顺序分组，每组显示已填金额小计并保留原序号", () => {
     renderConfirmFlow({
       itemsOptions: {
         ...receiptEmojiItemsOptions,
-        initialItems: filledItems,
+        initialItems: [
+          ...filledItems,
+          { categoryId: "lunch", amount: "600" },
+          { categoryId: "lunch", amount: "" },
+          { categoryId: "points", amount: "100" },
+        ],
       },
     });
+    const groups = ["🍽️ 饮食", "🧻 日用品", "💰 其他收入"].map((name) =>
+      screen.getByRole("group", { name }),
+    );
+    expect(groups[0].nextElementSibling).toBe(groups[1]);
+    expect(groups[1].nextElementSibling).toBe(groups[2]);
+    expect(groups[0].firstElementChild).toHaveTextContent("¥8,600");
+    expect(groups[1].firstElementChild).toHaveTextContent("¥2,000");
+    expect(groups[2].firstElementChild).toHaveTextContent("+ ¥100");
+    expect(groups[0]).toContainElement(line("编辑明细 1"));
+    expect(line("编辑明细 1").nextElementSibling).toBe(line("编辑明细 3"));
+    expect(line("编辑明细 3").nextElementSibling).toBe(line("编辑明细 4"));
     const row = line("编辑明细 1");
-    const primary = within(row).getByText("🍙 午餐");
-    const secondary = within(row).getByText("🍽️ 饮食");
-    expect(primary.nextElementSibling).toBe(secondary);
-    expect(primary).toHaveClass("MuiTypography-body2", "MuiTypography-noWrap");
-    expect(secondary).toHaveClass(
-      "MuiTypography-caption",
+    expect(row).not.toHaveTextContent("🍽️ 饮食");
+    expect(within(row).getByText("🍙 午餐")).toHaveClass(
       "MuiTypography-noWrap",
     );
-    expect(
-      within(line("编辑明细 2")).queryByTestId("CategoryRoundedIcon"),
-    ).not.toBeInTheDocument();
   });
 
-  it("只选大分类和未选分类时各显示一层名称", () => {
+  it("单组无小计，仅选大分类的明细同组，未选分类的明细移到末尾", () => {
     renderConfirmFlow({
       itemsOptions: {
         ...receiptItemsOptions,
         categoryOptions: [
+          ...receiptItemsOptions.categoryOptions,
           {
             id: "food",
             name: "餐饮",
@@ -279,16 +289,31 @@ describe("TransactionConfirmStep", () => {
           },
         ],
         initialItems: [
-          { categoryId: "food", amount: "800" },
           { categoryId: "", amount: "200" },
+          { categoryId: "food", amount: "800" },
+          { categoryId: "lunch", amount: "600" },
         ],
       },
     });
-    for (const [index, name] of ["餐饮", "未选择分类"].entries()) {
-      const row = line(`编辑明细 ${index + 1}`);
-      expect(within(row).getByText(name)).toHaveClass("MuiTypography-noWrap");
-      expect(row.querySelector(".MuiTypography-caption")).toBeNull();
-    }
+    const group = screen.getByRole("group", { name: "餐饮" });
+    expect(group.firstElementChild).toHaveTextContent(/^餐饮$/);
+    expect(group).toContainElement(line("编辑明细 2"));
+    expect(line("编辑明细 2")).toHaveTextContent("餐饮");
+    expect(group).toContainElement(line("编辑明细 3"));
+    expect(group.nextElementSibling).toBe(line("编辑明细 1"));
+    expect(line("编辑明细 1")).toHaveAttribute("data-invalid", "true");
+    expect(line("编辑明细 1")).toHaveTextContent("未选择分类");
+  });
+
+  it("只读小票也按大分类显示小计", () => {
+    renderReadOnlyReceipt({
+      ...receiptItemsOptions,
+      initialItems: filledItems,
+    });
+    expect(
+      screen.getByRole("group", { name: "餐饮" }).firstElementChild,
+    ).toHaveTextContent("¥8,000");
+    expect(screen.queryByRole("button", { name: /编辑明细/ })).toBeNull();
   });
 
   it("小票仍显示业务状态「待报销」标签", () => {
@@ -307,7 +332,7 @@ describe("TransactionConfirmStep", () => {
     expect(within(line("编辑明细 1")).getByText("待报销")).toBeInTheDocument();
   });
 
-  it("业务状态标签独立显示在两层分类名称下方", () => {
+  it("业务状态标签独立显示在明细名称下方", () => {
     renderConfirmFlow({
       itemsOptions: {
         ...receiptItemsOptions,

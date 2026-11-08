@@ -16,7 +16,6 @@ import { designTokens } from "theme/theme";
 export function ReceiptLine({
   icon,
   label,
-  secondaryLabel,
   truncateLabel = false,
   tags,
   subline,
@@ -31,7 +30,6 @@ export function ReceiptLine({
 }: {
   icon?: ReactNode;
   label: string;
-  secondaryLabel?: string;
   truncateLabel?: boolean;
   tags?: ReactNode;
   subline?: ReactNode;
@@ -74,7 +72,7 @@ export function ReceiptLine({
   );
   return (
     <Box data-receipt-line data-invalid={error || undefined}>
-      <Box sx={[lineSx, !!secondaryLabel && { minHeight: 48 }]}>
+      <Box sx={lineSx}>
         {icon && (
           <Box aria-hidden sx={[iconSx, errorLabel && errorTextSx]}>
             {icon}
@@ -82,22 +80,7 @@ export function ReceiptLine({
         )}
         <Box sx={labelColumnSx}>
           <Box sx={labelBoxSx}>
-            {secondaryLabel ? (
-              <Box sx={{ minWidth: 0 }}>
-                {primaryLabel}
-                <Typography
-                  component="p"
-                  variant="caption"
-                  color="textSecondary"
-                  noWrap
-                  sx={{ fontWeight: "fontWeightRegular" }}
-                >
-                  {secondaryLabel}
-                </Typography>
-              </Box>
-            ) : (
-              primaryLabel
-            )}
+            {primaryLabel}
             {tags}
             {!labelClickable && editButton}
           </Box>
