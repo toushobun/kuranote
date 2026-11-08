@@ -8,7 +8,7 @@ import type { ItemsStepOptions } from "organisms/transactions/TransactionStepFlo
 export type TransactionReceiptProps = ItemsStepOptions & {
   accountOptions: TransactionAccountOption[];
   form: ReturnType<typeof useTransactionForm>;
-  automaticItemIds: number[];
+  showAutomaticNotice?: boolean;
   amountItemId: number | null;
   onAmountItemChange: (id: number | null) => void;
   suggestions?: MerchantEntrySuggestions;

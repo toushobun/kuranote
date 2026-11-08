@@ -42,11 +42,10 @@ export function pressItemAmountKey(name: string) {
   );
 }
 
-export function expectAutomaticItems(count: number) {
-  expect(
-    screen.getByText(`已按你的习惯自动添加 ${count} 条，填金额即可`),
-  ).toBeInTheDocument();
-  expect(screen.queryByText("自动", { exact: true })).not.toBeInTheDocument();
+export function expectAutomaticNotice(visible = true) {
+  const notice = screen.queryByText("已按照你的习惯自动添加部分内容");
+  if (visible) expect(notice).toBeInTheDocument();
+  else expect(notice).not.toBeInTheDocument();
 }
 
 // 以首排铅笔按钮定位包含次排标签的完整小票行。
@@ -59,16 +58,9 @@ export function receiptLine(name: string) {
 /** 直接渲染只读小票（#962）：已选 7-Eleven，明细与付款按参数预填。 */
 export function renderReadOnlyReceipt(
   itemsOptions: ItemsStepOptions,
-  {
-    note = "",
-    automaticItemIds,
-  }: { note?: string; automaticItemIds?: number[] } = {},
+  { note = "" }: { note?: string } = {},
 ) {
   return renderEntryComponent(
-    <ReadOnlyReceipt
-      itemsOptions={itemsOptions}
-      note={note}
-      automaticItemIds={automaticItemIds}
-    />,
+    <ReadOnlyReceipt itemsOptions={itemsOptions} note={note} />,
   );
 }

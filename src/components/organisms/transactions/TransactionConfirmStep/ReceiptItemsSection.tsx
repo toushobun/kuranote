@@ -28,7 +28,7 @@ type ItemGroup = {
 /** 小票的明细区：按大分类分组，保留每条明细原有的操作序号。 */
 export function ReceiptItemsSection({
   form,
-  automaticItemIds,
+  showAutomaticNotice,
   invalidItems,
   merchantHasHistory,
   canAddItem,
@@ -36,7 +36,7 @@ export function ReceiptItemsSection({
   onAmount,
 }: {
   form: ReturnType<typeof useTransactionForm>;
-  automaticItemIds: readonly number[];
+  showAutomaticNotice?: boolean;
   invalidItems: readonly TransactionItemSummary[];
   merchantHasHistory?: boolean;
   canAddItem: boolean;
@@ -129,9 +129,9 @@ export function ReceiptItemsSection({
 
   return (
     <>
-      {!readOnly && automaticItemIds.length > 0 && (
+      {!readOnly && showAutomaticNotice && (
         <Typography variant="caption" sx={automaticNoticeSx}>
-          {m.automaticNotice(automaticItemIds.length)}
+          {m.automaticNotice}
         </Typography>
       )}
       {items.length === 0 &&

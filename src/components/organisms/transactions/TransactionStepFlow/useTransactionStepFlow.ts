@@ -48,6 +48,10 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     type: "expense",
   }));
   const [automaticItems, setAutomaticItems] = useState<AutomaticItem[]>([]);
+  // null 表示已隐藏，空数组表示只自动选了付款账户。
+  const [noticeItemIds, setNoticeItemIds] = useState<readonly number[] | null>(
+    null,
+  );
   const { form, itemsOptions, amountItemId, setAmountItemId } =
     useTransactionReceiptForm({
       accounts: props.accounts,
@@ -82,12 +86,12 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
   // 商家选择、推荐账户、自动明细与初始时间不计入修改。
   // 基线与自动填充版本存在 state 中，避免在 render 期间读取 ref。
   const [autoRevision, setAutoRevision] = useState(0);
-  const [baseline, setBaseline] = useState({
-    snapshot: receiptSnapshot,
-    revision: 0,
-  });
-  const receiptDirty =
-    baseline.revision === autoRevision && receiptSnapshot !== baseline.snapshot;
+  const receiptDirty = useEditedSinceAutoFill(receiptSnapshot, autoRevision);
+  // 自动添加提示另有基线：用户改过小票后，换商家带入新内容仍要重新显示。
+  const [noticeRevision, setNoticeRevision] = useState(0);
+  const noticeEdited = useEditedSinceAutoFill(receiptSnapshot, noticeRevision);
+  // 对这笔账单做了任意修改就收起提示，之后改回原样也不再显示。
+  if (noticeEdited && noticeItemIds !== null) setNoticeItemIds(null);
   const timeInitialized = !!form.transactionAtValue;
   const resetWaitStartSnapshot = useEffectEvent(() => {
     waitStartSnapshot.current = pendingSuggestionSnapshot;
@@ -98,13 +102,8 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     resetWaitStartSnapshot();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 初始本地时间同步后更新自动填充版本。
     setAutoRevision((revision) => revision + 1);
+    setNoticeRevision((revision) => revision + 1);
   }, [timeInitialized]);
-  useLayoutEffect(() => {
-    if (baseline.revision === autoRevision) return;
-    // 自动填充提交后的布局阶段同步干净基线，下一帧才恢复 dirty 判断。
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 自动建议应用完成后同步干净基线。
-    setBaseline({ snapshot: receiptSnapshot, revision: autoRevision });
-  }, [autoRevision, baseline.revision, receiptSnapshot]);
   const guard = useUnsavedChangesGuard({
     isDirty: screen === "receipt" && receiptDirty,
     saveFormId: formId,
@@ -142,11 +141,14 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     if (!replacing && form.itemSummaries.length > 0) return;
     // 只有尚未手动填写的小票才允许自动建议重设干净基线。
     if (!receiptDirty) setAutoRevision((revision) => revision + 1);
+    // 自动写入（含换商家时移除没动过的自动明细）不算用户修改。
+    setNoticeRevision((revision) => revision + 1);
     const recommended = props.accounts.find(
       (account) => account.id === props.suggestions?.recommendedAccountIds[0],
     );
     const primary = form.payments[0];
-    if (recommended && primary && !primary.accountId) {
+    const filledAccount = recommended && primary && !primary.accountId;
+    if (filledAccount) {
       form.handlePaymentAccountChange(primary.key, recommended.id);
       props.onAccountSelect(recommended);
     }
@@ -178,16 +180,25 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
         .filter((item) => !removedIds.includes(item.id))
         .map((item) => item.categoryId),
     );
-    setAutomaticItems([
-      ...kept,
-      // 已有同一分类的明细时不重复追加。
-      ...categoryIds
-        .filter((categoryId) => !remainingCategoryIds.has(categoryId))
-        .map((categoryId) => ({
-          id: form.addItem(categoryId, "", null, null, null),
-          categoryId,
-        })),
-    ]);
+    // 已有同一分类的明细时不重复追加。
+    const added = categoryIds
+      .filter((categoryId) => !remainingCategoryIds.has(categoryId))
+      .map((categoryId) => ({
+        id: form.addItem(categoryId, "", null, null, null),
+        categoryId,
+      }));
+    setAutomaticItems([...kept, ...added]);
+    setNoticeItemIds((previous) => {
+      const remaining = (previous ?? kept.map(({ id }) => id)).filter(
+        (id) => !removedIds.includes(id),
+      );
+      if (filledAccount || added.length) {
+        return [...remaining, ...added.map(({ id }) => id)];
+      }
+      // 保留原提示，除非换商家已移除了提示所对应的全部明细。
+      if (!previous) return null;
+      return previous.length > 0 && remaining.length === 0 ? null : remaining;
+    });
   });
   useEffect(() => {
     // 按商家标识同步异步到达的建议，pending 标识保证只应用一次。
@@ -242,7 +253,7 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
         : undefined,
     form,
     itemsOptions,
-    automaticItemIds: automaticItems.map((item) => item.id),
+    showAutomaticNotice: noticeItemIds !== null,
     amountItemId,
     setAmountItemId,
     methodOpen,
@@ -254,4 +265,19 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     onValidationFailed: guard.cancelSave,
     formId,
   };
+}
+
+/**
+ * 自动填充提交后在布局阶段把当前快照记为干净基线（`revision` 变化即重记），
+ * 返回之后快照是否与基线不同。基线存在 state 中，避免在 render 期间读取 ref。
+ */
+function useEditedSinceAutoFill(snapshot: string, revision: number) {
+  const [baseline, setBaseline] = useState({ snapshot, revision: 0 });
+  const settled = baseline.revision === revision;
+  useLayoutEffect(() => {
+    if (settled) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 自动填充应用完成后同步干净基线。
+    setBaseline({ snapshot, revision });
+  }, [settled, snapshot, revision]);
+  return settled && snapshot !== baseline.snapshot;
 }

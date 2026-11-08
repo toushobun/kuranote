@@ -20,7 +20,7 @@ import {
   selectEntryAccount as selectAccount,
 } from "test/transactionStepFlow";
 import {
-  expectAutomaticItems,
+  expectAutomaticNotice,
   receiptLine,
   pressItemAmountKey,
 } from "test/transactionConfirmStep";
@@ -92,6 +92,47 @@ function changeLunchToStorage() {
     );
     fireEvent.click(await screen.findByRole("button", { name: "收纳" }));
   });
+}
+function markLunchPendingReimbursement() {
+  return editLunchItem(() => {
+    fireEvent.click(screen.getByRole("checkbox", { name: "待报销" }));
+  });
+}
+async function openLunchAmount() {
+  click("修改明细 1 金额：待输入");
+  await screen.findByLabelText("金额计算器");
+}
+async function confirmLunchAmount() {
+  await openLunchAmount();
+  pressItemAmountKey("8");
+  pressItemAmountKey("确定");
+  await waitKeypadClosed();
+}
+async function changeReceiptNote() {
+  click("修改备注：添加备注");
+  fireEvent.change(screen.getByRole("textbox", { name: "备注" }), {
+    target: { value: "一起吃午餐" },
+  });
+  click("完成");
+  await waitFor(() =>
+    expect(screen.queryByRole("textbox", { name: "备注" })).toBeNull(),
+  );
+}
+async function changeReceiptTime() {
+  const hourLabel = `选择 ${(new Date().getHours() + 1) % 24} 时`;
+  fireEvent.click(screen.getByRole("button", { name: /^修改时间：/ }));
+  fireEvent.click(screen.getByRole("button", { name: /时刻/ }));
+  fireEvent.click(screen.getByLabelText(hourLabel));
+  fireEvent.click(screen.getByText("完成", { selector: "button" }));
+  await waitFor(() => expect(screen.queryByLabelText(hourLabel)).toBeNull());
+}
+async function chooseCashPayment() {
+  click("更换支付账户 1");
+  await screen.findByRole("radio", { name: "现金 JPY" });
+  selectAccount("现金 JPY");
+  await waitFor(() =>
+    expect(receiptLine("更换支付账户 1")).toHaveTextContent("现金"),
+  );
 }
 function waitKeypadClosed() {
   return waitFor(() =>
@@ -252,20 +293,7 @@ describe("TransactionStepFlow", () => {
         await addLunchItem();
       },
     ],
-    [
-      "时间",
-      async () => {
-        fireEvent.click(screen.getByRole("button", { name: /^修改时间：/ }));
-        fireEvent.click(screen.getByRole("button", { name: /时刻/ }));
-        click("选择 12 时");
-        click("完成");
-        await waitFor(() =>
-          expect(
-            screen.queryByRole("button", { name: "选择 12 时" }),
-          ).toBeNull(),
-        );
-      },
-    ],
+    ["时间", changeReceiptTime],
   ])("手动修改%s后关闭才弹未保存确认", async (_, change) => {
     quickSetup({ suggestions: noHistory });
     click("7-Eleven");
@@ -388,7 +416,7 @@ describe("TransactionStepFlow", () => {
     expect(screen.getByText("午餐")).toBeInTheDocument();
     expect(screen.getByText("收纳")).toBeInTheDocument();
     expect(screen.getByText("咖啡")).toBeInTheDocument();
-    expectAutomaticItems(1);
+    expectAutomaticNotice();
   });
 });
 
@@ -468,23 +496,20 @@ describe("TransactionStepFlow 换商家", () => {
     expect(screen.queryByText("午餐")).toBeNull();
     expect(screen.getAllByText("咖啡")).toHaveLength(1);
     expect(screen.getByText("收纳")).toBeInTheDocument();
-    expectAutomaticItems(2);
+    expectAutomaticNotice();
   });
 
   it("保留填了金额的自动明细，不再追加同一分类的空明细", async () => {
     await switchToLife(["lunch", "storage"], {
       beforeSwitch: async () => {
-        click("修改明细 1 金额：待输入");
-        await screen.findByLabelText("金额计算器");
-        pressItemAmountKey("8");
-        pressItemAmountKey("确定");
-        await waitKeypadClosed();
+        await confirmLunchAmount();
+        expectAutomaticNotice(false);
       },
     });
     expect(screen.getAllByText("午餐")).toHaveLength(1);
     expect(screen.queryByText("咖啡")).toBeNull();
     expect(screen.getByText("收纳")).toBeInTheDocument();
-    expectAutomaticItems(1);
+    expectAutomaticNotice();
   });
 
   it("保留改了分类的自动明细", async () => {
@@ -492,38 +517,36 @@ describe("TransactionStepFlow 换商家", () => {
     expect(screen.getByText("收纳")).toBeInTheDocument();
     expect(screen.queryByText("午餐")).toBeNull();
     expect(screen.queryByText("咖啡")).toBeNull();
-    expect(screen.queryByText(/已按你的习惯/)).toBeNull();
+    expectAutomaticNotice(false);
+  });
+
+  it.each([
+    { categoryIds: ["lunch"], visible: true },
+    { categoryIds: [], visible: false },
+  ])(
+    "换商家没有带入新内容且保留分类 $categoryIds 时，提示可见性为 $visible",
+    async ({ categoryIds, visible }) => {
+      await switchToLife(categoryIds);
+      expectAutomaticNotice(visible);
+    },
+  );
+
+  it("已隐藏的提示在换商家只保留自动明细时仍隐藏", async () => {
+    await switchToLife(["lunch", "coffee"], { beforeSwitch: addLunchItem });
+    expectAutomaticNotice(false);
   });
 
   it("保留手动添加的空明细", async () => {
     await switchToLife(["storage"], { beforeSwitch: addLunchItem });
     expect(screen.getAllByText("午餐")).toHaveLength(1);
     expect(screen.queryByText("咖啡")).toBeNull();
-    expectAutomaticItems(1);
+    expectAutomaticNotice();
   });
 
   it.each<[string, () => Promise<void>]>([
     ["改了分类", changeLunchToStorage],
-    [
-      "设了待报销",
-      () =>
-        editLunchItem(() => {
-          fireEvent.click(screen.getByRole("checkbox", { name: "待报销" }));
-        }),
-    ],
-    [
-      "改了备注",
-      async () => {
-        click("修改备注：添加备注");
-        fireEvent.change(screen.getByRole("textbox", { name: "备注" }), {
-          target: { value: "一起吃午餐" },
-        });
-        click("完成");
-        await waitFor(() =>
-          expect(screen.queryByRole("textbox", { name: "备注" })).toBeNull(),
-        );
-      },
-    ],
+    ["设了待报销", markLunchPendingReimbursement],
+    ["改了备注", changeReceiptNote],
   ])("建议到达前%s时，不再应用新商家的建议", async (_, touch) => {
     await switchToLife(["storage"], { whileWaiting: touch });
     expect(screen.getByText("咖啡")).toBeInTheDocument();
@@ -578,7 +601,7 @@ describe("TransactionStepFlow 换商家", () => {
       <TransactionStepFlow {...props} suggestions={{ ...quickSuggestions }} />,
     );
     expect(screen.queryByText("午餐")).toBeNull();
-    expectAutomaticItems(1);
+    expectAutomaticNotice(false);
   });
 });
 
@@ -588,7 +611,7 @@ describe("TransactionStepFlow 进入小票", () => {
     click("7-Eleven");
     expect(await screen.findByText("从商家记账")).toBeInTheDocument();
     expect(props.onAccountSelect).toHaveBeenCalledWith(flowFixture.accounts[1]);
-    expectAutomaticItems(2);
+    expectAutomaticNotice();
     expect(
       screen.getByRole("button", { name: "修改明细 1 金额：待输入" }),
     ).toBeInTheDocument();
@@ -604,14 +627,14 @@ describe("TransactionStepFlow 进入小票", () => {
     ).toBeInTheDocument();
   });
 
-  it("快速路线没有自动明细：选好推荐账户，明细区只有添加明细", async () => {
+  it("快速路线只自动选好推荐账户时也显示提示", async () => {
     quickSetup({
       suggestions: { ...quickSuggestions, automaticCategoryIds: [] },
     });
     click("7-Eleven");
     expect(await screen.findByText("从商家记账")).toBeInTheDocument();
     expect(receiptLine("更换支付账户 1")).toHaveTextContent("PayPay");
-    expect(screen.queryByText(/已按你的习惯/)).toBeNull();
+    expectAutomaticNotice();
     expect(
       screen.getByRole("button", { name: "添加明细" }),
     ).toBeInTheDocument();
@@ -621,6 +644,7 @@ describe("TransactionStepFlow 进入小票", () => {
     quickSetup({ suggestions: noHistory });
     click("7-Eleven");
     expect(await screen.findByText("这家商家还没有记录")).toBeInTheDocument();
+    expectAutomaticNotice(false);
     expect(receiptLine("更换支付账户 1")).toHaveTextContent("选择收支账户");
     expect(receiptLine("更换支付账户 1")).toHaveAttribute(
       "data-invalid",
@@ -667,7 +691,7 @@ describe("TransactionStepFlow 进入小票", () => {
     rerender(
       <TransactionStepFlow {...loaded} suggestions={{ ...quickSuggestions }} />,
     );
-    expectAutomaticItems(1);
+    expectAutomaticNotice(false);
   });
 
   it("超过等待时间仍没有建议时进入小票、不选账户；没动过小票时只补上当前商家晚到的建议一次", () => {
@@ -681,10 +705,10 @@ describe("TransactionStepFlow 进入小票", () => {
     expect(receiptLine("更换支付账户 1")).toHaveTextContent("选择收支账户");
     // 其他商家的建议不应用。
     rerender(<TransactionStepFlow {...props} suggestionsMerchantId="coffee" />);
-    expect(screen.queryByText(/已按你的习惯/)).toBeNull();
+    expectAutomaticNotice(false);
     rerender(<TransactionStepFlow {...props} suggestionsMerchantId="seven" />);
     expect(receiptLine("更换支付账户 1")).toHaveTextContent("PayPay");
-    expectAutomaticItems(2);
+    expectAutomaticNotice();
     click("删除明细 1");
     rerender(
       <TransactionStepFlow
@@ -693,21 +717,11 @@ describe("TransactionStepFlow 进入小票", () => {
         suggestions={{ ...quickSuggestions }}
       />,
     );
-    expectAutomaticItems(1);
+    expectAutomaticNotice(false);
   });
 
   it.each<[string, () => Promise<void>]>([
-    [
-      "选了账户",
-      async () => {
-        click("更换支付账户 1");
-        await screen.findByRole("radio", { name: "现金 JPY" });
-        selectAccount("现金 JPY");
-        await waitFor(() =>
-          expect(receiptLine("更换支付账户 1")).toHaveTextContent("现金"),
-        );
-      },
-    ],
+    ["选了账户", chooseCashPayment],
     ["加了明细", addLunchItem],
     [
       "加了又删了明细",
@@ -725,7 +739,7 @@ describe("TransactionStepFlow 进入小票", () => {
     const account = receiptLine("更换支付账户 1").textContent;
     rerender(<TransactionStepFlow {...props} suggestionsMerchantId="seven" />);
     expect(receiptLine("更换支付账户 1").textContent).toBe(account);
-    expect(screen.queryByText(/已按你的习惯/)).toBeNull();
+    expectAutomaticNotice(false);
     expect(screen.queryByText("咖啡")).toBeNull();
   });
 
@@ -759,7 +773,51 @@ describe("TransactionStepFlow 进入小票", () => {
     rerender(<TransactionStepFlow {...props} suggestionsMerchantId="life" />);
     expect(heading("从商家记账")).toBeInTheDocument();
     expect(receiptLine("更换支付账户 1")).toHaveTextContent("PayPay");
-    expectAutomaticItems(2);
+    expectAutomaticNotice();
+  });
+});
+
+describe("TransactionStepFlow 自动添加提示", () => {
+  async function enterWithAutomaticNotice(
+    overrides: Partial<TransactionStepFlowProps> = {},
+  ) {
+    quickSetup(overrides);
+    click("7-Eleven");
+    await screen.findByRole("button", { name: "保存记账" });
+    expectAutomaticNotice();
+  }
+
+  // 对这笔账单做任意修改都收起提示（#1028）。
+  it.each([
+    ["确认修改金额", confirmLunchAmount],
+    ["修改分类", changeLunchToStorage],
+    ["新增明细", addLunchItem],
+    ["删除自动明细", () => click("删除明细 1")],
+    ["更换付款账户", chooseCashPayment],
+    ["修改备注", changeReceiptNote],
+    ["修改时间", changeReceiptTime],
+    ["设为待报销", markLunchPendingReimbursement],
+  ])("%s后隐藏提示", async (_, edit) => {
+    await enterWithAutomaticNotice();
+    await edit();
+    expectAutomaticNotice(false);
+  });
+
+  it("没有推荐账户时，第一次选择付款账户也隐藏提示", async () => {
+    await enterWithAutomaticNotice({
+      suggestions: { ...quickSuggestions, recommendedAccountIds: [] },
+    });
+    await chooseCashPayment();
+    expectAutomaticNotice(false);
+  });
+
+  it("取消金额输入后保留提示", async () => {
+    await enterWithAutomaticNotice();
+    await openLunchAmount();
+    pressItemAmountKey("8");
+    click("关闭金额键盘");
+    await waitKeypadClosed();
+    expectAutomaticNotice();
   });
 });
 

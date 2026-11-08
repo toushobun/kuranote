@@ -8,11 +8,9 @@ import { flowFixture } from "./mocks/transactionStepFlow";
 export function ReadOnlyReceipt({
   itemsOptions,
   note,
-  automaticItemIds = [],
 }: {
   itemsOptions: ItemsStepOptions;
   note: string;
-  automaticItemIds?: number[];
 }) {
   const initialValues: TransactionFormInitialValues = {
     items: itemsOptions.initialItems ?? [],
@@ -36,7 +34,6 @@ export function ReadOnlyReceipt({
       readOnly
       form={form}
       accountOptions={flowFixture.accounts}
-      automaticItemIds={automaticItemIds}
       amountItemId={null}
       onAmountItemChange={() => {}}
       action={() => {}}
