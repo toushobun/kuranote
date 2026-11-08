@@ -209,6 +209,24 @@ export const ItemTags: Story = {
     },
   },
 };
+export const GroupedSublines: Story = {
+  name: "样式 ④：组内与组末都有次排时的间距",
+  args: {
+    itemsOptions: {
+      ...receiptItemsOptions,
+      initialItems: [
+        {
+          categoryId: "lunch",
+          amount: "1200",
+          specialStatus: "pendingReimbursement",
+        },
+        { categoryId: "lunch", amount: "800" },
+        { categoryId: "storage", amount: "12.55" },
+        { categoryId: "points", amount: "100" },
+      ],
+    },
+  },
+};
 // 被其他记录退款 / 报销核销后的支出（编辑时，#962）。
 const offsetItems = [
   {
