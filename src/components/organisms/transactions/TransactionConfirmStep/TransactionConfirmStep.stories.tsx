@@ -118,8 +118,27 @@ export const MultiAccountBalanced: Story = {
 };
 export const MultiAccountAddPayment: Story = {
   name: "多账户：添加付款账户抽屉",
-  args: MultiAccountBalanced.args,
-  play: ({ canvasElement }) => clickButton(canvasElement, "添加付款账户"),
+  args: {
+    ...MultiAccountBalanced.args,
+    suggestionsMerchantId: "seven",
+    suggestions: {
+      automaticCategoryIds: [],
+      quickAmounts: [],
+      recommendedAccountIds: ["paypay", "cash"],
+    },
+  },
+  play: async ({ canvasElement }) => {
+    await clickButton(canvasElement, "添加付款账户");
+    const drawer = within(
+      await within(canvasElement.ownerDocument.body).findByRole("radiogroup", {
+        name: "收支账户",
+      }),
+    );
+    await expect(
+      drawer.getByRole("radio", { name: "乐天银行 JPY" }),
+    ).toBeInTheDocument();
+    await expect(drawer.queryByRole("alert")).not.toBeInTheDocument();
+  },
 };
 export const MultiAccountUnbalanced: Story = {
   name: "多账户未对上（差额、保存时提示）",
@@ -212,7 +231,7 @@ export const GroupedWithAutomaticNoticeSakura: Story = {
   parameters: { userTheme: { initialThemeKey: "sakuraStory" } },
 };
 export const ItemTags: Story = {
-  name: "明细两排：首排名称与操作、次排待报销",
+  name: "待报销明细与收支混合的单账户说明",
   args: {
     itemsOptions: {
       ...receiptItemsOptions,

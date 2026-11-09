@@ -64,6 +64,7 @@ export const flowMessages = {
     `修改明细 ${index} 金额：${amount}`,
   removeItem: (index: number) => `删除明细 ${index}`,
   addPayment: "添加付款账户",
+  mixedPaymentHint: "同时记录收入和支出时，仅允许记录在一个账户上",
   chooseAccount: "选择收支账户",
   // 只读小票里不在可选账户中的付款账户（已归档）。
   archivedAccount: "已归档账户",

@@ -40,15 +40,25 @@ export function useTransactionConfirmStep(
   );
   const missingAmounts = invalidItems.filter((item) => !item.amount.trim());
   const primaryPayment = form.payments[0];
+  const hasIncomeItems = form.itemSummaries.some(
+    (item) => item.category?.type === "income",
+  );
+  const multiAccountAvailable = Boolean(
+    props.multiAccountPaymentEnabled && form.selectedAccount,
+  );
   const canAddPayment =
     !primaryPayment?.accountId ||
-    (!!props.multiAccountPaymentEnabled &&
-      !!form.selectedAccount &&
+    (multiAccountAvailable &&
+      !hasIncomeItems &&
       canAddPaymentRow({
         accountOptions: props.accountOptions,
         payments: form.payments,
         primaryCurrency: currency,
       }));
+  const showMixedPaymentHint =
+    multiAccountAvailable &&
+    hasIncomeItems &&
+    form.itemSummaries.some((item) => item.category?.type === "expense");
   function openAddPayment() {
     setAccountPickerKey(
       form.selectedAccount ? "add" : (primaryPayment?.key ?? null),
@@ -184,6 +194,7 @@ export function useTransactionConfirmStep(
     setEditor,
     currency,
     canAddPayment,
+    showMixedPaymentHint,
     accountPickerKey,
     setAccountPickerKey,
     openAddPayment,

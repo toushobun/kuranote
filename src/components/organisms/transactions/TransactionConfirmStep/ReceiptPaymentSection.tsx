@@ -23,6 +23,7 @@ export function ReceiptPaymentSection({
   accountOptions,
   total,
   canAddPayment,
+  showMixedPaymentHint,
   readOnly = false,
   invalidPaymentKeys,
   reconciliationInvalid,
@@ -36,6 +37,7 @@ export function ReceiptPaymentSection({
   /** 单账户时的支付金额（由明细推导的合计）。 */
   total: string;
   canAddPayment: boolean;
+  showMixedPaymentHint: boolean;
   readOnly?: boolean;
   /** 要标红的付款行（只含上次点保存时已有、仍未解决的问题，#1040）。 */
   invalidPaymentKeys: readonly number[];
@@ -133,6 +135,15 @@ export function ReceiptPaymentSection({
       )}
       {canAddPayment && (
         <ReceiptAddButton label={m.addPayment} onClick={onAddPayment} />
+      )}
+      {showMixedPaymentHint && (
+        <Typography
+          variant="caption"
+          color="textSecondary"
+          sx={{ display: "block", textAlign: "center", py: 1 }}
+        >
+          {m.mixedPaymentHint}
+        </Typography>
       )}
     </>
   );

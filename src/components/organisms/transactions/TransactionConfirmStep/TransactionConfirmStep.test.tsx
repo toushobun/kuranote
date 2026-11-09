@@ -585,39 +585,65 @@ describe("TransactionConfirmStep", () => {
     expect(saveButton()).toBeEnabled();
   });
 
-  it("有收入明细时选择第二个付款账户会要求确认删除收入明细", async () => {
+  it.each([
+    {
+      scenario: "只有收入",
+      hasExpense: false,
+      enabled: true,
+      showsHint: false,
+    },
+    { scenario: "收支混合", hasExpense: true, enabled: true, showsHint: true },
+    {
+      scenario: "收支混合但账本关闭多账户",
+      hasExpense: true,
+      enabled: false,
+      showsHint: false,
+    },
+    {
+      scenario: "纯支出但账本关闭多账户",
+      hasExpense: true,
+      hasIncome: false,
+      enabled: false,
+      showsHint: false,
+    },
+  ])(
+    "$scenario 时隐藏添加付款账户并正确显示说明",
+    ({ hasExpense, hasIncome = true, enabled, showsHint }) => {
+      renderConfirmFlow({
+        itemsOptions: {
+          ...receiptItemsOptions,
+          initialItems: [
+            ...(hasExpense ? filledItems : []),
+            ...(hasIncome ? [{ categoryId: "points", amount: "100" }] : []),
+          ],
+          multiAccountPaymentEnabled: enabled,
+        },
+      });
+      expect(screen.queryByRole("button", { name: "添加付款账户" })).toBeNull();
+      const hint = screen.queryByText(
+        "同时记录收入和支出时，仅允许记录在一个账户上",
+      );
+      if (showsHint) expect(hint).toBeInTheDocument();
+      else expect(hint).not.toBeInTheDocument();
+    },
+  );
+
+  it("有收入明细但未选账户时仍可添加首个付款账户", async () => {
     renderConfirmFlow({
       itemsOptions: {
         ...receiptItemsOptions,
         initialItems: [{ categoryId: "points", amount: "100" }],
+        initialPayments: [{ accountId: "", amount: null }],
       },
     });
-    async function chooseSecondAccount() {
-      click("添加付款账户");
-      selectAccount("现金 JPY");
-      return screen.findByRole("dialog", { name: "删除收入明细？" });
-    }
-    await chooseSecondAccount();
-    click("取消");
-    await waitFor(() => expect(line("编辑明细 1")).toBeInTheDocument());
-    expect(screen.queryByRole("button", { name: "更换支付账户 2" })).toBeNull();
-    await chooseSecondAccount();
-    click("删除收入明细");
+    expectNoPaymentRow();
+    click("添加付款账户");
+    selectAccount("现金 JPY");
     await waitFor(() =>
-      expect(line("更换支付账户 2")).toHaveTextContent("现金JPY¥0"),
+      expect(line("更换支付账户 1")).toHaveTextContent("现金JPY"),
     );
-    expect(screen.queryByRole("button", { name: "编辑明细 1" })).toBeNull();
-  });
-
-  it("账本关闭多账户付款时不显示添加付款账户", () => {
-    renderConfirmFlow({
-      itemsOptions: {
-        ...receiptItemsOptions,
-        initialItems: filledItems,
-        multiAccountPaymentEnabled: false,
-      },
-    });
-    expect(screen.queryByRole("button", { name: /添加付款账户/ })).toBeNull();
+    expect(line("编辑明细 1")).toHaveTextContent("积分返还");
+    expect(screen.queryByRole("button", { name: "添加付款账户" })).toBeNull();
   });
 
   it("多账户已对上时显示对账行并可保存", () => {

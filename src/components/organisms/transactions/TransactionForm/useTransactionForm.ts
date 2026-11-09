@@ -806,7 +806,6 @@ export function useTransactionForm({
     closeSheet,
     editingItemId,
     fieldErrors,
-    handleAddPayment: () => addPayment(),
     addPayment,
     handleDateChange,
     handleMerchantChange,
