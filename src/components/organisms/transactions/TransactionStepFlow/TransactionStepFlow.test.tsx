@@ -678,13 +678,14 @@ describe("TransactionStepFlow 进入小票", () => {
     expect(await screen.findByText("这家商家还没有记录")).toBeInTheDocument();
     expectAutomaticNotice(false);
     expect(receiptLine("更换支付账户 1")).toHaveTextContent("选择收支账户");
+    expect(receiptLine("更换支付账户 1")).not.toHaveAttribute("data-invalid");
+    expect(screen.queryByRole("button", { name: "请选择收支账户" })).toBeNull();
+    expect(saveButton()).toBeEnabled();
+    click("保存记账");
     expect(receiptLine("更换支付账户 1")).toHaveAttribute(
       "data-invalid",
       "true",
     );
-    expect(screen.queryByRole("button", { name: "请选择收支账户" })).toBeNull();
-    expect(saveButton()).toBeEnabled();
-    click("保存记账");
     expect(
       screen.getByRole("button", { name: "请选择收支账户" }),
     ).toBeInTheDocument();

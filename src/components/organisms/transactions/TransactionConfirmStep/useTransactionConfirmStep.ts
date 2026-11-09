@@ -21,6 +21,9 @@ export function useTransactionConfirmStep(
   const [paymentAmountKey, setPaymentAmountKey] = useState<number | null>(null);
   // 单账户点 × 清空后，只保留换币种确认需要的原币种。
   const [previousCurrency, setPreviousCurrency] = useState<string>();
+  // 点保存时记录的问题快照（#1016 / #1040）：顶部提示与内联红标都只显示快照中仍未解决的问题，
+  // 之后新出现的问题等下一次保存才显示。
+  const [checkedKeys, setCheckedKeys] = useState<readonly string[]>([]);
   const currency = form.selectedAccount?.currency;
   const invalidItems = form.itemSummaries.filter(
     (item) => !item.category || !isValidTransactionFormItem(item, currency),
@@ -146,11 +149,30 @@ export function useTransactionConfirmStep(
         ]
       : []),
   ];
+  // 内联红标按行判定：明细按每条明细、付款按每个付款行（未选账户，或多账户时未填金额）。
+  const invalidPaymentKeys = form.payments
+    .filter(
+      (payment) =>
+        !props.accountOptions.some(
+          (account) => account.id === payment.accountId,
+        ) ||
+        (form.isMultiAccount && !payment.amount.trim()),
+    )
+    .map((payment) => payment.key);
+  const isChecked = (key: string) => checkedKeys.includes(key);
+  /** 点保存时调用：记录当前所有问题，返回是否有问题。 */
+  function checkIssues() {
+    setCheckedKeys([
+      ...issues.map((issue) => issue.id),
+      ...invalidItems.map((item) => itemMarkKey(item.id)),
+      ...invalidPaymentKeys.map(paymentMarkKey),
+    ]);
+    return issues.length > 0;
+  }
   return {
     editor,
     setEditor,
     currency,
-    invalidItems,
     canAddPayment,
     accountPickerKey,
     setAccountPickerKey,
@@ -163,5 +185,14 @@ export function useTransactionConfirmStep(
     setPaymentAmountKey,
     removePayment,
     issues,
+    checkIssues,
+    isChecked,
+    markedItems: invalidItems.filter((item) => isChecked(itemMarkKey(item.id))),
+    markedPaymentKeys: invalidPaymentKeys.filter((key) =>
+      isChecked(paymentMarkKey(key)),
+    ),
   };
 }
+
+const itemMarkKey = (id: number) => `item:${id}`;
+const paymentMarkKey = (key: number) => `payment:${key}`;

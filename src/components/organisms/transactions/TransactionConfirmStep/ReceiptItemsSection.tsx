@@ -37,6 +37,7 @@ export function ReceiptItemsSection({
 }: {
   form: ReturnType<typeof useTransactionForm>;
   showAutomaticNotice?: boolean;
+  /** 要标红的明细（只含上次点保存时已有、仍未解决的问题，#1040）。 */
   invalidItems: readonly TransactionItemSummary[];
   merchantHasHistory?: boolean;
   canAddItem: boolean;
@@ -70,6 +71,7 @@ export function ReceiptItemsSection({
   function renderItem({ item, index }: IndexedItem) {
     const amount = formatStepItemAmount(item, currency);
     const excessDecimals = exceedsCurrencyDecimalPlaces(item.amount, currency);
+    const invalid = invalidItems.includes(item);
     const businessStatus =
       item.businessStatus ??
       resolveTransactionBusinessStatus({
@@ -82,10 +84,10 @@ export function ReceiptItemsSection({
         label={item.category?.name ?? m.missingCategory}
         truncateLabel
         compact={!!item.category}
-        error={invalidItems.includes(item)}
-        errorLabel={invalidItems.includes(item) && !!item.amount.trim()}
+        error={invalid}
+        errorLabel={invalid && !!item.amount.trim()}
         subline={
-          (businessStatus || excessDecimals) && (
+          (businessStatus || (invalid && excessDecimals)) && (
             <>
               {businessStatus && (
                 <TransactionBusinessBadge
@@ -93,7 +95,7 @@ export function ReceiptItemsSection({
                   status={businessStatus}
                 />
               )}
-              {excessDecimals && (
+              {invalid && excessDecimals && (
                 <Typography variant="caption" sx={{ color: "error.main" }}>
                   {m.excessDecimalsHint}
                 </Typography>
@@ -111,7 +113,7 @@ export function ReceiptItemsSection({
             <ReceiptAmountButton
               label={m.editAmount(index + 1, amount)}
               amount={amount}
-              pending={!item.amount.trim() || excessDecimals}
+              pending={invalid && (!item.amount.trim() || excessDecimals)}
               income={item.category?.type === "income"}
               onClick={() => onAmount(item.id)}
             />
