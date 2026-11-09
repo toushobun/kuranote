@@ -219,9 +219,6 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
                   form={f}
                   showAutomaticNotice={props.showAutomaticNotice}
                   invalidItems={w.invalidItems}
-                  showMissingItems={visibleIssues.some(
-                    (issue) => issue.id === "items",
-                  )}
                   merchantHasHistory={props.merchantHasHistory}
                   canAddItem={props.categoryOptions.length > 0}
                   readOnly={readOnly}

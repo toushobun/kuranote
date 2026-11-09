@@ -703,16 +703,13 @@ describe("TransactionConfirmStep", () => {
       },
     });
     expect(line("更换支付账户 1")).toHaveAttribute("data-invalid", "true");
-    // 「请添加明细」与顶部提示一样，点保存后才显示（#1016）。
     expect(screen.queryByText("请添加明细")).toBeNull();
     expect(saveButton()).toBeEnabled();
     expect(screen.queryAllByRole("alert")).toHaveLength(0);
     click("保存记账");
     expect(screen.getAllByRole("alert")).toHaveLength(2);
-    expect(screen.getByText("请添加明细", { selector: "p" })).toHaveAttribute(
-      "data-invalid",
-      "true",
-    );
+    // 明细区不再重复显示「请添加明细」，只保留顶部提示。
+    expect(screen.queryByText("请添加明细", { selector: "p" })).toBeNull();
     click("请添加明细");
     expect(
       await screen.findByRole("textbox", { name: "搜索小分类" }),
