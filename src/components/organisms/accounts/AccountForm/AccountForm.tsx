@@ -97,7 +97,7 @@ export function AccountForm({
       action={action}
       id={id}
       onSubmit={(event) => {
-        // 无效余额不会作为 targetBalance 提交；保存按钮之外的入口（例如离开确认里的「保存」）
+        // 无效余额不会作为 targetBalance 提交；保存按钮之外的入口（例如离开确认里的「保存并退出」）
         // 也在这里拦下，避免只保存其他字段、静默丢掉输入的余额。
         if (adjustment && !adjustment.valid) event.preventDefault();
       }}

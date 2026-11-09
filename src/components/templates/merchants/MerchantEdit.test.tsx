@@ -230,7 +230,9 @@ describe("MerchantEdit 多表单守卫", () => {
     changeAlias();
     await backFromGuard();
     const dialog = screen.getByRole("dialog", { name: "尚未保存" });
-    expect(within(dialog).queryByRole("button", { name: "保存" })).toBeNull();
+    expect(
+      within(dialog).queryByRole("button", { name: "保存并退出" }),
+    ).toBeNull();
     fireEvent.click(within(dialog).getByRole("button", { name: "继续编辑" }));
     await waitFor(() =>
       expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull(),
@@ -258,7 +260,7 @@ describe("MerchantEdit 多表单守卫", () => {
       fireEvent.click(
         within(screen.getByRole("dialog", { name: "尚未保存" })).getByRole(
           "button",
-          { name: "保存" },
+          { name: "保存并退出" },
         ),
       );
       await waitFor(() =>
@@ -289,7 +291,7 @@ describe("MerchantEdit 多表单守卫", () => {
     fireEvent.click(
       within(screen.getByRole("dialog", { name: "尚未保存" })).getByRole(
         "button",
-        { name: "保存" },
+        { name: "保存并退出" },
       ),
     );
     await waitFor(() =>
@@ -328,7 +330,7 @@ describe("MerchantEdit 多表单守卫", () => {
     fireEvent.click(
       within(screen.getByRole("dialog", { name: "尚未保存" })).getByRole(
         "button",
-        { name: "保存" },
+        { name: "保存并退出" },
       ),
     );
     expect(submit.mock.instances[0]).toHaveAttribute(
@@ -357,7 +359,7 @@ describe("MerchantEdit 多表单守卫", () => {
     fireEvent.click(
       within(screen.getByRole("dialog", { name: "尚未保存" })).getByRole(
         "button",
-        { name: "保存" },
+        { name: "保存并退出" },
       ),
     );
     expect(submit.mock.instances[0]).toHaveAttribute(
@@ -386,7 +388,7 @@ describe("MerchantEdit 别名保存后继续离开", () => {
       fireEvent.click(
         within(screen.getByRole("dialog", { name: "尚未保存" })).getByRole(
           "button",
-          { name: "保存" },
+          { name: "保存并退出" },
         ),
       );
       await waitFor(() => expect(alias).toHaveBeenCalledOnce());

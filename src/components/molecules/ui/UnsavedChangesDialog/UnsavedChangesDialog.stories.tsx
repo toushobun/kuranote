@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { unsavedChangesMessages } from "config/unsavedChangesMessages";
 import { UnsavedChangesDialog } from "./UnsavedChangesDialog";
 
 const meta: Meta<typeof UnsavedChangesDialog> = {
@@ -17,7 +16,6 @@ export const Default: Story = {
     onCancel: () => undefined,
     onDiscard: () => undefined,
     onSave: () => undefined,
-    saveLabel: unsavedChangesMessages.saveAndExit,
     open: true,
   },
 };

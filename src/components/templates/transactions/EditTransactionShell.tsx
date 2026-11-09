@@ -47,10 +47,8 @@ type EditTransactionShellProps = {
   deleteAction: TransactionStateAction;
   editRestriction: TransactionEditRestriction | null;
   hasLinkedIncomeItems: boolean;
-  /** 离开确认里的「保存」按这个 id 提交编辑表单。 */
+  /** 离开确认里的「保存并退出」按这个 id 提交编辑表单。 */
   saveFormId: string;
-  /** 仅小票页覆盖保存文案；转账等保留全局默认值。 */
-  saveLabel?: string;
   transactionRecordId: string;
 };
 
@@ -68,7 +66,6 @@ export function EditTransactionShell({
   editRestriction,
   hasLinkedIncomeItems,
   saveFormId,
-  saveLabel,
   transactionRecordId,
 }: EditTransactionShellProps) {
   const readOnly = editRestriction !== null;
@@ -76,7 +73,6 @@ export function EditTransactionShell({
   const guard = useUnsavedChangesGuard({
     isDirty: hasUnsavedChanges && !readOnly,
     saveFormId,
-    saveLabel,
   });
   const editAction = useLinkedTransactionEditAction(
     action,

@@ -40,10 +40,8 @@ function ShellHarness({
   deleteAction = vi.fn(async () => ({})),
   editRestriction = null,
   hasLinkedIncomeItems = false,
-  saveLabel,
 }: {
   action?: TransactionStateAction;
-  saveLabel?: string;
   canDelete?: boolean;
   deleteAction?: TransactionStateAction;
   editRestriction?: TransactionEditRestriction | null;
@@ -57,7 +55,6 @@ function ShellHarness({
       editRestriction={editRestriction}
       hasLinkedIncomeItems={hasLinkedIncomeItems}
       saveFormId={saveFormId}
-      saveLabel={saveLabel}
       transactionRecordId="00000000-0000-4000-8000-000000009001"
     >
       {(editAction) => (
@@ -169,11 +166,8 @@ describe("EditTransactionShell", () => {
     },
   );
 
-  it.each([
-    ["未覆盖的编辑页", undefined, "保存"],
-    ["编辑小票", "保存并退出", "保存并退出"],
-  ])("%s保持对应的未保存主按钮文案", async (_, saveLabel, label) => {
-    renderShell({ saveLabel });
+  it("未保存确认的保存按钮显示「保存并退出」", async () => {
+    renderShell();
     fireEvent.change(screen.getByRole("textbox", { name: "编辑临时输入" }), {
       target: { value: "修改" },
     });
@@ -181,7 +175,7 @@ describe("EditTransactionShell", () => {
     expect(
       within(await screen.findByRole("dialog", { name: "尚未保存" })).getByRole(
         "button",
-        { name: label },
+        { name: "保存并退出" },
       ),
     ).toBeInTheDocument();
   });
@@ -404,7 +398,7 @@ describe("EditTransactionShell", () => {
       target: { value: "已修改" },
     });
     fireEvent.click(within(container).getByRole("link", { name: "关闭" }));
-    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+    fireEvent.click(screen.getByRole("button", { name: "保存并退出" }));
     expect(requestSubmit).toHaveBeenCalledTimes(1);
     expect(requestSubmit.mock.contexts[0]).toHaveProperty("id", saveFormId);
   });

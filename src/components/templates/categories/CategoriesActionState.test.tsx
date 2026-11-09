@@ -129,7 +129,9 @@ describe("CategoriesActionStateTemplate", () => {
       fireEvent.change(name, { target: { value: "分类草稿" } });
       fireEvent.click(returnLink);
       const prompt = screen.getByRole("dialog", { name: "尚未保存" });
-      fireEvent.click(within(prompt).getByRole("button", { name: "保存" }));
+      fireEvent.click(
+        within(prompt).getByRole("button", { name: "保存并退出" }),
+      );
 
       if (success) {
         await waitFor(() =>

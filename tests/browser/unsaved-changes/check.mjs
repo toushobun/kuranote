@@ -348,14 +348,14 @@ async function checkAccount(browser) {
   await name.blur();
   await scroll(page, 2000);
   await browserBack(page);
-  await page.getByRole("button", { name: "保存", exact: true }).click();
+  await page.getByRole("button", { name: "保存并退出", exact: true }).click();
   await page.getByText("验证用保存失败", { exact: true }).waitFor();
   await position(page, "sentinel");
   await keepScroll(page, 2000);
   await record("真实保存失败后恢复保护，保存前清理不改变滚动位置");
   await setValueWithoutScrolling(name, "保存成功");
   await browserBack(page);
-  await page.getByRole("button", { name: "保存", exact: true }).click();
+  await page.getByRole("button", { name: "保存并退出", exact: true }).click();
   await page.waitForURL(`${sourceUrl}?saved=1`);
   await keepScroll(page, 0, "auto");
   await record("真实保存成功跳转，AppShell 普通导航回到顶部");
@@ -536,7 +536,7 @@ async function checkMerchant(browser, edit) {
     assert.equal(
       await page
         .getByRole("dialog", { name: "尚未保存" })
-        .getByRole("button", { name: "保存", exact: true })
+        .getByRole("button", { name: "保存并退出", exact: true })
         .count(),
       0,
     );
@@ -800,7 +800,7 @@ async function checkCategoryCreate(browser) {
   await position(page, "sentinel");
   // 对话框遮住了页面链接，直接派发点击以验证守卫捕获的导航意图。
   await returnLink.dispatchEvent("click");
-  await page.getByRole("button", { name: "保存", exact: true }).click();
+  await page.getByRole("button", { name: "保存并退出", exact: true }).click();
   await page.getByText("分类验证失败", { exact: true }).waitFor();
   assert.equal(new URL(page.url()).pathname, "/category");
   await browserBack(page);
@@ -809,7 +809,7 @@ async function checkCategoryCreate(browser) {
   await record("新增分类：确认保存失败后留在原页并继续保护草稿");
   await name.fill("保存新增分类");
   await returnLink.dispatchEvent("click");
-  await page.getByRole("button", { name: "保存", exact: true }).click();
+  await page.getByRole("button", { name: "保存并退出", exact: true }).click();
   await page.waitForURL("**/settings");
   await heading.waitFor({ state: "hidden" });
   await record("新增分类：确认保存成功后继续原导航");
@@ -853,7 +853,7 @@ async function checkLedgerSettings(browser) {
 
   await name.fill("保存账本名称");
   await browserBack(page);
-  await page.getByRole("button", { name: "保存", exact: true }).click();
+  await page.getByRole("button", { name: "保存并退出", exact: true }).click();
   await page.waitForURL(sourceUrl);
   await page.getByRole("heading", { name: "离开守卫兼容性验证" }).waitFor();
   const returned = await record("账本设置确认保存后只返回来源一次");
@@ -1024,7 +1024,7 @@ async function checkAliasSave(browser, viaLink = false) {
   else await browserBack(page);
   await page
     .getByRole("dialog", { name: "尚未保存" })
-    .getByRole("button", { name: "保存", exact: true })
+    .getByRole("button", { name: "保存并退出", exact: true })
     .click();
   await page.waitForURL(viaLink ? `${baseUrl}/merchants` : sourceUrl);
   await page.getByRole("heading", { name: "离开守卫兼容性验证" }).waitFor();

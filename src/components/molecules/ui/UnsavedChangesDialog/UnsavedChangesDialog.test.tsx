@@ -45,7 +45,9 @@ describe("UnsavedChangesDialog", () => {
     expect(
       screen.getByRole("button", { name: "放弃修改" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "保存" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "保存并退出" }),
+    ).toBeInTheDocument();
   });
 
   it("点击操作按钮时分别触发回调", () => {
@@ -63,7 +65,7 @@ describe("UnsavedChangesDialog", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "继续编辑" }));
     fireEvent.click(screen.getByRole("button", { name: "放弃修改" }));
-    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+    fireEvent.click(screen.getByRole("button", { name: "保存并退出" }));
 
     expect(onCancel).toHaveBeenCalledOnce();
     expect(onDiscard).toHaveBeenCalledOnce();
@@ -118,7 +120,7 @@ describe("UnsavedChangesDialog", () => {
     render(
       <UnsavedChangesDialog open onCancel={vi.fn()} onDiscard={vi.fn()} />,
     );
-    expect(screen.queryByRole("button", { name: "保存" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "保存并退出" })).toBeNull();
     expect(screen.getAllByRole("button")).toHaveLength(2);
   });
 });
