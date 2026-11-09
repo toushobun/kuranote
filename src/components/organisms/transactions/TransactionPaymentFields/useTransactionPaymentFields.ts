@@ -66,14 +66,14 @@ export function useTransactionPaymentFields(
   const isMultiAccount = payments.length > 1;
 
   /** 展开为多账户时首行预填 `primaryAmount`；新增行金额为 "0"，已有行不变。 */
-  function addPayment(primaryAmount: string) {
+  function addPayment(primaryAmount: string, accountId = "") {
     const key = nextKeyRef.current;
     nextKeyRef.current += 1;
     setPayments((current) => [
       ...(current.length === 1
         ? [{ ...current[0]!, amount: primaryAmount }]
         : current),
-      { accountId: "", amount: "0", key },
+      { accountId, amount: "0", key },
     ]);
   }
 

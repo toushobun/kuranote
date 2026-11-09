@@ -8,6 +8,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { TransactionStepFlowProps } from "../TransactionStepFlow/TransactionStepFlow.types";
 import {
   expectAutomaticNotice,
+  expectNoPaymentRow,
   receiptLine as line,
   pressItemAmountKey,
   renderConfirmFlow,
@@ -38,7 +39,7 @@ function transactionForm() {
 // 换成不同币种的账户（如 "招商银行卡 CNY"）：直接换，或点 × 清空后再选；停在弹出的确认框。
 async function openCurrencyConfirm(account: string, clearFirst = false) {
   if (clearFirst) click("删除支付账户 1");
-  click("更换支付账户 1");
+  click(clearFirst ? "添加付款账户" : "更换支付账户 1");
   selectAccount(account);
   return screen.findByRole("dialog", {
     name: `切换为 ${account.split(" ")[0]} 账户？`,
@@ -447,18 +448,17 @@ describe("TransactionConfirmStep", () => {
     ).toBeInTheDocument();
   });
 
-  it("删除最后一个付款账户后回到「选择收支账户」并禁用保存", () => {
+  it("删除最后一个付款账户后只剩添加按钮，点保存只显示顶部提示", () => {
     renderConfirmFlow();
     click("删除支付账户 1");
-    expect(line("更换支付账户 1")).toHaveTextContent("选择收支账户");
-    expect(line("更换支付账户 1")).not.toHaveAttribute("data-invalid");
+    expectNoPaymentRow();
     expect(
       screen.queryByRole("button", { name: "删除支付账户 1" }),
     ).not.toBeInTheDocument();
     expect(saveButton()).toBeEnabled();
     click("保存记账");
-    expect(line("更换支付账户 1")).toHaveAttribute("data-invalid", "true");
-    click("请选择收支账户");
+    expectNoPaymentRow();
+    click("请添加付款账户");
     expect(
       screen.getByRole("radiogroup", { name: "收支账户" }),
     ).toBeInTheDocument();
@@ -467,7 +467,7 @@ describe("TransactionConfirmStep", () => {
   it("删除账户后重开抽屉没有选中项，重新选择原账户时写入小票", async () => {
     renderConfirmFlow();
     click("删除支付账户 1");
-    click("选择收支账户");
+    click("添加付款账户");
     const accounts = within(
       screen.getByRole("radiogroup", { name: "收支账户" }),
     );
@@ -481,7 +481,7 @@ describe("TransactionConfirmStep", () => {
   it("删除唯一账户后再选不同币种的账户，仍按原币种弹出换币种确认", async () => {
     renderConfirmFlow();
     click("删除支付账户 1");
-    click("更换支付账户 1");
+    click("添加付款账户");
     selectAccount("招商银行卡 CNY");
     expect(
       await screen.findByText("切换为 招商银行卡 账户？"),
@@ -559,45 +559,91 @@ describe("TransactionConfirmStep", () => {
     expect(saveButton()).toBeEnabled();
   });
 
-  it("多账户时刚添加、尚未选账户的行也有 ×，删除后回到单账户并可保存", () => {
+  it("添加付款账户打开抽屉，取消不新增行，选中后才新增一行", async () => {
     renderConfirmFlow();
-    click("添加付款账户（多个账户一起付）");
-    expect(line("更换支付账户 2")).toHaveTextContent("选择收支账户");
-    expect(saveButton()).toBeEnabled();
-    click("删除支付账户 2");
+    click("添加付款账户");
+    const accounts = within(
+      screen.getByRole("radiogroup", { name: "收支账户" }),
+    );
     expect(
-      screen.queryByRole("button", { name: "更换支付账户 2" }),
-    ).not.toBeInTheDocument();
+      accounts
+        .getAllByRole("radio")
+        .map((radio) => radio.getAttribute("aria-label")),
+    ).toEqual(["现金 JPY", "乐天银行 JPY"]);
+    click("关闭收支账户编辑");
+    const addButton = await screen.findByRole("button", {
+      name: "添加付款账户",
+    });
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "更换支付账户 2" })).toBeNull();
+    fireEvent.click(addButton);
+    selectAccount("现金 JPY");
+    await waitFor(() =>
+      expect(line("更换支付账户 2")).toHaveTextContent("现金JPY¥0"),
+    );
     expect(line("更换支付账户 1")).toHaveTextContent("PayPayJPY¥10,000");
     expect(saveButton()).toBeEnabled();
   });
 
-  it("添加付款账户后多一行待选账户；有收入或账本关闭多账户时不显示入口", () => {
-    const view = renderConfirmFlow();
-    click("添加付款账户（多个账户一起付）");
-    expect(line("更换支付账户 2")).toHaveTextContent("选择收支账户");
-    expect(
-      screen.getByRole("button", { name: "添加付款账户" }),
-    ).toBeInTheDocument();
-    view.unmount();
+  it.each([
+    {
+      scenario: "只有收入",
+      hasExpense: false,
+      enabled: true,
+      showsHint: false,
+    },
+    { scenario: "收支混合", hasExpense: true, enabled: true, showsHint: true },
+    {
+      scenario: "收支混合但账本关闭多账户",
+      hasExpense: true,
+      enabled: false,
+      showsHint: false,
+    },
+    {
+      scenario: "纯支出但账本关闭多账户",
+      hasExpense: true,
+      hasIncome: false,
+      enabled: false,
+      showsHint: false,
+    },
+  ])(
+    "$scenario 时隐藏添加付款账户并正确显示说明",
+    ({ hasExpense, hasIncome = true, enabled, showsHint }) => {
+      renderConfirmFlow({
+        itemsOptions: {
+          ...receiptItemsOptions,
+          initialItems: [
+            ...(hasExpense ? filledItems : []),
+            ...(hasIncome ? [{ categoryId: "points", amount: "100" }] : []),
+          ],
+          multiAccountPaymentEnabled: enabled,
+        },
+      });
+      expect(screen.queryByRole("button", { name: "添加付款账户" })).toBeNull();
+      const hint = screen.queryByText(
+        "同时记录收入和支出时，仅允许记录在一个账户上",
+      );
+      if (showsHint) expect(hint).toBeInTheDocument();
+      else expect(hint).not.toBeInTheDocument();
+    },
+  );
+
+  it("有收入明细但未选账户时仍可添加首个付款账户", async () => {
     renderConfirmFlow({
       itemsOptions: {
         ...receiptItemsOptions,
         initialItems: [{ categoryId: "points", amount: "100" }],
+        initialPayments: [{ accountId: "", amount: null }],
       },
     });
-    expect(screen.queryByRole("button", { name: /添加付款账户/ })).toBeNull();
-  });
-
-  it("账本关闭多账户付款时不显示添加付款账户", () => {
-    renderConfirmFlow({
-      itemsOptions: {
-        ...receiptItemsOptions,
-        initialItems: filledItems,
-        multiAccountPaymentEnabled: false,
-      },
-    });
-    expect(screen.queryByRole("button", { name: /添加付款账户/ })).toBeNull();
+    expectNoPaymentRow();
+    click("添加付款账户");
+    selectAccount("现金 JPY");
+    await waitFor(() =>
+      expect(line("更换支付账户 1")).toHaveTextContent("现金JPY"),
+    );
+    expect(line("编辑明细 1")).toHaveTextContent("积分返还");
+    expect(screen.queryByRole("button", { name: "添加付款账户" })).toBeNull();
   });
 
   it("多账户已对上时显示对账行并可保存", () => {
@@ -699,7 +745,7 @@ describe("TransactionConfirmStep", () => {
     );
   }, 15000);
 
-  it("缺少账户和明细时提示、标红并禁用保存，点提示打开对应入口", async () => {
+  it("缺少账户和明细时只在保存后显示顶部提示，点明细提示打开分类抽屉", async () => {
     renderConfirmFlow({
       itemsOptions: {
         ...receiptItemsOptions,
@@ -711,13 +757,13 @@ describe("TransactionConfirmStep", () => {
         recommendedAccountIds: [],
       },
     });
-    expect(line("更换支付账户 1")).not.toHaveAttribute("data-invalid");
+    expectNoPaymentRow();
     expect(screen.queryByText("请添加明细")).toBeNull();
     expect(saveButton()).toBeEnabled();
     expect(screen.queryAllByRole("alert")).toHaveLength(0);
     click("保存记账");
     expect(screen.getAllByRole("alert")).toHaveLength(2);
-    expect(line("更换支付账户 1")).toHaveAttribute("data-invalid", "true");
+    expectNoPaymentRow();
     // 明细区不再重复显示「请添加明细」，只保留顶部提示。
     expect(screen.queryByText("请添加明细", { selector: "p" })).toBeNull();
     click("请添加明细");
@@ -832,8 +878,8 @@ describe("TransactionConfirmStep", () => {
     expect(line("编辑明细 1")).toHaveAttribute("data-invalid", "true");
     // 保存后才出现的问题：付款账户被删除。
     click("删除支付账户 1");
-    expect(line("更换支付账户 1")).not.toHaveAttribute("data-invalid");
-    expect(screen.queryByText("请选择收支账户")).toBeNull();
+    expectNoPaymentRow();
+    expect(screen.queryByText("请添加付款账户")).toBeNull();
     // 已标红的明细填好金额后取消标红。
     click("修改明细 1 金额：待输入");
     pressItemAmountKey("8");
@@ -841,7 +887,10 @@ describe("TransactionConfirmStep", () => {
     await waitKeypadClosed();
     expect(line("编辑明细 1")).not.toHaveAttribute("data-invalid");
     click("保存记账");
-    expect(line("更换支付账户 1")).toHaveAttribute("data-invalid", "true");
+    expectNoPaymentRow();
+    expect(
+      screen.getByRole("button", { name: "请添加付款账户" }),
+    ).toBeInTheDocument();
   });
 
   it("再次保存才重播提示动画，修改金额引起文案变化不闪烁", async () => {

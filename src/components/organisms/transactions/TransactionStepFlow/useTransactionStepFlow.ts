@@ -242,13 +242,6 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
       !props.suggestionsMerchantId || suggestionsReady
         ? props.suggestions
         : undefined,
-    merchantHasHistory:
-      props.suggestions && (!props.suggestionsMerchantId || suggestionsReady)
-        ? !!(
-            props.suggestions.recommendedAccountIds.length ||
-            props.suggestions.quickAmounts.length
-          )
-        : undefined,
     form,
     itemsOptions,
     showAutomaticNotice: noticeItemIds !== null,

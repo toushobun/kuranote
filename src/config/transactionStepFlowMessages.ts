@@ -43,7 +43,6 @@ export const flowMessages = {
   accountHint: "添加一个账户，记录这笔钱从哪里出、到哪里去",
   addAccount: "新增账户",
   addItem: "添加明细",
-  noMerchantHistory: "这家商家还没有记录",
   automaticNotice: "已按照你的习惯自动添加部分内容",
   total: "合计",
   // 合计下方的小字，各项之间用「 · 」分隔。
@@ -65,7 +64,7 @@ export const flowMessages = {
     `修改明细 ${index} 金额：${amount}`,
   removeItem: (index: number) => `删除明细 ${index}`,
   addPayment: "添加付款账户",
-  addSharedPayment: "添加付款账户（多个账户一起付）",
+  mixedPaymentHint: "同时记录收入和支出时，仅允许记录在一个账户上",
   chooseAccount: "选择收支账户",
   // 只读小票里不在可选账户中的付款账户（已归档）。
   archivedAccount: "已归档账户",
@@ -95,7 +94,7 @@ export const flowMessages = {
   delete: "删除",
   saving: "保存中…",
   selectMerchant: "请选择商家",
-  selectAccount: "请选择收支账户",
+  selectAccount: "请添加付款账户",
   missingItems: "请添加明细",
   invalidItems: "请完善明细分类和金额",
   missingAmounts: (count: number) =>

@@ -217,7 +217,6 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
                   form={f}
                   showAutomaticNotice={props.showAutomaticNotice}
                   invalidItems={w.markedItems}
-                  merchantHasHistory={props.merchantHasHistory}
                   canAddItem={props.categoryOptions.length > 0}
                   readOnly={readOnly}
                   onAmount={props.onAmountItemChange}
@@ -271,9 +270,11 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
                   accountOptions={props.accountOptions}
                   total={total}
                   canAddPayment={!readOnly && w.canAddPayment}
+                  showMixedPaymentHint={!readOnly && w.showMixedPaymentHint}
                   readOnly={readOnly}
                   invalidPaymentKeys={w.markedPaymentKeys}
                   reconciliationInvalid={hasVisibleIssue("account")}
+                  onAddPayment={w.openAddPayment}
                   onChangeAccount={w.setAccountPickerKey}
                   onAmount={w.setPaymentAmountKey}
                   onRemove={w.removePayment}
@@ -369,7 +370,7 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
         />
       )}
       <TransactionBottomEditorDrawer
-        open={!!w.pickerPayment}
+        open={w.accountPickerKey !== null}
         suspended={!!creation?.editor}
         title={m.accounts}
         onClose={() => w.setAccountPickerKey(null)}

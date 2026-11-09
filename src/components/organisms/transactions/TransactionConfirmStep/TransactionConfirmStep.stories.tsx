@@ -48,7 +48,7 @@ async function enterReceipt(canvasElement: HTMLElement, merchant = "7-Eleven") {
   const body = within(canvasElement.ownerDocument.body);
   if (body.queryByRole("textbox", { name: "搜索商家" })) {
     await userEvent.click(body.getByRole("button", { name: merchant }));
-    await body.findByRole("button", { name: "更换支付账户 1" });
+    await body.findByRole("button", { name: "保存记账" });
   }
 }
 async function clickButton(canvasElement: HTMLElement, name: string | RegExp) {
@@ -80,7 +80,7 @@ export const AutomaticAccountOnly: Story = {
 };
 export const FirstVisit: Story = {
   play: ({ canvasElement }) => enterReceipt(canvasElement, "星巴克"),
-  name: "第一次去的商家：选择收支账户（设计图 8 ③）",
+  name: "第一次去的商家：添加付款账户",
   args: {
     suggestionsMerchantId: "coffee",
     suggestions: {
@@ -114,6 +114,30 @@ export const MultiAccountBalanced: Story = {
       ],
       initialPayments: twoPayments,
     },
+  },
+};
+export const MultiAccountAddPayment: Story = {
+  name: "多账户：添加付款账户抽屉",
+  args: {
+    ...MultiAccountBalanced.args,
+    suggestionsMerchantId: "seven",
+    suggestions: {
+      automaticCategoryIds: [],
+      quickAmounts: [],
+      recommendedAccountIds: ["paypay", "cash"],
+    },
+  },
+  play: async ({ canvasElement }) => {
+    await clickButton(canvasElement, "添加付款账户");
+    const drawer = within(
+      await within(canvasElement.ownerDocument.body).findByRole("radiogroup", {
+        name: "收支账户",
+      }),
+    );
+    await expect(
+      drawer.getByRole("radio", { name: "乐天银行 JPY" }),
+    ).toBeInTheDocument();
+    await expect(drawer.queryByRole("alert")).not.toBeInTheDocument();
   },
 };
 export const MultiAccountUnbalanced: Story = {
@@ -207,7 +231,7 @@ export const GroupedWithAutomaticNoticeSakura: Story = {
   parameters: { userTheme: { initialThemeKey: "sakuraStory" } },
 };
 export const ItemTags: Story = {
-  name: "明细两排：首排名称与操作、次排待报销",
+  name: "待报销明细与收支混合的单账户说明",
   args: {
     itemsOptions: {
       ...receiptItemsOptions,
@@ -276,7 +300,7 @@ export const AccountPickerAfterRemoval: Story = {
   name: "删除账户后重新选择：没有选中项",
   play: async ({ canvasElement }) => {
     await clickButton(canvasElement, "删除支付账户 1");
-    await clickButton(canvasElement, "选择收支账户");
+    await clickButton(canvasElement, "添加付款账户");
   },
 };
 export const CurrencyConfirm: Story = {

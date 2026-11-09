@@ -14,6 +14,7 @@ import {
   ReceiptCreationTestProviders,
   submitReceiptCreation,
 } from "test/receiptCreation";
+import { expectNoPaymentRow } from "test/transactionConfirmStep";
 import { receiptItemsOptions } from "test/mocks/transactionReceipt";
 import { flowFixture } from "test/mocks/transactionStepFlow";
 import { NewTransactionStepFlow } from "./NewTransactionStepFlow";
@@ -115,7 +116,7 @@ describe("NewTransactionStepFlow", () => {
     expect(screen.queryByText("常用商家")).not.toBeInTheDocument();
     selectMerchant("7-Eleven");
     respond("merchantId=seven", noHistory);
-    expect(await screen.findByText("这家商家还没有记录")).toBeInTheDocument();
+    await screen.findByRole("button", { name: "添加付款账户" });
   });
 
   it("加载中点另一个商家时取消前一个，只采用当前商家的建议", async () => {
@@ -138,18 +139,17 @@ describe("NewTransactionStepFlow", () => {
     ).toBe(true);
 
     respond("merchantId=life", noHistory);
-    expect(await screen.findByText("这家商家还没有记录")).toBeInTheDocument();
+    await screen.findByRole("button", { name: "添加付款账户" });
     // 7-Eleven 的建议晚到：不覆盖当前商家的建议，也不会自动选账户。
     respond("merchantId=seven", {
       ...noHistory,
       recommendedAccountIds: ["paypay"],
     });
     await Promise.resolve();
-    expect(screen.getByText("这家商家还没有记录")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "修改商家：LIFE超市" }),
     ).toBeInTheDocument();
-    expect(paymentLine()).toHaveTextContent("选择收支账户");
+    expectNoPaymentRow();
   });
 
   it("当前商家的建议到达后走快速路线", async () => {
@@ -169,9 +169,9 @@ describe("NewTransactionStepFlow", () => {
     expect(onMerchantScreen()).toBe(true);
     respond("merchantId=seven", { error: {} }, 500);
 
-    expect(await screen.findByText("这家商家还没有记录")).toBeInTheDocument();
-    expect(paymentLine()).toHaveTextContent("选择收支账户");
-    click("更换支付账户 1");
+    await screen.findByRole("button", { name: "添加付款账户" });
+    expectNoPaymentRow();
+    click("添加付款账户");
     expect(
       screen.getByText("这家商家还没有记录，按账户顺序显示"),
     ).toBeInTheDocument();
@@ -199,7 +199,7 @@ describe("NewTransactionStepFlow", () => {
     selectMerchant("7-Eleven");
     respond("merchantId=seven", noHistory);
     fireEvent.click(
-      await screen.findByRole("button", { name: "更换支付账户 1" }),
+      await screen.findByRole("button", { name: "添加付款账户" }),
     );
     click("新增账户");
     await submitReceiptCreation("account", "新账户");
@@ -230,9 +230,9 @@ describe("NewTransactionStepFlow", () => {
     setup();
     selectMerchant("7-Eleven");
     respond("merchantId=seven", noHistory);
-    await screen.findByText("这家商家还没有记录");
+    await screen.findByRole("button", { name: "添加付款账户" });
     // #1016：只选商家不是修改，先手动选择付款账户再验证未保存守卫。
-    click("更换支付账户 1");
+    click("添加付款账户");
     fireEvent.click(screen.getByRole("radio", { name: "PayPay JPY" }));
     await waitFor(() =>
       expect(screen.queryByRole("radiogroup", { name: "收支账户" })).toBeNull(),

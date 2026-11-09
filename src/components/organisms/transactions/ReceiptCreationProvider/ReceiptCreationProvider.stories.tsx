@@ -44,7 +44,7 @@ async function openAccount({ canvasElement }: Canvas) {
   const body = within(canvasElement.ownerDocument.body);
   await userEvent.click(body.getAllByRole("button", { name: /^7-Eleven/ })[0]);
   await userEvent.click(
-    await body.findByRole("button", { name: "更换支付账户 1" }),
+    await body.findByRole("button", { name: "添加付款账户" }),
   );
   await userEvent.click(await body.findByRole("button", { name: "新增账户" }));
 }

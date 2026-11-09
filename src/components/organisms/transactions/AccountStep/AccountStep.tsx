@@ -112,7 +112,9 @@ export function AccountStep(props: AccountStepProps) {
         </>
       ) : (
         <>
-          <Alert severity="info">{m.noHistory}</Alert>
+          {!props.recommendedAccountIds?.length && (
+            <Alert severity="info">{m.noHistory}</Alert>
+          )}
           <SelectionSectionHeader
             title={m.allAccounts}
             addLabel={m.addAccount}

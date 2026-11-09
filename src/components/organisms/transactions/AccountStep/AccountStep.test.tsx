@@ -58,17 +58,30 @@ describe("AccountStep", () => {
         .map((item) => item.getAttribute("aria-label")),
     ).toEqual(["招商银行卡 CNY", "现金 JPY", "PayPay JPY", "乐天银行 JPY"]);
   });
-  it("没有推荐时显示提示并保留账户顺序", () => {
-    setup({ recommendedAccountIds: [] });
-    expect(screen.queryByText("推荐账户")).not.toBeInTheDocument();
-    expect(
-      screen.getByText("这家商家还没有记录，按账户顺序显示"),
-    ).toBeInTheDocument();
-    expect(screen.getAllByRole("radio")[0]).toHaveAttribute(
-      "aria-label",
-      "现金 JPY",
-    );
-  });
+  it.each([
+    { scenario: "没有推荐", recommendedAccountIds: [], showHint: true },
+    {
+      scenario: "推荐账户都不可选",
+      recommendedAccountIds: ["paypay"],
+      showHint: false,
+    },
+  ])(
+    "$scenario 时保留账户顺序并正确显示提示",
+    ({ recommendedAccountIds, showHint }) => {
+      setup({
+        accounts: flowFixture.accounts.filter(({ id }) => id !== "paypay"),
+        recommendedAccountIds,
+      });
+      expect(screen.queryByText("推荐账户")).not.toBeInTheDocument();
+      const hint = screen.queryByText("这家商家还没有记录，按账户顺序显示");
+      if (showHint) expect(hint).toBeInTheDocument();
+      else expect(hint).not.toBeInTheDocument();
+      expect(screen.getAllByRole("radio")[0]).toHaveAttribute(
+        "aria-label",
+        "现金 JPY",
+      );
+    },
+  );
   it("没有账户时显示新增入口", () => {
     const { props } = setup({ accounts: [] });
     click("新增账户");

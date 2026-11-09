@@ -92,7 +92,7 @@ export function TransactionForm({
     closeSheet,
     editingItemId,
     fieldErrors,
-    handleAddPayment,
+    addPayment,
     handleDateChange,
     handleMerchantChange,
     handleNoteChange,
@@ -243,7 +243,7 @@ export function TransactionForm({
             fieldError={fieldErrors.account}
             multiAccountPaymentEnabled={multiAccountPaymentEnabled}
             onAccountChange={handlePaymentAccountChange}
-            onAddPayment={handleAddPayment}
+            onAddPayment={() => void addPayment()}
             onAmountChange={handlePaymentAmountChange}
             onAmountCommit={handlePaymentAmountCommit}
             onRemovePayment={handleRemovePayment}

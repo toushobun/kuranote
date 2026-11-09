@@ -1,7 +1,6 @@
 "use client";
 import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import Button from "@mui/material/Button";
+import { ReceiptAddButton } from "./ReceiptAddButton";
 import Typography from "@mui/material/Typography";
 import { AccountTypeIcon } from "atoms/accounts/AccountTypeIcon/AccountTypeIcon";
 import { flowMessages as m } from "config/transactionStepFlowMessages";
@@ -24,9 +23,11 @@ export function ReceiptPaymentSection({
   accountOptions,
   total,
   canAddPayment,
+  showMixedPaymentHint,
   readOnly = false,
   invalidPaymentKeys,
   reconciliationInvalid,
+  onAddPayment,
   onChangeAccount,
   onAmount,
   onRemove,
@@ -36,11 +37,13 @@ export function ReceiptPaymentSection({
   /** 单账户时的支付金额（由明细推导的合计）。 */
   total: string;
   canAddPayment: boolean;
+  showMixedPaymentHint: boolean;
   readOnly?: boolean;
   /** 要标红的付款行（只含上次点保存时已有、仍未解决的问题，#1040）。 */
   invalidPaymentKeys: readonly number[];
   /** 多账户未对上时对账行是否标红（跟随顶部「账户」提示）。 */
   reconciliationInvalid: boolean;
+  onAddPayment: () => void;
   onChangeAccount: (key: number) => void;
   onAmount: (key: number) => void;
   onRemove: (key: number) => void;
@@ -49,14 +52,12 @@ export function ReceiptPaymentSection({
   const reconciliation = form.paymentReconciliation;
   const reconciliationError =
     reconciliationInvalid && !reconciliation.isBalanced;
-  // 多账户时每一行都可删除（含刚添加、尚未选账户的行）；单账户未选账户时没有可删除的内容。
-  const removable = (account: TransactionAccountOption | undefined) =>
-    form.isMultiAccount || !!account;
   const format = (amount: string) =>
     formatUnsignedCurrencyAmount(amount, currency);
   return (
     <>
       {form.payments.map((payment, index) => {
+        if (!readOnly && !payment.accountId) return null;
         const account = accountOptions.find(
           (option) => option.id === payment.accountId,
         );
@@ -74,11 +75,8 @@ export function ReceiptPaymentSection({
                 <AccountBalanceWalletRoundedIcon fontSize="small" />
               )
             }
-            label={
-              account?.name ?? (readOnly ? m.archivedAccount : m.chooseAccount)
-            }
+            label={account?.name ?? m.archivedAccount}
             error={invalid && !account}
-            labelClickable={!readOnly && !account}
             tags={
               account && (
                 <Typography variant="caption" sx={currencySx}>
@@ -105,12 +103,8 @@ export function ReceiptPaymentSection({
             {...(!readOnly && {
               editLabel: m.changePaymentAccount(index + 1),
               onEdit: () => onChangeAccount(payment.key),
-              removeLabel: removable(account)
-                ? m.removePayment(index + 1)
-                : undefined,
-              onRemove: removable(account)
-                ? () => onRemove(payment.key)
-                : undefined,
+              removeLabel: m.removePayment(index + 1),
+              onRemove: () => onRemove(payment.key),
             })}
           />
         );
@@ -140,13 +134,16 @@ export function ReceiptPaymentSection({
         </Typography>
       )}
       {canAddPayment && (
-        <Button
-          fullWidth
-          startIcon={<AddRoundedIcon />}
-          onClick={() => void form.handleAddPayment()}
+        <ReceiptAddButton label={m.addPayment} onClick={onAddPayment} />
+      )}
+      {showMixedPaymentHint && (
+        <Typography
+          variant="caption"
+          color="textSecondary"
+          sx={{ display: "block", textAlign: "center", py: 1 }}
         >
-          {form.isMultiAccount ? m.addPayment : m.addSharedPayment}
-        </Button>
+          {m.mixedPaymentHint}
+        </Typography>
       )}
     </>
   );
