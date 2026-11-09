@@ -11,7 +11,13 @@ import {
   submitReceiptCreation,
   waitMerchantDrawerClosed,
 } from "test/receiptCreation";
-import { act, fireEvent, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   renderTransactionFlow as setup,
@@ -194,6 +200,25 @@ describe("TransactionStepFlow", () => {
     click("关闭记账");
     await waitFor(() => expect(props.onClose).toHaveBeenCalledOnce());
     expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
+  });
+
+  it("添加付款账户再删除，内容虽回到原样，关闭时仍要确认", async () => {
+    const { props } = quickSetup();
+    click("7-Eleven");
+    await screen.findByRole("button", { name: "保存记账" });
+    click("添加付款账户（多个账户一起付）");
+    await screen.findByRole("button", { name: "删除支付账户 2" });
+    click("删除支付账户 2");
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: "删除支付账户 2" }),
+      ).toBeNull(),
+    );
+    click("关闭记账");
+    expect(
+      await screen.findByRole("dialog", { name: "尚未保存" }),
+    ).toBeInTheDocument();
+    expect(props.onClose).not.toHaveBeenCalled();
   });
 
   it("首屏未修改直接关闭，搜索商家不算修改", async () => {
@@ -948,7 +973,7 @@ describe("TransactionStepFlow 页内新增", () => {
     await act(async () => window.history.back());
     expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
   });
-  it("全屏商家预填是初值，输入还原后后退直接关闭且不改父数据", async () => {
+  it("全屏商家预填是初值，输入还原后后退仍要确认，放弃后不改父数据", async () => {
     const { form } = setupCreationFlow();
     const before = [...new FormData(form).entries()];
     click("修改商家：7-Eleven");
@@ -961,8 +986,13 @@ describe("TransactionStepFlow 页内新增", () => {
     fireEvent.change(name, { target: { value: "修改" } });
     fireEvent.change(name, { target: { value: "预填名称" } });
     await backFromGuard();
+    fireEvent.click(
+      within(await screen.findByRole("dialog", { name: "尚未保存" })).getByRole(
+        "button",
+        { name: "放弃修改" },
+      ),
+    );
     await screen.findByRole("button", { name: "新增商家" });
-    expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
     expect([...new FormData(form).entries()]).toEqual(before);
   });
   it.each(["备注", "支付账户", "金额", "明细"])(

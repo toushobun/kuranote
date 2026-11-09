@@ -38,7 +38,7 @@ type AccountFormProps = {
   holderOptions: AccountHolderOption[];
   /** 页面在离开确认里点「保存」时按这个 id 提交表单。 */
   id?: string;
-  /** 输入与初始值是否不同（改回原值算未修改），用于未保存离开确认。 */
+  /** 输入与初始值是否不同；改回原值后为 false，但守卫已记为动过，离开仍需确认。 */
   onDirtyChange?: (dirty: boolean) => void;
   onCancel?: () => void;
   pending?: boolean;

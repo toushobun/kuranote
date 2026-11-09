@@ -64,14 +64,24 @@ describe("CategoryForm", () => {
     expect(history().index()).toBe(1);
   });
 
-  it("改回初始值后按 Esc 直接关闭", async () => {
+  it("改回初始值后按 Esc 仍要确认，放弃后重新打开不再算动过", async () => {
     renderForm();
     fireEvent.click(screen.getByRole("button", { name: "新增分类" }));
     const name = screen.getByRole("textbox", { name: "分类名称" });
     fireEvent.change(name, { target: { value: "草稿" } });
     fireEvent.change(name, { target: { value: "" } });
     fireEvent.keyDown(name, { key: "Escape" });
+    fireEvent.click(await screen.findByRole("button", { name: "放弃修改" }));
     await waitFor(() => expect(name).not.toBeInTheDocument());
+    fireEvent.click(screen.getByRole("button", { name: "新增分类" }));
+    fireEvent.keyDown(screen.getByRole("textbox", { name: "分类名称" }), {
+      key: "Escape",
+    });
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("textbox", { name: "分类名称" }),
+      ).not.toBeInTheDocument(),
+    );
     expect(
       screen.queryByRole("dialog", { name: "尚未保存" }),
     ).not.toBeInTheDocument();

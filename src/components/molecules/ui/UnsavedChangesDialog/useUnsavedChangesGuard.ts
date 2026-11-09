@@ -20,7 +20,7 @@ type LeaveIntent =
 type SaveIntent = { formId: string; leave: LeaveIntent };
 
 export function useUnsavedChangesGuard({
-  isDirty,
+  isDirty: changed,
   saveFormId,
   onClose,
   layer = null,
@@ -31,6 +31,7 @@ export function useUnsavedChangesGuard({
   saveLabel,
   cleanDescription,
 }: {
+  /** 当前内容是否与基线不同；出现过一次即视为动过（见下方 `touched`）。 */
   isDirty: boolean;
   saveFormId: string | null;
   onClose?: () => void;
@@ -46,6 +47,31 @@ export function useUnsavedChangesGuard({
   cleanDescription?: string;
 }) {
   const router = useRouter();
+  // 动过就算修改：内容改回原样也仍需确认，直到保存成功或守卫失效（弹层关闭）。
+  // 按保存表单分别记录（标准页的收支 / 转账面板各自独立），只记已提交的变化。
+  const touchedKey = saveFormId ?? "";
+  const [touchedKeys, setTouchedKeys] = useState<readonly string[]>([]);
+  // 保存成功时若页面还没重设基线（仍是旧 dirty），等它变干净前不再记为动过。
+  // 只在 effect / 回调中读写，用 ref 避免多一次渲染（离开流程进行中多出的提交会把已停用的弹层重新登记为活动）。
+  const committedChanged = useRef(false);
+  const savedClean = useRef(false);
+  useEffect(() => {
+    committedChanged.current = changed;
+    /* eslint-disable react-hooks/set-state-in-effect -- 按已提交的 dirty 维护「动过」状态。 */
+    if (!active) setTouchedKeys(clearTouched);
+    else if (!changed) savedClean.current = false;
+    else if (!savedClean.current)
+      setTouchedKeys((keys) =>
+        keys.includes(touchedKey) ? keys : [...keys, touchedKey],
+      );
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [active, changed, touchedKey]);
+  // 保存成功后整页重新从「没动过」开始算（同页多个表单时也不残留旧表单的记录）。
+  const markSaved = useCallback(() => {
+    setTouchedKeys(clearTouched);
+    savedClean.current = committedChanged.current;
+  }, []);
+  const isDirty = changed || touchedKeys.includes(touchedKey);
   const mustConfirm = isDirty || confirmOnLeave;
   const saveIntent = useRef<SaveIntent | null>(null);
   const [intent, setIntent] = useState<LeaveIntent | null>(null);
@@ -84,13 +110,14 @@ export function useUnsavedChangesGuard({
   );
   const completeSave = useCallback(
     async (success: boolean, formId: string) => {
+      if (success) markSaved();
       const saved = saveIntent.current;
       if (saved?.formId !== formId) return false;
       saveIntent.current = null;
       if (success) await followIntent(saved.leave, true);
       return true;
     },
-    [followIntent],
+    [followIntent, markSaved],
   );
   const runSaveAction = useCallback(
     async <T extends ActionState>(
@@ -107,6 +134,7 @@ export function useUnsavedChangesGuard({
         formData.delete(saveAndLeaveField);
       }
       const result = await history.runAction(() => action(formData));
+      if (result.success && !result.error) markSaved();
       if (leave && !saveIntent.current) {
         if (result.success && !result.error) {
           await followIntent(leave.leave, true);
@@ -116,7 +144,7 @@ export function useUnsavedChangesGuard({
       }
       return result;
     },
-    [followIntent, history, saveFormId],
+    [followIntent, history, markSaved, saveFormId],
   );
 
   const beforeUnload = useEffectEvent((event: BeforeUnloadEvent) => {
@@ -207,6 +235,8 @@ export function useUnsavedChangesGuard({
     },
     completeSave,
     isSavingToLeave,
+    /** 不经守卫保存成功时（如向导完成）由调用方通知，清除「动过」。 */
+    markSaved,
     runInPlaceAction: useCallback(
       <T>(action: () => Promise<T>) => history.runInPlaceAction(action),
       [history],
@@ -270,4 +300,9 @@ export function useUnsavedChangesGuard({
       },
     },
   };
+}
+
+/** 已经为空时保持原数组，避免无谓的重新渲染。 */
+function clearTouched(keys: readonly string[]) {
+  return keys.length === 0 ? keys : [];
 }
