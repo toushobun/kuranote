@@ -44,8 +44,8 @@ import {
 type TransactionPaymentFieldsProps = {
   accountOptions: TransactionAccountOption[];
   fieldError?: string;
-  hasMixedPaymentItems?: boolean;
-  isIncomePayment?: boolean;
+  hasMixedPaymentItems: boolean;
+  isIncomePayment: boolean;
   /** 账本未开启多账户付款（#931）时不显示「添加付款账户」。 */
   multiAccountPaymentEnabled: boolean;
   onAccountChange: (key: number, accountId: string) => void;
@@ -68,8 +68,8 @@ type TransactionPaymentFieldsProps = {
 export function TransactionPaymentFields({
   accountOptions,
   fieldError,
-  hasMixedPaymentItems = false,
-  isIncomePayment = false,
+  hasMixedPaymentItems,
+  isIncomePayment,
   multiAccountPaymentEnabled,
   onAccountChange,
   onAddPayment,
