@@ -223,6 +223,19 @@ describe("LedgerSetupWizard 本地草稿", () => {
     await waitFor(() => expect(actions.onClose).toHaveBeenCalledOnce());
   });
 
+  it("改过草稿后完成创建，邀请阶段关闭也不弹未保存确认", async () => {
+    const actions = renderLedgerSetupWizard({
+      progress: createLedgerSetupProgressFixture({ step: 4 }),
+    });
+    fireEvent.click(screen.getByRole("switch", { name: "启用特殊状态" }));
+    clickNext();
+    expectStep("确认");
+    await completeSetupAndWait();
+    clickCloseWizard();
+    expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
+    await waitFor(() => expect(actions.onClose).toHaveBeenCalledOnce());
+  });
+
   it("确认页功能卡片来自父层当前草稿", () => {
     const actions = renderLedgerSetupWizard({
       progress: createLedgerSetupProgressFixture({ step: 4 }),

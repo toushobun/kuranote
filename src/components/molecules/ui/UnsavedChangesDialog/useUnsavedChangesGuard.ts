@@ -63,10 +63,11 @@ export function useUnsavedChangesGuard({
       );
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [active, changed, savedClean, touchedKey]);
+  // 保存成功后整页重新从「没动过」开始算（同页多个表单时也不残留旧表单的记录）。
   const markSaved = useCallback(() => {
-    setTouchedKeys((keys) => keys.filter((key) => key !== touchedKey));
+    setTouchedKeys([]);
     setSavedClean(true);
-  }, [touchedKey]);
+  }, []);
   const isDirty = changed || touchedKeys.includes(touchedKey);
   const mustConfirm = isDirty || confirmOnLeave;
   const saveIntent = useRef<SaveIntent | null>(null);
@@ -231,6 +232,8 @@ export function useUnsavedChangesGuard({
     },
     completeSave,
     isSavingToLeave,
+    /** 不经守卫保存成功时（如向导完成）由调用方通知，清除「动过」。 */
+    markSaved,
     runInPlaceAction: useCallback(
       <T>(action: () => Promise<T>) => history.runInPlaceAction(action),
       [history],

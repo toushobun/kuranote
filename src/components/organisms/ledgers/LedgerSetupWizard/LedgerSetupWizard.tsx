@@ -141,6 +141,7 @@ function LedgerSetupWizardContent({
       }
       setFailureState({});
       if (complete) {
+        guard.markSaved();
         wizard.markSetupCompleted();
       }
       return true;
