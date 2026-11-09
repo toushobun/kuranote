@@ -47,7 +47,7 @@ type EditTransactionShellProps = {
   deleteAction: TransactionStateAction;
   editRestriction: TransactionEditRestriction | null;
   hasLinkedIncomeItems: boolean;
-  /** 离开确认里的「保存」按这个 id 提交编辑表单。 */
+  /** 离开确认里的「保存并退出」按这个 id 提交编辑表单。 */
   saveFormId: string;
   transactionRecordId: string;
 };
