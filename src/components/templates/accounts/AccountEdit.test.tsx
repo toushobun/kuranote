@@ -229,7 +229,7 @@ describe("AccountEditTemplate", () => {
       ).toBeInTheDocument();
     });
 
-    it("余额改回原值后，写过的调整备注不算修改", () => {
+    it("余额改回原值后，动过的余额和备注仍算修改", () => {
       renderAccountEdit();
       const balance = screen.getByLabelText("当前余额");
       fireEvent.change(balance, { target: { value: "90000" } });
@@ -240,10 +240,10 @@ describe("AccountEditTemplate", () => {
 
       fireEvent.click(screen.getByRole("link", { name: "取消" }));
 
-      expect(screen.queryByText("尚未保存")).toBeNull();
+      expect(screen.getByText("尚未保存")).toBeInTheDocument();
     });
 
-    it("没有修改或改回原值时直接离开，不弹确认", () => {
+    it("没有修改时直接离开；改过再改回原值仍要确认", () => {
       renderAccountEdit();
       fireEvent.click(screen.getByRole("link", { name: "取消" }));
       expect(screen.queryByText("尚未保存")).toBeNull();
@@ -251,7 +251,7 @@ describe("AccountEditTemplate", () => {
       changeName("三菱UFJ");
       changeName(bankAccountFixture.name);
       fireEvent.click(screen.getByRole("link", { name: "取消" }));
-      expect(screen.queryByText("尚未保存")).toBeNull();
+      expect(screen.getByText("尚未保存")).toBeInTheDocument();
     });
   });
   it("真实编辑账户后退先关闭金额键盘，再确认页面，滚动与表单不变", async () => {

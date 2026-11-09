@@ -135,18 +135,26 @@ describe("useUnsavedChangesGuard", () => {
     expect(unload.defaultPrevented).toBe(true);
   });
 
-  it("无修改或改回初始值不保护刷新；修饰键、新标签不触发离开确认", async () => {
-    setup();
+  it("无修改不保护刷新；修饰键、新标签不触发离开确认", async () => {
+    render(<Harness />, { wrapper: ConfirmDialogTestProviders });
     fireEvent.click(screen.getByText("新标签"));
     fireEvent.click(screen.getByText("取消"), { ctrlKey: true });
     expect(screen.queryByRole("dialog")).toBeNull();
+    const unload = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(unload);
+    expect(unload.defaultPrevented).toBe(false);
+  });
+  it("动过就算修改：改回初始值后仍保护刷新和离开", async () => {
+    setup();
     fireEvent.change(screen.getByLabelText("内容"), { target: { value: "" } });
     await act(async () => {
       await Promise.resolve();
     });
     const unload = new Event("beforeunload", { cancelable: true });
     window.dispatchEvent(unload);
-    expect(unload.defaultPrevented).toBe(false);
+    expect(unload.defaultPrevented).toBe(true);
+    fireEvent.click(screen.getByText("取消"));
+    expect(screen.getByRole("dialog", { name: "尚未保存" })).toBeVisible();
   });
   it.each(["关闭", "遮罩", "选中"])(
     "UI %s最后一层后回基准，内部 popstate 不离开底层，前进不复活弹层",
@@ -389,5 +397,59 @@ describe("useUnsavedChangesGuard 显式退出", () => {
     fireEvent.click(screen.getByRole("button", { name: "放弃修改" }));
     await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
     expect(onSave).not.toHaveBeenCalled();
+  });
+});
+
+function InPlaceSaveHarness() {
+  const [value, setValue] = useState("");
+  const [baseline, setBaseline] = useState("");
+  const guard = useUnsavedChangesGuard({
+    isDirty: value !== baseline,
+    saveFormId: "in-place-form",
+  });
+  return (
+    <>
+      <input
+        aria-label="内容"
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
+      />
+      <button
+        onClick={() =>
+          void guard.runSaveAction(new FormData(), async () => {
+            setBaseline(value);
+            return { success: "已保存" };
+          })
+        }
+      >
+        保存
+      </button>
+    </>
+  );
+}
+
+describe("useUnsavedChangesGuard 动过的状态", () => {
+  function unloadPrevented() {
+    const unload = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(unload);
+    return unload.defaultPrevented;
+  }
+
+  it("原地保存成功后清除，之后再动又算修改", async () => {
+    render(<InPlaceSaveHarness />, { wrapper: ConfirmDialogTestProviders });
+    const input = screen.getByLabelText("内容");
+    fireEvent.change(input, { target: { value: "修改" } });
+    fireEvent.change(input, { target: { value: "" } });
+    await act(async () => {});
+    expect(unloadPrevented()).toBe(true);
+    fireEvent.change(input, { target: { value: "保存的值" } });
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+    await waitFor(() => expect(unloadPrevented()).toBe(false));
+    // 等保存后的基线同步提交完毕。
+    await act(async () => {});
+    fireEvent.change(input, { target: { value: "又改了" } });
+    fireEvent.change(input, { target: { value: "保存的值" } });
+    await act(async () => {});
+    expect(unloadPrevented()).toBe(true);
   });
 });

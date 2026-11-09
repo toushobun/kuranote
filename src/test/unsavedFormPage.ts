@@ -37,7 +37,7 @@ export function describeUnsavedFormPage({
       expect(window.history.pushState).toHaveBeenCalledOnce();
     });
 
-    it("改回初始值后刷新不提示，前进不复活失效确认", async () => {
+    it("改回初始值后仍算动过：刷新、后退都要确认", async () => {
       render();
       change();
       await waitFor(() =>
@@ -45,28 +45,19 @@ export function describeUnsavedFormPage({
           "sentinel",
         ),
       );
-      const dirtyUnload = new Event("beforeunload", { cancelable: true });
-      window.dispatchEvent(dirtyUnload);
-      expect(dirtyUnload.defaultPrevented).toBe(true);
       restore();
-      await waitFor(() =>
-        expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe(
-          "base",
-        ),
+      const unload = new Event("beforeunload", { cancelable: true });
+      window.dispatchEvent(unload);
+      expect(unload.defaultPrevented).toBe(true);
+      expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe(
+        "sentinel",
       );
-      const cleanUnload = new Event("beforeunload", { cancelable: true });
-      window.dispatchEvent(cleanUnload);
-      expect(cleanUnload.defaultPrevented).toBe(false);
-      await act(async () => window.history.forward());
-      await waitFor(() =>
-        expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe(
-          "base",
-        ),
-      );
-      expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
-      expect(window.history.pushState).toHaveBeenCalledOnce();
+      await backFromGuard();
+      expect(
+        await screen.findByRole("dialog", { name: "尚未保存" }),
+      ).toBeInTheDocument();
     });
-    it("页内返回链接也使用公共确认，继续编辑后可以还原", async () => {
+    it("页内返回链接也使用公共确认，继续编辑并改回初始值后仍要确认", async () => {
       render();
       change();
       const link = document.querySelector<HTMLAnchorElement>("a[href]");
@@ -78,11 +69,11 @@ export function describeUnsavedFormPage({
         expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull(),
       );
       restore();
-      await waitFor(() =>
-        expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe(
-          "base",
-        ),
-      );
+      await act(async () => {});
+      fireEvent.click(link);
+      expect(
+        screen.getByRole("dialog", { name: "尚未保存" }),
+      ).toBeInTheDocument();
     });
   });
 }
