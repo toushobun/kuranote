@@ -51,22 +51,25 @@ export function useUnsavedChangesGuard({
   // 按保存表单分别记录（标准页的收支 / 转账面板各自独立），只记已提交的变化。
   const touchedKey = saveFormId ?? "";
   const [touchedKeys, setTouchedKeys] = useState<readonly string[]>([]);
-  // 保存成功后，页面重设基线前的旧 dirty 不再记为动过。
-  const [savedClean, setSavedClean] = useState(false);
+  // 保存成功时若页面还没重设基线（仍是旧 dirty），等它变干净前不再记为动过。
+  // 只在 effect / 回调中读写，用 ref 避免多一次渲染（离开流程进行中多出的提交会把已停用的弹层重新登记为活动）。
+  const committedChanged = useRef(false);
+  const savedClean = useRef(false);
   useEffect(() => {
+    committedChanged.current = changed;
     /* eslint-disable react-hooks/set-state-in-effect -- 按已提交的 dirty 维护「动过」状态。 */
-    if (!active) setTouchedKeys([]);
-    else if (!changed) setSavedClean(false);
-    else if (!savedClean)
+    if (!active) setTouchedKeys(clearTouched);
+    else if (!changed) savedClean.current = false;
+    else if (!savedClean.current)
       setTouchedKeys((keys) =>
         keys.includes(touchedKey) ? keys : [...keys, touchedKey],
       );
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, [active, changed, savedClean, touchedKey]);
+  }, [active, changed, touchedKey]);
   // 保存成功后整页重新从「没动过」开始算（同页多个表单时也不残留旧表单的记录）。
   const markSaved = useCallback(() => {
-    setTouchedKeys([]);
-    setSavedClean(true);
+    setTouchedKeys(clearTouched);
+    savedClean.current = committedChanged.current;
   }, []);
   const isDirty = changed || touchedKeys.includes(touchedKey);
   const mustConfirm = isDirty || confirmOnLeave;
@@ -297,4 +300,9 @@ export function useUnsavedChangesGuard({
       },
     },
   };
+}
+
+/** 已经为空时保持原数组，避免无谓的重新渲染。 */
+function clearTouched(keys: readonly string[]) {
+  return keys.length === 0 ? keys : [];
 }
