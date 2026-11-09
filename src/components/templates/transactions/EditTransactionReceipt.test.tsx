@@ -166,7 +166,7 @@ describe("EditTransactionReceiptTemplate", () => {
       expect(new FormData(receiptForm()).get("accountId")).toBe("cash"),
     );
     expect(
-      screen.getByRole("button", { name: "更换支付账户 1" }),
+      await screen.findByRole("button", { name: "更换支付账户 1" }),
     ).toBeInTheDocument();
   });
 
