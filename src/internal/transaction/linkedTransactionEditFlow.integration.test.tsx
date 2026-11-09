@@ -339,9 +339,9 @@ describe("Issue #574 已关联交易跨层编辑流程", () => {
     expect(persisted.amount).toBe("80");
   }, 15_000);
 
-  it("付款账户变化先返回确认冲突并在确认后保存成功", async () => {
+  it("收款账户变化先返回确认冲突并在确认后保存成功", async () => {
     const { persisted, updateEdit } = renderScenario(createView("child"));
-    fireEvent.click(screen.getByRole("button", { name: "更换支付账户 1" }));
+    fireEvent.click(screen.getByRole("button", { name: "更换收款账户 1" }));
     fireEvent.click(await screen.findByRole("radio", { name: /^银行/ }));
 
     const dialog = await submitForSyncConfirmation();
