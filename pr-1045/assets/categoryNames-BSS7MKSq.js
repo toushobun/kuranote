@@ -1,0 +1,1 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";import{a as t,r as n}from"./categoryEmojis-97W7iB8O.js";function r(e){for(let t of n)if(e.startsWith(t))return e.slice(t.length).trimStart();return e}function i(e,t){let n=e.trimStart(),i=t?.trim();return i&&n.startsWith(i)?n.slice(i.length).trimStart():r(n)}var a=e((()=>{t()}));export{a as n,i as t};
