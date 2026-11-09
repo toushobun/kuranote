@@ -694,7 +694,7 @@ describe("分类编辑抽屉后退", () => {
     fireEvent.click(
       within(screen.getByRole("dialog", { name: "尚未保存" })).getByRole(
         "button",
-        { name: "保存" },
+        { name: "保存并退出" },
       ),
     );
     await waitFor(() => expect(updateCategoryAction).toHaveBeenCalledOnce());

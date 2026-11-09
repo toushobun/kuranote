@@ -28,7 +28,6 @@ export function useUnsavedChangesGuard({
   disabled = false,
   confirmOnLeave = false,
   saveOnLeave,
-  saveLabel,
   cleanDescription,
 }: {
   /** 当前内容是否与基线不同；出现过一次即视为动过（见下方 `touched`）。 */
@@ -43,7 +42,6 @@ export function useUnsavedChangesGuard({
   confirmOnLeave?: boolean;
   /** 纯异步保存入口；成功返回 true，由现有离开意图完成导航。 */
   saveOnLeave?: () => Promise<boolean>;
-  saveLabel?: string;
   cleanDescription?: string;
 }) {
   const router = useRouter();
@@ -256,7 +254,6 @@ export function useUnsavedChangesGuard({
     dialogProps: {
       open: intent !== null,
       description: !isDirty ? cleanDescription : undefined,
-      saveLabel,
       onCancel: () => {
         saveIntent.current = null;
         setIntent(null);

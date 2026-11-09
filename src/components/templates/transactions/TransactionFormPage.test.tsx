@@ -643,7 +643,7 @@ describe("标准页当前面板守卫", () => {
       fireEvent.click(
         within(screen.getByRole("dialog", { name: "尚未保存" })).getByRole(
           "button",
-          { name: "保存" },
+          { name: "保存并退出" },
         ),
       );
       expect(submit.mock.instances[0]).toHaveAttribute(

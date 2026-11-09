@@ -191,7 +191,9 @@ describe("AccountEditTemplate", () => {
       changeName("三菱UFJ");
       fireEvent.click(screen.getByRole("link", { name: "取消" }));
 
-      fireEvent.click(await screen.findByRole("button", { name: "保存" }));
+      fireEvent.click(
+        await screen.findByRole("button", { name: "保存并退出" }),
+      );
 
       await waitFor(() => expect(updateAccountAction).toHaveBeenCalledOnce());
       expect(updateAccountAction.mock.calls[0]?.[1].get("name")).toBe(
@@ -220,7 +222,9 @@ describe("AccountEditTemplate", () => {
       });
       fireEvent.click(screen.getByRole("link", { name: "取消" }));
 
-      fireEvent.click(await screen.findByRole("button", { name: "保存" }));
+      fireEvent.click(
+        await screen.findByRole("button", { name: "保存并退出" }),
+      );
 
       await waitFor(() => expect(screen.queryByText("尚未保存")).toBeNull());
       expect(updateAccountAction).not.toHaveBeenCalled();

@@ -12,7 +12,6 @@ import { useTransactionReceiptForm } from "organisms/transactions/TransactionCon
 import type { TransactionFormInitialValues } from "organisms/transactions/TransactionForm/TransactionForm.types";
 import { useReceiptMerchantPicker } from "organisms/transactions/ReceiptMerchantDrawer/useReceiptMerchantPicker";
 import { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
-import { unsavedChangesMessages } from "config/unsavedChangesMessages";
 import type { ActionState } from "types/actions";
 import type { TransactionStepFlowProps } from "./TransactionStepFlow.types";
 import type { FlowMerchant } from "organisms/transactions/MerchantStep/MerchantStep.types";
@@ -107,7 +106,6 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
   const guard = useUnsavedChangesGuard({
     isDirty: screen === "receipt" && receiptDirty,
     saveFormId: formId,
-    saveLabel: unsavedChangesMessages.saveAndExit,
     onClose: props.onClose,
   });
   const [saveState, saveAction, saving] = useActionState<ActionState, FormData>(

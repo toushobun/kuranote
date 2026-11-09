@@ -25,7 +25,7 @@ export function describeUnsavedFormPage({
       await backFromGuard();
       const dialog = await screen.findByRole("dialog", { name: "尚未保存" });
       expect(
-        within(dialog).getByRole("button", { name: "保存" }),
+        within(dialog).getByRole("button", { name: "保存并退出" }),
       ).toBeVisible();
       fireEvent.click(within(dialog).getByRole("button", { name: "继续编辑" }));
       await waitFor(() =>

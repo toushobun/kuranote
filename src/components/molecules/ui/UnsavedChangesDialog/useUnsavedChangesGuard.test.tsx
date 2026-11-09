@@ -128,7 +128,7 @@ describe("useUnsavedChangesGuard", () => {
     const save = vi.fn();
     setup(save);
     fireEvent.click(screen.getByText("取消"));
-    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+    fireEvent.click(screen.getByRole("button", { name: "保存并退出" }));
     expect(save).toHaveBeenCalledOnce();
     const unload = new Event("beforeunload", { cancelable: true });
     window.dispatchEvent(unload);
@@ -244,7 +244,6 @@ function SaveHarness({ result }: { result: ActionState }) {
   const guard = useUnsavedChangesGuard({
     isDirty: true,
     saveFormId: "save-test",
-    saveLabel: unsavedChangesMessages.saveAndExit,
   });
   const [state, submit] = useActionState(
     (_previous: ActionState, data: FormData) =>
@@ -328,7 +327,6 @@ function AsyncLeaveHarness({
     confirmOnLeave: true,
     onClose,
     saveOnLeave: onSave,
-    saveLabel: "保存并退出",
     cleanDescription: "账本还没创建完，要保存当前进度再退出吗？",
   });
   return (

@@ -3,7 +3,6 @@
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import { useId, useState } from "react";
-import { unsavedChangesMessages } from "config/unsavedChangesMessages";
 import { ActionFailureFeedback } from "molecules/ui/OperationFeedbackDialogs";
 import { createErrorState } from "internal/shared/adapter/next/actionState";
 import {
@@ -168,7 +167,6 @@ function LedgerSetupWizardContent({
     onClose,
     saveFormId: null,
     saveOnLeave: () => persist(false),
-    saveLabel: unsavedChangesMessages.saveAndExit,
     cleanDescription: ledgerSetupWizardMessages.cleanExitDescription,
   });
   const { Component: StepComponent, key } = wizard.currentStep;

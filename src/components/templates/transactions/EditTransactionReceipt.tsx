@@ -7,7 +7,6 @@ import { useReceiptCreation } from "organisms/transactions/ReceiptCreationProvid
 import { mergeReceiptOptions } from "organisms/transactions/ReceiptCreationProvider/useReceiptCreationState";
 
 import { flowMessages as m } from "config/transactionStepFlowMessages";
-import { unsavedChangesMessages } from "config/unsavedChangesMessages";
 import type {
   FrequentMerchant,
   TransactionEditRestriction,
@@ -68,7 +67,6 @@ export function EditTransactionReceiptTemplate(
           (item) => item.businessStatus?.incomeLinkRole != null,
         )}
         saveFormId={editReceiptFormId}
-        saveLabel={unsavedChangesMessages.saveAndExit}
         transactionRecordId={transactionRecordId}
       >
         {(editAction) => (
