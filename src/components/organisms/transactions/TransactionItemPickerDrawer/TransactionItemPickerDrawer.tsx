@@ -100,7 +100,7 @@ type TransactionItemPickerDrawerProps = {
   specialStatusEnabled?: boolean;
   specialStatusLocked?: boolean;
   incomeLinksEnabled?: boolean;
-  /** 多账户付款时禁用收入分类（多账户仅限纯支出，#930）。 */
+  /** 多账户时禁用与现有明细相反的一类分类（#1044）。 */
   disabledCategoryType?: "income" | "expense";
 };
 
