@@ -300,8 +300,10 @@ describe("TransactionConfirmStep", () => {
     expect(line("编辑明细 2")).toHaveTextContent("餐饮");
     expect(group).toContainElement(line("编辑明细 3"));
     expect(group.nextElementSibling).toBe(line("编辑明细 1"));
-    expect(line("编辑明细 1")).toHaveAttribute("data-invalid", "true");
     expect(line("编辑明细 1")).toHaveTextContent("未选择分类");
+    expect(line("编辑明细 1")).not.toHaveAttribute("data-invalid");
+    click("保存记账");
+    expect(line("编辑明细 1")).toHaveAttribute("data-invalid", "true");
   });
 
   it("只读小票也按大分类显示小计", () => {
@@ -449,12 +451,13 @@ describe("TransactionConfirmStep", () => {
     renderConfirmFlow();
     click("删除支付账户 1");
     expect(line("更换支付账户 1")).toHaveTextContent("选择收支账户");
-    expect(line("更换支付账户 1")).toHaveAttribute("data-invalid", "true");
+    expect(line("更换支付账户 1")).not.toHaveAttribute("data-invalid");
     expect(
       screen.queryByRole("button", { name: "删除支付账户 1" }),
     ).not.toBeInTheDocument();
     expect(saveButton()).toBeEnabled();
     click("保存记账");
+    expect(line("更换支付账户 1")).toHaveAttribute("data-invalid", "true");
     click("请选择收支账户");
     expect(
       screen.getByRole("radiogroup", { name: "收支账户" }),
@@ -523,21 +526,26 @@ describe("TransactionConfirmStep", () => {
     await waitFor(() =>
       expect(line("更换支付账户 1")).toHaveTextContent("现金"),
     );
-    expect(line("编辑明细 1")).toHaveAttribute("data-invalid", "true");
     expect(
       screen.getByRole("button", { name: "修改明细 1 金额：¥12.55" }),
     ).toBeInTheDocument();
+    // 点保存前不标红，也不显示小数位说明。
+    expect(line("编辑明细 1")).not.toHaveAttribute("data-invalid");
     expect(
-      within(line("编辑明细 1")).getByText(
-        "新币种不支持这么多位小数，请重新输入",
-      ),
-    ).toBeInTheDocument();
+      screen.queryByText("新币种不支持这么多位小数，请重新输入"),
+    ).toBeNull();
     expect(screen.getByText("合计").nextElementSibling).toHaveTextContent(
       "¥12.55",
     );
     expect(screen.queryByText("请完善明细分类和金额")).toBeNull();
     expect(saveButton()).toBeEnabled();
     click("保存记账");
+    expect(line("编辑明细 1")).toHaveAttribute("data-invalid", "true");
+    expect(
+      within(line("编辑明细 1")).getByText(
+        "新币种不支持这么多位小数，请重新输入",
+      ),
+    ).toBeInTheDocument();
     click("1 条明细金额的小数位超出当前币种，点一下重新输入");
     expect(await screen.findByLabelText("金额计算器")).toBeInTheDocument();
     pressItemAmountKey("1");
@@ -607,11 +615,12 @@ describe("TransactionConfirmStep", () => {
     expect(screen.getByRole("status")).toHaveTextContent(
       "付款合计 ¥10,000 / 明细合计 ¥9,000 · 差额 ¥1,000",
     );
-    expect(screen.getByRole("status")).toHaveAttribute("data-invalid", "true");
+    expect(screen.getByRole("status")).not.toHaveAttribute("data-invalid");
     expect(
       screen.queryByRole("button", { name: "付款账户未对上，点一下去调整" }),
     ).toBeNull();
     click("保存记账");
+    expect(screen.getByRole("status")).toHaveAttribute("data-invalid", "true");
     expect(
       screen.getByRole("button", { name: "付款账户未对上，点一下去调整" }),
     ).toBeInTheDocument();
@@ -702,12 +711,13 @@ describe("TransactionConfirmStep", () => {
         recommendedAccountIds: [],
       },
     });
-    expect(line("更换支付账户 1")).toHaveAttribute("data-invalid", "true");
+    expect(line("更换支付账户 1")).not.toHaveAttribute("data-invalid");
     expect(screen.queryByText("请添加明细")).toBeNull();
     expect(saveButton()).toBeEnabled();
     expect(screen.queryAllByRole("alert")).toHaveLength(0);
     click("保存记账");
     expect(screen.getAllByRole("alert")).toHaveLength(2);
+    expect(line("更换支付账户 1")).toHaveAttribute("data-invalid", "true");
     // 明细区不再重复显示「请添加明细」，只保留顶部提示。
     expect(screen.queryByText("请添加明细", { selector: "p" })).toBeNull();
     click("请添加明细");
@@ -723,9 +733,10 @@ describe("TransactionConfirmStep", () => {
         initialItems: [{ categoryId: "lunch", amount: "" }],
       },
     });
-    expect(line("编辑明细 1")).toHaveAttribute("data-invalid", "true");
+    expect(line("编辑明细 1")).not.toHaveAttribute("data-invalid");
     expect(screen.queryByText(/还有 1 条明细没填金额/)).toBeNull();
     click("保存记账");
+    expect(line("编辑明细 1")).toHaveAttribute("data-invalid", "true");
     click("还有 1 条明细没填金额，点一下去填写");
     pressItemAmountKey("8");
     pressItemAmountKey("确定");
@@ -809,6 +820,29 @@ describe("TransactionConfirmStep", () => {
       }
     },
   );
+
+  it("保存后新出现的问题不标红，下次保存才标红；已标红的问题解决后取消标红", async () => {
+    renderConfirmFlow({
+      itemsOptions: {
+        ...receiptItemsOptions,
+        initialItems: [{ categoryId: "lunch", amount: "" }],
+      },
+    });
+    click("保存记账");
+    expect(line("编辑明细 1")).toHaveAttribute("data-invalid", "true");
+    // 保存后才出现的问题：付款账户被删除。
+    click("删除支付账户 1");
+    expect(line("更换支付账户 1")).not.toHaveAttribute("data-invalid");
+    expect(screen.queryByText("请选择收支账户")).toBeNull();
+    // 已标红的明细填好金额后取消标红。
+    click("修改明细 1 金额：待输入");
+    pressItemAmountKey("8");
+    pressItemAmountKey("确定");
+    await waitKeypadClosed();
+    expect(line("编辑明细 1")).not.toHaveAttribute("data-invalid");
+    click("保存记账");
+    expect(line("更换支付账户 1")).toHaveAttribute("data-invalid", "true");
+  });
 
   it("再次保存才重播提示动画，修改金额引起文案变化不闪烁", async () => {
     renderConfirmFlow({

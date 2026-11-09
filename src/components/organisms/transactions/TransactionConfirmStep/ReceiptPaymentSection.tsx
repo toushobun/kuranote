@@ -25,6 +25,8 @@ export function ReceiptPaymentSection({
   total,
   canAddPayment,
   readOnly = false,
+  invalidPaymentKeys,
+  reconciliationInvalid,
   onChangeAccount,
   onAmount,
   onRemove,
@@ -35,12 +37,18 @@ export function ReceiptPaymentSection({
   total: string;
   canAddPayment: boolean;
   readOnly?: boolean;
+  /** 要标红的付款行（只含上次点保存时已有、仍未解决的问题，#1040）。 */
+  invalidPaymentKeys: readonly number[];
+  /** 多账户未对上时对账行是否标红（跟随顶部「账户」提示）。 */
+  reconciliationInvalid: boolean;
   onChangeAccount: (key: number) => void;
   onAmount: (key: number) => void;
   onRemove: (key: number) => void;
 }) {
   const currency = form.selectedAccount?.currency ?? "";
   const reconciliation = form.paymentReconciliation;
+  const reconciliationError =
+    reconciliationInvalid && !reconciliation.isBalanced;
   // 多账户时每一行都可删除（含刚添加、尚未选账户的行）；单账户未选账户时没有可删除的内容。
   const removable = (account: TransactionAccountOption | undefined) =>
     form.isMultiAccount || !!account;
@@ -52,6 +60,7 @@ export function ReceiptPaymentSection({
         const account = accountOptions.find(
           (option) => option.id === payment.accountId,
         );
+        const invalid = invalidPaymentKeys.includes(payment.key);
         const amount = payment.amount.trim()
           ? format(payment.amount)
           : m.pendingAmount;
@@ -68,7 +77,7 @@ export function ReceiptPaymentSection({
             label={
               account?.name ?? (readOnly ? m.archivedAccount : m.chooseAccount)
             }
-            error={!account && !readOnly}
+            error={invalid && !account}
             labelClickable={!readOnly && !account}
             tags={
               account && (
@@ -86,7 +95,7 @@ export function ReceiptPaymentSection({
                 <ReceiptAmountButton
                   label={m.editPaymentAmount(index + 1, amount)}
                   amount={amount}
-                  pending={!payment.amount.trim()}
+                  pending={invalid && !payment.amount.trim()}
                   onClick={() => onAmount(payment.key)}
                 />
               ) : (
@@ -111,12 +120,14 @@ export function ReceiptPaymentSection({
           variant="caption"
           role="status"
           aria-live="polite"
-          data-invalid={!reconciliation.isBalanced || undefined}
+          data-invalid={reconciliationError || undefined}
           sx={[
             reconciliationSx,
             reconciliation.isBalanced
               ? { color: "success.main" }
-              : { color: "error.main" },
+              : reconciliationError
+                ? { color: "error.main" }
+                : { color: "text.secondary" },
           ]}
         >
           {m.paymentReconciliation(

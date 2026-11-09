@@ -65,19 +65,17 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
   const noteInputRef = useRef<HTMLTextAreaElement>(null);
   const w = useTransactionConfirmStep(props, paymentSectionRef);
   const [saveAttempts, setSaveAttempts] = useState(0);
-  // 校验提示只在点保存时更新（#1016）：只显示上次保存时已有、现在仍未解决的提示，
-  // 之后新出现的问题等下一次保存才显示。
-  const [checkedIssueIds, setCheckedIssueIds] = useState<readonly string[]>([]);
-  const visibleIssues = readOnly
-    ? []
-    : w.issues.filter((issue) => checkedIssueIds.includes(issue.id));
+  // 只显示上次点保存时已有、现在仍未解决的提示（#1016 / #1040）。
+  const visibleIssues = w.issues.filter((issue) => w.isChecked(issue.id));
+  const hasVisibleIssue = (id: string) =>
+    visibleIssues.some((issue) => issue.id === id);
   const [pulseCount, setPulseCount] = useState(0);
   const firstIssueRef = useRef<HTMLDivElement>(null);
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     setSaveAttempts((attempts) => attempts + 1);
-    setCheckedIssueIds(w.issues.map((issue) => issue.id));
+    const hasIssues = w.checkIssues();
     if (saveAttempts > 0) setPulseCount((count) => count + 1);
-    if (!readOnly && w.issues.length > 0) {
+    if (!readOnly && hasIssues) {
       event.preventDefault();
       props.onValidationFailed?.();
       // 第一条提示挂载后再滚动；底部提交与退出弹窗提交共用此入口。
@@ -194,7 +192,7 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
                 <HeaderButton
                   label={m.merchant}
                   value={f.selectedMerchant?.name ?? m.selectMerchant}
-                  error={!f.selectedMerchant}
+                  error={hasVisibleIssue("merchant")}
                   readOnly={readOnly}
                   onClick={props.onMerchantClick}
                 >
@@ -205,7 +203,7 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
                 <HeaderButton
                   label={m.time}
                   value={dateTime}
-                  error={!f.transactionAtValue}
+                  error={hasVisibleIssue("time")}
                   readOnly={readOnly}
                   onClick={() => w.setEditor("time")}
                 >
@@ -218,7 +216,7 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
                 <ReceiptItemsSection
                   form={f}
                   showAutomaticNotice={props.showAutomaticNotice}
-                  invalidItems={w.invalidItems}
+                  invalidItems={w.markedItems}
                   merchantHasHistory={props.merchantHasHistory}
                   canAddItem={props.categoryOptions.length > 0}
                   readOnly={readOnly}
@@ -274,6 +272,8 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
                   total={total}
                   canAddPayment={!readOnly && w.canAddPayment}
                   readOnly={readOnly}
+                  invalidPaymentKeys={w.markedPaymentKeys}
+                  reconciliationInvalid={hasVisibleIssue("account")}
                   onChangeAccount={w.setAccountPickerKey}
                   onAmount={w.setPaymentAmountKey}
                   onRemove={w.removePayment}
