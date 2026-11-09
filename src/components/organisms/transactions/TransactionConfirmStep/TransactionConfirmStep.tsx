@@ -65,10 +65,17 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
   const noteInputRef = useRef<HTMLTextAreaElement>(null);
   const w = useTransactionConfirmStep(props, paymentSectionRef);
   const [saveAttempts, setSaveAttempts] = useState(0);
+  // 校验提示只在点保存时更新（#1016）：只显示上次保存时已有、现在仍未解决的提示，
+  // 之后新出现的问题等下一次保存才显示。
+  const [checkedIssueIds, setCheckedIssueIds] = useState<readonly string[]>([]);
+  const visibleIssues = readOnly
+    ? []
+    : w.issues.filter((issue) => checkedIssueIds.includes(issue.id));
   const [pulseCount, setPulseCount] = useState(0);
   const firstIssueRef = useRef<HTMLDivElement>(null);
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     setSaveAttempts((attempts) => attempts + 1);
+    setCheckedIssueIds(w.issues.map((issue) => issue.id));
     if (saveAttempts > 0) setPulseCount((count) => count + 1);
     if (!readOnly && w.issues.length > 0) {
       event.preventDefault();
@@ -152,30 +159,28 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
           {props.successMessage && (
             <Alert severity="success">{props.successMessage}</Alert>
           )}
-          {!readOnly &&
-            saveAttempts > 0 &&
-            w.issues.map((issue, index) => (
-              <Alert
-                key={issue.id}
-                data-pulse={pulseCount}
-                ref={index === 0 ? firstIssueRef : undefined}
-                severity="error"
-                sx={
-                  pulseCount > 0
-                    ? {
-                        animation: `${pulseCount % 2 ? issuePulse : issuePulseAlternate} 600ms ease-in-out`,
-                        "@media (prefers-reduced-motion: reduce)": {
-                          animation: "none",
-                        },
-                      }
-                    : undefined
-                }
-              >
-                <ButtonBase onClick={issue.onClick} sx={{ textAlign: "left" }}>
-                  {issue.message}
-                </ButtonBase>
-              </Alert>
-            ))}
+          {visibleIssues.map((issue, index) => (
+            <Alert
+              key={issue.id}
+              data-pulse={pulseCount}
+              ref={index === 0 ? firstIssueRef : undefined}
+              severity="error"
+              sx={
+                pulseCount > 0
+                  ? {
+                      animation: `${pulseCount % 2 ? issuePulse : issuePulseAlternate} 600ms ease-in-out`,
+                      "@media (prefers-reduced-motion: reduce)": {
+                        animation: "none",
+                      },
+                    }
+                  : undefined
+              }
+            >
+              <ButtonBase onClick={issue.onClick} sx={{ textAlign: "left" }}>
+                {issue.message}
+              </ButtonBase>
+            </Alert>
+          ))}
           <Box sx={receiptShadowSx}>
             <Box sx={receiptPaperSx}>
               <Stack spacing={0.5} sx={{ alignItems: "center", pb: 1.5 }}>
@@ -214,6 +219,9 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
                   form={f}
                   showAutomaticNotice={props.showAutomaticNotice}
                   invalidItems={w.invalidItems}
+                  showMissingItems={visibleIssues.some(
+                    (issue) => issue.id === "items",
+                  )}
                   merchantHasHistory={props.merchantHasHistory}
                   canAddItem={props.categoryOptions.length > 0}
                   readOnly={readOnly}
