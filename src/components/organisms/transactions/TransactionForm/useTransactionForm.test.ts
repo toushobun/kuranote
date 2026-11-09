@@ -501,10 +501,12 @@ describe("useTransactionForm", () => {
     expect(result.current.businessTotalAmount).toBe("-4000");
   });
 
-  it("明细选择器先返回校验错误，再追加有效明细", () => {
+  it("切换大分类后校验小分类和金额，再追加有效明细", () => {
     const { result } = renderTransactionFormHook();
 
     act(() => result.current.openSheet());
+    expect(result.current.pickerCategoryId).toBe("expense-parent");
+    act(() => result.current.handlePickerGroupSelect("expense-parent"));
     act(() => {
       expect(result.current.handlePickerAdd()).toBe(false);
     });

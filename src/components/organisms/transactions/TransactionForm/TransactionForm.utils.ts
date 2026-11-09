@@ -86,6 +86,19 @@ export function formatCategoryName(category: TransactionCategoryOption) {
     : category.name;
 }
 
+export function getDefaultPickerCategory(
+  groups: readonly CategoryPickerGroup[],
+  disabledCategoryType?: TransactionType,
+) {
+  for (const group of groups) {
+    const category = group.categories.find(
+      (option) => option.type !== disabledCategoryType,
+    );
+    if (category) return { groupId: group.id, categoryId: category.id };
+  }
+  return { groupId: groups[0]?.id ?? "", categoryId: "" };
+}
+
 export function getTransactionItemAmountPresentation(
   amount: string,
   businessNetAmount: string | null | undefined,

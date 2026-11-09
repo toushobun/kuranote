@@ -56,6 +56,7 @@ import type {
 } from "./TransactionForm.types";
 import {
   buildCategoryPickerGroups,
+  getDefaultPickerCategory,
   getCurrencyMismatchedLinkKinds,
   isValidMoneyText,
   isValidTransactionFormItem,
@@ -441,14 +442,18 @@ export function useTransactionForm({
   }
 
   function openSheet() {
+    const { groupId, categoryId } = getDefaultPickerCategory(
+      categoryGroups,
+      disabledCategoryType,
+    );
     setEditingItemId(null);
-    setPickerCategoryId("");
+    setPickerCategoryId(categoryId);
     setPickerAmount("");
     setPickerSpecialStatus(null);
     setPickerRefundCandidate(null);
     setPickerReimbursementCandidate(null);
     setPickerErrors({});
-    setSelectedCategoryGroupId(categoryGroups[0]?.id ?? "");
+    setSelectedCategoryGroupId(groupId);
     setIsSheetOpen(true);
   }
 

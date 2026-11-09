@@ -8,6 +8,7 @@ import {
   formatSignedCurrencyAmount,
   formatSummaryDateTime,
   getCurrencySymbol,
+  getDefaultPickerCategory,
   getTransactionItemAdjustmentMessage,
   getTransactionItemAmountPresentation,
   isValidMoneyText,
@@ -92,6 +93,40 @@ describe("buildCategoryPickerGroups", () => {
     const result = buildCategoryPickerGroups(categories);
 
     expect(result[0]?.categories.map((c) => c.id)).toEqual(["3", "2"]);
+  });
+});
+
+describe("getDefaultPickerCategory", () => {
+  const groups = buildCategoryPickerGroups([
+    createCategory({ id: "lunch", parentId: "food" }),
+    createCategory({ id: "dinner", parentId: "food" }),
+    createCategory({ id: "points", parentId: "other", type: "income" }),
+    createCategory({ id: "refund", parentId: "other", type: "income" }),
+  ]);
+
+  it.each([
+    [undefined, "food", "lunch"],
+    ["income", "food", "lunch"],
+    ["expense", "other", "points"],
+  ] as const)(
+    "跳过禁用类型 %s 并保留大小分类顺序",
+    (disabled, groupId, categoryId) => {
+      expect(getDefaultPickerCategory(groups, disabled)).toEqual({
+        groupId,
+        categoryId,
+      });
+    },
+  );
+
+  it("没有可用分类时回退到第一个大分类，小分类留空", () => {
+    expect(getDefaultPickerCategory(groups.slice(0, 1), "expense")).toEqual({
+      groupId: "food",
+      categoryId: "",
+    });
+    expect(getDefaultPickerCategory([])).toEqual({
+      groupId: "",
+      categoryId: "",
+    });
   });
 });
 
