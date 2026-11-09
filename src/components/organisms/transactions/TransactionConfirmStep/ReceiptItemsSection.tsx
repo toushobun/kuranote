@@ -30,6 +30,7 @@ export function ReceiptItemsSection({
   form,
   showAutomaticNotice,
   invalidItems,
+  showMissingItems = false,
   merchantHasHistory,
   canAddItem,
   readOnly = false,
@@ -38,6 +39,8 @@ export function ReceiptItemsSection({
   form: ReturnType<typeof useTransactionForm>;
   showAutomaticNotice?: boolean;
   invalidItems: readonly TransactionItemSummary[];
+  /** 「请添加明细」与顶部校验提示一致，点保存后才显示（#1016）。 */
+  showMissingItems?: boolean;
   merchantHasHistory?: boolean;
   canAddItem: boolean;
   readOnly?: boolean;
@@ -143,13 +146,15 @@ export function ReceiptItemsSection({
             {m.noMerchantHistory}
           </Typography>
         ) : (
-          <Typography
-            variant="body2"
-            data-invalid="true"
-            sx={{ color: "error.main", py: 0.75, textAlign: "center" }}
-          >
-            {m.missingItems}
-          </Typography>
+          showMissingItems && (
+            <Typography
+              variant="body2"
+              data-invalid="true"
+              sx={{ color: "error.main", py: 0.75, textAlign: "center" }}
+            >
+              {m.missingItems}
+            </Typography>
+          )
         ))}
       {[...groups].map(([id, { label, category, entries }]) => (
         <Box key={id} role="group" aria-label={label} sx={groupSx}>

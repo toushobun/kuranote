@@ -355,7 +355,14 @@ describe("TransactionStepFlow", () => {
       expect(receiptLine("更换支付账户 1")).toHaveTextContent("现金"),
     );
     await addLunchItem();
-    expect(screen.getByText(/还有 1 条明细没填金额/)).toBeInTheDocument();
+    // 已解决的提示消失；新出现的问题等下一次保存才提示。
+    expect(screen.queryAllByRole("alert")).toHaveLength(0);
+    expect(screen.queryByText(/还有 1 条明细没填金额/)).toBeNull();
+    click("保存记账");
+    expect(
+      await screen.findByText(/还有 1 条明细没填金额/),
+    ).toBeInTheDocument();
+    expect(action).not.toHaveBeenCalled();
     click("修改明细 1 金额：待输入");
     pressItemAmountKey("8");
     pressItemAmountKey("确定");
