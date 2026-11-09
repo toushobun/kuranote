@@ -18,10 +18,10 @@ export const transactionAmountMessages = {
 // 多账户记录（#834 / #914）：列表账户位置与「共同支付」标识。金额参数为已格式化的「币种符号 + 金额」。
 export const transactionSharedPaymentMessages = {
   groupSummary: (count: number, recordTotal: string) =>
-    `含共同支付 ${count} 笔 · 整笔 ${recordTotal}`,
+    `含多账户记录 ${count} 笔 · 整笔 ${recordTotal}`,
   multipleAccounts: (firstAccountName: string, accountCount: number) =>
     `${firstAccountName} 等 ${accountCount} 个账户`,
-  recordTotal: (recordTotal: string) => `共同支付 · 整笔 ${recordTotal}`,
+  recordTotal: (recordTotal: string) => `多账户 · 整笔 ${recordTotal}`,
 } as const;
 
 // 编辑页有限制时显示只读详情（#928），顶部按限制原因显示提示。
@@ -56,18 +56,23 @@ export const transactionAccountSectionMessages = {
 
 // 多账户付款（#834 / #915）。金额参数为已格式化的「币种符号 + 金额」。
 export const transactionPaymentFieldsMessages = {
-  addPayment: "添加付款账户",
+  addPayment: (income: boolean) => (income ? "添加收款账户" : "添加付款账户"),
+  categoryTypeRestricted: "多个账户时，收入和支出不能混在一起。",
   difference: (difference: string) => `差额 ${difference}`,
-  incomeCategoriesDisabled: "多账户付款时只能添加支出明细。",
-  paymentAccountLabel: (index: number) => `付款账户 ${index}`,
-  paymentAmountLabel: (index: number) => `付款金额 ${index}`,
-  reconciliation: (paymentTotal: string, itemTotal: string) =>
-    `付款合计 ${paymentTotal} / 明细合计 ${itemTotal}`,
-  removeIncomeItemsConfirm: "删除收入明细",
-  removeIncomeItemsDescription:
-    "多账户付款只能用于支出明细。继续添加付款账户会删除当前的收入明细。",
-  removeIncomeItemsTitle: "删除收入明细？",
-  removePayment: (index: number) => `删除付款账户 ${index}`,
+  mixedPaymentHint: "同时记录收入和支出时，仅允许记录在一个账户上",
+  paymentAccountLabel: (index: number, income: boolean) =>
+    `${income ? "收款" : "付款"}账户 ${index}`,
+  paymentAmountLabel: (index: number, income: boolean) =>
+    `${income ? "收款" : "付款"}金额 ${index}`,
+  reconciliation: (
+    paymentTotal: string,
+    itemTotal: string,
+    income: boolean,
+    balanced = false,
+  ) =>
+    `${balanced ? "✓ " : ""}${income ? "收款" : "付款"}合计 ${paymentTotal} ${balanced ? "=" : "/"} 明细合计 ${itemTotal}`,
+  removePayment: (index: number, income: boolean) =>
+    `删除${income ? "收款" : "付款"}账户 ${index}`,
 } as const;
 
 const transactionLinkKindLabels = {

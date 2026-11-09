@@ -116,6 +116,28 @@ export const MultiAccountBalanced: Story = {
     },
   },
 };
+export const MultiAccountIncome: Story = {
+  name: "纯收入：多账户收款已对上",
+  args: {
+    itemsOptions: {
+      ...receiptItemsOptions,
+      initialItems: [{ categoryId: "points", amount: "10000" }],
+      initialPayments: twoPayments,
+    },
+  },
+};
+export const MixedPaymentHint: Story = {
+  name: "收支混合：只允许一个账户",
+  args: {
+    itemsOptions: {
+      ...receiptItemsOptions,
+      initialItems: [
+        { categoryId: "lunch", amount: "8000" },
+        { categoryId: "points", amount: "100" },
+      ],
+    },
+  },
+};
 export const MultiAccountAddPayment: Story = {
   name: "多账户：添加付款账户抽屉",
   args: {

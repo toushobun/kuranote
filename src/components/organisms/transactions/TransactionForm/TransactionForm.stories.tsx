@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { expect, userEvent, within } from "storybook/test";
 
 import {
   accountsNewHref,
@@ -133,5 +134,35 @@ export const MissingAccount: Story = {
   args: {
     accountOptions: [],
     setupHrefs,
+  },
+};
+
+export const MultiAccountIncome: Story = {
+  name: "纯收入：添加第二个收款账户",
+  args: { initialType: "income", multiAccountPaymentEnabled: true },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const body = within(canvasElement.ownerDocument.body);
+    await userEvent.click(canvas.getByRole("combobox", { name: "账户" }));
+    await userEvent.click(
+      await body.findByRole("option", { name: "日元现金（JPY）" }),
+    );
+    await userEvent.click(canvas.getByRole("button", { name: "添加明细" }));
+    await userEvent.click(
+      await body.findByRole("button", { name: "固定收入 · 工资" }),
+    );
+    await userEvent.type(body.getByRole("textbox", { name: "金额" }), "10000");
+    await userEvent.click(body.getByRole("button", { name: "确定" }));
+    await userEvent.click(body.getByRole("button", { name: "关闭" }));
+    await userEvent.click(
+      await canvas.findByRole("button", { name: "添加收款账户" }),
+    );
+    await userEvent.click(canvas.getByRole("combobox", { name: "收款账户 2" }));
+    await userEvent.click(
+      await body.findByRole("option", { name: "三井住友银行（JPY）" }),
+    );
+    await expect(canvas.getByRole("status")).toHaveTextContent(
+      "收款合计 ¥10,000 / 明细合计 ¥10,000",
+    );
   },
 };

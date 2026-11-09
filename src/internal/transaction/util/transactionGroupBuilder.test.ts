@@ -20,6 +20,7 @@ import {
 } from "./grouping/filters";
 import {
   createHolderGroupLoaderContext,
+  holderAccounts,
   holderIds,
   holderRecords,
 } from "./grouping/accountHolder.testUtils";
@@ -525,6 +526,30 @@ describe("buildTransactionGroupSummaryPage 持有人维度（#909）", () => {
         transactionCount: 1,
       },
     ]);
+  });
+
+  it("筛选收款账户或持有人时，多账户收入按实际收到的份额计入", () => {
+    const context = createHolderGroupLoaderContext([holderRecords.refund]);
+    const [firstPayment] = context.payments;
+    context.payments = [
+      { ...firstPayment, amount: "6000", balance_delta: "6000" },
+      {
+        ...firstPayment,
+        account_id: holderAccounts.wifeCash.id,
+        amount: "4000",
+        balance_delta: "4000",
+        sort_order: 1,
+      },
+    ];
+    for (const filters of [
+      { holderId: holderIds.me },
+      { accountId: firstPayment.account_id },
+    ]) {
+      const page = buildPageFromContext(context, "month", filters);
+      expect(page.groups.map(({ summary }) => summary)).toEqual([
+        { balance: "6000", currency: "JPY", expense: "0", income: "6000" },
+      ]);
+    }
   });
 
   it("按持有人分组只由数据库分组函数汇总，内存分组拒绝", () => {

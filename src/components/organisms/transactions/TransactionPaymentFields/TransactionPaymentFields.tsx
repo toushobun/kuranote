@@ -16,6 +16,7 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
+import { TransactionMixedPaymentHint } from "atoms/transactions/TransactionMixedPaymentHint";
 import { transactionSetupHintMessages } from "config/transactionMessages";
 import { outlinedInputTokenSx } from "molecules/ui/outlinedInputTokenSx";
 import { designTokens } from "theme/theme";
@@ -43,6 +44,8 @@ import {
 type TransactionPaymentFieldsProps = {
   accountOptions: TransactionAccountOption[];
   fieldError?: string;
+  hasMixedPaymentItems: boolean;
+  isIncomePayment: boolean;
   /** 账本未开启多账户付款（#931）时不显示「添加付款账户」。 */
   multiAccountPaymentEnabled: boolean;
   onAccountChange: (key: number, accountId: string) => void;
@@ -65,6 +68,8 @@ type TransactionPaymentFieldsProps = {
 export function TransactionPaymentFields({
   accountOptions,
   fieldError,
+  hasMixedPaymentItems,
+  isIncomePayment,
   multiAccountPaymentEnabled,
   onAccountChange,
   onAddPayment,
@@ -83,25 +88,26 @@ export function TransactionPaymentFields({
     (account) => account.id === primaryPayment?.accountId,
   );
   const primaryCurrency = primaryAccount?.currency;
-  // 入口只取决于账本开关与可选账户，不受字段错误等其他状态影响（#930 / #931）。
-  const addPaymentButton =
+  const showMixedPaymentHint =
+    multiAccountPaymentEnabled && hasMixedPaymentItems && !!primaryAccount;
+  const canAddPayment =
     multiAccountPaymentEnabled &&
-    canAddPaymentRow({
-      accountOptions,
-      payments,
-      primaryCurrency,
-    }) ? (
-      <Button
-        onClick={onAddPayment}
-        size="small"
-        startIcon={<AddRoundedIcon fontSize="small" />}
-        type="button"
-        variant="text"
-        sx={addPaymentButtonSx}
-      >
-        {transactionPaymentFieldsMessages.addPayment}
-      </Button>
-    ) : null;
+    !hasMixedPaymentItems &&
+    canAddPaymentRow({ accountOptions, payments, primaryCurrency });
+  const paymentEntry = showMixedPaymentHint ? (
+    <TransactionMixedPaymentHint />
+  ) : canAddPayment ? (
+    <Button
+      onClick={onAddPayment}
+      size="small"
+      startIcon={<AddRoundedIcon fontSize="small" />}
+      type="button"
+      variant="text"
+      sx={addPaymentButtonSx}
+    >
+      {transactionPaymentFieldsMessages.addPayment(isIncomePayment)}
+    </Button>
+  ) : null;
 
   if (!isMultiAccount || !primaryPayment) {
     return (
@@ -155,7 +161,7 @@ export function TransactionPaymentFields({
             </MenuItem>
           ))}
         </TextField>
-        {addPaymentButton}
+        {paymentEntry}
       </Stack>
     );
   }
@@ -173,6 +179,7 @@ export function TransactionPaymentFields({
               fullWidth
               label={transactionPaymentFieldsMessages.paymentAccountLabel(
                 rowNumber,
+                isIncomePayment,
               )}
               name={inputNames.account}
               onChange={(event) =>
@@ -228,10 +235,12 @@ export function TransactionPaymentFields({
               onChange={(amount) => onAmountChange(payment.key, amount)}
               onCommit={() => onAmountCommit(payment.key)}
               rowNumber={rowNumber}
+              isIncomePayment={isIncomePayment}
             />
             <IconButton
               aria-label={transactionPaymentFieldsMessages.removePayment(
                 rowNumber,
+                isIncomePayment,
               )}
               onClick={() => onRemovePayment(payment.key)}
               sx={removePaymentButtonSx}
@@ -241,7 +250,7 @@ export function TransactionPaymentFields({
           </Box>
         );
       })}
-      {addPaymentButton}
+      {paymentEntry}
       <Box
         aria-live="polite"
         role="status"
@@ -254,6 +263,7 @@ export function TransactionPaymentFields({
           {transactionPaymentFieldsMessages.reconciliation(
             formatPaymentAmount(reconciliation.paymentTotal, primaryCurrency),
             formatPaymentAmount(reconciliation.itemTotal, primaryCurrency),
+            isIncomePayment,
           )}
         </Typography>
         {reconciliation.isBalanced ? null : (
@@ -284,6 +294,7 @@ function PaymentAmountField({
   onChange,
   onCommit,
   rowNumber,
+  isIncomePayment,
 }: {
   name: string | undefined;
   amount: string;
@@ -291,6 +302,7 @@ function PaymentAmountField({
   onChange: (amount: string) => void;
   onCommit: () => void;
   rowNumber: number;
+  isIncomePayment: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -309,8 +321,10 @@ function PaymentAmountField({
       onChange={(event) => onChange(event.target.value)}
       slotProps={{
         htmlInput: {
-          "aria-label":
-            transactionPaymentFieldsMessages.paymentAmountLabel(rowNumber),
+          "aria-label": transactionPaymentFieldsMessages.paymentAmountLabel(
+            rowNumber,
+            isIncomePayment,
+          ),
           "data-amount-currency": currency ?? "",
           "data-amount-input": "true",
           inputMode: "decimal" as const,

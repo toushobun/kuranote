@@ -195,6 +195,59 @@ returns text language sql immutable as $$
     );
 $$;
 
+-- #1044：分笔收入仍由同一个 RPC 保存，每行金额按收入方向增加账户余额。
+create function pg_temp.income_payments(p_first numeric, p_second numeric) returns jsonb
+language sql immutable as $$
+    select jsonb_build_array(
+        jsonb_build_object('accountId', '00000000-0000-4000-8000-000000000043', 'amount', p_first),
+        jsonb_build_object('accountId', '00000000-0000-4000-8000-000000000044', 'amount', p_second)
+    );
+$$;
+
+insert into payment_test_ids
+select 'multi_income', public.create_transaction(
+    '00000000-0000-4000-8000-000000000032', 'income', '2099-04-02 00:00:00+00',
+    pg_temp.items(100, '00000000-0000-4000-8000-000000005002'),
+    pg_temp.income_payments(60, 40),
+    '00000000-0000-4000-8000-000000001001', '#1044 多账户收入'
+);
+select results_eq(
+    $$select amount, balance_delta from public.transaction_payment
+      where transaction_record_id = pg_temp.rid('multi_income') order by sort_order$$,
+    $$values (60::numeric, 60::numeric), (40::numeric, 40::numeric)$$,
+    '纯收入多账户写入两笔正向流水'
+);
+select is(pg_temp.delta('00000000-0000-4000-8000-000000000043'), 60::numeric, '首个账户收到 60');
+select is(pg_temp.delta('00000000-0000-4000-8000-000000000044'), 40::numeric, '第二个账户收到 40');
+
+reset role;
+select throws_ok(
+    format('select pg_temp.check_after(%L)',
+        format('update public.transaction_payment set balance_delta = -amount where transaction_record_id = %L',
+            pg_temp.rid('multi_income'))),
+    '22023', 'payment_multi_account_not_allowed', '纯收入加流出付款被触发器拒绝'
+);
+set local role authenticated;
+
+select lives_ok(
+    $$select public.update_transaction(
+        '00000000-0000-4000-8000-000000000032', pg_temp.rid('multi_income'),
+        'income', '2099-04-02 00:00:00+00',
+        pg_temp.items(110, '00000000-0000-4000-8000-000000005002'),
+        pg_temp.income_payments(30, 80),
+        '00000000-0000-4000-8000-000000001001', '#1044 编辑多账户收入'
+    )$$,
+    '编辑多账户收入的金额和账户分配'
+);
+select is(pg_temp.delta('00000000-0000-4000-8000-000000000043'), 30::numeric, '编辑按差额扣回首个账户');
+select is(pg_temp.delta('00000000-0000-4000-8000-000000000044'), 80::numeric, '编辑按差额增加第二个账户');
+select lives_ok(
+    $$select public.void_transaction('00000000-0000-4000-8000-000000000032', pg_temp.rid('multi_income'))$$,
+    '删除多账户收入记录'
+);
+select is(pg_temp.delta('00000000-0000-4000-8000-000000000043'), 0::numeric, '删除回滚首个账户的收入');
+select is(pg_temp.delta('00000000-0000-4000-8000-000000000044'), 0::numeric, '删除回滚第二个账户的收入');
+
 select throws_ok(pg_temp.create_sql('[]'), '22023', 'payment_required', '付款明细不能为空');
 select throws_ok(
     pg_temp.create_sql(pg_temp.pay('00000000-0000-4000-8000-0000000099ff')),
@@ -221,7 +274,7 @@ select throws_ok(
         '[{"accountId":"00000000-0000-4000-8000-000000000043","amount":"60"},{"accountId":"00000000-0000-4000-8000-000000000044","amount":"40"}]',
         '[{"amount":"100","categoryId":"00000000-0000-4000-8000-000000005021"},{"amount":"0","categoryId":"00000000-0000-4000-8000-000000005002"}]'
     ),
-    '22023', 'payment_multi_account_not_allowed', '含收入明细的记录不能多账户付款'
+    '22023', 'payment_multi_account_not_allowed', '收支混合记录不能使用多个账户'
 );
 select throws_ok(
     pg_temp.create_sql('[{"accountId":"00000000-0000-4000-8000-000000000043","amount":"60"},{"accountId":"00000000-0000-4000-8000-000000000042","amount":"40"}]'),

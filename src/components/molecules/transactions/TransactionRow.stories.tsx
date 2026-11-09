@@ -372,6 +372,27 @@ export const SharedPaymentAccountShare: Story = {
   },
 };
 
+export const MultiAccountIncome: Story = {
+  name: "筛选账户：多账户收入份额",
+  args: {
+    item: {
+      ...sharedPaymentAccountShareRowItem,
+      type: "income",
+      amount: "7000",
+      categoryItems: [
+        {
+          amount: "10000",
+          categoryName: "积分返还",
+          categoryType: "income",
+          parentCategoryName: "其他收入",
+        },
+      ],
+      merchant_name: "7-Eleven",
+      record_total_amount: "10000",
+    },
+  },
+};
+
 export const SharedPaymentMatchedItems: Story = {
   name: "筛选账户 + 分类：主金额为明细全额，只显示整笔",
   args: {

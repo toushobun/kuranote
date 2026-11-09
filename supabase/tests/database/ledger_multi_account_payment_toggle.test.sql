@@ -38,6 +38,14 @@ values (
     '93120000-0000-4000-8000-000000000002', 'expense', '治疗费'
 );
 
+insert into public.category (id, ledger_id, type, name)
+values ('93120000-0000-4000-8000-000000000004', '93100000-0000-4000-8000-000000000001', 'income', '其他收入');
+insert into public.category (id, ledger_id, parent_id, type, name)
+values (
+    '93120000-0000-4000-8000-000000000003', '93100000-0000-4000-8000-000000000001',
+    '93120000-0000-4000-8000-000000000004', 'income', '退回款项'
+);
+
 insert into public.merchant (id, ledger_id, name, created_by, updated_by)
 values (
     '93130000-0000-4000-8000-000000000001', '93100000-0000-4000-8000-000000000001', '医院',
@@ -82,9 +90,9 @@ language sql immutable as $$
         'select public.update_transaction(%L, %L, %L, %L, %L::jsonb, %L::jsonb, %L, %L)',
         '93100000-0000-4000-8000-000000000001',
         p_record_id,
-        'expense',
+        'income',
         '2099-06-01 00:00:00+00',
-        '[{"amount":"1000","categoryId":"93120000-0000-4000-8000-000000000001"}]',
+        '[{"amount":"1000","categoryId":"93120000-0000-4000-8000-000000000003"}]',
         p_payments,
         '93130000-0000-4000-8000-000000000001',
         '#931'
@@ -182,7 +190,7 @@ select lives_ok(pg_temp.toggle_sql(true), '没有多账户记录时可以开启'
 set local role authenticated;
 select lives_ok(
     pg_temp.update_sql(pg_temp.rid('single'), pg_temp.split_payments()),
-    '开关开启后可以把记录改为多个付款账户'
+    '开关开启后可以把记录改为多账户收入'
 );
 select is(
     (select count(*)::integer from public.transaction_payment where transaction_record_id = pg_temp.rid('single')),
@@ -193,7 +201,7 @@ select is(
 reset role;
 select throws_ok(
     pg_temp.toggle_sql(false),
-    '55006', 'multi_account_payment_has_records', '有有效的多账户记录时不能关闭'
+    '55006', 'multi_account_payment_has_records', '只有一笔多账户收入记录也不能关闭'
 );
 select lives_ok(
     $$update public.ledger set name = '多账户付款开关测试（改名）' where id = '93100000-0000-4000-8000-000000000001'$$,

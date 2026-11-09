@@ -31,10 +31,10 @@ export const ledgerFeatureSettingMessages = {
   loadFailed: "功能设置加载失败，请稍后重试。",
   loading: "正在加载功能设置…",
   multiAccountPayment: {
-    description: "一笔支出可以由多个同币种账户共同支付，并分别填写金额。",
-    disabledDescription: "关闭时每笔记录只能选择一个付款账户。",
+    description: "纯收入或纯支出的记录可以使用多个同币种账户，并分别填写金额。",
+    disabledDescription: "关闭时每笔记录只能选择一个账户。",
     enabledDescription:
-      "如果账本内已有使用多个付款账户的记录，将无法关闭；请先把这些记录改为单个付款账户。",
+      "如果账本内已有使用多个账户的记录，将无法关闭；请先把这些记录改为单个账户。",
     sectionTitle: "多账户付款",
     switchLabel: "启用多账户付款",
   },

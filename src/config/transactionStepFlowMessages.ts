@@ -63,28 +63,20 @@ export const flowMessages = {
   editAmount: (index: number, amount: string) =>
     `修改明细 ${index} 金额：${amount}`,
   removeItem: (index: number) => `删除明细 ${index}`,
-  addPayment: "添加付款账户",
-  mixedPaymentHint: "同时记录收入和支出时，仅允许记录在一个账户上",
   chooseAccount: "选择收支账户",
   // 只读小票里不在可选账户中的付款账户（已归档）。
   archivedAccount: "已归档账户",
-  changePaymentAccount: (index: number) => `更换支付账户 ${index}`,
-  editPaymentAmount: (index: number, amount: string) =>
-    `修改支付账户 ${index} 金额：${amount}`,
-  removePayment: (index: number) => `删除支付账户 ${index}`,
-  paymentReconciliation: (
-    paymentTotal: string,
-    itemTotal: string,
-    balanced: boolean,
-  ) =>
-    balanced
-      ? `✓ 付款合计 ${paymentTotal} = 明细合计 ${itemTotal}`
-      : `付款合计 ${paymentTotal} / 明细合计 ${itemTotal}`,
+  changePaymentAccount: (index: number, income: boolean) =>
+    `更换${income ? "收款" : "支付"}账户 ${index}`,
+  editPaymentAmount: (index: number, amount: string, income: boolean) =>
+    `修改${income ? "收款" : "支付"}账户 ${index} 金额：${amount}`,
+  removePayment: (index: number, income: boolean) =>
+    `删除${income ? "收款" : "支付"}账户 ${index}`,
   merchant: "商家",
   note: "备注",
   time: "时间",
   addNote: "添加备注",
-  payment: "支付",
+  payment: (income: boolean) => (income ? "收款" : "支付"),
   editReceiptRow: (label: string, value: string) => `修改${label}：${value}`,
   noteLimit: 2000,
   noteCount: (count: number) => `${count} / 2000`,
@@ -94,7 +86,8 @@ export const flowMessages = {
   delete: "删除",
   saving: "保存中…",
   selectMerchant: "请选择商家",
-  selectAccount: "请添加付款账户",
+  selectAccount: (income: boolean) =>
+    income ? "请添加收款账户" : "请添加付款账户",
   missingItems: "请添加明细",
   invalidItems: "请完善明细分类和金额",
   missingAmounts: (count: number) =>
@@ -102,7 +95,8 @@ export const flowMessages = {
   excessDecimals: (count: number) =>
     `${count} 条明细金额的小数位超出当前币种，点一下重新输入`,
   excessDecimalsHint: "新币种不支持这么多位小数，请重新输入",
-  unbalanced: "付款账户未对上，点一下去调整",
+  unbalanced: (income: boolean) =>
+    income ? "收款账户未对上，点一下去调整" : "付款账户未对上，点一下去调整",
   checkAccount: "请完善收支账户，点一下去填写",
   invalidTime: "请选择有效时间",
 

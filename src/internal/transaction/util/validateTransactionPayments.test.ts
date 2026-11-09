@@ -33,17 +33,20 @@ describe("validateTransactionPayments", () => {
     expect(result).toEqual({ ok: true });
   });
 
-  it("多账户金额为 0 的行保留，不视为异常", () => {
-    const result = validateTransactionPayments({
-      accountOptions,
-      items: [expenseItem("120")],
-      payments: [
-        { accountId: accountId1, amount: "0" },
-        { accountId: accountId2, amount: "120" },
-      ],
-    });
-    expect(result).toEqual({ ok: true });
-  });
+  it.each([expenseItem, incomeItem])(
+    "同向多账户金额为 0 的行保留，不视为异常",
+    (item) => {
+      const result = validateTransactionPayments({
+        accountOptions,
+        items: [item("120")],
+        payments: [
+          { accountId: accountId1, amount: "0" },
+          { accountId: accountId2, amount: "120" },
+        ],
+      });
+      expect(result).toEqual({ ok: true });
+    },
+  );
 
   it("重复账户返回 paymentAccountDuplicate", () => {
     const result = validateTransactionPayments({
@@ -87,7 +90,7 @@ describe("validateTransactionPayments", () => {
     });
   });
 
-  it("含收入明细时多账户返回 paymentMultiAccountNotAllowed", () => {
+  it("收支混合时多账户返回 paymentMultiAccountNotAllowed", () => {
     const result = validateTransactionPayments({
       accountOptions,
       items: [expenseItem("40"), incomeItem("40")],

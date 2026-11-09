@@ -71,7 +71,10 @@ export type { BalanceAdjustmentEditInitialValues } from "internal/transaction/en
 export type { TransactionExportRecord } from "internal/transaction/entity/transactionExportRecord";
 export type { TransactionExportQueryService } from "internal/transaction/service/transactionExportQueryService";
 
-export { validateTransactionPayments } from "internal/transaction/util/validateTransactionPayments";
+export {
+  getMultiAccountItemType,
+  validateTransactionPayments,
+} from "internal/transaction/util/validateTransactionPayments";
 export { transactionPaymentValidationErrorMessages } from "internal/transaction/errors";
 
 export type { MerchantEntryQueryService } from "internal/transaction/service/merchantEntryQueryService";

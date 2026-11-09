@@ -19,12 +19,22 @@ export type TransactionPaymentValidationResult =
   | { ok: true }
   | { ok: false; error: TransactionPaymentValidationErrorCode };
 
+/** 多账户记录的明细必须属于同一个收支方向。 */
+export function getMultiAccountItemType(
+  items: readonly Pick<TransactionPaymentValidationItem, "categoryType">[],
+) {
+  const type = items[0]?.categoryType;
+  return type && items.every((item) => item.categoryType === type)
+    ? type
+    : null;
+}
+
 // 与金额字段的存储精度（numeric(14,2)）保持一致，多账户金额最多两位小数。
 const moneyPrecisionPattern = /^\d+(\.\d{1,2})?$/;
 
 /**
- * 普通记录付款明细的纯数据校验：账户去重、归档、同币种、多行时全部为支出
- * 明细、付款合计 = 支出明细合计。与数据库延迟约束触发器规则一致（第二道
+ * 普通记录付款明细的纯数据校验：账户去重、归档、同币种、多行时明细同向、
+ * 账户金额合计 = 明细合计。账户金额为非负值，写入时由 RPC 按明细推导流向。与数据库延迟约束触发器规则一致（第二道
  * 防线），零 IO，供 Service 与前端 hook（#915）共同复用。
  */
 export function validateTransactionPayments({
@@ -53,7 +63,7 @@ export function validateTransactionPayments({
   // 单账户：金额由 RPC 按明细推导，这里不需要进一步校验。
   if (payments.length <= 1) return { ok: true };
 
-  if (items.some((item) => item.categoryType !== "expense")) {
+  if (!getMultiAccountItemType(items)) {
     return {
       error: transactionErrorCodes.paymentMultiAccountNotAllowed,
       ok: false,

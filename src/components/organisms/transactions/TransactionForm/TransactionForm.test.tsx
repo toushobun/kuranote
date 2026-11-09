@@ -930,7 +930,7 @@ describe("TransactionForm", () => {
 
       expect(
         within(container).getByText(
-          "选择多个付款账户时，每个账户的金额都必须填写。",
+          "选择多个账户时，每个账户的金额都必须填写。",
         ),
       ).toBeInTheDocument();
       expect(action).not.toHaveBeenCalled();
@@ -957,7 +957,7 @@ describe("TransactionForm", () => {
         screen.getByRole("button", { name: "固定收入 · 工资" }),
       ).toHaveAttribute("aria-disabled", "true");
       expect(
-        screen.getByText("多账户付款时只能添加支出明细。"),
+        screen.getByText("多个账户时，收入和支出不能混在一起。"),
       ).toBeInTheDocument();
 
       fireEvent.click(screen.getByRole("button", { name: "关闭" }));
@@ -972,49 +972,48 @@ describe("TransactionForm", () => {
       expect(screen.getByRole("button", { name: "固定收入" })).toBeEnabled();
     });
 
-    describe("已有收入明细时添加付款账户", () => {
-      function getItemAmountButtons(container: HTMLElement) {
-        return container.querySelectorAll(
+    it("纯收入可以追加收款账户并保留收入明细", async () => {
+      const { container } = await renderMultiAccountForm({
+        fixture: { ...createNewTransactionFixture(), items: [] },
+      });
+      addIncomeItem(container);
+      fireEvent.click(
+        within(container).getByRole("button", {
+          hidden: true,
+          name: "添加收款账户",
+        }),
+      );
+      expect(getFieldValues(container, "paymentAmount")).toEqual(["300", "0"]);
+      expect(
+        screen.getByText("收款合计 ¥300 / 明细合计 ¥300"),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("textbox", { hidden: true, name: "收款金额 1" }),
+      ).toHaveValue("300");
+      openSheet(container);
+      expect(screen.getByRole("button", { name: "固定收入" })).toBeEnabled();
+    });
+
+    it("收支混合时保留单账户和两类明细，并显示说明", async () => {
+      const { container } = await renderMultiAccountForm({
+        fixture: createNewTransactionFixture(),
+      });
+      addIncomeItem(container);
+      expect(
+        within(container).queryByRole("button", {
+          hidden: true,
+          name: /添加[付收]款账户/,
+        }),
+      ).toBeNull();
+      expect(
+        screen.getByText("同时记录收入和支出时，仅允许记录在一个账户上"),
+      ).toBeInTheDocument();
+      expect(getFieldValues(container, "accountId")).toEqual([cash!.id]);
+      expect(
+        container.querySelectorAll(
           'button[aria-label^="编辑明细"][aria-label$="金额"]',
-        );
-      }
-      async function clickAddPaymentWithIncome(container: HTMLElement) {
-        addIncomeItem(container);
-        clickAddPayment(container);
-        return screen.findByRole("dialog", { name: "删除收入明细？" });
-      }
-
-      it("确认后删除收入明细并进入多账户，首行预填支出合计", async () => {
-        const { container } = await renderMultiAccountForm({
-          fixture: createNewTransactionFixture(),
-        });
-        const dialog = await clickAddPaymentWithIncome(container);
-
-        fireEvent.click(
-          within(dialog).getByRole("button", { name: "删除收入明细" }),
-        );
-
-        await waitFor(() =>
-          expect(getFieldValues(container, "paymentAmount")).toEqual([
-            "1200",
-            "0",
-          ]),
-        );
-        expect(getItemAmountButtons(container)).toHaveLength(1);
-      });
-
-      it("取消后保持单账户与收入明细", async () => {
-        const { container } = await renderMultiAccountForm({
-          fixture: createNewTransactionFixture(),
-        });
-        const dialog = await clickAddPaymentWithIncome(container);
-
-        fireEvent.click(within(dialog).getByRole("button", { name: "取消" }));
-
-        await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-        expect(getFieldValues(container, "accountId")).toEqual([cash!.id]);
-        expect(getItemAmountButtons(container)).toHaveLength(2);
-      });
+        ),
+      ).toHaveLength(2);
     });
 
     it("保存前汇总显示首个账户与账户数", async () => {

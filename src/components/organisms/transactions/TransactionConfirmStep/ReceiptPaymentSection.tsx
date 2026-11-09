@@ -1,6 +1,7 @@
 "use client";
 import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
 import { ReceiptAddButton } from "./ReceiptAddButton";
+import { TransactionMixedPaymentHint } from "atoms/transactions/TransactionMixedPaymentHint";
 import Typography from "@mui/material/Typography";
 import { AccountTypeIcon } from "atoms/accounts/AccountTypeIcon/AccountTypeIcon";
 import { flowMessages as m } from "config/transactionStepFlowMessages";
@@ -49,6 +50,7 @@ export function ReceiptPaymentSection({
   onRemove: (key: number) => void;
 }) {
   const currency = form.selectedAccount?.currency ?? "";
+  const income = form.isIncomePayment;
   const reconciliation = form.paymentReconciliation;
   const reconciliationError =
     reconciliationInvalid && !reconciliation.isBalanced;
@@ -91,7 +93,7 @@ export function ReceiptPaymentSection({
                 />
               ) : !account ? null : form.isMultiAccount ? (
                 <ReceiptAmountButton
-                  label={m.editPaymentAmount(index + 1, amount)}
+                  label={m.editPaymentAmount(index + 1, amount, income)}
                   amount={amount}
                   pending={invalid && !payment.amount.trim()}
                   onClick={() => onAmount(payment.key)}
@@ -101,9 +103,9 @@ export function ReceiptPaymentSection({
               )
             }
             {...(!readOnly && {
-              editLabel: m.changePaymentAccount(index + 1),
+              editLabel: m.changePaymentAccount(index + 1, income),
               onEdit: () => onChangeAccount(payment.key),
-              removeLabel: m.removePayment(index + 1),
+              removeLabel: m.removePayment(index + 1, income),
               onRemove: () => onRemove(payment.key),
             })}
           />
@@ -124,9 +126,10 @@ export function ReceiptPaymentSection({
                 : { color: "text.secondary" },
           ]}
         >
-          {m.paymentReconciliation(
+          {transactionPaymentFieldsMessages.reconciliation(
             format(reconciliation.paymentTotal),
             format(reconciliation.itemTotal),
+            income,
             reconciliation.isBalanced,
           )}
           {!reconciliation.isBalanced &&
@@ -134,17 +137,12 @@ export function ReceiptPaymentSection({
         </Typography>
       )}
       {canAddPayment && (
-        <ReceiptAddButton label={m.addPayment} onClick={onAddPayment} />
+        <ReceiptAddButton
+          label={transactionPaymentFieldsMessages.addPayment(income)}
+          onClick={onAddPayment}
+        />
       )}
-      {showMixedPaymentHint && (
-        <Typography
-          variant="caption"
-          color="textSecondary"
-          sx={{ display: "block", textAlign: "center", py: 1 }}
-        >
-          {m.mixedPaymentHint}
-        </Typography>
-      )}
+      {showMixedPaymentHint && <TransactionMixedPaymentHint />}
     </>
   );
 }

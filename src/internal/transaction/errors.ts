@@ -87,14 +87,14 @@ export const transactionPaymentMessages = {
   [transactionErrorCodes.paymentAccountDuplicate]:
     "同一笔记录不能重复选择相同账户。",
   [transactionErrorCodes.paymentAmountRequired]:
-    "选择多个付款账户时，每个账户的金额都必须填写。",
-  [transactionErrorCodes.paymentCurrencyMismatch]: "付款账户的币种必须一致。",
+    "选择多个账户时，每个账户的金额都必须填写。",
+  [transactionErrorCodes.paymentCurrencyMismatch]: "多个账户的币种必须一致。",
   [transactionErrorCodes.paymentMultiAccountDisabled]:
-    "本账本未开启多账户付款，请在账本设置中开启后再选择多个付款账户。",
+    "本账本未开启多账户付款，请在账本设置中开启后再选择多个账户。",
   [transactionErrorCodes.paymentMultiAccountNotAllowed]:
-    "含收入明细的记录只能选择一个付款账户。",
+    "多个账户时，收入和支出不能混在一起，账户收付方向须与明细一致。",
   [transactionErrorCodes.paymentTotalMismatch]:
-    "付款金额合计必须等于支出明细合计。",
+    "账户金额合计必须等于明细合计。",
 } as const;
 
 export const transactionValidationErrorMessages: Record<

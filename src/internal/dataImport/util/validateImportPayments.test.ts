@@ -21,13 +21,19 @@ describe("validateImportPayments", () => {
   it("合法多账户付款通过", () => {
     expect(validateImportPayments(items())).toBeNull();
   });
-  it.each(["total", "currency", "income", "duplicate"])(
+  it("全收入的多账户记录通过", () => {
+    const rows = items();
+    rows[0].transactionType = "income";
+    expect(validateImportPayments(rows)).toBeNull();
+  });
+  it.each(["total", "currency", "mixed", "duplicate"])(
     "拒绝多账户规则违反：%s",
     (kind) => {
       const rows = items();
       if (kind === "total") rows[0].amount = 3501;
       if (kind === "currency") rows[0].payments[1].accountCurrency = "CNY";
-      if (kind === "income") rows[0].transactionType = "income";
+      if (kind === "mixed")
+        rows.push({ ...rows[0], amount: 0, transactionType: "income" });
       if (kind === "duplicate") rows[0].payments[1].accountName = "钱包";
       expect(validateImportPayments(rows)).toEqual(expect.any(String));
     },
