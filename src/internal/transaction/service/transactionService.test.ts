@@ -898,7 +898,7 @@ describe("付款明细校验（create / update）", () => {
     expect(repository.createNormal).not.toHaveBeenCalled();
   });
 
-  it("新建交易时含收入明细的记录拒绝多账户付款", async () => {
+  it("新建交易时收支混合的记录拒绝使用多账户", async () => {
     const incomeCategoryId = "00000000-0000-4000-8000-000000005099";
     const repository = createRepository();
     const categoryQueryService = {

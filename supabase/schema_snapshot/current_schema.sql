@@ -5907,6 +5907,8 @@ declare
     v_account_id uuid;
     v_amount numeric;
     v_delta numeric(14,2);
+    v_item_delta_total numeric;
+    v_items_all_income boolean;
     v_new_account_ids uuid[];
     v_new_deltas numeric(14,2)[] := array[]::numeric(14,2)[];
     v_old_account_ids uuid[];
@@ -5917,18 +5919,20 @@ declare
 begin
     v_new_account_ids := public.transaction_payment_account_ids(p_ledger_id, p_payments);
 
-    if array_length(v_new_account_ids, 1) = 1 then
-        -- 单账户不提交金额：余额变动 = Σ收入明细 − Σ支出明细，与逐条明细 ±金额 的合计一致。
-        select coalesce(sum(case when c.type = 'income' then ti.amount else -ti.amount end), 0)
-        into v_delta
-        from public.transaction_item ti
-        join public.category c
-          on c.id = ti.category_id
-         and c.ledger_id = ti.ledger_id
-        where ti.transaction_record_id = p_transaction_record_id
-          and ti.ledger_id = p_ledger_id;
+    select
+        coalesce(sum(case when c.type = 'income' then ti.amount else -ti.amount end), 0),
+        coalesce(bool_and(c.type = 'income'), false)
+    into v_item_delta_total, v_items_all_income
+    from public.transaction_item ti
+    join public.category c
+      on c.id = ti.category_id
+     and c.ledger_id = ti.ledger_id
+    where ti.transaction_record_id = p_transaction_record_id
+      and ti.ledger_id = p_ledger_id;
 
-        v_new_deltas := array[v_delta];
+    if array_length(v_new_account_ids, 1) = 1 then
+        -- 单账户不提交金额：余额变动 = 收入合计 − 支出合计。
+        v_new_deltas := array[v_item_delta_total::numeric(14,2)];
     else
         -- 账本关闭多账户付款时拒绝多行（#931）。与 prevent_disable_multi_account_payment_with_records
         -- 互斥：锁住账本行，避免关闭开关与保存多账户记录并发时两边都通过检查。
@@ -5945,7 +5949,7 @@ begin
                 using errcode = '22023', detail = 'payment_multi_account_disabled';
         end if;
 
-        -- 多账户：每行必须提交金额，全部记为支出。
+        -- 多账户金额为非负数。纯收入记为流入，混合明细由延迟约束拒绝。
         for v_payment_index in 0..array_length(v_new_account_ids, 1) - 1
         loop
             begin
@@ -5965,7 +5969,10 @@ begin
                     using errcode = '22023', detail = 'amount_invalid';
             end if;
 
-            v_new_deltas := array_append(v_new_deltas, (-v_amount)::numeric(14,2));
+            v_new_deltas := array_append(
+                v_new_deltas,
+                (case when v_items_all_income then v_amount else -v_amount end)::numeric(14,2)
+            );
         end loop;
     end if;
 
@@ -8797,8 +8804,10 @@ declare
     v_payment_delta_total numeric;
     v_payment_currency_count integer;
     v_payments_all_outflow boolean;
+    v_payments_all_inflow boolean;
     v_item_delta_total numeric;
-    v_has_non_expense_item boolean;
+    v_items_all_expense boolean;
+    v_items_all_income boolean;
 begin
     if tg_table_name = 'transaction_record' then
         v_record_ids := array[new.id];
@@ -8823,12 +8832,14 @@ begin
             count(*)::integer,
             coalesce(sum(p.balance_delta), 0),
             count(distinct a.currency)::integer,
-            coalesce(bool_and(p.balance_delta = -p.amount), true)
+            bool_and(p.balance_delta = -p.amount),
+            bool_and(p.balance_delta = p.amount)
         into
             v_payment_count,
             v_payment_delta_total,
             v_payment_currency_count,
-            v_payments_all_outflow
+            v_payments_all_outflow,
+            v_payments_all_inflow
         from public.transaction_payment p
         join public.account a
           on a.id = p.account_id
@@ -8854,8 +8865,9 @@ begin
 
         select
             coalesce(sum(case when c.type = 'income' then ti.amount else -ti.amount end), 0),
-            coalesce(bool_or(c.type is distinct from 'expense'), false)
-        into v_item_delta_total, v_has_non_expense_item
+            coalesce(bool_and(c.type is not distinct from 'expense'), false),
+            coalesce(bool_and(c.type is not distinct from 'income'), false)
+        into v_item_delta_total, v_items_all_expense, v_items_all_income
         from public.transaction_item ti
         left join public.category c
           on c.id = ti.category_id
@@ -8863,15 +8875,17 @@ begin
         where ti.transaction_record_id = v_record.id
           and ti.ledger_id = v_record.ledger_id;
 
+        if v_payment_count > 1 and not (
+            (v_items_all_expense and v_payments_all_outflow)
+            or (v_items_all_income and v_payments_all_inflow)
+        ) then
+            raise exception 'payment_multi_account_not_allowed'
+                using errcode = '22023', detail = 'payment_multi_account_not_allowed';
+        end if;
+
         if v_payment_delta_total <> v_item_delta_total then
             raise exception 'payment_total_mismatch'
                 using errcode = '22023', detail = 'payment_total_mismatch';
-        end if;
-
-        if v_payment_count > 1
-           and (v_has_non_expense_item or not v_payments_all_outflow) then
-            raise exception 'payment_multi_account_not_allowed'
-                using errcode = '22023', detail = 'payment_multi_account_not_allowed';
         end if;
 
         if v_payment_currency_count > 1 then

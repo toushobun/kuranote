@@ -101,7 +101,7 @@ type TransactionItemPickerDrawerProps = {
   specialStatusLocked?: boolean;
   incomeLinksEnabled?: boolean;
   /** 多账户付款时禁用收入分类（多账户仅限纯支出，#930）。 */
-  incomeCategoriesDisabled?: boolean;
+  disabledCategoryType?: "income" | "expense";
 };
 
 export function TransactionItemPickerDrawer({
@@ -142,7 +142,7 @@ export function TransactionItemPickerDrawer({
   specialStatusEnabled = false,
   specialStatusLocked = false,
   incomeLinksEnabled = true,
-  incomeCategoriesDisabled = false,
+  disabledCategoryType,
 }: TransactionItemPickerDrawerProps) {
   useBackLayer(open, closeDrawer);
   const selectedCategoryType = filteredCategoryOptions.find(
@@ -201,7 +201,7 @@ export function TransactionItemPickerDrawer({
     ),
   );
   const isCategoryDisabled = (category: TransactionCategoryOption) =>
-    incomeCategoriesDisabled && category.type === "income";
+    category.type === disabledCategoryType;
   const quickCategories = frequentCategoryIds.flatMap((categoryId) => {
     const categoryWithGroup = categoryWithGroupById.get(categoryId);
     return categoryWithGroup ? [categoryWithGroup] : [];
@@ -438,9 +438,9 @@ export function TransactionItemPickerDrawer({
               )}
             </Collapse>
 
-            {incomeCategoriesDisabled ? (
+            {disabledCategoryType ? (
               <Typography color="textSecondary" variant="caption">
-                {transactionPaymentFieldsMessages.incomeCategoriesDisabled}
+                {transactionPaymentFieldsMessages.categoryTypeRestricted}
               </Typography>
             ) : null}
 

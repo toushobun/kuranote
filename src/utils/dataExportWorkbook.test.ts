@@ -182,68 +182,75 @@ describe("dataExportWorkbook", () => {
     );
   });
 
-  it("多账户分号格式真实往返保留账户、持有人、金额及顺序，后续行继承首行", async () => {
-    const data = createDataExportFixture();
-    const normal = data.records[0];
-    if (normal.type !== "normal") throw new Error("测试数据不正确");
-    normal.items = [
-      { categoryId: "lunch", amount: "50" },
-      { categoryId: "lunch", amount: "30" },
-    ];
-    normal.payments = [
-      { accountId: "none", amount: "50" },
-      { accountId: "bank", amount: "30" },
-    ];
-    data.accounts[2].currency = "JPY";
-    data.records = [normal];
-    const workbook = await loadWorkbook(data);
-    expect(workbook.worksheets.map((sheet) => sheet.name)).toEqual([
-      "收支",
-      "转账",
-      "余额变更",
-    ]);
-    const sheet = workbook.getWorksheet("收支")!;
-    expect(cell(sheet, 2, "账户").value).toBe("公共账户；存款");
-    expect(cell(sheet, 2, "账户持有人").value).toBe("；小红");
-    expect(cell(sheet, 2, "付款金额").value).toBe("50；30");
-    for (const name of [
-      "账户",
-      "账户持有人",
-      "账户币种",
-      "账户类型",
-      "付款金额",
-    ])
-      expect(cell(sheet, 3, name).value).toBe("-");
-    const { result, units } = await analyzeImportFile(
-      new File([await buildDataExportWorkbook(data)], "export.xlsx"),
-    );
-    expect(result.ok).toBe(true);
-    expect(units).toHaveLength(1);
-    expect(units[0]).toMatchObject({
-      group: {
-        rowNumbers: [2, 3],
-        items: [
-          {
-            payments: [
-              {
-                accountName: "公共账户",
-                accountHolder: null,
-                amount: "50",
-                accountType: "other",
-              },
-              {
-                accountName: "存款",
-                accountHolder: "小红",
-                amount: "30",
-                accountType: "bank",
-              },
-            ],
-          },
-          { amount: 30 },
-        ],
-      },
-    });
-  });
+  it.each([
+    { categoryId: "lunch", type: "expense", label: "支出" },
+    { categoryId: "salary", type: "income", label: "收入" },
+  ])(
+    "多账户$label分号格式往返保留账户、持有人、金额及顺序",
+    async ({ categoryId, type, label }) => {
+      const data = createDataExportFixture();
+      const normal = data.records[0];
+      if (normal.type !== "normal") throw new Error("测试数据不正确");
+      normal.items = [
+        { categoryId, amount: "50" },
+        { categoryId, amount: "30" },
+      ];
+      normal.payments = [
+        { accountId: "none", amount: "50" },
+        { accountId: "bank", amount: "30" },
+      ];
+      data.accounts[2].currency = "JPY";
+      data.records = [normal];
+      const workbook = await loadWorkbook(data);
+      expect(workbook.worksheets.map((sheet) => sheet.name)).toEqual([
+        "收支",
+        "转账",
+        "余额变更",
+      ]);
+      const sheet = workbook.getWorksheet("收支")!;
+      expect(cell(sheet, 2, "账户").value).toBe("公共账户；存款");
+      expect(cell(sheet, 2, "账户持有人").value).toBe("；小红");
+      expect(cell(sheet, 2, "付款金额").value).toBe("50；30");
+      expect(cell(sheet, 2, "交易类型").value).toBe(label);
+      for (const name of [
+        "账户",
+        "账户持有人",
+        "账户币种",
+        "账户类型",
+        "付款金额",
+      ])
+        expect(cell(sheet, 3, name).value).toBe("-");
+      const { result, units } = await analyzeImportFile(
+        new File([await buildDataExportWorkbook(data)], "export.xlsx"),
+      );
+      expect(result.ok).toBe(true);
+      expect(units).toHaveLength(1);
+      expect(units[0]).toMatchObject({
+        group: {
+          rowNumbers: [2, 3],
+          items: [
+            {
+              payments: [
+                {
+                  accountName: "公共账户",
+                  accountHolder: null,
+                  amount: "50",
+                  accountType: "other",
+                },
+                {
+                  accountName: "存款",
+                  accountHolder: "小红",
+                  amount: "30",
+                  accountType: "bank",
+                },
+              ],
+            },
+            { amount: 30, transactionType: type },
+          ],
+        },
+      });
+    },
+  );
 
   it("单账户收支混合记录真实往返仍为一笔且没有付款金额列", async () => {
     const data = createDataExportFixture();

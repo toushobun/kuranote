@@ -60,7 +60,7 @@ export const ledgerSettingsErrorMessages: Record<
   [ledgerSettingsErrorCodes.ledgerInvalid]: "账本指定不正确。",
   [ledgerSettingsErrorCodes.memberInvalid]: "成员指定不正确。",
   [ledgerSettingsErrorCodes.multiAccountPaymentHasRecords]:
-    "账本内仍有使用多个付款账户的记录，请先把这些记录改为单个付款账户后再关闭该功能。",
+    "账本内仍有使用多个账户的记录，请先把这些记录改为单个账户后再关闭该功能。",
   [ledgerSettingsErrorCodes.nameRequired]:
     ledgerCreateErrorMessages[ledgerCreateErrorCodes.nameRequired],
   [ledgerSettingsErrorCodes.nameTooLong]:

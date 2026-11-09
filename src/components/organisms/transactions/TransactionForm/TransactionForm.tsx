@@ -106,7 +106,9 @@ export function TransactionForm({
     handleRemovePayment,
     handleSubmit,
     handleTimeChange,
-    isMultiAccount,
+    disabledCategoryType,
+    hasMixedPaymentItems,
+    isIncomePayment,
     isSheetOpen,
     isSubmitDisabled,
     linkNotice,
@@ -241,9 +243,11 @@ export function TransactionForm({
           <TransactionPaymentFields
             accountOptions={accountOptions}
             fieldError={fieldErrors.account}
+            hasMixedPaymentItems={hasMixedPaymentItems}
+            isIncomePayment={isIncomePayment}
             multiAccountPaymentEnabled={multiAccountPaymentEnabled}
             onAccountChange={handlePaymentAccountChange}
-            onAddPayment={() => void addPayment()}
+            onAddPayment={() => addPayment()}
             onAmountChange={handlePaymentAmountChange}
             onAmountCommit={handlePaymentAmountCommit}
             onRemovePayment={handleRemovePayment}
@@ -317,7 +321,7 @@ export function TransactionForm({
         frequentCategoryIds={frequentCategoryIds}
         linkNotice={linkNotice}
         filteredCategoryOptions={allNormalCategoryOptions}
-        incomeCategoriesDisabled={isMultiAccount}
+        disabledCategoryType={disabledCategoryType}
         editingItemId={editingItemId}
         onAmountChange={handlePickerAmountChange}
         onCategoryToggle={handlePickerCategoryToggle}

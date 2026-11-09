@@ -12,7 +12,6 @@ import {
 import { useDirtySnapshot } from "molecules/ui/UnsavedChangesDialog/useDirtySnapshot";
 
 import { useEditTransactionDirty } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
-import { useConfirmDialog } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import type {
   TransactionBusinessStatus,
   TransactionCategoryOption,
@@ -22,7 +21,6 @@ import type {
 import {
   transactionFormValidationMessages,
   transactionLinkMessages,
-  transactionPaymentFieldsMessages,
   type TransactionLinkKind,
 } from "utils/transactionMessages";
 import { getAmountDecimalPlaces } from "utils/transactionAmountInput";
@@ -33,6 +31,7 @@ import {
   summarizeReimbursementAllocationAmounts,
   toRefundMinorUnits,
   transactionPaymentValidationErrorMessages,
+  getMultiAccountItemType,
   validateTransactionPayments,
 } from "internal/transaction";
 import {
@@ -82,7 +81,6 @@ export function useTransactionForm({
   onPickerItemCommit,
 }: UseTransactionFormOptions) {
   const reportEditDirty = useEditTransactionDirty();
-  const confirm = useConfirmDialog();
   const nextItemIdRef = useRef((initialValues?.items.length ?? 0) + 1);
   const merchantFieldRef = useRef<HTMLDivElement>(null);
   const accountFieldRef = useRef<HTMLDivElement>(null);
@@ -194,6 +192,22 @@ export function useTransactionForm({
       category: categoryById.get(item.categoryId),
     }),
   );
+  const multiAccountItemType = getMultiAccountItemType(
+    itemSummaries.map(({ category }) => ({
+      categoryType: category?.type ?? null,
+    })),
+  );
+  const hasMixedPaymentItems =
+    itemsByType.expense.length > 0 && itemsByType.income.length > 0;
+  const isIncomePayment =
+    (multiAccountItemType ??
+      (allDisplayItems.length === 0 ? selectedType : null)) === "income";
+  const disabledCategoryType =
+    paymentFields.isMultiAccount && multiAccountItemType
+      ? multiAccountItemType === "income"
+        ? ("expense" as const)
+        : ("income" as const)
+      : undefined;
   const pickerSpecialStatusLocked = Boolean(
     allDisplayItems.find((item) => item.id === editingItemId)
       ?.specialStatusLocked,
@@ -579,30 +593,11 @@ export function useTransactionForm({
     });
   }
 
-  // 多账户仅限纯支出：已有收入明细时先确认删除收入明细，再展开为多账户（#930）。
-  async function addPayment(accountId?: string) {
-    const expenseItems = itemsByType.expense;
-    if (itemsByType.income.length > 0) {
-      const confirmed = await confirm({
-        confirmLabel: transactionPaymentFieldsMessages.removeIncomeItemsConfirm,
-        description:
-          transactionPaymentFieldsMessages.removeIncomeItemsDescription,
-        title: transactionPaymentFieldsMessages.removeIncomeItemsTitle,
-        tone: "delete",
-      });
-      if (!confirmed) return false;
-      setItemsByType((current) => ({ ...current, income: [] }));
-    }
+  function addPayment(accountId?: string) {
+    if (hasMixedPaymentItems) return false;
 
-    // 首行预填当前明细合计（单账户时它实际承担的金额，没有明细时为 0），新增行为 0。
-    paymentFields.addPayment(
-      reconcileTransactionPayments({
-        currency: selectedAccount?.currency,
-        itemAmounts: expenseItems.map((item) => item.amount),
-        payments: [],
-      }).itemTotal,
-      accountId,
-    );
+    // 首行预填明细合计（没有明细时为 0），新增行为 0。
+    paymentFields.addPayment(paymentReconciliation.itemTotal, accountId);
     clearAccountFieldError();
     return true;
   }
@@ -821,6 +816,9 @@ export function useTransactionForm({
     handleSubmit,
     handleTimeChange,
     isMultiAccount: paymentFields.isMultiAccount,
+    disabledCategoryType,
+    hasMixedPaymentItems,
+    isIncomePayment,
     isSheetOpen,
     isSubmitDisabled,
     linkNotice,

@@ -28,7 +28,7 @@ export function TransactionStepItemPicker(props: TransactionReceiptProps) {
       selectedAccountCurrency={f.selectedAccount?.currency}
       selectedCategoryGroup={f.selectedCategoryGroup}
       specialStatusEnabled={props.transactionItemSpecialStatusEnabled}
-      incomeCategoriesDisabled={f.isMultiAccount}
+      disabledCategoryType={f.disabledCategoryType}
       onAmountChange={f.handlePickerAmountChange}
       onCategoryToggle={f.handlePickerCategoryToggle}
       onGroupSelect={f.handlePickerGroupSelect}

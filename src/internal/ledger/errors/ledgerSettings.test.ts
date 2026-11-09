@@ -42,7 +42,7 @@ describe("ledgerSettingsErrorMessages", () => {
         ledgerSettingsErrorCodes.multiAccountPaymentHasRecords
       ],
     ).toBe(
-      "账本内仍有使用多个付款账户的记录，请先把这些记录改为单个付款账户后再关闭该功能。",
+      "账本内仍有使用多个账户的记录，请先把这些记录改为单个账户后再关闭该功能。",
     );
   });
 

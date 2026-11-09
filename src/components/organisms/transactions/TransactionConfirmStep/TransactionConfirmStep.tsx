@@ -263,7 +263,7 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
               </Stack>
               <Box ref={paymentSectionRef} tabIndex={-1} sx={sectionSx}>
                 <Typography variant="caption" sx={sectionTitleSx}>
-                  {m.payment}
+                  {m.payment(f.isIncomePayment)}
                 </Typography>
                 <ReceiptPaymentSection
                   form={f}

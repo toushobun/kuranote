@@ -109,42 +109,61 @@ describe("TransactionItemPickerDrawer", () => {
     expect(onCategoryToggle).toHaveBeenCalledWith("traffic-train");
   });
 
-  it("多账户付款时收入分类与对应常用快捷不可选，支出分类照常可选", () => {
-    render(
-      <TransactionItemPickerDrawer
-        categoryGroups={[...categoryGroups, incomeGroup]}
-        filteredCategoryOptions={[...categoryOptions, incomeCategory]}
-        frequentCategoryIds={["income-salary", "food-lunch"]}
-        incomeCategoriesDisabled
-        onAmountChange={vi.fn()}
-        onCategoryToggle={vi.fn()}
-        onClose={vi.fn()}
-        onGroupSelect={vi.fn()}
-        onPickerAdd={() => true}
-        onRemoveItem={vi.fn()}
-        open
-        pickerAmount=""
-        pickerCategoryId=""
-        pickerErrors={{}}
-        selectedCategoryGroup={incomeGroup}
-      />,
-    );
+  it.each([
+    {
+      type: "income",
+      group: incomeGroup,
+      enabledGroup: "餐饮",
+      disabledShortcut: "收入 · 工资",
+      enabledShortcut: "餐饮 · 午餐",
+    },
+    {
+      type: "expense",
+      group: categoryGroups[0],
+      enabledGroup: "收入",
+      disabledShortcut: "餐饮 · 午餐",
+      enabledShortcut: "收入 · 工资",
+    },
+  ] as const)(
+    "多账户时禁用 $type 分类与对应常用快捷",
+    ({ type, group, enabledGroup, disabledShortcut, enabledShortcut }) => {
+      render(
+        <TransactionItemPickerDrawer
+          categoryGroups={[...categoryGroups, incomeGroup]}
+          filteredCategoryOptions={[...categoryOptions, incomeCategory]}
+          frequentCategoryIds={["income-salary", "food-lunch"]}
+          disabledCategoryType={type}
+          onAmountChange={vi.fn()}
+          onCategoryToggle={vi.fn()}
+          onClose={vi.fn()}
+          onGroupSelect={vi.fn()}
+          onPickerAdd={() => true}
+          onRemoveItem={vi.fn()}
+          open
+          pickerAmount=""
+          pickerCategoryId=""
+          pickerErrors={{}}
+          selectedCategoryGroup={group}
+        />,
+      );
 
-    expect(screen.getByRole("button", { name: "收入 · 工资" })).toHaveAttribute(
-      "aria-disabled",
-      "true",
-    );
-    expect(
-      screen.getByRole("button", { name: "餐饮 · 午餐" }),
-    ).not.toHaveAttribute("aria-disabled");
-    fireEvent.click(screen.getByRole("button", { name: "选择更多分类" }));
-    expect(screen.getByRole("button", { name: "收入" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "工资" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "餐饮" })).toBeEnabled();
-    expect(
-      screen.getByText("多账户付款时只能添加支出明细。"),
-    ).toBeInTheDocument();
-  });
+      expect(
+        screen.getByRole("button", { name: disabledShortcut }),
+      ).toHaveAttribute("aria-disabled", "true");
+      expect(
+        screen.getByRole("button", { name: enabledShortcut }),
+      ).not.toHaveAttribute("aria-disabled");
+      fireEvent.click(screen.getByRole("button", { name: "选择更多分类" }));
+      expect(screen.getByRole("button", { name: group.name })).toBeDisabled();
+      expect(
+        screen.getByRole("button", { name: group.categories[0].name }),
+      ).toBeDisabled();
+      expect(screen.getByRole("button", { name: enabledGroup })).toBeEnabled();
+      expect(
+        screen.getByText("多个账户时，收入和支出不能混在一起。"),
+      ).toBeInTheDocument();
+    },
+  );
 
   function renderIncomeDrawer(linkNotice?: string | null) {
     render(

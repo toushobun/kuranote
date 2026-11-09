@@ -7,7 +7,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(22);
+select plan(24);
 
 create function pg_temp.id(n integer) returns uuid language sql immutable as $$
     select ('90900000-0000-4000-8000-' || lpad(n::text, 12, '0'))::uuid;
@@ -320,6 +320,31 @@ select results_eq(
              ('我', 10000::numeric, 53000::numeric, -43000::numeric),
              ('未指定持有人', 0::numeric, 800::numeric, -800::numeric)$$,
     '全月按持有人分组：每个持有人为名下账户的实际收付合计'
+);
+
+-- E：一笔收入分入两个不同持有人的账户。
+select public.create_transaction(
+    pg_temp.id(10), 'income', '2099-04-21 10:00:00+00',
+    jsonb_build_array(jsonb_build_object('amount', 9000, 'categoryId', pg_temp.id(43))),
+    jsonb_build_array(
+        jsonb_build_object('accountId', pg_temp.id(30), 'amount', 5000),
+        jsonb_build_object('accountId', pg_temp.id(31), 'amount', 4000)
+    ),
+    pg_temp.id(50), '多账户收入'
+);
+select results_eq(
+    $$select label, income, expense, balance
+      from pg_temp.group_summaries('holder', '2099-04-21', '2099-04-22')$$,
+    $$values ('妻子', 4000::numeric, 0::numeric, 4000::numeric),
+             ('我', 5000::numeric, 0::numeric, 5000::numeric)$$,
+    '按持有人分组只计入各自收到的份额'
+);
+select results_eq(
+    $$select label, income, expense, balance
+      from pg_temp.group_summaries('account', '2099-04-21', '2099-04-22')$$,
+    $$values ('妻子现金', 4000::numeric, 0::numeric, 4000::numeric),
+             ('我的现金', 5000::numeric, 0::numeric, 5000::numeric)$$,
+    '按账户分组只计入各账户收到的份额'
 );
 
 reset role;

@@ -267,9 +267,9 @@ describe("TransactionMonthList", () => {
       render(<TransactionMonthList timeGroupView={sharedPaymentView} />);
 
       expect(
-        screen.getByText("含共同支付 1 笔 · 整笔 ¥120,000"),
+        screen.getByText("含多账户记录 1 笔 · 整笔 ¥120,000"),
       ).toBeInTheDocument();
-      expect(screen.getByText("共同支付 · 整笔 ¥120,000")).toBeInTheDocument();
+      expect(screen.getByText("多账户 · 整笔 ¥120,000")).toBeInTheDocument();
       expect(screen.queryByText(/本账户/)).not.toBeInTheDocument();
     });
   });

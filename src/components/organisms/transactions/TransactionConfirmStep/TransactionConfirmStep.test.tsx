@@ -586,12 +586,6 @@ describe("TransactionConfirmStep", () => {
   });
 
   it.each([
-    {
-      scenario: "只有收入",
-      hasExpense: false,
-      enabled: true,
-      showsHint: false,
-    },
     { scenario: "收支混合", hasExpense: true, enabled: true, showsHint: true },
     {
       scenario: "收支混合但账本关闭多账户",
@@ -628,7 +622,7 @@ describe("TransactionConfirmStep", () => {
     },
   );
 
-  it("有收入明细但未选账户时仍可添加首个付款账户", async () => {
+  it("纯收入可以添加第二个收款账户，金额和对账显示为收款", async () => {
     renderConfirmFlow({
       itemsOptions: {
         ...receiptItemsOptions,
@@ -636,14 +630,25 @@ describe("TransactionConfirmStep", () => {
         initialPayments: [{ accountId: "", amount: null }],
       },
     });
-    expectNoPaymentRow();
-    click("添加付款账户");
+    expect(screen.queryByRole("button", { name: "更换收款账户 1" })).toBeNull();
+    click("添加收款账户");
     selectAccount("现金 JPY");
     await waitFor(() =>
-      expect(line("更换支付账户 1")).toHaveTextContent("现金JPY"),
+      expect(line("更换收款账户 1")).toHaveTextContent("现金JPY"),
+    );
+    click("添加收款账户");
+    selectAccount("PayPay JPY");
+    await waitFor(() =>
+      expect(line("更换收款账户 2")).toHaveTextContent("PayPayJPY¥0"),
     );
     expect(line("编辑明细 1")).toHaveTextContent("积分返还");
-    expect(screen.queryByRole("button", { name: "添加付款账户" })).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "修改收款账户 1 金额：¥100" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "收款合计 ¥100 = 明细合计 ¥100",
+    );
+    expect(saveButton()).toBeEnabled();
   });
 
   it("多账户已对上时显示对账行并可保存", () => {
