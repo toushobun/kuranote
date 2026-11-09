@@ -1040,12 +1040,14 @@ async function checkAliasSave(browser, viaLink = false) {
   assert.equal(row.length, baseline.length + 1);
   return finishSession(session);
 }
-// 不动不弹：进入后只聚焦、失焦而不修改，不压入哨兵，浏览器后退直接回来源。
+// 不动不弹：进入后只聚焦、失焦（小票为打开备注层不改直接完成）而不修改，不停在哨兵，浏览器后退直接回来源。
 async function leaveUntouched(session, label) {
   const { page, baseline, record } = session;
-  const untouched = await record(`${label}：未修改时不压入哨兵`);
-  assert.equal(untouched.marker, null);
-  assert.equal(untouched.length, baseline.length);
+  const untouched = await record(`${label}：未修改时不停在哨兵`);
+  // 打开再关闭弹层会留下基准记录（哨兵在前进方向且已失效），但当前不能停在哨兵上。
+  assert.notEqual(untouched.marker, "sentinel");
+  if (untouched.marker === null)
+    assert.equal(untouched.length, baseline.length);
   await browserBack(page);
   await page.waitForURL(sourceUrl);
   await page.getByRole("heading", { name: "离开守卫兼容性验证" }).waitFor();
@@ -1055,10 +1057,35 @@ async function leaveUntouched(session, label) {
   assert.equal(row.currentIndex, baseline.currentIndex - 1);
   return finishSession(session);
 }
+async function focusFirstField(page, formId, label) {
+  const field = page
+    .locator(`#${formId}`)
+    .locator('input:not([type="hidden"]):not([readonly]), textarea')
+    .first();
+  assert.equal(await field.count(), 1, `${label} 缺少可聚焦字段`);
+  await field.focus();
+  await field.blur();
+}
 async function checkUntouched(browser) {
   const pages = [
     ["编辑账户", "edit-account-form"],
-    ["编辑小票", "edit-transaction-receipt-form"],
+    [
+      "编辑小票",
+      "edit-transaction-receipt-form",
+      // 小票字段都在弹层里编辑：打开备注层不修改直接完成。
+      async (page) => {
+        await page
+          .getByRole("button", { name: "修改备注：编辑前备注" })
+          .click();
+        await page
+          .getByRole("textbox", { name: "备注", exact: true })
+          .waitFor();
+        await page.getByRole("button", { name: "完成", exact: true }).click();
+        await page
+          .getByRole("textbox", { name: "备注", exact: true })
+          .waitFor({ state: "hidden" });
+      },
+    ],
     ["编辑转账", "edit-transfer-transaction-form"],
     ["新增商家", "create-merchant-form"],
     ["编辑商家", "merchant-edit-form"],
@@ -1069,16 +1096,10 @@ async function checkUntouched(browser) {
     ["账本设置", "ledger-settings-page"],
   ];
   const result = {};
-  for (const [link, formId] of pages) {
+  for (const [link, formId, touch] of pages) {
     const session = await newSession(browser, link, formId);
-    const field = session.page
-      .locator(`#${formId}`)
-      .locator('input:not([type="hidden"]):not([readonly]), textarea')
-      .first();
-    if (await field.count()) {
-      await field.focus();
-      await field.blur();
-    }
+    if (touch) await touch(session.page);
+    else await focusFirstField(session.page, formId, link);
     result[link] = await leaveUntouched(session, link);
   }
   return result;
