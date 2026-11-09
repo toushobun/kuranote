@@ -65,7 +65,6 @@ function TransactionStepFlowContent(input: TransactionStepFlowProps) {
               onAmountItemChange={w.setAmountItemId}
               accountOptions={props.accounts}
               suggestions={w.suggestions}
-              merchantHasHistory={w.merchantHasHistory}
               action={w.saveAction}
               onValidationFailed={w.onValidationFailed}
               errorMessage={w.saveState.error}

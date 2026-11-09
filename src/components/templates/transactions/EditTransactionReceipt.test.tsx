@@ -35,7 +35,11 @@ import {
   receiptSuggestions,
 } from "test/mocks/transactionReceipt";
 import { flowFixture } from "test/mocks/transactionStepFlow";
-import { pressItemAmountKey } from "test/transactionConfirmStep";
+import {
+  expectNoPaymentRow,
+  pressItemAmountKey,
+} from "test/transactionConfirmStep";
+import { selectEntryAccount } from "test/transactionStepFlow";
 
 import { EditTransactionReceiptTemplate } from "./EditTransactionReceipt";
 
@@ -150,6 +154,20 @@ describe("EditTransactionReceiptTemplate", () => {
       "type",
       "submit",
     );
+  });
+
+  it("编辑时删除唯一付款账户后可从添加按钮重新选择", async () => {
+    renderReceipt();
+    click("删除支付账户 1");
+    expectNoPaymentRow();
+    click("添加付款账户");
+    selectEntryAccount("现金 JPY");
+    await waitFor(() =>
+      expect(new FormData(receiptForm()).get("accountId")).toBe("cash"),
+    );
+    expect(
+      screen.getByRole("button", { name: "更换支付账户 1" }),
+    ).toBeInTheDocument();
   });
 
   it.each(["merchant", "account"] as const)(

@@ -580,7 +580,7 @@ export function useTransactionForm({
   }
 
   // 多账户仅限纯支出：已有收入明细时先确认删除收入明细，再展开为多账户（#930）。
-  async function handleAddPayment() {
+  async function addPayment(accountId?: string) {
     const expenseItems = itemsByType.expense;
     if (itemsByType.income.length > 0) {
       const confirmed = await confirm({
@@ -590,7 +590,7 @@ export function useTransactionForm({
         title: transactionPaymentFieldsMessages.removeIncomeItemsTitle,
         tone: "delete",
       });
-      if (!confirmed) return;
+      if (!confirmed) return false;
       setItemsByType((current) => ({ ...current, income: [] }));
     }
 
@@ -601,8 +601,10 @@ export function useTransactionForm({
         itemAmounts: expenseItems.map((item) => item.amount),
         payments: [],
       }).itemTotal,
+      accountId,
     );
     clearAccountFieldError();
+    return true;
   }
 
   function handleRemovePayment(key: number) {
@@ -804,7 +806,8 @@ export function useTransactionForm({
     closeSheet,
     editingItemId,
     fieldErrors,
-    handleAddPayment,
+    handleAddPayment: () => addPayment(),
+    addPayment,
     handleDateChange,
     handleMerchantChange,
     handleNoteChange,

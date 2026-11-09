@@ -16,8 +16,11 @@ export function useTransactionConfirmStep(
 ) {
   const form = props.form;
   const [editor, setEditor] = useState<"note" | "time" | null>(null);
-  // 正在换账户 / 填金额的付款行（`TransactionPaymentRow.key`）。
-  const [accountPickerKey, setAccountPickerKey] = useState<number | null>(null);
+  // 新增付款账户用 "add"，更换账户用付款行的 key。
+  const [accountPickerKey, setAccountPickerKey] = useState<
+    number | "add" | null
+  >(null);
+  const addingPayment = accountPickerKey === "add";
   const [paymentAmountKey, setPaymentAmountKey] = useState<number | null>(null);
   // 单账户点 × 清空后，只保留换币种确认需要的原币种。
   const [previousCurrency, setPreviousCurrency] = useState<string>();
@@ -36,44 +39,54 @@ export function useTransactionConfirmStep(
     (item) => !excessDecimalItems.includes(item),
   );
   const missingAmounts = invalidItems.filter((item) => !item.amount.trim());
-  // 入口条件与标准表单一致（#930 / #931），另外未选账户或明细里有收入时不显示。
+  const primaryPayment = form.payments[0];
   const canAddPayment =
-    !!props.multiAccountPaymentEnabled &&
-    !!form.selectedAccount &&
-    !form.itemSummaries.some((item) => item.category?.type === "income") &&
-    canAddPaymentRow({
-      accountOptions: props.accountOptions,
-      payments: form.payments,
-      primaryCurrency: currency,
-    });
+    !primaryPayment?.accountId ||
+    (!!props.multiAccountPaymentEnabled &&
+      !!form.selectedAccount &&
+      canAddPaymentRow({
+        accountOptions: props.accountOptions,
+        payments: form.payments,
+        primaryCurrency: currency,
+      }));
+  function openAddPayment() {
+    setAccountPickerKey(
+      form.selectedAccount ? "add" : (primaryPayment?.key ?? null),
+    );
+  }
   const accountError = !!form.accountFieldError || !form.selectedAccount;
   const pickerPayment = form.payments.find(
     (payment) => payment.key === accountPickerKey,
   );
-  // 多账户时只能换成同币种、未被其他行选中的账户；单账户时可选全部账户（换币种时确认）。
-  const pickerAccounts = form.isMultiAccount
-    ? props.accountOptions.filter(
-        (account) =>
-          (!currency || account.currency === currency) &&
-          isPaymentAccountSelectable({
-            account,
-            payments: form.payments,
-            primaryCurrency: currency,
-            rowKey: accountPickerKey ?? undefined,
-          }),
-      )
-    : props.accountOptions;
+  // 新增第二个账户或已有多账户时只可选同币种、未被其他行选中的账户。
+  const pickerAccounts =
+    form.isMultiAccount || addingPayment
+      ? props.accountOptions.filter(
+          (account) =>
+            (!currency || account.currency === currency) &&
+            isPaymentAccountSelectable({
+              account,
+              payments: form.payments,
+              primaryCurrency: currency,
+              rowKey: pickerPayment?.key,
+            }),
+        )
+      : props.accountOptions;
   const pickerSelectedAccount = props.accountOptions.find(
     (account) => account.id === pickerPayment?.accountId,
   );
-  function selectAccount(account: TransactionAccountOption) {
+  async function selectAccount(account: TransactionAccountOption) {
     if (accountPickerKey === null) return;
-    form.handlePaymentAccountChange(accountPickerKey, account.id);
+    setAccountPickerKey(null);
+    if (accountPickerKey === "add") {
+      if (!(await form.addPayment(account.id))) return;
+    } else {
+      form.handlePaymentAccountChange(accountPickerKey, account.id);
+    }
     props.onAccountSelect?.(account);
     setPreviousCurrency(undefined);
-    setAccountPickerKey(null);
   }
-  // 只剩一个付款账户时删除即清空账户，支付行回到「选择收支账户」。
+  // 只剩一个付款账户时删除即清空账户，支付区只显示添加按钮。
   function removePayment(key: number) {
     if (form.isMultiAccount) form.handleRemovePayment(key);
     else {
@@ -86,7 +99,6 @@ export function useTransactionConfirmStep(
     section?.scrollIntoView?.({ block: "center", behavior: "smooth" });
     section?.focus();
   }
-  const emptyPayment = form.payments.find((payment) => !payment.accountId);
   const issues = [
     ...(!form.selectedMerchant
       ? [
@@ -106,10 +118,7 @@ export function useTransactionConfirmStep(
               : form.isMultiAccount && !form.paymentReconciliation.isBalanced
                 ? m.unbalanced
                 : m.checkAccount,
-            onClick: () =>
-              emptyPayment
-                ? setAccountPickerKey(emptyPayment.key)
-                : focusPayments(),
+            onClick: form.selectedAccount ? focusPayments : openAddPayment,
           },
         ]
       : []),
@@ -149,14 +158,15 @@ export function useTransactionConfirmStep(
         ]
       : []),
   ];
-  // 内联红标按行判定：明细按每条明细、付款按每个付款行（未选账户，或多账户时未填金额）。
+  // 付款区只标记已显示的行（账户不可用，或多账户时未填金额）。
   const invalidPaymentKeys = form.payments
     .filter(
       (payment) =>
-        !props.accountOptions.some(
+        payment.accountId &&
+        (!props.accountOptions.some(
           (account) => account.id === payment.accountId,
         ) ||
-        (form.isMultiAccount && !payment.amount.trim()),
+          (form.isMultiAccount && !payment.amount.trim())),
     )
     .map((payment) => payment.key);
   const isChecked = (key: string) => checkedKeys.includes(key);
@@ -176,10 +186,11 @@ export function useTransactionConfirmStep(
     canAddPayment,
     accountPickerKey,
     setAccountPickerKey,
-    pickerPayment,
+    openAddPayment,
     pickerAccounts,
     pickerSelectedAccount,
-    previousCurrency: form.isMultiAccount ? undefined : previousCurrency,
+    previousCurrency:
+      form.isMultiAccount || addingPayment ? undefined : previousCurrency,
     selectAccount,
     paymentAmountKey,
     setPaymentAmountKey,

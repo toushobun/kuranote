@@ -1,7 +1,6 @@
 "use client";
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
+import { ReceiptAddButton } from "./ReceiptAddButton";
 import Typography from "@mui/material/Typography";
 import { resolveTransactionBusinessStatus } from "internal/transaction";
 import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/TransactionBusinessBadge";
@@ -30,7 +29,6 @@ export function ReceiptItemsSection({
   form,
   showAutomaticNotice,
   invalidItems,
-  merchantHasHistory,
   canAddItem,
   readOnly = false,
   onAmount,
@@ -39,7 +37,6 @@ export function ReceiptItemsSection({
   showAutomaticNotice?: boolean;
   /** 要标红的明细（只含上次点保存时已有、仍未解决的问题，#1040）。 */
   invalidItems: readonly TransactionItemSummary[];
-  merchantHasHistory?: boolean;
   canAddItem: boolean;
   readOnly?: boolean;
   onAmount: (id: number) => void;
@@ -136,14 +133,6 @@ export function ReceiptItemsSection({
           {m.automaticNotice}
         </Typography>
       )}
-      {items.length === 0 && merchantHasHistory === false && (
-        <Typography
-          variant="body2"
-          sx={[secondaryTextSx, { textAlign: "center" }]}
-        >
-          {m.noMerchantHistory}
-        </Typography>
-      )}
       {[...groups].map(([id, { label, category, entries }]) => (
         <Box key={id} role="group" aria-label={label} sx={groupSx}>
           <Box sx={groupHeaderSx}>
@@ -173,20 +162,15 @@ export function ReceiptItemsSection({
       ))}
       {uncategorized.map(renderItem)}
       {!readOnly && (
-        <Button
-          fullWidth
-          startIcon={<AddRoundedIcon />}
+        <ReceiptAddButton
+          label={m.addItem}
           onClick={form.openSheet}
           disabled={!canAddItem}
-        >
-          {m.addItem}
-        </Button>
+        />
       )}
     </>
   );
 }
-
-const secondaryTextSx = { color: "text.secondary", display: "block", py: 0.5 };
 
 /*
  * 样式 ④ 的留白（#1022），全部按上下文字边缘之间的可见空隙计算：
@@ -196,7 +180,9 @@ const secondaryTextSx = { color: "text.secondary", display: "block", py: 0.5 };
  * 所以组后接未选分类时只需补 8px 就是 C。
  */
 const automaticNoticeSx = {
-  ...secondaryTextSx,
+  color: "text.secondary",
+  display: "block",
+  py: 0.5,
   "& + [role='group']": { mt: 1.125 }, // D
 };
 

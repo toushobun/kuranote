@@ -60,7 +60,9 @@ export const FirstVisit: Story = {
   play: async ({ canvasElement }) => {
     const body = await selectMerchant(canvasElement, "星巴克");
     await waitFor(() =>
-      expect(body.getByText("这家商家还没有记录")).toBeInTheDocument(),
+      expect(
+        body.getByRole("button", { name: "添加付款账户" }),
+      ).toBeInTheDocument(),
     );
   },
 };

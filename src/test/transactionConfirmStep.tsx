@@ -42,6 +42,14 @@ export function pressItemAmountKey(name: string) {
   );
 }
 
+export function expectNoPaymentRow() {
+  expect(
+    screen.getByRole("button", { name: "添加付款账户" }),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "更换支付账户 1" })).toBeNull();
+  expect(screen.queryByText("选择收支账户")).toBeNull();
+}
+
 export function expectAutomaticNotice(visible = true) {
   const notice = screen.queryByText("已按照你的习惯自动添加部分内容");
   if (visible) expect(notice).toBeInTheDocument();

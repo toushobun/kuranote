@@ -12,7 +12,6 @@ export type TransactionReceiptProps = ItemsStepOptions & {
   amountItemId: number | null;
   onAmountItemChange: (id: number | null) => void;
   suggestions?: MerchantEntrySuggestions;
-  merchantHasHistory?: boolean;
 };
 
 export type TransactionConfirmStepProps = TransactionReceiptProps & {
