@@ -66,6 +66,10 @@ export function WizardDialog({
   useLayoutEffect(() => {
     if (pane?.active) pane.setCloseHandler(requestClose);
   });
+  const titled = Boolean(title);
+  useLayoutEffect(() => {
+    if (pane?.active) pane.setDialogLabel({ titled, ariaLabel });
+  }, [pane, titled, ariaLabel]);
   const closeButton = (
     <IconButton
       aria-label={closeLabel}

@@ -9,7 +9,11 @@ export type WizardDialogSwitchPane = {
   titleId: string;
   /** 共用外框按 Escape 时调用当前面板的关闭处理。 */
   setCloseHandler: (handler: () => void) => void;
+  /** 当前面板给共用外框命名：有标题时用标题，没有标题时用 ariaLabel。 */
+  setDialogLabel: (label: WizardDialogSwitchLabel) => void;
 };
+
+export type WizardDialogSwitchLabel = { titled: boolean; ariaLabel?: string };
 
 export const WizardDialogSwitchPaneContext =
   createContext<WizardDialogSwitchPane | null>(null);

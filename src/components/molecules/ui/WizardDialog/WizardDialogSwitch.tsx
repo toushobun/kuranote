@@ -21,6 +21,7 @@ import {
 } from "molecules/ui/transitions/slideSwitchAnimation";
 import {
   WizardDialogSwitchPaneContext,
+  type WizardDialogSwitchLabel,
   type WizardDialogSwitchPane,
 } from "./wizardDialogSwitchContext";
 import {
@@ -79,14 +80,12 @@ export function WizardDialogSwitch({
       duration: theme.transitions.duration.standard,
       easing: theme.transitions.easing.easeOut,
     };
-    // 标题栏原地不动，只有标题文字淡入。
-    const titleFade = headerSlot
-      ?.querySelector("h2")
-      ?.animate?.([{ opacity: 0 }, { opacity: 1 }], timing);
     const slide = animateSlideSwitch({
       enter,
       exit,
       direction: exiting.direction,
+      // 标题栏原地不动，只有标题文字淡入。
+      fadeIn: headerSlot?.querySelector("h2"),
       ...timing,
     });
     void slide.finished.then(() => {
@@ -95,7 +94,6 @@ export function WizardDialogSwitch({
     // 动画未结束又切换时取消本轮动画，避免 fill 残留的位移或透明度。
     return () => {
       current = false;
-      titleFade?.cancel();
       slide.cancel();
     };
   }, [exiting, headerSlot, shown.id, theme]);
@@ -103,8 +101,17 @@ export function WizardDialogSwitch({
   const setCloseHandler = useCallback((handler: () => void) => {
     closeHandler.current = handler;
   }, []);
+  const [dialogLabel, setDialogLabel] = useState<WizardDialogSwitchLabel>({
+    titled: true,
+  });
   const activePane = useMemo<WizardDialogSwitchPane>(
-    () => ({ active: true, headerSlot, titleId, setCloseHandler }),
+    () => ({
+      active: true,
+      headerSlot,
+      titleId,
+      setCloseHandler,
+      setDialogLabel,
+    }),
     [headerSlot, setCloseHandler, titleId],
   );
   const exitingPane = useMemo<WizardDialogSwitchPane>(
@@ -116,7 +123,7 @@ export function WizardDialogSwitch({
 
   return (
     <Dialog
-      aria-labelledby={titleId}
+      aria-labelledby={dialogLabel.titled ? titleId : undefined}
       fullScreen={fullScreen}
       fullWidth
       maxWidth={false}
@@ -125,6 +132,7 @@ export function WizardDialogSwitch({
       transitionDuration={enterlessTransitionDuration(theme)}
       slotProps={{
         paper: {
+          "aria-label": dialogLabel.ariaLabel,
           sx: fullScreen ? fullScreenWizardDialogPaperSx : wizardDialogPaperSx,
         },
       }}

@@ -5,6 +5,8 @@ type SlideSwitchOptions = {
   enter: HTMLElement;
   exit: HTMLElement;
   direction: SlideDirection;
+  /** 与内容同时淡入的元素（如原地不动的标题栏里的标题文字）。 */
+  fadeIn?: Element | null;
   duration: number;
   easing: string;
 };
@@ -31,6 +33,7 @@ export function animateSlideSwitch({
   enter,
   exit,
   direction,
+  fadeIn,
   duration,
   easing,
 }: SlideSwitchOptions): SlideSwitch {
@@ -62,6 +65,9 @@ export function animateSlideSwitch({
           timing,
         ),
       ];
+  if (fadeIn) {
+    animations.push(fadeIn.animate([{ opacity: 0 }, { opacity: 1 }], timing));
+  }
   return {
     // 动画被打断（取消）时同样视为结束。
     finished: Promise.allSettled(animations.map((a) => a.finished)).then(

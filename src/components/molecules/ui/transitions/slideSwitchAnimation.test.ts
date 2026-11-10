@@ -95,6 +95,33 @@ describe("animateSlideSwitch", () => {
     ).resolves.toBeUndefined();
   });
 
+  it("标题等元素与内容同时淡入，取消导致的 reject 不外泄", async () => {
+    mockReducedMotion(false);
+    const enter = animatedElement();
+    const exit = animatedElement();
+    const title = document.createElement("h2");
+    const titleCancel = vi.fn();
+    const titleAnimate = vi.fn(() => ({
+      finished: Promise.reject(new DOMException("取消", "AbortError")),
+      cancel: titleCancel,
+    }));
+    Object.assign(title, { animate: titleAnimate });
+    const slide = animateSlideSwitch({
+      enter: enter.element,
+      exit: exit.element,
+      direction: 1,
+      fadeIn: title,
+      ...timing,
+    });
+    slide.cancel();
+    await expect(slide.finished).resolves.toBeUndefined();
+    expect(titleAnimate).toHaveBeenCalledWith(
+      [{ opacity: 0 }, { opacity: 1 }],
+      timing,
+    );
+    expect(titleCancel).toHaveBeenCalledTimes(1);
+  });
+
   it("取消时停止本轮新旧两段动画", () => {
     mockReducedMotion(false);
     const enter = animatedElement();

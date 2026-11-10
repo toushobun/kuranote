@@ -136,6 +136,26 @@ describe("WizardDialogSwitch", () => {
     expect(screen.getAllByTestId(/wizard-dialog-switch-pane-/)).toHaveLength(1);
   });
 
+  it("面板没有标题时用 ariaLabel 给共用外框命名", () => {
+    render(
+      <WizardDialogSwitch
+        activeKey="done"
+        order={["done"]}
+        renderPane={() => (
+          <WizardDialog
+            open
+            closeLabel="关闭"
+            ariaLabel="完成"
+            onClose={() => {}}
+          >
+            <p>已完成</p>
+          </WizardDialog>
+        )}
+      />,
+    );
+    expect(screen.getByRole("dialog", { name: "完成" })).toBeInTheDocument();
+  });
+
   it("不支持动画时直接换成新面板", async () => {
     const rerender = renderSwitch("second");
     rerender("first");
