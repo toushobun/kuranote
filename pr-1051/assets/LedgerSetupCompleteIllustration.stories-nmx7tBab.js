@@ -1,8 +1,0 @@
-import{i as e}from"./preload-helper-D2yxXLVK.js";import{t}from"./jsx-runtime-Dwpk6tgA.js";import{n,t as r}from"./Typography-B_0Lz4TE.js";import{l as i}from"./user-BLoxMKBL.js";import{n as a,t as o}from"./userThemeTokens-YIpWi7nb.js";import{R as s,b as c,x as l,z as u}from"./iframe-DcxV-Dmw.js";import{n as d,t as f}from"./Stack-CedAN9w3.js";import{a as p,t as m}from"./ledgerSetupMessages-DEWn6pIb.js";import{n as h,t as g}from"./LedgerSetupCompleteIllustration-t66eHju-.js";function _({label:e,themeKey:t}){return(0,v.jsx)(c,{initialThemeKey:t,children:(0,v.jsxs)(d,{spacing:1,sx:w,children:[(0,v.jsx)(g,{label:e}),(0,v.jsx)(n,{sx:T,children:a[t].name})]})})}var v,y,b,x,S,C,w,T,E;e((()=>{v=t(),s(),f(),r(),m(),l(),o(),h(),y={title:`Molecules/Ledgers/LedgerSetupCompleteIllustration`,component:g,args:{label:p.illustrationLabel},decorators:[e=>(0,v.jsx)(u,{sx:S,children:(0,v.jsx)(e,{})})]},b={name:`默认主题`},x={name:`全部主题`,render:e=>(0,v.jsx)(d,{direction:`row`,sx:C,children:i.map(t=>(0,v.jsx)(_,{label:e.label,themeKey:t},t))})},S={bgcolor:`background.paper`,p:3},C={flexWrap:`wrap`,gap:2},w={alignItems:`center`},T={color:`text.secondary`,fontSize:12,fontWeight:800},b.parameters={...b.parameters,docs:{...b.parameters?.docs,source:{originalSource:`{
-  name: "默认主题"
-}`,...b.parameters?.docs?.source}}},x.parameters={...x.parameters,docs:{...x.parameters?.docs,source:{originalSource:`{
-  name: "全部主题",
-  render: args => <Stack direction="row" sx={themeListSx}>
-      {userThemeKeys.map(themeKey => <ThemePreview key={themeKey} label={args.label} themeKey={themeKey} />)}
-    </Stack>
-}`,...x.parameters?.docs?.source}}},E=[`Default`,`AllThemes`]}))();export{x as AllThemes,b as Default,E as __namedExportsOrder,y as default};
