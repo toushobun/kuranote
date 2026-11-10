@@ -277,6 +277,8 @@ describe("NewTransactionStepFlow", () => {
     expect(
       await screen.findByRole("heading", { name: "账户周转" }),
     ).toBeInTheDocument();
+    // 两种方式共用同一个外框（#1055），切换时不另开弹框。
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
     expect(router.replace).not.toHaveBeenCalled();
     expect(router.push).not.toHaveBeenCalled();
     expect(replacedUrls()).toContain("/transactions/new?method=transfer");

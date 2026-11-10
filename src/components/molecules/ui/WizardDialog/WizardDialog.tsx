@@ -7,8 +7,12 @@ import IconButton from "@mui/material/IconButton";
 import { useTheme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 import useMediaQuery from "@mui/material/useMediaQuery";
-import { useId, type ReactNode } from "react";
+import { useId, useLayoutEffect, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { useWizardDialogSwitchPane } from "./wizardDialogSwitchContext";
 import {
+  enterlessTransitionDuration,
+  fullScreenWizardDialogPaperSx,
   wizardDialogHeaderSx,
   wizardDialogPaperSx,
   wizardDialogTitleOnlyHeaderSx,
@@ -33,7 +37,10 @@ type WizardDialogProps = {
   ariaLabel?: string;
 };
 
-/** 移动端全屏、桌面端居中的弹框外壳，标题栏统一预留顶部安全区。 */
+/**
+ * 移动端全屏、桌面端居中的弹框外壳，标题栏统一预留顶部安全区。
+ * 放在 WizardDialogSwitch 里时不自己开弹框：标题栏渲染进共用外框，内容留在所在面板。
+ */
 export function WizardDialog({
   children,
   closeLabel,
@@ -51,10 +58,18 @@ export function WizardDialog({
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
   const generatedTitleId = useId();
-  const headingId = titleId ?? generatedTitleId;
+  const pane = useWizardDialogSwitchPane();
+  const headingId = pane?.titleId ?? titleId ?? generatedTitleId;
   function requestClose() {
     if (!disabled) onClose();
   }
+  useLayoutEffect(() => {
+    if (pane?.active) pane.setCloseHandler(requestClose);
+  });
+  const titled = Boolean(title);
+  useLayoutEffect(() => {
+    if (pane?.active) pane.setDialogLabel({ titled, ariaLabel });
+  }, [pane, titled, ariaLabel]);
   const closeButton = (
     <IconButton
       aria-label={closeLabel}
@@ -64,6 +79,49 @@ export function WizardDialog({
       <CloseRoundedIcon />
     </IconButton>
   );
+  const header = (
+    <Box
+      sx={
+        title
+          ? [
+              wizardDialogHeaderSx,
+              !headerContent && wizardDialogTitleOnlyHeaderSx,
+            ]
+          : [completeHeaderSx, closeAlignment === "start" && startHeaderSx]
+      }
+    >
+      <Box
+        sx={
+          title
+            ? [
+                wizardDialogTitleRowSx,
+                !headerContent && wizardDialogTitleOnlyRowSx,
+                titleAction ? { gridTemplateColumns: "40px 1fr auto" } : {},
+              ]
+            : undefined
+        }
+      >
+        {closeButton}
+        {title ? (
+          <Typography component="h2" id={headingId} sx={wizardDialogTitleSx}>
+            {title}
+          </Typography>
+        ) : null}
+        {titleAction}
+      </Box>
+      {headerContent}
+    </Box>
+  );
+  if (pane) {
+    return (
+      <>
+        {pane.active && pane.headerSlot
+          ? createPortal(header, pane.headerSlot)
+          : null}
+        {children}
+      </>
+    );
+  }
   return (
     <Dialog
       aria-labelledby={title || titleId ? headingId : undefined}
@@ -73,54 +131,21 @@ export function WizardDialog({
       onClose={requestClose}
       open={open}
       transitionDuration={
-        disableEnterTransition
-          ? { enter: 0, exit: theme.transitions.duration.leavingScreen }
-          : undefined
+        disableEnterTransition ? enterlessTransitionDuration(theme) : undefined
       }
       slotProps={{
         paper: {
           "aria-label": ariaLabel,
-          sx: fullScreen ? fullScreenPaperSx : wizardDialogPaperSx,
+          sx: fullScreen ? fullScreenWizardDialogPaperSx : wizardDialogPaperSx,
         },
       }}
     >
-      <Box
-        sx={
-          title
-            ? [
-                wizardDialogHeaderSx,
-                !headerContent && wizardDialogTitleOnlyHeaderSx,
-              ]
-            : [completeHeaderSx, closeAlignment === "start" && startHeaderSx]
-        }
-      >
-        <Box
-          sx={
-            title
-              ? [
-                  wizardDialogTitleRowSx,
-                  !headerContent && wizardDialogTitleOnlyRowSx,
-                  titleAction ? { gridTemplateColumns: "40px 1fr auto" } : {},
-                ]
-              : undefined
-          }
-        >
-          {closeButton}
-          {title ? (
-            <Typography component="h2" id={headingId} sx={wizardDialogTitleSx}>
-              {title}
-            </Typography>
-          ) : null}
-          {titleAction}
-        </Box>
-        {headerContent}
-      </Box>
+      {header}
       {children}
     </Dialog>
   );
 }
 
-const fullScreenPaperSx = { overflow: "hidden" };
 const completeHeaderSx = {
   display: "flex",
   flexShrink: 0,
