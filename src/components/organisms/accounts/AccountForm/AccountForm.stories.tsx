@@ -1,3 +1,4 @@
+import { userEvent, within } from "storybook/test";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import {
@@ -6,7 +7,11 @@ import {
   createMemberAccountHolder,
   inactiveAccountHolderOptionFixture,
 } from "test/mocks/accountHolders";
-import { bankAccountFixture } from "test/mocks/accounts";
+import {
+  accountWebsiteIconFixture,
+  bankAccountFixture,
+  fetchAccountIconFixture,
+} from "test/mocks/accounts";
 
 import { AccountForm } from "./AccountForm";
 
@@ -15,6 +20,7 @@ const meta = {
   title: "Organisms/Accounts/AccountForm",
   args: {
     action: async () => {},
+    fetchIconAction: fetchAccountIconFixture,
     defaultCurrency: "JPY",
     holderOptions: accountHolderOptionsFixture,
     placeholderHolderOptions: accountPlaceholderHolderOptionsFixture,
@@ -51,4 +57,37 @@ export const EditInactiveHolder: Story = {
       holders: [createMemberAccountHolder(inactiveAccountHolderOptionFixture)],
     },
   },
+};
+
+const accountWithWebsite = {
+  ...bankAccountFixture,
+  website_url: accountWebsiteIconFixture.website_url,
+};
+const fetchIcon: NonNullable<Story["play"]> = async ({ canvasElement }) => {
+  await userEvent.click(
+    within(canvasElement).getByRole("button", { name: "获取图标" }),
+  );
+};
+
+export const IconLoading: Story = {
+  name: "网站图标：获取中",
+  args: {
+    account: accountWithWebsite,
+    fetchIconAction: () => new Promise(() => {}),
+  },
+  play: fetchIcon,
+};
+
+export const IconSuccess: Story = {
+  name: "网站图标：已获取",
+  args: { account: { ...accountWithWebsite, ...accountWebsiteIconFixture } },
+};
+
+export const IconError: Story = {
+  name: "网站图标：获取失败",
+  args: {
+    account: accountWithWebsite,
+    fetchIconAction: async () => ({}),
+  },
+  play: fetchIcon,
 };

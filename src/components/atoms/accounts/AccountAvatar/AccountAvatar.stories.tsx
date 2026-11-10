@@ -1,3 +1,4 @@
+import { accountWebsiteIconFixture } from "test/mocks/accounts";
 import Stack from "@mui/material/Stack";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
@@ -38,4 +39,9 @@ export const Variants: Story = {
       ))}
     </Stack>
   ),
+};
+
+export const WebsiteIcon: Story = {
+  name: "网站图标",
+  args: { iconUrl: accountWebsiteIconFixture.icon_url },
 };

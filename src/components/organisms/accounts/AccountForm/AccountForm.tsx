@@ -1,6 +1,10 @@
 "use client";
 
+import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
 import Box from "@mui/material/Box";
+import { AccountAvatar } from "atoms/accounts/AccountAvatar/AccountAvatar";
+import { WebsiteIconField } from "molecules/ui/WebsiteIconField/WebsiteIconField";
 import InputAdornment from "@mui/material/InputAdornment";
 import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
@@ -8,17 +12,18 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useEffect, type ReactNode } from "react";
 
-import { accountFormMessages } from "config/accountMessages";
+import {
+  accountFormMessages,
+  accountIconMessages,
+} from "config/accountMessages";
 import { balanceAdjustmentText } from "config/balanceAdjustmentText";
 import { routePaths } from "config/paths";
 import { accountErrorCodes, accountErrorMessages } from "internal/account";
-import { AccountCard } from "molecules/accounts/AccountCard";
 import { AccountHolderAvatarPicker } from "molecules/accounts/AccountHolderAvatarPicker/AccountHolderAvatarPicker";
 import { AccountTypePicker } from "molecules/accounts/AccountTypePicker/AccountTypePicker";
 import { PageFormActions } from "molecules/ui/PageFormActions/PageFormActions";
 import { SectionCard } from "molecules/ui/SectionCard";
-import { designTokens } from "theme/theme";
-import type { ServerAction } from "types/actions";
+import type { ServerAction, WebsiteIconStateAction } from "types/actions";
 import type {
   Account,
   AccountHolderOption,
@@ -34,6 +39,7 @@ type AccountFormProps = {
   /** 编辑的账户；不传时为新增。 */
   account?: Account | null;
   action: ServerAction;
+  fetchIconAction?: WebsiteIconStateAction;
   defaultCurrency: string;
   holderOptions: AccountHolderOption[];
   /** 页面在离开确认里点「保存」时按这个 id 提交表单。 */
@@ -48,12 +54,13 @@ type AccountFormProps = {
 };
 
 /**
- * 新增 / 编辑账户页面的表单：顶部实时预览列表中的账户卡片，下方按基本信息、金额、持有人分组填写。
+ * 新增 / 编辑账户页面的表单：按基本信息、金额、持有人分组填写。
  * 编辑时金额为当前余额，改动后由服务端记一笔余额调整；已有交易的账户不能改币种。
  */
 export function AccountForm({
   account = null,
   action,
+  fetchIconAction,
   defaultCurrency,
   holderOptions,
   id,
@@ -65,6 +72,7 @@ export function AccountForm({
 }: AccountFormProps) {
   const form = useAccountForm({
     account,
+    fetchIconAction,
     defaultCurrency,
     holderOptions,
     placeholderHolderOptions,
@@ -110,24 +118,79 @@ export function AccountForm({
         <input name="returnTo" readOnly type="hidden" value={returnTo} />
       ) : null}
 
-      <Stack spacing={1}>
-        <Typography sx={previewLabelSx}>
-          {accountFormMessages.previewLabel}
-        </Typography>
-        <Box data-testid="account-form-preview" sx={previewFrameSx}>
-          <AccountCard
-            currency={form.currency}
-            currentBalance={form.preview.balance}
-            holders={form.preview.holders}
-            name={
-              form.name.trim() || accountFormMessages.previewNamePlaceholder
-            }
-            type={form.type}
-          />
-        </Box>
-      </Stack>
-
       <AccountFormSection title={accountFormMessages.basicSection}>
+        {fetchIconAction ? (
+          <>
+            <input
+              name="previewIconUrl"
+              readOnly
+              type="hidden"
+              value={form.iconUrl}
+            />
+            <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
+              <Box sx={{ display: "inline-flex", position: "relative" }}>
+                <AccountAvatar
+                  key={form.iconStatus === "loading" ? "loading" : form.iconUrl}
+                  id={account?.id ?? "new-account"}
+                  name={form.name}
+                  size={64}
+                  iconUrl={
+                    form.iconStatus === "loading" ? undefined : form.iconUrl
+                  }
+                />
+                {form.iconStatus === "loading" ? (
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      inset: 0,
+                      display: "grid",
+                      placeItems: "center",
+                      bgcolor: "action.hover",
+                      borderRadius: "inherit",
+                    }}
+                  >
+                    <CircularProgress size={24} aria-hidden />
+                  </Box>
+                ) : null}
+              </Box>
+              <Stack spacing={0.5} sx={{ flex: 1 }}>
+                <Typography
+                  role="status"
+                  variant="body2"
+                  sx={{
+                    fontWeight: 800,
+                    color: {
+                      idle: "text.secondary",
+                      loading: "text.secondary",
+                      success: "success.main",
+                      error: "error.main",
+                    }[form.iconStatus],
+                  }}
+                >
+                  {accountIconMessages[form.iconStatus]}
+                </Typography>
+                {form.iconStatus === "success" ||
+                form.iconStatus === "error" ? (
+                  <Typography color="textSecondary" variant="body2">
+                    {form.iconStatus === "success"
+                      ? accountIconMessages.successHelper
+                      : (form.iconError ?? accountIconMessages.errorHelper)}
+                  </Typography>
+                ) : null}
+                {form.iconUrl ? (
+                  <Button
+                    onClick={form.clearIcon}
+                    size="small"
+                    sx={{ alignSelf: "start", p: 0 }}
+                    type="button"
+                  >
+                    {accountIconMessages.clear}
+                  </Button>
+                ) : null}
+              </Stack>
+            </Stack>
+          </>
+        ) : null}
         <TextField
           autoComplete="off"
           fullWidth
@@ -138,6 +201,21 @@ export function AccountForm({
           required
           value={form.name}
         />
+        {fetchIconAction ? (
+          <Stack spacing={0.5}>
+            <WebsiteIconField
+              label={accountIconMessages.websiteLabel}
+              buttonLabel={accountIconMessages.fetch}
+              loading={form.iconStatus === "loading"}
+              onClick={form.fetchIcon}
+              onWebsiteUrlChange={form.changeWebsiteUrl}
+              websiteUrl={form.websiteUrl}
+            />
+            <Typography color="textSecondary" variant="body2">
+              {accountIconMessages.websiteHelper}
+            </Typography>
+          </Stack>
+        ) : null}
         <AccountTypePicker
           name="type"
           onChange={form.setType}
@@ -330,20 +408,6 @@ function AccountFormSection({
     </SectionCard>
   );
 }
-
-const previewLabelSx = {
-  color: "text.secondary",
-  fontSize: 14,
-  fontWeight: 700,
-  px: 0.5,
-};
-
-const previewFrameSx = {
-  border: "2px dashed",
-  borderColor: "var(--user-theme-action-text)",
-  borderRadius: `${designTokens.radius.lg}px`,
-  p: 0.5,
-};
 
 const sectionTitleSx = {
   fontSize: 18,

@@ -48,6 +48,7 @@ function createContainer(
   return {
     account: {
       service: {
+        fetchIcon: vi.fn(),
         archive: vi.fn(),
         create: vi.fn(),
         getTransactionContext: vi.fn(),

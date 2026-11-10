@@ -1,6 +1,11 @@
+import {
+  websiteIconErrorCodes,
+  websiteIconErrorMessages,
+} from "internal/shared/websiteIcon/errors";
 import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
 
 export const accountErrorCodes = {
+  websiteUrlInvalid: websiteIconErrorCodes.websiteInvalid,
   balanceInvalid: "account_balance_invalid",
   adjustmentNoteInvalid: "account_adjustment_note_invalid",
   accountInvalid: "account_invalid",
@@ -52,6 +57,8 @@ export const accountErrorMessages: Record<AccountErrorCode, string> = {
   [accountErrorCodes.ledgerInvalid]: "账本不存在、已停用或您无法访问。",
   [accountErrorCodes.nameDuplicate]:
     "同一账本中，相同账户类型、货币和持有人下已存在同名账户（不区分大小写），请修改账户名称。",
+  [accountErrorCodes.websiteUrlInvalid]:
+    websiteIconErrorMessages.websiteInvalid,
   [accountErrorCodes.nameRequired]: "请输入账户名称。",
   [accountErrorCodes.permissionDenied]: "只有账本所有者或管理员可以维护账户。",
   [accountErrorCodes.placeholderAlreadyClaimed]:

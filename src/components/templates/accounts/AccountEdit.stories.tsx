@@ -5,7 +5,12 @@ import {
   accountPlaceholderHolderOptionsFixture,
   createPlaceholderAccountHolder,
 } from "test/mocks/accountHolders";
-import { bankAccountFixture } from "test/mocks/accounts";
+
+import {
+  accountWebsiteIconFixture,
+  bankAccountFixture,
+  fetchAccountIconFixture,
+} from "test/mocks/accounts";
 
 import { AccountEditTemplate } from "./AccountEdit";
 
@@ -13,9 +18,10 @@ const meta = {
   title: "Templates/Accounts/AccountEditTemplate",
   component: AccountEditTemplate,
   args: {
-    account: bankAccountFixture,
+    account: { ...bankAccountFixture, ...accountWebsiteIconFixture },
     archiveAccountAction: async () => ({}),
     baseCurrency: "JPY",
+    fetchIconAction: fetchAccountIconFixture,
     holderOptions: accountHolderOptionsFixture,
     ledgerName: "家庭账本",
     placeholderHolderOptions: accountPlaceholderHolderOptionsFixture,

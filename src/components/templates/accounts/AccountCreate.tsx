@@ -1,4 +1,6 @@
 "use client";
+
+import type { WebsiteIconStateAction } from "types/actions";
 import {
   BackLayerScope,
   transactionBackLayerLevels,
@@ -31,6 +33,7 @@ export type AccountCreateTemplateProps = {
   ) => void;
   baseCurrency: string;
   canWriteTransactions?: boolean;
+  fetchIconAction?: WebsiteIconStateAction;
   createAccountAction: AccountStateAction;
   holderOptions: AccountHolderOption[];
   ledgerName: string;
@@ -69,6 +72,7 @@ export function AccountCreateTemplate(props: AccountCreateTemplateProps) {
 export function AccountCreateBody({
   baseCurrency,
   canWriteTransactions = true,
+  fetchIconAction,
   createAccountAction,
   holderOptions,
   placeholderHolderOptions = [],
@@ -88,6 +92,7 @@ export function AccountCreateBody({
   return (
     <>
       <AccountForm
+        fetchIconAction={fetchIconAction}
         id={formId}
         onDirtyChange={onDirtyChange}
         action={formAction}

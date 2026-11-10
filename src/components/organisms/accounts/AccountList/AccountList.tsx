@@ -28,6 +28,8 @@ export function AccountList({
       {accounts.map((account) => (
         <AccountCard
           key={account.id}
+          id={account.id}
+          iconUrl={account.icon_url}
           name={account.name}
           type={account.type}
           currency={account.currency}

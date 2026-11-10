@@ -1,4 +1,6 @@
 "use client";
+
+import type { WebsiteIconStateAction } from "types/actions";
 import {
   BackLayerScope,
   transactionBackLayerLevels,
@@ -36,6 +38,7 @@ type AccountEditTemplateProps = {
   archiveAccountAction: AccountStateAction;
   baseCurrency: string;
   canWriteTransactions?: boolean;
+  fetchIconAction?: WebsiteIconStateAction;
   holderOptions: AccountHolderOption[];
   ledgerName: string;
   placeholderHolderOptions?: AccountPlaceholderHolderOption[];
@@ -50,6 +53,7 @@ export function AccountEditTemplate({
   archiveAccountAction,
   baseCurrency,
   canWriteTransactions = true,
+  fetchIconAction,
   holderOptions,
   ledgerName,
   placeholderHolderOptions = [],
@@ -94,6 +98,7 @@ export function AccountEditTemplate({
         title={accountFormMessages.editTitle}
       >
         <AccountForm
+          fetchIconAction={fetchIconAction}
           account={account}
           action={updateFormAction}
           defaultCurrency={baseCurrency}

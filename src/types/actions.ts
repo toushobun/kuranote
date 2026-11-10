@@ -13,3 +13,10 @@ export type ActionState = BaseActionState & {
   errorKey?: string;
   successKey?: string;
 };
+
+export type WebsiteIconActionState = ActionState & { iconUrl?: string };
+
+export type WebsiteIconStateAction = (
+  previousState: WebsiteIconActionState,
+  formData: FormData,
+) => Promise<WebsiteIconActionState>;

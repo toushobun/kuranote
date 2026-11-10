@@ -1,3 +1,4 @@
+import { fetchAccountIcon } from "internal/account/adapter/next/actions";
 import {
   archiveAccount,
   updateAccount,
@@ -15,6 +16,7 @@ export default async function AccountEditPage({
 
   return (
     <AccountEditTemplate
+      fetchIconAction={fetchAccountIcon}
       {...view}
       archiveAccountAction={archiveAccount}
       updateAccountAction={updateAccount}

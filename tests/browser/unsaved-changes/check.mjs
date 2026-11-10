@@ -259,6 +259,10 @@ async function checkAccount(browser) {
   const name = page.getByLabel(/账户名称/);
   const initial = await name.inputValue();
   await scroll(page, 200);
+  const website = page.getByLabel("网址（可选）");
+  await website.fill("https://example.com");
+  await website.fill("");
+  await position(page, "sentinel");
   await name.fill("未保存账户");
   await name.blur();
   await position(page, "sentinel");

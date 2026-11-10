@@ -72,7 +72,12 @@ export function ReceiptPaymentSection({
             key={payment.key}
             icon={
               account ? (
-                <AccountAvatar id={account.id} name={account.name} size={24} />
+                <AccountAvatar
+                  iconUrl={account.icon_url}
+                  id={account.id}
+                  name={account.name}
+                  size={24}
+                />
               ) : (
                 <AccountBalanceWalletRoundedIcon fontSize="small" />
               )

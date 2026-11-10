@@ -1,5 +1,7 @@
 "use client";
 
+import { accountWebsiteIconFixture } from "../../../../../src/test/mocks/accounts";
+
 import { AccountEditTemplate } from "../../../../../src/components/templates/accounts/AccountEdit";
 import { bankAccountFixture } from "../../../../../src/test/mocks/accounts";
 import { accountHolderOptionsFixture } from "../../../../../src/test/mocks/accountHolders";
@@ -13,6 +15,9 @@ export default function Editor({ save }: { save: typeof saveAction }) {
       baseCurrency="JPY"
       canWriteTransactions
       holderOptions={accountHolderOptionsFixture}
+      fetchIconAction={async () => ({
+        iconUrl: accountWebsiteIconFixture.icon_url,
+      })}
       ledgerName="兼容性测试账本"
       updateAccountAction={save}
     />

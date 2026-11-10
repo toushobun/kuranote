@@ -104,6 +104,7 @@ export type TransactionRowItem = {
 };
 
 export type TransactionAccountOption = {
+  icon_url?: string | null;
   id: string;
   name: string;
   currency: string;

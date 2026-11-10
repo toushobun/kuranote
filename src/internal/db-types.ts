@@ -45,6 +45,7 @@ export type TransactionItemDbRow = {
 };
 
 export type AccountOptionDbRow = {
+  icon_url?: string | null;
   id: string;
   name: string;
   currency: string;
@@ -131,4 +132,9 @@ export type LedgerInviteDbRow = {
   revoked_by: string | null;
   role: string;
   token_hash: string;
+};
+
+export type AccountWebsiteDbFields = {
+  website_url: string | null;
+  icon_url: string | null;
 };

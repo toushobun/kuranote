@@ -1,16 +1,12 @@
 import { isIP } from "node:net";
 import { lookup as nodeLookup } from "node:dns/promises";
 
-import {
-  getMerchantErrorMessage,
-  merchantErrorCodes,
-  merchantWebsiteUrlErrorMessages,
-} from "internal/merchant/errors";
+import { websiteIconErrorCodes, websiteIconErrorMessages } from "./errors";
 import {
   RepositoryError,
   ValidationError,
 } from "internal/shared/errors/appError";
-import { buildMerchantFaviconUrl, parseWebsiteUrl } from "utils/merchants";
+import { buildWebsiteFaviconUrl, parseWebsiteUrl } from "utils/websiteIcons";
 
 const faviconProviderHostname = "www.google.com";
 const faviconRedirectHostnames = new Set([
@@ -25,11 +21,11 @@ const maxRedirects = 3;
 
 type LookupAddress = { address: string; family: number };
 
-export type MerchantIcon = {
+export type WebsiteIcon = {
   url: string;
 };
 
-export function getReusableMerchantIconUrl(
+export function getReusableWebsiteIconUrl(
   websiteUrl: string,
   candidateUrl: string | null | undefined,
 ): string | null {
@@ -66,7 +62,7 @@ export function getReusableMerchantIconUrl(
   }
 }
 
-type MerchantIconServiceDependencies = {
+type WebsiteIconServiceDependencies = {
   fetchImpl?: typeof fetch;
   lookup?: (hostname: string) => Promise<LookupAddress[]>;
   timeoutMs?: number;
@@ -142,18 +138,18 @@ function isBlockedHostname(hostname: string): boolean {
   );
 }
 
-export function createMerchantIconService({
+export function createWebsiteIconService({
   fetchImpl = fetch,
   lookup = async (hostname) =>
     nodeLookup(hostname, { all: true, verbatim: true }),
   timeoutMs = iconFetchTimeoutMs,
-}: MerchantIconServiceDependencies = {}) {
+}: WebsiteIconServiceDependencies = {}) {
   async function requirePublicHostname(hostname: string): Promise<void> {
     const normalizedHostname = hostname.replace(/^\[|\]$/g, "");
     if (isBlockedHostname(normalizedHostname)) {
       throw new ValidationError(
-        merchantErrorCodes.websiteUrlInvalid,
-        merchantWebsiteUrlErrorMessages.internalNetwork,
+        websiteIconErrorCodes.websiteInvalid,
+        websiteIconErrorMessages.internalNetwork,
       );
     }
 
@@ -166,27 +162,27 @@ export function createMerchantIconService({
       addresses.some(({ address }) => !isPublicIp(address))
     ) {
       throw new ValidationError(
-        merchantErrorCodes.websiteUrlInvalid,
-        merchantWebsiteUrlErrorMessages.notPublic,
+        websiteIconErrorCodes.websiteInvalid,
+        websiteIconErrorMessages.notPublic,
       );
     }
   }
 
-  async function fetchIcon(websiteUrl: string): Promise<MerchantIcon> {
+  async function fetchIcon(websiteUrl: string): Promise<WebsiteIcon> {
     const parsedWebsiteUrl = parseWebsiteUrl(websiteUrl);
-    const faviconUrl = buildMerchantFaviconUrl(websiteUrl);
+    const faviconUrl = buildWebsiteFaviconUrl(websiteUrl);
     if (!parsedWebsiteUrl || !faviconUrl) {
       throw new ValidationError(
-        merchantErrorCodes.websiteUrlInvalid,
-        getMerchantErrorMessage(merchantErrorCodes.websiteUrlInvalid),
+        websiteIconErrorCodes.websiteInvalid,
+        websiteIconErrorMessages.websiteInvalid,
       );
     }
 
     const website = new URL(parsedWebsiteUrl);
     if (website.username || website.password) {
       throw new ValidationError(
-        merchantErrorCodes.websiteUrlInvalid,
-        merchantWebsiteUrlErrorMessages.credentialsNotAllowed,
+        websiteIconErrorCodes.websiteInvalid,
+        websiteIconErrorMessages.credentialsNotAllowed,
       );
     }
     await requirePublicHostname(website.hostname);
@@ -204,10 +200,8 @@ export function createMerchantIconService({
         faviconRedirectHostnames.has(requestUrl.hostname);
       if (requestUrl.protocol !== "https:" || !isAllowedProviderHostname) {
         throw new RepositoryError(
-          merchantErrorCodes.merchantIconRedirectInvalid,
-          getMerchantErrorMessage(
-            merchantErrorCodes.merchantIconRedirectInvalid,
-          ),
+          websiteIconErrorCodes.redirectInvalid,
+          websiteIconErrorMessages.redirectInvalid,
         );
       }
       await requirePublicHostname(requestUrl.hostname);
@@ -221,8 +215,8 @@ export function createMerchantIconService({
         });
       } catch {
         throw new RepositoryError(
-          merchantErrorCodes.merchantIconFetchFailed,
-          getMerchantErrorMessage(merchantErrorCodes.merchantIconFetchFailed),
+          websiteIconErrorCodes.fetchFailed,
+          websiteIconErrorMessages.fetchFailed,
         );
       }
       if (response.status >= 300 && response.status < 400) {
@@ -258,8 +252,8 @@ export function createMerchantIconService({
         }
       } catch {
         throw new RepositoryError(
-          merchantErrorCodes.merchantIconFetchFailed,
-          getMerchantErrorMessage(merchantErrorCodes.merchantIconFetchFailed),
+          websiteIconErrorCodes.fetchFailed,
+          websiteIconErrorMessages.fetchFailed,
         );
       } finally {
         reader.releaseLock();
@@ -269,8 +263,8 @@ export function createMerchantIconService({
     }
 
     throw new RepositoryError(
-      merchantErrorCodes.merchantIconFetchFailed,
-      getMerchantErrorMessage(merchantErrorCodes.merchantIconFetchFailed),
+      websiteIconErrorCodes.fetchFailed,
+      websiteIconErrorMessages.fetchFailed,
     );
   }
 

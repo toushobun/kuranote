@@ -1,4 +1,6 @@
 "use client";
+
+import { accountWebsiteIconFixture } from "../../../../src/test/mocks/accounts";
 import { AccountCreateTemplate } from "../../../../src/components/templates/accounts/AccountCreate";
 import { CategoriesActionStateTemplate } from "../../../../src/components/templates/categories/CategoriesActionState";
 import { BalanceAdjustmentEditForm } from "../../../../src/components/organisms/transactions/BalanceAdjustmentEditForm/BalanceAdjustmentEditForm";
@@ -10,6 +12,9 @@ export function NewAccountEditor() {
     <AccountCreateTemplate
       baseCurrency="JPY"
       holderOptions={accountHolderOptionsFixture}
+      fetchIconAction={async () => ({
+        iconUrl: accountWebsiteIconFixture.icon_url,
+      })}
       ledgerName="验证账本"
       createAccountAction={save}
     />

@@ -47,7 +47,12 @@ export function AccountStep(props: AccountStepProps) {
           aria-checked={props.selectedAccount?.id === account.id}
           aria-label={`${account.name} ${account.currency}`}
         >
-          <AccountAvatar id={account.id} name={account.name} size={36} />
+          <AccountAvatar
+            iconUrl={account.icon_url}
+            id={account.id}
+            name={account.name}
+            size={36}
+          />
           <ListItemText
             primary={account.name}
             secondary={m.holder(

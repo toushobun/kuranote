@@ -5,6 +5,8 @@ import {
   accountPlaceholderHolderOptionsFixture,
 } from "test/mocks/accountHolders";
 
+import { fetchAccountIconFixture } from "test/mocks/accounts";
+
 import { AccountCreateTemplate } from "./AccountCreate";
 
 const meta = {
@@ -12,6 +14,7 @@ const meta = {
   component: AccountCreateTemplate,
   args: {
     baseCurrency: "JPY",
+    fetchIconAction: fetchAccountIconFixture,
     createAccountAction: async () => ({}),
     holderOptions: accountHolderOptionsFixture,
     ledgerName: "家庭账本",

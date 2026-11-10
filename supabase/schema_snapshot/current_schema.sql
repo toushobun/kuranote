@@ -599,13 +599,17 @@ CREATE TABLE IF NOT EXISTS "public"."account" (
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "updated_by" "uuid",
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "website_url" "text",
+    "icon_url" "text",
     CONSTRAINT "account_archive_check" CHECK (((("is_archived" = false) AND ("archived_at" IS NULL) AND ("archived_by" IS NULL)) OR (("is_archived" = true) AND ("archived_at" IS NOT NULL)))),
     CONSTRAINT "account_closing_day_check" CHECK ((("closing_day" IS NULL) OR (("closing_day" >= 1) AND ("closing_day" <= 31)))),
     CONSTRAINT "account_credit_limit_check" CHECK ((("credit_limit" IS NULL) OR ("credit_limit" > (0)::numeric))),
     CONSTRAINT "account_currency_check" CHECK (("currency" ~ '^[A-Z]{3}$'::"text")),
+    CONSTRAINT "account_icon_url_check" CHECK ((("icon_url" IS NULL) OR ("icon_url" ~ '^https://'::"text"))),
     CONSTRAINT "account_name_check" CHECK ((("length"(TRIM(BOTH FROM "name")) >= 1) AND ("length"(TRIM(BOTH FROM "name")) <= 100))),
     CONSTRAINT "account_payment_due_day_check" CHECK ((("payment_due_day" IS NULL) OR (("payment_due_day" >= 1) AND ("payment_due_day" <= 31)))),
-    CONSTRAINT "account_type_check" CHECK (("type" = ANY (ARRAY['cash'::"text", 'bank'::"text", 'credit_card'::"text", 'e_money'::"text", 'other'::"text"])))
+    CONSTRAINT "account_type_check" CHECK (("type" = ANY (ARRAY['cash'::"text", 'bank'::"text", 'credit_card'::"text", 'e_money'::"text", 'other'::"text"]))),
+    CONSTRAINT "account_website_url_check" CHECK ((("website_url" IS NULL) OR ("website_url" ~ '^https?://'::"text")))
 );
 
 
@@ -1527,7 +1531,7 @@ $$;
 ALTER FUNCTION "public"."complete_ledger_setup"("p_ledger_id" "uuid", "p_payload" "jsonb") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[] DEFAULT '{}'::"uuid"[], "p_placeholder_id" "uuid" DEFAULT NULL::"uuid") RETURNS "uuid"
+CREATE OR REPLACE FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[] DEFAULT '{}'::"uuid"[], "p_placeholder_id" "uuid" DEFAULT NULL::"uuid", "p_website_url" "text" DEFAULT NULL::"text", "p_icon_url" "text" DEFAULT NULL::"text") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -1579,6 +1583,8 @@ begin
         name,
         type,
         currency,
+        website_url,
+        icon_url,
         initial_balance,
         sort_order,
         created_by,
@@ -1589,6 +1595,8 @@ begin
         p_name,
         p_type,
         p_currency,
+        nullif(p_website_url, ''),
+        case when nullif(p_website_url, '') is not null then p_icon_url end,
         p_initial_balance,
         0,
         v_user_id,
@@ -1627,7 +1635,7 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[], "p_placeholder_id" "uuid") OWNER TO "postgres";
+ALTER FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[], "p_placeholder_id" "uuid", "p_website_url" "text", "p_icon_url" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."create_balance_adjustment_transaction"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_signed_delta" numeric, "p_transaction_at" timestamp with time zone, "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
@@ -6338,7 +6346,7 @@ $$;
 ALTER FUNCTION "public"."transaction_record_currency"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."update_account_with_balance_adjustment"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[], "p_target_balance" numeric DEFAULT NULL::numeric, "p_adjustment_note" "text" DEFAULT NULL::"text", "p_placeholder_id" "uuid" DEFAULT NULL::"uuid") RETURNS "uuid"
+CREATE OR REPLACE FUNCTION "public"."update_account_with_balance_adjustment"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[], "p_target_balance" numeric DEFAULT NULL::numeric, "p_adjustment_note" "text" DEFAULT NULL::"text", "p_placeholder_id" "uuid" DEFAULT NULL::"uuid", "p_website_url" "text" DEFAULT NULL::"text", "p_icon_url" "text" DEFAULT NULL::"text") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -6362,6 +6370,11 @@ begin
  end if;
  -- 与既有账户资料 RPC 保持锁定顺序，资料更新取得账户行锁后再读取最新余额。
  perform public.update_account_with_holders(p_ledger_id,p_account_id,p_name,p_type,p_currency,p_holder_user_ids,p_placeholder_id);
+ if p_website_url is not null then
+  update public.account
+  set website_url = nullif(p_website_url, ''), icon_url = case when p_website_url <> '' then p_icon_url end
+  where id = p_account_id and ledger_id = p_ledger_id;
+ end if;
  select current_balance into strict v_balance from public.account where id=p_account_id and ledger_id=p_ledger_id for update;
  v_delta := p_target_balance - v_balance;
  if v_delta is not null and v_delta <> 0 then
@@ -6380,7 +6393,7 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."update_account_with_balance_adjustment"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[], "p_target_balance" numeric, "p_adjustment_note" "text", "p_placeholder_id" "uuid") OWNER TO "postgres";
+ALTER FUNCTION "public"."update_account_with_balance_adjustment"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[], "p_target_balance" numeric, "p_adjustment_note" "text", "p_placeholder_id" "uuid", "p_website_url" "text", "p_icon_url" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."update_account_with_holders"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[] DEFAULT '{}'::"uuid"[], "p_placeholder_id" "uuid" DEFAULT NULL::"uuid") RETURNS "uuid"
@@ -11217,8 +11230,8 @@ GRANT ALL ON FUNCTION "public"."complete_ledger_setup"("p_ledger_id" "uuid", "p_
 
 
 
-REVOKE ALL ON FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[], "p_placeholder_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[], "p_placeholder_id" "uuid") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[], "p_placeholder_id" "uuid", "p_website_url" "text", "p_icon_url" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[], "p_placeholder_id" "uuid", "p_website_url" "text", "p_icon_url" "text") TO "authenticated";
 
 
 
@@ -11573,8 +11586,8 @@ REVOKE ALL ON FUNCTION "public"."transaction_record_currency"("p_ledger_id" "uui
 
 
 
-REVOKE ALL ON FUNCTION "public"."update_account_with_balance_adjustment"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[], "p_target_balance" numeric, "p_adjustment_note" "text", "p_placeholder_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."update_account_with_balance_adjustment"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[], "p_target_balance" numeric, "p_adjustment_note" "text", "p_placeholder_id" "uuid") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."update_account_with_balance_adjustment"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[], "p_target_balance" numeric, "p_adjustment_note" "text", "p_placeholder_id" "uuid", "p_website_url" "text", "p_icon_url" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."update_account_with_balance_adjustment"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[], "p_target_balance" numeric, "p_adjustment_note" "text", "p_placeholder_id" "uuid", "p_website_url" "text", "p_icon_url" "text") TO "authenticated";
 
 
 

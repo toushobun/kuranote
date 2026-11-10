@@ -153,6 +153,7 @@ export function BalanceAdjustmentEditForm({
             <ReceiptPaper>
               <Stack spacing={0.5} sx={{ alignItems: "center", pb: 1.5 }}>
                 <AccountAvatar
+                  iconUrl={initialValues.accountIconUrl}
                   id={initialValues.accountId}
                   name={initialValues.accountName}
                   size={48}

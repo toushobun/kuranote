@@ -1,3 +1,4 @@
+import type { WebsiteIconActionState } from "types/actions";
 import type { Account } from "types/accounts";
 
 import {
@@ -18,3 +19,15 @@ export const bankAccountFixture: Account = {
   sort_order: 1,
   type: "bank",
 };
+
+export const accountWebsiteIconFixture = {
+  website_url: "https://example.com",
+  icon_url: `data:image/svg+xml,${encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#b81e32"/><path fill="white" d="M6 14l10-6 10 6v2H6zm3 4h3v6H9zm6 0h3v6h-3zm6 0h3v6h-3zM6 25h20v2H6z"/></svg>',
+  )}`,
+} as const;
+
+export const fetchAccountIconFixture =
+  async (): Promise<WebsiteIconActionState> => ({
+    iconUrl: accountWebsiteIconFixture.icon_url,
+  });

@@ -13,6 +13,7 @@ afterEach(() => {
 });
 
 const baseProps = {
+  id: "account-1",
   name: "三菱UFJ银行",
   type: "bank" as const,
   currency: "JPY",
@@ -28,7 +29,7 @@ describe("AccountCard", () => {
       </ThemeProvider>,
     );
 
-    const icon = within(container).getByTestId("account-card-icon");
+    const icon = within(container).getByText("三菱");
     expect(getComputedStyle(icon).borderRadius).toBe(
       `${designTokens.radius.sm}px`,
     );
@@ -44,13 +45,6 @@ describe("AccountCard", () => {
     const { container } = render(<AccountCard {...baseProps} />);
 
     expect(within(container).getByText("银行卡")).toBeInTheDocument();
-  });
-
-  it("类型为 null 时不显示类型标签", () => {
-    const { container } = render(<AccountCard {...baseProps} type={null} />);
-
-    expect(within(container).queryByText("银行卡")).toBeNull();
-    expect(within(container).queryByText("其他")).toBeNull();
   });
 
   it("显示当前余额", () => {

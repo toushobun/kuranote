@@ -27,6 +27,8 @@ const cashAccountRow = {
   current_balance: "1000",
   id: accountId,
   is_archived: false,
+  website_url: null,
+  icon_url: null,
   initial_balance: "1000",
   name: "现金",
   sort_order: 0,
@@ -114,6 +116,52 @@ function createService(
 }
 
 describe("AccountService", () => {
+  const websiteUrl = "https://example.com/path";
+  const previewIconUrl =
+    "https://www.google.com/s2/favicons?domain_url=https%3A%2F%2Fexample.com&sz=128";
+
+  it("创建账户时只保存属于当前网址的图标", async () => {
+    const repository = createRepository();
+    await createService(repository).create({
+      ...createInput(),
+      websiteUrl,
+      previewIconUrl,
+    });
+    expect(repository.create).toHaveBeenCalledWith(
+      expect.objectContaining({ websiteUrl, iconUrl: previewIconUrl }),
+    );
+  });
+
+  it.each([
+    ["旧网址图标", previewIconUrl],
+    ["任意图片地址", "https://example.net/photo.png"],
+    ["获取失败或清除图标", ""],
+  ])("编辑账户时可保存新网址并丢弃%s", async (_label, candidate) => {
+    const repository = createRepository();
+    await createService(repository).update({
+      ...createInput(),
+      accountId,
+      websiteUrl: "https://example.net",
+      previewIconUrl: candidate,
+    });
+    expect(repository.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        websiteUrl: "https://example.net",
+        iconUrl: null,
+      }),
+    );
+  });
+
+  it("没有管理权限时不获取网站图标", async () => {
+    const service = createService(
+      createRepository(),
+      createLedgerAccessService("viewer"),
+    );
+    await expect(
+      service.fetchIcon({ ledgerId, userId, websiteUrl }),
+    ).rejects.toMatchObject({ code: accountErrorCodes.permissionDenied });
+  });
+
   beforeEach(() => vi.clearAllMocks());
 
   it("读取账户页面时通过账本窄接口校验权限并聚合成员信息", async () => {
@@ -411,6 +459,8 @@ describe("AccountService 占位持有人", () => {
         id: accountId,
         initial_balance: "0",
         is_archived: false,
+        website_url: null,
+        icon_url: null,
         name: "奶奶的钱包",
         sort_order: 0,
         type: "cash",
@@ -514,6 +564,7 @@ describe("AccountService 占位持有人", () => {
     expect(Object.keys(options[0]).sort()).toEqual([
       "currency",
       "holders",
+      "icon_url",
       "id",
       "name",
       "type",

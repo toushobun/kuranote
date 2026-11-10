@@ -2,37 +2,34 @@
 
 import { describe, expect, it, vi } from "vitest";
 
+import { websiteIconErrorMessages } from "./errors";
 import {
-  merchantErrorCodes,
-  merchantErrorMessages,
-} from "internal/merchant/errors";
-import {
-  createMerchantIconService,
-  getReusableMerchantIconUrl,
-} from "internal/merchant/service/merchantIconService";
+  createWebsiteIconService,
+  getReusableWebsiteIconUrl,
+} from "./websiteIconService";
 import {
   RepositoryError,
   ValidationError,
 } from "internal/shared/errors/appError";
-import { buildMerchantFaviconUrl } from "utils/merchants";
+import { buildWebsiteFaviconUrl } from "utils/websiteIcons";
 
 const publicLookup = vi.fn(async () => [
   { address: "142.250.196.36", family: 4 },
 ]);
 
-describe("createMerchantIconService", () => {
+describe("createWebsiteIconService", () => {
   it("只复用与当前网址同源的 Google 图标预览地址", () => {
     const previewUrl =
       "https://t2.gstatic.com/faviconV2?url=https://example.com&size=128";
 
     expect(
-      getReusableMerchantIconUrl("https://example.com/products", previewUrl),
+      getReusableWebsiteIconUrl("https://example.com/products", previewUrl),
     ).toBe(previewUrl);
     expect(
-      getReusableMerchantIconUrl("https://other.example", previewUrl),
+      getReusableWebsiteIconUrl("https://other.example", previewUrl),
     ).toBeNull();
     expect(
-      getReusableMerchantIconUrl(
+      getReusableWebsiteIconUrl(
         "https://example.com",
         "https://evil.example/faviconV2?url=https://example.com",
       ),
@@ -46,7 +43,7 @@ describe("createMerchantIconService", () => {
           headers: { "content-type": "image/png" },
         }),
     ) as unknown as typeof fetch;
-    const service = createMerchantIconService({
+    const service = createWebsiteIconService({
       fetchImpl,
       lookup: publicLookup,
     });
@@ -58,7 +55,7 @@ describe("createMerchantIconService", () => {
     });
     const requestedUrl = String(vi.mocked(fetchImpl).mock.calls[0]?.[0]);
     expect(requestedUrl).toBe(
-      buildMerchantFaviconUrl("https://example.com/path"),
+      buildWebsiteFaviconUrl("https://example.com/path"),
     );
   });
 
@@ -68,10 +65,10 @@ describe("createMerchantIconService", () => {
       "https://www.example.co.jp/shop/path?q=1",
       "http://example.com:8080/",
     ]) {
-      const iconUrl = buildMerchantFaviconUrl(websiteUrl);
+      const iconUrl = buildWebsiteFaviconUrl(websiteUrl);
 
       expect(iconUrl).not.toBeNull();
-      expect(getReusableMerchantIconUrl(websiteUrl, iconUrl)).toBe(iconUrl);
+      expect(getReusableWebsiteIconUrl(websiteUrl, iconUrl)).toBe(iconUrl);
     }
   });
 
@@ -92,7 +89,7 @@ describe("createMerchantIconService", () => {
           headers: { "content-type": "image/png" },
         }),
       ) as unknown as typeof fetch;
-    const service = createMerchantIconService({
+    const service = createWebsiteIconService({
       fetchImpl,
       lookup: publicLookup,
     });
@@ -131,14 +128,14 @@ describe("createMerchantIconService", () => {
       ),
     },
   ])("拒绝$name", async ({ response }) => {
-    const service = createMerchantIconService({
+    const service = createWebsiteIconService({
       fetchImpl: vi.fn(async () => response) as unknown as typeof fetch,
       lookup: publicLookup,
     });
 
     await expect(
       service.fetchIcon("https://example.com"),
-    ).rejects.toMatchObject({ code: "merchant_icon_fetch_failed" });
+    ).rejects.toMatchObject({ code: "website_icon_fetch_failed" });
   });
 
   it("分块响应超过上限时立即取消剩余下载", async () => {
@@ -156,7 +153,7 @@ describe("createMerchantIconService", () => {
         else controller.close();
       },
     });
-    const service = createMerchantIconService({
+    const service = createWebsiteIconService({
       fetchImpl: vi.fn(
         async () =>
           new Response(body, {
@@ -168,7 +165,7 @@ describe("createMerchantIconService", () => {
 
     await expect(
       service.fetchIcon("https://example.com"),
-    ).rejects.toMatchObject({ code: "merchant_icon_fetch_failed" });
+    ).rejects.toMatchObject({ code: "website_icon_fetch_failed" });
     expect(canceled).toBe(true);
     expect(pullCount).toBeLessThan(5);
   });
@@ -181,7 +178,7 @@ describe("createMerchantIconService", () => {
     "https://user:password@example.com",
   ])("拒绝本机、metadata、内网或含凭据的网址：%s", async (websiteUrl) => {
     const fetchImpl = vi.fn() as unknown as typeof fetch;
-    const service = createMerchantIconService({
+    const service = createWebsiteIconService({
       fetchImpl,
       lookup: publicLookup,
     });
@@ -194,7 +191,7 @@ describe("createMerchantIconService", () => {
 
   it("DNS 解析到私网地址时拒绝请求", async () => {
     const fetchImpl = vi.fn() as unknown as typeof fetch;
-    const service = createMerchantIconService({
+    const service = createWebsiteIconService({
       fetchImpl,
       lookup: async () => [{ address: "10.0.0.8", family: 4 }],
     });
@@ -209,7 +206,7 @@ describe("createMerchantIconService", () => {
     "DNS 解析到 IPv4-mapped IPv6 私网地址时拒绝请求：%s",
     async (address) => {
       const fetchImpl = vi.fn() as unknown as typeof fetch;
-      const service = createMerchantIconService({
+      const service = createWebsiteIconService({
         fetchImpl,
         lookup: async () => [{ address, family: 6 }],
       });
@@ -225,7 +222,7 @@ describe("createMerchantIconService", () => {
     "DNS 解析到 IPv4-compatible IPv6 私网地址时拒绝请求：%s",
     async (address) => {
       const fetchImpl = vi.fn() as unknown as typeof fetch;
-      const service = createMerchantIconService({
+      const service = createWebsiteIconService({
         fetchImpl,
         lookup: async () => [{ address, family: 6 }],
       });
@@ -245,7 +242,7 @@ describe("createMerchantIconService", () => {
           status: 302,
         }),
     ) as unknown as typeof fetch;
-    const service = createMerchantIconService({
+    const service = createWebsiteIconService({
       fetchImpl,
       lookup: publicLookup,
     });
@@ -266,7 +263,7 @@ describe("createMerchantIconService", () => {
           });
         }),
     ) as unknown as typeof fetch;
-    const service = createMerchantIconService({
+    const service = createWebsiteIconService({
       fetchImpl,
       lookup: publicLookup,
       timeoutMs: 5,
@@ -275,9 +272,8 @@ describe("createMerchantIconService", () => {
     await expect(
       service.fetchIcon("https://example.com"),
     ).rejects.toMatchObject({
-      code: "merchant_icon_fetch_failed",
-      message:
-        merchantErrorMessages[merchantErrorCodes.merchantIconFetchFailed],
+      code: "website_icon_fetch_failed",
+      message: websiteIconErrorMessages.fetchFailed,
     });
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });

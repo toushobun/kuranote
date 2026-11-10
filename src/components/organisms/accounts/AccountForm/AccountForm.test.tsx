@@ -1,10 +1,4 @@
-import {
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-  within,
-} from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -44,10 +38,6 @@ function renderAccountForm(
   };
 }
 
-function getPreview() {
-  return screen.getByTestId("account-form-preview");
-}
-
 function fillCreditCard() {
   fireEvent.change(screen.getByLabelText(/账户名称/), {
     target: { value: "楽天カード" },
@@ -60,34 +50,117 @@ function fillCreditCard() {
 }
 
 describe("AccountForm", () => {
-  it("初始状态的预览显示占位名称与当前货币的 0 余额", () => {
-    renderAccountForm();
+  it("没有独立预览卡，网址位于名称与类型之间", () => {
+    renderAccountForm({ fetchIconAction: vi.fn() });
+    const name = screen.getByLabelText(/账户名称/);
+    const website = screen.getByLabelText("网址（可选）");
+    const type = screen.getByRole("radio", { name: "现金" });
 
-    const preview = within(getPreview());
-    expect(preview.getByText("账户名称")).toBeInTheDocument();
-    expect(preview.getByText("未设置持有人")).toBeInTheDocument();
-    expect(preview.getByText("¥0")).toBeInTheDocument();
+    expect(screen.queryByText("预览")).not.toBeInTheDocument();
+    expect(
+      name.compareDocumentPosition(website) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      website.compareDocumentPosition(type) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "默认显示账户名的文字图标",
+    );
+    expect(screen.getByRole("button", { name: "获取图标" })).toBeDisabled();
   });
 
-  it("预览随名称、类型、金额与持有人实时更新", () => {
-    renderAccountForm();
-
+  it("只有点击才获取，显示获取中和成功状态，并可以改回文字图标", async () => {
+    const iconUrl = "https://example.com/icon.png";
+    const fetchIconAction = vi.fn(async () => ({ iconUrl }));
+    const { action } = renderAccountForm({ fetchIconAction });
     fillCreditCard();
+    fireEvent.change(screen.getByLabelText("网址（可选）"), {
+      target: { value: "https://example.com" },
+    });
+    expect(fetchIconAction).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "获取图标" }));
+    expect(screen.getByRole("status")).toHaveTextContent("正在获取网站图标");
+    expect(await screen.findByText("已获取图标")).toBeInTheDocument();
+    expect(action).not.toHaveBeenCalled();
 
-    const preview = within(getPreview());
-    expect(preview.getByText("楽天カード")).toBeInTheDocument();
-    expect(preview.getByText("信用卡")).toBeInTheDocument();
-    expect(preview.getByText("-¥12,800")).toBeInTheDocument();
-    expect(preview.getByText("妻子")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "改用文字图标" }));
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "默认显示账户名的文字图标",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "保存账户" }));
+    await waitFor(() => expect(action).toHaveBeenCalledOnce());
+    expect(action.mock.calls[0]?.[0].get("previewIconUrl")).toBe("");
   });
 
-  it("切换货币时预览与金额符号一起改变", () => {
+  it("显示获取失败的原因，仍可保存网址", async () => {
+    const { action } = renderAccountForm({
+      fetchIconAction: async () => ({ error: "网址不能指向本机或内部网络。" }),
+    });
+    fillCreditCard();
+    fireEvent.change(screen.getByLabelText("网址（可选）"), {
+      target: { value: "https://example.com" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "获取图标" }));
+    expect(await screen.findByText("没有获取到图标")).toBeInTheDocument();
+    expect(
+      screen.getByText("网址不能指向本机或内部网络。"),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "保存账户" }));
+    await waitFor(() => expect(action).toHaveBeenCalledOnce());
+    expect(action.mock.calls[0]?.[0].get("websiteUrl")).toBe(
+      "https://example.com",
+    );
+    expect(action.mock.calls[0]?.[0].get("previewIconUrl")).toBe("");
+  });
+
+  it("已保存的图片加载失败时回退到文字头像，不提示获取失败", () => {
+    const fetchIconAction = vi.fn();
+    const onDirtyChange = vi.fn();
+    renderAccountForm({
+      account: {
+        ...bankAccountFixture,
+        website_url: "https://example.com",
+        icon_url: "https://example.com/icon.png",
+      },
+      fetchIconAction,
+      onDirtyChange,
+    });
+    fireEvent.error(
+      document.querySelector('img[src="https://example.com/icon.png"]')!,
+    );
+
+    expect(screen.getByText("三菱")).toBeInTheDocument();
+    expect(screen.queryByText("没有获取到图标")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "改用文字图标" })).toBeEnabled();
+    expect(fetchIconAction).not.toHaveBeenCalled();
+    expect(onDirtyChange).toHaveBeenLastCalledWith(false);
+  });
+
+  it("修改网址会清空已有图标并标记表单已修改", () => {
+    const onDirtyChange = vi.fn();
+    renderAccountForm({
+      account: {
+        ...bankAccountFixture,
+        website_url: "https://example.com",
+        icon_url: "https://example.com/icon.png",
+      },
+      fetchIconAction: vi.fn(),
+      onDirtyChange,
+    });
+    expect(screen.getByText("已获取图标")).toBeInTheDocument();
+    const website = screen.getByLabelText("网址（可选）");
+    fireEvent.change(website, { target: { value: "https://example.org" } });
+    fireEvent.change(website, { target: { value: "https://example.com" } });
+    expect(screen.queryByText("已获取图标")).not.toBeInTheDocument();
+    expect(onDirtyChange).toHaveBeenLastCalledWith(true);
+  });
+
+  it("切换货币时更新金额输入的币种", () => {
     renderAccountForm();
 
     fireEvent.mouseDown(screen.getByRole("combobox", { name: "货币" }));
     fireEvent.click(screen.getByRole("option", { name: "USD 美元" }));
 
-    expect(within(getPreview()).getByText("$0.00")).toBeInTheDocument();
     expect(screen.getByLabelText("初始金额")).toHaveAttribute(
       "data-amount-currency",
       "USD",
@@ -164,17 +237,13 @@ async function submitEditForm(
 }
 
 describe("AccountForm 编辑", () => {
-  it("以当前值填入表单与预览，余额为当前余额", () => {
+  it("以当前值填入表单，余额为当前余额", () => {
     renderEditForm();
 
     expect(screen.getByLabelText(/账户名称/)).toHaveValue("三菱UFJ银行");
     expect(screen.getByRole("radio", { name: "银行卡" })).toBeChecked();
     expect(screen.getByLabelText("当前余额")).toHaveValue("85000");
     expect(screen.getByRole("checkbox", { name: "我" })).toBeChecked();
-    const preview = within(getPreview());
-    expect(preview.getByText("三菱UFJ银行")).toBeInTheDocument();
-    expect(preview.getByText("¥85,000")).toBeInTheDocument();
-    expect(preview.getByText("我")).toBeInTheDocument();
   });
 
   it("余额未变化时不提交目标余额，也不显示备注", async () => {
@@ -328,35 +397,28 @@ describe("AccountForm 编辑", () => {
 
       expect(getPreservedCheckbox()).toBeChecked();
       expect(getPreservedCheckbox()).toBeDisabled();
-      expect(within(getPreview()).getByText("前成员")).toBeInTheDocument();
 
       const formData = await submitEditForm(action);
       expect(formData.getAll("holderUserIds")).toEqual([]);
       expect(formData.get("holderPlaceholderId")).toBeNull();
     });
 
-    it("选了新成员时预览只显示新持有人，原持有人显示为未选中", async () => {
+    it("选了新成员时原持有人显示为未选中", async () => {
       const { action } = renderWithInactiveHolder();
 
       fireEvent.click(screen.getByRole("checkbox", { name: "妻子" }));
 
       expect(getPreservedCheckbox()).not.toBeChecked();
-      const preview = within(getPreview());
-      expect(preview.getByText("妻子")).toBeInTheDocument();
-      expect(preview.queryByText("前成员")).toBeNull();
       const formData = await submitEditForm(action);
       expect(formData.getAll("holderUserIds")).toEqual([wife!.user_id]);
     });
 
-    it("选了待邀请成员时预览只显示该占位，提交占位 ID", async () => {
+    it("选了待邀请成员时提交占位 ID", async () => {
       const { action } = renderWithInactiveHolder();
 
       fireEvent.click(screen.getByRole("checkbox", { name: "奶奶" }));
 
       expect(getPreservedCheckbox()).not.toBeChecked();
-      const preview = within(getPreview());
-      expect(preview.getByText("奶奶（待邀请）")).toBeInTheDocument();
-      expect(preview.queryByText("前成员")).toBeNull();
       const formData = await submitEditForm(action);
       expect(formData.get("holderPlaceholderId")).toBe(
         accountPlaceholderHolderOptionsFixture[0]!.placeholder_id,
@@ -364,7 +426,7 @@ describe("AccountForm 编辑", () => {
       expect(formData.getAll("holderUserIds")).toEqual([]);
     });
 
-    it("取消新选择后恢复显示原持有人", () => {
+    it("取消新选择后恢复原持有人选中状态", () => {
       renderWithInactiveHolder();
       const wifeCheckbox = screen.getByRole("checkbox", { name: "妻子" });
 
@@ -372,7 +434,6 @@ describe("AccountForm 编辑", () => {
       fireEvent.click(wifeCheckbox);
 
       expect(getPreservedCheckbox()).toBeChecked();
-      expect(within(getPreview()).getByText("前成员")).toBeInTheDocument();
     });
   });
 

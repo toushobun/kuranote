@@ -27,6 +27,8 @@ function createAccount(id: string): AccountData {
     current_balance: "1000",
     id,
     is_archived: false,
+    website_url: null,
+    icon_url: null,
     initial_balance: "1000",
     name: "现金",
     sort_order: 1,

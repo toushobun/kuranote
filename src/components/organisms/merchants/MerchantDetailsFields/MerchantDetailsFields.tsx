@@ -1,15 +1,14 @@
 "use client";
 
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
-import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
-import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
 
+import { WebsiteIconField } from "molecules/ui/WebsiteIconField/WebsiteIconField";
 import { merchantText } from "config/merchantText";
 import type { MerchantIconStateAction } from "types/merchants";
 
@@ -48,7 +47,6 @@ export function MerchantDetailsFields({
     previewIconUrl ? "success" : "idle",
   );
   const [feedbackText, setFeedbackText] = useState<string | null>(null);
-  const canFetch = websiteUrl.trim().length > 0;
   const statusContent = {
     error: {
       color: "warning.main",
@@ -121,59 +119,40 @@ export function MerchantDetailsFields({
         value={name}
       />
 
-      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-        <TextField
-          autoComplete="url"
-          fullWidth
-          label={merchantText.websiteLabel}
-          name="websiteUrl"
-          onChange={(event) => {
-            onWebsiteUrlChange(event.target.value);
-            onPreviewIconChange("");
-            setFeedbackText(null);
-            setPreviewStatus("idle");
-          }}
-          placeholder={merchantText.websitePlaceholder}
-          type="url"
-          size="small"
-          value={websiteUrl}
-        />
-        <Button
-          disabled={!canFetch || previewStatus === "loading"}
-          onClick={async () => {
-            setFeedbackText(null);
-            setPreviewStatus("loading");
-            const formData = new FormData();
-            formData.set("websiteUrl", websiteUrl);
+      <WebsiteIconField
+        label={merchantText.websiteLabel}
+        placeholder={merchantText.websitePlaceholder}
+        buttonLabel={merchantText.iconRefresh}
+        websiteUrl={websiteUrl}
+        loading={previewStatus === "loading"}
+        onWebsiteUrlChange={(value) => {
+          onWebsiteUrlChange(value);
+          onPreviewIconChange("");
+          setFeedbackText(null);
+          setPreviewStatus("idle");
+        }}
+        onClick={async () => {
+          setFeedbackText(null);
+          setPreviewStatus("loading");
+          const formData = new FormData();
+          formData.set("websiteUrl", websiteUrl);
 
-            try {
-              const state = await fetchIconAction({}, formData);
-              if (state.error || !state.iconUrl) {
-                setFeedbackText(state.error ?? merchantText.iconError);
-                setPreviewStatus("error");
-                return;
-              }
-              onPreviewIconChange(state.iconUrl ?? "");
-              setFeedbackText(state.success ?? merchantText.iconSuccess);
-              setPreviewStatus("success");
-            } catch {
-              setFeedbackText(merchantText.iconError);
+          try {
+            const state = await fetchIconAction({}, formData);
+            if (state.error || !state.iconUrl) {
+              setFeedbackText(state.error ?? merchantText.iconError);
               setPreviewStatus("error");
+              return;
             }
-          }}
-          size="small"
-          startIcon={<DownloadRoundedIcon />}
-          sx={{
-            flexShrink: 0,
-            minHeight: 40,
-            whiteSpace: "nowrap",
-          }}
-          type="button"
-          variant="outlined"
-        >
-          {merchantText.iconRefresh}
-        </Button>
-      </Stack>
+            onPreviewIconChange(state.iconUrl ?? "");
+            setFeedbackText(state.success ?? merchantText.iconSuccess);
+            setPreviewStatus("success");
+          } catch {
+            setFeedbackText(merchantText.iconError);
+            setPreviewStatus("error");
+          }
+        }}
+      />
 
       <TextField
         fullWidth

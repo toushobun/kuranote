@@ -8,7 +8,7 @@ import {
   merchantErrorMessages,
 } from "internal/merchant/errors";
 import type { MerchantRepository } from "internal/merchant/repository/merchantRepository";
-import { createMerchantIconService } from "internal/merchant/service/merchantIconService";
+import { createWebsiteIconService } from "internal/shared/websiteIcon/websiteIconService";
 import { createMerchantService } from "internal/merchant/service/merchantService";
 import {
   AuthenticationError,
@@ -82,7 +82,7 @@ function createService(
   repository: MerchantRepository = createRepository(),
   ledgerAccessService: LedgerAccessService = createLedgerAccessService(),
   currentUserId: string | null = userId,
-  merchantIconService: ReturnType<typeof createMerchantIconService> = {
+  merchantIconService: ReturnType<typeof createWebsiteIconService> = {
     fetchIcon: vi.fn().mockResolvedValue({
       url: "https://t2.gstatic.com/faviconV2?url=https://example.com",
     }),

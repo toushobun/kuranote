@@ -1,3 +1,4 @@
+import type { AccountWebsiteDbFields } from "internal/db-types";
 import type { CurrentLedgerRole } from "internal/ledger";
 import type { AccountType } from "internal/account/entity/accountType";
 import type { AccountHolderRole } from "internal/account/entity/accountHolderRole";
@@ -19,7 +20,7 @@ import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authe
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
 import { toConcurrentModificationError } from "internal/shared/supabase/rpcError";
 
-type AccountRow = {
+export type AccountData = AccountWebsiteDbFields & {
   created_at: string;
   currency: string;
   current_balance: number | string;
@@ -58,18 +59,6 @@ type LedgerMemberDisplaySettingRow = {
   display_color: string;
   display_name: string | null;
   user_id: string;
-};
-
-export type AccountData = {
-  created_at: string;
-  currency: string;
-  current_balance: number | string;
-  id: string;
-  initial_balance: number | string;
-  is_archived: boolean;
-  name: string;
-  sort_order: number;
-  type: AccountType;
 };
 
 /**
@@ -113,7 +102,9 @@ export type AccountLedgerMember = {
   user_id: string;
 };
 
-export type CreateAccountInput = {
+type AccountWebsiteInput = { websiteUrl?: string; iconUrl?: string | null };
+
+export type CreateAccountInput = AccountWebsiteInput & {
   currency: string;
   /** 与 holderUserIds 互斥；两者都为空表示无持有人。 */
   holderPlaceholderId: string | null;
@@ -124,7 +115,7 @@ export type CreateAccountInput = {
   type: AccountType;
 };
 
-export type UpdateAccountInput = {
+export type UpdateAccountInput = AccountWebsiteInput & {
   targetBalance?: number;
   balanceAdjustmentNote?: string | null;
   accountId: string;
@@ -268,6 +259,8 @@ export function createSupabaseAccountRepository(
         "create_account_with_holders",
         {
           p_currency: input.currency,
+          p_website_url: input.websiteUrl,
+          p_icon_url: input.iconUrl,
           p_holder_user_ids: input.holderUserIds,
           p_initial_balance: input.initialBalance,
           p_ledger_id: input.ledgerId,
@@ -315,7 +308,7 @@ export function createSupabaseAccountRepository(
       if (uniqueAccountIds.length === 0) return [];
       const { data, error } = await supabase
         .from("account")
-        .select("id, name, currency, type")
+        .select("id, name, currency, type, icon_url")
         .eq("ledger_id", ledgerId)
         .in("id", uniqueAccountIds);
       if (error) {
@@ -326,10 +319,14 @@ export function createSupabaseAccountRepository(
         );
       }
       return (
-        (data ?? []) as Pick<AccountRow, "currency" | "id" | "name" | "type">[]
+        (data ?? []) as Pick<
+          AccountData,
+          "currency" | "id" | "name" | "type" | "icon_url"
+        >[]
       ).map((row) => ({
         currency: row.currency,
         id: row.id,
+        icon_url: row.icon_url,
         name: row.name,
         type: row.type,
       }));
@@ -384,7 +381,7 @@ export function createSupabaseAccountRepository(
       let query = supabase
         .from("account")
         .select(
-          "id, name, type, currency, initial_balance, current_balance, sort_order, created_at, is_archived",
+          "id, name, type, currency, initial_balance, current_balance, sort_order, created_at, is_archived, website_url, icon_url",
         )
         .eq("ledger_id", ledgerId)
         .order("sort_order", { ascending: true })
@@ -401,13 +398,15 @@ export function createSupabaseAccountRepository(
         );
       }
 
-      return ((data ?? []) as AccountRow[]).map((row) => ({
+      return ((data ?? []) as AccountData[]).map((row) => ({
         created_at: row.created_at,
         currency: row.currency,
         current_balance: row.current_balance,
         id: row.id,
         initial_balance: row.initial_balance,
         is_archived: row.is_archived,
+        icon_url: row.icon_url,
+        website_url: row.website_url,
         name: row.name,
         sort_order: row.sort_order,
         type: row.type,
@@ -558,6 +557,8 @@ export function createSupabaseAccountRepository(
           p_target_balance: input.targetBalance ?? null,
           p_adjustment_note: input.balanceAdjustmentNote ?? null,
           p_currency: input.currency,
+          p_website_url: input.websiteUrl,
+          p_icon_url: input.iconUrl,
           p_holder_user_ids: input.holderUserIds,
           p_ledger_id: input.ledgerId,
           p_name: input.name,

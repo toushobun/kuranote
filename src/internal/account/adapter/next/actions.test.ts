@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   archiveAccount,
   createAccount,
+  fetchAccountIcon,
   updateAccount,
 } from "internal/account/adapter/next/actions";
 import {
@@ -21,6 +22,7 @@ import {
 const mocks = vi.hoisted(() => ({
   listTransactionOptionsWithHolders: vi.fn(),
   archive: vi.fn(),
+  fetchIcon: vi.fn(),
   create: vi.fn(),
   createRequestContainer: vi.fn(),
   createServerRequestDependencies: vi.fn(),
@@ -77,6 +79,7 @@ beforeEach(() => {
         listTransactionOptionsWithHolders:
           mocks.listTransactionOptionsWithHolders,
         archive: mocks.archive,
+        fetchIcon: mocks.fetchIcon,
         create: mocks.create,
         getView: vi.fn(),
         update: mocks.update,
@@ -89,6 +92,33 @@ beforeEach(() => {
 });
 
 describe("Account Server Actions", () => {
+  it("只预览图标，使用当前账本和登录用户", async () => {
+    const websiteUrl = "https://example.com";
+    const iconUrl =
+      "https://www.google.com/s2/favicons?domain_url=https%3A%2F%2Fexample.com";
+    mocks.fetchIcon.mockResolvedValue({ url: iconUrl });
+    const data = new FormData();
+    data.set("websiteUrl", websiteUrl);
+    data.set("ledgerId", "伪造账本");
+    expect(await fetchAccountIcon({}, data)).toEqual({ iconUrl });
+    expect(mocks.fetchIcon).toHaveBeenCalledWith({
+      ledgerId,
+      userId,
+      websiteUrl,
+    });
+    expect(mocks.create).not.toHaveBeenCalled();
+    expect(mocks.update).not.toHaveBeenCalled();
+  });
+
+  it("获取失败返回安全错误文案", async () => {
+    mocks.fetchIcon.mockRejectedValue(
+      new RepositoryError("fetch_failed", "没有获取到图标"),
+    );
+    await expect(fetchAccountIcon({}, new FormData())).resolves.toMatchObject({
+      error: "没有获取到图标",
+    });
+  });
+
   it("弹层模式返回持有人账户选项并失效缓存，不跳转", async () => {
     const account = {
       id: accountId,
