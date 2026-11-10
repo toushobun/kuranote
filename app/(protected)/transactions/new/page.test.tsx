@@ -15,7 +15,6 @@ const mocks = vi.hoisted(() => ({
   loadReimbursementPickerGroupPage: vi.fn(),
   loadReimbursementPickerSearchPage: vi.fn(),
   NewTransactionStepFlow: vi.fn(() => null),
-  NewTransactionTemplate: vi.fn(() => null),
   NewTransferTransactionTemplate: vi.fn(() => null),
   TransactionPermissionDenied: vi.fn(() => null),
   NewTransactionVisualFrame: vi.fn(() => null),
@@ -48,7 +47,6 @@ vi.mock("internal/transaction/adapter/next/loadTransactionViews", () => ({
 }));
 
 vi.mock("templates/transactions/TransactionFormPage", () => ({
-  NewTransactionTemplate: mocks.NewTransactionTemplate,
   NewTransferTransactionTemplate: mocks.NewTransferTransactionTemplate,
   TransactionPermissionDenied: mocks.TransactionPermissionDenied,
 }));
@@ -191,25 +189,12 @@ describe("TransactionsNewPage", () => {
     [{ type: "invalid" }, "NewTransactionStepFlow"],
     [{ type: "transfer" }, "NewTransferTransactionTemplate"],
     [{ method: "transfer" }, "NewTransferTransactionTemplate"],
-    [{ method: "standard" }, "NewTransactionTemplate"],
+    [{ method: "standard" }, "NewTransactionStepFlow"],
+    [{ method: "standard", type: "income" }, "NewTransactionStepFlow"],
   ] as const)("参数 %j 显示 %s", async (params, templateName) => {
     const { template } = await renderPage(params);
 
     expect(template.type).toBe(mocks[templateName]);
-  });
-
-  it("标准记账按 type 选初始页签并沿用现有一页式画面", async () => {
-    const { template } = await renderPage({
-      method: "standard",
-      type: "income",
-    });
-
-    expect(template.props).toMatchObject({
-      action: mocks.createTransaction,
-      errorMessage: null,
-      initialType: "income",
-      merchantOptions: baseView.merchantOptions,
-    });
   });
 
   it("账户周转传入账户与保存 Action", async () => {

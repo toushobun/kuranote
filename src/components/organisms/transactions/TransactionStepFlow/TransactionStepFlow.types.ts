@@ -6,30 +6,49 @@ import type {
 import type { MerchantTag } from "types/merchants";
 import type {
   TransactionAccountOption,
+  TransactionCategoryOption,
   TransactionEntryMethod,
+  TransactionGroupPage,
+  TransactionMonthPage,
+  TransactionSearchPage,
+  TransactionTimeGroupViewData,
 } from "types/transactions";
 import type {
   TransactionFormInitialItem,
   TransactionFormInitialValues,
-  TransactionFormProps,
 } from "organisms/transactions/TransactionForm/TransactionForm.types";
 import type { FlowMerchant } from "organisms/transactions/MerchantStep/MerchantStep.types";
 
 /** 小票内编辑明细与付款所需的选项（分类、退款 / 报销选择器、账本开关）与初始值。 */
-export type ItemsStepOptions = Pick<
-  TransactionFormProps,
-  | "categoryOptions"
-  | "refundPickerView"
-  | "reimbursementPickerView"
-  | "loadRefundGroupItemsAction"
-  | "loadRefundMoreGroupsAction"
-  | "loadRefundSearchPageAction"
-  | "loadReimbursementGroupItemsAction"
-  | "loadReimbursementMoreGroupsAction"
-  | "loadReimbursementSearchPageAction"
-  | "transactionItemSpecialStatusEnabled"
-  | "multiAccountPaymentEnabled"
-> & {
+export type ItemsStepOptions = {
+  categoryOptions: TransactionCategoryOption[];
+  refundPickerView?: TransactionTimeGroupViewData;
+  reimbursementPickerView?: TransactionTimeGroupViewData;
+  loadRefundGroupItemsAction?: (
+    groupKey: string,
+    offset: number,
+  ) => Promise<TransactionMonthPage>;
+  loadRefundMoreGroupsAction?: (
+    offset: number,
+  ) => Promise<TransactionGroupPage>;
+  loadRefundSearchPageAction?: (
+    query: string,
+    offset: number,
+  ) => Promise<TransactionSearchPage>;
+  loadReimbursementGroupItemsAction?: (
+    groupKey: string,
+    offset: number,
+  ) => Promise<TransactionMonthPage>;
+  loadReimbursementMoreGroupsAction?: (
+    offset: number,
+  ) => Promise<TransactionGroupPage>;
+  loadReimbursementSearchPageAction?: (
+    query: string,
+    offset: number,
+  ) => Promise<TransactionSearchPage>;
+  transactionItemSpecialStatusEnabled?: boolean;
+  /** 账本是否开启多账户付款（#931）；关闭时不显示「添加付款账户」。 */
+  multiAccountPaymentEnabled?: boolean;
   initialItems?: TransactionFormInitialItem[];
   initialPayments?: TransactionFormInitialValues["payments"];
 };

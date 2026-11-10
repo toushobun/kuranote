@@ -1,14 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import {
-  accountsNewHref,
-  merchantsNewHref,
-  transactionsNewEntryHref,
-} from "config/paths";
+import { accountsNewHref, transactionsNewEntryHref } from "config/paths";
 
 import { TransactionSetupHintCard } from "./TransactionSetupHintCard";
 import {
-  getNormalTransactionSetupHint,
   getTransferTransactionSetupHint,
   type TransactionSetupHint,
 } from "./transactionSetupHint";
@@ -23,49 +18,22 @@ const meta = {
   component: TransactionSetupHintCard,
   args: {
     addAccountHref: accountsNewHref(
-      transactionsNewEntryHref({ method: "standard", type: "expense" }),
+      transactionsNewEntryHref({ method: "transfer" }),
     ),
-    addMerchantHref: merchantsNewHref(
-      transactionsNewEntryHref({ method: "standard", type: "expense" }),
-    ),
-    hint: requireHint(
-      getNormalTransactionSetupHint({ accountCount: 0, merchantCount: 0 }),
-    ),
+    hint: requireHint(getTransferTransactionSetupHint(0)),
   },
 } satisfies Meta<typeof TransactionSetupHintCard>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const MissingAccountAndMerchant: Story = {
-  name: "账户、商家都没有",
-};
-
-export const MissingMerchant: Story = {
-  name: "只缺商家",
-  args: {
-    hint: requireHint(
-      getNormalTransactionSetupHint({ accountCount: 1, merchantCount: 0 }),
-    ),
-  },
-};
-
-export const MissingAccount: Story = {
-  name: "只缺账户",
-  args: {
-    hint: requireHint(
-      getNormalTransactionSetupHint({ accountCount: 0, merchantCount: 1 }),
-    ),
-  },
+export const TransferNoAccount: Story = {
+  name: "转账 · 没有账户",
 };
 
 export const TransferOneAccount: Story = {
   name: "转账 · 只有 1 个账户",
   args: {
-    addAccountHref: accountsNewHref(
-      transactionsNewEntryHref({ method: "transfer" }),
-    ),
-    addMerchantHref: undefined,
     hint: requireHint(getTransferTransactionSetupHint(1)),
   },
 };

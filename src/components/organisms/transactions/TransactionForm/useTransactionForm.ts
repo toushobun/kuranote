@@ -13,8 +13,10 @@ import { useDirtySnapshot } from "molecules/ui/UnsavedChangesDialog/useDirtySnap
 
 import { useEditTransactionDirty } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
 import type {
+  TransactionAccountOption,
   TransactionBusinessStatus,
   TransactionCategoryOption,
+  TransactionMerchantOption,
   TransactionRefundCandidate,
   TransactionType,
 } from "types/transactions";
@@ -23,7 +25,6 @@ import {
   transactionLinkMessages,
   type TransactionLinkKind,
 } from "utils/transactionMessages";
-import { getAmountDecimalPlaces } from "utils/transactionAmountInput";
 import {
   resolveTransactionBusinessStatus,
   formatRefundMinorUnits,
@@ -47,10 +48,8 @@ import {
   useTransactionPaymentFields,
 } from "../TransactionPaymentFields/useTransactionPaymentFields";
 import type {
-  TransactionFieldErrors,
   TransactionFormInitialValues,
   TransactionFormItem,
-  TransactionFormProps,
   TransactionItemSummary,
   TransactionPickerErrors,
 } from "./TransactionForm.types";
@@ -61,13 +60,12 @@ import {
   getFirstEnabledCategoryId,
   isValidMoneyText,
   isValidTransactionFormItem,
-  sumTransactionItemBusinessTotals,
 } from "./TransactionForm.utils";
 
-type UseTransactionFormOptions = Pick<
-  TransactionFormProps,
-  "accountOptions" | "categoryOptions" | "initialType" | "merchantOptions"
-> & {
+type UseTransactionFormOptions = {
+  accountOptions: TransactionAccountOption[];
+  categoryOptions: TransactionCategoryOption[];
+  merchantOptions: TransactionMerchantOption[];
   initialValues?: TransactionFormInitialValues;
   deferPickerAmount?: boolean;
   onPickerItemCommit?: (itemId: number) => void;
@@ -76,7 +74,6 @@ type UseTransactionFormOptions = Pick<
 export function useTransactionForm({
   accountOptions,
   categoryOptions,
-  initialType,
   initialValues,
   merchantOptions,
   deferPickerAmount = false,
@@ -84,19 +81,12 @@ export function useTransactionForm({
 }: UseTransactionFormOptions) {
   const reportEditDirty = useEditTransactionDirty();
   const nextItemIdRef = useRef((initialValues?.items.length ?? 0) + 1);
-  const merchantFieldRef = useRef<HTMLDivElement>(null);
-  const accountFieldRef = useRef<HTMLDivElement>(null);
-  const itemsFieldRef = useRef<HTMLDivElement>(null);
-  const isFirstRenderRef = useRef(true);
-  const [selectedType, setSelectedType] = useState<TransactionType>(
-    initialValues?.type ?? initialType ?? "expense",
-  );
+  const selectedType: TransactionType = initialValues?.type ?? "expense";
   const paymentFields = useTransactionPaymentFields(initialValues?.payments);
   const selectedAccountId = paymentFields.primaryAccountId;
   const [selectedMerchantId, setSelectedMerchantId] = useState(
     initialValues?.merchantId ?? "",
   );
-  const [fieldErrors, setFieldErrors] = useState<TransactionFieldErrors>({});
   const [itemsByType, setItemsByType] = useState<
     Record<TransactionType, TransactionFormItem[]>
   >(() =>
@@ -136,27 +126,6 @@ export function useTransactionForm({
     setTransactionTime(nextDateTime.time);
     setTimeZoneOffsetMinutes(String(new Date().getTimezoneOffset()));
   }, [initialValues?.transactionAt]);
-
-  useEffect(() => {
-    if (isFirstRenderRef.current) {
-      isFirstRenderRef.current = false;
-      return;
-    }
-    if (!initialValues && initialType) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- 标准页外层页签切换时同步类型；带初始快照的新增／编辑小票保留自身状态。
-      setSelectedType(initialType);
-      setIsSheetOpen(false);
-      setEditingItemId(null);
-      setPickerCategoryId("");
-      setPickerAmount("");
-      setPickerSpecialStatus(null);
-      setPickerRefundCandidate(null);
-      setPickerReimbursementCandidate(null);
-      setPickerErrors({});
-      setSelectedCategoryGroupId("");
-      setFieldErrors((current) => ({ ...current, items: undefined }));
-    }
-  }, [initialType, initialValues]);
 
   const allNormalCategoryOptions = useMemo(
     () =>
@@ -262,28 +231,6 @@ export function useTransactionForm({
     !transactionAtValue ||
     (paymentFields.isMultiAccount && !paymentReconciliation.isBalanced);
 
-  const signedTotalAmount =
-    allDisplayItems.length > 0
-      ? formatNetAmount(incomeTotal - expenseTotal, selectedAccount?.currency)
-      : "未填写金额";
-  const { businessExpenseTotal, businessIncomeTotal, hasBusinessOffset } =
-    sumTransactionItemBusinessTotals([
-      ...itemsByType.expense.map((item) => ({
-        ...item,
-        type: "expense" as const,
-      })),
-      ...itemsByType.income.map((item) => ({
-        ...item,
-        type: "income" as const,
-      })),
-    ]);
-  const businessTotalAmount = hasBusinessOffset
-    ? formatNetAmount(
-        businessIncomeTotal - businessExpenseTotal,
-        selectedAccount?.currency,
-      )
-    : null;
-
   function addItem(
     categoryId: string,
     amount: string,
@@ -320,9 +267,6 @@ export function useTransactionForm({
         },
       ],
     }));
-    if (fieldErrors.items) {
-      setFieldErrors((current) => ({ ...current, items: undefined }));
-    }
     return itemId;
   }
 
@@ -428,9 +372,6 @@ export function useTransactionForm({
       expense: current.expense.filter((item) => item.id !== itemId),
       income: current.income.filter((item) => item.id !== itemId),
     }));
-    if (fieldErrors.items) {
-      setFieldErrors((current) => ({ ...current, items: undefined }));
-    }
     if (editingItemId === itemId) {
       setEditingItemId(null);
       setPickerCategoryId("");
@@ -589,15 +530,11 @@ export function useTransactionForm({
   function handleMerchantChange(merchantId: string) {
     // 重新选了同一个商家不算修改（#962）。
     setSelectedMerchantId(merchantId);
-    if (fieldErrors.merchant) {
-      setFieldErrors((current) => ({ ...current, merchant: undefined }));
-    }
   }
 
   function handlePaymentAccountChange(key: number, accountId: string) {
     if (key !== paymentFields.payments[0]?.key) {
       paymentFields.changeAccount(key, accountId);
-      clearAccountFieldError();
       return;
     }
     handlePrimaryAccountChange(key, accountId);
@@ -605,14 +542,6 @@ export function useTransactionForm({
 
   function handlePaymentAmountChange(key: number, amount: string) {
     paymentFields.changeAmount(key, amount);
-    clearAccountFieldError();
-  }
-
-  function handlePaymentAmountCommit(key: number) {
-    paymentFields.commitAmount(key, {
-      currency: selectedAccount?.currency,
-      itemTotal: paymentReconciliation.itemTotal,
-    });
   }
 
   function addPayment(accountId?: string) {
@@ -620,19 +549,11 @@ export function useTransactionForm({
 
     // 首行预填明细合计（没有明细时为 0），新增行为 0。
     paymentFields.addPayment(paymentReconciliation.itemTotal, accountId);
-    clearAccountFieldError();
     return true;
   }
 
   function handleRemovePayment(key: number) {
     paymentFields.removePayment(key, selectedAccount?.currency);
-    clearAccountFieldError();
-  }
-
-  function clearAccountFieldError() {
-    if (fieldErrors.account) {
-      setFieldErrors((current) => ({ ...current, account: undefined }));
-    }
   }
 
   // 首个付款账户决定记录币种，切换时同步检查退款 / 报销关联的币种。
@@ -721,8 +642,6 @@ export function useTransactionForm({
         : null,
     ].filter((notice) => notice !== null);
     setLinkNotice(notices.length > 0 ? notices.join("") : null);
-
-    clearAccountFieldError();
   }
 
   // 退款与报销候选共用同一套拒绝判断：未选账户时提示先选账户，币种不一致时提示重新选择。
@@ -776,53 +695,24 @@ export function useTransactionForm({
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    if (!transactionAtValue) {
+    if (
+      !transactionAtValue ||
+      !selectedMerchantId ||
+      !hasValidItems ||
+      getAccountFieldError()
+    ) {
       cancelDefaultEvent(event);
-      return;
-    }
-
-    const errors: TransactionFieldErrors = {};
-    if (!selectedMerchantId) {
-      errors.merchant = transactionFormValidationMessages.merchantRequired;
-    }
-    if (!hasValidItems) {
-      errors.items = transactionFormValidationMessages.itemsRequired;
-    }
-    const accountError = getAccountFieldError();
-    if (accountError) {
-      errors.account = accountError;
-    }
-
-    if (Object.keys(errors).length > 0) {
-      cancelDefaultEvent(event);
-      setFieldErrors(errors);
-      setTimeout(() => {
-        const firstErrorRef = errors.merchant
-          ? merchantFieldRef
-          : errors.account
-            ? accountFieldRef
-            : itemsFieldRef;
-        firstErrorRef.current?.scrollIntoView?.({
-          behavior: "smooth",
-          block: "center",
-        });
-      }, 0);
-    } else {
-      setFieldErrors({});
     }
   }
 
   return {
     note,
     addItem,
-    accountFieldRef,
     accountFieldError: getAccountFieldError(),
-    hasValidItems,
     allNormalCategoryOptions,
     categoryGroups,
     closeSheet,
     editingItemId,
-    fieldErrors,
     addPayment,
     handleDateChange,
     handleMerchantChange,
@@ -833,7 +723,6 @@ export function useTransactionForm({
     handlePickerGroupSelect,
     handlePaymentAccountChange,
     handlePaymentAmountChange,
-    handlePaymentAmountCommit,
     handleRemovePayment,
     handleSubmit,
     handleTimeChange,
@@ -845,8 +734,6 @@ export function useTransactionForm({
     isSubmitDisabled,
     linkNotice,
     itemSummaries,
-    itemsFieldRef,
-    merchantFieldRef,
     openItemSheet,
     openSheet,
     paymentReconciliation,
@@ -859,11 +746,9 @@ export function useTransactionForm({
     pickerSpecialStatus,
     pickerSpecialStatusLocked,
     removeItem,
-    businessTotalAmount,
     expenseTotal,
     incomeTotal,
     selectedAccount,
-    selectedAccountId,
     selectedCategoryGroup,
     selectedMerchant,
     selectedMerchantId,
@@ -898,7 +783,6 @@ export function useTransactionForm({
       if (candidate) setPickerRefundCandidate(null);
       setLinkNotice(null);
     },
-    signedTotalAmount,
     timeZoneOffsetMinutes,
     transactionAtValue,
     transactionDate,
@@ -999,12 +883,6 @@ function getNormalCategoryType(type: TransactionType | string | undefined) {
 
 function cancelDefaultEvent(event: { preventDefault(): void }) {
   event.preventDefault();
-}
-
-function formatNetAmount(net: number, currency?: string) {
-  const value = parseFloat(net.toFixed(getAmountDecimalPlaces(currency)));
-  if (value === 0) return "0";
-  return value > 0 ? `+${value}` : `${value}`;
 }
 
 function toSignedBusinessNetMinorUnits(value: string) {

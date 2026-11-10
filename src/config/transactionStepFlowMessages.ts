@@ -14,7 +14,7 @@ export const flowMessages = {
   methods: [
     { id: "merchant", label: "从商家记账" },
     { id: "transfer", label: "账户周转" },
-    { id: "standard", label: "标准记账", badge: "过渡" },
+    { id: "standard", label: "标准记账", disabled: true, badge: "已停用" },
     { id: "template", label: "从模板记账", disabled: true },
     { id: "photo", label: "从拍照记账", disabled: true },
     { id: "scheduled", label: "定时记账", disabled: true },

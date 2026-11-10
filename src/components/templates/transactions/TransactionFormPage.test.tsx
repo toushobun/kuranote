@@ -1,5 +1,5 @@
 import { describeUnsavedFormPage } from "test/unsavedFormPage";
-import { backFromGuard, setupGuardHistoryMock } from "test/mockGuardHistory";
+import { setupGuardHistoryMock } from "test/mockGuardHistory";
 setupGuardHistoryMock();
 
 import {
@@ -8,14 +8,12 @@ import {
   render as rtlRender,
   within,
   screen,
-  waitFor,
 } from "@testing-library/react";
-import { type ReactNode, useState } from "react";
+import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 const router = vi.hoisted(() => ({ replace: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 import {
-  NewTransactionTemplate,
   NewTransferTransactionTemplate,
   TransactionPermissionDenied,
   EditTransferTransactionTemplate,
@@ -25,53 +23,6 @@ import type { TransactionEditRestriction } from "internal/transaction";
 import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
 import { transactionEditRestrictionMessages } from "utils/transactionMessages";
 import { useEditTransactionDirty } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
-vi.mock("organisms/transactions/TransactionForm/TransactionForm", () => ({
-  TransactionForm: ({
-    errorMessage,
-    formId,
-    initialType,
-    setupHrefs,
-    transactionItemSpecialStatusEnabled,
-  }: {
-    errorMessage: string | null;
-    formId?: string;
-    initialType?: "expense" | "income";
-    setupHrefs?: { account: string; merchant: string };
-    transactionItemSpecialStatusEnabled?: boolean;
-  }): ReactNode => {
-    const reportDirty = useEditTransactionDirty();
-    const [isItemPickerOpen, setIsItemPickerOpen] = useState(false);
-    const type = initialType ?? "expense";
-    const label = type === "income" ? "收入" : "支出";
-    const itemPicker = (
-      <>
-        <button onClick={() => setIsItemPickerOpen(true)} type="button">
-          添加明细
-        </button>
-        {isItemPickerOpen && transactionItemSpecialStatusEnabled ? (
-          <section aria-label="特殊状态">特殊状态</section>
-        ) : null}
-      </>
-    );
-    return (
-      <form
-        id={formId}
-        data-add-account-href={setupHrefs?.account}
-        data-add-merchant-href={setupHrefs?.merchant}
-        data-testid={`transaction-form-${type}`}
-      >
-        <input
-          aria-label={`${label}临时输入`}
-          defaultValue=""
-          onChange={(event) => reportDirty?.(event.target.value !== "")}
-        />
-        <input name="type" type="hidden" value={type} />
-        {itemPicker}
-        {errorMessage ? <div role="alert">{errorMessage}</div> : null}
-      </form>
-    );
-  },
-}));
 // 真实的转账表单在字段变化时经 useEditTransactionDirty 报告未保存。
 function TransferEditInput() {
   const markEditDirty = useEditTransactionDirty();
@@ -169,261 +120,11 @@ describe("\u65B0\u589E\u8BB0\u8D26\u9875\u9762", () => {
   afterEach(() => {
     cleanup();
   });
-  const baseProps = {
-    accountOptions: [],
-    action: vi.fn(async () => ({})),
-    categoryOptions: [],
-    errorMessage: null,
-    frequentCategoryIds: [],
-    ledgerName: "家庭账本",
-    merchantOptions: [],
-    multiAccountPaymentEnabled: true,
-    transactionItemSpecialStatusEnabled: false,
-  };
-  describe("NewTransactionTemplate", () => {
-    it("显示新增记账页面标题", () => {
-      const { container } = render(<NewTransactionTemplate {...baseProps} />);
-      expect(
-        within(container).getByRole("heading", { name: "记一笔" }),
-      ).toBeInTheDocument();
-    });
-    it("显示关闭入口且不显示当前账本名称", () => {
-      const { container } = render(<NewTransactionTemplate {...baseProps} />);
-      expect(
-        within(container).getByRole("link", { name: "关闭" }),
-      ).toBeInTheDocument();
-      expect(
-        within(container).queryByText("当前账本：家庭账本"),
-      ).not.toBeInTheDocument();
-    });
-    it("只显示一套包含转账的记账类型导航", () => {
-      const { container } = render(<NewTransactionTemplate {...baseProps} />);
-      expect(
-        within(container).getAllByRole("group", { name: "记账类型" }),
-      ).toHaveLength(1);
-      expect(
-        within(container).getByRole("button", { name: "转账" }),
-      ).toBeInTheDocument();
-      expect(
-        within(container).getByRole("button", { name: "收支" }),
-      ).toBeInTheDocument();
-      expect(
-        within(container).queryByRole("button", { name: "收入" }),
-      ).toBeNull();
-      expect(
-        within(container).queryByRole("button", { name: "支出" }),
-      ).toBeNull();
-    });
-    it("默认激活支出表单并保留其他类型面板", () => {
-      const { container } = render(<NewTransactionTemplate {...baseProps} />);
-      expect(
-        within(container).getByTestId("transaction-form-expense"),
-      ).toBeInTheDocument();
-      expect(
-        within(container).getByTestId("transaction-form-income"),
-      ).toBeInTheDocument();
-      expect(
-        within(container).getByTestId("transfer-transaction-form"),
-      ).toBeInTheDocument();
-      expect(
-        within(container).getByTestId("transaction-type-slide-panel-expense"),
-      ).toHaveAttribute("aria-hidden", "false");
-      expect(
-        within(container).getByTestId("transaction-type-slide-panel-transfer"),
-      ).toHaveAttribute("aria-hidden", "true");
-    });
-    it("initialType=expense 时激活支出表单", () => {
-      const { container } = render(
-        <NewTransactionTemplate {...baseProps} initialType="expense" />,
-      );
-      expect(
-        within(container).getByTestId("transaction-type-slide-panel-expense"),
-      ).toHaveAttribute("aria-hidden", "false");
-    });
-    it("initialType=income 时激活收入表单", () => {
-      const { container } = render(
-        <NewTransactionTemplate {...baseProps} initialType="income" />,
-      );
-      expect(
-        within(container).getByTestId("transaction-type-slide-panel-income"),
-      ).toHaveAttribute("aria-hidden", "false");
-      expect(
-        within(container).getByTestId("transaction-type-slide-panel-expense"),
-      ).toHaveAttribute("aria-hidden", "true");
-    });
-    it("initialType=transfer 时激活转账表单", () => {
-      const { container } = render(
-        <NewTransactionTemplate {...baseProps} initialType="transfer" />,
-      );
-      expect(
-        within(container).getByTestId("transaction-type-slide-panel-transfer"),
-      ).toHaveAttribute("aria-hidden", "false");
-      expect(
-        within(container).getByTestId("transaction-type-slide-panel-expense"),
-      ).toHaveAttribute("aria-hidden", "true");
-    });
-    it("点击转账 tab 切换到转账面板", () => {
-      const { container } = render(<NewTransactionTemplate {...baseProps} />);
-      fireEvent.click(within(container).getByRole("button", { name: "转账" }));
-      expect(
-        within(container).getByTestId("transaction-type-slide-panel-transfer"),
-      ).toHaveAttribute("aria-hidden", "false");
-      expect(
-        within(container).getByTestId("transaction-type-slide-panel-expense"),
-      ).toHaveAttribute("aria-hidden", "true");
-    });
-    it("点击收支 tab 切换回普通记账面板", () => {
-      const { container } = render(
-        <NewTransactionTemplate {...baseProps} initialType="transfer" />,
-      );
-      fireEvent.click(within(container).getByRole("button", { name: "收支" }));
-      expect(
-        within(container).getByTestId("transaction-type-slide-panel-expense"),
-      ).toHaveAttribute("aria-hidden", "false");
-      expect(
-        within(container).getByTestId("transaction-type-slide-panel-transfer"),
-      ).toHaveAttribute("aria-hidden", "true");
-    });
-    it("initialType=income 时切到转账后再回到收支仍显示收入面板", () => {
-      const { container } = render(
-        <NewTransactionTemplate {...baseProps} initialType="income" />,
-      );
-      fireEvent.click(within(container).getByRole("button", { name: "转账" }));
-      fireEvent.click(within(container).getByRole("button", { name: "收支" }));
-      expect(
-        within(container).getByTestId("transaction-type-slide-panel-income"),
-      ).toHaveAttribute("aria-hidden", "false");
-      expect(
-        within(container).getByTestId("transaction-type-slide-panel-transfer"),
-      ).toHaveAttribute("aria-hidden", "true");
-    });
-    it("切换类型后保留已挂载表单的输入状态", () => {
-      const { container } = render(<NewTransactionTemplate {...baseProps} />);
-      fireEvent.change(within(container).getByLabelText("支出临时输入"), {
-        target: { value: "保留支出输入" },
-      });
-      fireEvent.click(within(container).getByRole("button", { name: "转账" }));
-      fireEvent.change(within(container).getByLabelText("转账临时输入"), {
-        target: { value: "保留转账输入" },
-      });
-      fireEvent.click(within(container).getByRole("button", { name: "收支" }));
-      expect(within(container).getByLabelText("支出临时输入")).toHaveValue(
-        "保留支出输入",
-      );
-    });
-    it("传入错误信息时当前表单内显示错误提示", () => {
-      const { container } = render(
-        <NewTransactionTemplate
-          {...baseProps}
-          errorMessage="新增记账失败。请稍后重试。"
-        />,
-      );
-      const activePanel = within(container).getByTestId(
-        "transaction-type-slide-panel-expense",
-      );
-      expect(within(activePanel).getByRole("alert")).toBeInTheDocument();
-      expect(
-        within(activePanel).getByText("新增记账失败。请稍后重试。"),
-      ).toBeInTheDocument();
-    });
-    it("transfer 类型且带错误信息时保持转账表单", () => {
-      const { container } = render(
-        <NewTransactionTemplate
-          {...baseProps}
-          initialType="transfer"
-          errorMessage="转账失败。请稍后重试。"
-        />,
-      );
-      const activePanel = within(container).getByTestId(
-        "transaction-type-slide-panel-transfer",
-      );
-      expect(activePanel).toHaveAttribute("aria-hidden", "false");
-      expect(within(activePanel).getByRole("alert")).toBeInTheDocument();
-    });
-    it("默认渲染时当前普通表单 hidden type 为 expense", () => {
-      const { container } = render(<NewTransactionTemplate {...baseProps} />);
-      const activePanel = within(container).getByTestId(
-        "transaction-type-slide-panel-expense",
-      );
-      const hiddenInput = within(activePanel).getByDisplayValue("expense");
-      expect(hiddenInput).toHaveAttribute("name", "type");
-      expect(hiddenInput).toHaveAttribute("type", "hidden");
-    });
-    it("账本启用明细特殊状态后新增模板的明细弹层显示特殊状态选择区", () => {
-      const { container } = render(
-        <NewTransactionTemplate
-          {...baseProps}
-          transactionItemSpecialStatusEnabled
-        />,
-      );
-      const activePanel = within(container).getByTestId(
-        "transaction-type-slide-panel-expense",
-      );
-      fireEvent.click(
-        within(activePanel).getByRole("button", { name: "添加明细" }),
-      );
-      expect(
-        within(activePanel).getByRole("region", { name: "特殊状态" }),
-      ).toBeInTheDocument();
-    });
-    it("顶部可切换记账方式，当前为标准记账", async () => {
-      const { container } = render(<NewTransactionTemplate {...baseProps} />);
-      fireEvent.click(
-        within(container).getByRole("button", { name: "切换方式" }),
-      );
-      fireEvent.click(screen.getByRole("button", { name: "从商家记账" }));
-      await waitFor(() =>
-        expect(router.replace).toHaveBeenCalledWith("/transactions/new"),
-      );
-    });
-    it("各页签的添加账户 / 商家入口带着标准记账与对应页签的 returnTo", () => {
-      const { container } = render(<NewTransactionTemplate {...baseProps} />);
-      const expenseForm = within(container).getByTestId(
-        "transaction-form-expense",
-      );
-      expect(expenseForm).toHaveAttribute(
-        "data-add-account-href",
-        "/accounts/new?returnTo=%2Ftransactions%2Fnew%3Fmethod%3Dstandard%26type%3Dexpense",
-      );
-      expect(expenseForm).toHaveAttribute(
-        "data-add-merchant-href",
-        "/merchants/new?returnTo=%2Ftransactions%2Fnew%3Fmethod%3Dstandard%26type%3Dexpense",
-      );
-      expect(
-        within(container).getByTestId("transaction-form-income"),
-      ).toHaveAttribute(
-        "data-add-merchant-href",
-        "/merchants/new?returnTo=%2Ftransactions%2Fnew%3Fmethod%3Dstandard%26type%3Dincome",
-      );
-      expect(
-        within(container).getByTestId("transfer-transaction-form"),
-      ).toHaveAttribute(
-        "data-add-account-href",
-        "/accounts/new?returnTo=%2Ftransactions%2Fnew%3Fmethod%3Dstandard%26type%3Dtransfer",
-      );
-    });
-    it("initialType=income 时收支 tab 对应收入表单", () => {
-      const { container } = render(
-        <NewTransactionTemplate {...baseProps} initialType="income" />,
-      );
-      expect(
-        within(container).getByRole("button", { name: "收支" }),
-      ).toHaveAttribute("aria-pressed", "true");
-      const activePanel = within(container).getByTestId(
-        "transaction-type-slide-panel-income",
-      );
-      const hiddenInput = within(activePanel).getByDisplayValue("income");
-      expect(hiddenInput).toHaveAttribute("name", "type");
-      expect(hiddenInput).toHaveAttribute("type", "hidden");
-    });
-  });
+  const action = vi.fn(async () => ({}));
   describe("NewTransferTransactionTemplate", () => {
     it("显示账户周转标题、转账表单与切换方式", () => {
       const { container } = render(
-        <NewTransferTransactionTemplate
-          accountOptions={[]}
-          action={baseProps.action}
-        />,
+        <NewTransferTransactionTemplate accountOptions={[]} action={action} />,
       );
       expect(
         within(container).getByRole("heading", { name: "账户周转" }),
@@ -588,71 +289,6 @@ describe("EditTransferTransactionTemplate", () => {
       screen.getByText("修正的内容尚未保存，是否保存？"),
     ).toBeInTheDocument();
   });
-});
-
-describe("标准页当前面板守卫", () => {
-  function renderStandard(initialType: "expense" | "income" = "expense") {
-    render(
-      <NewTransactionTemplate
-        accountOptions={[]}
-        action={async () => ({})}
-        categoryOptions={[]}
-        errorMessage={null}
-        frequentCategoryIds={[]}
-        initialType={initialType}
-        ledgerName="家庭账本"
-        merchantOptions={[]}
-        multiAccountPaymentEnabled={false}
-        transactionItemSpecialStatusEnabled={false}
-      />,
-      { wrapper: ConfirmDialogTestProviders },
-    );
-  }
-  it.each(["expense", "income"] as const)(
-    "%s 修改后保护当前面板，隐藏后不保护，切回仍保留草稿",
-    async (type) => {
-      renderStandard(type);
-      fireEvent.change(
-        screen.getByLabelText(
-          type === "income" ? "收入临时输入" : "支出临时输入",
-        ),
-        { target: { value: "未保存" } },
-      );
-      await backFromGuard();
-      fireEvent.click(screen.getByRole("button", { name: "继续编辑" }));
-      await screen.findByRole("button", { name: "转账" });
-      fireEvent.click(screen.getByRole("button", { name: "转账" }));
-      await waitFor(() =>
-        expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe(
-          "base",
-        ),
-      );
-      const unload = new Event("beforeunload", { cancelable: true });
-      window.dispatchEvent(unload);
-      expect(unload.defaultPrevented).toBe(false);
-      fireEvent.click(screen.getByRole("button", { name: "收支" }));
-      expect(
-        screen.getByLabelText(
-          type === "income" ? "收入临时输入" : "支出临时输入",
-        ),
-      ).toHaveValue("未保存");
-      await backFromGuard();
-      const submit = vi
-        .spyOn(HTMLFormElement.prototype, "requestSubmit")
-        .mockImplementation(() => {});
-      fireEvent.click(
-        within(screen.getByRole("dialog", { name: "尚未保存" })).getByRole(
-          "button",
-          { name: "保存并退出" },
-        ),
-      );
-      expect(submit.mock.instances[0]).toHaveAttribute(
-        "id",
-        `new-${type}-transaction-form`,
-      );
-      submit.mockRestore();
-    },
-  );
 });
 
 describeUnsavedFormPage({

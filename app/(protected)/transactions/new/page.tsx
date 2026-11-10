@@ -24,7 +24,6 @@ import {
 import { TransactionIncomeLinksProvider } from "organisms/transactions/TransactionForm/TransactionIncomeLinksContext";
 import { NewTransactionStepFlow } from "templates/transactions/NewTransactionStepFlow";
 import {
-  NewTransactionTemplate,
   NewTransferTransactionTemplate,
   TransactionPermissionDenied,
 } from "templates/transactions/TransactionFormPage";
@@ -59,9 +58,9 @@ export default async function TransactionsNewPage({
     );
   }
 
-  const entry = resolveNewTransactionEntry(params);
+  const method = resolveNewTransactionEntry(params);
   const receiptCreation =
-    entry.method === "merchant" ? await loadReceiptCreationView() : null;
+    method === "merchant" ? await loadReceiptCreationView() : null;
   const incomeLinksValue = {
     loadRefundGroupItemsAction: loadRefundPickerGroupItems,
     loadRefundMoreGroupsAction: loadRefundPickerGroupPage,
@@ -76,7 +75,12 @@ export default async function TransactionsNewPage({
   return (
     <NewTransactionVisualFrame>
       <TransactionIncomeLinksProvider value={incomeLinksValue}>
-        {entry.method === "merchant" ? (
+        {method === "transfer" ? (
+          <NewTransferTransactionTemplate
+            accountOptions={view.accountOptions}
+            action={createTransaction}
+          />
+        ) : (
           <ReceiptCreationProvider data={receiptCreation}>
             <NewTransactionStepFlow
               action={createTransaction}
@@ -94,18 +98,6 @@ export default async function TransactionsNewPage({
               }
             />
           </ReceiptCreationProvider>
-        ) : entry.method === "transfer" ? (
-          <NewTransferTransactionTemplate
-            accountOptions={view.accountOptions}
-            action={createTransaction}
-          />
-        ) : (
-          <NewTransactionTemplate
-            action={createTransaction}
-            errorMessage={null}
-            initialType={entry.standardType}
-            {...view}
-          />
         )}
       </TransactionIncomeLinksProvider>
     </NewTransactionVisualFrame>

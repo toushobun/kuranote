@@ -6,7 +6,7 @@ import { EntryMethodDrawer } from "organisms/transactions/EntryMethodDrawer/Entr
 import type { TransactionEntryMethod } from "types/transactions";
 import { useTransactionEntryMethodChange } from "./useTransactionEntryMethodChange";
 
-/** 账户周转、标准记账页面顶部的「切换方式」按钮与方式选择抽屉。 */
+/** 账户周转页面顶部的「切换方式」按钮与方式选择抽屉。 */
 export function TransactionEntryMethodSwitch({
   currentMethod,
   requestNavigate,

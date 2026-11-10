@@ -2,8 +2,6 @@ export const transactionFormValidationMessages = {
   accountRequired: "请选择账户。",
   amountInvalid: "请输入有效金额。",
   categoryRequired: "请选择一个小分类。",
-  itemsRequired: "请至少添加一条明细。",
-  merchantRequired: "请选择商家。",
 } as const;
 
 export const transactionAmountMessages = {
@@ -42,28 +40,12 @@ export const transactionSearchPageErrorMessages = {
   loadMoreFailed: "更多搜索结果读取失败。",
 } as const;
 
-export const transactionItemsSectionMessages = {
-  title: "收支明细",
-} as const;
-
-export const transactionAccountSectionMessages = {
-  accountLabel: "账户",
-  accountPlaceholder: "选择账户",
-  accountRequiredOption: "请选择账户",
-  emptyAccountHelper: "请先新增账户。",
-  title: "账户",
-} as const;
-
 // 多账户付款（#834 / #915）。金额参数为已格式化的「币种符号 + 金额」。
 export const transactionPaymentFieldsMessages = {
   addPayment: (income: boolean) => (income ? "添加收款账户" : "添加付款账户"),
   categoryTypeRestricted: "多个账户时，收入和支出不能混在一起。",
   difference: (difference: string) => `差额 ${difference}`,
   mixedPaymentHint: "同时记录收入和支出时，仅允许记录在一个账户上",
-  paymentAccountLabel: (index: number, income: boolean) =>
-    `${income ? "收款" : "付款"}账户 ${index}`,
-  paymentAmountLabel: (index: number, income: boolean) =>
-    `${income ? "收款" : "付款"}金额 ${index}`,
   reconciliation: (
     paymentTotal: string,
     itemTotal: string,

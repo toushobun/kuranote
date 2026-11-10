@@ -17,7 +17,7 @@ export type TransactionPaymentRow = {
   key: number;
 };
 
-export type TransactionPaymentReconciliation = {
+type TransactionPaymentReconciliation = {
   /** 明细合计 − 付款合计，平衡时为 "0"。 */
   difference: string;
   isBalanced: boolean;

@@ -1,7 +1,4 @@
-import type {
-  TransactionEntryMethod,
-  TransactionRecordType,
-} from "types/transactions";
+import type { TransactionEntryMethod } from "types/transactions";
 
 export const routePaths = {
   accounts: "/accounts",
@@ -120,17 +117,14 @@ export function transactionsSearchHref(query: string) {
 
 export const transactionEntryMethodParam = "method";
 
-/** 记一笔的记账方式入口：从商家记账不带 method；标准记账可带页签。 */
+/** 记一笔的记账方式入口：从商家记账不带 method。 */
 export function transactionsNewEntryHref({
   method,
-  type,
 }: {
   method: TransactionEntryMethod;
-  type?: TransactionRecordType;
 }) {
   return routeWithQuery(routePaths.transactionsNew, {
     [transactionEntryMethodParam]: method === "merchant" ? null : method,
-    type: method === "standard" ? type : null,
   });
 }
 
@@ -185,13 +179,6 @@ export function merchantsResultHref(
     result,
     count: count === undefined ? undefined : String(count),
   });
-}
-
-export function merchantsNewHref(
-  returnTo?: string | null,
-  name?: string | null,
-) {
-  return routeWithQuery(routePaths.merchantsNew, { name, returnTo });
 }
 
 export function merchantEditHref(merchantId: string) {

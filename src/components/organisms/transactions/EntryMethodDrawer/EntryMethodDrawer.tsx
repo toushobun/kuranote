@@ -65,9 +65,7 @@ export function EntryMethodDrawer({
               onClick={() => {
                 if (
                   method.id !== currentMethod &&
-                  (method.id === "merchant" ||
-                    method.id === "transfer" ||
-                    method.id === "standard")
+                  (method.id === "merchant" || method.id === "transfer")
                 ) {
                   const change = () => {
                     onClose();
@@ -82,8 +80,12 @@ export function EntryMethodDrawer({
               sx={rowSx}
             >
               <ListItemText primary={method.label} />
-              {"badge" in method && <Chip size="small" label={method.badge} />}
-              {"disabled" in method && <Chip size="small" label={m.soon} />}
+              {"disabled" in method && (
+                <Chip
+                  size="small"
+                  label={"badge" in method ? method.badge : m.soon}
+                />
+              )}
               {method.id === currentMethod && (
                 <CheckRoundedIcon color="primary" />
               )}

@@ -5,10 +5,7 @@ import type {
 } from "types/transactions";
 import { getCurrencySymbol } from "utils/currency";
 import { isValidMoneyText as isValidTransactionAmountText } from "utils/transactionAmountInput";
-import {
-  transactionAmountMessages,
-  type TransactionLinkKind,
-} from "utils/transactionMessages";
+import type { TransactionLinkKind } from "utils/transactionMessages";
 import {
   hasBusinessNetAmountOffset,
   hasLinkCandidateCurrencyMismatch,
@@ -80,12 +77,6 @@ export function buildCategoryPickerGroups(
   }, []);
 }
 
-export function formatCategoryName(category: TransactionCategoryOption) {
-  return category.parentName
-    ? `${category.parentName} / ${category.name}`
-    : category.name;
-}
-
 /** 大分类里第一个未被禁用的小分类（#1046）；没有时返回空字符串。 */
 export function getFirstEnabledCategoryId(
   group: CategoryPickerGroup | undefined,
@@ -106,58 +97,6 @@ export function getDefaultPickerCategory(
     if (categoryId) return { groupId: group.id, categoryId };
   }
   return { groupId: groups[0]?.id ?? "", categoryId: "" };
-}
-
-export function getTransactionItemAmountPresentation(
-  amount: string,
-  businessNetAmount: string | null | undefined,
-  type: TransactionType,
-) {
-  const amountValue = Number(amount);
-  const businessNetAmountValue = Number(businessNetAmount);
-  const hasOffset = hasBusinessNetAmountOffset(amount, businessNetAmount);
-  const adjustment =
-    hasOffset &&
-    Number.isFinite(businessNetAmountValue) &&
-    businessNetAmountValue === 0
-      ? "fullyExcluded"
-      : hasOffset &&
-          Number.isFinite(amountValue) &&
-          Number.isFinite(businessNetAmountValue) &&
-          businessNetAmountValue > 0 &&
-          businessNetAmountValue < amountValue
-        ? "partiallyOffset"
-        : null;
-  const isSurplus =
-    hasOffset &&
-    Number.isFinite(businessNetAmountValue) &&
-    businessNetAmountValue < 0;
-
-  return {
-    adjustment,
-    displayAmount:
-      adjustment === "fullyExcluded"
-        ? (businessNetAmount ?? amount)
-        : isSurplus
-          ? String(Math.abs(businessNetAmountValue))
-          : (businessNetAmount ?? amount),
-    displayType:
-      isSurplus && type === "expense"
-        ? "income"
-        : isSurplus && type === "income"
-          ? "expense"
-          : type,
-    hasOffset,
-  } as const;
-}
-
-export function getTransactionItemAdjustmentMessage(
-  adjustment: "fullyExcluded" | "partiallyOffset" | null,
-) {
-  if (adjustment === "partiallyOffset") {
-    return transactionAmountMessages.partiallyOffset;
-  }
-  return null;
 }
 
 export function formatSummaryDateTime(date: string, time: string) {

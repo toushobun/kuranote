@@ -16,11 +16,11 @@ function setup(
   return props;
 }
 describe("EntryMethodDrawer", () => {
-  it("标记当前方式与过渡入口，即将推出不可点击", () => {
+  it("标记当前方式，已停用和即将推出的方式不可点击", () => {
     const props = setup();
     expect(screen.getByTestId("CheckRoundedIcon")).toBeInTheDocument();
-    expect(screen.getByText("过渡")).toBeInTheDocument();
     for (const name of [
+      "标准记账 已停用",
       "从模板记账 即将推出",
       "从拍照记账 即将推出",
       "定时记账 即将推出",
@@ -43,9 +43,8 @@ describe("EntryMethodDrawer", () => {
   it.each([
     ["从商家记账", "merchant"],
     ["账户周转", "transfer"],
-    ["标准记账 过渡", "standard"],
   ] as const)("选择%s时关闭抽屉并通知外部", (name, method) => {
-    const props = setup(true, method === "standard" ? "merchant" : "standard");
+    const props = setup(true, method === "merchant" ? "transfer" : "merchant");
     click(name);
     expect(props.onMethodChange).toHaveBeenCalledWith(method);
     expect(props.onClose).toHaveBeenCalledOnce();
