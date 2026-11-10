@@ -12,6 +12,7 @@ describe("resolveNewTransactionEntry", () => {
     [{ method: "transfer" }, "transfer"],
     [{ method: "standard" }, "merchant"],
     [{ method: "standard", type: "income" }, "merchant"],
+    [{ method: "standard", type: "transfer" }, "merchant"],
     [{ method: "merchant", type: "transfer" }, "merchant"],
     [{ method: "invalid", type: "transfer" }, "transfer"],
     [{ method: "invalid" }, "merchant"],
