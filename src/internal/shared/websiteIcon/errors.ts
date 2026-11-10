@@ -1,6 +1,6 @@
 export const websiteIconErrorCodes = {
-  fetchFailed: "merchant_icon_fetch_failed",
-  redirectInvalid: "merchant_icon_redirect_invalid",
+  fetchFailed: "website_icon_fetch_failed",
+  redirectInvalid: "website_icon_redirect_invalid",
   websiteInvalid: "website_url_invalid",
 } as const;
 

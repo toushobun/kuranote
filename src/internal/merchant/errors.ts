@@ -185,7 +185,7 @@ export const merchantErrorMessages: Record<MerchantErrorCode, string> = {
   [merchantErrorCodes.updateFailed]:
     "商家更新失败。请确认商家名称是否重复，或稍后重试。",
   [merchantErrorCodes.websiteUrlInvalid]:
-    "商家网址必须以 http:// 或 https:// 开头。",
+    websiteIconErrorMessages.websiteInvalid,
 };
 
 export function isMerchantActionErrorCode(
@@ -208,9 +208,4 @@ export const merchantLoadErrorMessages = {
 export const merchantWriteErrorMessages = {
   createFailed: "商家新增失败，请稍后重试。",
   updateFailed: "商家更新失败，请稍后重试。",
-} as const;
-
-/** 商家网址校验不通过时的文案。 */
-export const merchantWebsiteUrlErrorMessages = {
-  protocolInvalid: "商家网址必须使用 HTTP 或 HTTPS。",
 } as const;

@@ -15,7 +15,7 @@ describe("merchantErrorMessages", () => {
       "请输入商家别名。",
     );
     expect(merchantErrorMessages[merchantErrorCodes.websiteUrlInvalid]).toBe(
-      "商家网址必须以 http:// 或 https:// 开头。",
+      "网址必须以 http:// 或 https:// 开头。",
     );
   });
 });

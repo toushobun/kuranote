@@ -605,9 +605,11 @@ CREATE TABLE IF NOT EXISTS "public"."account" (
     CONSTRAINT "account_closing_day_check" CHECK ((("closing_day" IS NULL) OR (("closing_day" >= 1) AND ("closing_day" <= 31)))),
     CONSTRAINT "account_credit_limit_check" CHECK ((("credit_limit" IS NULL) OR ("credit_limit" > (0)::numeric))),
     CONSTRAINT "account_currency_check" CHECK (("currency" ~ '^[A-Z]{3}$'::"text")),
+    CONSTRAINT "account_icon_url_check" CHECK ((("icon_url" IS NULL) OR ("icon_url" ~ '^https://'::"text"))),
     CONSTRAINT "account_name_check" CHECK ((("length"(TRIM(BOTH FROM "name")) >= 1) AND ("length"(TRIM(BOTH FROM "name")) <= 100))),
     CONSTRAINT "account_payment_due_day_check" CHECK ((("payment_due_day" IS NULL) OR (("payment_due_day" >= 1) AND ("payment_due_day" <= 31)))),
-    CONSTRAINT "account_type_check" CHECK (("type" = ANY (ARRAY['cash'::"text", 'bank'::"text", 'credit_card'::"text", 'e_money'::"text", 'other'::"text"])))
+    CONSTRAINT "account_type_check" CHECK (("type" = ANY (ARRAY['cash'::"text", 'bank'::"text", 'credit_card'::"text", 'e_money'::"text", 'other'::"text"]))),
+    CONSTRAINT "account_website_url_check" CHECK ((("website_url" IS NULL) OR ("website_url" ~ '^https?://'::"text")))
 );
 
 

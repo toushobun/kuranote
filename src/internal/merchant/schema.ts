@@ -3,7 +3,7 @@ import { z } from "@hono/zod-openapi";
 import { merchantTagEmojiValues } from "config/merchantTagEmojis";
 import {
   merchantErrorCodes,
-  merchantWebsiteUrlErrorMessages,
+  merchantErrorMessages,
   type MerchantValidationErrorCode,
 } from "internal/merchant/errors";
 import {
@@ -365,19 +365,11 @@ export function validateReorderMerchantTagsForm(
     : invalid(merchantErrorCodes.merchantTagOrderInvalid);
 }
 
-function isHttpUrl(value: string): boolean {
-  try {
-    return ["http:", "https:"].includes(new URL(value).protocol);
-  } catch {
-    return false;
-  }
-}
-
 const optionalWebsiteUrlSchema = z
   .string()
   .trim()
-  .refine(isHttpUrl, {
-    message: merchantWebsiteUrlErrorMessages.protocolInvalid,
+  .refine((value) => typeof parseWebsiteUrl(value) === "string", {
+    message: merchantErrorMessages[merchantErrorCodes.websiteUrlInvalid],
   })
   .nullable();
 

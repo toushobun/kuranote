@@ -52,6 +52,7 @@ export function useAccountForm({
   const [iconStatus, setIconStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >(iconUrl ? "success" : "idle");
+  const [iconError, setIconError] = useState<string>();
   const iconRequest = useRef(0);
 
   function clearIcon() {
@@ -59,12 +60,14 @@ export function useAccountForm({
     setIconTouched(true);
     setIconUrl("");
     setIconStatus("idle");
+    setIconError(undefined);
   }
 
   async function fetchIcon() {
     if (!fetchIconAction) return;
     const request = ++iconRequest.current;
     setIconStatus("loading");
+    setIconError(undefined);
     const data = new FormData();
     data.set("websiteUrl", websiteUrl);
     let result: Awaited<ReturnType<WebsiteIconStateAction>>;
@@ -79,6 +82,7 @@ export function useAccountForm({
     if (nextIcon !== iconUrl) setIconTouched(true);
     setIconUrl(nextIcon);
     setIconStatus(nextIcon ? "success" : "error");
+    setIconError(result.error);
   }
 
   const [name, setName] = useState(account?.name ?? "");
@@ -115,7 +119,7 @@ export function useAccountForm({
     iconStatus,
     clearIcon,
     fetchIcon,
-    onIconError: () => setIconStatus("error"),
+    iconError,
     changeWebsiteUrl: (value: string) => {
       setWebsiteUrl(value);
       clearIcon();

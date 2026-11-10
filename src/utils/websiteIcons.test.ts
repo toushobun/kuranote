@@ -20,6 +20,8 @@ describe("buildWebsiteFaviconUrl", () => {
     expect(buildWebsiteFaviconUrl(null)).toBeNull();
     expect(buildWebsiteFaviconUrl("")).toBeNull();
     expect(buildWebsiteFaviconUrl("ftp://example.com")).toBeNull();
+    expect(buildWebsiteFaviconUrl("https:example.com")).toBeNull();
+    expect(buildWebsiteFaviconUrl("HTTPS://example.com")).toBeNull();
     expect(buildWebsiteFaviconUrl("not a url")).toBeNull();
   });
 });

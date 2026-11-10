@@ -21,6 +21,27 @@ $$, '所有者可创建带网址和图标的账户');
 select is((select website_url from public.account where name = '网站图标测试'), 'https://example.com', '创建保存网址');
 select is((select icon_url from public.account where name = '网站图标测试'), 'https://www.google.com/s2/favicons?domain_url=https%3A%2F%2Fexample.com', '创建保存图标');
 
+select throws_ok($$
+    update public.account set website_url = 'ftp://example.com' where name = '网站图标测试'
+$$, '23514', 'new row for relation "account" violates check constraint "account_website_url_check"', '直接更新拒绝非 HTTP(S) 网址');
+select throws_ok($$
+    update public.account set icon_url = 'http://example.com/tracker.png' where name = '网站图标测试'
+$$, '23514', 'new row for relation "account" violates check constraint "account_icon_url_check"', '直接更新拒绝 HTTP 图标');
+select throws_ok($$
+    select public.create_account_with_holders(
+        '00000000-0000-4000-8000-000000000032', '非法网站图标测试', 'bank', 'JPY', 0,
+        p_website_url := 'https://example.com', p_icon_url := 'data:image/png;base64,AA=='
+    )
+$$, '23514', 'new row for relation "account" violates check constraint "account_icon_url_check"', '创建 RPC 拒绝 data URL 图标');
+select throws_ok($$
+    select public.update_account_with_balance_adjustment(
+        ledger_id, id, '非法更新', type, currency, '{}', 100,
+        p_website_url := 'https://example.com', p_icon_url := 'http://example.com/icon.png'
+    )
+    from public.account where name = '网站图标测试'
+$$, '23514', 'new row for relation "account" violates check constraint "account_icon_url_check"', '更新 RPC 拒绝 HTTP 图标并回滚账户修改');
+select is((select count(*) from public.account where name = '网站图标测试'), 1::bigint, '更新失败后保留原账户名称');
+
 select lives_ok($$
     select public.update_account_with_balance_adjustment(
         ledger_id, id, name, type, currency, '{}', 100,

@@ -135,7 +135,7 @@ describe("createWebsiteIconService", () => {
 
     await expect(
       service.fetchIcon("https://example.com"),
-    ).rejects.toMatchObject({ code: "merchant_icon_fetch_failed" });
+    ).rejects.toMatchObject({ code: "website_icon_fetch_failed" });
   });
 
   it("分块响应超过上限时立即取消剩余下载", async () => {
@@ -165,7 +165,7 @@ describe("createWebsiteIconService", () => {
 
     await expect(
       service.fetchIcon("https://example.com"),
-    ).rejects.toMatchObject({ code: "merchant_icon_fetch_failed" });
+    ).rejects.toMatchObject({ code: "website_icon_fetch_failed" });
     expect(canceled).toBe(true);
     expect(pullCount).toBeLessThan(5);
   });
@@ -272,7 +272,7 @@ describe("createWebsiteIconService", () => {
     await expect(
       service.fetchIcon("https://example.com"),
     ).rejects.toMatchObject({
-      code: "merchant_icon_fetch_failed",
+      code: "website_icon_fetch_failed",
       message: websiteIconErrorMessages.fetchFailed,
     });
     expect(fetchImpl).toHaveBeenCalledTimes(1);

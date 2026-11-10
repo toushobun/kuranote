@@ -92,9 +92,9 @@ describe("AccountForm", () => {
     expect(action.mock.calls[0]?.[0].get("previewIconUrl")).toBe("");
   });
 
-  it("获取失败后仍可保存网址", async () => {
+  it("显示获取失败的原因，仍可保存网址", async () => {
     const { action } = renderAccountForm({
-      fetchIconAction: async () => ({ error: "获取失败" }),
+      fetchIconAction: async () => ({ error: "网址不能指向本机或内部网络。" }),
     });
     fillCreditCard();
     fireEvent.change(screen.getByLabelText("网址（可选）"), {
@@ -102,12 +102,38 @@ describe("AccountForm", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "获取图标" }));
     expect(await screen.findByText("没有获取到图标")).toBeInTheDocument();
+    expect(
+      screen.getByText("网址不能指向本机或内部网络。"),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "保存账户" }));
     await waitFor(() => expect(action).toHaveBeenCalledOnce());
     expect(action.mock.calls[0]?.[0].get("websiteUrl")).toBe(
       "https://example.com",
     );
     expect(action.mock.calls[0]?.[0].get("previewIconUrl")).toBe("");
+  });
+
+  it("已保存的图片加载失败时回退到文字头像，不提示获取失败", () => {
+    const fetchIconAction = vi.fn();
+    const onDirtyChange = vi.fn();
+    renderAccountForm({
+      account: {
+        ...bankAccountFixture,
+        website_url: "https://example.com",
+        icon_url: "https://example.com/icon.png",
+      },
+      fetchIconAction,
+      onDirtyChange,
+    });
+    fireEvent.error(
+      document.querySelector('img[src="https://example.com/icon.png"]')!,
+    );
+
+    expect(screen.getByText("三菱")).toBeInTheDocument();
+    expect(screen.queryByText("没有获取到图标")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "改用文字图标" })).toBeEnabled();
+    expect(fetchIconAction).not.toHaveBeenCalled();
+    expect(onDirtyChange).toHaveBeenLastCalledWith(false);
   });
 
   it("修改网址会清空已有图标并标记表单已修改", () => {

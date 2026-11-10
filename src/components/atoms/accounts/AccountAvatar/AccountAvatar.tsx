@@ -14,13 +14,11 @@ import { accountAvatarText } from "utils/accountAvatarText";
 export function AccountAvatar({
   id,
   iconUrl,
-  onIconError,
   name,
   size,
 }: {
   id: string;
   iconUrl?: string | null;
-  onIconError?: () => void;
   name: string;
   size: number;
 }) {
@@ -56,10 +54,7 @@ export function AccountAvatar({
           key={iconUrl}
           alt=""
           component="img"
-          onError={() => {
-            setFailedUrl(iconUrl);
-            onIconError?.();
-          }}
+          onError={() => setFailedUrl(iconUrl)}
           src={iconUrl}
           sx={{ height: "75%", objectFit: "contain", width: "75%" }}
         />

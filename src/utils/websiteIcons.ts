@@ -12,6 +12,9 @@ export function parseWebsiteUrl(value: unknown): string | null | undefined {
     return null;
   }
 
+  // 与数据库的 HTTP(S) 前缀约束一致。
+  if (!/^https?:\/\//.test(trimmedValue)) return undefined;
+
   try {
     const url = new URL(trimmedValue);
 

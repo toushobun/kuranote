@@ -1,6 +1,8 @@
 alter table public.account
     add column website_url text,
-    add column icon_url text;
+    add column icon_url text,
+    add constraint account_website_url_check check (website_url is null or website_url ~ '^https?://'),
+    add constraint account_icon_url_check check (icon_url is null or icon_url ~ '^https://');
 
 drop function public.create_account_with_holders(uuid, text, text, text, numeric, uuid[], uuid);
 

@@ -10,22 +10,17 @@ import {
 import {
   accountWebsiteIconFixture,
   bankAccountFixture,
+  fetchAccountIconFixture,
 } from "test/mocks/accounts";
 
-import type { WebsiteIconActionState } from "types/actions";
-
 import { AccountForm } from "./AccountForm";
-
-const fetchIconAction = async (): Promise<WebsiteIconActionState> => ({
-  iconUrl: accountWebsiteIconFixture.icon_url,
-});
 
 const meta = {
   component: AccountForm,
   title: "Organisms/Accounts/AccountForm",
   args: {
     action: async () => {},
-    fetchIconAction,
+    fetchIconAction: fetchAccountIconFixture,
     defaultCurrency: "JPY",
     holderOptions: accountHolderOptionsFixture,
     placeholderHolderOptions: accountPlaceholderHolderOptionsFixture,

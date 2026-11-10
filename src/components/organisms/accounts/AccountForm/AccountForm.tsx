@@ -137,7 +137,6 @@ export function AccountForm({
                   iconUrl={
                     form.iconStatus === "loading" ? undefined : form.iconUrl
                   }
-                  onIconError={form.onIconError}
                 />
                 {form.iconStatus === "loading" ? (
                   <Box
@@ -175,7 +174,7 @@ export function AccountForm({
                   <Typography color="textSecondary" variant="body2">
                     {form.iconStatus === "success"
                       ? accountIconMessages.successHelper
-                      : accountIconMessages.errorHelper}
+                      : (form.iconError ?? accountIconMessages.errorHelper)}
                   </Typography>
                 ) : null}
                 {form.iconUrl ? (
