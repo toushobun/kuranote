@@ -1,5 +1,5 @@
 "use client";
-import { useState, type RefObject } from "react";
+import { useState } from "react";
 import { isValidTransactionFormItem } from "../TransactionForm/TransactionForm.utils";
 import {
   canAddPaymentRow,
@@ -13,7 +13,7 @@ import type { TransactionConfirmStepProps } from "./TransactionConfirmStep.types
 
 export function useTransactionConfirmStep(
   props: TransactionConfirmStepProps,
-  paymentSectionRef: RefObject<HTMLDivElement | null>,
+  focusPayments: () => void,
 ) {
   const form = props.form;
   const [editor, setEditor] = useState<"time" | null>(null);
@@ -25,7 +25,6 @@ export function useTransactionConfirmStep(
   const [paymentAmountKey, setPaymentAmountKey] = useState<number | null>(null);
   // 单账户点 × 清空后，只保留换币种确认需要的原币种。
   const [previousCurrency, setPreviousCurrency] = useState<string>();
-  const issueCheck = useReceiptIssueCheck();
   const currency = form.selectedAccount?.currency;
   const invalidItems = form.itemSummaries.filter(
     (item) => !item.category || !isValidTransactionFormItem(item, currency),
@@ -98,11 +97,6 @@ export function useTransactionConfirmStep(
       form.handlePaymentAccountChange(key, "");
     }
   }
-  function focusPayments() {
-    const section = paymentSectionRef.current;
-    section?.scrollIntoView?.({ block: "center", behavior: "smooth" });
-    section?.focus();
-  }
   const issues = [
     ...(!form.selectedMerchant
       ? [
@@ -173,18 +167,16 @@ export function useTransactionConfirmStep(
           (form.isMultiAccount && !payment.amount.trim())),
     )
     .map((payment) => payment.key);
+  const issueCheck = useReceiptIssueCheck([
+    ...issues.map((issue) => issue.id),
+    ...invalidItems.map((item) => itemMarkKey(item.id)),
+    ...invalidPaymentKeys.map(paymentMarkKey),
+  ]);
   const isChecked = issueCheck.isChecked;
   /** 点保存时调用：记录当前所有问题，返回是否有问题。 */
   function checkIssues() {
     const hasIssues = issues.length > 0;
-    issueCheck.check(
-      [
-        ...issues.map((issue) => issue.id),
-        ...invalidItems.map((item) => itemMarkKey(item.id)),
-        ...invalidPaymentKeys.map(paymentMarkKey),
-      ],
-      hasIssues && !props.readOnly,
-    );
+    issueCheck.check(hasIssues && !props.readOnly);
     return hasIssues;
   }
   return {

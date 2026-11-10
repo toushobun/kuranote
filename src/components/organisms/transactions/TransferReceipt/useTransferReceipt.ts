@@ -36,7 +36,6 @@ export function useTransferReceipt({
   const [amountOpen, setAmountOpen] = useState(false);
   const [timeOpen, setTimeOpen] = useState(false);
   const dateTime = useLocalTransactionDateTime(initialValues?.transactionAt);
-  const issueCheck = useReceiptIssueCheck();
 
   useDirtySnapshot(
     JSON.stringify([
@@ -105,6 +104,7 @@ export function useTransferReceipt({
         ]
       : []),
   ];
+  const issueCheck = useReceiptIssueCheck(issues.map((issue) => issue.id));
   const visibleIssues = issues.filter((issue) =>
     issueCheck.isChecked(issue.id),
   );
@@ -149,10 +149,7 @@ export function useTransferReceipt({
     /** 点保存时调用：记录当前所有问题，返回是否有问题。 */
     checkIssues() {
       const hasIssues = issues.length > 0;
-      issueCheck.check(
-        issues.map((issue) => issue.id),
-        hasIssues && !readOnly,
-      );
+      issueCheck.check(hasIssues && !readOnly);
       return hasIssues;
     },
   };
