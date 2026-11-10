@@ -13,12 +13,6 @@ export default function Page() {
         <Link href="/new?empty=1" prefetch={false}>
           无商家新增记账
         </Link>
-        <Link href="/standard" prefetch={false}>
-          标准支出
-        </Link>
-        <Link href="/standard?type=income" prefetch={false}>
-          标准收入
-        </Link>
         <Link href="/new-transfer" prefetch={false}>
           新增转账
         </Link>

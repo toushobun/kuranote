@@ -4,12 +4,9 @@ import type { TransactionCategoryOption } from "types/transactions";
 
 import {
   buildCategoryPickerGroups,
-  formatCategoryName,
   formatSignedCurrencyAmount,
   formatSummaryDateTime,
   getCurrencySymbol,
-  getTransactionItemAdjustmentMessage,
-  getTransactionItemAmountPresentation,
   isValidMoneyText,
   isValidTransactionFormItem,
   sumAmountTexts,
@@ -92,61 +89,6 @@ describe("buildCategoryPickerGroups", () => {
     const result = buildCategoryPickerGroups(categories);
 
     expect(result[0]?.categories.map((c) => c.id)).toEqual(["3", "2"]);
-  });
-});
-
-describe("formatCategoryName", () => {
-  it("有父分类时显示 '父 / 子' 格式", () => {
-    const category = createCategory({ name: "午饭", parentName: "食品" });
-    expect(formatCategoryName(category)).toBe("食品 / 午饭");
-  });
-
-  it("无父分类时只显示自身名称", () => {
-    const category = createCategory({ name: "其他", parentName: null });
-    expect(formatCategoryName(category)).toBe("其他");
-  });
-});
-
-describe("getTransactionItemAmountPresentation", () => {
-  it("完全核销时显示净额且不返回固定提示", () => {
-    const result = getTransactionItemAmountPresentation("1200", "0", "expense");
-
-    expect(result).toEqual({
-      adjustment: "fullyExcluded",
-      displayAmount: "0",
-      displayType: "expense",
-      hasOffset: true,
-    });
-    expect(getTransactionItemAdjustmentMessage(result.adjustment)).toBeNull();
-  });
-
-  it("部分核销时显示净额和部分核销提示", () => {
-    const result = getTransactionItemAmountPresentation(
-      "1200",
-      "300",
-      "expense",
-    );
-
-    expect(result).toEqual({
-      adjustment: "partiallyOffset",
-      displayAmount: "300",
-      displayType: "expense",
-      hasOffset: true,
-    });
-    expect(getTransactionItemAdjustmentMessage(result.adjustment)).toBe(
-      "部分已核销",
-    );
-  });
-
-  it("核销结余时取净额绝对值并翻转收支方向", () => {
-    expect(
-      getTransactionItemAmountPresentation("1200", "-300", "expense"),
-    ).toEqual({
-      adjustment: null,
-      displayAmount: "300",
-      displayType: "income",
-      hasOffset: true,
-    });
   });
 });
 

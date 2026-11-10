@@ -133,7 +133,7 @@ JSON 输出仍为 `compatibility.json`，新增 `merchantCreate`、`merchantEdit
 - 编辑小票有草稿时先后退关闭商家抽屉，再后退确认父页；分类编辑放弃只关抽屉，前进不复活，真实保存成功不离开分类列表。
 - 余额调整先关闭时间层，再确认父页；商家别名单独 dirty 时，从确认框保存后继续原来的后退／链接动作。
 
-默认运行全部分组；调试单组可设置 `UNSAVED_GUARD_CASES=standard,newAccount`。输出仍为 `compatibility.json`，分组包括既有 PR1 回归与上述新增场景。
+默认运行全部分组；调试单组可设置 `UNSAVED_GUARD_CASES=newTransfer,newAccount`。输出仍为 `compatibility.json`，分组包括既有 PR1 回归与上述新增场景。
 
 本轮开发模式自动化已跑通。生产模式新增场景、PR2 两项原生 Chrome 工具栏操作以及手机实机统一留到最终验收，不能用这里的 Playwright 导航替代工具栏验收。上文历史验证结果只代表各自标注的源码版本。
 
@@ -162,3 +162,7 @@ JSON 输出仍为 `compatibility.json`，新增 `merchantCreate`、`merchantEdit
 - 新增分类放弃后重新打开前，等待旧对话框真正卸载（关闭动画期间旧对话框已 aria-hidden，按角色查找会提前判定为隐藏，点击和输入会落到正在退出的旧对话框）。
 
 开发模式与生产构建均以 Playwright 自带 Chromium（`PLAYWRIGHT_CHANNEL=chromium`）完整跑通全部分组。
+
+## #1048 停用标准记账
+
+「标准记账」已停用，`?method=standard` 进入从商家记账。验证应用删除 `/standard` 页面和标准支出／收入入口，`guard:check` 删除 `standard`、`standardIncome` 分组，`untouched` 不再检查标准支出。上文关于标准新增页的记录只代表当时的源码版本。

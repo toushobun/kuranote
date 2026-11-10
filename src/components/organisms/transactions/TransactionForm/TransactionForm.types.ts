@@ -1,68 +1,13 @@
-import type { ReactNode } from "react";
-
 import type {
   TransactionPayment,
   TransactionSpecialStatus,
 } from "internal/transaction";
 import type {
-  TransactionAccountOption,
   TransactionBusinessStatus,
   TransactionCategoryOption,
-  TransactionMerchantOption,
-  TransactionGroupPage,
-  TransactionMonthPage,
   TransactionRefundCandidate,
-  TransactionSearchPage,
-  TransactionTimeGroupViewData,
   TransactionType,
 } from "types/transactions";
-
-export type TransactionFormProps = {
-  action: (formData: FormData) => void | Promise<void>;
-  accountOptions: TransactionAccountOption[];
-  categoryOptions: TransactionCategoryOption[];
-  closeHref?: string;
-  errorMessage?: string | null;
-  formId?: string;
-  frequentCategoryIds?: string[];
-  hideHeader?: boolean;
-  hideSubmitButton?: boolean;
-  initialType?: TransactionType;
-  ledgerName?: string;
-  merchantOptions: TransactionMerchantOption[];
-  /** 账本是否开启多账户付款（#931）；关闭时不显示「添加付款账户」。 */
-  multiAccountPaymentEnabled?: boolean;
-  refundPickerView?: TransactionTimeGroupViewData;
-  reimbursementPickerView?: TransactionTimeGroupViewData;
-  loadRefundGroupItemsAction?: (
-    groupKey: string,
-    offset: number,
-  ) => Promise<TransactionMonthPage>;
-  loadRefundMoreGroupsAction?: (
-    offset: number,
-  ) => Promise<TransactionGroupPage>;
-  loadRefundSearchPageAction?: (
-    query: string,
-    offset: number,
-  ) => Promise<TransactionSearchPage>;
-  loadReimbursementGroupItemsAction?: (
-    groupKey: string,
-    offset: number,
-  ) => Promise<TransactionMonthPage>;
-  loadReimbursementMoreGroupsAction?: (
-    offset: number,
-  ) => Promise<TransactionGroupPage>;
-  loadReimbursementSearchPageAction?: (
-    query: string,
-    offset: number,
-  ) => Promise<TransactionSearchPage>;
-  // 新建记账时缺少账户 / 商家的添加入口；不传时不显示提示卡片（编辑记账）。
-  setupHrefs?: { account: string; merchant: string };
-  submitLabel?: string;
-  title?: string;
-  transactionItemSpecialStatusEnabled?: boolean;
-  typeNavigation?: ReactNode;
-};
 
 export type TransactionFormInitialItem = {
   amount: string;
@@ -116,12 +61,6 @@ export type CategoryPickerGroup = {
 
 export type TransactionItemSummary = TransactionFormItem & {
   category?: TransactionCategoryOption;
-};
-
-export type TransactionFieldErrors = {
-  account?: string;
-  items?: string;
-  merchant?: string;
 };
 
 export type TransactionPickerErrors = {

@@ -597,54 +597,6 @@ async function finishSession(session) {
   await session.page.close();
   return { records: session.records, errors: session.errors };
 }
-async function checkStandard(browser, income = false) {
-  const type = income ? "income" : "expense";
-  const session = await newSession(
-    browser,
-    income ? "标准收入" : "标准支出",
-    `new-${type}-transaction-form`,
-  );
-  const { page, baseline, record, backAndCancel } = session;
-  const note = page.locator(
-    `#new-${type}-transaction-form textarea[name="note"]`,
-  );
-  assert.equal(
-    await page.evaluate(
-      () => history.state?.kuranoteUnsavedChanges?.position ?? null,
-    ),
-    null,
-  );
-  await note.fill("标准页草稿");
-  await note.blur();
-  await position(page, "sentinel");
-  await page.getByRole("button", { name: "转账", exact: true }).click();
-  await position(page, "base");
-  await page
-    .locator('#new-transfer-transaction-form textarea[name="note"]')
-    .fill("转账面板草稿");
-  await position(page, "sentinel");
-  await page.getByRole("button", { name: "收支", exact: true }).click();
-  assert.equal(await note.inputValue(), "标准页草稿");
-  await scroll(page, 2000);
-  for (let index = 0; index < 3; index++) await backAndCancel(2000);
-  assertInternalRecord(
-    await record("标准页切换面板后三次取消，保持滚动、实例与单哨兵"),
-    baseline,
-  );
-  await page.getByRole("button", { name: "切换方式" }).click();
-  await page.getByRole("button", { name: "账户周转", exact: true }).click();
-  await page.getByRole("dialog", { name: "尚未保存" }).waitFor();
-  await page.getByRole("button", { name: "放弃修改" }).click();
-  await page.waitForURL(`${baseUrl}/transactions/new?method=transfer`);
-  await page.locator("#new-transfer-transaction-form").waitFor();
-  await browserBack(page);
-  await page.waitForURL(sourceUrl);
-  await page.getByRole("heading", { name: "离开守卫兼容性验证" }).waitFor();
-  await keepScroll(page, 320, "auto");
-  const row = await record("标准页放弃并切换方式后，后退一次回来源");
-  assert.equal(row.currentIndex, baseline.currentIndex - 1);
-  return finishSession(session);
-}
 async function closeAmountLayer(page, field) {
   await field.click();
   await page.getByLabel("金额计算器", { exact: true }).waitFor();
@@ -1089,7 +1041,6 @@ async function checkUntouched(browser) {
     ["编辑转账", "edit-transfer-transaction-form"],
     ["新增商家", "create-merchant-form"],
     ["编辑商家", "merchant-edit-form"],
-    ["标准支出", "new-expense-transaction-form"],
     ["新增转账", "new-transfer-transaction-form"],
     ["新增账户", "create-account-form"],
     ["余额调整", "edit-balance-adjustment-form"],
@@ -1148,8 +1099,6 @@ try {
     transfer: () => checkOtherPage(browser, "transfer"),
     merchantCreate: () => checkMerchant(browser, false),
     merchantEdit: () => checkMerchant(browser, true),
-    standard: () => checkStandard(browser),
-    standardIncome: () => checkStandard(browser, true),
     newTransfer: () => checkNewForm(browser),
     newAccount: () => checkNewForm(browser, true),
     receiptLayers: () => checkReceiptLayers(browser),

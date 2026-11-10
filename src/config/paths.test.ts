@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   merchantResultValues,
-  merchantsNewHref,
   merchantsResultHref,
   accountResultValues,
   accountsNewHref,
@@ -106,34 +105,10 @@ describe("merchant paths", () => {
 });
 
 describe("transaction setup paths", () => {
-  it("生成带 returnTo 的商家新增路由", () => {
-    expect(
-      merchantsNewHref(
-        transactionsNewEntryHref({ method: "standard", type: "expense" }),
-      ),
-    ).toBe(
-      "/merchants/new?returnTo=%2Ftransactions%2Fnew%3Fmethod%3Dstandard%26type%3Dexpense",
-    );
-  });
-
-  it("商家新增路由可预填名称", () => {
-    expect(merchantsNewHref("/transactions/new", "LIFE")).toBe(
-      "/merchants/new?name=LIFE&returnTo=%2Ftransactions%2Fnew",
-    );
-  });
-
-  it("没有 returnTo 时商家新增路由不带参数", () => {
-    expect(merchantsNewHref()).toBe("/merchants/new");
-  });
-
   it("生成带 returnTo 的账户新增路由", () => {
     expect(
-      accountsNewHref(
-        transactionsNewEntryHref({ method: "standard", type: "income" }),
-      ),
-    ).toBe(
-      "/accounts/new?returnTo=%2Ftransactions%2Fnew%3Fmethod%3Dstandard%26type%3Dincome",
-    );
+      accountsNewHref(transactionsNewEntryHref({ method: "transfer" })),
+    ).toBe("/accounts/new?returnTo=%2Ftransactions%2Fnew%3Fmethod%3Dtransfer");
   });
 
   it("没有 returnTo 时账户新增路由不带参数", () => {
@@ -148,12 +123,9 @@ describe("transaction entry paths", () => {
     );
   });
 
-  it("账户周转只带 method，标准记账带页签", () => {
+  it("账户周转只带 method", () => {
     expect(transactionsNewEntryHref({ method: "transfer" })).toBe(
       "/transactions/new?method=transfer",
     );
-    expect(
-      transactionsNewEntryHref({ method: "standard", type: "income" }),
-    ).toBe("/transactions/new?method=standard&type=income");
   });
 });

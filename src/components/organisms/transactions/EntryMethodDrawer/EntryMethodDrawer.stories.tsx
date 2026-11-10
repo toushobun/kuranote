@@ -13,7 +13,7 @@ const meta = {
 } satisfies Meta<typeof EntryMethodDrawer>;
 export default meta;
 type Story = StoryObj<typeof meta>;
-export const Default: Story = { name: "切换方式（当前、过渡与即将推出）" };
+export const Default: Story = { name: "切换方式（当前、已停用与即将推出）" };
 export const TransferCurrent: Story = {
   name: "当前为账户周转",
   args: { currentMethod: "transfer" },

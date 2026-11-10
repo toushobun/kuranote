@@ -1,32 +1,12 @@
 "use client";
-import {
-  NewTransactionTemplate,
-  NewTransferTransactionTemplate,
-} from "../../../../src/components/templates/transactions/TransactionFormPage";
+import { NewTransferTransactionTemplate } from "../../../../src/components/templates/transactions/TransactionFormPage";
 import { AccountCreateTemplate } from "../../../../src/components/templates/accounts/AccountCreate";
 import { CategoriesActionStateTemplate } from "../../../../src/components/templates/categories/CategoriesActionState";
 import { BalanceAdjustmentEditForm } from "../../../../src/components/organisms/transactions/BalanceAdjustmentEditForm/BalanceAdjustmentEditForm";
 import { flowFixture } from "../../../../src/test/mocks/transactionStepFlow";
-import { receiptItemsOptions } from "../../../../src/test/mocks/transactionReceipt";
 import { accountHolderOptionsFixture } from "../../../../src/test/mocks/accountHolders";
 import { save, saveCategory, reorderCategory } from "./actions";
 
-export function StandardEditor({ income = false }: { income?: boolean }) {
-  return (
-    <NewTransactionTemplate
-      accountOptions={flowFixture.accounts}
-      action={save}
-      categoryOptions={receiptItemsOptions.categoryOptions}
-      frequentCategoryIds={[]}
-      errorMessage={null}
-      initialType={income ? "income" : "expense"}
-      ledgerName="验证账本"
-      merchantOptions={flowFixture.merchants}
-      multiAccountPaymentEnabled
-      transactionItemSpecialStatusEnabled={false}
-    />
-  );
-}
 export function NewTransferEditor() {
   return (
     <NewTransferTransactionTemplate

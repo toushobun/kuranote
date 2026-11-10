@@ -9,7 +9,7 @@ import type {
 } from "../TransactionForm/TransactionForm.types";
 import type { useTransactionForm } from "../TransactionForm/useTransactionForm";
 
-export function getTransactionPaymentInputNames(paymentCount: number) {
+function getTransactionPaymentInputNames(paymentCount: number) {
   return {
     account: paymentCount > 1 ? "paymentAccountId" : "accountId",
     amount: paymentCount > 1 ? "paymentAmount" : undefined,

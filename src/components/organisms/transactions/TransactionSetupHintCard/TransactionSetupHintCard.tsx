@@ -9,32 +9,18 @@ import Link from "next/link";
 import { transactionSetupHintMessages } from "config/transactionMessages";
 import { designTokens } from "theme/theme";
 
-import type {
-  TransactionSetupHint,
-  TransactionSetupTarget,
-} from "./transactionSetupHint";
+import type { TransactionSetupHint } from "./transactionSetupHint";
 
 type TransactionSetupHintCardProps = {
   addAccountHref: string;
-  addMerchantHref?: string;
   hint: TransactionSetupHint;
 };
 
-const targetLabels: Record<TransactionSetupTarget, string> = {
-  account: transactionSetupHintMessages.addAccount,
-  merchant: transactionSetupHintMessages.addMerchant,
-};
-
+/** 记账前缺少账户时的提示卡片（目前只有账户周转使用）。 */
 export function TransactionSetupHintCard({
   addAccountHref,
-  addMerchantHref,
   hint,
 }: TransactionSetupHintCardProps) {
-  const hrefs: Record<TransactionSetupTarget, string | undefined> = {
-    account: addAccountHref,
-    merchant: addMerchantHref,
-  };
-
   return (
     <Box component="section" aria-label={hint.title} sx={cardSx}>
       <Stack direction="row" spacing={1.5} sx={{ alignItems: "flex-start" }}>
@@ -51,24 +37,16 @@ export function TransactionSetupHintCard({
         </Stack>
       </Stack>
       <Stack direction="row" spacing={1} sx={{ mt: 1.75 }}>
-        {hint.targets.map((target) => {
-          const href = hrefs[target];
-          if (!href) return null;
-
-          return (
-            <Button
-              component={Link}
-              fullWidth
-              href={href}
-              key={target}
-              startIcon={<AddRoundedIcon />}
-              sx={actionButtonSx}
-              variant="outlined"
-            >
-              {targetLabels[target]}
-            </Button>
-          );
-        })}
+        <Button
+          component={Link}
+          fullWidth
+          href={addAccountHref}
+          startIcon={<AddRoundedIcon />}
+          sx={actionButtonSx}
+          variant="outlined"
+        >
+          {transactionSetupHintMessages.addAccount}
+        </Button>
       </Stack>
     </Box>
   );
