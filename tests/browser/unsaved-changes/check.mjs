@@ -1085,11 +1085,11 @@ async function checkNewReceiptMerchantOnly(browser) {
   await page.getByRole("button", { name: "7-Eleven", exact: true }).click();
   await page.getByRole("button", { name: "保存记账", exact: true }).waitFor();
   await page.waitForLoadState("networkidle");
-  assert.notEqual(
+  assert.equal(
     await page.evaluate(
       () => history.state?.kuranoteUnsavedChanges?.position ?? null,
     ),
-    "sentinel",
+    null,
   );
   await browserBack(page);
   await page.waitForURL(sourceUrl);
