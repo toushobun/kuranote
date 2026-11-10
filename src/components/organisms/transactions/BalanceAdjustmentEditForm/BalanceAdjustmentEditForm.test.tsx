@@ -30,6 +30,17 @@ const initialValues: BalanceAdjustmentEditInitialValues = {
   accountArchived: false,
 };
 afterEach(cleanup);
+// 备注在小票上点开底部抽屉编辑，点「完成」写回。
+// 上一次的抽屉可能还在关闭动画中（其余内容暂时 aria-hidden），所以包含隐藏元素查找。
+function editNote(value: string) {
+  fireEvent.click(
+    screen.getByRole("button", { name: /^修改备注：/, hidden: true }),
+  );
+  fireEvent.change(screen.getByRole("textbox", { name: "备注" }), {
+    target: { value },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "完成" }));
+}
 function setup(
   archived = false,
   {
@@ -56,14 +67,19 @@ function setup(
   return { action, deleteAction };
 }
 describe("BalanceAdjustmentEditForm", () => {
-  it("账户和金额只读，保存只提交时间备注", async () => {
+  it("小票显示账户、减少标签与调整金额，账户和金额不能点，保存只提交时间备注", async () => {
     const { action } = setup();
-    expect(screen.getByLabelText("账户")).toHaveAttribute("readonly");
-    expect(screen.getByLabelText("调整金额")).toHaveAttribute("readonly");
-    fireEvent.change(screen.getByLabelText("备注（选填）"), {
-      target: { value: "新备注" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "保存修改" }));
+    expect(
+      screen.getByText("现金", { selector: "[aria-hidden]" }),
+    ).toBeVisible();
+    expect(screen.getByText("余额调整 · 减少")).toBeInTheDocument();
+    expect(screen.getByText("-¥2,500")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^修改调整金额/ })).toBeNull();
+    expect(screen.queryByRole("link", { name: "返回" })).toBeNull();
+    editNote("新备注");
+    fireEvent.click(
+      screen.getByRole("button", { name: "保存修改", hidden: true }),
+    );
     await waitFor(() => expect(action).toHaveBeenCalledOnce());
     const form = (action.mock.calls[0] as unknown as [unknown, FormData])[1];
     expect(form.get("note")).toBe("新备注");
@@ -72,7 +88,7 @@ describe("BalanceAdjustmentEditForm", () => {
   });
   it("复用共享的日期时间选择器修改交易时间，提交组合后的值", async () => {
     const { action } = setup();
-    fireEvent.click(screen.getByRole("button", { name: "选择记账时间" }));
+    fireEvent.click(screen.getByRole("button", { name: /^修改时间：/ }));
     fireEvent.click(
       await screen.findByRole("button", { name: "2026年9月20日" }),
     );
@@ -97,7 +113,7 @@ describe("BalanceAdjustmentEditForm", () => {
     );
     expect(deleteAction).not.toHaveBeenCalled();
   });
-  it("无修改权限时显示只读详情：提示原因，字段禁用，没有保存和删除", () => {
+  it("无修改权限时显示只读详情：提示原因，没有铅笔、保存和删除", () => {
     const { action } = setup(false, {
       canDelete: false,
       editRestriction: "permission",
@@ -105,8 +121,8 @@ describe("BalanceAdjustmentEditForm", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       transactionEditRestrictionMessages.permission,
     );
-    expect(screen.getByLabelText("备注（选填）")).toBeDisabled();
-    expect(screen.getByRole("button", { name: "选择记账时间" })).toBeDisabled();
+    expect(screen.getByText("盘点")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^修改/ })).toBeNull();
     expect(screen.queryByRole("button", { name: "保存修改" })).toBeNull();
     expect(screen.queryByRole("button", { name: "删除" })).toBeNull();
     expect(action).not.toHaveBeenCalled();
@@ -125,12 +141,6 @@ describeUnsavedFormPage({
   render: () => {
     setup();
   },
-  change: () =>
-    fireEvent.change(screen.getByLabelText("备注（选填）"), {
-      target: { value: "修改盘点" },
-    }),
-  restore: () =>
-    fireEvent.change(screen.getByLabelText("备注（选填）"), {
-      target: { value: initialValues.note },
-    }),
+  change: () => editNote("修改盘点"),
+  restore: () => editNote(initialValues.note),
 });

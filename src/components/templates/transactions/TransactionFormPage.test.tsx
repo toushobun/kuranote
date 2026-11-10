@@ -1,4 +1,3 @@
-import { describeUnsavedFormPage } from "test/unsavedFormPage";
 import { setupGuardHistoryMock } from "test/mockGuardHistory";
 setupGuardHistoryMock();
 
@@ -14,16 +13,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const router = vi.hoisted(() => ({ replace: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 import {
-  NewTransferTransactionTemplate,
   TransactionPermissionDenied,
   EditTransferTransactionTemplate,
 } from "./TransactionFormPage";
-import { routePaths } from "config/paths";
 import type { TransactionEditRestriction } from "internal/transaction";
 import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
 import { transactionEditRestrictionMessages } from "utils/transactionMessages";
 import { useEditTransactionDirty } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
-// 真实的转账表单在字段变化时经 useEditTransactionDirty 报告未保存。
+// 真实的转账小票在字段变化时经 useEditTransactionDirty 报告未保存。
 function TransferEditInput() {
   const markEditDirty = useEditTransactionDirty();
   return (
@@ -34,117 +31,38 @@ function TransferEditInput() {
     />
   );
 }
-vi.mock(
-  "organisms/transactions/TransferTransactionForm/TransferTransactionForm",
-  () => ({
-    TransferTransactionForm: ({
-      accountOptions,
-      addAccountHref,
-      errorMessage,
-      formId,
-      hideSubmitButton,
-      initialValues,
-      readOnly,
-      sourceType,
-    }: {
-      accountOptions: { currency: string; name: string }[];
-      addAccountHref?: string;
-      errorMessage?: string | null;
-      formId?: string;
-      hideSubmitButton?: boolean;
-      initialValues?: { transferAmount: string };
-      readOnly?: boolean;
-      sourceType?: string;
-    }): ReactNode => {
-      const reportDirty = useEditTransactionDirty();
-      if (initialValues) {
-        return (
-          <form
-            data-account-options={accountOptions
-              .map((account) => `${account.name}（${account.currency}）`)
-              .join("、")}
-            data-add-account-href={addAccountHref}
-            data-read-only={readOnly}
-            data-source-type={sourceType}
-            data-testid="transfer-transaction-form"
-            id={formId}
-          >
-            <TransferEditInput />
-            {hideSubmitButton ? null : <button type="submit">保存修改</button>}
-          </form>
-        );
-      }
-      return (
-        <div
-          data-add-account-href={addAccountHref}
-          data-testid="transfer-transaction-form"
-        >
-          <input
-            aria-label="转账临时输入"
-            defaultValue=""
-            onChange={(event) => reportDirty?.(event.target.value !== "")}
-          />
-          {errorMessage ? <div role="alert">{errorMessage}</div> : null}
-        </div>
-      );
-    },
-  }),
-);
-vi.mock(
-  "organisms/transactions/TransactionAmountKeypadLauncher/TransactionAmountKeypadLauncher",
-  () => ({
-    TransactionAmountKeypadLauncher: (): ReactNode => null,
-  }),
-);
-vi.mock(
-  "organisms/transactions/TransactionFormHeader/TransactionFormHeader",
-  () => ({
-    TransactionFormHeader: ({
-      ledgerName,
-      title,
-    }: {
-      ledgerName?: string;
-      title: string;
-    }): ReactNode => (
-      <div data-testid="transaction-form-header">
-        <h1>{title}</h1>
-        {ledgerName ? <p>当前账本：{ledgerName}</p> : null}
-        <button type="submit">保存</button>
-      </div>
-    ),
-  }),
-);
+// 转账小票本身的行为见 TransferReceipt 的测试；这里只确认外框传入的内容。
+vi.mock("organisms/transactions/TransferReceipt/TransferReceipt", () => ({
+  TransferReceipt: ({
+    accountOptions,
+    formId,
+    readOnly,
+    sourceType,
+  }: {
+    accountOptions: { currency: string; name: string }[];
+    formId: string;
+    readOnly?: boolean;
+    sourceType?: string;
+  }): ReactNode => (
+    <form
+      data-account-options={accountOptions
+        .map((account) => `${account.name}（${account.currency}）`)
+        .join("、")}
+      data-read-only={readOnly}
+      data-source-type={sourceType}
+      data-testid="transfer-transaction-form"
+      id={formId}
+    >
+      <TransferEditInput />
+      {readOnly ? null : <button type="submit">保存修改</button>}
+    </form>
+  ),
+}));
 const render = (ui: ReactNode, options?: Parameters<typeof rtlRender>[1]) =>
   rtlRender(ui, { wrapper: ConfirmDialogTestProviders, ...options });
 describe("\u65B0\u589E\u8BB0\u8D26\u9875\u9762", () => {
   afterEach(() => {
     cleanup();
-  });
-  const action = vi.fn(async () => ({}));
-  describe("NewTransferTransactionTemplate", () => {
-    it("显示账户周转标题、转账表单与切换方式", () => {
-      const { container } = render(
-        <NewTransferTransactionTemplate accountOptions={[]} action={action} />,
-      );
-      expect(
-        within(container).getByRole("heading", { name: "账户周转" }),
-      ).toBeInTheDocument();
-      expect(
-        within(container).getByRole("link", { name: "关闭" }),
-      ).toHaveAttribute("href", routePaths.transactions);
-      expect(
-        within(container).queryByRole("group", { name: "记账类型" }),
-      ).not.toBeInTheDocument();
-      expect(
-        within(container).getByTestId("transfer-transaction-form"),
-      ).toHaveAttribute(
-        "data-add-account-href",
-        "/accounts/new?returnTo=%2Ftransactions%2Fnew%3Fmethod%3Dtransfer",
-      );
-      expect(
-        within(container).getByRole("button", { name: "切换方式" }),
-      ).toBeInTheDocument();
-    });
   });
   describe("TransactionPermissionDenied", () => {
     it("显示新增记账的权限提示和返回入口", () => {
@@ -289,23 +207,4 @@ describe("EditTransferTransactionTemplate", () => {
       screen.getByText("修正的内容尚未保存，是否保存？"),
     ).toBeInTheDocument();
   });
-});
-
-describeUnsavedFormPage({
-  render: () => {
-    render(
-      <NewTransferTransactionTemplate
-        accountOptions={[]}
-        action={async () => ({})}
-      />,
-    );
-  },
-  change: () =>
-    fireEvent.change(screen.getByLabelText("转账临时输入"), {
-      target: { value: "转账草稿" },
-    }),
-  restore: () =>
-    fireEvent.change(screen.getByLabelText("转账临时输入"), {
-      target: { value: "" },
-    }),
 });

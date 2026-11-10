@@ -60,25 +60,27 @@ export default async function TransactionEditPage({
     reimbursementPickerView,
   };
 
+  const receiptCreation = !editRestriction
+    ? await loadReceiptCreationView()
+    : null;
   if (initialValues.type === "transfer") {
     return (
       <NewTransactionVisualFrame>
-        <EditTransferTransactionTemplate
-          accountOptions={view.accountOptions}
-          action={saveEditTransaction}
-          archivedAccountOptions={view.archivedAccountOptions}
-          canDelete={canDelete}
-          deleteAction={voidTransaction}
-          editRestriction={editRestriction}
-          initialValues={initialValues}
-        />
+        <ReceiptCreationProvider data={receiptCreation}>
+          <EditTransferTransactionTemplate
+            accountOptions={view.accountOptions}
+            action={saveEditTransaction}
+            archivedAccountOptions={view.archivedAccountOptions}
+            canDelete={canDelete}
+            deleteAction={voidTransaction}
+            editRestriction={editRestriction}
+            initialValues={initialValues}
+          />
+        </ReceiptCreationProvider>
       </NewTransactionVisualFrame>
     );
   }
 
-  const receiptCreation = !editRestriction
-    ? await loadReceiptCreationView()
-    : null;
   return (
     <NewTransactionVisualFrame>
       <TransactionIncomeLinksProvider value={incomeLinksValue}>

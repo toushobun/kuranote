@@ -15,7 +15,6 @@ const mocks = vi.hoisted(() => ({
   loadReimbursementPickerGroupPage: vi.fn(),
   loadReimbursementPickerSearchPage: vi.fn(),
   NewTransactionStepFlow: vi.fn(() => null),
-  NewTransferTransactionTemplate: vi.fn(() => null),
   TransactionPermissionDenied: vi.fn(() => null),
   NewTransactionVisualFrame: vi.fn(() => null),
   redirect: vi.fn((href: string) => {
@@ -47,7 +46,6 @@ vi.mock("internal/transaction/adapter/next/loadTransactionViews", () => ({
 }));
 
 vi.mock("templates/transactions/TransactionFormPage", () => ({
-  NewTransferTransactionTemplate: mocks.NewTransferTransactionTemplate,
   TransactionPermissionDenied: mocks.TransactionPermissionDenied,
 }));
 
@@ -107,14 +105,10 @@ async function renderPage(params: Record<string, string> = {}) {
   >;
   return {
     element: result,
-    template: (() => {
-      const child = provider.props.children as ReactElement<
-        Record<string, unknown>
-      >;
-      return child.props.data !== undefined
-        ? (child.props.children as ReactElement<Record<string, unknown>>)
-        : child;
-    })(),
+    // 退款 / 报销 Provider → 小票新增 Provider → 记一笔。
+    template: (
+      provider.props.children as ReactElement<{ children: ReactElement }>
+    ).props.children as ReactElement<Record<string, unknown>>,
   };
 }
 
@@ -184,25 +178,20 @@ describe("TransactionsNewPage", () => {
   });
 
   it.each([
-    [{ type: "expense" }, "NewTransactionStepFlow"],
-    [{ type: "income" }, "NewTransactionStepFlow"],
-    [{ type: "invalid" }, "NewTransactionStepFlow"],
-    [{ type: "transfer" }, "NewTransferTransactionTemplate"],
-    [{ method: "transfer" }, "NewTransferTransactionTemplate"],
-    [{ method: "standard" }, "NewTransactionStepFlow"],
-    [{ method: "standard", type: "income" }, "NewTransactionStepFlow"],
-  ] as const)("参数 %j 显示 %s", async (params, templateName) => {
-    const { template } = await renderPage(params);
+    [{ type: "expense" }, "merchant"],
+    [{ type: "income" }, "merchant"],
+    [{ type: "invalid" }, "merchant"],
+    [{ type: "transfer" }, "transfer"],
+    [{ method: "transfer" }, "transfer"],
+    [{ method: "standard" }, "merchant"],
+    [{ method: "standard", type: "income" }, "merchant"],
+  ] as const)(
+    "参数 %j 以 %s 打开记一笔（两种方式在浏览器端切换）",
+    async (params, method) => {
+      const { template } = await renderPage(params);
 
-    expect(template.type).toBe(mocks[templateName]);
-  });
-
-  it("账户周转传入账户与保存 Action", async () => {
-    const { template } = await renderPage({ method: "transfer" });
-
-    expect(template.props).toEqual({
-      accountOptions: baseView.accountOptions,
-      action: mocks.createTransaction,
-    });
-  });
+      expect(template.type).toBe(mocks.NewTransactionStepFlow);
+      expect(template.props.initialMethod).toBe(method);
+    },
+  );
 });

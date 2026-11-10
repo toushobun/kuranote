@@ -1,33 +1,25 @@
 "use client";
 import { useReceiptCreation } from "organisms/transactions/ReceiptCreationProvider/ReceiptCreationProvider";
-import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
-import { EditTransactionActionButton } from "molecules/transactions/EditTransactionActionButton/EditTransactionActionButton";
-import Button from "@mui/material/Button";
-import ButtonBase from "@mui/material/ButtonBase";
 import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import {
-  Fragment,
-  useRef,
-  useState,
-  type FormEvent,
-  type ReactNode,
-} from "react";
-import { keyframes } from "@emotion/react";
-import { flushSync } from "react-dom";
+import { Fragment, useRef, type FormEvent } from "react";
 import { flowMessages as m } from "config/transactionStepFlowMessages";
-import { TransactionDateTimePicker } from "molecules/transactions/TransactionDateTimePicker";
-import {
-  formatDateOnlyLabel,
-  formatDateValue,
-} from "molecules/transactions/TransactionDateTimePicker/dateTimePickerUtils";
 import { TransactionBottomEditorDrawer } from "molecules/transactions/TransactionBottomEditorDrawer/TransactionBottomEditorDrawer";
 import { MerchantAvatar } from "organisms/merchants/MerchantAvatar/MerchantAvatar";
 import { AccountStep } from "organisms/transactions/AccountStep/AccountStep";
-import { designTokens } from "theme/theme";
+import { ReceiptAmountRow } from "organisms/transactions/ReceiptParts/ReceiptAmountRow";
+import { ReceiptHeaderButton } from "organisms/transactions/ReceiptParts/ReceiptHeaderButton";
+import { ReceiptIssueAlerts } from "organisms/transactions/ReceiptParts/ReceiptIssueAlerts";
+import { ReceiptNoteSection } from "organisms/transactions/ReceiptParts/ReceiptNoteSection";
+import { ReceiptPaper } from "organisms/transactions/ReceiptParts/ReceiptPaper";
+import { ReceiptSubmitButton } from "organisms/transactions/ReceiptParts/ReceiptSubmitButton";
+import { ReceiptTimeButton } from "organisms/transactions/ReceiptParts/ReceiptTimeButton";
+import {
+  receiptSectionSx as sectionSx,
+  receiptSectionTitleSx as sectionTitleSx,
+} from "organisms/transactions/ReceiptParts/receiptStyles";
 import { TransactionFormHiddenFields } from "../TransactionFormHiddenFields/TransactionFormHiddenFields";
 import { TransactionItemAmountDrawer } from "../TransactionItemAmountDrawer/TransactionItemAmountDrawer";
 import { TransactionStepAmountEditor } from "../TransactionStepAmountEditor/TransactionStepAmountEditor";
@@ -39,13 +31,8 @@ import {
   summarizeStepReceiptTotals,
 } from "../transactionStepFlowFormat";
 import { ReceiptItemsSection } from "./ReceiptItemsSection";
-import {
-  expenseAmountColor,
-  incomeAmountColor,
-  receiptIconSize,
-} from "./ReceiptLine";
+import { expenseAmountColor, incomeAmountColor } from "./ReceiptLine";
 import { ReceiptPaymentSection } from "./ReceiptPaymentSection";
-import { receiptPaperSx, receiptShadowSx } from "./receiptPaperStyles";
 import type { TransactionConfirmStepProps } from "./TransactionConfirmStep.types";
 import { useTransactionConfirmStep } from "./useTransactionConfirmStep";
 
@@ -54,37 +41,21 @@ import { useTransactionConfirmStep } from "./useTransactionConfirmStep";
  * `readOnly`（#962）时只显示内容：没有铅笔、×、可点金额、提示条与保存按钮。
  */
 export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
-  const SubmitButton = props.initialValues
-    ? EditTransactionActionButton
-    : Button;
   const creation = useReceiptCreation();
   const f = props.form;
   const readOnly = !!props.readOnly;
   // 付款未对上时，点提示条定位到支付区。
   const paymentSectionRef = useRef<HTMLDivElement>(null);
-  const noteInputRef = useRef<HTMLTextAreaElement>(null);
   const w = useTransactionConfirmStep(props, paymentSectionRef);
-  const [saveAttempts, setSaveAttempts] = useState(0);
   // 只显示上次点保存时已有、现在仍未解决的提示（#1016 / #1040）。
   const visibleIssues = w.issues.filter((issue) => w.isChecked(issue.id));
   const hasVisibleIssue = (id: string) =>
     visibleIssues.some((issue) => issue.id === id);
-  const [pulseCount, setPulseCount] = useState(0);
-  const firstIssueRef = useRef<HTMLDivElement>(null);
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    setSaveAttempts((attempts) => attempts + 1);
     const hasIssues = w.checkIssues();
-    if (saveAttempts > 0) setPulseCount((count) => count + 1);
     if (!readOnly && hasIssues) {
       event.preventDefault();
       props.onValidationFailed?.();
-      // 第一条提示挂载后再滚动；底部提交与退出弹窗提交共用此入口。
-      window.setTimeout(() => {
-        firstIssueRef.current?.scrollIntoView?.({
-          behavior: "smooth",
-          block: "center",
-        });
-      }, 0);
       return;
     }
     f.handleSubmit(event);
@@ -127,10 +98,6 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
     },
     // 金额为 0 的项不显示。
   ].filter((part) => part.amount > 0);
-  const dateTime = `${formatDateOnlyLabel(
-    f.transactionDate,
-    formatDateValue(new Date()),
-  )} ${f.transactionTime.slice(0, 5)}`;
   const amountPayment = f.payments.find(
     (payment) => payment.key === w.paymentAmountKey,
   );
@@ -157,218 +124,106 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
           {props.successMessage && (
             <Alert severity="success">{props.successMessage}</Alert>
           )}
-          {visibleIssues.map((issue, index) => (
-            <Alert
-              key={issue.id}
-              data-pulse={pulseCount}
-              ref={index === 0 ? firstIssueRef : undefined}
-              severity="error"
-              sx={
-                pulseCount > 0
-                  ? {
-                      animation: `${pulseCount % 2 ? issuePulse : issuePulseAlternate} 600ms ease-in-out`,
-                      "@media (prefers-reduced-motion: reduce)": {
-                        animation: "none",
-                      },
-                    }
-                  : undefined
-              }
-            >
-              <ButtonBase onClick={issue.onClick} sx={{ textAlign: "left" }}>
-                {issue.message}
-              </ButtonBase>
-            </Alert>
-          ))}
-          <Box sx={receiptShadowSx}>
-            <Box sx={receiptPaperSx}>
-              <Stack spacing={0.5} sx={{ alignItems: "center", pb: 1.5 }}>
-                {f.selectedMerchant && (
-                  <MerchantAvatar
-                    size={48}
-                    toneKey={f.selectedMerchant.id}
-                    src={f.selectedMerchant.icon_url ?? undefined}
-                  />
-                )}
-                <HeaderButton
-                  label={m.merchant}
-                  value={f.selectedMerchant?.name ?? m.selectMerchant}
-                  error={hasVisibleIssue("merchant")}
-                  readOnly={readOnly}
-                  onClick={props.onMerchantClick}
-                >
-                  <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-                    {f.selectedMerchant?.name ?? m.selectMerchant}
-                  </Typography>
-                </HeaderButton>
-                <HeaderButton
-                  label={m.time}
-                  value={dateTime}
-                  error={hasVisibleIssue("time")}
-                  readOnly={readOnly}
-                  onClick={() => w.setEditor("time")}
-                >
-                  <Typography variant="body2" sx={mutedTextSx}>
-                    {dateTime}
-                  </Typography>
-                </HeaderButton>
-              </Stack>
-              <Box sx={sectionSx}>
-                <ReceiptItemsSection
-                  form={f}
-                  showAutomaticNotice={props.showAutomaticNotice}
-                  invalidItems={w.markedItems}
-                  canAddItem={props.categoryOptions.length > 0}
-                  readOnly={readOnly}
-                  onAmount={props.onAmountItemChange}
+          <ReceiptIssueAlerts
+            issues={visibleIssues}
+            pulseCount={w.pulseCount}
+            firstIssueRef={w.firstIssueRef}
+          />
+          <ReceiptPaper>
+            <Stack spacing={0.5} sx={{ alignItems: "center", pb: 1.5 }}>
+              {f.selectedMerchant && (
+                <MerchantAvatar
+                  size={48}
+                  toneKey={f.selectedMerchant.id}
+                  src={f.selectedMerchant.icon_url ?? undefined}
                 />
-              </Box>
-              <Stack
-                direction="row"
-                sx={[sectionSx, { alignItems: "center", py: 1.5 }]}
-              >
-                <Typography
-                  sx={{ flex: 1, fontWeight: 700, pr: 1, whiteSpace: "nowrap" }}
-                >
-                  {totals.hasBusinessOffset
-                    ? transactionAmountMessages.netAmount
-                    : m.total}
-                </Typography>
-                <Stack sx={{ alignItems: "flex-end", minWidth: 0 }}>
-                  <Typography
-                    variant="h5"
-                    color="primary"
-                    sx={{ fontWeight: 800 }}
-                  >
-                    {netTotal}
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    color="textSecondary"
-                    sx={{ textAlign: "right" }}
-                  >
-                    {breakdown.map((part, index) => (
-                      <Fragment key={part.label}>
-                        {index > 0 && " · "}
-                        {/* 每一项不在中间换行 */}
-                        <Box component="span" sx={{ whiteSpace: "nowrap" }}>
-                          <Box component="span" sx={{ color: part.color }}>
-                            {part.label}
-                          </Box>{" "}
-                          {format(part.amount)}
-                        </Box>
-                      </Fragment>
-                    ))}
-                  </Typography>
-                </Stack>
-              </Stack>
-              <Box ref={paymentSectionRef} tabIndex={-1} sx={sectionSx}>
-                <Typography variant="caption" sx={sectionTitleSx}>
-                  {m.payment(f.isIncomePayment)}
-                </Typography>
-                <ReceiptPaymentSection
-                  form={f}
-                  accountOptions={props.accountOptions}
-                  total={total}
-                  canAddPayment={!readOnly && w.canAddPayment}
-                  showMixedPaymentHint={!readOnly && w.showMixedPaymentHint}
-                  readOnly={readOnly}
-                  invalidPaymentKeys={w.markedPaymentKeys}
-                  reconciliationInvalid={hasVisibleIssue("account")}
-                  onAddPayment={w.openAddPayment}
-                  onChangeAccount={w.setAccountPickerKey}
-                  onAmount={w.setPaymentAmountKey}
-                  onRemove={w.removePayment}
-                />
-              </Box>
-              {readOnly ? (
-                f.note && (
-                  <Box sx={sectionSx}>
-                    <Typography variant="caption" sx={sectionTitleSx}>
-                      {m.note}
-                    </Typography>
-                    <Typography variant="body2" sx={readOnlyNoteSx}>
-                      {f.note}
-                    </Typography>
-                  </Box>
-                )
-              ) : (
-                <Box sx={sectionSx}>
-                  <Typography variant="caption" sx={sectionTitleSx}>
-                    {m.note}
-                  </Typography>
-                  <ButtonBase
-                    aria-label={m.editReceiptRow(m.note, f.note || m.addNote)}
-                    onClick={() => {
-                      // 在点击事件内挂载并聚焦，让 iOS 可以打开软键盘。
-                      flushSync(() => w.setEditor("note"));
-                      noteInputRef.current?.focus({ preventScroll: true });
-                    }}
-                    sx={noteRowSx}
-                  >
-                    <Typography
-                      variant="body2"
-                      sx={[
-                        {
-                          flex: 1,
-                          overflowWrap: "anywhere",
-                          whiteSpace: "pre-wrap",
-                        },
-                        !f.note && { color: "text.disabled" },
-                      ]}
-                    >
-                      {f.note || m.addNote}
-                    </Typography>
-                    <EditOutlinedIcon aria-hidden sx={pencilSx} />
-                  </ButtonBase>
-                </Box>
               )}
+              <ReceiptHeaderButton
+                label={m.merchant}
+                value={f.selectedMerchant?.name ?? m.selectMerchant}
+                error={hasVisibleIssue("merchant")}
+                readOnly={readOnly}
+                onClick={props.onMerchantClick}
+              >
+                <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
+                  {f.selectedMerchant?.name ?? m.selectMerchant}
+                </Typography>
+              </ReceiptHeaderButton>
+              <ReceiptTimeButton
+                date={f.transactionDate}
+                time={f.transactionTime}
+                onDateChange={f.handleDateChange}
+                onTimeChange={f.handleTimeChange}
+                open={w.editor === "time"}
+                onOpenChange={(open) => w.setEditor(open ? "time" : null)}
+                error={hasVisibleIssue("time")}
+                readOnly={readOnly}
+              />
+            </Stack>
+            <Box sx={sectionSx}>
+              <ReceiptItemsSection
+                form={f}
+                showAutomaticNotice={props.showAutomaticNotice}
+                invalidItems={w.markedItems}
+                canAddItem={props.categoryOptions.length > 0}
+                readOnly={readOnly}
+                onAmount={props.onAmountItemChange}
+              />
             </Box>
-          </Box>
+            <ReceiptAmountRow
+              label={
+                totals.hasBusinessOffset
+                  ? transactionAmountMessages.netAmount
+                  : m.total
+              }
+              amount={netTotal}
+              caption={breakdown.map((part, index) => (
+                <Fragment key={part.label}>
+                  {index > 0 && " · "}
+                  {/* 每一项不在中间换行 */}
+                  <Box component="span" sx={{ whiteSpace: "nowrap" }}>
+                    <Box component="span" sx={{ color: part.color }}>
+                      {part.label}
+                    </Box>{" "}
+                    {format(part.amount)}
+                  </Box>
+                </Fragment>
+              ))}
+            />
+            <Box ref={paymentSectionRef} tabIndex={-1} sx={sectionSx}>
+              <Typography variant="caption" sx={sectionTitleSx}>
+                {m.payment(f.isIncomePayment)}
+              </Typography>
+              <ReceiptPaymentSection
+                form={f}
+                accountOptions={props.accountOptions}
+                total={total}
+                canAddPayment={!readOnly && w.canAddPayment}
+                showMixedPaymentHint={!readOnly && w.showMixedPaymentHint}
+                readOnly={readOnly}
+                invalidPaymentKeys={w.markedPaymentKeys}
+                reconciliationInvalid={hasVisibleIssue("account")}
+                onAddPayment={w.openAddPayment}
+                onChangeAccount={w.setAccountPickerKey}
+                onAmount={w.setPaymentAmountKey}
+                onRemove={w.removePayment}
+              />
+            </Box>
+            <ReceiptNoteSection
+              note={f.note}
+              onChange={f.handleNoteChange}
+              readOnly={readOnly}
+            />
+          </ReceiptPaper>
           {!readOnly && (
-            <SubmitButton
-              fullWidth
-              size="large"
-              variant="contained"
-              type="submit"
-              loading={props.saving}
-              disabled={props.saving}
-            >
-              {props.saving ? m.saving : (props.submitLabel ?? m.save)}
-            </SubmitButton>
+            <ReceiptSubmitButton
+              edit={!!props.initialValues}
+              label={props.submitLabel ?? m.save}
+              saving={props.saving}
+            />
           )}
         </Stack>
       </Box>
-      <TransactionBottomEditorDrawer
-        open={w.editor === "note"}
-        title={m.note}
-        onClose={() => w.setEditor(null)}
-      >
-        <TextField
-          inputRef={noteInputRef}
-          multiline
-          minRows={4}
-          fullWidth
-          value={f.note}
-          onChange={f.handleNoteChange}
-          helperText={m.noteCount(f.note.length)}
-          slotProps={{
-            htmlInput: { "aria-label": m.note, maxLength: m.noteLimit },
-          }}
-        />
-      </TransactionBottomEditorDrawer>
-      {w.editor === "time" && (
-        <TransactionDateTimePicker
-          date={f.transactionDate}
-          time={f.transactionTime}
-          onDateChange={f.handleDateChange}
-          onTimeChange={f.handleTimeChange}
-          editor={{
-            open: true,
-            onClose: () => w.setEditor(null),
-            title: m.time,
-          }}
-        />
-      )}
       <TransactionBottomEditorDrawer
         open={w.accountPickerKey !== null}
         suspended={!!creation?.editor}
@@ -407,99 +262,3 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
     </>
   );
 }
-
-/** 抬头中可点击的一行（商家名、日期时间）：铅笔紧跟在文字右侧（设计图 8）。 */
-function HeaderButton({
-  label,
-  value,
-  children,
-  onClick,
-  error = false,
-  readOnly = false,
-}: {
-  label: string;
-  value: string;
-  children: ReactNode;
-  onClick: () => void;
-  error?: boolean;
-  readOnly?: boolean;
-}) {
-  if (readOnly) return <Box sx={headerButtonSx}>{children}</Box>;
-  return (
-    <ButtonBase
-      aria-label={m.editReceiptRow(label, value)}
-      onClick={onClick}
-      data-invalid={error || undefined}
-      sx={[
-        headerButtonSx,
-        error && { color: "error.main", "& .MuiTypography-root": errorTextSx },
-      ]}
-    >
-      {children}
-      <EditOutlinedIcon aria-hidden sx={pencilSx} />
-    </ButtonBase>
-  );
-}
-
-const issuePulse = keyframes`
-  0%, 100% { opacity: 1; }
-  40% { opacity: 0.55; }
-`;
-
-// 交替 animation-name，只有再次提交才重启动画；修改提示文案不重播。
-const issuePulseAlternate = keyframes`
-  0%, 100% { opacity: 1; }
-  40% { opacity: 0.54; }
-`;
-
-const headerButtonSx = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 0.5,
-  maxWidth: "100%",
-  minHeight: 32,
-  px: 0.5,
-  borderRadius: `${designTokens.radius.sm}px`,
-  color: "text.primary",
-  "& .MuiTypography-root": {
-    minWidth: 0,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-  },
-};
-const noteRowSx = {
-  display: "flex",
-  alignItems: "center",
-  gap: 1,
-  width: "100%",
-  minHeight: 40,
-  borderRadius: `${designTokens.radius.sm}px`,
-  color: "text.primary",
-  textAlign: "left",
-};
-const readOnlyNoteSx = {
-  minHeight: 40,
-  py: 1,
-  overflowWrap: "anywhere",
-  whiteSpace: "pre-wrap",
-};
-const errorTextSx = { color: "error.main" };
-const pencilSx = {
-  color: "text.disabled",
-  flexShrink: 0,
-  fontSize: receiptIconSize,
-};
-const sectionSx = {
-  borderTop: "1px dashed",
-  borderColor: "divider",
-  py: 1,
-  outline: "none",
-};
-const sectionTitleSx = {
-  color: "text.secondary",
-  display: "block",
-  fontWeight: 700,
-  pt: 0.5,
-};
-const mutedTextSx = { color: "text.secondary" };

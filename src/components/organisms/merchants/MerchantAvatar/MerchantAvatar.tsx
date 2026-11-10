@@ -1,12 +1,12 @@
 "use client";
 
-import { deepOrange, lightGreen, pink } from "@mui/material/colors";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import { alpha } from "@mui/material/styles";
 import { useState } from "react";
 
+import { avatarToneFor } from "theme/avatarTones";
 import { publicAssetUrl } from "utils/publicAssetUrl";
 
 type MerchantAvatarSize = number | { sm: number; xs: number };
@@ -20,33 +20,6 @@ type MerchantAvatarProps = {
   src?: string;
   toneKey: string;
 };
-
-const avatarTones = [
-  {
-    backgroundColor: deepOrange[50],
-    borderColor: deepOrange[100],
-    color: deepOrange[800],
-  },
-  {
-    backgroundColor: pink[50],
-    borderColor: pink[100],
-    color: pink[800],
-  },
-  {
-    backgroundColor: lightGreen[50],
-    borderColor: lightGreen[200],
-    color: lightGreen[800],
-  },
-] as const;
-
-function avatarToneFor(toneKey: string) {
-  const toneIndex = Array.from(toneKey).reduce(
-    (hash, character) => (hash * 31 + (character.codePointAt(0) ?? 0)) >>> 0,
-    0,
-  );
-
-  return avatarTones[toneIndex % avatarTones.length];
-}
 
 export function MerchantAvatar({
   loading = false,

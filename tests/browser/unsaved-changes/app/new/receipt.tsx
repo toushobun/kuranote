@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useState } from "react";
 import type { MerchantPresetStateAction } from "../../../../../src/types/merchants";
+import type { TransactionEntryMethod } from "../../../../../src/types/transactions";
 import { NewTransactionStepFlow } from "../../../../../src/components/templates/transactions/NewTransactionStepFlow";
 import { ReceiptCreationProvider } from "../../../../../src/components/organisms/transactions/ReceiptCreationProvider/ReceiptCreationProvider";
 import { flowFixture } from "../../../../../src/test/mocks/transactionStepFlow";
@@ -15,7 +16,13 @@ import {
   addPresets,
 } from "../actions";
 
-export default function NewReceipt({ empty }: { empty: boolean }) {
+export default function NewReceipt({
+  empty,
+  initialMethod,
+}: {
+  empty: boolean;
+  initialMethod?: TransactionEntryMethod;
+}) {
   const [presetsAdded, setPresetsAdded] = useState(false);
   const addPresetsWithFixture = useCallback<MerchantPresetStateAction>(
     async (state, data) => {
@@ -49,6 +56,7 @@ export default function NewReceipt({ empty }: { empty: boolean }) {
         addPresetsAction={addPresetsWithFixture}
         categoryOptions={receiptItemsOptions.categoryOptions}
         frequentMerchants={empty ? [] : flowFixture.frequentMerchants}
+        initialMethod={initialMethod}
         ledgerId="ledger-1"
         loadPresetsAction={loadPresets}
         merchantOptions={empty && !presetsAdded ? [] : flowFixture.merchants}

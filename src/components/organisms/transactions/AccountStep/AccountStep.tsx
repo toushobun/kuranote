@@ -11,7 +11,7 @@ import ListItemButton from "@mui/material/ListItemButton";
 import ListItemText from "@mui/material/ListItemText";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { AccountTypeIcon } from "atoms/accounts/AccountTypeIcon/AccountTypeIcon";
+import { AccountAvatar } from "atoms/accounts/AccountAvatar/AccountAvatar";
 import { EmptyState } from "molecules/ui/EmptyState";
 import { publicAssetUrl } from "utils/publicAssetUrl";
 import { entrySelectionRowSx as rowSx } from "organisms/transactions/transactionStepFlowStyles";
@@ -47,9 +47,7 @@ export function AccountStep(props: AccountStepProps) {
           aria-checked={props.selectedAccount?.id === account.id}
           aria-label={`${account.name} ${account.currency}`}
         >
-          <Box sx={{ color: "primary.main", display: "inline-flex" }}>
-            <AccountTypeIcon type={account.type ?? "other"} />
-          </Box>
+          <AccountAvatar id={account.id} name={account.name} size={36} />
           <ListItemText
             primary={account.name}
             secondary={m.holder(
@@ -112,7 +110,8 @@ export function AccountStep(props: AccountStepProps) {
         </>
       ) : (
         <>
-          {!props.recommendedAccountIds?.length && (
+          {/* 只有读到了商家的记录（推荐为空）才提示；账户周转等没有商家时不提示。 */}
+          {props.recommendedAccountIds?.length === 0 && (
             <Alert severity="info">{m.noHistory}</Alert>
           )}
           <SelectionSectionHeader

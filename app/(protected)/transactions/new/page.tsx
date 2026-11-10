@@ -23,10 +23,7 @@ import {
 } from "internal/transaction/adapter/next/newTransactionEntry";
 import { TransactionIncomeLinksProvider } from "organisms/transactions/TransactionForm/TransactionIncomeLinksContext";
 import { NewTransactionStepFlow } from "templates/transactions/NewTransactionStepFlow";
-import {
-  NewTransferTransactionTemplate,
-  TransactionPermissionDenied,
-} from "templates/transactions/TransactionFormPage";
+import { TransactionPermissionDenied } from "templates/transactions/TransactionFormPage";
 import { NewTransactionVisualFrame } from "templates/transactions/NewTransactionVisualFrame";
 
 export default async function TransactionsNewPage({
@@ -58,9 +55,8 @@ export default async function TransactionsNewPage({
     );
   }
 
-  const method = resolveNewTransactionEntry(params);
-  const receiptCreation =
-    method === "merchant" ? await loadReceiptCreationView() : null;
+  // 两种方式在浏览器端切换（#1050），小票内新增商家 / 账户的表单都先读好。
+  const receiptCreation = await loadReceiptCreationView();
   const incomeLinksValue = {
     loadRefundGroupItemsAction: loadRefundPickerGroupItems,
     loadRefundMoreGroupsAction: loadRefundPickerGroupPage,
@@ -75,30 +71,24 @@ export default async function TransactionsNewPage({
   return (
     <NewTransactionVisualFrame>
       <TransactionIncomeLinksProvider value={incomeLinksValue}>
-        {method === "transfer" ? (
-          <NewTransferTransactionTemplate
-            accountOptions={view.accountOptions}
+        <ReceiptCreationProvider data={receiptCreation}>
+          <NewTransactionStepFlow
             action={createTransaction}
+            accountOptions={view.accountOptions}
+            addPresetsAction={addMerchantPresets}
+            categoryOptions={view.categoryOptions}
+            frequentMerchants={frequentMerchants}
+            initialMethod={resolveNewTransactionEntry(params)}
+            ledgerId={ledgerId}
+            loadPresetsAction={loadMerchantPresets}
+            merchantOptions={view.merchantOptions}
+            merchantTags={merchantTags}
+            multiAccountPaymentEnabled={view.multiAccountPaymentEnabled}
+            transactionItemSpecialStatusEnabled={
+              view.transactionItemSpecialStatusEnabled
+            }
           />
-        ) : (
-          <ReceiptCreationProvider data={receiptCreation}>
-            <NewTransactionStepFlow
-              action={createTransaction}
-              accountOptions={view.accountOptions}
-              addPresetsAction={addMerchantPresets}
-              categoryOptions={view.categoryOptions}
-              frequentMerchants={frequentMerchants}
-              ledgerId={ledgerId}
-              loadPresetsAction={loadMerchantPresets}
-              merchantOptions={view.merchantOptions}
-              merchantTags={merchantTags}
-              multiAccountPaymentEnabled={view.multiAccountPaymentEnabled}
-              transactionItemSpecialStatusEnabled={
-                view.transactionItemSpecialStatusEnabled
-              }
-            />
-          </ReceiptCreationProvider>
-        )}
+        </ReceiptCreationProvider>
       </TransactionIncomeLinksProvider>
     </NewTransactionVisualFrame>
   );

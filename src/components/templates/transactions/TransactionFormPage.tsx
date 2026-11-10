@@ -1,29 +1,19 @@
 "use client";
 
-import { useActionState } from "react";
-
 import {
   BackLayerScope,
   transactionBackLayerLevels,
 } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
-import { useUnsavedChangesForm } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesForm";
-import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog/UnsavedChangesDialog";
-import { EditTransactionDirtyProvider } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import Link from "next/link";
 
-import {
-  accountsNewHref,
-  routePaths,
-  transactionsNewEntryHref,
-} from "config/paths";
-import { flowMessages } from "config/transactionStepFlowMessages";
+import { routePaths } from "config/paths";
 import { ErrorState } from "molecules/ui/ErrorState";
 import type { TransactionEditRestriction } from "internal/transaction";
-import { TransactionAmountKeypadLauncher } from "organisms/transactions/TransactionAmountKeypadLauncher/TransactionAmountKeypadLauncher";
-import { TransactionEntryMethodSwitch } from "organisms/transactions/TransactionEntryMethodSwitch/TransactionEntryMethodSwitch";
-import { TransferTransactionForm } from "organisms/transactions/TransferTransactionForm/TransferTransactionForm";
+import { useReceiptCreation } from "organisms/transactions/ReceiptCreationProvider/ReceiptCreationProvider";
+import { mergeReceiptOptions } from "organisms/transactions/ReceiptCreationProvider/useReceiptCreationState";
+import { TransferReceipt } from "organisms/transactions/TransferReceipt/TransferReceipt";
 import type {
   TransactionAccountOption,
   TransactionStateAction,
@@ -33,60 +23,19 @@ import { EditTransactionShell } from "./EditTransactionShell";
 import { TransactionPageTopBar } from "./TransactionPageTopBar";
 import { useEditAccountOptions } from "./useEditAccountOptions";
 
-type TransactionFormTemplateProps = {
+type EditTransferTransactionTemplateProps = {
   accountOptions: TransactionAccountOption[];
   action: TransactionStateAction;
-};
-
-type EditTransferTransactionTemplateProps = TransactionFormTemplateProps & {
   /** 已归档的转出 / 转入账户（只读时用来显示原账户名称与币种，#966）。 */
   archivedAccountOptions?: TransactionAccountOption[];
   canDelete: boolean;
   deleteAction: TransactionStateAction;
-  /** 有限制时显示只读详情（#928）：表单整体禁用，不显示保存。 */
+  /** 有限制时显示只读详情（#928）：小票没有铅笔，不显示保存。 */
   editRestriction: TransactionEditRestriction | null;
   initialValues: TransferEditInitialValues;
 };
 
 const editTransferTransactionFormId = "edit-transfer-transaction-form";
-
-/** 记账方式「账户周转」（#943）：沿用现有转账表单。 */
-export function NewTransferTransactionTemplate({
-  accountOptions,
-  action,
-}: TransactionFormTemplateProps) {
-  const guard = useUnsavedChangesForm("new-transfer-transaction-form", action);
-  const [actionState, formAction] = useActionState(guard.action, {});
-  return (
-    <BackLayerScope level={transactionBackLayerLevels.pageOverlay}>
-      <EditTransactionDirtyProvider onDirty={guard.onDirtyChange}>
-        <Stack spacing={0}>
-          <TransactionPageTopBar
-            title={flowMessages.transferTitle}
-            action={
-              <TransactionEntryMethodSwitch
-                currentMethod="transfer"
-                requestNavigate={guard.requestNavigate}
-              />
-            }
-          />
-          <TransferTransactionForm
-            action={formAction}
-            accountOptions={accountOptions}
-            addAccountHref={accountsNewHref(
-              transactionsNewEntryHref({ method: "transfer" }),
-            )}
-            errorMessage={actionState.error ?? null}
-            formId="new-transfer-transaction-form"
-            hideHeader
-          />
-        </Stack>
-        <TransactionAmountKeypadLauncher />
-      </EditTransactionDirtyProvider>
-      <UnsavedChangesDialog {...guard.dialogProps} />
-    </BackLayerScope>
-  );
-}
 
 // 当前账本角色不能新增记账时的整页提示。查看已有记录不走这里，有限制时编辑页显示只读详情（#928）。
 export function TransactionPermissionDenied() {
@@ -110,7 +59,7 @@ export function TransactionPermissionDenied() {
   );
 }
 
-/** 编辑转账（#962）：只能修改转账本身，不再与支出 / 收入互相转换。 */
+/** 编辑转账（#962）：转账小票（#1050），只能修改转账本身，不再与支出 / 收入互相转换。 */
 export function EditTransferTransactionTemplate({
   accountOptions: availableAccountOptions,
   action,
@@ -120,14 +69,14 @@ export function EditTransferTransactionTemplate({
   editRestriction,
   initialValues,
 }: EditTransferTransactionTemplateProps) {
-  const readOnly = editRestriction !== null;
+  const creation = useReceiptCreation();
   const accountOptions = useEditAccountOptions(
-    availableAccountOptions,
+    mergeReceiptOptions(availableAccountOptions, creation?.accounts),
     archivedAccountOptions,
   );
 
   return (
-    <BackLayerScope level={transactionBackLayerLevels.pageOverlay}>
+    <BackLayerScope level={transactionBackLayerLevels.receiptEditor}>
       <EditTransactionShell
         action={action}
         canDelete={canDelete}
@@ -138,19 +87,16 @@ export function EditTransferTransactionTemplate({
         transactionRecordId={initialValues.transactionRecordId}
       >
         {(editAction) => (
-          <>
-            <TransferTransactionForm
-              action={editAction.formAction}
-              accountOptions={accountOptions}
-              formId={editTransferTransactionFormId}
-              hideHeader
-              hideSubmitButton={readOnly}
-              initialValues={initialValues}
-              readOnly={readOnly}
-              sourceType="transfer"
-            />
-            {readOnly ? null : <TransactionAmountKeypadLauncher />}
-          </>
+          <TransferReceipt
+            formId={editTransferTransactionFormId}
+            action={editAction.formAction}
+            accountOptions={accountOptions}
+            initialValues={initialValues}
+            sourceType="transfer"
+            readOnly={editRestriction !== null}
+            saving={editAction.isPending}
+            onValidationFailed={editAction.onValidationFailed}
+          />
         )}
       </EditTransactionShell>
     </BackLayerScope>

@@ -3,7 +3,7 @@ import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceW
 import { ReceiptAddButton } from "./ReceiptAddButton";
 import { TransactionMixedPaymentHint } from "atoms/transactions/TransactionMixedPaymentHint";
 import Typography from "@mui/material/Typography";
-import { AccountTypeIcon } from "atoms/accounts/AccountTypeIcon/AccountTypeIcon";
+import { AccountAvatar } from "atoms/accounts/AccountAvatar/AccountAvatar";
 import { flowMessages as m } from "config/transactionStepFlowMessages";
 import type { TransactionAccountOption } from "types/transactions";
 import { transactionPaymentFieldsMessages } from "utils/transactionMessages";
@@ -16,7 +16,7 @@ import {
 } from "./ReceiptLine";
 
 /**
- * 小票的支付区：每个付款账户一行（账户类型图标、账户名、币种、金额、铅笔、×），
+ * 小票的支付区：每个付款账户一行（账户文字图标、账户名、币种、金额、铅笔、×），
  * 多账户时最后一行对账，下面是「＋ 添加付款账户」。校验与金额联动沿用 `useTransactionForm`。
  */
 export function ReceiptPaymentSection({
@@ -72,7 +72,7 @@ export function ReceiptPaymentSection({
             key={payment.key}
             icon={
               account ? (
-                <AccountTypeIcon type={account.type ?? "other"} />
+                <AccountAvatar id={account.id} name={account.name} size={24} />
               ) : (
                 <AccountBalanceWalletRoundedIcon fontSize="small" />
               )

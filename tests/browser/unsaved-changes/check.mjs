@@ -87,7 +87,7 @@ async function forwardPastInactiveSentinel(page) {
   );
   await position(page, "base");
 }
-async function newSession(browser, link, formId) {
+async function newSession(browser, link, formId, { fullScreen = false } = {}) {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   page.setDefaultTimeout(15000);
   page.setDefaultNavigationTimeout(15000);
@@ -188,10 +188,12 @@ async function newSession(browser, link, formId) {
       .evaluate((main) => getComputedStyle(main).zIndex),
     "1",
   );
-  await page
-    .getByRole("navigation")
-    .getByRole("link", { name: "首页", exact: true })
-    .waitFor();
+  // 新增记账全屏流程（含账户周转）不显示底部导航。
+  if (!fullScreen)
+    await page
+      .getByRole("navigation")
+      .getByRole("link", { name: "首页", exact: true })
+      .waitFor();
   await keepScroll(page, 0, "auto");
   resetRsc();
   const baseline = await record(`${link}：AppShell 普通导航到 B 后滚到顶部`);
@@ -464,10 +466,7 @@ async function checkOtherPage(browser, kind) {
   if (receipt) {
     await editReceiptNote(page, "编辑前备注", "修改后的小票备注");
   } else {
-    await page
-      .getByRole("textbox", { name: "备注（选填）" })
-      .fill("修改后的转账备注");
-    await page.getByRole("textbox", { name: "备注（选填）" }).blur();
+    await editReceiptNote(page, "编辑前转账备注", "修改后的转账备注");
   }
   await position(page, "sentinel");
   await scroll(page, 2000);
@@ -616,24 +615,29 @@ async function checkNewForm(browser, account = false) {
     browser,
     account ? "新增账户" : "新增转账",
     formId,
+    { fullScreen: !account },
   );
   const { page, baseline, record, backAndCancel, discardAndCheckSource } =
     session;
-  const input = account
-    ? page.getByRole("textbox", { name: /账户名称/ })
-    : page.getByRole("textbox", { name: "备注（选填）" });
-  await input.fill("新增表单草稿");
-  await input.blur();
+  if (account) {
+    const input = page.getByRole("textbox", { name: /账户名称/ });
+    await input.fill("新增表单草稿");
+    await input.blur();
+  } else {
+    // 转账小票（#1050）：备注在底部抽屉里编辑。
+    await editReceiptNote(page, "添加备注", "新增表单草稿");
+  }
   await position(page, "sentinel");
   await closeAmountLayer(
     page,
-    page.getByRole("textbox", {
-      name: account ? "初始金额" : "金额",
-      exact: true,
-    }),
+    account
+      ? page.getByRole("textbox", { name: "初始金额", exact: true })
+      : page.getByRole("button", { name: /^修改转账金额：/ }),
   );
-  await scroll(page, 2000);
-  for (let index = 0; index < 3; index++) await backAndCancel(2000);
+  // 全屏转账小票页面本身不滚动，只验证长页的新增账户。
+  const y = account ? 2000 : 0;
+  if (account) await scroll(page, y);
+  for (let index = 0; index < 3; index++) await backAndCancel(y);
   assertInternalRecord(
     await record("新增表单关闭键盘后三次取消，父草稿和历史不变"),
     baseline,
@@ -953,12 +957,10 @@ async function checkBalance(browser) {
   );
   const { page, baseline, record, backAndCancel, discardAndCheckSource } =
     session;
-  await page
-    .getByRole("textbox", { name: "备注（选填）" })
-    .fill("余额调整草稿");
-  await page.getByRole("button", { name: "选择记账时间" }).click();
+  await editReceiptNote(page, "盘点", "余额调整草稿");
+  await page.getByRole("button", { name: /^修改时间：/ }).click();
   await browserBack(page);
-  await page.getByRole("textbox", { name: "备注（选填）" }).waitFor();
+  await page.getByRole("button", { name: "修改备注：余额调整草稿" }).waitFor();
   assert.equal(await page.getByRole("dialog", { name: "尚未保存" }).count(), 0);
   await scroll(page, 2000);
   await backAndCancel(2000);
@@ -1009,6 +1011,15 @@ async function leaveUntouched(session, label) {
   assert.equal(row.currentIndex, baseline.currentIndex - 1);
   return finishSession(session);
 }
+// 小票字段都在弹层里编辑：打开备注层不修改直接完成。
+async function openAndCloseReceiptNote(page, original) {
+  await page.getByRole("button", { name: "修改备注：" + original }).click();
+  await page.getByRole("textbox", { name: "备注", exact: true }).waitFor();
+  await page.getByRole("button", { name: "完成", exact: true }).click();
+  await page
+    .getByRole("textbox", { name: "备注", exact: true })
+    .waitFor({ state: "hidden" });
+}
 async function focusFirstField(page, formId, label) {
   const field = page
     .locator(`#${formId}`)
@@ -1024,31 +1035,33 @@ async function checkUntouched(browser) {
     [
       "编辑小票",
       "edit-transaction-receipt-form",
-      // 小票字段都在弹层里编辑：打开备注层不修改直接完成。
-      async (page) => {
-        await page
-          .getByRole("button", { name: "修改备注：编辑前备注" })
-          .click();
-        await page
-          .getByRole("textbox", { name: "备注", exact: true })
-          .waitFor();
-        await page.getByRole("button", { name: "完成", exact: true }).click();
-        await page
-          .getByRole("textbox", { name: "备注", exact: true })
-          .waitFor({ state: "hidden" });
-      },
+      (page) => openAndCloseReceiptNote(page, "编辑前备注"),
     ],
-    ["编辑转账", "edit-transfer-transaction-form"],
+    [
+      "编辑转账",
+      "edit-transfer-transaction-form",
+      (page) => openAndCloseReceiptNote(page, "编辑前转账备注"),
+    ],
     ["新增商家", "create-merchant-form"],
     ["编辑商家", "merchant-edit-form"],
-    ["新增转账", "new-transfer-transaction-form"],
+    [
+      "新增转账",
+      "new-transfer-transaction-form",
+      (page) => openAndCloseReceiptNote(page, "添加备注"),
+    ],
     ["新增账户", "create-account-form"],
-    ["余额调整", "edit-balance-adjustment-form"],
+    [
+      "余额调整",
+      "edit-balance-adjustment-form",
+      (page) => openAndCloseReceiptNote(page, "盘点"),
+    ],
     ["账本设置", "ledger-settings-page"],
   ];
   const result = {};
   for (const [link, formId, touch] of pages) {
-    const session = await newSession(browser, link, formId);
+    const session = await newSession(browser, link, formId, {
+      fullScreen: link === "新增转账",
+    });
     if (touch) await touch(session.page);
     else await focusFirstField(session.page, formId, link);
     result[link] = await leaveUntouched(session, link);

@@ -171,7 +171,8 @@ const iconSx = {
   flexShrink: 0,
   color: "primary.main",
   fontSize: 18,
-  width: 20,
+  // 账户文字图标比明细图标稍大，宽度至少 20 让明细图标保持对齐。
+  minWidth: 20,
   justifyContent: "center",
 };
 const labelColumnSx = {

@@ -1,20 +1,10 @@
 "use client";
-import { NewTransferTransactionTemplate } from "../../../../src/components/templates/transactions/TransactionFormPage";
 import { AccountCreateTemplate } from "../../../../src/components/templates/accounts/AccountCreate";
 import { CategoriesActionStateTemplate } from "../../../../src/components/templates/categories/CategoriesActionState";
 import { BalanceAdjustmentEditForm } from "../../../../src/components/organisms/transactions/BalanceAdjustmentEditForm/BalanceAdjustmentEditForm";
-import { flowFixture } from "../../../../src/test/mocks/transactionStepFlow";
 import { accountHolderOptionsFixture } from "../../../../src/test/mocks/accountHolders";
 import { save, saveCategory, reorderCategory } from "./actions";
 
-export function NewTransferEditor() {
-  return (
-    <NewTransferTransactionTemplate
-      accountOptions={flowFixture.accounts}
-      action={save}
-    />
-  );
-}
 export function NewAccountEditor() {
   return (
     <AccountCreateTemplate

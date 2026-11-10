@@ -39,3 +39,8 @@ export const NoFrequentMerchants: Story = {
   name: "常用商家为空（含获取失败）",
   args: { frequentMerchants: [] },
 };
+
+export const Transfer: Story = {
+  name: "账户周转（同一外框，可切回从商家记账）",
+  args: { initialMethod: "transfer" },
+};
