@@ -193,7 +193,7 @@ describe("TransactionStepFlow", () => {
     expect(screen.getByRole("button", { name: "切换方式" })).toBeVisible();
   });
 
-  it("StrictMode 重挂载的干净首屏不压哨兵，卸载不产生历史遍历", async () => {
+  it("StrictMode 重挂载的空小票不压哨兵，卸载不产生历史遍历", async () => {
     const view = renderEntryComponent(
       <StrictMode>
         <TransactionStepFlow {...flowFixture} />
