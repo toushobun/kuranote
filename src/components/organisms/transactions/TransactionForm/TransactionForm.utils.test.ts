@@ -9,6 +9,7 @@ import {
   formatSummaryDateTime,
   getCurrencySymbol,
   getDefaultPickerCategory,
+  getFirstEnabledCategoryId,
   getTransactionItemAdjustmentMessage,
   getTransactionItemAmountPresentation,
   isValidMoneyText,
@@ -127,6 +128,20 @@ describe("getDefaultPickerCategory", () => {
       groupId: "",
       categoryId: "",
     });
+  });
+});
+
+describe("getFirstEnabledCategoryId", () => {
+  const [food, other] = buildCategoryPickerGroups([
+    createCategory({ id: "lunch", parentId: "food" }),
+    createCategory({ id: "points", parentId: "other", type: "income" }),
+  ]);
+
+  it("返回组内第一个未禁用的小分类，全被禁用或没有组时为空", () => {
+    expect(getFirstEnabledCategoryId(other)).toBe("points");
+    expect(getFirstEnabledCategoryId(food, "income")).toBe("lunch");
+    expect(getFirstEnabledCategoryId(food, "expense")).toBe("");
+    expect(getFirstEnabledCategoryId(undefined)).toBe("");
   });
 });
 

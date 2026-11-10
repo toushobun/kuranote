@@ -58,6 +58,7 @@ import {
   buildCategoryPickerGroups,
   getDefaultPickerCategory,
   getCurrencyMismatchedLinkKinds,
+  getFirstEnabledCategoryId,
   isValidMoneyText,
   isValidTransactionFormItem,
   sumTransactionItemBusinessTotals,
@@ -485,16 +486,8 @@ export function useTransactionForm({
     setEditingItemId(null);
   }
 
-  function handlePickerGroupSelect(groupId: string) {
-    setSelectedCategoryGroupId(groupId);
-    setPickerCategoryId("");
-    setPickerErrors({});
-  }
-
-  function handlePickerCategoryToggle(categoryId: string) {
-    setPickerCategoryId((current) =>
-      current === categoryId ? "" : categoryId,
-    );
+  /** 选中小分类时清掉与其收支类型不符的附加信息。 */
+  function clearPickerExtrasForCategory(categoryId: string) {
     const categoryType = categoryById.get(categoryId)?.type;
     if (categoryType === "income") {
       setPickerSpecialStatus(null);
@@ -502,6 +495,30 @@ export function useTransactionForm({
       setPickerRefundCandidate(null);
       setPickerReimbursementCandidate(null);
     }
+  }
+
+  /**
+   * 切换大分类（#1046）：传入 categoryId 时选中它，否则选中该大分类里
+   * 第一个可用的小分类。
+   */
+  function handlePickerGroupSelect(groupId: string, categoryId?: string) {
+    const nextCategoryId =
+      categoryId ??
+      getFirstEnabledCategoryId(
+        categoryGroups.find((group) => group.id === groupId),
+        disabledCategoryType,
+      );
+    setSelectedCategoryGroupId(groupId);
+    setPickerCategoryId(nextCategoryId);
+    clearPickerExtrasForCategory(nextCategoryId);
+    setPickerErrors({});
+  }
+
+  function handlePickerCategoryToggle(categoryId: string) {
+    setPickerCategoryId((current) =>
+      current === categoryId ? "" : categoryId,
+    );
+    clearPickerExtrasForCategory(categoryId);
     if (pickerErrors.category) {
       setPickerErrors((current) => ({ ...current, category: undefined }));
     }

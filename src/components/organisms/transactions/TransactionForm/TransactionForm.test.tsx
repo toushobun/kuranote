@@ -451,14 +451,14 @@ describe("TransactionForm", () => {
     ).toHaveTextContent("+ $ 68.9");
     expect(within(container).getByText("合计 + $ 68.9")).toBeInTheDocument();
   });
-  it("手动切换大分类后未选小分类时点击追加显示错误提示", () => {
+  it("手动切换大分类时选中第一个小分类，取消后点击追加显示错误提示", () => {
     const { container } = renderForm();
     openSheet(container);
     fireEvent.click(screen.getByRole("button", { name: "交通出行" }));
-    expect(screen.getByRole("button", { name: "电车" })).toHaveAttribute(
-      "aria-pressed",
-      "false",
-    );
+    const train = screen.getByRole("button", { name: "电车" });
+    expect(train).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(train);
+    expect(train).toHaveAttribute("aria-pressed", "false");
     fireEvent.change(screen.getByRole("textbox", { name: "金额" }), {
       target: { value: "500" },
     });

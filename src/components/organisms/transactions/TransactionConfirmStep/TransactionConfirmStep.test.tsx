@@ -430,6 +430,15 @@ describe("TransactionConfirmStep", () => {
     },
   );
 
+  it("小票里手动切换大分类时选中该组第一个小分类", () => {
+    renderConfirmFlow();
+    click("添加明细");
+    click("日用品");
+    expect(
+      screen.getByRole("button", { name: "收纳", pressed: true }),
+    ).toBeInTheDocument();
+  });
+
   it("编辑小票明细时仍选中该明细原有分类", () => {
     renderConfirmFlow();
     click("编辑明细 2");

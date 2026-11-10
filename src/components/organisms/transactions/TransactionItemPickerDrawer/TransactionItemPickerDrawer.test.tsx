@@ -105,8 +105,14 @@ describe("TransactionItemPickerDrawer", () => {
     ).toBe(expectedItemRadius);
 
     fireEvent.click(trainShortcut);
-    expect(onGroupSelect).toHaveBeenCalledWith("traffic");
-    expect(onCategoryToggle).toHaveBeenCalledWith("traffic-train");
+    expect(onGroupSelect).toHaveBeenCalledWith("traffic", "traffic-train");
+    expect(onCategoryToggle).not.toHaveBeenCalled();
+
+    fireEvent.click(lunchShortcut);
+    expect(onCategoryToggle).toHaveBeenCalledWith("food-lunch");
+
+    fireEvent.click(screen.getByRole("button", { name: "交通" }));
+    expect(onGroupSelect).toHaveBeenLastCalledWith("traffic");
   });
 
   it.each([

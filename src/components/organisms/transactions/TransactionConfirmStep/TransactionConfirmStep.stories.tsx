@@ -137,6 +137,18 @@ export const MultiAccountIncomeAddItem: Story = {
     ).toBeInTheDocument();
   },
 };
+export const AddItemGroupSwitch: Story = {
+  ...MultiAccountBalanced,
+  name: "新增明细：切换大分类后选中第一个小分类",
+  play: async ({ canvasElement }) => {
+    await clickButton(canvasElement, "添加明细");
+    const body = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await body.findByRole("button", { name: /日用品/ }));
+    await expect(
+      await body.findByRole("button", { name: /收纳/, pressed: true }),
+    ).toBeInTheDocument();
+  },
+};
 export const MixedPaymentHint: Story = {
   name: "收支混合：只允许一个账户",
   args: {
