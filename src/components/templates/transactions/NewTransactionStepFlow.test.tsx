@@ -256,7 +256,7 @@ describe("NewTransactionStepFlow", () => {
     expect(screen.getByTestId("preset-launcher")).toBeInTheDocument();
   });
 
-  it("首屏干净后退返回来源页，不压哨兵、不 push 明细页", async () => {
+  it("空小票未修改时后退返回来源页，不压哨兵、不 push 明细页", async () => {
     setup();
     await act(async () => window.history.back());
     expect(guardHistory().index()).toBe(0);
@@ -292,7 +292,7 @@ describe("NewTransactionStepFlow", () => {
     expect(router.push).not.toHaveBeenCalled();
   });
 
-  it("首屏无修改时关闭直接回到明细列表", async () => {
+  it("空小票无修改时关闭直接回到明细列表", async () => {
     setup();
     click("关闭记账");
     expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
@@ -315,8 +315,8 @@ describe("NewTransactionStepFlow", () => {
     expect(router.push).not.toHaveBeenCalled();
     expect(replacedUrls()).toContain("/transactions/new?method=transfer");
     await waitFor(() => expect(guardHistory().index()).toBe(1));
-    expect(window.history.state?.kuranoteUnsavedChanges?.position).not.toBe(
-      "sentinel",
+    expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe(
+      "base",
     );
     await act(async () => window.history.back());
     expect(guardHistory().index()).toBe(0);
@@ -333,27 +333,13 @@ describe("NewTransactionStepFlow", () => {
     expect(replacedUrls()).toContain("/transactions/new");
   });
 
-  it("双向切换保留各自草稿，保存并退出只提交当前方式", async () => {
-    const action = vi.fn(async (_: unknown, data: FormData) => {
-      expect(data.get(saveAndLeaveField)).toBe("true");
-      expect(data.get("type")).toBe("transfer");
-      expect(data.get("accountId")).toBe("cash");
-      expect(data.get("transferTargetAccountId")).toBe("paypay");
-      expect(data.get("transferAmount")).toBe("50");
-      return { success: "已保存" };
-    });
-    setup({ action });
+  it("双向切换保留各自草稿", async () => {
+    setup();
     await selectEntryMerchant(/^7-Eleven/);
     respond("merchantId=seven", noHistory);
     await updateNote("添加备注", "商家草稿");
     await switchMethod("账户周转");
     await chooseTransferAccount("转出", "现金");
-    await chooseTransferAccount("转入", "PayPay");
-    click("修改转账金额：待输入");
-    pressItemAmountKey("5");
-    pressItemAmountKey("0");
-    pressItemAmountKey("确定");
-    await screen.findByRole("button", { name: "修改转账金额：¥50" });
     await switchMethod("从商家记账");
     expect(
       screen.getByRole("button", { name: "修改商家：7-Eleven" }),
@@ -365,12 +351,28 @@ describe("NewTransactionStepFlow", () => {
     expect(
       screen.getByRole("button", { name: "更换转出账户：现金" }),
     ).toBeVisible();
-    expect(
-      screen.getByRole("button", { name: "更换转入账户：PayPay" }),
-    ).toBeVisible();
-    expect(
-      screen.getByRole("button", { name: "修改转账金额：¥50" }),
-    ).toBeVisible();
+  });
+
+  it("保存并退出只提交当前方式的表单", async () => {
+    const action = vi.fn(async (_: unknown, data: FormData) => {
+      expect(data.get(saveAndLeaveField)).toBe("true");
+      expect(data.get("type")).toBe("transfer");
+      expect(data.get("accountId")).toBe("cash");
+      expect(data.get("transferTargetAccountId")).toBe("paypay");
+      expect(data.get("transferAmount")).toBe("50");
+      expect(data.get("note")).not.toBe("商家草稿");
+      return { success: "已保存" };
+    });
+    setup({ action });
+    await updateNote("添加备注", "商家草稿");
+    await switchMethod("账户周转");
+    await chooseTransferAccount("转出", "现金");
+    await chooseTransferAccount("转入", "PayPay");
+    click("修改转账金额：待输入");
+    pressItemAmountKey("5");
+    pressItemAmountKey("0");
+    pressItemAmountKey("确定");
+    await screen.findByRole("button", { name: "修改转账金额：¥50" });
     click("关闭记账");
     await screen.findByRole("dialog", { name: "尚未保存" });
     click("保存并退出");
