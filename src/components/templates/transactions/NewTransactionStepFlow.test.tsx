@@ -79,6 +79,13 @@ function selectMerchant(name: string) {
   fireEvent.click(screen.getByRole("button", { name: new RegExp(`^${name}`) }));
 }
 
+// 切换方式时经 history.replaceState 同步的地址。
+function replacedUrls() {
+  return vi
+    .mocked(window.history.replaceState)
+    .mock.calls.map(([, , url]) => url);
+}
+
 function onMerchantScreen() {
   return !!screen.queryByRole("heading", { name: "记一笔" });
 }
@@ -262,19 +269,31 @@ describe("NewTransactionStepFlow", () => {
     );
   });
 
-  it("切换方式清理哨兵后替换地址，后退一次离开记一笔", async () => {
+  it("切换方式只在浏览器端换成转账小票并替换地址，后退一次离开记一笔", async () => {
     setup();
     click("切换方式");
     await waitFor(() => expect(guardHistory().index()).toBe(2));
     click("账户周转");
+    expect(
+      await screen.findByRole("heading", { name: "账户周转" }),
+    ).toBeInTheDocument();
     expect(router.replace).not.toHaveBeenCalled();
-    await waitFor(() => expect(router.replace).toHaveBeenCalledOnce());
-    expect(router.replace).toHaveBeenCalledWith(
-      "/transactions/new?method=transfer",
-    );
-    expect(guardHistory().index()).toBe(1);
+    expect(router.push).not.toHaveBeenCalled();
+    expect(replacedUrls()).toContain("/transactions/new?method=transfer");
+    await waitFor(() => expect(guardHistory().index()).toBe(1));
     expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe("base");
     await act(async () => window.history.back());
     expect(guardHistory().index()).toBe(0);
+  });
+
+  it("从账户周转切回从商家记账，回到选择商家", async () => {
+    setup({ initialMethod: "transfer" });
+    expect(screen.getByRole("heading", { name: "账户周转" })).toBeVisible();
+    click("切换方式");
+    click("从商家记账");
+    expect(
+      await screen.findByRole("heading", { name: "记一笔" }),
+    ).toBeVisible();
+    expect(replacedUrls()).toContain("/transactions/new");
   });
 });

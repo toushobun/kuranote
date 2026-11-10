@@ -108,14 +108,16 @@ async function renderTemplateElement() {
   });
   const element = result as ReactElement<{ children: ReactElement }>;
   expect(element.type).toBe(mocks.NewTransactionVisualFrame);
-  const child = element.props.children as ReactElement<Record<string, unknown>>;
-  return child.type === mocks.EditTransferTransactionTemplate
-    ? child
-    : (
-        child.props.children as ReactElement<{
-          children: ReactElement<Record<string, unknown>>;
-        }>
-      ).props.children;
+  // 外层 Provider（退款 / 报销选择器、小票新增）逐层展开到编辑模板。
+  const templates: unknown[] = [
+    mocks.EditTransactionReceiptTemplate,
+    mocks.EditTransferTransactionTemplate,
+  ];
+  let child = element.props.children as ReactElement<Record<string, unknown>>;
+  while (!templates.includes(child.type)) {
+    child = child.props.children as ReactElement<Record<string, unknown>>;
+  }
+  return child;
 }
 
 describe("TransactionEditPage", () => {

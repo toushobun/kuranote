@@ -6,6 +6,7 @@ import {
   isPaymentAccountSelectable,
 } from "../TransactionPaymentFields/useTransactionPaymentFields";
 import { flowMessages as m } from "config/transactionStepFlowMessages";
+import { useReceiptIssueCheck } from "organisms/transactions/ReceiptParts/useReceiptIssueCheck";
 import { exceedsCurrencyDecimalPlaces } from "utils/transactionAmountInput";
 import type { TransactionAccountOption } from "types/transactions";
 import type { TransactionConfirmStepProps } from "./TransactionConfirmStep.types";
@@ -15,7 +16,7 @@ export function useTransactionConfirmStep(
   paymentSectionRef: RefObject<HTMLDivElement | null>,
 ) {
   const form = props.form;
-  const [editor, setEditor] = useState<"note" | "time" | null>(null);
+  const [editor, setEditor] = useState<"time" | null>(null);
   // 新增付款账户用 "add"，更换账户用付款行的 key。
   const [accountPickerKey, setAccountPickerKey] = useState<
     number | "add" | null
@@ -24,9 +25,7 @@ export function useTransactionConfirmStep(
   const [paymentAmountKey, setPaymentAmountKey] = useState<number | null>(null);
   // 单账户点 × 清空后，只保留换币种确认需要的原币种。
   const [previousCurrency, setPreviousCurrency] = useState<string>();
-  // 点保存时记录的问题快照（#1016 / #1040）：顶部提示与内联红标都只显示快照中仍未解决的问题，
-  // 之后新出现的问题等下一次保存才显示。
-  const [checkedKeys, setCheckedKeys] = useState<readonly string[]>([]);
+  const issueCheck = useReceiptIssueCheck();
   const currency = form.selectedAccount?.currency;
   const invalidItems = form.itemSummaries.filter(
     (item) => !item.category || !isValidTransactionFormItem(item, currency),
@@ -174,15 +173,19 @@ export function useTransactionConfirmStep(
           (form.isMultiAccount && !payment.amount.trim())),
     )
     .map((payment) => payment.key);
-  const isChecked = (key: string) => checkedKeys.includes(key);
+  const isChecked = issueCheck.isChecked;
   /** 点保存时调用：记录当前所有问题，返回是否有问题。 */
   function checkIssues() {
-    setCheckedKeys([
-      ...issues.map((issue) => issue.id),
-      ...invalidItems.map((item) => itemMarkKey(item.id)),
-      ...invalidPaymentKeys.map(paymentMarkKey),
-    ]);
-    return issues.length > 0;
+    const hasIssues = issues.length > 0;
+    issueCheck.check(
+      [
+        ...issues.map((issue) => issue.id),
+        ...invalidItems.map((item) => itemMarkKey(item.id)),
+        ...invalidPaymentKeys.map(paymentMarkKey),
+      ],
+      hasIssues && !props.readOnly,
+    );
+    return hasIssues;
   }
   return {
     editor,
@@ -204,6 +207,8 @@ export function useTransactionConfirmStep(
     issues,
     checkIssues,
     isChecked,
+    pulseCount: issueCheck.pulseCount,
+    firstIssueRef: issueCheck.firstIssueRef,
     markedItems: invalidItems.filter((item) => isChecked(itemMarkKey(item.id))),
     markedPaymentKeys: invalidPaymentKeys.filter((key) =>
       isChecked(paymentMarkKey(key)),

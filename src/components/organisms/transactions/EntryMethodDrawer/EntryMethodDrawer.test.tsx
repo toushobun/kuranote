@@ -16,11 +16,11 @@ function setup(
   return props;
 }
 describe("EntryMethodDrawer", () => {
-  it("标记当前方式，已停用和即将推出的方式不可点击", () => {
+  it("标记当前方式，即将推出的方式不可点击，不再显示标准记账", () => {
     const props = setup();
     expect(screen.getByTestId("CheckRoundedIcon")).toBeInTheDocument();
+    expect(screen.queryByText("标准记账")).not.toBeInTheDocument();
     for (const name of [
-      "标准记账 已停用",
       "从模板记账 即将推出",
       "从拍照记账 即将推出",
       "定时记账 即将推出",

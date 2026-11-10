@@ -2,7 +2,6 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import {
   EditTransferTransactionTemplate,
-  NewTransferTransactionTemplate,
   TransactionPermissionDenied,
 } from "./TransactionFormPage";
 import { NewTransactionVisualFrame } from "./NewTransactionVisualFrame";
@@ -46,7 +45,7 @@ const transferEditInitialValues = {
 
 const meta = {
   title: "Templates/Transactions/TransactionFormPage",
-  component: NewTransferTransactionTemplate,
+  component: EditTransferTransactionTemplate,
   decorators: [
     (Story) => (
       <NewTransactionVisualFrame>
@@ -54,53 +53,30 @@ const meta = {
       </NewTransactionVisualFrame>
     ),
   ],
-  args: { accountOptions, action: noopAction },
-} satisfies Meta<typeof NewTransferTransactionTemplate>;
+  args: { ...editArgs, initialValues: transferEditInitialValues },
+} satisfies Meta<typeof EditTransferTransactionTemplate>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
-
-export const NewTransfer: Story = {
-  name: "账户周转",
-};
 
 export const PermissionDenied: Story = {
   name: "无新增权限",
   render: () => <TransactionPermissionDenied />,
 };
 
-export const EditTransfer: Story = {
-  name: "编辑转账",
-  render: () => (
-    <EditTransferTransactionTemplate
-      {...editArgs}
-      initialValues={transferEditInitialValues}
-    />
-  ),
-};
+export const EditTransfer: Story = { name: "编辑转账" };
 
 export const ReadOnlyTransferPermission: Story = {
   name: "只读详情：他人创建的转账",
-  render: () => (
-    <EditTransferTransactionTemplate
-      {...editArgs}
-      canDelete={false}
-      editRestriction="permission"
-      initialValues={transferEditInitialValues}
-    />
-  ),
+  args: { canDelete: false, editRestriction: "permission" },
 };
 
 export const ReadOnlyTransferArchivedAccount: Story = {
   name: "只读详情：转账账户已归档（可删除）",
-  render: () => (
-    <EditTransferTransactionTemplate
-      {...editArgs}
-      // 转入账户已归档：不在可选账户里，由 archivedAccountOptions 提供名称与币种（#966）。
-      accountOptions={accountOptions.slice(0, 1)}
-      archivedAccountOptions={accountOptions.slice(1)}
-      editRestriction="archivedAccount"
-      initialValues={transferEditInitialValues}
-    />
-  ),
+  args: {
+    // 转入账户已归档：不在可选账户里，由 archivedAccountOptions 提供名称与币种（#966）。
+    accountOptions: accountOptions.slice(0, 1),
+    archivedAccountOptions: accountOptions.slice(1),
+    editRestriction: "archivedAccount",
+  },
 };

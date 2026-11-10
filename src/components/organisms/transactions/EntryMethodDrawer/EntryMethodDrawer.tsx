@@ -80,12 +80,7 @@ export function EntryMethodDrawer({
               sx={rowSx}
             >
               <ListItemText primary={method.label} />
-              {"disabled" in method && (
-                <Chip
-                  size="small"
-                  label={"badge" in method ? method.badge : m.soon}
-                />
-              )}
+              {"disabled" in method && <Chip size="small" label={m.soon} />}
               {method.id === currentMethod && (
                 <CheckRoundedIcon color="primary" />
               )}

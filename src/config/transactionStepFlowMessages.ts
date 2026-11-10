@@ -14,7 +14,6 @@ export const flowMessages = {
   methods: [
     { id: "merchant", label: "从商家记账" },
     { id: "transfer", label: "账户周转" },
-    { id: "standard", label: "标准记账", disabled: true, badge: "已停用" },
     { id: "template", label: "从模板记账", disabled: true },
     { id: "photo", label: "从拍照记账", disabled: true },
     { id: "scheduled", label: "定时记账", disabled: true },
@@ -105,4 +104,20 @@ export const flowMessages = {
   currencyTitle: (name: string) => `切换为 ${name} 账户？`,
   currencyDescription: (from: string, to: string) =>
     `币种将从 ${from} 变为 ${to}，已填写的金额不会换算，数字保持不变。已关联的退款 / 报销会被取消。`,
+} as const;
+
+/** 账户周转小票（#1050）。 */
+export const transferReceiptMessages = {
+  source: "转出",
+  target: "转入",
+  selectAccount: "选择账户",
+  accountTitle: (side: string) => `${side}账户`,
+  changeAccount: (side: string, name: string) => `更换${side}账户：${name}`,
+  amount: "转账金额",
+  save: "保存转账",
+  missingSource: "请选择转出账户",
+  missingTarget: "请选择转入账户",
+  missingAmount: "请输入转账金额",
+  invalidAmount: "转账金额无效，点一下重新输入",
+  currencyMismatch: "暂不支持不同币种之间的转账",
 } as const;

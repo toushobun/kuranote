@@ -450,13 +450,9 @@ describe("TransactionConfirmStep", () => {
     ).toBeInTheDocument();
   });
 
-  it("支付行的铅笔打开账户选择抽屉并换账户，图标按账户类型显示", async () => {
+  it("支付行的铅笔打开账户选择抽屉并换账户，图标显示账户名的文字", async () => {
     const { props } = renderConfirmFlow();
-    expect(
-      within(line("更换支付账户 1")).getByTestId(
-        "AccountBalanceWalletOutlinedIcon",
-      ),
-    ).toBeInTheDocument();
+    expect(within(line("更换支付账户 1")).getByText("P")).toBeInTheDocument();
     click("更换支付账户 1");
     expect(
       screen.getByRole("radiogroup", { name: "收支账户" }),
@@ -469,17 +465,11 @@ describe("TransactionConfirmStep", () => {
     expect(props.onAccountSelect).toHaveBeenCalledWith(
       expect.objectContaining({ id: "cash" }),
     );
+    // 账户名与文字图标都是「现金」，按图标（aria-hidden）取。
     expect(
-      within(line("更换支付账户 1")).getByTestId("PaymentsOutlinedIcon"),
-    ).toBeInTheDocument();
-  });
-
-  it("账户类型取不到时显示默认图标", () => {
-    renderConfirmFlow({
-      accounts: [{ id: "paypay", name: "PayPay", currency: "JPY" }],
-    });
-    expect(
-      within(line("更换支付账户 1")).getByTestId("MoreHorizRoundedIcon"),
+      within(line("更换支付账户 1")).getByText("现金", {
+        selector: "[aria-hidden]",
+      }),
     ).toBeInTheDocument();
   });
 

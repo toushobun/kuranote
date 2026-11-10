@@ -3,7 +3,6 @@ import type {
   TransactionRefundCandidate,
   TransactionType,
 } from "types/transactions";
-import { getCurrencySymbol } from "utils/currency";
 import { isValidMoneyText as isValidTransactionAmountText } from "utils/transactionAmountInput";
 import type { TransactionLinkKind } from "utils/transactionMessages";
 import {
@@ -97,31 +96,6 @@ export function getDefaultPickerCategory(
     if (categoryId) return { groupId: group.id, categoryId };
   }
   return { groupId: groups[0]?.id ?? "", categoryId: "" };
-}
-
-export function formatSummaryDateTime(date: string, time: string) {
-  const dateParts = date.split("-");
-  if (dateParts.length !== 3) return "未选择";
-
-  const timeParts = time.split(":");
-  if (timeParts.length < 2) return "未选择";
-
-  return `${dateParts[0]}/${dateParts[1]}/${dateParts[2]} ${timeParts[0]}:${timeParts[1]}:${timeParts[2] ?? "00"}`;
-}
-
-export function formatSignedCurrencyAmount(value: string, currency?: string) {
-  const trimmedValue = value.trim();
-  if (!trimmedValue || trimmedValue === "未填写金额") return value;
-
-  const sign = trimmedValue.startsWith("-")
-    ? "-"
-    : trimmedValue.startsWith("+")
-      ? "+"
-      : "";
-  const amount = sign ? trimmedValue.slice(1) : trimmedValue;
-  const symbol = currency ? getCurrencySymbol(currency) : "";
-
-  return [sign, symbol, amount].filter(Boolean).join(" ");
 }
 
 export function isValidMoneyText(value: string, currency?: string) {
