@@ -3,14 +3,10 @@ import { useMemo, useState } from "react";
 
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import CloseIcon from "@mui/icons-material/Close";
-import KeyboardArrowRightRoundedIcon from "@mui/icons-material/KeyboardArrowRightRounded";
-import KeyboardArrowUpRoundedIcon from "@mui/icons-material/KeyboardArrowUpRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Chip from "@mui/material/Chip";
-import Collapse from "@mui/material/Collapse";
 import Drawer from "@mui/material/Drawer";
 import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
@@ -24,7 +20,6 @@ import { primaryActionButtonNoHoverBrightenSx } from "atoms/ui/PrimaryActionButt
 import type { TransactionSpecialStatus } from "internal/transaction";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { designTokens } from "theme/theme";
-import { appZIndex } from "theme/zIndex";
 import { transactionPaymentFieldsMessages } from "utils/transactionMessages";
 import type {
   TransactionCategoryOption,
@@ -43,19 +38,13 @@ import type {
   TransactionPickerErrors,
 } from "../TransactionForm/TransactionForm.types";
 import { matchesCategorySearch } from "./TransactionCategorySearch";
-import { getCurrencySymbol } from "../TransactionForm/TransactionForm.utils";
 
 type TransactionItemPickerDrawerProps = {
   categoryGroups: CategoryPickerGroup[];
   editingItemId?: number | null;
   filteredCategoryOptions: TransactionCategoryOption[];
-  frequentCategoryIds: string[];
-  showFrequentCategories?: boolean;
-  showAmountInput?: boolean;
-  inWizard?: boolean;
   // 退款 / 报销关联提示；抽屉打开时表单顶部的提示会被遮罩挡住，因此在抽屉内同步显示。
   linkNotice?: string | null;
-  onAmountChange: (amount: string) => void;
   onCategoryToggle: (categoryId: string) => void;
   onClose: () => void;
   /** 切换大分类；带 categoryId 时同时选中它，否则选中该组第一个可用小分类。 */
@@ -100,7 +89,6 @@ type TransactionItemPickerDrawerProps = {
   ) => Promise<TransactionSearchPage>;
   specialStatusEnabled?: boolean;
   specialStatusLocked?: boolean;
-  incomeLinksEnabled?: boolean;
   /** 多账户时禁用与现有明细相反的一类分类（#1044）。 */
   disabledCategoryType?: "income" | "expense";
 };
@@ -109,12 +97,7 @@ export function TransactionItemPickerDrawer({
   categoryGroups,
   editingItemId = null,
   filteredCategoryOptions,
-  frequentCategoryIds,
-  showFrequentCategories = true,
-  showAmountInput = true,
-  inWizard = false,
   linkNotice = null,
-  onAmountChange,
   onCategoryToggle,
   onClose,
   onGroupSelect,
@@ -142,7 +125,6 @@ export function TransactionItemPickerDrawer({
   loadReimbursementSearchPageAction,
   specialStatusEnabled = false,
   specialStatusLocked = false,
-  incomeLinksEnabled = true,
   disabledCategoryType,
 }: TransactionItemPickerDrawerProps) {
   useBackLayer(open, closeDrawer);
@@ -150,20 +132,6 @@ export function TransactionItemPickerDrawer({
     (category) => category.id === pickerCategoryId,
   )?.type;
   const [searchText, setSearchText] = useState("");
-  const [isCategoryListExpanded, setIsCategoryListExpanded] = useState(
-    !showFrequentCategories || editingItemId !== null,
-  );
-  // Drawer 的内容不会在 open 切换时卸载重挂，所以用渲染期间对比上一次 open 的方式
-  // 在每次真正打开时重新决定展开态，而不是用 useEffect 里 setState（会触发级联渲染）。
-  const [previousOpen, setPreviousOpen] = useState(open);
-  if (open !== previousOpen) {
-    setPreviousOpen(open);
-    if (open)
-      setIsCategoryListExpanded(
-        !showFrequentCategories || editingItemId !== null,
-      );
-  }
-  const amountCurrencySymbol = getCurrencySymbol(selectedAccountCurrency);
   const displayedGroups = useMemo(() => {
     if (!searchText.trim()) return categoryGroups;
 
@@ -196,17 +164,8 @@ export function TransactionItemPickerDrawer({
       label: "收入分类",
     },
   ].filter((section) => section.groups.length > 0);
-  const categoryWithGroupById = new Map(
-    categoryGroups.flatMap((group) =>
-      group.categories.map((category) => [category.id, { category, group }]),
-    ),
-  );
   const isCategoryDisabled = (category: TransactionCategoryOption) =>
     category.type === disabledCategoryType;
-  const quickCategories = frequentCategoryIds.flatMap((categoryId) => {
-    const categoryWithGroup = categoryWithGroupById.get(categoryId);
-    return categoryWithGroup ? [categoryWithGroup] : [];
-  });
 
   function selectCategory(groupId: string, categoryId: string) {
     // 切到别的大分类时直接选中点的小分类；用 toggle 会把自动选中的第一个小分类取消掉。
@@ -227,7 +186,6 @@ export function TransactionItemPickerDrawer({
 
   function closeDrawer() {
     setSearchText("");
-    setIsCategoryListExpanded(false);
     onClose();
   }
 
@@ -236,10 +194,7 @@ export function TransactionItemPickerDrawer({
       anchor="bottom"
       onClose={closeDrawer}
       open={open}
-      sx={[
-        itemPickerDrawerSx,
-        inWizard ? { zIndex: (theme) => theme.zIndex.modal } : {},
-      ]}
+      sx={itemPickerDrawerSx}
       slotProps={{ paper: { sx: itemPickerDrawerPaperSx } }}
     >
       <Box sx={drawerHandleSx}>
@@ -256,40 +211,9 @@ export function TransactionItemPickerDrawer({
       </Stack>
 
       <Box sx={drawerBodySx}>
-        {showAmountInput && (
-          <TextField
-            error={!!pickerErrors.amount}
-            fullWidth
-            helperText={pickerErrors.amount}
-            onChange={(event) => onAmountChange(event.target.value)}
-            placeholder="0.00"
-            slotProps={{
-              htmlInput: {
-                "aria-label": "金额",
-                "data-amount-currency": selectedAccountCurrency ?? "",
-                "data-amount-input": "true",
-                inputMode: "decimal" as const,
-              },
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    {amountCurrencySymbol}
-                  </InputAdornment>
-                ),
-              },
-            }}
-            sx={amountFieldSx}
-            type="text"
-            value={pickerAmount}
-          />
-        )}
-
         <TextField
           fullWidth
-          onChange={(event) => {
-            setSearchText(event.target.value);
-            if (event.target.value.trim()) setIsCategoryListExpanded(true);
-          }}
+          onChange={(event) => setSearchText(event.target.value)}
           placeholder="搜索小分类"
           size="small"
           slotProps={{
@@ -322,124 +246,79 @@ export function TransactionItemPickerDrawer({
           <Typography color="textSecondary">请先新增分类。</Typography>
         ) : (
           <>
-            {showFrequentCategories && (
-              <>
-                <SectionLabel>常用快捷</SectionLabel>
-                <Stack direction="row" sx={quickCategoryListSx}>
-                  {quickCategories.map(({ category, group }) => (
-                    <Chip
-                      disabled={isCategoryDisabled(category)}
-                      key={category.id}
-                      label={`${group.name} · ${category.name}`}
-                      onClick={() => selectCategory(group.id, category.id)}
-                      size="small"
-                      sx={quickCategoryChipSx}
-                      variant="outlined"
-                    />
-                  ))}
+            {displayedGroups.length === 0 ? (
+              <Box sx={emptySearchSx}>
+                <Typography color="textSecondary" variant="body2">
+                  没有匹配的小分类
+                </Typography>
+              </Box>
+            ) : (
+              <Stack direction="row" spacing={1} sx={categoryColumnsSx}>
+                <Stack sx={categoryColumnSx}>
+                  <Box sx={categoryOptionsSx}>
+                    {displayedGroupSections.map((section) => (
+                      <Box key={section.label}>
+                        <Typography sx={categoryTypeLabelSx} variant="caption">
+                          {section.label}
+                        </Typography>
+                        {section.groups.map((group) => {
+                          const isSelected =
+                            activeCategoryGroup?.id === group.id;
+
+                          return (
+                            <Button
+                              aria-pressed={isSelected}
+                              disabled={group.categories.every(
+                                isCategoryDisabled,
+                              )}
+                              key={group.id}
+                              onClick={() => onGroupSelect(group.id)}
+                              type="button"
+                              sx={categoryGroupOptionSx(isSelected)}
+                            >
+                              {group.name}
+                            </Button>
+                          );
+                        })}
+                      </Box>
+                    ))}
+                  </Box>
                 </Stack>
-                <Button
-                  aria-expanded={isCategoryListExpanded}
-                  endIcon={
-                    isCategoryListExpanded ? (
-                      <KeyboardArrowUpRoundedIcon />
-                    ) : (
-                      <KeyboardArrowRightRoundedIcon />
-                    )
-                  }
-                  fullWidth
-                  onClick={() =>
-                    setIsCategoryListExpanded((current) => !current)
-                  }
-                  type="button"
-                  sx={categoryListToggleSx}
-                >
-                  {isCategoryListExpanded ? "收起分类列表" : "选择更多分类"}
-                </Button>
-              </>
+
+                <Stack sx={categoryColumnSx}>
+                  <Box sx={categoryOptionsSx}>
+                    {activeCategoryGroup?.categories.map((category) => {
+                      const isSelected = pickerCategoryId === category.id;
+
+                      return (
+                        <Button
+                          aria-pressed={isSelected}
+                          disabled={isCategoryDisabled(category)}
+                          endIcon={
+                            isSelected ? (
+                              <CheckRoundedIcon fontSize="small" />
+                            ) : null
+                          }
+                          key={category.id}
+                          onClick={() =>
+                            activeCategoryGroup
+                              ? selectCategory(
+                                  activeCategoryGroup.id,
+                                  category.id,
+                                )
+                              : onCategoryToggle(category.id)
+                          }
+                          type="button"
+                          sx={categoryOptionSx(isSelected)}
+                        >
+                          {category.name}
+                        </Button>
+                      );
+                    })}
+                  </Box>
+                </Stack>
+              </Stack>
             )}
-            <Collapse
-              in={isCategoryListExpanded}
-              timeout={designTokens.motion.collapse}
-              unmountOnExit
-            >
-              {displayedGroups.length === 0 ? (
-                <Box sx={emptySearchSx}>
-                  <Typography color="textSecondary" variant="body2">
-                    没有匹配的小分类
-                  </Typography>
-                </Box>
-              ) : (
-                <Stack direction="row" spacing={1} sx={categoryColumnsSx}>
-                  <Stack sx={categoryColumnSx}>
-                    <Box sx={categoryOptionsSx}>
-                      {displayedGroupSections.map((section) => (
-                        <Box key={section.label}>
-                          <Typography
-                            sx={categoryTypeLabelSx}
-                            variant="caption"
-                          >
-                            {section.label}
-                          </Typography>
-                          {section.groups.map((group) => {
-                            const isSelected =
-                              activeCategoryGroup?.id === group.id;
-
-                            return (
-                              <Button
-                                aria-pressed={isSelected}
-                                disabled={group.categories.every(
-                                  isCategoryDisabled,
-                                )}
-                                key={group.id}
-                                onClick={() => onGroupSelect(group.id)}
-                                type="button"
-                                sx={categoryGroupOptionSx(isSelected)}
-                              >
-                                {group.name}
-                              </Button>
-                            );
-                          })}
-                        </Box>
-                      ))}
-                    </Box>
-                  </Stack>
-
-                  <Stack sx={categoryColumnSx}>
-                    <Box sx={categoryOptionsSx}>
-                      {activeCategoryGroup?.categories.map((category) => {
-                        const isSelected = pickerCategoryId === category.id;
-
-                        return (
-                          <Button
-                            aria-pressed={isSelected}
-                            disabled={isCategoryDisabled(category)}
-                            endIcon={
-                              isSelected ? (
-                                <CheckRoundedIcon fontSize="small" />
-                              ) : null
-                            }
-                            key={category.id}
-                            onClick={() =>
-                              activeCategoryGroup
-                                ? selectCategory(
-                                    activeCategoryGroup.id,
-                                    category.id,
-                                  )
-                                : onCategoryToggle(category.id)
-                            }
-                            type="button"
-                            sx={categoryOptionSx(isSelected)}
-                          >
-                            {category.name}
-                          </Button>
-                        );
-                      })}
-                    </Box>
-                  </Stack>
-                </Stack>
-              )}
-            </Collapse>
 
             {disabledCategoryType ? (
               <Typography color="textSecondary" variant="caption">
@@ -471,9 +350,7 @@ export function TransactionItemPickerDrawer({
           />
         ) : null}
 
-        {specialStatusEnabled &&
-        incomeLinksEnabled &&
-        selectedCategoryType === "income" ? (
+        {specialStatusEnabled && selectedCategoryType === "income" ? (
           <>
             {linkNotice ? (
               <Alert severity="info" sx={{ mt: 1.5 }}>
@@ -529,17 +406,12 @@ export function TransactionItemPickerDrawer({
   );
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <Typography sx={sectionLabelSx} variant="subtitle2">
-      {children}
-    </Typography>
-  );
-}
+// 显示在记一笔 WizardDialog 之上。
+const itemPickerDrawerSx = {
+  zIndex: (theme: Theme) => theme.zIndex.modal,
+};
 
-export const itemPickerDrawerSx = { zIndex: appZIndex.bottomSheet };
-
-export const itemPickerDrawerPaperSx = {
+const itemPickerDrawerPaperSx = {
   bgcolor: "background.paper",
   borderRadius: "24px 24px 0 0",
   display: "flex",
@@ -586,33 +458,6 @@ const searchFieldSx = {
   mb: 1,
   mt: 1.5,
   "& .MuiOutlinedInput-root": { borderRadius: `${designTokens.radius.md}px` },
-};
-
-const sectionLabelSx = { fontWeight: 800, mt: 1, mb: 0.5 };
-
-const quickCategoryListSx = { flexWrap: "wrap", gap: 0.75 };
-
-const quickCategoryChipSx = {
-  "@media (hover: hover)": {
-    "&&.MuiChip-clickable:hover": { bgcolor: "action.hover" },
-  },
-  "@media (hover: none)": {
-    "&&.MuiChip-clickable": { bgcolor: "background.paper" },
-  },
-  bgcolor: "background.paper",
-  borderColor: "divider",
-  fontWeight: 600,
-};
-
-const categoryListToggleSx = {
-  border: 1,
-  borderColor: "divider",
-  borderRadius: `${designTokens.radius.md}px`,
-  justifyContent: "space-between",
-  mt: 1.5,
-  px: 1.5,
-  py: 1,
-  textTransform: "none",
 };
 
 const categoryColumnsSx = { mt: 1, minHeight: 184 };
@@ -688,21 +533,7 @@ const emptySearchSx = {
   minHeight: 184,
 };
 
-const amountFieldSx = {
-  "& .MuiInputAdornment-root": {
-    color: "text.primary",
-    fontSize: "2rem",
-    fontWeight: 700,
-  },
-  "& .MuiOutlinedInput-input": {
-    fontSize: "2rem",
-    fontWeight: 700,
-    py: 1.75,
-  },
-  "& .MuiOutlinedInput-root": { borderRadius: `${designTokens.radius.md}px` },
-};
-
-export const drawerFooterSx = {
+const drawerFooterSx = {
   bgcolor: "background.paper",
   borderTop: 1,
   borderColor: "divider",

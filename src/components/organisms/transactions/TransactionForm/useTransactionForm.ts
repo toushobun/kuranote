@@ -66,8 +66,7 @@ type UseTransactionFormOptions = {
   accountOptions: TransactionAccountOption[];
   categoryOptions: TransactionCategoryOption[];
   merchantOptions: TransactionMerchantOption[];
-  initialValues?: TransactionFormInitialValues;
-  deferPickerAmount?: boolean;
+  initialValues: TransactionFormInitialValues;
   onPickerItemCommit?: (itemId: number) => void;
 };
 
@@ -76,16 +75,15 @@ export function useTransactionForm({
   categoryOptions,
   initialValues,
   merchantOptions,
-  deferPickerAmount = false,
   onPickerItemCommit,
 }: UseTransactionFormOptions) {
   const reportEditDirty = useEditTransactionDirty();
-  const nextItemIdRef = useRef((initialValues?.items.length ?? 0) + 1);
-  const selectedType: TransactionType = initialValues?.type ?? "expense";
-  const paymentFields = useTransactionPaymentFields(initialValues?.payments);
+  const nextItemIdRef = useRef(initialValues.items.length + 1);
+  const selectedType: TransactionType = initialValues.type;
+  const paymentFields = useTransactionPaymentFields(initialValues.payments);
   const selectedAccountId = paymentFields.primaryAccountId;
   const [selectedMerchantId, setSelectedMerchantId] = useState(
-    initialValues?.merchantId ?? "",
+    initialValues.merchantId,
   );
   const [itemsByType, setItemsByType] = useState<
     Record<TransactionType, TransactionFormItem[]>
@@ -107,7 +105,7 @@ export function useTransactionForm({
   const [pickerReimbursementCandidate, setPickerReimbursementCandidate] =
     useState<TransactionRefundCandidate | null>(null);
   const [pickerErrors, setPickerErrors] = useState<TransactionPickerErrors>({});
-  const [note, setNote] = useState(initialValues?.note ?? "");
+  const [note, setNote] = useState(initialValues.note);
   const [linkNotice, setLinkNotice] = useState<string | null>(null);
   const [transactionDate, setTransactionDate] = useState("");
   const [transactionTime, setTransactionTime] = useState("");
@@ -116,7 +114,7 @@ export function useTransactionForm({
   const allDisplayItems = [...itemsByType.expense, ...itemsByType.income];
 
   useEffect(() => {
-    const localValue = initialValues?.transactionAt
+    const localValue = initialValues.transactionAt
       ? formatDateTimeLocalInputValue(initialValues.transactionAt)
       : getNowDateTimeLocalValue();
     const nextDateTime = splitDateTimeLocalValue(localValue);
@@ -125,7 +123,7 @@ export function useTransactionForm({
     setTransactionDate(nextDateTime.date);
     setTransactionTime(nextDateTime.time);
     setTimeZoneOffsetMinutes(String(new Date().getTimezoneOffset()));
-  }, [initialValues?.transactionAt]);
+  }, [initialValues.transactionAt]);
 
   const allNormalCategoryOptions = useMemo(
     () =>
@@ -223,13 +221,6 @@ export function useTransactionForm({
     transactionAtValue,
   ]);
   useDirtySnapshot(dirtySnapshot, reportEditDirty, Boolean(transactionAtValue));
-
-  const isSubmitDisabled =
-    accountOptions.length === 0 ||
-    merchantOptions.length === 0 ||
-    allNormalCategoryOptions.length === 0 ||
-    !transactionAtValue ||
-    (paymentFields.isMultiAccount && !paymentReconciliation.isBalanced);
 
   function addItem(
     categoryId: string,
@@ -465,29 +456,10 @@ export function useTransactionForm({
     }
   }
 
-  function handlePickerAmountChange(amount: string) {
-    setPickerAmount(amount);
-    if (pickerErrors.amount) {
-      setPickerErrors((current) => ({ ...current, amount: undefined }));
-    }
-  }
-
   function handlePickerAdd() {
     const errors: TransactionPickerErrors = {};
     if (!pickerCategoryId) {
       errors.category = transactionFormValidationMessages.categoryRequired;
-    }
-    if (
-      !deferPickerAmount &&
-      !isValidMoneyText(pickerAmount, selectedAccount?.currency)
-    ) {
-      errors.amount = transactionFormValidationMessages.amountInvalid;
-    } else if (
-      !deferPickerAmount &&
-      pickerRefundCandidate &&
-      Number(pickerAmount) <= 0
-    ) {
-      errors.amount = "退款金额必须大于 0。";
     }
 
     if (Object.keys(errors).length > 0) {
@@ -718,7 +690,6 @@ export function useTransactionForm({
     handleMerchantChange,
     handleNoteChange,
     handlePickerAdd,
-    handlePickerAmountChange,
     handlePickerCategoryToggle,
     handlePickerGroupSelect,
     handlePaymentAccountChange,
@@ -731,7 +702,6 @@ export function useTransactionForm({
     hasMixedPaymentItems,
     isIncomePayment,
     isSheetOpen,
-    isSubmitDisabled,
     linkNotice,
     itemSummaries,
     openItemSheet,
@@ -792,19 +762,17 @@ export function useTransactionForm({
 }
 
 function createInitialItemsByType(
-  initialValues?: TransactionFormInitialValues,
-  categoryById?: Map<string, TransactionCategoryOption>,
+  initialValues: TransactionFormInitialValues,
+  categoryById: Map<string, TransactionCategoryOption>,
 ): Record<TransactionType, TransactionFormItem[]> {
   const result: Record<TransactionType, TransactionFormItem[]> = {
     expense: [],
     income: [],
   };
 
-  if (!initialValues) return result;
-
   initialValues.items.forEach((item, index) => {
     const categoryType =
-      categoryById?.get(item.categoryId)?.type ?? initialValues.type;
+      categoryById.get(item.categoryId)?.type ?? initialValues.type;
     result[categoryType].push({
       ...item,
       id: index + 1,
@@ -831,11 +799,11 @@ type TransactionFormItemLinks = Pick<
 function isSavedLink(
   links: TransactionFormItemLinks,
   kind: TransactionLinkKind,
-  initialValues?: TransactionFormInitialValues,
+  initialValues: TransactionFormInitialValues,
 ) {
   if (!links.persistedId) return false;
   const key = linkCandidateKeys[kind];
-  const savedCandidateId = initialValues?.items.find(
+  const savedCandidateId = initialValues.items.find(
     (item) => item.id === links.persistedId,
   )?.[key]?.id;
   return Boolean(savedCandidateId) && savedCandidateId === links[key]?.id;
@@ -844,7 +812,7 @@ function isSavedLink(
 function splitCurrencyMismatchedLinkKinds(
   links: TransactionFormItemLinks,
   currency: string | undefined,
-  initialValues?: TransactionFormInitialValues,
+  initialValues: TransactionFormInitialValues,
 ) {
   const mismatchedKinds = getCurrencyMismatchedLinkKinds(links, currency);
   return {
