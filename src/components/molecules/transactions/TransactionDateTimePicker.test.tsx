@@ -42,7 +42,9 @@ function renderPicker(
 }
 
 function scrollPickerOption(name: string) {
-  const option = screen.getByRole("button", { name });
+  // 年份列有 101 个选项，getByRole 每次都要计算全部按钮的可访问名，
+  // 选项都有 aria-label，改用 getByLabelText 直接定位。
+  const option = screen.getByLabelText<HTMLButtonElement>(name);
   const container = option.parentElement;
 
   if (!container) {
@@ -110,7 +112,7 @@ function restoreScrollEndSupport() {
   Reflect.deleteProperty(window, "onscrollend");
 }
 
-describe("TransactionDateTimePicker", { timeout: 15000 }, () => {
+describe("TransactionDateTimePicker", () => {
   it("打开底部日历并选择日期", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 5, 20, 13, 10, 33));
@@ -147,7 +149,7 @@ describe("TransactionDateTimePicker", { timeout: 15000 }, () => {
     expect(
       screen.getByRole("button", { name: "选择 13 时" }),
     ).toBeInTheDocument();
-  }, 10000); // 打开抽屉会同时挂载年月选择器的 101 个年份按钮，CI 环境下渲染耗时可能超过默认 5000ms 超时
+  });
 
   it("点击月份标题可手动选择年月", () => {
     vi.useFakeTimers();
@@ -165,7 +167,7 @@ describe("TransactionDateTimePicker", { timeout: 15000 }, () => {
     expect(
       screen.getByRole("button", { name: "手动选择年月" }),
     ).toHaveTextContent("2028年9月");
-  }, 15000); // 年份列有 101 个选项，jsdom 逐一 Object.defineProperty 耗时较长
+  });
 
   it("滚动结束后才更新小时分钟", () => {
     vi.useFakeTimers();

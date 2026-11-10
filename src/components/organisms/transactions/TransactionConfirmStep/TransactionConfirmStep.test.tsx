@@ -758,10 +758,12 @@ describe("TransactionConfirmStep", () => {
   it("时间选择和提交保留秒，小票只显示分钟", async () => {
     renderConfirmFlow();
     fireEvent.click(headerRow("时间"));
-    fireEvent.click(screen.getByRole("button", { name: /时刻/ }));
-    click("选择 12 时");
-    click("选择 30 分");
-    click("选择 47 秒");
+    // 时刻滚轮同时挂载上百个选项按钮，getByRole 每次都要计算全部按钮的可访问名，
+    // 单次约 1 秒；选项都有 aria-label，改用 getByLabelText 直接定位。
+    fireEvent.click(screen.getByLabelText("选择时刻"));
+    fireEvent.click(screen.getByLabelText("选择 12 时"));
+    fireEvent.click(screen.getByLabelText("选择 30 分"));
+    fireEvent.click(screen.getByLabelText("选择 47 秒"));
     click("完成");
     await waitFor(() =>
       expect(
@@ -773,7 +775,7 @@ describe("TransactionConfirmStep", () => {
     expect(new FormData(transactionForm()).get("transactionAt")).toMatch(
       /T12:30:47$/,
     );
-  }, 15000);
+  });
 
   it("缺少账户和明细时只在保存后显示顶部提示，点明细提示打开分类抽屉", async () => {
     renderConfirmFlow({

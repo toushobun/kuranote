@@ -26,6 +26,10 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
+    // 组件测试多为 MUI + user-event 的 CPU 密集操作，正常耗时可达数秒。
+    // 默认 5000ms 在多核机器全并发时（每个 worker 分到的 CPU 变少）容易误判超时，
+    // 因此放宽到 30000ms；真正卡住的测试仍会失败，只是报错更晚。
+    testTimeout: 30_000,
     setupFiles: ["./src/test/setup.ts"],
     deps: {
       optimizer: {
