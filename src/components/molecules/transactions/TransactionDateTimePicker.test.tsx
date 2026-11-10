@@ -42,7 +42,9 @@ function renderPicker(
 }
 
 function scrollPickerOption(name: string) {
-  const option = screen.getByRole("button", { name });
+  // 年份列有 101 个选项，getByRole 每次都要计算全部按钮的可访问名，
+  // 选项都有 aria-label，改用 getByLabelText 直接定位。
+  const option = screen.getByLabelText<HTMLButtonElement>(name);
   const container = option.parentElement;
 
   if (!container) {
