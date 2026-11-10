@@ -1,1 +1,0 @@
-import{i as e}from"./preload-helper-D2yxXLVK.js";import{ct as t,ot as n}from"./iframe-Bve6Kyb6.js";function r(...e){let n=t();return function(){let t=new URL(window.location.href);for(let n of e)t.searchParams.delete(n);n.replace(`${t.pathname}${t.search}${t.hash}`,{scroll:!1})}}var i=e((()=>{n()}));export{r as n,i as t};
