@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { WizardDialog } from "./WizardDialog";
 import { WizardDialogSwitch } from "./WizardDialogSwitch";
@@ -15,7 +16,20 @@ function Pane({ paneKey }: { paneKey: "first" | "second" }) {
       onClose={closes[paneKey]}
     >
       <p>{paneKey} 内容</p>
+      <PaneDraft paneKey={paneKey} />
     </WizardDialog>
+  );
+}
+
+// 面板内的未保存输入，用来确认重新进入时是否是新实例。
+function PaneDraft({ paneKey }: { paneKey: string }) {
+  const [value, setValue] = useState("");
+  return (
+    <input
+      aria-label={`${paneKey} 草稿`}
+      value={value}
+      onChange={(event) => setValue(event.target.value)}
+    />
   );
 }
 
@@ -39,16 +53,21 @@ function renderSwitch(activeKey: string) {
 
 function mockAnimate() {
   const finishes: Array<() => void> = [];
+  const cancel = vi.fn();
   const animate = vi.fn(() => {
     let finish = () => {};
     const finished = new Promise<void>((resolve) => {
       finish = resolve;
     });
     finishes.push(finish);
-    return { finished };
+    return { finished, cancel };
   });
   Object.assign(HTMLElement.prototype, { animate });
-  return { animate, finishAll: () => finishes.forEach((finish) => finish()) };
+  return {
+    animate,
+    cancel,
+    finishAll: () => finishes.forEach((finish) => finish()),
+  };
 }
 
 describe("WizardDialogSwitch", () => {
@@ -95,6 +114,26 @@ describe("WizardDialogSwitch", () => {
     expect(
       screen.queryByTestId("wizard-dialog-switch-pane-first"),
     ).not.toBeInTheDocument();
+  });
+
+  it("滑出中又切回时新建面板，不复活已放弃的输入，并取消上一轮动画", async () => {
+    const { cancel, finishAll } = mockAnimate();
+    const rerender = renderSwitch("first");
+    fireEvent.change(screen.getByRole("textbox", { name: "first 草稿" }), {
+      target: { value: "已放弃" },
+    });
+    rerender("second");
+    const abandoned = screen.getByTestId("wizard-dialog-switch-pane-first");
+    rerender("first");
+    expect(abandoned).not.toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "first 草稿" })).toHaveValue("");
+    // 上一轮的新旧两段与标题淡入都被取消。
+    expect(cancel).toHaveBeenCalledTimes(3);
+    await act(async () => finishAll());
+    expect(
+      screen.queryByTestId("wizard-dialog-switch-pane-second"),
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByTestId(/wizard-dialog-switch-pane-/)).toHaveLength(1);
   });
 
   it("不支持动画时直接换成新面板", async () => {

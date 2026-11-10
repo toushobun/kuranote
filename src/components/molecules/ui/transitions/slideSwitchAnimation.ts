@@ -20,6 +20,9 @@ export function slideDirectionBetween(
   return order.indexOf(to) > order.indexOf(from) ? 1 : -1;
 }
 
+/** 一轮切换动画：finished 在结束或被取消时完成，cancel 立即取消本轮全部动画。 */
+export type SlideSwitch = { finished: Promise<void>; cancel: () => void };
+
 /**
  * 同级内容左右滑动切换（#1054 共用转场）：旧内容稍微滑出并变淡，新内容整屏推入；
  * 系统开启「减弱动态效果」时改为淡入淡出。浏览器不支持动画时立即完成。
@@ -30,8 +33,10 @@ export function animateSlideSwitch({
   direction,
   duration,
   easing,
-}: SlideSwitchOptions): Promise<void> {
-  if (typeof enter.animate !== "function") return Promise.resolve();
+}: SlideSwitchOptions): SlideSwitch {
+  if (typeof enter.animate !== "function") {
+    return { finished: Promise.resolve(), cancel: () => {} };
+  }
   const timing = { duration, easing };
   // 旧内容停在终点，避免动画结束到被移除之间闪回原位。
   const exitTiming = { ...timing, fill: "forwards" as const };
@@ -57,8 +62,11 @@ export function animateSlideSwitch({
           timing,
         ),
       ];
-  // 动画被打断（取消）时同样视为结束。
-  return Promise.allSettled(animations.map((a) => a.finished)).then(
-    () => undefined,
-  );
+  return {
+    // 动画被打断（取消）时同样视为结束。
+    finished: Promise.allSettled(animations.map((a) => a.finished)).then(
+      () => undefined,
+    ),
+    cancel: () => animations.forEach((animation) => animation.cancel()),
+  };
 }

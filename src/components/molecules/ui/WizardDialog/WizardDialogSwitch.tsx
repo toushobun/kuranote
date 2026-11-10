@@ -38,7 +38,9 @@ type WizardDialogSwitchProps = {
   renderPane: (key: string) => ReactNode;
 };
 
-type Exiting = { key: string; direction: SlideDirection };
+/** 面板实例：同一个 key 每次重新进入都是新实例（id 不同），不复用滑出中的旧面板。 */
+type PaneInstance = { key: string; id: number };
+type Exiting = PaneInstance & { direction: SlideDirection };
 
 /**
  * 同级面板切换的共用外框（#1055）：只开一个弹框，标题栏由当前面板的 WizardDialog 填入、原地不动；
@@ -54,21 +56,23 @@ export function WizardDialogSwitch({
   const titleId = useId();
   const [headerSlot, setHeaderSlot] = useState<HTMLElement | null>(null);
   const closeHandler = useRef<() => void>(() => {});
-  const panes = useRef(new Map<string, HTMLElement>());
-  const [shownKey, setShownKey] = useState(activeKey);
+  const panes = useRef(new Map<number, HTMLElement>());
+  const [shown, setShown] = useState<PaneInstance>({ key: activeKey, id: 0 });
   const [exiting, setExiting] = useState<Exiting | null>(null);
-  if (activeKey !== shownKey) {
-    setShownKey(activeKey);
+  if (activeKey !== shown.key) {
+    // 滑出中又切回同一方式时，旧实例直接卸载、新建一份：已放弃的表单不会复活，
+    // 离开守卫也随新实例重新登记。
+    setShown({ key: activeKey, id: shown.id + 1 });
     setExiting({
-      key: shownKey,
-      direction: slideDirectionBetween(order, shownKey, activeKey),
+      ...shown,
+      direction: slideDirectionBetween(order, shown.key, activeKey),
     });
   }
 
   useLayoutEffect(() => {
     if (!exiting) return;
-    const enter = panes.current.get(shownKey);
-    const exit = panes.current.get(exiting.key);
+    const enter = panes.current.get(shown.id);
+    const exit = panes.current.get(exiting.id);
     if (!enter || !exit) return;
     let current = true;
     const timing = {
@@ -76,21 +80,25 @@ export function WizardDialogSwitch({
       easing: theme.transitions.easing.easeOut,
     };
     // 标题栏原地不动，只有标题文字淡入。
-    headerSlot
+    const titleFade = headerSlot
       ?.querySelector("h2")
       ?.animate?.([{ opacity: 0 }, { opacity: 1 }], timing);
-    void animateSlideSwitch({
+    const slide = animateSlideSwitch({
       enter,
       exit,
       direction: exiting.direction,
       ...timing,
-    }).then(() => {
+    });
+    void slide.finished.then(() => {
       if (current) setExiting(null);
     });
+    // 动画未结束又切换时取消本轮动画，避免 fill 残留的位移或透明度。
     return () => {
       current = false;
+      titleFade?.cancel();
+      slide.cancel();
     };
-  }, [exiting, headerSlot, shownKey, theme]);
+  }, [exiting, headerSlot, shown.id, theme]);
 
   const setCloseHandler = useCallback((handler: () => void) => {
     closeHandler.current = handler;
@@ -104,7 +112,7 @@ export function WizardDialogSwitch({
     [activePane],
   );
   // 旧面板排在前面，新面板推入时盖在上面。
-  const keys = exiting ? [exiting.key, shownKey] : [shownKey];
+  const instances = exiting ? [exiting, shown] : [shown];
 
   return (
     <Dialog
@@ -123,14 +131,14 @@ export function WizardDialogSwitch({
     >
       <Box ref={setHeaderSlot} sx={{ flexShrink: 0 }} />
       <Box sx={viewportSx}>
-        {keys.map((key) => {
-          const active = key === shownKey;
+        {instances.map(({ key, id }) => {
+          const active = id === shown.id;
           return (
             <Box
-              key={key}
+              key={id}
               ref={(element: HTMLElement | null) => {
-                if (element) panes.current.set(key, element);
-                else panes.current.delete(key);
+                if (element) panes.current.set(id, element);
+                else panes.current.delete(id);
               }}
               aria-hidden={active ? undefined : true}
               inert={!active}

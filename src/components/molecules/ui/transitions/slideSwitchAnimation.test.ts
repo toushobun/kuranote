@@ -6,9 +6,10 @@ import {
 
 function animatedElement() {
   const element = document.createElement("div");
-  const animate = vi.fn(() => ({ finished: Promise.resolve() }));
+  const cancel = vi.fn();
+  const animate = vi.fn(() => ({ finished: Promise.resolve(), cancel }));
   Object.assign(element, { animate });
-  return { element, animate };
+  return { element, animate, cancel };
 }
 
 function mockReducedMotion(matches: boolean) {
@@ -42,7 +43,7 @@ describe("animateSlideSwitch", () => {
       exit: exit.element,
       direction: -1,
       ...timing,
-    });
+    }).finished;
     expect(enter.animate).toHaveBeenCalledWith(
       [{ transform: "translateX(-100%)" }, { transform: "translateX(0)" }],
       timing,
@@ -65,7 +66,7 @@ describe("animateSlideSwitch", () => {
       exit: exit.element,
       direction: 1,
       ...timing,
-    });
+    }).finished;
     expect(enter.animate).toHaveBeenCalledWith(
       [{ opacity: 0 }, { opacity: 1 }],
       timing,
@@ -83,22 +84,39 @@ describe("animateSlideSwitch", () => {
     mockReducedMotion(false);
     const enter = document.createElement("div");
     const exit = document.createElement("div");
-    const cancelled = () => ({ finished: Promise.reject(new Error("abort")) });
+    const cancelled = () => ({
+      finished: Promise.reject(new Error("abort")),
+      cancel: vi.fn(),
+    });
     Object.assign(enter, { animate: vi.fn(cancelled) });
     Object.assign(exit, { animate: vi.fn(cancelled) });
     await expect(
-      animateSlideSwitch({ enter, exit, direction: 1, ...timing }),
+      animateSlideSwitch({ enter, exit, direction: 1, ...timing }).finished,
     ).resolves.toBeUndefined();
   });
 
+  it("取消时停止本轮新旧两段动画", () => {
+    mockReducedMotion(false);
+    const enter = animatedElement();
+    const exit = animatedElement();
+    animateSlideSwitch({
+      enter: enter.element,
+      exit: exit.element,
+      direction: 1,
+      ...timing,
+    }).cancel();
+    expect(enter.cancel).toHaveBeenCalledTimes(1);
+    expect(exit.cancel).toHaveBeenCalledTimes(1);
+  });
+
   it("不支持动画时立即完成", async () => {
-    await expect(
-      animateSlideSwitch({
-        enter: document.createElement("div"),
-        exit: document.createElement("div"),
-        direction: 1,
-        ...timing,
-      }),
-    ).resolves.toBeUndefined();
+    const slide = animateSlideSwitch({
+      enter: document.createElement("div"),
+      exit: document.createElement("div"),
+      direction: 1,
+      ...timing,
+    });
+    await expect(slide.finished).resolves.toBeUndefined();
+    expect(() => slide.cancel()).not.toThrow();
   });
 });
