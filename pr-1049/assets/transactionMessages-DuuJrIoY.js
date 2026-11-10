@@ -1,0 +1,1 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";var t,n,r=e((()=>{t={addAccount:`添加账户`,transferMissingTwoAccounts:{title:`还差两个账户`,description:`转账需要至少两个账户`},transferMissingOneAccount:{title:`还差一个账户`,description:`转账需要至少两个账户`}},n={done:`完成`,close:e=>`关闭${e}编辑`}}));export{n,t as r,r as t};
