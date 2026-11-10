@@ -19,11 +19,6 @@ import type {
   TransactionMemberOption,
 } from "internal/transaction/service/read/transactionReadModels";
 
-import {
-  loadFrequentCategoryHistory,
-  selectFrequentCategoryIds,
-} from "./frequentCategories";
-
 export async function loadTransactionFormOptions(
   dependencies: TransactionReadDependencies<TransactionFormRepository>,
   currentLedger: CurrentLedger,
@@ -74,32 +69,17 @@ async function loadFormOptionsWith<
   accountOptionsPromise: Promise<Account[]>,
   merchantOptionsPromise: Promise<Merchants>,
 ) {
-  const [
-    accountOptions,
-    categoryRows,
-    frequentCategoryHistory,
-    merchantOptions,
-  ] = await Promise.all([
+  const [accountOptions, categoryRows, merchantOptions] = await Promise.all([
     accountOptionsPromise,
     dependencies.categoryQueryService.listActiveSummaries({
       ledgerId: currentLedger.id,
       userId: dependencies.currentUserId,
     }),
-    loadFrequentCategoryHistory({
-      ledgerId: currentLedger.id,
-      transactionRepository: dependencies.transactionRepository,
-    }),
     merchantOptionsPromise,
   ]);
-  const categoryOptions = buildFormCategoryOptions(categoryRows);
-
   return {
     accountOptions,
-    categoryOptions,
-    frequentCategoryIds: selectFrequentCategoryIds(
-      frequentCategoryHistory,
-      categoryOptions.map((category) => category.id),
-    ),
+    categoryOptions: buildFormCategoryOptions(categoryRows),
     merchantOptions,
     multiAccountPaymentEnabled:
       currentLedger.multiAccountPaymentEnabled ?? false,

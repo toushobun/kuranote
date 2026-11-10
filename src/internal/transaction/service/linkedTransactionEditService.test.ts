@@ -79,7 +79,6 @@ function formOptions() {
         type: "expense" as const,
       },
     ],
-    frequentCategoryIds: [],
     merchantOptions: [
       { icon_url: null, id: merchantId, name: "商家" },
       { icon_url: null, id: otherMerchantId, name: "新商家" },
