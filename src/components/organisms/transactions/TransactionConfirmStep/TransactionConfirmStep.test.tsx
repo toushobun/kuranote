@@ -407,11 +407,46 @@ describe("TransactionConfirmStep", () => {
     expect(await screen.findByText("编辑明细")).toBeInTheDocument();
   });
 
-  it("小票内添加明细打开选择分类抽屉", async () => {
+  it.each([
+    { categoryId: "lunch", groupName: "餐饮", categoryName: "午餐" },
+    { categoryId: "points", groupName: "其他收入", categoryName: "积分返还" },
+  ])(
+    "多账户小票新增明细时默认选中 $groupName 的第一个可用小分类",
+    ({ categoryId, groupName, categoryName }) => {
+      renderConfirmFlow({
+        itemsOptions: {
+          ...receiptItemsOptions,
+          initialItems: [{ categoryId, amount: "10000" }],
+          initialPayments: twoPayments,
+        },
+      });
+      click("添加明细");
+      expect(
+        screen.getByRole("button", { name: groupName, pressed: true }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: categoryName, pressed: true }),
+      ).toBeInTheDocument();
+    },
+  );
+
+  it("小票里手动切换大分类时选中该组第一个小分类", () => {
     renderConfirmFlow();
     click("添加明细");
+    click("日用品");
     expect(
-      await screen.findByRole("textbox", { name: "搜索小分类" }),
+      screen.getByRole("button", { name: "收纳", pressed: true }),
+    ).toBeInTheDocument();
+  });
+
+  it("编辑小票明细时仍选中该明细原有分类", () => {
+    renderConfirmFlow();
+    click("编辑明细 2");
+    expect(
+      screen.getByRole("button", { name: "日用品", pressed: true }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "收纳", pressed: true }),
     ).toBeInTheDocument();
   });
 

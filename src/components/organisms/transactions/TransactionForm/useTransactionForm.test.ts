@@ -446,10 +446,23 @@ describe("useTransactionForm", () => {
     });
   });
 
-  it("明细选择器先返回校验错误，再追加有效明细", () => {
+  it("切换大分类时选中第一个可用小分类，并可指定小分类", () => {
     const { result } = renderTransactionFormHook();
 
     act(() => result.current.openSheet());
+    act(() => result.current.handlePickerGroupSelect("expense-parent"));
+    expect(result.current.pickerCategoryId).toBe("expense-child");
+    // 没有父分类的分类同在 id 为 "" 的组里：指定 categoryId 时选中它，而不是组内第一个。
+    act(() => result.current.handlePickerGroupSelect("", "income-category"));
+    expect(result.current.pickerCategoryId).toBe("income-category");
+  });
+
+  it("取消选中小分类后校验小分类和金额，再追加有效明细", () => {
+    const { result } = renderTransactionFormHook();
+
+    act(() => result.current.openSheet());
+    expect(result.current.pickerCategoryId).toBe("expense-parent");
+    act(() => result.current.handlePickerCategoryToggle("expense-parent"));
     act(() => {
       expect(result.current.handlePickerAdd()).toBe(false);
     });

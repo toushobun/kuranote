@@ -58,7 +58,8 @@ type TransactionItemPickerDrawerProps = {
   onAmountChange: (amount: string) => void;
   onCategoryToggle: (categoryId: string) => void;
   onClose: () => void;
-  onGroupSelect: (groupId: string) => void;
+  /** 切换大分类；带 categoryId 时同时选中它，否则选中该组第一个可用小分类。 */
+  onGroupSelect: (groupId: string, categoryId?: string) => void;
   onPickerAdd: () => boolean;
   onRemoveItem: (itemId: number) => void;
   onRefundItemChange?: (item: TransactionRefundCandidate | null) => void;
@@ -208,8 +209,10 @@ export function TransactionItemPickerDrawer({
   });
 
   function selectCategory(groupId: string, categoryId: string) {
-    if (selectedCategoryGroup?.id !== groupId) onGroupSelect(groupId);
-    onCategoryToggle(categoryId);
+    // 切到别的大分类时直接选中点的小分类；用 toggle 会把自动选中的第一个小分类取消掉。
+    if (selectedCategoryGroup?.id !== groupId)
+      onGroupSelect(groupId, categoryId);
+    else onCategoryToggle(categoryId);
   }
 
   function handleConfirm() {
