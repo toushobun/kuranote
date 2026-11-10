@@ -43,7 +43,6 @@ function createRepository(
       transaction_at: "2026-06-04T01:00:00.000Z",
       type: "normal",
     }),
-    loadFrequentCategoryCounts: vi.fn().mockResolvedValue([]),
     findUserSummaries: vi.fn().mockResolvedValue([]),
     listActiveMemberIds: vi.fn().mockResolvedValue([]),
     listItems: vi.fn().mockResolvedValue([]),

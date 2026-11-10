@@ -8,10 +8,6 @@ export function TransactionStepItemPicker(props: TransactionReceiptProps) {
   return (
     <TransactionItemPickerDrawer
       {...props}
-      inWizard
-      showFrequentCategories={false}
-      showAmountInput={false}
-      frequentCategoryIds={[]}
       categoryGroups={f.categoryGroups}
       filteredCategoryOptions={f.allNormalCategoryOptions}
       editingItemId={f.editingItemId}
@@ -29,7 +25,6 @@ export function TransactionStepItemPicker(props: TransactionReceiptProps) {
       selectedCategoryGroup={f.selectedCategoryGroup}
       specialStatusEnabled={props.transactionItemSpecialStatusEnabled}
       disabledCategoryType={f.disabledCategoryType}
-      onAmountChange={f.handlePickerAmountChange}
       onCategoryToggle={f.handlePickerCategoryToggle}
       onGroupSelect={f.handlePickerGroupSelect}
       onPickerAdd={f.handlePickerAdd}

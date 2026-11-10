@@ -65,5 +65,4 @@ export type TransactionItemSummary = TransactionFormItem & {
 
 export type TransactionPickerErrors = {
   category?: string;
-  amount?: string;
 };

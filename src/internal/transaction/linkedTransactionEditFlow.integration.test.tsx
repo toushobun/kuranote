@@ -119,7 +119,6 @@ function createView(side: "parent" | "child"): NormalEditView {
     canDelete: true,
     categoryOptions,
     editRestriction: null,
-    frequentCategoryIds: [],
     initialValues: {
       expectedRecordUpdatedAt,
       payments: [{ accountId, amount: null }],

@@ -46,7 +46,11 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
   const readOnly = !!props.readOnly;
   // 付款未对上时，点提示条定位到支付区。
   const paymentSectionRef = useRef<HTMLDivElement>(null);
-  const w = useTransactionConfirmStep(props, paymentSectionRef);
+  const w = useTransactionConfirmStep(props, () => {
+    const section = paymentSectionRef.current;
+    section?.scrollIntoView?.({ block: "center", behavior: "smooth" });
+    section?.focus();
+  });
   // 只显示上次点保存时已有、现在仍未解决的提示（#1016 / #1040）。
   const visibleIssues = w.issues.filter((issue) => w.isChecked(issue.id));
   const hasVisibleIssue = (id: string) =>

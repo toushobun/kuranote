@@ -1,3 +1,4 @@
+import type { Theme } from "@mui/material/styles";
 import { designTokens } from "theme/theme";
 
 // 不带 "use client"：加载骨架等服务端组件也能复用同一外框尺寸与标题栏。
@@ -7,6 +8,13 @@ export const wizardDialogPaperSx = {
   maxWidth: 560,
   overflow: "hidden",
 };
+
+export const fullScreenWizardDialogPaperSx = { overflow: "hidden" };
+
+/** 打开时不淡入、关闭时照常淡出（如记一笔从骨架切换过来时）。 */
+export function enterlessTransitionDuration(theme: Theme) {
+  return { enter: 0, exit: theme.transitions.duration.leavingScreen };
+}
 
 export const wizardDialogHeaderSx = {
   borderBottom: "1px solid",

@@ -59,7 +59,7 @@ const incomeGroup: CategoryPickerGroup = {
 describe("TransactionItemPickerDrawer", () => {
   afterEach(() => cleanup());
 
-  it("按服务端提供的动态顺序显示常用快捷并可选择", () => {
+  it("左列选大分类、右列选小分类", () => {
     const onCategoryToggle = vi.fn();
     const onGroupSelect = vi.fn();
 
@@ -68,8 +68,6 @@ describe("TransactionItemPickerDrawer", () => {
         <TransactionItemPickerDrawer
           categoryGroups={categoryGroups}
           filteredCategoryOptions={categoryOptions}
-          frequentCategoryIds={["traffic-train", "food-lunch"]}
-          onAmountChange={vi.fn()}
           onCategoryToggle={onCategoryToggle}
           onClose={vi.fn()}
           onGroupSelect={onGroupSelect}
@@ -84,16 +82,6 @@ describe("TransactionItemPickerDrawer", () => {
       </ThemeProvider>,
     );
 
-    const trainShortcut = screen.getByRole("button", {
-      name: "交通 · 电车",
-    });
-    const lunchShortcut = screen.getByRole("button", {
-      name: "餐饮 · 午餐",
-    });
-    expect(trainShortcut.compareDocumentPosition(lunchShortcut)).toBe(
-      Node.DOCUMENT_POSITION_FOLLOWING,
-    );
-    fireEvent.click(screen.getByRole("button", { name: "选择更多分类" }));
     const expectedItemRadius = `${designTokens.radius.item}px`;
     expect(
       getComputedStyle(screen.getByRole("button", { name: "餐饮" }))
@@ -104,11 +92,7 @@ describe("TransactionItemPickerDrawer", () => {
         .borderRadius,
     ).toBe(expectedItemRadius);
 
-    fireEvent.click(trainShortcut);
-    expect(onGroupSelect).toHaveBeenCalledWith("traffic", "traffic-train");
-    expect(onCategoryToggle).not.toHaveBeenCalled();
-
-    fireEvent.click(lunchShortcut);
+    fireEvent.click(screen.getByRole("button", { name: "午餐" }));
     expect(onCategoryToggle).toHaveBeenCalledWith("food-lunch");
 
     fireEvent.click(screen.getByRole("button", { name: "交通" }));
@@ -120,65 +104,47 @@ describe("TransactionItemPickerDrawer", () => {
       type: "income",
       group: incomeGroup,
       enabledGroup: "餐饮",
-      disabledShortcut: "收入 · 工资",
-      enabledShortcut: "餐饮 · 午餐",
     },
     {
       type: "expense",
       group: categoryGroups[0],
       enabledGroup: "收入",
-      disabledShortcut: "餐饮 · 午餐",
-      enabledShortcut: "收入 · 工资",
     },
-  ] as const)(
-    "多账户时禁用 $type 分类与对应常用快捷",
-    ({ type, group, enabledGroup, disabledShortcut, enabledShortcut }) => {
-      render(
-        <TransactionItemPickerDrawer
-          categoryGroups={[...categoryGroups, incomeGroup]}
-          filteredCategoryOptions={[...categoryOptions, incomeCategory]}
-          frequentCategoryIds={["income-salary", "food-lunch"]}
-          disabledCategoryType={type}
-          onAmountChange={vi.fn()}
-          onCategoryToggle={vi.fn()}
-          onClose={vi.fn()}
-          onGroupSelect={vi.fn()}
-          onPickerAdd={() => true}
-          onRemoveItem={vi.fn()}
-          open
-          pickerAmount=""
-          pickerCategoryId=""
-          pickerErrors={{}}
-          selectedCategoryGroup={group}
-        />,
-      );
+  ] as const)("多账户时禁用 $type 分类", ({ type, group, enabledGroup }) => {
+    render(
+      <TransactionItemPickerDrawer
+        categoryGroups={[...categoryGroups, incomeGroup]}
+        filteredCategoryOptions={[...categoryOptions, incomeCategory]}
+        disabledCategoryType={type}
+        onCategoryToggle={vi.fn()}
+        onClose={vi.fn()}
+        onGroupSelect={vi.fn()}
+        onPickerAdd={() => true}
+        onRemoveItem={vi.fn()}
+        open
+        pickerAmount=""
+        pickerCategoryId=""
+        pickerErrors={{}}
+        selectedCategoryGroup={group}
+      />,
+    );
 
-      expect(
-        screen.getByRole("button", { name: disabledShortcut }),
-      ).toHaveAttribute("aria-disabled", "true");
-      expect(
-        screen.getByRole("button", { name: enabledShortcut }),
-      ).not.toHaveAttribute("aria-disabled");
-      fireEvent.click(screen.getByRole("button", { name: "选择更多分类" }));
-      expect(screen.getByRole("button", { name: group.name })).toBeDisabled();
-      expect(
-        screen.getByRole("button", { name: group.categories[0].name }),
-      ).toBeDisabled();
-      expect(screen.getByRole("button", { name: enabledGroup })).toBeEnabled();
-      expect(
-        screen.getByText("多个账户时，收入和支出不能混在一起。"),
-      ).toBeInTheDocument();
-    },
-  );
+    expect(screen.getByRole("button", { name: group.name })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: group.categories[0].name }),
+    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: enabledGroup })).toBeEnabled();
+    expect(
+      screen.getByText("多个账户时，收入和支出不能混在一起。"),
+    ).toBeInTheDocument();
+  });
 
   function renderIncomeDrawer(linkNotice?: string | null) {
     render(
       <TransactionItemPickerDrawer
         categoryGroups={[incomeGroup]}
         filteredCategoryOptions={[incomeCategory]}
-        frequentCategoryIds={[]}
         linkNotice={linkNotice}
-        onAmountChange={vi.fn()}
         onCategoryToggle={vi.fn()}
         onClose={vi.fn()}
         onGroupSelect={vi.fn()}
@@ -224,8 +190,6 @@ describe("TransactionItemPickerDrawer", () => {
         categoryGroups={categoryGroups}
         editingItemId={1}
         filteredCategoryOptions={categoryOptions}
-        frequentCategoryIds={[]}
-        onAmountChange={vi.fn()}
         onCategoryToggle={vi.fn()}
         onClose={vi.fn()}
         onGroupSelect={vi.fn()}
@@ -259,8 +223,6 @@ describe("TransactionItemPickerDrawer", () => {
         categoryGroups={categoryGroups}
         editingItemId={1}
         filteredCategoryOptions={categoryOptions}
-        frequentCategoryIds={[]}
-        onAmountChange={vi.fn()}
         onCategoryToggle={vi.fn()}
         onClose={vi.fn()}
         onGroupSelect={vi.fn()}
@@ -282,7 +244,7 @@ describe("TransactionItemPickerDrawer", () => {
       screen.queryByRole("checkbox", { name: "待报销" }),
     ).not.toBeInTheDocument();
   });
-  it("新流程可隐藏金额和常用快捷并直接展示分类，确认回调保持不变", () => {
+  it("点确定后调用添加回调并关闭抽屉", () => {
     const onPickerAdd = vi.fn(() => true);
     const onClose = vi.fn();
     render(
@@ -290,11 +252,6 @@ describe("TransactionItemPickerDrawer", () => {
         <TransactionItemPickerDrawer
           categoryGroups={categoryGroups}
           filteredCategoryOptions={categoryOptions}
-          frequentCategoryIds={["food-lunch"]}
-          showAmountInput={false}
-          showFrequentCategories={false}
-          inWizard
-          onAmountChange={vi.fn()}
           onCategoryToggle={vi.fn()}
           onGroupSelect={vi.fn()}
           onPickerAdd={onPickerAdd}
@@ -308,11 +265,6 @@ describe("TransactionItemPickerDrawer", () => {
         />
       </ThemeProvider>,
     );
-    expect(screen.queryByText("常用快捷")).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("textbox", { name: "金额" }),
-    ).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "午餐" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "确定" }));
     expect(onPickerAdd).toHaveBeenCalledOnce();
     expect(onClose).toHaveBeenCalledOnce();

@@ -35,7 +35,6 @@ export function useTransactionReceiptForm({
     categoryOptions: itemsOptions.categoryOptions,
     merchantOptions: merchants,
     initialValues,
-    deferPickerAmount: true,
     onPickerItemCommit: setAmountItemId,
   });
   return { form, itemsOptions, amountItemId, setAmountItemId };

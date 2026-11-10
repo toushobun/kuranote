@@ -70,6 +70,16 @@ const reimbursementCandidate: TransactionRefundCandidate = {
   transactionRecordId: "reimbursement-record-1",
 };
 
+// 与新增记账（useTransactionStepFlow）相同的空表单初始值。
+const newFormInitialValues = {
+  items: [],
+  merchantId: "",
+  note: "",
+  payments: [{ accountId: "", amount: null }],
+  transactionAt: "",
+  type: "expense" as const,
+};
+
 function renderTransactionFormHook(
   overrides: Partial<Parameters<typeof useTransactionForm>[0]> = {},
 ) {
@@ -77,6 +87,7 @@ function renderTransactionFormHook(
     useTransactionForm({
       accountOptions,
       categoryOptions,
+      initialValues: newFormInitialValues,
       merchantOptions,
       ...overrides,
     }),
@@ -90,6 +101,16 @@ function changePrimaryAccount(
   result.current.handlePaymentAccountChange(
     result.current.payments[0]!.key,
     accountId,
+  );
+}
+
+// 与小票一致：明细先以空金额加入，再用金额键盘写入。
+function enterAddedItemAmount(
+  result: { current: ReturnType<typeof useTransactionForm> },
+  amount: string,
+) {
+  act(() =>
+    result.current.updateItem(result.current.itemSummaries[0]!.id, { amount }),
   );
 }
 
@@ -127,7 +148,6 @@ describe("useTransactionForm", () => {
     act(() => {
       result.current.openSheet();
       result.current.handlePickerCategoryToggle("expense-child");
-      result.current.handlePickerAmountChange("1200");
     });
     expect(mocks.markEditDirty).toHaveBeenLastCalledWith(false);
     act(() => result.current.closeSheet());
@@ -190,7 +210,6 @@ describe("useTransactionForm", () => {
       changePrimaryAccount(result, "account-1");
       result.current.openSheet();
       result.current.handlePickerCategoryToggle("income-category");
-      result.current.handlePickerAmountChange("1500");
     });
     act(() =>
       result.current.setPickerRefundCandidate({
@@ -201,6 +220,7 @@ describe("useTransactionForm", () => {
     act(() => {
       expect(result.current.handlePickerAdd()).toBe(true);
     });
+    enterAddedItemAmount(result, "1500");
 
     expect(result.current.itemSummaries[0]).toMatchObject({
       amount: "1500",
@@ -221,7 +241,6 @@ describe("useTransactionForm", () => {
         changePrimaryAccount(result, "account-1");
         result.current.openSheet();
         result.current.handlePickerCategoryToggle("income-category");
-        result.current.handlePickerAmountChange(incomeAmount);
       });
       act(() =>
         result.current.setPickerReimbursementCandidate(reimbursementCandidate),
@@ -229,6 +248,7 @@ describe("useTransactionForm", () => {
       act(() => {
         expect(result.current.handlePickerAdd()).toBe(true);
       });
+      enterAddedItemAmount(result, incomeAmount);
 
       expect(result.current.itemSummaries[0]).toMatchObject({
         amount: incomeAmount,
@@ -404,12 +424,12 @@ describe("useTransactionForm", () => {
     act(() => {
       result.current.openSheet();
       result.current.handlePickerCategoryToggle("expense-child");
-      result.current.handlePickerAmountChange("500");
       result.current.setPickerSpecialStatus("pendingReimbursement");
     });
     act(() => {
       expect(result.current.handlePickerAdd()).toBe(true);
     });
+    enterAddedItemAmount(result, "500");
 
     expect(result.current.itemSummaries[0]).toMatchObject({
       amount: "500",
@@ -457,7 +477,7 @@ describe("useTransactionForm", () => {
     expect(result.current.pickerCategoryId).toBe("income-category");
   });
 
-  it("取消选中小分类后校验小分类和金额，再追加有效明细", () => {
+  it("取消选中小分类后校验小分类，选中后追加空金额明细", () => {
     const { result } = renderTransactionFormHook();
 
     act(() => result.current.openSheet());
@@ -467,21 +487,17 @@ describe("useTransactionForm", () => {
       expect(result.current.handlePickerAdd()).toBe(false);
     });
     expect(result.current.pickerErrors).toEqual({
-      amount: expect.any(String),
       category: expect.any(String),
     });
 
-    act(() => {
-      result.current.handlePickerCategoryToggle("expense-child");
-      result.current.handlePickerAmountChange("1200");
-    });
+    act(() => result.current.handlePickerCategoryToggle("expense-child"));
     act(() => {
       expect(result.current.handlePickerAdd()).toBe(true);
     });
 
     expect(result.current.itemSummaries).toHaveLength(1);
     expect(result.current.itemSummaries[0]).toMatchObject({
-      amount: "1200",
+      amount: "",
       categoryId: "expense-child",
     });
     expect(mocks.markEditDirty).toHaveBeenCalled();
@@ -776,7 +792,6 @@ describe("useTransactionForm", () => {
         // 编辑页中新增一条带关联的收入明细（尚未保存）。
         act(() => result.current.openSheet());
         act(() => result.current.handlePickerCategoryToggle("income-category"));
-        act(() => result.current.handlePickerAmountChange("100"));
         act(() =>
           kind === "refund"
             ? result.current.setPickerRefundCandidate(candidate)
@@ -868,12 +883,9 @@ describe("useTransactionForm", () => {
       expect(result.current.linkNotice).toContain("退款、报销");
     });
   });
-  it("延后金额模式允许空金额并通知新明细编号，默认模式仍校验金额", () => {
+  it("添加明细时允许空金额并通知新明细编号", () => {
     const onPickerItemCommit = vi.fn();
-    const { result } = renderTransactionFormHook({
-      deferPickerAmount: true,
-      onPickerItemCommit,
-    });
+    const { result } = renderTransactionFormHook({ onPickerItemCommit });
     act(() => result.current.handlePickerCategoryToggle("expense-child"));
     act(() => {
       expect(result.current.handlePickerAdd()).toBe(true);
