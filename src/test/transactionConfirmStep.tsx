@@ -3,7 +3,7 @@ import { fireEvent, screen, within } from "@testing-library/react";
 import {
   renderEntryComponent,
   renderTransactionFlow,
-  clickEntryButton,
+  selectEntryMerchant,
 } from "./transactionStepFlow";
 import { receiptFlowFixture } from "./mocks/transactionReceipt";
 import { ReadOnlyReceipt } from "./ReadOnlyReceipt";
@@ -12,7 +12,7 @@ import type {
   TransactionStepFlowProps,
 } from "organisms/transactions/TransactionStepFlow/TransactionStepFlow.types";
 
-export function renderConfirmFlow(
+export async function renderConfirmFlow(
   overrides: Partial<TransactionStepFlowProps> = {},
 ) {
   const itemsOptions = {
@@ -33,7 +33,7 @@ export function renderConfirmFlow(
       overrides.suggestionsMerchantId ??
       (itemsOptions.initialItems?.length ? undefined : "seven"),
   });
-  clickEntryButton("7-Eleven");
+  await selectEntryMerchant("7-Eleven");
   return view;
 }
 export function pressItemAmountKey(name: string) {

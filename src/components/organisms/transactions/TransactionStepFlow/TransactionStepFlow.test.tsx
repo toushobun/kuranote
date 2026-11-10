@@ -24,6 +24,7 @@ import {
   renderEntryComponent,
   clickEntryButton as click,
   selectEntryAccount as selectAccount,
+  selectEntryMerchant,
 } from "test/transactionStepFlow";
 import {
   expectAutomaticNotice,
@@ -62,7 +63,7 @@ function quickSetup(overrides: Partial<TransactionStepFlowProps> = {}) {
 function heading(name: string) {
   return screen.queryByRole("heading", { name });
 }
-function onMerchantScreen() {
+function merchantDrawerOpen() {
   return !!screen.queryByRole("textbox", { name: "搜索商家" });
 }
 function saveButton() {
@@ -151,9 +152,13 @@ afterEach(() => {
 });
 
 describe("TransactionStepFlow", () => {
-  it("第 1 屏是选择商家：关闭在左、标题「记一笔」、右侧切换方式，没有进度条", () => {
+  it("打开直接显示空小票、关闭和切换方式，没有进度条", () => {
     setup();
-    expect(heading("记一笔")).toBeInTheDocument();
+    expect(heading("从商家记账")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "修改商家：请选择商家" }),
+    ).toBeVisible();
+    expect(merchantDrawerOpen()).toBe(false);
     expect(
       screen.getByRole("button", { name: "关闭记账" }),
     ).toBeInTheDocument();
@@ -166,15 +171,26 @@ describe("TransactionStepFlow", () => {
     ).toBeNull();
   });
 
-  it("小票页显示关闭和标题「从商家记账」，没有返回或切换方式", () => {
+  it.each(["头像", "文字"])("点击空商家%s打开抽屉", (part) => {
+    setup();
+    const button = screen.getByRole("button", { name: "修改商家：请选择商家" });
+    fireEvent.click(
+      part === "头像"
+        ? within(button).getByTestId("StorefrontOutlinedIcon")
+        : within(button).getByText("请选择商家"),
+    );
+    expect(merchantDrawerOpen()).toBe(true);
+  });
+
+  it("自动带出后仍显示关闭和切换方式", async () => {
     quickSetup();
-    click("7-Eleven");
+    await selectEntryMerchant("7-Eleven");
     expect(heading("从商家记账")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /返回/ })).toBeNull();
     expect(
       screen.getByRole("button", { name: "关闭记账" }),
     ).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "切换方式" })).toBeNull();
+    expect(screen.getByRole("button", { name: "切换方式" })).toBeVisible();
   });
 
   it("StrictMode 重挂载的干净首屏不压哨兵，卸载不产生历史遍历", async () => {
@@ -195,9 +211,9 @@ describe("TransactionStepFlow", () => {
   });
   it("快速路线仍在等待建议时关闭不弹无法保存的确认", async () => {
     const { props } = quickSetup({ suggestionsMerchantId: "life" });
-    click("7-Eleven");
-    expect(onMerchantScreen()).toBe(true);
-    expect(screen.queryByRole("button", { name: "保存记账" })).toBeNull();
+    await selectEntryMerchant("7-Eleven");
+    expect(screen.getByRole("progressbar")).toBeVisible();
+    expect(saveButton()).toBeVisible();
     click("关闭记账");
     await waitFor(() => expect(props.onClose).toHaveBeenCalledOnce());
     expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
@@ -205,7 +221,7 @@ describe("TransactionStepFlow", () => {
 
   it("添加付款账户再删除，内容虽回到原样，关闭时仍要确认", async () => {
     const { props } = quickSetup();
-    click("7-Eleven");
+    await selectEntryMerchant("7-Eleven");
     await screen.findByRole("button", { name: "保存记账" });
     click("添加付款账户");
     selectAccount("现金 JPY");
@@ -223,18 +239,21 @@ describe("TransactionStepFlow", () => {
     expect(props.onClose).not.toHaveBeenCalled();
   });
 
-  it("首屏未修改直接关闭，搜索商家不算修改", async () => {
+  it("搜索商家后关闭抽屉，再关闭小票无需确认", async () => {
     const { props } = quickSetup();
+    click("修改商家：请选择商家");
     fireEvent.change(screen.getByRole("textbox", { name: "搜索商家" }), {
       target: { value: "关键词" },
     });
+    click("关闭商家编辑");
+    await waitMerchantDrawerClosed();
     click("关闭记账");
     await waitFor(() => expect(props.onClose).toHaveBeenCalledOnce());
     expect(screen.queryByText("尚未保存")).toBeNull();
   });
   it("小票修改后关闭：继续编辑保留内容，放弃只关闭本流程", async () => {
     const { props } = quickSetup();
-    click("7-Eleven");
+    await selectEntryMerchant("7-Eleven");
     click("修改备注：添加备注");
     fireEvent.change(screen.getByRole("textbox", { name: "备注" }), {
       target: { value: "手动备注" },
@@ -262,7 +281,7 @@ describe("TransactionStepFlow", () => {
     ["没有历史的商家", noHistory],
   ])("只选%s时退出不弹确认，自动填写不算修改", async (_, suggestions) => {
     const { props } = quickSetup({ suggestions });
-    click("7-Eleven");
+    await selectEntryMerchant("7-Eleven");
     await screen.findByRole("button", { name: "保存记账" });
     expect(screen.queryAllByRole("alert")).toHaveLength(0);
     click("关闭记账");
@@ -272,7 +291,7 @@ describe("TransactionStepFlow", () => {
 
   it("从小票换商家后自动替换明细，未手动填写时退出也不弹确认", async () => {
     const { props, rerender } = quickSetup();
-    click("7-Eleven");
+    await selectEntryMerchant("7-Eleven");
     await screen.findByRole("button", { name: "保存记账" });
     click("修改商家：7-Eleven");
     click("LIFE超市");
@@ -323,7 +342,7 @@ describe("TransactionStepFlow", () => {
     ["时间", changeReceiptTime],
   ])("手动修改%s后关闭才弹未保存确认", async (_, change) => {
     quickSetup({ suggestions: noHistory });
-    click("7-Eleven");
+    await selectEntryMerchant("7-Eleven");
     await screen.findByRole("button", { name: "保存记账" });
     await change();
     click("关闭记账");
@@ -335,7 +354,7 @@ describe("TransactionStepFlow", () => {
   it("退出确认保存校验失败时留在小票，修复后正常保存且无残留离开意图", async () => {
     const action = vi.fn(async () => ({}));
     const { props } = quickSetup({ suggestions: noHistory, action });
-    click("7-Eleven");
+    await selectEntryMerchant("7-Eleven");
     click("修改备注：添加备注");
     fireEvent.change(screen.getByRole("textbox", { name: "备注" }), {
       target: { value: "购买日用品" },
@@ -382,7 +401,7 @@ describe("TransactionStepFlow", () => {
       action,
       suggestions: noHistory,
     });
-    click("7-Eleven");
+    await selectEntryMerchant("7-Eleven");
     await screen.findByRole("button", { name: "保存记账" });
     click("删除明细 2");
 
@@ -398,13 +417,15 @@ describe("TransactionStepFlow", () => {
     expect(screen.getAllByRole("status")).toHaveLength(1);
   });
 
-  it("关闭后重新打开不保留上次内容", () => {
+  it("关闭后重新打开不保留上次内容", async () => {
     const view = quickSetup();
-    click("7-Eleven");
-    expect(onMerchantScreen()).toBe(false);
+    await selectEntryMerchant("7-Eleven");
+    expect(merchantDrawerOpen()).toBe(false);
     view.rerender(<TransactionStepFlow {...view.props} open={false} />);
     view.rerender(<TransactionStepFlow {...view.props} />);
-    expect(onMerchantScreen()).toBe(true);
+    expect(
+      screen.getByRole("button", { name: "修改商家：请选择商家" }),
+    ).toBeVisible();
   });
 
   it("通过外框打开方式抽屉，清理历史后通知外部切换方式", async () => {
@@ -425,7 +446,7 @@ describe("TransactionStepFlow", () => {
         initialPayments: [{ accountId: "paypay", amount: null }],
       },
     });
-    click("7-Eleven");
+    await selectEntryMerchant("7-Eleven");
     click("修改商家：7-Eleven");
     expect(screen.getByRole("heading", { name: "商家" })).toBeInTheDocument();
     click("LIFE超市");
@@ -458,7 +479,7 @@ describe("TransactionStepFlow 换商家", () => {
   it("抽屉内换商家立即关闭且不触发快速路线，超过两秒仍留在同一个小票", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const view = quickSetup({ suggestions: noHistory });
-    click("7-Eleven");
+    await selectEntryMerchant("7-Eleven");
     const form = saveButton().closest("form");
     click("修改商家：7-Eleven");
     click("LIFE超市");
@@ -467,7 +488,7 @@ describe("TransactionStepFlow 换商家", () => {
       screen.getByRole("button", { name: "修改商家：LIFE超市" }),
     ).toBeInTheDocument();
     expect(screen.queryByRole("progressbar")).toBeNull();
-    expect(onMerchantScreen()).toBe(false);
+    expect(merchantDrawerOpen()).toBe(false);
     expect(saveButton().closest("form")).toBe(form);
     waitQuickRouteTimeout();
     expect(saveButton().closest("form")).toBe(form);
@@ -502,7 +523,7 @@ describe("TransactionStepFlow 换商家", () => {
     } = {},
   ) {
     const view = quickSetup();
-    click("7-Eleven");
+    await selectEntryMerchant("7-Eleven");
     expect(await screen.findByText("从商家记账")).toBeInTheDocument();
     await beforeSwitch?.();
     click("修改商家：7-Eleven");
@@ -619,11 +640,11 @@ describe("TransactionStepFlow 换商家", () => {
 
   it("重新选同一个商家时明细不变", async () => {
     const { props, rerender } = quickSetup();
-    click("7-Eleven");
+    await selectEntryMerchant("7-Eleven");
     expect(await screen.findByText("从商家记账")).toBeInTheDocument();
     click("删除明细 1");
     click("修改商家：7-Eleven");
-    click("7-Eleven");
+    await selectEntryMerchant("7-Eleven");
     await waitMerchantDrawerClosed();
     rerender(
       <TransactionStepFlow {...props} suggestions={{ ...quickSuggestions }} />,
@@ -636,7 +657,7 @@ describe("TransactionStepFlow 换商家", () => {
 describe("TransactionStepFlow 进入小票", () => {
   it("快速路线有自动明细：选好推荐账户、自动明细待输入，不弹出金额键盘", async () => {
     const { props } = quickSetup();
-    click("7-Eleven");
+    await selectEntryMerchant("7-Eleven");
     expect(await screen.findByText("从商家记账")).toBeInTheDocument();
     expect(props.onAccountSelect).toHaveBeenCalledWith(flowFixture.accounts[1]);
     expectAutomaticNotice();
@@ -659,7 +680,7 @@ describe("TransactionStepFlow 进入小票", () => {
     quickSetup({
       suggestions: { ...quickSuggestions, automaticCategoryIds: [] },
     });
-    click("7-Eleven");
+    await selectEntryMerchant("7-Eleven");
     expect(await screen.findByText("从商家记账")).toBeInTheDocument();
     expect(receiptLine("更换支付账户 1")).toHaveTextContent("PayPay");
     expectAutomaticNotice();
@@ -670,7 +691,7 @@ describe("TransactionStepFlow 进入小票", () => {
 
   it("没有历史：首次不提示，保存时提示缺项，补齐后可以保存", async () => {
     quickSetup({ suggestions: noHistory });
-    click("7-Eleven");
+    await selectEntryMerchant("7-Eleven");
     await screen.findByRole("button", { name: "添加明细" });
     expect(screen.queryByText("这家商家还没有记录")).toBeNull();
     expectAutomaticNotice(false);
@@ -704,13 +725,13 @@ describe("TransactionStepFlow 进入小票", () => {
     await waitFor(() => expect(saveButton()).toBeEnabled());
   });
 
-  it("选完商家先停在选择商家并显示加载，建议到达后进入小票，只应用一次", async () => {
+  it("选商家后立即关闭抽屉，头像显示加载，建议到达后只应用一次", async () => {
     const { props, rerender } = quickSetup({ suggestionsMerchantId: "life" });
-    click("7-Eleven");
-    expect(onMerchantScreen()).toBe(true);
+    await selectEntryMerchant("7-Eleven");
+    expect(screen.getByRole("progressbar")).toBeVisible();
     expect(
       screen.getAllByRole("progressbar", { name: "正在读取 7-Eleven 的记录" }),
-    ).toHaveLength(2);
+    ).toHaveLength(1);
     const loaded = { ...props, suggestionsMerchantId: "seven" };
     rerender(<TransactionStepFlow {...loaded} />);
     expect(await screen.findByText("从商家记账")).toBeInTheDocument();
@@ -722,13 +743,14 @@ describe("TransactionStepFlow 进入小票", () => {
     expectAutomaticNotice(false);
   });
 
-  it("超过等待时间仍没有建议时进入小票、不选账户；没动过小票时只补上当前商家晚到的建议一次", () => {
+  it("超过等待时间停止头像加载；没动过小票时只补上当前商家晚到的建议一次", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const { props, rerender } = quickSetup({ suggestionsMerchantId: "life" });
-    click("7-Eleven");
-    waitQuickRouteTimeout(quickRouteSuggestionTimeoutMs - 1);
-    expect(onMerchantScreen()).toBe(true);
-    waitQuickRouteTimeout(1);
+    await selectEntryMerchant("7-Eleven");
+    waitQuickRouteTimeout(1000);
+    expect(screen.getByRole("progressbar")).toBeVisible();
+    waitQuickRouteTimeout(1000);
+    expect(screen.queryByRole("progressbar")).toBeNull();
     expect(heading("从商家记账")).toBeInTheDocument();
     expectNoPaymentRow();
     // 其他商家的建议不应用。
@@ -761,7 +783,7 @@ describe("TransactionStepFlow 进入小票", () => {
   ])("超时后%s，晚到的建议不再应用", async (_, touch) => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const { props, rerender } = quickSetup({ suggestionsMerchantId: "life" });
-    click("7-Eleven");
+    await selectEntryMerchant("7-Eleven");
     waitQuickRouteTimeout();
     await touch();
     const form = saveButton().closest("form")!;
@@ -775,8 +797,8 @@ describe("TransactionStepFlow 进入小票", () => {
 
   it("加载中点另一个商家时改为加载新商家，只应用新商家的建议", async () => {
     const { props, rerender } = quickSetup({ suggestionsMerchantId: "coffee" });
-    click("7-Eleven");
-    click("LIFE超市");
+    await selectEntryMerchant("7-Eleven");
+    await selectEntryMerchant("LIFE超市", "7-Eleven");
     expect(props.onMerchantSelect).toHaveBeenLastCalledWith(
       flowFixture.merchants[0],
     );
@@ -785,21 +807,21 @@ describe("TransactionStepFlow 进入小票", () => {
     ).not.toBeInTheDocument();
     expect(
       screen.getAllByRole("progressbar", { name: "正在读取 LIFE超市 的记录" }),
-    ).toHaveLength(2);
+    ).toHaveLength(1);
     rerender(<TransactionStepFlow {...props} suggestionsMerchantId="life" />);
     expect(
       await screen.findByRole("button", { name: "修改商家：LIFE超市" }),
     ).toBeInTheDocument();
   });
 
-  it("加载中改点另一个商家时重新开始等待计时", () => {
+  it("加载中改点另一个商家时重新开始等待计时", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const { props, rerender } = quickSetup({ suggestionsMerchantId: "coffee" });
-    click("7-Eleven");
+    await selectEntryMerchant("7-Eleven");
     waitQuickRouteTimeout(quickRouteSuggestionTimeoutMs - 500);
-    click("LIFE超市");
-    waitQuickRouteTimeout(quickRouteSuggestionTimeoutMs - 1);
-    expect(onMerchantScreen()).toBe(true);
+    await selectEntryMerchant("LIFE超市", "7-Eleven");
+    waitQuickRouteTimeout(1000);
+    expect(screen.getByRole("progressbar")).toBeVisible();
     rerender(<TransactionStepFlow {...props} suggestionsMerchantId="life" />);
     expect(heading("从商家记账")).toBeInTheDocument();
     expect(receiptLine("更换支付账户 1")).toHaveTextContent("PayPay");
@@ -812,7 +834,7 @@ describe("TransactionStepFlow 自动添加提示", () => {
     overrides: Partial<TransactionStepFlowProps> = {},
   ) {
     quickSetup(overrides);
-    click("7-Eleven");
+    await selectEntryMerchant("7-Eleven");
     await screen.findByRole("button", { name: "保存记账" });
     expectAutomaticNotice();
   }
@@ -863,7 +885,7 @@ describe("TransactionStepFlow 编辑明细", () => {
         initialItems: [{ categoryId: "lunch", amount }],
       },
     });
-    click("7-Eleven");
+    await selectEntryMerchant("7-Eleven");
     click("编辑明细 1");
     await screen.findByRole("button", { name: "保存修改" });
     click("保存修改");
@@ -878,7 +900,7 @@ describe("TransactionStepFlow 编辑明细", () => {
 });
 
 describe("TransactionStepFlow 页内新增", () => {
-  function setupCreationFlow(
+  async function setupCreationFlow(
     initialPayments: TransactionFormInitialValues["payments"] = receiptCreationPayments,
   ) {
     const view = renderEntryComponent(
@@ -895,12 +917,12 @@ describe("TransactionStepFlow 页内新增", () => {
         />
       </ReceiptCreationProvider>,
     );
-    click("7-Eleven");
+    await selectEntryMerchant("7-Eleven");
     return { ...view, form: saveButton().closest("form")! };
   }
 
   it("从小票商家抽屉新增后自动选中并留在原小票，成功提示挂载到 body", async () => {
-    const { container, form } = setupCreationFlow([
+    const { container, form } = await setupCreationFlow([
       { accountId: "paypay", amount: null },
     ]);
     const flowDialog = screen.getByRole("dialog");
@@ -918,7 +940,7 @@ describe("TransactionStepFlow 页内新增", () => {
   it.each([1, 2])(
     "在新增小票第 %i 行取消不改内容，保存后只替换发起行",
     async (row) => {
-      const { form } = setupCreationFlow();
+      const { form } = await setupCreationFlow();
       const before = [...new FormData(form).entries()];
       click(`更换支付账户 ${row}`);
       click("新增账户");
@@ -936,7 +958,7 @@ describe("TransactionStepFlow 页内新增", () => {
     },
   );
   it("后退先确认全屏商家自身，放弃后保留父小票和抽屉搜索，再后退只关抽屉", async () => {
-    const { container, form } = setupCreationFlow();
+    const { container, form } = await setupCreationFlow();
     const before = [...new FormData(form).entries()];
     click("修改商家：7-Eleven");
     const search = screen.getByRole("textbox", { name: "搜索商家" });
@@ -979,7 +1001,7 @@ describe("TransactionStepFlow 页内新增", () => {
     expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
   });
   it("全屏商家预填是初值，输入还原后后退仍要确认，放弃后不改父数据", async () => {
-    const { form } = setupCreationFlow();
+    const { form } = await setupCreationFlow();
     const before = [...new FormData(form).entries()];
     click("修改商家：7-Eleven");
     fireEvent.change(screen.getByRole("textbox", { name: "搜索商家" }), {
@@ -1003,7 +1025,7 @@ describe("TransactionStepFlow 页内新增", () => {
   it.each(["备注", "支付账户", "金额", "明细"])(
     "后退按%s编辑层的取消语义关闭，不确认父小票",
     async (kind) => {
-      const { form } = setupCreationFlow();
+      const { form } = await setupCreationFlow();
       if (kind === "备注") click("修改备注：添加备注");
       if (kind === "支付账户") click("更换支付账户 1");
       if (kind === "金额") {
@@ -1022,7 +1044,7 @@ describe("TransactionStepFlow 页内新增", () => {
     },
   );
   it("新增账户的金额键盘后退丢弃草稿，第二次后退关闭干净的账户层", async () => {
-    const { form } = setupCreationFlow();
+    const { form } = await setupCreationFlow();
     const before = [...new FormData(form).entries()];
     click("更换支付账户 1");
     click("新增账户");

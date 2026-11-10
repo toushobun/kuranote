@@ -1,7 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, userEvent, within } from "storybook/test";
 import { TransactionStepFlow } from "../TransactionStepFlow/TransactionStepFlow";
-import { transactionEntryStoryDecorators } from "organisms/transactions/transactionStepFlowStoryUtils";
+import {
+  openMerchantStoryDrawer,
+  transactionEntryStoryDecorators,
+} from "organisms/transactions/transactionStepFlowStoryUtils";
 import { flowFixture } from "test/mocks/transactionStepFlow";
 import { ReadOnlyReceipt } from "test/ReadOnlyReceipt";
 import {
@@ -46,7 +49,8 @@ const unselectedAccountItemsOptions = {
 
 async function enterReceipt(canvasElement: HTMLElement, merchant = "7-Eleven") {
   const body = within(canvasElement.ownerDocument.body);
-  if (body.queryByRole("textbox", { name: "搜索商家" })) {
+  if (body.queryByRole("button", { name: "修改商家：请选择商家" })) {
+    await openMerchantStoryDrawer(canvasElement);
     await userEvent.click(body.getByRole("button", { name: merchant }));
     await body.findByRole("button", { name: "保存记账" });
   }

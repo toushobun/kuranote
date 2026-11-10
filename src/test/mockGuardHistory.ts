@@ -4,12 +4,16 @@ import { afterEach, beforeEach, vi } from "vitest";
 import { createGuardHistoryPort } from "./guardHistory";
 
 /** 页面测试隔离异步历史遍历；真实 Next/浏览器兼容性由 tests/browser 验证。 */
-export function setupGuardHistoryMock() {
+export function setupGuardHistoryMock({ trackUrls = false } = {}) {
   let restore: () => void;
   let browser: ReturnType<typeof createGuardHistoryPort>;
   beforeEach(() => {
     browser = createGuardHistoryPort();
+    const originalUrl = window.location.href;
+    const replaceUrl = window.history.replaceState.bind(window.history);
+    const urls = [originalUrl, originalUrl];
     browser.onPop(() => {
+      if (trackUrls) replaceUrl(null, "", urls[browser.index()]);
       window.dispatchEvent(
         new PopStateEvent("popstate", { state: browser.port.state() }),
       );
@@ -19,10 +23,23 @@ export function setupGuardHistoryMock() {
       .mockImplementation(browser.port.state);
     const push = vi
       .spyOn(window.history, "pushState")
-      .mockImplementation(browser.port.push);
+      .mockImplementation((state, _, url) => {
+        if (trackUrls)
+          urls[browser.index() + 1] = new URL(
+            url ?? window.location.href,
+            window.location.href,
+          ).href;
+        browser.port.push(state);
+      });
     const replace = vi
       .spyOn(window.history, "replaceState")
-      .mockImplementation(browser.port.replace);
+      .mockImplementation((state, _, url) => {
+        if (trackUrls && url != null) {
+          replaceUrl(null, "", url);
+          urls[browser.index()] = window.location.href;
+        }
+        browser.port.replace(state);
+      });
     const go = vi
       .spyOn(window.history, "go")
       .mockImplementation((delta = 0) => browser.port.go(delta));
@@ -69,6 +86,7 @@ export function setupGuardHistoryMock() {
       ])
         mock.mockRestore();
       window.requestAnimationFrame = originalFrame;
+      if (trackUrls) replaceUrl(null, "", originalUrl);
     };
   });
   afterEach(async () => {

@@ -33,10 +33,11 @@ function PaneDraft({ paneKey }: { paneKey: string }) {
   );
 }
 
-function renderSwitch(activeKey: string) {
+function renderSwitch(activeKey: string, keepMounted = false) {
   const view = render(
     <WizardDialogSwitch
       activeKey={activeKey}
+      keepMounted={keepMounted}
       order={order}
       renderPane={(key) => <Pane paneKey={key as "first" | "second"} />}
     />,
@@ -45,6 +46,7 @@ function renderSwitch(activeKey: string) {
     view.rerender(
       <WizardDialogSwitch
         activeKey={next}
+        keepMounted={keepMounted}
         order={order}
         renderPane={(key) => <Pane paneKey={key as "first" | "second"} />}
       />,
@@ -134,6 +136,23 @@ describe("WizardDialogSwitch", () => {
       screen.queryByTestId("wizard-dialog-switch-pane-second"),
     ).not.toBeInTheDocument();
     expect(screen.getAllByTestId(/wizard-dialog-switch-pane-/)).toHaveLength(1);
+  });
+
+  it("常驻面板滑出后隐藏且不可聚焦，切回时保留原输入", async () => {
+    const { finishAll } = mockAnimate();
+    const rerender = renderSwitch("first", true);
+    const draft = screen.getByRole("textbox", { name: "first 草稿" });
+    fireEvent.change(draft, { target: { value: "草稿" } });
+    rerender("second");
+    const inactive = screen.getByTestId("wizard-dialog-switch-pane-first");
+    expect(inactive).toHaveAttribute("inert");
+    expect(inactive).toHaveAttribute("aria-hidden", "true");
+    await act(async () => finishAll());
+    expect(inactive).not.toBeVisible();
+    expect(draft).toBeInTheDocument();
+    rerender("first");
+    expect(screen.getByRole("textbox", { name: "first 草稿" })).toBe(draft);
+    expect(draft).toHaveValue("草稿");
   });
 
   it("面板没有标题时用 ariaLabel 给共用外框命名", () => {

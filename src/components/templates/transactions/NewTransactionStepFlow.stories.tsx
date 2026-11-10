@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { expect, userEvent, within } from "storybook/test";
 import {
   transactionEntryStoryDecorators,
+  openMerchantStoryDrawer,
   receiptCreationStoryDecorator,
 } from "organisms/transactions/transactionStepFlowStoryUtils";
 import { receiptItemsOptions } from "test/mocks/transactionReceipt";
@@ -33,14 +35,39 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = { name: "从商家记账" };
+export const Default: Story = { name: "从商家记账（打开即空小票）" };
 
 export const NoFrequentMerchants: Story = {
   name: "常用商家为空（含获取失败）",
   args: { frequentMerchants: [] },
+  play: async ({ canvasElement }) => {
+    await openMerchantStoryDrawer(canvasElement);
+  },
 };
 
 export const Transfer: Story = {
   name: "账户周转（同一外框，可切回从商家记账）",
   args: { initialMethod: "transfer" },
+};
+
+export const RetainedDrafts: Story = {
+  name: "切换方式后保留草稿",
+  play: async ({ canvasElement }) => {
+    const body = within(canvasElement.ownerDocument.body);
+    const click = async (name: string) =>
+      userEvent.click(await body.findByRole("button", { name }));
+    await click("修改备注：添加备注");
+    await userEvent.type(
+      await body.findByRole("textbox", { name: "备注" }),
+      "周末采购",
+    );
+    await click("完成");
+    await click("切换方式");
+    await click("账户周转");
+    await click("切换方式");
+    await click("从商家记账");
+    await expect(
+      await body.findByRole("button", { name: "修改备注：周末采购" }),
+    ).toBeVisible();
+  },
 };

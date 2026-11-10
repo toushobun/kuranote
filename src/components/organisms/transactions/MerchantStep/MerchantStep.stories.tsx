@@ -11,11 +11,6 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 export const MerchantDefault: Story = { name: "商家默认（常用不足八个）" };
 
-export const LoadingMerchant: Story = {
-  name: "读取建议中（被点中的商家显示加载）",
-  args: { loadingMerchantId: "seven" },
-};
-
 export const EmptyMerchants: Story = {
   name: "没有商家",
   args: { merchants: [], frequentMerchants: [] },

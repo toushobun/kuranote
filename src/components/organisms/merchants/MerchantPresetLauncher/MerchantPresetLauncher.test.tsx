@@ -3,6 +3,11 @@ const guardHistory = setupGuardHistoryMock();
 import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
 import { NewTransactionStepFlow } from "templates/transactions/NewTransactionStepFlow";
 import { flowFixture } from "test/mocks/transactionStepFlow";
+import {
+  clickEntryButton,
+  selectEntryMerchant,
+} from "test/transactionStepFlow";
+import { waitMerchantDrawerClosed } from "test/receiptCreation";
 import { receiptItemsOptions } from "test/mocks/transactionReceipt";
 import { routerMock } from "test/mocks/navigation";
 import {
@@ -147,7 +152,8 @@ describe("MerchantPresetLauncher", () => {
       />,
       { wrapper: ConfirmDialogTestProviders },
     );
-    fireEvent.click(screen.getByRole("button", { name: "从预设添加" }));
+    clickEntryButton("修改商家：请选择商家");
+    clickEntryButton("从预设添加");
     fireEvent.click(
       await screen.findByRole("checkbox", { name: "选择「超市」的全部商家" }),
     );
@@ -190,8 +196,9 @@ describe("MerchantPresetLauncher", () => {
         <NewTransactionStepFlow {...base} merchantOptions={[]} />,
         { wrapper: ConfirmDialogTestProviders },
       );
-      const heading = screen.getByRole("heading", { name: "记一笔" });
-      fireEvent.click(screen.getByRole("button", { name: "从预设添加" }));
+      const heading = screen.getByRole("heading", { name: "从商家记账" });
+      clickEntryButton("修改商家：请选择商家");
+      clickEntryButton("从预设添加");
       fireEvent.click(
         await screen.findByRole("checkbox", { name: "选择「超市」的全部商家" }),
       );
@@ -202,8 +209,8 @@ describe("MerchantPresetLauncher", () => {
           screen.queryByRole("heading", { name: "从预设添加商家" }),
         ).toBeNull(),
       );
-      expect(screen.getByRole("heading", { name: "记一笔" })).toBe(heading);
-      await waitFor(() => expect(guardHistory().index()).toBe(1));
+      expect(heading).toBeInTheDocument();
+      await screen.findByRole("heading", { name: "商家" });
       // 模拟 refresh 更新服务端选项：Next 抹掉当前记录的标记，但保留原客户端组件实例。
       guardHistory().nextReplaceState();
       view.rerender(
@@ -212,7 +219,7 @@ describe("MerchantPresetLauncher", () => {
           merchantOptions={flowFixture.merchants}
         />,
       );
-      fireEvent.click(screen.getByRole("button", { name: /^7-Eleven/ }));
+      await selectEntryMerchant(/^7-Eleven/);
       // #1016：仅选商家不 dirty，选定付款账户后才测试后退拦截。
       fireEvent.click(
         await screen.findByRole("button", { name: "添加付款账户" }),
@@ -236,7 +243,7 @@ describe("MerchantPresetLauncher", () => {
     }
   });
   it.each([false, true])(
-    "新增首屏的常用商家层加载完成为%s时后退只关最上层，前进不复活",
+    "商家预设加载完成为%s时后退先关预设，再关商家抽屉",
     async (loaded) => {
       routerMock.push.mockClear();
       const { loadAction, resolve } = createPendingLoad();
@@ -257,7 +264,8 @@ describe("MerchantPresetLauncher", () => {
         { wrapper: ConfirmDialogTestProviders },
       );
       expect(window.history.pushState).not.toHaveBeenCalled();
-      fireEvent.click(screen.getByRole("button", { name: "从预设添加" }));
+      clickEntryButton("修改商家：请选择商家");
+      clickEntryButton("从预设添加");
       if (loaded)
         await act(async () =>
           resolve({ options: createMerchantPresetOptions() }),
@@ -269,9 +277,10 @@ describe("MerchantPresetLauncher", () => {
           screen.queryByRole("heading", { name: "从预设添加商家" }),
         ).toBeNull(),
       );
-      expect(
-        screen.getByRole("heading", { name: "记一笔" }),
-      ).toBeInTheDocument();
+      await screen.findByRole("heading", { name: "商家" });
+      await backFromGuard();
+      await waitMerchantDrawerClosed();
+      expect(screen.getByRole("heading", { name: "从商家记账" })).toBeVisible();
       expect(routerMock.push).not.toHaveBeenCalled();
       expect(window.history.pushState).toHaveBeenCalledOnce();
       expect(window.history.state?.kuranoteUnsavedChanges?.position).toBe(

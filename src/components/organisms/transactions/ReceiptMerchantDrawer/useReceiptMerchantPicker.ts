@@ -3,7 +3,7 @@ import { useState } from "react";
 import type { FlowMerchant } from "organisms/transactions/MerchantStep/MerchantStep.types";
 import { useReceiptCreation } from "organisms/transactions/ReceiptCreationProvider/ReceiptCreationProvider";
 
-/** 首屏和小票抽屉共用选择回调，新增商家后也走相同的选择流程。 */
+/** 从抽屉选择已有商家和新增商家成功后走同一条选择路径。 */
 export function useReceiptMerchantPicker(
   onSelect: (merchant: FlowMerchant) => void,
 ) {

@@ -11,16 +11,14 @@ import {
 import { useTransactionReceiptForm } from "organisms/transactions/TransactionConfirmStep/useTransactionReceiptForm";
 import type { TransactionFormInitialValues } from "organisms/transactions/TransactionForm/TransactionForm.types";
 import { useReceiptMerchantPicker } from "organisms/transactions/ReceiptMerchantDrawer/useReceiptMerchantPicker";
-import { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
+import { useEntryReceiptGuard } from "../useEntryReceiptGuard";
 import type { ActionState } from "types/actions";
 import type { TransactionStepFlowProps } from "./TransactionStepFlow.types";
 import type { FlowMerchant } from "organisms/transactions/MerchantStep/MerchantStep.types";
 
-// 快速路线：选完商家后最多等待建议数据这么久，超时则直接进入小票；
+// 选完商家后在头像上显示读取状态，最多等待两秒；
 // 之后晚到的建议只在用户还没动过小票时补上。
 export const quickRouteSuggestionTimeoutMs = 2000;
-
-export type TransactionStepFlowScreen = "merchant" | "receipt";
 
 // 自动添加的明细及当时的分类，用于判断换商家时是否还没动过。
 type AutomaticItem = { id: number; categoryId: string };
@@ -30,11 +28,9 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
   const pendingQuickMerchantId = useRef<string | null>(null);
   // 从小票换商家：建议到达时替换上一个商家没动过的自动明细，而不是跳过。
   const replacingAutomaticItems = useRef(false);
-  // 快速路线等待建议数据期间停在选择商家，被点中的商家显示加载状态。
   const [loadingMerchantId, setLoadingMerchantId] = useState<string | null>(
     null,
   );
-  const [screen, setScreen] = useState<TransactionStepFlowScreen>("merchant");
   const baseItemsOptions = props.itemsOptions ?? { categoryOptions: [] };
   const [initialValues] = useState<TransactionFormInitialValues>(() => ({
     items: baseItemsOptions.initialItems ?? [],
@@ -103,11 +99,12 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     setAutoRevision((revision) => revision + 1);
     setNoticeRevision((revision) => revision + 1);
   }, [timeInitialized]);
-  const guard = useUnsavedChangesGuard({
-    isDirty: screen === "receipt" && receiptDirty,
-    saveFormId: formId,
-    onClose: props.onClose,
-  });
+  const { guard, touched } = useEntryReceiptGuard(
+    autoRevision > 0 && receiptDirty,
+    formId,
+    props.onClose,
+    props.draft,
+  );
   const [saveState, saveAction, saving] = useActionState<ActionState, FormData>(
     (state, data) =>
       guard.runSaveAction(data, (values) => props.action(state, values)),
@@ -125,20 +122,17 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     pendingQuickMerchantId.current = null;
     setLoadingMerchantId(null);
   }
-  function showReceipt() {
-    setScreen("receipt");
-  }
   const applySuggestions = useEffectEvent(() => {
     if (!suggestionsReady || pendingQuickMerchantId.current !== merchant?.id)
       return;
     const replacing = replacingAutomaticItems.current;
     replacingAutomaticItems.current = false;
     stopWaiting();
-    showReceipt();
     // 已有明细时不覆盖用户输入（换商家时只替换没动过的自动明细）。
+    if (pendingSuggestionSnapshot !== waitStartSnapshot.current) return;
     if (!replacing && form.itemSummaries.length > 0) return;
     // 只有尚未手动填写的小票才允许自动建议重设干净基线。
-    if (!receiptDirty) setAutoRevision((revision) => revision + 1);
+    if (!touched) setAutoRevision((revision) => revision + 1);
     // 自动写入（含换商家时移除没动过的自动明细）不算用户修改。
     setNoticeRevision((revision) => revision + 1);
     const recommended = props.accounts.find(
@@ -211,30 +205,30 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     // 超时后保留等待中的商家，晚到的建议在用户动过小票之前仍可补上。
     const timer = setTimeout(() => {
       setLoadingMerchantId(null);
-      showReceipt();
     }, quickRouteSuggestionTimeoutMs);
     return () => clearTimeout(timer);
   }, [waiting, loadingMerchantId]);
   useEffect(() => {
     // 超时后或换商家后动过小票就丢弃晚到的建议，不覆盖用户输入。
-    if (!waiting && pendingSuggestionSnapshot !== waitStartSnapshot.current)
+    if (pendingSuggestionSnapshot !== waitStartSnapshot.current)
       pendingQuickMerchantId.current = null;
-  }, [waiting, pendingSuggestionSnapshot]);
+  }, [pendingSuggestionSnapshot]);
   function selectMerchant(value: FlowMerchant) {
-    // 已进入小票后换商家不走快速路线，留在小票，建议到达后替换自动明细。
-    const quick = screen === "merchant" && !form.itemSummaries.length;
+    // 等待期间改选商家时，重新开始计时。其他换商家只替换没动过的自动明细。
+    const quick =
+      !touched &&
+      !form.itemSummaries.length &&
+      (!form.selectedMerchantId || !!loadingMerchantId);
     const replacing = !quick && value.id !== form.selectedMerchantId;
     pendingQuickMerchantId.current = quick || replacing ? value.id : null;
     replacingAutomaticItems.current = replacing;
     waitStartSnapshot.current = pendingSuggestionSnapshot;
     form.handleMerchantChange(value.id);
     props.onMerchantSelect(value);
-    if (quick) setLoadingMerchantId(value.id);
-    else showReceipt();
+    setLoadingMerchantId(quick ? value.id : null);
   }
   const merchantPicker = useReceiptMerchantPicker(selectMerchant);
   return {
-    screen,
     saveState,
     saveAction,
     saving,
@@ -249,7 +243,7 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     setAmountItemId,
     methodOpen,
     setMethodOpen,
-    loadingMerchantId,
+    waiting,
     merchantPicker,
     requestClose: guard.requestClose,
     dialogProps: guard.dialogProps,
