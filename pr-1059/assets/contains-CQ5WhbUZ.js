@@ -1,0 +1,1 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";function t(e,t){if(!e||!t)return!1;if(e.contains(t))return!0;let n=t.getRootNode?.();if(n&&n instanceof ShadowRoot){let n=t;for(;n;){if(e===n)return!0;n=n.parentNode??n.host??null}}return!1}var n=e((()=>{})),r=e((()=>{n()}));export{t as n,n as r,r as t};
