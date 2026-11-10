@@ -75,7 +75,7 @@ function waitQuickRouteTimeout(ms = quickRouteSuggestionTimeoutMs) {
 // 小票里添加一条午餐明细，不填金额直接关闭金额键盘。
 async function addLunchItem() {
   click("添加明细");
-  fireEvent.click(await screen.findByRole("button", { name: "午餐" }));
+  await screen.findByRole("button", { name: "午餐", pressed: true });
   click("确定");
   await screen.findByLabelText("金额计算器");
   click("关闭金额键盘");
@@ -694,7 +694,9 @@ describe("TransactionStepFlow 进入小票", () => {
       expect(receiptLine("更换支付账户 1")).toHaveTextContent("现金"),
     );
     click("添加明细");
-    click("午餐");
+    expect(
+      screen.getByRole("button", { name: "午餐", pressed: true }),
+    ).toBeInTheDocument();
     click("确定");
     expect(await screen.findByLabelText("金额计算器")).toBeInTheDocument();
     pressItemAmountKey("8");

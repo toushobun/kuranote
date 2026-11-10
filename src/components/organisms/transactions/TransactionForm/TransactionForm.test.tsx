@@ -42,6 +42,42 @@ vi.mock("next/link", () => ({
     </a>
   ),
 }));
+function openSheet(container: HTMLElement, expandCategoryList = true) {
+  fireEvent.click(
+    within(container).getByRole("button", {
+      hidden: true,
+      name: "添加明细",
+    }),
+  );
+  if (expandCategoryList) {
+    fireEvent.click(screen.getByRole("button", { name: "选择更多分类" }));
+  }
+}
+function clickSheetAddButton() {
+  fireEvent.click(screen.getByRole("button", { name: "确定" }));
+}
+function addItemViaSheet(
+  container: HTMLElement,
+  categoryName: string,
+  amount: string,
+) {
+  if (!screen.queryByRole("heading", { name: "添加明细" })) {
+    openSheet(container);
+  }
+  const categoryListToggle = screen.queryByRole("button", {
+    name: "选择更多分类",
+  });
+  if (categoryListToggle) fireEvent.click(categoryListToggle);
+  const category = screen.getByRole("button", { name: categoryName });
+  if (category.getAttribute("aria-pressed") !== "true") {
+    fireEvent.click(category);
+  }
+  fireEvent.change(screen.getByRole("textbox", { name: "金额" }), {
+    target: { value: amount },
+  });
+  clickSheetAddButton();
+}
+
 describe("TransactionForm", () => {
   const accountOptions = [
     {
@@ -115,38 +151,6 @@ describe("TransactionForm", () => {
   }
   function getCombobox(container: HTMLElement, name: string) {
     return within(container).getByRole("combobox", { name });
-  }
-  function openSheet(container: HTMLElement, expandCategoryList = true) {
-    fireEvent.click(
-      within(container).getByRole("button", {
-        hidden: true,
-        name: "添加明细",
-      }),
-    );
-    if (expandCategoryList) {
-      fireEvent.click(screen.getByRole("button", { name: "选择更多分类" }));
-    }
-  }
-  function clickSheetAddButton() {
-    fireEvent.click(screen.getByRole("button", { name: "确定" }));
-  }
-  function addItemViaSheet(
-    container: HTMLElement,
-    categoryName: string,
-    amount: string,
-  ) {
-    if (!screen.queryByRole("heading", { name: "添加明细" })) {
-      openSheet(container);
-    }
-    const categoryListToggle = screen.queryByRole("button", {
-      name: "选择更多分类",
-    });
-    if (categoryListToggle) fireEvent.click(categoryListToggle);
-    fireEvent.click(screen.getByRole("button", { name: categoryName }));
-    fireEvent.change(screen.getByRole("textbox", { name: "金额" }), {
-      target: { value: amount },
-    });
-    clickSheetAddButton();
   }
   function getSubmittedTransactionAt(container: HTMLElement) {
     const input = container.querySelector<HTMLInputElement>(
@@ -447,9 +451,14 @@ describe("TransactionForm", () => {
     ).toHaveTextContent("+ $ 68.9");
     expect(within(container).getByText("合计 + $ 68.9")).toBeInTheDocument();
   });
-  it("未选小分类时点击追加显示错误提示", () => {
+  it("手动切换大分类时选中第一个小分类，取消后点击追加显示错误提示", () => {
     const { container } = renderForm();
     openSheet(container);
+    fireEvent.click(screen.getByRole("button", { name: "交通出行" }));
+    const train = screen.getByRole("button", { name: "电车" });
+    expect(train).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(train);
+    expect(train).toHaveAttribute("aria-pressed", "false");
     fireEvent.change(screen.getByRole("textbox", { name: "金额" }), {
       target: { value: "500" },
     });
@@ -1171,36 +1180,6 @@ describe("TransactionForm \u7F16\u8F91\u7C7B\u578B\u5207\u6362", () => {
       ),
     ).map((input) => input.value);
   }
-  function openSheet(container: HTMLElement) {
-    fireEvent.click(
-      within(container).getByRole("button", {
-        hidden: true,
-        name: "添加明细",
-      }),
-    );
-    fireEvent.click(screen.getByRole("button", { name: "选择更多分类" }));
-  }
-  function clickSheetAddButton() {
-    fireEvent.click(screen.getByRole("button", { name: "确定" }));
-  }
-  function addItemViaSheet(
-    container: HTMLElement,
-    categoryName: string,
-    amount: string,
-  ) {
-    if (!screen.queryByRole("heading", { name: "添加明细" })) {
-      openSheet(container);
-    }
-    const categoryListToggle = screen.queryByRole("button", {
-      name: "选择更多分类",
-    });
-    if (categoryListToggle) fireEvent.click(categoryListToggle);
-    fireEvent.click(screen.getByRole("button", { name: categoryName }));
-    fireEvent.change(screen.getByRole("textbox", { name: "金额" }), {
-      target: { value: amount },
-    });
-    clickSheetAddButton();
-  }
   it("新增记账可同时添加支出和收入明细，两者均会提交", () => {
     const { container } = renderForm();
     openSheet(container);
@@ -1271,36 +1250,6 @@ describe("TransactionForm \u660E\u7EC6\u4E0E\u6821\u9A8C", () => {
       />,
     );
   }
-  function openSheet(container: HTMLElement) {
-    fireEvent.click(
-      within(container).getByRole("button", {
-        hidden: true,
-        name: "添加明细",
-      }),
-    );
-    fireEvent.click(screen.getByRole("button", { name: "选择更多分类" }));
-  }
-  function clickSheetAddButton() {
-    fireEvent.click(screen.getByRole("button", { name: "确定" }));
-  }
-  function addItemViaSheet(
-    container: HTMLElement,
-    categoryName: string,
-    amount: string,
-  ) {
-    if (!screen.queryByRole("heading", { name: "添加明细" })) {
-      openSheet(container);
-    }
-    const categoryListToggle = screen.queryByRole("button", {
-      name: "选择更多分类",
-    });
-    if (categoryListToggle) fireEvent.click(categoryListToggle);
-    fireEvent.click(screen.getByRole("button", { name: categoryName }));
-    fireEvent.change(screen.getByRole("textbox", { name: "金额" }), {
-      target: { value: amount },
-    });
-    clickSheetAddButton();
-  }
   const trafficCategories = [
     {
       id: "33333333-3333-4333-8333-333333333341",
@@ -1324,14 +1273,25 @@ describe("TransactionForm \u660E\u7EC6\u4E0E\u6821\u9A8C", () => {
     addItemViaSheet(container, "日用品", "0.20");
     expect(within(container).getByText("合计 - $ 0.3")).toBeInTheDocument();
   });
-  it("打开添加明细时金额默认是空，显式输入 0 可追加", () => {
+  it("单账户无明细时默认选中第一个支出分类，显式输入 0 可追加", () => {
     const { container } = renderForm();
+    fireEvent.mouseDown(
+      within(container).getByRole("combobox", { name: "账户" }),
+    );
+    fireEvent.click(screen.getByRole("option", { name: "日元现金（JPY）" }));
     openSheet(container);
     expect(screen.getByRole("textbox", { name: "金额" })).toHaveProperty(
       "value",
       "",
     );
-    fireEvent.click(screen.getByRole("button", { name: "餐饮" }));
+    expect(screen.getByRole("button", { name: "食材/调料" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "餐饮" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     fireEvent.change(screen.getByRole("textbox", { name: "金额" }), {
       target: { value: "0" },
     });
