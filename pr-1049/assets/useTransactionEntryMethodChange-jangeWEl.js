@@ -1,0 +1,1 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";import{d as t,i as n}from"./paths-CKJJfhDL.js";import{ct as r,ot as i}from"./iframe-Bve6Kyb6.js";function a(){let e=r();return n=>e.replace(t({method:n}))}var o=e((()=>{i(),n()}));export{a as n,o as t};
