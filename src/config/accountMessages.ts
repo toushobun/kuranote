@@ -21,8 +21,6 @@ export const accountFormMessages = {
   editLoading: "编辑账户页面加载中",
   archive: "删除",
   archiveErrorTitle: "删除账户失败",
-  previewLabel: "预览",
-  previewNamePlaceholder: "账户名称",
   basicSection: "基本信息",
   nameLabel: "账户名称",
   namePlaceholder: "例如：钱包现金",
@@ -43,4 +41,17 @@ export const accountFormMessages = {
   save: "保存账户",
   saveChanges: "保存修改",
   saving: "保存中",
+} as const;
+
+export const accountIconMessages = {
+  websiteLabel: "网址（可选）",
+  websiteHelper: "填写银行、钱包或卡的官网，可获取网站图标。",
+  fetch: "获取图标",
+  clear: "改用文字图标",
+  idle: "默认显示账户名的文字图标。",
+  loading: "正在获取网站图标…",
+  success: "已获取图标",
+  successHelper: "保存后，账户列表和记账界面会显示这个图标。",
+  error: "没有获取到图标",
+  errorHelper: "请检查网址，或继续使用文字图标。",
 } as const;

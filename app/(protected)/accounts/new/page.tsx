@@ -1,3 +1,4 @@
+import { fetchAccountIcon } from "internal/account/adapter/next/actions";
 import { createAccount } from "internal/account/adapter/next/actions";
 import { loadAccountCreateView } from "internal/account/adapter/next/loadAccountsView";
 import { getSafeNextPath } from "lib/navigation/safeNextPath";
@@ -13,6 +14,7 @@ export default async function AccountCreatePage({
 
   return (
     <AccountCreateTemplate
+      fetchIconAction={fetchAccountIcon}
       {...view}
       createAccountAction={createAccount}
       returnTo={getSafeNextPath(params.returnTo)}

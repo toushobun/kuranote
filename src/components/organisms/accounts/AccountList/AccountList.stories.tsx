@@ -1,3 +1,4 @@
+import { accountWebsiteIconFixture } from "test/mocks/accounts";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import type { Account } from "types/accounts";
@@ -150,6 +151,16 @@ export const ManyAccounts: Story = {
         has_transactions: false,
         holders: [],
       },
+    ],
+  },
+};
+
+export const WebsiteIcons: Story = {
+  name: "带网站图标的账户",
+  args: {
+    accounts: [
+      { ...meta.args.accounts[0]!, ...accountWebsiteIconFixture },
+      ...meta.args.accounts.slice(1),
     ],
   },
 };

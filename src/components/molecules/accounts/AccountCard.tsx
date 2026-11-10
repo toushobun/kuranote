@@ -1,4 +1,3 @@
-import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import Chip from "@mui/material/Chip";
 import Divider from "@mui/material/Divider";
@@ -7,10 +6,9 @@ import Typography from "@mui/material/Typography";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { AccountTypeIcon } from "atoms/accounts/AccountTypeIcon/AccountTypeIcon";
+import { AccountAvatar } from "atoms/accounts/AccountAvatar/AccountAvatar";
 import { DataItemCard } from "atoms/ui/DataItemCard";
 import { placeholderMemberText } from "config/placeholderMemberText";
-import { designTokens } from "theme/theme";
 import { themeColorTokens } from "theme/themeColorTokens";
 
 import type { AccountHolder, AccountType } from "types/accounts";
@@ -21,9 +19,10 @@ import {
 } from "utils/accounts";
 
 type AccountCardProps = {
+  id: string;
   name: string;
-  /** 新增账户预览中还没选类型时为 null：不显示类型标签。 */
-  type: AccountType | null;
+  iconUrl?: string | null;
+  type: AccountType;
   currency: string;
   currentBalance: number | string;
   holders?: AccountHolder[];
@@ -34,6 +33,8 @@ type AccountCardProps = {
 };
 
 export function AccountCard({
+  id,
+  iconUrl,
   name,
   type,
   currency,
@@ -47,9 +48,7 @@ export function AccountCard({
     <DataItemCard>
       <Stack spacing={1.25}>
         <Stack direction="row" spacing={1.25} sx={{ alignItems: "center" }}>
-          <Box data-testid="account-card-icon" sx={accountIconSx}>
-            <AccountTypeIcon type={type ?? "other"} />
-          </Box>
+          <AccountAvatar id={id} iconUrl={iconUrl} name={name} size={38} />
 
           <Stack spacing={0.65} sx={{ flex: 1, minWidth: 0 }}>
             <Stack
@@ -63,13 +62,11 @@ export function AccountCard({
               >
                 {name}
               </Typography>
-              {type ? (
-                <Chip
-                  label={getAccountTypeLabel(type)}
-                  size="small"
-                  sx={accountTypeChipSx}
-                />
-              ) : null}
+              <Chip
+                label={getAccountTypeLabel(type)}
+                size="small"
+                sx={accountTypeChipSx}
+              />
             </Stack>
 
             <Stack
@@ -136,18 +133,6 @@ export function AccountCard({
     </ButtonBase>
   );
 }
-
-const accountIconSx = {
-  alignItems: "center",
-  bgcolor: "var(--user-theme-field-card-selected-bg)",
-  borderRadius: `${designTokens.radius.sm}px`,
-  color: "var(--user-theme-action-text)",
-  display: "flex",
-  flex: "0 0 auto",
-  height: 38,
-  justifyContent: "center",
-  width: 38,
-};
 
 const accountTypeChipSx = {
   bgcolor: "action.hover",

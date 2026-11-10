@@ -1,5 +1,6 @@
 import type { LedgerSetupTemplate } from "internal/ledger";
-import { buildMerchantFaviconUrl, normalizeSearchText } from "utils/merchants";
+import { normalizeSearchText } from "utils/merchants";
+import { buildWebsiteFaviconUrl } from "utils/websiteIcons";
 
 /** 向导与商家管理共用模板到勾选列表的转换，不复制模板数据。 */
 export function buildMerchantChecklist(template: LedgerSetupTemplate) {
@@ -20,7 +21,7 @@ export function buildMerchantChecklist(template: LedgerSetupTemplate) {
         name,
         secondaryText:
           aliases.map(({ alias }) => alias).join(" · ") || undefined,
-        iconUrl: buildMerchantFaviconUrl(websiteUrl),
+        iconUrl: buildWebsiteFaviconUrl(websiteUrl),
         regions,
       }),
     ),

@@ -6,6 +6,7 @@ import {
   receiptCreationStoryDecorator,
   transactionEntryStoryDecorators,
 } from "organisms/transactions/transactionStepFlowStoryUtils";
+import { accountWebsiteIconFixture } from "test/mocks/accounts";
 import { flowFixture } from "test/mocks/transactionStepFlow";
 
 import { TransferReceipt } from "./TransferReceipt";
@@ -69,4 +70,16 @@ export const Edit: Story = {
 export const ReadOnly: Story = {
   name: "只读详情",
   args: { initialValues: editValues, readOnly: true },
+};
+
+export const WebsiteIcon: Story = {
+  name: "带网站图标的转账和账户抽屉",
+  args: {
+    initialValues: editValues,
+    accountOptions: flowFixture.accounts.map((account) =>
+      account.id === "bank"
+        ? { ...account, icon_url: accountWebsiteIconFixture.icon_url }
+        : account,
+    ),
+  },
 };

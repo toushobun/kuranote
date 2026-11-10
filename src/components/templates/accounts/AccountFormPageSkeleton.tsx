@@ -3,7 +3,6 @@ import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import type { ReactNode } from "react";
 
-import { DataItemCard } from "atoms/ui/DataItemCard";
 import { accountFormMessages } from "config/accountMessages";
 import { routePaths } from "config/paths";
 import { SectionCard } from "molecules/ui/SectionCard";
@@ -20,7 +19,7 @@ type AccountFormPageSkeletonProps = {
   title: string;
 };
 
-/** 新增 / 编辑账户页面的加载骨架，与页面同结构：预览卡片 → 基本信息 → 金额 → 持有人 → 底部按钮。 */
+/** 新增 / 编辑账户页面的加载骨架，与页面同结构：基本信息 → 金额 → 持有人 → 底部按钮。 */
 export function AccountFormPageSkeleton({
   action,
   loadingLabel,
@@ -38,28 +37,17 @@ export function AccountFormPageSkeleton({
         title={title}
       >
         <Stack spacing={2}>
-          <Stack spacing={1}>
-            <Skeleton sx={{ fontSize: 14 }} width={40} />
-            <Box sx={previewFrameSx}>
-              <DataItemCard>
-                <Stack
-                  direction="row"
-                  spacing={1.25}
-                  sx={{ alignItems: "center" }}
-                >
-                  <Skeleton height={38} variant="rounded" width={38} />
-                  <Stack spacing={0.5} sx={{ flex: 1 }}>
-                    <Skeleton sx={{ fontSize: 17 }} width="56%" />
-                    <Skeleton sx={{ fontSize: 14 }} width="36%" />
-                  </Stack>
-                  <Skeleton sx={{ fontSize: 17 }} width={72} />
-                </Stack>
-              </DataItemCard>
-            </Box>
-          </Stack>
-
           <LoadingSection>
+            <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
+              <Skeleton height={64} variant="rounded" width={64} />
+              <Skeleton width="55%" />
+            </Stack>
             <Skeleton height={56} variant="rounded" />
+            <Stack direction="row" spacing={1}>
+              <Skeleton height={40} sx={{ flex: 1 }} variant="rounded" />
+              <Skeleton height={40} variant="rounded" width={96} />
+            </Stack>
+            <Skeleton width="75%" />
             <Box sx={typeGridSx}>
               {Array.from({ length: accountTypeCount }, (_, index) => (
                 <Skeleton height={72} key={index} variant="rounded" />
@@ -107,13 +95,6 @@ function LoadingSection({ children }: { children: ReactNode }) {
     </SectionCard>
   );
 }
-
-const previewFrameSx = {
-  border: "2px dashed",
-  borderColor: "divider",
-  borderRadius: `${designTokens.radius.lg}px`,
-  p: 0.5,
-};
 
 const typeGridSx = {
   display: "grid",

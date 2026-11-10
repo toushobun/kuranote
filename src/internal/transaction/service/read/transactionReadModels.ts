@@ -47,6 +47,7 @@ export type TransactionListItem = {
 };
 
 export type TransactionAccountOption = {
+  icon_url?: string | null;
   currency: string;
   /** 新增记账流程（#943）带持有人；其他表单不读取。 */
   holders?: { display_name: string }[];

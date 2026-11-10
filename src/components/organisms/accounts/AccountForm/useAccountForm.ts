@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import type { WebsiteIconStateAction } from "types/actions";
+import { useRef, useState } from "react";
 
 import type { AccountHolderSelection } from "molecules/accounts/accountHolderSelection";
 import type {
@@ -17,13 +18,9 @@ import {
   isSameBalanceText,
   type AccountFormValues,
 } from "./accountEditValues";
-import {
-  buildAccountPreviewHolders,
-  getAccountPreviewBalance,
-} from "./accountPreview";
 
 /**
- * 新增 / 编辑账户表单的输入状态，同时派生顶部预览卡片要显示的内容。
+ * 新增 / 编辑账户表单的输入状态。
  * 传入 account 时为编辑：以当前值为初始值，余额为目标余额。
  */
 export function useAccountForm({
@@ -31,8 +28,10 @@ export function useAccountForm({
   defaultCurrency,
   holderOptions,
   placeholderHolderOptions,
+  fetchIconAction,
 }: {
   account: Account | null;
+  fetchIconAction?: WebsiteIconStateAction;
   defaultCurrency: string;
   holderOptions: AccountHolderOption[];
   placeholderHolderOptions: AccountPlaceholderHolderOption[];
@@ -47,6 +46,41 @@ export function useAccountForm({
   const placeholderOptions =
     editHolders?.placeholderOptions ?? placeholderHolderOptions;
   const preservedHolderOptions = editHolders?.preservedHolderOptions ?? [];
+  const [websiteUrl, setWebsiteUrl] = useState(account?.website_url ?? "");
+  const [iconUrl, setIconUrl] = useState(account?.icon_url ?? "");
+  const [iconTouched, setIconTouched] = useState(false);
+  const [iconStatus, setIconStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >(iconUrl ? "success" : "idle");
+  const iconRequest = useRef(0);
+
+  function clearIcon() {
+    iconRequest.current += 1;
+    setIconTouched(true);
+    setIconUrl("");
+    setIconStatus("idle");
+  }
+
+  async function fetchIcon() {
+    if (!fetchIconAction) return;
+    const request = ++iconRequest.current;
+    setIconStatus("loading");
+    const data = new FormData();
+    data.set("websiteUrl", websiteUrl);
+    let result: Awaited<ReturnType<WebsiteIconStateAction>>;
+    try {
+      result = await fetchIconAction({}, data);
+    } catch {
+      result = {};
+    }
+    if (request !== iconRequest.current) return;
+
+    const nextIcon = result.error ? "" : (result.iconUrl ?? "");
+    if (nextIcon !== iconUrl) setIconTouched(true);
+    setIconUrl(nextIcon);
+    setIconStatus(nextIcon ? "success" : "error");
+  }
+
   const [name, setName] = useState(account?.name ?? "");
   const [type, setType] = useState<AccountType | null>(account?.type ?? null);
   const [currency, setCurrency] = useState(
@@ -76,6 +110,16 @@ export function useAccountForm({
   }
 
   return {
+    websiteUrl,
+    iconUrl,
+    iconStatus,
+    clearIcon,
+    fetchIcon,
+    onIconError: () => setIconStatus("error"),
+    changeWebsiteUrl: (value: string) => {
+      setWebsiteUrl(value);
+      clearIcon();
+    },
     balance,
     balanceAdjustment: account
       ? getAccountBalanceAdjustment(balance, account.current_balance)
@@ -83,28 +127,21 @@ export function useAccountForm({
     balanceAdjustmentNote,
     currency,
     holderSelection,
-    isDirty: isAccountFormDirty(
-      { ...initialValues, balance: balanceBaseline },
-      {
-        balance,
-        currency,
-        holderSelection,
-        name,
-        type,
-      },
-    ),
+    isDirty:
+      iconTouched ||
+      isAccountFormDirty(
+        { ...initialValues, balance: balanceBaseline },
+        {
+          balance,
+          currency,
+          holderSelection,
+          name,
+          type,
+        },
+      ),
     name,
     placeholderOptions,
     preservedHolderOptions,
-    preview: {
-      balance: getAccountPreviewBalance(balance),
-      holders: buildAccountPreviewHolders({
-        holderOptions,
-        placeholderOptions,
-        preservedHolderOptions,
-        selection: holderSelection,
-      }),
-    },
     setBalance,
     setBalanceAdjustmentNote,
     setCurrency,

@@ -224,7 +224,12 @@ function TransferAccountSide({
   const content = (
     <>
       {account ? (
-        <AccountAvatar id={account.id} name={account.name} size={48} />
+        <AccountAvatar
+          iconUrl={account.icon_url}
+          id={account.id}
+          name={account.name}
+          size={48}
+        />
       ) : (
         <Box sx={[emptyAvatarSx, error && { borderColor: "error.main" }]}>
           <AddRoundedIcon aria-hidden />

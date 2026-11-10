@@ -190,6 +190,7 @@ async function buildEditTransactionView<
       initialValues: {
         type: "balance_adjustment",
         accountId,
+        accountIconUrl: account?.icon_url,
         accountName: account?.name ?? transactionFallbackLabels.account,
         currency: account?.currency ?? currentLedger.baseCurrency,
         signedDelta: item.balance_delta!,
@@ -349,7 +350,8 @@ async function loadArchivedAccountOptions(
     ledgerId: currentLedger.id,
     userId: dependencies.currentUserId,
   });
-  return context.accounts.map(({ currency, id, name }) => ({
+  return context.accounts.map(({ currency, icon_url, id, name }) => ({
+    icon_url,
     currency,
     id,
     name,

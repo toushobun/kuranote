@@ -1,6 +1,12 @@
+import {
+  createWebsiteIconService,
+  getReusableWebsiteIconUrl,
+  type WebsiteIcon,
+} from "internal/shared/websiteIcon/websiteIconService";
 import type { CurrentLedgerRole } from "internal/ledger";
 import {
   accountBalanceAdjustmentSchema,
+  accountWebsiteFieldsSchema,
   getAccountBalanceAdjustmentErrorCode,
 } from "internal/account/schema";
 import { canManageMasterData } from "internal/ledger";
@@ -51,13 +57,18 @@ export type GetAccountsViewInput = {
 
 export type CreateAccountInput = Omit<
   RepositoryCreateAccountInput,
-  "ledgerId"
+  "ledgerId" | "iconUrl"
 > & {
   ledgerId: string;
   userId: string;
+  previewIconUrl?: string;
 };
 
-export type UpdateAccountInput = RepositoryUpdateAccountInput & {
+export type UpdateAccountInput = Omit<
+  RepositoryUpdateAccountInput,
+  "iconUrl"
+> & {
+  previewIconUrl?: string;
   userId: string;
 };
 
@@ -109,6 +120,11 @@ export interface AccountQueryService {
 }
 
 export interface AccountService extends AccountQueryService {
+  fetchIcon(input: {
+    ledgerId: string;
+    userId: string;
+    websiteUrl: string;
+  }): Promise<WebsiteIcon>;
   archive(input: ArchiveAccountInput): Promise<void>;
   create(input: CreateAccountInput): Promise<{ accountId: string }>;
   getView(input: GetAccountsViewInput): Promise<AccountsView>;
@@ -121,6 +137,7 @@ export type AccountServiceDependencies = {
   /** 经 ledger 根入口的窄接口读取未认领占位，不直接访问占位表。 */
   ledgerPlaceholderMemberQueryService: LedgerPlaceholderMemberQueryService;
   now?: () => Date;
+  websiteIconService?: ReturnType<typeof createWebsiteIconService>;
 };
 
 const accountTypeValues = new Set<AccountType>(accountTypes);
@@ -185,6 +202,7 @@ export function createAccountService({
   accountRepository,
   ledgerAccessService,
   ledgerPlaceholderMemberQueryService,
+  websiteIconService = createWebsiteIconService(),
   now = () => new Date(),
 }: AccountServiceDependencies): AccountService {
   async function requireActiveMemberRole(
@@ -325,7 +343,29 @@ export function createAccountService({
     return { holderPlaceholderId, holderUserIds: [] };
   }
 
+  function normalizeWebsiteFields(input: {
+    websiteUrl?: string;
+    previewIconUrl?: string;
+  }) {
+    if (input.websiteUrl === undefined) return {};
+    const result = accountWebsiteFieldsSchema.safeParse(input);
+    if (!result.success) {
+      const code = accountErrorCodes.websiteUrlInvalid;
+      throw new ValidationError(code, accountErrorMessages[code]);
+    }
+    const websiteUrl = input.websiteUrl.trim();
+    return {
+      websiteUrl,
+      iconUrl: getReusableWebsiteIconUrl(websiteUrl, input.previewIconUrl),
+    };
+  }
+
   return {
+    async fetchIcon({ ledgerId, userId, websiteUrl }) {
+      requireManagement(await requireActiveMemberRole(ledgerId, userId));
+      return websiteIconService.fetchIcon(websiteUrl);
+    },
+
     async archive({ accountId, ledgerId, userId }) {
       const role = await requireActiveMemberRole(ledgerId, userId);
       requireManagement(role);
@@ -358,6 +398,7 @@ export function createAccountService({
       const members = await accountRepository.listActiveMembers(input.ledgerId);
 
       const accountId = await accountRepository.create({
+        ...normalizeWebsiteFields(input),
         currency: normalizeCurrency(input.currency),
         ...(await requireValidHolder(input, members)),
         initialBalance: normalizeInitialBalance(input.initialBalance),
@@ -407,14 +448,25 @@ export function createAccountService({
     async listTransactionOptions({ ledgerId, userId }) {
       await requireActiveMemberRole(ledgerId, userId);
       return (await accountRepository.listAccounts(ledgerId)).map(
-        ({ currency, id, name }) => ({ currency, id, name }),
+        ({ currency, icon_url, id, name }) => ({
+          currency,
+          icon_url,
+          id,
+          name,
+        }),
       );
     },
 
     async listTransactionOptionsWithHolders({ ledgerId, userId }) {
       await requireActiveMemberRole(ledgerId, userId);
       const accounts = (await accountRepository.listAccounts(ledgerId)).map(
-        ({ currency, id, name, type }) => ({ currency, id, name, type }),
+        ({ currency, icon_url, id, name, type }) => ({
+          currency,
+          icon_url,
+          id,
+          name,
+          type,
+        }),
       );
       return buildAccountsWithHolders({
         accounts,
@@ -508,6 +560,7 @@ export function createAccountService({
       const updated = await accountRepository.update({
         ...adjustment.data,
         accountId: input.accountId,
+        ...normalizeWebsiteFields(input),
         currency: normalizeCurrency(input.currency),
         ...(await requireValidHolder(input, members)),
         ledgerId: input.ledgerId,

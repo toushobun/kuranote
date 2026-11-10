@@ -21,6 +21,9 @@ import {
   redirectAfterGuardedSave,
 } from "internal/shared/adapter/next/actionState";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
+import { websiteIconErrorMessages } from "internal/shared/websiteIcon/errors";
+import type { WebsiteIconActionState } from "types/actions";
+import { getFormText } from "utils/formData";
 import { AppError } from "internal/shared/errors/appError";
 import { getSafeNextPath } from "lib/navigation/safeNextPath";
 import type { AccountActionState } from "types/accounts";
@@ -144,4 +147,27 @@ export async function archiveAccount(
 
   revalidateAccountMutation();
   redirect(accountsResultHref(accountResultValues.archived));
+}
+
+export async function fetchAccountIcon(
+  _previousState: WebsiteIconActionState,
+  formData: FormData,
+): Promise<WebsiteIconActionState> {
+  const { currentLedger, userId } = await requireCurrentUserAndLedger();
+  try {
+    const icon = await (
+      await getAccountService()
+    ).fetchIcon({
+      ledgerId: currentLedger.id,
+      userId,
+      websiteUrl: getFormText(formData, "websiteUrl"),
+    });
+    return { iconUrl: icon.url };
+  } catch (error) {
+    if (error instanceof AppError) return createErrorState(error.message);
+    console.error("[account] icon action failed unexpectedly", {
+      errorName: error instanceof Error ? error.name : "unknown",
+    });
+    return createErrorState(websiteIconErrorMessages.fetchFailed);
+  }
 }

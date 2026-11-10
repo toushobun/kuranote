@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Box from "@mui/material/Box";
 
 import { avatarToneFor } from "theme/avatarTones";
@@ -10,13 +13,19 @@ import { accountAvatarText } from "utils/accountAvatarText";
  */
 export function AccountAvatar({
   id,
+  iconUrl,
+  onIconError,
   name,
   size,
 }: {
   id: string;
+  iconUrl?: string | null;
+  onIconError?: () => void;
   name: string;
   size: number;
 }) {
+  const [failedUrl, setFailedUrl] = useState<string>();
+  const showIcon = iconUrl && iconUrl !== failedUrl;
   const tone = avatarToneFor(id);
   const text = accountAvatarText(name);
   return (
@@ -24,9 +33,9 @@ export function AccountAvatar({
       aria-hidden
       sx={{
         alignItems: "center",
-        bgcolor: tone.backgroundColor,
+        bgcolor: showIcon ? "background.paper" : tone.backgroundColor,
         border: "1px solid",
-        borderColor: tone.borderColor,
+        borderColor: showIcon ? "divider" : tone.borderColor,
         borderRadius: `${size >= 40 ? designTokens.radius.item : designTokens.radius.sm}px`,
         color: tone.color,
         display: "inline-flex",
@@ -42,7 +51,21 @@ export function AccountAvatar({
         width: size,
       }}
     >
-      {text}
+      {showIcon ? (
+        <Box
+          key={iconUrl}
+          alt=""
+          component="img"
+          onError={() => {
+            setFailedUrl(iconUrl);
+            onIconError?.();
+          }}
+          src={iconUrl}
+          sx={{ height: "75%", objectFit: "contain", width: "75%" }}
+        />
+      ) : (
+        text
+      )}
     </Box>
   );
 }

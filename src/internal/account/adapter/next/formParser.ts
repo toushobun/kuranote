@@ -5,6 +5,7 @@ import {
 } from "internal/account/errors";
 import {
   accountBalanceAdjustmentSchema,
+  accountWebsiteFieldsSchema,
   getAccountBalanceAdjustmentErrorCode,
 } from "internal/account/schema";
 import {
@@ -18,6 +19,8 @@ export type AccountFormParseResult<T> =
   | { error: AccountErrorCode; ok: false };
 
 type AccountFormFields = {
+  websiteUrl?: string;
+  previewIconUrl?: string;
   currency: string;
   holderPlaceholderId: string | null;
   holderUserIds: string[];
@@ -79,9 +82,16 @@ function parseAccountFields(
     return invalid(accountErrorCodes.holderIdentityInvalid);
   }
 
+  const website = accountWebsiteFieldsSchema.safeParse({
+    websiteUrl: formData.get("websiteUrl") ?? undefined,
+    previewIconUrl: formData.get("previewIconUrl") ?? undefined,
+  });
+  if (!website.success) return invalid(accountErrorCodes.websiteUrlInvalid);
+
   return {
     ok: true,
     value: {
+      ...(website.data.websiteUrl !== undefined ? website.data : {}),
       currency,
       holderPlaceholderId,
       holderUserIds,

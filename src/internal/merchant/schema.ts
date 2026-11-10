@@ -15,7 +15,7 @@ import {
   valid,
 } from "internal/shared/schema/formValidation";
 import { getFormText } from "utils/formData";
-import { parseWebsiteUrl } from "utils/merchants";
+import { parseWebsiteUrl } from "utils/websiteIcons";
 
 export const merchantNameMaxLength = 100;
 export const merchantNoteMaxLength = 200000;

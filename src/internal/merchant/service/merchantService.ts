@@ -9,10 +9,10 @@ import type {
   MerchantSummary,
 } from "internal/merchant/entity/merchantSummary";
 import {
-  createMerchantIconService,
-  getReusableMerchantIconUrl,
-  type MerchantIcon,
-} from "internal/merchant/service/merchantIconService";
+  createWebsiteIconService,
+  getReusableWebsiteIconUrl,
+  type WebsiteIcon,
+} from "internal/shared/websiteIcon/websiteIconService";
 import {
   getMerchantErrorMessage,
   merchantErrorCodes,
@@ -101,7 +101,7 @@ export interface MerchantService extends MerchantQueryService {
   createAlias(input: CreateMerchantAliasServiceInput): Promise<void>;
   createMerchant(input: CreateMerchantServiceInput): Promise<string>;
   createTag(input: CreateMerchantTagServiceInput): Promise<string>;
-  fetchMerchantIcon(input: MerchantIconInput): Promise<MerchantIcon>;
+  fetchMerchantIcon(input: MerchantIconInput): Promise<WebsiteIcon>;
   getMerchant(input: ArchiveMerchantServiceInput): Promise<MerchantData>;
   list(input: MerchantListInput): Promise<MerchantListResult>;
   listTags(input: MerchantLedgerInput): Promise<MerchantTagData[]>;
@@ -120,7 +120,7 @@ type MerchantServiceDependencies = {
   currentUserId: string | null;
   ledgerAccessService: LedgerAccessService;
   merchantRepository: MerchantRepository;
-  merchantIconService?: ReturnType<typeof createMerchantIconService>;
+  merchantIconService?: ReturnType<typeof createWebsiteIconService>;
   logger: Logger;
 };
 
@@ -151,7 +151,7 @@ export function createMerchantService({
   currentUserId,
   ledgerAccessService,
   logger,
-  merchantIconService = createMerchantIconService(),
+  merchantIconService = createWebsiteIconService(),
   merchantRepository,
 }: MerchantServiceDependencies): MerchantService {
   function requireUserId(): string {
@@ -331,7 +331,7 @@ export function createMerchantService({
       await requireActiveTags(input.ledgerId, tagIds);
       const { previewIconUrl, ...merchantInput } = input;
       const reusableIconUrl = input.siteUrl
-        ? getReusableMerchantIconUrl(input.siteUrl, previewIconUrl)
+        ? getReusableWebsiteIconUrl(input.siteUrl, previewIconUrl)
         : null;
       const iconUrl = input.siteUrl
         ? (reusableIconUrl ??
@@ -446,7 +446,7 @@ export function createMerchantService({
       await requireActiveTags(input.ledgerId, tagIds);
       const { previewIconUrl, ...merchantInput } = input;
       const reusableIconUrl = input.siteUrl
-        ? getReusableMerchantIconUrl(input.siteUrl, previewIconUrl)
+        ? getReusableWebsiteIconUrl(input.siteUrl, previewIconUrl)
         : null;
       const iconUrl = reusableIconUrl
         ? reusableIconUrl

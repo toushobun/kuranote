@@ -1,3 +1,7 @@
+import {
+  websiteIconErrorCodes,
+  websiteIconErrorMessages,
+} from "internal/shared/websiteIcon/errors";
 import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
 
 export const merchantErrorCodes = {
@@ -13,8 +17,8 @@ export const merchantErrorCodes = {
   ledgerInvalid: "ledger_invalid",
   merchantAliasListFailed: "merchant_alias_list_failed",
   merchantAliasReadFailed: "merchant_alias_read_failed",
-  merchantIconFetchFailed: "merchant_icon_fetch_failed",
-  merchantIconRedirectInvalid: "merchant_icon_redirect_invalid",
+  merchantIconFetchFailed: websiteIconErrorCodes.fetchFailed,
+  merchantIconRedirectInvalid: websiteIconErrorCodes.redirectInvalid,
   merchantInvalid: "merchant_invalid",
   merchantListFailed: "merchant_list_failed",
   merchantReadFailed: "merchant_read_failed",
@@ -40,7 +44,7 @@ export const merchantErrorCodes = {
   noteTooLong: "note_too_long",
   permissionDenied: "permission_denied",
   updateFailed: "update_failed",
-  websiteUrlInvalid: "website_url_invalid",
+  websiteUrlInvalid: websiteIconErrorCodes.websiteInvalid,
 } as const;
 
 export type MerchantErrorCode =
@@ -149,9 +153,9 @@ export const merchantErrorMessages: Record<MerchantErrorCode, string> = {
   [merchantErrorCodes.merchantAliasReadFailed]:
     "商家别名读取失败，请稍后重试。",
   [merchantErrorCodes.merchantIconFetchFailed]:
-    "未能获取网站图标，请确认网址后重试。",
+    websiteIconErrorMessages.fetchFailed,
   [merchantErrorCodes.merchantIconRedirectInvalid]:
-    "网站图标来源验证失败，请稍后重试。",
+    websiteIconErrorMessages.redirectInvalid,
   [merchantErrorCodes.merchantInvalid]: "商家指定不正确。",
   [merchantErrorCodes.merchantListFailed]: "商家列表加载失败，请稍后重试。",
   [merchantErrorCodes.merchantReadFailed]: "商家信息读取失败，请稍后重试。",
@@ -208,8 +212,5 @@ export const merchantWriteErrorMessages = {
 
 /** 商家网址校验不通过时的文案。 */
 export const merchantWebsiteUrlErrorMessages = {
-  credentialsNotAllowed: "商家网址不能包含登录凭据。",
-  internalNetwork: "商家网址不能指向本机或内部网络。",
-  notPublic: "商家网址必须指向可公开访问的网站。",
   protocolInvalid: "商家网址必须使用 HTTP 或 HTTPS。",
 } as const;

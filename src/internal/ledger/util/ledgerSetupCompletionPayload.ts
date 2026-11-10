@@ -7,7 +7,7 @@ import {
 } from "internal/ledger/entity/ledgerSetupTemplate/ledgerSetupTemplate";
 import type { LedgerSetupDraft } from "internal/ledger/schema/ledgerSetupDraft";
 import { findLedgerSetupAccountRegion } from "internal/ledger/util/ledgerSetupDraft";
-import { buildMerchantFaviconUrl } from "utils/merchants";
+import { buildWebsiteFaviconUrl } from "utils/websiteIcons";
 import { getMerchantPresetMatchNames } from "utils/merchantPresets";
 
 /** complete_ledger_setup 的 payload。字段名与 RPC 中的 jsonb 结构一致。 */
@@ -97,7 +97,7 @@ export function buildLedgerSetupMerchantPayload(
     merchants: merchants.map(({ key, aliases, name, tagKeys, websiteUrl }) => ({
       matchNames: matchNames.get(key) ?? [],
       aliases: aliases.map(({ alias, locale }) => ({ alias, locale })),
-      iconUrl: buildMerchantFaviconUrl(websiteUrl),
+      iconUrl: buildWebsiteFaviconUrl(websiteUrl),
       name,
       tagKeys: [...tagKeys],
       websiteUrl,

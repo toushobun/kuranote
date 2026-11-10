@@ -1,0 +1,14 @@
+export const websiteIconErrorCodes = {
+  fetchFailed: "merchant_icon_fetch_failed",
+  redirectInvalid: "merchant_icon_redirect_invalid",
+  websiteInvalid: "website_url_invalid",
+} as const;
+
+export const websiteIconErrorMessages = {
+  fetchFailed: "未能获取网站图标，请确认网址后重试。",
+  redirectInvalid: "网站图标来源验证失败，请稍后重试。",
+  websiteInvalid: "网址必须以 http:// 或 https:// 开头。",
+  credentialsNotAllowed: "网址不能包含登录凭据。",
+  internalNetwork: "网址不能指向本机或内部网络。",
+  notPublic: "网址必须指向可公开访问的网站。",
+} as const;

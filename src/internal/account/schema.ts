@@ -1,3 +1,4 @@
+import { parseWebsiteUrl } from "utils/websiteIcons";
 import { isValidTargetBalance } from "./util/accountBalance";
 import { z } from "@hono/zod-openapi";
 
@@ -49,7 +50,18 @@ export const accountParamsSchema = accountLedgerParamsSchema.extend({
   accountId: z.string().uuid(),
 });
 
-const accountFieldsSchema = z.object({
+export const accountWebsiteFieldsSchema = z.object({
+  websiteUrl: z
+    .string()
+    .trim()
+    .refine((url) => parseWebsiteUrl(url) !== undefined, {
+      message: accountErrorMessages[accountErrorCodes.websiteUrlInvalid],
+    })
+    .optional(),
+  previewIconUrl: z.string().optional(),
+});
+
+const accountFieldsSchema = accountWebsiteFieldsSchema.extend({
   currency: z
     .string()
     .trim()
@@ -98,6 +110,8 @@ const accountHolderSchema = z.discriminatedUnion("kind", [
 
 const accountSchema = z.object({
   created_at: z.string(),
+  website_url: z.string().nullable(),
+  icon_url: z.string().nullable(),
   currency: z.string(),
   current_balance: moneyValueSchema,
   holders: z.array(accountHolderSchema),
@@ -109,7 +123,7 @@ const accountSchema = z.object({
 });
 
 const holderOptionSchema = z.object({
-  // 新增 / 编辑账户的持有人头像与预览按成员个性色显示。
+  // 新增 / 编辑账户的持有人头像按成员个性色显示。
   display_color: z.enum(themeColorKeys),
   display_name: z.string(),
   email: z.string().email().nullable(),

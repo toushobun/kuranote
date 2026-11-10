@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { getLedgerSetupTemplate } from "internal/ledger/entity/ledgerSetupTemplate/getLedgerSetupTemplate";
 import { createDefaultLedgerSetupDraft } from "./ledgerSetupDraft";
 import { buildLedgerSetupCompletionPayload } from "./ledgerSetupCompletionPayload";
-import { buildMerchantFaviconUrl } from "utils/merchants";
+import { buildWebsiteFaviconUrl } from "utils/websiteIcons";
 describe("buildLedgerSetupCompletionPayload", () => {
   const template = getLedgerSetupTemplate("jp")!;
   it("显示名中文优先，原名及各语言别名与全部分类一并写入", () => {
@@ -48,7 +48,7 @@ describe("buildLedgerSetupCompletionPayload", () => {
     expect(payload.merchantTags).toHaveLength(7);
     for (const merchant of payload.merchants)
       expect(merchant.iconUrl).toBe(
-        buildMerchantFaviconUrl(merchant.websiteUrl),
+        buildWebsiteFaviconUrl(merchant.websiteUrl),
       );
   });
   it("账户按候选所属地区的货币写入，与账本生活地区无关", () => {

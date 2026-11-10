@@ -56,6 +56,8 @@ export type AccountHolderOption = {
 };
 
 export type Account = {
+  icon_url?: string | null;
+  website_url?: string | null;
   id: string;
   name: string;
   type: AccountType;
