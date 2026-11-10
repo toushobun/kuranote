@@ -97,6 +97,27 @@ describe("TransferReceipt", () => {
     expect(screen.getByRole("radiogroup", { name: "收支账户" })).toBeVisible();
   });
 
+  it("已解决的问题再次出现时不显示，下次保存才显示", async () => {
+    setup();
+    chooseAccount("转出", "现金 JPY");
+    chooseAccount("转入", "招商银行卡 CNY");
+    click("保存转账");
+    expect(screen.getByText("暂不支持不同币种之间的转账")).toBeInTheDocument();
+    chooseAccount("转入", "PayPay JPY");
+    await waitFor(() =>
+      expect(screen.queryByText("暂不支持不同币种之间的转账")).toBeNull(),
+    );
+    chooseAccount("转入", "招商银行卡 CNY");
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "更换转入账户：招商银行卡" }),
+      ).toBeVisible(),
+    );
+    expect(screen.queryByText("暂不支持不同币种之间的转账")).toBeNull();
+    click("保存转账");
+    expect(screen.getByText("暂不支持不同币种之间的转账")).toBeInTheDocument();
+  });
+
   it("选账户时不列出另一边已选的账户，填完后提交转账字段", async () => {
     const { action } = setup();
     chooseAccount("转出", "现金 JPY");

@@ -923,6 +923,49 @@ describe("TransactionConfirmStep", () => {
     ).toBeInTheDocument();
   });
 
+  it("已解决的问题再次出现时不显示，下次保存才显示", async () => {
+    renderConfirmFlow({
+      itemsOptions: {
+        ...receiptItemsOptions,
+        initialItems: [{ categoryId: "lunch", amount: "" }],
+      },
+    });
+    click("保存记账");
+    click("还有 1 条明细没填金额，点一下去填写");
+    pressItemAmountKey("8");
+    pressItemAmountKey("确定");
+    await waitKeypadClosed();
+    // 再添加一条明细、不填金额：同类问题再次出现，但这是保存后新出现的。
+    click("添加明细");
+    click("确定");
+    click("关闭金额键盘");
+    await waitKeypadClosed();
+    expect(screen.queryByText(/条明细没填金额/)).toBeNull();
+    expect(line("编辑明细 2")).not.toHaveAttribute("data-invalid");
+    click("保存记账");
+    expect(
+      screen.getByText("还有 1 条明细没填金额，点一下去填写"),
+    ).toBeInTheDocument();
+    expect(line("编辑明细 2")).toHaveAttribute("data-invalid", "true");
+  });
+
+  it("已解决的账户问题再次出现时不显示，下次保存才显示", async () => {
+    renderConfirmFlow();
+    click("删除支付账户 1");
+    click("保存记账");
+    click("请添加付款账户");
+    selectAccount();
+    expect(screen.queryByText("请添加付款账户")).toBeNull();
+    fireEvent.click(
+      await screen.findByRole("button", { name: "删除支付账户 1" }),
+    );
+    expect(screen.queryByText("请添加付款账户")).toBeNull();
+    click("保存记账");
+    expect(
+      screen.getByRole("button", { name: "请添加付款账户" }),
+    ).toBeInTheDocument();
+  });
+
   it("再次保存才重播提示动画，修改金额引起文案变化不闪烁", async () => {
     renderConfirmFlow({
       itemsOptions: {
