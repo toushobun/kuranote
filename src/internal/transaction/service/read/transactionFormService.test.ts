@@ -5,7 +5,6 @@ import { describe, expect, it, vi } from "vitest";
 import type { AccountSummary } from "internal/account";
 import type { TransactionItemDbRow } from "internal/db-types";
 import type { CurrentLedger } from "internal/ledger";
-import { RepositoryError } from "internal/shared/errors/appError";
 import type { TransactionIncomeLinkRepository } from "internal/transaction/repository/transactionIncomeLinkRepository";
 import type { TransactionFormRepository } from "internal/transaction/repository/transactionRepository";
 import type { TransferEditInitialValues } from "internal/transaction/service/read/transactionReadModels";
@@ -55,7 +54,6 @@ function createRepository(
 ): TransactionFormRepository {
   return {
     findActiveRecord: vi.fn().mockResolvedValue(null),
-    loadFrequentCategoryCounts: vi.fn().mockResolvedValue([]),
     listItems: vi.fn().mockResolvedValue([]),
     listPayments: vi.fn().mockResolvedValue([]),
     ...overrides,
@@ -157,7 +155,6 @@ function createLinkedDependencies({
       transaction_at: "2026-08-03T01:00:00.000Z",
       type: "normal",
     }),
-    loadFrequentCategoryCounts: vi.fn().mockResolvedValue([]),
     listItems: vi.fn().mockResolvedValue([
       {
         account_id: accountId,
@@ -731,29 +728,6 @@ describe("getEditTransactionView", () => {
 });
 
 describe("getNewTransactionView", () => {
-  it("常用分类辅助查询失败时仍加载表单并降级为手动排序", async () => {
-    const repository = createRepository({
-      loadFrequentCategoryCounts: vi
-        .fn()
-        .mockRejectedValue(
-          new RepositoryError(
-            "transaction_frequent_categories_load_failed",
-            "常用分类加载失败",
-          ),
-        ),
-    });
-
-    const view = await getNewTransactionView(
-      createDependencies(repository),
-      currentLedger,
-    );
-
-    expect(view.accountOptions).toHaveLength(2);
-    expect(view.categoryOptions).toHaveLength(1);
-    expect(view.merchantOptions).toHaveLength(1);
-    expect(view.frequentCategoryIds).toEqual([categoryId]);
-  });
-
   it("账户带持有人、商家带商家分类、分类带图标", async () => {
     const dependencies = createDependencies(createRepository());
 

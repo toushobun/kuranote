@@ -83,7 +83,6 @@ const baseView = {
   ],
   canWriteTransactions: true,
   categoryOptions: [],
-  frequentCategoryIds: [],
   ledgerId: "ledger-1",
   ledgerName: "家庭账本",
   merchantOptions: [

@@ -56,7 +56,7 @@ function renderPayments(amounts: string[]) {
 
 describe("useTransactionPaymentFields", () => {
   it("没有初始值时是 1 行空的单账户", () => {
-    const { result } = renderHook(() => useTransactionPaymentFields(undefined));
+    const { result } = renderHook(() => useTransactionPaymentFields([]));
 
     expect(result.current.isMultiAccount).toBe(false);
     expect(result.current.primaryAccountId).toBe("");

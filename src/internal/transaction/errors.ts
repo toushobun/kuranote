@@ -233,7 +233,6 @@ export const transactionSpecialStatusErrorMessages = {
 export const transactionLoadErrorMessages = {
   dashboardRecentAccountsLoadFailed: "最近使用账户加载失败，请稍后重试。",
   dashboardSummaryLoadFailed: "本月收支汇总加载失败，请稍后重试。",
-  frequentCategoriesLoadFailed: "常用分类加载失败，请稍后重试。",
   groupSummariesLoadFailed: "交易分组加载失败，请稍后重试。",
   incomeLinksLoadFailed: "收入关联信息加载失败，请稍后重试。",
   itemsLoadFailed: "交易明细加载失败，请稍后重试。",

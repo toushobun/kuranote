@@ -34,10 +34,10 @@ function toValidMoneyUnits(amount: string, currency: string | undefined) {
 }
 
 function createInitialRows(
-  initialPayments: readonly TransactionPayment[] | undefined,
+  initialPayments: readonly TransactionPayment[],
 ): TransactionPaymentRow[] {
   const payments =
-    initialPayments && initialPayments.length > 0
+    initialPayments.length > 0
       ? initialPayments
       : [{ accountId: "", amount: null }];
   // 单账户时金额由明细推导，不作为输入回填。
@@ -57,7 +57,7 @@ function createInitialRows(
  * 与对账条的合计口径一致，无效输入仍由提交时的 `validateTransactionPayments` 提示。
  */
 export function useTransactionPaymentFields(
-  initialPayments: readonly TransactionPayment[] | undefined,
+  initialPayments: readonly TransactionPayment[],
 ) {
   const [payments, setPayments] = useState(() =>
     createInitialRows(initialPayments),

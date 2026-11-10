@@ -1,12 +1,6 @@
 // 首页最近使用账户查询的历史记录窗口，最多读取 100 笔交易及账户变动。
 export const dashboardRecentAccountHistoryLimit = 100;
 
-// 现有常用分类查询至少累计 20 条历史明细，不足时向更早月份扩展。
-export const minimumHistoryItemCount = 20;
-
-// 现有明细选择抽屉的常用快捷分类最多返回 5 个，含手动顺序回退。
-export const frequentCategoryLimit = 5;
-
 // 从商家记账的收支账户步骤最多推荐 3 个账户（预定义）。
 export const recommendedAccountLimit = 3;
 

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, within } from "storybook/test";
 
 import type { TransactionCategoryOption } from "types/transactions";
 import { transactionLinkMessages } from "utils/transactionMessages";
@@ -62,8 +62,6 @@ const meta = {
   args: {
     categoryGroups,
     filteredCategoryOptions: categoryOptions,
-    frequentCategoryIds: ["expense-game", "expense-tip", "income-salary"],
-    onAmountChange: () => undefined,
     onCategoryToggle: () => undefined,
     onClose: () => undefined,
     onGroupSelect: () => undefined,
@@ -85,28 +83,16 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Collapsed: Story = {
-  name: "分类列表收起态",
-};
-
-export const Expanded: Story = {
-  name: "分类列表展开态",
-  play: async ({ canvasElement }) => {
-    const body = within(canvasElement.ownerDocument.body);
-    await userEvent.click(
-      await body.findByRole("button", { name: "选择更多分类" }),
-    );
-  },
+export const Default: Story = {
+  name: "选择分类",
 };
 
 export const IncomeCategoriesDisabled: Story = {
-  ...Expanded,
   name: "多账户支出：收入分类不可选",
   args: { disabledCategoryType: "income", pickerSpecialStatus: null },
 };
 
 export const ExpenseCategoriesDisabled: Story = {
-  ...Expanded,
   name: "多账户收入：支出分类不可选",
   args: {
     disabledCategoryType: "expense",
@@ -145,14 +131,5 @@ export const IncomeLinkAccountRequiredNotice: Story = {
     await expect(await body.findByRole("alert")).toHaveTextContent(
       "请先选择账户，再选择退款明细。",
     );
-  },
-};
-
-export const CategoryOnly: Story = {
-  name: "分步流程：只选分类",
-  args: {
-    showAmountInput: false,
-    showFrequentCategories: false,
-    inWizard: true,
   },
 };
