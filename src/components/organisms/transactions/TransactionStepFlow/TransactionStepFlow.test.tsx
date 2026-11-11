@@ -477,7 +477,6 @@ describe("TransactionStepFlow", () => {
 });
 
 describe("TransactionStepFlow 换商家", () => {
-
   it("已有自动明细后换商家，明细显示读取行并在建议到达后替换", async () => {
     const { props, rerender } = quickSetup();
     await selectEntryMerchant("7-Eleven");
@@ -490,7 +489,9 @@ describe("TransactionStepFlow 换商家", () => {
     expect(screen.queryByRole("button", { name: "添加明细" })).toBeNull();
     // 原本已经自动选了主账户，只等待明细，不遮挡添加付款账户。
     expect(screen.queryByText("正在读取常用账户…")).toBeNull();
-    expect(screen.getByRole("button", { name: "添加付款账户" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "添加付款账户" }),
+    ).toBeInTheDocument();
 
     rerender(
       <TransactionStepFlow
@@ -556,7 +557,9 @@ describe("TransactionStepFlow 换商家", () => {
 
     await changeReceiptNote();
     expectSuggestionsLoadingRows(false);
-    expect(screen.getByRole("button", { name: "添加明细" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "添加明细" }),
+    ).toBeInTheDocument();
     rerender(
       <TransactionStepFlow
         {...props}

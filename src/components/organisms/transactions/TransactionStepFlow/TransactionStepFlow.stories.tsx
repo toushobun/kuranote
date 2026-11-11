@@ -88,8 +88,12 @@ export const ChangeMerchantLoading: Story = {
   play: async ({ canvasElement }) => {
     const body = await selectMerchant(canvasElement, "7-Eleven");
     await body.findByRole("button", { name: "修改明细 1 金额：待输入" });
-    await userEvent.click(body.getByRole("button", { name: "修改商家：7-Eleven" }));
-    await userEvent.click(await body.findByRole("button", { name: "LIFE超市" }));
+    await userEvent.click(
+      body.getByRole("button", { name: "修改商家：7-Eleven" }),
+    );
+    await userEvent.click(
+      await body.findByRole("button", { name: "LIFE超市" }),
+    );
     const row = await body.findByText("正在按习惯准备明细…");
     await expect(row.closest('[role="status"]')).toBeVisible();
     await expect(
