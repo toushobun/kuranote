@@ -54,18 +54,28 @@ describe("loadMerchantEditorViews", () => {
     });
   });
 
-  it("新建页通过管理权限校验后才读取标签", async () => {
-    await expect(loadMerchantCreateView()).resolves.toMatchObject({ tags });
-    expect(mocks.assertCanManage.mock.invocationCallOrder[0]).toBeLessThan(
-      mocks.listTags.mock.invocationCallOrder[0],
+  it("新建页并行执行权限校验与标签读取", async () => {
+    let finishPermission: (() => void) | undefined;
+    mocks.assertCanManage.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          finishPermission = resolve;
+        }),
     );
+    const loading = loadMerchantCreateView();
+    await vi.waitFor(() => {
+      expect(mocks.assertCanManage).toHaveBeenCalledOnce();
+      expect(mocks.listTags).toHaveBeenCalledOnce();
+    });
+    finishPermission?.();
+    await expect(loading).resolves.toMatchObject({ tags });
   });
 
-  it("新建页权限校验失败时不读取标签", async () => {
+  it("新建页权限校验失败时仍拒绝返回表单数据", async () => {
     mocks.assertCanManage.mockRejectedValue(new Error("permission denied"));
 
     await expect(loadMerchantCreateView()).rejects.toThrow("permission denied");
-    expect(mocks.listTags).not.toHaveBeenCalled();
+    expect(mocks.listTags).toHaveBeenCalledOnce();
   });
 
   it("编辑页读取并校验商家后才读取标签", async () => {
