@@ -9,6 +9,7 @@ import type { TransactionStepFlowProps } from "../TransactionStepFlow/Transactio
 import {
   expectAutomaticNotice,
   expectNoPaymentRow,
+  expectSuggestionsLoadingRows,
   receiptLine as line,
   pressItemAmountKey,
   renderConfirmFlow,
@@ -79,14 +80,7 @@ describe("TransactionConfirmStep", () => {
       },
       suggestionsMerchantId: "life",
     });
-    for (const message of ["正在按习惯准备明细…", "正在读取常用账户…"]) {
-      const row = screen.getByText(message).closest('[role="status"]');
-      expect(row).toBeInTheDocument();
-      expect(row).toBeVisible();
-    }
-    expect(screen.queryByRole("progressbar")).toBeNull();
-    expect(screen.queryByRole("button", { name: "添加明细" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "添加付款账户" })).toBeNull();
+    expectSuggestionsLoadingRows(true);
     expect(saveButton()).toBeEnabled();
   });
 

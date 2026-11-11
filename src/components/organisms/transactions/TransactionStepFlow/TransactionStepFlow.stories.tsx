@@ -4,6 +4,7 @@ import {
   transactionEntryStoryDecorators,
   openMerchantStoryDrawer,
   receiptCreationStoryDecorator,
+  expectSuggestionLoadingRows,
 } from "organisms/transactions/transactionStepFlowStoryUtils";
 import {
   receiptItemsOptions,
@@ -74,13 +75,7 @@ export const QuickEntryLoading: Story = {
   args: { suggestionsMerchantId: "coffee" },
   play: async ({ canvasElement }) => {
     const body = await selectMerchant(canvasElement, "7-Eleven");
-    for (const message of ["正在按习惯准备明细…", "正在读取常用账户…"]) {
-      const text = await body.findByText(message);
-      await expect(text.closest('[role="status"]')).toBeVisible();
-    }
-    await expect(body.queryByRole("progressbar")).not.toBeInTheDocument();
-    await expect(body.queryByRole("button", { name: "添加明细" })).not.toBeInTheDocument();
-    await expect(body.queryByRole("button", { name: "添加付款账户" })).not.toBeInTheDocument();
+    await expectSuggestionLoadingRows(canvasElement);
   },
 };
 

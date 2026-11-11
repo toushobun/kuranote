@@ -4,6 +4,7 @@ import { TransactionStepFlow } from "../TransactionStepFlow/TransactionStepFlow"
 import {
   openMerchantStoryDrawer,
   transactionEntryStoryDecorators,
+  expectSuggestionLoadingRows,
 } from "organisms/transactions/transactionStepFlowStoryUtils";
 import { flowFixture } from "test/mocks/transactionStepFlow";
 import { ReadOnlyReceipt } from "test/ReadOnlyReceipt";
@@ -74,10 +75,7 @@ export const SuggestionsLoading: Story = {
   },
   play: async ({ canvasElement }) => {
     await enterReceipt(canvasElement);
-    const body = within(canvasElement.ownerDocument.body);
-    for (const message of ["正在按习惯准备明细…", "正在读取常用账户…"]) {
-      await expect((await body.findByText(message)).closest('[role="status"]')).toBeVisible();
-    }
+    await expectSuggestionLoadingRows(canvasElement);
   },
 };
 
