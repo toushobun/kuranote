@@ -57,14 +57,12 @@ describe("TransferReceiptFlow", () => {
     expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
   });
 
-  it("动过小票后切换方式要确认，放弃后才切换", async () => {
+  it("动过小票后切换方式也不确认", async () => {
     const props = setup();
     await chooseSourceAccount();
     click("切换方式");
     click("从商家记账");
-    await screen.findByRole("dialog", { name: "尚未保存" });
-    expect(props.onMethodChange).not.toHaveBeenCalled();
-    click("放弃修改");
+    expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
     await waitFor(() =>
       expect(props.onMethodChange).toHaveBeenCalledWith("merchant"),
     );

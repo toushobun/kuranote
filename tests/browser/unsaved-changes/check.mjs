@@ -1081,20 +1081,68 @@ async function checkNewReceiptMerchantOnly(browser) {
   await page.goto(sourceUrl);
   await scroll(page, 320);
   await page.getByRole("link", { name: "新增记账", exact: true }).click();
+  await page.getByRole("button", { name: "修改商家：请选择商家" }).click();
   await page.getByRole("button", { name: "7-Eleven", exact: true }).click();
   await page.getByRole("button", { name: "保存记账", exact: true }).waitFor();
   await page.waitForLoadState("networkidle");
+  // 商家抽屉开关会留下干净的 base 记录；只选商家不会建立哨兵。
   assert.equal(
     await page.evaluate(
       () => history.state?.kuranoteUnsavedChanges?.position ?? null,
     ),
-    null,
+    "base",
   );
   await browserBack(page);
   await page.waitForURL(sourceUrl);
   await page.getByRole("heading", { name: "离开守卫兼容性验证" }).waitFor();
   assert.equal(await page.getByRole("dialog", { name: "尚未保存" }).count(), 0);
   await keepScroll(page, 320, "auto");
+  assert.deepEqual(errors, []);
+  await page.close();
+  return { errors };
+}
+async function checkNewReceiptMethodSwitch(browser) {
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  const button = (name) => page.getByRole("button", { name, exact: true });
+  const confirm = page.getByRole("dialog", { name: "尚未保存" });
+  await page.goto(sourceUrl);
+  await page.getByRole("link", { name: "新增记账", exact: true }).click();
+  await button("修改备注：添加备注").click();
+  await page
+    .getByRole("textbox", { name: "备注", exact: true })
+    .fill("商家草稿");
+  await button("完成").click();
+  async function switchMethod(name) {
+    await button("切换方式").click();
+    await button(name).click();
+    await page.getByRole("heading", { name, exact: true }).waitFor();
+    assert.equal(await confirm.count(), 0);
+  }
+  await switchMethod("账户周转");
+  await position(page, "sentinel");
+  const inactive = page.getByTestId("wizard-dialog-switch-pane-merchant");
+  await inactive.waitFor({ state: "hidden" });
+  assert.equal(await inactive.getAttribute("inert"), "");
+  const hiddenButtonFocused = await inactive
+    .locator("button")
+    .first()
+    .evaluate((element) => {
+      element.focus();
+      return document.activeElement === element;
+    });
+  assert.equal(hiddenButtonFocused, false);
+  await browserBack(page);
+  await confirm.waitFor();
+  await button("继续编辑").click();
+  await switchMethod("从商家记账");
+  await button("修改备注：商家草稿").waitFor();
+  await switchMethod("账户周转");
+  await button("关闭记账").click();
+  await confirm.waitFor();
+  await button("放弃修改").click();
+  await page.waitForURL(`${baseUrl}/transactions`);
   assert.deepEqual(errors, []);
   await page.close();
   return { errors };
@@ -1128,6 +1176,7 @@ try {
     aliasLink: () => checkAliasSave(browser, true),
     untouched: () => checkUntouched(browser),
     newReceiptMerchantOnly: () => checkNewReceiptMerchantOnly(browser),
+    newReceiptMethodSwitch: () => checkNewReceiptMethodSwitch(browser),
   };
   const result = { baseUrl };
   for (const name of process.env.UNSAVED_GUARD_CASES?.split(",") ??

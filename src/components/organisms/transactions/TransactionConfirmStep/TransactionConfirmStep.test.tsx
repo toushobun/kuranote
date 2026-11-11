@@ -70,8 +70,8 @@ function renderMultiAccount(lunchAmount = "10000") {
 }
 
 describe("TransactionConfirmStep", () => {
-  it("新增小票保存按钮保留原生 MUI 样式与提交属性", () => {
-    renderConfirmFlow();
+  it("新增小票保存按钮保留原生 MUI 样式与提交属性", async () => {
+    await renderConfirmFlow();
     renderEntryComponent(
       <Button fullWidth size="large" type="submit" variant="contained">
         原生按钮参照
@@ -101,8 +101,8 @@ describe("TransactionConfirmStep", () => {
     expect(button).toHaveAttribute("type", "submit");
   });
 
-  it("小票从上到下显示抬头、明细、合计（含支出）、支付与备注", () => {
-    renderConfirmFlow();
+  it("小票从上到下显示抬头、明细、合计（含支出）、支付与备注", async () => {
+    await renderConfirmFlow();
     expect(headerRow("商家")).toHaveTextContent("7-Eleven");
     expect(headerRow("时间")).toHaveTextContent(/\d{2}:\d{2}$/);
     expect(line("编辑明细 1")).toHaveTextContent("午餐¥8,000");
@@ -114,16 +114,16 @@ describe("TransactionConfirmStep", () => {
     expect(headerRow("备注")).toHaveTextContent("添加备注");
   });
 
-  it("合计与明细行沿用原明细卡片的字号", () => {
-    renderConfirmFlow();
+  it("合计与明细行沿用原明细卡片的字号", async () => {
+    await renderConfirmFlow();
     expect(screen.getByText("¥10,000", { selector: "h5" })).toHaveClass(
       "MuiTypography-h5",
     );
     expect(screen.getByText("午餐")).toHaveClass("MuiTypography-body2");
   });
 
-  it("有收入时合计下方显示支出与收入", () => {
-    renderConfirmFlow({
+  it("有收入时合计下方显示支出与收入", async () => {
+    await renderConfirmFlow({
       itemsOptions: {
         ...receiptItemsOptions,
         initialItems: [
@@ -137,8 +137,8 @@ describe("TransactionConfirmStep", () => {
     );
   });
 
-  it("合计下方小字不显示金额为 0 的支出 / 收入", () => {
-    renderConfirmFlow({
+  it("合计下方小字不显示金额为 0 的支出 / 收入", async () => {
+    await renderConfirmFlow({
       itemsOptions: {
         ...receiptItemsOptions,
         initialItems: [
@@ -153,8 +153,8 @@ describe("TransactionConfirmStep", () => {
     expect(screen.queryByText("支出")).not.toBeInTheDocument();
   });
 
-  it("只有金额为 0 的支出时不显示小字", () => {
-    renderConfirmFlow({
+  it("只有金额为 0 的支出时不显示小字", async () => {
+    await renderConfirmFlow({
       itemsOptions: {
         ...receiptItemsOptions,
         initialItems: [{ categoryId: "lunch", amount: "0" }],
@@ -165,8 +165,8 @@ describe("TransactionConfirmStep", () => {
     );
   });
 
-  it("「支出」「收入」字样与收入明细金额按交易配色设置上色", () => {
-    renderConfirmFlow({
+  it("「支出」「收入」字样与收入明细金额按交易配色设置上色", async () => {
+    await renderConfirmFlow({
       itemsOptions: {
         ...receiptItemsOptions,
         initialItems: [
@@ -186,8 +186,8 @@ describe("TransactionConfirmStep", () => {
     ).toHaveStyle({ color: "var(--user-theme-income-amount)" });
   });
 
-  it("被其他记录退款 / 报销时合计显示净额，下方列出已退款与已报销，支付金额仍为原金额", () => {
-    renderConfirmFlow({
+  it("被其他记录退款 / 报销时合计显示净额，下方列出已退款与已报销，支付金额仍为原金额", async () => {
+    await renderConfirmFlow({
       itemsOptions: {
         ...receiptItemsOptions,
         initialItems: [
@@ -212,8 +212,8 @@ describe("TransactionConfirmStep", () => {
     expect(line("更换支付账户 1")).toHaveTextContent("¥10,000");
   });
 
-  it("明细有两个铅笔，单账户支付只有换账户的铅笔，删除 × 保留", () => {
-    renderConfirmFlow();
+  it("明细有两个铅笔，单账户支付只有换账户的铅笔，删除 × 保留", async () => {
+    await renderConfirmFlow();
     for (const [edit, remove, pencilCount] of [
       ["编辑明细 1", "删除明细 1", 2],
       ["编辑明细 2", "删除明细 2", 2],
@@ -234,8 +234,8 @@ describe("TransactionConfirmStep", () => {
       );
   });
 
-  it("自动明细使用固定提示，不显示单条自动标签", () => {
-    renderConfirmFlow({
+  it("自动明细使用固定提示，不显示单条自动标签", async () => {
+    await renderConfirmFlow({
       itemsOptions: receiptEmojiItemsOptions,
       suggestionsMerchantId: "seven",
       suggestions: receiptSuggestions,
@@ -244,8 +244,8 @@ describe("TransactionConfirmStep", () => {
     expect(screen.queryByText("自动", { exact: true })).not.toBeInTheDocument();
   });
 
-  it("按首次出现顺序分组，每组显示已填金额小计并保留原序号", () => {
-    renderConfirmFlow({
+  it("按首次出现顺序分组，每组显示已填金额小计并保留原序号", async () => {
+    await renderConfirmFlow({
       itemsOptions: {
         ...receiptEmojiItemsOptions,
         initialItems: [
@@ -274,8 +274,8 @@ describe("TransactionConfirmStep", () => {
     );
   });
 
-  it("单组无小计，仅选大分类的明细同组，未选分类的明细移到末尾", () => {
-    renderConfirmFlow({
+  it("单组无小计，仅选大分类的明细同组，未选分类的明细移到末尾", async () => {
+    await renderConfirmFlow({
       itemsOptions: {
         ...receiptItemsOptions,
         categoryOptions: [
@@ -318,8 +318,8 @@ describe("TransactionConfirmStep", () => {
     expect(screen.queryByRole("button", { name: /编辑明细/ })).toBeNull();
   });
 
-  it("小票仍显示业务状态「待报销」标签", () => {
-    renderConfirmFlow({
+  it("小票仍显示业务状态「待报销」标签", async () => {
+    await renderConfirmFlow({
       itemsOptions: {
         ...receiptItemsOptions,
         initialItems: [
@@ -334,8 +334,8 @@ describe("TransactionConfirmStep", () => {
     expect(within(line("编辑明细 1")).getByText("待报销")).toBeInTheDocument();
   });
 
-  it("业务状态标签独立显示在明细名称下方", () => {
-    renderConfirmFlow({
+  it("业务状态标签独立显示在明细名称下方", async () => {
+    await renderConfirmFlow({
       itemsOptions: {
         ...receiptItemsOptions,
         initialItems: [
@@ -360,7 +360,7 @@ describe("TransactionConfirmStep", () => {
   });
 
   it("点金额只打开该明细的金额键盘，不打开明细编辑", async () => {
-    renderConfirmFlow({ suggestions: receiptSuggestions });
+    await renderConfirmFlow({ suggestions: receiptSuggestions });
     click("修改明细 1 金额：¥8,000");
     expect(await screen.findByText("餐饮 · 午餐 的金额")).toBeInTheDocument();
     expect(screen.queryByText("编辑明细")).not.toBeInTheDocument();
@@ -373,7 +373,7 @@ describe("TransactionConfirmStep", () => {
   });
 
   it("金额待输入时带快捷金额，点「上次」后填入", async () => {
-    renderConfirmFlow({
+    await renderConfirmFlow({
       itemsOptions: {
         ...receiptItemsOptions,
         initialItems: [{ categoryId: "lunch", amount: "" }],
@@ -389,8 +389,8 @@ describe("TransactionConfirmStep", () => {
     expect(line("编辑明细 1")).toHaveTextContent("¥498");
   });
 
-  it("金额是可用键盘操作的按钮", () => {
-    renderConfirmFlow();
+  it("金额是可用键盘操作的按钮", async () => {
+    await renderConfirmFlow();
     const amount = screen.getByRole("button", {
       name: "修改明细 1 金额：¥8,000",
     });
@@ -400,7 +400,7 @@ describe("TransactionConfirmStep", () => {
   });
 
   it("明细的 × 删除这条明细，铅笔打开编辑抽屉", async () => {
-    renderConfirmFlow();
+    await renderConfirmFlow();
     click("删除明细 2");
     expect(screen.queryByText("收纳")).not.toBeInTheDocument();
     click("编辑明细 1");
@@ -412,8 +412,8 @@ describe("TransactionConfirmStep", () => {
     { categoryId: "points", groupName: "其他收入", categoryName: "积分返还" },
   ])(
     "多账户小票新增明细时默认选中 $groupName 的第一个可用小分类",
-    ({ categoryId, groupName, categoryName }) => {
-      renderConfirmFlow({
+    async ({ categoryId, groupName, categoryName }) => {
+      await renderConfirmFlow({
         itemsOptions: {
           ...receiptItemsOptions,
           initialItems: [{ categoryId, amount: "10000" }],
@@ -430,8 +430,8 @@ describe("TransactionConfirmStep", () => {
     },
   );
 
-  it("小票里手动切换大分类时选中该组第一个小分类", () => {
-    renderConfirmFlow();
+  it("小票里手动切换大分类时选中该组第一个小分类", async () => {
+    await renderConfirmFlow();
     click("添加明细");
     click("日用品");
     expect(
@@ -439,8 +439,8 @@ describe("TransactionConfirmStep", () => {
     ).toBeInTheDocument();
   });
 
-  it("编辑小票明细时仍选中该明细原有分类", () => {
-    renderConfirmFlow();
+  it("编辑小票明细时仍选中该明细原有分类", async () => {
+    await renderConfirmFlow();
     click("编辑明细 2");
     expect(
       screen.getByRole("button", { name: "日用品", pressed: true }),
@@ -451,7 +451,7 @@ describe("TransactionConfirmStep", () => {
   });
 
   it("支付行的铅笔打开账户选择抽屉并换账户，图标显示账户名的文字", async () => {
-    const { props } = renderConfirmFlow();
+    const { props } = await renderConfirmFlow();
     expect(within(line("更换支付账户 1")).getByText("P")).toBeInTheDocument();
     click("更换支付账户 1");
     expect(
@@ -473,8 +473,8 @@ describe("TransactionConfirmStep", () => {
     ).toBeInTheDocument();
   });
 
-  it("删除最后一个付款账户后只剩添加按钮，点保存只显示顶部提示", () => {
-    renderConfirmFlow();
+  it("删除最后一个付款账户后只剩添加按钮，点保存只显示顶部提示", async () => {
+    await renderConfirmFlow();
     click("删除支付账户 1");
     expectNoPaymentRow();
     expect(
@@ -490,7 +490,7 @@ describe("TransactionConfirmStep", () => {
   });
 
   it("删除账户后重开抽屉没有选中项，重新选择原账户时写入小票", async () => {
-    renderConfirmFlow();
+    await renderConfirmFlow();
     click("删除支付账户 1");
     click("添加付款账户");
     const accounts = within(
@@ -504,7 +504,7 @@ describe("TransactionConfirmStep", () => {
   });
 
   it("删除唯一账户后再选不同币种的账户，仍按原币种弹出换币种确认", async () => {
-    renderConfirmFlow();
+    await renderConfirmFlow();
     click("删除支付账户 1");
     click("添加付款账户");
     selectAccount("招商银行卡 CNY");
@@ -527,7 +527,7 @@ describe("TransactionConfirmStep", () => {
     ["直接换账户", false],
     ["点 × 清空后再选", true],
   ])("%s时，换币种确认框显示在账户抽屉之上", async (_, clearFirst) => {
-    renderConfirmFlow();
+    await renderConfirmFlow();
     const dialog = await openCurrencyConfirm("招商银行卡 CNY", clearFirst);
     const drawer = screen.getByRole("radio", {
       name: "招商银行卡 CNY",
@@ -539,7 +539,7 @@ describe("TransactionConfirmStep", () => {
   });
 
   it("换币种后小数位超出：显示真实金额并标红，合计与提示条正确，重新输入后可以保存", async () => {
-    renderConfirmFlow({
+    await renderConfirmFlow({
       itemsOptions: {
         ...receiptItemsOptions,
         initialItems: [{ categoryId: "lunch", amount: "12.55" }],
@@ -585,7 +585,7 @@ describe("TransactionConfirmStep", () => {
   });
 
   it("添加付款账户打开抽屉，取消不新增行，选中后才新增一行", async () => {
-    renderConfirmFlow();
+    await renderConfirmFlow();
     click("添加付款账户");
     const accounts = within(
       screen.getByRole("radiogroup", { name: "收支账户" }),
@@ -627,8 +627,8 @@ describe("TransactionConfirmStep", () => {
     },
   ])(
     "$scenario 时隐藏添加付款账户并正确显示说明",
-    ({ hasExpense, hasIncome = true, enabled, showsHint }) => {
-      renderConfirmFlow({
+    async ({ hasExpense, hasIncome = true, enabled, showsHint }) => {
+      await renderConfirmFlow({
         itemsOptions: {
           ...receiptItemsOptions,
           initialItems: [
@@ -648,7 +648,7 @@ describe("TransactionConfirmStep", () => {
   );
 
   it("纯收入可以添加第二个收款账户，金额和对账显示为收款", async () => {
-    renderConfirmFlow({
+    await renderConfirmFlow({
       itemsOptions: {
         ...receiptItemsOptions,
         initialItems: [{ categoryId: "points", amount: "100" }],
@@ -676,8 +676,8 @@ describe("TransactionConfirmStep", () => {
     expect(saveButton()).toBeEnabled();
   });
 
-  it("多账户已对上时显示对账行并可保存", () => {
-    renderMultiAccount();
+  it("多账户已对上时显示对账行并可保存", async () => {
+    await renderMultiAccount();
     expect(line("更换支付账户 1")).toHaveTextContent("PayPayJPY¥7,000");
     expect(line("更换支付账户 2")).toHaveTextContent("现金JPY¥3,000");
     expect(screen.getByRole("status")).toHaveTextContent(
@@ -687,7 +687,7 @@ describe("TransactionConfirmStep", () => {
   });
 
   it("多账户未对上时显示差额、标红并禁用保存，在小票里调整金额后对上", async () => {
-    renderMultiAccount("9000");
+    await renderMultiAccount("9000");
     expect(screen.getByRole("status")).toHaveTextContent(
       "付款合计 ¥10,000 / 明细合计 ¥9,000 · 差额 ¥1,000",
     );
@@ -714,8 +714,8 @@ describe("TransactionConfirmStep", () => {
     expect(saveButton()).toBeEnabled();
   });
 
-  it("多账户的 × 删除追加的账户，回到单账户", () => {
-    renderMultiAccount();
+  it("多账户的 × 删除追加的账户，回到单账户", async () => {
+    await renderMultiAccount();
     click("删除支付账户 2");
     expect(
       screen.queryByRole("button", { name: "更换支付账户 2" }),
@@ -724,8 +724,8 @@ describe("TransactionConfirmStep", () => {
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
-  it("多账户换账户时只能选同币种、未被其他行选中的账户", () => {
-    renderMultiAccount();
+  it("多账户换账户时只能选同币种、未被其他行选中的账户", async () => {
+    await renderMultiAccount();
     click("更换支付账户 2");
     const accounts = within(
       screen.getByRole("radiogroup", { name: "收支账户" }),
@@ -736,7 +736,7 @@ describe("TransactionConfirmStep", () => {
   });
 
   it("空备注显示占位，抽屉计数并保留已编辑备注", async () => {
-    renderConfirmFlow();
+    await renderConfirmFlow();
     fireEvent.click(headerRow("备注"));
     const input = screen.getByRole("textbox", { name: "备注" });
     expect(input).toHaveFocus();
@@ -756,7 +756,7 @@ describe("TransactionConfirmStep", () => {
   });
 
   it("时间选择和提交保留秒，小票只显示分钟", async () => {
-    renderConfirmFlow();
+    await renderConfirmFlow();
     fireEvent.click(headerRow("时间"));
     // 时刻滚轮同时挂载上百个选项按钮，getByRole 每次都要计算全部按钮的可访问名，
     // 单次约 1 秒；选项都有 aria-label，改用 getByLabelText 直接定位。
@@ -778,7 +778,7 @@ describe("TransactionConfirmStep", () => {
   });
 
   it("缺少账户和明细时只在保存后显示顶部提示，点明细提示打开分类抽屉", async () => {
-    renderConfirmFlow({
+    await renderConfirmFlow({
       itemsOptions: {
         ...receiptItemsOptions,
         initialPayments: [{ accountId: "", amount: null }],
@@ -805,7 +805,7 @@ describe("TransactionConfirmStep", () => {
   });
 
   it("未填金额标红，点击提示打开金额键盘", async () => {
-    renderConfirmFlow({
+    await renderConfirmFlow({
       itemsOptions: {
         ...receiptItemsOptions,
         initialItems: [{ categoryId: "lunch", amount: "" }],
@@ -836,7 +836,7 @@ describe("TransactionConfirmStep", () => {
             resolve = done;
           }),
       );
-      renderConfirmFlow({ action });
+      await renderConfirmFlow({ action });
       click("保存记账");
       await waitFor(() => expect(action).toHaveBeenCalledOnce());
       expect(screen.getByRole("button", { name: /保存中/ })).toBeDisabled();
@@ -864,7 +864,7 @@ describe("TransactionConfirmStep", () => {
             : { error: "保存失败，请重试" },
         );
       const onClose = vi.fn();
-      renderConfirmFlow({
+      await renderConfirmFlow({
         action,
         onClose,
         itemsOptions:
@@ -900,7 +900,7 @@ describe("TransactionConfirmStep", () => {
   );
 
   it("保存后新出现的问题不标红，下次保存才标红；已标红的问题解决后取消标红", async () => {
-    renderConfirmFlow({
+    await renderConfirmFlow({
       itemsOptions: {
         ...receiptItemsOptions,
         initialItems: [{ categoryId: "lunch", amount: "" }],
@@ -926,7 +926,7 @@ describe("TransactionConfirmStep", () => {
   });
 
   it("已解决的问题再次出现时不显示，下次保存才显示", async () => {
-    renderConfirmFlow({
+    await renderConfirmFlow({
       itemsOptions: {
         ...receiptItemsOptions,
         initialItems: [{ categoryId: "lunch", amount: "" }],
@@ -952,7 +952,7 @@ describe("TransactionConfirmStep", () => {
   });
 
   it("已解决的账户问题再次出现时不显示，下次保存才显示", async () => {
-    renderConfirmFlow();
+    await renderConfirmFlow();
     click("删除支付账户 1");
     click("保存记账");
     click("请添加付款账户");
@@ -969,7 +969,7 @@ describe("TransactionConfirmStep", () => {
   });
 
   it("再次保存才重播提示动画，修改金额引起文案变化不闪烁", async () => {
-    renderConfirmFlow({
+    await renderConfirmFlow({
       itemsOptions: {
         ...receiptItemsOptions,
         initialItems: [
@@ -1000,7 +1000,7 @@ describe("TransactionConfirmStep", () => {
 
 describe("TransactionConfirmStep 金额键盘", () => {
   it("按键、快捷金额、清空时小票金额不变，点「确定」才写入", async () => {
-    renderConfirmFlow({ suggestions: receiptSuggestions });
+    await renderConfirmFlow({ suggestions: receiptSuggestions });
     click("修改明细 1 金额：¥8,000");
     pressItemAmountKey("5");
     expectReceiptAmount("修改明细 1 金额：¥8,000");
@@ -1019,7 +1019,7 @@ describe("TransactionConfirmStep 金额键盘", () => {
   });
 
   it("点 × 关闭时放弃输入，金额保持打开前的值", async () => {
-    renderConfirmFlow();
+    await renderConfirmFlow();
     click("修改明细 1 金额：¥8,000");
     pressItemAmountKey("清空");
     pressItemAmountKey("3");
@@ -1031,7 +1031,7 @@ describe("TransactionConfirmStep 金额键盘", () => {
   });
 
   it("显示 0 时点「确定」写入 0", async () => {
-    renderConfirmFlow();
+    await renderConfirmFlow();
     click("修改明细 1 金额：¥8,000");
     pressItemAmountKey("清空");
     pressItemAmountKey("确定");
@@ -1042,7 +1042,7 @@ describe("TransactionConfirmStep 金额键盘", () => {
   });
 
   it("确定后只关闭键盘，不自动打开下一条未填金额的明细", async () => {
-    renderConfirmFlow({
+    await renderConfirmFlow({
       itemsOptions: {
         ...receiptItemsOptions,
         initialItems: [
@@ -1062,7 +1062,7 @@ describe("TransactionConfirmStep 金额键盘", () => {
   });
 
   it("多账户确定一个账户的金额后，不把差额补到下一个账户", async () => {
-    renderMultiAccount();
+    await renderMultiAccount();
     click("修改支付账户 1 金额：¥7,000");
     pressItemAmountKey("清空");
     for (const key of ["6", "0", "0", "0"]) pressItemAmountKey(key);

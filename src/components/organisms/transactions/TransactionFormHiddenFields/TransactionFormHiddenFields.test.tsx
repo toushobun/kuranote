@@ -18,8 +18,8 @@ function submittedData() {
   );
 }
 describe("TransactionFormHiddenFields", () => {
-  it("单账户提交唯一主账户和有序明细，不提交多账户字段", () => {
-    renderConfirmFlow();
+  it("单账户提交唯一主账户和有序明细，不提交多账户字段", async () => {
+    await renderConfirmFlow();
     const data = submittedData();
     expect(data.getAll("merchantId")).toEqual(["seven"]);
     expect(data.getAll("accountId")).toEqual(["paypay"]);
@@ -31,8 +31,8 @@ describe("TransactionFormHiddenFields", () => {
     expect(data.get("timeZoneOffsetMinutes")).not.toBe("");
     expect(data.get("type")).toBe("expense");
   });
-  it("多账户按行提交账户和金额，不再提交单账户字段", () => {
-    renderConfirmFlow({
+  it("多账户按行提交账户和金额，不再提交单账户字段", async () => {
+    await renderConfirmFlow({
       itemsOptions: {
         ...receiptItemsOptions,
         initialItems: filledItems,

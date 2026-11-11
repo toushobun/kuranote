@@ -14,14 +14,10 @@ import {
   wizardDialogTitleSx,
 } from "molecules/ui/WizardDialog/wizardDialogStyles";
 import { coverBottomNavigationAttribute } from "organisms/navigation/bottomNavigationLayout";
-import { designTokens } from "theme/theme";
-
-const frequentMerchantSkeletonCount = 8;
-const merchantRowSkeletonCount = 4;
+import { ReceiptPaper } from "organisms/transactions/ReceiptParts/ReceiptPaper";
 
 /**
- * 记一笔的加载骨架（#943）：与从商家记账的第一屏「选择商家」一致——标题栏 +
- * 搜索框 + 商家分类筛选 + 常用商家网格 + 商家列表。
+ * 记一笔的加载骨架：标题栏和空小票。
  *
  * 骨架必须在服务端渲染的第一帧就盖住底部导航（任务 11），所以不用只在客户端渲染的 Portal：
  * 直接渲染 fixed 全屏遮罩，并标记 `coverBottomNavigationAttribute`，由 AppShell 把 main 的层级
@@ -52,51 +48,33 @@ export function TransactionStepFlowSkeleton() {
           >
             <Skeleton variant="circular" width={36} height={36} />
             <Typography component="h2" sx={wizardDialogTitleSx}>
-              {m.merchantTitle}
+              {m.title}
             </Typography>
             <Skeleton variant="rounded" width={64} height={30} />
           </Box>
         </Box>
-        <Stack spacing={2} sx={{ p: 2.5 }}>
-          <Skeleton variant="rounded" height={40} />
-          <Stack direction="row" spacing={1}>
-            {[56, 72, 72, 64].map((width, index) => (
-              <Skeleton
-                key={index}
-                variant="rounded"
-                width={width}
-                height={32}
-                sx={chipSx}
-              />
-            ))}
-          </Stack>
-          <Skeleton width={72} />
-          <Box sx={gridSx}>
-            {Array.from({ length: frequentMerchantSkeletonCount }).map(
-              (_, index) => (
-                <Stack key={index} spacing={1} sx={{ alignItems: "center" }}>
-                  <Skeleton variant="circular" width={56} height={56} />
-                  <Skeleton width="70%" />
-                </Stack>
-              ),
-            )}
-          </Box>
-          <Skeleton width={72} />
-          <Stack spacing={1.5}>
-            {Array.from({ length: merchantRowSkeletonCount }).map(
-              (_, index) => (
-                <Stack
-                  key={index}
-                  direction="row"
-                  spacing={1.5}
-                  sx={{ alignItems: "center" }}
+        <Stack sx={{ p: 2.5 }}>
+          <ReceiptPaper>
+            <Stack spacing={1} sx={{ alignItems: "center", pb: 2 }}>
+              <Skeleton variant="circular" width={48} height={48} />
+              <Skeleton width={96} />
+              <Skeleton width={140} />
+            </Stack>
+            <Stack spacing={1.5}>
+              {[96, 120, 108, 80].map((width) => (
+                <Box
+                  key={width}
+                  sx={{
+                    borderTop: "1px dashed",
+                    borderColor: "divider",
+                    py: 1,
+                  }}
                 >
-                  <Skeleton variant="circular" width={36} height={36} />
-                  <Skeleton sx={{ flex: 1 }} />
-                </Stack>
-              ),
-            )}
-          </Stack>
+                  <Skeleton width={width} />
+                </Box>
+              ))}
+            </Stack>
+          </ReceiptPaper>
         </Stack>
       </Box>
     </Backdrop>
@@ -118,11 +96,3 @@ const paperSx = {
 } as const;
 
 const titleRowSx = { gridTemplateColumns: "40px 1fr auto" };
-
-const chipSx = { borderRadius: `${designTokens.radius.full}px`, flexShrink: 0 };
-
-const gridSx = {
-  display: "grid",
-  gap: 2,
-  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-};

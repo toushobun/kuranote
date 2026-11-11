@@ -1,5 +1,5 @@
 import { setupGuardHistoryMock, backFromGuard } from "test/mockGuardHistory";
-const guardHistory = setupGuardHistoryMock();
+const guardHistory = setupGuardHistoryMock({ trackUrls: true });
 
 import {
   act,
@@ -14,7 +14,12 @@ import {
   ReceiptCreationTestProviders,
   submitReceiptCreation,
 } from "test/receiptCreation";
-import { expectNoPaymentRow } from "test/transactionConfirmStep";
+import { selectEntryMerchant } from "test/transactionStepFlow";
+import {
+  expectNoPaymentRow,
+  pressItemAmountKey,
+} from "test/transactionConfirmStep";
+import { saveAndLeaveField } from "config/unsavedChanges";
 import { receiptItemsOptions } from "test/mocks/transactionReceipt";
 import { flowFixture } from "test/mocks/transactionStepFlow";
 import { NewTransactionStepFlow } from "./NewTransactionStepFlow";
@@ -51,6 +56,13 @@ const noHistory: MerchantEntrySuggestions = {
 function setup(
   overrides: Partial<Parameters<typeof NewTransactionStepFlow>[0]> = {},
 ) {
+  window.history.replaceState(
+    window.history.state,
+    "",
+    overrides.initialMethod === "transfer"
+      ? "/transactions/new?method=transfer"
+      : "/transactions/new",
+  );
   return render(
     <NewTransactionStepFlow
       action={async () => ({})}
@@ -74,11 +86,6 @@ function click(name: string) {
   fireEvent.click(screen.getByRole("button", { name }));
 }
 
-// 没有常用商家时只有列表行，行名称带商家分类。
-function selectMerchant(name: string) {
-  fireEvent.click(screen.getByRole("button", { name: new RegExp(`^${name}`) }));
-}
-
 // 切换方式时经 history.replaceState 同步的地址。
 function replacedUrls() {
   return vi
@@ -86,11 +93,32 @@ function replacedUrls() {
     .mock.calls.map(([, , url]) => url);
 }
 
-function onMerchantScreen() {
-  return !!screen.queryByRole("heading", { name: "记一笔" });
-}
 function paymentLine() {
   return screen.getByRole("button", { name: "更换支付账户 1" }).parentElement!;
+}
+
+async function switchMethod(name: "账户周转" | "从商家记账") {
+  click("切换方式");
+  click(name);
+  await screen.findByRole("heading", { name });
+  expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
+}
+
+async function updateNote(previous: string, note: string) {
+  click(`修改备注：${previous}`);
+  fireEvent.change(screen.getByRole("textbox", { name: "备注" }), {
+    target: { value: note },
+  });
+  click("完成");
+  await screen.findByRole("button", {
+    name: `修改备注：${note || "添加备注"}`,
+  });
+}
+
+async function chooseTransferAccount(side: "转出" | "转入", account: string) {
+  click(`更换${side}账户：选择账户`);
+  fireEvent.click(screen.getByRole("radio", { name: `${account} JPY` }));
+  await screen.findByRole("button", { name: `更换${side}账户：${account}` });
 }
 
 describe("NewTransactionStepFlow", () => {
@@ -113,6 +141,7 @@ describe("NewTransactionStepFlow", () => {
     setup({
       frequentMerchants: [{ merchantId: "seven", recordCount: 3 }],
     });
+    click("修改商家：请选择商家");
     expect(screen.getByRole("group", { name: "常用商家" })).toBeInTheDocument();
     expect(screen.getByText("全部商家")).toBeInTheDocument();
     expect(requests).toHaveLength(0);
@@ -120,20 +149,21 @@ describe("NewTransactionStepFlow", () => {
 
   it("常用商家为空时不显示常用区块，仍可选择商家", async () => {
     setup();
+    click("修改商家：请选择商家");
     expect(screen.queryByText("常用商家")).not.toBeInTheDocument();
-    selectMerchant("7-Eleven");
+    await selectEntryMerchant(/^7-Eleven/);
     respond("merchantId=seven", noHistory);
     await screen.findByRole("button", { name: "添加付款账户" });
   });
 
   it("加载中点另一个商家时取消前一个，只采用当前商家的建议", async () => {
     setup();
-    selectMerchant("7-Eleven");
+    await selectEntryMerchant(/^7-Eleven/);
     expect(requests.at(-1)?.url).toBe(
       "/api/transactions/merchant-entry-suggestions?ledgerId=ledger-1&merchantId=seven",
     );
-    expect(onMerchantScreen()).toBe(true);
-    selectMerchant("LIFE超市");
+    expect(screen.getByRole("progressbar")).toBeVisible();
+    await selectEntryMerchant(/^LIFE超市/, "7-Eleven");
     expect(
       screen.getByRole("progressbar", { name: "正在读取 LIFE超市 的记录" }),
     ).toBeInTheDocument();
@@ -161,7 +191,7 @@ describe("NewTransactionStepFlow", () => {
 
   it("当前商家的建议到达后走快速路线", async () => {
     setup();
-    selectMerchant("7-Eleven");
+    await selectEntryMerchant(/^7-Eleven/);
     respond("merchantId=seven", {
       ...noHistory,
       recommendedAccountIds: ["paypay"],
@@ -172,8 +202,8 @@ describe("NewTransactionStepFlow", () => {
 
   it("建议获取失败时按没有记录处理，可以继续手动记账", async () => {
     setup();
-    selectMerchant("7-Eleven");
-    expect(onMerchantScreen()).toBe(true);
+    await selectEntryMerchant(/^7-Eleven/);
+    expect(screen.getByRole("progressbar")).toBeVisible();
     respond("merchantId=seven", { error: {} }, 500);
 
     await screen.findByRole("button", { name: "添加付款账户" });
@@ -188,6 +218,7 @@ describe("NewTransactionStepFlow", () => {
 
   it("搜索不到时在当前页新增并预填商家名称，保存后选中", async () => {
     setup();
+    click("修改商家：请选择商家");
     fireEvent.change(screen.getByLabelText("搜索商家"), {
       target: { value: "全家" },
     });
@@ -203,7 +234,7 @@ describe("NewTransactionStepFlow", () => {
 
   it("新增账户后选中发起的付款行并保留小票", async () => {
     setup({ accountOptions: [] });
-    selectMerchant("7-Eleven");
+    await selectEntryMerchant(/^7-Eleven/);
     respond("merchantId=seven", noHistory);
     fireEvent.click(
       await screen.findByRole("button", { name: "添加付款账户" }),
@@ -220,11 +251,12 @@ describe("NewTransactionStepFlow", () => {
 
   it("没有商家时从预设添加在当前页面打开", () => {
     setup({ merchantOptions: [] });
+    click("修改商家：请选择商家");
     click("从预设添加");
     expect(screen.getByTestId("preset-launcher")).toBeInTheDocument();
   });
 
-  it("首屏干净后退返回来源页，不压哨兵、不 push 明细页", async () => {
+  it("空小票未修改时后退返回来源页，不压哨兵、不 push 明细页", async () => {
     setup();
     await act(async () => window.history.back());
     expect(guardHistory().index()).toBe(0);
@@ -235,7 +267,7 @@ describe("NewTransactionStepFlow", () => {
   });
   it("小票修改后后退可继续编辑，放弃只真正后退一次且不 push", async () => {
     setup();
-    selectMerchant("7-Eleven");
+    await selectEntryMerchant(/^7-Eleven/);
     respond("merchantId=seven", noHistory);
     await screen.findByRole("button", { name: "添加付款账户" });
     // #1016：只选商家不是修改，先手动选择付款账户再验证未保存守卫。
@@ -260,7 +292,7 @@ describe("NewTransactionStepFlow", () => {
     expect(router.push).not.toHaveBeenCalled();
   });
 
-  it("首屏无修改时关闭直接回到明细列表", async () => {
+  it("空小票无修改时关闭直接回到明细列表", async () => {
     setup();
     click("关闭记账");
     expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
@@ -288,14 +320,84 @@ describe("NewTransactionStepFlow", () => {
     expect(guardHistory().index()).toBe(0);
   });
 
-  it("从账户周转切回从商家记账，回到选择商家", async () => {
+  it("从账户周转切回从商家记账，显示空小票", async () => {
     setup({ initialMethod: "transfer" });
     expect(screen.getByRole("heading", { name: "账户周转" })).toBeVisible();
     click("切换方式");
     click("从商家记账");
     expect(
-      await screen.findByRole("heading", { name: "记一笔" }),
+      await screen.findByRole("heading", { name: "从商家记账" }),
     ).toBeVisible();
     expect(replacedUrls()).toContain("/transactions/new");
+  });
+
+  it("双向切换保留各自草稿", async () => {
+    setup();
+    await selectEntryMerchant(/^7-Eleven/);
+    respond("merchantId=seven", noHistory);
+    await updateNote("添加备注", "商家草稿");
+    await switchMethod("账户周转");
+    await chooseTransferAccount("转出", "现金");
+    await switchMethod("从商家记账");
+    expect(
+      screen.getByRole("button", { name: "修改商家：7-Eleven" }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "修改备注：商家草稿" }),
+    ).toBeVisible();
+    await switchMethod("账户周转");
+    expect(
+      screen.getByRole("button", { name: "更换转出账户：现金" }),
+    ).toBeVisible();
+  });
+
+  it("保存并退出只提交当前方式的表单", async () => {
+    const action = vi.fn(async (_: unknown, data: FormData) => {
+      expect(data.get(saveAndLeaveField)).toBe("true");
+      expect(data.get("type")).toBe("transfer");
+      expect(data.get("accountId")).toBe("cash");
+      expect(data.get("transferTargetAccountId")).toBe("paypay");
+      expect(data.get("transferAmount")).toBe("50");
+      expect(data.get("note")).not.toBe("商家草稿");
+      return { success: "已保存" };
+    });
+    setup({ action });
+    await updateNote("添加备注", "商家草稿");
+    await switchMethod("账户周转");
+    await chooseTransferAccount("转出", "现金");
+    await chooseTransferAccount("转入", "PayPay");
+    click("修改转账金额：待输入");
+    pressItemAmountKey("5");
+    pressItemAmountKey("0");
+    pressItemAmountKey("确定");
+    await screen.findByRole("button", { name: "修改转账金额：¥50" });
+    click("关闭记账");
+    await screen.findByRole("dialog", { name: "尚未保存" });
+    click("保存并退出");
+    await waitFor(() =>
+      expect(router.push).toHaveBeenCalledWith("/transactions"),
+    );
+    expect(action).toHaveBeenCalledOnce();
+  });
+
+  it("只有隐藏草稿动过且已还原，当前小票后退和关闭也会确认", async () => {
+    setup();
+    await updateNote("添加备注", "改了又还原");
+    await updateNote("改了又还原", "");
+    await switchMethod("账户周转");
+    const hidden = screen.getByTestId("wizard-dialog-switch-pane-merchant");
+    expect(hidden).toHaveAttribute("inert");
+    expect(hidden).toHaveAttribute("aria-hidden", "true");
+    await backFromGuard();
+    await screen.findByRole("dialog", { name: "尚未保存" });
+    click("继续编辑");
+    await screen.findByRole("heading", { name: "账户周转" });
+    click("关闭记账");
+    await screen.findByRole("dialog", { name: "尚未保存" });
+    expect(router.push).not.toHaveBeenCalled();
+    click("放弃修改");
+    await waitFor(() =>
+      expect(router.push).toHaveBeenCalledWith("/transactions"),
+    );
   });
 });

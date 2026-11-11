@@ -1,4 +1,5 @@
 "use client";
+import { useCallback, useState } from "react";
 import {
   BackLayerScope,
   transactionBackLayerLevels,
@@ -49,10 +50,15 @@ export function NewTransactionStepFlow(props: NewTransactionStepFlowProps) {
     initialMethod: props.initialMethod ?? "merchant",
     ledgerId: props.ledgerId,
   });
+  const [merchantTouched, setMerchantTouched] = useState(false);
+  const [transferTouched, setTransferTouched] = useState(false);
+  const touchMerchant = useCallback(() => setMerchantTouched(true), []);
+  const touchTransfer = useCallback(() => setTransferTouched(true), []);
   function renderMethod(method: string) {
     if (method === "transfer") {
       return (
         <TransferReceiptFlow
+          draft={{ otherTouched: merchantTouched, onTouched: touchTransfer }}
           accounts={props.accountOptions}
           action={props.action}
           onClose={w.onClose}
@@ -62,7 +68,9 @@ export function NewTransactionStepFlow(props: NewTransactionStepFlowProps) {
     }
     return (
       <TransactionStepFlow
+        draft={{ otherTouched: transferTouched, onTouched: touchMerchant }}
         open
+        merchantPickerSuspended={w.presetsOpen}
         action={props.action}
         accounts={props.accountOptions}
         merchants={props.merchantOptions}
@@ -85,6 +93,7 @@ export function NewTransactionStepFlow(props: NewTransactionStepFlowProps) {
   return (
     <>
       <WizardDialogSwitch
+        keepMounted
         activeKey={w.method}
         order={entryMethodOrder}
         renderPane={renderMethod}

@@ -17,6 +17,7 @@ export function ReceiptHeaderButton({
   label,
   value,
   children,
+  above,
   onClick,
   error = false,
   readOnly = false,
@@ -24,11 +25,18 @@ export function ReceiptHeaderButton({
   label: string;
   value: string;
   children: ReactNode;
+  above?: ReactNode;
   onClick: () => void;
   error?: boolean;
   readOnly?: boolean;
 }) {
   if (readOnly) return <Box sx={receiptHeaderButtonSx}>{children}</Box>;
+  const content = (
+    <>
+      {children}
+      <EditOutlinedIcon aria-hidden sx={receiptPencilSx} />
+    </>
+  );
   return (
     <ButtonBase
       aria-label={m.editReceiptRow(label, value)}
@@ -36,14 +44,21 @@ export function ReceiptHeaderButton({
       data-invalid={error || undefined}
       sx={[
         receiptHeaderButtonSx,
+        Boolean(above) && { flexDirection: "column" },
         error && {
           color: "error.main",
           "& .MuiTypography-root": receiptErrorTextSx,
         },
       ]}
     >
-      {children}
-      <EditOutlinedIcon aria-hidden sx={receiptPencilSx} />
+      {above}
+      {above ? (
+        <Box component="span" sx={receiptHeaderButtonSx}>
+          {content}
+        </Box>
+      ) : (
+        content
+      )}
     </ButtonBase>
   );
 }

@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { expect, userEvent, waitFor, within } from "storybook/test";
+import { expect, userEvent, waitFor } from "storybook/test";
 import {
   transactionEntryStoryDecorators,
+  openMerchantStoryDrawer,
   receiptCreationStoryDecorator,
 } from "organisms/transactions/transactionStepFlowStoryUtils";
 import {
@@ -20,17 +21,18 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const MerchantDefault: Story = {
-  name: "选择商家（常用不足八个）",
+  name: "打开即空小票",
 };
 
 async function selectMerchant(canvasElement: HTMLElement, name: string) {
-  const body = within(canvasElement.ownerDocument.body);
-  await userEvent.click(body.getByRole("button", { name }));
+  const body = await openMerchantStoryDrawer(canvasElement);
+  await userEvent.click(await body.findByRole("button", { name }));
+  await body.findByRole("button", { name: `修改商家：${name}` });
   return body;
 }
 
 export const QuickEntry: Story = {
-  name: "快速路线（建议到达后进入小票，自动明细待输入）",
+  name: "快速路线（建议到达后自动带出，明细待输入）",
   args: {
     suggestionsMerchantId: "seven",
     suggestions: { ...receiptSuggestions, recommendedAccountIds: ["paypay"] },
@@ -48,7 +50,7 @@ export const QuickEntry: Story = {
 };
 
 export const FirstVisit: Story = {
-  name: "第一次去的商家（不选账户，进入小票）",
+  name: "第一次去的商家（不自动选账户）",
   args: {
     suggestionsMerchantId: "coffee",
     suggestions: {
@@ -68,10 +70,15 @@ export const FirstVisit: Story = {
 };
 
 export const QuickEntryLoading: Story = {
-  name: "快速路线（读取建议中，超时后进入小票）",
+  name: "快速路线（读取建议中，头像显示加载）",
   args: { suggestionsMerchantId: "coffee" },
   play: async ({ canvasElement }) => {
-    await selectMerchant(canvasElement, "7-Eleven");
+    const body = await selectMerchant(canvasElement, "7-Eleven");
+    await expect(
+      await body.findByRole("progressbar", {
+        name: "正在读取 7-Eleven 的记录",
+      }),
+    ).toBeVisible();
   },
 };
 
@@ -86,8 +93,10 @@ export const ChangeMerchant: Story = {
     },
   },
   play: async ({ canvasElement }) => {
-    await selectMerchant(canvasElement, "7-Eleven");
-    await selectMerchant(canvasElement, "修改商家：7-Eleven");
+    const body = await selectMerchant(canvasElement, "7-Eleven");
+    await userEvent.click(
+      body.getByRole("button", { name: "修改商家：7-Eleven" }),
+    );
   },
 };
 

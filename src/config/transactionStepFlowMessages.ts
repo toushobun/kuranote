@@ -5,7 +5,6 @@ export const flowMessages = {
   merchantCreated: (name: string) => `已新增商家「${name}」并选中`,
   accountCreated: (name: string) => `已新增账户「${name}」并选中`,
   title: "从商家记账",
-  merchantTitle: "记一笔",
   transferTitle: "账户周转",
   switchMethod: "切换方式",
   methodTitle: "切换记账方式",

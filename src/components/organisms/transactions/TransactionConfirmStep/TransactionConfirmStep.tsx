@@ -1,5 +1,7 @@
 "use client";
 import { useReceiptCreation } from "organisms/transactions/ReceiptCreationProvider/ReceiptCreationProvider";
+import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
+import Avatar from "@mui/material/Avatar";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
@@ -138,11 +140,29 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
               {f.selectedMerchant && (
                 <MerchantAvatar
                   size={48}
+                  loading={props.merchantLoading}
+                  loadingLabel={m.loadingMerchant(f.selectedMerchant.name)}
                   toneKey={f.selectedMerchant.id}
                   src={f.selectedMerchant.icon_url ?? undefined}
                 />
               )}
               <ReceiptHeaderButton
+                above={
+                  !f.selectedMerchant && !readOnly ? (
+                    <Avatar
+                      sx={{
+                        width: 48,
+                        height: 48,
+                        bgcolor: "grey.100",
+                        border: "1px dashed",
+                        borderColor: "grey.400",
+                        color: "text.disabled",
+                      }}
+                    >
+                      <StorefrontOutlinedIcon />
+                    </Avatar>
+                  ) : undefined
+                }
                 label={m.merchant}
                 value={f.selectedMerchant?.name ?? m.selectMerchant}
                 error={hasVisibleIssue("merchant")}

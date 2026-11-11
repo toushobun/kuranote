@@ -1,3 +1,4 @@
+import type { EntryReceiptDraft } from "../useEntryReceiptGuard";
 import type { ActionState } from "types/actions";
 import type {
   FrequentMerchant,
@@ -60,6 +61,8 @@ export type TransactionStepFlowProps = {
   ) => Promise<ActionState>;
   suggestionsMerchantId?: string;
   open: boolean;
+  draft?: EntryReceiptDraft;
+  merchantPickerSuspended?: boolean;
   merchants: FlowMerchant[];
   merchantTags: MerchantTag[];
   frequentMerchants: FrequentMerchant[];

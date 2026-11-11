@@ -4,6 +4,7 @@ import { flowMessages as m } from "config/transactionStepFlowMessages";
 import { NewTransactionStepFlow } from "templates/transactions/NewTransactionStepFlow";
 import {
   transactionEntryStoryDecorators,
+  openMerchantStoryDrawer,
   receiptCreationStoryDecorator,
 } from "organisms/transactions/transactionStepFlowStoryUtils";
 import { receiptItemsOptions } from "test/mocks/transactionReceipt";
@@ -34,15 +35,12 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 type Canvas = Parameters<NonNullable<Story["play"]>>[0];
 async function openMerchant({ canvasElement }: Canvas) {
-  await userEvent.click(
-    within(canvasElement.ownerDocument.body).getByRole("button", {
-      name: "新增商家",
-    }),
-  );
+  const body = await openMerchantStoryDrawer(canvasElement);
+  await userEvent.click(await body.findByRole("button", { name: "新增商家" }));
 }
 async function openAccount({ canvasElement }: Canvas) {
-  const body = within(canvasElement.ownerDocument.body);
-  await userEvent.click(body.getAllByRole("button", { name: /^7-Eleven/ })[0]);
+  const body = await openMerchantStoryDrawer(canvasElement);
+  await userEvent.click(await body.findByRole("button", { name: "7-Eleven" }));
   await userEvent.click(
     await body.findByRole("button", { name: "添加付款账户" }),
   );

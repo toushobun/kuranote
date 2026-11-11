@@ -11,14 +11,15 @@ afterEach(() => {
 });
 
 describe("TransactionsNewLoadingPage", () => {
-  it("显示与从商家记账第一屏「选择商家」一致的加载骨架，不含进度条", () => {
+  it("显示从商家记账的空小票骨架，不含商家列表和进度条", () => {
     render(<TransactionsNewLoadingPage />);
     const status = screen.getByRole("status", { name: "页面数据加载中" });
 
     expect(
-      within(status).getByRole("heading", { name: "记一笔" }),
+      within(status).getByRole("heading", { name: "从商家记账" }),
     ).toBeInTheDocument();
     expect(within(status).queryByRole("list")).not.toBeInTheDocument();
+    expect(within(status).queryByRole("progressbar")).not.toBeInTheDocument();
   });
 
   it("遮罩不使用淡入动画，开头不透出底部导航", () => {

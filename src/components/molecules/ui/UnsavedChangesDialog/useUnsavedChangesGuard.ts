@@ -203,6 +203,7 @@ export function useUnsavedChangesGuard({
     setIntent((current) => current ?? { type: "back" });
   });
   useLayoutEffect(() => {
+    if (!active) return;
     const unregister = history.register(() => requestBack());
     const click = (event: MouseEvent) => interceptClick(event);
     document.addEventListener("click", click, true);
@@ -210,14 +211,14 @@ export function useUnsavedChangesGuard({
       document.removeEventListener("click", click, true);
       unregister();
     };
-  }, [coordinator, history]);
+  }, [active, coordinator, history]);
 
   useEffect(() => {
-    if (!isDirty) return;
+    if (!active || !isDirty) return;
     const unload = (event: BeforeUnloadEvent) => beforeUnload(event);
     window.addEventListener("beforeunload", unload);
     return () => window.removeEventListener("beforeunload", unload);
-  }, [isDirty]);
+  }, [active, isDirty]);
 
   // Next 的同页 revalidation 可在动作返回后的提交阶段重写 history.state；每次提交后同步登记。
   useLayoutEffect(() => {
@@ -239,12 +240,6 @@ export function useUnsavedChangesGuard({
       <T>(action: () => Promise<T>) => history.runInPlaceAction(action),
       [history],
     ),
-    requestNavigate: (action: () => void) => {
-      if (!active || disabled) return;
-      if (mustConfirm)
-        setIntent((current) => current ?? { type: "action", action });
-      else void history.leave(action);
-    },
     requestClose: () => {
       if (!active || disabled || !onClose) return;
       if (mustConfirm)
@@ -252,7 +247,7 @@ export function useUnsavedChangesGuard({
       else void history.leave(onClose);
     },
     dialogProps: {
-      open: intent !== null,
+      open: active && intent !== null,
       description: !isDirty ? cleanDescription : undefined,
       onCancel: () => {
         saveIntent.current = null;

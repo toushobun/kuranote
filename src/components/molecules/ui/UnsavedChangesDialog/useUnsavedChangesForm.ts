@@ -14,7 +14,6 @@ export function useUnsavedChangesForm<State extends ActionState>(
   return {
     onDirtyChange,
     dialogProps: guard.dialogProps,
-    requestNavigate: guard.requestNavigate,
     action: (state: State, data: FormData) =>
       guard.runSaveAction(data, (values) => action(state, values)),
   };

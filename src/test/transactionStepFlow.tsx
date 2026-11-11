@@ -4,6 +4,7 @@ import { flowFixture } from "./mocks/transactionStepFlow";
 import { fireEvent, render, screen } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { vi } from "vitest";
+import { waitMerchantDrawerClosed } from "test/receiptCreation";
 import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
 
 export function renderEntryComponent(ui: ReactElement) {
@@ -37,4 +38,15 @@ export function renderTransactionFlow(
 ) {
   const props = { ...flowFixture, ...createFlowCallbacks(), ...overrides };
   return { ...renderEntryComponent(<TransactionStepFlow {...props} />), props };
+}
+
+export async function selectEntryMerchant(
+  name: string | RegExp,
+  current = "请选择商家",
+) {
+  if (!screen.queryByRole("textbox", { name: "搜索商家" })) {
+    clickEntryButton(`修改商家：${current}`);
+  }
+  fireEvent.click(screen.getByRole("button", { name }));
+  await waitMerchantDrawerClosed();
 }

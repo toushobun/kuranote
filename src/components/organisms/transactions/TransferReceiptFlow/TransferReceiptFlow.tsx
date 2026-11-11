@@ -9,7 +9,11 @@ import {
   transactionBackLayerLevels,
 } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
 import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog/UnsavedChangesDialog";
-import { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
+import { useWizardDialogSwitchPane } from "molecules/ui/WizardDialog/wizardDialogSwitchContext";
+import {
+  useEntryReceiptGuard,
+  type EntryReceiptDraft,
+} from "../useEntryReceiptGuard";
 import { WizardDialog } from "molecules/ui/WizardDialog/WizardDialog";
 import { EditTransactionDirtyProvider } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
 import { EntryMethodDrawer } from "organisms/transactions/EntryMethodDrawer/EntryMethodDrawer";
@@ -25,6 +29,7 @@ import type {
 const transferFormId = "new-transfer-transaction-form";
 
 type TransferReceiptFlowProps = {
+  draft?: EntryReceiptDraft;
   accounts: TransactionAccountOption[];
   action: (state: ActionState, data: FormData) => Promise<ActionState>;
   onClose: () => void;
@@ -33,25 +38,29 @@ type TransferReceiptFlowProps = {
 
 /**
  * 记账方式「账户周转」（#1050）：与从商家记账同一个全屏外框（✕、标题、切换方式），
- * 内容是转账小票；动过小票后关闭或切换方式都要确认。
+ * 内容是转账小票；动过小票后关闭时要确认。
  */
 export function TransferReceiptFlow(props: TransferReceiptFlowProps) {
+  const active = useWizardDialogSwitchPane()?.active ?? true;
   return (
-    <BackLayerScope level={transactionBackLayerLevels.flow}>
-      <TransferReceiptFlowContent {...props} />
+    <BackLayerScope level={active ? transactionBackLayerLevels.flow : null}>
+      <TransferReceiptFlowContent {...props} active={active} />
     </BackLayerScope>
   );
 }
 
-function TransferReceiptFlowContent(props: TransferReceiptFlowProps) {
+function TransferReceiptFlowContent(
+  props: TransferReceiptFlowProps & { active: boolean },
+) {
   const creation = useReceiptCreation();
   const accounts = mergeReceiptOptions(props.accounts, creation?.accounts);
   const [dirty, setDirty] = useState(false);
-  const guard = useUnsavedChangesGuard({
-    isDirty: dirty,
-    saveFormId: transferFormId,
-    onClose: props.onClose,
-  });
+  const { guard } = useEntryReceiptGuard(
+    dirty,
+    transferFormId,
+    props.onClose,
+    props.draft,
+  );
   const [saveState, saveAction, saving] = useActionState<ActionState, FormData>(
     (state, data) =>
       guard.runSaveAction(data, (values) => props.action(state, values)),
@@ -59,7 +68,9 @@ function TransferReceiptFlowContent(props: TransferReceiptFlowProps) {
   );
   const [methodOpen, setMethodOpen] = useState(false);
   return (
-    <BackLayerScope level={transactionBackLayerLevels.receiptEditor}>
+    <BackLayerScope
+      level={props.active ? transactionBackLayerLevels.receiptEditor : null}
+    >
       <EditTransactionDirtyProvider onDirty={setDirty}>
         <WizardDialog
           open
@@ -69,7 +80,11 @@ function TransferReceiptFlowContent(props: TransferReceiptFlowProps) {
           closeLabel={m.close}
           title={m.transferTitle}
           titleAction={
-            <Button size="small" onClick={() => setMethodOpen(true)}>
+            <Button
+              size="small"
+              disabled={saving}
+              onClick={() => setMethodOpen(true)}
+            >
               {m.switchMethod}
             </Button>
           }
@@ -90,10 +105,9 @@ function TransferReceiptFlowContent(props: TransferReceiptFlowProps) {
       </EditTransactionDirtyProvider>
       <EntryMethodDrawer
         currentMethod="transfer"
-        open={methodOpen}
+        open={props.active && methodOpen}
         onClose={() => setMethodOpen(false)}
         onMethodChange={props.onMethodChange}
-        requestNavigate={guard.requestNavigate}
       />
       <UnsavedChangesDialog {...guard.dialogProps} />
     </BackLayerScope>
