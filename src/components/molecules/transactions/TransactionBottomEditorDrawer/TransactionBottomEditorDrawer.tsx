@@ -1,8 +1,9 @@
 "use client";
 import { useBackLayer } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
-import type { ReactNode } from "react";
+import { useCallback, useRef, type ReactNode } from "react";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import Drawer from "@mui/material/Drawer";
+import Slide, { type SlideProps } from "@mui/material/Slide";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
@@ -11,6 +12,11 @@ import Box from "@mui/material/Box";
 import { designTokens } from "theme/theme";
 import { amountKeypadZIndex } from "theme/zIndex";
 import { transactionBottomEditorDrawerMessages as m } from "config/transactionMessages";
+
+function DrawerSlide({ in: open, onExited, ...props }: SlideProps) {
+  // 恢复抽屉与退出动画结束可能在同一次提交，忽略已经过期的退出回调。
+  return <Slide {...props} in={open} onExited={open ? undefined : onExited} />;
+}
 
 export function TransactionBottomEditorDrawer({
   open,
@@ -26,9 +32,13 @@ export function TransactionBottomEditorDrawer({
   onClose: () => void;
   children: ReactNode;
 }) {
+  // 自定义 Slide 插槽时，MUI 不再自动传入抽屉根节点。
+  const rootRef = useRef<HTMLDivElement>(null);
+  const getSlideContainer = useCallback(() => rootRef.current!, []);
   useBackLayer(open && !suspended, onClose);
   return (
     <Drawer
+      ref={rootRef}
       anchor="bottom"
       open={open && !suspended}
       ModalProps={{ keepMounted: suspended }}
@@ -37,7 +47,9 @@ export function TransactionBottomEditorDrawer({
         zIndex: amountKeypadZIndex,
         visibility: suspended ? "hidden" : undefined,
       }}
+      slots={{ transition: DrawerSlide }}
       slotProps={{
+        transition: { container: getSlideContainer } as Partial<SlideProps>,
         paper: {
           sx: {
             borderRadius: `${designTokens.radius.lg}px ${designTokens.radius.lg}px 0 0`,

@@ -1,4 +1,5 @@
-import { fireEvent, screen } from "@testing-library/react";
+import Dialog from "@mui/material/Dialog";
+import { act, fireEvent, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import {
   renderEntryComponent,
@@ -26,6 +27,48 @@ describe("TransactionBottomEditorDrawer", () => {
     expect(screen.queryByRole("textbox")).toBeNull();
     rerender(content(false));
     expect(screen.getByRole("textbox")).toHaveValue("未保存备注");
+  });
+  it("抽屉在退出动画完成的同一轮恢复后，关闭时恢复底层弹框的无障碍访问", () => {
+    vi.useFakeTimers();
+    const content = (open: boolean, suspended = false) => (
+      <>
+        <Dialog open data-testid="receipt-modal">
+          <button>添加付款账户</button>
+        </Dialog>
+        <TransactionBottomEditorDrawer
+          open={open}
+          suspended={suspended}
+          title="商家"
+          onClose={() => {}}
+        >
+          商家列表
+        </TransactionBottomEditorDrawer>
+        {suspended && (
+          <Dialog open>
+            <span>从预设添加商家</span>
+          </Dialog>
+        )}
+      </>
+    );
+    try {
+      const { rerender } = renderEntryComponent(content(true));
+      const receiptModal = screen.getByTestId("receipt-modal");
+      rerender(content(true, true));
+      // 让旧的退出动画结束与抽屉恢复合并到同一次提交。
+      act(() => {
+        vi.runOnlyPendingTimers();
+        rerender(content(true));
+      });
+      expect(screen.getByRole("heading", { name: "商家" })).toBeVisible();
+      rerender(content(false));
+      act(() => vi.runOnlyPendingTimers());
+      expect(receiptModal).not.toHaveAttribute("aria-hidden", "true");
+      expect(
+        screen.getByRole("button", { name: "添加付款账户" }),
+      ).toBeVisible();
+    } finally {
+      vi.useRealTimers();
+    }
   });
   it.each(["完成", "关闭备注编辑"])("通过%s结束编辑", (button) => {
     const close = vi.fn();
