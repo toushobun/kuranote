@@ -108,8 +108,8 @@ describe("accountsView", () => {
       },
     ]);
     expect(result.placeholderHolderOptions).toEqual([
-      { display_name: "外婆", placeholder_id: "placeholder-1" },
       { display_name: "奶奶", placeholder_id: "placeholder-2" },
+      { display_name: "外婆", placeholder_id: "placeholder-1" },
     ]);
     expect(result.appUserById.get(userId)?.display_name).toBe("家庭称呼");
     expect(result.displayColorByUserId.get(userId)).toBe("sky");
