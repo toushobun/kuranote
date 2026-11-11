@@ -1085,11 +1085,12 @@ async function checkNewReceiptMerchantOnly(browser) {
   await page.getByRole("button", { name: "7-Eleven", exact: true }).click();
   await page.getByRole("button", { name: "保存记账", exact: true }).waitFor();
   await page.waitForLoadState("networkidle");
+  // 商家抽屉开关会留下干净的 base 记录；只选商家不会建立哨兵。
   assert.equal(
     await page.evaluate(
       () => history.state?.kuranoteUnsavedChanges?.position ?? null,
     ),
-    null,
+    "base",
   );
   await browserBack(page);
   await page.waitForURL(sourceUrl);
