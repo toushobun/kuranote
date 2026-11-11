@@ -16,7 +16,7 @@ import type { ActionState } from "types/actions";
 import type { TransactionStepFlowProps } from "./TransactionStepFlow.types";
 import type { FlowMerchant } from "organisms/transactions/MerchantStep/MerchantStep.types";
 
-// 选完商家后在头像上显示读取状态，最多等待两秒；
+// 选完商家后在明细与付款区显示读取状态，最多等待两秒；
 // 之后晚到的建议只在用户还没动过小票时补上。
 export const quickRouteSuggestionTimeoutMs = 2000;
 
@@ -210,9 +210,14 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
   }, [waiting, loadingMerchantId]);
   useEffect(() => {
     // 超时后或换商家后动过小票就丢弃晚到的建议，不覆盖用户输入。
-    if (pendingSuggestionSnapshot !== waitStartSnapshot.current)
-      pendingQuickMerchantId.current = null;
-  }, [pendingSuggestionSnapshot]);
+    // 等待期间动过小票时，也立即结束读取提示。
+    if (pendingSuggestionSnapshot === waitStartSnapshot.current) return;
+    pendingQuickMerchantId.current = null;
+    if (loadingMerchantId !== null) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 用户已修改小票，不再等待过期的建议。
+      setLoadingMerchantId(null);
+    }
+  }, [pendingSuggestionSnapshot, loadingMerchantId]);
   function selectMerchant(value: FlowMerchant) {
     // 等待期间改选商家时，重新开始计时。其他换商家只替换没动过的自动明细。
     const quick =

@@ -140,8 +140,6 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
               {f.selectedMerchant && (
                 <MerchantAvatar
                   size={48}
-                  loading={props.merchantLoading}
-                  loadingLabel={m.loadingMerchant(f.selectedMerchant.name)}
                   toneKey={f.selectedMerchant.id}
                   src={f.selectedMerchant.icon_url ?? undefined}
                 />
@@ -190,6 +188,7 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
                 showAutomaticNotice={props.showAutomaticNotice}
                 invalidItems={w.markedItems}
                 canAddItem={props.categoryOptions.length > 0}
+                suggestionsLoading={props.suggestionsLoading}
                 readOnly={readOnly}
                 onAmount={props.onAmountItemChange}
               />
@@ -223,6 +222,7 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
                 accountOptions={props.accountOptions}
                 total={total}
                 canAddPayment={!readOnly && w.canAddPayment}
+                suggestionsLoading={props.suggestionsLoading}
                 showMixedPaymentHint={!readOnly && w.showMixedPaymentHint}
                 readOnly={readOnly}
                 invalidPaymentKeys={w.markedPaymentKeys}

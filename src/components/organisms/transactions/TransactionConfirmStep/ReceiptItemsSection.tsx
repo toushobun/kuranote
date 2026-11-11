@@ -1,6 +1,7 @@
 "use client";
 import Box from "@mui/material/Box";
 import { ReceiptAddButton } from "./ReceiptAddButton";
+import { ReceiptLoadingRow } from "./ReceiptLoadingRow";
 import Typography from "@mui/material/Typography";
 import { resolveTransactionBusinessStatus } from "internal/transaction";
 import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/TransactionBusinessBadge";
@@ -30,6 +31,7 @@ export function ReceiptItemsSection({
   showAutomaticNotice,
   invalidItems,
   canAddItem,
+  suggestionsLoading = false,
   readOnly = false,
   onAmount,
 }: {
@@ -38,6 +40,7 @@ export function ReceiptItemsSection({
   /** 要标红的明细（只含上次点保存时已有、仍未解决的问题，#1040）。 */
   invalidItems: readonly TransactionItemSummary[];
   canAddItem: boolean;
+  suggestionsLoading?: boolean;
   readOnly?: boolean;
   onAmount: (id: number) => void;
 }) {
@@ -161,13 +164,16 @@ export function ReceiptItemsSection({
         </Box>
       ))}
       {uncategorized.map(renderItem)}
-      {!readOnly && (
-        <ReceiptAddButton
-          label={m.addItem}
-          onClick={form.openSheet}
-          disabled={!canAddItem}
-        />
-      )}
+      {!readOnly &&
+        (suggestionsLoading ? (
+          <ReceiptLoadingRow label={m.loadingItems} />
+        ) : (
+          <ReceiptAddButton
+            label={m.addItem}
+            onClick={form.openSheet}
+            disabled={!canAddItem}
+          />
+        ))}
     </>
   );
 }

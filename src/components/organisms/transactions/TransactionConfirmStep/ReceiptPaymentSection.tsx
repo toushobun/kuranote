@@ -1,6 +1,7 @@
 "use client";
 import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
 import { ReceiptAddButton } from "./ReceiptAddButton";
+import { ReceiptLoadingRow } from "./ReceiptLoadingRow";
 import { TransactionMixedPaymentHint } from "atoms/transactions/TransactionMixedPaymentHint";
 import Typography from "@mui/material/Typography";
 import { AccountAvatar } from "atoms/accounts/AccountAvatar/AccountAvatar";
@@ -24,6 +25,7 @@ export function ReceiptPaymentSection({
   accountOptions,
   total,
   canAddPayment,
+  suggestionsLoading = false,
   showMixedPaymentHint,
   readOnly = false,
   invalidPaymentKeys,
@@ -38,6 +40,7 @@ export function ReceiptPaymentSection({
   /** 单账户时的支付金额（由明细推导的合计）。 */
   total: string;
   canAddPayment: boolean;
+  suggestionsLoading?: boolean;
   showMixedPaymentHint: boolean;
   readOnly?: boolean;
   /** 要标红的付款行（只含上次点保存时已有、仍未解决的问题，#1040）。 */
@@ -141,11 +144,15 @@ export function ReceiptPaymentSection({
             ` · ${transactionPaymentFieldsMessages.difference(format(reconciliation.difference))}`}
         </Typography>
       )}
-      {canAddPayment && (
-        <ReceiptAddButton
-          label={transactionPaymentFieldsMessages.addPayment(income)}
-          onClick={onAddPayment}
-        />
+      {!readOnly && suggestionsLoading ? (
+        <ReceiptLoadingRow label={m.loadingPayments} />
+      ) : (
+        canAddPayment && (
+          <ReceiptAddButton
+            label={transactionPaymentFieldsMessages.addPayment(income)}
+            onClick={onAddPayment}
+          />
+        )
       )}
       {showMixedPaymentHint && <TransactionMixedPaymentHint />}
     </>
