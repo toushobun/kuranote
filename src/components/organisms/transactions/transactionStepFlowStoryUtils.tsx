@@ -18,10 +18,13 @@ export const receiptCreationStoryDecorator: Decorator = (Story) => (
   </ReceiptCreationProvider>
 );
 
-export async function openMerchantStoryDrawer(canvasElement: HTMLElement) {
+export async function openMerchantStoryDrawer(
+  canvasElement: HTMLElement,
+  currentMerchant = "请选择商家",
+) {
   const body = within(canvasElement.ownerDocument.body);
   await userEvent.click(
-    await body.findByRole("button", { name: "修改商家：请选择商家" }),
+    await body.findByRole("button", { name: `修改商家：${currentMerchant}` }),
   );
   return body;
 }
