@@ -47,7 +47,64 @@ const searchPage = {
   totalCount: 1,
 };
 
+const initialGroupView = {
+  groupBy: "month" as const,
+  groups: [],
+  initialDateGroupsByGroupId: {},
+  initialExpandedGroupId: null,
+  initialNextItemOffsetByGroupId: {},
+  nextOffset: null,
+};
+
 describe("TransactionRefundLinkPicker", () => {
+  it("打开选择器后才读取首屏，读取中显示加载状态", async () => {
+    let finish: ((value: typeof initialGroupView) => void) | undefined;
+    const loadInitialViewAction = vi.fn(
+      () =>
+        new Promise<typeof initialGroupView>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    render(
+      <TransactionRefundLinkPicker
+        loadInitialViewAction={loadInitialViewAction}
+        onChange={vi.fn()}
+      />,
+    );
+    expect(loadInitialViewAction).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "选择退款明细" }));
+    expect(loadInitialViewAction).toHaveBeenCalledOnce();
+    expect(screen.getByRole("progressbar")).toBeInTheDocument();
+
+    finish?.(initialGroupView);
+    expect(await screen.findByText("还没有记账记录。")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "关闭退款关联选择器" }));
+    fireEvent.click(screen.getByRole("button", { name: "选择退款明细" }));
+    expect(loadInitialViewAction).toHaveBeenCalledOnce();
+  });
+
+  it("首屏读取失败时显示错误并允许重新读取", async () => {
+    const loadInitialViewAction = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("failed"))
+      .mockResolvedValueOnce(initialGroupView);
+    render(
+      <TransactionRefundLinkPicker
+        loadInitialViewAction={loadInitialViewAction}
+        onChange={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "选择退款明细" }));
+    expect(
+      await screen.findByText("支出明细加载失败，请稍后重试。"),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "重试" }));
+    expect(await screen.findByText("还没有记账记录。")).toBeInTheDocument();
+    expect(loadInitialViewAction).toHaveBeenCalledTimes(2);
+  });
+
   it("已关联时提供解除与重新选择入口", () => {
     const onChange = vi.fn();
     render(

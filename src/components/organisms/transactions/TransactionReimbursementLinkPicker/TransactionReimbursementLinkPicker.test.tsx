@@ -73,7 +73,51 @@ const searchPage = {
   totalCount: 2,
 };
 
+const initialGroupView = {
+  groupBy: "month" as const,
+  groups: [],
+  initialDateGroupsByGroupId: {},
+  initialExpandedGroupId: null,
+  initialNextItemOffsetByGroupId: {},
+  nextOffset: null,
+};
+
 describe("TransactionReimbursementLinkPicker", () => {
+  it("首次打开报销关联才读取首屏，加载后可以进入按月列表", async () => {
+    const loadInitialViewAction = vi.fn(async () => initialGroupView);
+    render(
+      <TransactionReimbursementLinkPicker
+        loadInitialViewAction={loadInitialViewAction}
+        onChange={vi.fn()}
+      />,
+    );
+    expect(loadInitialViewAction).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "选择报销明细" }));
+    expect(loadInitialViewAction).toHaveBeenCalledOnce();
+    expect(await screen.findByText("还没有记账记录。")).toBeInTheDocument();
+  });
+
+  it("报销候选首屏失败后可以重试", async () => {
+    const loadInitialViewAction = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("failed"))
+      .mockResolvedValueOnce(initialGroupView);
+    render(
+      <TransactionReimbursementLinkPicker
+        loadInitialViewAction={loadInitialViewAction}
+        onChange={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "选择报销明细" }));
+    expect(
+      await screen.findByText("报销候选支出加载失败，请稍后重试。"),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "重试" }));
+    expect(await screen.findByText("还没有记账记录。")).toBeInTheDocument();
+    expect(loadInitialViewAction).toHaveBeenCalledTimes(2);
+  });
+
   it("已关联时提供解除与重新选择入口", () => {
     const onChange = vi.fn();
     render(
