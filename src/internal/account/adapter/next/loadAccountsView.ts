@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 
 import { routePaths } from "config/paths";
+import { canManageMasterData, canWriteTransaction } from "internal/ledger";
 import { createRequestContainer } from "internal/container";
 import { requireCurrentUserAndLedger } from "internal/ledger/adapter/next/currentLedger";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
@@ -39,7 +40,21 @@ function pickAccountFormView(
 
 /** 新增账户页面 SSR 入口。 */
 export async function loadAccountCreateView() {
-  return pickAccountFormView(await loadManageableAccountsView());
+  const { currentLedger, userId } = await requireCurrentUserAndLedger();
+  if (!canManageMasterData(currentLedger.currentUserRole))
+    redirect(routePaths.accounts);
+
+  const dependencies = await createServerRequestDependencies();
+  const formOptions = await createRequestContainer(
+    dependencies,
+  ).account.service.getCreateFormOptions({ ledgerId: currentLedger.id, userId });
+
+  return {
+    baseCurrency: currentLedger.baseCurrency,
+    canWriteTransactions: canWriteTransaction(currentLedger.currentUserRole),
+    ledgerName: currentLedger.name,
+    ...formOptions,
+  };
 }
 
 /** 编辑账户页面 SSR 入口：当前账本里没有这个使用中的账户时显示 404。 */

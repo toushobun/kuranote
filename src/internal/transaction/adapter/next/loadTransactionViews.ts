@@ -63,62 +63,24 @@ function loadFrequentMerchants({
 export async function loadNewTransactionView() {
   const context = await getContext();
   const { currentLedger, service } = context;
-  const specialStatusEnabled = Boolean(
-    currentLedger.transactionItemSpecialStatusEnabled,
-  );
-  const [view, refundPickerView, reimbursementPickerView, frequentMerchants] =
-    await Promise.all([
-      service.getNewView(currentLedger),
-      specialStatusEnabled
-        ? service.getGroupView(currentLedger, "month", refundPickerFilters)
-        : Promise.resolve(undefined),
-      specialStatusEnabled
-        ? service.getGroupView(
-            currentLedger,
-            "month",
-            reimbursementPickerFilters,
-          )
-        : Promise.resolve(undefined),
-      loadFrequentMerchants(context),
-    ]);
-  return {
-    ...view,
-    frequentMerchants,
-    refundPickerView,
-    reimbursementPickerView,
-  };
+  const [view, frequentMerchants] = await Promise.all([
+    service.getNewView(currentLedger),
+    loadFrequentMerchants(context),
+  ]);
+  return { ...view, frequentMerchants };
 }
 
 export async function loadEditTransactionView(transactionRecordId: string) {
   if (!uuidPattern.test(transactionRecordId)) notFound();
   const context = await getContext();
   const { currentLedger, service } = context;
-  const specialStatusEnabled = Boolean(
-    currentLedger.transactionItemSpecialStatusEnabled,
-  );
-  const [view, refundPickerView, reimbursementPickerView, frequentMerchants] =
-    await Promise.all([
-      service.getEditEntryView(currentLedger, transactionRecordId),
-      specialStatusEnabled
-        ? service.getGroupView(currentLedger, "month", refundPickerFilters)
-        : Promise.resolve(undefined),
-      specialStatusEnabled
-        ? service.getGroupView(
-            currentLedger,
-            "month",
-            reimbursementPickerFilters,
-          )
-        : Promise.resolve(undefined),
-      // 小票换商家时的常用商家（#962）。
-      loadFrequentMerchants(context),
-    ]);
+  const [view, frequentMerchants] = await Promise.all([
+    service.getEditEntryView(currentLedger, transactionRecordId),
+    // 小票换商家时的常用商家（#962）。
+    loadFrequentMerchants(context),
+  ]);
   if (!view) notFound();
-  return {
-    ...view,
-    frequentMerchants,
-    refundPickerView,
-    reimbursementPickerView,
-  };
+  return { ...view, frequentMerchants };
 }
 
 export async function loadTransactionFilterOptions() {
@@ -165,6 +127,17 @@ export async function loadTransactionSearchPage(
 ): Promise<TransactionSearchPage> {
   const { currentLedger, service } = await getContext();
   return service.search(currentLedger, rawQuery, offset);
+}
+
+/** 关联选择器打开时才读取首屏；不参与新增 / 编辑页面 SSR。 */
+export async function loadRefundPickerInitialView() {
+  const { currentLedger, service } = await getContext();
+  return service.getGroupView(currentLedger, "month", refundPickerFilters);
+}
+
+export async function loadReimbursementPickerInitialView() {
+  const { currentLedger, service } = await getContext();
+  return service.getGroupView(currentLedger, "month", reimbursementPickerFilters);
 }
 
 export async function loadRefundPickerGroupPage(

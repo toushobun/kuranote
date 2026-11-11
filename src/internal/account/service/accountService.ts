@@ -29,6 +29,9 @@ import { buildTransactionAccountContext } from "internal/account/service/read/tr
 import {
   buildAccountHolderOptions,
   buildAccountsWithHolders,
+  buildDisplayColorByUserId,
+  buildHolderOptions,
+  buildPlaceholderHolderOptions,
 } from "internal/account/util/accountView";
 import {
   requireActiveLedgerMemberRole,
@@ -128,6 +131,10 @@ export interface AccountService extends AccountQueryService {
   archive(input: ArchiveAccountInput): Promise<void>;
   create(input: CreateAccountInput): Promise<{ accountId: string }>;
   getView(input: GetAccountsViewInput): Promise<AccountsView>;
+  getCreateFormOptions(input: {
+    ledgerId: string;
+    userId: string;
+  }): Promise<Pick<AccountsView, "holderOptions" | "placeholderHolderOptions">>;
   update(input: UpdateAccountInput): Promise<void>;
 }
 
@@ -477,6 +484,35 @@ export function createAccountService({
         ...account,
         holders: holders.map(({ display_name }) => ({ display_name })),
       }));
+    },
+
+    async getCreateFormOptions({ ledgerId, userId }) {
+      const role = await requireActiveMemberRole(ledgerId, userId);
+      requireManagement(role);
+
+      const [members, displaySettings, placeholders] = await Promise.all([
+        accountRepository.listActiveMembers(ledgerId),
+        accountRepository.listDisplaySettings(ledgerId),
+        ledgerPlaceholderMemberQueryService.listUnclaimed({ ledgerId, userId }),
+      ]);
+      const users = mergeLedgerDisplayNames(
+        await accountRepository.listUsers(members.map(({ user_id }) => user_id)),
+        displaySettings,
+      );
+      const appUserById = new Map(users.map((user) => [user.id, user]));
+      const displayColorByUserId = buildDisplayColorByUserId({
+        members,
+        settings: displaySettings,
+      });
+
+      return {
+        holderOptions: buildHolderOptions({
+          appUserById,
+          displayColorByUserId,
+          members,
+        }),
+        placeholderHolderOptions: buildPlaceholderHolderOptions(placeholders),
+      };
     },
 
     async getView({ ledgerId, userId, includeArchived }) {
