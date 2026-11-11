@@ -477,7 +477,6 @@ describe("TransactionStepFlow", () => {
 });
 
 describe("TransactionStepFlow 换商家", () => {
-
   it("预填明细且尚未选商家时，首次选择不走换商家读取状态", async () => {
     quickSetup({
       suggestionsMerchantId: "life",
