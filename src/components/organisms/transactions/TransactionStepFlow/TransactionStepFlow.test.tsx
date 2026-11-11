@@ -807,7 +807,6 @@ describe("TransactionStepFlow 进入小票", () => {
     expect(screen.queryByText("咖啡")).toBeNull();
   });
 
-
   it("等待建议期间修改备注立即结束读取，之后晚到的建议不覆盖小票", async () => {
     const { props, rerender } = quickSetup({ suggestionsMerchantId: "life" });
     await selectEntryMerchant("7-Eleven");

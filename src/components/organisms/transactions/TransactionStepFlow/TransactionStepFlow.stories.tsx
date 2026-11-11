@@ -74,7 +74,7 @@ export const QuickEntryLoading: Story = {
   name: "快速路线（读取建议中，明细与付款区显示状态行）",
   args: { suggestionsMerchantId: "coffee" },
   play: async ({ canvasElement }) => {
-    const body = await selectMerchant(canvasElement, "7-Eleven");
+    await selectMerchant(canvasElement, "7-Eleven");
     await expectSuggestionLoadingRows(canvasElement);
   },
 };
