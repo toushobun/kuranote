@@ -70,15 +70,17 @@ export const FirstVisit: Story = {
 };
 
 export const QuickEntryLoading: Story = {
-  name: "快速路线（读取建议中，头像显示加载）",
+  name: "快速路线（读取建议中，明细与付款区显示状态行）",
   args: { suggestionsMerchantId: "coffee" },
   play: async ({ canvasElement }) => {
     const body = await selectMerchant(canvasElement, "7-Eleven");
-    await expect(
-      await body.findByRole("progressbar", {
-        name: "正在读取 7-Eleven 的记录",
-      }),
-    ).toBeVisible();
+    for (const message of ["正在按习惯准备明细…", "正在读取常用账户…"]) {
+      const text = await body.findByText(message);
+      await expect(text.closest('[role="status"]')).toBeVisible();
+    }
+    await expect(body.queryByRole("progressbar")).not.toBeInTheDocument();
+    await expect(body.queryByRole("button", { name: "添加明细" })).not.toBeInTheDocument();
+    await expect(body.queryByRole("button", { name: "添加付款账户" })).not.toBeInTheDocument();
   },
 };
 

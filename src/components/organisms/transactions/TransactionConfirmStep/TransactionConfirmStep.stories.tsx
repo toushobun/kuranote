@@ -62,6 +62,25 @@ async function clickButton(canvasElement: HTMLElement, name: string | RegExp) {
   );
 }
 
+export const SuggestionsLoading: Story = {
+  name: "首次选商家：明细与付款账户读取中",
+  args: {
+    itemsOptions: {
+      ...unselectedAccountItemsOptions,
+      initialItems: [],
+    },
+    suggestionsMerchantId: "coffee",
+    suggestions: undefined,
+  },
+  play: async ({ canvasElement }) => {
+    await enterReceipt(canvasElement);
+    const body = within(canvasElement.ownerDocument.body);
+    for (const message of ["正在按习惯准备明细…", "正在读取常用账户…"]) {
+      await expect((await body.findByText(message)).closest('[role="status"]')).toBeVisible();
+    }
+  },
+};
+
 export const QuickEntry: Story = {
   name: "自动明细待输入：名称与金额各有铅笔",
   args: {

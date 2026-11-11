@@ -70,6 +70,26 @@ function renderMultiAccount(lunchAmount = "10000") {
 }
 
 describe("TransactionConfirmStep", () => {
+  it("建议读取中两处按钮变为无障碍状态行，头像不显示加载", async () => {
+    await renderConfirmFlow({
+      itemsOptions: {
+        ...receiptItemsOptions,
+        initialItems: [],
+        initialPayments: [{ accountId: "", amount: null }],
+      },
+      suggestionsMerchantId: "life",
+    });
+    for (const message of ["正在按习惯准备明细…", "正在读取常用账户…"]) {
+      const row = screen.getByText(message).closest('[role="status"]');
+      expect(row).toBeInTheDocument();
+      expect(row).toBeVisible();
+    }
+    expect(screen.queryByRole("progressbar")).toBeNull();
+    expect(screen.queryByRole("button", { name: "添加明细" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "添加付款账户" })).toBeNull();
+    expect(saveButton()).toBeEnabled();
+  });
+
   it("新增小票保存按钮保留原生 MUI 样式与提交属性", async () => {
     await renderConfirmFlow();
     renderEntryComponent(
