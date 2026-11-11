@@ -31,7 +31,7 @@ export function ReceiptItemsSection({
   showAutomaticNotice,
   invalidItems,
   canAddItem,
-  suggestionsLoading = false,
+  itemsLoading = false,
   readOnly = false,
   onAmount,
 }: {
@@ -40,7 +40,7 @@ export function ReceiptItemsSection({
   /** 要标红的明细（只含上次点保存时已有、仍未解决的问题，#1040）。 */
   invalidItems: readonly TransactionItemSummary[];
   canAddItem: boolean;
-  suggestionsLoading?: boolean;
+  itemsLoading?: boolean;
   readOnly?: boolean;
   onAmount: (id: number) => void;
 }) {
@@ -165,7 +165,7 @@ export function ReceiptItemsSection({
       ))}
       {uncategorized.map(renderItem)}
       {!readOnly &&
-        (suggestionsLoading ? (
+        (itemsLoading ? (
           <ReceiptLoadingRow label={m.loadingItems} />
         ) : (
           <ReceiptAddButton
