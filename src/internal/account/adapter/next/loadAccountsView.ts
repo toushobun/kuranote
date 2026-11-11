@@ -18,7 +18,7 @@ export async function loadAccountsView() {
   });
 }
 
-/** 新增 / 编辑账户页面共用：只给能管理账户的成员，其他成员回到账户管理页。 */
+/** 编辑账户页需要完整视图；只允许有账户管理权限的成员访问。 */
 async function loadManageableAccountsView() {
   const view = await loadAccountsView();
   if (!view.canManageAccounts) redirect(routePaths.accounts);

@@ -80,6 +80,9 @@ describe("TransactionRefundLinkPicker", () => {
     finish?.(initialGroupView);
     expect(await screen.findByText("还没有记账记录。")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "关闭退款关联选择器" }));
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
     fireEvent.click(screen.getByRole("button", { name: "选择退款明细" }));
     expect(loadInitialViewAction).toHaveBeenCalledOnce();
   });
