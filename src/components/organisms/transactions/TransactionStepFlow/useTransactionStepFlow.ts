@@ -221,6 +221,10 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
   function selectMerchant(value: FlowMerchant) {
     // 等待期间改选商家时，重新开始计时。其他换商家只替换没动过的自动明细。
     const changing = value.id !== form.selectedMerchantId;
+    form.handleMerchantChange(value.id);
+    props.onMerchantSelect(value);
+    // 重选当前商家时保留等待和晚到建议的关联状态。
+    if (!changing) return;
     const quick =
       changing &&
       !touched &&
@@ -230,8 +234,6 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     pendingQuickMerchantId.current = changing ? value.id : null;
     replacingAutomaticItems.current = replacing;
     waitStartSnapshot.current = pendingSuggestionSnapshot;
-    form.handleMerchantChange(value.id);
-    props.onMerchantSelect(value);
     setLoadingMerchantId(
       quick || (replacing && !!form.selectedMerchantId) ? value.id : null,
     );

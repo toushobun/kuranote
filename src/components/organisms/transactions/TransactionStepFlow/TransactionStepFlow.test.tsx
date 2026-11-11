@@ -588,6 +588,18 @@ describe("TransactionStepFlow 换商家", () => {
     expect(screen.getByText("一起吃午餐")).toBeInTheDocument();
   });
 
+  it("等待中重选同一商家，建议到达后仍自动带出", async () => {
+    const { props, rerender } = quickSetup({ suggestionsMerchantId: "coffee" });
+    await selectEntryMerchant("7-Eleven");
+    expectSuggestionsLoadingRows(true);
+    await selectEntryMerchant("7-Eleven", "7-Eleven");
+    expectSuggestionsLoadingRows(true);
+    rerender(<TransactionStepFlow {...props} suggestionsMerchantId="seven" />);
+    expect(await screen.findByText("午餐")).toBeInTheDocument();
+    expect(receiptLine("更换支付账户 1")).toHaveTextContent("PayPay");
+    expectSuggestionsLoadingRows(false);
+  });
+
   it("再次选择同一个商家不进入读取状态", async () => {
     quickSetup();
     await selectEntryMerchant("7-Eleven");
