@@ -757,12 +757,11 @@ describe("TransactionStepFlow 进入小票", () => {
     expectSuggestionsLoadingRows(true);
     waitQuickRouteTimeout(1000);
     expectSuggestionsLoadingRows(false);
-    expect(
-      screen.getByRole("button", { name: "添加明细" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "添加付款账户" }),
-    ).toBeInTheDocument();
+    for (const name of ["添加明细", "添加付款账户"]) {
+      const button = screen.getByRole("button", { name });
+      expect(button).toBeInTheDocument();
+      expect(getComputedStyle(button).minHeight).toBe("40px");
+    }
     expect(heading("从商家记账")).toBeInTheDocument();
     expectNoPaymentRow();
     // 其他商家的建议不应用。
