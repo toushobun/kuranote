@@ -213,7 +213,7 @@ describe("TransactionStepFlow", () => {
   it("快速路线仍在等待建议时关闭不弹无法保存的确认", async () => {
     const { props } = quickSetup({ suggestionsMerchantId: "life" });
     await selectEntryMerchant("7-Eleven");
-    expect(screen.getByRole("progressbar")).toBeVisible();
+    expectSuggestionsLoadingRows(true);
     expect(saveButton()).toBeVisible();
     click("关闭记账");
     await waitFor(() => expect(props.onClose).toHaveBeenCalledOnce());

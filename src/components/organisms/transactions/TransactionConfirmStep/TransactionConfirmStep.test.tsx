@@ -81,6 +81,10 @@ describe("TransactionConfirmStep", () => {
       suggestionsMerchantId: "life",
     });
     expectSuggestionsLoadingRows(true);
+    expect(
+      getComputedStyle(screen.getByText("正在按习惯准备明细…").closest('[role="status"]')!)
+        .minHeight,
+    ).toBe("40px");
     expect(saveButton()).toBeEnabled();
   });
 

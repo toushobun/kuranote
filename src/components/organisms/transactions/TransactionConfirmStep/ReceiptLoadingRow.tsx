@@ -1,7 +1,6 @@
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import Typography from "@mui/material/Typography";
-import { receiptActionRowSx } from "./ReceiptAddButton";
 
 /** 小票建议读取中占位，与添加按钮等高，结束后可原地切换。 */
 export function ReceiptLoadingRow({ label }: { label: string }) {
@@ -9,7 +8,9 @@ export function ReceiptLoadingRow({ label }: { label: string }) {
     <Box
       role="status"
       sx={{
-        ...receiptActionRowSx,
+        minHeight: 40,
+        px: 1,
+        py: 0.75,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",

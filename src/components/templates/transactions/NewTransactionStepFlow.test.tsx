@@ -17,6 +17,7 @@ import {
 import { selectEntryMerchant } from "test/transactionStepFlow";
 import {
   expectNoPaymentRow,
+  expectSuggestionsLoadingRows,
   pressItemAmountKey,
 } from "test/transactionConfirmStep";
 import { saveAndLeaveField } from "config/unsavedChanges";
@@ -162,13 +163,14 @@ describe("NewTransactionStepFlow", () => {
     expect(requests.at(-1)?.url).toBe(
       "/api/transactions/merchant-entry-suggestions?ledgerId=ledger-1&merchantId=seven",
     );
-    expect(screen.getByRole("progressbar")).toBeVisible();
+    expectSuggestionsLoadingRows(true);
     await selectEntryMerchant(/^LIFE超市/, "7-Eleven");
+    expectSuggestionsLoadingRows(true);
     expect(
-      screen.getByRole("progressbar", { name: "正在读取 LIFE超市 的记录" }),
+      screen.getByRole("button", { name: "修改商家：LIFE超市" }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("progressbar", { name: "正在读取 7-Eleven 的记录" }),
+      screen.queryByRole("button", { name: "修改商家：7-Eleven" }),
     ).not.toBeInTheDocument();
     expect(
       requests.find((request) => request.url.includes("merchantId=seven"))
@@ -177,6 +179,7 @@ describe("NewTransactionStepFlow", () => {
 
     respond("merchantId=life", noHistory);
     await screen.findByRole("button", { name: "添加付款账户" });
+    expectSuggestionsLoadingRows(false);
     // 7-Eleven 的建议晚到：不覆盖当前商家的建议，也不会自动选账户。
     respond("merchantId=seven", {
       ...noHistory,
@@ -203,10 +206,11 @@ describe("NewTransactionStepFlow", () => {
   it("建议获取失败时按没有记录处理，可以继续手动记账", async () => {
     setup();
     await selectEntryMerchant(/^7-Eleven/);
-    expect(screen.getByRole("progressbar")).toBeVisible();
+    expectSuggestionsLoadingRows(true);
     respond("merchantId=seven", { error: {} }, 500);
 
     await screen.findByRole("button", { name: "添加付款账户" });
+    expectSuggestionsLoadingRows(false);
     expectNoPaymentRow();
     click("添加付款账户");
     expect(
