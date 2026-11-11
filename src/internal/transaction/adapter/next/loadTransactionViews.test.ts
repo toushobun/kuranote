@@ -206,14 +206,6 @@ describe("Transaction 编辑 SSR 边界", () => {
     id: "00000000-0000-4000-8000-000000000032",
     name: "家庭账本",
   };
-  const reimbursementFilters = {
-    recordType: "refundableExpense",
-    specialStatuses: [
-      "pendingReimbursement",
-      "reimbursed",
-      "reimbursementSurplus",
-    ],
-  };
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getCurrentLedgerOrRedirect.mockResolvedValue(currentLedger);

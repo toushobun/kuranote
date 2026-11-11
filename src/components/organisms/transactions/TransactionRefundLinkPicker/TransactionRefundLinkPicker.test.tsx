@@ -87,6 +87,68 @@ describe("TransactionRefundLinkPicker", () => {
     expect(loadInitialViewAction).toHaveBeenCalledOnce();
   });
 
+  it("首屏数据到达后能够在按月浏览中选择关联明细", async () => {
+    const group = {
+      id: "month:2026-08",
+      key: "2026-08",
+      label: "2026年8月",
+      summary: {
+        balance: "-1200",
+        currency: "JPY",
+        expense: "1200",
+        income: "0",
+      },
+      transactionCount: 1,
+    };
+    const view = {
+      ...initialGroupView,
+      groups: [group],
+      initialExpandedGroupId: group.id,
+      initialDateGroupsByGroupId: {
+        [group.id]: [
+          {
+            date: "2026-08-15",
+            items: [
+              createTransactionListItem({
+                account_currency: "JPY",
+                categoryItems: [
+                  {
+                    amount: "1200",
+                    categoryName: "午餐",
+                    categoryType: "expense",
+                    id: "refund-item-1",
+                    parentCategoryName: "饮食",
+                    refundedAmount: "0",
+                    remainingRefundableAmount: "1200",
+                  },
+                ],
+              }),
+            ],
+            label: "15日（周六）",
+            summary: group.summary,
+          },
+        ],
+      },
+      initialNextItemOffsetByGroupId: { [group.id]: null },
+    };
+    const onChange = vi.fn();
+    render(
+      <TransactionRefundLinkPicker
+        loadInitialViewAction={async () => view}
+        onChange={onChange}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "选择退款明细" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "选择退款明细 午餐" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "完成" }));
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "refund-item-1" }),
+    );
+  });
+
   it("首屏读取失败时显示错误并允许重新读取", async () => {
     const loadInitialViewAction = vi
       .fn()
