@@ -66,8 +66,9 @@ export function TransactionRefundLinkPicker({
   const [tab, setTab] = useState<"browse" | "search">("browse");
   const [draftValue, setDraftValue] =
     useState<TransactionRefundCandidate | null>(null);
-  const { view, isLoading, load } =
-    useLazyTransactionLinkView(loadInitialViewAction);
+  const { view, isLoading, load } = useLazyTransactionLinkView(
+    loadInitialViewAction,
+  );
   const allocation = value
     ? summarizeRefundAllocationAmounts(
         refundAmount,

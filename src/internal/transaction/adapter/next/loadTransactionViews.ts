@@ -137,7 +137,11 @@ export async function loadRefundPickerInitialView() {
 
 export async function loadReimbursementPickerInitialView() {
   const { currentLedger, service } = await getContext();
-  return service.getGroupView(currentLedger, "month", reimbursementPickerFilters);
+  return service.getGroupView(
+    currentLedger,
+    "month",
+    reimbursementPickerFilters,
+  );
 }
 
 export async function loadRefundPickerGroupPage(

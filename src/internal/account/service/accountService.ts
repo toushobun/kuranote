@@ -496,7 +496,9 @@ export function createAccountService({
         ledgerPlaceholderMemberQueryService.listUnclaimed({ ledgerId, userId }),
       ]);
       const users = mergeLedgerDisplayNames(
-        await accountRepository.listUsers(members.map(({ user_id }) => user_id)),
+        await accountRepository.listUsers(
+          members.map(({ user_id }) => user_id),
+        ),
         displaySettings,
       );
       const appUserById = new Map(users.map((user) => [user.id, user]));

@@ -17,7 +17,7 @@ export function TransactionLinkPickerBrowseStatus({
 }) {
   if (isLoading) {
     return (
-      <Stack alignItems="center" spacing={1} sx={{ py: 4 }}>
+      <Stack spacing={1} sx={{ alignItems: "center", py: 4 }}>
         <CircularProgress size={24} />
         <Typography color="textSecondary" variant="body2">
           {transactionLinkPickerMessages.loading}
@@ -27,7 +27,7 @@ export function TransactionLinkPickerBrowseStatus({
   }
 
   return (
-    <Stack alignItems="center" spacing={1}>
+    <Stack spacing={1} sx={{ alignItems: "center" }}>
       <Typography color="textSecondary">{errorMessage}</Typography>
       {onRetry ? (
         <Button onClick={onRetry} size="small">

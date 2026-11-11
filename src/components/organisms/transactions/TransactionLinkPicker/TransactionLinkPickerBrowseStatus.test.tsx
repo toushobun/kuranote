@@ -6,10 +6,7 @@ import { TransactionLinkPickerBrowseStatus } from "./TransactionLinkPickerBrowse
 describe("TransactionLinkPickerBrowseStatus", () => {
   it("读取中显示加载指示且不显示失败提示", () => {
     render(
-      <TransactionLinkPickerBrowseStatus
-        errorMessage="读取失败"
-        isLoading
-      />,
+      <TransactionLinkPickerBrowseStatus errorMessage="读取失败" isLoading />,
     );
     expect(screen.getByRole("progressbar")).toBeInTheDocument();
     expect(screen.queryByText("读取失败")).not.toBeInTheDocument();

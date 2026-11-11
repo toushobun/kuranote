@@ -66,8 +66,9 @@ export function TransactionReimbursementLinkPicker({
   const [tab, setTab] = useState<"browse" | "search">("browse");
   const [draftValue, setDraftValue] =
     useState<TransactionRefundCandidate | null>(null);
-  const { view, isLoading, load } =
-    useLazyTransactionLinkView(loadInitialViewAction);
+  const { view, isLoading, load } = useLazyTransactionLinkView(
+    loadInitialViewAction,
+  );
   const allocation = value
     ? summarizeReimbursementAllocationAmounts(
         incomeAmount,
@@ -167,7 +168,9 @@ export function TransactionReimbursementLinkPicker({
               />
             ) : (
               <TransactionLinkPickerBrowseStatus
-                errorMessage={transactionLinkPickerMessages.reimbursementLoadFailed}
+                errorMessage={
+                  transactionLinkPickerMessages.reimbursementLoadFailed
+                }
                 isLoading={isLoading}
                 onRetry={loadInitialViewAction ? load : undefined}
               />

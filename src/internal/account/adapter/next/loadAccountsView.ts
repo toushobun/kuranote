@@ -47,7 +47,10 @@ export async function loadAccountCreateView() {
   const dependencies = await createServerRequestDependencies();
   const formOptions = await createRequestContainer(
     dependencies,
-  ).account.service.getCreateFormOptions({ ledgerId: currentLedger.id, userId });
+  ).account.service.getCreateFormOptions({
+    ledgerId: currentLedger.id,
+    userId,
+  });
 
   return {
     baseCurrency: currentLedger.baseCurrency,

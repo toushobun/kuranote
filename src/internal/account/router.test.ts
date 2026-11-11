@@ -53,6 +53,7 @@ function createContainer(
         create: vi.fn(),
         getTransactionContext: vi.fn(),
         getView: vi.fn(),
+        getCreateFormOptions: vi.fn(),
         listTransactionHolderOptions: vi.fn(),
         listTransactionOptions: vi.fn(),
         listTransactionOptionsWithHolders: vi.fn(),
