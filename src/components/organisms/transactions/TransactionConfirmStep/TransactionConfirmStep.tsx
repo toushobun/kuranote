@@ -188,7 +188,7 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
                 showAutomaticNotice={props.showAutomaticNotice}
                 invalidItems={w.markedItems}
                 canAddItem={props.categoryOptions.length > 0}
-                suggestionsLoading={props.suggestionsLoading}
+                itemsLoading={props.itemsLoading}
                 readOnly={readOnly}
                 onAmount={props.onAmountItemChange}
               />
@@ -222,7 +222,7 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
                 accountOptions={props.accountOptions}
                 total={total}
                 canAddPayment={!readOnly && w.canAddPayment}
-                suggestionsLoading={props.suggestionsLoading}
+                paymentsLoading={props.paymentsLoading}
                 showMixedPaymentHint={!readOnly && w.showMixedPaymentHint}
                 readOnly={readOnly}
                 invalidPaymentKeys={w.markedPaymentKeys}

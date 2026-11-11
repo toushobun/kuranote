@@ -220,17 +220,23 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
   }, [pendingSuggestionSnapshot, loadingMerchantId]);
   function selectMerchant(value: FlowMerchant) {
     // 等待期间改选商家时，重新开始计时。其他换商家只替换没动过的自动明细。
+    const changing = value.id !== form.selectedMerchantId;
+    form.handleMerchantChange(value.id);
+    props.onMerchantSelect(value);
+    // 重选当前商家时保留等待和晚到建议的关联状态。
+    if (!changing) return;
     const quick =
+      changing &&
       !touched &&
       !form.itemSummaries.length &&
       (!form.selectedMerchantId || !!loadingMerchantId);
-    const replacing = !quick && value.id !== form.selectedMerchantId;
-    pendingQuickMerchantId.current = quick || replacing ? value.id : null;
+    const replacing = changing && !quick;
+    pendingQuickMerchantId.current = changing ? value.id : null;
     replacingAutomaticItems.current = replacing;
     waitStartSnapshot.current = pendingSuggestionSnapshot;
-    form.handleMerchantChange(value.id);
-    props.onMerchantSelect(value);
-    setLoadingMerchantId(quick ? value.id : null);
+    setLoadingMerchantId(
+      quick || (replacing && !!form.selectedMerchantId) ? value.id : null,
+    );
   }
   const merchantPicker = useReceiptMerchantPicker(selectMerchant);
   return {
@@ -248,7 +254,8 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     setAmountItemId,
     methodOpen,
     setMethodOpen,
-    waiting,
+    itemsLoading: waiting,
+    paymentsLoading: waiting && !form.payments[0]?.accountId,
     merchantPicker,
     requestClose: guard.requestClose,
     dialogProps: guard.dialogProps,

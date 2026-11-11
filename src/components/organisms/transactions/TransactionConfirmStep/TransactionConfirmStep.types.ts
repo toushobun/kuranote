@@ -19,7 +19,8 @@ export type TransactionConfirmStepProps = TransactionReceiptProps & {
   errorMessage?: string;
   successMessage?: string;
   saving: boolean;
-  suggestionsLoading?: boolean;
+  itemsLoading?: boolean;
+  paymentsLoading?: boolean;
   onMerchantClick: () => void;
   /** 客户端校验失败时取消守卫的保存后退出意图。 */
   onValidationFailed?: () => void;

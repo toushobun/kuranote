@@ -25,7 +25,7 @@ export function ReceiptPaymentSection({
   accountOptions,
   total,
   canAddPayment,
-  suggestionsLoading = false,
+  paymentsLoading = false,
   showMixedPaymentHint,
   readOnly = false,
   invalidPaymentKeys,
@@ -40,7 +40,7 @@ export function ReceiptPaymentSection({
   /** 单账户时的支付金额（由明细推导的合计）。 */
   total: string;
   canAddPayment: boolean;
-  suggestionsLoading?: boolean;
+  paymentsLoading?: boolean;
   showMixedPaymentHint: boolean;
   readOnly?: boolean;
   /** 要标红的付款行（只含上次点保存时已有、仍未解决的问题，#1040）。 */
@@ -144,7 +144,7 @@ export function ReceiptPaymentSection({
             ` · ${transactionPaymentFieldsMessages.difference(format(reconciliation.difference))}`}
         </Typography>
       )}
-      {!readOnly && suggestionsLoading ? (
+      {!readOnly && paymentsLoading ? (
         <ReceiptLoadingRow label={m.loadingPayments} />
       ) : (
         canAddPayment && (
