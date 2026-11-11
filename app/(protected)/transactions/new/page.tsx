@@ -10,9 +10,11 @@ import {
 import { createTransaction } from "internal/transaction/adapter/next/actions";
 import {
   loadNewTransactionView,
+  loadRefundPickerInitialView,
   loadRefundPickerGroupItems,
   loadRefundPickerGroupPage,
   loadRefundPickerSearchPage,
+  loadReimbursementPickerInitialView,
   loadReimbursementPickerGroupItems,
   loadReimbursementPickerGroupPage,
   loadReimbursementPickerSearchPage,
@@ -37,15 +39,17 @@ export default async function TransactionsNewPage({
     redirect(transactionEditHref(params.editId));
   }
 
+  const [loadedView, receiptCreation] = await Promise.all([
+    loadNewTransactionView(),
+    loadReceiptCreationView(),
+  ]);
   const {
     canWriteTransactions,
     frequentMerchants,
     ledgerId,
     merchantTags,
-    refundPickerView,
-    reimbursementPickerView,
     ...view
-  } = await loadNewTransactionView();
+  } = loadedView;
 
   if (canWriteTransactions === false) {
     return (
@@ -55,17 +59,15 @@ export default async function TransactionsNewPage({
     );
   }
 
-  // 两种方式在浏览器端切换（#1050），小票内新增商家 / 账户的表单都先读好。
-  const receiptCreation = await loadReceiptCreationView();
   const incomeLinksValue = {
+    loadRefundInitialViewAction: loadRefundPickerInitialView,
+    loadReimbursementInitialViewAction: loadReimbursementPickerInitialView,
     loadRefundGroupItemsAction: loadRefundPickerGroupItems,
     loadRefundMoreGroupsAction: loadRefundPickerGroupPage,
     loadRefundSearchPageAction: loadRefundPickerSearchPage,
     loadReimbursementGroupItemsAction: loadReimbursementPickerGroupItems,
     loadReimbursementMoreGroupsAction: loadReimbursementPickerGroupPage,
     loadReimbursementSearchPageAction: loadReimbursementPickerSearchPage,
-    refundPickerView,
-    reimbursementPickerView,
   };
 
   return (

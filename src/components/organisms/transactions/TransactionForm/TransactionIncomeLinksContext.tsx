@@ -10,6 +10,8 @@ import type {
 } from "types/transactions";
 
 export type TransactionIncomeLinksContextValue = {
+  loadRefundInitialViewAction?: () => Promise<TransactionTimeGroupViewData>;
+  loadReimbursementInitialViewAction?: () => Promise<TransactionTimeGroupViewData>;
   loadRefundGroupItemsAction?: (
     groupKey: string,
     offset: number,
@@ -32,8 +34,6 @@ export type TransactionIncomeLinksContextValue = {
     query: string,
     offset: number,
   ) => Promise<TransactionSearchPage>;
-  refundPickerView?: TransactionTimeGroupViewData;
-  reimbursementPickerView?: TransactionTimeGroupViewData;
 };
 
 const TransactionIncomeLinksContext =
@@ -59,6 +59,12 @@ export function useResolvedTransactionIncomeLinks(
 ): TransactionIncomeLinksContextValue {
   const context = useContext(TransactionIncomeLinksContext);
   return {
+    loadRefundInitialViewAction:
+      context?.loadRefundInitialViewAction ??
+      fallback.loadRefundInitialViewAction,
+    loadReimbursementInitialViewAction:
+      context?.loadReimbursementInitialViewAction ??
+      fallback.loadReimbursementInitialViewAction,
     loadRefundGroupItemsAction:
       context?.loadRefundGroupItemsAction ??
       fallback.loadRefundGroupItemsAction,
@@ -77,8 +83,5 @@ export function useResolvedTransactionIncomeLinks(
     loadReimbursementSearchPageAction:
       context?.loadReimbursementSearchPageAction ??
       fallback.loadReimbursementSearchPageAction,
-    refundPickerView: context?.refundPickerView ?? fallback.refundPickerView,
-    reimbursementPickerView:
-      context?.reimbursementPickerView ?? fallback.reimbursementPickerView,
   };
 }

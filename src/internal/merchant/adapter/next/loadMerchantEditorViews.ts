@@ -7,11 +7,15 @@ import { createServerRequestDependencies } from "internal/shared/context/createS
 import { NotFoundError } from "internal/shared/errors/appError";
 
 export async function loadMerchantCreateView() {
-  const currentLedger = await getCurrentLedgerOrRedirect();
-  const dependencies = await createServerRequestDependencies();
+  const [currentLedger, dependencies] = await Promise.all([
+    getCurrentLedgerOrRedirect(),
+    createServerRequestDependencies(),
+  ]);
   const service = createRequestContainer(dependencies).merchant.service;
-  await service.assertCanManage({ ledgerId: currentLedger.id });
-  const tags = await service.listTags({ ledgerId: currentLedger.id });
+  const [, tags] = await Promise.all([
+    service.assertCanManage({ ledgerId: currentLedger.id }),
+    service.listTags({ ledgerId: currentLedger.id }),
+  ]);
 
   return { ledgerId: currentLedger.id, ledgerName: currentLedger.name, tags };
 }

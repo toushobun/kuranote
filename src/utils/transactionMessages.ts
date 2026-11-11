@@ -68,6 +68,13 @@ function formatLinkKindLabels(kinds: readonly TransactionLinkKind[]) {
   return kinds.map((kind) => transactionLinkKindLabels[kind]).join("、");
 }
 
+export const transactionLinkPickerMessages = {
+  loading: "关联候选读取中…",
+  refundLoadFailed: "支出明细加载失败，请稍后重试。",
+  reimbursementLoadFailed: "报销候选支出加载失败，请稍后重试。",
+  retry: "重试",
+} as const;
+
 export const transactionLinkMessages = {
   accountCurrencyChanged: (kinds: readonly TransactionLinkKind[]) =>
     `账户币种已变更，已清除币种不一致的${formatLinkKindLabels(kinds)}关联，请重新选择。`,

@@ -14,6 +14,8 @@ import { useState } from "react";
 
 import { summarizeRefundAllocationAmounts } from "internal/transaction";
 import { TransactionMonthList } from "../TransactionMonthList/TransactionMonthList";
+import { TransactionLinkPickerBrowseStatus } from "../TransactionLinkPicker/TransactionLinkPickerBrowseStatus";
+import { useLazyTransactionLinkView } from "../TransactionLinkPicker/useLazyTransactionLinkView";
 import { TransactionSearchTemplate } from "templates/transactions/TransactionSearch";
 import type {
   TransactionGroupPage,
@@ -24,10 +26,12 @@ import type {
 } from "types/transactions";
 import { getCurrencySymbol } from "utils/currency";
 import { formatNumber } from "utils/transactions";
+import { transactionLinkPickerMessages } from "utils/transactionMessages";
 
 type TransactionRefundLinkPickerProps = {
   // 收款账户币种；与之不一致的候选置灰且不可选择。
   accountCurrency?: string;
+  loadInitialViewAction?: () => Promise<TransactionTimeGroupViewData>;
   loadGroupItemsAction?: (
     groupKey: string,
     offset: number,
@@ -39,7 +43,6 @@ type TransactionRefundLinkPickerProps = {
   ) => Promise<TransactionSearchPage>;
   onChange: (item: TransactionRefundCandidate | null) => void;
   refundAmount?: string;
-  timeGroupView?: TransactionTimeGroupViewData;
   value?: TransactionRefundCandidate | null;
 };
 
@@ -51,18 +54,21 @@ const emptySearchPage: TransactionSearchPage = {
 
 export function TransactionRefundLinkPicker({
   accountCurrency,
+  loadInitialViewAction,
   loadGroupItemsAction,
   loadMoreGroupsAction,
   loadSearchPageAction,
   onChange,
   refundAmount = "0",
-  timeGroupView,
   value = null,
 }: TransactionRefundLinkPickerProps) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"browse" | "search">("browse");
   const [draftValue, setDraftValue] =
     useState<TransactionRefundCandidate | null>(null);
+  const { view, isLoading, load } = useLazyTransactionLinkView(
+    loadInitialViewAction,
+  );
   const allocation = value
     ? summarizeRefundAllocationAmounts(
         refundAmount,
@@ -73,6 +79,7 @@ export function TransactionRefundLinkPicker({
   const openPicker = () => {
     setDraftValue(value);
     setOpen(true);
+    load();
   };
   const close = () => setOpen(false);
   useBackLayer(open, close, 1);
@@ -149,7 +156,7 @@ export function TransactionRefundLinkPicker({
         </Tabs>
         <DialogContent>
           {tab === "browse" ? (
-            timeGroupView ? (
+            view ? (
               <TransactionMonthList
                 loadGroupItemsAction={loadGroupItemsAction}
                 loadMoreGroupsAction={loadMoreGroupsAction}
@@ -157,12 +164,14 @@ export function TransactionRefundLinkPicker({
                 refundSelectionMode
                 selectableCurrency={accountCurrency}
                 selectedRefundItemId={draftValue?.id ?? null}
-                timeGroupView={timeGroupView}
+                timeGroupView={view}
               />
             ) : (
-              <Typography color="textSecondary">
-                支出明细加载失败，请稍后重试。
-              </Typography>
+              <TransactionLinkPickerBrowseStatus
+                errorMessage={transactionLinkPickerMessages.refundLoadFailed}
+                isLoading={isLoading}
+                onRetry={loadInitialViewAction ? load : undefined}
+              />
             )
           ) : (
             <TransactionSearchTemplate

@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { expect, screen, userEvent, within } from "storybook/test";
 
 import { createTransactionListItem } from "@/test/mocks/transactions";
+import type { TransactionTimeGroupViewData } from "types/transactions";
 
 import { TransactionRefundLinkPicker } from "./TransactionRefundLinkPicker";
 
@@ -23,6 +24,45 @@ export const Default: Story = {
         "退款关联不受剩余可核销额度限制；请选择与收款账户币种一致的候选支出。",
       ),
     ).toBeVisible();
+  },
+};
+
+export const BrowseLoading: Story = {
+  name: "首次打开候选读取中",
+  args: {
+    loadInitialViewAction: () =>
+      new Promise<TransactionTimeGroupViewData>(() => undefined),
+  },
+  parameters: {
+    viewport: { defaultViewport: "mobile2" },
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      within(canvasElement).getByRole("button", { name: "选择退款明细" }),
+    );
+    await expect(await screen.findByText("关联候选读取中…")).toBeVisible();
+    await expect(screen.getByRole("progressbar")).toBeVisible();
+  },
+};
+
+export const BrowseLoadError: Story = {
+  name: "首次打开候选读取失败与重试",
+  args: {
+    loadInitialViewAction: async () => {
+      throw new Error("storybook initial browse failure");
+    },
+  },
+  parameters: {
+    viewport: { defaultViewport: "mobile2" },
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      within(canvasElement).getByRole("button", { name: "选择退款明细" }),
+    );
+    await expect(
+      await screen.findByText("支出明细加载失败，请稍后重试。"),
+    ).toBeVisible();
+    await expect(screen.getByRole("button", { name: "重试" })).toBeVisible();
   },
 };
 

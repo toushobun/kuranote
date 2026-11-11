@@ -23,8 +23,8 @@ import type { FlowMerchant } from "organisms/transactions/MerchantStep/MerchantS
 /** 小票内编辑明细与付款所需的选项（分类、退款 / 报销选择器、账本开关）与初始值。 */
 export type ItemsStepOptions = {
   categoryOptions: TransactionCategoryOption[];
-  refundPickerView?: TransactionTimeGroupViewData;
-  reimbursementPickerView?: TransactionTimeGroupViewData;
+  loadRefundInitialViewAction?: () => Promise<TransactionTimeGroupViewData>;
+  loadReimbursementInitialViewAction?: () => Promise<TransactionTimeGroupViewData>;
   loadRefundGroupItemsAction?: (
     groupKey: string,
     offset: number,

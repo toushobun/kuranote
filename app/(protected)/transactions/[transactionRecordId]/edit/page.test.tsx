@@ -7,9 +7,12 @@ const mocks = vi.hoisted(() => ({
   EditTransactionReceiptTemplate: vi.fn(() => null),
   EditTransferTransactionTemplate: vi.fn(() => null),
   loadEditTransactionView: vi.fn(),
+  loadReceiptCreationView: vi.fn(),
+  loadRefundPickerInitialView: vi.fn(),
   loadRefundPickerGroupItems: vi.fn(),
   loadRefundPickerGroupPage: vi.fn(),
   loadRefundPickerSearchPage: vi.fn(),
+  loadReimbursementPickerInitialView: vi.fn(),
   loadReimbursementPickerGroupItems: vi.fn(),
   loadReimbursementPickerGroupPage: vi.fn(),
   loadReimbursementPickerSearchPage: vi.fn(),
@@ -27,6 +30,8 @@ vi.mock("internal/transaction/adapter/next/actions", () => ({
 
 vi.mock("internal/transaction/adapter/next/loadTransactionViews", () => ({
   loadEditTransactionView: mocks.loadEditTransactionView,
+  loadRefundPickerInitialView: mocks.loadRefundPickerInitialView,
+  loadReimbursementPickerInitialView: mocks.loadReimbursementPickerInitialView,
   loadRefundPickerGroupItems: mocks.loadRefundPickerGroupItems,
   loadRefundPickerGroupPage: mocks.loadRefundPickerGroupPage,
   loadRefundPickerSearchPage: mocks.loadRefundPickerSearchPage,
@@ -48,7 +53,7 @@ vi.mock("templates/transactions/NewTransactionVisualFrame", () => ({
 }));
 
 vi.mock("../../loadReceiptCreationView", () => ({
-  loadReceiptCreationView: vi.fn(async () => null),
+  loadReceiptCreationView: mocks.loadReceiptCreationView,
 }));
 
 import TransactionEditPage from "./page";
@@ -123,6 +128,29 @@ async function renderTemplateElement() {
 describe("TransactionEditPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.loadReceiptCreationView.mockResolvedValue(null);
+  });
+
+  it("编辑页两路服务端读取同时开始", async () => {
+    let finishView:
+      | ((value: ReturnType<typeof createEditView>) => void)
+      | undefined;
+    mocks.loadEditTransactionView.mockImplementation(
+      () =>
+        new Promise<ReturnType<typeof createEditView>>((resolve) => {
+          finishView = resolve;
+        }),
+    );
+
+    const rendering = TransactionEditPage({
+      params: Promise.resolve({ transactionRecordId }),
+    });
+    await vi.waitFor(() => {
+      expect(mocks.loadEditTransactionView).toHaveBeenCalledOnce();
+      expect(mocks.loadReceiptCreationView).toHaveBeenCalledOnce();
+    });
+    finishView?.(createEditView());
+    await rendering;
   });
 
   it.each([

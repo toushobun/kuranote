@@ -3,7 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   loadEditTransactionView,
   loadNewTransactionView,
+  loadRefundPickerInitialView,
   loadRefundPickerSearchPage,
+  loadReimbursementPickerInitialView,
   loadReimbursementPickerGroupItems,
   loadReimbursementPickerGroupPage,
   loadReimbursementPickerSearchPage,
@@ -128,26 +130,30 @@ describe("Transaction SSR adapter", () => {
     );
   });
 
-  it("启用特殊状态时新建视图分别加载退款与报销 Picker", async () => {
+  it("启用特殊状态时新建视图不预读关联候选，打开选择器才读取", async () => {
     const enabledLedger = {
       ...currentLedger,
       transactionItemSpecialStatusEnabled: true,
     };
-    const refundPickerView = { groups: [{ key: "refund" }] };
-    const reimbursementPickerView = { groups: [{ key: "reimbursement" }] };
     mocks.getCurrentLedgerOrRedirect.mockResolvedValue(enabledLedger);
     mocks.getNewView.mockResolvedValue({ form: "new" });
+    const refundView = { groups: [{ key: "refund" }] };
+    const reimbursementView = { groups: [{ key: "reimbursement" }] };
     mocks.getGroupView
-      .mockResolvedValueOnce(refundPickerView)
-      .mockResolvedValueOnce(reimbursementPickerView);
+      .mockResolvedValueOnce(refundView)
+      .mockResolvedValueOnce(reimbursementView);
 
     await expect(loadNewTransactionView()).resolves.toEqual({
       form: "new",
       frequentMerchants: [],
-      refundPickerView,
-      reimbursementPickerView,
     });
     expect(mocks.getNewView).toHaveBeenCalledWith(enabledLedger);
+    expect(mocks.getGroupView).not.toHaveBeenCalled();
+
+    await expect(loadRefundPickerInitialView()).resolves.toEqual(refundView);
+    await expect(loadReimbursementPickerInitialView()).resolves.toEqual(
+      reimbursementView,
+    );
     expect(mocks.getGroupView).toHaveBeenNthCalledWith(
       1,
       enabledLedger,
@@ -200,14 +206,6 @@ describe("Transaction 编辑 SSR 边界", () => {
     id: "00000000-0000-4000-8000-000000000032",
     name: "家庭账本",
   };
-  const reimbursementFilters = {
-    recordType: "refundableExpense",
-    specialStatuses: [
-      "pendingReimbursement",
-      "reimbursed",
-      "reimbursementSurplus",
-    ],
-  };
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getCurrentLedgerOrRedirect.mockResolvedValue(currentLedger);
@@ -248,43 +246,22 @@ describe("Transaction 编辑 SSR 边界", () => {
     expect(mocks.notFound).toHaveBeenCalledOnce();
   });
 
-  it("启用特殊状态时编辑视图分别加载退款与报销 Picker", async () => {
+  it("启用特殊状态时编辑视图不预读退款与报销候选", async () => {
     const enabledLedger = {
       ...currentLedger,
       transactionItemSpecialStatusEnabled: true,
     };
-    const refundPickerView = { groups: [{ key: "refund" }] };
-    const reimbursementPickerView = { groups: [{ key: "reimbursement" }] };
     mocks.getCurrentLedgerOrRedirect.mockResolvedValue(enabledLedger);
     mocks.getEditEntryView.mockResolvedValue({ form: "edit" });
-    mocks.getGroupView
-      .mockResolvedValueOnce(refundPickerView)
-      .mockResolvedValueOnce(reimbursementPickerView);
 
     await expect(loadEditTransactionView(transactionRecordId)).resolves.toEqual(
-      {
-        form: "edit",
-        frequentMerchants: [],
-        refundPickerView,
-        reimbursementPickerView,
-      },
+      { form: "edit", frequentMerchants: [] },
     );
     expect(mocks.getEditEntryView).toHaveBeenCalledWith(
       enabledLedger,
       transactionRecordId,
     );
-    expect(mocks.getGroupView).toHaveBeenNthCalledWith(
-      1,
-      enabledLedger,
-      "month",
-      { recordType: "refundableExpense" },
-    );
-    expect(mocks.getGroupView).toHaveBeenNthCalledWith(
-      2,
-      enabledLedger,
-      "month",
-      reimbursementFilters,
-    );
+    expect(mocks.getGroupView).not.toHaveBeenCalled();
   });
 
   it("编辑视图带常用商家，供小票换商家使用（#962）", async () => {
@@ -296,8 +273,6 @@ describe("Transaction 编辑 SSR 边界", () => {
       {
         form: "edit",
         frequentMerchants,
-        refundPickerView: undefined,
-        reimbursementPickerView: undefined,
       },
     );
     expect(mocks.getFrequentMerchants).toHaveBeenCalledWith({

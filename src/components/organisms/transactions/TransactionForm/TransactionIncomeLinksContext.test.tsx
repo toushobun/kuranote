@@ -17,7 +17,7 @@ describe("useResolvedTransactionIncomeLinks", () => {
     expect(result.current.loadRefundSearchPageAction).toBe(
       loadRefundSearchPageAction,
     );
-    expect(result.current.refundPickerView).toBeUndefined();
+    expect(result.current.loadRefundInitialViewAction).toBeUndefined();
   });
 
   it("有 Provider 时优先使用 Provider，缺少的项回退到传入值", () => {

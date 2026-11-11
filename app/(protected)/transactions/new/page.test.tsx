@@ -8,9 +8,12 @@ const mocks = vi.hoisted(() => ({
   createTransaction: vi.fn(),
   loadMerchantPresets: vi.fn(),
   loadNewTransactionView: vi.fn(),
+  loadReceiptCreationView: vi.fn(),
+  loadRefundPickerInitialView: vi.fn(),
   loadRefundPickerGroupItems: vi.fn(),
   loadRefundPickerGroupPage: vi.fn(),
   loadRefundPickerSearchPage: vi.fn(),
+  loadReimbursementPickerInitialView: vi.fn(),
   loadReimbursementPickerGroupItems: vi.fn(),
   loadReimbursementPickerGroupPage: vi.fn(),
   loadReimbursementPickerSearchPage: vi.fn(),
@@ -37,6 +40,8 @@ vi.mock("internal/merchant/adapter/next/actions", () => ({
 
 vi.mock("internal/transaction/adapter/next/loadTransactionViews", () => ({
   loadNewTransactionView: mocks.loadNewTransactionView,
+  loadRefundPickerInitialView: mocks.loadRefundPickerInitialView,
+  loadReimbursementPickerInitialView: mocks.loadReimbursementPickerInitialView,
   loadRefundPickerGroupItems: mocks.loadRefundPickerGroupItems,
   loadRefundPickerGroupPage: mocks.loadRefundPickerGroupPage,
   loadRefundPickerSearchPage: mocks.loadRefundPickerSearchPage,
@@ -58,7 +63,7 @@ vi.mock("templates/transactions/NewTransactionVisualFrame", () => ({
 }));
 
 vi.mock("../loadReceiptCreationView", () => ({
-  loadReceiptCreationView: vi.fn(async () => null),
+  loadReceiptCreationView: mocks.loadReceiptCreationView,
 }));
 
 import TransactionsNewPage from "./page";
@@ -90,8 +95,6 @@ const baseView = {
   ],
   merchantTags: [merchantTag],
   multiAccountPaymentEnabled: true,
-  refundPickerView: undefined,
-  reimbursementPickerView: undefined,
   transactionItemSpecialStatusEnabled: false,
 };
 
@@ -115,6 +118,7 @@ describe("TransactionsNewPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.loadNewTransactionView.mockResolvedValue(baseView);
+    mocks.loadReceiptCreationView.mockResolvedValue(null);
   });
 
   it("带 editId 的旧 URL 会跳转到专用编辑路由", async () => {
@@ -170,10 +174,33 @@ describe("TransactionsNewPage", () => {
     }>;
 
     expect(provider.props.value).toMatchObject({
+      loadRefundInitialViewAction: mocks.loadRefundPickerInitialView,
+      loadReimbursementInitialViewAction:
+        mocks.loadReimbursementPickerInitialView,
       loadRefundGroupItemsAction: mocks.loadRefundPickerGroupItems,
       loadReimbursementSearchPageAction:
         mocks.loadReimbursementPickerSearchPage,
     });
+  });
+
+  it("新增页两路服务端读取同时开始，不等待记账视图完成", async () => {
+    let finishView: ((value: typeof baseView) => void) | undefined;
+    mocks.loadNewTransactionView.mockImplementation(
+      () =>
+        new Promise<typeof baseView>((resolve) => {
+          finishView = resolve;
+        }),
+    );
+
+    const rendering = TransactionsNewPage({
+      searchParams: Promise.resolve({}),
+    });
+    await vi.waitFor(() => {
+      expect(mocks.loadNewTransactionView).toHaveBeenCalledOnce();
+      expect(mocks.loadReceiptCreationView).toHaveBeenCalledOnce();
+    });
+    finishView?.(baseView);
+    await rendering;
   });
 
   it.each([

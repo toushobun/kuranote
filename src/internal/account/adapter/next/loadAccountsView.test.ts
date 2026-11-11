@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   createServerRequestDependencies: vi.fn(),
   getCurrentLedgerContext: vi.fn(),
   getView: vi.fn(),
+  getCreateFormOptions: vi.fn(),
   notFound: vi.fn(() => {
     throw new Error("NEXT_NOT_FOUND");
   }),
@@ -52,7 +53,12 @@ function mockCurrentLedger() {
   });
   mocks.createServerRequestDependencies.mockResolvedValue({});
   mocks.createRequestContainer.mockReturnValue({
-    account: { service: { getView: mocks.getView } },
+    account: {
+      service: {
+        getView: mocks.getView,
+        getCreateFormOptions: mocks.getCreateFormOptions,
+      },
+    },
   });
 }
 
@@ -114,20 +120,34 @@ describe("loadAccountCreateView", () => {
   beforeEach(mockCurrentLedger);
 
   it("只返回新增表单需要的内容", async () => {
-    mocks.getView.mockResolvedValue(manageableView);
+    mocks.getCreateFormOptions.mockResolvedValue({
+      holderOptions: [],
+      placeholderHolderOptions: [],
+    });
 
     await expect(loadAccountCreateView()).resolves.toEqual(accountFormView);
+    expect(mocks.getCreateFormOptions).toHaveBeenCalledWith({
+      ledgerId,
+      userId,
+    });
+    expect(mocks.getView).not.toHaveBeenCalled();
   });
 
   it("没有管理权限时回到账户管理页", async () => {
-    mocks.getView.mockResolvedValue({
-      ...manageableView,
-      canManageAccounts: false,
+    mocks.getCurrentLedgerContext.mockResolvedValue({
+      currentLedger: {
+        baseCurrency: "JPY",
+        currentUserRole: "viewer",
+        id: ledgerId,
+        name: "家庭账本",
+      },
+      userId,
     });
 
     await expect(loadAccountCreateView()).rejects.toThrow(
       "NEXT_REDIRECT:/accounts",
     );
+    expect(mocks.getCreateFormOptions).not.toHaveBeenCalled();
   });
 });
 

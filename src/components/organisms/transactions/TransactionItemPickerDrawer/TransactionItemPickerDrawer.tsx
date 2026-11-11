@@ -63,8 +63,8 @@ type TransactionItemPickerDrawerProps = {
   pickerSpecialStatus?: TransactionSpecialStatus | null;
   selectedAccountCurrency?: string;
   selectedCategoryGroup?: CategoryPickerGroup;
-  refundPickerView?: TransactionTimeGroupViewData;
-  reimbursementPickerView?: TransactionTimeGroupViewData;
+  loadRefundInitialViewAction?: () => Promise<TransactionTimeGroupViewData>;
+  loadReimbursementInitialViewAction?: () => Promise<TransactionTimeGroupViewData>;
   loadRefundGroupItemsAction?: (
     groupKey: string,
     offset: number,
@@ -115,8 +115,8 @@ export function TransactionItemPickerDrawer({
   pickerSpecialStatus = null,
   selectedAccountCurrency,
   selectedCategoryGroup,
-  refundPickerView,
-  reimbursementPickerView,
+  loadRefundInitialViewAction,
+  loadReimbursementInitialViewAction,
   loadRefundGroupItemsAction,
   loadRefundMoreGroupsAction,
   loadRefundSearchPageAction,
@@ -359,22 +359,22 @@ export function TransactionItemPickerDrawer({
             ) : null}
             <TransactionRefundLinkPicker
               accountCurrency={selectedAccountCurrency}
+              loadInitialViewAction={loadRefundInitialViewAction}
               loadGroupItemsAction={loadRefundGroupItemsAction}
               loadMoreGroupsAction={loadRefundMoreGroupsAction}
               loadSearchPageAction={loadRefundSearchPageAction}
               onChange={onRefundItemChange}
-              timeGroupView={refundPickerView}
               refundAmount={pickerAmount}
               value={pickerRefundCandidate}
             />
             <TransactionReimbursementLinkPicker
               accountCurrency={selectedAccountCurrency}
               incomeAmount={pickerAmount}
+              loadInitialViewAction={loadReimbursementInitialViewAction}
               loadGroupItemsAction={loadReimbursementGroupItemsAction}
               loadMoreGroupsAction={loadReimbursementMoreGroupsAction}
               loadSearchPageAction={loadReimbursementSearchPageAction}
               onChange={onReimbursementItemChange}
-              timeGroupView={reimbursementPickerView}
               value={pickerReimbursementCandidate}
             />
           </>

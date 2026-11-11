@@ -7,9 +7,11 @@ import {
 } from "internal/transaction/adapter/next/actions";
 import {
   loadEditTransactionView,
+  loadRefundPickerInitialView,
   loadRefundPickerGroupItems,
   loadRefundPickerGroupPage,
   loadRefundPickerSearchPage,
+  loadReimbursementPickerInitialView,
   loadReimbursementPickerGroupItems,
   loadReimbursementPickerGroupPage,
   loadReimbursementPickerSearchPage,
@@ -27,13 +29,11 @@ export default async function TransactionEditPage({
 }) {
   const { transactionRecordId } = await params;
   // 有限制（无权限 / 账户已归档等）时各模板显示只读详情，保存与删除仍由服务端校验（#928）。
-  const {
-    canDelete,
-    editRestriction,
-    refundPickerView,
-    reimbursementPickerView,
-    ...view
-  } = await loadEditTransactionView(transactionRecordId);
+  const [loadedView, loadedReceiptCreation] = await Promise.all([
+    loadEditTransactionView(transactionRecordId),
+    loadReceiptCreationView(),
+  ]);
+  const { canDelete, editRestriction, ...view } = loadedView;
 
   const initialValues = view.initialValues;
   if (initialValues.type === "balance_adjustment") {
@@ -50,19 +50,17 @@ export default async function TransactionEditPage({
     );
   }
   const incomeLinksValue = {
+    loadRefundInitialViewAction: loadRefundPickerInitialView,
+    loadReimbursementInitialViewAction: loadReimbursementPickerInitialView,
     loadRefundGroupItemsAction: loadRefundPickerGroupItems,
     loadRefundMoreGroupsAction: loadRefundPickerGroupPage,
     loadRefundSearchPageAction: loadRefundPickerSearchPage,
     loadReimbursementGroupItemsAction: loadReimbursementPickerGroupItems,
     loadReimbursementMoreGroupsAction: loadReimbursementPickerGroupPage,
     loadReimbursementSearchPageAction: loadReimbursementPickerSearchPage,
-    refundPickerView,
-    reimbursementPickerView,
   };
 
-  const receiptCreation = !editRestriction
-    ? await loadReceiptCreationView()
-    : null;
+  const receiptCreation = !editRestriction ? loadedReceiptCreation : null;
   if (initialValues.type === "transfer") {
     return (
       <NewTransactionVisualFrame>

@@ -164,6 +164,50 @@ describe("AccountService", () => {
 
   beforeEach(() => vi.clearAllMocks());
 
+  it("新增账户表单只读取持有人资料，不读取账户和余额", async () => {
+    const repository = createRepository();
+    vi.mocked(repository.listDisplaySettings).mockResolvedValue([
+      {
+        display_color: "sky",
+        display_name: "家里的成员",
+        user_id: holderUserId,
+      },
+    ]);
+
+    const options = await createService(repository).getCreateFormOptions({
+      ledgerId,
+      userId,
+    });
+
+    expect(options.holderOptions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          display_color: "sky",
+          display_name: "家里的成员",
+          user_id: holderUserId,
+        }),
+      ]),
+    );
+    expect(options.placeholderHolderOptions).toEqual([
+      { display_name: "奶奶", placeholder_id: placeholderId },
+    ]);
+    expect(repository.listAccounts).not.toHaveBeenCalled();
+    expect(repository.listAccountIdsWithTransactions).not.toHaveBeenCalled();
+    expect(repository.listHolders).not.toHaveBeenCalled();
+    expect(repository.findActiveLedger).not.toHaveBeenCalled();
+  });
+
+  it("非管理成员不能读取新增账户表单选项", async () => {
+    const repository = createRepository();
+    await expect(
+      createService(
+        repository,
+        createLedgerAccessService("viewer"),
+      ).getCreateFormOptions({ ledgerId, userId }),
+    ).rejects.toMatchObject({ code: accountErrorCodes.permissionDenied });
+    expect(repository.listActiveMembers).not.toHaveBeenCalled();
+  });
+
   it("读取账户页面时通过账本窄接口校验权限并聚合成员信息", async () => {
     const repository = createRepository();
     const ledgerAccessService = createLedgerAccessService();

@@ -22,6 +22,7 @@ import type {
 } from "internal/account/repository/accountRepository";
 import type { AccountSummary } from "internal/account/entity/accountSummary";
 import {
+  buildAccountFormHolderOptions,
   buildAccountsView,
   mergeLedgerDisplayNames,
 } from "internal/account/service/read/accountsView";
@@ -128,6 +129,10 @@ export interface AccountService extends AccountQueryService {
   archive(input: ArchiveAccountInput): Promise<void>;
   create(input: CreateAccountInput): Promise<{ accountId: string }>;
   getView(input: GetAccountsViewInput): Promise<AccountsView>;
+  getCreateFormOptions(input: {
+    ledgerId: string;
+    userId: string;
+  }): Promise<Pick<AccountsView, "holderOptions" | "placeholderHolderOptions">>;
   update(input: UpdateAccountInput): Promise<void>;
 }
 
@@ -477,6 +482,28 @@ export function createAccountService({
         ...account,
         holders: holders.map(({ display_name }) => ({ display_name })),
       }));
+    },
+
+    async getCreateFormOptions({ ledgerId, userId }) {
+      const role = await requireActiveMemberRole(ledgerId, userId);
+      requireManagement(role);
+
+      const [members, displaySettings, placeholders] = await Promise.all([
+        accountRepository.listActiveMembers(ledgerId),
+        accountRepository.listDisplaySettings(ledgerId),
+        ledgerPlaceholderMemberQueryService.listUnclaimed({ ledgerId, userId }),
+      ]);
+      const { holderOptions, placeholderHolderOptions } =
+        buildAccountFormHolderOptions({
+          displaySettings,
+          members,
+          placeholders,
+          users: await accountRepository.listUsers(
+            members.map(({ user_id }) => user_id),
+          ),
+        });
+
+      return { holderOptions, placeholderHolderOptions };
     },
 
     async getView({ ledgerId, userId, includeArchived }) {
