@@ -14,6 +14,8 @@ import { useState } from "react";
 
 import { summarizeReimbursementAllocationAmounts } from "internal/transaction";
 import { TransactionMonthList } from "../TransactionMonthList/TransactionMonthList";
+import { TransactionLinkPickerBrowseStatus } from "../TransactionLinkPicker/TransactionLinkPickerBrowseStatus";
+import { useLazyTransactionLinkView } from "../TransactionLinkPicker/useLazyTransactionLinkView";
 import { TransactionSearchTemplate } from "templates/transactions/TransactionSearch";
 import type {
   TransactionGroupPage,
@@ -24,11 +26,13 @@ import type {
 } from "types/transactions";
 import { getCurrencySymbol } from "utils/currency";
 import { formatNumber } from "utils/transactions";
+import { transactionLinkPickerMessages } from "utils/transactionMessages";
 
 type TransactionReimbursementLinkPickerProps = {
   // 收款账户币种；与之不一致的候选置灰且不可选择。
   accountCurrency?: string;
   incomeAmount?: string;
+  loadInitialViewAction?: () => Promise<TransactionTimeGroupViewData>;
   loadGroupItemsAction?: (
     groupKey: string,
     offset: number,
@@ -39,7 +43,6 @@ type TransactionReimbursementLinkPickerProps = {
     offset: number,
   ) => Promise<TransactionSearchPage>;
   onChange: (item: TransactionRefundCandidate | null) => void;
-  timeGroupView?: TransactionTimeGroupViewData;
   value?: TransactionRefundCandidate | null;
 };
 
@@ -52,17 +55,19 @@ const emptySearchPage: TransactionSearchPage = {
 export function TransactionReimbursementLinkPicker({
   accountCurrency,
   incomeAmount = "0",
+  loadInitialViewAction,
   loadGroupItemsAction,
   loadMoreGroupsAction,
   loadSearchPageAction,
   onChange,
-  timeGroupView,
   value = null,
 }: TransactionReimbursementLinkPickerProps) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<"browse" | "search">("browse");
   const [draftValue, setDraftValue] =
     useState<TransactionRefundCandidate | null>(null);
+  const { view, isLoading, load } =
+    useLazyTransactionLinkView(loadInitialViewAction);
   const allocation = value
     ? summarizeReimbursementAllocationAmounts(
         incomeAmount,
@@ -73,6 +78,7 @@ export function TransactionReimbursementLinkPicker({
   const openPicker = () => {
     setDraftValue(value);
     setOpen(true);
+    load();
   };
   const close = () => setOpen(false);
   useBackLayer(open, close, 1);
@@ -149,7 +155,7 @@ export function TransactionReimbursementLinkPicker({
         </Tabs>
         <DialogContent>
           {tab === "browse" ? (
-            timeGroupView ? (
+            view ? (
               <TransactionMonthList
                 loadGroupItemsAction={loadGroupItemsAction}
                 loadMoreGroupsAction={loadMoreGroupsAction}
@@ -157,12 +163,14 @@ export function TransactionReimbursementLinkPicker({
                 reimbursementSelectionMode
                 selectableCurrency={accountCurrency}
                 selectedReimbursementItemId={draftValue?.id ?? null}
-                timeGroupView={timeGroupView}
+                timeGroupView={view}
               />
             ) : (
-              <Typography color="textSecondary">
-                报销候选支出加载失败，请稍后重试。
-              </Typography>
+              <TransactionLinkPickerBrowseStatus
+                errorMessage={transactionLinkPickerMessages.reimbursementLoadFailed}
+                isLoading={isLoading}
+                onRetry={loadInitialViewAction ? load : undefined}
+              />
             )
           ) : (
             <TransactionSearchTemplate
