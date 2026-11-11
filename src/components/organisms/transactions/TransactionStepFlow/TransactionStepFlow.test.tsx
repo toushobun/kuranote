@@ -48,6 +48,11 @@ const quickSuggestions = {
   ...receiptSuggestions,
   recommendedAccountIds: ["paypay", "cash"],
 };
+const lifeSuggestions = {
+  ...quickSuggestions,
+  automaticCategoryIds: ["storage"],
+  recommendedAccountIds: ["cash"],
+};
 const noHistory = {
   recommendedAccountIds: [],
   automaticCategoryIds: [],
@@ -290,26 +295,6 @@ describe("TransactionStepFlow", () => {
     expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
   });
 
-  it("从小票换商家后自动替换明细，未手动填写时退出也不弹确认", async () => {
-    const { props, rerender } = quickSetup();
-    await selectEntryMerchant("7-Eleven");
-    await screen.findByRole("button", { name: "保存记账" });
-    click("修改商家：7-Eleven");
-    click("LIFE超市");
-    await waitMerchantDrawerClosed();
-    rerender(
-      <TransactionStepFlow
-        {...props}
-        suggestionsMerchantId="life"
-        suggestions={{ ...quickSuggestions, automaticCategoryIds: ["storage"] }}
-      />,
-    );
-    await screen.findByText("收纳");
-    click("关闭记账");
-    await waitFor(() => expect(props.onClose).toHaveBeenCalledOnce());
-    expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
-  });
-
   it.each<[string, () => Promise<void>]>([
     [
       "付款账户",
@@ -437,43 +422,6 @@ describe("TransactionStepFlow", () => {
       expect(props.onMethodChange).toHaveBeenCalledWith("transfer"),
     );
   });
-
-  it("通过小票商家入口打开抽屉，保留已填明细并追加新商家的常用明细", async () => {
-    const { props, rerender } = quickSetup({
-      suggestions: { ...quickSuggestions, automaticCategoryIds: [] },
-      itemsOptions: {
-        ...receiptItemsOptions,
-        initialItems: filledItems,
-        initialPayments: [{ accountId: "paypay", amount: null }],
-      },
-    });
-    await selectEntryMerchant("7-Eleven");
-    click("修改商家：7-Eleven");
-    expect(screen.getByRole("heading", { name: "商家" })).toBeInTheDocument();
-    click("LIFE超市");
-    expect(props.onMerchantSelect).toHaveBeenLastCalledWith(
-      flowFixture.merchants[0],
-    );
-    await waitFor(() => expect(heading("从商家记账")).toBeInTheDocument());
-    // 晚到的新商家建议不覆盖已填内容。
-    rerender(
-      <TransactionStepFlow
-        {...props}
-        suggestionsMerchantId="life"
-        suggestions={{
-          ...quickSuggestions,
-          automaticCategoryIds: ["coffee"],
-        }}
-      />,
-    );
-    expect(
-      screen.getByRole("button", { name: "修改商家：LIFE超市" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("午餐")).toBeInTheDocument();
-    expect(screen.getByText("收纳")).toBeInTheDocument();
-    expect(screen.getByText("咖啡")).toBeInTheDocument();
-    expectAutomaticNotice();
-  });
 });
 
 describe("TransactionStepFlow 换商家", () => {
@@ -492,42 +440,47 @@ describe("TransactionStepFlow 换商家", () => {
     expect(screen.getByRole("button", { name: "添加付款账户" })).toBeEnabled();
   });
 
-  it("已有自动明细后换商家，明细显示读取行并在建议到达后替换", async () => {
+  it.each([false, true])(
+    "换商家立即清空并读取，建议已到达为 %s 时关闭无需确认",
+    async (receiveSuggestions) => {
+      const { props, rerender } = quickSetup();
+      await selectEntryMerchant("7-Eleven");
+      expect(screen.getByText("午餐")).toBeInTheDocument();
+      expect(receiptLine("更换支付账户 1")).toHaveTextContent("PayPay");
+      expectAutomaticNotice();
+
+      await selectEntryMerchant("LIFE超市", "7-Eleven");
+      expectSuggestionsLoadingRows(true);
+      expect(screen.queryByText("午餐")).toBeNull();
+      expect(screen.queryByText("咖啡")).toBeNull();
+      expect(
+        screen.queryByRole("button", { name: "更换支付账户 1" }),
+      ).toBeNull();
+      expectAutomaticNotice(false);
+
+      if (receiveSuggestions) {
+        rerender(
+          <TransactionStepFlow
+            {...props}
+            suggestionsMerchantId="life"
+            suggestions={lifeSuggestions}
+          />,
+        );
+        expectSuggestionsLoadingRows(false);
+        expect(screen.getByText("收纳")).toBeInTheDocument();
+        expect(receiptLine("更换支付账户 1")).toHaveTextContent("现金");
+        expectAutomaticNotice();
+      }
+
+      click("关闭记账");
+      await waitFor(() => expect(props.onClose).toHaveBeenCalledOnce());
+      expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
+    },
+  );
+
+  it("换商家无建议时小票保持空白并恢复两个添加按钮", async () => {
     const { props, rerender } = quickSetup();
     await selectEntryMerchant("7-Eleven");
-    expect(screen.getByText("午餐")).toBeInTheDocument();
-
-    await selectEntryMerchant("LIFE超市", "7-Eleven");
-    expect(
-      screen.getByText("正在按习惯准备明细…").closest('[role="status"]'),
-    ).toBeVisible();
-    expect(screen.queryByRole("button", { name: "添加明细" })).toBeNull();
-    // 原本已经自动选了主账户，只等待明细，不遮挡添加付款账户。
-    expect(screen.queryByText("正在读取常用账户…")).toBeNull();
-    expect(
-      screen.getByRole("button", { name: "添加付款账户" }),
-    ).toBeInTheDocument();
-
-    rerender(
-      <TransactionStepFlow
-        {...props}
-        suggestionsMerchantId="life"
-        suggestions={{ ...quickSuggestions, automaticCategoryIds: ["storage"] }}
-      />,
-    );
-    expectSuggestionsLoadingRows(false);
-    expect(screen.getByText("收纳")).toBeInTheDocument();
-    expect(screen.queryByText("午餐")).toBeNull();
-    expect(screen.queryByText("咖啡")).toBeNull();
-    expect(receiptLine("更换支付账户 1")).toHaveTextContent("PayPay");
-  });
-
-  it("换商家时主付款账户未选，两个区域均读取；无建议时换回按钮", async () => {
-    const { props, rerender } = quickSetup({
-      suggestions: { ...quickSuggestions, recommendedAccountIds: [] },
-    });
-    await selectEntryMerchant("7-Eleven");
-    expectNoPaymentRow();
 
     await selectEntryMerchant("LIFE超市", "7-Eleven");
     expectSuggestionsLoadingRows(true);
@@ -543,7 +496,7 @@ describe("TransactionStepFlow 换商家", () => {
     expect(screen.getByRole("button", { name: "添加付款账户" })).toBeEnabled();
   });
 
-  it("换商家获取建议超时，恢复明细按钮且晚到建议仍可补上", async () => {
+  it("换商家获取建议超时，恢复两个添加按钮且晚到建议仍可补上", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const { props, rerender } = quickSetup();
     await selectEntryMerchant("7-Eleven");
@@ -553,6 +506,8 @@ describe("TransactionStepFlow 换商家", () => {
     waitQuickRouteTimeout();
     expectSuggestionsLoadingRows(false);
     expect(screen.getByRole("button", { name: "添加明细" })).toBeEnabled();
+    expectNoPaymentRow();
+    expect(screen.queryByText("午餐")).toBeNull();
     rerender(
       <TransactionStepFlow
         {...props}
@@ -575,6 +530,8 @@ describe("TransactionStepFlow 换商家", () => {
     expect(
       screen.getByRole("button", { name: "添加明细" }),
     ).toBeInTheDocument();
+    expectNoPaymentRow();
+    expect(screen.queryByText("午餐")).toBeNull();
     rerender(
       <TransactionStepFlow
         {...props}
@@ -582,8 +539,8 @@ describe("TransactionStepFlow 换商家", () => {
         suggestions={{ ...quickSuggestions, automaticCategoryIds: ["storage"] }}
       />,
     );
-    expect(screen.getByText("午餐")).toBeInTheDocument();
-    expect(screen.getByText("咖啡")).toBeInTheDocument();
+    expect(screen.queryByText("午餐")).toBeNull();
+    expect(screen.queryByText("咖啡")).toBeNull();
     expect(screen.queryByText("收纳")).toBeNull();
     expect(screen.getByText("一起吃午餐")).toBeInTheDocument();
   });
@@ -609,7 +566,7 @@ describe("TransactionStepFlow 换商家", () => {
     expect(screen.getByRole("button", { name: "添加明细" })).toBeEnabled();
   });
 
-  it("自动明细已带出后连续换商家仍走替换路线，并重新计时", async () => {
+  it("自动明细已带出后连续换商家会重新计时", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const { props, rerender } = quickSetup();
     await selectEntryMerchant("7-Eleven");
@@ -632,7 +589,7 @@ describe("TransactionStepFlow 换商家", () => {
     expect(screen.queryByText("咖啡")).toBeNull();
   });
 
-  it("抽屉内换商家立即关闭且不触发快速路线，超过两秒仍留在同一个小票", async () => {
+  it("换商家立即关闭抽屉，读取超时后仍留在同一个小票", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const view = quickSetup({ suggestions: noHistory });
     await selectEntryMerchant("7-Eleven");
@@ -643,7 +600,7 @@ describe("TransactionStepFlow 换商家", () => {
     expect(
       screen.getByRole("button", { name: "修改商家：LIFE超市" }),
     ).toBeInTheDocument();
-    expect(screen.queryByRole("progressbar")).toBeNull();
+    expectSuggestionsLoadingRows(true);
     expect(merchantDrawerOpen()).toBe(false);
     expect(saveButton().closest("form")).toBe(form);
     waitQuickRouteTimeout();
@@ -659,140 +616,61 @@ describe("TransactionStepFlow 换商家", () => {
     expect(receiptLine("更换支付账户 1")).toHaveTextContent("PayPay");
   });
 
-  it("用户手动选择的账户不被新商家的推荐账户覆盖", async () => {
-    await switchToLife(["storage"], {
-      beforeSwitch: chooseCashPayment,
-    });
-    expect(receiptLine("更换支付账户 1")).toHaveTextContent("现金");
-  });
-
-  // 快速路线选 7-Eleven（自动明细：午餐、咖啡），再从小票换成 LIFE超市。
-  // beforeSwitch 在换商家前操作小票，whileWaiting 在 LIFE超市 的建议到达前操作。
-  async function switchToLife(
-    automaticCategoryIds: string[],
-    {
-      beforeSwitch,
-      whileWaiting,
-    }: {
-      beforeSwitch?: () => Promise<void>;
-      whileWaiting?: () => Promise<void>;
-    } = {},
-  ) {
-    const view = quickSetup();
-    await selectEntryMerchant("7-Eleven");
-    expect(await screen.findByText("从商家记账")).toBeInTheDocument();
-    await beforeSwitch?.();
-    click("修改商家：7-Eleven");
-    click("LIFE超市");
-    await waitMerchantDrawerClosed();
-    await whileWaiting?.();
-    view.rerender(
-      <TransactionStepFlow
-        {...view.props}
-        suggestionsMerchantId="life"
-        suggestions={{ ...quickSuggestions, automaticCategoryIds }}
-      />,
-    );
-    return view;
-  }
-
-  it("去掉上一个商家没填金额的自动明细，同一分类不重复追加并留作新商家的自动明细", async () => {
-    await switchToLife(["coffee", "storage"]);
-    expect(screen.queryByText("午餐")).toBeNull();
-    expect(screen.getAllByText("咖啡")).toHaveLength(1);
-    expect(screen.getByText("收纳")).toBeInTheDocument();
-    expectAutomaticNotice();
-  });
-
-  it("保留填了金额的自动明细，不再追加同一分类的空明细", async () => {
-    await switchToLife(["lunch", "storage"], {
-      beforeSwitch: async () => {
-        await confirmLunchAmount();
-        expectAutomaticNotice(false);
-      },
-    });
-    expect(screen.getAllByText("午餐")).toHaveLength(1);
-    expect(screen.queryByText("咖啡")).toBeNull();
-    expect(screen.getByText("收纳")).toBeInTheDocument();
-    expectAutomaticNotice();
-  });
-
-  it("保留改了分类的自动明细", async () => {
-    await switchToLife([], { beforeSwitch: changeLunchToStorage });
-    expect(screen.getByText("收纳")).toBeInTheDocument();
-    expect(screen.queryByText("午餐")).toBeNull();
-    expect(screen.queryByText("咖啡")).toBeNull();
-    expectAutomaticNotice(false);
-  });
-
   it.each([
-    { categoryIds: ["lunch"], visible: true },
-    { categoryIds: [], visible: false },
+    {
+      field: "金额",
+      edit: confirmLunchAmount,
+      amount: "¥8",
+      account: "PayPay",
+      note: "添加备注",
+    },
+    {
+      field: "付款账户",
+      edit: chooseCashPayment,
+      amount: "待输入",
+      account: "现金",
+      note: "添加备注",
+    },
+    {
+      field: "备注",
+      edit: changeReceiptNote,
+      amount: "待输入",
+      account: "PayPay",
+      note: "一起吃午餐",
+    },
   ])(
-    "换商家没有带入新内容且保留分类 $categoryIds 时，提示可见性为 $visible",
-    async ({ categoryIds, visible }) => {
-      await switchToLife(categoryIds);
-      expectAutomaticNotice(visible);
+    "修改$field后换商家只更新商家，晚到的建议不应用",
+    async ({ edit, amount, account, note }) => {
+      const { props, rerender } = quickSetup();
+      await selectEntryMerchant("7-Eleven");
+      await edit();
+      await selectEntryMerchant("LIFE超市", "7-Eleven");
+      expectSuggestionsLoadingRows(false);
+
+      rerender(
+        <TransactionStepFlow
+          {...props}
+          suggestionsMerchantId="life"
+          suggestions={{
+            ...lifeSuggestions,
+            recommendedAccountIds: ["cny"],
+          }}
+        />,
+      );
+      expectSuggestionsLoadingRows(false);
+      expect(screen.getByText("午餐")).toBeInTheDocument();
+      expect(screen.getByText("咖啡")).toBeInTheDocument();
+      expect(screen.queryByText("收纳")).toBeNull();
+      expect(
+        screen.getByRole("button", { name: `修改明细 1 金额：${amount}` }),
+      ).toBeInTheDocument();
+      expect(receiptLine("更换支付账户 1")).toHaveTextContent(account);
+      expect(
+        screen.getByRole("button", { name: `修改备注：${note}` }),
+      ).toBeInTheDocument();
+      expectAutomaticNotice(false);
     },
   );
-
-  it("已隐藏的提示在换商家只保留自动明细时仍隐藏", async () => {
-    await switchToLife(["lunch", "coffee"], { beforeSwitch: addLunchItem });
-    expectAutomaticNotice(false);
-  });
-
-  it("保留手动添加的空明细", async () => {
-    await switchToLife(["storage"], { beforeSwitch: addLunchItem });
-    expect(screen.getAllByText("午餐")).toHaveLength(1);
-    expect(screen.queryByText("咖啡")).toBeNull();
-    expectAutomaticNotice();
-  });
-
-  it.each<[string, () => Promise<void>]>([
-    ["改了分类", changeLunchToStorage],
-    ["设了待报销", markLunchPendingReimbursement],
-    ["改了备注", changeReceiptNote],
-  ])("建议到达前%s时，不再应用新商家的建议", async (_, touch) => {
-    await switchToLife(["storage"], { whileWaiting: touch });
-    expect(screen.getByText("咖啡")).toBeInTheDocument();
-    expect(screen.queryAllByText("收纳").length).toBeLessThanOrEqual(1);
-  });
-
-  it("建议到达时正在编辑明细，不删除该明细，草稿可以继续保存", async () => {
-    await switchToLife(["storage"], {
-      whileWaiting: async () => {
-        click("编辑明细 1");
-        fireEvent.change(
-          await screen.findByRole("textbox", { name: "搜索小分类" }),
-          { target: { value: "咖啡" } },
-        );
-        fireEvent.click(await screen.findByRole("button", { name: "咖啡" }));
-      },
-    });
-    click("保存修改");
-    await screen.findByLabelText("金额计算器");
-    click("关闭金额键盘");
-    await waitKeypadClosed();
-    expect(screen.getAllByText("咖啡")).toHaveLength(2);
-    expect(screen.queryByText("收纳")).toBeNull();
-  });
-
-  it("建议到达时正在输入明细金额，不删除该明细，金额可以继续确认", async () => {
-    await switchToLife(["storage"], {
-      whileWaiting: async () => {
-        click("修改明细 1 金额：待输入");
-        await screen.findByLabelText("金额计算器");
-        pressItemAmountKey("8");
-      },
-    });
-    pressItemAmountKey("确定");
-    await waitKeypadClosed();
-    expect(
-      screen.getByRole("button", { name: "修改明细 1 金额：¥8" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("午餐")).toBeInTheDocument();
-    expect(screen.queryByText("收纳")).toBeNull();
-  });
 
   it("重新选同一个商家时明细不变", async () => {
     const { props, rerender } = quickSetup();

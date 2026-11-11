@@ -20,14 +20,9 @@ import type { FlowMerchant } from "organisms/transactions/MerchantStep/MerchantS
 // 之后晚到的建议只在用户还没动过小票时补上。
 export const quickRouteSuggestionTimeoutMs = 2000;
 
-// 自动添加的明细及当时的分类，用于判断换商家时是否还没动过。
-type AutomaticItem = { id: number; categoryId: string };
-
 export function useTransactionStepFlow(props: TransactionStepFlowProps) {
   // 等待建议数据的商家；只应用一次，超时后动过小票或已有输入时清空。
   const pendingQuickMerchantId = useRef<string | null>(null);
-  // 从小票换商家：建议到达时替换上一个商家没动过的自动明细，而不是跳过。
-  const replacingAutomaticItems = useRef(false);
   const [loadingMerchantId, setLoadingMerchantId] = useState<string | null>(
     null,
   );
@@ -42,11 +37,9 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     transactionAt: "",
     type: "expense",
   }));
-  const [automaticItems, setAutomaticItems] = useState<AutomaticItem[]>([]);
-  // null 表示已隐藏，空数组表示只自动选了付款账户。
-  const [noticeItemIds, setNoticeItemIds] = useState<readonly number[] | null>(
-    null,
-  );
+  const automaticItemIds = useRef<number[]>([]);
+  const automaticPaymentKey = useRef<number | null>(null);
+  const [showAutomaticNotice, setShowAutomaticNotice] = useState(false);
   const { form, itemsOptions, amountItemId, setAmountItemId } =
     useTransactionReceiptForm({
       accounts: props.accounts,
@@ -82,11 +75,6 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
   // 基线与自动填充版本存在 state 中，避免在 render 期间读取 ref。
   const [autoRevision, setAutoRevision] = useState(0);
   const receiptDirty = useEditedSinceAutoFill(receiptSnapshot, autoRevision);
-  // 自动添加提示另有基线：用户改过小票后，换商家带入新内容仍要重新显示。
-  const [noticeRevision, setNoticeRevision] = useState(0);
-  const noticeEdited = useEditedSinceAutoFill(receiptSnapshot, noticeRevision);
-  // 对这笔账单做了任意修改就收起提示，之后改回原样也不再显示。
-  if (noticeEdited && noticeItemIds !== null) setNoticeItemIds(null);
   const timeInitialized = !!form.transactionAtValue;
   const resetWaitStartSnapshot = useEffectEvent(() => {
     waitStartSnapshot.current = pendingSuggestionSnapshot;
@@ -97,7 +85,6 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     resetWaitStartSnapshot();
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 初始本地时间同步后更新自动填充版本。
     setAutoRevision((revision) => revision + 1);
-    setNoticeRevision((revision) => revision + 1);
   }, [timeInitialized]);
   const { guard, touched } = useEntryReceiptGuard(
     autoRevision > 0 && receiptDirty,
@@ -122,25 +109,29 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     pendingQuickMerchantId.current = null;
     setLoadingMerchantId(null);
   }
+  useLayoutEffect(() => {
+    // 清空自动内容提交后，先记录新基线，再处理本次读取。
+    if (loadingMerchantId !== null) resetWaitStartSnapshot();
+  }, [loadingMerchantId]);
   const applySuggestions = useEffectEvent(() => {
     if (!suggestionsReady || pendingQuickMerchantId.current !== merchant?.id)
       return;
-    const replacing = replacingAutomaticItems.current;
-    replacingAutomaticItems.current = false;
     stopWaiting();
-    // 已有明细时不覆盖用户输入（换商家时只替换没动过的自动明细）。
-    if (pendingSuggestionSnapshot !== waitStartSnapshot.current) return;
-    if (!replacing && form.itemSummaries.length > 0) return;
-    // 只有尚未手动填写的小票才允许自动建议重设干净基线。
-    if (!touched) setAutoRevision((revision) => revision + 1);
-    // 自动写入（含换商家时移除没动过的自动明细）不算用户修改。
-    setNoticeRevision((revision) => revision + 1);
+    if (
+      touched ||
+      pendingSuggestionSnapshot !== waitStartSnapshot.current ||
+      form.itemSummaries.length > 0
+    ) {
+      return;
+    }
+    setAutoRevision((revision) => revision + 1);
     const recommended = props.accounts.find(
       (account) => account.id === props.suggestions?.recommendedAccountIds[0],
     );
     const primary = form.payments[0];
     const filledAccount = recommended && primary && !primary.accountId;
     if (filledAccount) {
+      automaticPaymentKey.current = primary.key;
       form.handlePaymentAccountChange(primary.key, recommended.id);
       props.onAccountSelect(recommended);
     }
@@ -148,49 +139,12 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
       (id) =>
         itemsOptions.categoryOptions.some((category) => category.id === id),
     );
-    // 上一个商家自动添加且没动过的明细：新商家也常用该分类则留作自动明细，否则去掉。
-    const untouched = automaticItems.filter((automatic) =>
-      form.itemSummaries.some(
-        (item) =>
-          item.id === automatic.id &&
-          item.categoryId === automatic.categoryId &&
-          !item.amount.trim() &&
-          !item.specialStatus &&
-          !item.refundCandidate &&
-          !item.reimbursementCandidate,
-      ),
+    automaticItemIds.current = categoryIds.map((categoryId) =>
+      form.addItem(categoryId, "", null, null, null),
     );
-    const kept = untouched.filter((item) =>
-      categoryIds.includes(item.categoryId),
+    setShowAutomaticNotice(
+      !!filledAccount || automaticItemIds.current.length > 0,
     );
-    const removedIds = untouched
-      .filter((item) => !kept.includes(item))
-      .map((item) => item.id);
-    removedIds.forEach((id) => form.removeItem(id));
-    const remainingCategoryIds = new Set(
-      form.itemSummaries
-        .filter((item) => !removedIds.includes(item.id))
-        .map((item) => item.categoryId),
-    );
-    // 已有同一分类的明细时不重复追加。
-    const added = categoryIds
-      .filter((categoryId) => !remainingCategoryIds.has(categoryId))
-      .map((categoryId) => ({
-        id: form.addItem(categoryId, "", null, null, null),
-        categoryId,
-      }));
-    setAutomaticItems([...kept, ...added]);
-    setNoticeItemIds((previous) => {
-      const remaining = (previous ?? kept.map(({ id }) => id)).filter(
-        (id) => !removedIds.includes(id),
-      );
-      if (filledAccount || added.length) {
-        return [...remaining, ...added.map(({ id }) => id)];
-      }
-      // 保留原提示，除非换商家已移除了提示所对应的全部明细。
-      if (!previous) return null;
-      return previous.length > 0 && remaining.length === 0 ? null : remaining;
-    });
   });
   useEffect(() => {
     // 按商家标识同步异步到达的建议，pending 标识保证只应用一次。
@@ -219,24 +173,29 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     }
   }, [pendingSuggestionSnapshot, loadingMerchantId]);
   function selectMerchant(value: FlowMerchant) {
-    // 等待期间改选商家时，重新开始计时。其他换商家只替换没动过的自动明细。
     const changing = value.id !== form.selectedMerchantId;
     form.handleMerchantChange(value.id);
     props.onMerchantSelect(value);
     // 重选当前商家时保留等待和晚到建议的关联状态。
     if (!changing) return;
-    const quick =
-      changing &&
-      !touched &&
-      !form.itemSummaries.length &&
-      (!form.selectedMerchantId || !!loadingMerchantId);
-    const replacing = changing && !quick;
-    pendingQuickMerchantId.current = changing ? value.id : null;
-    replacingAutomaticItems.current = replacing;
-    waitStartSnapshot.current = pendingSuggestionSnapshot;
-    setLoadingMerchantId(
-      quick || (replacing && !!form.selectedMerchantId) ? value.id : null,
-    );
+    if (
+      touched ||
+      form.itemSummaries.length > automaticItemIds.current.length
+    ) {
+      stopWaiting();
+      return;
+    }
+
+    automaticItemIds.current.forEach((id) => form.removeItem(id));
+    automaticItemIds.current = [];
+    if (automaticPaymentKey.current !== null) {
+      form.handlePaymentAccountChange(automaticPaymentKey.current, "");
+      automaticPaymentKey.current = null;
+    }
+    setShowAutomaticNotice(false);
+    setAutoRevision((revision) => revision + 1);
+    pendingQuickMerchantId.current = value.id;
+    setLoadingMerchantId(value.id);
   }
   const merchantPicker = useReceiptMerchantPicker(selectMerchant);
   return {
@@ -249,7 +208,7 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
         : undefined,
     form,
     itemsOptions,
-    showAutomaticNotice: noticeItemIds !== null,
+    showAutomaticNotice: showAutomaticNotice && !touched,
     amountItemId,
     setAmountItemId,
     methodOpen,
