@@ -232,7 +232,9 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     waitStartSnapshot.current = pendingSuggestionSnapshot;
     form.handleMerchantChange(value.id);
     props.onMerchantSelect(value);
-    setLoadingMerchantId(changing ? value.id : null);
+    setLoadingMerchantId(
+      quick || (replacing && !!form.selectedMerchantId) ? value.id : null,
+    );
   }
   const merchantPicker = useReceiptMerchantPicker(selectMerchant);
   return {

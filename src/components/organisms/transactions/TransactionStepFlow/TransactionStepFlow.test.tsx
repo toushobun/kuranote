@@ -477,6 +477,22 @@ describe("TransactionStepFlow", () => {
 });
 
 describe("TransactionStepFlow 换商家", () => {
+
+  it("预填明细且尚未选商家时，首次选择不走换商家读取状态", async () => {
+    quickSetup({
+      suggestionsMerchantId: "life",
+      itemsOptions: {
+        ...receiptItemsOptions,
+        initialItems: filledItems,
+        initialPayments: [{ accountId: "paypay", amount: null }],
+      },
+    });
+    await selectEntryMerchant("7-Eleven");
+    expectSuggestionsLoadingRows(false);
+    expect(screen.getByRole("button", { name: "添加明细" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "添加付款账户" })).toBeEnabled();
+  });
+
   it("已有自动明细后换商家，明细显示读取行并在建议到达后替换", async () => {
     const { props, rerender } = quickSetup();
     await selectEntryMerchant("7-Eleven");
