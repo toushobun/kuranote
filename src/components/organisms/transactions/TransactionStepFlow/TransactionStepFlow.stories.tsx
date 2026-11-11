@@ -79,7 +79,6 @@ export const QuickEntryLoading: Story = {
   },
 };
 
-
 export const ChangeMerchantLoading: Story = {
   name: "换商家：明细读取中，已选账户照常添加",
   args: {
@@ -88,21 +87,15 @@ export const ChangeMerchantLoading: Story = {
   },
   play: async ({ canvasElement }) => {
     const body = await selectMerchant(canvasElement, "7-Eleven");
-    await body.findByRole("button", {
-      name: "修改明细 1 金额：待输入",
-    });
-    await userEvent.click(
-      body.getByRole("button", { name: "修改商家：7-Eleven" }),
-    );
+    await body.findByRole("button", { name: "修改明细 1 金额：待输入" });
+    await userEvent.click(body.getByRole("button", { name: "修改商家：7-Eleven" }));
     await userEvent.click(await body.findByRole("button", { name: "LIFE超市" }));
     const row = await body.findByText("正在按习惯准备明细…");
     await expect(row.closest('[role="status"]')).toBeVisible();
     await expect(
       body.queryByRole("button", { name: "添加明细" }),
     ).not.toBeInTheDocument();
-    await expect(
-      body.queryByText("正在读取常用账户…"),
-    ).not.toBeInTheDocument();
+    await expect(body.queryByText("正在读取常用账户…")).not.toBeInTheDocument();
     await expect(
       body.getByRole("button", { name: "添加付款账户" }),
     ).toBeInTheDocument();

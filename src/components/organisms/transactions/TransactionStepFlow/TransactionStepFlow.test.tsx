@@ -490,9 +490,7 @@ describe("TransactionStepFlow 换商家", () => {
     expect(screen.queryByRole("button", { name: "添加明细" })).toBeNull();
     // 原本已经自动选了主账户，只等待明细，不遮挡添加付款账户。
     expect(screen.queryByText("正在读取常用账户…")).toBeNull();
-    expect(
-      screen.getByRole("button", { name: "添加付款账户" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "添加付款账户" })).toBeInTheDocument();
 
     rerender(
       <TransactionStepFlow
@@ -603,6 +601,7 @@ describe("TransactionStepFlow 换商家", () => {
     expect(screen.queryByText("午餐")).toBeNull();
     expect(screen.queryByText("咖啡")).toBeNull();
   });
+
   it("抽屉内换商家立即关闭且不触发快速路线，超过两秒仍留在同一个小票", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const view = quickSetup({ suggestions: noHistory });
