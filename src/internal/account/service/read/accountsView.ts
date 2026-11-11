@@ -49,6 +49,40 @@ export function mergeLedgerDisplayNames(
   });
 }
 
+/** 新增账户表单与账户列表共用的持有人显示规则。 */
+export function buildAccountFormHolderOptions({
+  displaySettings,
+  members,
+  placeholders,
+  users,
+}: Pick<
+  AccountsViewInput,
+  "displaySettings" | "members" | "placeholders" | "users"
+>) {
+  const usersWithLedgerDisplayNames = mergeLedgerDisplayNames(
+    users,
+    displaySettings,
+  );
+  const appUserById = new Map(
+    usersWithLedgerDisplayNames.map((user) => [user.id, user]),
+  );
+  const displayColorByUserId = buildDisplayColorByUserId({
+    members,
+    settings: displaySettings,
+  });
+
+  return {
+    appUserById,
+    displayColorByUserId,
+    holderOptions: buildHolderOptions({
+      appUserById,
+      displayColorByUserId,
+      members,
+    }),
+    placeholderHolderOptions: buildPlaceholderHolderOptions(placeholders),
+  };
+}
+
 export function buildAccountsView({
   accountIdsWithTransactions,
   accounts,
@@ -60,18 +94,18 @@ export function buildAccountsView({
   role,
   users,
 }: AccountsViewInput) {
-  const usersWithLedgerDisplayNames = mergeLedgerDisplayNames(
-    users,
+  const {
+    appUserById,
+    displayColorByUserId,
+    holderOptions,
+    placeholderHolderOptions,
+  } = buildAccountFormHolderOptions({
     displaySettings,
-  );
-  const appUserById = new Map(
-    usersWithLedgerDisplayNames.map((user) => [user.id, user]),
-  );
-  const accountIdsWithTransactionsSet = new Set(accountIdsWithTransactions);
-  const displayColorByUserId = buildDisplayColorByUserId({
     members,
-    settings: displaySettings,
+    placeholders,
+    users,
   });
+  const accountIdsWithTransactionsSet = new Set(accountIdsWithTransactions);
 
   return {
     accounts: buildAccountsWithHolders({
@@ -90,12 +124,8 @@ export function buildAccountsView({
     baseCurrency: ledger.baseCurrency,
     canManageAccounts: canManageMasterData(role),
     canWriteTransactions: canWriteTransaction(role),
-    holderOptions: buildHolderOptions({
-      appUserById,
-      displayColorByUserId,
-      members,
-    }),
+    holderOptions,
     ledgerName: ledger.name,
-    placeholderHolderOptions: buildPlaceholderHolderOptions(placeholders),
+    placeholderHolderOptions,
   };
 }

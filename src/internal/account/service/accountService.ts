@@ -22,6 +22,7 @@ import type {
 } from "internal/account/repository/accountRepository";
 import type { AccountSummary } from "internal/account/entity/accountSummary";
 import {
+  buildAccountFormHolderOptions,
   buildAccountsView,
   mergeLedgerDisplayNames,
 } from "internal/account/service/read/accountsView";
@@ -29,9 +30,6 @@ import { buildTransactionAccountContext } from "internal/account/service/read/tr
 import {
   buildAccountHolderOptions,
   buildAccountsWithHolders,
-  buildDisplayColorByUserId,
-  buildHolderOptions,
-  buildPlaceholderHolderOptions,
 } from "internal/account/util/accountView";
 import {
   requireActiveLedgerMemberRole,
@@ -495,26 +493,17 @@ export function createAccountService({
         accountRepository.listDisplaySettings(ledgerId),
         ledgerPlaceholderMemberQueryService.listUnclaimed({ ledgerId, userId }),
       ]);
-      const users = mergeLedgerDisplayNames(
-        await accountRepository.listUsers(
-          members.map(({ user_id }) => user_id),
-        ),
-        displaySettings,
-      );
-      const appUserById = new Map(users.map((user) => [user.id, user]));
-      const displayColorByUserId = buildDisplayColorByUserId({
-        members,
-        settings: displaySettings,
-      });
-
-      return {
-        holderOptions: buildHolderOptions({
-          appUserById,
-          displayColorByUserId,
+      const { holderOptions, placeholderHolderOptions } =
+        buildAccountFormHolderOptions({
+          displaySettings,
           members,
-        }),
-        placeholderHolderOptions: buildPlaceholderHolderOptions(placeholders),
-      };
+          placeholders,
+          users: await accountRepository.listUsers(
+            members.map(({ user_id }) => user_id),
+          ),
+        });
+
+      return { holderOptions, placeholderHolderOptions };
     },
 
     async getView({ ledgerId, userId, includeArchived }) {
