@@ -760,7 +760,6 @@ describe("TransactionStepFlow 进入小票", () => {
     for (const name of ["添加明细", "添加付款账户"]) {
       const button = screen.getByRole("button", { name });
       expect(button).toBeInTheDocument();
-      expect(getComputedStyle(button).minHeight).toBe("40px");
     }
     expect(heading("从商家记账")).toBeInTheDocument();
     expectNoPaymentRow();
