@@ -9,6 +9,7 @@ import type { TransactionStepFlowProps } from "../TransactionStepFlow/Transactio
 import {
   expectAutomaticNotice,
   expectNoPaymentRow,
+  expectSuggestionsLoadingRows,
   receiptLine as line,
   pressItemAmountKey,
   renderConfirmFlow,
@@ -70,6 +71,23 @@ function renderMultiAccount(lunchAmount = "10000") {
 }
 
 describe("TransactionConfirmStep", () => {
+  it("建议读取中两处按钮变为无障碍状态行，头像不显示加载", async () => {
+    await renderConfirmFlow({
+      itemsOptions: {
+        ...receiptItemsOptions,
+        initialItems: [],
+        initialPayments: [{ accountId: "", amount: null }],
+      },
+      suggestionsMerchantId: "life",
+    });
+    expectSuggestionsLoadingRows(true);
+    const loadingRow = screen
+      .getByText("正在按习惯准备明细…")
+      .closest('[role="status"]')!;
+    expect(getComputedStyle(loadingRow).minHeight).toBe("40px");
+    expect(saveButton()).toBeEnabled();
+  });
+
   it("新增小票保存按钮保留原生 MUI 样式与提交属性", async () => {
     await renderConfirmFlow();
     renderEntryComponent(

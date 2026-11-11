@@ -4,6 +4,7 @@ import { TransactionStepFlow } from "../TransactionStepFlow/TransactionStepFlow"
 import {
   openMerchantStoryDrawer,
   transactionEntryStoryDecorators,
+  expectSuggestionLoadingRows,
 } from "organisms/transactions/transactionStepFlowStoryUtils";
 import { flowFixture } from "test/mocks/transactionStepFlow";
 import { ReadOnlyReceipt } from "test/ReadOnlyReceipt";
@@ -61,6 +62,22 @@ async function clickButton(canvasElement: HTMLElement, name: string | RegExp) {
     within(canvasElement.ownerDocument.body).getByRole("button", { name }),
   );
 }
+
+export const SuggestionsLoading: Story = {
+  name: "首次选商家：明细与付款账户读取中",
+  args: {
+    itemsOptions: {
+      ...unselectedAccountItemsOptions,
+      initialItems: [],
+    },
+    suggestionsMerchantId: "coffee",
+    suggestions: undefined,
+  },
+  play: async ({ canvasElement }) => {
+    await enterReceipt(canvasElement);
+    await expectSuggestionLoadingRows(canvasElement);
+  },
+};
 
 export const QuickEntry: Story = {
   name: "自动明细待输入：名称与金额各有铅笔",

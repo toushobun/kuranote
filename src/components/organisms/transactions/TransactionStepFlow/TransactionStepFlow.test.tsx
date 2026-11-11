@@ -29,6 +29,7 @@ import {
 import {
   expectAutomaticNotice,
   expectNoPaymentRow,
+  expectSuggestionsLoadingRows,
   receiptLine,
   pressItemAmountKey,
 } from "test/transactionConfirmStep";
@@ -212,7 +213,7 @@ describe("TransactionStepFlow", () => {
   it("快速路线仍在等待建议时关闭不弹无法保存的确认", async () => {
     const { props } = quickSetup({ suggestionsMerchantId: "life" });
     await selectEntryMerchant("7-Eleven");
-    expect(screen.getByRole("progressbar")).toBeVisible();
+    expectSuggestionsLoadingRows(true);
     expect(saveButton()).toBeVisible();
     click("关闭记账");
     await waitFor(() => expect(props.onClose).toHaveBeenCalledOnce());
@@ -693,6 +694,7 @@ describe("TransactionStepFlow 进入小票", () => {
     quickSetup({ suggestions: noHistory });
     await selectEntryMerchant("7-Eleven");
     await screen.findByRole("button", { name: "添加明细" });
+    expectSuggestionsLoadingRows(false);
     expect(screen.queryByText("这家商家还没有记录")).toBeNull();
     expectAutomaticNotice(false);
     expectNoPaymentRow();
@@ -725,17 +727,21 @@ describe("TransactionStepFlow 进入小票", () => {
     await waitFor(() => expect(saveButton()).toBeEnabled());
   });
 
-  it("选商家后立即关闭抽屉，头像显示加载，建议到达后只应用一次", async () => {
+  it("选商家后头像不加载，两处显示读取建议，建议到达后只应用一次", async () => {
     const { props, rerender } = quickSetup({ suggestionsMerchantId: "life" });
     await selectEntryMerchant("7-Eleven");
-    expect(screen.getByRole("progressbar")).toBeVisible();
+    expectSuggestionsLoadingRows(true);
     expect(
-      screen.getAllByRole("progressbar", { name: "正在读取 7-Eleven 的记录" }),
-    ).toHaveLength(1);
+      screen.getByRole("button", { name: "修改商家：7-Eleven" }),
+    ).toBeVisible();
     const loaded = { ...props, suggestionsMerchantId: "seven" };
     rerender(<TransactionStepFlow {...loaded} />);
     expect(await screen.findByText("从商家记账")).toBeInTheDocument();
-    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+    expectSuggestionsLoadingRows(false);
+    expect(receiptLine("更换支付账户 1")).toHaveTextContent("PayPay");
+    expect(
+      screen.getByRole("button", { name: "修改明细 1 金额：待输入" }),
+    ).toBeInTheDocument();
     click("删除明细 1");
     rerender(
       <TransactionStepFlow {...loaded} suggestions={{ ...quickSuggestions }} />,
@@ -743,14 +749,18 @@ describe("TransactionStepFlow 进入小票", () => {
     expectAutomaticNotice(false);
   });
 
-  it("超过等待时间停止头像加载；没动过小票时只补上当前商家晚到的建议一次", async () => {
+  it("超过等待时间读取行换回按钮；没动过小票时只补上当前商家晚到的建议一次", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const { props, rerender } = quickSetup({ suggestionsMerchantId: "life" });
     await selectEntryMerchant("7-Eleven");
     waitQuickRouteTimeout(1000);
-    expect(screen.getByRole("progressbar")).toBeVisible();
+    expectSuggestionsLoadingRows(true);
     waitQuickRouteTimeout(1000);
-    expect(screen.queryByRole("progressbar")).toBeNull();
+    expectSuggestionsLoadingRows(false);
+    for (const name of ["添加明细", "添加付款账户"]) {
+      const button = screen.getByRole("button", { name });
+      expect(button).toBeInTheDocument();
+    }
     expect(heading("从商家记账")).toBeInTheDocument();
     expectNoPaymentRow();
     // 其他商家的建议不应用。
@@ -795,6 +805,36 @@ describe("TransactionStepFlow 进入小票", () => {
     expect(screen.queryByText("咖啡")).toBeNull();
   });
 
+  it("等待建议期间修改备注立即结束读取，之后晚到的建议不覆盖小票", async () => {
+    const { props, rerender } = quickSetup({ suggestionsMerchantId: "life" });
+    await selectEntryMerchant("7-Eleven");
+    expectSuggestionsLoadingRows(true);
+    await changeReceiptNote();
+    expectSuggestionsLoadingRows(false);
+    expect(
+      screen.getByRole("button", { name: "添加明细" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "添加付款账户" }),
+    ).toBeInTheDocument();
+    rerender(<TransactionStepFlow {...props} suggestionsMerchantId="seven" />);
+    expectNoPaymentRow();
+    expectAutomaticNotice(false);
+    expect(screen.queryByText("午餐")).toBeNull();
+    expect(screen.getByText("一起吃午餐")).toBeInTheDocument();
+  });
+
+  it("等建议中即使没有返回建议，超时后也恢复可操作的两处按钮", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    quickSetup({ suggestions: undefined, suggestionsMerchantId: "life" });
+    await selectEntryMerchant("7-Eleven");
+    expectSuggestionsLoadingRows(true);
+    waitQuickRouteTimeout();
+    expectSuggestionsLoadingRows(false);
+    expect(screen.getByRole("button", { name: "添加明细" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "添加付款账户" })).toBeEnabled();
+  });
+
   it("加载中点另一个商家时改为加载新商家，只应用新商家的建议", async () => {
     const { props, rerender } = quickSetup({ suggestionsMerchantId: "coffee" });
     await selectEntryMerchant("7-Eleven");
@@ -802,12 +842,10 @@ describe("TransactionStepFlow 进入小票", () => {
     expect(props.onMerchantSelect).toHaveBeenLastCalledWith(
       flowFixture.merchants[0],
     );
+    expectSuggestionsLoadingRows(true);
     expect(
-      screen.queryByRole("progressbar", { name: "正在读取 7-Eleven 的记录" }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getAllByRole("progressbar", { name: "正在读取 LIFE超市 的记录" }),
-    ).toHaveLength(1);
+      screen.getByRole("button", { name: "修改商家：LIFE超市" }),
+    ).toBeVisible();
     rerender(<TransactionStepFlow {...props} suggestionsMerchantId="life" />);
     expect(
       await screen.findByRole("button", { name: "修改商家：LIFE超市" }),
@@ -821,8 +859,9 @@ describe("TransactionStepFlow 进入小票", () => {
     waitQuickRouteTimeout(quickRouteSuggestionTimeoutMs - 500);
     await selectEntryMerchant("LIFE超市", "7-Eleven");
     waitQuickRouteTimeout(1000);
-    expect(screen.getByRole("progressbar")).toBeVisible();
+    expectSuggestionsLoadingRows(true);
     rerender(<TransactionStepFlow {...props} suggestionsMerchantId="life" />);
+    expectSuggestionsLoadingRows(false);
     expect(heading("从商家记账")).toBeInTheDocument();
     expect(receiptLine("更换支付账户 1")).toHaveTextContent("PayPay");
     expectAutomaticNotice();

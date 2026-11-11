@@ -75,7 +75,7 @@ function TransactionStepFlowContent(
             errorMessage={w.saveState.error}
             successMessage={w.saveState.success}
             saving={w.saving}
-            merchantLoading={w.waiting}
+            suggestionsLoading={w.waiting}
             onMerchantClick={w.merchantPicker.openPicker}
             onAccountSelect={props.onAccountSelect}
           />

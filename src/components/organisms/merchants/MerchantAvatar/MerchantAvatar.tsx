@@ -13,7 +13,6 @@ type MerchantAvatarSize = number | { sm: number; xs: number };
 
 type MerchantAvatarProps = {
   loading?: boolean;
-  loadingLabel?: string;
   onError?: () => void;
   onLoad?: () => void;
   padding?: number;
@@ -24,7 +23,6 @@ type MerchantAvatarProps = {
 
 export function MerchantAvatar({
   loading = false,
-  loadingLabel = "正在获取商家头像",
   onError,
   onLoad,
   padding = 0.75,
@@ -101,7 +99,7 @@ export function MerchantAvatar({
             position: "absolute",
           }}
         >
-          <CircularProgress aria-label={loadingLabel} size={28} />
+          <CircularProgress aria-label="正在获取商家头像" size={28} />
         </Box>
       ) : null}
     </Box>

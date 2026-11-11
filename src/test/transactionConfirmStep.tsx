@@ -42,6 +42,20 @@ export function pressItemAmountKey(name: string) {
   );
 }
 
+/** 共用断言：两处状态行替换按钮，头像不显示加载指示。 */
+export function expectSuggestionsLoadingRows(visible: boolean) {
+  for (const message of ["正在按习惯准备明细…", "正在读取常用账户…"]) {
+    const row = screen.queryByText(message)?.closest('[role="status"]');
+    if (visible) expect(row).toBeVisible();
+    else expect(row).toBeUndefined();
+  }
+  if (visible) {
+    expect(screen.queryByRole("progressbar")).toBeNull();
+    expect(screen.queryByRole("button", { name: "添加明细" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "添加付款账户" })).toBeNull();
+  }
+}
+
 export function expectNoPaymentRow() {
   expect(
     screen.getByRole("button", { name: "添加付款账户" }),

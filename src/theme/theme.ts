@@ -25,6 +25,9 @@ export const designTokens = {
       secondary: "#7A6A5E",
     },
   },
+  size: {
+    buttonMinHeight: 40,
+  },
   radius: {
     sm: 8,
     item: 12,
@@ -188,7 +191,7 @@ export const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: designTokens.radius.md,
-          minHeight: 40,
+          minHeight: designTokens.size.buttonMinHeight,
         },
         contained: {
           boxShadow: "none",
