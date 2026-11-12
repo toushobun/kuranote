@@ -383,7 +383,7 @@ describe("TransactionRefundCandidateList", () => {
       name: "选择退款明细 服装",
     });
     expect(button).not.toBeDisabled();
-    expect(screen.getByText("已退 $100")).toBeInTheDocument();
+    expect(screen.getByText("已全额退款")).toBeInTheDocument();
 
     fireEvent.click(button);
     expect(onSelect).toHaveBeenCalledWith(
