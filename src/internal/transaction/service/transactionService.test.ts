@@ -326,31 +326,25 @@ describe("TransactionService", () => {
     expect(repository.createNormal).not.toHaveBeenCalled();
   });
 
-  it("0 元退款收入拒绝写入", async () => {
+  it("0 元退款收入允许写入待定金额关联", async () => {
     const { repository, service } = createService(
       "member",
       createRepository(),
       "income",
       "refund",
     );
-
-    await expect(
-      service.createNormal({
-        ...normalInput,
-        items: [
-          {
-            ...normalInput.items[0],
-            amount: 0,
-            refundedItemId: "00000000-0000-4000-8000-000000005073",
-          },
-        ],
-        type: "income",
-      }),
-    ).rejects.toMatchObject({
-      code: transactionErrorCodes.refundLinkInvalid,
-      name: ValidationError.name,
+    await service.createNormal({
+      ...normalInput,
+      items: [
+        {
+          ...normalInput.items[0],
+          amount: 0,
+          refundedItemId: "00000000-0000-4000-8000-000000005073",
+        },
+      ],
+      type: "income",
     });
-    expect(repository.createNormal).not.toHaveBeenCalled();
+    expect(repository.createNormal).toHaveBeenCalledOnce();
   });
 
   it("退款收入编辑允许重新提交单目标关联", async () => {
