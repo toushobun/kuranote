@@ -81,8 +81,6 @@ export const transactionLinkMessages = {
   // 已保存的关联不能在普通保存中解除（#574），切换到其他币种账户前需先解除关联。
   savedLinkCurrencyLocked: (kinds: readonly TransactionLinkKind[]) =>
     `该明细已关联${formatLinkKindLabels(kinds)}，账户需与关联明细的币种一致；如需更换为其他币种的账户，请先解除关联。`,
-  candidateAccountRequired: (kind: TransactionLinkKind) =>
-    `请先选择账户，再选择${transactionLinkKindLabels[kind]}明细。`,
   candidateCurrencyMismatch: (kind: TransactionLinkKind) =>
     `${transactionLinkKindLabels[kind]}明细必须与收款账户币种一致，请重新选择。`,
   candidateCurrencyMismatchReason: (currency: string) =>

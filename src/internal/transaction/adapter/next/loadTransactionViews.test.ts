@@ -3,12 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   loadEditTransactionView,
   loadNewTransactionView,
-  loadRefundPickerInitialView,
-  loadRefundPickerSearchPage,
-  loadReimbursementPickerInitialView,
-  loadReimbursementPickerGroupItems,
-  loadReimbursementPickerGroupPage,
-  loadReimbursementPickerSearchPage,
+  loadRefundPickerPage,
+  loadReimbursementPickerPage,
   loadStep4TransactionGroupView,
   loadTransactionSearchPage,
 } from "internal/transaction/adapter/next/loadTransactionViews";
@@ -18,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   getCurrentLedgerOrRedirect: vi.fn(),
   getEditEntryView: vi.fn(),
   getFrequentMerchants: vi.fn(),
+  getLinkCandidatePage: vi.fn(),
   getGroupItems: vi.fn(),
   getGroupPage: vi.fn(),
   getGroupView: vi.fn(),
@@ -45,14 +42,6 @@ describe("Transaction SSR adapter", () => {
     id: "00000000-0000-4000-8000-000000000032",
     name: "家庭账本",
   };
-  const reimbursementFilters = {
-    recordType: "refundableExpense",
-    specialStatuses: [
-      "pendingReimbursement",
-      "reimbursed",
-      "reimbursementSurplus",
-    ],
-  };
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getCurrentLedgerOrRedirect.mockResolvedValue(currentLedger);
@@ -66,6 +55,7 @@ describe("Transaction SSR adapter", () => {
           getFrequentMerchants: mocks.getFrequentMerchants,
         },
         service: {
+          getLinkCandidatePage: mocks.getLinkCandidatePage,
           getGroupItems: mocks.getGroupItems,
           getGroupPage: mocks.getGroupPage,
           getGroupView: mocks.getGroupView,
@@ -82,90 +72,47 @@ describe("Transaction SSR adapter", () => {
       recordType: "all",
     });
   });
-  it("退款搜索不限制特殊状态，报销搜索固定使用三种报销流程状态", async () => {
-    const fetchMock = vi.fn();
-    vi.stubGlobal("fetch", fetchMock);
-    mocks.search.mockResolvedValue({
-      items: [],
-      nextOffset: null,
-      totalCount: 0,
+  it("关联候选首屏和后续页直接调用扁平分页 Service", async () => {
+    const page = { items: [], nextOffset: null };
+    mocks.getLinkCandidatePage.mockResolvedValue(page);
+    const merchantId = "00000000-0000-4000-8000-000000001001";
+    await expect(
+      loadRefundPickerPage({ merchantId, currency: "JPY", offset: 0 }),
+    ).resolves.toEqual(page);
+    await loadRefundPickerPage({ query: "7930", currency: "JPY", offset: 20 });
+    await loadReimbursementPickerPage({
+      merchantId,
+      currency: "JPY",
+      offset: 20,
     });
-    await loadTransactionSearchPage("7930", 20);
-    await loadRefundPickerSearchPage("7930", 0);
-    await loadReimbursementPickerSearchPage("7930", 10);
-    expect(mocks.search).toHaveBeenNthCalledWith(1, currentLedger, "7930", 20);
-    expect(mocks.search).toHaveBeenNthCalledWith(2, currentLedger, "7930", 0, {
-      recordType: "refundableExpense",
-    });
-    expect(mocks.search).toHaveBeenNthCalledWith(
+    expect(mocks.getLinkCandidatePage).toHaveBeenNthCalledWith(
+      1,
+      currentLedger,
+      "refund",
+      { merchantId, currency: "JPY", offset: 0 },
+    );
+    expect(mocks.getLinkCandidatePage).toHaveBeenNthCalledWith(
+      2,
+      currentLedger,
+      "refund",
+      { query: "7930", currency: "JPY", offset: 20, merchantId: undefined },
+    );
+    expect(mocks.getLinkCandidatePage).toHaveBeenNthCalledWith(
       3,
       currentLedger,
-      "7930",
-      10,
-      reimbursementFilters,
+      "reimbursement",
+      { merchantId: undefined, currency: "JPY", offset: 20 },
     );
-    expect(fetchMock).not.toHaveBeenCalled();
-    vi.unstubAllGlobals();
-  });
-
-  it("报销 Picker 分组分页与分组明细固定使用三种报销流程状态", async () => {
-    mocks.getGroupPage.mockResolvedValue({ groups: [], nextOffset: null });
-    mocks.getGroupItems.mockResolvedValue({ items: [], nextOffset: null });
-
-    await loadReimbursementPickerGroupPage(20);
-    await loadReimbursementPickerGroupItems("2026-08", 40);
-
-    expect(mocks.getGroupPage).toHaveBeenCalledWith(
-      currentLedger,
-      "month",
-      20,
-      reimbursementFilters,
-    );
-    expect(mocks.getGroupItems).toHaveBeenCalledWith(
-      currentLedger,
-      "month",
-      "2026-08",
-      40,
-      reimbursementFilters,
-    );
-  });
-
-  it("启用特殊状态时新建视图不预读关联候选，打开选择器才读取", async () => {
-    const enabledLedger = {
-      ...currentLedger,
-      transactionItemSpecialStatusEnabled: true,
-    };
-    mocks.getCurrentLedgerOrRedirect.mockResolvedValue(enabledLedger);
-    mocks.getNewView.mockResolvedValue({ form: "new" });
-    const refundView = { groups: [{ key: "refund" }] };
-    const reimbursementView = { groups: [{ key: "reimbursement" }] };
-    mocks.getGroupView
-      .mockResolvedValueOnce(refundView)
-      .mockResolvedValueOnce(reimbursementView);
-
-    await expect(loadNewTransactionView()).resolves.toEqual({
-      form: "new",
-      frequentMerchants: [],
-    });
-    expect(mocks.getNewView).toHaveBeenCalledWith(enabledLedger);
     expect(mocks.getGroupView).not.toHaveBeenCalled();
+    expect(mocks.getGroupItems).not.toHaveBeenCalled();
+  });
 
-    await expect(loadRefundPickerInitialView()).resolves.toEqual(refundView);
-    await expect(loadReimbursementPickerInitialView()).resolves.toEqual(
-      reimbursementView,
-    );
-    expect(mocks.getGroupView).toHaveBeenNthCalledWith(
-      1,
-      enabledLedger,
-      "month",
-      { recordType: "refundableExpense" },
-    );
-    expect(mocks.getGroupView).toHaveBeenNthCalledWith(
-      2,
-      enabledLedger,
-      "month",
-      reimbursementFilters,
-    );
+  it("普通搜索仍直接调用 Service，新建页面不预读关联候选", async () => {
+    await loadTransactionSearchPage("7930", 20);
+    expect(mocks.search).toHaveBeenCalledWith(currentLedger, "7930", 20);
+    mocks.getNewView.mockResolvedValue({ form: "new" });
+    await loadNewTransactionView();
+    expect(mocks.getLinkCandidatePage).not.toHaveBeenCalled();
   });
 
   it("新建视图与页面数据并行加载常用商家", async () => {

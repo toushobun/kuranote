@@ -544,8 +544,18 @@ describe("createSupabaseMerchantRepository", () => {
       queryResponses: [
         {
           data: [
-            { icon_url: null, id: merchantId, name: "LIFE" },
-            { icon_url: null, id: secondMerchantId, name: "星巴克" },
+            {
+              active_records: [{ id: "record-1" }],
+              icon_url: null,
+              id: merchantId,
+              name: "LIFE",
+            },
+            {
+              active_records: [],
+              icon_url: null,
+              id: secondMerchantId,
+              name: "星巴克",
+            },
           ],
         },
         { data: [{ icon: "🛒", id: tagId, name: "超市", sort_order: 0 }] },
@@ -569,11 +579,35 @@ describe("createSupabaseMerchantRepository", () => {
       repository.listActiveSummariesWithTags(ledgerId),
     ).resolves.toEqual({
       merchants: [
-        { icon_url: null, id: merchantId, name: "LIFE", tags: [tag] },
-        { icon_url: null, id: secondMerchantId, name: "星巴克", tags: [] },
+        {
+          hasTransactions: true,
+          icon_url: null,
+          id: merchantId,
+          name: "LIFE",
+          tags: [tag],
+        },
+        {
+          hasTransactions: false,
+          icon_url: null,
+          id: secondMerchantId,
+          name: "星巴克",
+          tags: [],
+        },
       ],
       tags: [tag],
     });
+    expect(supabase.queries[0].calls).toEqual(
+      expect.arrayContaining([
+        {
+          method: "select",
+          args: [
+            "id, name, icon_url, active_records:transaction_record!transaction_record_merchant_same_ledger_fk(id)",
+          ],
+        },
+        { method: "eq", args: ["active_records.status", "active"] },
+        { method: "limit", args: [1, { referencedTable: "active_records" }] },
+      ]),
+    );
     expect(supabase.queries.map((query) => query.table)).toEqual([
       "merchant",
       "merchant_tags",

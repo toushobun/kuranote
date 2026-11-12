@@ -4,6 +4,7 @@ import { toRepositoryError } from "internal/shared/supabase/repositoryError";
 import { transactionLoadErrorMessages } from "internal/transaction/errors";
 
 export type TransactionIncomeLinkedItem = {
+  merchantId: string | null;
   accountId: string;
   amount: string;
   categoryId: string;
@@ -57,6 +58,7 @@ type LinkedItemRow = {
 };
 
 type TransactionAtRow = {
+  merchant_id: string | null;
   id: string;
   transaction_at: string;
 };
@@ -158,7 +160,7 @@ export function createSupabaseTransactionIncomeLinkRepository(
           : await Promise.all([
               supabase
                 .from("transaction_record")
-                .select("id, transaction_at")
+                .select("id, transaction_at, merchant_id")
                 .eq("ledger_id", ledgerId)
                 .eq("status", "active")
                 .in("id", transactionRecordIds),
@@ -187,10 +189,10 @@ export function createSupabaseTransactionIncomeLinkRepository(
         );
       }
 
-      const transactionAtByRecordId = new Map(
+      const recordById = new Map(
         ((recordResult.data ?? []) as TransactionAtRow[]).map((record) => [
           record.id,
-          record.transaction_at,
+          record,
         ]),
       );
       const firstAccountIdByRecordId = new Map<string, string>();
@@ -207,7 +209,7 @@ export function createSupabaseTransactionIncomeLinkRepository(
         refundedItems.flatMap((item) => {
           const linkedItem = buildLinkedItem(
             item,
-            transactionAtByRecordId,
+            recordById,
             firstAccountIdByRecordId,
           );
           return linkedItem ? [[linkedItem.id, linkedItem] as const] : [];
@@ -259,12 +261,12 @@ export function createSupabaseTransactionIncomeLinkRepository(
 
 function buildLinkedItem(
   item: LinkedItemRow,
-  transactionAtByRecordId: Map<string, string>,
+  recordById: Map<string, TransactionAtRow>,
   firstAccountIdByRecordId: Map<string, string>,
 ): TransactionIncomeLinkedItem | null {
-  const transactionAt = transactionAtByRecordId.get(item.transaction_record_id);
+  const record = recordById.get(item.transaction_record_id);
   const accountId = firstAccountIdByRecordId.get(item.transaction_record_id);
-  if (!transactionAt || !item.category_id || !accountId) return null;
+  if (!record || !item.category_id || !accountId) return null;
 
   return {
     accountId,
@@ -273,7 +275,8 @@ function buildLinkedItem(
     id: item.id,
     refundedAmount: item.refunded_amount ?? "0",
     reimbursementAmount: item.reimbursement_amount ?? "0",
-    transactionAt,
+    merchantId: record.merchant_id ?? null,
+    transactionAt: record.transaction_at,
     transactionRecordId: item.transaction_record_id,
   };
 }

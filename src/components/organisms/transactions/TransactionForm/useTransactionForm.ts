@@ -1,4 +1,5 @@
 "use client";
+import { getLinkCandidateDefaultAmount } from "internal/transaction";
 
 import {
   useEffect,
@@ -98,6 +99,9 @@ export function useTransactionForm({
   const [selectedCategoryGroupId, setSelectedCategoryGroupId] = useState("");
   const [pickerCategoryId, setPickerCategoryId] = useState("");
   const [pickerAmount, setPickerAmount] = useState("");
+  const [pickerMode, setPickerMode] = useState<
+    "expense" | "income" | "refund" | "reimbursement"
+  >("expense");
   const [pickerSpecialStatus, setPickerSpecialStatus] =
     useState<TransactionFormItem["specialStatus"]>(null);
   const [pickerRefundCandidate, setPickerRefundCandidate] =
@@ -128,7 +132,9 @@ export function useTransactionForm({
   const allNormalCategoryOptions = useMemo(
     () =>
       categoryOptions.filter(
-        (category) => category.type === "expense" || category.type === "income",
+        (category) =>
+          !category.systemKey &&
+          (category.type === "expense" || category.type === "income"),
       ),
     [categoryOptions],
   );
@@ -177,9 +183,17 @@ export function useTransactionForm({
         ? ("expense" as const)
         : ("income" as const)
       : undefined;
+  const editingPickerItem = allDisplayItems.find(
+    (item) => item.id === editingItemId,
+  );
+  const pickerModeLocked = Boolean(
+    editingPickerItem?.persistedId &&
+    ["refund", "reimbursement"].includes(
+      categoryById.get(editingPickerItem.categoryId)?.systemKey ?? "",
+    ),
+  );
   const pickerSpecialStatusLocked = Boolean(
-    allDisplayItems.find((item) => item.id === editingItemId)
-      ?.specialStatusLocked,
+    editingPickerItem?.specialStatusLocked,
   );
   const expenseTotal = itemsByType.expense.reduce((sum, item) => {
     if (!isValidMoneyText(item.amount, selectedAccount?.currency)) return sum;
@@ -381,6 +395,7 @@ export function useTransactionForm({
     );
     setEditingItemId(null);
     setPickerCategoryId(categoryId);
+    setPickerMode(categoryById.get(categoryId)?.type ?? "expense");
     setPickerAmount("");
     setPickerSpecialStatus(null);
     setPickerRefundCandidate(null);
@@ -402,6 +417,13 @@ export function useTransactionForm({
 
     setEditingItemId(itemId);
     setPickerCategoryId(item.categoryId);
+    const category = categoryById.get(item.categoryId);
+    setPickerMode(
+      category?.systemKey === "refund" ||
+        category?.systemKey === "reimbursement"
+        ? category.systemKey
+        : (category?.type ?? "expense"),
+    );
     setPickerAmount(item.amount);
     setPickerSpecialStatus(item.specialStatus);
     setPickerRefundCandidate(item.refundCandidate ?? null);
@@ -456,8 +478,51 @@ export function useTransactionForm({
     }
   }
 
+  function handlePickerModeChange(
+    nextMode: "expense" | "income" | "refund" | "reimbursement",
+  ) {
+    if (
+      pickerModeLocked ||
+      (paymentFields.isMultiAccount && nextMode !== "expense") ||
+      (disabledCategoryType === "income" && nextMode !== "expense") ||
+      (disabledCategoryType === "expense" && nextMode === "expense")
+    )
+      return;
+
+    const nextSystem = categoryOptions.find(
+      (category) => category.systemKey === nextMode,
+    );
+    const nextGroup = categoryGroups.find(
+      (group) => group.categories[0]?.type === nextMode,
+    );
+    const nextCategoryId =
+      nextMode === "refund" || nextMode === "reimbursement"
+        ? (nextSystem?.id ?? "")
+        : (nextGroup?.categories[0]?.id ?? "");
+
+    setPickerMode(nextMode);
+    setPickerCategoryId(nextCategoryId);
+    setSelectedCategoryGroupId(nextGroup?.id ?? "");
+    setPickerSpecialStatus(null);
+    setPickerRefundCandidate(null);
+    setPickerReimbursementCandidate(null);
+    setPickerErrors({});
+  }
+
   function handlePickerAdd() {
     const errors: TransactionPickerErrors = {};
+    const selectedTarget =
+      pickerMode === "refund"
+        ? pickerRefundCandidate
+        : pickerMode === "reimbursement"
+          ? pickerReimbursementCandidate
+          : null;
+    if (
+      (pickerMode === "refund" || pickerMode === "reimbursement") &&
+      !selectedTarget
+    ) {
+      return false;
+    }
     if (!pickerCategoryId) {
       errors.category = transactionFormValidationMessages.categoryRequired;
     }
@@ -476,7 +541,9 @@ export function useTransactionForm({
         pickerRefundCandidate,
         pickerReimbursementCandidate,
       );
-      onPickerItemCommit?.(itemId);
+      if (pickerMode !== "refund" && pickerMode !== "reimbursement") {
+        onPickerItemCommit?.(itemId);
+      }
     } else {
       replaceItem(
         editingItemId,
@@ -616,19 +683,56 @@ export function useTransactionForm({
     setLinkNotice(notices.length > 0 ? notices.join("") : null);
   }
 
-  // 退款与报销候选共用同一套拒绝判断：未选账户时提示先选账户，币种不一致时提示重新选择。
+  // 退款与报销候选共用同币种校验；尚未选择收款账户时允许先选原支出。
   function getCandidateRejectionNotice(
     kind: TransactionLinkKind,
     candidate: TransactionRefundCandidate | null,
   ) {
     if (!candidate) return null;
-    if (!selectedAccount) {
-      return transactionLinkMessages.candidateAccountRequired(kind);
-    }
-    if (hasLinkCandidateCurrencyMismatch(candidate, selectedAccount.currency)) {
+    if (
+      selectedAccount &&
+      hasLinkCandidateCurrencyMismatch(candidate, selectedAccount.currency)
+    ) {
       return transactionLinkMessages.candidateCurrencyMismatch(kind);
     }
     return null;
+  }
+
+  function selectLinkCandidate(
+    kind: TransactionLinkKind,
+    candidate: TransactionRefundCandidate | null,
+  ) {
+    const rejectionNotice = getCandidateRejectionNotice(kind, candidate);
+    if (rejectionNotice) {
+      if (kind === "refund") setPickerRefundCandidate(null);
+      else setPickerReimbursementCandidate(null);
+      setLinkNotice(rejectionNotice);
+      return;
+    }
+
+    setLinkNotice(null);
+    // 只在收款账户为空且原付款账户仍可选时预填，不覆盖用户已有选择。
+    if (
+      candidate?.accountId &&
+      !selectedAccountId &&
+      accountOptions.some((account) => account.id === candidate.accountId)
+    ) {
+      const primaryPayment = paymentFields.payments[0];
+      if (primaryPayment) {
+        handlePaymentAccountChange(primaryPayment.key, candidate.accountId);
+      }
+    }
+
+    if (kind === "refund") {
+      setPickerRefundCandidate(candidate);
+      if (candidate) setPickerReimbursementCandidate(null);
+    } else {
+      setPickerReimbursementCandidate(candidate);
+      if (candidate) setPickerRefundCandidate(null);
+    }
+    if (candidate && pickerMode === kind) {
+      setPickerAmount(getLinkCandidateDefaultAmount(candidate));
+    }
   }
 
   // 付款账户的提交前校验与 Service 共用 validateTransactionPayments。
@@ -692,6 +796,7 @@ export function useTransactionForm({
     handlePickerAdd,
     handlePickerCategoryToggle,
     handlePickerGroupSelect,
+    handlePickerModeChange,
     handlePaymentAccountChange,
     handlePaymentAmountChange,
     handleRemovePayment,
@@ -709,6 +814,8 @@ export function useTransactionForm({
     paymentReconciliation,
     payments: paymentFields.payments,
     pickerAmount,
+    pickerMode,
+    pickerModeLocked,
     pickerCategoryId,
     pickerErrors,
     pickerRefundCandidate,
@@ -723,36 +830,13 @@ export function useTransactionForm({
     selectedMerchant,
     selectedMerchantId,
     selectedType,
+    setPickerAmount,
     setPickerSpecialStatus,
-    setPickerRefundCandidate: (
-      candidate: TransactionRefundCandidate | null,
-    ) => {
-      const rejectionNotice = getCandidateRejectionNotice("refund", candidate);
-      if (rejectionNotice) {
-        setPickerRefundCandidate(null);
-        setLinkNotice(rejectionNotice);
-        return;
-      }
-      setPickerRefundCandidate(candidate);
-      if (candidate) setPickerReimbursementCandidate(null);
-      setLinkNotice(null);
-    },
+    setPickerRefundCandidate: (candidate: TransactionRefundCandidate | null) =>
+      selectLinkCandidate("refund", candidate),
     setPickerReimbursementCandidate: (
       candidate: TransactionRefundCandidate | null,
-    ) => {
-      const rejectionNotice = getCandidateRejectionNotice(
-        "reimbursement",
-        candidate,
-      );
-      if (rejectionNotice) {
-        setPickerReimbursementCandidate(null);
-        setLinkNotice(rejectionNotice);
-        return;
-      }
-      setPickerReimbursementCandidate(candidate);
-      if (candidate) setPickerRefundCandidate(null);
-      setLinkNotice(null);
-    },
+    ) => selectLinkCandidate("reimbursement", candidate),
     timeZoneOffsetMinutes,
     transactionAtValue,
     transactionDate,

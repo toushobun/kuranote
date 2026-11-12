@@ -27,6 +27,7 @@ export type TransactionCategorySummaryItem = {
 export type TransactionListItem = {
   account_color?: ThemeColorKey | null;
   account_currency: string;
+  account_id?: string;
   account_name: string;
   amount: string;
   originalAmount?: string;
@@ -59,6 +60,7 @@ export type TransactionAccountOption = {
 
 export type TransactionCategoryOption = {
   iconName?: string | null;
+  systemKey?: "special_income" | "refund" | "reimbursement";
   id: string;
   name: string;
   parentId: string | null;

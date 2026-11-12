@@ -7,9 +7,34 @@ export const flowFixture: TransactionStepFlowProps = {
   open: true,
   action: async () => ({}),
   merchants: [
-    { id: "life", name: "LIFE超市", icon_url: null, tags: [tags[1]] },
-    { id: "seven", name: "7-Eleven", icon_url: null, tags: [tags[1]] },
-    { id: "coffee", name: "星巴克", icon_url: null, tags: [tags[0]] },
+    {
+      id: "life",
+      name: "LIFE超市",
+      icon_url: null,
+      hasTransactions: true,
+      tags: [tags[1]],
+    },
+    {
+      id: "seven",
+      name: "7-Eleven",
+      icon_url: null,
+      hasTransactions: true,
+      tags: [tags[1]],
+    },
+    {
+      id: "coffee",
+      name: "星巴克",
+      icon_url: null,
+      hasTransactions: true,
+      tags: [tags[0]],
+    },
+    {
+      id: "new",
+      name: "新开商家",
+      icon_url: null,
+      hasTransactions: false,
+      tags: [],
+    },
   ],
   merchantTags: tags,
   frequentMerchants: [

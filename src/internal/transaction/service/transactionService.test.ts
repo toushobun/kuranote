@@ -61,6 +61,7 @@ function createService(
   role: CurrentLedgerRole | null,
   repository = createRepository(),
   categoryType?: "expense" | "income",
+  systemKey?: "refund" | "reimbursement",
 ) {
   const accountQueryService = {
     getTransactionContext: vi.fn().mockResolvedValue({
@@ -94,6 +95,7 @@ function createService(
                   name: "测试分类",
                   parent_id: null,
                   type: categoryType,
+                  ...(systemKey ? { system_key: systemKey } : {}),
                 },
               ]
             : [],
@@ -233,6 +235,7 @@ describe("TransactionService", () => {
       "member",
       createRepository(),
       "income",
+      "refund",
     );
     const input = {
       ...normalInput,
@@ -255,6 +258,7 @@ describe("TransactionService", () => {
       "member",
       createRepository(),
       "income",
+      "reimbursement",
     );
     const input = {
       ...normalInput,
@@ -327,6 +331,7 @@ describe("TransactionService", () => {
       "member",
       createRepository(),
       "income",
+      "refund",
     );
 
     await expect(
@@ -353,6 +358,7 @@ describe("TransactionService", () => {
       "member",
       createRepository(),
       "income",
+      "refund",
     );
     const input = {
       ...normalInput,
@@ -369,6 +375,48 @@ describe("TransactionService", () => {
     await service.updateNormal(input);
 
     expect(repository.updateNormal).toHaveBeenCalledWith(input);
+  });
+
+  it.each([
+    { kind: "refundedItemId", required: "refund" },
+    { kind: "reimbursementItemId", required: "reimbursement" },
+  ] as const)("关联收入必须使用 $required 系统分类", async ({ kind }) => {
+    const { repository, service } = createService(
+      "member",
+      createRepository(),
+      "income",
+    );
+    await expect(
+      service.createNormal({
+        ...normalInput,
+        items: [
+          {
+            ...normalInput.items[0],
+            [kind]: "00000000-0000-4000-8000-000000005073",
+          },
+        ],
+        type: "income",
+      }),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.incomeLinkCategoryInvalid,
+      name: ValidationError.name,
+    });
+    expect(repository.createNormal).not.toHaveBeenCalled();
+  });
+
+  it("普通收入不允许使用退款系统分类", async () => {
+    const { repository, service } = createService(
+      "member",
+      createRepository(),
+      "income",
+      "refund",
+    );
+    await expect(
+      service.createNormal({ ...normalInput, type: "income" }),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.incomeLinkCategoryInvalid,
+    });
+    expect(repository.createNormal).not.toHaveBeenCalled();
   });
 
   it("支出分类允许保存待报销状态", async () => {
@@ -667,6 +715,157 @@ describe("TransactionService", () => {
       summary: { currency: "JPY", expense: "1200" },
       transactionCount: 1,
     });
+  });
+
+  function candidateService() {
+    const records = [
+      {
+        id: "new-record",
+        merchant_id: "00000000-0000-4000-8000-000000001001",
+        transaction_at: "2026-11-01T00:00:00Z",
+        created_at: "2026-11-01T00:00:00Z",
+        created_by: userId,
+        type: "normal",
+      },
+      {
+        id: "old-record",
+        merchant_id: "00000000-0000-4000-8000-000000001002",
+        transaction_at: "2025-01-01T00:00:00Z",
+        created_at: "2025-01-01T00:00:00Z",
+        created_by: userId,
+        type: "normal",
+      },
+    ];
+    records.push({ ...records[0], id: "usd-record" });
+    const items = Array.from({ length: 23 }, (_, index) => ({
+      id: `candidate-${index}`,
+      transaction_record_id:
+        index === 22
+          ? "old-record"
+          : index === 21
+            ? "usd-record"
+            : "new-record",
+      account_id:
+        index === 21 ? "usd-account" : normalInput.payments[0].accountId,
+      category_id: normalInput.items[0].categoryId,
+      amount: "1000",
+      refunded_amount: "0",
+      reimbursement_amount: index === 20 ? "1200" : "0",
+      special_status: index >= 20 ? "pending_reimbursement" : null,
+    }));
+    const repository = createRepository({
+      listRecords: vi.fn().mockResolvedValue(records),
+      listItems: vi.fn().mockResolvedValue(items),
+      listPayments: vi.fn().mockResolvedValue(
+        records.map((record) => ({
+          id: `payment-${record.id}`,
+          transaction_record_id: record.id,
+          account_id:
+            record.id === "usd-record"
+              ? "usd-account"
+              : normalInput.payments[0].accountId,
+          amount: "1000",
+          balance_delta: "-1000",
+          sort_order: 0,
+        })),
+      ),
+    });
+    const context = createService("member", repository, "expense");
+    context.accountQueryService.getTransactionContext.mockResolvedValue({
+      accountColorById: new Map(),
+      holderIdsByAccountId: new Map(),
+      showRecorder: false,
+      accounts: [
+        {
+          id: normalInput.payments[0].accountId,
+          name: "现金",
+          currency: "JPY",
+        },
+        { id: "usd-account", name: "美元", currency: "USD" },
+      ],
+    });
+    const ledger = {
+      baseCurrency: "JPY",
+      currentUserRole: "member" as const,
+      id: ledgerId,
+      name: "家庭账本",
+    };
+    return { ...context, ledger };
+  }
+
+  it("候选按明细分页并按日期倒序，服务端过滤币种和商家", async () => {
+    const { service, ledger, repository } = candidateService();
+    const first = await service.getLinkCandidatePage(ledger, "refund", {
+      currency: "JPY",
+    });
+    expect(first.items).toHaveLength(20);
+    expect(first.nextOffset).toBe(20);
+    expect(repository.listRecords).toHaveBeenCalledTimes(1);
+    const next = await service.getLinkCandidatePage(ledger, "refund", {
+      offset: 20,
+      currency: "JPY",
+    });
+    expect(next.items.map((item) => item.id)).toEqual([
+      "candidate-20",
+      "candidate-22",
+    ]);
+    expect(next.nextOffset).toBeNull();
+    const merchant = await service.getLinkCandidatePage(ledger, "refund", {
+      currency: "JPY",
+      merchantId: "00000000-0000-4000-8000-000000001002",
+    });
+    expect(merchant.items.map((item) => item.id)).toEqual(["candidate-22"]);
+    const usd = await service.getLinkCandidatePage(ledger, "refund", {
+      currency: "USD",
+    });
+    expect(usd.items.map((item) => item.id)).toEqual(["candidate-21"]);
+    expect(usd.items[0]?.accountId).toBe("usd-account");
+  });
+
+  it("未传币种时跨页返回不同币种支出及原付款账户 ID", async () => {
+    const { service, ledger } = candidateService();
+    const first = await service.getLinkCandidatePage(ledger, "refund", {});
+    const next = await service.getLinkCandidatePage(ledger, "refund", {
+      offset: first.nextOffset ?? 0,
+    });
+    const candidates = [...first.items, ...next.items];
+    expect(candidates).toHaveLength(23);
+    expect(candidates.map((item) => item.id)).toContain("candidate-20");
+    expect(candidates.map((item) => item.id)).toContain("candidate-22");
+    const usdCandidate = candidates.find((item) => item.id === "candidate-21");
+    expect(usdCandidate).toMatchObject({
+      accountCurrency: "USD",
+      accountId: "usd-account",
+    });
+  });
+
+  it("报销候选保留已结清或核销结余，仅使用报销流程状态并忽略商家", async () => {
+    const { service, ledger } = candidateService();
+    const page = await service.getLinkCandidatePage(ledger, "reimbursement", {
+      currency: "JPY",
+      merchantId: "00000000-0000-4000-8000-000000001001",
+    });
+    expect(page.items.map((item) => item.id)).toEqual([
+      "candidate-20",
+      "candidate-22",
+    ]);
+    expect(page.items[0].remainingRefundableAmount).toBe("-200");
+    const search = await service.getLinkCandidatePage(ledger, "reimbursement", {
+      query: "1000",
+      currency: "JPY",
+    });
+    expect(search.items).toEqual(page.items);
+  });
+
+  it("候选分页拒绝非法输入且非成员仍不能读取", async () => {
+    const { service, ledger } = candidateService();
+    await expect(
+      service.getLinkCandidatePage(ledger, "refund", { offset: -1 }),
+    ).rejects.toBeInstanceOf(ValidationError);
+    const denied = createService(null);
+    await expect(
+      denied.service.getLinkCandidatePage(ledger, "refund", {}),
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it("纯数字关键词 7930 返回金额匹配结果", async () => {

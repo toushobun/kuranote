@@ -2,11 +2,17 @@ import { useBackLayer } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
 import { useMemo, useState } from "react";
 
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import CloseIcon from "@mui/icons-material/Close";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import ButtonBase from "@mui/material/ButtonBase";
+import { TransactionItemAmountDrawer } from "../TransactionItemAmountDrawer/TransactionItemAmountDrawer";
+import { formatUnsignedCurrencyAmount } from "utils/transactions";
+import { transactionLinkCandidateMessages as m } from "config/transactionStepFlowMessages";
 import Drawer from "@mui/material/Drawer";
 import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
@@ -17,29 +23,28 @@ import Typography from "@mui/material/Typography";
 
 import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { primaryActionButtonNoHoverBrightenSx } from "atoms/ui/PrimaryActionButton/primaryActionButtonSx";
+import { transactionItemPickerMessages } from "config/transactionStepFlowMessages";
 import type { TransactionSpecialStatus } from "internal/transaction";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { designTokens } from "theme/theme";
 import { transactionPaymentFieldsMessages } from "utils/transactionMessages";
 import type {
   TransactionCategoryOption,
-  TransactionGroupPage,
-  TransactionMonthPage,
   TransactionRefundCandidate,
-  TransactionSearchPage,
-  TransactionTimeGroupViewData,
 } from "types/transactions";
 import { TransactionPendingReimbursementCheckbox } from "../TransactionPendingReimbursementCheckbox/TransactionPendingReimbursementCheckbox";
-import { TransactionRefundLinkPicker } from "../TransactionRefundLinkPicker/TransactionRefundLinkPicker";
-import { TransactionReimbursementLinkPicker } from "../TransactionReimbursementLinkPicker/TransactionReimbursementLinkPicker";
+import { TransactionLinkCandidatePanel } from "../TransactionLinkCandidatePanel/TransactionLinkCandidatePanel";
 
 import type {
   CategoryPickerGroup,
+  TransactionItemPickerMode,
   TransactionPickerErrors,
 } from "../TransactionForm/TransactionForm.types";
 import { matchesCategorySearch } from "./TransactionCategorySearch";
 
-type TransactionItemPickerDrawerProps = {
+import type { TransactionIncomeLinksContextValue } from "../TransactionForm/TransactionIncomeLinksContext";
+
+type TransactionItemPickerDrawerProps = TransactionIncomeLinksContextValue & {
   categoryGroups: CategoryPickerGroup[];
   editingItemId?: number | null;
   filteredCategoryOptions: TransactionCategoryOption[];
@@ -50,12 +55,16 @@ type TransactionItemPickerDrawerProps = {
   /** 切换大分类；带 categoryId 时同时选中它，否则选中该组第一个可用小分类。 */
   onGroupSelect: (groupId: string, categoryId?: string) => void;
   onPickerAdd: () => boolean;
+  onPickerModeChange?: (mode: TransactionItemPickerMode) => void;
+  onPickerAmountChange?: (amount: string) => void;
   onRemoveItem: (itemId: number) => void;
   onRefundItemChange?: (item: TransactionRefundCandidate | null) => void;
   onReimbursementItemChange?: (item: TransactionRefundCandidate | null) => void;
   onSpecialStatusChange?: (value: TransactionSpecialStatus | null) => void;
   open: boolean;
   pickerAmount: string;
+  pickerMode?: TransactionItemPickerMode;
+  pickerModeLocked?: boolean;
   pickerCategoryId: string;
   pickerErrors: TransactionPickerErrors;
   pickerRefundCandidate?: TransactionRefundCandidate | null;
@@ -63,34 +72,13 @@ type TransactionItemPickerDrawerProps = {
   pickerSpecialStatus?: TransactionSpecialStatus | null;
   selectedAccountCurrency?: string;
   selectedCategoryGroup?: CategoryPickerGroup;
-  loadRefundInitialViewAction?: () => Promise<TransactionTimeGroupViewData>;
-  loadReimbursementInitialViewAction?: () => Promise<TransactionTimeGroupViewData>;
-  loadRefundGroupItemsAction?: (
-    groupKey: string,
-    offset: number,
-  ) => Promise<TransactionMonthPage>;
-  loadRefundMoreGroupsAction?: (
-    offset: number,
-  ) => Promise<TransactionGroupPage>;
-  loadRefundSearchPageAction?: (
-    query: string,
-    offset: number,
-  ) => Promise<TransactionSearchPage>;
-  loadReimbursementGroupItemsAction?: (
-    groupKey: string,
-    offset: number,
-  ) => Promise<TransactionMonthPage>;
-  loadReimbursementMoreGroupsAction?: (
-    offset: number,
-  ) => Promise<TransactionGroupPage>;
-  loadReimbursementSearchPageAction?: (
-    query: string,
-    offset: number,
-  ) => Promise<TransactionSearchPage>;
   specialStatusEnabled?: boolean;
   specialStatusLocked?: boolean;
   /** 多账户时禁用与现有明细相反的一类分类（#1044）。 */
   disabledCategoryType?: "income" | "expense";
+  multiAccount?: boolean;
+  merchantId?: string;
+  merchantName?: string;
 };
 
 export function TransactionItemPickerDrawer({
@@ -102,12 +90,16 @@ export function TransactionItemPickerDrawer({
   onClose,
   onGroupSelect,
   onPickerAdd,
+  onPickerModeChange = () => undefined,
+  onPickerAmountChange = () => undefined,
   onRemoveItem,
   onRefundItemChange = () => undefined,
   onReimbursementItemChange = () => undefined,
   onSpecialStatusChange = () => undefined,
   open,
   pickerAmount,
+  pickerMode = "expense",
+  pickerModeLocked = false,
   pickerCategoryId,
   pickerErrors,
   pickerRefundCandidate = null,
@@ -115,27 +107,34 @@ export function TransactionItemPickerDrawer({
   pickerSpecialStatus = null,
   selectedAccountCurrency,
   selectedCategoryGroup,
-  loadRefundInitialViewAction,
-  loadReimbursementInitialViewAction,
-  loadRefundGroupItemsAction,
-  loadRefundMoreGroupsAction,
-  loadRefundSearchPageAction,
-  loadReimbursementGroupItemsAction,
-  loadReimbursementMoreGroupsAction,
-  loadReimbursementSearchPageAction,
+  loadRefundPageAction,
+  loadReimbursementPageAction,
   specialStatusEnabled = false,
   specialStatusLocked = false,
   disabledCategoryType,
+  multiAccount = false,
+  merchantId,
+  merchantName,
 }: TransactionItemPickerDrawerProps) {
   useBackLayer(open, closeDrawer);
   const selectedCategoryType = filteredCategoryOptions.find(
     (category) => category.id === pickerCategoryId,
   )?.type;
+  const [amountOpen, setAmountOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
+  const isLinkedMode =
+    pickerMode === "refund" || pickerMode === "reimbursement";
+  const selectedCandidate =
+    pickerMode === "refund"
+      ? pickerRefundCandidate
+      : pickerReimbursementCandidate;
   const displayedGroups = useMemo(() => {
-    if (!searchText.trim()) return categoryGroups;
+    const typeGroups = categoryGroups.filter(
+      (group) => group.categories[0]?.type === pickerMode,
+    );
+    if (!searchText.trim()) return typeGroups;
 
-    return categoryGroups
+    return typeGroups
       .map((group) => ({
         ...group,
         categories: group.categories.filter(
@@ -146,7 +145,7 @@ export function TransactionItemPickerDrawer({
         ),
       }))
       .filter((group) => group.categories.length > 0);
-  }, [categoryGroups, searchText]);
+  }, [categoryGroups, searchText, pickerMode]);
   const activeCategoryGroup =
     displayedGroups.find((group) => group.id === selectedCategoryGroup?.id) ??
     displayedGroups[0];
@@ -155,13 +154,13 @@ export function TransactionItemPickerDrawer({
       groups: displayedGroups.filter(
         (group) => group.categories[0]?.type === "expense",
       ),
-      label: "支出分类",
+      label: transactionItemPickerMessages.categorySection.expense,
     },
     {
       groups: displayedGroups.filter(
         (group) => group.categories[0]?.type === "income",
       ),
-      label: "收入分类",
+      label: transactionItemPickerMessages.categorySection.income,
     },
   ].filter((section) => section.groups.length > 0);
   const isCategoryDisabled = (category: TransactionCategoryOption) =>
@@ -185,6 +184,7 @@ export function TransactionItemPickerDrawer({
   }
 
   function closeDrawer() {
+    setAmountOpen(false);
     setSearchText("");
     onClose();
   }
@@ -203,185 +203,289 @@ export function TransactionItemPickerDrawer({
 
       <Stack direction="row" sx={drawerHeaderSx}>
         <Typography component="h2" variant="h6" sx={drawerTitleSx}>
-          {editingItemId === null ? "添加明细" : "编辑明细"}
+          {editingItemId === null
+            ? transactionItemPickerMessages.addTitle
+            : transactionItemPickerMessages.editTitle}
         </Typography>
-        <IconButton aria-label="关闭" onClick={closeDrawer} sx={closeButtonSx}>
+        <IconButton
+          aria-label={transactionItemPickerMessages.close}
+          onClick={closeDrawer}
+          sx={closeButtonSx}
+        >
           <CloseIcon />
         </IconButton>
       </Stack>
 
       <Box sx={drawerBodySx}>
-        <TextField
+        <ToggleButtonGroup
+          aria-label={transactionItemPickerMessages.typeTitle}
+          exclusive
           fullWidth
-          onChange={(event) => setSearchText(event.target.value)}
-          placeholder="搜索小分类"
-          size="small"
-          slotProps={{
-            htmlInput: { "aria-label": "搜索小分类" },
-            input: {
-              endAdornment: searchText ? (
-                <InputAdornment position="end">
-                  <IconButton
-                    aria-label="清空搜索"
-                    edge="end"
-                    onClick={() => setSearchText("")}
-                    size="small"
-                  >
-                    <CloseIcon fontSize="small" />
-                  </IconButton>
-                </InputAdornment>
-              ) : null,
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchRoundedIcon color="action" fontSize="small" />
-                </InputAdornment>
-              ),
-            },
+          onChange={(_, value: TransactionItemPickerMode | null) => {
+            if (value) onPickerModeChange(value);
           }}
-          sx={searchFieldSx}
-          value={searchText}
-        />
-
-        {filteredCategoryOptions.length === 0 ? (
-          <Typography color="textSecondary">请先新增分类。</Typography>
+          size="small"
+          sx={typeToggleGroupSx}
+          value={pickerMode}
+        >
+          {transactionItemPickerMessages.typeOptions
+            .filter(
+              ({ id }) =>
+                specialStatusEnabled ||
+                (id !== "refund" && id !== "reimbursement"),
+            )
+            .map(({ id: mode, label }) => (
+              <ToggleButton
+                aria-label={transactionItemPickerMessages.typeLabel(label)}
+                disabled={
+                  (pickerModeLocked && mode !== pickerMode) ||
+                  (multiAccount && mode !== "expense")
+                }
+                key={mode}
+                value={mode}
+              >
+                {label}
+              </ToggleButton>
+            ))}
+        </ToggleButtonGroup>
+        {isLinkedMode ? (
+          <Typography
+            color="textSecondary"
+            variant="caption"
+            sx={{
+              display: "block",
+              mt: 0.75,
+              textAlign: "right",
+              color: "text.disabled",
+              fontWeight: 400,
+            }}
+          >
+            {transactionItemPickerMessages.linkedHint}
+          </Typography>
+        ) : null}
+        {isLinkedMode ? (
+          <TransactionLinkCandidatePanel
+            key={pickerMode}
+            accountCurrency={selectedAccountCurrency}
+            merchantName={merchantName}
+            kind={pickerMode}
+            merchantId={pickerMode === "refund" ? merchantId : undefined}
+            loadPageAction={
+              pickerMode === "refund"
+                ? loadRefundPageAction
+                : loadReimbursementPageAction
+            }
+            onChange={
+              pickerMode === "refund"
+                ? onRefundItemChange
+                : onReimbursementItemChange
+            }
+            value={selectedCandidate}
+          />
         ) : (
           <>
-            {displayedGroups.length === 0 ? (
-              <Box sx={emptySearchSx}>
-                <Typography color="textSecondary" variant="body2">
-                  没有匹配的小分类
-                </Typography>
-              </Box>
+            <TextField
+              fullWidth
+              onChange={(event) => setSearchText(event.target.value)}
+              placeholder={transactionItemPickerMessages.searchCategory}
+              size="small"
+              slotProps={{
+                htmlInput: {
+                  "aria-label": transactionItemPickerMessages.searchCategory,
+                },
+                input: {
+                  endAdornment: searchText ? (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label={transactionItemPickerMessages.clearSearch}
+                        edge="end"
+                        onClick={() => setSearchText("")}
+                        size="small"
+                      >
+                        <CloseIcon fontSize="small" />
+                      </IconButton>
+                    </InputAdornment>
+                  ) : null,
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchRoundedIcon color="action" fontSize="small" />
+                    </InputAdornment>
+                  ),
+                },
+              }}
+              sx={searchFieldSx}
+              value={searchText}
+            />
+
+            {filteredCategoryOptions.length === 0 ? (
+              <Typography color="textSecondary">
+                {transactionItemPickerMessages.missingCategories}
+              </Typography>
             ) : (
-              <Stack direction="row" spacing={1} sx={categoryColumnsSx}>
-                <Stack sx={categoryColumnSx}>
-                  <Box sx={categoryOptionsSx}>
-                    {displayedGroupSections.map((section) => (
-                      <Box key={section.label}>
-                        <Typography sx={categoryTypeLabelSx} variant="caption">
-                          {section.label}
-                        </Typography>
-                        {section.groups.map((group) => {
-                          const isSelected =
-                            activeCategoryGroup?.id === group.id;
+              <>
+                {displayedGroups.length === 0 ? (
+                  <Box sx={emptySearchSx}>
+                    <Typography color="textSecondary" variant="body2">
+                      {transactionItemPickerMessages.noMatchingCategory}
+                    </Typography>
+                  </Box>
+                ) : (
+                  <Stack direction="row" spacing={1} sx={categoryColumnsSx}>
+                    <Stack sx={categoryColumnSx}>
+                      <Box sx={categoryOptionsSx}>
+                        {displayedGroupSections.map((section) => (
+                          <Box key={section.label}>
+                            <Typography
+                              sx={categoryTypeLabelSx}
+                              variant="caption"
+                            >
+                              {section.label}
+                            </Typography>
+                            {section.groups.map((group) => {
+                              const isSelected =
+                                activeCategoryGroup?.id === group.id;
+
+                              return (
+                                <Button
+                                  aria-pressed={isSelected}
+                                  disabled={group.categories.every(
+                                    isCategoryDisabled,
+                                  )}
+                                  key={group.id}
+                                  onClick={() => onGroupSelect(group.id)}
+                                  type="button"
+                                  sx={categoryGroupOptionSx(isSelected)}
+                                >
+                                  {group.name}
+                                </Button>
+                              );
+                            })}
+                          </Box>
+                        ))}
+                      </Box>
+                    </Stack>
+
+                    <Stack sx={categoryColumnSx}>
+                      <Box sx={categoryOptionsSx}>
+                        {activeCategoryGroup?.categories.map((category) => {
+                          const isSelected = pickerCategoryId === category.id;
 
                           return (
                             <Button
                               aria-pressed={isSelected}
-                              disabled={group.categories.every(
-                                isCategoryDisabled,
-                              )}
-                              key={group.id}
-                              onClick={() => onGroupSelect(group.id)}
+                              disabled={isCategoryDisabled(category)}
+                              endIcon={
+                                isSelected ? (
+                                  <CheckRoundedIcon fontSize="small" />
+                                ) : null
+                              }
+                              key={category.id}
+                              onClick={() =>
+                                activeCategoryGroup
+                                  ? selectCategory(
+                                      activeCategoryGroup.id,
+                                      category.id,
+                                    )
+                                  : onCategoryToggle(category.id)
+                              }
                               type="button"
-                              sx={categoryGroupOptionSx(isSelected)}
+                              sx={categoryOptionSx(isSelected)}
                             >
-                              {group.name}
+                              {category.name}
                             </Button>
                           );
                         })}
                       </Box>
-                    ))}
-                  </Box>
-                </Stack>
+                    </Stack>
+                  </Stack>
+                )}
 
-                <Stack sx={categoryColumnSx}>
-                  <Box sx={categoryOptionsSx}>
-                    {activeCategoryGroup?.categories.map((category) => {
-                      const isSelected = pickerCategoryId === category.id;
+                {disabledCategoryType ? (
+                  <Typography color="textSecondary" variant="caption">
+                    {transactionPaymentFieldsMessages.categoryTypeRestricted}
+                  </Typography>
+                ) : null}
 
-                      return (
-                        <Button
-                          aria-pressed={isSelected}
-                          disabled={isCategoryDisabled(category)}
-                          endIcon={
-                            isSelected ? (
-                              <CheckRoundedIcon fontSize="small" />
-                            ) : null
-                          }
-                          key={category.id}
-                          onClick={() =>
-                            activeCategoryGroup
-                              ? selectCategory(
-                                  activeCategoryGroup.id,
-                                  category.id,
-                                )
-                              : onCategoryToggle(category.id)
-                          }
-                          type="button"
-                          sx={categoryOptionSx(isSelected)}
-                        >
-                          {category.name}
-                        </Button>
-                      );
-                    })}
-                  </Box>
-                </Stack>
-              </Stack>
+                {pickerErrors.category ? (
+                  <Typography color="error" variant="caption">
+                    {pickerErrors.category}
+                  </Typography>
+                ) : null}
+              </>
             )}
 
-            {disabledCategoryType ? (
-              <Typography color="textSecondary" variant="caption">
-                {transactionPaymentFieldsMessages.categoryTypeRestricted}
-              </Typography>
-            ) : null}
-
-            {pickerErrors.category ? (
-              <Typography color="error" variant="caption">
-                {pickerErrors.category}
-              </Typography>
+            {specialStatusEnabled &&
+            selectedCategoryType === "expense" &&
+            (pickerSpecialStatus === null ||
+              pickerSpecialStatus === "pendingReimbursement") ? (
+              <TransactionPendingReimbursementCheckbox
+                checked={
+                  specialStatusLocked ||
+                  pickerSpecialStatus === "pendingReimbursement"
+                }
+                disabled={specialStatusLocked}
+                onChange={(checked) =>
+                  onSpecialStatusChange(checked ? "pendingReimbursement" : null)
+                }
+              />
             ) : null}
           </>
         )}
-
-        {specialStatusEnabled &&
-        selectedCategoryType === "expense" &&
-        (pickerSpecialStatus === null ||
-          pickerSpecialStatus === "pendingReimbursement") ? (
-          <TransactionPendingReimbursementCheckbox
-            checked={
-              specialStatusLocked ||
-              pickerSpecialStatus === "pendingReimbursement"
-            }
-            disabled={specialStatusLocked}
-            onChange={(checked) =>
-              onSpecialStatusChange(checked ? "pendingReimbursement" : null)
-            }
-          />
-        ) : null}
-
-        {specialStatusEnabled && selectedCategoryType === "income" ? (
-          <>
-            {linkNotice ? (
-              <Alert severity="info" sx={{ mt: 1.5 }}>
-                {linkNotice}
-              </Alert>
-            ) : null}
-            <TransactionRefundLinkPicker
-              accountCurrency={selectedAccountCurrency}
-              loadInitialViewAction={loadRefundInitialViewAction}
-              loadGroupItemsAction={loadRefundGroupItemsAction}
-              loadMoreGroupsAction={loadRefundMoreGroupsAction}
-              loadSearchPageAction={loadRefundSearchPageAction}
-              onChange={onRefundItemChange}
-              refundAmount={pickerAmount}
-              value={pickerRefundCandidate}
-            />
-            <TransactionReimbursementLinkPicker
-              accountCurrency={selectedAccountCurrency}
-              incomeAmount={pickerAmount}
-              loadInitialViewAction={loadReimbursementInitialViewAction}
-              loadGroupItemsAction={loadReimbursementGroupItemsAction}
-              loadMoreGroupsAction={loadReimbursementMoreGroupsAction}
-              loadSearchPageAction={loadReimbursementSearchPageAction}
-              onChange={onReimbursementItemChange}
-              value={pickerReimbursementCandidate}
-            />
-          </>
+        {linkNotice ? (
+          <Alert severity="info" sx={{ mt: 1.5 }}>
+            {linkNotice}
+          </Alert>
         ) : null}
       </Box>
 
       <Box sx={drawerFooterSx}>
+        {isLinkedMode ? (
+          <ButtonBase
+            disabled={!selectedCandidate}
+            onClick={() => setAmountOpen(true)}
+            sx={{
+              width: "100%",
+              justifyContent: "space-between",
+              textAlign: "left",
+              pb: 2,
+              gap: 1,
+            }}
+          >
+            <Stack>
+              <Typography sx={{ fontWeight: 800 }}>
+                {pickerMode === "refund"
+                  ? m.refundAmount
+                  : m.reimbursementAmount}
+              </Typography>
+              <Typography variant="caption" color="textSecondary">
+                {selectedCandidate
+                  ? m.remaining(
+                      formatUnsignedCurrencyAmount(
+                        selectedCandidate.remainingRefundableAmount,
+                        selectedAccountCurrency ??
+                          selectedCandidate.accountCurrency,
+                      ),
+                    )
+                  : m.selectFirst(pickerMode)}
+              </Typography>
+            </Stack>
+            <Typography
+              sx={{
+                color: selectedCandidate ? "primary.main" : "text.disabled",
+                fontSize: "1.75rem",
+                fontWeight: 800,
+              }}
+            >
+              {selectedCandidate && pickerAmount.trim()
+                ? formatUnsignedCurrencyAmount(
+                    pickerAmount,
+                    selectedAccountCurrency ??
+                      selectedCandidate.accountCurrency,
+                  )
+                : m.unselectedAmount}
+            </Typography>
+          </ButtonBase>
+        ) : null}
         <Stack direction="row" spacing={1.5}>
           <Button
             fullWidth
@@ -390,18 +494,36 @@ export function TransactionItemPickerDrawer({
             variant="outlined"
             sx={editingItemId === null ? drawerCancelButtonSx : deleteButtonSx}
           >
-            {editingItemId === null ? "取消" : "删除明细"}
+            {editingItemId === null
+              ? transactionItemPickerMessages.cancel
+              : transactionItemPickerMessages.remove}
           </Button>
           <PrimaryActionButton
+            disabled={isLinkedMode && !selectedCandidate}
             fullWidth
             onClick={handleConfirm}
             type="button"
             sx={drawerDoneButtonSx}
           >
-            {editingItemId === null ? "确定" : "保存修改"}
+            {editingItemId === null
+              ? transactionItemPickerMessages.confirm
+              : transactionItemPickerMessages.saveEdit}
           </PrimaryActionButton>
         </Stack>
       </Box>
+      <TransactionItemAmountDrawer
+        open={amountOpen && open && isLinkedMode && Boolean(selectedCandidate)}
+        title={pickerMode === "refund" ? m.refundAmount : m.reimbursementAmount}
+        currency={
+          selectedAccountCurrency ?? selectedCandidate?.accountCurrency ?? "JPY"
+        }
+        value={pickerAmount}
+        onClose={() => setAmountOpen(false)}
+        onConfirm={(amount) => {
+          onPickerAmountChange(amount);
+          setAmountOpen(false);
+        }}
+      />
     </Drawer>
   );
 }
@@ -535,7 +657,7 @@ const emptySearchSx = {
 
 const drawerFooterSx = {
   bgcolor: "background.paper",
-  borderTop: 1,
+  borderTop: "1px dashed",
   borderColor: "divider",
   flexShrink: 0,
   px: 2.5,
@@ -561,4 +683,44 @@ const drawerDoneButtonSx = {
   fontWeight: 700,
   minHeight: 48,
   ...primaryActionButtonNoHoverBrightenSx,
+};
+
+const typeToggleGroupSx = {
+  border: 1,
+  borderColor: "divider",
+  borderRadius: `${designTokens.radius.md}px`,
+  p: "3px",
+  display: "flex",
+  mt: 1.5,
+  "& .MuiToggleButtonGroup-grouped": {
+    border: 0,
+    borderRadius: `${designTokens.radius.item}px`,
+    m: 0,
+  },
+  "& .MuiToggleButton-root": {
+    color: "text.secondary",
+    flex: 1,
+    fontWeight: 700,
+    minWidth: 0,
+    px: 0.5,
+    textTransform: "none",
+    "&.Mui-selected": {
+      bgcolor: "primary.main",
+      color: "primary.contrastText",
+      "@media (hover: none)": {
+        "&:hover": {
+          bgcolor: "primary.main",
+          color: "primary.contrastText",
+        },
+      },
+      "@media (hover: hover)": {
+        "&:hover": { bgcolor: "primary.dark" },
+      },
+    },
+    "&.Mui-disabled": {
+      bgcolor: "action.disabledBackground",
+      color: "text.disabled",
+      opacity: 0.5,
+    },
+  },
 };

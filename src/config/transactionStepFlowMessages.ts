@@ -37,7 +37,6 @@ export const flowMessages = {
   recommendationHint: `按这家商家最近 ${merchantRecentTransactionLimit} 笔记录`,
   otherAccounts: "其他账户",
   allAccounts: "全部账户",
-  noHistory: "这家商家还没有记录，按账户顺序显示",
   noAccounts: "还没有收支账户",
   accountHint: "添加一个账户，记录这笔钱从哪里出、到哪里去",
   addAccount: "新增账户",
@@ -120,4 +119,54 @@ export const transferReceiptMessages = {
   missingAmount: "请输入转账金额",
   invalidAmount: "转账金额无效，点一下重新输入",
   currencyMismatch: "暂不支持不同币种之间的转账",
+} as const;
+
+/** 明细抽屉（含独立的退款 / 报销类型）。 */
+export const transactionItemPickerMessages = {
+  addTitle: "添加明细",
+  editTitle: "编辑明细",
+  close: "关闭",
+  typeLabel: (label: string) => `明细类型${label}`,
+  typeTitle: "明细类型",
+  typeOptions: [
+    { id: "expense", label: "支出" },
+    { id: "income", label: "收入" },
+    { id: "refund", label: "退款" },
+    { id: "reimbursement", label: "报销" },
+  ] as const,
+  categorySection: { expense: "支出分类", income: "收入分类" },
+  linkedHint: "退款 / 报销会抵消原支出，不计入收入。",
+  searchCategory: "搜索小分类",
+  clearSearch: "清空搜索",
+  missingCategories: "请先新增分类。",
+  noMatchingCategory: "没有匹配的小分类",
+  cancel: "取消",
+  remove: "删除明细",
+  confirm: "确定",
+  saveEdit: "保存修改",
+} as const;
+
+/** 退款 / 报销的原支出候选列表与金额输入。 */
+export const transactionLinkCandidateMessages = {
+  unassignedMerchant: "未指定商家",
+  searchPlaceholder: "搜索原支出（全部商家）",
+  searchAria: "搜索原支出",
+  noSearchResults: "没有找到可关联的支出。",
+  loading: "加载中…",
+  loadMore: "加载更多",
+  noCandidates: "没有可关联的原支出，试试搜索。",
+  retry: "加载失败，点击重试",
+  merchantExpenses: (name: string) => `${name} 的支出`,
+  allExpenses: "全部支出",
+  pending: "待报销",
+  refundAmount: "退款金额",
+  reimbursementAmount: "报销金额",
+  selectFirst: (kind: "refund" | "reimbursement") =>
+    kind === "refund" ? "先选择要退款的支出" : "先选择要报销的支出",
+  remaining: (amount: string) => `剩余未核销 ${amount}`,
+  unselectedAmount: "—",
+  selectCandidate: (kind: "refund" | "reimbursement", name: string) =>
+    `选择${kind === "refund" ? "退款" : "报销"}明细 ${name}`,
+  offsetLabel: (kind: "refund" | "reimbursement", amount: string) =>
+    `${kind === "refund" ? "已退" : "已报"} ${amount}`,
 } as const;

@@ -19,7 +19,6 @@ import type {
   TransactionGroupPage,
   TransactionGroupSummaryItem,
   TransactionMonthPage,
-  TransactionRefundCandidate,
   TransactionTimeGroupViewData,
 } from "types/transactions";
 import { mergeUniqueById } from "utils/collections";
@@ -35,13 +34,6 @@ type TransactionMonthListProps = {
     offset: number,
   ) => Promise<TransactionMonthPage>;
   loadMoreGroupsAction?: (offset: number) => Promise<TransactionGroupPage>;
-  onSelectRefundItem?: (item: TransactionRefundCandidate) => void;
-  onSelectReimbursementItem?: (item: TransactionRefundCandidate) => void;
-  refundSelectionMode?: boolean;
-  reimbursementSelectionMode?: boolean;
-  selectableCurrency?: string;
-  selectedRefundItemId?: string | null;
-  selectedReimbursementItemId?: string | null;
   timeGroupView: TransactionTimeGroupViewData;
 };
 
@@ -59,13 +51,6 @@ export function TransactionMonthList(props: TransactionMonthListProps) {
 function TransactionMonthListContent({
   loadGroupItemsAction,
   loadMoreGroupsAction,
-  onSelectRefundItem,
-  onSelectReimbursementItem,
-  refundSelectionMode = false,
-  reimbursementSelectionMode = false,
-  selectableCurrency,
-  selectedRefundItemId = null,
-  selectedReimbursementItemId = null,
   timeGroupView,
 }: TransactionMonthListProps) {
   const [groups, setGroups] = useState(timeGroupView.groups);
@@ -346,15 +331,6 @@ function TransactionMonthListContent({
                     dateGroups.length > 0 ? (
                       <TransactionGroupList
                         groups={dateGroups}
-                        onSelectRefundItem={onSelectRefundItem}
-                        onSelectReimbursementItem={onSelectReimbursementItem}
-                        refundSelectionMode={refundSelectionMode}
-                        reimbursementSelectionMode={reimbursementSelectionMode}
-                        selectableCurrency={selectableCurrency}
-                        selectedRefundItemId={selectedRefundItemId}
-                        selectedReimbursementItemId={
-                          selectedReimbursementItemId
-                        }
                         showSummary={false}
                       />
                     ) : (

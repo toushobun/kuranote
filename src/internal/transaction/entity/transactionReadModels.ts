@@ -27,3 +27,26 @@ export type TransactionEditRestriction =
   | "archivedAccount"
   | "linked"
   | "permission";
+
+export type TransactionRefundCandidate = {
+  accountCurrency: string;
+  /** 原支出首个付款账户；旧候选可以缺省。 */
+  accountId?: string;
+  accountName?: string;
+  merchantName?: string | null;
+  merchantIconUrl?: string | null;
+  reimbursementAmount?: string;
+  amount: string;
+  categoryName: string;
+  id: string;
+  parentCategoryName: string | null;
+  refundedAmount: string;
+  remainingRefundableAmount: string;
+  transactionAt: string;
+  transactionRecordId: string;
+};
+
+export type TransactionLinkCandidatePage = {
+  items: TransactionRefundCandidate[];
+  nextOffset: number | null;
+};

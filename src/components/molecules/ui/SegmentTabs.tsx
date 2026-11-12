@@ -68,10 +68,8 @@ export function SegmentTabs({
             boxShadow: "var(--user-theme-card-shadow)",
             color: "var(--user-theme-segment-selected-text)",
           },
-          "@media (hover: hover)": {
-            "& .MuiToggleButton-root.Mui-selected:hover": {
-              backgroundColor: "var(--user-theme-segment-selected-bg)",
-            },
+          "& .MuiToggleButton-root.Mui-selected:hover": {
+            backgroundColor: "var(--user-theme-segment-selected-bg)",
           },
         },
         ...(Array.isArray(sx) ? sx : [sx]),

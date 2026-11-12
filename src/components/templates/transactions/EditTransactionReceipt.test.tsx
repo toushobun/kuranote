@@ -61,7 +61,7 @@ const initialValues: TransactionFormInitialValues = {
   type: "expense",
 };
 
-const noHistory: MerchantEntrySuggestions = {
+const emptySuggestions: MerchantEntrySuggestions = {
   automaticCategoryIds: [],
   quickAmounts: [],
   recommendedAccountIds: [],
@@ -137,7 +137,7 @@ async function requestLeaveFromDirtyReceipt() {
 describe("EditTransactionReceiptTemplate", () => {
   beforeEach(() => {
     fetchClientJson.mockImplementation(async (url: string) =>
-      url.includes("merchantId=seven") ? receiptSuggestions : noHistory,
+      url.includes("merchantId=seven") ? receiptSuggestions : emptySuggestions,
     );
   });
   afterEach(() => {
@@ -359,6 +359,23 @@ describe("EditTransactionReceiptTemplate", () => {
       expect.stringContaining("merchantId=coffee"),
       expect.anything(),
     );
+  });
+
+  it("编辑记账切换到无记录商家时不读取建议且保留小票", async () => {
+    renderReceipt();
+    await waitFor(() => expect(fetchClientJson).toHaveBeenCalledTimes(1));
+    const drawer = await openMerchantPicker();
+    fireEvent.click(within(drawer).getByRole("button", { name: "新开商家" }));
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "修改商家：新开商家" }),
+      ).toBeInTheDocument(),
+    );
+    expect(fetchClientJson).toHaveBeenCalledTimes(1);
+    expect(
+      screen.getByRole("button", { name: "修改明细 1 金额：¥800" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("PayPay")).toBeInTheDocument();
   });
 
   it("搜索商家后不选择、或重新选同一个商家，返回时不提示尚未保存", async () => {

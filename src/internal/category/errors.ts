@@ -1,3 +1,5 @@
+import { categorySystemMessages } from "config/categoryMessages";
+
 export const categoryErrorCodes = {
   archiveFailed: "archive_failed",
   categoryInvalid: "category_invalid",
@@ -5,6 +7,10 @@ export const categoryErrorCodes = {
   iconInvalid: "icon_invalid",
   ledgerInvalid: "ledger_invalid",
   nameRequired: "name_required",
+  nameReserved: "category_name_reserved",
+  systemLocked: "category_system_locked",
+  systemParentLocked: "category_system_parent_locked",
+  systemInvalid: "category_system_invalid",
   nameTooLong: "name_too_long",
   orderInvalid: "order_invalid",
   parentInvalid: "parent_invalid",
@@ -21,6 +27,10 @@ export type CategoryErrorCode =
 export type CategoryValidationErrorCode =
   | typeof categoryErrorCodes.categoryInvalid
   | typeof categoryErrorCodes.iconInvalid
+  | typeof categoryErrorCodes.nameReserved
+  | typeof categoryErrorCodes.systemLocked
+  | typeof categoryErrorCodes.systemParentLocked
+  | typeof categoryErrorCodes.systemInvalid
   | typeof categoryErrorCodes.nameRequired
   | typeof categoryErrorCodes.nameTooLong
   | typeof categoryErrorCodes.orderInvalid
@@ -35,6 +45,10 @@ export const categoryErrorMessages: Record<CategoryErrorCode, string> = {
   [categoryErrorCodes.iconInvalid]: "请选择图标库中的分类图标。",
   [categoryErrorCodes.ledgerInvalid]: "账本不存在或已归档。",
   [categoryErrorCodes.nameRequired]: "请输入分类名称。",
+  [categoryErrorCodes.nameReserved]: categorySystemMessages.nameReserved,
+  [categoryErrorCodes.systemLocked]: categorySystemMessages.locked,
+  [categoryErrorCodes.systemParentLocked]: categorySystemMessages.parentLocked,
+  [categoryErrorCodes.systemInvalid]: categorySystemMessages.invalid,
   [categoryErrorCodes.nameTooLong]: "分类名称不能超过 100 个字符。",
   [categoryErrorCodes.orderInvalid]: "分类排序内容不正确。",
   [categoryErrorCodes.parentInvalid]: "大分类指定不正确。",

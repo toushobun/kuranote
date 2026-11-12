@@ -25,7 +25,30 @@ import {
   RepositoryError,
   ValidationError,
 } from "internal/shared/errors/appError";
-import { getCategoryStoredName } from "utils/categoryNames";
+import {
+  getCategoryStoredName,
+  getCategoryDisplayName,
+} from "utils/categoryNames";
+
+const systemReservedNames = new Set(["特殊收入", "退款", "报销"]);
+
+function requireOrdinaryCategoryName(name: string) {
+  if (systemReservedNames.has(name.trim())) {
+    throw new ValidationError(
+      categoryErrorCodes.nameReserved,
+      categoryErrorMessages[categoryErrorCodes.nameReserved],
+    );
+  }
+}
+
+function requireEditableCategory(systemKey: string | null | undefined) {
+  if (systemKey) {
+    throw new ValidationError(
+      categoryErrorCodes.systemLocked,
+      categoryErrorMessages[categoryErrorCodes.systemLocked],
+    );
+  }
+}
 
 export type CategoriesView = ReturnType<typeof buildCategoriesView>;
 
@@ -68,13 +91,14 @@ export interface CategoryQueryService {
   }): Promise<CategorySummary[]>;
   /** 交易表单的分类候选，含图标。 */
   listActiveSummaries(input: {
+    includeSystem?: boolean;
     ledgerId: string;
     userId: string;
   }): Promise<ActiveCategorySummary[]>;
 }
 
 export type ActiveCategorySummary = CategorySummary &
-  Pick<CategoryData, "icon_name">;
+  Pick<CategoryData, "icon_name" | "system_key">;
 
 export interface CategoryService extends CategoryQueryService {
   archive(input: ArchiveCategoryInput): Promise<void>;
@@ -182,6 +206,8 @@ export function createCategoryService({
         );
       }
 
+      requireEditableCategory(category.systemKey);
+
       const archivedCount = await withOperationError(
         categoryErrorCodes.archiveFailed,
         () =>
@@ -201,6 +227,7 @@ export function createCategoryService({
 
     async create(input) {
       await requireManagePermission(input.ledgerId, input.userId);
+      requireOrdinaryCategoryName(input.name);
 
       if (input.parentId !== null) {
         const parent = await withOperationError(
@@ -217,6 +244,12 @@ export function createCategoryService({
           throw new ValidationError(
             categoryErrorCodes.parentInvalid,
             categoryErrorMessages[categoryErrorCodes.parentInvalid],
+          );
+        }
+        if (parent.systemKey) {
+          throw new ValidationError(
+            categoryErrorCodes.systemParentLocked,
+            categoryErrorMessages[categoryErrorCodes.systemParentLocked],
           );
         }
       }
@@ -257,17 +290,18 @@ export function createCategoryService({
       return buildCategoriesView({ categories, ledgerName, role });
     },
 
-    async listActiveSummaries({ ledgerId, userId }) {
+    async listActiveSummaries({ includeSystem = false, ledgerId, userId }) {
       await requireActiveMemberRole(ledgerId, userId);
-      return (await categoryRepository.findActiveByLedgerId(ledgerId)).map(
-        ({ icon_name, id, name, parent_id, type }) => ({
+      return (await categoryRepository.findActiveByLedgerId(ledgerId))
+        .filter((category) => includeSystem || !category.system_key)
+        .map(({ icon_name, id, name, parent_id, system_key, type }) => ({
           icon_name,
           id,
           name,
           parent_id,
+          ...(system_key ? { system_key } : {}),
           type,
-        }),
-      );
+        }));
     },
 
     async reorder(input) {
@@ -297,6 +331,8 @@ export function createCategoryService({
         );
       }
 
+      requireEditableCategory(category.systemKey);
+
       const siblings = await listSiblingsOrThrow(
         {
           ledgerId,
@@ -305,6 +341,14 @@ export function createCategoryService({
         },
         categoryErrorCodes.updateFailed,
       );
+      const previous = siblings.find((sibling) => sibling.id === categoryId);
+      if (
+        !previous ||
+        getCategoryDisplayName(previous.name, previous.iconName).trim() !==
+          name.trim()
+      ) {
+        requireOrdinaryCategoryName(name);
+      }
       if (hasDuplicateCategoryName(siblings, name, categoryId)) {
         throw new ConflictError(
           categoryErrorCodes.updateFailed,

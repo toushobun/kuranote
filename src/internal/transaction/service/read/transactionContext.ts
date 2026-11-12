@@ -9,7 +9,11 @@ import type { TransactionContextRepository } from "internal/transaction/reposito
 import type { TransactionListItem } from "internal/transaction/service/read/transactionReadModels";
 
 import { getTransactionGroupContextLookups } from "internal/transaction/util/grouping/contextLookups";
-import { normalizeTransactionFilters } from "internal/transaction/util/grouping/filters";
+import {
+  filterTransactionItems,
+  filterTransactionRecords,
+  normalizeTransactionFilters,
+} from "internal/transaction/util/grouping/filters";
 import { listRecordAccountMovements } from "internal/transaction/util/grouping/recordAccounts";
 import type { TransactionGroupLoaderContext } from "internal/transaction/util/grouping/types";
 import type { TransactionListGroupContext } from "internal/transaction/util/grouping/recordContribution";
@@ -178,5 +182,23 @@ export function buildTransactionListItemsFromContext(
       recordItems: lookups.itemsByRecordId.get(record.id) ?? [],
       showRecorder: context.showRecorder ?? true,
     }),
+  );
+}
+
+export function buildFilteredTransactionListItems(
+  context: TransactionGroupLoaderContext,
+  filters: TransactionFilters,
+) {
+  const records = filterTransactionRecords(context, filters);
+  const recordIds = new Set(records.map((record) => record.id));
+  return buildTransactionListItemsFromContext(
+    records,
+    {
+      ...context,
+      items: filterTransactionItems(context, filters).filter((item) =>
+        recordIds.has(item.transaction_record_id),
+      ),
+    },
+    filters,
   );
 }

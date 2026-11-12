@@ -14,7 +14,9 @@ select
     a.id as account_id,
     merchant.id as merchant_id,
     expense_category.id as expense_category_id,
-    income_category.id as income_category_id,
+    ordinary_income_category.id as income_category_id,
+    reimbursement_category.id as reimbursement_category_id,
+    refund_category.id as refund_category_id,
     l.transaction_item_special_status_enabled as old_special_status_enabled
 from public.ledger l
 join public.ledger_member lm
@@ -50,10 +52,25 @@ join lateral (
     from public.category category
     where category.ledger_id = l.id
       and category.type = 'income'
+      and category.system_key is null
       and category.is_archived = false
     order by category.created_at
     limit 1
-) income_category on true
+) ordinary_income_category on true
+join lateral (
+    select category.id
+    from public.category category
+    where category.ledger_id = l.id
+      and category.system_key = 'reimbursement'
+    limit 1
+) reimbursement_category on true
+join lateral (
+    select category.id
+    from public.category category
+    where category.ledger_id = l.id
+      and category.system_key = 'refund'
+    limit 1
+) refund_category on true
 where l.id = '00000000-0000-4000-8000-000000000032'
 limit 1;
 
@@ -167,6 +184,14 @@ select dblink_exec(
               and target_item.id = '59892000-0000-4000-8000-000000000001'
             for update;
 
+            -- #944：夹具初始化先用普通收入分类，建关联时在同一事务内改为系统分类。
+            update public.transaction_item
+            set category_id = (
+                select id from public.category
+                where ledger_id = %L::uuid and system_key = 'refund'
+            )
+            where id = '59892000-0000-4000-8000-000000000002';
+
             insert into public.transaction_item_refund_link (
                 ledger_id,
                 refunded_item_id,
@@ -185,6 +210,7 @@ select dblink_exec(
         $refund$,
         context.ledger_id,
         context.ledger_id,
+        context.ledger_id,
         context.user_id
     )
 )
@@ -194,7 +220,15 @@ select dblink_send_query(
     'issue598_reimbursement',
     format(
         $reimbursement$
-        with applied as materialized (
+        with set_system_category as (
+            update public.transaction_item
+            set category_id = (
+                select id from public.category
+                where ledger_id = %L::uuid and system_key = 'reimbursement'
+            )
+            where id = '59892000-0000-4000-8000-000000000003'
+            returning id
+        ), applied as materialized (
             select public.apply_transaction_item_links(
                 %L::uuid,
                 '59892000-0000-4000-8000-000000000003',
@@ -204,9 +238,11 @@ select dblink_send_query(
                 ),
                 %L::uuid
             )
+            from set_system_category
         )
         select 1::integer from applied
         $reimbursement$,
+        context.ledger_id,
         context.ledger_id,
         context.user_id
     )

@@ -51,6 +51,16 @@ export function TransactionItemHiddenFields({
         type="hidden"
         value={item.reimbursementCandidate?.id ?? ""}
       />
+      <input
+        name="itemRefundedItemLabel"
+        type="hidden"
+        value={item.refundCandidate?.categoryName ?? ""}
+      />
+      <input
+        name="itemReimbursementItemLabel"
+        type="hidden"
+        value={item.reimbursementCandidate?.categoryName ?? ""}
+      />
     </>
   );
 }

@@ -668,3 +668,16 @@ export type MerchantEntrySuggestions = z.infer<
   typeof merchantEntrySuggestionsSchema
 >;
 export type FrequentMerchant = z.infer<typeof frequentMerchantsSchema>[number];
+
+export const transactionLinkCandidatePageInputSchema = z.object({
+  offset: z.number().int().nonnegative().optional(),
+  query: z.string().optional(),
+  merchantId: z.uuid().optional(),
+  currency: z
+    .string()
+    .regex(/^[A-Z]{3}$/)
+    .optional(),
+});
+export type TransactionLinkCandidatePageInput = z.input<
+  typeof transactionLinkCandidatePageInputSchema
+>;

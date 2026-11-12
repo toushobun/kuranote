@@ -3,6 +3,7 @@ import type { ActionState } from "types/actions";
 
 export type MerchantActionState = ActionState & {
   createdMerchant?: import("types/transactions").TransactionMerchantOption & {
+    hasTransactions: boolean;
     tags: MerchantTag[];
   };
 };

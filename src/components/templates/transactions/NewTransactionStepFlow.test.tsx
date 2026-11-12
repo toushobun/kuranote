@@ -48,7 +48,7 @@ function respond(path: string, body: unknown, status = 200) {
   request.resolve(Response.json(body, { status }));
 }
 
-const noHistory: MerchantEntrySuggestions = {
+const emptySuggestions: MerchantEntrySuggestions = {
   automaticCategoryIds: [],
   quickAmounts: [],
   recommendedAccountIds: [],
@@ -153,7 +153,7 @@ describe("NewTransactionStepFlow", () => {
     click("修改商家：请选择商家");
     expect(screen.queryByText("常用商家")).not.toBeInTheDocument();
     await selectEntryMerchant(/^7-Eleven/);
-    respond("merchantId=seven", noHistory);
+    respond("merchantId=seven", emptySuggestions);
     await screen.findByRole("button", { name: "添加付款账户" });
   });
 
@@ -177,12 +177,12 @@ describe("NewTransactionStepFlow", () => {
         ?.signal?.aborted,
     ).toBe(true);
 
-    respond("merchantId=life", noHistory);
+    respond("merchantId=life", emptySuggestions);
     await screen.findByRole("button", { name: "添加付款账户" });
     expectSuggestionsLoadingRows(false);
     // 7-Eleven 的建议晚到：不覆盖当前商家的建议，也不会自动选账户。
     respond("merchantId=seven", {
-      ...noHistory,
+      ...emptySuggestions,
       recommendedAccountIds: ["paypay"],
     });
     await Promise.resolve();
@@ -196,7 +196,7 @@ describe("NewTransactionStepFlow", () => {
     setup();
     await selectEntryMerchant(/^7-Eleven/);
     respond("merchantId=seven", {
-      ...noHistory,
+      ...emptySuggestions,
       recommendedAccountIds: ["paypay"],
     });
 
@@ -213,9 +213,6 @@ describe("NewTransactionStepFlow", () => {
     expectSuggestionsLoadingRows(false);
     expectNoPaymentRow();
     click("添加付款账户");
-    expect(
-      screen.getByText("这家商家还没有记录，按账户顺序显示"),
-    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("radio", { name: "PayPay JPY" }));
     await waitFor(() => expect(paymentLine()).toHaveTextContent("PayPay"));
   });
@@ -229,17 +226,19 @@ describe("NewTransactionStepFlow", () => {
     click("新增商家“全家”");
     expect(screen.getByLabelText(/商家名称/)).toHaveValue("全家");
     await submitReceiptCreation("merchant", "全家");
-    respond("merchantId=new-merchant", noHistory);
     expect(
       await screen.findByRole("button", { name: "修改商家：全家" }),
     ).toBeInTheDocument();
+    expect(requests).toHaveLength(0);
+    expectSuggestionsLoadingRows(false);
+    expectNoPaymentRow();
     expect(router.push).not.toHaveBeenCalled();
   });
 
   it("新增账户后选中发起的付款行并保留小票", async () => {
     setup({ accountOptions: [] });
     await selectEntryMerchant(/^7-Eleven/);
-    respond("merchantId=seven", noHistory);
+    respond("merchantId=seven", emptySuggestions);
     fireEvent.click(
       await screen.findByRole("button", { name: "添加付款账户" }),
     );
@@ -272,7 +271,7 @@ describe("NewTransactionStepFlow", () => {
   it("小票修改后后退可继续编辑，放弃只真正后退一次且不 push", async () => {
     setup();
     await selectEntryMerchant(/^7-Eleven/);
-    respond("merchantId=seven", noHistory);
+    respond("merchantId=seven", emptySuggestions);
     await screen.findByRole("button", { name: "添加付款账户" });
     // #1016：只选商家不是修改，先手动选择付款账户再验证未保存守卫。
     click("添加付款账户");
@@ -338,7 +337,7 @@ describe("NewTransactionStepFlow", () => {
   it("双向切换保留各自草稿", async () => {
     setup();
     await selectEntryMerchant(/^7-Eleven/);
-    respond("merchantId=seven", noHistory);
+    respond("merchantId=seven", emptySuggestions);
     await updateNote("添加备注", "商家草稿");
     await switchMethod("账户周转");
     await chooseTransferAccount("转出", "现金");

@@ -235,6 +235,26 @@ describe("createCategoryService", () => {
     });
   });
 
+  it("旧同名普通报销分类改图标时不按新增保留名称拦截", async () => {
+    const repository = createRepository({
+      listActiveSiblings: vi
+        .fn()
+        .mockResolvedValue([
+          { id: categoryId, name: "📄 报销", iconName: "📄", sortOrder: 0 },
+        ]),
+    });
+    await createService(repository).update({
+      categoryId,
+      ledgerId,
+      userId,
+      name: "报销",
+      iconName: "✨",
+    });
+    expect(repository.updateDetails).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "✨ 报销", iconName: "✨" }),
+    );
+  });
+
   it("更新分类时保持原父级和类型进行同级重名校验", async () => {
     const repository = createRepository({
       findActiveById: vi.fn().mockResolvedValue({
@@ -369,5 +389,148 @@ describe("createCategoryService", () => {
         userId,
       }),
     ).rejects.toBeInstanceOf(ConflictError);
+  });
+});
+
+describe("Issue #944：系统分类 Service 防线", () => {
+  const rootId = "94400000-0000-4000-8000-000000000001";
+  const refundId = "94400000-0000-4000-8000-000000000002";
+
+  it("普通分类候选排除系统分类，但筛选候选和管理页仍包含", async () => {
+    const rows: Category[] = [
+      {
+        ...baseRow,
+        id: categoryId,
+        name: "工资",
+        parent_id: null,
+        type: "income",
+      },
+      {
+        ...baseRow,
+        id: rootId,
+        name: "特殊收入",
+        parent_id: null,
+        system_key: "special_income",
+        type: "income",
+      },
+      {
+        ...baseRow,
+        id: refundId,
+        name: "退款",
+        parent_id: rootId,
+        system_key: "refund",
+        type: "income",
+      },
+    ];
+    const service = createService(
+      createRepository({
+        findActiveByLedgerId: vi.fn().mockResolvedValue(rows),
+      }),
+    );
+
+    const ordinary = await service.listActiveSummaries({ ledgerId, userId });
+    expect(ordinary.map((category) => category.id)).toEqual([categoryId]);
+
+    const filter = await service.listActiveSummaries({
+      includeSystem: true,
+      ledgerId,
+      userId,
+    });
+    expect(filter.map((category) => category.id)).toEqual([
+      categoryId,
+      rootId,
+      refundId,
+    ]);
+
+    const management = await service.getCategoriesView({
+      ledgerId,
+      ledgerName: "家庭账本",
+      userId,
+    });
+    expect(management.categories[1].children[0].system_key).toBe("refund");
+    expect(management.parentOptions).toEqual([
+      { id: categoryId, name: "工资", type: "income" },
+    ]);
+  });
+
+  it.each(["特殊收入", "退款", "报销"])(
+    "不允许创建或改名为系统保留名称：%s",
+    async (name) => {
+      const repository = createRepository();
+      const service = createService(repository);
+      await expect(
+        service.create({
+          iconName: "🍽️",
+          ledgerId,
+          name,
+          parentId: null,
+          type: "income",
+          userId,
+        }),
+      ).rejects.toMatchObject({ code: categoryErrorCodes.nameReserved });
+      await expect(
+        service.update({
+          categoryId,
+          iconName: "🍽️",
+          ledgerId,
+          name,
+          userId,
+        }),
+      ).rejects.toMatchObject({ code: categoryErrorCodes.nameReserved });
+      expect(repository.insert).not.toHaveBeenCalled();
+      expect(repository.updateDetails).not.toHaveBeenCalled();
+    },
+  );
+
+  it("不允许在系统大分类下新增子分类", async () => {
+    const repository = createRepository({
+      findActiveRootById: vi.fn().mockResolvedValue({
+        id: rootId,
+        parentId: null,
+        systemKey: "special_income",
+        type: "income",
+      }),
+    });
+    await expect(
+      createService(repository).create({
+        iconName: "🍽️",
+        ledgerId,
+        name: "临时分类",
+        parentId: rootId,
+        type: "income",
+        userId,
+      }),
+    ).rejects.toMatchObject({ code: categoryErrorCodes.systemParentLocked });
+    expect(repository.insert).not.toHaveBeenCalled();
+  });
+
+  it("系统分类不能更新或归档", async () => {
+    const repository = createRepository({
+      findActiveById: vi.fn().mockResolvedValue({
+        id: refundId,
+        parentId: rootId,
+        systemKey: "refund",
+        type: "income",
+      }),
+    });
+    const service = createService(repository);
+    await expect(
+      service.update({
+        categoryId: refundId,
+        iconName: "🍽️",
+        ledgerId,
+        name: "退款修改",
+        userId,
+      }),
+    ).rejects.toMatchObject({ code: categoryErrorCodes.systemLocked });
+    await expect(
+      service.archive({
+        categoryId: refundId,
+        ledgerId,
+        userId,
+      }),
+    ).rejects.toMatchObject({ code: categoryErrorCodes.systemLocked });
+    expect(repository.updateDetails).not.toHaveBeenCalled();
+    expect(repository.archive).not.toHaveBeenCalled();
   });
 });

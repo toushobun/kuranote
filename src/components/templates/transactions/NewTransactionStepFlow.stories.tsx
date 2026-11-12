@@ -45,6 +45,21 @@ export const NoFrequentMerchants: Story = {
   },
 };
 
+export const NewMerchantWithoutHistory: Story = {
+  name: "无记录商家（直接显示空小票）",
+  play: async ({ canvasElement }) => {
+    const body = await openMerchantStoryDrawer(canvasElement);
+    const merchant = await body.findByRole("button", { name: "新开商家" });
+    await userEvent.click(merchant);
+    const addItem = await body.findByRole("button", { name: "添加明细" });
+    const itemsLoading = body.queryByText("正在按习惯准备明细…");
+    const paymentsLoading = body.queryByText("正在读取常用账户…");
+    await expect(addItem).toBeVisible();
+    await expect(itemsLoading).not.toBeInTheDocument();
+    await expect(paymentsLoading).not.toBeInTheDocument();
+  },
+};
+
 export const Transfer: Story = {
   name: "账户周转（同一外框，可切回从商家记账）",
   args: { initialMethod: "transfer" },

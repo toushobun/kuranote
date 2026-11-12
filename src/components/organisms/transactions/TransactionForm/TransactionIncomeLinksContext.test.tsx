@@ -9,15 +9,13 @@ import {
 
 describe("useResolvedTransactionIncomeLinks", () => {
   it("没有 Provider 时使用调用方传入的值", () => {
-    const loadRefundSearchPageAction = vi.fn();
+    const loadRefundPageAction = vi.fn();
     const { result } = renderHook(() =>
-      useResolvedTransactionIncomeLinks({ loadRefundSearchPageAction }),
+      useResolvedTransactionIncomeLinks({ loadRefundPageAction }),
     );
 
-    expect(result.current.loadRefundSearchPageAction).toBe(
-      loadRefundSearchPageAction,
-    );
-    expect(result.current.loadRefundInitialViewAction).toBeUndefined();
+    expect(result.current.loadRefundPageAction).toBe(loadRefundPageAction);
+    expect(result.current.loadReimbursementPageAction).toBeUndefined();
   });
 
   it("有 Provider 时优先使用 Provider，缺少的项回退到传入值", () => {
@@ -26,7 +24,7 @@ describe("useResolvedTransactionIncomeLinks", () => {
     const fallbackReimbursementAction = vi.fn();
     const wrapper = ({ children }: { children: ReactNode }) => (
       <TransactionIncomeLinksProvider
-        value={{ loadRefundSearchPageAction: providerAction }}
+        value={{ loadRefundPageAction: providerAction }}
       >
         {children}
       </TransactionIncomeLinksProvider>
@@ -34,14 +32,14 @@ describe("useResolvedTransactionIncomeLinks", () => {
     const { result } = renderHook(
       () =>
         useResolvedTransactionIncomeLinks({
-          loadRefundSearchPageAction: fallbackAction,
-          loadReimbursementSearchPageAction: fallbackReimbursementAction,
+          loadRefundPageAction: fallbackAction,
+          loadReimbursementPageAction: fallbackReimbursementAction,
         }),
       { wrapper },
     );
 
-    expect(result.current.loadRefundSearchPageAction).toBe(providerAction);
-    expect(result.current.loadReimbursementSearchPageAction).toBe(
+    expect(result.current.loadRefundPageAction).toBe(providerAction);
+    expect(result.current.loadReimbursementPageAction).toBe(
       fallbackReimbursementAction,
     );
   });

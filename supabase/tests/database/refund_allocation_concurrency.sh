@@ -133,6 +133,10 @@ docker exec "${db_container}" rm -f \
 psql_in_db > /tmp/refund-allocation-a.log 2>&1 <<SQL &
 begin;
 set application_name = 'refund_allocation_a';
+update public.transaction_item
+set category_id = (select id from public.category
+  where ledger_id = '${ledger_id}' and system_key = 'refund')
+where id = '${income_a_id}';
 select public.apply_transaction_item_links(
   '${ledger_id}',
   '${income_a_id}',
@@ -162,6 +166,10 @@ fi
 psql_in_db > /tmp/refund-allocation-b.log 2>&1 <<SQL &
 begin;
 set application_name = 'refund_allocation_b';
+update public.transaction_item
+set category_id = (select id from public.category
+  where ledger_id = '${ledger_id}' and system_key = 'refund')
+where id = '${income_b_id}';
 select public.apply_transaction_item_links(
   '${ledger_id}',
   '${income_b_id}',
@@ -215,6 +223,10 @@ echo "ok - 两笔并发退款均完整核销，最终核销 120.00"
 psql_in_db > /tmp/refund-reimbursement-a.log 2>&1 <<SQL &
 begin;
 set application_name = 'refund_reimbursement_a';
+update public.transaction_item
+set category_id = (select id from public.category
+  where ledger_id = '${ledger_id}' and system_key = 'refund')
+where id = '${mixed_refund_income_id}';
 select public.apply_transaction_item_links(
   '${ledger_id}',
   '${mixed_refund_income_id}',
@@ -244,6 +256,10 @@ fi
 psql_in_db > /tmp/refund-reimbursement-b.log 2>&1 <<SQL &
 begin;
 set application_name = 'refund_reimbursement_b';
+update public.transaction_item
+set category_id = (select id from public.category
+  where ledger_id = '${ledger_id}' and system_key = 'reimbursement')
+where id = '${mixed_reimbursement_income_id}';
 select public.apply_transaction_item_links(
   '${ledger_id}',
   '${mixed_reimbursement_income_id}',
