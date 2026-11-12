@@ -346,12 +346,6 @@ export function createTransactionService({
           transactionSpecialStatusErrorMessages.incomeLinkSystemCategoryRequired,
         );
       }
-      if (hasRefundLink && item.amount <= 0) {
-        throw new ValidationError(
-          transactionErrorCodes.refundLinkInvalid,
-          transactionSpecialStatusErrorMessages.refundAmountInvalid,
-        );
-      }
     }
   }
 
