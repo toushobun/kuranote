@@ -141,6 +141,10 @@ declare
     current_setting('app.allow_system_category_write', true) = 'true';
 begin
   if tg_op = 'DELETE' then
+    -- 删除整个账本由既有的受控 RPC 执行，不能被系统分类防线阻断。
+    if public.ledger_deletion_allows_delete(old.ledger_id) then
+      return old;
+    end if;
     if old.system_key is not null then
       raise exception 'category_system_locked'
         using errcode = '22023', detail = 'category_system_locked';
