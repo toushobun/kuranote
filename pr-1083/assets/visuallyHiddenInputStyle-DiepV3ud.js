@@ -1,0 +1,1 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";var t,n=e((()=>{t={height:1,opacity:0,position:`absolute`,width:1}}));export{t as n,n as t};
