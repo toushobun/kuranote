@@ -458,9 +458,7 @@ function buildIncomeLinkCandidate(
     originalAmountUnits !== null &&
     refundedAmountUnits !== null &&
     reimbursementAmountUnits !== null
-      ? originalAmountUnits -
-        refundedAmountUnits -
-        reimbursementAmountUnits
+      ? originalAmountUnits - refundedAmountUnits - reimbursementAmountUnits
       : BigInt(0);
   const remainingRefundableAmount = formatRefundMinorUnits(
     calculatedRemainingUnits,

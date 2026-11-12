@@ -126,8 +126,5 @@ export function isValidTransactionFormItem(
   item: TransactionFormItem,
   currency?: string,
 ) {
-  return (
-    item.categoryId.length > 0 &&
-    isValidMoneyText(item.amount, currency)
-  );
+  return item.categoryId.length > 0 && isValidMoneyText(item.amount, currency);
 }

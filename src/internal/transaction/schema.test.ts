@@ -395,7 +395,14 @@ describe("\u4EA4\u6613\u8868\u5355\u8FB9\u754C\u6821\u9A8C", () => {
 
       expect(validateTransactionForm(formData)).toMatchObject({
         ok: true,
-        value: { items: [{ amount: 0, refundedItemId: "00000000-0000-4000-8000-000000000201" }] },
+        value: {
+          items: [
+            {
+              amount: 0,
+              refundedItemId: "00000000-0000-4000-8000-000000000201",
+            },
+          ],
+        },
       });
     });
     it("商家为空时校验失败", () => {

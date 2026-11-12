@@ -83,9 +83,11 @@ describe("transactionLinkCandidates", () => {
     const reimbursement = { id: candidate.id };
 
     it("编辑时删除已保存的退款关联会恢复剩余", () => {
-      const result = adjustLinkCandidate(candidate, [], [
-        { amount: "60", refundCandidate: refund },
-      ]);
+      const result = adjustLinkCandidate(
+        candidate,
+        [],
+        [{ amount: "60", refundCandidate: refund }],
+      );
       expect(result.remainingRefundableAmount).toBe("90");
       expect(result.refundedAmount).toBe("0");
     });
@@ -154,5 +156,4 @@ describe("transactionLinkCandidates", () => {
       expect(result.remainingRefundableAmount).toBe("3");
     });
   });
-
 });

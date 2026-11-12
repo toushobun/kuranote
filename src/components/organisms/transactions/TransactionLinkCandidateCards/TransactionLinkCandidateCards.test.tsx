@@ -47,7 +47,12 @@ describe("TransactionLinkCandidateCards", () => {
     const { rerender } = render(
       <TransactionLinkCandidateCards
         candidates={[
-          { ...candidate, amount: "100", refundedAmount: "40", remainingRefundableAmount: "60" },
+          {
+            ...candidate,
+            amount: "100",
+            refundedAmount: "40",
+            remainingRefundableAmount: "60",
+          },
         ]}
         onSelect={vi.fn()}
       />,
@@ -56,7 +61,13 @@ describe("TransactionLinkCandidateCards", () => {
     rerender(
       <TransactionLinkCandidateCards
         candidates={[
-          { ...candidate, amount: "100", refundedAmount: "0", reimbursementAmount: "0", remainingRefundableAmount: "100" },
+          {
+            ...candidate,
+            amount: "100",
+            refundedAmount: "0",
+            reimbursementAmount: "0",
+            remainingRefundableAmount: "100",
+          },
         ]}
         onSelect={vi.fn()}
       />,
@@ -115,5 +126,4 @@ describe("TransactionLinkCandidateCards", () => {
     fireEvent.click(screen.getByRole("button", { name: /选择退款明细/ }));
     expect(onSelect).toHaveBeenCalledWith(candidate);
   });
-
 });

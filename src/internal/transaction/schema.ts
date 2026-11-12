@@ -485,20 +485,19 @@ function addSameAccountTransferIssue(context: z.RefinementCtx) {
   });
 }
 
-const transactionItemRequestSchema = z
-  .object({
-    amount: z.number().nonnegative().refine(hasValidMoneyPrecision, {
-      message: transactionErrorCodes.amountInvalid,
-    }),
-    categoryId: z.string().uuid(),
-    id: z.string().uuid().optional(),
-    refundedItemId: z.string().uuid().optional(),
-    reimbursementItemId: z.string().uuid().optional(),
-    specialStatus: z
-      .enum(transactionWritableSpecialStatuses)
-      .nullable()
-      .optional(),
-  });
+const transactionItemRequestSchema = z.object({
+  amount: z.number().nonnegative().refine(hasValidMoneyPrecision, {
+    message: transactionErrorCodes.amountInvalid,
+  }),
+  categoryId: z.string().uuid(),
+  id: z.string().uuid().optional(),
+  refundedItemId: z.string().uuid().optional(),
+  reimbursementItemId: z.string().uuid().optional(),
+  specialStatus: z
+    .enum(transactionWritableSpecialStatuses)
+    .nullable()
+    .optional(),
+});
 
 const normalTransactionRequestSchema = z.object({
   accountId: z.string().uuid(),

@@ -66,8 +66,10 @@ export function adjustLinkCandidate(
   editingItemId: number | null = null,
 ): TransactionRefundCandidate {
   let refunded = toRefundMinorUnits(candidate.refundedAmount) ?? 0n;
-  let reimbursed = toRefundMinorUnits(candidate.reimbursementAmount ?? "0") ?? 0n;
-  let remaining = toSignedLinkMinorUnits(candidate.remainingRefundableAmount) ?? 0n;
+  let reimbursed =
+    toRefundMinorUnits(candidate.reimbursementAmount ?? "0") ?? 0n;
+  let remaining =
+    toSignedLinkMinorUnits(candidate.remainingRefundableAmount) ?? 0n;
   const apply = (
     items: readonly {
       amount: string;
@@ -90,7 +92,10 @@ export function adjustLinkCandidate(
     }
   };
   apply(initialItems, -1n);
-  apply(draftItems.filter((item) => item.id !== editingItemId), 1n);
+  apply(
+    draftItems.filter((item) => item.id !== editingItemId),
+    1n,
+  );
   return {
     ...candidate,
     refundedAmount: formatRefundMinorUnits(refunded),

@@ -746,7 +746,9 @@ export function useTransactionForm({
       if (candidate) setPickerRefundCandidate(null);
     }
     if (candidate && pickerMode === kind) {
-      setPickerAmount(getLinkCandidateDefaultAmount(resolveLinkCandidate(candidate)));
+      setPickerAmount(
+        getLinkCandidateDefaultAmount(resolveLinkCandidate(candidate)),
+      );
     }
   }
 

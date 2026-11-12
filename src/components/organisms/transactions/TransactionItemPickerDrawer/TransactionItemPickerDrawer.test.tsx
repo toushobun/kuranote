@@ -87,9 +87,7 @@ describe("TransactionItemPickerDrawer", () => {
   }
   function openLinkedAmount() {
     const onAmountChange = renderLinkedAmount();
-    fireEvent.click(
-      screen.getByRole("button", { name: /报销金额 剩余未报/ }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /报销金额 剩余未报/ }));
     return onAmountChange;
   }
 
@@ -135,7 +133,9 @@ describe("TransactionItemPickerDrawer", () => {
     );
     expect(screen.getByText("¥0")).toBeVisible();
     expect(screen.getByText("这笔已全额退款")).toBeVisible();
-    expect(document.querySelector("svg[data-testid='EditRoundedIcon']")).not.toBeNull();
+    expect(
+      document.querySelector("svg[data-testid='EditRoundedIcon']"),
+    ).not.toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "确定" }));
     expect(onPickerAdd).toHaveBeenCalledOnce();
   });
@@ -165,7 +165,9 @@ describe("TransactionItemPickerDrawer", () => {
       />,
     );
     expect(screen.getByText("剩余未退 ¥800")).toBeVisible();
-    expect(document.querySelector("svg[data-testid='EditRoundedIcon']")).not.toBeNull();
+    expect(
+      document.querySelector("svg[data-testid='EditRoundedIcon']"),
+    ).not.toBeNull();
   });
 
   it("金额行打开计算器，只有确认才写入金额", () => {
