@@ -86,8 +86,8 @@ describe("transactionLinkCandidates", () => {
       const result = adjustLinkCandidate(candidate, [], [
         { amount: "60", refundCandidate: refund },
       ]);
-      expect(result.remainingRefundableAmount).toBe("90.00");
-      expect(result.refundedAmount).toBe("0.00");
+      expect(result.remainingRefundableAmount).toBe("90");
+      expect(result.refundedAmount).toBe("0");
     });
 
     it("正在编辑的旧明细不重复扣减，其他草稿明细仍然生效", () => {
@@ -100,7 +100,7 @@ describe("transactionLinkCandidates", () => {
         [{ amount: "60", refundCandidate: refund }],
         1,
       );
-      expect(result.remainingRefundableAmount).toBe("75.00");
+      expect(result.remainingRefundableAmount).toBe("75");
     });
 
     it("修改已保存金额后以新金额核销", () => {
@@ -109,8 +109,8 @@ describe("transactionLinkCandidates", () => {
         [{ id: 1, amount: "20", refundCandidate: refund }],
         [{ amount: "60", refundCandidate: refund }],
       );
-      expect(result.remainingRefundableAmount).toBe("70.00");
-      expect(result.refundedAmount).toBe("20.00");
+      expect(result.remainingRefundableAmount).toBe("70");
+      expect(result.refundedAmount).toBe("20");
     });
 
     it("改选其他目标后旧原支出恢复剩余", () => {
@@ -119,8 +119,8 @@ describe("transactionLinkCandidates", () => {
         [{ id: 1, amount: "20", refundCandidate: { id: "other" } }],
         [{ amount: "60", refundCandidate: refund }],
       );
-      expect(result.remainingRefundableAmount).toBe("90.00");
-      expect(result.refundedAmount).toBe("0.00");
+      expect(result.remainingRefundableAmount).toBe("90");
+      expect(result.refundedAmount).toBe("0");
     });
 
     it("同一张小票两笔退款和一笔报销一起核销，零金额不抵消", () => {
@@ -134,9 +134,9 @@ describe("transactionLinkCandidates", () => {
         ],
         [],
       );
-      expect(result.refundedAmount).toBe("79.00");
-      expect(result.reimbursementAmount).toBe("18.00");
-      expect(result.remainingRefundableAmount).toBe("3.00");
+      expect(result.refundedAmount).toBe("79");
+      expect(result.reimbursementAmount).toBe("18");
+      expect(result.remainingRefundableAmount).toBe("3");
     });
   });
 
