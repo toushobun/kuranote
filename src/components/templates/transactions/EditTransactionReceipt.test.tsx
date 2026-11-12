@@ -365,9 +365,7 @@ describe("EditTransactionReceiptTemplate", () => {
     renderReceipt();
     await waitFor(() => expect(fetchClientJson).toHaveBeenCalledTimes(1));
     const drawer = await openMerchantPicker();
-    fireEvent.click(
-      within(drawer).getByRole("button", { name: "新开商家" }),
-    );
+    fireEvent.click(within(drawer).getByRole("button", { name: "新开商家" }));
     await waitFor(() =>
       expect(
         screen.getByRole("button", { name: "修改商家：新开商家" }),
