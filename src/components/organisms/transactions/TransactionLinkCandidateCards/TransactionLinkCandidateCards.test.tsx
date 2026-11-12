@@ -6,7 +6,7 @@ import { candidateItems } from "../TransactionLinkCandidatePanel/transactionLink
 const candidate = {
   ...candidateItems[0],
   merchantName: "全家",
-  merchantIconUrl: "/assets/kura-icons/merchant.png",
+  merchantIconUrl: "/merchant-logo.png",
   accountName: "招行信用卡",
   transactionAt: "2026-11-10T16:30:00Z",
 };
