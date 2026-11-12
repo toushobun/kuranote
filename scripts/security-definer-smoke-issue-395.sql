@@ -511,7 +511,7 @@ begin
           and lds.display_name = 'Owner'
           and lds.display_color = 'jade'
        )
-       or (select count(*) from public.category where ledger_id = v_previous_ledger_id) <> 101
+       or (select count(*) from public.category where ledger_id = v_previous_ledger_id) <> 102
        or (select count(*) from public.merchant where ledger_id = v_previous_ledger_id) <> 55
        or (select count(*) from public.merchant_tags where ledger_id = v_previous_ledger_id) <> 8
        or (
@@ -661,7 +661,7 @@ begin
         raise exception 'complete_ledger_setup ledger status smoke test failed';
     end if;
 
-    if (select count(*) from public.category where ledger_id = v_setup_ledger_id) <> 101 then
+    if (select count(*) from public.category where ledger_id = v_setup_ledger_id) <> 102 then
         raise exception 'complete_ledger_setup default categories smoke test failed';
     end if;
 
@@ -798,7 +798,7 @@ begin
           and l.setup_status = 'completed'
           and l.transaction_item_special_status_enabled = false
        )
-       or (select count(*) from public.category where ledger_id = v_skip_ledger_id) <> 101
+       or (select count(*) from public.category where ledger_id = v_skip_ledger_id) <> 102
        or exists (select 1 from public.account where ledger_id = v_skip_ledger_id)
        or exists (select 1 from public.merchant where ledger_id = v_skip_ledger_id)
        or exists (select 1 from public.merchant_tags where ledger_id = v_skip_ledger_id) then
@@ -930,7 +930,7 @@ $$;
 -- 按同样的列以 COLLATE "C"（码位顺序）排序后用换行连接，取 md5。
 -- 排序必须固定为 "C"：数据库默认排序规则（本地 C.UTF-8、Supabase 的 ICU / en_US 等）
 -- 对 emoji 与中文名称的顺序不同，会让同样的数据得到不同的指纹。
--- 期望值为抽出前（main）initialize_ledger_default_categories 写入结果（101 个分类）的指纹。
+-- 验证默认分类与源清单一致，并单独验证固定的三个系统分类。
 create function pg_temp.default_category_fingerprint(p_ledger_id uuid)
 returns text
 language sql
@@ -946,8 +946,9 @@ as $$
     ))
     from public.category c
     left join public.category parent on parent.id = c.parent_id
-    where c.ledger_id = p_ledger_id;
-$$;
+    where c.ledger_id = p_ledger_id
+      and c.system_key is null;
+$;
 
 -- 分别断言分类总数、大分类数与指纹，失败时报出实际值。
 create function pg_temp.assert_default_categories(p_label text, p_ledger_id uuid)
@@ -955,7 +956,7 @@ returns void
 language plpgsql
 as $$
 declare
-    v_expected_fingerprint constant text := '71bbe68f984544d84827496605aef755';
+    v_expected_fingerprint text;
     v_total integer;
     v_roots integer;
     v_fingerprint text;
@@ -963,14 +964,28 @@ begin
     select count(*), count(*) filter (where parent_id is null)
       into v_total, v_roots
       from public.category
-     where ledger_id = p_ledger_id;
+     where ledger_id = p_ledger_id
+       and system_key is null;
     v_fingerprint := pg_temp.default_category_fingerprint(p_ledger_id);
+    select md5(string_agg(
+        format('%s|%s|%s|%s|%s|%s', d.category_type, coalesce(d.parent_name, ''),
+               d.name, d.icon_name, d.color, d.sort_order),
+        E'\n'
+        order by d.category_type collate "C",
+                 coalesce(d.parent_name, '') collate "C",
+                 d.sort_order, d.name collate "C"
+    )) into v_expected_fingerprint
+      from public.ledger_default_categories() d;
 
-    if v_total <> 101 then
-        raise exception '% default category count changed: expected 101, got %', p_label, v_total;
+    if v_total <> 99 then
+        raise exception '% default category count changed: expected 99, got %', p_label, v_total;
     end if;
     if v_roots <> 12 then
         raise exception '% default root category count changed: expected 12, got %', p_label, v_roots;
+    end if;
+    if (select count(*) from public.category
+        where ledger_id = p_ledger_id and system_key is not null) <> 3 then
+        raise exception '% expected exactly three system categories', p_label;
     end if;
     if v_fingerprint is distinct from v_expected_fingerprint then
         raise exception '% default category fingerprint changed: expected %, got %',
@@ -1013,7 +1028,8 @@ begin
       into v_written_roots
       from public.category c
      where c.ledger_id = v_setup_ledger_id
-       and c.parent_id is null;
+       and c.parent_id is null
+       and c.system_key is null;
 
     if v_rpc_roots is null or v_rpc_roots is distinct from v_written_roots then
         raise exception 'get_ledger_default_root_categories must match written root categories';

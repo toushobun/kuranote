@@ -27,6 +27,7 @@ readonly user_id="00000000-0000-4000-8000-000000000031"
 readonly account_id="00000000-0000-4000-8000-000000000043"
 readonly expense_category_id="00000000-0000-4000-8000-000000005021"
 readonly income_category_id="00000000-0000-4000-8000-000000005002"
+reimbursement_category_id=""
 readonly edit_target_id="57430000-0000-4000-8000-000000000001"
 readonly edit_income_id="57430000-0000-4000-8000-000000000002"
 readonly edit_new_income_id="57430000-0000-4000-8000-000000000003"
@@ -74,6 +75,7 @@ SQL
 trap cleanup EXIT
 
 old_account_balance="$(psql_in_db -A -t -c "select current_balance from public.account where id = '${account_id}' and ledger_id = '${ledger_id}';" | tr -d '\r')"
+reimbursement_category_id="$(psql_in_db -A -t -c "select id from public.category where ledger_id = '${ledger_id}' and system_key = 'reimbursement';" | tr -d '\r')"
 
 psql_in_db >/dev/null <<SQL
 begin;
@@ -102,10 +104,10 @@ where source_record.id = '00000000-0000-4000-8000-000000009001';
 select tests.insert_normal_transaction_items(jsonb_agg(item))
 from (values
   ('${edit_target_id}', '${ledger_id}', '57431000-0000-4000-8000-000000000001', '${account_id}', '${expense_category_id}', 100, 0, -100, 0, '${user_id}', '${user_id}', '2090-01-01', '2090-01-01', 'pending_reimbursement'),
-  ('${edit_income_id}', '${ledger_id}', '57431000-0000-4000-8000-000000000002', '${account_id}', '${income_category_id}', 40, 0, 40, 0, '${user_id}', '${user_id}', '2090-01-01', '2090-01-01', null),
+  ('${edit_income_id}', '${ledger_id}', '57431000-0000-4000-8000-000000000002', '${account_id}', '${reimbursement_category_id}', 40, 0, 40, 0, '${user_id}', '${user_id}', '2090-01-01', '2090-01-01', null),
   ('${edit_new_income_id}', '${ledger_id}', '57431000-0000-4000-8000-000000000003', '${account_id}', '${income_category_id}', 30, 0, 30, 0, '${user_id}', '${user_id}', '2090-01-01', '2090-01-01', null),
   ('${clear_target_id}', '${ledger_id}', '57431000-0000-4000-8000-000000000004', '${account_id}', '${expense_category_id}', 100, 0, -100, 0, '${user_id}', '${user_id}', '2090-01-01', '2090-01-01', 'pending_reimbursement'),
-  ('${clear_income_id}', '${ledger_id}', '57431000-0000-4000-8000-000000000005', '${account_id}', '${income_category_id}', 40, 0, 40, 0, '${user_id}', '${user_id}', '2090-01-01', '2090-01-01', null),
+  ('${clear_income_id}', '${ledger_id}', '57431000-0000-4000-8000-000000000005', '${account_id}', '${reimbursement_category_id}', 40, 0, 40, 0, '${user_id}', '${user_id}', '2090-01-01', '2090-01-01', null),
   ('${clear_new_income_id}', '${ledger_id}', '57431000-0000-4000-8000-000000000006', '${account_id}', '${income_category_id}', 30, 0, 30, 0, '${user_id}', '${user_id}', '2090-01-01', '2090-01-01', null)
 ) item(
   id, ledger_id, transaction_record_id, account_id, category_id,
@@ -147,7 +149,7 @@ select tests.update_linked_transaction_item(
   '2090-01-01 00:00:00+00',
   50,
   '${account_id}',
-  '${income_category_id}'
+  '${reimbursement_category_id}'
 );
 \! touch ${edit_lock_marker}
 \! while [ ! -f ${edit_release_marker} ]; do sleep 0.1; done
@@ -181,7 +183,7 @@ select public.update_transaction(
     jsonb_build_object(
       'id', '${edit_new_income_id}',
       'amount', 30,
-      'categoryId', '${income_category_id}',
+      'categoryId', '${reimbursement_category_id}',
       'reimbursementItemId', '${edit_target_id}'
     )
   ),
@@ -281,7 +283,7 @@ select public.update_transaction(
     jsonb_build_object(
       'id', '${clear_new_income_id}',
       'amount', 30,
-      'categoryId', '${income_category_id}',
+      'categoryId', '${reimbursement_category_id}',
       'reimbursementItemId', '${clear_target_id}'
     )
   ),
