@@ -205,9 +205,9 @@ select results_eq(
 select results_eq(
     $$select label, expense, shared_count, shared_total
       from pg_temp.group_summaries('category', '2099-04-10', '2099-04-13', pg_temp.id(1)::text)$$,
-    $values ('💴 退款', 0::numeric, 0, 0::numeric),
+    $$values ('💴 退款', 0::numeric, 0, 0::numeric),
              ('检查费', 70000::numeric, 1, 120000::numeric),
-             ('治疗费', 40000::numeric, 1, 120000::numeric)$,
+             ('治疗费', 40000::numeric, 1, 120000::numeric)$$,
     '筛选「我」按分类：命中明细全额（业务净额），医院带共同支付（整笔 12 万）'
 );
 select results_eq(

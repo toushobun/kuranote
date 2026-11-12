@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
+import { transactionLinkCandidateMessages } from "config/transactionStepFlowMessages";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import InputAdornment from "@mui/material/InputAdornment";
@@ -46,7 +47,7 @@ type TransactionLinkCandidatePanelProps = {
   value: TransactionRefundCandidate | null;
 };
 
-/** 抽屉内选择一条原支出。退款首屏按当前商家筛选，搜素始终跨商家。 */
+/** 抽屉内选择一条原支出。退款首屏按当前商家筛选，搜索始终跨商家。 */
 export function TransactionLinkCandidatePanel({
   accountCurrency,
   amount,
@@ -183,10 +184,12 @@ export function TransactionLinkCandidatePanel({
       <TextField
         fullWidth
         onChange={(event) => setQuery(event.target.value)}
-        placeholder="搜索原支出（全部商家）"
+        placeholder={transactionLinkCandidateMessages.searchPlaceholder}
         size="small"
         slotProps={{
-          htmlInput: { "aria-label": "搜索原支出" },
+          htmlInput: {
+            "aria-label": transactionLinkCandidateMessages.searchAria,
+          },
           input: {
             startAdornment: (
               <InputAdornment position="start">
@@ -210,12 +213,14 @@ export function TransactionLinkCandidatePanel({
                 />
               ) : (
                 <Typography color="textSecondary">
-                  没有找到可关联的支出。
+                  {transactionLinkCandidateMessages.noSearchResults}
                 </Typography>
               )}
               {searchPage.nextOffset !== null ? (
                 <Button disabled={loadingMore} onClick={() => void loadMore()}>
-                  {loadingMore ? "加载中…" : "加载更多"}
+                  {loadingMore
+                    ? transactionLinkCandidateMessages.loading
+                    : transactionLinkCandidateMessages.loadMore}
                 </Button>
               ) : null}
             </>
@@ -225,7 +230,7 @@ export function TransactionLinkCandidatePanel({
         ) : view ? (
           view.groups.length === 0 ? (
             <Typography color="textSecondary" variant="body2">
-              没有可关联的原支出，试试搜索。
+              {transactionLinkCandidateMessages.noCandidates}
             </Typography>
           ) : (
             <TransactionMonthList
@@ -264,27 +269,34 @@ export function TransactionLinkCandidatePanel({
                 : setRetryKey((value) => value + 1)
             }
           >
-            加载失败，点击重试
+            {transactionLinkCandidateMessages.retry}
           </Button>
         ) : null}
       </Stack>
       {value ? (
         <Typography variant="caption" color="textSecondary">
-          已选择：{value.categoryName}
+          {transactionLinkCandidateMessages.selected(value.categoryName)}
         </Typography>
       ) : (
         <Typography variant="caption" color="textSecondary">
-          请先选择一笔原支出，再填写金额。
+          {transactionLinkCandidateMessages.selectFirst}
         </Typography>
       )}
       <TextField
         fullWidth
         disabled={!value}
-        label={kind === "refund" ? "本次退款金额" : "本次报销金额"}
+        label={
+          kind === "refund"
+            ? transactionLinkCandidateMessages.refundAmount
+            : transactionLinkCandidateMessages.reimbursementAmount
+        }
         onChange={(event) => onAmountChange(event.target.value)}
         size="small"
         slotProps={{
-          htmlInput: { inputMode: "decimal", "aria-label": "核销金额" },
+          htmlInput: {
+            inputMode: "decimal",
+            "aria-label": transactionLinkCandidateMessages.offsetAmount,
+          },
         }}
         value={amount}
       />

@@ -46,6 +46,8 @@ select is(
     '00000000-0000-4000-8000-000000009242'::uuid,
     '退款链接改为新原支出'
 );
+-- 内部金额计算函数仅供可信数据库角色调用，业务 RPC 仍按 authenticated 验证。
+reset role;
 select is(
     public.calculate_transaction_item_remaining_offset_amount(
         '00000000-0000-4000-8000-000000000032',
@@ -63,6 +65,7 @@ select is(
     '新原支出同时计入原有 2500 退款与本次 4200 退款'
 );
 
+set local role authenticated;
 select throws_ok(
     $$
         select public.update_linked_transaction_edit(
@@ -146,6 +149,7 @@ select is(
     'reimbursement_surplus'::text,
     '新原支出累积核销超过原金额，重新派生核销结余'
 );
+reset role;
 select is(
     public.calculate_transaction_item_remaining_offset_amount(
         '00000000-0000-4000-8000-000000000032',

@@ -127,7 +127,7 @@ describe("TransactionItemPickerDrawer", () => {
     expect(screen.queryByText("报销关联")).not.toBeInTheDocument();
   });
 
-  it("切换明细类型时回调一次；禁用特殊状态时退款和报销不可选", () => {
+  it("切换明细类型时回调一次；禁用特殊状态时只显示支出和收入", () => {
     const onPickerModeChange = vi.fn();
     render(
       <TransactionItemPickerDrawer
@@ -148,8 +148,15 @@ describe("TransactionItemPickerDrawer", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "明细类型收入" }));
     expect(onPickerModeChange).toHaveBeenCalledWith("income");
-    expect(screen.getByRole("button", { name: "明细类型退款" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "明细类型报销" })).toBeDisabled();
+    expect(
+      screen.queryByRole("button", { name: "明细类型退款" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "明细类型报销" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("请选择本笔明细的分类。"),
+    ).not.toBeInTheDocument();
   });
 
   it("多账户时仅允许选择支出类型", () => {

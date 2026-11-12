@@ -19,6 +19,7 @@ import Typography from "@mui/material/Typography";
 
 import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { primaryActionButtonNoHoverBrightenSx } from "atoms/ui/PrimaryActionButton/primaryActionButtonSx";
+import { transactionItemPickerMessages } from "config/transactionStepFlowMessages";
 import type { TransactionSpecialStatus } from "internal/transaction";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { designTokens } from "theme/theme";
@@ -182,13 +183,13 @@ export function TransactionItemPickerDrawer({
       groups: displayedGroups.filter(
         (group) => group.categories[0]?.type === "expense",
       ),
-      label: "支出分类",
+      label: transactionItemPickerMessages.categorySection.expense,
     },
     {
       groups: displayedGroups.filter(
         (group) => group.categories[0]?.type === "income",
       ),
-      label: "收入分类",
+      label: transactionItemPickerMessages.categorySection.income,
     },
   ].filter((section) => section.groups.length > 0);
   const isCategoryDisabled = (category: TransactionCategoryOption) =>
@@ -230,16 +231,22 @@ export function TransactionItemPickerDrawer({
 
       <Stack direction="row" sx={drawerHeaderSx}>
         <Typography component="h2" variant="h6" sx={drawerTitleSx}>
-          {editingItemId === null ? "添加明细" : "编辑明细"}
+          {editingItemId === null
+            ? transactionItemPickerMessages.addTitle
+            : transactionItemPickerMessages.editTitle}
         </Typography>
-        <IconButton aria-label="关闭" onClick={closeDrawer} sx={closeButtonSx}>
+        <IconButton
+          aria-label={transactionItemPickerMessages.close}
+          onClick={closeDrawer}
+          sx={closeButtonSx}
+        >
           <CloseIcon />
         </IconButton>
       </Stack>
 
       <Box sx={drawerBodySx}>
         <ToggleButtonGroup
-          aria-label="明细类型"
+          aria-label={transactionItemPickerMessages.typeTitle}
           exclusive
           fullWidth
           onChange={(_, value: TransactionItemPickerMode | null) => {
@@ -249,38 +256,35 @@ export function TransactionItemPickerDrawer({
           sx={typeToggleGroupSx}
           value={pickerMode}
         >
-          {(
-            [
-              ["expense", "支出"],
-              ["income", "收入"],
-              ["refund", "退款"],
-              ["reimbursement", "报销"],
-            ] as const
-          ).map(([mode, label]) => (
+          {transactionItemPickerMessages.typeOptions
+            .filter(
+              ({ id }) =>
+                specialStatusEnabled ||
+                (id !== "refund" && id !== "reimbursement"),
+            )
+            .map(({ id: mode, label }) => (
             <ToggleButton
-              aria-label={`明细类型${label}`}
+              aria-label={transactionItemPickerMessages.typeLabel(label)}
               disabled={
                 (pickerModeLocked && mode !== pickerMode) ||
-                (multiAccount && mode !== "expense") ||
-                ((mode === "refund" || mode === "reimbursement") &&
-                  !specialStatusEnabled)
+                (multiAccount && mode !== "expense")
               }
               key={mode}
               value={mode}
             >
               {label}
             </ToggleButton>
-          ))}
+            ))}
         </ToggleButtonGroup>
-        <Typography
-          color="textSecondary"
-          variant="caption"
-          sx={{ display: "block", mt: 0.75 }}
-        >
-          {isLinkedMode
-            ? "退款 / 报销会抵消原支出，不计入收入。"
-            : "请选择本笔明细的分类。"}
-        </Typography>
+        {isLinkedMode ? (
+          <Typography
+            color="textSecondary"
+            variant="caption"
+            sx={{ display: "block", mt: 0.75 }}
+          >
+            {transactionItemPickerMessages.linkedHint}
+          </Typography>
+        ) : null}
         {isLinkedMode ? (
           <TransactionLinkCandidatePanel
             accountCurrency={selectedAccountCurrency}
@@ -320,15 +324,17 @@ export function TransactionItemPickerDrawer({
             <TextField
               fullWidth
               onChange={(event) => setSearchText(event.target.value)}
-              placeholder="搜索小分类"
+              placeholder={transactionItemPickerMessages.searchCategory}
               size="small"
               slotProps={{
-                htmlInput: { "aria-label": "搜索小分类" },
+                htmlInput: {
+                  "aria-label": transactionItemPickerMessages.searchCategory,
+                },
                 input: {
                   endAdornment: searchText ? (
                     <InputAdornment position="end">
                       <IconButton
-                        aria-label="清空搜索"
+                        aria-label={transactionItemPickerMessages.clearSearch}
                         edge="end"
                         onClick={() => setSearchText("")}
                         size="small"
@@ -349,13 +355,15 @@ export function TransactionItemPickerDrawer({
             />
 
             {filteredCategoryOptions.length === 0 ? (
-              <Typography color="textSecondary">请先新增分类。</Typography>
+              <Typography color="textSecondary">
+                {transactionItemPickerMessages.missingCategories}
+              </Typography>
             ) : (
               <>
                 {displayedGroups.length === 0 ? (
                   <Box sx={emptySearchSx}>
                     <Typography color="textSecondary" variant="body2">
-                      没有匹配的小分类
+                      {transactionItemPickerMessages.noMatchingCategory}
                     </Typography>
                   </Box>
                 ) : (
@@ -476,7 +484,9 @@ export function TransactionItemPickerDrawer({
             variant="outlined"
             sx={editingItemId === null ? drawerCancelButtonSx : deleteButtonSx}
           >
-            {editingItemId === null ? "取消" : "删除明细"}
+            {editingItemId === null
+              ? transactionItemPickerMessages.cancel
+              : transactionItemPickerMessages.remove}
           </Button>
           <PrimaryActionButton
             disabled={isLinkedMode && !selectedCandidate}
@@ -485,7 +495,9 @@ export function TransactionItemPickerDrawer({
             type="button"
             sx={drawerDoneButtonSx}
           >
-            {editingItemId === null ? "确定" : "保存修改"}
+            {editingItemId === null
+              ? transactionItemPickerMessages.confirm
+              : transactionItemPickerMessages.saveEdit}
           </PrimaryActionButton>
         </Stack>
       </Box>
