@@ -35,6 +35,8 @@ export type UpdateLinkedTransactionEditInput = {
     categoryId: string;
     expectedUpdatedAt: string;
     transactionItemId: string;
+    refundedItemId?: string;
+    reimbursementItemId?: string;
   }>;
   ledgerId: string;
   merchantId: string;

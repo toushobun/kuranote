@@ -230,18 +230,12 @@ function validateAssociationUnchanged(
 ): void {
   const role = existing.businessStatus?.incomeLinkRole;
   if (role === "refund") {
-    if (
-      submitted.refundedItemId !== existing.refundCandidate?.id ||
-      submitted.reimbursementItemId !== undefined
-    ) {
+    if (!submitted.refundedItemId || submitted.reimbursementItemId !== undefined) {
       throwUnlinkRequired();
     }
   }
   if (role === "reimbursement") {
-    if (
-      submitted.reimbursementItemId !== existing.reimbursementCandidate?.id ||
-      submitted.refundedItemId !== undefined
-    ) {
+    if (!submitted.reimbursementItemId || submitted.refundedItemId !== undefined) {
       throwUnlinkRequired();
     }
   }
@@ -433,9 +427,15 @@ export function createLinkedTransactionEditService({
         ) {
           throwUnlinkRequired();
         }
+        const targetChanged =
+          (existing.businessStatus?.incomeLinkRole === "refund" &&
+            submitted.refundedItemId !== existing.refundCandidate?.id) ||
+          (existing.businessStatus?.incomeLinkRole === "reimbursement" &&
+            submitted.reimbursementItemId !== existing.reimbursementCandidate?.id);
         if (
           paymentsChanged ||
           categoryChanged ||
+          targetChanged ||
           !sameAmount(submitted.amount, existing.amount)
         ) {
           changedLinkedItems.push({ existing, submitted });
@@ -466,6 +466,14 @@ export function createLinkedTransactionEditService({
           categoryId: submitted.categoryId,
           expectedUpdatedAt,
           transactionItemId: existing.id,
+          ...(existing.businessStatus?.incomeLinkRole === "refund" &&
+          submitted.refundedItemId !== existing.refundCandidate?.id
+            ? { refundedItemId: submitted.refundedItemId }
+            : {}),
+          ...(existing.businessStatus?.incomeLinkRole === "reimbursement" &&
+          submitted.reimbursementItemId !== existing.reimbursementCandidate?.id
+            ? { reimbursementItemId: submitted.reimbursementItemId }
+            : {}),
         };
       });
 
