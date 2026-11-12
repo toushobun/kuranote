@@ -323,6 +323,18 @@ export function createTransactionService({
           transactionSpecialStatusErrorMessages.incomeLinkConflict,
         );
       }
+      const systemKey = categoryById.get(item.categoryId)?.system_key ?? null;
+      const requiredSystemKey = hasRefundLink
+        ? "refund"
+        : hasReimbursementLink
+          ? "reimbursement"
+          : null;
+      if (systemKey !== requiredSystemKey) {
+        throw new ValidationError(
+          transactionErrorCodes.incomeLinkCategoryInvalid,
+          transactionSpecialStatusErrorMessages.incomeLinkSystemCategoryRequired,
+        );
+      }
       if (hasRefundLink && item.amount <= 0) {
         throw new ValidationError(
           transactionErrorCodes.refundLinkInvalid,

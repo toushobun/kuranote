@@ -55,6 +55,7 @@ export type CategoryData = {
 };
 
 export type CategorySummary = {
+  system_key?: CategorySystemKey | null;
   id: string;
   name: string;
   parent_id: string | null;
@@ -129,6 +130,7 @@ type CategoryRow = {
 };
 
 type CategorySummaryRow = {
+  system_key?: CategorySystemKey | null;
   id: string;
   name: string;
   parent_id: string | null;
@@ -181,6 +183,7 @@ function toCategoryData(row: CategoryRow): CategoryData {
 
 function toCategorySummary(row: CategorySummaryRow): CategorySummary {
   return {
+    ...(row.system_key ? { system_key: row.system_key } : {}),
     id: row.id,
     name: row.name,
     parent_id: row.parent_id,
@@ -377,7 +380,7 @@ export function createSupabaseCategoryRepository(
 
       const { data, error } = await supabase
         .from("category")
-        .select("id, name, parent_id, type")
+        .select("id, name, parent_id, type, system_key")
         .eq("ledger_id", ledgerId)
         .in("id", uniqueCategoryIds);
       if (error) {
@@ -401,7 +404,7 @@ export function createSupabaseCategoryRepository(
 
       const { data: parentData, error: parentError } = await supabase
         .from("category")
-        .select("id, name, parent_id, type")
+        .select("id, name, parent_id, type, system_key")
         .eq("ledger_id", ledgerId)
         .in("id", parentIds);
       if (parentError) {

@@ -61,6 +61,7 @@ function createService(
   role: CurrentLedgerRole | null,
   repository = createRepository(),
   categoryType?: "expense" | "income",
+  systemKey?: "refund" | "reimbursement",
 ) {
   const accountQueryService = {
     getTransactionContext: vi.fn().mockResolvedValue({
@@ -94,6 +95,7 @@ function createService(
                   name: "测试分类",
                   parent_id: null,
                   type: categoryType,
+                  ...(systemKey ? { system_key: systemKey } : {}),
                 },
               ]
             : [],
@@ -233,6 +235,7 @@ describe("TransactionService", () => {
       "member",
       createRepository(),
       "income",
+      "refund",
     );
     const input = {
       ...normalInput,
@@ -255,6 +258,7 @@ describe("TransactionService", () => {
       "member",
       createRepository(),
       "income",
+      "reimbursement",
     );
     const input = {
       ...normalInput,
@@ -353,6 +357,7 @@ describe("TransactionService", () => {
       "member",
       createRepository(),
       "income",
+      "refund",
     );
     const input = {
       ...normalInput,
@@ -369,6 +374,42 @@ describe("TransactionService", () => {
     await service.updateNormal(input);
 
     expect(repository.updateNormal).toHaveBeenCalledWith(input);
+  });
+
+  it.each([
+    { kind: "refundedItemId", required: "refund" },
+    { kind: "reimbursementItemId", required: "reimbursement" },
+  ] as const)("关联收入必须使用 $required 系统分类", async ({ kind }) => {
+    const { repository, service } = createService("member", createRepository(), "income");
+    await expect(
+      service.createNormal({
+        ...normalInput,
+        items: [{
+          ...normalInput.items[0],
+          [kind]: "00000000-0000-4000-8000-000000005073",
+        }],
+        type: "income",
+      }),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.incomeLinkCategoryInvalid,
+      name: ValidationError.name,
+    });
+    expect(repository.createNormal).not.toHaveBeenCalled();
+  });
+
+  it("普通收入不允许使用退款系统分类", async () => {
+    const { repository, service } = createService(
+      "member",
+      createRepository(),
+      "income",
+      "refund",
+    );
+    await expect(
+      service.createNormal({ ...normalInput, type: "income" }),
+    ).rejects.toMatchObject({
+      code: transactionErrorCodes.incomeLinkCategoryInvalid,
+    });
+    expect(repository.createNormal).not.toHaveBeenCalled();
   });
 
   it("支出分类允许保存待报销状态", async () => {
