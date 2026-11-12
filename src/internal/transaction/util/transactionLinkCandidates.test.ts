@@ -53,10 +53,9 @@ describe("transactionLinkCandidates", () => {
     ]);
   });
   it("候选可携带原支出首个付款账户的 ID", () => {
-    const candidates = toTransactionLinkCandidates(
-      [record],
-      new Map([[record.id, "account-1"]]),
-    );
+    const candidates = toTransactionLinkCandidates([
+      { ...record, account_id: "account-1" },
+    ]);
     expect(candidates[0]?.accountId).toBe("account-1");
     expect(toTransactionLinkCandidates([record])[0]?.accountId).toBeUndefined();
   });

@@ -596,18 +596,8 @@ export function createTransactionService({
         ledger,
       );
       const items = buildFilteredTransactionListItems(context, filters);
-      const primaryAccountIdByRecordId = new Map<string, string>();
-      for (const payment of context.payments) {
-        if (!primaryAccountIdByRecordId.has(payment.transaction_record_id)) {
-          primaryAccountIdByRecordId.set(
-            payment.transaction_record_id,
-            payment.account_id,
-          );
-        }
-      }
       const candidates = toTransactionLinkCandidates(
         filterAndSortTransactionSearchItems(items, input.query),
-        primaryAccountIdByRecordId,
       ).filter(
         (candidate) =>
           !input.currency || candidate.accountCurrency === input.currency,
