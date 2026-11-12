@@ -10616,6 +10616,10 @@ CREATE OR REPLACE TRIGGER "ledger_system_categories_on_completion" AFTER UPDATE 
 
 
 
+CREATE OR REPLACE TRIGGER "ledger_system_categories_on_create" AFTER INSERT ON "public"."ledger" FOR EACH ROW WHEN (("new"."setup_status" = 'completed'::"text")) EXECUTE FUNCTION "public"."initialize_system_categories_after_setup"();
+
+
+
 CREATE OR REPLACE TRIGGER "ledger_validate_multi_account_payment_disable" BEFORE UPDATE OF "multi_account_payment_enabled" ON "public"."ledger" FOR EACH ROW EXECUTE FUNCTION "public"."prevent_disable_multi_account_payment_with_records"();
 
 
