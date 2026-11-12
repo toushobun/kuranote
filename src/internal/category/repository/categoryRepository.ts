@@ -161,7 +161,7 @@ function toCategoryRecord(row: CategoryRecordRow): CategoryRecord {
   return {
     id: row.id,
     parentId: row.parent_id,
-    systemKey: row.system_key,
+    ...(row.system_key ? { systemKey: row.system_key } : {}),
     type: row.type,
   };
 }
