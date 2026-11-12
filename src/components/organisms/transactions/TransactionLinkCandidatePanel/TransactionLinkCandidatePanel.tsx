@@ -53,6 +53,7 @@ export function TransactionLinkCandidatePanel({
   const [loading, setLoading] = useState(false);
   const [browseError, setBrowseError] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
+  const [searchRetryKey, setSearchRetryKey] = useState(0);
   const [query, setQuery] = useState("");
   const [searchPage, setSearchPage] = useState<TransactionSearchPage | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -105,7 +106,7 @@ export function TransactionLinkCandidatePanel({
         .finally(() => { if (!cancelled) setSearchLoading(false); });
     }, 250);
     return () => { cancelled = true; clearTimeout(timeout); };
-  }, [loadSearchPageAction, query]);
+  }, [loadSearchPageAction, query, searchRetryKey]);
 
   async function loadMore() {
     const nextOffset = searchPage?.nextOffset;
@@ -167,7 +168,11 @@ export function TransactionLinkCandidatePanel({
             </>
           ) : null
         ) : loading ? <CircularProgress size={24} /> :
-        view ? (
+        view ? view.groups.length === 0 ? (
+          <Typography color="textSecondary" variant="body2">
+            没有可关联的原支出，试试搜索。
+          </Typography>
+        ) : (
           <TransactionMonthList
             key={browseMerchantId ?? "all"}
             loadGroupItemsAction={loadGroupItemsAction
@@ -187,7 +192,9 @@ export function TransactionLinkCandidatePanel({
           />
         ) : null}
         {browseError || searchError ? (
-          <Button onClick={() => searching ? setQuery(query + " ") : setRetryKey((value) => value + 1)}>
+          <Button onClick={() => searching
+            ? setSearchRetryKey((value) => value + 1)
+            : setRetryKey((value) => value + 1)}>
             加载失败，点击重试
           </Button>
         ) : null}

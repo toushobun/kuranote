@@ -159,6 +159,10 @@ export type TransactionListItem = TransactionRowItem & {
 
 export type TransactionRefundCandidate = {
   accountCurrency: string;
+  accountName?: string;
+  merchantName?: string | null;
+  merchantIconUrl?: string | null;
+  reimbursementAmount?: string;
   amount: string;
   categoryName: string;
   id: string;

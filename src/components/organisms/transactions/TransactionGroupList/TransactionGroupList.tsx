@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import Radio from "@mui/material/Radio";
@@ -155,6 +156,10 @@ export function TransactionRefundCandidateList({
         {
           // 记录币种（普通记录取付款账户币种），只用于判断候选是否可选。
           accountCurrency: record.account_currency,
+          accountName: record.account_name,
+          merchantName: record.merchant_name,
+          merchantIconUrl: record.merchant_icon_url,
+          reimbursementAmount: item.businessStatus?.offsetComposition.reimbursementAmount ?? "0",
           amount: item.amount,
           categoryName: item.categoryName,
           id: item.id,
@@ -200,7 +205,24 @@ export function TransactionRefundCandidateList({
               disabled={isCurrencyMismatched}
               tabIndex={-1}
             />
+            <Avatar
+              alt={candidate.merchantName ?? undefined}
+              src={candidate.merchantIconUrl ?? undefined}
+              sx={{ bgcolor: "action.hover", color: "text.primary", height: 32, width: 32, fontSize: 13 }}
+            >
+              {candidate.merchantName?.slice(0, 1) ?? "支"}
+            </Avatar>
             <Stack sx={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+              <Typography sx={{ fontWeight: 700 }} variant="body2" noWrap>
+                {candidate.merchantName ?? "未指定商家"}
+              </Typography>
+              <Typography color="textSecondary" variant="caption" noWrap>
+                {new Date(candidate.transactionAt).toLocaleDateString("zh-CN", {
+                  month: "numeric",
+                  day: "numeric",
+                })}
+                {candidate.accountName ? ` · ${candidate.accountName}` : ""}
+              </Typography>
               <Typography sx={{ fontWeight: 800 }} variant="body2">
                 {candidate.parentCategoryName
                   ? `${candidate.parentCategoryName} / ${candidate.categoryName}`
@@ -229,6 +251,15 @@ export function TransactionRefundCandidateList({
                   已退款 {currencySymbol}
                   {formatNumber(
                     candidate.refundedAmount,
+                    candidate.accountCurrency,
+                  )}
+                </Typography>
+              ) : null}
+              {isReimbursement && Number(candidate.reimbursementAmount) > 0 ? (
+                <Typography color="textSecondary" variant="caption">
+                  已报销 {currencySymbol}
+                  {formatNumber(
+                    candidate.reimbursementAmount ?? "0",
                     candidate.accountCurrency,
                   )}
                 </Typography>
