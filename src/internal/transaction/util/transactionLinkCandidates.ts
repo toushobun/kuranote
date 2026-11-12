@@ -64,7 +64,7 @@ export function adjustLinkCandidate(
 ): TransactionRefundCandidate {
   let refunded = toRefundMinorUnits(candidate.refundedAmount) ?? 0n;
   let reimbursed = toRefundMinorUnits(candidate.reimbursementAmount ?? "0") ?? 0n;
-  let remaining = toRefundMinorUnits(candidate.remainingRefundableAmount) ?? 0n;
+  let remaining = toSignedLinkMinorUnits(candidate.remainingRefundableAmount) ?? 0n;
   const apply = (
     items: readonly {
       amount: string;
@@ -94,4 +94,12 @@ export function adjustLinkCandidate(
     reimbursementAmount: formatRefundMinorUnits(reimbursed),
     remainingRefundableAmount: formatRefundMinorUnits(remaining),
   };
+}
+
+/** 剩余可为负（核销结余），普通金额解析器仅接受非负数。 */
+function toSignedLinkMinorUnits(value: string): bigint | null {
+  const text = value.trim();
+  const negative = text.startsWith("-");
+  const units = toRefundMinorUnits(negative ? text.slice(1) : text);
+  return units === null ? null : negative ? -units : units;
 }
