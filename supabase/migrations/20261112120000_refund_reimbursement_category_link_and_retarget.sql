@@ -65,16 +65,22 @@ set search_path = pg_catalog, pg_temp
 as $$
 begin
     if tg_table_name = 'transaction_item' then
-        perform public.validate_income_system_category_link(new.ledger_id, new.id);
+        perform public.validate_income_system_category_link(
+            coalesce(new.ledger_id, old.ledger_id),
+            coalesce(new.id, old.id)
+        );
     elsif tg_table_name = 'transaction_item_refund_link' then
         perform public.validate_income_system_category_link(
-            new.ledger_id, new.refund_income_item_id
+            coalesce(new.ledger_id, old.ledger_id),
+            coalesce(new.refund_income_item_id, old.refund_income_item_id)
         );
     else
         perform public.validate_income_system_category_link(
-            new.ledger_id, new.reimbursement_income_item_id
+            coalesce(new.ledger_id, old.ledger_id),
+            coalesce(new.reimbursement_income_item_id, old.reimbursement_income_item_id)
         );
     end if;
+    if tg_op = 'DELETE' then return old; end if;
     return new;
 end;
 $$;
@@ -88,12 +94,12 @@ deferrable initially deferred
 for each row execute function public.check_income_system_category_link();
 
 create constraint trigger refund_income_system_category_link
-after insert or update on public.transaction_item_refund_link
+after insert or update or delete on public.transaction_item_refund_link
 deferrable initially deferred
 for each row execute function public.check_income_system_category_link();
 
 create constraint trigger reimbursement_income_system_category_link
-after insert or update on public.transaction_item_reimbursement_link
+after insert or update or delete on public.transaction_item_reimbursement_link
 deferrable initially deferred
 for each row execute function public.check_income_system_category_link();
 

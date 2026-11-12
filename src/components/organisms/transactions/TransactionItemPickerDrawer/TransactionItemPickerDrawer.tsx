@@ -447,14 +447,13 @@ export function TransactionItemPickerDrawer({
           />
         ) : null}
 
+          </>
+        )}
         {linkNotice ? (
           <Alert severity="info" sx={{ mt: 1.5 }}>
             {linkNotice}
           </Alert>
         ) : null}
-          </>
-        )}
-
       </Box>
 
       <Box sx={drawerFooterSx}>

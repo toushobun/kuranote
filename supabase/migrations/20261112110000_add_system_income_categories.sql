@@ -138,7 +138,8 @@ declare
   v_parent_key text;
   v_normalized_name text;
   v_allow_system_write boolean :=
-    current_setting('app.allow_system_category_write', true) = 'true';
+    current_user = 'postgres'
+    and current_setting('app.allow_system_category_write', true) = 'true';
 begin
   if tg_op = 'DELETE' then
     -- 删除整个账本由既有的受控 RPC 执行，不能被系统分类防线阻断。

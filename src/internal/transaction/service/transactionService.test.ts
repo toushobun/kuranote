@@ -331,6 +331,7 @@ describe("TransactionService", () => {
       "member",
       createRepository(),
       "income",
+      "refund",
     );
 
     await expect(
