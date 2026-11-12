@@ -654,7 +654,7 @@ ALTER FUNCTION "public"."apply_account_balance_delta"("p_ledger_id" "uuid", "p_a
 CREATE OR REPLACE FUNCTION "public"."apply_transaction_item_links"("p_ledger_id" "uuid", "p_income_item_id" "uuid", "p_item" "jsonb", "p_user_id" "uuid") RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
-    AS $$
+    AS $
 declare
     v_income_amount numeric(14,2);
     v_income_category_type text;
@@ -772,7 +772,6 @@ begin
 
         v_reimbursement_amount := v_income_amount;
 
-        if v_reimbursement_amount > 0 then
             insert into public.transaction_item_reimbursement_link (
                 ledger_id,
                 target_expense_item_id,
@@ -787,6 +786,8 @@ begin
                 p_user_id
             );
 
+
+        if v_reimbursement_amount > 0 then
             perform set_config('kuranote.reimbursement_link_flow', 'on', true);
 
             update public.transaction_item target_item
@@ -813,7 +814,7 @@ begin
     end if;
 
     if v_refund_target_id is not null then
-        if v_income_amount <= 0 then
+        if v_income_amount < 0 then
             raise exception 'refund_allocation_invalid'
                 using errcode = '22023', detail = 'refund_allocation_invalid';
         end if;
@@ -869,7 +870,7 @@ begin
         );
     end if;
 end;
-$$;
+$;
 
 
 ALTER FUNCTION "public"."apply_transaction_item_links"("p_ledger_id" "uuid", "p_income_item_id" "uuid", "p_item" "jsonb", "p_user_id" "uuid") OWNER TO "postgres";
@@ -7346,7 +7347,7 @@ ALTER FUNCTION "public"."update_linked_transaction_item"("p_ledger_id" "uuid", "
 CREATE OR REPLACE FUNCTION "public"."update_linked_transaction_item_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_category_id" "uuid") RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
-    AS $$
+    AS $
 declare
     v_user_id uuid := auth.uid();
     v_item public.transaction_item;
@@ -7491,11 +7492,6 @@ begin
     end if;
 
     -- 退款 / 报销都只要求同币种（#899），由付款明细的记录级延迟校验保证。
-    if (v_is_reimbursement_income or v_is_refund_income) and p_amount <= 0 then
-        raise exception 'amount_invalid'
-            using errcode = '22023', detail = 'amount_invalid';
-    end if;
-
     perform set_config('kuranote.income_link_edit_flow', 'on', true);
     perform set_config('kuranote.reimbursement_link_flow', 'on', true);
 
@@ -7536,7 +7532,7 @@ begin
         true
     );
 end;
-$$;
+$;
 
 
 ALTER FUNCTION "public"."update_linked_transaction_item_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_category_id" "uuid") OWNER TO "postgres";
@@ -9979,7 +9975,7 @@ CREATE TABLE IF NOT EXISTS "public"."transaction_item_refund_link" (
     "created_by" "uuid",
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     CONSTRAINT "transaction_item_refund_link_different_items_check" CHECK (("refunded_item_id" <> "refund_income_item_id")),
-    CONSTRAINT "transaction_item_refund_link_refund_amount_check" CHECK (("refund_amount" > (0)::numeric))
+    CONSTRAINT "transaction_item_refund_link_refund_amount_check" CHECK (("refund_amount" >= (0)::numeric))
 );
 
 
@@ -9993,7 +9989,7 @@ CREATE TABLE IF NOT EXISTS "public"."transaction_item_reimbursement_link" (
     "reimbursement_amount" numeric(14,2) NOT NULL,
     "created_by" "uuid",
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    CONSTRAINT "transaction_item_reimbursement_link_amount_check" CHECK (("reimbursement_amount" > (0)::numeric)),
+    CONSTRAINT "transaction_item_reimbursement_link_amount_check" CHECK (("reimbursement_amount" >= (0)::numeric)),
     CONSTRAINT "transaction_item_reimbursement_link_different_items_check" CHECK (("target_expense_item_id" <> "reimbursement_income_item_id"))
 );
 
