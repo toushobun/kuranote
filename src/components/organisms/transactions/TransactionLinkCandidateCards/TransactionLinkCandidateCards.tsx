@@ -29,7 +29,9 @@ export function TransactionLinkCandidateCards({
   candidates: TransactionRefundCandidate[];
   onSelect: (item: TransactionRefundCandidate) => void;
   selectableCurrency?: string;
-  resolveLinkCandidate?: (candidate: TransactionRefundCandidate) => TransactionRefundCandidate;
+  resolveLinkCandidate?: (
+    candidate: TransactionRefundCandidate,
+  ) => TransactionRefundCandidate;
   selectedId?: string | null;
   selectionKind?: "refund" | "reimbursement";
   showMerchantName?: boolean;
@@ -37,11 +39,22 @@ export function TransactionLinkCandidateCards({
   return (
     <Stack spacing={1}>
       {candidates.map((originalCandidate) => {
-        const candidate = resolveLinkCandidate?.(originalCandidate) ?? originalCandidate;
+        const candidate =
+          resolveLinkCandidate?.(originalCandidate) ?? originalCandidate;
         const refunded = Number(candidate.refundedAmount);
         const reimbursed = Number(candidate.reimbursementAmount ?? "0");
-        const settled = Number(candidate.remainingRefundableAmount) <= 0;
+        const settled =
+          Number(candidate.remainingRefundableAmount) <= 0 &&
+          (refunded > 0 || reimbursed > 0);
         const selected = selectedId === candidate.id;
+        const formattedRefundedAmount = formatNumber(
+          candidate.refundedAmount,
+          candidate.accountCurrency,
+        );
+        const formattedReimbursedAmount = formatNumber(
+          candidate.reimbursementAmount ?? "0",
+          candidate.accountCurrency,
+        );
         const currencySymbol = getCurrencySymbol(candidate.accountCurrency);
         const currencyMismatchReason =
           selectableCurrency !== undefined &&
@@ -103,7 +116,13 @@ export function TransactionLinkCandidateCards({
               ) : null}
             </Stack>
             <Stack sx={{ alignItems: "flex-end", flexShrink: 0 }}>
-              <Typography variant="body2" sx={{ fontWeight: 700, color: settled ? "text.disabled" : "text.primary" }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 700,
+                  color: settled ? "text.disabled" : "text.primary",
+                }}
+              >
                 {currencySymbol}
                 {formatNumber(candidate.amount, candidate.accountCurrency)}
               </Typography>
@@ -115,12 +134,18 @@ export function TransactionLinkCandidateCards({
                 <>
                   {refunded > 0 ? (
                     <Typography variant="caption" sx={partialCandidateBadgeSx}>
-                      {m.offsetLabel("refund", `${currencySymbol}${formatNumber(candidate.refundedAmount, candidate.accountCurrency)}`)}
+                      {m.offsetLabel(
+                        "refund",
+                        `${currencySymbol}${formattedRefundedAmount}`,
+                      )}
                     </Typography>
                   ) : null}
                   {reimbursed > 0 ? (
                     <Typography variant="caption" sx={partialCandidateBadgeSx}>
-                      {m.offsetLabel("reimbursement", `${currencySymbol}${formatNumber(candidate.reimbursementAmount ?? "0", candidate.accountCurrency)}`)}
+                      {m.offsetLabel(
+                        "reimbursement",
+                        `${currencySymbol}${formattedReimbursedAmount}`,
+                      )}
                     </Typography>
                   ) : null}
                 </>
