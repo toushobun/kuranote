@@ -533,10 +533,13 @@ export function useTransactionForm({
     }
 
     setPickerErrors({});
+    // 已结清的退款 / 报销选定目标但未输入金额时，确认即保存 0（待定金额）。
+    const amountToSave =
+      selectedTarget && !pickerAmount.trim() ? "0" : pickerAmount;
     if (editingItemId === null) {
       const itemId = addItem(
         pickerCategoryId,
-        pickerAmount,
+        amountToSave,
         pickerSpecialStatus,
         pickerRefundCandidate,
         pickerReimbursementCandidate,
@@ -548,14 +551,14 @@ export function useTransactionForm({
       replaceItem(
         editingItemId,
         pickerCategoryId,
-        pickerAmount,
+        amountToSave,
         pickerSpecialStatus,
         pickerRefundCandidate,
         pickerReimbursementCandidate,
       );
     }
     // 编辑已有明细时，只有金额还空着才通知（打开金额键盘）。
-    if (editingItemId !== null && !pickerAmount.trim())
+    if (editingItemId !== null && !amountToSave.trim())
       onPickerItemCommit?.(editingItemId);
     setEditingItemId(null);
     setPickerCategoryId("");
