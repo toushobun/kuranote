@@ -263,17 +263,17 @@ export function TransactionItemPickerDrawer({
                 (id !== "refund" && id !== "reimbursement"),
             )
             .map(({ id: mode, label }) => (
-            <ToggleButton
-              aria-label={transactionItemPickerMessages.typeLabel(label)}
-              disabled={
-                (pickerModeLocked && mode !== pickerMode) ||
-                (multiAccount && mode !== "expense")
-              }
-              key={mode}
-              value={mode}
-            >
-              {label}
-            </ToggleButton>
+              <ToggleButton
+                aria-label={transactionItemPickerMessages.typeLabel(label)}
+                disabled={
+                  (pickerModeLocked && mode !== pickerMode) ||
+                  (multiAccount && mode !== "expense")
+                }
+                key={mode}
+                value={mode}
+              >
+                {label}
+              </ToggleButton>
             ))}
         </ToggleButtonGroup>
         {isLinkedMode ? (
