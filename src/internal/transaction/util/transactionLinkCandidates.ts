@@ -1,3 +1,4 @@
+import { formatRefundMinorUnits, toRefundMinorUnits } from "internal/transaction/util/refundAllocation";
 import type { TransactionListItem } from "internal/transaction/service/read/transactionReadModels";
 import type { TransactionRefundCandidate } from "internal/transaction/entity/transactionReadModels";
 
@@ -43,4 +44,54 @@ export function getLinkCandidateDefaultAmount(
   return Number(candidate.remainingRefundableAmount) > 0
     ? candidate.remainingRefundableAmount
     : "";
+}
+
+/** 数据库核销值加上小票中未保存的关联变更；正在编辑的明细不重复计入。 */
+export function adjustLinkCandidate(
+  candidate: TransactionRefundCandidate,
+  draftItems: readonly {
+    id?: number;
+    amount: string;
+    refundCandidate?: { id: string } | null;
+    reimbursementCandidate?: { id: string } | null;
+  }[],
+  initialItems: readonly {
+    amount: string;
+    refundCandidate?: { id: string } | null;
+    reimbursementCandidate?: { id: string } | null;
+  }[],
+  editingItemId: number | null = null,
+): TransactionRefundCandidate {
+  let refunded = toRefundMinorUnits(candidate.refundedAmount) ?? 0n;
+  let reimbursed = toRefundMinorUnits(candidate.reimbursementAmount ?? "0") ?? 0n;
+  let remaining = toRefundMinorUnits(candidate.remainingRefundableAmount) ?? 0n;
+  const apply = (
+    items: readonly {
+      amount: string;
+      refundCandidate?: { id: string } | null;
+      reimbursementCandidate?: { id: string } | null;
+    }[],
+    sign: bigint,
+  ) => {
+    for (const item of items) {
+      const amount = toRefundMinorUnits(item.amount);
+      if (amount === null || amount < 0n) continue;
+      if (item.refundCandidate?.id === candidate.id) {
+        refunded += sign * amount;
+        remaining -= sign * amount;
+      }
+      if (item.reimbursementCandidate?.id === candidate.id) {
+        reimbursed += sign * amount;
+        remaining -= sign * amount;
+      }
+    }
+  };
+  apply(initialItems, -1n);
+  apply(draftItems.filter((item) => item.id !== editingItemId), 1n);
+  return {
+    ...candidate,
+    refundedAmount: formatRefundMinorUnits(refunded),
+    reimbursementAmount: formatRefundMinorUnits(reimbursed),
+    remainingRefundableAmount: formatRefundMinorUnits(remaining),
+  };
 }
