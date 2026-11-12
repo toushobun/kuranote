@@ -128,7 +128,6 @@ export function isValidTransactionFormItem(
 ) {
   return (
     item.categoryId.length > 0 &&
-    isValidMoneyText(item.amount, currency) &&
-    (!item.refundCandidate || Number(item.amount) > 0)
+    isValidMoneyText(item.amount, currency)
   );
 }
