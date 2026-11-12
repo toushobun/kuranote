@@ -10,7 +10,9 @@ select
     lm.user_id,
     a.id as account_id,
     expense_category.id as expense_category_id,
-    income_category.id as income_category_id
+    income_category.id as income_category_id,
+    refund_category.id as refund_category_id,
+    reimbursement_category.id as reimbursement_category_id
 from public.ledger l
 join public.ledger_member lm
   on lm.ledger_id = l.id
@@ -40,13 +42,40 @@ join lateral (
     from public.category category
     where category.ledger_id = l.id
       and category.type = 'income'
+      and category.system_key is null
+      and category.parent_id is not null
       and category.is_archived = false
     order by category.created_at
     limit 1
 ) income_category on true
+join lateral (
+    select category.id
+    from public.category category
+    where category.ledger_id = l.id
+      and category.system_key = 'refund'
+    limit 1
+) refund_category on true
+join lateral (
+    select category.id
+    from public.category category
+    where category.ledger_id = l.id
+      and category.system_key = 'reimbursement'
+    limit 1
+) reimbursement_category on true
 limit 1;
 
 grant select on test_special_status_context to authenticated;
+
+-- 使用隔离的统计账户，避免既有 seed 中相同月份的收入改变本用例计数。
+insert into public.account (id, ledger_id, name, type, currency, initial_balance, created_by, updated_by)
+select
+    '55194800-0000-4000-8000-000000000001', context.ledger_id,
+    '特殊状态统计测试账户', 'cash', ledger.base_currency, 0, context.user_id, context.user_id
+from test_special_status_context context
+join public.ledger ledger on ledger.id = context.ledger_id;
+
+update test_special_status_context
+set account_id = '55194800-0000-4000-8000-000000000001';
 
 update public.ledger
 set transaction_item_special_status_enabled = true
@@ -96,6 +125,8 @@ select
     context.account_id,
     case values_to_insert.category_type
         when 'expense' then context.expense_category_id
+        when 'refund' then context.refund_category_id
+        when 'reimbursement' then context.reimbursement_category_id
         else context.income_category_id
     end,
     values_to_insert.amount,
@@ -121,7 +152,7 @@ cross join (values
     (
         '55194100-0000-4000-8000-000000000002'::uuid,
         '55194000-0000-4000-8000-000000000002'::uuid,
-        'income',
+        'reimbursement',
         10000::numeric,
         null
     ),
@@ -135,7 +166,7 @@ cross join (values
     (
         '55194100-0000-4000-8000-000000000004'::uuid,
         '55194000-0000-4000-8000-000000000004'::uuid,
-        'income',
+        'refund',
         3000::numeric,
         null
     ),
@@ -226,7 +257,7 @@ select is(
             p_account_id => (select account_id from test_special_status_context)
         ) summary
         where summary.group_key = (
-            select income_category_id::text from test_special_status_context
+            select reimbursement_category_id::text from test_special_status_context
         )
     ),
     0::numeric,
@@ -298,7 +329,7 @@ select is(
             p_account_id => (select account_id from test_special_status_context)
         ) summary
         where summary.group_key = (
-            select income_category_id::text from test_special_status_context
+            select refund_category_id::text from test_special_status_context
         )
     ),
     0::numeric,

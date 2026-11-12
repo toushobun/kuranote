@@ -38,8 +38,12 @@ values
 insert into public.category (id, ledger_id, parent_id, type, name)
 values
     ('91420000-0000-4000-8000-000000000001', '91400000-0000-4000-8000-000000000001', null, 'expense', '医疗'),
-    ('91420000-0000-4000-8000-000000000004', '91400000-0000-4000-8000-000000000001', null, 'expense', '购物'),
-    ('91420000-0000-4000-8000-000000000005', '91400000-0000-4000-8000-000000000001', null, 'income', '退款');
+    ('91420000-0000-4000-8000-000000000004', '91400000-0000-4000-8000-000000000001', null, 'expense', '购物');
+
+select public.initialize_ledger_system_categories(
+    '91400000-0000-4000-8000-000000000001',
+    '00000000-0000-4000-8000-000000000031'
+);
 insert into public.category (id, ledger_id, parent_id, type, name)
 values
     ('91420000-0000-4000-8000-000000000002', '91400000-0000-4000-8000-000000000001',
@@ -81,7 +85,7 @@ select tests.insert_normal_transaction_items(jsonb_build_array(
         'ledger_id', '91400000-0000-4000-8000-000000000001',
         'transaction_record_id', '91440000-0000-4000-8000-000000000003',
         'account_id', '91410000-0000-4000-8000-000000000002',
-        'category_id', '91420000-0000-4000-8000-000000000005',
+        'category_id', (select id from public.category where ledger_id = '91400000-0000-4000-8000-000000000001' and system_key = 'refund'),
         'amount', 300,
         'created_by', '00000000-0000-4000-8000-000000000031'
     )
@@ -244,7 +248,7 @@ select results_eq(
 );
 select results_eq(
     $$select label, income, expense from pg_temp.group_summaries('category', false)$$,
-    $$values ('购物', 0::numeric, 700::numeric), ('退款', 0::numeric, 0::numeric)$$,
+    $$values ('购物', 0::numeric, 700::numeric), ('💴 退款', 0::numeric, 0::numeric)$$,
     '单账户已退款记录按分类仍为业务净额'
 );
 select results_eq(

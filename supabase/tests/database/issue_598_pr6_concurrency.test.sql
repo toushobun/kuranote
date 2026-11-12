@@ -14,7 +14,8 @@ select
     a.id as account_id,
     merchant.id as merchant_id,
     expense_category.id as expense_category_id,
-    income_category.id as income_category_id,
+    reimbursement_category.id as income_category_id,
+    refund_category.id as refund_category_id,
     l.transaction_item_special_status_enabled as old_special_status_enabled
 from public.ledger l
 join public.ledger_member lm
@@ -49,11 +50,16 @@ join lateral (
     select category.id
     from public.category category
     where category.ledger_id = l.id
-      and category.type = 'income'
-      and category.is_archived = false
-    order by category.created_at
+      and category.system_key = 'reimbursement'
     limit 1
-) income_category on true
+) reimbursement_category on true
+join lateral (
+    select category.id
+    from public.category category
+    where category.ledger_id = l.id
+      and category.system_key = 'refund'
+    limit 1
+) refund_category on true
 where l.id = '00000000-0000-4000-8000-000000000032'
 limit 1;
 
@@ -96,6 +102,7 @@ select dblink_exec(
             v_merchant_id uuid := %L::uuid;
             v_expense_category_id uuid := %L::uuid;
             v_income_category_id uuid := %L::uuid;
+            v_refund_category_id uuid := %L::uuid;
         begin
             delete from public.transaction_item_reimbursement_link
             where target_expense_item_id = '59892000-0000-4000-8000-000000000001';
@@ -136,7 +143,7 @@ select dblink_exec(
             from (
                 values
                 ('59892000-0000-4000-8000-000000000001', v_ledger_id, '59893000-0000-4000-8000-000000000001', v_account_id, v_expense_category_id, 100, 0, -100, 0, 'pending_reimbursement', v_user_id, v_user_id),
-                ('59892000-0000-4000-8000-000000000002', v_ledger_id, '59893000-0000-4000-8000-000000000002', v_account_id, v_income_category_id, 60, 0, 60, 0, null, v_user_id, v_user_id),
+                ('59892000-0000-4000-8000-000000000002', v_ledger_id, '59893000-0000-4000-8000-000000000002', v_account_id, v_refund_category_id, 60, 0, 60, 0, null, v_user_id, v_user_id),
                 ('59892000-0000-4000-8000-000000000003', v_ledger_id, '59893000-0000-4000-8000-000000000003', v_account_id, v_income_category_id, 60, 0, 60, 0, null, v_user_id, v_user_id)
             ) item(
                 id, ledger_id, transaction_record_id, account_id, category_id, amount, discount_amount, balance_delta, sort_order, special_status, created_by, updated_by
@@ -149,7 +156,8 @@ select dblink_exec(
         context.account_id,
         context.merchant_id,
         context.expense_category_id,
-        context.income_category_id
+        context.income_category_id,
+        context.refund_category_id
     )
 )
 from issue_598_pr6_concurrency_context context;
