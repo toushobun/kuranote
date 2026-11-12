@@ -832,7 +832,8 @@ describe("TransactionService", () => {
     expect(candidates).toHaveLength(23);
     expect(candidates.map((item) => item.id)).toContain("candidate-20");
     expect(candidates.map((item) => item.id)).toContain("candidate-22");
-    expect(candidates.find((item) => item.id === "candidate-21")).toMatchObject({
+    const usdCandidate = candidates.find((item) => item.id === "candidate-21");
+    expect(usdCandidate).toMatchObject({
       accountCurrency: "USD",
       accountId: "usd-account",
     });
