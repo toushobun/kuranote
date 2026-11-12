@@ -654,7 +654,7 @@ ALTER FUNCTION "public"."apply_account_balance_delta"("p_ledger_id" "uuid", "p_a
 CREATE OR REPLACE FUNCTION "public"."apply_transaction_item_links"("p_ledger_id" "uuid", "p_income_item_id" "uuid", "p_item" "jsonb", "p_user_id" "uuid") RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
-    AS $
+    AS $$
 declare
     v_income_amount numeric(14,2);
     v_income_category_type text;
@@ -870,7 +870,7 @@ begin
         );
     end if;
 end;
-$;
+$$;
 
 
 ALTER FUNCTION "public"."apply_transaction_item_links"("p_ledger_id" "uuid", "p_income_item_id" "uuid", "p_item" "jsonb", "p_user_id" "uuid") OWNER TO "postgres";
@@ -5274,7 +5274,7 @@ ALTER FUNCTION "public"."prevent_used_category_type_change"() OWNER TO "postgres
 CREATE OR REPLACE FUNCTION "public"."recalculate_refund_link_target_status"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     SET "search_path" TO 'pg_catalog', 'pg_temp'
-    AS $
+    AS $$
 begin
     if tg_op = 'DELETE' and public.ledger_deletion_allows_delete(old.ledger_id) then
         return old;
@@ -5303,7 +5303,7 @@ begin
 
     return coalesce(new, old);
 end;
-$;
+$$;
 
 
 ALTER FUNCTION "public"."recalculate_refund_link_target_status"() OWNER TO "postgres";
@@ -5312,7 +5312,7 @@ ALTER FUNCTION "public"."recalculate_refund_link_target_status"() OWNER TO "post
 CREATE OR REPLACE FUNCTION "public"."recalculate_reimbursement_link_target_status"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     SET "search_path" TO 'pg_catalog', 'pg_temp'
-    AS $
+    AS $$
 begin
     if tg_op = 'DELETE' and public.ledger_deletion_allows_delete(old.ledger_id) then
         return old;
@@ -5342,7 +5342,7 @@ begin
 
     return coalesce(new, old);
 end;
-$;
+$$;
 
 
 ALTER FUNCTION "public"."recalculate_reimbursement_link_target_status"() OWNER TO "postgres";
@@ -7349,7 +7349,7 @@ ALTER FUNCTION "public"."update_linked_transaction_item"("p_ledger_id" "uuid", "
 CREATE OR REPLACE FUNCTION "public"."update_linked_transaction_item_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_category_id" "uuid") RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
-    AS $
+    AS $$
 declare
     v_user_id uuid := auth.uid();
     v_item public.transaction_item;
@@ -7534,7 +7534,7 @@ begin
         true
     );
 end;
-$;
+$$;
 
 
 ALTER FUNCTION "public"."update_linked_transaction_item_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_category_id" "uuid") OWNER TO "postgres";
