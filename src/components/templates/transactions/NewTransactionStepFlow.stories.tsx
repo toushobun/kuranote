@@ -50,11 +50,12 @@ export const NewMerchantWithoutHistory: Story = {
   play: async ({ canvasElement }) => {
     const body = await openMerchantStoryDrawer(canvasElement);
     await userEvent.click(await body.findByRole("button", { name: "新开商家" }));
-    await expect(
-      await body.findByRole("button", { name: "添加明细" }),
-    ).toBeVisible();
-    await expect(body.queryByText("正在按习惯准备明细…")).not.toBeInTheDocument();
-    await expect(body.queryByText("正在读取常用账户…")).not.toBeInTheDocument();
+    const addItem = await body.findByRole("button", { name: "添加明细" });
+    const itemsLoading = body.queryByText("正在按习惯准备明细…");
+    const paymentsLoading = body.queryByText("正在读取常用账户…");
+    await expect(addItem).toBeVisible();
+    await expect(itemsLoading).not.toBeInTheDocument();
+    await expect(paymentsLoading).not.toBeInTheDocument();
   },
 };
 
