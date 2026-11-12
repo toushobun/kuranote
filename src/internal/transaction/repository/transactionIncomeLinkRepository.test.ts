@@ -35,6 +35,7 @@ describe("TransactionIncomeLinkRepository", () => {
     const refundRecordId = "00000000-0000-4000-8000-000000000302";
     const accountId = "00000000-0000-4000-8000-000000000043";
     const categoryId = "00000000-0000-4000-8000-000000005021";
+    const merchantId = "00000000-0000-4000-8000-000000001001";
     const queries = {
       transaction_item_refund_link: createQuery({
         data: [
@@ -94,10 +95,12 @@ describe("TransactionIncomeLinkRepository", () => {
         data: [
           {
             id: reimbursementRecordId,
+            merchant_id: merchantId,
             transaction_at: "2026-08-15T01:00:00.000Z",
           },
           {
             id: refundRecordId,
+            merchant_id: merchantId,
             transaction_at: "2026-08-15T02:00:00.000Z",
           },
         ],
@@ -116,6 +119,7 @@ describe("TransactionIncomeLinkRepository", () => {
       {
         incomeItemId,
         refundItem: {
+          merchantId,
           accountId,
           amount: "80.00",
           categoryId,
@@ -128,6 +132,7 @@ describe("TransactionIncomeLinkRepository", () => {
         },
         reimbursementItems: [
           {
+            merchantId,
             accountId,
             amount: "100.00",
             categoryId,

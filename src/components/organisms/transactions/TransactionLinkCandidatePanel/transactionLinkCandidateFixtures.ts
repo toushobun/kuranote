@@ -72,3 +72,15 @@ export const loadReimbursementPage = async (
     })),
     input,
   );
+
+export const mixedMerchantItems: TransactionRefundCandidate[] = candidateItems
+  .slice(0, 2)
+  .map((item, index) => ({
+    ...item,
+    categoryName: "餐饮",
+    merchantName: index === 0 ? "全家" : "罗森",
+    accountName: "招行信用卡",
+  }));
+export const loadMixedMerchantPage = async (
+  input: TransactionLinkCandidatePageInput,
+) => fixturePage(mixedMerchantItems, input);

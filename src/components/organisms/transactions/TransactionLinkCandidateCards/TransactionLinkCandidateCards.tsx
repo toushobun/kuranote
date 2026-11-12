@@ -13,6 +13,7 @@ import { getCurrencySymbol } from "utils/currency";
 import { transactionLinkMessages } from "utils/transactionMessages";
 import {
   formatNumber,
+  formatDateKey,
   hasLinkCandidateCurrencyMismatch,
 } from "utils/transactions";
 
@@ -22,12 +23,14 @@ export function TransactionLinkCandidateCards({
   selectableCurrency,
   selectedId = null,
   selectionKind = "refund",
+  showMerchantName = true,
 }: {
   candidates: TransactionRefundCandidate[];
   onSelect: (item: TransactionRefundCandidate) => void;
   selectableCurrency?: string;
   selectedId?: string | null;
   selectionKind?: "refund" | "reimbursement";
+  showMerchantName?: boolean;
 }) {
   const isReimbursement = selectionKind === "reimbursement";
 
@@ -43,6 +46,15 @@ export function TransactionLinkCandidateCards({
                 selectableCurrency,
               )
             : null;
+        const subtitle = [
+          ...(showMerchantName
+            ? [candidate.merchantName || m.unassignedMerchant]
+            : []),
+          formatDateKey(candidate.transactionAt).slice(5).replace("-", "/"),
+          candidate.accountName,
+        ]
+          .filter(Boolean)
+          .join(" · ");
         const isCurrencyMismatched = currencyMismatchReason !== null;
         return (
           <ButtonBase
@@ -72,12 +84,13 @@ export function TransactionLinkCandidateCards({
               <Typography sx={{ fontWeight: 700 }} variant="body2" noWrap>
                 {candidate.categoryName}
               </Typography>
-              <Typography color="textSecondary" variant="caption" noWrap>
-                {new Date(candidate.transactionAt).toLocaleDateString("zh-CN", {
-                  month: "2-digit",
-                  day: "2-digit",
-                })}
-                {candidate.accountName ? ` · ${candidate.accountName}` : ""}
+              <Typography
+                color="textSecondary"
+                variant="caption"
+                noWrap
+                title={subtitle}
+              >
+                {subtitle}
               </Typography>
               {currencyMismatchReason ? (
                 <Typography color="textSecondary" variant="caption">

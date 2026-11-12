@@ -3,6 +3,7 @@ import { useState } from "react";
 import { TransactionLinkCandidatePanel } from "./TransactionLinkCandidatePanel";
 import {
   loadCandidatePage,
+  loadMixedMerchantPage,
   loadReimbursementPage,
   loadFallbackCandidatePage,
   selectedCandidate,
@@ -51,4 +52,9 @@ export const Reimbursement: Story = {
 export const EditOffPageSelection: Story = {
   name: "编辑 · 已关联原支出不在首页",
   args: { value: offPageCandidate },
+};
+
+export const MultipleMerchants: Story = {
+  name: "报销 · 多商家同名明细",
+  args: { kind: "reimbursement", loadPageAction: loadMixedMerchantPage },
 };

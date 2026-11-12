@@ -149,6 +149,7 @@ export const transactionItemPickerMessages = {
 
 /** 退款 / 报销的原支出候选列表与金额输入。 */
 export const transactionLinkCandidateMessages = {
+  unassignedMerchant: "未指定商家",
   searchPlaceholder: "搜索原支出（全部商家）",
   searchAria: "搜索原支出",
   noSearchResults: "没有找到可关联的支出。",

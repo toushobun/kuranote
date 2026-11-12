@@ -52,6 +52,7 @@ describe("TransactionLinkCandidatePanel", () => {
       currency: "JPY",
     });
     expect(screen.getByText("Amazon 的支出")).toBeVisible();
+    expect(screen.getByText("11/08 · 乐天信用卡")).toBeVisible();
     expect(screen.getByText("已退 ¥500")).toBeVisible();
     fireEvent.click(
       screen.getByRole("button", { name: "选择退款明细 收纳盒" }),
@@ -70,6 +71,7 @@ describe("TransactionLinkCandidatePanel", () => {
     renderPanel({ loadPageAction: loadPage });
     await screen.findByText("USB-C 充电器");
     expect(screen.getByText("全部支出")).toBeVisible();
+    expect(screen.getByText("Amazon · 11/08 · 乐天信用卡")).toBeVisible();
     expect(loadPage).toHaveBeenCalledTimes(2);
     expect(loadPage).toHaveBeenLastCalledWith({
       offset: 0,
@@ -88,6 +90,7 @@ describe("TransactionLinkCandidatePanel", () => {
       currency: "JPY",
     });
     expect(screen.getByText("待报销")).toBeVisible();
+    expect(screen.getByText("Amazon · 11/08 · 乐天信用卡")).toBeVisible();
   });
   it("已关联的页外原支出置顶，后续页去重，改选后置顶新候选", async () => {
     const loadPage = vi

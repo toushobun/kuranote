@@ -80,6 +80,15 @@ export function TransactionLinkCandidatePanel(
         selectableCurrency={accountCurrency}
         selectedId={value?.id}
         selectionKind={kind}
+        showMerchantName={
+          kind === "reimbursement" ||
+          !browseMerchantId ||
+          Boolean(query.trim()) ||
+          candidates.some(
+            (candidate) =>
+              candidate.merchantName && candidate.merchantName !== merchantName,
+          )
+        }
       />
       {loading ? (
         <CircularProgress size={24} />
