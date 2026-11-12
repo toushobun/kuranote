@@ -21,6 +21,14 @@ export const categoryArchiveConfirmMessages = {
   confirm: "归档",
 } as const;
 
+export const categorySystemMessages = {
+  badge: "系统",
+  locked: "系统分类不可修改、删除或归档。",
+  invalid: "系统分类的类型或归属不正确。",
+  parentLocked: "系统大分类下不能新增其他小分类。",
+  nameReserved: "「特殊收入」「退款」「报销」是系统保留名称，请使用其他名称。",
+} as const;
+
 export const categorySearchMessages = {
   placeholder: "搜索分类名称",
   emptyTitle: "没有找到匹配的分类",
