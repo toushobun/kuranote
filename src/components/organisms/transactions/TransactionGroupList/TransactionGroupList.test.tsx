@@ -268,15 +268,14 @@ describe("TransactionGroupList", () => {
     });
 
     render(
-      <TransactionGroupList
-        groups={[reimbursementGroup]}
-        onSelectReimbursementItem={onSelectReimbursementItem}
-        reimbursementSelectionMode
-        selectedReimbursementItemId="reimbursement-item-1"
+      <TransactionRefundCandidateList
+        items={reimbursementGroup.items}
+        onSelect={onSelectReimbursementItem}
+        selectionKind="reimbursement"
+        selectedId="reimbursement-item-1"
       />,
     );
 
-    expect(screen.getByText("剩余可核销 $-20")).toBeInTheDocument();
     expect(screen.getByRole("radio")).toBeChecked();
     const button = screen.getByRole("button", {
       name: "选择报销明细 服装",
@@ -328,9 +327,8 @@ describe("TransactionRefundCandidateList", () => {
       />,
     );
 
-    expect(screen.getByText("原始金额 $100")).toBeInTheDocument();
-    expect(screen.getByText("剩余可退 $60")).toBeInTheDocument();
-    expect(screen.getByText("已退款 $40")).toBeInTheDocument();
+    expect(screen.getByText("$100")).toBeInTheDocument();
+    expect(screen.getByText("已退 $40")).toBeInTheDocument();
     expect(screen.getByRole("radio")).toBeChecked();
     expect(screen.queryByRole("checkbox")).toBeNull();
 
@@ -367,9 +365,8 @@ describe("TransactionRefundCandidateList", () => {
       />,
     );
 
-    expect(screen.getByText("原始金额 KWD1.234")).toBeInTheDocument();
-    expect(screen.getByText("剩余可退 KWD1.123")).toBeInTheDocument();
-    expect(screen.getByText("已退款 KWD0.111")).toBeInTheDocument();
+    expect(screen.getByText("KWD1.234")).toBeInTheDocument();
+    expect(screen.getByText("已退 KWD0.111")).toBeInTheDocument();
   });
 
   it("刚好核销完时仍可继续选择已有候选", () => {
@@ -386,8 +383,7 @@ describe("TransactionRefundCandidateList", () => {
       name: "选择退款明细 服装",
     });
     expect(button).not.toBeDisabled();
-    expect(screen.getByText("剩余可退 $0")).toBeInTheDocument();
-    expect(screen.getByText("已退款 $100")).toBeInTheDocument();
+    expect(screen.getByText("已退 $100")).toBeInTheDocument();
 
     fireEvent.click(button);
     expect(onSelect).toHaveBeenCalledWith(

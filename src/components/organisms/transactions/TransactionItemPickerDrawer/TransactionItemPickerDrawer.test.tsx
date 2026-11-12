@@ -8,6 +8,8 @@ import {
 import { ThemeProvider } from "@mui/material/styles";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { selectedCandidate } from "../TransactionLinkCandidatePanel/transactionLinkCandidateFixtures";
+import { pressItemAmountKey as press } from "test/transactionConfirmStep";
 import { designTokens, theme } from "theme/theme";
 import type { TransactionCategoryOption } from "types/transactions";
 
@@ -58,6 +60,56 @@ const incomeGroup: CategoryPickerGroup = {
 
 describe("TransactionItemPickerDrawer", () => {
   afterEach(() => cleanup());
+
+  function openLinkedAmount() {
+    const onAmountChange = vi.fn();
+    render(
+      <TransactionItemPickerDrawer
+        categoryGroups={categoryGroups}
+        filteredCategoryOptions={categoryOptions}
+        onCategoryToggle={vi.fn()}
+        onClose={vi.fn()}
+        onGroupSelect={vi.fn()}
+        onPickerAdd={() => true}
+        onRemoveItem={vi.fn()}
+        open
+        pickerMode="reimbursement"
+        pickerAmount="3280"
+        pickerCategoryId="system-reimbursement"
+        pickerErrors={{}}
+        specialStatusEnabled
+        selectedAccountCurrency="JPY"
+        pickerReimbursementCandidate={selectedCandidate}
+        onPickerAmountChange={onAmountChange}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: /报销金额 剩余未核销/ }),
+    );
+    return onAmountChange;
+  }
+
+  it("金额行打开计算器，只有确认才写入金额", () => {
+    const onAmountChange = openLinkedAmount();
+    press("清空");
+    press("7");
+    expect(onAmountChange).not.toHaveBeenCalled();
+    press("确定");
+    expect(onAmountChange).toHaveBeenCalledOnce();
+    expect(onAmountChange).toHaveBeenCalledWith("7");
+  });
+
+  it("关闭计算器丢弃草稿，重新打开恢复原金额", async () => {
+    const onAmountChange = openLinkedAmount();
+    press("清空");
+    press("7");
+    fireEvent.click(screen.getByRole("button", { name: "关闭金额键盘" }));
+    expect(onAmountChange).not.toHaveBeenCalled();
+    fireEvent.click(
+      await screen.findByRole("button", { name: /报销金额 剩余未核销/ }),
+    );
+    expect(screen.getByLabelText("计算器显示金额")).toHaveTextContent("3,280");
+  });
 
   it("左列选大分类、右列选小分类", () => {
     const onCategoryToggle = vi.fn();
@@ -198,18 +250,17 @@ describe("TransactionItemPickerDrawer", () => {
         onRemoveItem={vi.fn()}
         open
         pickerMode="refund"
-        pickerAmount=""
+        pickerAmount="1280"
         pickerCategoryId="system-refund"
         pickerErrors={{}}
         specialStatusEnabled
         selectedAccountCurrency="JPY"
       />,
     );
-    expect(
-      screen.getByText("请先选择一笔原支出，再填写金额。"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("先选择要退款的支出")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "确定" })).toBeDisabled();
-    expect(screen.getByRole("textbox", { name: "核销金额" })).toBeDisabled();
+    expect(screen.getByText("—")).toBeVisible();
+    expect(screen.queryByDisplayValue("1280")).not.toBeInTheDocument();
     expect(screen.queryByPlaceholderText("搜索小分类")).not.toBeInTheDocument();
   });
 
@@ -226,7 +277,7 @@ describe("TransactionItemPickerDrawer", () => {
         onRemoveItem={vi.fn()}
         open
         pickerMode="refund"
-        pickerAmount=""
+        pickerAmount="1280"
         pickerCategoryId="system-refund"
         pickerErrors={{}}
         specialStatusEnabled

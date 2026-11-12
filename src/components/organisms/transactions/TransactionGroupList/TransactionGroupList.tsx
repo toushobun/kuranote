@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from "react";
 
-import Avatar from "@mui/material/Avatar";
+import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
+import { MerchantAvatar } from "organisms/merchants/MerchantAvatar/MerchantAvatar";
+import { designTokens } from "theme/theme";
+import { transactionLinkCandidateMessages as m } from "config/transactionStepFlowMessages";
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import Radio from "@mui/material/Radio";
 import Stack from "@mui/material/Stack";
-import type { Theme } from "@mui/material/styles";
+import { alpha, type Theme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 
 import { transactionEditHref } from "config/paths";
@@ -29,25 +32,11 @@ import {
 
 type TransactionGroupListProps = {
   groups: TransactionDateGroup[];
-  onSelectRefundItem?: (item: TransactionRefundCandidate) => void;
-  onSelectReimbursementItem?: (item: TransactionRefundCandidate) => void;
-  refundSelectionMode?: boolean;
-  reimbursementSelectionMode?: boolean;
-  selectableCurrency?: string;
-  selectedRefundItemId?: string | null;
-  selectedReimbursementItemId?: string | null;
   showSummary?: boolean;
 };
 
 export function TransactionGroupList({
   groups,
-  onSelectRefundItem,
-  onSelectReimbursementItem,
-  refundSelectionMode = false,
-  reimbursementSelectionMode = false,
-  selectableCurrency,
-  selectedRefundItemId = null,
-  selectedReimbursementItemId = null,
   showSummary = true,
 }: TransactionGroupListProps) {
   useDateGroupLabelRefresh();
@@ -97,31 +86,14 @@ export function TransactionGroupList({
           </Stack>
 
           <Box>
-            {reimbursementSelectionMode && onSelectReimbursementItem ? (
-              <TransactionRefundCandidateList
-                items={group.items}
-                onSelect={onSelectReimbursementItem}
-                selectableCurrency={selectableCurrency}
-                selectedId={selectedReimbursementItemId}
-                selectionKind="reimbursement"
+            {group.items.map((item, itemIndex) => (
+              <TransactionRowLink
+                href={transactionEditHref(item.id)}
+                item={item}
+                key={item.id}
+                showDivider={itemIndex < group.items.length - 1}
               />
-            ) : refundSelectionMode && onSelectRefundItem ? (
-              <TransactionRefundCandidateList
-                items={group.items}
-                onSelect={onSelectRefundItem}
-                selectableCurrency={selectableCurrency}
-                selectedId={selectedRefundItemId}
-              />
-            ) : (
-              group.items.map((item, itemIndex) => (
-                <TransactionRowLink
-                  href={transactionEditHref(item.id)}
-                  item={item}
-                  key={item.id}
-                  showDivider={itemIndex < group.items.length - 1}
-                />
-              ))
-            )}
+            ))}
           </Box>
         </Stack>
       ))}
@@ -176,8 +148,8 @@ export function TransactionRefundCandidateList({
   const isReimbursement = selectionKind === "reimbursement";
 
   return (
-    <Stack>
-      {candidates.map((candidate, index) => {
+    <Stack spacing={1}>
+      {candidates.map((candidate) => {
         const selected = selectedId === candidate.id;
         const currencySymbol = getCurrencySymbol(candidate.accountCurrency);
         const currencyMismatchReason =
@@ -190,54 +162,38 @@ export function TransactionRefundCandidateList({
         const isCurrencyMismatched = currencyMismatchReason !== null;
         return (
           <ButtonBase
-            aria-label={`${isReimbursement ? "选择报销明细" : "选择退款明细"} ${candidate.categoryName}`}
+            aria-label={m.selectCandidate(
+              selectionKind,
+              candidate.categoryName,
+            )}
             aria-pressed={selected}
             disabled={isCurrencyMismatched}
             key={candidate.id}
             onClick={() => onSelect(candidate)}
             sx={{
               ...refundCandidateSx,
-              borderBottom:
-                index === candidates.length - 1 ? "none" : userThemeCardBorder,
+              border: 1,
+              borderColor: selected ? "primary.main" : "divider",
+              bgcolor: selected
+                ? (theme: Theme) => alpha(theme.palette.primary.main, 0.08)
+                : "background.paper",
             }}
           >
-            <Radio
-              checked={selected}
-              disabled={isCurrencyMismatched}
-              tabIndex={-1}
-            />
-            <Avatar
-              alt={candidate.merchantName ?? undefined}
+            <MerchantAvatar
+              size={40}
+              toneKey={candidate.merchantName ?? candidate.id}
               src={candidate.merchantIconUrl ?? undefined}
-              sx={{
-                bgcolor: "action.hover",
-                color: "text.primary",
-                height: 32,
-                width: 32,
-                fontSize: 13,
-              }}
-            >
-              {candidate.merchantName?.slice(0, 1) ?? "支"}
-            </Avatar>
+            />
             <Stack sx={{ flex: 1, minWidth: 0, textAlign: "left" }}>
               <Typography sx={{ fontWeight: 700 }} variant="body2" noWrap>
-                {candidate.merchantName ?? "未指定商家"}
+                {candidate.categoryName}
               </Typography>
               <Typography color="textSecondary" variant="caption" noWrap>
                 {new Date(candidate.transactionAt).toLocaleDateString("zh-CN", {
-                  month: "numeric",
-                  day: "numeric",
+                  month: "2-digit",
+                  day: "2-digit",
                 })}
                 {candidate.accountName ? ` · ${candidate.accountName}` : ""}
-              </Typography>
-              <Typography sx={{ fontWeight: 800 }} variant="body2">
-                {candidate.parentCategoryName
-                  ? `${candidate.parentCategoryName} / ${candidate.categoryName}`
-                  : candidate.categoryName}
-              </Typography>
-              <Typography color="textSecondary" variant="caption">
-                原始金额 {currencySymbol}
-                {formatNumber(candidate.amount, candidate.accountCurrency)}
               </Typography>
               {currencyMismatchReason ? (
                 <Typography color="textSecondary" variant="caption">
@@ -245,33 +201,40 @@ export function TransactionRefundCandidateList({
                 </Typography>
               ) : null}
             </Stack>
-            <Stack sx={{ alignItems: "flex-end" }}>
-              <Typography sx={{ fontWeight: 900 }} variant="body2">
-                {isReimbursement ? "剩余可核销" : "剩余可退"} {currencySymbol}
-                {formatNumber(
-                  candidate.remainingRefundableAmount,
-                  candidate.accountCurrency,
-                )}
+            <Stack sx={{ alignItems: "flex-end", flexShrink: 0 }}>
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                {currencySymbol}
+                {formatNumber(candidate.amount, candidate.accountCurrency)}
               </Typography>
-              {!isReimbursement && Number(candidate.refundedAmount) > 0 ? (
+              {Number(
+                isReimbursement
+                  ? candidate.reimbursementAmount
+                  : candidate.refundedAmount,
+              ) > 0 ? (
                 <Typography color="textSecondary" variant="caption">
-                  已退款 {currencySymbol}
-                  {formatNumber(
-                    candidate.refundedAmount,
-                    candidate.accountCurrency,
-                  )}
-                </Typography>
-              ) : null}
-              {isReimbursement && Number(candidate.reimbursementAmount) > 0 ? (
-                <Typography color="textSecondary" variant="caption">
-                  已报销 {currencySymbol}
-                  {formatNumber(
-                    candidate.reimbursementAmount ?? "0",
-                    candidate.accountCurrency,
+                  {m.offsetLabel(
+                    selectionKind,
+                    `${currencySymbol}${formatNumber((isReimbursement ? candidate.reimbursementAmount : candidate.refundedAmount) ?? "0", candidate.accountCurrency)}`,
                   )}
                 </Typography>
               ) : null}
             </Stack>
+            <Radio
+              checked={selected}
+              checkedIcon={
+                <CheckRoundedIcon
+                  sx={{
+                    bgcolor: "primary.main",
+                    color: "primary.contrastText",
+                    borderRadius: "50%",
+                    p: 0.25,
+                  }}
+                />
+              }
+              disabled={isCurrencyMismatched}
+              tabIndex={-1}
+              sx={{ p: 0, pointerEvents: "none" }}
+            />
           </ButtonBase>
         );
       })}
@@ -303,11 +266,12 @@ function useDateGroupLabelRefresh() {
 const refundCandidateSx = {
   alignItems: "center",
   display: "flex",
-  gap: 0.75,
+  borderRadius: `${designTokens.radius.item}px`,
+  gap: 1.25,
   justifyContent: "space-between",
   minHeight: 64,
-  px: 0.75,
-  py: 0.75,
+  px: 1.25,
+  py: 1.5,
   width: "100%",
   "&.Mui-disabled": {
     opacity: (theme: Theme) => theme.palette.action.disabledOpacity,

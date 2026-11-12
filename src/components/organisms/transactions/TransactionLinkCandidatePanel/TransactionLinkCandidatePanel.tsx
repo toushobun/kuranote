@@ -12,7 +12,8 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
 import { TransactionRefundCandidateList } from "organisms/transactions/TransactionGroupList/TransactionGroupList";
-import { TransactionMonthList } from "organisms/transactions/TransactionMonthList/TransactionMonthList";
+import { mergeTransactionDateGroups } from "organisms/transactions/TransactionMonthList/transactionMonthListUtils";
+import { mergeUniqueById } from "utils/collections";
 import type {
   TransactionGroupPage,
   TransactionMonthPage,
@@ -23,9 +24,9 @@ import type {
 
 type TransactionLinkCandidatePanelProps = {
   accountCurrency?: string;
-  amount: string;
   kind: "refund" | "reimbursement";
   merchantId?: string;
+  merchantName?: string;
   loadInitialViewAction?: (
     merchantId?: string,
   ) => Promise<TransactionTimeGroupViewData>;
@@ -42,7 +43,6 @@ type TransactionLinkCandidatePanelProps = {
     query: string,
     offset: number,
   ) => Promise<TransactionSearchPage>;
-  onAmountChange: (amount: string) => void;
   onChange: (item: TransactionRefundCandidate | null) => void;
   value: TransactionRefundCandidate | null;
 };
@@ -50,14 +50,13 @@ type TransactionLinkCandidatePanelProps = {
 /** 抽屉内选择一条原支出。退款首屏按当前商家筛选，搜索始终跨商家。 */
 export function TransactionLinkCandidatePanel({
   accountCurrency,
-  amount,
   kind,
   merchantId,
+  merchantName,
   loadInitialViewAction,
   loadGroupItemsAction,
   loadMoreGroupsAction,
   loadSearchPageAction,
-  onAmountChange,
   onChange,
   value,
 }: TransactionLinkCandidatePanelProps) {
@@ -95,6 +94,11 @@ export function TransactionLinkCandidatePanel({
           nextView = await loadInitialViewAction();
           appliedMerchantId = undefined;
         }
+        nextView = await loadMissingGroupItems(
+          nextView,
+          loadGroupItemsAction,
+          appliedMerchantId,
+        );
         if (!cancelled) {
           setBrowseMerchantId(appliedMerchantId);
           setView(nextView);
@@ -108,7 +112,7 @@ export function TransactionLinkCandidatePanel({
     return () => {
       cancelled = true;
     };
-  }, [loadInitialViewAction, merchantId, retryKey]);
+  }, [loadInitialViewAction, loadGroupItemsAction, merchantId, retryKey]);
 
   useEffect(() => {
     const term = query.trim();
@@ -171,6 +175,62 @@ export function TransactionLinkCandidatePanel({
     }
   }
 
+  async function loadMoreBrowse() {
+    if (!view || loadingMore) return;
+    setLoadingMore(true);
+    setBrowseError(false);
+    try {
+      const group = view.groups.find(
+        (group) => view.initialNextItemOffsetByGroupId[group.id] != null,
+      );
+      if (group && loadGroupItemsAction) {
+        const page = await loadGroupItemsAction(
+          group.key,
+          view.initialNextItemOffsetByGroupId[group.id]!,
+          browseMerchantId,
+        );
+        setView({
+          ...view,
+          initialDateGroupsByGroupId: {
+            ...view.initialDateGroupsByGroupId,
+            [group.id]: mergeTransactionDateGroups(
+              view.initialDateGroupsByGroupId[group.id] ?? [],
+              page.groups,
+            ),
+          },
+          initialNextItemOffsetByGroupId: {
+            ...view.initialNextItemOffsetByGroupId,
+            [group.id]: page.nextOffset,
+          },
+        });
+      } else if (view.nextOffset !== null && loadMoreGroupsAction) {
+        const page = await loadMoreGroupsAction(
+          view.nextOffset,
+          browseMerchantId,
+        );
+        const nextView = {
+          ...view,
+          groups: mergeUniqueById(view.groups, page.groups),
+          nextOffset: page.nextOffset,
+          initialDateGroupsByGroupId: { ...view.initialDateGroupsByGroupId },
+          initialNextItemOffsetByGroupId: {
+            ...view.initialNextItemOffsetByGroupId,
+          },
+        };
+        const hydratedView = await loadMissingGroupItems(
+          nextView,
+          loadGroupItemsAction,
+          browseMerchantId,
+        );
+        setView(hydratedView);
+      }
+    } catch {
+      setBrowseError(true);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
   const searching = Boolean(query.trim());
   const candidateListProps = {
     onSelect: onChange,
@@ -200,7 +260,22 @@ export function TransactionLinkCandidatePanel({
         }}
         value={query}
       />
-      <Stack sx={{ maxHeight: 290, minHeight: 160, overflowY: "auto" }}>
+      <Stack
+        direction="row"
+        sx={{ justifyContent: "space-between", color: "text.secondary" }}
+      >
+        <Typography variant="caption">
+          {kind === "reimbursement"
+            ? transactionLinkCandidateMessages.pending
+            : browseMerchantId && !searching
+              ? transactionLinkCandidateMessages.merchantExpenses(
+                  merchantName ?? "",
+                )
+              : transactionLinkCandidateMessages.allExpenses}
+        </Typography>
+        <Typography variant="caption">{accountCurrency}</Typography>
+      </Stack>
+      <Stack spacing={1}>
         {searching ? (
           searchLoading ? (
             <CircularProgress size={24} />
@@ -233,73 +308,65 @@ export function TransactionLinkCandidatePanel({
               {transactionLinkCandidateMessages.noCandidates}
             </Typography>
           ) : (
-            <TransactionMonthList
-              key={browseMerchantId ?? "all"}
-              loadGroupItemsAction={
-                loadGroupItemsAction
-                  ? (groupKey, offset) =>
-                      loadGroupItemsAction(groupKey, offset, browseMerchantId)
-                  : undefined
-              }
-              loadMoreGroupsAction={
-                loadMoreGroupsAction
-                  ? (offset) => loadMoreGroupsAction(offset, browseMerchantId)
-                  : undefined
-              }
-              onSelectRefundItem={kind === "refund" ? onChange : undefined}
-              onSelectReimbursementItem={
-                kind === "reimbursement" ? onChange : undefined
-              }
-              refundSelectionMode={kind === "refund"}
-              reimbursementSelectionMode={kind === "reimbursement"}
-              selectableCurrency={accountCurrency}
-              selectedRefundItemId={kind === "refund" ? value?.id : null}
-              selectedReimbursementItemId={
-                kind === "reimbursement" ? value?.id : null
-              }
-              timeGroupView={view}
-            />
+            <>
+              <TransactionRefundCandidateList
+                items={view.groups.flatMap((group) =>
+                  (view.initialDateGroupsByGroupId[group.id] ?? []).flatMap(
+                    (date) => date.items,
+                  ),
+                )}
+                {...candidateListProps}
+              />
+              {view.nextOffset !== null ||
+              Object.values(view.initialNextItemOffsetByGroupId).some(
+                (offset) => offset !== null,
+              ) ? (
+                <Button
+                  disabled={loadingMore}
+                  onClick={() => void loadMoreBrowse()}
+                >
+                  {loadingMore
+                    ? transactionLinkCandidateMessages.loading
+                    : transactionLinkCandidateMessages.loadMore}
+                </Button>
+              ) : null}
+            </>
           )
         ) : null}
-        {browseError || searchError ? (
+        {(searching ? searchError : browseError) ? (
           <Button
             onClick={() =>
               searching
                 ? setSearchRetryKey((value) => value + 1)
-                : setRetryKey((value) => value + 1)
+                : view
+                  ? void loadMoreBrowse()
+                  : setRetryKey((value) => value + 1)
             }
           >
             {transactionLinkCandidateMessages.retry}
           </Button>
         ) : null}
       </Stack>
-      {value ? (
-        <Typography variant="caption" color="textSecondary">
-          {transactionLinkCandidateMessages.selected(value.categoryName)}
-        </Typography>
-      ) : (
-        <Typography variant="caption" color="textSecondary">
-          {transactionLinkCandidateMessages.selectFirst}
-        </Typography>
-      )}
-      <TextField
-        fullWidth
-        disabled={!value}
-        label={
-          kind === "refund"
-            ? transactionLinkCandidateMessages.refundAmount
-            : transactionLinkCandidateMessages.reimbursementAmount
-        }
-        onChange={(event) => onAmountChange(event.target.value)}
-        size="small"
-        slotProps={{
-          htmlInput: {
-            inputMode: "decimal",
-            "aria-label": transactionLinkCandidateMessages.offsetAmount,
-          },
-        }}
-        value={amount}
-      />
     </Stack>
   );
+}
+
+async function loadMissingGroupItems(
+  view: TransactionTimeGroupViewData,
+  loadItems: TransactionLinkCandidatePanelProps["loadGroupItemsAction"],
+  merchantId?: string,
+): Promise<TransactionTimeGroupViewData> {
+  if (!loadItems) return view;
+  const nextView = {
+    ...view,
+    initialDateGroupsByGroupId: { ...view.initialDateGroupsByGroupId },
+    initialNextItemOffsetByGroupId: { ...view.initialNextItemOffsetByGroupId },
+  };
+  for (const group of view.groups) {
+    if (group.id in nextView.initialDateGroupsByGroupId) continue;
+    const page = await loadItems(group.key, 0, merchantId);
+    nextView.initialDateGroupsByGroupId[group.id] = page.groups;
+    nextView.initialNextItemOffsetByGroupId[group.id] = page.nextOffset;
+  }
+  return nextView;
 }

@@ -9,6 +9,10 @@ import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import ButtonBase from "@mui/material/ButtonBase";
+import { TransactionItemAmountDrawer } from "../TransactionItemAmountDrawer/TransactionItemAmountDrawer";
+import { formatUnsignedCurrencyAmount } from "utils/transactions";
+import { transactionLinkCandidateMessages as m } from "config/transactionStepFlowMessages";
 import Drawer from "@mui/material/Drawer";
 import IconButton from "@mui/material/IconButton";
 import InputAdornment from "@mui/material/InputAdornment";
@@ -104,6 +108,7 @@ type TransactionItemPickerDrawerProps = {
   disabledCategoryType?: "income" | "expense";
   multiAccount?: boolean;
   merchantId?: string;
+  merchantName?: string;
 };
 
 export function TransactionItemPickerDrawer({
@@ -145,11 +150,13 @@ export function TransactionItemPickerDrawer({
   disabledCategoryType,
   multiAccount = false,
   merchantId,
+  merchantName,
 }: TransactionItemPickerDrawerProps) {
   useBackLayer(open, closeDrawer);
   const selectedCategoryType = filteredCategoryOptions.find(
     (category) => category.id === pickerCategoryId,
   )?.type;
+  const [amountOpen, setAmountOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
   const isLinkedMode =
     pickerMode === "refund" || pickerMode === "reimbursement";
@@ -213,6 +220,7 @@ export function TransactionItemPickerDrawer({
   }
 
   function closeDrawer() {
+    setAmountOpen(false);
     setSearchText("");
     onClose();
   }
@@ -287,7 +295,9 @@ export function TransactionItemPickerDrawer({
         ) : null}
         {isLinkedMode ? (
           <TransactionLinkCandidatePanel
+            key={pickerMode}
             accountCurrency={selectedAccountCurrency}
+            merchantName={merchantName}
             kind={pickerMode}
             merchantId={pickerMode === "refund" ? merchantId : undefined}
             loadInitialViewAction={
@@ -315,8 +325,6 @@ export function TransactionItemPickerDrawer({
                 ? onRefundItemChange
                 : onReimbursementItemChange
             }
-            onAmountChange={onPickerAmountChange}
-            amount={pickerAmount}
             value={selectedCandidate}
           />
         ) : (
@@ -476,6 +484,53 @@ export function TransactionItemPickerDrawer({
       </Box>
 
       <Box sx={drawerFooterSx}>
+        {isLinkedMode ? (
+          <ButtonBase
+            disabled={!selectedCandidate}
+            onClick={() => setAmountOpen(true)}
+            sx={{
+              width: "100%",
+              justifyContent: "space-between",
+              textAlign: "left",
+              pb: 2,
+              gap: 1,
+            }}
+          >
+            <Stack>
+              <Typography sx={{ fontWeight: 800 }}>
+                {pickerMode === "refund"
+                  ? m.refundAmount
+                  : m.reimbursementAmount}
+              </Typography>
+              <Typography variant="caption" color="textSecondary">
+                {selectedCandidate
+                  ? m.remaining(
+                      formatUnsignedCurrencyAmount(
+                        selectedCandidate.remainingRefundableAmount,
+                        selectedAccountCurrency ??
+                          selectedCandidate.accountCurrency,
+                      ),
+                    )
+                  : m.selectFirst(pickerMode)}
+              </Typography>
+            </Stack>
+            <Typography
+              sx={{
+                color: selectedCandidate ? "primary.main" : "text.disabled",
+                fontSize: "1.75rem",
+                fontWeight: 800,
+              }}
+            >
+              {selectedCandidate
+                ? formatUnsignedCurrencyAmount(
+                    pickerAmount,
+                    selectedAccountCurrency ??
+                      selectedCandidate.accountCurrency,
+                  )
+                : m.unselectedAmount}
+            </Typography>
+          </ButtonBase>
+        ) : null}
         <Stack direction="row" spacing={1.5}>
           <Button
             fullWidth
@@ -501,6 +556,19 @@ export function TransactionItemPickerDrawer({
           </PrimaryActionButton>
         </Stack>
       </Box>
+      <TransactionItemAmountDrawer
+        open={amountOpen && open && isLinkedMode && Boolean(selectedCandidate)}
+        title={pickerMode === "refund" ? m.refundAmount : m.reimbursementAmount}
+        currency={
+          selectedAccountCurrency ?? selectedCandidate?.accountCurrency ?? "JPY"
+        }
+        value={pickerAmount}
+        onClose={() => setAmountOpen(false)}
+        onConfirm={(amount) => {
+          onPickerAmountChange(amount);
+          setAmountOpen(false);
+        }}
+      />
     </Drawer>
   );
 }
@@ -634,7 +702,7 @@ const emptySearchSx = {
 
 const drawerFooterSx = {
   bgcolor: "background.paper",
-  borderTop: 1,
+  borderTop: "1px dashed",
   borderColor: "divider",
   flexShrink: 0,
   px: 2.5,
@@ -663,11 +731,18 @@ const drawerDoneButtonSx = {
 };
 
 const typeToggleGroupSx = {
-  borderRadius: `${designTokens.radius.item}px`,
+  border: 1,
+  borderColor: "divider",
+  borderRadius: `${designTokens.radius.md}px`,
+  p: "3px",
   display: "flex",
   mt: 1.5,
+  "& .MuiToggleButtonGroup-grouped": {
+    border: 0,
+    borderRadius: `${designTokens.radius.item}px`,
+    m: 0,
+  },
   "& .MuiToggleButton-root": {
-    borderColor: "divider",
     color: "text.secondary",
     flex: 1,
     fontWeight: 700,
@@ -677,9 +752,12 @@ const typeToggleGroupSx = {
     "&.Mui-selected": {
       bgcolor: "primary.main",
       color: "primary.contrastText",
-      "@media (hover: hover)": {
-        "&:hover": { bgcolor: "primary.dark" },
-      },
+      "@media (hover: hover)": { "&:hover": { bgcolor: "primary.dark" } },
+    },
+    "&.Mui-disabled": {
+      bgcolor: "action.disabledBackground",
+      color: "text.disabled",
+      opacity: 0.5,
     },
   },
 };

@@ -1,47 +1,50 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-
-import type { TransactionTimeGroupViewData } from "types/transactions";
+import { useState } from "react";
 import { TransactionLinkCandidatePanel } from "./TransactionLinkCandidatePanel";
-
-const emptyView: TransactionTimeGroupViewData = {
-  groupBy: "month",
-  groups: [],
-  initialDateGroupsByGroupId: {},
-  initialExpandedGroupId: null,
-  initialNextItemOffsetByGroupId: {},
-  nextOffset: null,
-};
+import {
+  loadCandidateView,
+  loadReimbursementView,
+  loadFallbackCandidateView,
+  loadCandidateSearch,
+  selectedCandidate,
+} from "./transactionLinkCandidateFixtures";
 const meta = {
   title: "Organisms/Transactions/TransactionLinkCandidatePanel",
   component: TransactionLinkCandidatePanel,
   args: {
     accountCurrency: "JPY",
-    amount: "",
     kind: "refund",
-    loadInitialViewAction: async () => emptyView,
-    onAmountChange: () => undefined,
+    merchantId: "amazon",
+    merchantName: "Amazon",
+    loadInitialViewAction: loadCandidateView,
+    loadSearchPageAction: loadCandidateSearch,
     onChange: () => undefined,
     value: null,
+  },
+  render: function Render(args) {
+    const [value, setValue] = useState(args.value);
+    return (
+      <TransactionLinkCandidatePanel
+        {...args}
+        value={value}
+        onChange={setValue}
+      />
+    );
   },
 } satisfies Meta<typeof TransactionLinkCandidatePanel>;
 export default meta;
 type Story = StoryObj<typeof meta>;
-export const Refund: Story = { name: "退款 · 待选原支出" };
+export const Refund: Story = { name: "退款 · 商家三笔支出 · 未选" };
+export const RefundFallback: Story = {
+  name: "退款 · 无商家候选回退全部",
+  args: { loadInitialViewAction: loadFallbackCandidateView },
+};
 export const Reimbursement: Story = {
   name: "报销 · 已选原支出",
   args: {
     kind: "reimbursement",
-    amount: "1200",
-    value: {
-      id: "item-1",
-      accountCurrency: "JPY",
-      amount: "3000",
-      categoryName: "交通费",
-      parentCategoryName: "交通",
-      refundedAmount: "500",
-      remainingRefundableAmount: "2500",
-      transactionAt: "2026-11-01T09:00:00Z",
-      transactionRecordId: "record-1",
-    },
+    loadInitialViewAction: loadReimbursementView,
+    merchantId: undefined,
+    value: selectedCandidate,
   },
 };

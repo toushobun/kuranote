@@ -18,6 +18,7 @@ export function TransactionStepItemPicker(props: TransactionReceiptProps) {
       pickerMode={f.pickerMode}
       pickerModeLocked={f.pickerModeLocked}
       merchantId={f.selectedMerchantId}
+      merchantName={f.selectedMerchant?.name}
       multiAccount={f.isMultiAccount}
       onPickerModeChange={f.handlePickerModeChange}
       onPickerAmountChange={f.setPickerAmount}

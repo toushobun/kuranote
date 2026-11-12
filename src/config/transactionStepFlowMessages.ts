@@ -156,9 +156,17 @@ export const transactionLinkCandidateMessages = {
   loadMore: "加载更多",
   noCandidates: "没有可关联的原支出，试试搜索。",
   retry: "加载失败，点击重试",
-  selected: (categoryName: string) => `已选择：${categoryName}`,
-  selectFirst: "请先选择一笔原支出，再填写金额。",
-  refundAmount: "本次退款金额",
-  reimbursementAmount: "本次报销金额",
-  offsetAmount: "核销金额",
+  merchantExpenses: (name: string) => `${name} 的支出`,
+  allExpenses: "全部支出",
+  pending: "待报销",
+  refundAmount: "退款金额",
+  reimbursementAmount: "报销金额",
+  selectFirst: (kind: "refund" | "reimbursement") =>
+    kind === "refund" ? "先选择要退款的支出" : "先选择要报销的支出",
+  remaining: (amount: string) => `剩余未核销 ${amount}`,
+  unselectedAmount: "—",
+  selectCandidate: (kind: "refund" | "reimbursement", name: string) =>
+    `选择${kind === "refund" ? "退款" : "报销"}明细 ${name}`,
+  offsetLabel: (kind: "refund" | "reimbursement", amount: string) =>
+    `${kind === "refund" ? "已退" : "已报"} ${amount}`,
 } as const;

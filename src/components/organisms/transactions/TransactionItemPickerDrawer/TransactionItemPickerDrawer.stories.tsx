@@ -1,4 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { useState } from "react";
+import {
+  loadCandidateView,
+  loadReimbursementView,
+  loadFallbackCandidateView,
+  loadCandidateSearch,
+  selectedCandidate,
+} from "../TransactionLinkCandidatePanel/transactionLinkCandidateFixtures";
 import { expect, within } from "storybook/test";
 
 import type { TransactionCategoryOption } from "types/transactions";
@@ -60,6 +68,12 @@ const meta = {
   title: "Organisms/Transactions/TransactionItemPickerDrawer",
   component: TransactionItemPickerDrawer,
   args: {
+    merchantId: "amazon",
+    merchantName: "Amazon",
+    loadRefundInitialViewAction: loadCandidateView,
+    loadReimbursementInitialViewAction: loadReimbursementView,
+    loadRefundSearchPageAction: loadCandidateSearch,
+    loadReimbursementSearchPageAction: loadCandidateSearch,
     categoryGroups,
     filteredCategoryOptions: categoryOptions,
     onCategoryToggle: () => undefined,
@@ -76,6 +90,35 @@ const meta = {
     selectedCategoryGroup: categoryGroups[0],
     pickerSpecialStatus: "pendingReimbursement",
     specialStatusEnabled: true,
+  },
+  render: function Render(args) {
+    const [mode, setMode] = useState(args.pickerMode ?? "expense");
+    const [candidate, setCandidate] = useState(
+      args.pickerRefundCandidate ?? args.pickerReimbursementCandidate ?? null,
+    );
+    const [amount, setAmount] = useState(args.pickerAmount);
+    return (
+      <TransactionItemPickerDrawer
+        {...args}
+        pickerMode={mode}
+        onPickerModeChange={(next) => {
+          setMode(next);
+          setCandidate(null);
+        }}
+        pickerRefundCandidate={candidate}
+        pickerReimbursementCandidate={candidate}
+        pickerAmount={amount}
+        onPickerAmountChange={setAmount}
+        onRefundItemChange={(item) => {
+          setCandidate(item);
+          setAmount(item?.remainingRefundableAmount ?? "");
+        }}
+        onReimbursementItemChange={(item) => {
+          setCandidate(item);
+          setAmount(item?.remainingRefundableAmount ?? "");
+        }}
+      />
+    );
   },
   parameters: { layout: "fullscreen" },
 } satisfies Meta<typeof TransactionItemPickerDrawer>;
@@ -132,4 +175,40 @@ export const RefundLinkAccountRequiredNotice: Story = {
       "请先选择账户，再选择退款明细。",
     );
   },
+};
+
+export const Refund: Story = {
+  name: "退款 · 商家三笔支出 · 未选",
+  args: { pickerMode: "refund" },
+};
+export const RefundFallback: Story = {
+  name: "退款 · 回退全部",
+  args: {
+    pickerMode: "refund",
+    loadRefundInitialViewAction: loadFallbackCandidateView,
+  },
+};
+export const Reimbursement: Story = {
+  name: "报销 · 已选且金额已填",
+  args: {
+    pickerMode: "reimbursement",
+    pickerReimbursementCandidate: selectedCandidate,
+    pickerAmount: "3280",
+  },
+};
+export const Income: Story = {
+  name: "收入",
+  args: {
+    pickerMode: "income",
+    pickerCategoryId: "income-salary",
+    selectedCategoryGroup: categoryGroups[2],
+  },
+};
+export const SpecialStatusOff: Story = {
+  name: "特殊状态关闭",
+  args: { specialStatusEnabled: false },
+};
+export const MultiAccount: Story = {
+  name: "多账户 · 禁用收入退款报销",
+  args: { multiAccount: true },
 };
