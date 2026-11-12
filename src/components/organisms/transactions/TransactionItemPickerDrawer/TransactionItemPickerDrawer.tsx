@@ -707,7 +707,15 @@ const typeToggleGroupSx = {
     "&.Mui-selected": {
       bgcolor: "primary.main",
       color: "primary.contrastText",
-      "@media (hover: hover)": { "&:hover": { bgcolor: "primary.dark" } },
+      "@media (hover: none)": {
+        "&:hover": {
+          bgcolor: "primary.main",
+          color: "primary.contrastText",
+        },
+      },
+      "@media (hover: hover)": {
+        "&:hover": { bgcolor: "primary.dark" },
+      },
     },
     "&.Mui-disabled": {
       bgcolor: "action.disabledBackground",
