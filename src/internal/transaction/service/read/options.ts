@@ -72,6 +72,7 @@ async function loadFormOptionsWith<
   const [accountOptions, categoryRows, merchantOptions] = await Promise.all([
     accountOptionsPromise,
     dependencies.categoryQueryService.listActiveSummaries({
+      includeSystem: true,
       ledgerId: currentLedger.id,
       userId: dependencies.currentUserId,
     }),
@@ -174,6 +175,7 @@ export function buildFormCategoryOptions(
         name: row.name,
         parentId: parentRow.id,
         parentName: parentRow.name,
+        ...(row.system_key ? { systemKey: row.system_key } : {}),
         type: row.type,
       })),
   );
@@ -187,6 +189,7 @@ export function buildFormCategoryOptions(
       name: row.name,
       parentId: row.parent_id,
       parentName: null,
+      ...(row.system_key ? { systemKey: row.system_key } : {}),
       type: row.type,
     });
   }
@@ -209,6 +212,7 @@ export function buildFilterCategoryOptions(
     parentName: row.parent_id
       ? (parentNameById.get(row.parent_id) ?? null)
       : null,
+    ...(row.system_key ? { systemKey: row.system_key } : {}),
     type: row.type,
   }));
 }
