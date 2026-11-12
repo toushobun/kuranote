@@ -170,7 +170,7 @@ begin
      where c.id = new.parent_id
        and c.ledger_id = new.ledger_id;
     if v_parent_key = 'special_income'
-       and new.system_key not in ('refund', 'reimbursement') then
+       and coalesce(new.system_key, '') not in ('refund', 'reimbursement') then
       raise exception 'category_system_parent_locked'
         using errcode = '22023', detail = 'category_system_parent_locked';
     end if;
