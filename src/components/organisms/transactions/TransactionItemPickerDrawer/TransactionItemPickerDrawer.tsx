@@ -2,6 +2,7 @@ import { useBackLayer } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
 import { useMemo, useState } from "react";
 
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
+import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import CloseIcon from "@mui/icons-material/Close";
@@ -70,6 +71,7 @@ type TransactionItemPickerDrawerProps = TransactionIncomeLinksContextValue & {
   pickerRefundCandidate?: TransactionRefundCandidate | null;
   pickerReimbursementCandidate?: TransactionRefundCandidate | null;
   pickerSpecialStatus?: TransactionSpecialStatus | null;
+  resolveLinkCandidate?: (candidate: TransactionRefundCandidate) => TransactionRefundCandidate;
   selectedAccountCurrency?: string;
   selectedCategoryGroup?: CategoryPickerGroup;
   specialStatusEnabled?: boolean;
@@ -105,6 +107,7 @@ export function TransactionItemPickerDrawer({
   pickerRefundCandidate = null,
   pickerReimbursementCandidate = null,
   pickerSpecialStatus = null,
+  resolveLinkCandidate,
   selectedAccountCurrency,
   selectedCategoryGroup,
   loadRefundPageAction,
@@ -128,6 +131,12 @@ export function TransactionItemPickerDrawer({
     pickerMode === "refund"
       ? pickerRefundCandidate
       : pickerReimbursementCandidate;
+  const adjustedSelectedCandidate = selectedCandidate
+    ? (resolveLinkCandidate?.(selectedCandidate) ?? selectedCandidate)
+    : null;
+  const selectedIsSettled =
+    adjustedSelectedCandidate !== null &&
+    Number(adjustedSelectedCandidate.remainingRefundableAmount) <= 0;
   const displayedGroups = useMemo(() => {
     const typeGroups = categoryGroups.filter(
       (group) => group.categories[0]?.type === pickerMode,
@@ -281,6 +290,7 @@ export function TransactionItemPickerDrawer({
                 : onReimbursementItemChange
             }
             value={selectedCandidate}
+            resolveLinkCandidate={resolveLinkCandidate}
           />
         ) : (
           <>
@@ -458,32 +468,40 @@ export function TransactionItemPickerDrawer({
                   : m.reimbursementAmount}
               </Typography>
               <Typography variant="caption" color="textSecondary">
-                {selectedCandidate
-                  ? m.remaining(
-                      formatUnsignedCurrencyAmount(
-                        selectedCandidate.remainingRefundableAmount,
-                        selectedAccountCurrency ??
-                          selectedCandidate.accountCurrency,
-                      ),
-                    )
+                {adjustedSelectedCandidate
+                  ? selectedIsSettled
+                    ? m.settledHint(pickerMode)
+                    : m.remaining(
+                        pickerMode,
+                        formatUnsignedCurrencyAmount(
+                          adjustedSelectedCandidate.remainingRefundableAmount,
+                          selectedAccountCurrency ??
+                            adjustedSelectedCandidate.accountCurrency,
+                        ),
+                      )
                   : m.selectFirst(pickerMode)}
               </Typography>
             </Stack>
-            <Typography
-              sx={{
-                color: selectedCandidate ? "primary.main" : "text.disabled",
-                fontSize: "1.75rem",
-                fontWeight: 800,
-              }}
-            >
-              {selectedCandidate && pickerAmount.trim()
-                ? formatUnsignedCurrencyAmount(
-                    pickerAmount,
-                    selectedAccountCurrency ??
-                      selectedCandidate.accountCurrency,
-                  )
-                : m.unselectedAmount}
-            </Typography>
+            <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
+              <Typography
+                sx={{
+                  color: selectedCandidate ? "primary.main" : "text.disabled",
+                  fontSize: "1.75rem",
+                  fontWeight: 800,
+                }}
+              >
+                {selectedCandidate && (pickerAmount.trim() || selectedIsSettled)
+                  ? formatUnsignedCurrencyAmount(
+                      pickerAmount.trim() ? pickerAmount : "0",
+                      selectedAccountCurrency ??
+                        selectedCandidate.accountCurrency,
+                    )
+                  : m.unselectedAmount}
+              </Typography>
+              {selectedCandidate ? (
+                <EditRoundedIcon sx={{ color: "primary.main", fontSize: 18 }} />
+              ) : null}
+            </Stack>
           </ButtonBase>
         ) : null}
         <Stack direction="row" spacing={1.5}>
