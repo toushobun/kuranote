@@ -3,7 +3,6 @@ import { SelectionSectionHeader } from "molecules/transactions/SelectionSectionH
 import { useLayoutEffect, useRef } from "react";
 import RadioButtonCheckedRoundedIcon from "@mui/icons-material/RadioButtonCheckedRounded";
 import RadioButtonUncheckedRoundedIcon from "@mui/icons-material/RadioButtonUncheckedRounded";
-import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import List from "@mui/material/List";
@@ -115,10 +114,6 @@ export function AccountStep(props: AccountStepProps) {
         </>
       ) : (
         <>
-          {/* 只有读到了商家的记录（推荐为空）才提示；账户周转等没有商家时不提示。 */}
-          {props.recommendedAccountIds?.length === 0 && (
-            <Alert severity="info">{m.noHistory}</Alert>
-          )}
           <SelectionSectionHeader
             title={m.allAccounts}
             addLabel={m.addAccount}
