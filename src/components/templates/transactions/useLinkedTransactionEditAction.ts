@@ -65,6 +65,7 @@ export function useLinkedTransactionEditAction(
   initialLinkedTargets: OriginalLinkedTarget[] = [],
 ) {
   const pendingConfirmationRef = useRef<FormData | null>(null);
+  const [retargetDescription, setRetargetDescription] = useState<string | null>(null);
   const [dismissedState, setDismissedState] =
     useState<TransactionActionState | null>(null);
 
@@ -77,10 +78,11 @@ export function useLinkedTransactionEditAction(
       );
       if (requiresSyncConfirmation(nextState)) {
         pendingConfirmationRef.current = copyFormData(formData);
+        setRetargetDescription(describeLinkRetarget(formData, initialLinkedTargets));
       }
       return nextState;
     },
-    [action, runSaveAction],
+    [action, runSaveAction, initialLinkedTargets],
   );
   const [state, formAction, isPending] = useActionState(
     actionWithConfirmation,
@@ -96,6 +98,7 @@ export function useLinkedTransactionEditAction(
 
   function cancelConfirmation() {
     pendingConfirmationRef.current = null;
+    setRetargetDescription(null);
     setDismissedState(state);
   }
 
@@ -105,6 +108,7 @@ export function useLinkedTransactionEditAction(
 
     formData.set("confirmSync", "true");
     pendingConfirmationRef.current = null;
+    setRetargetDescription(null);
     setDismissedState(state);
     startTransition(() => formAction(formData));
   }
@@ -117,10 +121,7 @@ export function useLinkedTransactionEditAction(
     isConfirmationOpen,
     isFailureOpen,
     isPending,
-    retargetDescription: describeLinkRetarget(
-      isConfirmationOpen ? pendingConfirmationRef.current : null,
-      initialLinkedTargets,
-    ),
+    retargetDescription,
     state,
   };
 }

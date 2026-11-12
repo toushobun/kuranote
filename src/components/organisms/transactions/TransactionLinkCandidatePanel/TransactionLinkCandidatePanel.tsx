@@ -63,11 +63,13 @@ export function TransactionLinkCandidatePanel({
   useEffect(() => {
     if (!loadInitialViewAction) return;
     let cancelled = false;
-    setLoading(true);
-    setBrowseError(false);
-    setView(null);
-    setBrowseMerchantId(merchantId);
-    void (async () => {
+    // 异步启动避免在 effect 同步清空状态造成连锁重渲染。
+    void Promise.resolve().then(async () => {
+      if (cancelled) return;
+      setLoading(true);
+      setBrowseError(false);
+      setView(null);
+      setBrowseMerchantId(merchantId);
       try {
         let nextView = await loadInitialViewAction(merchantId);
         let appliedMerchantId = merchantId;
@@ -85,21 +87,22 @@ export function TransactionLinkCandidatePanel({
       } finally {
         if (!cancelled) setLoading(false);
       }
-    })();
+    });
     return () => { cancelled = true; };
   }, [loadInitialViewAction, merchantId, retryKey]);
 
   useEffect(() => {
     const term = query.trim();
-    if (!term || !loadSearchPageAction) {
-      setSearchPage(null);
-      return;
-    }
     let cancelled = false;
-    setSearchPage(null);
-    setSearchLoading(true);
-    setSearchError(false);
+    if (!term || !loadSearchPageAction) {
+      const timeout = setTimeout(() => setSearchPage(null), 0);
+      return () => { cancelled = true; clearTimeout(timeout); };
+    }
     const timeout = setTimeout(() => {
+      if (cancelled) return;
+      setSearchPage(null);
+      setSearchLoading(true);
+      setSearchError(false);
       void loadSearchPageAction(term, 0)
         .then((page) => { if (!cancelled) setSearchPage(page); })
         .catch(() => { if (!cancelled) setSearchError(true); })
