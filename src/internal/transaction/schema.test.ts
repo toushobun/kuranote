@@ -263,7 +263,7 @@ describe("\u4EA4\u6613\u521B\u5EFA\u6821\u9A8C", () => {
       });
       expect(result.success).toBe(true);
     });
-    it("请求 schema 拒绝 0 元退款关联", () => {
+    it("请求 schema 接受 0 元退款关联", () => {
       const result = createTransactionRequestSchema.safeParse({
         accountId,
         items: [
@@ -279,12 +279,7 @@ describe("\u4EA4\u6613\u521B\u5EFA\u6821\u9A8C", () => {
         transactionAt: "2026-06-04T01:00:00.000Z",
         type: "income",
       });
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.error.issues[0]?.message).toBe(
-          transactionErrorCodes.refundLinkInvalid,
-        );
-      }
+      expect(result.success).toBe(true);
     });
     it("请求 schema 拒绝非法退款目标 ID", () => {
       const result = createTransactionRequestSchema.safeParse({
@@ -388,7 +383,7 @@ describe("\u4EA4\u6613\u8868\u5355\u8FB9\u754C\u6821\u9A8C", () => {
         ok: false,
       });
     });
-    it("表单拒绝 0 元退款关联", () => {
+    it("表单接受 0 元退款关联", () => {
       const formData = createFormData({
         itemAmount: "0",
         type: "income",
@@ -398,9 +393,9 @@ describe("\u4EA4\u6613\u8868\u5355\u8FB9\u754C\u6821\u9A8C", () => {
         "00000000-0000-4000-8000-000000000201",
       );
 
-      expect(validateTransactionForm(formData)).toEqual({
-        error: transactionErrorCodes.refundLinkInvalid,
-        ok: false,
+      expect(validateTransactionForm(formData)).toMatchObject({
+        ok: true,
+        value: { items: [{ amount: 0, refundedItemId: "00000000-0000-4000-8000-000000000201" }] },
       });
     });
     it("商家为空时校验失败", () => {
