@@ -88,6 +88,7 @@ export interface CategoryQueryService {
   }): Promise<CategorySummary[]>;
   /** 交易表单的分类候选，含图标。 */
   listActiveSummaries(input: {
+    includeSystem?: boolean;
     ledgerId: string;
     userId: string;
   }): Promise<ActiveCategorySummary[]>;
@@ -286,10 +287,10 @@ export function createCategoryService({
       return buildCategoriesView({ categories, ledgerName, role });
     },
 
-    async listActiveSummaries({ ledgerId, userId }) {
+    async listActiveSummaries({ includeSystem = false, ledgerId, userId }) {
       await requireActiveMemberRole(ledgerId, userId);
       return (await categoryRepository.findActiveByLedgerId(ledgerId))
-        .filter((category) => !category.system_key)
+        .filter((category) => includeSystem || !category.system_key)
         .map(({ icon_name, id, name, parent_id, type }) => ({
           icon_name,
           id,
