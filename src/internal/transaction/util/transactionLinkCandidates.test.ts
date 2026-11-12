@@ -123,6 +123,21 @@ describe("transactionLinkCandidates", () => {
       expect(result.refundedAmount).toBe("0");
     });
 
+    it("核销超额的负剩余保持符号，删掉旧关联可恢复为正数", () => {
+      const result = adjustLinkCandidate(
+        {
+          ...candidate,
+          refundedAmount: "60",
+          reimbursementAmount: "60",
+          remainingRefundableAmount: "-20",
+        },
+        [],
+        [{ amount: "30", refundCandidate: refund }],
+      );
+      expect(result.refundedAmount).toBe("30");
+      expect(result.remainingRefundableAmount).toBe("10");
+    });
+
     it("同一张小票两笔退款和一笔报销一起核销，零金额不抵消", () => {
       const result = adjustLinkCandidate(
         candidate,
