@@ -21,6 +21,7 @@ type TransactionLinkCandidatePanelProps = {
   merchantName?: string;
   loadPageAction?: LoadTransactionLinkCandidatePage;
   onChange: (item: TransactionRefundCandidate | null) => void;
+  resolveLinkCandidate?: (candidate: TransactionRefundCandidate) => TransactionRefundCandidate;
   value: TransactionRefundCandidate | null;
 };
 
@@ -76,6 +77,7 @@ export function TransactionLinkCandidatePanel(
       </Stack>
       <TransactionLinkCandidateCards
         candidates={candidates}
+        resolveLinkCandidate={props.resolveLinkCandidate}
         onSelect={onChange}
         selectableCurrency={accountCurrency}
         selectedId={value?.id}
