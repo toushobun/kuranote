@@ -226,10 +226,12 @@ describe("NewTransactionStepFlow", () => {
     click("新增商家“全家”");
     expect(screen.getByLabelText(/商家名称/)).toHaveValue("全家");
     await submitReceiptCreation("merchant", "全家");
-    respond("merchantId=new-merchant", emptySuggestions);
     expect(
       await screen.findByRole("button", { name: "修改商家：全家" }),
     ).toBeInTheDocument();
+    expect(requests).toHaveLength(0);
+    expectSuggestionsLoadingRows(false);
+    expectNoPaymentRow();
     expect(router.push).not.toHaveBeenCalled();
   });
 

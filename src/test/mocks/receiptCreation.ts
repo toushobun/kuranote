@@ -7,6 +7,7 @@ export const createdMerchant = {
   id: "new-merchant",
   name: "新商家",
   icon_url: null,
+  hasTransactions: false,
   tags: [],
 };
 export const createdAccount = {

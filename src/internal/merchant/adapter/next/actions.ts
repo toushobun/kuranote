@@ -102,6 +102,7 @@ export const createMerchant: MerchantStateAction =
             id: merchant.id,
             name: merchant.display_name,
             icon_url: merchant.icon_url,
+            hasTransactions: false,
             tags: merchant.tags,
           },
         };
