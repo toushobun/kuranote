@@ -98,6 +98,8 @@ export function useTransactionForm({
   const [selectedCategoryGroupId, setSelectedCategoryGroupId] = useState("");
   const [pickerCategoryId, setPickerCategoryId] = useState("");
   const [pickerAmount, setPickerAmount] = useState("");
+  const [pickerMode, setPickerMode] =
+    useState<"expense" | "income" | "refund" | "reimbursement">("expense");
   const [pickerSpecialStatus, setPickerSpecialStatus] =
     useState<TransactionFormItem["specialStatus"]>(null);
   const [pickerRefundCandidate, setPickerRefundCandidate] =
@@ -128,7 +130,9 @@ export function useTransactionForm({
   const allNormalCategoryOptions = useMemo(
     () =>
       categoryOptions.filter(
-        (category) => category.type === "expense" || category.type === "income",
+        (category) =>
+          !category.systemKey &&
+          (category.type === "expense" || category.type === "income"),
       ),
     [categoryOptions],
   );
@@ -177,9 +181,17 @@ export function useTransactionForm({
         ? ("expense" as const)
         : ("income" as const)
       : undefined;
+  const editingPickerItem = allDisplayItems.find(
+    (item) => item.id === editingItemId,
+  );
+  const pickerModeLocked = Boolean(
+    editingPickerItem?.persistedId &&
+      ["refund", "reimbursement"].includes(
+        categoryById.get(editingPickerItem.categoryId)?.systemKey ?? "",
+      ),
+  );
   const pickerSpecialStatusLocked = Boolean(
-    allDisplayItems.find((item) => item.id === editingItemId)
-      ?.specialStatusLocked,
+    editingPickerItem?.specialStatusLocked,
   );
   const expenseTotal = itemsByType.expense.reduce((sum, item) => {
     if (!isValidMoneyText(item.amount, selectedAccount?.currency)) return sum;
@@ -381,6 +393,7 @@ export function useTransactionForm({
     );
     setEditingItemId(null);
     setPickerCategoryId(categoryId);
+    setPickerMode(categoryById.get(categoryId)?.type ?? "expense");
     setPickerAmount("");
     setPickerSpecialStatus(null);
     setPickerRefundCandidate(null);
@@ -402,6 +415,12 @@ export function useTransactionForm({
 
     setEditingItemId(itemId);
     setPickerCategoryId(item.categoryId);
+    const category = categoryById.get(item.categoryId);
+    setPickerMode(
+      category?.systemKey === "refund" || category?.systemKey === "reimbursement"
+        ? category.systemKey
+        : (category?.type ?? "expense"),
+    );
     setPickerAmount(item.amount);
     setPickerSpecialStatus(item.specialStatus);
     setPickerRefundCandidate(item.refundCandidate ?? null);
@@ -456,8 +475,46 @@ export function useTransactionForm({
     }
   }
 
+  function handlePickerModeChange(
+    nextMode: "expense" | "income" | "refund" | "reimbursement",
+  ) {
+    if (
+      pickerModeLocked ||
+      (disabledCategoryType === "income" && nextMode !== "expense") ||
+      (disabledCategoryType === "expense" && nextMode === "expense")
+    ) return;
+
+    const nextSystem = categoryOptions.find(
+      (category) => category.systemKey === nextMode,
+    );
+    const nextGroup = categoryGroups.find(
+      (group) => group.categories[0]?.type === nextMode,
+    );
+    const nextCategoryId =
+      nextMode === "refund" || nextMode === "reimbursement"
+        ? (nextSystem?.id ?? "")
+        : (nextGroup?.categories[0]?.id ?? "");
+
+    setPickerMode(nextMode);
+    setPickerCategoryId(nextCategoryId);
+    setSelectedCategoryGroupId(nextGroup?.id ?? "");
+    setPickerSpecialStatus(null);
+    setPickerRefundCandidate(null);
+    setPickerReimbursementCandidate(null);
+    setPickerErrors({});
+  }
+
   function handlePickerAdd() {
     const errors: TransactionPickerErrors = {};
+    const selectedTarget =
+      pickerMode === "refund"
+        ? pickerRefundCandidate
+        : pickerMode === "reimbursement"
+          ? pickerReimbursementCandidate
+          : null;
+    if ((pickerMode === "refund" || pickerMode === "reimbursement") && !selectedTarget) {
+      return false;
+    }
     if (!pickerCategoryId) {
       errors.category = transactionFormValidationMessages.categoryRequired;
     }
@@ -476,7 +533,9 @@ export function useTransactionForm({
         pickerRefundCandidate,
         pickerReimbursementCandidate,
       );
-      onPickerItemCommit?.(itemId);
+      if (pickerMode !== "refund" && pickerMode !== "reimbursement") {
+        onPickerItemCommit?.(itemId);
+      }
     } else {
       replaceItem(
         editingItemId,
@@ -692,6 +751,7 @@ export function useTransactionForm({
     handlePickerAdd,
     handlePickerCategoryToggle,
     handlePickerGroupSelect,
+    handlePickerModeChange,
     handlePaymentAccountChange,
     handlePaymentAmountChange,
     handleRemovePayment,
@@ -709,6 +769,8 @@ export function useTransactionForm({
     paymentReconciliation,
     payments: paymentFields.payments,
     pickerAmount,
+    pickerMode,
+    pickerModeLocked,
     pickerCategoryId,
     pickerErrors,
     pickerRefundCandidate,
@@ -723,6 +785,7 @@ export function useTransactionForm({
     selectedMerchant,
     selectedMerchantId,
     selectedType,
+    setPickerAmount,
     setPickerSpecialStatus,
     setPickerRefundCandidate: (
       candidate: TransactionRefundCandidate | null,
@@ -734,7 +797,12 @@ export function useTransactionForm({
         return;
       }
       setPickerRefundCandidate(candidate);
-      if (candidate) setPickerReimbursementCandidate(null);
+      if (candidate) {
+        setPickerReimbursementCandidate(null);
+        if (pickerMode === "refund") {
+          setPickerAmount(candidate.remainingRefundableAmount);
+        }
+      }
       setLinkNotice(null);
     },
     setPickerReimbursementCandidate: (
@@ -750,7 +818,12 @@ export function useTransactionForm({
         return;
       }
       setPickerReimbursementCandidate(candidate);
-      if (candidate) setPickerRefundCandidate(null);
+      if (candidate) {
+        setPickerRefundCandidate(null);
+        if (pickerMode === "reimbursement") {
+          setPickerAmount(candidate.remainingRefundableAmount);
+        }
+      }
       setLinkNotice(null);
     },
     timeZoneOffsetMinutes,
