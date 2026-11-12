@@ -27,6 +27,26 @@ import {
 } from "internal/shared/errors/appError";
 import { getCategoryStoredName } from "utils/categoryNames";
 
+const systemReservedNames = new Set(["特殊收入", "退款", "报销"]);
+
+function requireOrdinaryCategoryName(name: string) {
+  if (systemReservedNames.has(name.trim())) {
+    throw new ValidationError(
+      categoryErrorCodes.nameReserved,
+      categoryErrorMessages[categoryErrorCodes.nameReserved],
+    );
+  }
+}
+
+function requireEditableCategory(systemKey: string | null | undefined) {
+  if (systemKey) {
+    throw new ValidationError(
+      categoryErrorCodes.systemLocked,
+      categoryErrorMessages[categoryErrorCodes.systemLocked],
+    );
+  }
+}
+
 export type CategoriesView = ReturnType<typeof buildCategoriesView>;
 
 export type CreateCategoryInput = CategoryScope & {
@@ -182,6 +202,8 @@ export function createCategoryService({
         );
       }
 
+      requireEditableCategory(category.systemKey);
+
       const archivedCount = await withOperationError(
         categoryErrorCodes.archiveFailed,
         () =>
@@ -201,6 +223,7 @@ export function createCategoryService({
 
     async create(input) {
       await requireManagePermission(input.ledgerId, input.userId);
+      requireOrdinaryCategoryName(input.name);
 
       if (input.parentId !== null) {
         const parent = await withOperationError(
@@ -217,6 +240,12 @@ export function createCategoryService({
           throw new ValidationError(
             categoryErrorCodes.parentInvalid,
             categoryErrorMessages[categoryErrorCodes.parentInvalid],
+          );
+        }
+        if (parent.systemKey) {
+          throw new ValidationError(
+            categoryErrorCodes.systemParentLocked,
+            categoryErrorMessages[categoryErrorCodes.systemParentLocked],
           );
         }
       }
@@ -259,15 +288,15 @@ export function createCategoryService({
 
     async listActiveSummaries({ ledgerId, userId }) {
       await requireActiveMemberRole(ledgerId, userId);
-      return (await categoryRepository.findActiveByLedgerId(ledgerId)).map(
-        ({ icon_name, id, name, parent_id, type }) => ({
+      return (await categoryRepository.findActiveByLedgerId(ledgerId))
+        .filter((category) => !category.system_key)
+        .map(({ icon_name, id, name, parent_id, type }) => ({
           icon_name,
           id,
           name,
           parent_id,
           type,
-        }),
-      );
+        }));
     },
 
     async reorder(input) {
@@ -284,6 +313,7 @@ export function createCategoryService({
 
     async update({ categoryId, iconName, ledgerId, name, userId }) {
       await requireManagePermission(ledgerId, userId);
+      requireOrdinaryCategoryName(name);
 
       const category = await withOperationError(
         categoryErrorCodes.updateFailed,
@@ -296,6 +326,8 @@ export function createCategoryService({
           categoryErrorMessages[categoryErrorCodes.categoryInvalid],
         );
       }
+
+      requireEditableCategory(category.systemKey);
 
       const siblings = await listSiblingsOrThrow(
         {
