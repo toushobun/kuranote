@@ -314,7 +314,6 @@ export function createCategoryService({
 
     async update({ categoryId, iconName, ledgerId, name, userId }) {
       await requireManagePermission(ledgerId, userId);
-      requireOrdinaryCategoryName(name);
 
       const category = await withOperationError(
         categoryErrorCodes.updateFailed,
@@ -329,6 +328,7 @@ export function createCategoryService({
       }
 
       requireEditableCategory(category.systemKey);
+      requireOrdinaryCategoryName(name);
 
       const siblings = await listSiblingsOrThrow(
         {
