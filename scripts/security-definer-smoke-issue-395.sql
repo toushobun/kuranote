@@ -948,7 +948,7 @@ as $$
     left join public.category parent on parent.id = c.parent_id
     where c.ledger_id = p_ledger_id
       and c.system_key is null;
-$;
+$$;
 
 -- 分别断言分类总数、大分类数与指纹，失败时报出实际值。
 create function pg_temp.assert_default_categories(p_label text, p_ledger_id uuid)
