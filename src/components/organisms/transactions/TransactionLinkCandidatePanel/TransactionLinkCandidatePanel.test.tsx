@@ -63,6 +63,33 @@ describe("TransactionLinkCandidatePanel", () => {
         .filter((radio) => (radio as HTMLInputElement).checked),
     ).toHaveLength(1);
   });
+  it("未选账户时不传币种过滤，异币种候选可直接选择", async () => {
+    const onChange = vi.fn();
+    const loadPage = vi.fn().mockResolvedValue({
+      items: [
+        candidateItems[0],
+        { ...candidateItems[1], accountCurrency: "USD" },
+      ],
+      nextOffset: null,
+    });
+    renderPanel({
+      accountCurrency: undefined,
+      loadPageAction: loadPage,
+      onChange,
+    });
+    await screen.findByText("咖啡豆 2 袋");
+    expect(loadPage).toHaveBeenCalledWith(
+      expect.objectContaining({ currency: undefined }),
+    );
+    const usdCandidate = screen.getByRole("button", {
+      name: "选择退款明细 咖啡豆 2 袋",
+    });
+    expect(usdCandidate).not.toBeDisabled();
+    fireEvent.click(usdCandidate);
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ accountCurrency: "USD" }),
+    );
+  });
   it("商家没有候选最多请求两次，回退全部并改标题", async () => {
     const loadPage = vi
       .fn()

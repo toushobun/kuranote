@@ -35,6 +35,10 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const Refund: Story = { name: "退款 · 商家三笔支出 · 未选" };
+export const RefundWithoutAccount: Story = {
+  name: "退款 · 未选收款账户",
+  args: { accountCurrency: undefined },
+};
 export const RefundFallback: Story = {
   name: "退款 · 无商家候选回退全部",
   args: { loadPageAction: loadFallbackCandidatePage },

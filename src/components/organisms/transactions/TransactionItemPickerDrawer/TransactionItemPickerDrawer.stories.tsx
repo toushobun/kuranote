@@ -11,7 +11,6 @@ import {
 import { expect, within } from "storybook/test";
 
 import type { TransactionCategoryOption } from "types/transactions";
-import { transactionLinkMessages } from "utils/transactionMessages";
 
 import type { CategoryPickerGroup } from "../TransactionForm/TransactionForm.types";
 import { TransactionItemPickerDrawer } from "./TransactionItemPickerDrawer";
@@ -160,25 +159,17 @@ export const RefundLinkNotice: Story = {
   },
 };
 
-export const RefundLinkAccountRequiredNotice: Story = {
-  name: "未选账户时选择关联候选的提示",
-  args: {
-    linkNotice: transactionLinkMessages.candidateAccountRequired("refund"),
-    pickerCategoryId: "income-salary",
-    pickerSpecialStatus: null,
-    selectedCategoryGroup: categoryGroups[categoryGroups.length - 1],
-  },
-  play: async ({ canvasElement }) => {
-    const body = within(canvasElement.ownerDocument.body);
-    await expect(await body.findByRole("alert")).toHaveTextContent(
-      "请先选择账户，再选择退款明细。",
-    );
-  },
-};
-
 export const Refund: Story = {
   name: "退款 · 商家三笔支出 · 未选",
   args: { pickerMode: "refund" },
+};
+export const RefundWithoutAccount: Story = {
+  name: "退款 · 未选收款账户可先选原支出",
+  args: {
+    pickerMode: "refund",
+    pickerAmount: "",
+    selectedAccountCurrency: undefined,
+  },
 };
 export const RefundFallback: Story = {
   name: "退款 · 回退全部",

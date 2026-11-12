@@ -819,6 +819,23 @@ describe("TransactionService", () => {
       currency: "USD",
     });
     expect(usd.items.map((item) => item.id)).toEqual(["candidate-21"]);
+    expect(usd.items[0]?.accountId).toBe("usd-account");
+  });
+
+  it("未传币种时返回跨币种的支出候选并保留原付款账户 ID", async () => {
+    const { service, ledger } = candidateService();
+    const page = await service.getLinkCandidatePage(ledger, "refund", {
+      offset: 20,
+    });
+    expect(page.items.map((item) => item.id)).toEqual([
+      "candidate-20",
+      "candidate-21",
+      "candidate-22",
+    ]);
+    expect(page.items[1]).toMatchObject({
+      accountCurrency: "USD",
+      accountId: "usd-account",
+    });
   });
 
   it("报销候选保留已结清或核销结余，仅使用报销流程状态并忽略商家", async () => {
