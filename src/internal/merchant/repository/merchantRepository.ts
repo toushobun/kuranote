@@ -477,12 +477,15 @@ export function createSupabaseMerchantRepository(
     includeHistory = false,
   ): Promise<MerchantSummary[] | MerchantEntrySummary[]> {
     // 关联明细仅为每家取一条有效记录，已有部分索引支持存在性查询。
-    const columns: string = includeHistory
-      ? `${merchantSummaryColumns}, active_records:transaction_record!transaction_record_merchant_same_ledger_fk(id)`
-      : merchantSummaryColumns;
-    const query = supabase
-      .from("merchant")
-      .select(columns)
+    const query = (
+      includeHistory
+        ? supabase
+            .from("merchant")
+            .select(
+              "id, name, icon_url, active_records:transaction_record!transaction_record_merchant_same_ledger_fk(id)",
+            )
+        : supabase.from("merchant").select(merchantSummaryColumns)
+    )
       .eq("ledger_id", ledgerId)
       .eq("is_archived", false)
       .order("sort_order", { ascending: true })
