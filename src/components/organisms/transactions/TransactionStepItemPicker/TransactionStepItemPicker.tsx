@@ -15,6 +15,12 @@ export function TransactionStepItemPicker(props: TransactionReceiptProps) {
       open={f.isSheetOpen}
       onClose={f.closeSheet}
       pickerAmount={f.pickerAmount}
+      pickerMode={f.pickerMode}
+      pickerModeLocked={f.pickerModeLocked}
+      merchantId={f.selectedMerchantId}
+      multiAccount={f.isMultiAccount}
+      onPickerModeChange={f.handlePickerModeChange}
+      onPickerAmountChange={f.setPickerAmount}
       pickerCategoryId={f.pickerCategoryId}
       pickerErrors={f.pickerErrors}
       pickerSpecialStatus={f.pickerSpecialStatus}

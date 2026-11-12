@@ -480,6 +480,7 @@ export function useTransactionForm({
   ) {
     if (
       pickerModeLocked ||
+      (paymentFields.isMultiAccount && nextMode !== "expense") ||
       (disabledCategoryType === "income" && nextMode !== "expense") ||
       (disabledCategoryType === "expense" && nextMode === "expense")
     ) return;

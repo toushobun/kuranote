@@ -130,9 +130,9 @@ export async function loadTransactionSearchPage(
 }
 
 /** 关联选择器打开时才读取首屏；不参与新增 / 编辑页面 SSR。 */
-export async function loadRefundPickerInitialView() {
+export async function loadRefundPickerInitialView(merchantId?: string) {
   const { currentLedger, service } = await getContext();
-  return service.getGroupView(currentLedger, "month", refundPickerFilters);
+  return service.getGroupView(currentLedger, "month", getRefundPickerFilters(merchantId));
 }
 
 export async function loadReimbursementPickerInitialView() {
@@ -146,19 +146,21 @@ export async function loadReimbursementPickerInitialView() {
 
 export async function loadRefundPickerGroupPage(
   offset: number,
+  merchantId?: string,
 ): Promise<TransactionGroupPage> {
   const { currentLedger, service } = await getContext();
   return service.getGroupPage(
     currentLedger,
     "month",
     offset,
-    refundPickerFilters,
+    getRefundPickerFilters(merchantId),
   );
 }
 
 export async function loadRefundPickerGroupItems(
   groupKey: string,
   offset: number,
+  merchantId?: string,
 ): Promise<TransactionMonthPage> {
   const { currentLedger, service } = await getContext();
   return service.getGroupItems(
@@ -166,7 +168,7 @@ export async function loadRefundPickerGroupItems(
     "month",
     groupKey,
     offset,
-    refundPickerFilters,
+    getRefundPickerFilters(merchantId),
   );
 }
 
@@ -215,4 +217,10 @@ export async function loadReimbursementPickerSearchPage(
     offset,
     reimbursementPickerFilters,
   );
+}
+
+function getRefundPickerFilters(merchantId?: string): TransactionFilters {
+  return merchantId && uuidPattern.test(merchantId)
+    ? { ...refundPickerFilters, merchantId }
+    : refundPickerFilters;
 }

@@ -2,6 +2,8 @@ import { useBackLayer } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
 import { useMemo, useState } from "react";
 
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import CloseIcon from "@mui/icons-material/Close";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import Alert from "@mui/material/Alert";
@@ -30,11 +32,11 @@ import type {
   TransactionTimeGroupViewData,
 } from "types/transactions";
 import { TransactionPendingReimbursementCheckbox } from "../TransactionPendingReimbursementCheckbox/TransactionPendingReimbursementCheckbox";
-import { TransactionRefundLinkPicker } from "../TransactionRefundLinkPicker/TransactionRefundLinkPicker";
-import { TransactionReimbursementLinkPicker } from "../TransactionReimbursementLinkPicker/TransactionReimbursementLinkPicker";
+import { TransactionLinkCandidatePanel } from "../TransactionLinkCandidatePanel/TransactionLinkCandidatePanel";
 
 import type {
   CategoryPickerGroup,
+  TransactionItemPickerMode,
   TransactionPickerErrors,
 } from "../TransactionForm/TransactionForm.types";
 import { matchesCategorySearch } from "./TransactionCategorySearch";
@@ -50,12 +52,16 @@ type TransactionItemPickerDrawerProps = {
   /** 切换大分类；带 categoryId 时同时选中它，否则选中该组第一个可用小分类。 */
   onGroupSelect: (groupId: string, categoryId?: string) => void;
   onPickerAdd: () => boolean;
+  onPickerModeChange?: (mode: TransactionItemPickerMode) => void;
+  onPickerAmountChange?: (amount: string) => void;
   onRemoveItem: (itemId: number) => void;
   onRefundItemChange?: (item: TransactionRefundCandidate | null) => void;
   onReimbursementItemChange?: (item: TransactionRefundCandidate | null) => void;
   onSpecialStatusChange?: (value: TransactionSpecialStatus | null) => void;
   open: boolean;
   pickerAmount: string;
+  pickerMode?: TransactionItemPickerMode;
+  pickerModeLocked?: boolean;
   pickerCategoryId: string;
   pickerErrors: TransactionPickerErrors;
   pickerRefundCandidate?: TransactionRefundCandidate | null;
@@ -63,14 +69,16 @@ type TransactionItemPickerDrawerProps = {
   pickerSpecialStatus?: TransactionSpecialStatus | null;
   selectedAccountCurrency?: string;
   selectedCategoryGroup?: CategoryPickerGroup;
-  loadRefundInitialViewAction?: () => Promise<TransactionTimeGroupViewData>;
+  loadRefundInitialViewAction?: (merchantId?: string) => Promise<TransactionTimeGroupViewData>;
   loadReimbursementInitialViewAction?: () => Promise<TransactionTimeGroupViewData>;
   loadRefundGroupItemsAction?: (
     groupKey: string,
     offset: number,
+    merchantId?: string,
   ) => Promise<TransactionMonthPage>;
   loadRefundMoreGroupsAction?: (
     offset: number,
+    merchantId?: string,
   ) => Promise<TransactionGroupPage>;
   loadRefundSearchPageAction?: (
     query: string,
@@ -91,6 +99,8 @@ type TransactionItemPickerDrawerProps = {
   specialStatusLocked?: boolean;
   /** 多账户时禁用与现有明细相反的一类分类（#1044）。 */
   disabledCategoryType?: "income" | "expense";
+  multiAccount?: boolean;
+  merchantId?: string;
 };
 
 export function TransactionItemPickerDrawer({
@@ -102,12 +112,16 @@ export function TransactionItemPickerDrawer({
   onClose,
   onGroupSelect,
   onPickerAdd,
+  onPickerModeChange = () => undefined,
+  onPickerAmountChange = () => undefined,
   onRemoveItem,
   onRefundItemChange = () => undefined,
   onReimbursementItemChange = () => undefined,
   onSpecialStatusChange = () => undefined,
   open,
   pickerAmount,
+  pickerMode = "expense",
+  pickerModeLocked = false,
   pickerCategoryId,
   pickerErrors,
   pickerRefundCandidate = null,
@@ -126,16 +140,24 @@ export function TransactionItemPickerDrawer({
   specialStatusEnabled = false,
   specialStatusLocked = false,
   disabledCategoryType,
+  multiAccount = false,
+  merchantId,
 }: TransactionItemPickerDrawerProps) {
   useBackLayer(open, closeDrawer);
   const selectedCategoryType = filteredCategoryOptions.find(
     (category) => category.id === pickerCategoryId,
   )?.type;
   const [searchText, setSearchText] = useState("");
+  const isLinkedMode = pickerMode === "refund" || pickerMode === "reimbursement";
+  const selectedCandidate =
+    pickerMode === "refund" ? pickerRefundCandidate : pickerReimbursementCandidate;
   const displayedGroups = useMemo(() => {
-    if (!searchText.trim()) return categoryGroups;
+    const typeGroups = categoryGroups.filter(
+      (group) => group.categories[0]?.type === pickerMode,
+    );
+    if (!searchText.trim()) return typeGroups;
 
-    return categoryGroups
+    return typeGroups
       .map((group) => ({
         ...group,
         categories: group.categories.filter(
@@ -146,7 +168,7 @@ export function TransactionItemPickerDrawer({
         ),
       }))
       .filter((group) => group.categories.length > 0);
-  }, [categoryGroups, searchText]);
+  }, [categoryGroups, searchText, pickerMode]);
   const activeCategoryGroup =
     displayedGroups.find((group) => group.id === selectedCategoryGroup?.id) ??
     displayedGroups[0];
@@ -211,6 +233,81 @@ export function TransactionItemPickerDrawer({
       </Stack>
 
       <Box sx={drawerBodySx}>
+        <ToggleButtonGroup
+          aria-label="明细类型"
+          exclusive
+          fullWidth
+          onChange={(_, value: TransactionItemPickerMode | null) => {
+            if (value) onPickerModeChange(value);
+          }}
+          size="small"
+          sx={typeToggleGroupSx}
+          value={pickerMode}
+        >
+          {(
+            [
+              ["expense", "支出"],
+              ["income", "收入"],
+              ["refund", "退款"],
+              ["reimbursement", "报销"],
+            ] as const
+          ).map(([mode, label]) => (
+            <ToggleButton
+              aria-label={`明细类型${label}`}
+              disabled={
+                (pickerModeLocked && mode !== pickerMode) ||
+                (multiAccount && mode !== "expense") ||
+                ((mode === "refund" || mode === "reimbursement") &&
+                  !specialStatusEnabled)
+              }
+              key={mode}
+              value={mode}
+            >
+              {label}
+            </ToggleButton>
+          ))}
+        </ToggleButtonGroup>
+        <Typography color="textSecondary" variant="caption" sx={{ display: "block", mt: 0.75 }}>
+          {isLinkedMode
+            ? "退款 / 报销会抵消原支出，不计入收入。"
+            : "请选择本笔明细的分类。"}
+        </Typography>
+        {isLinkedMode ? (
+          <TransactionLinkCandidatePanel
+            accountCurrency={selectedAccountCurrency}
+            kind={pickerMode}
+            merchantId={pickerMode === "refund" ? merchantId : undefined}
+            loadInitialViewAction={
+              pickerMode === "refund"
+                ? loadRefundInitialViewAction
+                : loadReimbursementInitialViewAction
+            }
+            loadGroupItemsAction={
+              pickerMode === "refund"
+                ? loadRefundGroupItemsAction
+                : loadReimbursementGroupItemsAction
+            }
+            loadMoreGroupsAction={
+              pickerMode === "refund"
+                ? loadRefundMoreGroupsAction
+                : loadReimbursementMoreGroupsAction
+            }
+            loadSearchPageAction={
+              pickerMode === "refund"
+                ? loadRefundSearchPageAction
+                : loadReimbursementSearchPageAction
+            }
+            onChange={
+              pickerMode === "refund"
+                ? onRefundItemChange
+                : onReimbursementItemChange
+            }
+            onAmountChange={onPickerAmountChange}
+            amount={pickerAmount}
+            value={selectedCandidate}
+          />
+        ) : (
+          <>
         <TextField
           fullWidth
           onChange={(event) => setSearchText(event.target.value)}
@@ -350,35 +447,14 @@ export function TransactionItemPickerDrawer({
           />
         ) : null}
 
-        {specialStatusEnabled && selectedCategoryType === "income" ? (
-          <>
-            {linkNotice ? (
-              <Alert severity="info" sx={{ mt: 1.5 }}>
-                {linkNotice}
-              </Alert>
-            ) : null}
-            <TransactionRefundLinkPicker
-              accountCurrency={selectedAccountCurrency}
-              loadInitialViewAction={loadRefundInitialViewAction}
-              loadGroupItemsAction={loadRefundGroupItemsAction}
-              loadMoreGroupsAction={loadRefundMoreGroupsAction}
-              loadSearchPageAction={loadRefundSearchPageAction}
-              onChange={onRefundItemChange}
-              refundAmount={pickerAmount}
-              value={pickerRefundCandidate}
-            />
-            <TransactionReimbursementLinkPicker
-              accountCurrency={selectedAccountCurrency}
-              incomeAmount={pickerAmount}
-              loadInitialViewAction={loadReimbursementInitialViewAction}
-              loadGroupItemsAction={loadReimbursementGroupItemsAction}
-              loadMoreGroupsAction={loadReimbursementMoreGroupsAction}
-              loadSearchPageAction={loadReimbursementSearchPageAction}
-              onChange={onReimbursementItemChange}
-              value={pickerReimbursementCandidate}
-            />
-          </>
+        {linkNotice ? (
+          <Alert severity="info" sx={{ mt: 1.5 }}>
+            {linkNotice}
+          </Alert>
         ) : null}
+          </>
+        )}
+
       </Box>
 
       <Box sx={drawerFooterSx}>
@@ -393,6 +469,7 @@ export function TransactionItemPickerDrawer({
             {editingItemId === null ? "取消" : "删除明细"}
           </Button>
           <PrimaryActionButton
+            disabled={isLinkedMode && !selectedCandidate}
             fullWidth
             onClick={handleConfirm}
             type="button"
@@ -561,4 +638,26 @@ const drawerDoneButtonSx = {
   fontWeight: 700,
   minHeight: 48,
   ...primaryActionButtonNoHoverBrightenSx,
+};
+
+const typeToggleGroupSx = {
+  borderRadius: `${designTokens.radius.item}px`,
+  display: "flex",
+  mt: 1.5,
+  "& .MuiToggleButton-root": {
+    borderColor: "divider",
+    color: "text.secondary",
+    flex: 1,
+    fontWeight: 700,
+    minWidth: 0,
+    px: 0.5,
+    textTransform: "none",
+    "&.Mui-selected": {
+      bgcolor: "primary.main",
+      color: "primary.contrastText",
+      "@media (hover: hover)": {
+        "&:hover": { bgcolor: "primary.dark" },
+      },
+    },
+  },
 };
