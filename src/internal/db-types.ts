@@ -54,6 +54,7 @@ export type AccountOptionDbRow = {
 export type CategorySummaryDbRow = {
   /** 只有交易表单的分类候选会带上图标。 */
   icon_name?: string | null;
+  system_key?: "special_income" | "refund" | "reimbursement" | null;
   id: string;
   name: string;
   parent_id: string | null;

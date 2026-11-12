@@ -116,6 +116,7 @@ export type TransactionAccountOption = {
 
 export type TransactionCategoryOption = {
   iconName?: string | null;
+  systemKey?: "special_income" | "refund" | "reimbursement";
   id: string;
   name: string;
   parentId: string | null;
@@ -154,18 +155,6 @@ export type TransactionListItem = TransactionRowItem & {
   note: string | null;
   recorder_name: string | null;
   created_at: string;
-};
-
-export type TransactionRefundCandidate = {
-  accountCurrency: string;
-  amount: string;
-  categoryName: string;
-  id: string;
-  parentCategoryName: string | null;
-  refundedAmount: string;
-  remainingRefundableAmount: string;
-  transactionAt: string;
-  transactionRecordId: string;
 };
 
 export type TransactionAmountSummary = {
@@ -245,3 +234,9 @@ export type TransferEditInitialValues = {
   transferTargetAccountId: string;
   type: "transfer";
 };
+
+export type {
+  TransactionRefundCandidate,
+  TransactionLinkCandidatePage,
+  TransactionLinkCandidatePageInput,
+} from "internal/transaction";

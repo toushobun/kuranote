@@ -10,14 +10,8 @@ import {
 import { createTransaction } from "internal/transaction/adapter/next/actions";
 import {
   loadNewTransactionView,
-  loadRefundPickerInitialView,
-  loadRefundPickerGroupItems,
-  loadRefundPickerGroupPage,
-  loadRefundPickerSearchPage,
-  loadReimbursementPickerInitialView,
-  loadReimbursementPickerGroupItems,
-  loadReimbursementPickerGroupPage,
-  loadReimbursementPickerSearchPage,
+  loadRefundPickerPage,
+  loadReimbursementPickerPage,
 } from "internal/transaction/adapter/next/loadTransactionViews";
 import {
   resolveNewTransactionEntry,
@@ -60,14 +54,8 @@ export default async function TransactionsNewPage({
   }
 
   const incomeLinksValue = {
-    loadRefundInitialViewAction: loadRefundPickerInitialView,
-    loadReimbursementInitialViewAction: loadReimbursementPickerInitialView,
-    loadRefundGroupItemsAction: loadRefundPickerGroupItems,
-    loadRefundMoreGroupsAction: loadRefundPickerGroupPage,
-    loadRefundSearchPageAction: loadRefundPickerSearchPage,
-    loadReimbursementGroupItemsAction: loadReimbursementPickerGroupItems,
-    loadReimbursementMoreGroupsAction: loadReimbursementPickerGroupPage,
-    loadReimbursementSearchPageAction: loadReimbursementPickerSearchPage,
+    loadRefundPageAction: loadRefundPickerPage,
+    loadReimbursementPageAction: loadReimbursementPickerPage,
   };
 
   return (

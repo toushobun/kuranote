@@ -78,3 +78,14 @@ export {
 export { transactionPaymentValidationErrorMessages } from "internal/transaction/errors";
 
 export type { MerchantEntryQueryService } from "internal/transaction/service/merchantEntryQueryService";
+
+export type {
+  TransactionRefundCandidate,
+  TransactionLinkCandidatePage,
+} from "./entity/transactionReadModels";
+export {
+  toTransactionLinkCandidates,
+  getLinkCandidateDefaultAmount,
+} from "./util/transactionLinkCandidates";
+
+export type { TransactionLinkCandidatePageInput } from "./schema";

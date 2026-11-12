@@ -93,6 +93,28 @@ const updateEditInput: UpdateLinkedTransactionEditInput = {
 };
 
 describe("LinkedTransactionItemRepository", () => {
+  it.each([
+    [
+      "linked_edit_target_invalid",
+      transactionLinkedEditErrorMessages.targetInvalid,
+    ],
+    [
+      "linked_edit_target_currency_mismatch",
+      transactionLinkedEditErrorMessages.targetCurrencyMismatch,
+    ],
+  ])("换目标失败 %s 返回具体安全文案", async (details, message) => {
+    const { repository } = createRepository({
+      rpcResult: rpcFailure(details, "22023"),
+    });
+    await expect(repository.updateEdit(updateEditInput)).rejects.toMatchObject({
+      code: transactionErrorCodes.updateInvalid,
+      message,
+    });
+    await expect(repository.updateEdit(updateEditInput)).rejects.toBeInstanceOf(
+      ValidationError,
+    );
+  });
+
   it("编辑快照携带 updated_at 作为乐观锁版本", async () => {
     const { repository } = createRepository();
 

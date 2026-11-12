@@ -1,4 +1,12 @@
 import {
+  transactionLinkCandidatePageInputSchema,
+  type TransactionLinkCandidatePageInput,
+} from "internal/transaction/schema";
+import { paginateItems } from "utils/collections";
+import { transactionPageSize } from "internal/transaction/util/grouping/types";
+import { toTransactionLinkCandidates } from "internal/transaction/util/transactionLinkCandidates";
+import { filterAndSortTransactionSearchItems } from "internal/transaction/util/transactionSearchHelpers";
+import {
   createBalanceAdjustmentSchema,
   type CreateBalanceAdjustmentInput,
   updateBalanceAdjustmentRequestSchema,
@@ -30,6 +38,7 @@ import {
   transactionPaymentValidationErrorMessages,
   transactionSpecialStatusErrorMessages,
   transactionValidationErrorMessages,
+  transactionWriteErrorMessages,
 } from "internal/transaction/errors";
 import type { TransactionPayment } from "internal/transaction/entity/transactionPayment";
 import {
@@ -43,6 +52,7 @@ import type {
 } from "internal/transaction/entity/transactionGrouping";
 import { defaultTransactionFilters } from "internal/transaction/entity/transactionGrouping";
 import type {
+  TransactionLinkCandidatePage,
   TransactionGroupPage,
   TransactionMonthPage,
   TransactionSearchPage,
@@ -70,13 +80,9 @@ import {
   getNewTransactionView,
 } from "internal/transaction/service/read/transactionFormService";
 import {
-  buildTransactionListItemsFromContext,
+  buildFilteredTransactionListItems,
   loadTransactionGroupLoaderContext,
 } from "internal/transaction/service/read/transactionContext";
-import {
-  filterTransactionItems,
-  filterTransactionRecords,
-} from "internal/transaction/util/grouping/filters";
 import {
   getTransactionReadDependencies,
   requireTransactionReadLedger,
@@ -149,6 +155,11 @@ export interface TransactionService {
     groupBy?: TransactionGroupBy,
     filters?: TransactionFilters,
   ): Promise<TransactionTimeGroupViewData>;
+  getLinkCandidatePage(
+    currentLedger: CurrentLedger,
+    kind: "refund" | "reimbursement",
+    input: TransactionLinkCandidatePageInput,
+  ): Promise<TransactionLinkCandidatePage>;
   getNewView(currentLedger: CurrentLedger): Promise<NewTransactionView>;
   search(
     currentLedger: CurrentLedger,
@@ -321,6 +332,18 @@ export function createTransactionService({
         throw new ValidationError(
           transactionErrorCodes.specialStatusInvalid,
           transactionSpecialStatusErrorMessages.incomeLinkConflict,
+        );
+      }
+      const systemKey = categoryById.get(item.categoryId)?.system_key ?? null;
+      const requiredSystemKey = hasRefundLink
+        ? "refund"
+        : hasReimbursementLink
+          ? "reimbursement"
+          : null;
+      if (systemKey !== requiredSystemKey) {
+        throw new ValidationError(
+          transactionErrorCodes.incomeLinkCategoryInvalid,
+          transactionSpecialStatusErrorMessages.incomeLinkSystemCategoryRequired,
         );
       }
       if (hasRefundLink && item.amount <= 0) {
@@ -545,6 +568,48 @@ export function createTransactionService({
       );
     },
 
+    async getLinkCandidatePage(currentLedger, kind, rawInput) {
+      const ledger = await requireReadLedger(currentLedger);
+      const parsed =
+        transactionLinkCandidatePageInputSchema.safeParse(rawInput);
+      if (!parsed.success)
+        throw new ValidationError(
+          transactionErrorCodes.updateInvalid,
+          transactionWriteErrorMessages.inputInvalid,
+        );
+      const input = parsed.data;
+      const filters: TransactionFilters = {
+        recordType: "refundableExpense",
+        merchantId: kind === "refund" ? input.merchantId : undefined,
+        ...(kind === "reimbursement"
+          ? {
+              specialStatuses: [
+                "pendingReimbursement",
+                "reimbursed",
+                "reimbursementSurplus",
+              ],
+            }
+          : {}),
+      };
+      const context = await loadTransactionGroupLoaderContext(
+        getReadDependencies(),
+        ledger,
+      );
+      const items = buildFilteredTransactionListItems(context, filters);
+      const candidates = toTransactionLinkCandidates(
+        filterAndSortTransactionSearchItems(items, input.query),
+      ).filter(
+        (candidate) =>
+          !input.currency || candidate.accountCurrency === input.currency,
+      );
+      const page = paginateItems(
+        candidates,
+        input.offset ?? 0,
+        transactionPageSize,
+      );
+      return { items: page.items, nextOffset: page.nextOffset };
+    },
+
     async search(
       currentLedger,
       rawQuery,
@@ -558,16 +623,8 @@ export function createTransactionService({
         getReadDependencies(),
         ledger,
       );
-      const records = filterTransactionRecords(context, filters);
-      const recordIds = new Set(records.map((record) => record.id));
-      const filteredContext = {
-        ...context,
-        items: filterTransactionItems(context, filters).filter((item) =>
-          recordIds.has(item.transaction_record_id),
-        ),
-      };
       return buildTransactionSearchPage(
-        buildTransactionListItemsFromContext(records, filteredContext, filters),
+        buildFilteredTransactionListItems(context, filters),
         query,
         offset,
       );

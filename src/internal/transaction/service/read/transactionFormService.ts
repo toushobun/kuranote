@@ -1,3 +1,4 @@
+import type { MerchantSummary } from "internal/merchant";
 import type { CurrentLedger } from "internal/ledger";
 import { canModifyTransaction, canWriteTransaction } from "internal/ledger";
 import type { TransactionItemDbRow } from "internal/db-types";
@@ -254,6 +255,42 @@ async function buildEditTransactionView<
         )
       : Promise.resolve([]);
   const incomeLinks = await incomeLinksPromise;
+  const linkedItems = incomeLinks.flatMap((link) => [
+    ...(link.refundItem ? [link.refundItem] : []),
+    ...link.reimbursementItems,
+  ]);
+  const candidateAccountOptions = [
+    ...options.accountOptions,
+    ...archivedAccountOptions,
+  ];
+  const linkedAccountIds = [
+    ...new Set(linkedItems.map((item) => item.accountId)),
+  ];
+  const linkedMerchantIds = [
+    ...new Set(
+      linkedItems.flatMap((item) => (item.merchantId ? [item.merchantId] : [])),
+    ),
+  ];
+  const [linkedAccountOptions, linkedMerchants] = await Promise.all([
+    areAccountIdsAvailable(linkedAccountIds, candidateAccountOptions)
+      ? Promise.resolve([])
+      : loadArchivedAccountOptions(
+          dependencies,
+          currentLedger,
+          linkedAccountIds,
+          candidateAccountOptions,
+        ),
+    linkedMerchantIds.length
+      ? dependencies.merchantQueryService.findSummariesByIds({
+          ledgerId: currentLedger.id,
+          merchantIds: linkedMerchantIds,
+        })
+      : Promise.resolve([]),
+  ]);
+  candidateAccountOptions.push(...linkedAccountOptions);
+  const linkedMerchantById = new Map(
+    linkedMerchants.map((merchant) => [merchant.id, merchant]),
+  );
   const incomeLinkByItemId = new Map(
     incomeLinks.map((link) => [link.incomeItemId, link]),
   );
@@ -282,15 +319,17 @@ async function buildEditTransactionView<
           : undefined;
         const refundCandidate = buildRefundCandidate(
           incomeLink,
-          options.accountOptions,
+          candidateAccountOptions,
           options.categoryOptions,
           currentLedger.baseCurrency,
+          linkedMerchantById,
         );
         const reimbursementCandidate = buildReimbursementCandidate(
           incomeLink,
-          options.accountOptions,
+          candidateAccountOptions,
           options.categoryOptions,
           currentLedger.baseCurrency,
+          linkedMerchantById,
         );
         const amount = formatEditableAmount(item.amount, currency);
         const businessNetAmount = hasBusinessNetAmountOffset(
@@ -363,6 +402,7 @@ function buildRefundCandidate(
   accounts: TransactionAccountOption[],
   categories: TransactionCategoryOption[],
   fallbackCurrency: string,
+  merchants: Map<string, MerchantSummary>,
 ) {
   const refundItem = incomeLink?.refundItem;
   if (!refundItem) return null;
@@ -373,6 +413,7 @@ function buildRefundCandidate(
     accounts,
     categories,
     fallbackCurrency,
+    merchants,
   );
 }
 
@@ -381,6 +422,7 @@ function buildReimbursementCandidate(
   accounts: TransactionAccountOption[],
   categories: TransactionCategoryOption[],
   fallbackCurrency: string,
+  merchants: Map<string, MerchantSummary>,
 ) {
   const reimbursementItem = incomeLink?.reimbursementItems[0];
   if (!reimbursementItem) return null;
@@ -391,6 +433,7 @@ function buildReimbursementCandidate(
     accounts,
     categories,
     fallbackCurrency,
+    merchants,
   );
 }
 
@@ -400,7 +443,11 @@ function buildIncomeLinkCandidate(
   accounts: TransactionAccountOption[],
   categories: TransactionCategoryOption[],
   fallbackCurrency: string,
+  merchants: Map<string, MerchantSummary>,
 ) {
+  const merchant = linkedItem.merchantId
+    ? merchants.get(linkedItem.merchantId)
+    : undefined;
   const account = accounts.find((option) => option.id === linkedItem.accountId);
   const category = categories.find(
     (option) => option.id === linkedItem.categoryId,
@@ -428,6 +475,10 @@ function buildIncomeLinkCandidate(
   return {
     accountCurrency: account?.currency ?? fallbackCurrency,
     accountId: linkedItem.accountId,
+    accountName: account?.name ?? transactionFallbackLabels.account,
+    merchantName: merchant?.name ?? null,
+    merchantIconUrl: merchant?.icon_url ?? null,
+    reimbursementAmount: linkedItem.reimbursementAmount,
     amount: linkedItem.amount,
     categoryName: category?.name ?? transactionFallbackLabels.category,
     id: linkedItem.id,

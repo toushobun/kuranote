@@ -60,8 +60,10 @@ insert into public.category (id, ledger_id, parent_id, type, name)
 values
     (pg_temp.id(41), pg_temp.id(10), pg_temp.id(40), 'expense', '治疗费'),
     (pg_temp.id(42), pg_temp.id(10), pg_temp.id(40), 'expense', '检查费'),
-    (pg_temp.id(43), pg_temp.id(10), pg_temp.id(45), 'income', '退款'),
     (pg_temp.id(44), pg_temp.id(10), pg_temp.id(46), 'expense', '餐饮');
+
+-- #944：新账本的退款分类由初始化函数创建，不能再插入同名普通分类。
+select public.initialize_ledger_system_categories(pg_temp.id(10), pg_temp.id(1));
 
 insert into public.merchant (id, ledger_id, name, created_by, updated_by)
 values
@@ -90,7 +92,7 @@ select public.create_transaction(
 );
 select public.create_transaction(
     pg_temp.id(10), 'income', '2099-04-12 10:00:00+00',
-    jsonb_build_array(jsonb_build_object('amount', 10000, 'categoryId', pg_temp.id(43))),
+    jsonb_build_array(jsonb_build_object('amount', 10000, 'categoryId', (select id from public.category where ledger_id = pg_temp.id(10) and system_key = 'refund'))),
     jsonb_build_array(jsonb_build_object('accountId', pg_temp.id(32), 'amount', 10000)),
     pg_temp.id(50), '医院退款'
 );
@@ -132,7 +134,7 @@ reset role;
 
 select public.apply_transaction_item_links(
     pg_temp.id(10),
-    (select ti.id from public.transaction_item ti where ti.ledger_id = pg_temp.id(10) and ti.category_id = pg_temp.id(43)),
+    (select ti.id from public.transaction_item ti where ti.ledger_id = pg_temp.id(10) and ti.category_id = (select id from public.category where ledger_id = pg_temp.id(10) and system_key = 'refund')),
     jsonb_build_object(
         'refundedItemId',
         (select ti.id from public.transaction_item ti where ti.ledger_id = pg_temp.id(10) and ti.category_id = pg_temp.id(42))
@@ -203,9 +205,9 @@ select results_eq(
 select results_eq(
     $$select label, expense, shared_count, shared_total
       from pg_temp.group_summaries('category', '2099-04-10', '2099-04-13', pg_temp.id(1)::text)$$,
-    $$values ('检查费', 70000::numeric, 1, 120000::numeric),
-             ('治疗费', 40000::numeric, 1, 120000::numeric),
-             ('退款', 0::numeric, 0, 0::numeric)$$,
+    $$values ('💴 退款', 0::numeric, 0, 0::numeric),
+             ('检查费', 70000::numeric, 1, 120000::numeric),
+             ('治疗费', 40000::numeric, 1, 120000::numeric)$$,
     '筛选「我」按分类：命中明细全额（业务净额），医院带共同支付（整笔 12 万）'
 );
 select results_eq(
@@ -325,7 +327,7 @@ select results_eq(
 -- E：一笔收入分入两个不同持有人的账户。
 select public.create_transaction(
     pg_temp.id(10), 'income', '2099-04-21 10:00:00+00',
-    jsonb_build_array(jsonb_build_object('amount', 9000, 'categoryId', pg_temp.id(43))),
+    jsonb_build_array(jsonb_build_object('amount', 9000, 'categoryId', (select id from public.category where ledger_id = pg_temp.id(10) and system_key = 'refund'))),
     jsonb_build_array(
         jsonb_build_object('accountId', pg_temp.id(30), 'amount', 5000),
         jsonb_build_object('accountId', pg_temp.id(31), 'amount', 4000)

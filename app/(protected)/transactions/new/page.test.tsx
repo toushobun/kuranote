@@ -9,14 +9,8 @@ const mocks = vi.hoisted(() => ({
   loadMerchantPresets: vi.fn(),
   loadNewTransactionView: vi.fn(),
   loadReceiptCreationView: vi.fn(),
-  loadRefundPickerInitialView: vi.fn(),
-  loadRefundPickerGroupItems: vi.fn(),
-  loadRefundPickerGroupPage: vi.fn(),
-  loadRefundPickerSearchPage: vi.fn(),
-  loadReimbursementPickerInitialView: vi.fn(),
-  loadReimbursementPickerGroupItems: vi.fn(),
-  loadReimbursementPickerGroupPage: vi.fn(),
-  loadReimbursementPickerSearchPage: vi.fn(),
+  loadRefundPickerPage: vi.fn(),
+  loadReimbursementPickerPage: vi.fn(),
   NewTransactionStepFlow: vi.fn(() => null),
   TransactionPermissionDenied: vi.fn(() => null),
   NewTransactionVisualFrame: vi.fn(() => null),
@@ -40,14 +34,8 @@ vi.mock("internal/merchant/adapter/next/actions", () => ({
 
 vi.mock("internal/transaction/adapter/next/loadTransactionViews", () => ({
   loadNewTransactionView: mocks.loadNewTransactionView,
-  loadRefundPickerInitialView: mocks.loadRefundPickerInitialView,
-  loadReimbursementPickerInitialView: mocks.loadReimbursementPickerInitialView,
-  loadRefundPickerGroupItems: mocks.loadRefundPickerGroupItems,
-  loadRefundPickerGroupPage: mocks.loadRefundPickerGroupPage,
-  loadRefundPickerSearchPage: mocks.loadRefundPickerSearchPage,
-  loadReimbursementPickerGroupItems: mocks.loadReimbursementPickerGroupItems,
-  loadReimbursementPickerGroupPage: mocks.loadReimbursementPickerGroupPage,
-  loadReimbursementPickerSearchPage: mocks.loadReimbursementPickerSearchPage,
+  loadRefundPickerPage: mocks.loadRefundPickerPage,
+  loadReimbursementPickerPage: mocks.loadReimbursementPickerPage,
 }));
 
 vi.mock("templates/transactions/TransactionFormPage", () => ({
@@ -174,12 +162,8 @@ describe("TransactionsNewPage", () => {
     }>;
 
     expect(provider.props.value).toMatchObject({
-      loadRefundInitialViewAction: mocks.loadRefundPickerInitialView,
-      loadReimbursementInitialViewAction:
-        mocks.loadReimbursementPickerInitialView,
-      loadRefundGroupItemsAction: mocks.loadRefundPickerGroupItems,
-      loadReimbursementSearchPageAction:
-        mocks.loadReimbursementPickerSearchPage,
+      loadRefundPageAction: mocks.loadRefundPickerPage,
+      loadReimbursementPageAction: mocks.loadReimbursementPickerPage,
     });
   });
 

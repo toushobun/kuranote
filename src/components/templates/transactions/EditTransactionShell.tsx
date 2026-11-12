@@ -30,7 +30,10 @@ import type {
 import { transactionEditRestrictionMessages } from "utils/transactionMessages";
 
 import { TransactionPageTopBar } from "./TransactionPageTopBar";
-import { useLinkedTransactionEditAction } from "./useLinkedTransactionEditAction";
+import {
+  useLinkedTransactionEditAction,
+  type OriginalLinkedTarget,
+} from "./useLinkedTransactionEditAction";
 
 const deleteTransactionFormId = "delete-transaction-form";
 
@@ -47,6 +50,7 @@ type EditTransactionShellProps = {
   deleteAction: TransactionStateAction;
   editRestriction: TransactionEditRestriction | null;
   hasLinkedIncomeItems: boolean;
+  initialLinkedTargets?: OriginalLinkedTarget[];
   /** 离开确认里的「保存并退出」按这个 id 提交编辑表单。 */
   saveFormId: string;
   transactionRecordId: string;
@@ -65,6 +69,7 @@ export function EditTransactionShell({
   deleteAction,
   editRestriction,
   hasLinkedIncomeItems,
+  initialLinkedTargets = [],
   saveFormId,
   transactionRecordId,
 }: EditTransactionShellProps) {
@@ -77,6 +82,7 @@ export function EditTransactionShell({
   const editAction = useLinkedTransactionEditAction(
     action,
     guard.runSaveAction,
+    initialLinkedTargets,
   );
   const [deleteState, deleteFormAction] = useActionState(
     (state: TransactionActionState, data: FormData) =>
@@ -142,6 +148,7 @@ export function EditTransactionShell({
         title="删除记账？"
       />
       <LinkedTransactionSyncConfirmationDialog
+        description={editAction.retargetDescription ?? undefined}
         onCancel={() => {
           guard.cancelSave();
           editAction.cancelConfirmation();

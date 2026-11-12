@@ -846,6 +846,93 @@ describe("getEditTransactionEntryView", () => {
 });
 
 describe("getEditTransactionView income links", () => {
+  it.each(["refund", "reimbursement"] as const)(
+    "%s 编辑原支出补齐商家头像及归档付款账户信息",
+    async (kind) => {
+      const linkedItem = {
+        accountId: targetAccountId,
+        amount: "1000",
+        categoryId,
+        id: linkedExpenseItemId,
+        merchantId,
+        refundedAmount: "100",
+        reimbursementAmount: "200",
+        transactionAt: "2026-08-01T01:00:00Z",
+        transactionRecordId: "00000000-0000-4000-8000-000000009998",
+      };
+      const incomeLinkRepository: TransactionIncomeLinkRepository = {
+        listByIncomeItemIds: vi.fn().mockResolvedValue([
+          {
+            incomeItemId,
+            refundItem:
+              kind === "refund"
+                ? { ...linkedItem, refundLinkAmount: "100" }
+                : null,
+            reimbursementItems:
+              kind === "reimbursement"
+                ? [{ ...linkedItem, reimbursementLinkAmount: "100" }]
+                : [],
+          },
+        ]),
+      };
+      const dependencies = createLinkedDependencies({
+        incomeLinkRepository,
+        itemOverrides: {
+          category_id: incomeCategoryId,
+          is_refund_income: kind === "refund",
+          is_reimbursement_income: kind === "reimbursement",
+        },
+      });
+      dependencies.accountQueryService.getTransactionContext.mockResolvedValue(
+        transactionContext([
+          { id: targetAccountId, currency: "JPY", name: "归档信用卡" },
+        ]),
+      );
+      dependencies.merchantQueryService.findSummariesByIds.mockResolvedValue([
+        {
+          id: merchantId,
+          name: "原支出商家",
+          icon_url: "/assets/kura-icons/merchant.png",
+        },
+      ]);
+      const view = await getEditTransactionView(
+        dependencies,
+        currentLedger,
+        transactionRecordId,
+      );
+      expect(view).toMatchObject({
+        initialValues: {
+          items: [
+            {
+              [kind === "refund"
+                ? "refundCandidate"
+                : "reimbursementCandidate"]: {
+                accountName: "归档信用卡",
+                accountCurrency: "JPY",
+                merchantName: "原支出商家",
+                merchantIconUrl: "/assets/kura-icons/merchant.png",
+                reimbursementAmount: "200",
+              },
+            },
+          ],
+        },
+      });
+      expect(
+        dependencies.merchantQueryService.findSummariesByIds,
+      ).toHaveBeenCalledExactlyOnceWith({
+        ledgerId,
+        merchantIds: [merchantId],
+      });
+      expect(
+        dependencies.accountQueryService.getTransactionContext,
+      ).toHaveBeenCalledExactlyOnceWith({
+        accountIds: [targetAccountId],
+        ledgerId,
+        userId,
+      });
+    },
+  );
+
   it.each([
     ["已报销支出", { special_status: "reimbursed" as const }],
     ["核销结余支出", { special_status: "reimbursement_surplus" as const }],

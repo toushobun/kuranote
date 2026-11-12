@@ -9,10 +9,6 @@ import type {
   TransactionAccountOption,
   TransactionCategoryOption,
   TransactionEntryMethod,
-  TransactionGroupPage,
-  TransactionMonthPage,
-  TransactionSearchPage,
-  TransactionTimeGroupViewData,
 } from "types/transactions";
 import type {
   TransactionFormInitialItem,
@@ -21,32 +17,10 @@ import type {
 import type { FlowMerchant } from "organisms/transactions/MerchantStep/MerchantStep.types";
 
 /** 小票内编辑明细与付款所需的选项（分类、退款 / 报销选择器、账本开关）与初始值。 */
-export type ItemsStepOptions = {
+import type { TransactionIncomeLinksContextValue } from "../TransactionForm/TransactionIncomeLinksContext";
+
+export type ItemsStepOptions = TransactionIncomeLinksContextValue & {
   categoryOptions: TransactionCategoryOption[];
-  loadRefundInitialViewAction?: () => Promise<TransactionTimeGroupViewData>;
-  loadReimbursementInitialViewAction?: () => Promise<TransactionTimeGroupViewData>;
-  loadRefundGroupItemsAction?: (
-    groupKey: string,
-    offset: number,
-  ) => Promise<TransactionMonthPage>;
-  loadRefundMoreGroupsAction?: (
-    offset: number,
-  ) => Promise<TransactionGroupPage>;
-  loadRefundSearchPageAction?: (
-    query: string,
-    offset: number,
-  ) => Promise<TransactionSearchPage>;
-  loadReimbursementGroupItemsAction?: (
-    groupKey: string,
-    offset: number,
-  ) => Promise<TransactionMonthPage>;
-  loadReimbursementMoreGroupsAction?: (
-    offset: number,
-  ) => Promise<TransactionGroupPage>;
-  loadReimbursementSearchPageAction?: (
-    query: string,
-    offset: number,
-  ) => Promise<TransactionSearchPage>;
   transactionItemSpecialStatusEnabled?: boolean;
   /** 账本是否开启多账户付款（#931）；关闭时不显示「添加付款账户」。 */
   multiAccountPaymentEnabled?: boolean;

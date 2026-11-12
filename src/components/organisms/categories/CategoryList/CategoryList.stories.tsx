@@ -244,3 +244,54 @@ export const DialogButtons: Story = {
     );
   },
 };
+
+export const SystemIncome: Story = {
+  name: "系统分类：特殊收入、退款、报销",
+  args: {
+    categories: [
+      ...categories,
+      {
+        created_at: "2026-01-01T00:00:00.000Z",
+        icon_name: "💸",
+        id: "00000000-0000-4000-8000-000000000201",
+        name: "💸 特殊收入",
+        parent_id: null,
+        sort_order: 30,
+        system_key: "special_income" as const,
+        type: "income" as const,
+        children: [
+          {
+            created_at: "2026-01-01T00:00:00.000Z",
+            icon_name: "💴",
+            id: "00000000-0000-4000-8000-000000000202",
+            name: "💴 退款",
+            parent_id: "00000000-0000-4000-8000-000000000201",
+            sort_order: 10,
+            system_key: "refund" as const,
+            type: "income" as const,
+          },
+          {
+            created_at: "2026-01-01T00:00:00.000Z",
+            icon_name: "📄",
+            id: "00000000-0000-4000-8000-000000000203",
+            name: "📄 报销",
+            parent_id: "00000000-0000-4000-8000-000000000201",
+            sort_order: 20,
+            system_key: "reimbursement" as const,
+            type: "income" as const,
+          },
+        ],
+      },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("tab", { name: "收入分类" }));
+    await userEvent.click(canvas.getByRole("button", { name: "展开特殊收入" }));
+    await expect(canvas.getByText("退款")).toBeVisible();
+    await expect(canvas.getByText("报销")).toBeVisible();
+    await expect(
+      canvas.queryByRole("button", { name: "编辑退款" }),
+    ).not.toBeInTheDocument();
+  },
+};

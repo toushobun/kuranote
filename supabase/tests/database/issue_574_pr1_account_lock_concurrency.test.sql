@@ -132,7 +132,7 @@ select dblink_exec(
                 '00000000-0000-4000-8000-000000000032',
                 '57484000-0000-4000-8000-000000000002',
                 '00000000-0000-4000-8000-000000000044',
-                '00000000-0000-4000-8000-000000005002',
+                (select id from public.category where ledger_id = '00000000-0000-4000-8000-000000000032' and system_key = 'reimbursement'),
                 40, 0, 40, 0,
                 null,
                 '00000000-0000-4000-8000-000000000031',
@@ -201,7 +201,7 @@ select dblink_send_query(
             '2090-01-01 00:00:00+00'::timestamptz,
             40,
             '00000000-0000-4000-8000-000000000043',
-            '00000000-0000-4000-8000-000000005002'
+            (select id from public.category where ledger_id = '00000000-0000-4000-8000-000000000032' and system_key = 'reimbursement')
         )
     )
     select 1::integer from edited

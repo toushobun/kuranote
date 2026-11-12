@@ -225,6 +225,8 @@ export const transactionSpecialStatusErrorMessages = {
   disabled: "当前账本未启用特殊状态功能。",
   incomeLinkConflict: "同一条收入明细不能同时作为报销和退款。",
   incomeLinkIncomeOnly: "报销或退款关联只能设置在收入明细上。",
+  incomeLinkSystemCategoryRequired:
+    "退款必须使用系统分类「退款」、报销必须使用系统分类「报销」；普通收入不能使用系统分类。",
   pendingReimbursementExpenseOnly: "待报销只能用于支出明细。",
   refundAmountInvalid: "退款收入金额必须大于 0。",
 } as const;
@@ -248,6 +250,8 @@ export const transactionLoadErrorMessages = {
 } as const;
 
 export const transactionLinkedEditErrorMessages = {
+  targetInvalid: "这笔原支出已不能关联，请重新选择。",
+  targetCurrencyMismatch: "原支出与收款账户币种不一致。",
   confirmationRequired:
     "该交易包含退款 / 报销关联，请确认同步修改关联数据后再保存。",
   deleteForbidden: "该交易包含已关联的退款 / 报销明细，请先解除关联后再删除。",

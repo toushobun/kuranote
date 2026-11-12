@@ -203,6 +203,39 @@ describe("useTransactionForm", () => {
     expect(result.current.selectedMerchant?.name).toBe("便利店");
   });
 
+  it.each([
+    ["refund", "0"],
+    ["refund", "-500"],
+    ["refund", "750"],
+    ["reimbursement", "0"],
+    ["reimbursement", "-500"],
+    ["reimbursement", "750"],
+  ] as const)("%s 候选剩余 %s 时仅正数自动填金额", (kind, remaining) => {
+    const { result } = renderTransactionFormHook();
+    act(() => {
+      changePrimaryAccount(result, "account-1");
+      result.current.openSheet();
+    });
+    act(() => result.current.handlePickerModeChange(kind));
+    act(() => result.current.setPickerAmount("999"));
+    act(() => {
+      const candidate = {
+        ...refundCandidate,
+        remainingRefundableAmount: remaining,
+      };
+      if (kind === "refund") result.current.setPickerRefundCandidate(candidate);
+      else result.current.setPickerReimbursementCandidate(candidate);
+    });
+    expect(result.current.pickerAmount).toBe(
+      Number(remaining) > 0 ? remaining : "",
+    );
+    expect(
+      kind === "refund"
+        ? result.current.pickerRefundCandidate
+        : result.current.pickerReimbursementCandidate,
+    ).not.toBeNull();
+  });
+
   it("新增超额退款收入时完整核销且业务净额为零", () => {
     const { result } = renderTransactionFormHook();
 

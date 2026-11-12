@@ -26,6 +26,7 @@ import {
   categoryArchiveConfirmMessages,
   categoryArchiveMessages,
   categorySearchMessages,
+  categorySystemMessages,
 } from "config/categoryMessages";
 import { defaultCategoryEmoji } from "config/categoryEmojis";
 import { DestructiveSubmitButton } from "molecules/ui/DestructiveSubmitButton/DestructiveSubmitButton";
@@ -138,6 +139,11 @@ function CategoryRowItem({
             >
               {displayName}
             </Typography>
+            {category.system_key ? (
+              <Typography color="textSecondary" variant="caption">
+                {categorySystemMessages.badge}
+              </Typography>
+            ) : null}
             {childCount !== undefined ? (
               <Typography
                 color="textSecondary"
