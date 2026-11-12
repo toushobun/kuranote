@@ -25,9 +25,44 @@ function requiresSyncConfirmation(state: TransactionActionState) {
   );
 }
 
+export type OriginalLinkedTarget = {
+  incomeItemId: string;
+  kind: "refund" | "reimbursement";
+  label: string;
+  targetItemId: string;
+};
+
+function describeLinkRetarget(
+  formData: FormData | null,
+  originals: OriginalLinkedTarget[],
+) {
+  if (!formData || originals.length === 0) return null;
+  const itemIds = formData.getAll("itemPersistedId").map(String);
+  const refundedItemIds = formData.getAll("itemRefundedItemId").map(String);
+  const reimbursementItemIds = formData.getAll("itemReimbursementItemId").map(String);
+  const refundLabels = formData.getAll("itemRefundedItemLabel").map(String);
+  const reimbursementLabels = formData.getAll("itemReimbursementItemLabel").map(String);
+
+  const changes = originals.flatMap((original) => {
+    const index = itemIds.indexOf(original.incomeItemId);
+    if (index < 0) return [];
+    const isRefund = original.kind === "refund";
+    const targetId = (isRefund ? refundedItemIds : reimbursementItemIds)[index];
+    if (!targetId || targetId === original.targetItemId) return [];
+    const label = (isRefund ? refundLabels : reimbursementLabels)[index] || "新选原支出";
+    return [
+      `${isRefund ? "退款" : "报销"}原支出：${original.label}（${original.targetItemId.slice(0, 8)}）→ ${label}（${targetId.slice(0, 8)}）`,
+    ];
+  });
+  return changes.length > 0
+    ? `${changes.join("；")}。同步修改后会重新计算旧支出与新支出的核销金额和状态。取消不会保存任何修改。`
+    : null;
+}
+
 export function useLinkedTransactionEditAction(
   action: TransactionStateAction,
   runSaveAction: ReturnType<typeof useUnsavedChangesGuard>["runSaveAction"],
+  initialLinkedTargets: OriginalLinkedTarget[] = [],
 ) {
   const pendingConfirmationRef = useRef<FormData | null>(null);
   const [dismissedState, setDismissedState] =
@@ -82,6 +117,10 @@ export function useLinkedTransactionEditAction(
     isConfirmationOpen,
     isFailureOpen,
     isPending,
+    retargetDescription: describeLinkRetarget(
+      isConfirmationOpen ? pendingConfirmationRef.current : null,
+      initialLinkedTargets,
+    ),
     state,
   };
 }

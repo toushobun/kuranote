@@ -66,6 +66,21 @@ export function EditTransactionReceiptTemplate(
         hasLinkedIncomeItems={props.initialValues.items.some(
           (item) => item.businessStatus?.incomeLinkRole != null,
         )}
+        initialLinkedTargets={props.initialValues.items.flatMap((item) => {
+          if (!item.id || !item.businessStatus?.incomeLinkRole) return [];
+          const candidate =
+            item.businessStatus.incomeLinkRole === "refund"
+              ? item.refundCandidate
+              : item.reimbursementCandidate;
+          return candidate
+            ? [{
+                incomeItemId: item.id,
+                kind: item.businessStatus.incomeLinkRole,
+                label: candidate.categoryName,
+                targetItemId: candidate.id,
+              }]
+            : [];
+        })}
         saveFormId={editReceiptFormId}
         transactionRecordId={transactionRecordId}
       >
