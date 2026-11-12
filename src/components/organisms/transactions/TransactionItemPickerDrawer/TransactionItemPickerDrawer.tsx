@@ -30,11 +30,7 @@ import { designTokens } from "theme/theme";
 import { transactionPaymentFieldsMessages } from "utils/transactionMessages";
 import type {
   TransactionCategoryOption,
-  TransactionGroupPage,
-  TransactionMonthPage,
   TransactionRefundCandidate,
-  TransactionSearchPage,
-  TransactionTimeGroupViewData,
 } from "types/transactions";
 import { TransactionPendingReimbursementCheckbox } from "../TransactionPendingReimbursementCheckbox/TransactionPendingReimbursementCheckbox";
 import { TransactionLinkCandidatePanel } from "../TransactionLinkCandidatePanel/TransactionLinkCandidatePanel";
@@ -46,7 +42,9 @@ import type {
 } from "../TransactionForm/TransactionForm.types";
 import { matchesCategorySearch } from "./TransactionCategorySearch";
 
-type TransactionItemPickerDrawerProps = {
+import type { TransactionIncomeLinksContextValue } from "../TransactionForm/TransactionIncomeLinksContext";
+
+type TransactionItemPickerDrawerProps = TransactionIncomeLinksContextValue & {
   categoryGroups: CategoryPickerGroup[];
   editingItemId?: number | null;
   filteredCategoryOptions: TransactionCategoryOption[];
@@ -74,34 +72,6 @@ type TransactionItemPickerDrawerProps = {
   pickerSpecialStatus?: TransactionSpecialStatus | null;
   selectedAccountCurrency?: string;
   selectedCategoryGroup?: CategoryPickerGroup;
-  loadRefundInitialViewAction?: (
-    merchantId?: string,
-  ) => Promise<TransactionTimeGroupViewData>;
-  loadReimbursementInitialViewAction?: () => Promise<TransactionTimeGroupViewData>;
-  loadRefundGroupItemsAction?: (
-    groupKey: string,
-    offset: number,
-    merchantId?: string,
-  ) => Promise<TransactionMonthPage>;
-  loadRefundMoreGroupsAction?: (
-    offset: number,
-    merchantId?: string,
-  ) => Promise<TransactionGroupPage>;
-  loadRefundSearchPageAction?: (
-    query: string,
-    offset: number,
-  ) => Promise<TransactionSearchPage>;
-  loadReimbursementGroupItemsAction?: (
-    groupKey: string,
-    offset: number,
-  ) => Promise<TransactionMonthPage>;
-  loadReimbursementMoreGroupsAction?: (
-    offset: number,
-  ) => Promise<TransactionGroupPage>;
-  loadReimbursementSearchPageAction?: (
-    query: string,
-    offset: number,
-  ) => Promise<TransactionSearchPage>;
   specialStatusEnabled?: boolean;
   specialStatusLocked?: boolean;
   /** 多账户时禁用与现有明细相反的一类分类（#1044）。 */
@@ -137,14 +107,8 @@ export function TransactionItemPickerDrawer({
   pickerSpecialStatus = null,
   selectedAccountCurrency,
   selectedCategoryGroup,
-  loadRefundInitialViewAction,
-  loadReimbursementInitialViewAction,
-  loadRefundGroupItemsAction,
-  loadRefundMoreGroupsAction,
-  loadRefundSearchPageAction,
-  loadReimbursementGroupItemsAction,
-  loadReimbursementMoreGroupsAction,
-  loadReimbursementSearchPageAction,
+  loadRefundPageAction,
+  loadReimbursementPageAction,
   specialStatusEnabled = false,
   specialStatusLocked = false,
   disabledCategoryType,
@@ -288,7 +252,13 @@ export function TransactionItemPickerDrawer({
           <Typography
             color="textSecondary"
             variant="caption"
-            sx={{ display: "block", mt: 0.75 }}
+            sx={{
+              display: "block",
+              mt: 0.75,
+              textAlign: "right",
+              color: "text.disabled",
+              fontWeight: 400,
+            }}
           >
             {transactionItemPickerMessages.linkedHint}
           </Typography>
@@ -300,25 +270,10 @@ export function TransactionItemPickerDrawer({
             merchantName={merchantName}
             kind={pickerMode}
             merchantId={pickerMode === "refund" ? merchantId : undefined}
-            loadInitialViewAction={
+            loadPageAction={
               pickerMode === "refund"
-                ? loadRefundInitialViewAction
-                : loadReimbursementInitialViewAction
-            }
-            loadGroupItemsAction={
-              pickerMode === "refund"
-                ? loadRefundGroupItemsAction
-                : loadReimbursementGroupItemsAction
-            }
-            loadMoreGroupsAction={
-              pickerMode === "refund"
-                ? loadRefundMoreGroupsAction
-                : loadReimbursementMoreGroupsAction
-            }
-            loadSearchPageAction={
-              pickerMode === "refund"
-                ? loadRefundSearchPageAction
-                : loadReimbursementSearchPageAction
+                ? loadRefundPageAction
+                : loadReimbursementPageAction
             }
             onChange={
               pickerMode === "refund"
@@ -521,7 +476,7 @@ export function TransactionItemPickerDrawer({
                 fontWeight: 800,
               }}
             >
-              {selectedCandidate
+              {selectedCandidate && pickerAmount.trim()
                 ? formatUnsignedCurrencyAmount(
                     pickerAmount,
                     selectedAccountCurrency ??

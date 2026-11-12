@@ -2,11 +2,11 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useState } from "react";
 import { TransactionLinkCandidatePanel } from "./TransactionLinkCandidatePanel";
 import {
-  loadCandidateView,
-  loadReimbursementView,
-  loadFallbackCandidateView,
-  loadCandidateSearch,
+  loadCandidatePage,
+  loadReimbursementPage,
+  loadFallbackCandidatePage,
   selectedCandidate,
+  offPageCandidate,
 } from "./transactionLinkCandidateFixtures";
 const meta = {
   title: "Organisms/Transactions/TransactionLinkCandidatePanel",
@@ -16,8 +16,7 @@ const meta = {
     kind: "refund",
     merchantId: "amazon",
     merchantName: "Amazon",
-    loadInitialViewAction: loadCandidateView,
-    loadSearchPageAction: loadCandidateSearch,
+    loadPageAction: loadCandidatePage,
     onChange: () => undefined,
     value: null,
   },
@@ -37,14 +36,19 @@ type Story = StoryObj<typeof meta>;
 export const Refund: Story = { name: "退款 · 商家三笔支出 · 未选" };
 export const RefundFallback: Story = {
   name: "退款 · 无商家候选回退全部",
-  args: { loadInitialViewAction: loadFallbackCandidateView },
+  args: { loadPageAction: loadFallbackCandidatePage },
 };
 export const Reimbursement: Story = {
   name: "报销 · 已选原支出",
   args: {
     kind: "reimbursement",
-    loadInitialViewAction: loadReimbursementView,
+    loadPageAction: loadReimbursementPage,
     merchantId: undefined,
     value: selectedCandidate,
   },
+};
+
+export const EditOffPageSelection: Story = {
+  name: "编辑 · 已关联原支出不在首页",
+  args: { value: offPageCandidate },
 };

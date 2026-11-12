@@ -3,37 +3,17 @@
 import { createContext, useContext, type ReactNode } from "react";
 
 import type {
-  TransactionGroupPage,
-  TransactionMonthPage,
-  TransactionSearchPage,
-  TransactionTimeGroupViewData,
+  TransactionLinkCandidatePage,
+  TransactionLinkCandidatePageInput,
 } from "types/transactions";
 
 export type TransactionIncomeLinksContextValue = {
-  loadRefundInitialViewAction?: () => Promise<TransactionTimeGroupViewData>;
-  loadReimbursementInitialViewAction?: () => Promise<TransactionTimeGroupViewData>;
-  loadRefundGroupItemsAction?: (
-    groupKey: string,
-    offset: number,
-  ) => Promise<TransactionMonthPage>;
-  loadRefundMoreGroupsAction?: (
-    offset: number,
-  ) => Promise<TransactionGroupPage>;
-  loadRefundSearchPageAction?: (
-    query: string,
-    offset: number,
-  ) => Promise<TransactionSearchPage>;
-  loadReimbursementGroupItemsAction?: (
-    groupKey: string,
-    offset: number,
-  ) => Promise<TransactionMonthPage>;
-  loadReimbursementMoreGroupsAction?: (
-    offset: number,
-  ) => Promise<TransactionGroupPage>;
-  loadReimbursementSearchPageAction?: (
-    query: string,
-    offset: number,
-  ) => Promise<TransactionSearchPage>;
+  loadRefundPageAction?: (
+    input: TransactionLinkCandidatePageInput,
+  ) => Promise<TransactionLinkCandidatePage>;
+  loadReimbursementPageAction?: (
+    input: TransactionLinkCandidatePageInput,
+  ) => Promise<TransactionLinkCandidatePage>;
 };
 
 const TransactionIncomeLinksContext =
@@ -59,29 +39,10 @@ export function useResolvedTransactionIncomeLinks(
 ): TransactionIncomeLinksContextValue {
   const context = useContext(TransactionIncomeLinksContext);
   return {
-    loadRefundInitialViewAction:
-      context?.loadRefundInitialViewAction ??
-      fallback.loadRefundInitialViewAction,
-    loadReimbursementInitialViewAction:
-      context?.loadReimbursementInitialViewAction ??
-      fallback.loadReimbursementInitialViewAction,
-    loadRefundGroupItemsAction:
-      context?.loadRefundGroupItemsAction ??
-      fallback.loadRefundGroupItemsAction,
-    loadRefundMoreGroupsAction:
-      context?.loadRefundMoreGroupsAction ??
-      fallback.loadRefundMoreGroupsAction,
-    loadRefundSearchPageAction:
-      context?.loadRefundSearchPageAction ??
-      fallback.loadRefundSearchPageAction,
-    loadReimbursementGroupItemsAction:
-      context?.loadReimbursementGroupItemsAction ??
-      fallback.loadReimbursementGroupItemsAction,
-    loadReimbursementMoreGroupsAction:
-      context?.loadReimbursementMoreGroupsAction ??
-      fallback.loadReimbursementMoreGroupsAction,
-    loadReimbursementSearchPageAction:
-      context?.loadReimbursementSearchPageAction ??
-      fallback.loadReimbursementSearchPageAction,
+    loadRefundPageAction:
+      context?.loadRefundPageAction ?? fallback.loadRefundPageAction,
+    loadReimbursementPageAction:
+      context?.loadReimbursementPageAction ??
+      fallback.loadReimbursementPageAction,
   };
 }

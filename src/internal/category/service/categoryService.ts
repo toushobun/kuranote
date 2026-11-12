@@ -25,7 +25,10 @@ import {
   RepositoryError,
   ValidationError,
 } from "internal/shared/errors/appError";
-import { getCategoryStoredName } from "utils/categoryNames";
+import {
+  getCategoryStoredName,
+  getCategoryDisplayName,
+} from "utils/categoryNames";
 
 const systemReservedNames = new Set(["特殊收入", "退款", "报销"]);
 
@@ -329,7 +332,6 @@ export function createCategoryService({
       }
 
       requireEditableCategory(category.systemKey);
-      requireOrdinaryCategoryName(name);
 
       const siblings = await listSiblingsOrThrow(
         {
@@ -339,6 +341,14 @@ export function createCategoryService({
         },
         categoryErrorCodes.updateFailed,
       );
+      const previous = siblings.find((sibling) => sibling.id === categoryId);
+      if (
+        !previous ||
+        getCategoryDisplayName(previous.name, previous.iconName).trim() !==
+          name.trim()
+      ) {
+        requireOrdinaryCategoryName(name);
+      }
       if (hasDuplicateCategoryName(siblings, name, categoryId)) {
         throw new ConflictError(
           categoryErrorCodes.updateFailed,

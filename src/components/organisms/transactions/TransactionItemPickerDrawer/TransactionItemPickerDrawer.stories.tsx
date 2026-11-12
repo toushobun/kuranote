@@ -1,11 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { getLinkCandidateDefaultAmount } from "internal/transaction";
 import { useState } from "react";
 import {
-  loadCandidateView,
-  loadReimbursementView,
-  loadFallbackCandidateView,
-  loadCandidateSearch,
+  loadCandidatePage,
+  loadReimbursementPage,
+  loadFallbackCandidatePage,
   selectedCandidate,
+  offPageCandidate,
 } from "../TransactionLinkCandidatePanel/transactionLinkCandidateFixtures";
 import { expect, within } from "storybook/test";
 
@@ -70,10 +71,8 @@ const meta = {
   args: {
     merchantId: "amazon",
     merchantName: "Amazon",
-    loadRefundInitialViewAction: loadCandidateView,
-    loadReimbursementInitialViewAction: loadReimbursementView,
-    loadRefundSearchPageAction: loadCandidateSearch,
-    loadReimbursementSearchPageAction: loadCandidateSearch,
+    loadRefundPageAction: loadCandidatePage,
+    loadReimbursementPageAction: loadReimbursementPage,
     categoryGroups,
     filteredCategoryOptions: categoryOptions,
     onCategoryToggle: () => undefined,
@@ -111,11 +110,11 @@ const meta = {
         onPickerAmountChange={setAmount}
         onRefundItemChange={(item) => {
           setCandidate(item);
-          setAmount(item?.remainingRefundableAmount ?? "");
+          setAmount(item ? getLinkCandidateDefaultAmount(item) : "");
         }}
         onReimbursementItemChange={(item) => {
           setCandidate(item);
-          setAmount(item?.remainingRefundableAmount ?? "");
+          setAmount(item ? getLinkCandidateDefaultAmount(item) : "");
         }}
       />
     );
@@ -185,7 +184,7 @@ export const RefundFallback: Story = {
   name: "退款 · 回退全部",
   args: {
     pickerMode: "refund",
-    loadRefundInitialViewAction: loadFallbackCandidateView,
+    loadRefundPageAction: loadFallbackCandidatePage,
   },
 };
 export const Reimbursement: Story = {
@@ -211,4 +210,15 @@ export const SpecialStatusOff: Story = {
 export const MultiAccount: Story = {
   name: "多账户 · 禁用收入退款报销",
   args: { multiAccount: true },
+};
+
+export const EditOffPageSelection: Story = {
+  name: "编辑 · 已关联原支出不在首页",
+  args: {
+    pickerMode: "refund",
+    pickerModeLocked: true,
+    editingItemId: 1,
+    pickerRefundCandidate: offPageCandidate,
+    pickerAmount: "3280",
+  },
 };

@@ -235,6 +235,26 @@ describe("createCategoryService", () => {
     });
   });
 
+  it("旧同名普通报销分类改图标时不按新增保留名称拦截", async () => {
+    const repository = createRepository({
+      listActiveSiblings: vi
+        .fn()
+        .mockResolvedValue([
+          { id: categoryId, name: "📄 报销", iconName: "📄", sortOrder: 0 },
+        ]),
+    });
+    await createService(repository).update({
+      categoryId,
+      ledgerId,
+      userId,
+      name: "报销",
+      iconName: "✨",
+    });
+    expect(repository.updateDetails).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "✨ 报销", iconName: "✨" }),
+    );
+  });
+
   it("更新分类时保持原父级和类型进行同级重名校验", async () => {
     const repository = createRepository({
       findActiveById: vi.fn().mockResolvedValue({

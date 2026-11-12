@@ -61,7 +61,7 @@ const incomeGroup: CategoryPickerGroup = {
 describe("TransactionItemPickerDrawer", () => {
   afterEach(() => cleanup());
 
-  function openLinkedAmount() {
+  function renderLinkedAmount(amount = "3280", candidate = selectedCandidate) {
     const onAmountChange = vi.fn();
     render(
       <TransactionItemPickerDrawer
@@ -74,20 +74,38 @@ describe("TransactionItemPickerDrawer", () => {
         onRemoveItem={vi.fn()}
         open
         pickerMode="reimbursement"
-        pickerAmount="3280"
+        pickerAmount={amount}
         pickerCategoryId="system-reimbursement"
         pickerErrors={{}}
         specialStatusEnabled
         selectedAccountCurrency="JPY"
-        pickerReimbursementCandidate={selectedCandidate}
+        pickerReimbursementCandidate={candidate}
         onPickerAmountChange={onAmountChange}
       />,
     );
+    return onAmountChange;
+  }
+  function openLinkedAmount() {
+    const onAmountChange = renderLinkedAmount();
     fireEvent.click(
       screen.getByRole("button", { name: /报销金额 剩余未核销/ }),
     );
     return onAmountChange;
   }
+
+  it("已选结清支出时金额留空，金额行仍可打开计算器输入", () => {
+    const onAmountChange = renderLinkedAmount("", {
+      ...selectedCandidate,
+      remainingRefundableAmount: "0",
+    });
+    expect(screen.getByText("—")).toBeVisible();
+    const row = screen.getByRole("button", { name: /报销金额 剩余未核销/ });
+    expect(row).toBeEnabled();
+    fireEvent.click(row);
+    press("7");
+    press("确定");
+    expect(onAmountChange).toHaveBeenCalledWith("7");
+  });
 
   it("金额行打开计算器，只有确认才写入金额", () => {
     const onAmountChange = openLinkedAmount();

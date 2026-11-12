@@ -1,119 +1,74 @@
 import type {
-  TransactionListItem,
+  TransactionLinkCandidatePage,
+  TransactionLinkCandidatePageInput,
   TransactionRefundCandidate,
-  TransactionTimeGroupViewData,
 } from "types/transactions";
-
-const summary = {
-  balance: "-7820",
-  currency: "JPY",
-  expense: "7820",
-  income: "0",
-};
-export const candidateRecords: TransactionListItem[] = [
+export const candidateItems: TransactionRefundCandidate[] = [
   ["USB-C 充电器", "3280", "0", "2026-11-08T09:00:00Z"],
   ["咖啡豆 2 袋", "2960", "0", "2026-11-02T09:00:00Z"],
   ["收纳盒", "1580", "500", "2026-10-27T09:00:00Z"],
 ].map(([name, amount, refunded, date], index) => ({
-  id: `record-${index}`,
-  type: "expense",
-  transaction_at: date,
-  created_at: date,
+  id: `item-${index}`,
+  transactionRecordId: `record-${index}`,
+  categoryName: name,
   amount,
-  account_name: index === 2 ? "现金" : "乐天信用卡",
-  account_currency: "JPY",
-  categoryItems: [
-    {
-      id: `item-${index}`,
-      amount,
-      categoryName: name,
-      categoryType: "expense",
-      parentCategoryName: "购物",
-      refundedAmount: refunded,
-      remainingRefundableAmount: String(Number(amount) - Number(refunded)),
-    },
-  ],
-  merchant_name: "Amazon",
-  merchant_icon_url: null,
-  note: null,
-  recorder_name: null,
-}));
-export const candidateView: TransactionTimeGroupViewData = {
-  groupBy: "month",
-  groups: [
-    {
-      id: "november",
-      key: "2026-11",
-      label: "2026年11月",
-      summary,
-      transactionCount: 3,
-    },
-  ],
-  initialDateGroupsByGroupId: {
-    november: [
-      { date: "2026-11-08", label: "11/08", summary, items: candidateRecords },
-    ],
-  },
-  initialExpandedGroupId: "november",
-  initialNextItemOffsetByGroupId: { november: null },
-  nextOffset: null,
-};
-export const emptyCandidateView: TransactionTimeGroupViewData = {
-  ...candidateView,
-  groups: [],
-  initialDateGroupsByGroupId: {},
-  initialExpandedGroupId: null,
-  initialNextItemOffsetByGroupId: {},
-};
-export const loadCandidateView = async () => candidateView;
-export const loadFallbackCandidateView = async (merchantId?: string) =>
-  merchantId ? emptyCandidateView : candidateView;
-export const loadCandidateSearch = async (query: string) => ({
-  items: candidateRecords.filter(
-    (item) =>
-      item.categoryItems.some((category) =>
-        category.categoryName.includes(query),
-      ) || item.merchant_name?.includes(query),
-  ),
-  nextOffset: null,
-  totalCount: 3,
-});
-export const selectedCandidate: TransactionRefundCandidate = {
-  id: "item-0",
-  amount: "3280",
+  refundedAmount: refunded,
+  reimbursementAmount: "0",
+  remainingRefundableAmount: String(Number(amount) - Number(refunded)),
+  accountName: index === 2 ? "现金" : "乐天信用卡",
   accountCurrency: "JPY",
-  accountName: "乐天信用卡",
   merchantName: "Amazon",
-  categoryName: "USB-C 充电器",
+  transactionAt: date,
   parentCategoryName: "购物",
-  refundedAmount: "0",
-  remainingRefundableAmount: "3280",
-  transactionAt: candidateRecords[0].transaction_at,
-  transactionRecordId: "record-0",
+}));
+export const candidatePage: TransactionLinkCandidatePage = {
+  items: candidateItems,
+  nextOffset: null,
 };
-
-export const reimbursementView: TransactionTimeGroupViewData = {
-  ...candidateView,
-  initialDateGroupsByGroupId: {
-    november: [
-      {
-        ...candidateView.initialDateGroupsByGroupId.november[0],
-        items: candidateRecords.map((record, index) => ({
-          ...record,
-          categoryItems: record.categoryItems.map((item) => ({
-            ...item,
-            businessStatus: {
-              incomeLinkRole: null,
-              settlementStatus: "pendingReimbursement",
-              offsetComposition: {
-                refundAmount: "0",
-                reimbursementAmount: index === 2 ? "500" : "0",
-              },
-            },
-          })),
-        })),
-      },
-    ],
-  },
+export const emptyCandidatePage: TransactionLinkCandidatePage = {
+  items: [],
+  nextOffset: null,
 };
-export const loadReimbursementView = async () => reimbursementView;
+export const selectedCandidate = candidateItems[0];
+export const offPageCandidate: TransactionRefundCandidate = {
+  ...candidateItems[0],
+  id: "old-item",
+  transactionRecordId: "old-record",
+  categoryName: "往年差旅支出",
+  merchantName: "其他商家",
+  transactionAt: "2025-01-01T09:00:00Z",
+};
+function fixturePage(
+  items: TransactionRefundCandidate[],
+  input: TransactionLinkCandidatePageInput,
+): TransactionLinkCandidatePage {
+  const matched = items.filter(
+    (item) =>
+      (!input.currency || item.accountCurrency === input.currency) &&
+      (!input.query ||
+        item.categoryName.includes(input.query) ||
+        item.merchantName?.includes(input.query)),
+  );
+  const offset = input.offset ?? 0;
+  return {
+    items: matched.slice(offset, offset + 20),
+    nextOffset: offset + 20 < matched.length ? offset + 20 : null,
+  };
+}
+export const loadCandidatePage = async (
+  input: TransactionLinkCandidatePageInput,
+) => fixturePage(candidateItems, input);
+export const loadFallbackCandidatePage = async (
+  input: TransactionLinkCandidatePageInput,
+) => (input.merchantId ? emptyCandidatePage : loadCandidatePage(input));
+export const loadReimbursementPage = async (
+  input: TransactionLinkCandidatePageInput,
+) =>
+  fixturePage(
+    candidateItems.map((item, index) => ({
+      ...item,
+      refundedAmount: "0",
+      reimbursementAmount: index === 2 ? "500" : "0",
+    })),
+    input,
+  );

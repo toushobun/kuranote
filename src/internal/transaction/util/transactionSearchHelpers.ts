@@ -11,16 +11,8 @@ export function buildTransactionSearchPage(
   offset = 0,
 ): TransactionSearchPage {
   const query = normalizeTransactionSearchQuery(rawQuery);
-  const comparableQuery = normalizeSearchComparable(rawQuery);
-  const amountQuery = normalizeAmountSearchValue(rawQuery);
-
   if (!query) return emptyTransactionSearchPage;
-
-  const matchedItems = sortTransactionSearchItems(
-    items.filter((item) =>
-      matchesSearchQuery(item, comparableQuery, amountQuery),
-    ),
-  );
+  const matchedItems = filterAndSortTransactionSearchItems(items, rawQuery);
   const page = paginateItems(matchedItems, offset, transactionPageSize);
 
   return {
@@ -28,6 +20,19 @@ export function buildTransactionSearchPage(
     nextOffset: page.nextOffset,
     totalCount: page.totalCount,
   };
+}
+
+export function filterAndSortTransactionSearchItems(
+  items: TransactionListItem[],
+  rawQuery = "",
+) {
+  const query = normalizeSearchComparable(rawQuery);
+  const amountQuery = normalizeAmountSearchValue(rawQuery);
+  return sortTransactionSearchItems(
+    query
+      ? items.filter((item) => matchesSearchQuery(item, query, amountQuery))
+      : items,
+  );
 }
 
 export function normalizeTransactionSearchQuery(value: string) {

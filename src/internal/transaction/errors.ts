@@ -250,6 +250,8 @@ export const transactionLoadErrorMessages = {
 } as const;
 
 export const transactionLinkedEditErrorMessages = {
+  targetInvalid: "这笔原支出已不能关联，请重新选择。",
+  targetCurrencyMismatch: "原支出与收款账户币种不一致。",
   confirmationRequired:
     "该交易包含退款 / 报销关联，请确认同步修改关联数据后再保存。",
   deleteForbidden: "该交易包含已关联的退款 / 报销明细，请先解除关联后再删除。",

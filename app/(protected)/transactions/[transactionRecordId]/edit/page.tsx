@@ -7,14 +7,8 @@ import {
 } from "internal/transaction/adapter/next/actions";
 import {
   loadEditTransactionView,
-  loadRefundPickerInitialView,
-  loadRefundPickerGroupItems,
-  loadRefundPickerGroupPage,
-  loadRefundPickerSearchPage,
-  loadReimbursementPickerInitialView,
-  loadReimbursementPickerGroupItems,
-  loadReimbursementPickerGroupPage,
-  loadReimbursementPickerSearchPage,
+  loadRefundPickerPage,
+  loadReimbursementPickerPage,
 } from "internal/transaction/adapter/next/loadTransactionViews";
 import { BalanceAdjustmentEditForm } from "organisms/transactions/BalanceAdjustmentEditForm/BalanceAdjustmentEditForm";
 import { TransactionIncomeLinksProvider } from "organisms/transactions/TransactionForm/TransactionIncomeLinksContext";
@@ -50,14 +44,8 @@ export default async function TransactionEditPage({
     );
   }
   const incomeLinksValue = {
-    loadRefundInitialViewAction: loadRefundPickerInitialView,
-    loadReimbursementInitialViewAction: loadReimbursementPickerInitialView,
-    loadRefundGroupItemsAction: loadRefundPickerGroupItems,
-    loadRefundMoreGroupsAction: loadRefundPickerGroupPage,
-    loadRefundSearchPageAction: loadRefundPickerSearchPage,
-    loadReimbursementGroupItemsAction: loadReimbursementPickerGroupItems,
-    loadReimbursementMoreGroupsAction: loadReimbursementPickerGroupPage,
-    loadReimbursementSearchPageAction: loadReimbursementPickerSearchPage,
+    loadRefundPageAction: loadRefundPickerPage,
+    loadReimbursementPageAction: loadReimbursementPickerPage,
   };
 
   const receiptCreation = !editRestriction ? loadedReceiptCreation : null;

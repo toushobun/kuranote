@@ -1,4 +1,5 @@
 "use client";
+import { getLinkCandidateDefaultAmount } from "internal/transaction";
 
 import {
   useEffect,
@@ -807,7 +808,7 @@ export function useTransactionForm({
       if (candidate) {
         setPickerReimbursementCandidate(null);
         if (pickerMode === "refund") {
-          setPickerAmount(candidate.remainingRefundableAmount);
+          setPickerAmount(getLinkCandidateDefaultAmount(candidate));
         }
       }
       setLinkNotice(null);
@@ -828,7 +829,7 @@ export function useTransactionForm({
       if (candidate) {
         setPickerRefundCandidate(null);
         if (pickerMode === "reimbursement") {
-          setPickerAmount(candidate.remainingRefundableAmount);
+          setPickerAmount(getLinkCandidateDefaultAmount(candidate));
         }
       }
       setLinkNotice(null);

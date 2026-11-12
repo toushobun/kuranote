@@ -157,22 +157,6 @@ export type TransactionListItem = TransactionRowItem & {
   created_at: string;
 };
 
-export type TransactionRefundCandidate = {
-  accountCurrency: string;
-  accountName?: string;
-  merchantName?: string | null;
-  merchantIconUrl?: string | null;
-  reimbursementAmount?: string;
-  amount: string;
-  categoryName: string;
-  id: string;
-  parentCategoryName: string | null;
-  refundedAmount: string;
-  remainingRefundableAmount: string;
-  transactionAt: string;
-  transactionRecordId: string;
-};
-
 export type TransactionAmountSummary = {
   income: string;
   expense: string;
@@ -250,3 +234,9 @@ export type TransferEditInitialValues = {
   transferTargetAccountId: string;
   type: "transfer";
 };
+
+export type {
+  TransactionRefundCandidate,
+  TransactionLinkCandidatePage,
+  TransactionLinkCandidatePageInput,
+} from "internal/transaction";

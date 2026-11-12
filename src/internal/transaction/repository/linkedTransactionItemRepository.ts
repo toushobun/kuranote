@@ -76,6 +76,8 @@ const linkedEditRpcErrorCodes = [
   "transaction_item_version_conflict",
   "transaction_at_invalid",
   "linked_edit_items_invalid",
+  "linked_edit_target_invalid",
+  "linked_edit_target_currency_mismatch",
   transactionErrorCodes.accountInvalid,
   transactionErrorCodes.amountInvalid,
   transactionErrorCodes.categoryInvalid,
@@ -186,6 +188,18 @@ export function createSupabaseLinkedTransactionItemRepository(
       throw new ValidationError(
         transactionErrorCodes.specialStatusInvalid,
         transactionLinkedEditErrorMessages.linkBroken,
+      );
+    }
+    if (rpcErrorCode === "linked_edit_target_invalid") {
+      throw new ValidationError(
+        transactionErrorCodes.updateInvalid,
+        transactionLinkedEditErrorMessages.targetInvalid,
+      );
+    }
+    if (rpcErrorCode === "linked_edit_target_currency_mismatch") {
+      throw new ValidationError(
+        transactionErrorCodes.updateInvalid,
+        transactionLinkedEditErrorMessages.targetCurrencyMismatch,
       );
     }
     if (rpcErrorCode === "refund_currency_mismatch") {

@@ -1,16 +1,11 @@
 "use client";
+import { toTransactionLinkCandidates } from "internal/transaction";
+import { TransactionLinkCandidateCards } from "../TransactionLinkCandidateCards/TransactionLinkCandidateCards";
 
 import { useEffect, useState } from "react";
 
-import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
-import { MerchantAvatar } from "organisms/merchants/MerchantAvatar/MerchantAvatar";
-import { designTokens } from "theme/theme";
-import { transactionLinkCandidateMessages as m } from "config/transactionStepFlowMessages";
 import Box from "@mui/material/Box";
-import ButtonBase from "@mui/material/ButtonBase";
-import Radio from "@mui/material/Radio";
 import Stack from "@mui/material/Stack";
-import { alpha, type Theme } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
 
 import { transactionEditHref } from "config/paths";
@@ -22,12 +17,10 @@ import type {
   TransactionRefundCandidate,
 } from "types/transactions";
 import { getCurrencySymbol } from "utils/currency";
-import { transactionLinkMessages } from "utils/transactionMessages";
 import {
   formatDateLabel,
   formatNumber,
   getDateLabelRefreshDelayMs,
-  hasLinkCandidateCurrencyMismatch,
 } from "utils/transactions";
 
 type TransactionGroupListProps = {
@@ -115,130 +108,14 @@ export function TransactionRefundCandidateList({
   selectedId?: string | null;
   selectionKind?: "refund" | "reimbursement";
 }) {
-  const candidates = items.flatMap((record) =>
-    record.categoryItems.flatMap((item) => {
-      if (
-        item.categoryType !== "expense" ||
-        !item.id ||
-        item.remainingRefundableAmount === undefined
-      ) {
-        return [];
-      }
-      return [
-        {
-          // 记录币种（普通记录取付款账户币种），只用于判断候选是否可选。
-          accountCurrency: record.account_currency,
-          accountName: record.account_name,
-          merchantName: record.merchant_name,
-          merchantIconUrl: record.merchant_icon_url,
-          reimbursementAmount:
-            item.businessStatus?.offsetComposition.reimbursementAmount ?? "0",
-          amount: item.amount,
-          categoryName: item.categoryName,
-          id: item.id,
-          parentCategoryName: item.parentCategoryName,
-          refundedAmount: item.refundedAmount ?? "0",
-          remainingRefundableAmount: item.remainingRefundableAmount,
-          transactionAt: record.transaction_at,
-          transactionRecordId: record.id,
-        } satisfies TransactionRefundCandidate,
-      ];
-    }),
-  );
-  const isReimbursement = selectionKind === "reimbursement";
-
   return (
-    <Stack spacing={1}>
-      {candidates.map((candidate) => {
-        const selected = selectedId === candidate.id;
-        const currencySymbol = getCurrencySymbol(candidate.accountCurrency);
-        const currencyMismatchReason =
-          selectableCurrency !== undefined &&
-          hasLinkCandidateCurrencyMismatch(candidate, selectableCurrency)
-            ? transactionLinkMessages.candidateCurrencyMismatchReason(
-                selectableCurrency,
-              )
-            : null;
-        const isCurrencyMismatched = currencyMismatchReason !== null;
-        return (
-          <ButtonBase
-            aria-label={m.selectCandidate(
-              selectionKind,
-              candidate.categoryName,
-            )}
-            aria-pressed={selected}
-            disabled={isCurrencyMismatched}
-            key={candidate.id}
-            onClick={() => onSelect(candidate)}
-            sx={{
-              ...refundCandidateSx,
-              border: 1,
-              borderColor: selected ? "primary.main" : "divider",
-              bgcolor: selected
-                ? (theme: Theme) => alpha(theme.palette.primary.main, 0.08)
-                : "background.paper",
-            }}
-          >
-            <MerchantAvatar
-              size={40}
-              toneKey={candidate.merchantName ?? candidate.id}
-              src={candidate.merchantIconUrl ?? undefined}
-            />
-            <Stack sx={{ flex: 1, minWidth: 0, textAlign: "left" }}>
-              <Typography sx={{ fontWeight: 700 }} variant="body2" noWrap>
-                {candidate.categoryName}
-              </Typography>
-              <Typography color="textSecondary" variant="caption" noWrap>
-                {new Date(candidate.transactionAt).toLocaleDateString("zh-CN", {
-                  month: "2-digit",
-                  day: "2-digit",
-                })}
-                {candidate.accountName ? ` · ${candidate.accountName}` : ""}
-              </Typography>
-              {currencyMismatchReason ? (
-                <Typography color="textSecondary" variant="caption">
-                  {currencyMismatchReason}
-                </Typography>
-              ) : null}
-            </Stack>
-            <Stack sx={{ alignItems: "flex-end", flexShrink: 0 }}>
-              <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                {currencySymbol}
-                {formatNumber(candidate.amount, candidate.accountCurrency)}
-              </Typography>
-              {Number(
-                isReimbursement
-                  ? candidate.reimbursementAmount
-                  : candidate.refundedAmount,
-              ) > 0 ? (
-                <Typography color="textSecondary" variant="caption">
-                  {m.offsetLabel(
-                    selectionKind,
-                    `${currencySymbol}${formatNumber((isReimbursement ? candidate.reimbursementAmount : candidate.refundedAmount) ?? "0", candidate.accountCurrency)}`,
-                  )}
-                </Typography>
-              ) : null}
-            </Stack>
-            <Radio
-              checked={selected}
-              checkedIcon={
-                <CheckRoundedIcon
-                  sx={{
-                    bgcolor: "primary.main",
-                    color: "primary.contrastText",
-                    borderRadius: "50%",
-                    p: 0.25,
-                  }}
-                />
-              }
-              disabled={isCurrencyMismatched}
-              tabIndex={-1}
-              sx={{ p: 0, pointerEvents: "none" }}
-            />
-          </ButtonBase>
-        );
-      })}
-    </Stack>
+    <TransactionLinkCandidateCards
+      candidates={toTransactionLinkCandidates(items)}
+      onSelect={onSelect}
+      selectableCurrency={selectableCurrency}
+      selectedId={selectedId}
+      selectionKind={selectionKind}
+    />
   );
 }
 
@@ -262,21 +139,6 @@ function useDateGroupLabelRefresh() {
     };
   }, []);
 }
-
-const refundCandidateSx = {
-  alignItems: "center",
-  display: "flex",
-  borderRadius: `${designTokens.radius.item}px`,
-  gap: 1.25,
-  justifyContent: "space-between",
-  minHeight: 64,
-  px: 1.25,
-  py: 1.5,
-  width: "100%",
-  "&.Mui-disabled": {
-    opacity: (theme: Theme) => theme.palette.action.disabledOpacity,
-  },
-};
 
 function getGroupSummaryText(group: TransactionDateGroup) {
   const expense = Number(group.summary.expense);

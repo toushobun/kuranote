@@ -7,6 +7,7 @@ import { createRequestContainer } from "internal/container";
 import { createServerRequestDependencies } from "internal/shared/context/createServerRequestDependencies";
 import type {
   FrequentMerchant,
+  TransactionLinkCandidatePageInput,
   TransactionFilters,
   TransactionGroupBy,
   TransactionGroupPage,
@@ -17,18 +18,6 @@ import { defaultTransactionFilters } from "internal/transaction";
 
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-const refundPickerFilters: TransactionFilters = {
-  recordType: "refundableExpense",
-};
-const reimbursementPickerFilters: TransactionFilters = {
-  recordType: "refundableExpense",
-  specialStatuses: [
-    "pendingReimbursement",
-    "reimbursed",
-    "reimbursementSurplus",
-  ],
-};
 
 async function getContext() {
   const [currentLedger, dependencies] = await Promise.all([
@@ -129,102 +118,26 @@ export async function loadTransactionSearchPage(
   return service.search(currentLedger, rawQuery, offset);
 }
 
-/** 关联选择器打开时才读取首屏；不参与新增 / 编辑页面 SSR。 */
-export async function loadRefundPickerInitialView(merchantId?: string) {
+/** 打开和加载更多共用扁平候选分页，不读取月份分组。 */
+export async function loadRefundPickerPage(
+  input: TransactionLinkCandidatePageInput = {},
+) {
   const { currentLedger, service } = await getContext();
-  return service.getGroupView(
-    currentLedger,
-    "month",
-    getRefundPickerFilters(merchantId),
-  );
+  return service.getLinkCandidatePage(currentLedger, "refund", {
+    ...input,
+    merchantId:
+      input.merchantId && uuidPattern.test(input.merchantId)
+        ? input.merchantId
+        : undefined,
+  });
 }
 
-export async function loadReimbursementPickerInitialView() {
+export async function loadReimbursementPickerPage(
+  input: TransactionLinkCandidatePageInput = {},
+) {
   const { currentLedger, service } = await getContext();
-  return service.getGroupView(
-    currentLedger,
-    "month",
-    reimbursementPickerFilters,
-  );
-}
-
-export async function loadRefundPickerGroupPage(
-  offset: number,
-  merchantId?: string,
-): Promise<TransactionGroupPage> {
-  const { currentLedger, service } = await getContext();
-  return service.getGroupPage(
-    currentLedger,
-    "month",
-    offset,
-    getRefundPickerFilters(merchantId),
-  );
-}
-
-export async function loadRefundPickerGroupItems(
-  groupKey: string,
-  offset: number,
-  merchantId?: string,
-): Promise<TransactionMonthPage> {
-  const { currentLedger, service } = await getContext();
-  return service.getGroupItems(
-    currentLedger,
-    "month",
-    groupKey,
-    offset,
-    getRefundPickerFilters(merchantId),
-  );
-}
-
-export async function loadRefundPickerSearchPage(
-  rawQuery: string,
-  offset = 0,
-): Promise<TransactionSearchPage> {
-  const { currentLedger, service } = await getContext();
-  return service.search(currentLedger, rawQuery, offset, refundPickerFilters);
-}
-
-export async function loadReimbursementPickerGroupPage(
-  offset: number,
-): Promise<TransactionGroupPage> {
-  const { currentLedger, service } = await getContext();
-  return service.getGroupPage(
-    currentLedger,
-    "month",
-    offset,
-    reimbursementPickerFilters,
-  );
-}
-
-export async function loadReimbursementPickerGroupItems(
-  groupKey: string,
-  offset: number,
-): Promise<TransactionMonthPage> {
-  const { currentLedger, service } = await getContext();
-  return service.getGroupItems(
-    currentLedger,
-    "month",
-    groupKey,
-    offset,
-    reimbursementPickerFilters,
-  );
-}
-
-export async function loadReimbursementPickerSearchPage(
-  rawQuery: string,
-  offset = 0,
-): Promise<TransactionSearchPage> {
-  const { currentLedger, service } = await getContext();
-  return service.search(
-    currentLedger,
-    rawQuery,
-    offset,
-    reimbursementPickerFilters,
-  );
-}
-
-function getRefundPickerFilters(merchantId?: string): TransactionFilters {
-  return merchantId && uuidPattern.test(merchantId)
-    ? { ...refundPickerFilters, merchantId }
-    : refundPickerFilters;
+  return service.getLinkCandidatePage(currentLedger, "reimbursement", {
+    ...input,
+    merchantId: undefined,
+  });
 }
