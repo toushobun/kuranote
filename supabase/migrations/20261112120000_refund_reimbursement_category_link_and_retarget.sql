@@ -364,8 +364,8 @@ begin
 
         if v_new_target is not null then
             -- 原有链接保持同一收入明细，仅原支出对象改变。
-            -- 现有链接 UPDATE 触发器负责旧目标回退 + 新目标派生状态，
-            -- 业务净额由 offset 视图按新链接即时计算；后续失败整笔回滚。
+            -- 链接表没有自动重算两个原支出状态的 UPDATE 触发器，
+            -- 必须显式重算旧、新目标；业务净额由 offset 视图按新链接计算。
             if v_old_refund_target is not null then
                 update public.transaction_item_refund_link link
                 set refunded_item_id = v_new_target
@@ -377,6 +377,15 @@ begin
                 where link.ledger_id = p_ledger_id
                   and link.reimbursement_income_item_id = v_transaction_item_id;
             end if;
+
+            -- 失去本次核销的旧原支出可能由已报销退回待报销；
+            -- 新原支出可能由待报销变为已报销或核销结余。
+            perform public.recalculate_transaction_item_settlement_status(
+                p_ledger_id, coalesce(v_old_refund_target, v_old_reimbursement_target)
+            );
+            perform public.recalculate_transaction_item_settlement_status(
+                p_ledger_id, v_new_target
+            );
         end if;
     end loop;
 
