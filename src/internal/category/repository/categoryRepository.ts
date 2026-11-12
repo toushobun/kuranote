@@ -27,9 +27,12 @@ export type CategoryScope = {
   type: CategoryType;
 };
 
+export type CategorySystemKey = "special_income" | "refund" | "reimbursement";
+
 export type CategoryRecord = {
   id: string;
   parentId: string | null;
+  systemKey?: CategorySystemKey | null;
   type: CategoryType;
 };
 
@@ -47,6 +50,7 @@ export type CategoryData = {
   name: string;
   parent_id: string | null;
   sort_order: number;
+  system_key?: CategorySystemKey | null;
   type: CategoryType;
 };
 
@@ -109,6 +113,7 @@ export interface CategoryRepository {
 type CategoryRecordRow = {
   id: string;
   parent_id: string | null;
+  system_key: CategorySystemKey | null;
   type: CategoryType;
 };
 
@@ -119,6 +124,7 @@ type CategoryRow = {
   name: string;
   parent_id: string | null;
   sort_order: number;
+  system_key: CategorySystemKey | null;
   type: CategoryType;
 };
 
@@ -128,6 +134,13 @@ type CategorySummaryRow = {
   parent_id: string | null;
   type: CategoryType;
 };
+
+const categoryWriteRpcErrorMap = {
+  category_name_reserved: categoryErrorCodes.nameReserved,
+  category_system_invalid: categoryErrorCodes.systemInvalid,
+  category_system_locked: categoryErrorCodes.systemLocked,
+  category_system_parent_locked: categoryErrorCodes.systemParentLocked,
+} as const;
 
 const categoryReorderRpcErrorMap = {
   auth_required: "auth_required",
@@ -148,6 +161,7 @@ function toCategoryRecord(row: CategoryRecordRow): CategoryRecord {
   return {
     id: row.id,
     parentId: row.parent_id,
+    systemKey: row.system_key,
     type: row.type,
   };
 }
@@ -160,6 +174,7 @@ function toCategoryData(row: CategoryRow): CategoryData {
     name: row.name,
     parent_id: row.parent_id,
     sort_order: row.sort_order,
+    system_key: row.system_key,
     type: row.type,
   };
 }
@@ -181,9 +196,16 @@ export function createSupabaseCategoryRepository(
     code: string,
     message: string,
     logMessage: string,
-    error: { code?: string; message: string },
+    error: { code?: string; details?: string | null; message: string },
     metadata: Record<string, unknown>,
   ): never {
+    const businessCode = findRpcBusinessError(error, categoryWriteRpcErrorMap);
+    if (businessCode) {
+      throw new ValidationError(
+        businessCode,
+        categoryErrorMessages[businessCode],
+      );
+    }
     logger.error(logMessage, {
       ...metadata,
       code: error.code,
@@ -307,7 +329,7 @@ export function createSupabaseCategoryRepository(
     async findActiveById({ categoryId, ledgerId }) {
       const { data, error } = await supabase
         .from("category")
-        .select("id, parent_id, type")
+        .select("id, parent_id, type, system_key")
         .eq("id", categoryId)
         .eq("ledger_id", ledgerId)
         .eq("is_archived", false)
@@ -329,7 +351,7 @@ export function createSupabaseCategoryRepository(
     async findActiveByLedgerId(ledgerId) {
       const { data, error } = await supabase
         .from("category")
-        .select("id, name, icon_name, parent_id, type, sort_order, created_at")
+        .select("id, name, icon_name, parent_id, type, sort_order, created_at, system_key")
         .eq("ledger_id", ledgerId)
         .eq("is_archived", false)
         .order("type", { ascending: true })
@@ -400,7 +422,7 @@ export function createSupabaseCategoryRepository(
     async findActiveRootById({ categoryId, ledgerId, type }) {
       const { data, error } = await supabase
         .from("category")
-        .select("id, parent_id, type")
+        .select("id, parent_id, type, system_key")
         .eq("id", categoryId)
         .eq("ledger_id", ledgerId)
         .eq("type", type)
