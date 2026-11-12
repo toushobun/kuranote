@@ -88,7 +88,7 @@ describe("TransactionItemPickerDrawer", () => {
   function openLinkedAmount() {
     const onAmountChange = renderLinkedAmount();
     fireEvent.click(
-      screen.getByRole("button", { name: /报销金额 剩余未核销/ }),
+      screen.getByRole("button", { name: /报销金额 剩余未报/ }),
     );
     return onAmountChange;
   }
@@ -98,13 +98,74 @@ describe("TransactionItemPickerDrawer", () => {
       ...selectedCandidate,
       remainingRefundableAmount: "0",
     });
-    expect(screen.getByText("—")).toBeVisible();
-    const row = screen.getByRole("button", { name: /报销金额 剩余未核销/ });
+    expect(screen.getByText("¥0")).toBeVisible();
+    expect(screen.getByText("这笔已全额报销")).toBeVisible();
+    const row = screen.getByRole("button", { name: /报销金额 剩余未报/ });
     expect(row).toBeEnabled();
     fireEvent.click(row);
     press("7");
     press("确定");
     expect(onAmountChange).toHaveBeenCalledWith("7");
+  });
+
+  it("已全额结清时金额零可直接确定，金额行仍有铅笔", () => {
+    const onPickerAdd = vi.fn(() => true);
+    render(
+      <TransactionItemPickerDrawer
+        categoryGroups={categoryGroups}
+        filteredCategoryOptions={categoryOptions}
+        onCategoryToggle={vi.fn()}
+        onClose={vi.fn()}
+        onGroupSelect={vi.fn()}
+        onPickerAdd={onPickerAdd}
+        onRemoveItem={vi.fn()}
+        open
+        pickerMode="refund"
+        pickerAmount=""
+        pickerCategoryId="system-refund"
+        pickerErrors={{}}
+        specialStatusEnabled
+        selectedAccountCurrency="JPY"
+        pickerRefundCandidate={{
+          ...selectedCandidate,
+          refundedAmount: selectedCandidate.amount,
+          remainingRefundableAmount: "0",
+        }}
+      />,
+    );
+    expect(screen.getByText("¥0")).toBeVisible();
+    expect(screen.getByText("这笔已全额退款")).toBeVisible();
+    expect(document.querySelector("svg[data-testid='EditRoundedIcon']")).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "确定" }));
+    expect(onPickerAdd).toHaveBeenCalledOnce();
+  });
+
+  it("部分退款时金额行显示剩余未退且铅笔常显", () => {
+    render(
+      <TransactionItemPickerDrawer
+        categoryGroups={categoryGroups}
+        filteredCategoryOptions={categoryOptions}
+        onCategoryToggle={vi.fn()}
+        onClose={vi.fn()}
+        onGroupSelect={vi.fn()}
+        onPickerAdd={() => true}
+        onRemoveItem={vi.fn()}
+        open
+        pickerMode="refund"
+        pickerAmount="800"
+        pickerCategoryId="system-refund"
+        pickerErrors={{}}
+        specialStatusEnabled
+        selectedAccountCurrency="JPY"
+        pickerRefundCandidate={{
+          ...selectedCandidate,
+          refundedAmount: "2480",
+          remainingRefundableAmount: "800",
+        }}
+      />,
+    );
+    expect(screen.getByText("剩余未退 ¥800")).toBeVisible();
+    expect(document.querySelector("svg[data-testid='EditRoundedIcon']")).not.toBeNull();
   });
 
   it("金额行打开计算器，只有确认才写入金额", () => {
@@ -124,7 +185,7 @@ describe("TransactionItemPickerDrawer", () => {
     fireEvent.click(screen.getByRole("button", { name: "关闭金额键盘" }));
     expect(onAmountChange).not.toHaveBeenCalled();
     fireEvent.click(
-      await screen.findByRole("button", { name: /报销金额 剩余未核销/ }),
+      await screen.findByRole("button", { name: /报销金额 剩余未报/ }),
     );
     expect(screen.getByLabelText("计算器显示金额")).toHaveTextContent("3280");
   });
