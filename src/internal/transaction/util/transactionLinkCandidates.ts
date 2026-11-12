@@ -4,6 +4,7 @@ import type { TransactionRefundCandidate } from "internal/transaction/entity/tra
 /** 把候选记录展开成原支出明细；服务端分页与搜索展示共用相同转换。 */
 export function toTransactionLinkCandidates(
   items: TransactionListItem[],
+  primaryAccountIdByRecordId?: ReadonlyMap<string, string>,
 ): TransactionRefundCandidate[] {
   return items.flatMap((record) =>
     record.categoryItems.flatMap((item) => {
@@ -16,6 +17,7 @@ export function toTransactionLinkCandidates(
       return [
         {
           accountCurrency: record.account_currency,
+          accountId: primaryAccountIdByRecordId?.get(record.id),
           accountName: record.account_name,
           merchantName: record.merchant_name,
           merchantIconUrl: record.merchant_icon_url,
