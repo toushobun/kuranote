@@ -87,7 +87,7 @@ const categoryOptions = [
   },
 ];
 const merchantOptions = [
-  { icon_url: null, id: merchantId, name: "商家", tags: [] },
+  { icon_url: null, id: merchantId, name: "商家", hasTransactions: true, tags: [] },
 ];
 
 type NormalEditView = Omit<EditTransactionEntryView, "initialValues"> & {
