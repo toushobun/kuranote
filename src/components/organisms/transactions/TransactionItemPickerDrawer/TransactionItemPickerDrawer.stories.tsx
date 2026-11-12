@@ -96,19 +96,19 @@ export const ExpenseCategoriesDisabled: Story = {
   name: "多账户收入：支出分类不可选",
   args: {
     disabledCategoryType: "expense",
-    pickerCategoryId: "income-salary",
+    pickerCategoryId: "system-refund",
+    pickerMode: "refund",
     pickerSpecialStatus: null,
-    selectedCategoryGroup: categoryGroups[categoryGroups.length - 1],
   },
 };
 
-export const IncomeLinkNotice: Story = {
-  name: "收入明细显示关联提示",
+export const RefundLinkNotice: Story = {
+  name: "退款明细显示关联提示",
   args: {
     linkNotice: "退款明细必须与收款账户币种一致，请重新选择。",
-    pickerCategoryId: "income-salary",
+    pickerCategoryId: "system-refund",
+    pickerMode: "refund",
     pickerSpecialStatus: null,
-    selectedCategoryGroup: categoryGroups[categoryGroups.length - 1],
   },
   play: async ({ canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body);
@@ -118,7 +118,7 @@ export const IncomeLinkNotice: Story = {
   },
 };
 
-export const IncomeLinkAccountRequiredNotice: Story = {
+export const RefundLinkAccountRequiredNotice: Story = {
   name: "未选账户时选择关联候选的提示",
   args: {
     linkNotice: transactionLinkMessages.candidateAccountRequired("refund"),

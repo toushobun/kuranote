@@ -99,23 +99,11 @@ describe("TransactionItemPickerDrawer", () => {
     expect(onGroupSelect).toHaveBeenLastCalledWith("traffic");
   });
 
-  it.each([
-    {
-      type: "income",
-      group: incomeGroup,
-      enabledGroup: "餐饮",
-    },
-    {
-      type: "expense",
-      group: categoryGroups[0],
-      enabledGroup: "收入",
-    },
-  ] as const)("多账户时禁用 $type 分类", ({ type, group, enabledGroup }) => {
+  it("收入类型只展示收入分类，不再出现关联入口", () => {
     render(
       <TransactionItemPickerDrawer
         categoryGroups={[...categoryGroups, incomeGroup]}
         filteredCategoryOptions={[...categoryOptions, incomeCategory]}
-        disabledCategoryType={type}
         onCategoryToggle={vi.fn()}
         onClose={vi.fn()}
         onGroupSelect={vi.fn()}
@@ -123,64 +111,115 @@ describe("TransactionItemPickerDrawer", () => {
         onRemoveItem={vi.fn()}
         open
         pickerAmount=""
-        pickerCategoryId=""
+        pickerCategoryId={incomeCategory.id}
+        pickerMode="income"
         pickerErrors={{}}
-        selectedCategoryGroup={group}
+        selectedCategoryGroup={incomeGroup}
+        specialStatusEnabled
       />,
     );
 
-    expect(screen.getByRole("button", { name: group.name })).toBeDisabled();
-    expect(
-      screen.getByRole("button", { name: group.categories[0].name }),
-    ).toBeDisabled();
-    expect(screen.getByRole("button", { name: enabledGroup })).toBeEnabled();
-    expect(
-      screen.getByText("多个账户时，收入和支出不能混在一起。"),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "工资" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "午餐" })).not.toBeInTheDocument();
+    expect(screen.queryByText("退款关联")).not.toBeInTheDocument();
+    expect(screen.queryByText("报销关联")).not.toBeInTheDocument();
   });
 
-  function renderIncomeDrawer(linkNotice?: string | null) {
+  it("切换明细类型时回调一次；禁用特殊状态时退款和报销不可选", () => {
+    const onPickerModeChange = vi.fn();
     render(
       <TransactionItemPickerDrawer
-        categoryGroups={[incomeGroup]}
-        filteredCategoryOptions={[incomeCategory]}
-        linkNotice={linkNotice}
+        categoryGroups={[...categoryGroups, incomeGroup]}
+        filteredCategoryOptions={[...categoryOptions, incomeCategory]}
+        onCategoryToggle={vi.fn()}
+        onClose={vi.fn()}
+        onGroupSelect={vi.fn()}
+        onPickerModeChange={onPickerModeChange}
+        onPickerAdd={() => true}
+        onRemoveItem={vi.fn()}
+        open
+        pickerAmount=""
+        pickerCategoryId="food-lunch"
+        pickerErrors={{}}
+        selectedCategoryGroup={categoryGroups[0]}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "明细类型收入" }));
+    expect(onPickerModeChange).toHaveBeenCalledWith("income");
+    expect(screen.getByRole("button", { name: "明细类型退款" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "明细类型报销" })).toBeDisabled();
+  });
+
+  it("多账户时仅允许选择支出类型", () => {
+    render(
+      <TransactionItemPickerDrawer
+        categoryGroups={[...categoryGroups, incomeGroup]}
+        filteredCategoryOptions={[...categoryOptions, incomeCategory]}
         onCategoryToggle={vi.fn()}
         onClose={vi.fn()}
         onGroupSelect={vi.fn()}
         onPickerAdd={() => true}
         onRemoveItem={vi.fn()}
         open
-        pickerAmount="1500"
-        pickerCategoryId={incomeCategory.id}
+        multiAccount
+        pickerAmount=""
+        pickerCategoryId="food-lunch"
         pickerErrors={{}}
-        selectedAccountCurrency="JPY"
-        selectedCategoryGroup={incomeGroup}
+        selectedCategoryGroup={categoryGroups[0]}
         specialStatusEnabled
       />,
     );
-  }
-
-  it("收入明细在特殊状态开启时渲染报销单选入口", () => {
-    renderIncomeDrawer();
-
-    expect(screen.getByText("报销关联")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "选择报销明细" }),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "明细类型支出" })).toBeEnabled();
+    for (const name of ["收入", "退款", "报销"]) {
+      expect(screen.getByRole("button", { name: `明细类型${name}` })).toBeDisabled();
+    }
   });
 
-  it("关联提示在抽屉内显示，不被遮罩挡住", () => {
-    renderIncomeDrawer("退款明细必须与收款账户币种一致，请重新选择。");
+  it("退款未选择原支出时禁用确认，并提示先选", () => {
+    render(
+      <TransactionItemPickerDrawer
+        categoryGroups={categoryGroups}
+        filteredCategoryOptions={categoryOptions}
+        onCategoryToggle={vi.fn()}
+        onClose={vi.fn()}
+        onGroupSelect={vi.fn()}
+        onPickerAdd={() => true}
+        onRemoveItem={vi.fn()}
+        open
+        pickerMode="refund"
+        pickerAmount=""
+        pickerCategoryId="system-refund"
+        pickerErrors={{}}
+        specialStatusEnabled
+        selectedAccountCurrency="JPY"
+      />,
+    );
+    expect(screen.getByText("请先选择一笔原支出，再填写金额。")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "确定" })).toBeDisabled();
+    expect(screen.getByRole("textbox", { name: "核销金额" })).toBeDisabled();
+    expect(screen.queryByPlaceholderText("搜索小分类")).not.toBeInTheDocument();
+  });
 
-    const drawerPaper = screen
-      .getByText("退款关联")
-      .closest(".MuiDrawer-paper");
-    expect(drawerPaper).not.toBeNull();
-    expect(
-      within(drawerPaper as HTMLElement).getByRole("alert"),
-    ).toHaveTextContent("退款明细必须与收款账户币种一致，请重新选择。");
+  it("关联提示在抽屉内显示", () => {
+    render(
+      <TransactionItemPickerDrawer
+        categoryGroups={categoryGroups}
+        filteredCategoryOptions={categoryOptions}
+        linkNotice="退款明细必须与收款账户币种一致，请重新选择。"
+        onCategoryToggle={vi.fn()}
+        onClose={vi.fn()}
+        onGroupSelect={vi.fn()}
+        onPickerAdd={() => true}
+        onRemoveItem={vi.fn()}
+        open
+        pickerMode="refund"
+        pickerAmount=""
+        pickerCategoryId="system-refund"
+        pickerErrors={{}}
+        specialStatusEnabled
+      />,
+    );
+    expect(within(screen.getByText("退款 / 报销会抵消原支出，不计入收入。").closest(".MuiDrawer-paper") as HTMLElement).getByRole("alert")).toHaveTextContent("退款明细必须与收款账户币种一致，请重新选择。");
   });
 
   it("既有待报销母项保持勾选且不可修改", () => {
