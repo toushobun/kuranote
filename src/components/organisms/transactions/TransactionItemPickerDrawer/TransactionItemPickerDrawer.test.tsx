@@ -108,7 +108,7 @@ describe("TransactionItemPickerDrawer", () => {
     fireEvent.click(
       await screen.findByRole("button", { name: /报销金额 剩余未核销/ }),
     );
-    expect(screen.getByLabelText("计算器显示金额")).toHaveTextContent("3,280");
+    expect(screen.getByLabelText("计算器显示金额")).toHaveTextContent("3280");
   });
 
   it("左列选大分类、右列选小分类", () => {
