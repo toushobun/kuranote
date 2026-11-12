@@ -932,17 +932,21 @@ describe("退款关联 FormData 校验", () => {
     );
   });
 
-  it("FormData 路径拒绝 0 元退款关联", () => {
-    expect(validateTransactionForm(createRefundFormData())).toEqual({
-      error: transactionErrorCodes.refundLinkInvalid,
-      ok: false,
+  it("FormData 路径接受 0 元待定退款关联", () => {
+    expect(validateTransactionForm(createRefundFormData())).toMatchObject({
+      ok: true,
+      value: {
+        items: [{ amount: 0, refundedItemId: refundTargetId }],
+      },
     });
   });
 
-  it("编辑 FormData 路径拒绝 0 元退款关联", () => {
-    expect(validateUpdateTransactionForm(createRefundFormData())).toEqual({
-      error: transactionErrorCodes.refundLinkInvalid,
-      ok: false,
+  it("编辑 FormData 路径接受 0 元待定退款关联", () => {
+    expect(validateUpdateTransactionForm(createRefundFormData())).toMatchObject({
+      ok: true,
+      value: {
+        items: [{ amount: 0, refundedItemId: refundTargetId }],
+      },
     });
   });
 });
