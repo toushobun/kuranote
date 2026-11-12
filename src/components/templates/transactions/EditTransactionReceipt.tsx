@@ -73,12 +73,14 @@ export function EditTransactionReceiptTemplate(
               ? item.refundCandidate
               : item.reimbursementCandidate;
           return candidate
-            ? [{
-                incomeItemId: item.id,
-                kind: item.businessStatus.incomeLinkRole,
-                label: candidate.categoryName,
-                targetItemId: candidate.id,
-              }]
+            ? [
+                {
+                  incomeItemId: item.id,
+                  kind: item.businessStatus.incomeLinkRole,
+                  label: candidate.categoryName,
+                  targetItemId: candidate.id,
+                },
+              ]
             : [];
         })}
         saveFormId={editReceiptFormId}

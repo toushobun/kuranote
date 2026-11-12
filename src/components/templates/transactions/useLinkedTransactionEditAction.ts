@@ -39,9 +39,13 @@ function describeLinkRetarget(
   if (!formData || originals.length === 0) return null;
   const itemIds = formData.getAll("itemPersistedId").map(String);
   const refundedItemIds = formData.getAll("itemRefundedItemId").map(String);
-  const reimbursementItemIds = formData.getAll("itemReimbursementItemId").map(String);
+  const reimbursementItemIds = formData
+    .getAll("itemReimbursementItemId")
+    .map(String);
   const refundLabels = formData.getAll("itemRefundedItemLabel").map(String);
-  const reimbursementLabels = formData.getAll("itemReimbursementItemLabel").map(String);
+  const reimbursementLabels = formData
+    .getAll("itemReimbursementItemLabel")
+    .map(String);
 
   const changes = originals.flatMap((original) => {
     const index = itemIds.indexOf(original.incomeItemId);
@@ -49,7 +53,8 @@ function describeLinkRetarget(
     const isRefund = original.kind === "refund";
     const targetId = (isRefund ? refundedItemIds : reimbursementItemIds)[index];
     if (!targetId || targetId === original.targetItemId) return [];
-    const label = (isRefund ? refundLabels : reimbursementLabels)[index] || "新选原支出";
+    const label =
+      (isRefund ? refundLabels : reimbursementLabels)[index] || "新选原支出";
     return [
       `${isRefund ? "退款" : "报销"}原支出：${original.label}（${original.targetItemId.slice(0, 8)}）→ ${label}（${targetId.slice(0, 8)}）`,
     ];
@@ -65,7 +70,9 @@ export function useLinkedTransactionEditAction(
   initialLinkedTargets: OriginalLinkedTarget[] = [],
 ) {
   const pendingConfirmationRef = useRef<FormData | null>(null);
-  const [retargetDescription, setRetargetDescription] = useState<string | null>(null);
+  const [retargetDescription, setRetargetDescription] = useState<string | null>(
+    null,
+  );
   const [dismissedState, setDismissedState] =
     useState<TransactionActionState | null>(null);
 
@@ -78,7 +85,9 @@ export function useLinkedTransactionEditAction(
       );
       if (requiresSyncConfirmation(nextState)) {
         pendingConfirmationRef.current = copyFormData(formData);
-        setRetargetDescription(describeLinkRetarget(formData, initialLinkedTargets));
+        setRetargetDescription(
+          describeLinkRetarget(formData, initialLinkedTargets),
+        );
       }
       return nextState;
     },

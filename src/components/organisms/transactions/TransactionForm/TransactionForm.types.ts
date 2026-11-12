@@ -63,7 +63,11 @@ export type TransactionItemSummary = TransactionFormItem & {
   category?: TransactionCategoryOption;
 };
 
-export type TransactionItemPickerMode = "expense" | "income" | "refund" | "reimbursement";
+export type TransactionItemPickerMode =
+  | "expense"
+  | "income"
+  | "refund"
+  | "reimbursement";
 
 export type TransactionPickerErrors = {
   category?: string;

@@ -132,7 +132,11 @@ export async function loadTransactionSearchPage(
 /** 关联选择器打开时才读取首屏；不参与新增 / 编辑页面 SSR。 */
 export async function loadRefundPickerInitialView(merchantId?: string) {
   const { currentLedger, service } = await getContext();
-  return service.getGroupView(currentLedger, "month", getRefundPickerFilters(merchantId));
+  return service.getGroupView(
+    currentLedger,
+    "month",
+    getRefundPickerFilters(merchantId),
+  );
 }
 
 export async function loadReimbursementPickerInitialView() {

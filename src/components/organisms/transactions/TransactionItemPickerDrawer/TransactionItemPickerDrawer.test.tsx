@@ -120,7 +120,9 @@ describe("TransactionItemPickerDrawer", () => {
     );
 
     expect(screen.getByRole("button", { name: "工资" })).toBeVisible();
-    expect(screen.queryByRole("button", { name: "午餐" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "午餐" }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText("退款关联")).not.toBeInTheDocument();
     expect(screen.queryByText("报销关联")).not.toBeInTheDocument();
   });
@@ -171,7 +173,9 @@ describe("TransactionItemPickerDrawer", () => {
     );
     expect(screen.getByRole("button", { name: "明细类型支出" })).toBeEnabled();
     for (const name of ["收入", "退款", "报销"]) {
-      expect(screen.getByRole("button", { name: `明细类型${name}` })).toBeDisabled();
+      expect(
+        screen.getByRole("button", { name: `明细类型${name}` }),
+      ).toBeDisabled();
     }
   });
 
@@ -194,7 +198,9 @@ describe("TransactionItemPickerDrawer", () => {
         selectedAccountCurrency="JPY"
       />,
     );
-    expect(screen.getByText("请先选择一笔原支出，再填写金额。")).toBeInTheDocument();
+    expect(
+      screen.getByText("请先选择一笔原支出，再填写金额。"),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "确定" })).toBeDisabled();
     expect(screen.getByRole("textbox", { name: "核销金额" })).toBeDisabled();
     expect(screen.queryByPlaceholderText("搜索小分类")).not.toBeInTheDocument();
@@ -219,7 +225,13 @@ describe("TransactionItemPickerDrawer", () => {
         specialStatusEnabled
       />,
     );
-    expect(within(screen.getByText("退款 / 报销会抵消原支出，不计入收入。").closest(".MuiDrawer-paper") as HTMLElement).getByRole("alert")).toHaveTextContent("退款明细必须与收款账户币种一致，请重新选择。");
+    expect(
+      within(
+        screen
+          .getByText("退款 / 报销会抵消原支出，不计入收入。")
+          .closest(".MuiDrawer-paper") as HTMLElement,
+      ).getByRole("alert"),
+    ).toHaveTextContent("退款明细必须与收款账户币种一致，请重新选择。");
   });
 
   it("既有待报销母项保持勾选且不可修改", () => {

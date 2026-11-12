@@ -38,9 +38,9 @@ export function buildCategoriesView({
     parentOptions: roots
       .filter((category) => !category.system_key)
       .map((category) => ({
-      id: category.id,
-      name: category.name,
-      type: category.type,
+        id: category.id,
+        name: category.name,
+        type: category.type,
       })),
   };
 }

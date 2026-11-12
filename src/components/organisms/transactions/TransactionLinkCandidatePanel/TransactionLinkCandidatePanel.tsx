@@ -25,10 +25,22 @@ type TransactionLinkCandidatePanelProps = {
   amount: string;
   kind: "refund" | "reimbursement";
   merchantId?: string;
-  loadInitialViewAction?: (merchantId?: string) => Promise<TransactionTimeGroupViewData>;
-  loadGroupItemsAction?: (groupKey: string, offset: number, merchantId?: string) => Promise<TransactionMonthPage>;
-  loadMoreGroupsAction?: (offset: number, merchantId?: string) => Promise<TransactionGroupPage>;
-  loadSearchPageAction?: (query: string, offset: number) => Promise<TransactionSearchPage>;
+  loadInitialViewAction?: (
+    merchantId?: string,
+  ) => Promise<TransactionTimeGroupViewData>;
+  loadGroupItemsAction?: (
+    groupKey: string,
+    offset: number,
+    merchantId?: string,
+  ) => Promise<TransactionMonthPage>;
+  loadMoreGroupsAction?: (
+    offset: number,
+    merchantId?: string,
+  ) => Promise<TransactionGroupPage>;
+  loadSearchPageAction?: (
+    query: string,
+    offset: number,
+  ) => Promise<TransactionSearchPage>;
   onAmountChange: (amount: string) => void;
   onChange: (item: TransactionRefundCandidate | null) => void;
   value: TransactionRefundCandidate | null;
@@ -49,13 +61,17 @@ export function TransactionLinkCandidatePanel({
   value,
 }: TransactionLinkCandidatePanelProps) {
   const [view, setView] = useState<TransactionTimeGroupViewData | null>(null);
-  const [browseMerchantId, setBrowseMerchantId] = useState<string | undefined>(merchantId);
+  const [browseMerchantId, setBrowseMerchantId] = useState<string | undefined>(
+    merchantId,
+  );
   const [loading, setLoading] = useState(false);
   const [browseError, setBrowseError] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
   const [searchRetryKey, setSearchRetryKey] = useState(0);
   const [query, setQuery] = useState("");
-  const [searchPage, setSearchPage] = useState<TransactionSearchPage | null>(null);
+  const [searchPage, setSearchPage] = useState<TransactionSearchPage | null>(
+    null,
+  );
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -88,7 +104,9 @@ export function TransactionLinkCandidatePanel({
         if (!cancelled) setLoading(false);
       }
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [loadInitialViewAction, merchantId, retryKey]);
 
   useEffect(() => {
@@ -96,7 +114,10 @@ export function TransactionLinkCandidatePanel({
     let cancelled = false;
     if (!term || !loadSearchPageAction) {
       const timeout = setTimeout(() => setSearchPage(null), 0);
-      return () => { cancelled = true; clearTimeout(timeout); };
+      return () => {
+        cancelled = true;
+        clearTimeout(timeout);
+      };
     }
     const timeout = setTimeout(() => {
       if (cancelled) return;
@@ -104,11 +125,20 @@ export function TransactionLinkCandidatePanel({
       setSearchLoading(true);
       setSearchError(false);
       void loadSearchPageAction(term, 0)
-        .then((page) => { if (!cancelled) setSearchPage(page); })
-        .catch(() => { if (!cancelled) setSearchError(true); })
-        .finally(() => { if (!cancelled) setSearchLoading(false); });
+        .then((page) => {
+          if (!cancelled) setSearchPage(page);
+        })
+        .catch(() => {
+          if (!cancelled) setSearchError(true);
+        })
+        .finally(() => {
+          if (!cancelled) setSearchLoading(false);
+        });
     }, 250);
-    return () => { cancelled = true; clearTimeout(timeout); };
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
   }, [loadSearchPageAction, query, searchRetryKey]);
 
   async function loadMore() {
@@ -118,13 +148,21 @@ export function TransactionLinkCandidatePanel({
     setSearchError(false);
     try {
       const page = await loadSearchPageAction(query.trim(), nextOffset);
-      setSearchPage((previous) => previous ? {
-        items: [...previous.items, ...page.items.filter(
-          (item) => !previous.items.some((existing) => existing.id === item.id),
-        )],
-        nextOffset: page.nextOffset,
-        totalCount: page.totalCount,
-      } : page);
+      setSearchPage((previous) =>
+        previous
+          ? {
+              items: [
+                ...previous.items,
+                ...page.items.filter(
+                  (item) =>
+                    !previous.items.some((existing) => existing.id === item.id),
+                ),
+              ],
+              nextOffset: page.nextOffset,
+              totalCount: page.totalCount,
+            }
+          : page,
+      );
     } catch {
       setSearchError(true);
     } finally {
@@ -149,20 +187,32 @@ export function TransactionLinkCandidatePanel({
         size="small"
         slotProps={{
           htmlInput: { "aria-label": "搜索原支出" },
-          input: { startAdornment: (
-            <InputAdornment position="start"><SearchRoundedIcon fontSize="small" /></InputAdornment>
-          ) },
+          input: {
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchRoundedIcon fontSize="small" />
+              </InputAdornment>
+            ),
+          },
         }}
         value={query}
       />
       <Stack sx={{ maxHeight: 290, minHeight: 160, overflowY: "auto" }}>
         {searching ? (
-          searchLoading ? <CircularProgress size={24} /> :
-          searchPage ? (
+          searchLoading ? (
+            <CircularProgress size={24} />
+          ) : searchPage ? (
             <>
               {searchPage.items.length ? (
-                <TransactionRefundCandidateList items={searchPage.items} {...candidateListProps} />
-              ) : <Typography color="textSecondary">没有找到可关联的支出。</Typography>}
+                <TransactionRefundCandidateList
+                  items={searchPage.items}
+                  {...candidateListProps}
+                />
+              ) : (
+                <Typography color="textSecondary">
+                  没有找到可关联的支出。
+                </Typography>
+              )}
               {searchPage.nextOffset !== null ? (
                 <Button disabled={loadingMore} onClick={() => void loadMore()}>
                   {loadingMore ? "加载中…" : "加载更多"}
@@ -170,34 +220,50 @@ export function TransactionLinkCandidatePanel({
               ) : null}
             </>
           ) : null
-        ) : loading ? <CircularProgress size={24} /> :
-        view ? view.groups.length === 0 ? (
-          <Typography color="textSecondary" variant="body2">
-            没有可关联的原支出，试试搜索。
-          </Typography>
-        ) : (
-          <TransactionMonthList
-            key={browseMerchantId ?? "all"}
-            loadGroupItemsAction={loadGroupItemsAction
-              ? (groupKey, offset) => loadGroupItemsAction(groupKey, offset, browseMerchantId)
-              : undefined}
-            loadMoreGroupsAction={loadMoreGroupsAction
-              ? (offset) => loadMoreGroupsAction(offset, browseMerchantId)
-              : undefined}
-            onSelectRefundItem={kind === "refund" ? onChange : undefined}
-            onSelectReimbursementItem={kind === "reimbursement" ? onChange : undefined}
-            refundSelectionMode={kind === "refund"}
-            reimbursementSelectionMode={kind === "reimbursement"}
-            selectableCurrency={accountCurrency}
-            selectedRefundItemId={kind === "refund" ? value?.id : null}
-            selectedReimbursementItemId={kind === "reimbursement" ? value?.id : null}
-            timeGroupView={view}
-          />
+        ) : loading ? (
+          <CircularProgress size={24} />
+        ) : view ? (
+          view.groups.length === 0 ? (
+            <Typography color="textSecondary" variant="body2">
+              没有可关联的原支出，试试搜索。
+            </Typography>
+          ) : (
+            <TransactionMonthList
+              key={browseMerchantId ?? "all"}
+              loadGroupItemsAction={
+                loadGroupItemsAction
+                  ? (groupKey, offset) =>
+                      loadGroupItemsAction(groupKey, offset, browseMerchantId)
+                  : undefined
+              }
+              loadMoreGroupsAction={
+                loadMoreGroupsAction
+                  ? (offset) => loadMoreGroupsAction(offset, browseMerchantId)
+                  : undefined
+              }
+              onSelectRefundItem={kind === "refund" ? onChange : undefined}
+              onSelectReimbursementItem={
+                kind === "reimbursement" ? onChange : undefined
+              }
+              refundSelectionMode={kind === "refund"}
+              reimbursementSelectionMode={kind === "reimbursement"}
+              selectableCurrency={accountCurrency}
+              selectedRefundItemId={kind === "refund" ? value?.id : null}
+              selectedReimbursementItemId={
+                kind === "reimbursement" ? value?.id : null
+              }
+              timeGroupView={view}
+            />
+          )
         ) : null}
         {browseError || searchError ? (
-          <Button onClick={() => searching
-            ? setSearchRetryKey((value) => value + 1)
-            : setRetryKey((value) => value + 1)}>
+          <Button
+            onClick={() =>
+              searching
+                ? setSearchRetryKey((value) => value + 1)
+                : setRetryKey((value) => value + 1)
+            }
+          >
             加载失败，点击重试
           </Button>
         ) : null}
@@ -217,7 +283,9 @@ export function TransactionLinkCandidatePanel({
         label={kind === "refund" ? "本次退款金额" : "本次报销金额"}
         onChange={(event) => onAmountChange(event.target.value)}
         size="small"
-        slotProps={{ htmlInput: { inputMode: "decimal", "aria-label": "核销金额" } }}
+        slotProps={{
+          htmlInput: { inputMode: "decimal", "aria-label": "核销金额" },
+        }}
         value={amount}
       />
     </Stack>

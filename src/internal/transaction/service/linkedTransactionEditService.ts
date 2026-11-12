@@ -230,12 +230,18 @@ function validateAssociationUnchanged(
 ): void {
   const role = existing.businessStatus?.incomeLinkRole;
   if (role === "refund") {
-    if (!submitted.refundedItemId || submitted.reimbursementItemId !== undefined) {
+    if (
+      !submitted.refundedItemId ||
+      submitted.reimbursementItemId !== undefined
+    ) {
       throwUnlinkRequired();
     }
   }
   if (role === "reimbursement") {
-    if (!submitted.reimbursementItemId || submitted.refundedItemId !== undefined) {
+    if (
+      !submitted.reimbursementItemId ||
+      submitted.refundedItemId !== undefined
+    ) {
       throwUnlinkRequired();
     }
   }
@@ -431,7 +437,8 @@ export function createLinkedTransactionEditService({
           (existing.businessStatus?.incomeLinkRole === "refund" &&
             submitted.refundedItemId !== existing.refundCandidate?.id) ||
           (existing.businessStatus?.incomeLinkRole === "reimbursement" &&
-            submitted.reimbursementItemId !== existing.reimbursementCandidate?.id);
+            submitted.reimbursementItemId !==
+              existing.reimbursementCandidate?.id);
         if (
           paymentsChanged ||
           categoryChanged ||

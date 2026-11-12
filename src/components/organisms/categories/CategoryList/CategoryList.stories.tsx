@@ -290,7 +290,8 @@ export const SystemIncome: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "展开特殊收入" }));
     await expect(canvas.getByText("退款")).toBeVisible();
     await expect(canvas.getByText("报销")).toBeVisible();
-    await expect(canvas.queryByRole("button", { name: "编辑退款" }))
-      .not.toBeInTheDocument();
+    await expect(
+      canvas.queryByRole("button", { name: "编辑退款" }),
+    ).not.toBeInTheDocument();
   },
 };

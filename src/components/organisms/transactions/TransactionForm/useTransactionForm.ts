@@ -98,8 +98,9 @@ export function useTransactionForm({
   const [selectedCategoryGroupId, setSelectedCategoryGroupId] = useState("");
   const [pickerCategoryId, setPickerCategoryId] = useState("");
   const [pickerAmount, setPickerAmount] = useState("");
-  const [pickerMode, setPickerMode] =
-    useState<"expense" | "income" | "refund" | "reimbursement">("expense");
+  const [pickerMode, setPickerMode] = useState<
+    "expense" | "income" | "refund" | "reimbursement"
+  >("expense");
   const [pickerSpecialStatus, setPickerSpecialStatus] =
     useState<TransactionFormItem["specialStatus"]>(null);
   const [pickerRefundCandidate, setPickerRefundCandidate] =
@@ -186,9 +187,9 @@ export function useTransactionForm({
   );
   const pickerModeLocked = Boolean(
     editingPickerItem?.persistedId &&
-      ["refund", "reimbursement"].includes(
-        categoryById.get(editingPickerItem.categoryId)?.systemKey ?? "",
-      ),
+    ["refund", "reimbursement"].includes(
+      categoryById.get(editingPickerItem.categoryId)?.systemKey ?? "",
+    ),
   );
   const pickerSpecialStatusLocked = Boolean(
     editingPickerItem?.specialStatusLocked,
@@ -417,7 +418,8 @@ export function useTransactionForm({
     setPickerCategoryId(item.categoryId);
     const category = categoryById.get(item.categoryId);
     setPickerMode(
-      category?.systemKey === "refund" || category?.systemKey === "reimbursement"
+      category?.systemKey === "refund" ||
+        category?.systemKey === "reimbursement"
         ? category.systemKey
         : (category?.type ?? "expense"),
     );
@@ -483,7 +485,8 @@ export function useTransactionForm({
       (paymentFields.isMultiAccount && nextMode !== "expense") ||
       (disabledCategoryType === "income" && nextMode !== "expense") ||
       (disabledCategoryType === "expense" && nextMode === "expense")
-    ) return;
+    )
+      return;
 
     const nextSystem = categoryOptions.find(
       (category) => category.systemKey === nextMode,
@@ -513,7 +516,10 @@ export function useTransactionForm({
         : pickerMode === "reimbursement"
           ? pickerReimbursementCandidate
           : null;
-    if ((pickerMode === "refund" || pickerMode === "reimbursement") && !selectedTarget) {
+    if (
+      (pickerMode === "refund" || pickerMode === "reimbursement") &&
+      !selectedTarget
+    ) {
       return false;
     }
     if (!pickerCategoryId) {

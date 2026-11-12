@@ -35,14 +35,14 @@ export function CategoryItemActions({
     <>
       {!category.system_key ? (
         <Tooltip title={`编辑${displayName}`}>
-        <IconButton
-          aria-label={`编辑${displayName}`}
-          onClick={() => onEdit(category)}
-          size="small"
-          type="button"
-        >
-          <EditRoundedIcon fontSize="small" />
-        </IconButton>
+          <IconButton
+            aria-label={`编辑${displayName}`}
+            onClick={() => onEdit(category)}
+            size="small"
+            type="button"
+          >
+            <EditRoundedIcon fontSize="small" />
+          </IconButton>
         </Tooltip>
       ) : null}
       <SortableDragHandle name={displayName} handleProps={handleProps} />

@@ -69,7 +69,9 @@ type TransactionItemPickerDrawerProps = {
   pickerSpecialStatus?: TransactionSpecialStatus | null;
   selectedAccountCurrency?: string;
   selectedCategoryGroup?: CategoryPickerGroup;
-  loadRefundInitialViewAction?: (merchantId?: string) => Promise<TransactionTimeGroupViewData>;
+  loadRefundInitialViewAction?: (
+    merchantId?: string,
+  ) => Promise<TransactionTimeGroupViewData>;
   loadReimbursementInitialViewAction?: () => Promise<TransactionTimeGroupViewData>;
   loadRefundGroupItemsAction?: (
     groupKey: string,
@@ -148,9 +150,12 @@ export function TransactionItemPickerDrawer({
     (category) => category.id === pickerCategoryId,
   )?.type;
   const [searchText, setSearchText] = useState("");
-  const isLinkedMode = pickerMode === "refund" || pickerMode === "reimbursement";
+  const isLinkedMode =
+    pickerMode === "refund" || pickerMode === "reimbursement";
   const selectedCandidate =
-    pickerMode === "refund" ? pickerRefundCandidate : pickerReimbursementCandidate;
+    pickerMode === "refund"
+      ? pickerRefundCandidate
+      : pickerReimbursementCandidate;
   const displayedGroups = useMemo(() => {
     const typeGroups = categoryGroups.filter(
       (group) => group.categories[0]?.type === pickerMode,
@@ -267,7 +272,11 @@ export function TransactionItemPickerDrawer({
             </ToggleButton>
           ))}
         </ToggleButtonGroup>
-        <Typography color="textSecondary" variant="caption" sx={{ display: "block", mt: 0.75 }}>
+        <Typography
+          color="textSecondary"
+          variant="caption"
+          sx={{ display: "block", mt: 0.75 }}
+        >
           {isLinkedMode
             ? "退款 / 报销会抵消原支出，不计入收入。"
             : "请选择本笔明细的分类。"}
@@ -308,145 +317,147 @@ export function TransactionItemPickerDrawer({
           />
         ) : (
           <>
-        <TextField
-          fullWidth
-          onChange={(event) => setSearchText(event.target.value)}
-          placeholder="搜索小分类"
-          size="small"
-          slotProps={{
-            htmlInput: { "aria-label": "搜索小分类" },
-            input: {
-              endAdornment: searchText ? (
-                <InputAdornment position="end">
-                  <IconButton
-                    aria-label="清空搜索"
-                    edge="end"
-                    onClick={() => setSearchText("")}
-                    size="small"
-                  >
-                    <CloseIcon fontSize="small" />
-                  </IconButton>
-                </InputAdornment>
-              ) : null,
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchRoundedIcon color="action" fontSize="small" />
-                </InputAdornment>
-              ),
-            },
-          }}
-          sx={searchFieldSx}
-          value={searchText}
-        />
+            <TextField
+              fullWidth
+              onChange={(event) => setSearchText(event.target.value)}
+              placeholder="搜索小分类"
+              size="small"
+              slotProps={{
+                htmlInput: { "aria-label": "搜索小分类" },
+                input: {
+                  endAdornment: searchText ? (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="清空搜索"
+                        edge="end"
+                        onClick={() => setSearchText("")}
+                        size="small"
+                      >
+                        <CloseIcon fontSize="small" />
+                      </IconButton>
+                    </InputAdornment>
+                  ) : null,
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchRoundedIcon color="action" fontSize="small" />
+                    </InputAdornment>
+                  ),
+                },
+              }}
+              sx={searchFieldSx}
+              value={searchText}
+            />
 
-        {filteredCategoryOptions.length === 0 ? (
-          <Typography color="textSecondary">请先新增分类。</Typography>
-        ) : (
-          <>
-            {displayedGroups.length === 0 ? (
-              <Box sx={emptySearchSx}>
-                <Typography color="textSecondary" variant="body2">
-                  没有匹配的小分类
-                </Typography>
-              </Box>
+            {filteredCategoryOptions.length === 0 ? (
+              <Typography color="textSecondary">请先新增分类。</Typography>
             ) : (
-              <Stack direction="row" spacing={1} sx={categoryColumnsSx}>
-                <Stack sx={categoryColumnSx}>
-                  <Box sx={categoryOptionsSx}>
-                    {displayedGroupSections.map((section) => (
-                      <Box key={section.label}>
-                        <Typography sx={categoryTypeLabelSx} variant="caption">
-                          {section.label}
-                        </Typography>
-                        {section.groups.map((group) => {
-                          const isSelected =
-                            activeCategoryGroup?.id === group.id;
+              <>
+                {displayedGroups.length === 0 ? (
+                  <Box sx={emptySearchSx}>
+                    <Typography color="textSecondary" variant="body2">
+                      没有匹配的小分类
+                    </Typography>
+                  </Box>
+                ) : (
+                  <Stack direction="row" spacing={1} sx={categoryColumnsSx}>
+                    <Stack sx={categoryColumnSx}>
+                      <Box sx={categoryOptionsSx}>
+                        {displayedGroupSections.map((section) => (
+                          <Box key={section.label}>
+                            <Typography
+                              sx={categoryTypeLabelSx}
+                              variant="caption"
+                            >
+                              {section.label}
+                            </Typography>
+                            {section.groups.map((group) => {
+                              const isSelected =
+                                activeCategoryGroup?.id === group.id;
+
+                              return (
+                                <Button
+                                  aria-pressed={isSelected}
+                                  disabled={group.categories.every(
+                                    isCategoryDisabled,
+                                  )}
+                                  key={group.id}
+                                  onClick={() => onGroupSelect(group.id)}
+                                  type="button"
+                                  sx={categoryGroupOptionSx(isSelected)}
+                                >
+                                  {group.name}
+                                </Button>
+                              );
+                            })}
+                          </Box>
+                        ))}
+                      </Box>
+                    </Stack>
+
+                    <Stack sx={categoryColumnSx}>
+                      <Box sx={categoryOptionsSx}>
+                        {activeCategoryGroup?.categories.map((category) => {
+                          const isSelected = pickerCategoryId === category.id;
 
                           return (
                             <Button
                               aria-pressed={isSelected}
-                              disabled={group.categories.every(
-                                isCategoryDisabled,
-                              )}
-                              key={group.id}
-                              onClick={() => onGroupSelect(group.id)}
+                              disabled={isCategoryDisabled(category)}
+                              endIcon={
+                                isSelected ? (
+                                  <CheckRoundedIcon fontSize="small" />
+                                ) : null
+                              }
+                              key={category.id}
+                              onClick={() =>
+                                activeCategoryGroup
+                                  ? selectCategory(
+                                      activeCategoryGroup.id,
+                                      category.id,
+                                    )
+                                  : onCategoryToggle(category.id)
+                              }
                               type="button"
-                              sx={categoryGroupOptionSx(isSelected)}
+                              sx={categoryOptionSx(isSelected)}
                             >
-                              {group.name}
+                              {category.name}
                             </Button>
                           );
                         })}
                       </Box>
-                    ))}
-                  </Box>
-                </Stack>
+                    </Stack>
+                  </Stack>
+                )}
 
-                <Stack sx={categoryColumnSx}>
-                  <Box sx={categoryOptionsSx}>
-                    {activeCategoryGroup?.categories.map((category) => {
-                      const isSelected = pickerCategoryId === category.id;
+                {disabledCategoryType ? (
+                  <Typography color="textSecondary" variant="caption">
+                    {transactionPaymentFieldsMessages.categoryTypeRestricted}
+                  </Typography>
+                ) : null}
 
-                      return (
-                        <Button
-                          aria-pressed={isSelected}
-                          disabled={isCategoryDisabled(category)}
-                          endIcon={
-                            isSelected ? (
-                              <CheckRoundedIcon fontSize="small" />
-                            ) : null
-                          }
-                          key={category.id}
-                          onClick={() =>
-                            activeCategoryGroup
-                              ? selectCategory(
-                                  activeCategoryGroup.id,
-                                  category.id,
-                                )
-                              : onCategoryToggle(category.id)
-                          }
-                          type="button"
-                          sx={categoryOptionSx(isSelected)}
-                        >
-                          {category.name}
-                        </Button>
-                      );
-                    })}
-                  </Box>
-                </Stack>
-              </Stack>
+                {pickerErrors.category ? (
+                  <Typography color="error" variant="caption">
+                    {pickerErrors.category}
+                  </Typography>
+                ) : null}
+              </>
             )}
 
-            {disabledCategoryType ? (
-              <Typography color="textSecondary" variant="caption">
-                {transactionPaymentFieldsMessages.categoryTypeRestricted}
-              </Typography>
+            {specialStatusEnabled &&
+            selectedCategoryType === "expense" &&
+            (pickerSpecialStatus === null ||
+              pickerSpecialStatus === "pendingReimbursement") ? (
+              <TransactionPendingReimbursementCheckbox
+                checked={
+                  specialStatusLocked ||
+                  pickerSpecialStatus === "pendingReimbursement"
+                }
+                disabled={specialStatusLocked}
+                onChange={(checked) =>
+                  onSpecialStatusChange(checked ? "pendingReimbursement" : null)
+                }
+              />
             ) : null}
-
-            {pickerErrors.category ? (
-              <Typography color="error" variant="caption">
-                {pickerErrors.category}
-              </Typography>
-            ) : null}
-          </>
-        )}
-
-        {specialStatusEnabled &&
-        selectedCategoryType === "expense" &&
-        (pickerSpecialStatus === null ||
-          pickerSpecialStatus === "pendingReimbursement") ? (
-          <TransactionPendingReimbursementCheckbox
-            checked={
-              specialStatusLocked ||
-              pickerSpecialStatus === "pendingReimbursement"
-            }
-            disabled={specialStatusLocked}
-            onChange={(checked) =>
-              onSpecialStatusChange(checked ? "pendingReimbursement" : null)
-            }
-          />
-        ) : null}
-
           </>
         )}
         {linkNotice ? (

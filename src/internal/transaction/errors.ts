@@ -225,7 +225,8 @@ export const transactionSpecialStatusErrorMessages = {
   disabled: "当前账本未启用特殊状态功能。",
   incomeLinkConflict: "同一条收入明细不能同时作为报销和退款。",
   incomeLinkIncomeOnly: "报销或退款关联只能设置在收入明细上。",
-  incomeLinkSystemCategoryRequired: "退款必须使用系统分类「退款」、报销必须使用系统分类「报销」；普通收入不能使用系统分类。",
+  incomeLinkSystemCategoryRequired:
+    "退款必须使用系统分类「退款」、报销必须使用系统分类「报销」；普通收入不能使用系统分类。",
   pendingReimbursementExpenseOnly: "待报销只能用于支出明细。",
   refundAmountInvalid: "退款收入金额必须大于 0。",
 } as const;

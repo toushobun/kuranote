@@ -673,18 +673,21 @@ describe("LinkedTransactionEditService", () => {
     { role: "refund" as const, field: "refundedItemId" as const },
     { role: "reimbursement" as const, field: "reimbursementItemId" as const },
   ])("已关联 $role 可在确认后改选目标", async ({ role, field }) => {
-    const { service, linkedTransactionItemService } =
-      createService(createIncomeView(role));
+    const { service, linkedTransactionItemService } = createService(
+      createIncomeView(role),
+    );
     const newTargetItemId = "00000000-0000-4000-8000-000000000302";
     const input = incomeInput({
       confirmSync: true,
       expectedUpdatedAtByItemId: { [linkedItemId]: updatedAt },
-      items: [{
-        amount: 100,
-        categoryId: incomeCategoryId,
-        id: linkedItemId,
-        [field]: newTargetItemId,
-      }],
+      items: [
+        {
+          amount: 100,
+          categoryId: incomeCategoryId,
+          id: linkedItemId,
+          [field]: newTargetItemId,
+        },
+      ],
     });
     await service.updateNormal(currentLedger, input);
     expect(linkedTransactionItemService.updateEdit).toHaveBeenCalledWith(
@@ -700,17 +703,23 @@ describe("LinkedTransactionEditService", () => {
   });
 
   it("改选关联目标但未确认时要求二次确认", async () => {
-    const { service, linkedTransactionItemService } =
-      createService(createIncomeView("reimbursement"));
+    const { service, linkedTransactionItemService } = createService(
+      createIncomeView("reimbursement"),
+    );
     await expect(
-      service.updateNormal(currentLedger, incomeInput({
-        items: [{
-          amount: 100,
-          categoryId: incomeCategoryId,
-          id: linkedItemId,
-          reimbursementItemId: "00000000-0000-4000-8000-000000000302",
-        }],
-      })),
+      service.updateNormal(
+        currentLedger,
+        incomeInput({
+          items: [
+            {
+              amount: 100,
+              categoryId: incomeCategoryId,
+              id: linkedItemId,
+              reimbursementItemId: "00000000-0000-4000-8000-000000000302",
+            },
+          ],
+        }),
+      ),
     ).rejects.toMatchObject({
       code: transactionErrorCodes.linkedSyncConfirmationRequired,
       name: ConflictError.name,
@@ -721,13 +730,18 @@ describe("LinkedTransactionEditService", () => {
   it("已有关联不能取消对象或换成另一种关联类型", async () => {
     const { service } = createService(createIncomeView("reimbursement"));
     await expect(
-      service.updateNormal(currentLedger, incomeInput({
-        items: [{
-          amount: 100,
-          categoryId: incomeCategoryId,
-          id: linkedItemId,
-        }],
-      })),
+      service.updateNormal(
+        currentLedger,
+        incomeInput({
+          items: [
+            {
+              amount: 100,
+              categoryId: incomeCategoryId,
+              id: linkedItemId,
+            },
+          ],
+        }),
+      ),
     ).rejects.toMatchObject({
       code: transactionErrorCodes.linkedEditRequiresUnlink,
     });

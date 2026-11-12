@@ -1,7 +1,16 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { TransactionSearchPage, TransactionTimeGroupViewData } from "types/transactions";
+import type {
+  TransactionSearchPage,
+  TransactionTimeGroupViewData,
+} from "types/transactions";
 import { TransactionLinkCandidatePanel } from "./TransactionLinkCandidatePanel";
 
 const emptyView: TransactionTimeGroupViewData = {
@@ -21,15 +30,17 @@ const matchingRecord: TransactionSearchPage["items"][number] = {
   amount: "1000",
   account_name: "现金",
   account_currency: "JPY",
-  categoryItems: [{
-    amount: "1000",
-    categoryName: "餐饮",
-    categoryType: "expense",
-    id: "item-1",
-    parentCategoryName: "生活",
-    refundedAmount: "250",
-    remainingRefundableAmount: "750",
-  }],
+  categoryItems: [
+    {
+      amount: "1000",
+      categoryName: "餐饮",
+      categoryType: "expense",
+      id: "item-1",
+      parentCategoryName: "生活",
+      refundedAmount: "250",
+      remainingRefundableAmount: "750",
+    },
+  ],
   merchant_name: "便利店",
   merchant_icon_url: null,
   note: null,
@@ -39,7 +50,8 @@ describe("TransactionLinkCandidatePanel", () => {
   afterEach(() => cleanup());
 
   it("退款先按当前商家浏览，无候选时退回全部商家", async () => {
-    const loadInitial = vi.fn()
+    const loadInitial = vi
+      .fn()
       .mockResolvedValueOnce(emptyView)
       .mockResolvedValueOnce(emptyView);
     render(
@@ -80,11 +92,15 @@ describe("TransactionLinkCandidatePanel", () => {
       target: { value: "便利店" },
     });
     await waitFor(() => expect(loadSearch).toHaveBeenCalledWith("便利店", 0));
-    fireEvent.click(await screen.findByRole("button", { name: "选择退款明细 餐饮" }));
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({
-      id: "item-1",
-      remainingRefundableAmount: "750",
-    }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "选择退款明细 餐饮" }),
+    );
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "item-1",
+        remainingRefundableAmount: "750",
+      }),
+    );
   });
 
   it("选中原支出以后允许输入本次金额", () => {

@@ -407,16 +407,24 @@ describe("Issue #944：系统分类数据库错误映射", () => {
     ["category_system_parent_locked", categoryErrorCodes.systemParentLocked],
   ])("将 %s 转成稳定 ValidationError", async (detail, expectedCode) => {
     const supabase = createSupabaseMock({
-      queryResponses: [{
-        error: { code: "22023", details: detail, message: detail },
-      }],
+      queryResponses: [
+        {
+          error: { code: "22023", details: detail, message: detail },
+        },
+      ],
     });
     const repository = createSupabaseCategoryRepository(
       supabase.client as never,
       { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
     );
-    await expect(repository.updateDetails({
-      categoryId, iconName: "🍽️", ledgerId, name: "新分类", updatedBy: userId,
-    })).rejects.toMatchObject({ code: expectedCode });
+    await expect(
+      repository.updateDetails({
+        categoryId,
+        iconName: "🍽️",
+        ledgerId,
+        name: "新分类",
+        updatedBy: userId,
+      }),
+    ).rejects.toMatchObject({ code: expectedCode });
   });
 });

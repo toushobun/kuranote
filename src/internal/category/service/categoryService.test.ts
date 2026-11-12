@@ -378,7 +378,13 @@ describe("Issue #944：系统分类 Service 防线", () => {
 
   it("普通分类候选排除系统分类，但筛选候选和管理页仍包含", async () => {
     const rows: Category[] = [
-      { ...baseRow, id: categoryId, name: "工资", parent_id: null, type: "income" },
+      {
+        ...baseRow,
+        id: categoryId,
+        name: "工资",
+        parent_id: null,
+        type: "income",
+      },
       {
         ...baseRow,
         id: rootId,
@@ -396,22 +402,30 @@ describe("Issue #944：系统分类 Service 防线", () => {
         type: "income",
       },
     ];
-    const service = createService(createRepository({
-      findActiveByLedgerId: vi.fn().mockResolvedValue(rows),
-    }));
+    const service = createService(
+      createRepository({
+        findActiveByLedgerId: vi.fn().mockResolvedValue(rows),
+      }),
+    );
 
     const ordinary = await service.listActiveSummaries({ ledgerId, userId });
     expect(ordinary.map((category) => category.id)).toEqual([categoryId]);
 
     const filter = await service.listActiveSummaries({
-      includeSystem: true, ledgerId, userId,
+      includeSystem: true,
+      ledgerId,
+      userId,
     });
     expect(filter.map((category) => category.id)).toEqual([
-      categoryId, rootId, refundId,
+      categoryId,
+      rootId,
+      refundId,
     ]);
 
     const management = await service.getCategoriesView({
-      ledgerId, ledgerName: "家庭账本", userId,
+      ledgerId,
+      ledgerName: "家庭账本",
+      userId,
     });
     expect(management.categories[1].children[0].system_key).toBe("refund");
     expect(management.parentOptions).toEqual([
@@ -424,12 +438,25 @@ describe("Issue #944：系统分类 Service 防线", () => {
     async (name) => {
       const repository = createRepository();
       const service = createService(repository);
-      await expect(service.create({
-        iconName: "🍽️", ledgerId, name, parentId: null, type: "income", userId,
-      })).rejects.toMatchObject({ code: categoryErrorCodes.nameReserved });
-      await expect(service.update({
-        categoryId, iconName: "🍽️", ledgerId, name, userId,
-      })).rejects.toMatchObject({ code: categoryErrorCodes.nameReserved });
+      await expect(
+        service.create({
+          iconName: "🍽️",
+          ledgerId,
+          name,
+          parentId: null,
+          type: "income",
+          userId,
+        }),
+      ).rejects.toMatchObject({ code: categoryErrorCodes.nameReserved });
+      await expect(
+        service.update({
+          categoryId,
+          iconName: "🍽️",
+          ledgerId,
+          name,
+          userId,
+        }),
+      ).rejects.toMatchObject({ code: categoryErrorCodes.nameReserved });
       expect(repository.insert).not.toHaveBeenCalled();
       expect(repository.updateDetails).not.toHaveBeenCalled();
     },
@@ -438,28 +465,51 @@ describe("Issue #944：系统分类 Service 防线", () => {
   it("不允许在系统大分类下新增子分类", async () => {
     const repository = createRepository({
       findActiveRootById: vi.fn().mockResolvedValue({
-        id: rootId, parentId: null, systemKey: "special_income", type: "income",
+        id: rootId,
+        parentId: null,
+        systemKey: "special_income",
+        type: "income",
       }),
     });
-    await expect(createService(repository).create({
-      iconName: "🍽️", ledgerId, name: "临时分类", parentId: rootId, type: "income", userId,
-    })).rejects.toMatchObject({ code: categoryErrorCodes.systemParentLocked });
+    await expect(
+      createService(repository).create({
+        iconName: "🍽️",
+        ledgerId,
+        name: "临时分类",
+        parentId: rootId,
+        type: "income",
+        userId,
+      }),
+    ).rejects.toMatchObject({ code: categoryErrorCodes.systemParentLocked });
     expect(repository.insert).not.toHaveBeenCalled();
   });
 
   it("系统分类不能更新或归档", async () => {
     const repository = createRepository({
       findActiveById: vi.fn().mockResolvedValue({
-        id: refundId, parentId: rootId, systemKey: "refund", type: "income",
+        id: refundId,
+        parentId: rootId,
+        systemKey: "refund",
+        type: "income",
       }),
     });
     const service = createService(repository);
-    await expect(service.update({
-      categoryId: refundId, iconName: "🍽️", ledgerId, name: "退款修改", userId,
-    })).rejects.toMatchObject({ code: categoryErrorCodes.systemLocked });
-    await expect(service.archive({
-      categoryId: refundId, ledgerId, userId,
-    })).rejects.toMatchObject({ code: categoryErrorCodes.systemLocked });
+    await expect(
+      service.update({
+        categoryId: refundId,
+        iconName: "🍽️",
+        ledgerId,
+        name: "退款修改",
+        userId,
+      }),
+    ).rejects.toMatchObject({ code: categoryErrorCodes.systemLocked });
+    await expect(
+      service.archive({
+        categoryId: refundId,
+        ledgerId,
+        userId,
+      }),
+    ).rejects.toMatchObject({ code: categoryErrorCodes.systemLocked });
     expect(repository.updateDetails).not.toHaveBeenCalled();
     expect(repository.archive).not.toHaveBeenCalled();
   });

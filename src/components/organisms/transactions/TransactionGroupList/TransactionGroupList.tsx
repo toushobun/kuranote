@@ -159,7 +159,8 @@ export function TransactionRefundCandidateList({
           accountName: record.account_name,
           merchantName: record.merchant_name,
           merchantIconUrl: record.merchant_icon_url,
-          reimbursementAmount: item.businessStatus?.offsetComposition.reimbursementAmount ?? "0",
+          reimbursementAmount:
+            item.businessStatus?.offsetComposition.reimbursementAmount ?? "0",
           amount: item.amount,
           categoryName: item.categoryName,
           id: item.id,
@@ -208,7 +209,13 @@ export function TransactionRefundCandidateList({
             <Avatar
               alt={candidate.merchantName ?? undefined}
               src={candidate.merchantIconUrl ?? undefined}
-              sx={{ bgcolor: "action.hover", color: "text.primary", height: 32, width: 32, fontSize: 13 }}
+              sx={{
+                bgcolor: "action.hover",
+                color: "text.primary",
+                height: 32,
+                width: 32,
+                fontSize: 13,
+              }}
             >
               {candidate.merchantName?.slice(0, 1) ?? "支"}
             </Avatar>

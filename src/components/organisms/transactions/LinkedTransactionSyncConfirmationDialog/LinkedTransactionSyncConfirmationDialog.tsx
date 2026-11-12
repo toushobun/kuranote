@@ -20,7 +20,10 @@ export function LinkedTransactionSyncConfirmationDialog({
     <ConfirmationDialog
       cancelLabel="取消"
       confirmLabel="同步修改"
-      description={description ?? "该明细已有退款 / 报销绑定，是否同步修改关联数据？取消后不会写入任何修改。"}
+      description={
+        description ??
+        "该明细已有退款 / 报销绑定，是否同步修改关联数据？取消后不会写入任何修改。"
+      }
       illustration={
         <Box sx={illustrationSx}>
           <SyncRoundedIcon fontSize="large" />

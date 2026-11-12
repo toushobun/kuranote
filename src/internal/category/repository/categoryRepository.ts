@@ -354,7 +354,9 @@ export function createSupabaseCategoryRepository(
     async findActiveByLedgerId(ledgerId) {
       const { data, error } = await supabase
         .from("category")
-        .select("id, name, icon_name, parent_id, type, sort_order, created_at, system_key")
+        .select(
+          "id, name, icon_name, parent_id, type, sort_order, created_at, system_key",
+        )
         .eq("ledger_id", ledgerId)
         .eq("is_archived", false)
         .order("type", { ascending: true })

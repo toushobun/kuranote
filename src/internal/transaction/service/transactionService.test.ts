@@ -381,14 +381,20 @@ describe("TransactionService", () => {
     { kind: "refundedItemId", required: "refund" },
     { kind: "reimbursementItemId", required: "reimbursement" },
   ] as const)("关联收入必须使用 $required 系统分类", async ({ kind }) => {
-    const { repository, service } = createService("member", createRepository(), "income");
+    const { repository, service } = createService(
+      "member",
+      createRepository(),
+      "income",
+    );
     await expect(
       service.createNormal({
         ...normalInput,
-        items: [{
-          ...normalInput.items[0],
-          [kind]: "00000000-0000-4000-8000-000000005073",
-        }],
+        items: [
+          {
+            ...normalInput.items[0],
+            [kind]: "00000000-0000-4000-8000-000000005073",
+          },
+        ],
         type: "income",
       }),
     ).rejects.toMatchObject({
