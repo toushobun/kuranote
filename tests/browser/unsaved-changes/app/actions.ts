@@ -38,6 +38,7 @@ export async function createMerchant(
       id: "new-merchant",
       name: String(data.get("name")),
       icon_url: null,
+      hasTransactions: false,
       tags: [],
     },
   };

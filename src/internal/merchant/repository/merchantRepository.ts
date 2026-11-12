@@ -51,6 +51,11 @@ type MerchantSummaryRow = {
   name: string;
 };
 
+type MerchantEntrySummaryRow = MerchantSummaryRow & {
+  active_records: { id: string }[];
+};
+type MerchantEntrySummary = MerchantSummary & { hasTransactions: boolean };
+
 type MerchantTagRow = {
   icon: string;
   id: string;
@@ -369,10 +374,10 @@ function attachMerchantAliases(
   });
 }
 
-function applyPreferredNames(
-  merchants: MerchantSummary[],
+function applyPreferredNames<T extends MerchantSummary>(
+  merchants: T[],
   aliases: Array<{ alias: string; merchant_id: string }>,
-): MerchantSummary[] {
+): T[] {
   const preferredNameByMerchantId = new Map(
     aliases.map((alias) => [alias.merchant_id, alias.alias]),
   );
@@ -462,15 +467,34 @@ export function createSupabaseMerchantRepository(
 
   async function loadActiveSummaries(
     ledgerId: string,
-  ): Promise<MerchantSummary[]> {
-    const { data, error } = await supabase
+  ): Promise<MerchantSummary[]>;
+  async function loadActiveSummaries(
+    ledgerId: string,
+    includeHistory: true,
+  ): Promise<MerchantEntrySummary[]>;
+  async function loadActiveSummaries(
+    ledgerId: string,
+    includeHistory = false,
+  ): Promise<MerchantSummary[] | MerchantEntrySummary[]> {
+    // 关联明细仅为每家取一条有效记录，已有部分索引支持存在性查询。
+    const query = supabase
       .from("merchant")
-      .select(merchantSummaryColumns)
+      .select(
+        includeHistory
+          ? `${merchantSummaryColumns}, active_records:transaction_record!transaction_record_merchant_same_ledger_fk(id)`
+          : merchantSummaryColumns,
+      )
       .eq("ledger_id", ledgerId)
       .eq("is_archived", false)
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: true });
 
+    if (includeHistory) {
+      query.eq("active_records.status", "active");
+      query.limit(1, { referencedTable: "active_records" });
+    }
+
+    const { data, error } = await query;
     if (error) {
       fail(
         "[merchant] failed to load active merchant summaries",
@@ -480,9 +504,12 @@ export function createSupabaseMerchantRepository(
         error,
       );
     }
-    const merchants = ((data ?? []) as MerchantSummaryRow[]).map(
-      toMerchantSummary,
-    );
+    const merchants = includeHistory
+      ? ((data ?? []) as MerchantEntrySummaryRow[]).map((row) => ({
+          ...toMerchantSummary(row),
+          hasTransactions: row.active_records.length > 0,
+        }))
+      : ((data ?? []) as MerchantSummaryRow[]).map(toMerchantSummary);
     return applyPreferredNames(
       merchants,
       await loadPreferredAliases(merchants.map((merchant) => merchant.id)),
@@ -963,7 +990,7 @@ export function createSupabaseMerchantRepository(
 
     async listActiveSummariesWithTags(ledgerId) {
       const [merchants, baseTags] = await Promise.all([
-        loadActiveSummaries(ledgerId),
+        loadActiveSummaries(ledgerId, true),
         loadActiveTags(ledgerId),
       ]);
       const links =

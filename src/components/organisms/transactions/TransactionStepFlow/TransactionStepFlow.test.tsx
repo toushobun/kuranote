@@ -760,6 +760,33 @@ describe("TransactionStepFlow 进入小票", () => {
     await waitFor(() => expect(saveButton()).toBeEnabled());
   });
 
+  it("没有有效记录的商家直接显示空小票，换到有记录的商家仍会读取", async () => {
+    const { props } = quickSetup({ suggestionsMerchantId: "life" });
+    await selectEntryMerchant("新开商家");
+    expectSuggestionsLoadingRows(false);
+    expectNoPaymentRow();
+    expect(screen.getByRole("button", { name: "添加明细" })).toBeVisible();
+    expect(props.onMerchantSelect).not.toHaveBeenCalled();
+
+    await selectEntryMerchant("7-Eleven", "新开商家");
+    expectSuggestionsLoadingRows(true);
+    expect(props.onMerchantSelect).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ id: "seven" }),
+    );
+  });
+
+  it("已自动带出的明细换成无记录商家时立即清空且不再读取", async () => {
+    const { props } = quickSetup();
+    await selectEntryMerchant("7-Eleven");
+    expectAutomaticNotice();
+    await selectEntryMerchant("新开商家", "7-Eleven");
+    expectSuggestionsLoadingRows(false);
+    expectAutomaticNotice(false);
+    expectNoPaymentRow();
+    expect(screen.queryByRole("button", { name: "编辑明细 1" })).toBeNull();
+    expect(props.onMerchantSelect).toHaveBeenCalledTimes(1);
+  });
+
   it("选商家后头像不加载，两处显示读取建议，建议到达后只应用一次", async () => {
     const { props, rerender } = quickSetup({ suggestionsMerchantId: "life" });
     await selectEntryMerchant("7-Eleven");

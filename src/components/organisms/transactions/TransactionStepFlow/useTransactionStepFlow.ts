@@ -175,7 +175,8 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
   function selectMerchant(value: FlowMerchant) {
     const changing = value.id !== form.selectedMerchantId;
     form.handleMerchantChange(value.id);
-    props.onMerchantSelect(value);
+    // 没有有效记录的商家不需要发起建议请求。
+    if (value.hasTransactions) props.onMerchantSelect(value);
     // 重选当前商家时保留等待和晚到建议的关联状态。
     if (!changing) return;
     if (
@@ -194,6 +195,10 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     }
     setShowAutomaticNotice(false);
     setAutoRevision((revision) => revision + 1);
+    if (!value.hasTransactions) {
+      stopWaiting();
+      return;
+    }
     pendingQuickMerchantId.current = value.id;
     setLoadingMerchantId(value.id);
   }

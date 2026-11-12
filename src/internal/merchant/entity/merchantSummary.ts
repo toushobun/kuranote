@@ -14,6 +14,9 @@ export type MerchantTagSummary = {
 
 /** 新增记账流程的商家候选：摘要 + 商家分类（#943）。 */
 export type MerchantEntryOptions = {
-  merchants: (MerchantSummary & { tags: MerchantTagSummary[] })[];
+  merchants: (MerchantSummary & {
+    hasTransactions: boolean;
+    tags: MerchantTagSummary[];
+  })[];
   tags: MerchantTagSummary[];
 };

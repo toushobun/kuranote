@@ -717,6 +717,7 @@ describe("createMerchant 弹层模式", () => {
         id: merchantId,
         name: "LIFE",
         icon_url: "https://example.com/icon.png",
+        hasTransactions: false,
         tags: [],
       },
     });

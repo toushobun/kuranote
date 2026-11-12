@@ -44,7 +44,7 @@ export function useEditTransactionReceipt({
 
   function selectMerchant(merchant: FlowMerchant) {
     receipt.form.handleMerchantChange(merchant.id);
-    loadSuggestions(merchant.id);
+    if (merchant.hasTransactions) loadSuggestions(merchant.id);
   }
 
   return {
