@@ -5274,12 +5274,12 @@ ALTER FUNCTION "public"."prevent_used_category_type_change"() OWNER TO "postgres
 CREATE OR REPLACE FUNCTION "public"."recalculate_refund_link_target_status"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     SET "search_path" TO 'pg_catalog', 'pg_temp'
-    AS $$
+    AS $
 begin
     if tg_op = 'DELETE' and public.ledger_deletion_allows_delete(old.ledger_id) then
         return old;
     end if;
-    if tg_op in ('DELETE', 'UPDATE') then
+    if tg_op in ('DELETE', 'UPDATE') and old.refund_amount > 0 then
         perform public.recalculate_transaction_item_settlement_status(
             old.ledger_id,
             old.refunded_item_id
@@ -5287,6 +5287,7 @@ begin
     end if;
 
     if tg_op in ('INSERT', 'UPDATE')
+       and new.refund_amount > 0
        and (
            tg_op = 'INSERT'
            or new.ledger_id is distinct from old.ledger_id
@@ -5302,7 +5303,7 @@ begin
 
     return coalesce(new, old);
 end;
-$$;
+$;
 
 
 ALTER FUNCTION "public"."recalculate_refund_link_target_status"() OWNER TO "postgres";
@@ -5311,12 +5312,12 @@ ALTER FUNCTION "public"."recalculate_refund_link_target_status"() OWNER TO "post
 CREATE OR REPLACE FUNCTION "public"."recalculate_reimbursement_link_target_status"() RETURNS "trigger"
     LANGUAGE "plpgsql"
     SET "search_path" TO 'pg_catalog', 'pg_temp'
-    AS $$
+    AS $
 begin
     if tg_op = 'DELETE' and public.ledger_deletion_allows_delete(old.ledger_id) then
         return old;
     end if;
-    if tg_op in ('DELETE', 'UPDATE') then
+    if tg_op in ('DELETE', 'UPDATE') and old.reimbursement_amount > 0 then
         perform public.recalculate_transaction_item_settlement_status(
             old.ledger_id,
             old.target_expense_item_id
@@ -5324,6 +5325,7 @@ begin
     end if;
 
     if tg_op in ('INSERT', 'UPDATE')
+       and new.reimbursement_amount > 0
        and (
            tg_op = 'INSERT'
            or new.ledger_id is distinct from old.ledger_id
@@ -5340,7 +5342,7 @@ begin
 
     return coalesce(new, old);
 end;
-$$;
+$;
 
 
 ALTER FUNCTION "public"."recalculate_reimbursement_link_target_status"() OWNER TO "postgres";
