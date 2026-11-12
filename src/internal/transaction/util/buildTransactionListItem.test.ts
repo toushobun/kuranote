@@ -808,8 +808,11 @@ describe("buildTransactionListItem 多账户记录", () => {
   it("无筛选时显示「首个账户 等 N 个账户」，主金额为整笔", () => {
     const item = buildHospitalItem();
 
-    expect(item.account_name).toBe("我的账户 等 2 个账户");
-    expect(item.account_currency).toBe("JPY");
+    expect(item).toMatchObject({
+      account_currency: "JPY",
+      account_id: hospitalAccounts.mine.id,
+      account_name: "我的账户 等 2 个账户",
+    });
     expect(item.amount).toBe("120000");
     expect(item).not.toHaveProperty("record_total_amount");
   });

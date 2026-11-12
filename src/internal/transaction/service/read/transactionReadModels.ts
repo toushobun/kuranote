@@ -27,6 +27,7 @@ export type TransactionCategorySummaryItem = {
 export type TransactionListItem = {
   account_color?: ThemeColorKey | null;
   account_currency: string;
+  account_id?: string;
   account_name: string;
   amount: string;
   originalAmount?: string;
