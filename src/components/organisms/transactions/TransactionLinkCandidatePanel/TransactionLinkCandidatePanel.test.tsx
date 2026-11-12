@@ -67,7 +67,7 @@ describe("TransactionLinkCandidatePanel", () => {
     );
     await waitFor(() => expect(loadInitial).toHaveBeenCalledTimes(2));
     expect(loadInitial).toHaveBeenNthCalledWith(1, "current-merchant");
-    expect(loadInitial).toHaveBeenNthCalledWith(2, undefined);
+    expect(loadInitial).toHaveBeenNthCalledWith(2);
   });
 
   it("搜索不携带商家条件，选择候选后通过回调提交", async () => {
