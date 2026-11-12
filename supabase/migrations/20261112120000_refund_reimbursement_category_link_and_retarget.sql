@@ -61,6 +61,7 @@ revoke all on function public.validate_income_system_category_link(uuid, uuid)
 create or replace function public.check_income_system_category_link()
 returns trigger
 language plpgsql
+security definer
 set search_path = pg_catalog, pg_temp
 as $$
 begin

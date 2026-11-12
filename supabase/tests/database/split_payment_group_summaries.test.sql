@@ -248,7 +248,7 @@ select results_eq(
 );
 select results_eq(
     $$select label, income, expense from pg_temp.group_summaries('category', false)$$,
-    $$values ('购物', 0::numeric, 700::numeric), ('💴 退款', 0::numeric, 0::numeric)$$,
+    $values ('💴 退款', 0::numeric, 0::numeric), ('购物', 0::numeric, 700::numeric)$,
     '单账户已退款记录按分类仍为业务净额'
 );
 select results_eq(

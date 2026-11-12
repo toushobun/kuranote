@@ -14,7 +14,8 @@ select
     a.id as account_id,
     merchant.id as merchant_id,
     expense_category.id as expense_category_id,
-    reimbursement_category.id as income_category_id,
+    ordinary_income_category.id as income_category_id,
+    reimbursement_category.id as reimbursement_category_id,
     refund_category.id as refund_category_id,
     l.transaction_item_special_status_enabled as old_special_status_enabled
 from public.ledger l
@@ -46,6 +47,16 @@ join lateral (
     order by category.created_at
     limit 1
 ) expense_category on true
+join lateral (
+    select category.id
+    from public.category category
+    where category.ledger_id = l.id
+      and category.type = 'income'
+      and category.system_key is null
+      and category.is_archived = false
+    order by category.created_at
+    limit 1
+) ordinary_income_category on true
 join lateral (
     select category.id
     from public.category category
@@ -102,7 +113,6 @@ select dblink_exec(
             v_merchant_id uuid := %L::uuid;
             v_expense_category_id uuid := %L::uuid;
             v_income_category_id uuid := %L::uuid;
-            v_refund_category_id uuid := %L::uuid;
         begin
             delete from public.transaction_item_reimbursement_link
             where target_expense_item_id = '59892000-0000-4000-8000-000000000001';
@@ -143,7 +153,7 @@ select dblink_exec(
             from (
                 values
                 ('59892000-0000-4000-8000-000000000001', v_ledger_id, '59893000-0000-4000-8000-000000000001', v_account_id, v_expense_category_id, 100, 0, -100, 0, 'pending_reimbursement', v_user_id, v_user_id),
-                ('59892000-0000-4000-8000-000000000002', v_ledger_id, '59893000-0000-4000-8000-000000000002', v_account_id, v_refund_category_id, 60, 0, 60, 0, null, v_user_id, v_user_id),
+                ('59892000-0000-4000-8000-000000000002', v_ledger_id, '59893000-0000-4000-8000-000000000002', v_account_id, v_income_category_id, 60, 0, 60, 0, null, v_user_id, v_user_id),
                 ('59892000-0000-4000-8000-000000000003', v_ledger_id, '59893000-0000-4000-8000-000000000003', v_account_id, v_income_category_id, 60, 0, 60, 0, null, v_user_id, v_user_id)
             ) item(
                 id, ledger_id, transaction_record_id, account_id, category_id, amount, discount_amount, balance_delta, sort_order, special_status, created_by, updated_by
@@ -156,8 +166,7 @@ select dblink_exec(
         context.account_id,
         context.merchant_id,
         context.expense_category_id,
-        context.income_category_id,
-        context.refund_category_id
+        context.income_category_id
     )
 )
 from issue_598_pr6_concurrency_context context;
@@ -174,6 +183,14 @@ select dblink_exec(
             where target_item.ledger_id = %L::uuid
               and target_item.id = '59892000-0000-4000-8000-000000000001'
             for update;
+
+            -- #944：夹具初始化先用普通收入分类，建关联时在同一事务内改为系统分类。
+            update public.transaction_item
+            set category_id = (
+                select id from public.category
+                where ledger_id = %L::uuid and system_key = 'refund'
+            )
+            where id = '59892000-0000-4000-8000-000000000002';
 
             insert into public.transaction_item_refund_link (
                 ledger_id,
@@ -193,6 +210,7 @@ select dblink_exec(
         $refund$,
         context.ledger_id,
         context.ledger_id,
+        context.ledger_id,
         context.user_id
     )
 )
@@ -202,7 +220,15 @@ select dblink_send_query(
     'issue598_reimbursement',
     format(
         $reimbursement$
-        with applied as materialized (
+        with set_system_category as (
+            update public.transaction_item
+            set category_id = (
+                select id from public.category
+                where ledger_id = %L::uuid and system_key = 'reimbursement'
+            )
+            where id = '59892000-0000-4000-8000-000000000003'
+            returning id
+        ), applied as materialized (
             select public.apply_transaction_item_links(
                 %L::uuid,
                 '59892000-0000-4000-8000-000000000003',
@@ -212,9 +238,11 @@ select dblink_send_query(
                 ),
                 %L::uuid
             )
+            from set_system_category
         )
         select 1::integer from applied
         $reimbursement$,
+        context.ledger_id,
         context.ledger_id,
         context.user_id
     )
