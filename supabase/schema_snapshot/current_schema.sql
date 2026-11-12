@@ -1963,6 +1963,10 @@ begin
 
     perform public.initialize_ledger_default_data(v_ledger.id, v_user_id);
 
+    -- 系统分类必须在 bootstrap_ledger_owner_member 之后建立，
+    -- 否则分类管理权限触发器会拒绝尚未完成成员初始化的账本。
+    perform public.initialize_ledger_system_categories(v_ledger.id, v_user_id);
+
     update public.app_user
     set
         current_ledger_id = v_ledger.id,
@@ -10613,10 +10617,6 @@ CREATE OR REPLACE TRIGGER "ledger_set_updated_at" BEFORE UPDATE ON "public"."led
 
 
 CREATE OR REPLACE TRIGGER "ledger_system_categories_on_completion" AFTER UPDATE OF "setup_status" ON "public"."ledger" FOR EACH ROW WHEN ((("new"."setup_status" = 'completed'::"text") AND ("old"."setup_status" IS DISTINCT FROM "new"."setup_status"))) EXECUTE FUNCTION "public"."initialize_system_categories_after_setup"();
-
-
-
-CREATE OR REPLACE TRIGGER "ledger_system_categories_on_create" AFTER INSERT ON "public"."ledger" FOR EACH ROW WHEN (("new"."setup_status" = 'completed'::"text")) EXECUTE FUNCTION "public"."initialize_system_categories_after_setup"();
 
 
 
