@@ -103,6 +103,7 @@ export async function loadTransactionFilterOptions(
         userId: dependencies.currentUserId,
       }),
       dependencies.categoryQueryService.listActiveSummaries({
+        includeSystem: true,
         ledgerId: currentLedger.id,
         userId: dependencies.currentUserId,
       }),
