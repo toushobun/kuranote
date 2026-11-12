@@ -53,7 +53,7 @@ const lifeSuggestions = {
   automaticCategoryIds: ["storage"],
   recommendedAccountIds: ["cash"],
 };
-const noHistory = {
+const emptySuggestions = {
   recommendedAccountIds: [],
   automaticCategoryIds: [],
   quickAmounts: [],
@@ -284,7 +284,7 @@ describe("TransactionStepFlow", () => {
 
   it.each<[string, TransactionStepFlowProps["suggestions"]]>([
     ["有历史的商家", quickSuggestions],
-    ["没有历史的商家", noHistory],
+    ["没有历史的商家", emptySuggestions],
   ])("只选%s时退出不弹确认，自动填写不算修改", async (_, suggestions) => {
     const { props } = quickSetup({ suggestions });
     await selectEntryMerchant("7-Eleven");
@@ -327,7 +327,7 @@ describe("TransactionStepFlow", () => {
     ],
     ["时间", changeReceiptTime],
   ])("手动修改%s后关闭才弹未保存确认", async (_, change) => {
-    quickSetup({ suggestions: noHistory });
+    quickSetup({ suggestions: emptySuggestions });
     await selectEntryMerchant("7-Eleven");
     await screen.findByRole("button", { name: "保存记账" });
     await change();
@@ -339,7 +339,7 @@ describe("TransactionStepFlow", () => {
 
   it("退出确认保存校验失败时留在小票，修复后正常保存且无残留离开意图", async () => {
     const action = vi.fn(async () => ({}));
-    const { props } = quickSetup({ suggestions: noHistory, action });
+    const { props } = quickSetup({ suggestions: emptySuggestions, action });
     await selectEntryMerchant("7-Eleven");
     click("修改备注：添加备注");
     fireEvent.change(screen.getByRole("textbox", { name: "备注" }), {
@@ -385,7 +385,7 @@ describe("TransactionStepFlow", () => {
     const { props, rerender } = quickSetup({
       ...receiptFlowFixture,
       action,
-      suggestions: noHistory,
+      suggestions: emptySuggestions,
     });
     await selectEntryMerchant("7-Eleven");
     await screen.findByRole("button", { name: "保存记账" });
@@ -488,7 +488,7 @@ describe("TransactionStepFlow 换商家", () => {
       <TransactionStepFlow
         {...props}
         suggestionsMerchantId="life"
-        suggestions={noHistory}
+        suggestions={emptySuggestions}
       />,
     );
     expectSuggestionsLoadingRows(false);
@@ -591,7 +591,7 @@ describe("TransactionStepFlow 换商家", () => {
 
   it("换商家立即关闭抽屉，读取超时后仍留在同一个小票", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
-    const view = quickSetup({ suggestions: noHistory });
+    const view = quickSetup({ suggestions: emptySuggestions });
     await selectEntryMerchant("7-Eleven");
     const form = saveButton().closest("form");
     click("修改商家：7-Eleven");
@@ -724,11 +724,10 @@ describe("TransactionStepFlow 进入小票", () => {
   });
 
   it("没有历史：首次不提示，保存时提示缺项，补齐后可以保存", async () => {
-    quickSetup({ suggestions: noHistory });
+    quickSetup({ suggestions: emptySuggestions });
     await selectEntryMerchant("7-Eleven");
     await screen.findByRole("button", { name: "添加明细" });
     expectSuggestionsLoadingRows(false);
-    expect(screen.queryByText("这家商家还没有记录")).toBeNull();
     expectAutomaticNotice(false);
     expectNoPaymentRow();
     expect(screen.queryByRole("button", { name: "请添加付款账户" })).toBeNull();
@@ -742,9 +741,6 @@ describe("TransactionStepFlow 进入小票", () => {
       screen.getByRole("button", { name: "请添加明细" }),
     ).toBeInTheDocument();
     click("添加付款账户");
-    expect(
-      screen.getByText("这家商家还没有记录，按账户顺序显示"),
-    ).toBeInTheDocument();
     selectAccount("现金 JPY");
     await waitFor(() =>
       expect(receiptLine("更换支付账户 1")).toHaveTextContent("现金"),
@@ -978,7 +974,7 @@ describe("TransactionStepFlow 编辑明细", () => {
     ["金额为空时打开金额键盘", "", true],
   ])("保存修改后，%s", async (_, amount, opens) => {
     quickSetup({
-      suggestions: noHistory,
+      suggestions: emptySuggestions,
       itemsOptions: {
         ...receiptItemsOptions,
         initialItems: [{ categoryId: "lunch", amount }],
@@ -1007,7 +1003,7 @@ describe("TransactionStepFlow 页内新增", () => {
         <TransactionStepFlow
           {...flowFixture}
           suggestionsMerchantId="seven"
-          suggestions={noHistory}
+          suggestions={emptySuggestions}
           itemsOptions={{
             ...receiptItemsOptions,
             initialItems: [{ categoryId: "lunch", amount: "800" }],

@@ -683,19 +683,56 @@ export function useTransactionForm({
     setLinkNotice(notices.length > 0 ? notices.join("") : null);
   }
 
-  // 退款与报销候选共用同一套拒绝判断：未选账户时提示先选账户，币种不一致时提示重新选择。
+  // 退款与报销候选共用同币种校验；尚未选择收款账户时允许先选原支出。
   function getCandidateRejectionNotice(
     kind: TransactionLinkKind,
     candidate: TransactionRefundCandidate | null,
   ) {
     if (!candidate) return null;
-    if (!selectedAccount) {
-      return transactionLinkMessages.candidateAccountRequired(kind);
-    }
-    if (hasLinkCandidateCurrencyMismatch(candidate, selectedAccount.currency)) {
+    if (
+      selectedAccount &&
+      hasLinkCandidateCurrencyMismatch(candidate, selectedAccount.currency)
+    ) {
       return transactionLinkMessages.candidateCurrencyMismatch(kind);
     }
     return null;
+  }
+
+  function selectLinkCandidate(
+    kind: TransactionLinkKind,
+    candidate: TransactionRefundCandidate | null,
+  ) {
+    const rejectionNotice = getCandidateRejectionNotice(kind, candidate);
+    if (rejectionNotice) {
+      if (kind === "refund") setPickerRefundCandidate(null);
+      else setPickerReimbursementCandidate(null);
+      setLinkNotice(rejectionNotice);
+      return;
+    }
+
+    setLinkNotice(null);
+    // 只在收款账户为空且原付款账户仍可选时预填，不覆盖用户已有选择。
+    if (
+      candidate?.accountId &&
+      !selectedAccountId &&
+      accountOptions.some((account) => account.id === candidate.accountId)
+    ) {
+      const primaryPayment = paymentFields.payments[0];
+      if (primaryPayment) {
+        handlePaymentAccountChange(primaryPayment.key, candidate.accountId);
+      }
+    }
+
+    if (kind === "refund") {
+      setPickerRefundCandidate(candidate);
+      if (candidate) setPickerReimbursementCandidate(null);
+    } else {
+      setPickerReimbursementCandidate(candidate);
+      if (candidate) setPickerRefundCandidate(null);
+    }
+    if (candidate && pickerMode === kind) {
+      setPickerAmount(getLinkCandidateDefaultAmount(candidate));
+    }
   }
 
   // 付款账户的提交前校验与 Service 共用 validateTransactionPayments。
@@ -795,45 +832,11 @@ export function useTransactionForm({
     selectedType,
     setPickerAmount,
     setPickerSpecialStatus,
-    setPickerRefundCandidate: (
-      candidate: TransactionRefundCandidate | null,
-    ) => {
-      const rejectionNotice = getCandidateRejectionNotice("refund", candidate);
-      if (rejectionNotice) {
-        setPickerRefundCandidate(null);
-        setLinkNotice(rejectionNotice);
-        return;
-      }
-      setPickerRefundCandidate(candidate);
-      if (candidate) {
-        setPickerReimbursementCandidate(null);
-        if (pickerMode === "refund") {
-          setPickerAmount(getLinkCandidateDefaultAmount(candidate));
-        }
-      }
-      setLinkNotice(null);
-    },
+    setPickerRefundCandidate: (candidate: TransactionRefundCandidate | null) =>
+      selectLinkCandidate("refund", candidate),
     setPickerReimbursementCandidate: (
       candidate: TransactionRefundCandidate | null,
-    ) => {
-      const rejectionNotice = getCandidateRejectionNotice(
-        "reimbursement",
-        candidate,
-      );
-      if (rejectionNotice) {
-        setPickerReimbursementCandidate(null);
-        setLinkNotice(rejectionNotice);
-        return;
-      }
-      setPickerReimbursementCandidate(candidate);
-      if (candidate) {
-        setPickerRefundCandidate(null);
-        if (pickerMode === "reimbursement") {
-          setPickerAmount(getLinkCandidateDefaultAmount(candidate));
-        }
-      }
-      setLinkNotice(null);
-    },
+    ) => selectLinkCandidate("reimbursement", candidate),
     timeZoneOffsetMinutes,
     transactionAtValue,
     transactionDate,

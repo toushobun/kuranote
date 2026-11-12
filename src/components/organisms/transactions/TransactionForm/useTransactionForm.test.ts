@@ -54,6 +54,7 @@ const merchantOptions: TransactionMerchantOption[] = [
 
 const refundCandidate: TransactionRefundCandidate = {
   accountCurrency: "JPY",
+  accountId: "account-1",
   amount: "1200",
   categoryName: "午餐",
   id: "refund-item-1",
@@ -597,25 +598,65 @@ describe("useTransactionForm", () => {
     expect(result.current.linkNotice).toContain("币种一致");
   });
 
-  it.each([
-    { kind: "refund", label: "退款" },
-    { kind: "reimbursement", label: "报销" },
-  ] as const)("未选账户时选择$label候选提示先选择账户", ({ kind, label }) => {
+  it.each(["refund", "reimbursement"] as const)(
+    "未选账户时选择%s原支出后自动带出付款账户",
+    (kind) => {
+      const { result } = renderTransactionFormHook();
+      const candidate =
+        kind === "refund" ? refundCandidate : reimbursementCandidate;
+
+      act(() => {
+        result.current.openSheet();
+        result.current.handlePickerModeChange(kind);
+      });
+      act(() =>
+        kind === "refund"
+          ? result.current.setPickerRefundCandidate(candidate)
+          : result.current.setPickerReimbursementCandidate(candidate),
+      );
+
+      expect(result.current.selectedAccount?.id).toBe("account-1");
+      expect(result.current.payments[0]?.accountId).toBe("account-1");
+      expect(
+        kind === "refund"
+          ? result.current.pickerRefundCandidate
+          : result.current.pickerReimbursementCandidate,
+      ).toEqual(candidate);
+      expect(result.current.linkNotice).toBeNull();
+      expect(mocks.markEditDirty).toHaveBeenCalledWith(true);
+    },
+  );
+
+  it("已有收款账户时不覆盖用户选择的同币种账户", () => {
+    const { result } = renderTransactionFormHook({
+      initialValues: {
+        ...newFormInitialValues,
+        payments: [{ accountId: "account-2", amount: null }],
+      },
+    });
+
+    act(() => result.current.setPickerRefundCandidate(refundCandidate));
+
+    expect(result.current.selectedAccount?.id).toBe("account-2");
+    expect(result.current.pickerRefundCandidate).toEqual(refundCandidate);
+    expect(result.current.linkNotice).toBeNull();
+  });
+
+  it("原付款账户已归档时允许先关联但不自动填账户", () => {
     const { result } = renderTransactionFormHook();
+    const archivedCandidate = {
+      ...refundCandidate,
+      accountId: "archived-account",
+    };
 
-    act(() =>
-      kind === "refund"
-        ? result.current.setPickerRefundCandidate(refundCandidate)
-        : result.current.setPickerReimbursementCandidate(
-            reimbursementCandidate,
-          ),
-    );
+    act(() => result.current.setPickerRefundCandidate(archivedCandidate));
 
-    expect(result.current.pickerRefundCandidate).toBeNull();
-    expect(result.current.pickerReimbursementCandidate).toBeNull();
-    expect(result.current.linkNotice).toBe(
-      `请先选择账户，再选择${label}明细。`,
-    );
+    expect(result.current.pickerRefundCandidate).toEqual(archivedCandidate);
+    expect(result.current.payments[0]?.accountId).toBe("");
+    expect(result.current.selectedAccount).toBeUndefined();
+    expect(result.current.linkNotice).toBeNull();
+    act(() => changePrimaryAccount(result, "account-2"));
+    expect(result.current.pickerRefundCandidate).toEqual(archivedCandidate);
   });
 
   it("切换收款账户后清空不匹配的退款候选", () => {

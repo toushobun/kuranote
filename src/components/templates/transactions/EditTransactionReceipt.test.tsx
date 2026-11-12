@@ -61,7 +61,7 @@ const initialValues: TransactionFormInitialValues = {
   type: "expense",
 };
 
-const noHistory: MerchantEntrySuggestions = {
+const emptySuggestions: MerchantEntrySuggestions = {
   automaticCategoryIds: [],
   quickAmounts: [],
   recommendedAccountIds: [],
@@ -137,7 +137,7 @@ async function requestLeaveFromDirtyReceipt() {
 describe("EditTransactionReceiptTemplate", () => {
   beforeEach(() => {
     fetchClientJson.mockImplementation(async (url: string) =>
-      url.includes("merchantId=seven") ? receiptSuggestions : noHistory,
+      url.includes("merchantId=seven") ? receiptSuggestions : emptySuggestions,
     );
   });
   afterEach(() => {

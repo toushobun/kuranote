@@ -184,6 +184,7 @@ export function buildTransactionListItem({
       ? (accountColorById?.get(firstPayment.account_id) ?? null)
       : null,
     account_currency: account?.currency ?? fallbackCurrency,
+    account_id: firstPayment?.account_id,
     account_name:
       payments.length > 1
         ? transactionSharedPaymentMessages.multipleAccounts(

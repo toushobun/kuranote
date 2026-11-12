@@ -16,6 +16,7 @@ export function toTransactionLinkCandidates(
       return [
         {
           accountCurrency: record.account_currency,
+          accountId: record.account_id,
           accountName: record.account_name,
           merchantName: record.merchant_name,
           merchantIconUrl: record.merchant_icon_url,

@@ -30,6 +30,8 @@ export type TransactionEditRestriction =
 
 export type TransactionRefundCandidate = {
   accountCurrency: string;
+  /** 原支出首个付款账户；旧候选可以缺省。 */
+  accountId?: string;
   accountName?: string;
   merchantName?: string | null;
   merchantIconUrl?: string | null;

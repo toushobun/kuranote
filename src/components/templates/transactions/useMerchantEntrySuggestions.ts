@@ -4,7 +4,7 @@ import { transactionEntryApiPaths } from "config/paths";
 import type { MerchantEntrySuggestions } from "internal/transaction";
 import { fetchClientJson } from "lib/api/clientQuery";
 
-// 获取失败时按「这家商家还没有记录」处理，不阻断记账。
+// 获取失败时按商家没有记录处理，不阻断记账。
 const emptySuggestions: MerchantEntrySuggestions = {
   automaticCategoryIds: [],
   quickAmounts: [],

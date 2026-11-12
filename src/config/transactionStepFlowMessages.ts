@@ -37,7 +37,6 @@ export const flowMessages = {
   recommendationHint: `按这家商家最近 ${merchantRecentTransactionLimit} 笔记录`,
   otherAccounts: "其他账户",
   allAccounts: "全部账户",
-  noHistory: "这家商家还没有记录，按账户顺序显示",
   noAccounts: "还没有收支账户",
   accountHint: "添加一个账户，记录这笔钱从哪里出、到哪里去",
   addAccount: "新增账户",
