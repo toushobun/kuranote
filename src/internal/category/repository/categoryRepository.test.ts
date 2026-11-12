@@ -395,3 +395,28 @@ describe("\u5206\u7C7B\u6392\u5E8F\u8D26\u672C\u5931\u6548\u9519\u8BEF", () => {
     });
   });
 });
+
+describe("Issue #944：系统分类数据库错误映射", () => {
+  const ledgerId = "00000000-0000-4000-8000-000000000032";
+  const categoryId = "94400000-0000-4000-8000-000000000002";
+  const userId = "00000000-0000-4000-8000-000000000031";
+
+  it.each([
+    ["category_system_locked", categoryErrorCodes.systemLocked],
+    ["category_name_reserved", categoryErrorCodes.nameReserved],
+    ["category_system_parent_locked", categoryErrorCodes.systemParentLocked],
+  ])("将 %s 转成稳定 ValidationError", async (detail, expectedCode) => {
+    const supabase = createSupabaseMock({
+      queryResponses: [{
+        error: { code: "22023", details: detail, message: detail },
+      }],
+    });
+    const repository = createSupabaseCategoryRepository(
+      supabase.client as never,
+      { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
+    );
+    await expect(repository.updateDetails({
+      categoryId, iconName: "🍽️", ledgerId, name: "新分类", updatedBy: userId,
+    })).rejects.toMatchObject({ code: expectedCode });
+  });
+});
