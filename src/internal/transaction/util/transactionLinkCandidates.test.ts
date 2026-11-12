@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createTransactionListItem } from "test/mocks/transactions";
 import {
+  adjustLinkCandidate,
   getLinkCandidateDefaultAmount,
   toTransactionLinkCandidates,
 } from "./transactionLinkCandidates";
@@ -70,4 +71,73 @@ describe("transactionLinkCandidates", () => {
     };
     expect(getLinkCandidateDefaultAmount(candidate)).toBe(expected);
   });
+  describe("小票中的实时核销", () => {
+    const candidate = {
+      ...toTransactionLinkCandidates([record])[0],
+      amount: "100",
+      refundedAmount: "60",
+      reimbursementAmount: "10",
+      remainingRefundableAmount: "30",
+    };
+    const refund = { id: candidate.id };
+    const reimbursement = { id: candidate.id };
+
+    it("编辑时删除已保存的退款关联会恢复剩余", () => {
+      const result = adjustLinkCandidate(candidate, [], [
+        { amount: "60", refundCandidate: refund },
+      ]);
+      expect(result.remainingRefundableAmount).toBe("90.00");
+      expect(result.refundedAmount).toBe("0.00");
+    });
+
+    it("正在编辑的旧明细不重复扣减，其他草稿明细仍然生效", () => {
+      const result = adjustLinkCandidate(
+        candidate,
+        [
+          { id: 1, amount: "80", refundCandidate: refund },
+          { id: 2, amount: "15", refundCandidate: refund },
+        ],
+        [{ amount: "60", refundCandidate: refund }],
+        1,
+      );
+      expect(result.remainingRefundableAmount).toBe("75.00");
+    });
+
+    it("修改已保存金额后以新金额核销", () => {
+      const result = adjustLinkCandidate(
+        candidate,
+        [{ id: 1, amount: "20", refundCandidate: refund }],
+        [{ amount: "60", refundCandidate: refund }],
+      );
+      expect(result.remainingRefundableAmount).toBe("70.00");
+      expect(result.refundedAmount).toBe("20.00");
+    });
+
+    it("改选其他目标后旧原支出恢复剩余", () => {
+      const result = adjustLinkCandidate(
+        candidate,
+        [{ id: 1, amount: "20", refundCandidate: { id: "other" } }],
+        [{ amount: "60", refundCandidate: refund }],
+      );
+      expect(result.remainingRefundableAmount).toBe("90.00");
+      expect(result.refundedAmount).toBe("0.00");
+    });
+
+    it("同一张小票两笔退款和一笔报销一起核销，零金额不抵消", () => {
+      const result = adjustLinkCandidate(
+        candidate,
+        [
+          { id: 1, amount: "12", refundCandidate: refund },
+          { id: 2, amount: "7", refundCandidate: refund },
+          { id: 3, amount: "8", reimbursementCandidate: reimbursement },
+          { id: 4, amount: "0", refundCandidate: refund },
+        ],
+        [],
+      );
+      expect(result.refundedAmount).toBe("79.00");
+      expect(result.reimbursementAmount).toBe("18.00");
+      expect(result.remainingRefundableAmount).toBe("3.00");
+    });
+  });
+
 });
