@@ -109,7 +109,7 @@ export const transactionValidationErrorMessages: Record<
   [transactionErrorCodes.noteTooLong]: "备注不能超过 2000 个字符。",
   [transactionErrorCodes.paymentAmountRequired]:
     transactionPaymentMessages[transactionErrorCodes.paymentAmountRequired],
-  [transactionErrorCodes.refundLinkInvalid]: "退款关联的支出明细不正确。"
+  [transactionErrorCodes.refundLinkInvalid]: "退款关联的支出明细不正确。",
   [transactionErrorCodes.reimbursementLinkInvalid]: "报销目标明细不正确。",
   [transactionErrorCodes.specialStatusInvalid]:
     "特殊状态不正确；待报销只能用于支出明细，结清状态只能由有效退款或报销核销自动派生。",
