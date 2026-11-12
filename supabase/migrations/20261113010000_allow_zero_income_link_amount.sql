@@ -426,3 +426,73 @@ begin
     );
 end;
 $$;
+
+-- 零金额链接只保留关联关系，不应使原支出状态或版本产生虚假变化。
+CREATE OR REPLACE FUNCTION "public"."recalculate_refund_link_target_status"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+begin
+    if tg_op = 'DELETE' and public.ledger_deletion_allows_delete(old.ledger_id) then
+        return old;
+    end if;
+    if tg_op in ('DELETE', 'UPDATE') and old.refund_amount > 0 then
+        perform public.recalculate_transaction_item_settlement_status(
+            old.ledger_id,
+            old.refunded_item_id
+        );
+    end if;
+
+    if tg_op in ('INSERT', 'UPDATE')
+       and new.refund_amount > 0
+       and (
+           tg_op = 'INSERT'
+           or new.ledger_id is distinct from old.ledger_id
+           or new.refunded_item_id is distinct from old.refunded_item_id
+           or new.refund_amount is distinct from old.refund_amount
+           or new.refund_income_item_id is distinct from old.refund_income_item_id
+       ) then
+        perform public.recalculate_transaction_item_settlement_status(
+            new.ledger_id,
+            new.refunded_item_id
+        );
+    end if;
+
+    return coalesce(new, old);
+end;
+$$;
+
+CREATE OR REPLACE FUNCTION "public"."recalculate_reimbursement_link_target_status"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+begin
+    if tg_op = 'DELETE' and public.ledger_deletion_allows_delete(old.ledger_id) then
+        return old;
+    end if;
+    if tg_op in ('DELETE', 'UPDATE') and old.reimbursement_amount > 0 then
+        perform public.recalculate_transaction_item_settlement_status(
+            old.ledger_id,
+            old.target_expense_item_id
+        );
+    end if;
+
+    if tg_op in ('INSERT', 'UPDATE')
+       and new.reimbursement_amount > 0
+       and (
+           tg_op = 'INSERT'
+           or new.ledger_id is distinct from old.ledger_id
+           or new.target_expense_item_id is distinct from old.target_expense_item_id
+           or new.reimbursement_amount is distinct from old.reimbursement_amount
+           or new.reimbursement_income_item_id is distinct from
+              old.reimbursement_income_item_id
+       ) then
+        perform public.recalculate_transaction_item_settlement_status(
+            new.ledger_id,
+            new.target_expense_item_id
+        );
+    end if;
+
+    return coalesce(new, old);
+end;
+$$;
