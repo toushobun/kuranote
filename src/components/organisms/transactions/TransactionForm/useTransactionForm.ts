@@ -1,5 +1,8 @@
 "use client";
-import { adjustLinkCandidate, getLinkCandidateDefaultAmount } from "internal/transaction";
+import {
+  adjustLinkCandidate,
+  getLinkCandidateDefaultAmount,
+} from "internal/transaction";
 
 import {
   useEffect,
