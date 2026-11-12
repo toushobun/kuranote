@@ -1,5 +1,5 @@
 "use client";
-import { getLinkCandidateDefaultAmount } from "internal/transaction";
+import { adjustLinkCandidate, getLinkCandidateDefaultAmount } from "internal/transaction";
 
 import {
   useEffect,
@@ -698,6 +698,15 @@ export function useTransactionForm({
     return null;
   }
 
+  function resolveLinkCandidate(candidate: TransactionRefundCandidate) {
+    return adjustLinkCandidate(
+      candidate,
+      itemsByType.income,
+      initialValues.items,
+      editingItemId,
+    );
+  }
+
   function selectLinkCandidate(
     kind: TransactionLinkKind,
     candidate: TransactionRefundCandidate | null,
@@ -731,7 +740,7 @@ export function useTransactionForm({
       if (candidate) setPickerRefundCandidate(null);
     }
     if (candidate && pickerMode === kind) {
-      setPickerAmount(getLinkCandidateDefaultAmount(candidate));
+      setPickerAmount(getLinkCandidateDefaultAmount(resolveLinkCandidate(candidate)));
     }
   }
 
@@ -820,6 +829,7 @@ export function useTransactionForm({
     pickerErrors,
     pickerRefundCandidate,
     pickerReimbursementCandidate,
+    resolveLinkCandidate,
     pickerSpecialStatus,
     pickerSpecialStatusLocked,
     removeItem,
