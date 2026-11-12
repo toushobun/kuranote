@@ -7,6 +7,7 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 
 import { defaultCategoryEmoji } from "config/categoryEmojis";
+import { categorySystemMessages } from "config/categoryMessages";
 import type { SortableHandleProps } from "molecules/ui/SortableList/SortableItem";
 import { SortableDragHandle } from "molecules/ui/SortableList/SortableDragHandle/SortableDragHandle";
 import { designTokens } from "theme/theme";
@@ -32,7 +33,8 @@ export function CategoryItemActions({
 
   return (
     <>
-      <Tooltip title={`编辑${displayName}`}>
+      {!category.system_key ? (
+        <Tooltip title={`编辑${displayName}`}>
         <IconButton
           aria-label={`编辑${displayName}`}
           onClick={() => onEdit(category)}
@@ -41,7 +43,8 @@ export function CategoryItemActions({
         >
           <EditRoundedIcon fontSize="small" />
         </IconButton>
-      </Tooltip>
+        </Tooltip>
+      ) : null}
       <SortableDragHandle name={displayName} handleProps={handleProps} />
     </>
   );
@@ -82,6 +85,15 @@ export function CategoryChip({
       <Typography noWrap sx={{ fontWeight: 700, minWidth: 0 }} variant="body2">
         {displayName}
       </Typography>
+      {category.system_key ? (
+        <Typography
+          component="span"
+          sx={{ color: "text.secondary", px: 0.5 }}
+          variant="caption"
+        >
+          {categorySystemMessages.badge}
+        </Typography>
+      ) : null}
       <CategoryItemActions
         canManageCategories={canManageCategories}
         category={category}
