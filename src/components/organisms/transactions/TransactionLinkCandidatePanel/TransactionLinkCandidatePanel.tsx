@@ -21,7 +21,9 @@ type TransactionLinkCandidatePanelProps = {
   merchantName?: string;
   loadPageAction?: LoadTransactionLinkCandidatePage;
   onChange: (item: TransactionRefundCandidate | null) => void;
-  resolveLinkCandidate?: (candidate: TransactionRefundCandidate) => TransactionRefundCandidate;
+  resolveLinkCandidate?: (
+    candidate: TransactionRefundCandidate,
+  ) => TransactionRefundCandidate;
   value: TransactionRefundCandidate | null;
 };
 
