@@ -100,7 +100,7 @@ describe("TransactionItemPickerDrawer", () => {
     });
     expect(screen.getByText("¥0")).toBeVisible();
     expect(screen.getByText("这笔已全额报销")).toBeVisible();
-    const row = screen.getByRole("button", { name: /报销金额 剩余未报/ });
+    const row = screen.getByRole("button", { name: /报销金额 这笔已全额报销/ });
     expect(row).toBeEnabled();
     fireEvent.click(row);
     press("7");
