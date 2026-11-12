@@ -156,10 +156,6 @@ function parseTransactionItems(
       transactionErrorCodes.refundLinkInvalid,
     );
     if (!refundedItemIdResult.ok) return refundedItemIdResult;
-    if (refundedItemIdResult.value && amountResult.value <= 0) {
-      return invalid(transactionErrorCodes.refundLinkInvalid);
-    }
-
     const specialStatusText = String(specialStatusValues[index] ?? "").trim();
     let specialStatus: TransactionSpecialStatus | null = null;
     if (specialStatusText) {
@@ -502,10 +498,6 @@ const transactionItemRequestSchema = z
       .enum(transactionWritableSpecialStatuses)
       .nullable()
       .optional(),
-  })
-  .refine((item) => !item.refundedItemId || item.amount > 0, {
-    message: transactionErrorCodes.refundLinkInvalid,
-    path: ["amount"],
   });
 
 const normalTransactionRequestSchema = z.object({
