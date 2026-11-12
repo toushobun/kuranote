@@ -35,10 +35,12 @@ export function buildCategoriesView({
     canManageCategories: canManageMasterData(role),
     categories: roots,
     ledgerName,
-    parentOptions: roots.map((category) => ({
+    parentOptions: roots
+      .filter((category) => !category.system_key)
+      .map((category) => ({
       id: category.id,
       name: category.name,
       type: category.type,
-    })),
+      })),
   };
 }
