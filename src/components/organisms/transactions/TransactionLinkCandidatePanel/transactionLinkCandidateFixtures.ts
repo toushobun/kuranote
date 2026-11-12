@@ -7,6 +7,7 @@ export const candidateItems: TransactionRefundCandidate[] = [
   ["USB-C 充电器", "3280", "0", "2026-11-08T09:00:00Z"],
   ["咖啡豆 2 袋", "2960", "0", "2026-11-02T09:00:00Z"],
   ["收纳盒", "1580", "500", "2026-10-27T09:00:00Z"],
+  ["外套", "6000", "6000", "2026-10-20T09:00:00Z"],
 ].map(([name, amount, refunded, date], index) => ({
   id: `item-${index}`,
   transactionRecordId: `record-${index}`,
