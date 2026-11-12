@@ -1009,7 +1009,7 @@ describe("getEditTransactionView income links", () => {
             },
             reimbursementCandidate: {
               id: linkedExpenseItemId,
-              remainingRefundableAmount: "-900",
+              remainingRefundableAmount: "-700",
             },
           },
         ],
