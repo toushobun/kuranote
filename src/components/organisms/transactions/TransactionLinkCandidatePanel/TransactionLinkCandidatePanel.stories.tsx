@@ -62,3 +62,7 @@ export const MultipleMerchants: Story = {
   name: "报销 · 多商家同名明细",
   args: { kind: "reimbursement", loadPageAction: loadMixedMerchantPage },
 };
+
+export const PartiallyAndFullySettled: Story = {
+  name: "退款 · 部分与全额核销候选",
+};
