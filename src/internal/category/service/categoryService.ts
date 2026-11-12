@@ -95,7 +95,7 @@ export interface CategoryQueryService {
 }
 
 export type ActiveCategorySummary = CategorySummary &
-  Pick<CategoryData, "icon_name">;
+  Pick<CategoryData, "icon_name" | "system_key">;
 
 export interface CategoryService extends CategoryQueryService {
   archive(input: ArchiveCategoryInput): Promise<void>;
@@ -291,11 +291,12 @@ export function createCategoryService({
       await requireActiveMemberRole(ledgerId, userId);
       return (await categoryRepository.findActiveByLedgerId(ledgerId))
         .filter((category) => includeSystem || !category.system_key)
-        .map(({ icon_name, id, name, parent_id, type }) => ({
+        .map(({ icon_name, id, name, parent_id, system_key, type }) => ({
           icon_name,
           id,
           name,
           parent_id,
+          ...(system_key ? { system_key } : {}),
           type,
         }));
     },
