@@ -21,6 +21,7 @@ export function TransactionLinkCandidateCards({
   candidates,
   onSelect,
   selectableCurrency,
+  resolveLinkCandidate,
   selectedId = null,
   selectionKind = "refund",
   showMerchantName = true,
@@ -28,15 +29,18 @@ export function TransactionLinkCandidateCards({
   candidates: TransactionRefundCandidate[];
   onSelect: (item: TransactionRefundCandidate) => void;
   selectableCurrency?: string;
+  resolveLinkCandidate?: (candidate: TransactionRefundCandidate) => TransactionRefundCandidate;
   selectedId?: string | null;
   selectionKind?: "refund" | "reimbursement";
   showMerchantName?: boolean;
 }) {
-  const isReimbursement = selectionKind === "reimbursement";
-
   return (
     <Stack spacing={1}>
-      {candidates.map((candidate) => {
+      {candidates.map((originalCandidate) => {
+        const candidate = resolveLinkCandidate?.(originalCandidate) ?? originalCandidate;
+        const refunded = Number(candidate.refundedAmount);
+        const reimbursed = Number(candidate.reimbursementAmount ?? "0");
+        const settled = Number(candidate.remainingRefundableAmount) <= 0;
         const selected = selectedId === candidate.id;
         const currencySymbol = getCurrencySymbol(candidate.accountCurrency);
         const currencyMismatchReason =
@@ -65,7 +69,7 @@ export function TransactionLinkCandidateCards({
             aria-pressed={selected}
             disabled={isCurrencyMismatched}
             key={candidate.id}
-            onClick={() => onSelect(candidate)}
+            onClick={() => onSelect(originalCandidate)}
             sx={{
               ...refundCandidateSx,
               border: 1,
@@ -99,22 +103,28 @@ export function TransactionLinkCandidateCards({
               ) : null}
             </Stack>
             <Stack sx={{ alignItems: "flex-end", flexShrink: 0 }}>
-              <Typography variant="body2" sx={{ fontWeight: 700 }}>
+              <Typography variant="body2" sx={{ fontWeight: 700, color: settled ? "text.disabled" : "text.primary" }}>
                 {currencySymbol}
                 {formatNumber(candidate.amount, candidate.accountCurrency)}
               </Typography>
-              {Number(
-                isReimbursement
-                  ? candidate.reimbursementAmount
-                  : candidate.refundedAmount,
-              ) > 0 ? (
-                <Typography color="textSecondary" variant="caption">
-                  {m.offsetLabel(
-                    selectionKind,
-                    `${currencySymbol}${formatNumber((isReimbursement ? candidate.reimbursementAmount : candidate.refundedAmount) ?? "0", candidate.accountCurrency)}`,
-                  )}
+              {settled ? (
+                <Typography variant="caption" sx={settledCandidateBadgeSx}>
+                  {m.settledLabel(refunded > 0, reimbursed > 0)}
                 </Typography>
-              ) : null}
+              ) : (
+                <>
+                  {refunded > 0 ? (
+                    <Typography variant="caption" sx={partialCandidateBadgeSx}>
+                      {m.offsetLabel("refund", `${currencySymbol}${formatNumber(candidate.refundedAmount, candidate.accountCurrency)}`)}
+                    </Typography>
+                  ) : null}
+                  {reimbursed > 0 ? (
+                    <Typography variant="caption" sx={partialCandidateBadgeSx}>
+                      {m.offsetLabel("reimbursement", `${currencySymbol}${formatNumber(candidate.reimbursementAmount ?? "0", candidate.accountCurrency)}`)}
+                    </Typography>
+                  ) : null}
+                </>
+              )}
             </Stack>
             <Radio
               checked={selected}
@@ -151,4 +161,19 @@ const refundCandidateSx = {
   "&.Mui-disabled": {
     opacity: (theme: Theme) => theme.palette.action.disabledOpacity,
   },
+};
+
+const partialCandidateBadgeSx = {
+  bgcolor: "var(--user-theme-business-pending-bg)",
+  color: "var(--user-theme-business-pending-text)",
+  borderRadius: `${designTokens.radius.full}px`,
+  fontWeight: 700,
+  mt: 0.5,
+  px: 0.75,
+  py: 0.125,
+};
+const settledCandidateBadgeSx = {
+  ...partialCandidateBadgeSx,
+  bgcolor: "var(--user-theme-business-completed-bg)",
+  color: "var(--user-theme-business-completed-text)",
 };
