@@ -1,0 +1,39 @@
+# #944 临时工具：生成与迁移对应的数据库快照，提交后立即移除。
+name: Issue 944 temporary schema snapshot
+on:
+  pull_request:
+    types: [synchronize]
+permissions:
+  contents: write
+jobs:
+  snapshot:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feat/944_refund_reimbursement_item_type'
+    timeout-minutes: 18
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+      - uses: supabase/setup-cli@v2
+        with:
+          version: 2.106.0
+          github-token: ${{ github.token }}
+      - name: 启动测试数据库并生成 schema snapshot
+        run: |
+          set -euo pipefail
+          supabase start
+          npm run db:schema:snapshot:update
+      - name: 提交快照
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add supabase/schema_snapshot/current_schema.sql
+          if ! git diff --cached --quiet; then
+            git -c user.name="github-actions[bot]" \
+                -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -m "chore: 按 #944 迁移重建数据库结构快照"
+            git fetch origin feat/944_refund_reimbursement_item_type
+            git rebase origin/feat/944_refund_reimbursement_item_type
+            git push origin HEAD:refs/heads/feat/944_refund_reimbursement_item_type
+          fi
