@@ -3538,7 +3538,10 @@ begin
     v_normalized_name := btrim(
       regexp_replace(btrim(new.name), '^[^[:space:]]+[[:space:]]+', '')
     );
-    if v_normalized_name in ('特殊收入', '退款', '报销') then
+    if v_normalized_name in ('特殊收入', '退款', '报销')
+       and (tg_op = 'INSERT' or v_normalized_name is distinct from btrim(
+         regexp_replace(btrim(old.name), '^[^[:space:]]+[[:space:]]+', '')
+       )) then
       raise exception 'category_name_reserved'
         using errcode = '22023', detail = 'category_name_reserved';
     end if;
