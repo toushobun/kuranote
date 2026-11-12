@@ -822,17 +822,17 @@ describe("TransactionService", () => {
     expect(usd.items[0]?.accountId).toBe("usd-account");
   });
 
-  it("未传币种时返回跨币种的支出候选并保留原付款账户 ID", async () => {
+  it("未传币种时跨页返回不同币种支出及原付款账户 ID", async () => {
     const { service, ledger } = candidateService();
-    const page = await service.getLinkCandidatePage(ledger, "refund", {
-      offset: 20,
+    const first = await service.getLinkCandidatePage(ledger, "refund", {});
+    const next = await service.getLinkCandidatePage(ledger, "refund", {
+      offset: first.nextOffset ?? 0,
     });
-    expect(page.items.map((item) => item.id)).toEqual([
-      "candidate-20",
-      "candidate-21",
-      "candidate-22",
-    ]);
-    expect(page.items[1]).toMatchObject({
+    const candidates = [...first.items, ...next.items];
+    expect(candidates).toHaveLength(23);
+    expect(candidates.map((item) => item.id)).toContain("candidate-20");
+    expect(candidates.map((item) => item.id)).toContain("candidate-22");
+    expect(candidates.find((item) => item.id === "candidate-21")).toMatchObject({
       accountCurrency: "USD",
       accountId: "usd-account",
     });
