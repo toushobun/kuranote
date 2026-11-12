@@ -484,17 +484,14 @@ export function createSupabaseMerchantRepository(
             .select(
               "id, name, icon_url, active_records:transaction_record!transaction_record_merchant_same_ledger_fk(id)",
             )
+            .eq("active_records.status", "active")
+            .limit(1, { referencedTable: "active_records" })
         : supabase.from("merchant").select(merchantSummaryColumns)
     )
       .eq("ledger_id", ledgerId)
       .eq("is_archived", false)
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: true });
-
-    if (includeHistory) {
-      query.eq("active_records.status", "active");
-      query.limit(1, { referencedTable: "active_records" });
-    }
 
     const { data, error } = await query;
     if (error) {
