@@ -1086,6 +1086,36 @@ $$;
 ALTER FUNCTION "public"."calculate_transaction_item_remaining_offset_amount"("p_ledger_id" "uuid", "p_target_expense_item_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."check_income_system_category_link"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+begin
+    if tg_table_name = 'transaction_item' then
+        perform public.validate_income_system_category_link(
+            coalesce(new.ledger_id, old.ledger_id),
+            coalesce(new.id, old.id)
+        );
+    elsif tg_table_name = 'transaction_item_refund_link' then
+        perform public.validate_income_system_category_link(
+            coalesce(new.ledger_id, old.ledger_id),
+            coalesce(new.refund_income_item_id, old.refund_income_item_id)
+        );
+    else
+        perform public.validate_income_system_category_link(
+            coalesce(new.ledger_id, old.ledger_id),
+            coalesce(new.reimbursement_income_item_id, old.reimbursement_income_item_id)
+        );
+    end if;
+    if tg_op = 'DELETE' then return old; end if;
+    return new;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."check_income_system_category_link"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."cleanup_ledger_member_display_setting_on_member_leave"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -3440,6 +3470,84 @@ $$;
 ALTER FUNCTION "public"."guard_ledger_setup_state"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."guard_system_category"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+  v_parent_key text;
+  v_normalized_name text;
+  v_allow_system_write boolean :=
+    current_user = 'postgres'
+    and current_setting('app.allow_system_category_write', true) = 'true';
+begin
+  if tg_op = 'DELETE' then
+    -- 删除整个账本由既有的受控 RPC 执行，不能被系统分类防线阻断。
+    if public.ledger_deletion_allows_delete(old.ledger_id) then
+      return old;
+    end if;
+    if old.system_key is not null then
+      raise exception 'category_system_locked'
+        using errcode = '22023', detail = 'category_system_locked';
+    end if;
+    return old;
+  end if;
+
+  if tg_op = 'UPDATE' and old.system_key is not null then
+    -- 排序可以改变，但系统分类的身份、名称、图标及归档等业务字段不可改变。
+    if (to_jsonb(new) - array['sort_order', 'updated_at', 'updated_by'])
+       is distinct from
+       (to_jsonb(old) - array['sort_order', 'updated_at', 'updated_by']) then
+      raise exception 'category_system_locked'
+        using errcode = '22023', detail = 'category_system_locked';
+    end if;
+    return new;
+  end if;
+
+  if new.system_key is not null and not v_allow_system_write then
+    raise exception 'category_system_locked'
+      using errcode = '22023', detail = 'category_system_locked';
+  end if;
+
+  if new.parent_id is not null then
+    select c.system_key into v_parent_key
+      from public.category c
+     where c.id = new.parent_id
+       and c.ledger_id = new.ledger_id;
+    if v_parent_key = 'special_income'
+       and coalesce(new.system_key, '') not in ('refund', 'reimbursement') then
+      raise exception 'category_system_parent_locked'
+        using errcode = '22023', detail = 'category_system_parent_locked';
+    end if;
+  end if;
+
+  if new.system_key is not null then
+    if new.type <> 'income'
+       or (new.system_key = 'special_income' and new.parent_id is not null)
+       or (new.system_key in ('refund', 'reimbursement')
+           and (new.parent_id is null or v_parent_key is distinct from 'special_income')) then
+      raise exception 'category_system_invalid'
+        using errcode = '22023', detail = 'category_system_invalid';
+    end if;
+  else
+    -- 分类库在存储名称前加 emoji 前缀，保留名称按用户实际看到的名称判断。
+    v_normalized_name := btrim(
+      regexp_replace(btrim(new.name), '^[^[:space:]]+[[:space:]]+', '')
+    );
+    if v_normalized_name in ('特殊收入', '退款', '报销') then
+      raise exception 'category_name_reserved'
+        using errcode = '22023', detail = 'category_name_reserved';
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."guard_system_category"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."handle_new_auth_user"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -3874,6 +3982,62 @@ $$;
 ALTER FUNCTION "public"."initialize_ledger_default_data_without_merchant_tags"("p_ledger_id" "uuid", "p_user_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."initialize_ledger_system_categories"("p_ledger_id" "uuid", "p_user_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+  v_root_id uuid;
+begin
+  perform set_config('app.allow_system_category_write', 'true', true);
+
+  insert into public.category (
+    ledger_id, parent_id, type, name, icon_name, color,
+    system_key, sort_order, created_by, updated_by
+  )
+  values (
+    p_ledger_id, null, 'income', '💸 特殊收入', '💸', '#DBEAFE',
+    'special_income', 30, p_user_id, p_user_id
+  )
+  on conflict (ledger_id, system_key) where system_key is not null do nothing;
+
+  select id into strict v_root_id
+    from public.category
+   where ledger_id = p_ledger_id and system_key = 'special_income';
+
+  insert into public.category (
+    ledger_id, parent_id, type, name, icon_name, color,
+    system_key, sort_order, created_by, updated_by
+  )
+  values
+    (p_ledger_id, v_root_id, 'income', '💴 退款', '💴', '#DBEAFE',
+     'refund', 10, p_user_id, p_user_id),
+    (p_ledger_id, v_root_id, 'income', '📄 报销', '📄', '#DBEAFE',
+     'reimbursement', 20, p_user_id, p_user_id)
+  on conflict (ledger_id, system_key) where system_key is not null do nothing;
+
+  perform set_config('app.allow_system_category_write', 'false', true);
+end;
+$$;
+
+
+ALTER FUNCTION "public"."initialize_ledger_system_categories"("p_ledger_id" "uuid", "p_user_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."initialize_system_categories_after_setup"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+begin
+  perform public.initialize_ledger_system_categories(new.id, new.owner_user_id);
+  return new;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."initialize_system_categories_after_setup"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."is_email_registered"("p_email" "text") RETURNS boolean
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -3939,14 +4103,12 @@ CREATE OR REPLACE FUNCTION "public"."ledger_default_categories"() RETURNS TABLE(
         ('income', '💰 工资收入', '💴 工资', '💴', '#D1FAE5', 10),
         ('income', '💰 工资收入', '🎁 奖金', '🎁', '#D1FAE5', 20),
         ('income', '💰 工资收入', '💼 职务手当', '💼', '#D1FAE5', 30),
-        ('income', '💰 工资收入', '📄 公司报销', '📄', '#D1FAE5', 40),
         ('income', '💰 工资收入', '🏅 资格手当', '🏅', '#D1FAE5', 50),
         ('income', '💰 工资收入', '🏠 住房手当', '🏠', '#D1FAE5', 60),
         ('income', '💰 工资收入', '🚃 通勤手当', '🚃', '#D1FAE5', 70),
         ('income', '💰 工资收入', '💒 结婚手当', '💒', '#D1FAE5', 80),
         ('income', '💸 其他收入', '📈 理财收益', '📈', '#DBEAFE', 10),
         ('income', '💸 其他收入', '💼 活动返现', '💼', '#DBEAFE', 20),
-        ('income', '💸 其他收入', '📄 报销', '📄', '#DBEAFE', 30),
         ('income', '💸 其他收入', '💰 其他收入', '💰', '#DBEAFE', 40),
         ('income', '💸 其他收入', '🔑 退押金', '🔑', '#DBEAFE', 50),
         ('income', '💸 其他收入', '💴 現金還元', '💴', '#DBEAFE', 60),
@@ -6785,6 +6947,16 @@ declare
     v_amount numeric;
     v_record_updated_at timestamptz;
     v_category_id uuid;
+    v_old_refund_target uuid;
+    v_old_reimbursement_target uuid;
+    v_new_refund_target uuid;
+    v_new_reimbursement_target uuid;
+    v_new_target uuid;
+    v_target_currency text;
+    v_source_currency text;
+    v_target_category_type text;
+    v_target_status public.transaction_item_special_status;
+    v_lock_item_ids uuid[];
 begin
     if v_user_id is null then
         raise exception 'not_authenticated'
@@ -6863,6 +7035,50 @@ begin
             using errcode = 'P0001', detail = 'transaction_item_version_conflict';
     end if;
 
+    -- 一次性按 UUID 顺序锁定全部收入明细与新旧原支出，不能逐笔按选择顺序加锁。
+    -- 下层 update_linked_transaction_item 会再次取同一批锁，避免多笔互相交叉死锁。
+    begin
+        select array_agg(distinct item_id order by item_id)
+        into v_lock_item_ids
+        from (
+            select nullif(entry.value ->> 'transactionItemId', '')::uuid as item_id
+            from pg_catalog.jsonb_array_elements(p_item_updates) entry
+            union all
+            select nullif(entry.value ->> 'refundedItemId', '')::uuid
+            from pg_catalog.jsonb_array_elements(p_item_updates) entry
+            union all
+            select nullif(entry.value ->> 'reimbursementItemId', '')::uuid
+            from pg_catalog.jsonb_array_elements(p_item_updates) entry
+            union all
+            select link.refunded_item_id
+            from public.transaction_item_refund_link link
+            where link.ledger_id = p_ledger_id
+              and link.refund_income_item_id in (
+                  select nullif(entry.value ->> 'transactionItemId', '')::uuid
+                  from pg_catalog.jsonb_array_elements(p_item_updates) entry
+              )
+            union all
+            select link.target_expense_item_id
+            from public.transaction_item_reimbursement_link link
+            where link.ledger_id = p_ledger_id
+              and link.reimbursement_income_item_id in (
+                  select nullif(entry.value ->> 'transactionItemId', '')::uuid
+                  from pg_catalog.jsonb_array_elements(p_item_updates) entry
+              )
+        ) ids
+        where item_id is not null;
+    exception when invalid_text_representation then
+        raise exception 'linked_edit_items_invalid'
+            using errcode = '22023', detail = 'linked_edit_items_invalid';
+    end;
+
+    perform 1
+    from public.transaction_item ti
+    where ti.ledger_id = p_ledger_id
+      and ti.id = any(coalesce(v_lock_item_ids, array[]::uuid[]))
+    order by ti.id
+    for update;
+
     for v_item in
         select value
         from pg_catalog.jsonb_array_elements(p_item_updates)
@@ -6880,6 +7096,9 @@ begin
                 nullif(v_item ->> 'expectedUpdatedAt', '')::timestamptz;
             v_amount := nullif(v_item ->> 'amount', '')::numeric;
             v_category_id := nullif(v_item ->> 'categoryId', '')::uuid;
+            v_new_refund_target := nullif(v_item ->> 'refundedItemId', '')::uuid;
+            v_new_reimbursement_target :=
+                nullif(v_item ->> 'reimbursementItemId', '')::uuid;
         exception
             when invalid_text_representation
                 or invalid_datetime_format
@@ -6898,6 +7117,72 @@ begin
                 using errcode = '22023', detail = 'linked_edit_items_invalid';
         end if;
 
+        -- 只有原关联类型相同、目标非空的收入明细才能改选；拒绝解除和跨类型切换。
+        v_old_refund_target := null;
+        v_old_reimbursement_target := null;
+        v_new_target := null;
+        select link.refunded_item_id into v_old_refund_target
+        from public.transaction_item_refund_link link
+        where link.ledger_id = p_ledger_id
+          and link.refund_income_item_id = v_transaction_item_id;
+        select link.target_expense_item_id into v_old_reimbursement_target
+        from public.transaction_item_reimbursement_link link
+        where link.ledger_id = p_ledger_id
+          and link.reimbursement_income_item_id = v_transaction_item_id;
+
+        if v_item ? 'refundedItemId' then
+            if v_old_refund_target is null or v_new_refund_target is null
+               or v_item ? 'reimbursementItemId' then
+                raise exception 'linked_edit_items_invalid'
+                    using errcode = '22023', detail = 'linked_edit_items_invalid';
+            end if;
+            if v_new_refund_target is distinct from v_old_refund_target then
+                v_new_target := v_new_refund_target;
+            end if;
+        elsif v_item ? 'reimbursementItemId' then
+            if v_old_reimbursement_target is null or v_new_reimbursement_target is null then
+                raise exception 'linked_edit_items_invalid'
+                    using errcode = '22023', detail = 'linked_edit_items_invalid';
+            end if;
+            if v_new_reimbursement_target is distinct from v_old_reimbursement_target then
+                v_new_target := v_new_reimbursement_target;
+            end if;
+        end if;
+
+        if v_new_target is not null then
+            select c.type,
+                   public.transaction_record_currency(ti.ledger_id, ti.transaction_record_id),
+                   ti.special_status
+            into v_target_category_type, v_target_currency, v_target_status
+            from public.transaction_item ti
+            join public.transaction_record tr
+              on tr.id = ti.transaction_record_id
+             and tr.ledger_id = ti.ledger_id
+             and tr.status = 'active'
+            join public.category c
+              on c.id = ti.category_id and c.ledger_id = ti.ledger_id
+            where ti.ledger_id = p_ledger_id and ti.id = v_new_target;
+
+            v_source_currency := public.transaction_record_currency(
+                p_ledger_id, p_transaction_record_id
+            );
+            if not found or v_target_category_type is distinct from 'expense' then
+                raise exception 'linked_edit_target_invalid'
+                    using errcode = '22023', detail = 'linked_edit_target_invalid';
+            end if;
+            if v_source_currency is null or v_target_currency is distinct from v_source_currency then
+                raise exception 'linked_edit_target_currency_mismatch'
+                    using errcode = '22023', detail = 'linked_edit_target_currency_mismatch';
+            end if;
+            if v_old_reimbursement_target is not null
+               and v_target_status not in (
+                   'pending_reimbursement', 'reimbursed', 'reimbursement_surplus'
+               ) then
+                raise exception 'linked_edit_target_invalid'
+                    using errcode = '22023', detail = 'linked_edit_target_invalid';
+            end if;
+        end if;
+
         perform public.update_linked_transaction_item(
             p_ledger_id,
             p_transaction_record_id,
@@ -6906,6 +7191,32 @@ begin
             v_amount,
             v_category_id
         );
+
+        if v_new_target is not null then
+            -- 原有链接保持同一收入明细，仅原支出对象改变。
+            -- 链接表没有自动重算两个原支出状态的 UPDATE 触发器，
+            -- 必须显式重算旧、新目标；业务净额由 offset 视图按新链接计算。
+            if v_old_refund_target is not null then
+                update public.transaction_item_refund_link link
+                set refunded_item_id = v_new_target
+                where link.ledger_id = p_ledger_id
+                  and link.refund_income_item_id = v_transaction_item_id;
+            else
+                update public.transaction_item_reimbursement_link link
+                set target_expense_item_id = v_new_target
+                where link.ledger_id = p_ledger_id
+                  and link.reimbursement_income_item_id = v_transaction_item_id;
+            end if;
+
+            -- 失去本次核销的旧原支出可能由已报销退回待报销；
+            -- 新原支出可能由待报销变为已报销或核销结余。
+            perform public.recalculate_transaction_item_settlement_status(
+                p_ledger_id, coalesce(v_old_refund_target, v_old_reimbursement_target)
+            );
+            perform public.recalculate_transaction_item_settlement_status(
+                p_ledger_id, v_new_target
+            );
+        end if;
     end loop;
 
     -- 明细金额变化会改变 Σ明细，付款明细必须在同一事务内整组替换。
@@ -8035,6 +8346,61 @@ $$;
 
 
 ALTER FUNCTION "public"."validate_category_parent"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."validate_income_system_category_link"("p_ledger_id" "uuid", "p_income_item_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql"
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+    v_key text;
+    v_type text;
+    v_record_status text;
+    v_has_refund boolean;
+    v_has_reimbursement boolean;
+begin
+    select c.system_key, c.type, tr.status
+    into v_key, v_type, v_record_status
+    from public.transaction_item ti
+    join public.transaction_record tr
+      on tr.id = ti.transaction_record_id
+     and tr.ledger_id = ti.ledger_id
+    join public.category c
+      on c.id = ti.category_id
+     and c.ledger_id = ti.ledger_id
+    where ti.ledger_id = p_ledger_id
+      and ti.id = p_income_item_id;
+
+    -- 作废交易保留历史明细，不强制其仍有有效链接。
+    if not found or v_record_status <> 'active' then
+        return;
+    end if;
+
+    select exists (
+        select 1 from public.transaction_item_refund_link r
+        where r.ledger_id = p_ledger_id
+          and r.refund_income_item_id = p_income_item_id
+    ) into v_has_refund;
+
+    select exists (
+        select 1 from public.transaction_item_reimbursement_link r
+        where r.ledger_id = p_ledger_id
+          and r.reimbursement_income_item_id = p_income_item_id
+    ) into v_has_reimbursement;
+
+    if (v_has_refund and (v_key is distinct from 'refund' or v_type <> 'income'))
+       or (v_has_reimbursement and (v_key is distinct from 'reimbursement' or v_type <> 'income'))
+       or (v_key = 'refund' and not v_has_refund)
+       or (v_key = 'reimbursement' and not v_has_reimbursement)
+       or (v_key = 'special_income') then
+        raise exception 'income_link_category_invalid'
+            using errcode = '22023', detail = 'income_link_category_invalid';
+    end if;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."validate_income_system_category_link"("p_ledger_id" "uuid", "p_income_item_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."validate_ledger_basic_info"("p_name" "text", "p_base_currency" "text", "p_display_name" "text", "p_display_color" "text") RETURNS "void"
@@ -9321,11 +9687,13 @@ CREATE TABLE IF NOT EXISTS "public"."category" (
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     "updated_by" "uuid",
     "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "system_key" "text",
     CONSTRAINT "category_archive_check" CHECK (((("is_archived" = false) AND ("archived_at" IS NULL) AND ("archived_by" IS NULL)) OR (("is_archived" = true) AND ("archived_at" IS NOT NULL)))),
     CONSTRAINT "category_color_check" CHECK ((("color" IS NULL) OR ("color" ~ '^#[0-9A-Fa-f]{6}$'::"text"))),
     CONSTRAINT "category_icon_name_check" CHECK ((("icon_name" IS NULL) OR ("length"("icon_name") <= 100))),
     CONSTRAINT "category_name_check" CHECK ((("length"(TRIM(BOTH FROM "name")) >= 1) AND ("length"(TRIM(BOTH FROM "name")) <= 100))),
     CONSTRAINT "category_parent_not_self_check" CHECK ((("parent_id" IS NULL) OR ("parent_id" <> "id"))),
+    CONSTRAINT "category_system_key_check" CHECK (("system_key" = ANY (ARRAY['special_income'::"text", 'refund'::"text", 'reimbursement'::"text"]))),
     CONSTRAINT "category_type_check" CHECK (("type" = ANY (ARRAY['expense'::"text", 'income'::"text"])))
 );
 
@@ -9956,6 +10324,10 @@ CREATE INDEX "category_ledger_parent_idx" ON "public"."category" USING "btree" (
 
 
 
+CREATE UNIQUE INDEX "category_ledger_system_key_unique" ON "public"."category" USING "btree" ("ledger_id", "system_key") WHERE ("system_key" IS NOT NULL);
+
+
+
 CREATE INDEX "ledger_active_idx" ON "public"."ledger" USING "btree" ("id") WHERE ("is_archived" = false);
 
 
@@ -10172,6 +10544,10 @@ CREATE OR REPLACE TRIGGER "budget_validate_category" BEFORE INSERT OR UPDATE ON 
 
 
 
+CREATE OR REPLACE TRIGGER "category_guard_system" BEFORE INSERT OR DELETE OR UPDATE ON "public"."category" FOR EACH ROW EXECUTE FUNCTION "public"."guard_system_category"();
+
+
+
 CREATE OR REPLACE TRIGGER "category_prevent_used_type_change" BEFORE UPDATE OF "type" ON "public"."category" FOR EACH ROW EXECUTE FUNCTION "public"."prevent_used_category_type_change"();
 
 
@@ -10236,6 +10612,10 @@ CREATE OR REPLACE TRIGGER "ledger_set_updated_at" BEFORE UPDATE ON "public"."led
 
 
 
+CREATE OR REPLACE TRIGGER "ledger_system_categories_on_completion" AFTER UPDATE OF "setup_status" ON "public"."ledger" FOR EACH ROW WHEN ((("new"."setup_status" = 'completed'::"text") AND ("old"."setup_status" IS DISTINCT FROM "new"."setup_status"))) EXECUTE FUNCTION "public"."initialize_system_categories_after_setup"();
+
+
+
 CREATE OR REPLACE TRIGGER "ledger_validate_multi_account_payment_disable" BEFORE UPDATE OF "multi_account_payment_enabled" ON "public"."ledger" FOR EACH ROW EXECUTE FUNCTION "public"."prevent_disable_multi_account_payment_with_records"();
 
 
@@ -10276,11 +10656,23 @@ CREATE OR REPLACE TRIGGER "merchant_tags_require_management_permission" BEFORE I
 
 
 
+CREATE CONSTRAINT TRIGGER "refund_income_system_category_link" AFTER INSERT OR DELETE OR UPDATE ON "public"."transaction_item_refund_link" DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION "public"."check_income_system_category_link"();
+
+
+
+CREATE CONSTRAINT TRIGGER "reimbursement_income_system_category_link" AFTER INSERT OR DELETE OR UPDATE ON "public"."transaction_item_reimbursement_link" DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION "public"."check_income_system_category_link"();
+
+
+
 CREATE OR REPLACE TRIGGER "transaction_item_freeze_linked_mutation" BEFORE UPDATE OF "amount", "category_id" ON "public"."transaction_item" FOR EACH ROW EXECUTE FUNCTION "public"."validate_linked_transaction_item_mutation"();
 
 
 
 CREATE OR REPLACE TRIGGER "transaction_item_guard_balance_adjustment" BEFORE INSERT OR DELETE OR UPDATE ON "public"."transaction_item" FOR EACH ROW EXECUTE FUNCTION "public"."guard_balance_adjustment_item"();
+
+
+
+CREATE CONSTRAINT TRIGGER "transaction_item_income_system_category_link" AFTER INSERT OR UPDATE ON "public"."transaction_item" DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION "public"."check_income_system_category_link"();
 
 
 
@@ -11119,6 +11511,10 @@ REVOKE ALL ON FUNCTION "public"."calculate_transaction_item_remaining_offset_amo
 
 
 
+REVOKE ALL ON FUNCTION "public"."check_income_system_category_link"() FROM PUBLIC;
+
+
+
 REVOKE ALL ON FUNCTION "public"."clear_transaction_item_income_links"("p_ledger_id" "uuid", "p_income_item_id" "uuid", "p_user_id" "uuid") FROM PUBLIC;
 
 
@@ -11302,6 +11698,10 @@ REVOKE ALL ON FUNCTION "public"."guard_ledger_setup_state"() FROM PUBLIC;
 
 
 
+REVOKE ALL ON FUNCTION "public"."guard_system_category"() FROM PUBLIC;
+
+
+
 REVOKE ALL ON FUNCTION "public"."initialize_ledger_default_categories"("p_ledger_id" "uuid", "p_user_id" "uuid") FROM PUBLIC;
 
 
@@ -11311,6 +11711,14 @@ REVOKE ALL ON FUNCTION "public"."initialize_ledger_default_data"("p_ledger_id" "
 
 
 REVOKE ALL ON FUNCTION "public"."initialize_ledger_default_data_without_merchant_tags"("p_ledger_id" "uuid", "p_user_id" "uuid") FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."initialize_ledger_system_categories"("p_ledger_id" "uuid", "p_user_id" "uuid") FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."initialize_system_categories_after_setup"() FROM PUBLIC;
 
 
 
@@ -11545,6 +11953,10 @@ REVOKE ALL ON FUNCTION "public"."upsert_ledger_member_display_setting"("p_ledger
 
 
 REVOKE ALL ON FUNCTION "public"."validate_account_holder_active_member"() FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."validate_income_system_category_link"("p_ledger_id" "uuid", "p_income_item_id" "uuid") FROM PUBLIC;
 
 
 
