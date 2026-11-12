@@ -316,7 +316,7 @@ select is(
 );
 
 select lives_ok(
-    $
+    $$
         insert into public.transaction_item_reimbursement_link (
             ledger_id, target_expense_item_id,
             reimbursement_income_item_id, reimbursement_amount, created_by
@@ -327,7 +327,7 @@ select lives_ok(
             0,
             '00000000-0000-4000-8000-000000000031'
         )
-    $,
+    $$,
     '报销金额为零时允许建立待定关联'
 );
 
