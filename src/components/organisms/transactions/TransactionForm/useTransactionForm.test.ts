@@ -1187,7 +1187,11 @@ describe("useTransactionForm", () => {
       act(() => choose(refundCandidate));
       expect(result.current.selectedMerchantId).toBe("merchant-1");
       act(() =>
-        choose({ ...refundCandidate, id: "refund-item-2", merchantId: "merchant-2" }),
+        choose({
+          ...refundCandidate,
+          id: "refund-item-2",
+          merchantId: "merchant-2",
+        }),
       );
       expect(result.current.selectedMerchantId).toBe("merchant-2");
       expect(result.current.linkMerchantTouched).toBe(false);
