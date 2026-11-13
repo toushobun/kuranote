@@ -171,7 +171,12 @@ export function useTransactionForm({
       const target = item.refundCandidate ?? item.reimbursementCandidate;
       if (!target || category?.type !== "income") return { ...item, category };
 
-      const original = initialValues.items[item.id - 1];
+      const originalIndex = item.persistedId
+        ? initialValues.items.findIndex(
+            (entry) => entry.id === item.persistedId,
+          )
+        : -1;
+      const original = initialValues.items[originalIndex];
       const linksToTarget = (
         entry: Pick<
           TransactionFormItem,
@@ -184,9 +189,8 @@ export function useTransactionForm({
         .slice(0, index)
         .filter(linksToTarget);
       const originalEarlierItems = initialValues.items
-        .slice(0, item.id - 1)
+        .slice(0, Math.max(0, originalIndex))
         .filter(linksToTarget);
-      // 表单编号在初始化时按原明细顺序分配，新增明细使用后续编号。
       const unchanged =
         original?.amount === item.amount &&
         linksToTarget(original) &&

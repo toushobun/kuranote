@@ -571,7 +571,6 @@ with link_events as (
         link.ledger_id,
         link.refunded_item_id as target_id,
         link.refund_income_item_id as income_id,
-        'refund'::text as kind,
         link.refund_amount as amount,
         target_item.amount as target_amount,
         income_record.transaction_at,
@@ -600,7 +599,6 @@ with link_events as (
         link.ledger_id,
         link.target_expense_item_id,
         link.reimbursement_income_item_id,
-        'reimbursement'::text,
         link.reimbursement_amount,
         target_item.amount,
         income_record.transaction_at,
@@ -645,12 +643,19 @@ allocated_links as (
         ordered.ledger_id,
         ordered.target_id,
         ordered.income_id,
-        ordered.kind,
         least(
             ordered.amount,
             greatest(ordered.target_amount - ordered.prior_amount, 0::numeric)
         ) as applied_amount
     from ordered_links ordered
+), expense_offsets as (
+    select ledger_id, target_id, sum(applied_amount) as amount
+    from allocated_links
+    group by ledger_id, target_id
+), income_offsets as (
+    select ledger_id, income_id, sum(applied_amount) as amount
+    from allocated_links
+    group by ledger_id, income_id
 )
 select
     ti.*,
@@ -701,10 +706,8 @@ select
     ) as has_reimbursement_link,
     greatest(
         ti.amount
-        - coalesce(applied_expense_refunds.amount, 0::numeric)
-        - coalesce(applied_income_refunds.amount, 0::numeric)
-        - coalesce(applied_expense_reimbursements.amount, 0::numeric)
-        - coalesce(applied_income_reimbursements.amount, 0::numeric),
+        - coalesce(expense_offsets.amount, 0::numeric)
+        - coalesce(income_offsets.amount, 0::numeric),
         0::numeric
     ) as business_net_amount,
     coalesce(expense_reimbursements.reimbursed_amount, 0::numeric)
@@ -734,26 +737,12 @@ left join lateral (
      and income_record.status = 'active'
     where link.ledger_id = ti.ledger_id and link.target_expense_item_id = ti.id
 ) expense_reimbursements on true
-left join lateral (
-    select sum(link.applied_amount) as amount
-    from allocated_links link
-    where link.ledger_id = ti.ledger_id and link.target_id = ti.id and link.kind = 'refund'
-) applied_expense_refunds on true
-left join lateral (
-    select sum(link.applied_amount) as amount
-    from allocated_links link
-    where link.ledger_id = ti.ledger_id and link.income_id = ti.id and link.kind = 'refund'
-) applied_income_refunds on true
-left join lateral (
-    select sum(link.applied_amount) as amount
-    from allocated_links link
-    where link.ledger_id = ti.ledger_id and link.target_id = ti.id and link.kind = 'reimbursement'
-) applied_expense_reimbursements on true
-left join lateral (
-    select sum(link.applied_amount) as amount
-    from allocated_links link
-    where link.ledger_id = ti.ledger_id and link.income_id = ti.id and link.kind = 'reimbursement'
-) applied_income_reimbursements on true;
+left join expense_offsets
+  on expense_offsets.ledger_id = ti.ledger_id
+ and expense_offsets.target_id = ti.id
+left join income_offsets
+  on income_offsets.ledger_id = ti.ledger_id
+ and income_offsets.income_id = ti.id;
 
 -- PostgreSQL 枚举成员不能原地删除：旧值仍存在于枚举定义中，
 -- 但新写入 / 重算均不再产生 reimbursement_surplus。
