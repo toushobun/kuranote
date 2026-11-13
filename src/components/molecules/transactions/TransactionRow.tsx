@@ -75,7 +75,11 @@ export function TransactionRow({
       ? "账户周转"
       : (item.merchant_name ?? transactionFallbackLabels.merchant);
   const statisticsAdjustment = getStatisticsAdjustment(item);
+  const hasSurplusIncome = item.categoryItems.some(
+    (category) => Number(category.businessStatus?.surplusAmount ?? "0") > 0,
+  );
   const shouldDisplayOriginalAmount =
+    !hasSurplusIncome &&
     statisticsAdjustment?.kind === "partiallyOffset" &&
     item.originalAmount !== undefined;
   const displayedAmountType = shouldDisplayOriginalAmount
