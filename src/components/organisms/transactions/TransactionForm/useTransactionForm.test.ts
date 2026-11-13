@@ -1097,7 +1097,9 @@ describe("useTransactionForm", () => {
       expect(result.current.itemSummaries).toHaveLength(1);
       expect(result.current.itemSummaries[0]?.amount).toBe("300");
       expect(result.current.linkAffectedCandidates).toHaveLength(0);
-      expect(result.current.linkAffectedReimbursementCandidates).toHaveLength(0);
+      const reimbursementAffected =
+        result.current.linkAffectedReimbursementCandidates;
+      expect(reimbursementAffected).toHaveLength(0);
       expect(mocks.markEditDirty).toHaveBeenLastCalledWith(true);
     },
   );
