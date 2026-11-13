@@ -1,9 +1,9 @@
 import { TransactionStepFlow } from "organisms/transactions/TransactionStepFlow/TransactionStepFlow";
 import type { TransactionStepFlowProps } from "organisms/transactions/TransactionStepFlow/TransactionStepFlow.types";
 import { flowFixture } from "./mocks/transactionStepFlow";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactElement } from "react";
-import { vi } from "vitest";
+import { expect, vi } from "vitest";
 import { waitMerchantDrawerClosed } from "test/receiptCreation";
 import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
 
@@ -31,6 +31,16 @@ export function clickEntryButton(name: string) {
 }
 export function selectEntryAccount(name = "PayPay JPY") {
   fireEvent.click(screen.getByRole("radio", { name }));
+}
+
+export async function addEntryPaymentAccount(name = "PayPay JPY") {
+  clickEntryButton("添加付款账户");
+  await screen.findByRole("radio", { name });
+  selectEntryAccount(name);
+  await waitFor(() =>
+    expect(screen.queryByRole("radio", { name, hidden: true })).toBeNull(),
+  );
+  await screen.findByRole("button", { name: "更换支付账户 1" });
 }
 
 export function renderTransactionFlow(

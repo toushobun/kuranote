@@ -22,6 +22,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   renderTransactionFlow as setup,
   renderEntryComponent,
+  addEntryPaymentAccount,
   clickEntryButton as click,
   selectEntryAccount as selectAccount,
   selectEntryMerchant,
@@ -141,9 +142,13 @@ async function changeReceiptTime() {
   await waitFor(() => expect(screen.queryByLabelText(hourLabel)).toBeNull());
 }
 async function chooseCashPayment(firstPayment = false) {
-  click(firstPayment ? "添加付款账户" : "更换支付账户 1");
-  await screen.findByRole("radio", { name: "现金 JPY" });
-  selectAccount("现金 JPY");
+  if (firstPayment) {
+    await addEntryPaymentAccount("现金 JPY");
+  } else {
+    click("更换支付账户 1");
+    await screen.findByRole("radio", { name: "现金 JPY" });
+    selectAccount("现金 JPY");
+  }
   await waitFor(() =>
     expect(receiptLine("更换支付账户 1")).toHaveTextContent("现金"),
   );
@@ -223,6 +228,37 @@ describe("TransactionStepFlow", () => {
     click("关闭记账");
     await waitFor(() => expect(props.onClose).toHaveBeenCalledOnce());
     expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
+  });
+
+  it.each<[string, string, (() => Promise<void>)?]>([
+    ["只清空自动账户", "删除支付账户 1"],
+    ["只删除自动明细", "删除明细 1"],
+    [
+      "清空自动账户后选其他账户",
+      "删除支付账户 1",
+      () => chooseCashPayment(true),
+    ],
+    [
+      "清空自动账户后选回同一账户",
+      "删除支付账户 1",
+      () => addEntryPaymentAccount(),
+    ],
+    ["删除自动明细后新增明细", "删除明细 1", addLunchItem],
+  ])("%s时按手动修改情况提示未保存", async (_, deleteButton, edit) => {
+    const { props } = quickSetup();
+    await selectEntryMerchant("7-Eleven");
+    fireEvent.click(await screen.findByRole("button", { name: deleteButton }));
+    await edit?.();
+    click("关闭记账");
+    if (edit) {
+      expect(
+        await screen.findByRole("dialog", { name: "尚未保存" }),
+      ).toBeVisible();
+      expect(props.onClose).not.toHaveBeenCalled();
+    } else {
+      await waitFor(() => expect(props.onClose).toHaveBeenCalledOnce());
+      expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
+    }
   });
 
   it("添加付款账户再删除，内容虽回到原样，关闭时仍要确认", async () => {
@@ -671,6 +707,26 @@ describe("TransactionStepFlow 换商家", () => {
       expectAutomaticNotice(false);
     },
   );
+
+  it("只删除自动明细后换商家，仍保留剩余内容并跳过新商家建议", async () => {
+    const { props, rerender } = quickSetup();
+    await selectEntryMerchant("7-Eleven");
+    click("删除明细 1");
+    await selectEntryMerchant("LIFE超市", "7-Eleven");
+    rerender(
+      <TransactionStepFlow
+        {...props}
+        suggestionsMerchantId="life"
+        suggestions={lifeSuggestions}
+      />,
+    );
+    expectSuggestionsLoadingRows(false);
+    expect(screen.getByText("咖啡")).toBeInTheDocument();
+    expect(screen.queryByText("收纳")).toBeNull();
+    expect(receiptLine("更换支付账户 1")).toHaveTextContent("PayPay");
+    click("关闭记账");
+    await waitFor(() => expect(props.onClose).toHaveBeenCalledOnce());
+  });
 
   it("重新选同一个商家时明细不变", async () => {
     const { props, rerender } = quickSetup();

@@ -14,7 +14,10 @@ import {
   ReceiptCreationTestProviders,
   submitReceiptCreation,
 } from "test/receiptCreation";
-import { selectEntryMerchant } from "test/transactionStepFlow";
+import {
+  addEntryPaymentAccount,
+  selectEntryMerchant,
+} from "test/transactionStepFlow";
 import {
   expectNoPaymentRow,
   expectSuggestionsLoadingRows,
@@ -386,6 +389,41 @@ describe("NewTransactionStepFlow", () => {
       screen.getByRole("button", { name: "更换转出账户：现金" }),
     ).toBeVisible();
   });
+
+  it.each([false, true])(
+    "只删自动内容后切换方式，手动选回账户时才提醒（重选：%s）",
+    async (reselect) => {
+      setup();
+      await selectEntryMerchant(/^7-Eleven/);
+      respond("merchantId=seven", {
+        ...emptySuggestions,
+        automaticCategoryIds: ["lunch"],
+        recommendedAccountIds: ["paypay"],
+      });
+      fireEvent.click(
+        await screen.findByRole("button", { name: "删除支付账户 1" }),
+      );
+      click("删除明细 1");
+      await switchMethod("账户周转");
+      await switchMethod("从商家记账");
+      expectNoPaymentRow();
+      expect(screen.queryByRole("button", { name: "删除明细 1" })).toBeNull();
+      if (reselect) {
+        await addEntryPaymentAccount();
+      }
+      await switchMethod("账户周转");
+      click("关闭记账");
+      if (reselect) {
+        await screen.findByRole("dialog", { name: "尚未保存" });
+        expect(router.push).not.toHaveBeenCalled();
+      } else {
+        await waitFor(() =>
+          expect(router.push).toHaveBeenCalledWith("/transactions"),
+        );
+        expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
+      }
+    },
+  );
 
   it("保存并退出只提交当前方式的表单", async () => {
     const action = vi.fn(async (_: unknown, data: FormData) => {
