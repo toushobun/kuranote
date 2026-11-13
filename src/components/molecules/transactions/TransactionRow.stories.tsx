@@ -675,18 +675,23 @@ export const FullyRefundedExpense1078: Story = {
       ...expenseItem,
       amount: "0",
       originalAmount: "980",
-      categoryItems: [{
-        amount: "980",
-        businessNetAmount: "0",
-        categoryName: "采购",
-        categoryType: "expense",
-        parentCategoryName: "日常",
-        businessStatus: {
-          incomeLinkRole: null,
-          offsetComposition: { refundAmount: "980", reimbursementAmount: "0" },
-          settlementStatus: null,
+      categoryItems: [
+        {
+          amount: "980",
+          businessNetAmount: "0",
+          categoryName: "采购",
+          categoryType: "expense",
+          parentCategoryName: "日常",
+          businessStatus: {
+            incomeLinkRole: null,
+            offsetComposition: {
+              refundAmount: "980",
+              reimbursementAmount: "0",
+            },
+            settlementStatus: null,
+          },
         },
-      }],
+      ],
     },
   },
 };
@@ -698,19 +703,21 @@ export const RefundSurplusIncome1078: Story = {
       ...incomeItem,
       amount: "1000",
       originalAmount: "1980",
-      categoryItems: [{
-        amount: "1980",
-        businessNetAmount: "1000",
-        categoryName: "退款",
-        categoryType: "income",
-        parentCategoryName: "特殊收入",
-        businessStatus: {
-          incomeLinkRole: "refund",
-          offsetComposition: { refundAmount: "0", reimbursementAmount: "0" },
-          settlementStatus: null,
-          surplusAmount: "1000",
+      categoryItems: [
+        {
+          amount: "1980",
+          businessNetAmount: "1000",
+          categoryName: "退款",
+          categoryType: "income",
+          parentCategoryName: "特殊收入",
+          businessStatus: {
+            incomeLinkRole: "refund",
+            offsetComposition: { refundAmount: "0", reimbursementAmount: "0" },
+            settlementStatus: null,
+            surplusAmount: "1000",
+          },
         },
-      }],
+      ],
     },
   },
 };

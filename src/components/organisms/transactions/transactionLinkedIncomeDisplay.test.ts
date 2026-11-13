@@ -3,7 +3,6 @@ import { getLinkedIncomeDisplayAmounts } from "./transactionLinkedIncomeDisplay"
 
 const target = {
   id: "expense-1",
-  remainingRefundableAmount: "980",
 } as const;
 
 describe("getLinkedIncomeDisplayAmounts", () => {

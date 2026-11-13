@@ -169,8 +169,8 @@ select is(
 select is(
     (select special_status from public.transaction_item
      where id = '57451000-0000-4000-8000-000000000002'),
-    'reimbursement_surplus'::public.transaction_item_special_status,
-    '删除前超额核销母项处于核销结余状态'
+    'reimbursed'::public.transaction_item_special_status,
+    '删除前超额核销母项处于已结清状态'
 );
 select is(
     (select count(*) from public.transaction_item_refund_link

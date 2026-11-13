@@ -338,7 +338,7 @@ describe("useTransactionForm", () => {
     ).toBe("200");
   });
 
-  it("新增超额退款收入时完整核销且业务净额为零", () => {
+  it("新增超额退款时只将超过剩余额度的部分计入收入", () => {
     const { result } = renderTransactionFormHook();
 
     act(() => {
@@ -359,16 +359,16 @@ describe("useTransactionForm", () => {
 
     expect(result.current.itemSummaries[0]).toMatchObject({
       amount: "1500",
-      businessNetAmount: "0",
+      businessNetAmount: "500",
     });
   });
 
   it.each([
     ["600", "0"],
     ["1000", "0"],
-    ["1500", "0"],
+    ["1500", "500"],
   ])(
-    "报销收入金额为 %s 时完整核销且业务净额为零",
+    "报销收入金额为 %s 时只将超出额计入收入",
     (incomeAmount, expectedBusinessNetAmount) => {
       const { result } = renderTransactionFormHook();
 
@@ -471,17 +471,18 @@ describe("useTransactionForm", () => {
     });
   });
 
-  it("修改含退款和报销的支出金额时保留全部核销量", () => {
+  it("修改已结清的支出金额时净额最低为零", () => {
     const { result } = renderTransactionFormHook({
       initialValues: {
         payments: [{ accountId: "account-1", amount: null }],
         items: [
           {
             amount: "4000",
-            businessNetAmount: "-1000",
+            businessNetAmount: "0",
             categoryId: "expense-child",
             refundedAmount: "2000",
-            specialStatus: "reimbursementSurplus",
+            reimbursementAmount: "3000",
+            specialStatus: "reimbursed",
           },
         ],
         merchantId: "merchant-1",
@@ -491,9 +492,9 @@ describe("useTransactionForm", () => {
       },
     });
 
-    act(() => result.current.updateItem(1, { amount: "4500" }));
+    act(() => result.current.updateItem(1, { amount: "3500" }));
 
-    expect(result.current.itemSummaries[0]?.businessNetAmount).toBe("-500");
+    expect(result.current.itemSummaries[0]?.businessNetAmount).toBe("0");
   });
 
   it("通过明细选择器保存部分退款支出时保留业务净额", () => {

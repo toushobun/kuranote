@@ -204,6 +204,36 @@ describe("TransactionConfirmStep", () => {
     ).toHaveStyle({ color: "var(--user-theme-income-amount)" });
   });
 
+  it("超额退款的小票显示明细抵消额、倒赚和净额构成", async () => {
+    await renderConfirmFlow({
+      itemsOptions: {
+        ...receiptItemsOptions,
+        initialItems: [
+          {
+            amount: "1980",
+            businessNetAmount: "1000",
+            categoryId: "points",
+            businessStatus: {
+              incomeLinkRole: "refund",
+              offsetComposition: {
+                refundAmount: "0",
+                reimbursementAmount: "0",
+              },
+              settlementStatus: null,
+            },
+          },
+        ],
+      },
+    });
+    expect(screen.getByText("抵消原支出 ¥980")).toBeVisible();
+    expect(
+      screen.getByText("倒赚 ¥1,000", { selector: ".MuiChip-label" }),
+    ).toBeVisible();
+    expect(screen.getByText("净额").nextElementSibling).toHaveTextContent(
+      "+ ¥1,000退款 ¥1,980 · 抵消支出 ¥980 · 倒赚 ¥1,000",
+    );
+  });
+
   it("被其他记录退款 / 报销时合计显示净额，下方列出已退款与已报销，支付金额仍为原金额", async () => {
     await renderConfirmFlow({
       itemsOptions: {

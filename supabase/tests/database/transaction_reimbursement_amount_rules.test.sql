@@ -140,8 +140,8 @@ select is(
         from public.transaction_item
         where id = '59860000-0000-4000-8000-000000000001'
     ),
-    'reimbursement_surplus'::public.transaction_item_special_status,
-    '累计核销超过原始金额后目标支出进入核销结余状态'
+    'reimbursed'::public.transaction_item_special_status,
+    '累计核销超过原始金额后目标支出进入已结清状态'
 );
 
 select lives_ok(

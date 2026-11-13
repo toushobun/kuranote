@@ -176,19 +176,24 @@ export const RefundSurplusReceipt1078: Story = {
     initialValues: {
       ...initialValues,
       type: "income",
-      items: [{
-        amount: "1980",
-        businessNetAmount: "1000",
-        businessStatus: {
-          incomeLinkRole: "refund",
-          offsetComposition: { refundAmount: "0", reimbursementAmount: "0" },
-          settlementStatus: null,
-          surplusAmount: "1000",
+      items: [
+        {
+          amount: "1980",
+          businessNetAmount: "1000",
+          businessStatus: {
+            incomeLinkRole: "refund",
+            offsetComposition: { refundAmount: "0", reimbursementAmount: "0" },
+            settlementStatus: null,
+            surplusAmount: "1000",
+          },
+          categoryId: "refund-system",
+          refundCandidate: {
+            ...selectedCandidate,
+            remainingRefundableAmount: "980",
+          },
+          specialStatus: null,
         },
-        categoryId: "refund-system",
-        refundCandidate: { ...selectedCandidate, remainingRefundableAmount: "980" },
-        specialStatus: null,
-      }],
+      ],
     },
   },
 };

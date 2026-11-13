@@ -69,6 +69,10 @@ describe("transactionStepFlowFormat", () => {
       refundedTotal: 0,
       reimbursedTotal: 0,
       hasBusinessOffset: false,
+      linkedRefundTotal: 0,
+      linkedReimbursementTotal: 0,
+      linkedOffsetTotal: 0,
+      linkedSurplusTotal: 0,
     });
   });
 
@@ -99,22 +103,24 @@ describe("transactionStepFlowFormat", () => {
     });
   });
 
-  it("核销超过原金额（结余）时业务金额为负，净额随之变为收入", () => {
+  it("退款超过原支出时小票净收入只包含超出额", () => {
     const totals = summarizeStepReceiptTotals([
       {
-        amount: "1000",
-        businessNetAmount: "-200",
-        category: lunch,
-        refundedAmount: "1200",
+        amount: "1200",
+        businessNetAmount: "200",
+        category: { ...lunch, type: "income" },
+        businessStatus: {
+          incomeLinkRole: "refund",
+          offsetComposition: { refundAmount: "0", reimbursementAmount: "0" },
+          settlementStatus: null,
+        },
       },
     ]);
-    expect(totals.businessExpenseTotal).toBe(-200);
-    expect(
-      formatStepNetTotal(
-        totals.businessExpenseTotal,
-        totals.businessIncomeTotal,
-        "JPY",
-      ),
-    ).toBe("+ ¥200");
+    expect(totals).toMatchObject({
+      linkedRefundTotal: 1200,
+      linkedOffsetTotal: 1000,
+      linkedSurplusTotal: 200,
+      businessIncomeTotal: 200,
+    });
   });
 });

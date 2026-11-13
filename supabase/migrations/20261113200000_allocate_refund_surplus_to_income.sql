@@ -444,6 +444,124 @@ end;
 $$;
 
 
+CREATE OR REPLACE FUNCTION "public"."enforce_transaction_child_permission"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+    v_old_ledger_id uuid;
+    v_old_record_id uuid;
+    v_new_ledger_id uuid;
+    v_new_record_id uuid;
+    v_is_link_edit_flow boolean := false;
+    v_is_link_derived_touch boolean := false;
+    v_remaining_amount numeric;
+    v_expected_special_status public.transaction_item_special_status;
+    v_special_status_is_derived boolean := false;
+begin
+    if tg_op = 'DELETE' and public.ledger_deletion_allows_delete(old.ledger_id) then
+        return old;
+    end if;
+    if auth.uid() is null then
+        if tg_op = 'DELETE' then
+            return old;
+        end if;
+        return new;
+    end if;
+
+    if tg_table_name = 'transaction_item' and tg_op = 'UPDATE' then
+        v_is_link_edit_flow :=
+            current_setting('kuranote.income_link_edit_flow', true)
+                is not distinct from 'on'
+            or current_setting('kuranote.reimbursement_link_flow', true)
+                is not distinct from 'on';
+
+        -- special_status 非 NULL 的目标已经处于报销流程。受控关联写入如果需要改变
+        -- 结清状态，只接受与当前有效核销合计重新计算结果完全一致的值；NULL -> pending
+        -- 仍然属于用户主动开启待报销标记，不在这个权限例外内。
+        if v_is_link_edit_flow
+           and old.special_status is not null
+           and new.special_status is not null then
+            v_remaining_amount :=
+                public.calculate_transaction_item_remaining_offset_amount(
+                    new.ledger_id,
+                    new.id
+                );
+
+            if v_remaining_amount is not null then
+                v_expected_special_status := case
+                    when v_remaining_amount > 0
+                    then 'pending_reimbursement'::public.transaction_item_special_status
+                    else 'reimbursed'::public.transaction_item_special_status
+                end;
+                v_special_status_is_derived :=
+                    new.special_status is not distinct from v_expected_special_status;
+            end if;
+        end if;
+
+        v_is_link_derived_touch :=
+            v_is_link_edit_flow
+            and old.id is not distinct from new.id
+            and old.ledger_id is not distinct from new.ledger_id
+            and old.transaction_record_id is not distinct from new.transaction_record_id
+            and old.account_id is not distinct from new.account_id
+            and old.category_id is not distinct from new.category_id
+            and old.amount is not distinct from new.amount
+            and old.discount_amount is not distinct from new.discount_amount
+            and old.balance_delta is not distinct from new.balance_delta
+            and old.note is not distinct from new.note
+            and old.sort_order is not distinct from new.sort_order
+            and old.created_by is not distinct from new.created_by
+            and old.created_at is not distinct from new.created_at
+            and (
+                (
+                    old.special_status is null
+                    and new.special_status is null
+                )
+                or v_special_status_is_derived
+            )
+            and (
+                new.updated_by is not distinct from old.updated_by
+                or new.updated_by is not distinct from auth.uid()
+            );
+
+        if v_is_link_derived_touch
+           and public.current_user_can_write_ledger(old.ledger_id) then
+            return new;
+        end if;
+    end if;
+
+    if tg_op <> 'INSERT' then
+        v_old_ledger_id := old.ledger_id;
+        v_old_record_id := old.transaction_record_id;
+
+        if not public.current_user_can_mutate_transaction(
+            v_old_ledger_id,
+            v_old_record_id
+        ) then
+            raise exception 'permission_denied' using errcode = '42501';
+        end if;
+    end if;
+
+    if tg_op <> 'DELETE' then
+        v_new_ledger_id := new.ledger_id;
+        v_new_record_id := new.transaction_record_id;
+
+        if not public.current_user_can_mutate_transaction(
+            v_new_ledger_id,
+            v_new_record_id
+        ) then
+            raise exception 'permission_denied' using errcode = '42501';
+        end if;
+    end if;
+
+    if tg_op = 'DELETE' then
+        return old;
+    end if;
+    return new;
+end;
+$$;
+
 create or replace view public.transaction_item_with_refund
 with (security_invoker = true)
 as

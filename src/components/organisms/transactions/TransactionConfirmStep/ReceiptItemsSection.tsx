@@ -117,10 +117,13 @@ export function ReceiptItemsSection({
                 />
               )}
               {isLinkedIncome && Number(item.amount) > 0 && (
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant="caption" color="textSecondary">
                   {offsetAmount > 0
                     ? m.receiptOffset(
-                        formatStepCurrencyAmount(String(offsetAmount), currency),
+                        formatStepCurrencyAmount(
+                          String(offsetAmount),
+                          currency,
+                        ),
                       )
                     : m.receiptSettled}
                 </Typography>
@@ -135,13 +138,23 @@ export function ReceiptItemsSection({
         }
         amount={
           surplusAmount > 0 ? (
-            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 0.25 }}>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-end",
+                gap: 0.25,
+              }}
+            >
               {amountNode}
               <TransactionBusinessBadge
                 currency={currency}
                 status={{
                   incomeLinkRole: null,
-                  offsetComposition: { refundAmount: "0", reimbursementAmount: "0" },
+                  offsetComposition: {
+                    refundAmount: "0",
+                    reimbursementAmount: "0",
+                  },
                   settlementStatus: null,
                   surplusAmount: String(surplusAmount),
                 }}

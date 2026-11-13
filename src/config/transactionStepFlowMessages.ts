@@ -196,3 +196,12 @@ export const transactionLinkCandidateMessages = {
   offsetLabel: (kind: "refund" | "reimbursement", amount: string) =>
     `${kind === "refund" ? "已退" : "已报"} ${amount}`,
 } as const;
+
+export const linkedTransactionSyncMessages = {
+  retarget: (kind: "refund" | "reimbursement", before: string, after: string) =>
+    `${kind === "refund" ? "退款" : "报销"}原支出：${before} → ${after}`,
+  fallbackTarget: "新选原支出",
+  surplusChange: (before: string, after: string) => `倒赚 ${before} → ${after}`,
+  retargetDetails:
+    "同步修改后会按时间顺序重新计算旧支出与新支出的抵消额和结清状态。超出部分计入对应的退款或报销收入。取消不会保存任何修改。",
+};

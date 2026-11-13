@@ -233,8 +233,8 @@ select is(
           on income_item.id = link.refund_income_item_id
         where link.refund_income_item_id = '57242000-0000-4000-8000-000000000002'
     ),
-    '500.00/0.00',
-    '编辑后的单目标关联解除目标余额封顶并完整核销收入'
+    '500.00/200.00',
+    '编辑后的关联保留全额，超出部分计入收入'
 );
 
 select lives_ok(

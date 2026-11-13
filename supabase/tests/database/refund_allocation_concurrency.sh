@@ -83,7 +83,7 @@ read -r ledger_id account_id expense_record_id expense_category_id income_record
     join public.ledger l on l.id = e.ledger_id
     join lateral (
       select candidate.* from public.transaction_item candidate
-      join public.category category on category.id = candidate.category_id and category.ledger_id = candidate.ledger_id and category.type = 'income'
+      join public.category category on category.id = candidate.category_id and category.ledger_id = candidate.ledger_id and category.type = 'income' and category.system_key is null
       join public.transaction_record record on record.id = candidate.transaction_record_id and record.ledger_id = candidate.ledger_id and record.status = 'active'
       where candidate.ledger_id = e.ledger_id limit 1
     ) i on true
@@ -213,11 +213,11 @@ if [[ "${result}" != "2/120.00" ]]; then
   exit 1
 fi
 income_b_net="$(psql_in_db -A -t -c "select to_char(business_net_amount, 'FM999999990.00') from public.transaction_item_with_refund where id = '${income_b_id}';" | tr -d '\r')"
-if [[ "${income_b_net}" != "0.00" ]]; then
-  echo "第二笔退款应完整核销 60.00 且不保留净收益，实际净收益为 ${income_b_net}" >&2
+if [[ "${income_b_net}" != "20.00" ]]; then
+  echo "第二笔退款应保留 20.00 的超出额，实际净收益为 ${income_b_net}" >&2
   exit 1
 fi
-echo "ok - 两笔并发退款均完整核销，最终核销 120.00"
+echo "ok - 两笔并发退款均保留全额关联，第二笔计入超出额"
 
 # 正式退款 RPC 与正式报销 RPC 同时竞争同一待报销目标，验证真实入口会串行完成两个完整关联。
 psql_in_db > /tmp/refund-reimbursement-a.log 2>&1 <<SQL &
@@ -320,14 +320,14 @@ read -r mixed_refund_amount mixed_reimbursement_amount mixed_remaining mixed_sta
 if [[ "${mixed_refund_amount}" != "60.00" \
    || "${mixed_reimbursement_amount}" != "60.00" \
    || "${mixed_remaining}" != "-20.00" \
-   || "${mixed_status}" != "reimbursement_surplus" \
-   || "${mixed_target_net}" != "-20.00" \
+   || "${mixed_status}" != "reimbursed" \
+   || "${mixed_target_net}" != "0.00" \
    || "${mixed_refund_net}" != "0.00" \
-   || "${mixed_reimbursement_net}" != "0.00" ]]; then
+   || "${mixed_reimbursement_net}" != "20.00" ]]; then
   echo "正式退款/报销并发结果异常：refund=${mixed_refund_amount}, reimbursement=${mixed_reimbursement_amount}, remaining=${mixed_remaining}, status=${mixed_status}, targetNet=${mixed_target_net}, refundNet=${mixed_refund_net}, reimbursementNet=${mixed_reimbursement_net}" >&2
   exit 1
 fi
-echo "ok - 正式退款与报销 RPC 并发后均完整核销并进入核销结余状态"
+echo "ok - 正式退款与报销 RPC 并发后均保留全额关联，原支出已结清"
 
 # 正常成功路径必须严格验证 fixture 清理与账本开关恢复；异常退出才由 trap 做 best-effort 清理。
 restore_fixture >/dev/null

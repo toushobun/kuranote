@@ -166,10 +166,44 @@ export function useTransactionForm({
     (merchant) => merchant.id === selectedMerchantId,
   );
   const itemSummaries: TransactionItemSummary[] = allDisplayItems.map(
-    (item) => ({
-      ...item,
-      category: categoryById.get(item.categoryId),
-    }),
+    (item, index) => {
+      const category = categoryById.get(item.categoryId);
+      const target = item.refundCandidate ?? item.reimbursementCandidate;
+      const original = initialValues.items?.find(
+        (initial) => initial.id && initial.id === item.persistedId,
+      );
+      if (!target || category?.type !== "income") return { ...item, category };
+
+      const earlierItems = allDisplayItems.slice(0, index);
+      const available = adjustLinkCandidate(
+        target,
+        earlierItems,
+        initialValues.items,
+      );
+      // 未改动的已保存明细沿用数据库的排序结果，包括同一目标的其他记录。
+      const unchanged =
+        original?.amount === item.amount &&
+        (original.refundCandidate ?? original.reimbursementCandidate)?.id ===
+          target.id &&
+        earlierItems.every(
+          (earlier, i) =>
+            earlier.amount === initialValues.items[i]?.amount &&
+            earlier.refundCandidate?.id ===
+              initialValues.items[i]?.refundCandidate?.id &&
+            earlier.reimbursementCandidate?.id ===
+              initialValues.items[i]?.reimbursementCandidate?.id,
+        );
+      return {
+        ...item,
+        category,
+        businessNetAmount: unchanged
+          ? (original.businessNetAmount ?? original.amount)
+          : summarizeRefundAllocationAmounts(
+              item.amount,
+              available.remainingRefundableAmount,
+            )?.netIncomeAmount,
+      };
+    },
   );
   const multiAccountItemType = getMultiAccountItemType(
     itemSummaries.map(({ category }) => ({
@@ -1048,6 +1082,16 @@ function getUpdatedItemBusinessNetAmount(
     );
   }
   const amountUnits = toRefundMinorUnits(item.amount);
+  const refundedUnits =
+    toRefundMinorUnits(item.refundedAmount ?? "0") ?? BigInt(0);
+  const reimbursedUnits =
+    toRefundMinorUnits(item.reimbursementAmount ?? "0") ?? BigInt(0);
+  if (amountUnits !== null && refundedUnits + reimbursedUnits > BigInt(0)) {
+    const remaining = amountUnits - refundedUnits - reimbursedUnits;
+    return formatRefundMinorUnits(
+      remaining > BigInt(0) ? remaining : BigInt(0),
+    );
+  }
   const previousAmountUnits = toRefundMinorUnits(previousAmount);
   const businessNetAmountUnits =
     item.businessNetAmount === undefined
@@ -1062,9 +1106,8 @@ function getUpdatedItemBusinessNetAmount(
     return undefined;
   }
 
-  return formatRefundMinorUnits(
-    businessNetAmountUnits + amountUnits - previousAmountUnits,
-  );
+  const remaining = businessNetAmountUnits + amountUnits - previousAmountUnits;
+  return formatRefundMinorUnits(remaining > BigInt(0) ? remaining : BigInt(0));
 }
 
 function withUpdatedItemBusinessNetAmount(

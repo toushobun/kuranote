@@ -2,12 +2,11 @@ import type { TransactionItemSummary } from "./TransactionForm/TransactionForm.t
 
 type LinkedIncomeDisplayItem = Pick<
   TransactionItemSummary,
-  | "amount"
-  | "businessNetAmount"
-  | "businessStatus"
-  | "refundCandidate"
-  | "reimbursementCandidate"
->;
+  "amount" | "businessNetAmount" | "businessStatus"
+> & {
+  refundCandidate?: { id: string } | null;
+  reimbursementCandidate?: { id: string } | null;
+};
 
 /** 小票与合计共用：原支出只能抵到零，剩余金额属于本次退款 / 报销收入。 */
 export function getLinkedIncomeDisplayAmounts(item: LinkedIncomeDisplayItem) {

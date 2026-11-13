@@ -188,8 +188,8 @@ select is(
 
 select is(
     (select business_net_amount from public.transaction_item_with_refund where id = '57310000-0000-4000-8000-000000000002'),
-    -50::numeric,
-    '同一支出多次退款超过原金额后保留负数业务净额'
+    0::numeric,
+    '多次退款后原支出净额为零'
 );
 
 select is(
@@ -208,8 +208,8 @@ select is(
 
 select is(
     (select business_net_amount from public.transaction_item_with_refund where id = '57310000-0000-4000-8000-000000000005'),
-    0::numeric,
-    '完全分配的第二笔退款收入业务净额为零'
+    50::numeric,
+    '第二笔退款的超出额计入收入'
 );
 
 select is(

@@ -333,7 +333,7 @@ function getBusinessStatuses(
   let settlementStatus: TransactionBusinessStatus["settlementStatus"] = null;
   let refundAmount = 0;
   let reimbursementAmount = 0;
-  const surplusByRole = { refund: 0, reimbursement: 0 };
+  let surplusAmount = 0;
   const incomeLinkRoles = new Set<
     NonNullable<TransactionBusinessStatus["incomeLinkRole"]>
   >();
@@ -355,9 +355,7 @@ function getBusinessStatuses(
     reimbursementAmount += Number(status.offsetComposition.reimbursementAmount);
     if (status.incomeLinkRole) {
       incomeLinkRoles.add(status.incomeLinkRole);
-      surplusByRole[status.incomeLinkRole] += Number(
-        status.surplusAmount ?? "0",
-      );
+      surplusAmount += Number(status.surplusAmount ?? "0");
     }
   }
 
@@ -400,10 +398,11 @@ function getBusinessStatuses(
         incomeLinkRole,
         offsetComposition: { refundAmount: "0", reimbursementAmount: "0" },
         settlementStatus: null,
-        surplusAmount: normalizeAggregatedAmount(
-          surplusByRole[incomeLinkRole],
-          currency,
-        ),
+        surplusAmount: statuses.some(
+          ({ status }) => Number(status.surplusAmount) > 0,
+        )
+          ? undefined
+          : normalizeAggregatedAmount(surplusAmount, currency),
       },
     });
   }
