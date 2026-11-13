@@ -225,10 +225,16 @@ describe("TransactionConfirmStep", () => {
         ],
       },
     });
-    expect(screen.getByText("抵消原支出 ¥980")).toBeVisible();
+    const offset = screen.getByText("抵消原支出 ¥980");
+    const surplus = screen.getByText("倒赚 ¥1,000", {
+      selector: ".MuiChip-label",
+    });
+    expect(offset).toBeVisible();
+    expect(surplus).toBeVisible();
+    expect(offset.closest("[data-receipt-subline]")).toContainElement(surplus);
     expect(
-      screen.getByText("倒赚 ¥1,000", { selector: ".MuiChip-label" }),
-    ).toBeVisible();
+      screen.getByRole("button", { name: "修改明细 1 金额：+ ¥1,980" }),
+    ).not.toContainElement(surplus);
     expect(screen.getByText("净额").nextElementSibling).toHaveTextContent(
       "+ ¥1,000退款 ¥1,980 · 抵消支出 ¥980 · 倒赚 ¥1,000",
     );

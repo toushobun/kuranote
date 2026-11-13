@@ -136,34 +136,23 @@ export function ReceiptItemsSection({
             </>
           )
         }
-        amount={
-          surplusAmount > 0 ? (
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "flex-end",
-                gap: 0.25,
+        sublineEnd={
+          surplusAmount > 0 && (
+            <TransactionBusinessBadge
+              currency={currency}
+              status={{
+                incomeLinkRole: null,
+                offsetComposition: {
+                  refundAmount: "0",
+                  reimbursementAmount: "0",
+                },
+                settlementStatus: null,
+                surplusAmount: String(surplusAmount),
               }}
-            >
-              {amountNode}
-              <TransactionBusinessBadge
-                currency={currency}
-                status={{
-                  incomeLinkRole: null,
-                  offsetComposition: {
-                    refundAmount: "0",
-                    reimbursementAmount: "0",
-                  },
-                  settlementStatus: null,
-                  surplusAmount: String(surplusAmount),
-                }}
-              />
-            </Box>
-          ) : (
-            amountNode
+            />
           )
         }
+        amount={amountNode}
         {...(!readOnly && {
           editLabel: m.editItem(index + 1),
           onEdit: () => form.openItemSheet(item.id),
