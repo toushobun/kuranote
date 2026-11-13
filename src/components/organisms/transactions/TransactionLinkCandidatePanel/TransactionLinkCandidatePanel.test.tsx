@@ -186,4 +186,92 @@ describe("TransactionLinkCandidatePanel", () => {
       expect.objectContaining({ offset: 1 }),
     );
   });
+
+  it("默认隐藏已结清候选，展开时才额外请求，仍可以选中", async () => {
+    const loadPage = vi.fn(loadCandidatePage);
+    renderPanel({ loadPageAction: loadPage });
+    await screen.findByText("USB-C 充电器");
+    expect(screen.queryByText("外套")).not.toBeInTheDocument();
+    expect(loadPage).toHaveBeenCalledTimes(1);
+    fireEvent.click(
+      screen.getByRole("button", { name: "已结清的支出（1 笔）" }),
+    );
+    await screen.findByText("外套");
+    expect(loadPage).toHaveBeenCalledTimes(2);
+    expect(loadPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ offset: 0, settled: true }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "选择退款明细 外套" }),
+    );
+    expect(
+      screen.getByRole("button", { name: "选择退款明细 外套" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(
+      screen.getByRole("button", { name: "已结清的支出（1 笔）" }),
+    );
+    expect(loadPage).toHaveBeenCalledTimes(2);
+  });
+
+  it("搜索结果也将结清候选单独折叠", async () => {
+    const loadPage = vi.fn(loadCandidatePage);
+    renderPanel({ loadPageAction: loadPage });
+    await screen.findByText("USB-C 充电器");
+    fireEvent.change(screen.getByRole("textbox", { name: "搜索原支出" }), {
+      target: { value: "外套" },
+    });
+    await screen.findByRole("button", { name: "已结清的支出（1 笔）" });
+    expect(screen.queryByText("外套")).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "已结清的支出（1 笔）" }),
+    );
+    await screen.findByText("外套");
+    expect(loadPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ query: "外套", settled: true }),
+    );
+  });
+
+  it("商家只有已结清原支出时不回退到全部商家", async () => {
+    const loadPage = vi.fn(loadCandidatePage);
+    renderPanel({ loadPageAction: loadPage, merchantId: "amazon" });
+    await screen.findByRole("button", { name: "已结清的支出（1 笔）" });
+    expect(loadPage).toHaveBeenCalledTimes(1);
+  });
+
+  it("小票未保存的核销变化可把服务端已结清候选提升到未结清列表", async () => {
+    const candidate = candidateItems[3];
+    renderPanel({
+      linkAffectedCandidates: [candidate],
+      resolveLinkCandidate: (item) =>
+        item.id === candidate.id
+          ? { ...item, remainingRefundableAmount: "200" }
+          : item,
+    });
+    await screen.findByText("外套");
+    expect(
+      screen.getByRole("button", { name: "选择退款明细 外套" }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("button", { name: /已结清的支出/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("小票未保存的核销可将原本有剩余的候选移入折叠并调整数量", async () => {
+    const candidate = candidateItems[0];
+    renderPanel({
+      linkAffectedCandidates: [candidate],
+      resolveLinkCandidate: (item) =>
+        item.id === candidate.id
+          ? { ...item, refundedAmount: item.amount, remainingRefundableAmount: "0" }
+          : item,
+    });
+    await screen.findByText("收纳盒");
+    expect(
+      screen.queryByRole("button", { name: "选择退款明细 USB-C 充电器" }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "已结清的支出（2 笔）" }),
+    );
+    await screen.findByText("USB-C 充电器");
+  });
 });
