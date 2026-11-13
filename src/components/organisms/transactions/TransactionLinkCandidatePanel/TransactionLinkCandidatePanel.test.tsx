@@ -210,7 +210,10 @@ describe("TransactionLinkCandidatePanel", () => {
       const selected = screen.getByRole("button", { name });
       expect(selected).toHaveAttribute("aria-pressed", "true");
     });
-    toggleSettled(1);
+    // 已选的结清原支出置顶后，不再计入折叠数量。
+    expect(
+      screen.queryByRole("button", { name: "已结清的支出（1 笔）" }),
+    ).not.toBeInTheDocument();
     expect(loadPage).toHaveBeenCalledTimes(2);
   });
 
