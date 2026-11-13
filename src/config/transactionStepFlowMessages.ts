@@ -54,6 +54,8 @@ export const flowMessages = {
     refund: "退款",
     reimbursement: "报销",
   },
+  receiptOffset: (amount: string) => `抵消原支出 ${amount}`,
+  receiptSettled: "原支出已抵完",
   amountTitle: (category: string) => `${category} 的金额`,
   missingCategory: "未选择分类",
   pendingAmount: "待输入",
