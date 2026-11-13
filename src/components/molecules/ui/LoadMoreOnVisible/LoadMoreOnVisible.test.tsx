@@ -11,16 +11,19 @@ describe("LoadMoreOnVisible", () => {
 
   beforeEach(() => {
     observers.length = 0;
-    vi.stubGlobal("IntersectionObserver", class {
-      constructor(
-        callback: (entries: { isIntersecting: boolean }[]) => void,
-        options?: IntersectionObserverInit,
-      ) {
-        observers.push({ callback, options });
-      }
-      observe() {}
-      disconnect() {}
-    });
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor(
+          callback: (entries: { isIntersecting: boolean }[]) => void,
+          options?: IntersectionObserverInit,
+        ) {
+          observers.push({ callback, options });
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
   });
   afterEach(() => {
     cleanup();

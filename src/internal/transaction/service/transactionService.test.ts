@@ -764,74 +764,80 @@ describe("TransactionService", () => {
       sort_order: 0,
     }));
     const repository = createRepository({
-      loadFilteredPage: vi.fn().mockImplementation(async (input: {
-        merchantPriorityId?: string;
-        currency?: string;
-        offset: number;
-        query: string;
-        settled?: boolean;
-        specialStatuses?: string[];
-      }) => {
-        const matched = items.filter((item) => {
-          const record = records.find(
-            (record) => record.id === item.transaction_record_id,
-          );
-          if (!record) return false;
-          if (
-            input.currency &&
-            (record.id === "usd-record" ? "USD" : "JPY") !== input.currency
-          )
-            return false;
-          if (
-            input.specialStatuses?.length &&
-            !input.specialStatuses.some(
-              (status) =>
-                status === "pendingReimbursement" &&
-                item.special_status === "pending_reimbursement",
-            )
-          )
-            return false;
-          if (input.query && !String(item.amount).includes(input.query))
-            return false;
-          return true;
-        });
-        const settled = matched.filter(
-          (item) =>
-            Number(item.amount) -
-              Number(item.refunded_amount) -
-              Number(item.reimbursement_amount) <=
-            0,
-        );
-        const selected = matched
-          .filter((item) => (settled.includes(item)) === Boolean(input.settled))
-          .sort((left, right) => {
-            const a = records.find(
-              (record) => record.id === left.transaction_record_id,
-            )!;
-            const b = records.find(
-              (record) => record.id === right.transaction_record_id,
-            )!;
-            const priority =
-              Number(b.merchant_id === input.merchantPriorityId) -
-              Number(a.merchant_id === input.merchantPriorityId);
-            return input.merchantPriorityId && priority
-              ? priority
-              : b.transaction_at.localeCompare(a.transaction_at) ||
-                  b.created_at.localeCompare(a.created_at) ||
-                  b.id.localeCompare(a.id) ||
-                  left.id.localeCompare(right.id);
-          });
-        const page = selected.slice(input.offset, input.offset + 20);
-        return {
-          entries: page.map((item) => ({
-            itemId: item.id,
-            recordId: item.transaction_record_id,
-          })),
-          nextOffset:
-            input.offset + 20 < selected.length ? input.offset + 20 : null,
-          settledCount: settled.length,
-        };
-      }),
+      loadFilteredPage: vi
+        .fn()
+        .mockImplementation(
+          async (input: {
+            merchantPriorityId?: string;
+            currency?: string;
+            offset: number;
+            query: string;
+            settled?: boolean;
+            specialStatuses?: string[];
+          }) => {
+            const matched = items.filter((item) => {
+              const record = records.find(
+                (record) => record.id === item.transaction_record_id,
+              );
+              if (!record) return false;
+              if (
+                input.currency &&
+                (record.id === "usd-record" ? "USD" : "JPY") !== input.currency
+              )
+                return false;
+              if (
+                input.specialStatuses?.length &&
+                !input.specialStatuses.some(
+                  (status) =>
+                    status === "pendingReimbursement" &&
+                    item.special_status === "pending_reimbursement",
+                )
+              )
+                return false;
+              if (input.query && !String(item.amount).includes(input.query))
+                return false;
+              return true;
+            });
+            const settled = matched.filter(
+              (item) =>
+                Number(item.amount) -
+                  Number(item.refunded_amount) -
+                  Number(item.reimbursement_amount) <=
+                0,
+            );
+            const selected = matched
+              .filter(
+                (item) => settled.includes(item) === Boolean(input.settled),
+              )
+              .sort((left, right) => {
+                const a = records.find(
+                  (record) => record.id === left.transaction_record_id,
+                )!;
+                const b = records.find(
+                  (record) => record.id === right.transaction_record_id,
+                )!;
+                const priority =
+                  Number(b.merchant_id === input.merchantPriorityId) -
+                  Number(a.merchant_id === input.merchantPriorityId);
+                return input.merchantPriorityId && priority
+                  ? priority
+                  : b.transaction_at.localeCompare(a.transaction_at) ||
+                      b.created_at.localeCompare(a.created_at) ||
+                      b.id.localeCompare(a.id) ||
+                      left.id.localeCompare(right.id);
+              });
+            const page = selected.slice(input.offset, input.offset + 20);
+            return {
+              entries: page.map((item) => ({
+                itemId: item.id,
+                recordId: item.transaction_record_id,
+              })),
+              nextOffset:
+                input.offset + 20 < selected.length ? input.offset + 20 : null,
+              settledCount: settled.length,
+            };
+          },
+        ),
       listRecords: vi
         .fn()
         .mockImplementation(async (input: { recordIds?: string[] }) =>
@@ -842,7 +848,9 @@ describe("TransactionService", () => {
       listItems: vi
         .fn()
         .mockImplementation(async (_ledgerId: string, recordIds: string[]) =>
-          items.filter((item) => recordIds.includes(item.transaction_record_id)),
+          items.filter((item) =>
+            recordIds.includes(item.transaction_record_id),
+          ),
         ),
       listPayments: vi
         .fn()
@@ -1002,11 +1010,9 @@ describe("TransactionService", () => {
         recordIds: expect.arrayContaining(["old-record", "new-record"]),
       }),
     );
-    expect(repository.listItems).toHaveBeenNthCalledWith(
-      2,
-      ledger.id,
-      ["new-record"],
-    );
+    expect(repository.listItems).toHaveBeenNthCalledWith(2, ledger.id, [
+      "new-record",
+    ]);
     expect(repository.listRecords).toHaveBeenCalledTimes(2);
     expect(first.settledCount).toBe(1);
     const search = await service.getLinkCandidatePage(ledger, "refund", {

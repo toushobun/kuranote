@@ -58,13 +58,18 @@ function toggleSettled(count: number) {
 describe("TransactionLinkCandidatePanel", () => {
   beforeEach(() => {
     visibleCallbacks.length = 0;
-    vi.stubGlobal("IntersectionObserver", class {
-      constructor(callback: (entries: { isIntersecting: boolean }[]) => void) {
-        visibleCallbacks.push(callback);
-      }
-      observe() {}
-      disconnect() {}
-    });
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor(
+          callback: (entries: { isIntersecting: boolean }[]) => void,
+        ) {
+          visibleCallbacks.push(callback);
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
   });
   afterEach(() => {
     cleanup();

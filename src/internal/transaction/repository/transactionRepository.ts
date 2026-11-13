@@ -1064,17 +1064,17 @@ export function createSupabaseTransactionRepository(
         "load_filtered_transaction_page",
         {
           p_ledger_id: input.ledgerId,
-        p_scope: input.scope,
-        p_query: input.query,
-        p_merchant_priority_id: input.merchantPriorityId ?? null,
-        p_currency: input.currency ?? null,
-        p_special_statuses:
-          input.specialStatuses?.map((status) =>
-            toTransactionSpecialStatusStorageValue(status),
-          ) ?? null,
-        p_settled: input.settled ?? false,
-        p_offset: input.offset,
-        p_limit: 20,
+          p_scope: input.scope,
+          p_query: input.query,
+          p_merchant_priority_id: input.merchantPriorityId ?? null,
+          p_currency: input.currency ?? null,
+          p_special_statuses:
+            input.specialStatuses?.map((status) =>
+              toTransactionSpecialStatusStorageValue(status),
+            ) ?? null,
+          p_settled: input.settled ?? false,
+          p_offset: input.offset,
+          p_limit: 20,
         },
       );
       const parsed = filteredPageResultSchema.safeParse(data);
