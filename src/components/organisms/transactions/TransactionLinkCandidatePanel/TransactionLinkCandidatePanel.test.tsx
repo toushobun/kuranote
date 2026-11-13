@@ -204,14 +204,12 @@ describe("TransactionLinkCandidatePanel", () => {
     expect(loadPage).toHaveBeenLastCalledWith(
       expect.objectContaining({ offset: 0, settled: true }),
     );
-    fireEvent.click(
-      screen.getByRole("button", { name: "选择退款明细 外套" }),
-    );
-    await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: "选择退款明细 外套" }),
-      ).toHaveAttribute("aria-pressed", "true"),
-    );
+    const name = "选择退款明细 外套";
+    fireEvent.click(screen.getByRole("button", { name }));
+    await waitFor(() => {
+      const selected = screen.getByRole("button", { name });
+      expect(selected).toHaveAttribute("aria-pressed", "true");
+    });
     toggleSettled(1);
     expect(loadPage).toHaveBeenCalledTimes(2);
   });
