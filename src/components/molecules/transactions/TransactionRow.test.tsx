@@ -684,7 +684,10 @@ describe("TransactionRow", () => {
         marginLeft: "auto",
       });
       expect(detailRow?.children).toHaveLength(1);
-      expect(detailRow).toHaveStyle({ flexDirection: "row", minHeight: "20px" });
+      expect(detailRow).toHaveStyle({
+        flexDirection: "row",
+        minHeight: "20px",
+      });
     });
 
     it("长分类保持省略且多个标签完整显示在同一行", () => {
