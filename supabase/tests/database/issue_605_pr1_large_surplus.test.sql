@@ -96,8 +96,8 @@ select is(
     (select special_status
      from public.transaction_item
      where id = '60592000-0000-4000-8000-000000000001'),
-    'reimbursement_surplus'::public.transaction_item_special_status,
-    '报销流程中的大额超额核销进入核销结余状态'
+    'reimbursed'::public.transaction_item_special_status,
+    '报销流程中的超额核销仍为已结清状态'
 );
 
 select is(
@@ -185,8 +185,8 @@ select is(
     (select special_status
      from public.transaction_item
      where id = '60592000-0000-4000-8000-000000000004'),
-    'reimbursement_surplus'::public.transaction_item_special_status,
-    'NULL 转入报销流程时大额负剩余额度直接派生为核销结余'
+    'reimbursed'::public.transaction_item_special_status,
+    'NULL 转入报销流程时超额部分由收入承接，原支出已结清'
 );
 
 select * from finish();

@@ -146,17 +146,15 @@ select is(
 select is(
     (select special_status::text from public.transaction_item
       where id = '00000000-0000-4000-8000-000000009231'),
-    'reimbursement_surplus'::text,
-    '新原支出累积核销超过原金额，重新派生核销结余'
+    'reimbursed'::text,
+    '新原支出累积核销超过原金额，重新派生已结清'
 );
 reset role;
 select is(
-    public.calculate_transaction_item_remaining_offset_amount(
-        '00000000-0000-4000-8000-000000000032',
-        '00000000-0000-4000-8000-000000009231'
-    ),
-    -7800::numeric,
-    '新原支出净核销结余为 7800'
+    (select business_net_amount from public.transaction_item_with_refund
+      where id = '00000000-0000-4000-8000-000000009231'),
+    0::numeric,
+    '新原支出净额为零'
 );
 select is(
     (select reimbursement_amount from public.transaction_item_reimbursement_link

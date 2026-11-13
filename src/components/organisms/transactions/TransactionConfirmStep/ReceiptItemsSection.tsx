@@ -8,9 +8,13 @@ import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/Transac
 import { flowMessages as m } from "config/transactionStepFlowMessages";
 import { transactionAccentColor } from "theme/transactionColors";
 import { sumAmountTexts } from "../TransactionForm/TransactionForm.utils";
+import { getLinkedIncomeDisplayAmounts } from "../transactionLinkedIncomeDisplay";
 import type { TransactionItemSummary } from "../TransactionForm/TransactionForm.types";
 import type { useTransactionForm } from "../TransactionForm/useTransactionForm";
-import { formatStepItemAmount } from "../transactionStepFlowFormat";
+import {
+  formatStepCurrencyAmount,
+  formatStepItemAmount,
+} from "../transactionStepFlowFormat";
 import { exceedsCurrencyDecimalPlaces } from "utils/transactionAmountInput";
 import {
   ReceiptAmountButton,
@@ -78,6 +82,23 @@ export function ReceiptItemsSection({
         currency,
         specialStatus: item.specialStatus,
       });
+    const { kind, offsetAmount, surplusAmount } =
+      getLinkedIncomeDisplayAmounts(item);
+    const isLinkedIncome = kind !== null;
+    const amountNode = readOnly ? (
+      <ReceiptAmountText
+        amount={amount}
+        income={item.category?.type === "income"}
+      />
+    ) : (
+      <ReceiptAmountButton
+        label={m.editAmount(index + 1, amount)}
+        amount={amount}
+        pending={invalid && (!item.amount.trim() || excessDecimals)}
+        income={item.category?.type === "income"}
+        onClick={() => onAmount(item.id)}
+      />
+    );
     return (
       <ReceiptLine
         key={item.id}
@@ -87,13 +108,25 @@ export function ReceiptItemsSection({
         error={invalid}
         errorLabel={invalid && !!item.amount.trim()}
         subline={
-          (businessStatus || (invalid && excessDecimals)) && (
+          (businessStatus || isLinkedIncome || (invalid && excessDecimals)) && (
             <>
               {businessStatus && (
                 <TransactionBusinessBadge
                   currency={currency}
-                  status={businessStatus}
+                  status={{ ...businessStatus, surplusAmount: undefined }}
                 />
+              )}
+              {isLinkedIncome && Number(item.amount) > 0 && (
+                <Typography variant="caption" color="textSecondary">
+                  {offsetAmount > 0
+                    ? m.receiptOffset(
+                        formatStepCurrencyAmount(
+                          String(offsetAmount),
+                          currency,
+                        ),
+                      )
+                    : m.receiptSettled}
+                </Typography>
               )}
               {invalid && excessDecimals && (
                 <Typography variant="caption" sx={{ color: "error.main" }}>
@@ -104,19 +137,31 @@ export function ReceiptItemsSection({
           )
         }
         amount={
-          readOnly ? (
-            <ReceiptAmountText
-              amount={amount}
-              income={item.category?.type === "income"}
-            />
+          surplusAmount > 0 ? (
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-end",
+                gap: 0.25,
+              }}
+            >
+              {amountNode}
+              <TransactionBusinessBadge
+                currency={currency}
+                status={{
+                  incomeLinkRole: null,
+                  offsetComposition: {
+                    refundAmount: "0",
+                    reimbursementAmount: "0",
+                  },
+                  settlementStatus: null,
+                  surplusAmount: String(surplusAmount),
+                }}
+              />
+            </Box>
           ) : (
-            <ReceiptAmountButton
-              label={m.editAmount(index + 1, amount)}
-              amount={amount}
-              pending={invalid && (!item.amount.trim() || excessDecimals)}
-              income={item.category?.type === "income"}
-              onClick={() => onAmount(item.id)}
-            />
+            amountNode
           )
         }
         {...(!readOnly && {

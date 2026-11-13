@@ -75,7 +75,11 @@ export function TransactionRow({
       ? "账户周转"
       : (item.merchant_name ?? transactionFallbackLabels.merchant);
   const statisticsAdjustment = getStatisticsAdjustment(item);
+  const hasSurplusIncome = item.categoryItems.some(
+    (category) => Number(category.businessStatus?.surplusAmount ?? "0") > 0,
+  );
   const shouldDisplayOriginalAmount =
+    !hasSurplusIncome &&
     statisticsAdjustment?.kind === "partiallyOffset" &&
     item.originalAmount !== undefined;
   const displayedAmountType = shouldDisplayOriginalAmount
@@ -111,11 +115,11 @@ export function TransactionRow({
   const categorySummaryText = getTransactionCategorySummaryText(item);
   const detailText = categorySummaryText ?? "";
   const adjustmentNode =
-    statisticsAdjustment?.kind === "fullyExcluded" ? (
+    hasSurplusIncome || statisticsAdjustment?.kind === "fullyExcluded" ? (
       item.originalAmount !== undefined ? (
         <TransactionOriginalAmount
           amount={formatTransactionRowAmount(
-            item.originalType ?? statisticsAdjustment.type ?? item.type,
+            item.originalType ?? statisticsAdjustment?.type ?? item.type,
             item.originalAmount,
             item.account_currency,
           )}
@@ -329,6 +333,7 @@ function getBusinessStatuses(
   let settlementStatus: TransactionBusinessStatus["settlementStatus"] = null;
   let refundAmount = 0;
   let reimbursementAmount = 0;
+  let surplusAmount = 0;
   const incomeLinkRoles = new Set<
     NonNullable<TransactionBusinessStatus["incomeLinkRole"]>
   >();
@@ -339,19 +344,33 @@ function getBusinessStatuses(
     if (status.settlementStatus === "pendingReimbursement") {
       settlementStatus = "pendingReimbursement";
     } else if (
-      status.settlementStatus === "reimbursementSurplus" &&
-      settlementStatus !== "pendingReimbursement"
-    ) {
-      settlementStatus = "reimbursementSurplus";
-    } else if (
-      status.settlementStatus === "reimbursed" &&
+      (status.settlementStatus === "reimbursed" ||
+        status.settlementStatus === "reimbursementSurplus") &&
       settlementStatus === null
     ) {
       settlementStatus = "reimbursed";
     }
+
     refundAmount += Number(status.offsetComposition.refundAmount);
     reimbursementAmount += Number(status.offsetComposition.reimbursementAmount);
-    if (status.incomeLinkRole) incomeLinkRoles.add(status.incomeLinkRole);
+    if (status.incomeLinkRole) {
+      incomeLinkRoles.add(status.incomeLinkRole);
+      surplusAmount += Number(status.surplusAmount ?? "0");
+    }
+  }
+
+  // 仅退款结清的支出没有数据库特殊状态，但仍需显示「已退款」。
+  const fullyRefundedExpense = categoryItems.some((category) => {
+    if (category.categoryType !== "expense") return false;
+    const status = category.businessStatus;
+    if (!status || status.incomeLinkRole) return false;
+    const totalOffset =
+      Number(status.offsetComposition.refundAmount) +
+      Number(status.offsetComposition.reimbursementAmount);
+    return totalOffset > 0 && totalOffset >= Number(category.amount);
+  });
+  if (settlementStatus === null && fullyRefundedExpense) {
+    settlementStatus = "reimbursed";
   }
 
   const statuses: { key: string; status: TransactionBusinessStatus }[] = [];
@@ -379,6 +398,11 @@ function getBusinessStatuses(
         incomeLinkRole,
         offsetComposition: { refundAmount: "0", reimbursementAmount: "0" },
         settlementStatus: null,
+        surplusAmount: statuses.some(
+          ({ status }) => Number(status.surplusAmount) > 0,
+        )
+          ? undefined
+          : normalizeAggregatedAmount(surplusAmount, currency),
       },
     });
   }

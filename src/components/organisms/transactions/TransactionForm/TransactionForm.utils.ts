@@ -33,7 +33,7 @@ export function sumAmountTexts(amounts: readonly (string | undefined)[]) {
 }
 
 /**
- * 明细的业务金额合计（扣除被其他记录退款 / 报销核销的部分，核销结余为负数）：
+ * 明细的业务金额合计（原支出最多抵到零，退款 / 报销超出部分计入收入）：
  * 标准记账的汇总与小票的净额共用同一口径。`hasBusinessOffset` 为有明细存在核销。
  */
 export function sumTransactionItemBusinessTotals(

@@ -162,7 +162,7 @@ select lives_ok(
 select is(
     (select special_status from public.transaction_item
      where id = '59880000-0000-4000-8000-000000000002'),
-    'reimbursement_surplus'::public.transaction_item_special_status,
+    'reimbursed'::public.transaction_item_special_status,
     '退款与报销组合核销超额后进入核销结余状态'
 );
 
@@ -304,7 +304,7 @@ select is(
         where target.id = '59880000-0000-4000-8000-000000000004'
         group by target.special_status
     ),
-    '40.00/100.00/reimbursement_surplus',
+    '40.00/100.00/reimbursed',
     '退款与报销完整金额同时计入并按负剩余额度判定核销结余'
 );
 

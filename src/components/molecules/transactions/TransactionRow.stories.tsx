@@ -666,3 +666,58 @@ export const LongText: Story = {
     } as TransactionRowItem,
   },
 };
+
+/** #1078：原支出抵消到零，倒赚仅属于退款收入记录。 */
+export const FullyRefundedExpense1078: Story = {
+  name: "原支出已全额退款（无倒赚标签）",
+  args: {
+    item: {
+      ...expenseItem,
+      amount: "0",
+      originalAmount: "980",
+      categoryItems: [
+        {
+          amount: "980",
+          businessNetAmount: "0",
+          categoryName: "采购",
+          categoryType: "expense",
+          parentCategoryName: "日常",
+          businessStatus: {
+            incomeLinkRole: null,
+            offsetComposition: {
+              refundAmount: "980",
+              reimbursementAmount: "0",
+            },
+            settlementStatus: null,
+          },
+        },
+      ],
+    },
+  },
+};
+
+export const RefundSurplusIncome1078: Story = {
+  name: "退款收入净额 +¥1,000 · 倒赚 ¥1,000",
+  args: {
+    item: {
+      ...incomeItem,
+      amount: "1000",
+      originalAmount: "1980",
+      categoryItems: [
+        {
+          amount: "1980",
+          businessNetAmount: "1000",
+          categoryName: "退款",
+          categoryType: "income",
+          parentCategoryName: "特殊收入",
+          businessStatus: {
+            incomeLinkRole: "refund",
+            offsetComposition: { refundAmount: "0", reimbursementAmount: "0" },
+            settlementStatus: null,
+            surplusAmount: "1000",
+          },
+        },
+      ],
+    },
+  },
+};

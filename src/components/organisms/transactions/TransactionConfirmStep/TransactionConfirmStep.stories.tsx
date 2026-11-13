@@ -452,3 +452,24 @@ export const Abandon: Story = {
     );
   },
 };
+
+export const RefundReceiptWithSurplus: Story = {
+  name: "退款小票 · 抵消支出与倒赚",
+  args: {
+    itemsOptions: {
+      ...receiptItemsOptions,
+      initialItems: [
+        {
+          amount: "1980",
+          businessNetAmount: "1000",
+          categoryId: "points",
+          businessStatus: {
+            incomeLinkRole: "refund",
+            offsetComposition: { refundAmount: "0", reimbursementAmount: "0" },
+            settlementStatus: null,
+          },
+        },
+      ],
+    },
+  },
+};

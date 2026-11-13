@@ -292,8 +292,8 @@ select is(
         from public.transaction_item
         where id = '59840000-0000-4000-8000-000000000007'
     ),
-    'reimbursement_surplus'::public.transaction_item_special_status,
-    '超额退款会把报销流程支出推进到核销结余状态'
+    'reimbursed'::public.transaction_item_special_status,
+    '超额退款会把报销流程支出推进到已结清状态'
 );
 
 select lives_ok(

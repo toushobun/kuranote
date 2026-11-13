@@ -56,8 +56,7 @@ export function calculateRemainingOffsetMinorUnits(
 
 /**
  * 单目标退款与报销关联共用的金额摘要。
- * 解除封顶后，收入子项金额全部写入关联，不再保留未核销净收益。
- * 第二个参数暂留以维持现有 Picker / Form 调用契约，PR1 中不改候选筛选链路。
+ * 全额写入单目标关联；原支出只抵到零，超出部分成为当前收入明细的业务净额。
  */
 function summarizeSingleTargetAllocationAmounts(
   incomeAmount: number | string,
@@ -66,12 +65,24 @@ function summarizeSingleTargetAllocationAmounts(
   const incomeUnits = toRefundMinorUnits(incomeAmount);
   if (incomeUnits === null) return null;
 
-  void remainingRefundableAmount;
+  const remainingText = String(remainingRefundableAmount).trim();
+  const isNegative = remainingText.startsWith("-");
+  const remainingMagnitude = toRefundMinorUnits(
+    isNegative ? remainingText.slice(1) : remainingText,
+  );
+  if (remainingMagnitude === null) return null;
+  const remainingUnits = isNegative ? -remainingMagnitude : remainingMagnitude;
+  const offsetUnits =
+    remainingUnits > BigInt(0)
+      ? incomeUnits < remainingUnits
+        ? incomeUnits
+        : remainingUnits
+      : BigInt(0);
 
   return {
     allocatedAmount: formatRefundMinorUnits(incomeUnits),
     incomeAmount: formatRefundMinorUnits(incomeUnits),
-    netIncomeAmount: "0",
+    netIncomeAmount: formatRefundMinorUnits(incomeUnits - offsetUnits),
   };
 }
 

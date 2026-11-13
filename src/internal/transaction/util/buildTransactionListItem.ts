@@ -155,6 +155,10 @@ export function buildTransactionListItem({
       isReimbursementIncome: item.is_reimbursement_income,
       refundedAmount: item.refunded_amount,
       reimbursementAmount: item.reimbursement_amount,
+      surplusAmount:
+        item.is_refund_income || item.is_reimbursement_income
+          ? item.business_net_amount
+          : undefined,
       specialStatus: item.special_status ?? null,
     });
 

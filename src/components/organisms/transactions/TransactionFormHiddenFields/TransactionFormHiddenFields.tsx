@@ -130,6 +130,17 @@ export function TransactionFormHiddenFields({
             <Fragment key={item.id}>
               <TransactionItemHiddenFields item={item} />
               <input name="itemAmount" type="hidden" value={item.amount} />
+              {initialValues?.transactionRecordId && (
+                <input
+                  name="itemLinkedIncomeSurplus"
+                  type="hidden"
+                  value={
+                    item.businessStatus?.incomeLinkRole
+                      ? (item.businessNetAmount ?? item.amount)
+                      : ""
+                  }
+                />
+              )}
             </Fragment>
           ))}
         </>

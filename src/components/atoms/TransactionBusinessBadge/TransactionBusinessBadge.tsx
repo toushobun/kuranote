@@ -66,9 +66,10 @@ function resolveBusinessBadges(
   const badges: BusinessBadge[] = [];
   if (status.settlementStatus === "pendingReimbursement") {
     badges.push({ kind: "pendingReimbursement" });
-  } else if (status.settlementStatus === "reimbursementSurplus") {
-    badges.push({ kind: "reimbursementSurplus" });
-  } else if (status.settlementStatus === "reimbursed") {
+  } else if (
+    status.settlementStatus === "reimbursed" ||
+    status.settlementStatus === "reimbursementSurplus"
+  ) {
     badges.push({ kind: getCompletedBadgeKind(status.offsetComposition) });
   }
   if (Number(status.offsetComposition.refundAmount) > 0) {
@@ -85,6 +86,9 @@ function resolveBusinessBadges(
   }
   if (status.incomeLinkRole) {
     badges.push({ kind: getIncomeLinkRoleBadgeKind(status.incomeLinkRole) });
+  }
+  if (Number(status.surplusAmount ?? "0") > 0) {
+    badges.push({ kind: "surplus", amount: status.surplusAmount });
   }
   return badges;
 }

@@ -166,10 +166,56 @@ export function useTransactionForm({
     (merchant) => merchant.id === selectedMerchantId,
   );
   const itemSummaries: TransactionItemSummary[] = allDisplayItems.map(
-    (item) => ({
-      ...item,
-      category: categoryById.get(item.categoryId),
-    }),
+    (item, index) => {
+      const category = categoryById.get(item.categoryId);
+      const target = item.refundCandidate ?? item.reimbursementCandidate;
+      if (!target || category?.type !== "income") return { ...item, category };
+
+      const originalIndex = item.persistedId
+        ? initialValues.items.findIndex(
+            (entry) => entry.id === item.persistedId,
+          )
+        : -1;
+      const original = initialValues.items[originalIndex];
+      const linksToTarget = (
+        entry: Pick<
+          TransactionFormItem,
+          "refundCandidate" | "reimbursementCandidate"
+        >,
+      ) =>
+        entry.refundCandidate?.id === target.id ||
+        entry.reimbursementCandidate?.id === target.id;
+      const earlierItems = allDisplayItems
+        .slice(0, index)
+        .filter(linksToTarget);
+      const originalEarlierItems = initialValues.items
+        .slice(0, Math.max(0, originalIndex))
+        .filter(linksToTarget);
+      const unchanged =
+        original?.amount === item.amount &&
+        linksToTarget(original) &&
+        earlierItems.length === originalEarlierItems.length &&
+        earlierItems.every(
+          (earlier, i) =>
+            earlier.persistedId === originalEarlierItems[i]?.id &&
+            earlier.amount === originalEarlierItems[i]?.amount,
+        );
+      const available = unchanged
+        ? null
+        : adjustLinkCandidate(target, earlierItems, initialValues.items);
+      return {
+        ...item,
+        category,
+        businessNetAmount:
+          available === null && original
+            ? (original.businessNetAmount ?? original.amount)
+            : summarizeRefundAllocationAmounts(
+                item.amount,
+                available?.remainingRefundableAmount ??
+                  target.remainingRefundableAmount,
+              )?.netIncomeAmount,
+      };
+    },
   );
   const multiAccountItemType = getMultiAccountItemType(
     itemSummaries.map(({ category }) => ({
@@ -1048,6 +1094,16 @@ function getUpdatedItemBusinessNetAmount(
     );
   }
   const amountUnits = toRefundMinorUnits(item.amount);
+  const refundedUnits =
+    toRefundMinorUnits(item.refundedAmount ?? "0") ?? BigInt(0);
+  const reimbursedUnits =
+    toRefundMinorUnits(item.reimbursementAmount ?? "0") ?? BigInt(0);
+  if (amountUnits !== null && refundedUnits + reimbursedUnits > BigInt(0)) {
+    const remaining = amountUnits - refundedUnits - reimbursedUnits;
+    return formatRefundMinorUnits(
+      remaining > BigInt(0) ? remaining : BigInt(0),
+    );
+  }
   const previousAmountUnits = toRefundMinorUnits(previousAmount);
   const businessNetAmountUnits =
     item.businessNetAmount === undefined
@@ -1062,9 +1118,8 @@ function getUpdatedItemBusinessNetAmount(
     return undefined;
   }
 
-  return formatRefundMinorUnits(
-    businessNetAmountUnits + amountUnits - previousAmountUnits,
-  );
+  const remaining = businessNetAmountUnits + amountUnits - previousAmountUnits;
+  return formatRefundMinorUnits(remaining > BigInt(0) ? remaining : BigInt(0));
 }
 
 function withUpdatedItemBusinessNetAmount(

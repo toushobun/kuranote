@@ -317,19 +317,19 @@ select is(
         '59892000-0000-4000-8000-000000000001'
     ),
     (-20)::numeric,
-    '并发退款与报销允许组合核销超过原始金额'
+    '并发组合核销仍记录完整关联金额'
 );
 
 select is(
     (select special_status from public.transaction_item where id = '59892000-0000-4000-8000-000000000001'),
-    'reimbursement_surplus'::public.transaction_item_special_status,
-    '并发组合核销超过原始金额后目标状态重算为核销结余'
+    'reimbursed'::public.transaction_item_special_status,
+    '并发组合核销超过原始金额后目标状态重算为已结清'
 );
 
 select is(
     (select business_net_amount from public.transaction_item_with_refund where id = '59892000-0000-4000-8000-000000000001'),
-    (-20)::numeric,
-    'PR2 阶段目标支出超额核销后业务净额保留负值'
+    0::numeric,
+    '组合核销超额后原支出净额为零'
 );
 
 select is(
@@ -340,8 +340,8 @@ select is(
 
 select is(
     (select business_net_amount from public.transaction_item_with_refund where id = '59892000-0000-4000-8000-000000000003'),
-    0::numeric,
-    '完整报销收入全部写入关联后不保留业务净收益'
+    20::numeric,
+    '后发生的报销计入超出额'
 );
 
 select dblink_exec(

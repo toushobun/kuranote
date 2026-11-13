@@ -347,7 +347,7 @@ describe("buildStatisticsViewData", () => {
   });
 
   describe("Issue #605 核销结余统计", () => {
-    it("超额报销后的关联支出计入收入桶且普通支出仍计入支出桶", () => {
+    it("超额报销按收入明细分类统计，普通支出仍进入支出桶", () => {
       const view = buildStatisticsViewData({
         categories: [
           {
@@ -367,7 +367,7 @@ describe("buildStatisticsViewData", () => {
         items: [
           {
             amount: "100",
-            business_net_amount: "-50",
+            business_net_amount: "0",
             category_id: "expense-category",
             has_refund_link: false,
             has_reimbursement_link: true,
@@ -382,7 +382,7 @@ describe("buildStatisticsViewData", () => {
           },
           {
             amount: "150",
-            business_net_amount: "0",
+            business_net_amount: "50",
             category_id: "income-category",
             has_refund_link: false,
             has_reimbursement_link: true,
@@ -437,7 +437,7 @@ describe("buildStatisticsViewData", () => {
       ]);
     });
 
-    it("超额退款后的关联支出同样计入收入桶", () => {
+    it("超额退款按退款收入分类及时间统计，不进入原支出分类", () => {
       const view = buildStatisticsViewData({
         categories: [
           {
@@ -446,16 +446,28 @@ describe("buildStatisticsViewData", () => {
             parent_id: null,
             type: "expense",
           },
+          {
+            id: "refund-income-category",
+            name: "退款收入",
+            parent_id: null,
+            type: "income",
+          },
         ],
         currency: "JPY",
         items: [
           {
             amount: "100",
-            business_net_amount: "-25",
+            business_net_amount: "0",
             category_id: "expense-category",
             has_refund_link: true,
             has_reimbursement_link: false,
             transaction_record_id: "refund-surplus-expense",
+          },
+          {
+            amount: "125",
+            business_net_amount: "25",
+            category_id: "refund-income-category",
+            transaction_record_id: "refund-surplus-income",
           },
         ],
         ledgerName: "家庭账本",
@@ -465,6 +477,11 @@ describe("buildStatisticsViewData", () => {
           {
             id: "refund-surplus-expense",
             merchant_id: "merchant-refund",
+            type: "normal",
+          },
+          {
+            id: "refund-surplus-income",
+            merchant_id: null,
             type: "normal",
           },
         ],
@@ -479,7 +496,7 @@ describe("buildStatisticsViewData", () => {
       expect(view.categoryExpenseRanking).toEqual([]);
     });
 
-    it("退款与报销共同推正时只按母项净额计入收入", () => {
+    it("退款与报销混合时分别由收入明细承接超额", () => {
       const view = buildStatisticsViewData({
         categories: [
           {
@@ -499,7 +516,7 @@ describe("buildStatisticsViewData", () => {
         items: [
           {
             amount: "100",
-            business_net_amount: "-50",
+            business_net_amount: "0",
             category_id: "expense-category",
             has_refund_link: true,
             has_reimbursement_link: true,
@@ -515,7 +532,7 @@ describe("buildStatisticsViewData", () => {
           },
           {
             amount: "70",
-            business_net_amount: "0",
+            business_net_amount: "50",
             category_id: "income-category",
             has_refund_link: false,
             has_reimbursement_link: true,

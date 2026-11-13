@@ -472,6 +472,35 @@ describe("TransactionRow", () => {
     expect(screen.queryByText("不计入支出")).not.toBeInTheDocument();
   });
 
+  it("超额退款主金额显示净收入，副标题保留原金额", () => {
+    render(
+      <TransactionRow
+        item={createItem({
+          amount: "1000",
+          originalAmount: "1980",
+          originalType: "income",
+          type: "income",
+          categoryItems: [
+            {
+              amount: "1980",
+              businessNetAmount: "1000",
+              businessStatus: {
+                ...incomeBusinessStatus("refund"),
+                surplusAmount: "1000",
+              },
+              categoryName: "退款",
+              categoryType: "income",
+              parentCategoryName: "特殊收入",
+            },
+          ],
+        })}
+      />,
+    );
+    expect(screen.getByText("+ ¥ 1,000")).toBeVisible();
+    expect(screen.getByText("原金额 + ¥ 1,980")).toBeVisible();
+    expect(screen.queryByText("部分已核销")).not.toBeInTheDocument();
+  });
+
   it("已核销的退款收入显示净额和原金额", () => {
     render(
       <TransactionRow
@@ -826,7 +855,7 @@ describe("TransactionRow", () => {
       expect(screen.queryByText("已结清")).not.toBeInTheDocument();
     });
 
-    it("存在核销结余明细且没有待报销时整行显示倒赚状态", () => {
+    it("原支出不存在已倒赚状态，超额时仍显示已结清", () => {
       render(
         <TransactionRow
           item={createItem({
@@ -864,8 +893,8 @@ describe("TransactionRow", () => {
         />,
       );
 
-      expect(screen.getByText("已倒赚")).toBeInTheDocument();
-      expect(screen.queryByText("已结清")).not.toBeInTheDocument();
+      expect(screen.getByText("已结清")).toBeInTheDocument();
+      expect(screen.queryByText("已倒赚")).not.toBeInTheDocument();
     });
 
     it("所有明细都没有业务状态时不渲染标签容器和额外间距", () => {

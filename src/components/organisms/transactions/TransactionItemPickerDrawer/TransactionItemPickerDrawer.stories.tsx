@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { getLinkCandidateDefaultAmount } from "internal/transaction";
 import { useState } from "react";
 import {
+  candidateItems,
   loadCandidatePage,
   loadReimbursementPage,
   loadFallbackCandidatePage,
@@ -237,6 +238,44 @@ export const RefundFullySettled: Story = {
       ...selectedCandidate,
       id: "fully-settled",
       refundedAmount: "3280",
+      remainingRefundableAmount: "0",
+    },
+    pickerAmount: "",
+  },
+};
+
+const partiallyRefundedStorageBox = {
+  ...candidateItems[2],
+  refundedAmount: "1080",
+  remainingRefundableAmount: "500",
+};
+
+export const RefundWithSurplus1078: Story = {
+  name: "退款 · 剩余 ¥500 / 输入 ¥1,200 / 超额 ¥700",
+  args: {
+    pickerMode: "refund",
+    pickerRefundCandidate: partiallyRefundedStorageBox,
+    pickerAmount: "1200",
+    loadRefundPageAction: async (input) => {
+      const page = await loadCandidatePage(input);
+      return {
+        ...page,
+        items: page.items.map((item) =>
+          item.id === partiallyRefundedStorageBox.id
+            ? partiallyRefundedStorageBox
+            : item,
+        ),
+      };
+    },
+  },
+};
+
+export const ReimbursementFullySettled1078: Story = {
+  name: "报销 · 原支出已抵完，后续计入收入",
+  args: {
+    pickerMode: "reimbursement",
+    pickerReimbursementCandidate: {
+      ...selectedCandidate,
       remainingRefundableAmount: "0",
     },
     pickerAmount: "",

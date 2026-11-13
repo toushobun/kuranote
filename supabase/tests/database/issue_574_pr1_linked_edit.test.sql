@@ -139,8 +139,8 @@ select is(
         from public.transaction_item
         where id = '57420000-0000-4000-8000-000000000001'
     ),
-    'reimbursement_surplus'::public.transaction_item_special_status,
-    '初始超额报销把母项推导为核销结余'
+    'reimbursed'::public.transaction_item_special_status,
+    '初始超额报销把母项推导为已结清'
 );
 
 set local role authenticated;
@@ -255,8 +255,8 @@ select is(
         from public.transaction_item
         where id = '57420000-0000-4000-8000-000000000001'
     ),
-    'reimbursement_surplus'::public.transaction_item_special_status,
-    '母项净额转正后推导为核销结余'
+    'reimbursed'::public.transaction_item_special_status,
+    '母项完全抵消后推导为已结清'
 );
 
 select lives_ok(

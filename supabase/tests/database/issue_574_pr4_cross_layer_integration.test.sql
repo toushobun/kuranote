@@ -143,15 +143,15 @@ select lives_ok(
 select is(
     (select special_status from public.transaction_item
      where id = '57491000-0000-4000-8000-000000000001'),
-    'reimbursement_surplus'::public.transaction_item_special_status,
-    '报销与退款累计超过母项金额时进入核销结余'
+    'reimbursed'::public.transaction_item_special_status,
+    '报销与退款累计超过母项金额时进入已结清'
 );
 
 select is(
     (select business_net_amount from public.transaction_item_with_refund
      where id = '57491000-0000-4000-8000-000000000001'),
-    -30::numeric,
-    '核销结余时母项业务净额为负值'
+    0::numeric,
+    '超额核销时母项业务净额为零'
 );
 
 set local role authenticated;
@@ -382,15 +382,15 @@ select lives_ok(
 select is(
     (select special_status from public.transaction_item
      where id = '57491000-0000-4000-8000-000000000001'),
-    'reimbursement_surplus'::public.transaction_item_special_status,
-    '母项净额转正后进入核销结余'
+    'reimbursed'::public.transaction_item_special_status,
+    '母项完全抵消后进入已结清'
 );
 
 select is(
     (select business_net_amount from public.transaction_item_with_refund
      where id = '57491000-0000-4000-8000-000000000001'),
-    -20::numeric,
-    '母项核销结余的业务净额正确'
+    0::numeric,
+    '母项超额核销后业务净额为零'
 );
 
 select lives_ok(

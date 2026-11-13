@@ -143,8 +143,7 @@ select is(
             p_record_type => 'refundableExpense',
             p_special_statuses => array[
                 'pending_reimbursement',
-                'reimbursed',
-                'reimbursement_surplus'
+                'reimbursed'
             ]::text[]
         )
     ),
@@ -174,7 +173,7 @@ select is(
     (select special_status
      from public.transaction_item
      where id = '60596000-0000-4000-8000-000000000001'),
-    'reimbursement_surplus'::public.transaction_item_special_status,
+    'reimbursed'::public.transaction_item_special_status,
     '退款与报销合计超过原始金额后进入核销结余状态'
 );
 
@@ -191,8 +190,8 @@ select is(
     (select business_net_amount
      from public.transaction_item_with_refund
      where id = '60596000-0000-4000-8000-000000000001'),
-    '-20'::numeric,
-    '退款推正后母项业务净额为负 20'
+    0::numeric,
+    '退款超额后母项净额止于零'
 );
 
 select is(
@@ -213,8 +212,8 @@ select is(
         )
           and business_net_amount = 0
     ),
-    2,
-    '已关联报销与退款收入各自的业务净额均被核销为零'
+    1,
+    '先到报销完全抵消，晚到退款保留超额收入'
 );
 
 set local role authenticated;
@@ -235,8 +234,8 @@ select is(
         ) summary
         where summary.group_key = '00000000-0000-4000-8000-000000005021'
     ),
-    20::numeric,
-    '退款与报销共同推正后母项按 20 计入收入'
+    0::numeric,
+    '原支出分类不再承担超额收入'
 );
 
 select is(
@@ -279,8 +278,7 @@ select is(
             p_record_type => 'refundableExpense',
             p_special_statuses => array[
                 'pending_reimbursement',
-                'reimbursed',
-                'reimbursement_surplus'
+                'reimbursed'
             ]::text[]
         )
     ),
@@ -310,7 +308,7 @@ select is(
     (select special_status
      from public.transaction_item
      where id = '60596000-0000-4000-8000-000000000001'),
-    'reimbursement_surplus'::public.transaction_item_special_status,
+    'reimbursed'::public.transaction_item_special_status,
     '继续追加关联后仍保持核销结余状态'
 );
 
@@ -327,8 +325,8 @@ select is(
     (select business_net_amount
      from public.transaction_item_with_refund
      where id = '60596000-0000-4000-8000-000000000001'),
-    '-50'::numeric,
-    '继续追加关联后母项业务净额为负 50'
+    0::numeric,
+    '继续追加关联后母项仍止于零'
 );
 
 select is(
@@ -342,8 +340,8 @@ select is(
         )
           and business_net_amount = 0
     ),
-    3,
-    '转正后继续追加的每条关联收入自身业务净额都保持为零'
+    1,
+    '较早的报销抵消，退款及后续报销保留超额收入'
 );
 
 set local role authenticated;
@@ -364,8 +362,8 @@ select is(
         ) summary
         where summary.group_key = '00000000-0000-4000-8000-000000005021'
     ),
-    50::numeric,
-    '继续追加关联后统计收入随母项净额更新为 50'
+    0::numeric,
+    '原支出分类仍不承担超额收入'
 );
 
 select is(
@@ -408,8 +406,7 @@ select is(
             p_record_type => 'refundableExpense',
             p_special_statuses => array[
                 'pending_reimbursement',
-                'reimbursed',
-                'reimbursement_surplus'
+                'reimbursed'
             ]::text[]
         )
     ),

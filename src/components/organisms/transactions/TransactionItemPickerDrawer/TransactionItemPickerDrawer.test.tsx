@@ -98,13 +98,25 @@ describe("TransactionItemPickerDrawer", () => {
     ).toHaveTextContent("¥0");
   });
 
+  it("报销金额超过实时剩余额度时显示超出额", () => {
+    renderLinkedAmount("1200", {
+      ...selectedCandidate,
+      remainingRefundableAmount: "500",
+    });
+    expect(
+      screen.getByText("剩余未报 ¥500，超出的 ¥700 算作收入"),
+    ).toBeVisible();
+  });
+
   it("已选结清支出时金额留空，金额行仍可打开计算器输入", () => {
     const onAmountChange = renderLinkedAmount("", {
       ...selectedCandidate,
       remainingRefundableAmount: "0",
     });
     expect(screen.getByText("¥0")).toBeVisible();
-    expect(screen.getByText("这笔已全额报销")).toBeVisible();
+    expect(
+      screen.getByText("这笔已全额报销，再报的部分算作收入"),
+    ).toBeVisible();
     const row = screen.getByRole("button", { name: /报销金额 这笔已全额报销/ });
     expect(row).toBeEnabled();
     fireEvent.click(row);
@@ -139,7 +151,9 @@ describe("TransactionItemPickerDrawer", () => {
       />,
     );
     expect(screen.getByText("¥0")).toBeVisible();
-    expect(screen.getByText("这笔已全额退款")).toBeVisible();
+    expect(
+      screen.getByText("这笔已全额退款，再退的部分算作收入"),
+    ).toBeVisible();
     expect(
       document.querySelector("svg[data-testid='EditRoundedIcon']"),
     ).not.toBeNull();
@@ -374,7 +388,7 @@ describe("TransactionItemPickerDrawer", () => {
     expect(
       within(
         screen
-          .getByText("退款 / 报销会抵消原支出，不计入收入。")
+          .getByText("退款 / 报销先抵消原支出，超出的部分算作收入。")
           .closest(".MuiDrawer-paper") as HTMLElement,
       ).getByRole("alert"),
     ).toHaveTextContent("退款明细必须与收款账户币种一致，请重新选择。");

@@ -4,7 +4,7 @@ export type TransactionBusinessBadgeKind =
   | "pendingReimbursement"
   | "refunded"
   | "reimbursed"
-  | "reimbursementSurplus"
+  | "surplus"
   | "settled"
   | "refundOffset"
   | "reimbursementOffset"
@@ -31,11 +31,11 @@ export const transactionBusinessBadgeConfig = {
     description: "这笔支出已由报销收入完成核销",
     label: "已报销",
   },
-  reimbursementSurplus: {
+  surplus: {
     backgroundColor: "var(--user-theme-business-surplus-bg)",
     color: "var(--user-theme-business-surplus-text)",
-    description: "这笔支出核销金额已超过原始金额，净额已转为正数",
-    label: "已倒赚",
+    description: "这笔退款或报销超过了原支出可抵消金额，超出部分计入收入",
+    label: "倒赚",
   },
   refunded: {
     backgroundColor: "var(--user-theme-income-bg)",

@@ -78,6 +78,8 @@ export function EditTransactionReceiptTemplate(
                   incomeItemId: item.id,
                   kind: item.businessStatus.incomeLinkRole,
                   label: candidate.categoryName,
+                  currency: candidate.accountCurrency,
+                  surplus: item.businessNetAmount ?? item.amount,
                   targetItemId: candidate.id,
                 },
               ]

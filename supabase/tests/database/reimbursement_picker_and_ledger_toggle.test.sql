@@ -195,8 +195,8 @@ select is(
         from public.transaction_item
         where id = '59880000-0000-4000-8000-000000000004'
     ),
-    'reimbursement_surplus'::public.transaction_item_special_status,
-    '超额核销后目标支出进入 reimbursement_surplus 状态'
+    'reimbursed'::public.transaction_item_special_status,
+    '超额核销后目标支出进入 reimbursed 状态'
 );
 
 set local role authenticated;

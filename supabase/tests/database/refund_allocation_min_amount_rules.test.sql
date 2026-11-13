@@ -178,8 +178,8 @@ select is(
         from public.transaction_item_with_refund
         where id = '59840000-0000-4000-8000-000000000002'
     ),
-    0::numeric,
-    '退款收入完整写入关联后不再保留未核销净收益'
+    90::numeric,
+    '后发生的退款保留超出额'
 );
 
 select is(
@@ -187,8 +187,8 @@ select is(
         (select ledger_id from test_refund_min_context),
         '59830000-0000-4000-8000-000000000001'
     ),
-    (-90)::numeric,
-    '组合核销超过原始金额后保留负数剩余额度'
+    -90::numeric,
+    '组合超额核销仍记录完整关联金额'
 );
 
 select is(
@@ -197,8 +197,8 @@ select is(
         from public.transaction_item
         where id = '59830000-0000-4000-8000-000000000001'
     ),
-    'reimbursement_surplus'::public.transaction_item_special_status,
-    '报销流程支出核销超额后进入核销结余状态'
+    'reimbursed'::public.transaction_item_special_status,
+    '报销流程支出核销超额后进入已结清状态'
 );
 
 select lives_ok(
@@ -224,8 +224,8 @@ select is(
           on income_item.id = link.refund_income_item_id
         where link.refund_income_item_id = '59840000-0000-4000-8000-000000000003'
     ),
-    '150.00/0.00',
-    '单目标退款解除 LEAST 封顶并完整核销收入金额'
+    '150.00/50.00',
+    '单目标退款关联保留全额和超出部分'
 );
 
 select * from finish();

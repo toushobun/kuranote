@@ -6,6 +6,8 @@ import {
   useState,
 } from "react";
 
+import { linkedTransactionSyncMessages as m } from "config/transactionStepFlowMessages";
+import { formatUnsignedCurrencyAmount } from "utils/transactions";
 import { transactionErrorCodes } from "internal/transaction";
 import type { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
 import type {
@@ -26,10 +28,12 @@ function requiresSyncConfirmation(state: TransactionActionState) {
 }
 
 export type OriginalLinkedTarget = {
+  currency: string;
   incomeItemId: string;
   kind: "refund" | "reimbursement";
   label: string;
   targetItemId: string;
+  surplus: string;
 };
 
 function describeLinkRetarget(
@@ -47,6 +51,8 @@ function describeLinkRetarget(
     .getAll("itemReimbursementItemLabel")
     .map(String);
 
+  const surplusAmounts = formData.getAll("itemLinkedIncomeSurplus").map(String);
+
   const changes = originals.flatMap((original) => {
     const index = itemIds.indexOf(original.incomeItemId);
     if (index < 0) return [];
@@ -54,13 +60,25 @@ function describeLinkRetarget(
     const targetId = (isRefund ? refundedItemIds : reimbursementItemIds)[index];
     if (!targetId || targetId === original.targetItemId) return [];
     const label =
-      (isRefund ? refundLabels : reimbursementLabels)[index] || "新选原支出";
+      (isRefund ? refundLabels : reimbursementLabels)[index] ||
+      m.fallbackTarget;
+    const target = m.retarget(
+      original.kind,
+      `${original.label}（${original.targetItemId.slice(0, 8)}）`,
+      `${label}（${targetId.slice(0, 8)}）`,
+    );
+    const surplus = surplusAmounts[index];
+    if (!surplus || Number(surplus) === Number(original.surplus))
+      return [target];
     return [
-      `${isRefund ? "退款" : "报销"}原支出：${original.label}（${original.targetItemId.slice(0, 8)}）→ ${label}（${targetId.slice(0, 8)}）`,
+      `${target}，${m.surplusChange(
+        formatUnsignedCurrencyAmount(original.surplus, original.currency),
+        formatUnsignedCurrencyAmount(surplus, original.currency),
+      )}`,
     ];
   });
   return changes.length > 0
-    ? `${changes.join("；")}。同步修改后会重新计算旧支出与新支出的核销金额和状态。取消不会保存任何修改。`
+    ? `${changes.join("；")}。${m.retargetDetails}`
     : null;
 }
 
