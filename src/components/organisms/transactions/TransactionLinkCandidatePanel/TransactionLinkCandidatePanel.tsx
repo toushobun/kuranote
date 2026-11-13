@@ -103,15 +103,15 @@ export function TransactionLinkCandidatePanel(
     );
     return sum + Number(actualSettled) - Number(databaseSettled);
   }, 0);
-  const selectedSettledInScope = Boolean(
-    page &&
-      value &&
-      matchesCurrentScope(value) &&
-      isLinkCandidateSettled(props.resolveLinkCandidate?.(value) ?? value),
-  );
+  const selectedSettledInScope =
+    !!page &&
+    !!value &&
+    matchesCurrentScope(value) &&
+    isLinkCandidateSettled(props.resolveLinkCandidate?.(value) ?? value);
+  const selectedOffset = selectedSettledInScope ? 1 : 0;
   const settledCount = Math.max(
     0,
-    (page?.settledCount ?? 0) + settledDelta - Number(selectedSettledInScope),
+    (page?.settledCount ?? 0) + settledDelta - selectedOffset,
   );
   const visibleCandidates = value
     ? [value, ...activeCandidates]
@@ -206,11 +206,7 @@ export function TransactionLinkCandidatePanel(
               },
             }}
           >
-            <Typography
-              component="span"
-              variant="body2"
-              sx={{ fontWeight: 600 }}
-            >
+            <Typography component="span" variant="body2">
               {m.settledGroup(settledCount)}
             </Typography>
             <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
