@@ -135,16 +135,7 @@ export function buildStatisticsViewData({
     if (!category) continue;
 
     const effectiveAmount = item.business_net_amount ?? item.amount;
-    const effectiveValue = Number(effectiveAmount);
-    const hasOffsetLink =
-      item.has_refund_link === true || item.has_reimbursement_link === true;
-    // 只有退款/报销关联支出的业务净额转为负数时，才按核销结余计入收入。
-    const isExpenseSurplus =
-      category.type === "expense" && hasOffsetLink && effectiveValue < 0;
-
-    if (category.type !== "expense" || isExpenseSurplus) {
-      continue;
-    }
+    if (category.type !== "expense") continue;
 
     addRankingAmount(
       categoryRankingById,
