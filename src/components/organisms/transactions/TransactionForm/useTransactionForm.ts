@@ -808,6 +808,7 @@ export function useTransactionForm({
     }
   }
 
+  const linkAffectedItems = [...initialValues.items, ...itemsByType.income];
   return {
     note,
     addItem,
@@ -848,16 +849,13 @@ export function useTransactionForm({
     pickerErrors,
     pickerRefundCandidate,
     pickerReimbursementCandidate,
-    linkAffectedCandidates: Array.from(
-      new Map(
-        [...initialValues.items, ...itemsByType.income]
-          .flatMap((item) => [item.refundCandidate, item.reimbursementCandidate])
-          .filter(
-            (candidate): candidate is TransactionRefundCandidate =>
-              Boolean(candidate),
-          )
-          .map((candidate) => [candidate.id, candidate] as const),
-      ).values(),
+    linkAffectedCandidates: collectLinkAffectedCandidates(
+      linkAffectedItems,
+      "refund",
+    ),
+    linkAffectedReimbursementCandidates: collectLinkAffectedCandidates(
+      linkAffectedItems,
+      "reimbursement",
     ),
     resolveLinkCandidate,
     pickerSpecialStatus,
@@ -906,6 +904,27 @@ function createInitialItemsByType(
   });
 
   return result;
+}
+
+/** 报销只展示本来有报销关联的草稿候选，避免把其他退款候选误加进报销列表。 */
+function collectLinkAffectedCandidates(
+  items: readonly {
+    refundCandidate?: TransactionRefundCandidate | null;
+    reimbursementCandidate?: TransactionRefundCandidate | null;
+  }[],
+  kind: TransactionLinkKind,
+) {
+  const unique = new Map<string, TransactionRefundCandidate>();
+  for (const item of items) {
+    const candidates =
+      kind === "refund"
+        ? [item.refundCandidate, item.reimbursementCandidate]
+        : [item.reimbursementCandidate];
+    for (const candidate of candidates) {
+      if (candidate) unique.set(candidate.id, candidate);
+    }
+  }
+  return [...unique.values()];
 }
 
 const linkCandidateKeys = {

@@ -75,6 +75,7 @@ type TransactionItemPickerDrawerProps = TransactionIncomeLinksContextValue & {
     candidate: TransactionRefundCandidate,
   ) => TransactionRefundCandidate;
   linkAffectedCandidates?: TransactionRefundCandidate[];
+  linkAffectedReimbursementCandidates?: TransactionRefundCandidate[];
   selectedAccountCurrency?: string;
   selectedCategoryGroup?: CategoryPickerGroup;
   specialStatusEnabled?: boolean;
@@ -112,6 +113,7 @@ export function TransactionItemPickerDrawer({
   pickerSpecialStatus = null,
   resolveLinkCandidate,
   linkAffectedCandidates,
+  linkAffectedReimbursementCandidates,
   selectedAccountCurrency,
   selectedCategoryGroup,
   loadRefundPageAction,
@@ -295,7 +297,11 @@ export function TransactionItemPickerDrawer({
             }
             value={selectedCandidate}
             resolveLinkCandidate={resolveLinkCandidate}
-            linkAffectedCandidates={linkAffectedCandidates}
+            linkAffectedCandidates={
+              pickerMode === "reimbursement"
+                ? linkAffectedReimbursementCandidates
+                : linkAffectedCandidates
+            }
           />
         ) : (
           <>
