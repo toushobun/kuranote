@@ -10016,11 +10016,15 @@ CREATE OR REPLACE VIEW "public"."transaction_item_with_refund" WITH ("security_i
     "ti"."special_status",
     COALESCE("expense_refunds"."refunded_amount", (0)::numeric) AS "refunded_amount",
     (EXISTS ( SELECT 1
-           FROM "public"."transaction_item_refund_link" "link"
-          WHERE (("link"."ledger_id" = "ti"."ledger_id") AND ("link"."refund_income_item_id" = "ti"."id")))) AS "is_refund_income",
+           FROM (("public"."transaction_item_refund_link" "link"
+             JOIN "public"."transaction_item" "target_item" ON ((("target_item"."id" = "link"."refunded_item_id") AND ("target_item"."ledger_id" = "link"."ledger_id"))))
+             JOIN "public"."transaction_record" "target_record" ON ((("target_record"."id" = "target_item"."transaction_record_id") AND ("target_record"."ledger_id" = "target_item"."ledger_id"))))
+          WHERE (("link"."ledger_id" = "ti"."ledger_id") AND ("link"."refund_income_item_id" = "ti"."id") AND ("target_record"."status" = 'active'::"text")))) AS "is_refund_income",
     (EXISTS ( SELECT 1
-           FROM "public"."transaction_item_reimbursement_link" "link"
-          WHERE (("link"."ledger_id" = "ti"."ledger_id") AND ("link"."reimbursement_income_item_id" = "ti"."id")))) AS "is_reimbursement_income",
+           FROM (("public"."transaction_item_reimbursement_link" "link"
+             JOIN "public"."transaction_item" "target_item" ON ((("target_item"."id" = "link"."target_expense_item_id") AND ("target_item"."ledger_id" = "link"."ledger_id"))))
+             JOIN "public"."transaction_record" "target_record" ON ((("target_record"."id" = "target_item"."transaction_record_id") AND ("target_record"."ledger_id" = "target_item"."ledger_id"))))
+          WHERE (("link"."ledger_id" = "ti"."ledger_id") AND ("link"."reimbursement_income_item_id" = "ti"."id") AND ("target_record"."status" = 'active'::"text")))) AS "is_reimbursement_income",
     (EXISTS ( SELECT 1
            FROM "public"."transaction_item_refund_link" "link"
           WHERE (("link"."ledger_id" = "ti"."ledger_id") AND (("link"."refunded_item_id" = "ti"."id") OR ("link"."refund_income_item_id" = "ti"."id"))))) AS "has_refund_link",

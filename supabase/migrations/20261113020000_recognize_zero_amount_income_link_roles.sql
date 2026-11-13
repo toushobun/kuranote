@@ -8,14 +8,28 @@ select
     exists (
         select 1
         from public.transaction_item_refund_link link
+        join public.transaction_item target_item
+          on target_item.id = link.refunded_item_id
+         and target_item.ledger_id = link.ledger_id
+        join public.transaction_record target_record
+          on target_record.id = target_item.transaction_record_id
+         and target_record.ledger_id = target_item.ledger_id
         where link.ledger_id = ti.ledger_id
           and link.refund_income_item_id = ti.id
+          and target_record.status = 'active'
     ) as is_refund_income,
     exists (
         select 1
         from public.transaction_item_reimbursement_link link
+        join public.transaction_item target_item
+          on target_item.id = link.target_expense_item_id
+         and target_item.ledger_id = link.ledger_id
+        join public.transaction_record target_record
+          on target_record.id = target_item.transaction_record_id
+         and target_record.ledger_id = target_item.ledger_id
         where link.ledger_id = ti.ledger_id
           and link.reimbursement_income_item_id = ti.id
+          and target_record.status = 'active'
     ) as is_reimbursement_income,
     exists (
         select 1

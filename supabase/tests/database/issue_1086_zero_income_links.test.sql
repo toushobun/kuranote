@@ -1,7 +1,7 @@
 -- Issue #1086：零金额关联待定、改选目标、补正数金额与状态/净额回归。
 begin;
 set local search_path = public, extensions;
-select plan(21);
+select plan(24);
 
 update public.ledger
 set transaction_item_special_status_enabled = true
@@ -111,6 +111,49 @@ select results_eq(
     ('10861000-0000-4000-8000-000000000004'::uuid, false, true)$$,
   '零金额退款和报销仅在收入方标记对应角色'
 );
+-- 正常作废流程会拒绝仍有关联的原支出。仅在测试中构造已作废但仍保留关联的数据。
+create function pg_temp.set_target_record_status(
+  refund_record_id uuid, reimbursement_record_id uuid, record_status text
+) returns void language plpgsql as $$
+begin
+  set local session_replication_role = replica;
+  update public.transaction_record
+  set status = record_status,
+      deleted_at = case when record_status = 'deleted' then now() end,
+      deleted_by = case when record_status = 'deleted' then created_by end
+  where id in (refund_record_id, reimbursement_record_id);
+  set local session_replication_role = origin;
+end;
+$$;
+
+create function pg_temp.income_roles()
+returns table (id uuid, is_refund_income boolean, is_reimbursement_income boolean)
+language sql as $$
+  select ti.id, ti.is_refund_income, ti.is_reimbursement_income
+  from public.transaction_item_with_refund ti
+  where ti.id in (
+    '10861000-0000-4000-8000-000000000003',
+    '10861000-0000-4000-8000-000000000004'
+  )
+  order by ti.id
+$$;
+
+select pg_temp.set_target_record_status(
+  '10860000-0000-4000-8000-000000000001',
+  '10860000-0000-4000-8000-000000000002', 'deleted'
+);
+select results_eq(
+  'select * from pg_temp.income_roles() order by id',
+  $$values
+    ('10861000-0000-4000-8000-000000000003'::uuid, false, false),
+    ('10861000-0000-4000-8000-000000000004'::uuid, false, false)$$,
+  '原支出作废后，零金额退款和报销收入不再标记角色'
+);
+select pg_temp.set_target_record_status(
+  '10860000-0000-4000-8000-000000000001',
+  '10860000-0000-4000-8000-000000000002', 'active'
+);
+
 set local role authenticated;
 select set_config(
  'request.jwt.claims',
@@ -175,6 +218,24 @@ select is(
  (select coalesce(sum(business_net_amount),0) from public.transaction_item_with_refund
   where id in ('10861000-0000-4000-8000-000000000005', '10861000-0000-4000-8000-000000000006')),
  145::numeric, '正数核销反映到支出统计口径');
+select results_eq(
+  'select * from pg_temp.income_roles() order by id',
+  $$values
+    ('10861000-0000-4000-8000-000000000003'::uuid, true, false),
+    ('10861000-0000-4000-8000-000000000004'::uuid, false, true)$$,
+  '原支出有效时，正金额退款和报销收入标记对应角色'
+);
+select pg_temp.set_target_record_status(
+  '10860000-0000-4000-8000-000000000005',
+  '10860000-0000-4000-8000-000000000006', 'deleted'
+);
+select results_eq(
+  'select * from pg_temp.income_roles() order by id',
+  $$values
+    ('10861000-0000-4000-8000-000000000003'::uuid, false, false),
+    ('10861000-0000-4000-8000-000000000004'::uuid, false, false)$$,
+  '原支出作废后，正金额退款和报销收入不再标记角色'
+);
 select set_config('request.jwt.claim.sub', '', true);
 select * from finish();
 rollback;
