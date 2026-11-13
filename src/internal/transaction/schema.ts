@@ -156,10 +156,6 @@ function parseTransactionItems(
       transactionErrorCodes.refundLinkInvalid,
     );
     if (!refundedItemIdResult.ok) return refundedItemIdResult;
-    if (refundedItemIdResult.value && amountResult.value <= 0) {
-      return invalid(transactionErrorCodes.refundLinkInvalid);
-    }
-
     const specialStatusText = String(specialStatusValues[index] ?? "").trim();
     let specialStatus: TransactionSpecialStatus | null = null;
     if (specialStatusText) {
@@ -489,24 +485,19 @@ function addSameAccountTransferIssue(context: z.RefinementCtx) {
   });
 }
 
-const transactionItemRequestSchema = z
-  .object({
-    amount: z.number().nonnegative().refine(hasValidMoneyPrecision, {
-      message: transactionErrorCodes.amountInvalid,
-    }),
-    categoryId: z.string().uuid(),
-    id: z.string().uuid().optional(),
-    refundedItemId: z.string().uuid().optional(),
-    reimbursementItemId: z.string().uuid().optional(),
-    specialStatus: z
-      .enum(transactionWritableSpecialStatuses)
-      .nullable()
-      .optional(),
-  })
-  .refine((item) => !item.refundedItemId || item.amount > 0, {
-    message: transactionErrorCodes.refundLinkInvalid,
-    path: ["amount"],
-  });
+const transactionItemRequestSchema = z.object({
+  amount: z.number().nonnegative().refine(hasValidMoneyPrecision, {
+    message: transactionErrorCodes.amountInvalid,
+  }),
+  categoryId: z.string().uuid(),
+  id: z.string().uuid().optional(),
+  refundedItemId: z.string().uuid().optional(),
+  reimbursementItemId: z.string().uuid().optional(),
+  specialStatus: z
+    .enum(transactionWritableSpecialStatuses)
+    .nullable()
+    .optional(),
+});
 
 const normalTransactionRequestSchema = z.object({
   accountId: z.string().uuid(),

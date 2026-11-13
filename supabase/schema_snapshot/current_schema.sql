@@ -772,21 +772,21 @@ begin
 
         v_reimbursement_amount := v_income_amount;
 
-        if v_reimbursement_amount > 0 then
-            insert into public.transaction_item_reimbursement_link (
-                ledger_id,
-                target_expense_item_id,
-                reimbursement_income_item_id,
-                reimbursement_amount,
-                created_by
-            ) values (
-                p_ledger_id,
-                v_reimbursement_target_id,
-                p_income_item_id,
-                v_reimbursement_amount,
-                p_user_id
-            );
+        insert into public.transaction_item_reimbursement_link (
+            ledger_id,
+            target_expense_item_id,
+            reimbursement_income_item_id,
+            reimbursement_amount,
+            created_by
+        ) values (
+            p_ledger_id,
+            v_reimbursement_target_id,
+            p_income_item_id,
+            v_reimbursement_amount,
+            p_user_id
+        );
 
+        if v_reimbursement_amount > 0 then
             perform set_config('kuranote.reimbursement_link_flow', 'on', true);
 
             update public.transaction_item target_item
@@ -813,7 +813,7 @@ begin
     end if;
 
     if v_refund_target_id is not null then
-        if v_income_amount <= 0 then
+        if v_income_amount < 0 then
             raise exception 'refund_allocation_invalid'
                 using errcode = '22023', detail = 'refund_allocation_invalid';
         end if;
@@ -5278,7 +5278,7 @@ begin
     if tg_op = 'DELETE' and public.ledger_deletion_allows_delete(old.ledger_id) then
         return old;
     end if;
-    if tg_op in ('DELETE', 'UPDATE') then
+    if tg_op in ('DELETE', 'UPDATE') and old.refund_amount > 0 then
         perform public.recalculate_transaction_item_settlement_status(
             old.ledger_id,
             old.refunded_item_id
@@ -5286,6 +5286,7 @@ begin
     end if;
 
     if tg_op in ('INSERT', 'UPDATE')
+       and new.refund_amount > 0
        and (
            tg_op = 'INSERT'
            or new.ledger_id is distinct from old.ledger_id
@@ -5315,7 +5316,7 @@ begin
     if tg_op = 'DELETE' and public.ledger_deletion_allows_delete(old.ledger_id) then
         return old;
     end if;
-    if tg_op in ('DELETE', 'UPDATE') then
+    if tg_op in ('DELETE', 'UPDATE') and old.reimbursement_amount > 0 then
         perform public.recalculate_transaction_item_settlement_status(
             old.ledger_id,
             old.target_expense_item_id
@@ -5323,6 +5324,7 @@ begin
     end if;
 
     if tg_op in ('INSERT', 'UPDATE')
+       and new.reimbursement_amount > 0
        and (
            tg_op = 'INSERT'
            or new.ledger_id is distinct from old.ledger_id
@@ -7491,11 +7493,6 @@ begin
     end if;
 
     -- 退款 / 报销都只要求同币种（#899），由付款明细的记录级延迟校验保证。
-    if (v_is_reimbursement_income or v_is_refund_income) and p_amount <= 0 then
-        raise exception 'amount_invalid'
-            using errcode = '22023', detail = 'amount_invalid';
-    end if;
-
     perform set_config('kuranote.income_link_edit_flow', 'on', true);
     perform set_config('kuranote.reimbursement_link_flow', 'on', true);
 
@@ -9979,7 +9976,7 @@ CREATE TABLE IF NOT EXISTS "public"."transaction_item_refund_link" (
     "created_by" "uuid",
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
     CONSTRAINT "transaction_item_refund_link_different_items_check" CHECK (("refunded_item_id" <> "refund_income_item_id")),
-    CONSTRAINT "transaction_item_refund_link_refund_amount_check" CHECK (("refund_amount" > (0)::numeric))
+    CONSTRAINT "transaction_item_refund_link_refund_amount_check" CHECK (("refund_amount" >= (0)::numeric))
 );
 
 
@@ -9993,7 +9990,7 @@ CREATE TABLE IF NOT EXISTS "public"."transaction_item_reimbursement_link" (
     "reimbursement_amount" numeric(14,2) NOT NULL,
     "created_by" "uuid",
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    CONSTRAINT "transaction_item_reimbursement_link_amount_check" CHECK (("reimbursement_amount" > (0)::numeric)),
+    CONSTRAINT "transaction_item_reimbursement_link_amount_check" CHECK (("reimbursement_amount" >= (0)::numeric)),
     CONSTRAINT "transaction_item_reimbursement_link_different_items_check" CHECK (("target_expense_item_id" <> "reimbursement_income_item_id"))
 );
 
@@ -10018,8 +10015,16 @@ CREATE OR REPLACE VIEW "public"."transaction_item_with_refund" WITH ("security_i
     "ti"."updated_at",
     "ti"."special_status",
     COALESCE("expense_refunds"."refunded_amount", (0)::numeric) AS "refunded_amount",
-    (COALESCE("income_refunds"."refunded_amount", (0)::numeric) > (0)::numeric) AS "is_refund_income",
-    (COALESCE("income_reimbursements"."reimbursed_amount", (0)::numeric) > (0)::numeric) AS "is_reimbursement_income",
+    (EXISTS ( SELECT 1
+           FROM (("public"."transaction_item_refund_link" "link"
+             JOIN "public"."transaction_item" "target_item" ON ((("target_item"."id" = "link"."refunded_item_id") AND ("target_item"."ledger_id" = "link"."ledger_id"))))
+             JOIN "public"."transaction_record" "target_record" ON ((("target_record"."id" = "target_item"."transaction_record_id") AND ("target_record"."ledger_id" = "target_item"."ledger_id"))))
+          WHERE (("link"."ledger_id" = "ti"."ledger_id") AND ("link"."refund_income_item_id" = "ti"."id") AND ("target_record"."status" = 'active'::"text")))) AS "is_refund_income",
+    (EXISTS ( SELECT 1
+           FROM (("public"."transaction_item_reimbursement_link" "link"
+             JOIN "public"."transaction_item" "target_item" ON ((("target_item"."id" = "link"."target_expense_item_id") AND ("target_item"."ledger_id" = "link"."ledger_id"))))
+             JOIN "public"."transaction_record" "target_record" ON ((("target_record"."id" = "target_item"."transaction_record_id") AND ("target_record"."ledger_id" = "target_item"."ledger_id"))))
+          WHERE (("link"."ledger_id" = "ti"."ledger_id") AND ("link"."reimbursement_income_item_id" = "ti"."id") AND ("target_record"."status" = 'active'::"text")))) AS "is_reimbursement_income",
     (EXISTS ( SELECT 1
            FROM "public"."transaction_item_refund_link" "link"
           WHERE (("link"."ledger_id" = "ti"."ledger_id") AND (("link"."refunded_item_id" = "ti"."id") OR ("link"."refund_income_item_id" = "ti"."id"))))) AS "has_refund_link",

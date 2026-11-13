@@ -846,9 +846,14 @@ describe("getEditTransactionEntryView", () => {
 });
 
 describe("getEditTransactionView income links", () => {
-  it.each(["refund", "reimbursement"] as const)(
-    "%s 编辑原支出补齐商家头像及归档付款账户信息",
-    async (kind) => {
+  it.each([
+    ["refund", "100"],
+    ["reimbursement", "100"],
+    ["refund", "0"],
+    ["reimbursement", "0"],
+  ] as const)(
+    "%s 金额为 %s 时编辑原支出补齐商家头像及归档付款账户信息",
+    async (kind, amount) => {
       const linkedItem = {
         accountId: targetAccountId,
         amount: "1000",
@@ -866,11 +871,11 @@ describe("getEditTransactionView income links", () => {
             incomeItemId,
             refundItem:
               kind === "refund"
-                ? { ...linkedItem, refundLinkAmount: "100" }
+                ? { ...linkedItem, refundLinkAmount: amount }
                 : null,
             reimbursementItems:
               kind === "reimbursement"
-                ? [{ ...linkedItem, reimbursementLinkAmount: "100" }]
+                ? [{ ...linkedItem, reimbursementLinkAmount: amount }]
                 : [],
           },
         ]),
@@ -879,6 +884,9 @@ describe("getEditTransactionView income links", () => {
         incomeLinkRepository,
         itemOverrides: {
           category_id: incomeCategoryId,
+          amount,
+          has_refund_link: kind === "refund",
+          has_reimbursement_link: kind === "reimbursement",
           is_refund_income: kind === "refund",
           is_reimbursement_income: kind === "reimbursement",
         },
@@ -904,6 +912,8 @@ describe("getEditTransactionView income links", () => {
         initialValues: {
           items: [
             {
+              amount,
+              businessStatus: { incomeLinkRole: kind },
               [kind === "refund"
                 ? "refundCandidate"
                 : "reimbursementCandidate"]: {
@@ -1009,7 +1019,7 @@ describe("getEditTransactionView income links", () => {
             },
             reimbursementCandidate: {
               id: linkedExpenseItemId,
-              remainingRefundableAmount: "-300",
+              remainingRefundableAmount: "-700",
             },
           },
         ],
@@ -1070,7 +1080,7 @@ describe("getEditTransactionView income links", () => {
             },
             refundCandidate: {
               id: linkedExpenseItemId,
-              remainingRefundableAmount: "0.15",
+              remainingRefundableAmount: "0.05",
             },
           },
         ],

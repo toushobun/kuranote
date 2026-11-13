@@ -237,6 +237,105 @@ describe("useTransactionForm", () => {
     ).not.toBeNull();
   });
 
+  const refundCategoryOptions: TransactionCategoryOption[] = [
+    ...categoryOptions,
+    {
+      id: "system-refund",
+      name: "退款",
+      parentId: "income-category",
+      parentName: "收入",
+      type: "income",
+      systemKey: "refund",
+    },
+  ];
+
+  it("已经抵完的原支出可以直接确定为 0 元退款明细", () => {
+    const { result } = renderTransactionFormHook({
+      categoryOptions: refundCategoryOptions,
+    });
+    act(() => {
+      changePrimaryAccount(result, "account-1");
+      result.current.openSheet();
+    });
+    act(() => result.current.handlePickerModeChange("refund"));
+    act(() =>
+      result.current.setPickerRefundCandidate({
+        ...refundCandidate,
+        refundedAmount: "1200",
+        remainingRefundableAmount: "0",
+      }),
+    );
+    expect(result.current.pickerAmount).toBe("");
+    act(() => {
+      expect(result.current.handlePickerAdd()).toBe(true);
+    });
+    expect(result.current.itemSummaries).toMatchObject([
+      {
+        amount: "0",
+        businessNetAmount: "0",
+        refundCandidate: { id: refundCandidate.id },
+      },
+    ]);
+  });
+
+  it("编辑小票删除已保存关联后，重新选原支出会恢复自动填金额", () => {
+    const persistedCandidate = {
+      ...refundCandidate,
+      refundedAmount: "600",
+      remainingRefundableAmount: "600",
+    };
+    const { result } = renderTransactionFormHook({
+      categoryOptions: refundCategoryOptions,
+      initialValues: {
+        ...createInitialValues(),
+        items: [
+          {
+            id: "persisted-refund",
+            amount: "600",
+            categoryId: "system-refund",
+            refundCandidate: persistedCandidate,
+          },
+        ],
+      },
+    });
+    expect(
+      result.current.resolveLinkCandidate(persistedCandidate)
+        .remainingRefundableAmount,
+    ).toBe("600");
+    act(() => result.current.removeItem(1));
+    expect(
+      result.current.resolveLinkCandidate(persistedCandidate)
+        .remainingRefundableAmount,
+    ).toBe("1200");
+    act(() => result.current.openSheet());
+    act(() => result.current.handlePickerModeChange("refund"));
+    act(() => result.current.setPickerRefundCandidate(persistedCandidate));
+    expect(result.current.pickerAmount).toBe("1200");
+  });
+
+  it("新建小票给同一目标关联第二笔退款时扣除第一笔草稿", () => {
+    const { result } = renderTransactionFormHook({
+      categoryOptions: refundCategoryOptions,
+    });
+    act(() => {
+      changePrimaryAccount(result, "account-1");
+      result.current.openSheet();
+    });
+    act(() => result.current.handlePickerModeChange("refund"));
+    act(() => result.current.setPickerRefundCandidate(refundCandidate));
+    act(() => {
+      expect(result.current.handlePickerAdd()).toBe(true);
+    });
+    act(() => result.current.updateItem(1, { amount: "200" }));
+    act(() => result.current.openSheet());
+    act(() => result.current.handlePickerModeChange("refund"));
+    act(() => result.current.setPickerRefundCandidate(refundCandidate));
+    expect(result.current.pickerAmount).toBe("1000");
+    expect(
+      result.current.resolveLinkCandidate(refundCandidate).refundedAmount,
+    ).toBe("200");
+  });
+
   it("新增超额退款收入时完整核销且业务净额为零", () => {
     const { result } = renderTransactionFormHook();
 

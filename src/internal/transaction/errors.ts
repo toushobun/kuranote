@@ -109,7 +109,7 @@ export const transactionValidationErrorMessages: Record<
   [transactionErrorCodes.noteTooLong]: "备注不能超过 2000 个字符。",
   [transactionErrorCodes.paymentAmountRequired]:
     transactionPaymentMessages[transactionErrorCodes.paymentAmountRequired],
-  [transactionErrorCodes.refundLinkInvalid]: "退款金额必须大于 0。",
+  [transactionErrorCodes.refundLinkInvalid]: "退款关联的支出明细不正确。",
   [transactionErrorCodes.reimbursementLinkInvalid]: "报销目标明细不正确。",
   [transactionErrorCodes.specialStatusInvalid]:
     "特殊状态不正确；待报销只能用于支出明细，结清状态只能由有效退款或报销核销自动派生。",
@@ -228,7 +228,6 @@ export const transactionSpecialStatusErrorMessages = {
   incomeLinkSystemCategoryRequired:
     "退款必须使用系统分类「退款」、报销必须使用系统分类「报销」；普通收入不能使用系统分类。",
   pendingReimbursementExpenseOnly: "待报销只能用于支出明细。",
-  refundAmountInvalid: "退款收入金额必须大于 0。",
 } as const;
 
 /** 交易读取查询失败时的文案。 */

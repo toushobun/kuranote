@@ -315,7 +315,7 @@ select is(
     '解除超额关联后核销结余状态可以回到待报销'
 );
 
-select throws_ok(
+select lives_ok(
     $$
         insert into public.transaction_item_reimbursement_link (
             ledger_id, target_expense_item_id,
@@ -328,10 +328,13 @@ select throws_ok(
             '00000000-0000-4000-8000-000000000031'
         )
     $$,
-    '23514',
-    null,
-    '报销金额必须大于零'
+    '报销金额为零时允许建立待定关联'
 );
+
+-- 释放本条收入关联，后续测试仍验证正数唯一约束。
+delete from public.transaction_item_reimbursement_link
+where ledger_id = '00000000-0000-4000-8000-000000000032'
+  and reimbursement_income_item_id = '59840000-0000-4000-8000-000000000002';
 
 select throws_ok(
     $$

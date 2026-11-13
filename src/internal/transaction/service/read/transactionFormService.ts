@@ -409,7 +409,6 @@ function buildRefundCandidate(
 
   return buildIncomeLinkCandidate(
     refundItem,
-    refundItem.refundLinkAmount,
     accounts,
     categories,
     fallbackCurrency,
@@ -429,7 +428,6 @@ function buildReimbursementCandidate(
 
   return buildIncomeLinkCandidate(
     reimbursementItem,
-    reimbursementItem.reimbursementLinkAmount,
     accounts,
     categories,
     fallbackCurrency,
@@ -439,7 +437,6 @@ function buildReimbursementCandidate(
 
 function buildIncomeLinkCandidate(
   linkedItem: TransactionIncomeLinkedItem,
-  currentAllocationAmount: string,
   accounts: TransactionAccountOption[],
   categories: TransactionCategoryOption[],
   fallbackCurrency: string,
@@ -457,16 +454,11 @@ function buildIncomeLinkCandidate(
   const reimbursementAmountUnits = toRefundMinorUnits(
     linkedItem.reimbursementAmount,
   );
-  const currentAllocationUnits = toRefundMinorUnits(currentAllocationAmount);
   const calculatedRemainingUnits =
     originalAmountUnits !== null &&
     refundedAmountUnits !== null &&
-    reimbursementAmountUnits !== null &&
-    currentAllocationUnits !== null
-      ? originalAmountUnits -
-        refundedAmountUnits -
-        reimbursementAmountUnits +
-        currentAllocationUnits
+    reimbursementAmountUnits !== null
+      ? originalAmountUnits - refundedAmountUnits - reimbursementAmountUnits
       : BigInt(0);
   const remainingRefundableAmount = formatRefundMinorUnits(
     calculatedRemainingUnits,

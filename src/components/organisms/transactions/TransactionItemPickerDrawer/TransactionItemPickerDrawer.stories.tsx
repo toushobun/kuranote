@@ -213,3 +213,32 @@ export const EditOffPageSelection: Story = {
     pickerAmount: "3280",
   },
 };
+
+export const RefundPartiallySettled: Story = {
+  name: "退款 · 部分退款自动填剩余",
+  args: {
+    pickerMode: "refund",
+    pickerRefundCandidate: {
+      ...selectedCandidate,
+      id: "partially-settled",
+      amount: "5000",
+      refundedAmount: "2000",
+      remainingRefundableAmount: "3000",
+    },
+    pickerAmount: "3000",
+  },
+};
+
+export const RefundFullySettled: Story = {
+  name: "退款 · 已全额退款显示零金额",
+  args: {
+    pickerMode: "refund",
+    pickerRefundCandidate: {
+      ...selectedCandidate,
+      id: "fully-settled",
+      refundedAmount: "3280",
+      remainingRefundableAmount: "0",
+    },
+    pickerAmount: "",
+  },
+};

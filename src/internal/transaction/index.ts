@@ -86,6 +86,7 @@ export type {
 export {
   toTransactionLinkCandidates,
   getLinkCandidateDefaultAmount,
+  adjustLinkCandidate,
 } from "./util/transactionLinkCandidates";
 
 export type { TransactionLinkCandidatePageInput } from "./schema";

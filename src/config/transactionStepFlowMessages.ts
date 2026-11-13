@@ -163,7 +163,16 @@ export const transactionLinkCandidateMessages = {
   reimbursementAmount: "报销金额",
   selectFirst: (kind: "refund" | "reimbursement") =>
     kind === "refund" ? "先选择要退款的支出" : "先选择要报销的支出",
-  remaining: (amount: string) => `剩余未核销 ${amount}`,
+  remaining: (kind: "refund" | "reimbursement", amount: string) =>
+    `剩余未${kind === "refund" ? "退" : "报"} ${amount}`,
+  settledHint: (kind: "refund" | "reimbursement") =>
+    kind === "refund" ? "这笔已全额退款" : "这笔已全额报销",
+  settledLabel: (hasRefund: boolean, hasReimbursement: boolean) =>
+    hasRefund && hasReimbursement
+      ? "已结清"
+      : hasRefund
+        ? "已全额退款"
+        : "已全额报销",
   unselectedAmount: "—",
   selectCandidate: (kind: "refund" | "reimbursement", name: string) =>
     `选择${kind === "refund" ? "退款" : "报销"}明细 ${name}`,
