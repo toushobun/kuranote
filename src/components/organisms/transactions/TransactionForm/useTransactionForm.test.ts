@@ -50,12 +50,14 @@ const categoryOptions: TransactionCategoryOption[] = [
 ];
 const merchantOptions: TransactionMerchantOption[] = [
   { icon_url: null, id: "merchant-1", name: "便利店" },
+  { icon_url: null, id: "merchant-2", name: "其他商家" },
 ];
 
 const refundCandidate: TransactionRefundCandidate = {
   accountCurrency: "JPY",
   accountId: "account-1",
   amount: "1200",
+  merchantId: "merchant-1",
   categoryName: "午餐",
   id: "refund-item-1",
   parentCategoryName: "餐饮",
@@ -1070,5 +1072,226 @@ describe("useTransactionForm", () => {
     expect(onPickerItemCommit).toHaveBeenCalledWith(
       result.current.itemSummaries[0].id,
     );
+  });
+
+  it.each(["refund", "reimbursement"] as const)(
+    "选择%s原支出时自动填未选商家，且不清空小票已有明细",
+    (kind) => {
+      const { result } = renderTransactionFormHook({
+        categoryOptions: [
+          ...refundCategoryOptions,
+          {
+            id: "system-reimbursement",
+            name: "报销",
+            parentId: "income-category",
+            parentName: "收入",
+            type: "income",
+            systemKey: "reimbursement",
+          },
+        ],
+        initialValues: {
+          ...newFormInitialValues,
+          items: [{ amount: "300", categoryId: "expense-child" }],
+        },
+      });
+      act(() => result.current.openSheet());
+      act(() => result.current.handlePickerModeChange(kind));
+      act(() =>
+        kind === "refund"
+          ? result.current.setPickerRefundCandidate(refundCandidate)
+          : result.current.setPickerReimbursementCandidate(
+              reimbursementCandidate,
+            ),
+      );
+      expect(result.current.selectedMerchantId).toBe("merchant-1");
+      expect(result.current.linkMerchantTouched).toBe(false);
+      expect(result.current.itemSummaries).toHaveLength(1);
+      expect(result.current.itemSummaries[0]?.amount).toBe("300");
+      expect(result.current.linkAffectedCandidates).toHaveLength(0);
+      const reimbursementAffected =
+        result.current.linkAffectedReimbursementCandidates;
+      expect(reimbursementAffected).toHaveLength(0);
+      act(() => {
+        expect(result.current.handlePickerAdd()).toBe(true);
+      });
+      act(() => result.current.closeSheet());
+      expect(result.current.selectedMerchantId).toBe("merchant-1");
+      expect(result.current.linkMerchantTouched).toBe(true);
+      expect(result.current.itemSummaries).toHaveLength(2);
+      expect(mocks.markEditDirty).toHaveBeenLastCalledWith(true);
+    },
+  );
+
+  it.each(["refund", "reimbursement"] as const)(
+    "取消%s原支出选择时回滚自动商家，账户带出行为不变",
+    (kind) => {
+      const { result } = renderTransactionFormHook();
+      act(() => result.current.openSheet());
+      act(() => result.current.handlePickerModeChange(kind));
+      act(() =>
+        kind === "refund"
+          ? result.current.setPickerRefundCandidate(refundCandidate)
+          : result.current.setPickerReimbursementCandidate(
+              reimbursementCandidate,
+            ),
+      );
+      expect(result.current.selectedMerchantId).toBe("merchant-1");
+      expect(result.current.selectedAccount?.id).toBe("account-1");
+      act(() => result.current.closeSheet());
+      expect(result.current.selectedMerchantId).toBe("");
+      expect(result.current.linkMerchantTouched).toBe(false);
+      expect(result.current.selectedAccount?.id).toBe("account-1");
+      expect(result.current.itemSummaries).toHaveLength(0);
+    },
+  );
+
+  it("未成功保存关联明细时，切换到普通明细也不留下临时商家", () => {
+    const { result } = renderTransactionFormHook();
+    act(() => result.current.openSheet());
+    act(() => result.current.handlePickerModeChange("refund"));
+    act(() => result.current.setPickerRefundCandidate(refundCandidate));
+    expect(result.current.selectedMerchantId).toBe("merchant-1");
+    act(() => result.current.handlePickerModeChange("expense"));
+    act(() => {
+      expect(result.current.handlePickerAdd()).toBe(true);
+    });
+    act(() => result.current.closeSheet());
+    expect(result.current.selectedMerchantId).toBe("");
+    expect(result.current.linkMerchantTouched).toBe(false);
+    expect(result.current.itemSummaries).toHaveLength(1);
+  });
+
+  it.each(["refund", "reimbursement"] as const)(
+    "改选%s原支出时更新临时商家，保存后保留最终选择",
+    (kind) => {
+      const { result } = renderTransactionFormHook({
+        categoryOptions: [
+          ...refundCategoryOptions,
+          {
+            id: "system-reimbursement",
+            name: "报销",
+            parentId: "income-category",
+            parentName: "收入",
+            type: "income",
+            systemKey: "reimbursement",
+          },
+        ],
+      });
+      const choose = (candidate: TransactionRefundCandidate | null) => {
+        if (kind === "refund")
+          result.current.setPickerRefundCandidate(candidate);
+        else result.current.setPickerReimbursementCandidate(candidate);
+      };
+      act(() => result.current.openSheet());
+      act(() => result.current.handlePickerModeChange(kind));
+      act(() => choose(refundCandidate));
+      expect(result.current.selectedMerchantId).toBe("merchant-1");
+      act(() =>
+        choose({
+          ...refundCandidate,
+          id: "refund-item-2",
+          merchantId: "merchant-2",
+        }),
+      );
+      expect(result.current.selectedMerchantId).toBe("merchant-2");
+      expect(result.current.linkMerchantTouched).toBe(false);
+      act(() => {
+        expect(result.current.handlePickerAdd()).toBe(true);
+      });
+      act(() => result.current.closeSheet());
+      expect(result.current.selectedMerchantId).toBe("merchant-2");
+      expect(result.current.linkMerchantTouched).toBe(true);
+    },
+  );
+
+  it.each([
+    { merchantId: null, label: "无商家" },
+    { merchantId: "merchant-archived", label: "商家已归档" },
+  ])("改选$label原支出时撤回临时带出的商家", ({ merchantId }) => {
+    const { result } = renderTransactionFormHook();
+    act(() => result.current.openSheet());
+    act(() => result.current.handlePickerModeChange("refund"));
+    act(() => result.current.setPickerRefundCandidate(refundCandidate));
+    expect(result.current.selectedMerchantId).toBe("merchant-1");
+    act(() =>
+      result.current.setPickerRefundCandidate({
+        ...refundCandidate,
+        id: "refund-item-2",
+        merchantId,
+      }),
+    );
+    expect(result.current.selectedMerchantId).toBe("");
+    expect(result.current.linkMerchantTouched).toBe(false);
+    act(() => result.current.closeSheet());
+    expect(result.current.selectedMerchantId).toBe("");
+  });
+
+  it("清除原支出选择时撤回临时商家，重新选择仍可带出", () => {
+    const { result } = renderTransactionFormHook();
+    act(() => result.current.openSheet());
+    act(() => result.current.handlePickerModeChange("refund"));
+    act(() => result.current.setPickerRefundCandidate(refundCandidate));
+    expect(result.current.selectedMerchantId).toBe("merchant-1");
+    act(() => result.current.setPickerRefundCandidate(null));
+    expect(result.current.selectedMerchantId).toBe("");
+    act(() =>
+      result.current.setPickerRefundCandidate({
+        ...refundCandidate,
+        merchantId: "merchant-2",
+      }),
+    );
+    expect(result.current.selectedMerchantId).toBe("merchant-2");
+    act(() => result.current.closeSheet());
+    expect(result.current.selectedMerchantId).toBe("");
+    expect(result.current.linkMerchantTouched).toBe(false);
+  });
+
+  it("手动换商家后，继续改选原支出不覆盖商家，取消也不回滚", () => {
+    const { result } = renderTransactionFormHook();
+    act(() => result.current.openSheet());
+    act(() => result.current.handlePickerModeChange("refund"));
+    act(() => result.current.setPickerRefundCandidate(refundCandidate));
+    act(() => result.current.handleMerchantChange("merchant-2"));
+    act(() =>
+      result.current.setPickerRefundCandidate({
+        ...refundCandidate,
+        merchantId: null,
+      }),
+    );
+    expect(result.current.selectedMerchantId).toBe("merchant-2");
+    act(() => result.current.closeSheet());
+    expect(result.current.selectedMerchantId).toBe("merchant-2");
+    expect(result.current.linkMerchantTouched).toBe(false);
+  });
+
+  it("已选商家不被原支出商家覆盖，编辑记账行为相同", () => {
+    const { result } = renderTransactionFormHook({
+      initialValues: { ...createInitialValues(), merchantId: "merchant-2" },
+    });
+    act(() => result.current.openSheet());
+    act(() => result.current.handlePickerModeChange("refund"));
+    act(() => result.current.setPickerRefundCandidate(refundCandidate));
+    expect(result.current.selectedMerchantId).toBe("merchant-2");
+    expect(result.current.linkMerchantTouched).toBe(false);
+  });
+
+  it("归档商家、原支出未指定商家时均不自动填入", () => {
+    const { result } = renderTransactionFormHook();
+    act(() => result.current.openSheet());
+    act(() => result.current.handlePickerModeChange("refund"));
+    act(() =>
+      result.current.setPickerRefundCandidate({
+        ...refundCandidate,
+        merchantId: "merchant-archived",
+      }),
+    );
+    expect(result.current.selectedMerchantId).toBe("");
+    act(() =>
+      result.current.setPickerRefundCandidate({
+        ...refundCandidate,
+        merchantId: null,
+      }),
+    );
+    expect(result.current.selectedMerchantId).toBe("");
   });
 });

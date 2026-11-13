@@ -34,6 +34,7 @@ export type TransactionRefundCandidate = {
   accountId?: string;
   accountName?: string;
   merchantName?: string | null;
+  merchantId?: string | null;
   merchantIconUrl?: string | null;
   reimbursementAmount?: string;
   amount: string;
@@ -49,4 +50,6 @@ export type TransactionRefundCandidate = {
 export type TransactionLinkCandidatePage = {
   items: TransactionRefundCandidate[];
   nextOffset: number | null;
+  /** 当前搜索与筛选条件内，数据库已结清的支出笔数。 */
+  settledCount?: number;
 };

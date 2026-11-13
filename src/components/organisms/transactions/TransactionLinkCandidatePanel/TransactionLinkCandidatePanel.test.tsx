@@ -39,6 +39,11 @@ function renderPanel(
   }
   return render(<Harness />);
 }
+function toggleSettled(count: number) {
+  const name = `已结清的支出（${count} 笔）`;
+  fireEvent.click(screen.getByRole("button", { name }));
+}
+
 describe("TransactionLinkCandidatePanel", () => {
   afterEach(cleanup);
   it("打开只有一次分页请求，显示商家候选和部分已退", async () => {
@@ -185,5 +190,175 @@ describe("TransactionLinkCandidatePanel", () => {
       3,
       expect.objectContaining({ offset: 1 }),
     );
+  });
+
+  it("默认隐藏已结清候选，展开时才额外请求，仍可以选中", async () => {
+    const loadPage = vi.fn(loadCandidatePage);
+    renderPanel({ loadPageAction: loadPage });
+    await screen.findByText("USB-C 充电器");
+    expect(screen.queryByText("外套")).not.toBeInTheDocument();
+    expect(loadPage).toHaveBeenCalledTimes(1);
+    toggleSettled(1);
+    await screen.findByText("外套");
+    expect(loadPage).toHaveBeenCalledTimes(2);
+    expect(loadPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ offset: 0, settled: true }),
+    );
+    const name = "选择退款明细 外套";
+    fireEvent.click(screen.getByRole("button", { name }));
+    await waitFor(() => {
+      const selected = screen.getByRole("button", { name });
+      expect(selected).toHaveAttribute("aria-pressed", "true");
+    });
+    // 已选的结清原支出置顶后，不再计入折叠数量。
+    expect(
+      screen.queryByRole("button", { name: "已结清的支出（1 笔）" }),
+    ).not.toBeInTheDocument();
+    expect(loadPage).toHaveBeenCalledTimes(2);
+  });
+
+  it("折叠行使用虚线边框和浅色背景，左右分别显示笔数及展开收起文案", async () => {
+    renderPanel();
+    const collapsed = await screen.findByRole("button", {
+      name: "已结清的支出（1 笔）",
+    });
+    expect(collapsed).toHaveAttribute("aria-expanded", "false");
+    expect(collapsed).toHaveStyle({ borderStyle: "dashed" });
+    expect(screen.getByText("展开")).toBeVisible();
+    toggleSettled(1);
+    expect(collapsed).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("收起")).toBeVisible();
+  });
+
+  it("置顶已结清原支出从折叠数量中扣除，避免展开后笔数不一致", async () => {
+    const loadPage = vi
+      .fn()
+      .mockResolvedValueOnce({
+        items: [candidateItems[0]],
+        nextOffset: null,
+        settledCount: 2,
+      })
+      .mockResolvedValueOnce({
+        items: [
+          candidateItems[3],
+          {
+            ...candidateItems[3],
+            id: "another-settled",
+            categoryName: "已退清的耳机",
+          },
+        ],
+        nextOffset: null,
+        settledCount: 2,
+      });
+    renderPanel({ value: candidateItems[3], loadPageAction: loadPage });
+    await screen.findByRole("button", {
+      name: "已结清的支出（1 笔）",
+    });
+    expect(screen.getAllByText("外套")).toHaveLength(1);
+    toggleSettled(1);
+    await screen.findByText("已退清的耳机");
+    expect(screen.getAllByText("外套")).toHaveLength(1);
+  });
+
+  it("搜索不匹配置顶的结清候选时只扣除搜索范围内的数量", async () => {
+    const other = {
+      ...candidateItems[3],
+      id: "other-settled",
+      categoryName: "运动鞋",
+    };
+    const loadPage = vi.fn(
+      async (input: Parameters<typeof loadCandidatePage>[0]) => {
+        const filtered = input.query ? [other] : [candidateItems[3], other];
+        return {
+          items: input.settled ? filtered : [],
+          nextOffset: null,
+          settledCount: filtered.length,
+        };
+      },
+    );
+    renderPanel({ value: candidateItems[3], loadPageAction: loadPage });
+    await screen.findByRole("button", { name: "已结清的支出（1 笔）" });
+    fireEvent.change(screen.getByRole("textbox", { name: "搜索原支出" }), {
+      target: { value: "运动鞋" },
+    });
+    await waitFor(() =>
+      expect(loadPage).toHaveBeenLastCalledWith(
+        expect.objectContaining({ query: "运动鞋" }),
+      ),
+    );
+    expect(
+      await screen.findByRole("button", { name: "已结清的支出（1 笔）" }),
+    ).toBeInTheDocument();
+  });
+
+  it("搜索结果也将结清候选单独折叠", async () => {
+    const loadPage = vi.fn(loadCandidatePage);
+    renderPanel({ loadPageAction: loadPage });
+    await screen.findByText("USB-C 充电器");
+    fireEvent.change(screen.getByRole("textbox", { name: "搜索原支出" }), {
+      target: { value: "外套" },
+    });
+    await waitFor(() =>
+      expect(loadPage).toHaveBeenLastCalledWith(
+        expect.objectContaining({ query: "外套" }),
+      ),
+    );
+    await screen.findByRole("button", { name: "已结清的支出（1 笔）" });
+    expect(screen.queryByText("外套")).not.toBeInTheDocument();
+    toggleSettled(1);
+    await screen.findByText("外套");
+    expect(loadPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ query: "外套", settled: true }),
+    );
+  });
+
+  it("商家只有已结清原支出时不回退到全部商家", async () => {
+    const loadPage = vi.fn().mockResolvedValue({
+      items: [],
+      nextOffset: null,
+      settledCount: 1,
+    });
+    renderPanel({ loadPageAction: loadPage, merchantId: "amazon" });
+    await screen.findByRole("button", { name: "已结清的支出（1 笔）" });
+    expect(loadPage).toHaveBeenCalledTimes(1);
+  });
+
+  it("小票未保存的核销变化可把服务端已结清候选提升到未结清列表", async () => {
+    const candidate = candidateItems[3];
+    renderPanel({
+      linkAffectedCandidates: [candidate],
+      resolveLinkCandidate: (item) =>
+        item.id === candidate.id
+          ? { ...item, remainingRefundableAmount: "200" }
+          : item,
+    });
+    await screen.findByText("外套");
+    expect(
+      screen.getByRole("button", { name: "选择退款明细 外套" }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("button", { name: /已结清的支出/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("小票未保存的核销可将原本有剩余的候选移入折叠并调整数量", async () => {
+    const candidate = candidateItems[0];
+    renderPanel({
+      linkAffectedCandidates: [candidate],
+      resolveLinkCandidate: (item) =>
+        item.id === candidate.id
+          ? {
+              ...item,
+              refundedAmount: item.amount,
+              remainingRefundableAmount: "0",
+            }
+          : item,
+    });
+    await screen.findByText("收纳盒");
+    expect(
+      screen.queryByRole("button", { name: "选择退款明细 USB-C 充电器" }),
+    ).not.toBeInTheDocument();
+    toggleSettled(2);
+    await screen.findByText("USB-C 充电器");
   });
 });

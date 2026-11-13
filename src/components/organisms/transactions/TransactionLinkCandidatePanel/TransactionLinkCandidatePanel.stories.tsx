@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useState } from "react";
+import { userEvent, within } from "storybook/test";
 import { TransactionLinkCandidatePanel } from "./TransactionLinkCandidatePanel";
 import {
   loadCandidatePage,
@@ -65,4 +66,30 @@ export const MultipleMerchants: Story = {
 
 export const PartiallyAndFullySettled: Story = {
   name: "退款 · 部分与全额核销候选",
+};
+
+export const SettledCollapsed: Story = {
+  name: "已结清 · 默认收起",
+};
+export const SettledExpanded: Story = {
+  name: "已结清 · 展开后显示候选",
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(
+      await canvas.findByRole("button", { name: "已结清的支出（1 笔）" }),
+    );
+  },
+};
+export const SettledSearch: Story = {
+  name: "已结清 · 搜索结果中展开",
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.type(
+      canvas.getByRole("textbox", { name: "搜索原支出" }),
+      "外套",
+    );
+    await userEvent.click(
+      await canvas.findByRole("button", { name: "已结清的支出（1 笔）" }),
+    );
+  },
 };

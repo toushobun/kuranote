@@ -89,6 +89,9 @@ export function useTransactionForm({
   const [selectedMerchantId, setSelectedMerchantId] = useState(
     initialValues.merchantId,
   );
+  const [linkMerchantTouched, setLinkMerchantTouched] = useState(false);
+  // 选择原支出时临时带出的商家，确认写入明细才正式保留。
+  const pendingLinkMerchantId = useRef<string | null>(null);
   const [itemsByType, setItemsByType] = useState<
     Record<TransactionType, TransactionFormItem[]>
   >(() =>
@@ -438,7 +441,16 @@ export function useTransactionForm({
     setIsSheetOpen(true);
   }
 
+  function finishPendingLinkMerchant(confirmed: boolean) {
+    const pendingMerchantId = pendingLinkMerchantId.current;
+    pendingLinkMerchantId.current = null;
+    if (!pendingMerchantId || selectedMerchantId !== pendingMerchantId) return;
+    if (confirmed) setLinkMerchantTouched(true);
+    else setSelectedMerchantId("");
+  }
+
   function closeSheet() {
+    finishPendingLinkMerchant(false);
     setIsSheetOpen(false);
     setEditingItemId(null);
   }
@@ -563,6 +575,7 @@ export function useTransactionForm({
     // 编辑已有明细时，只有金额还空着才通知（打开金额键盘）。
     if (editingItemId !== null && !amountToSave.trim())
       onPickerItemCommit?.(editingItemId);
+    finishPendingLinkMerchant(Boolean(selectedTarget));
     setEditingItemId(null);
     setPickerCategoryId("");
     setPickerAmount("");
@@ -573,6 +586,8 @@ export function useTransactionForm({
   }
 
   function handleMerchantChange(merchantId: string) {
+    // 手动更换商家后不再回滚本次选择器的临时带出。
+    pendingLinkMerchantId.current = null;
     // 重新选了同一个商家不算修改（#962）。
     setSelectedMerchantId(merchantId);
   }
@@ -726,6 +741,23 @@ export function useTransactionForm({
     }
 
     setLinkNotice(null);
+    // 临时带出的商家随原支出改选；手动选择的商家则不会被覆盖。
+    // 原支出无商家或商家已归档时撤回临时值，不进入商家建议流程。
+    const candidateMerchantId =
+      candidate?.merchantId &&
+      merchantOptions.some((merchant) => merchant.id === candidate.merchantId)
+        ? candidate.merchantId
+        : null;
+    if (
+      pendingLinkMerchantId.current &&
+      selectedMerchantId === pendingLinkMerchantId.current
+    ) {
+      pendingLinkMerchantId.current = candidateMerchantId;
+      setSelectedMerchantId(candidateMerchantId ?? "");
+    } else if (!selectedMerchantId && candidateMerchantId) {
+      pendingLinkMerchantId.current = candidateMerchantId;
+      setSelectedMerchantId(candidateMerchantId);
+    }
     // 只在收款账户为空且原付款账户仍可选时预填，不覆盖用户已有选择。
     if (
       candidate?.accountId &&
@@ -798,6 +830,7 @@ export function useTransactionForm({
     }
   }
 
+  const linkAffectedItems = [...initialValues.items, ...itemsByType.income];
   return {
     note,
     addItem,
@@ -825,6 +858,7 @@ export function useTransactionForm({
     isIncomePayment,
     isSheetOpen,
     linkNotice,
+    linkMerchantTouched,
     itemSummaries,
     openItemSheet,
     openSheet,
@@ -837,6 +871,14 @@ export function useTransactionForm({
     pickerErrors,
     pickerRefundCandidate,
     pickerReimbursementCandidate,
+    linkAffectedCandidates: collectLinkAffectedCandidates(
+      linkAffectedItems,
+      "refund",
+    ),
+    linkAffectedReimbursementCandidates: collectLinkAffectedCandidates(
+      linkAffectedItems,
+      "reimbursement",
+    ),
     resolveLinkCandidate,
     pickerSpecialStatus,
     pickerSpecialStatusLocked,
@@ -884,6 +926,27 @@ function createInitialItemsByType(
   });
 
   return result;
+}
+
+/** 报销只展示本来有报销关联的草稿候选，避免把其他退款候选误加进报销列表。 */
+function collectLinkAffectedCandidates(
+  items: readonly {
+    refundCandidate?: TransactionRefundCandidate | null;
+    reimbursementCandidate?: TransactionRefundCandidate | null;
+  }[],
+  kind: TransactionLinkKind,
+) {
+  const unique = new Map<string, TransactionRefundCandidate>();
+  for (const item of items) {
+    const candidates =
+      kind === "refund"
+        ? [item.refundCandidate, item.reimbursementCandidate]
+        : [item.reimbursementCandidate];
+    for (const candidate of candidates) {
+      if (candidate) unique.set(candidate.id, candidate);
+    }
+  }
+  return [...unique.values()];
 }
 
 const linkCandidateKeys = {

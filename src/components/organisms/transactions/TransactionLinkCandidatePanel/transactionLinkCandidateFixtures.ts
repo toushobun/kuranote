@@ -1,3 +1,4 @@
+import { isLinkCandidateSettled } from "internal/transaction";
 import type {
   TransactionLinkCandidatePage,
   TransactionLinkCandidatePageInput,
@@ -19,16 +20,18 @@ export const candidateItems: TransactionRefundCandidate[] = [
   accountName: index === 2 ? "现金" : "乐天信用卡",
   accountCurrency: "JPY",
   merchantName: "Amazon",
+  merchantId: "amazon",
   transactionAt: date,
   parentCategoryName: "购物",
 }));
-export const candidatePage: TransactionLinkCandidatePage = {
-  items: candidateItems,
-  nextOffset: null,
-};
+export const candidatePage: TransactionLinkCandidatePage = fixturePage(
+  candidateItems,
+  {},
+);
 export const emptyCandidatePage: TransactionLinkCandidatePage = {
   items: [],
   nextOffset: null,
+  settledCount: 0,
 };
 export const selectedCandidate = candidateItems[0];
 export const offPageCandidate: TransactionRefundCandidate = {
@@ -37,23 +40,29 @@ export const offPageCandidate: TransactionRefundCandidate = {
   transactionRecordId: "old-record",
   categoryName: "往年差旅支出",
   merchantName: "其他商家",
+  merchantId: "other",
   transactionAt: "2025-01-01T09:00:00Z",
 };
 function fixturePage(
   items: TransactionRefundCandidate[],
   input: TransactionLinkCandidatePageInput,
 ): TransactionLinkCandidatePage {
-  const matched = items.filter(
+  const filtered = items.filter(
     (item) =>
       (!input.currency || item.accountCurrency === input.currency) &&
       (!input.query ||
         item.categoryName.includes(input.query) ||
         item.merchantName?.includes(input.query)),
   );
+  const settled = filtered.filter(isLinkCandidateSettled);
+  const matched = input.settled
+    ? settled
+    : filtered.filter((candidate) => !isLinkCandidateSettled(candidate));
   const offset = input.offset ?? 0;
   return {
     items: matched.slice(offset, offset + 20),
     nextOffset: offset + 20 < matched.length ? offset + 20 : null,
+    settledCount: settled.length,
   };
 }
 export const loadCandidatePage = async (
@@ -69,7 +78,12 @@ export const loadReimbursementPage = async (
     candidateItems.map((item, index) => ({
       ...item,
       refundedAmount: "0",
-      reimbursementAmount: index === 2 ? "500" : "0",
+      reimbursementAmount:
+        index === 2 ? "500" : index === 3 ? item.amount : "0",
+      remainingRefundableAmount: String(
+        Number(item.amount) -
+          (index === 2 ? 500 : index === 3 ? Number(item.amount) : 0),
+      ),
     })),
     input,
   );

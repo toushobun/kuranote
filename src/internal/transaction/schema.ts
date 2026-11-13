@@ -662,6 +662,7 @@ export type FrequentMerchant = z.infer<typeof frequentMerchantsSchema>[number];
 
 export const transactionLinkCandidatePageInputSchema = z.object({
   offset: z.number().int().nonnegative().optional(),
+  settled: z.boolean().optional(),
   query: z.string().optional(),
   merchantId: z.uuid().optional(),
   currency: z
