@@ -20,6 +20,7 @@ export const candidateItems: TransactionRefundCandidate[] = [
   accountName: index === 2 ? "现金" : "乐天信用卡",
   accountCurrency: "JPY",
   merchantName: "Amazon",
+  merchantId: "amazon",
   transactionAt: date,
   parentCategoryName: "购物",
 }));
@@ -39,6 +40,7 @@ export const offPageCandidate: TransactionRefundCandidate = {
   transactionRecordId: "old-record",
   categoryName: "往年差旅支出",
   merchantName: "其他商家",
+  merchantId: "other",
   transactionAt: "2025-01-01T09:00:00Z",
 };
 function fixturePage(

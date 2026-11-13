@@ -22,6 +22,8 @@ export function useTransactionLinkCandidates({
 }) {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState<TransactionLinkCandidatePage | null>(null);
+  // 搜索词变化时立刻隐藏旧页，不等防抖结束，避免旧折叠行仍可点击。
+  const [loadedTerm, setLoadedTerm] = useState<string | null>(null);
   const [settledPage, setSettledPage] =
     useState<TransactionLinkCandidatePage | null>(null);
   const [settledExpanded, setSettledExpanded] = useState(false);
@@ -80,6 +82,7 @@ export function useTransactionLinkCandidates({
             if (current()) {
               pageGeneration.current = revision;
               setPage(next);
+              setLoadedTerm(term);
               setBrowseMerchantId(appliedMerchantId);
             }
           } catch {
@@ -177,15 +180,16 @@ export function useTransactionLinkCandidates({
     if (!settledPage) void loadSettled();
   }
 
+  const queryStale = loadedTerm !== term;
   return {
     query,
     setQuery,
-    page,
-    settledPage,
+    page: queryStale ? null : page,
+    settledPage: queryStale ? null : settledPage,
     settledExpanded,
     toggleSettled,
     browseMerchantId,
-    loading,
+    loading: loading || (queryStale && !error && Boolean(loadPageAction)),
     loadingMore,
     settledLoading,
     error,

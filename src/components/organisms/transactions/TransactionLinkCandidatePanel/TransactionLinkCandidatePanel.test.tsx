@@ -204,11 +204,14 @@ describe("TransactionLinkCandidatePanel", () => {
     expect(loadPage).toHaveBeenLastCalledWith(
       expect.objectContaining({ offset: 0, settled: true }),
     );
-    const settledCard = screen.getByRole("button", {
-      name: "选择退款明细 外套",
-    });
-    fireEvent.click(settledCard);
-    expect(settledCard).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(
+      screen.getByRole("button", { name: "选择退款明细 外套" }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "选择退款明细 外套" }),
+      ).toHaveAttribute("aria-pressed", "true"),
+    );
     toggleSettled(1);
     expect(loadPage).toHaveBeenCalledTimes(2);
   });
@@ -220,6 +223,11 @@ describe("TransactionLinkCandidatePanel", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "搜索原支出" }), {
       target: { value: "外套" },
     });
+    await waitFor(() =>
+      expect(loadPage).toHaveBeenLastCalledWith(
+        expect.objectContaining({ query: "外套" }),
+      ),
+    );
     await screen.findByRole("button", { name: "已结清的支出（1 笔）" });
     expect(screen.queryByText("外套")).not.toBeInTheDocument();
     toggleSettled(1);
