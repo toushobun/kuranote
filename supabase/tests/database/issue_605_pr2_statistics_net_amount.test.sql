@@ -2,7 +2,7 @@ begin;
 
 set local search_path = public, extensions;
 
-select plan(4);
+select plan(5);
 
 create temporary table test_issue_605_pr2_context on commit drop as
 select
@@ -142,8 +142,8 @@ select is(
         from public.transaction_item_with_refund
         where id = '60522000-0000-4000-8000-000000000001'
     ),
-    -50::numeric,
-    '超额核销后的支出保留负数业务净额'
+    0::numeric,
+    '超额核销后的原支出仅抵到零'
 );
 
 select is(
@@ -152,8 +152,8 @@ select is(
         from public.transaction_item_with_refund
         where id = '60522000-0000-4000-8000-000000000002'
     ),
-    0::numeric,
-    '超额报销收入本身仍完整核销为零'
+    50::numeric,
+    '超额报销部分留在对应收入明细上'
 );
 
 select set_config(
@@ -176,8 +176,8 @@ select is(
             select expense_category_id::text from test_issue_605_pr2_context
         )
     ),
-    50::numeric,
-    '分类汇总把核销结余支出的正向有符号金额计入收入'
+    0::numeric,
+    '原支出分类不再因超额退款转入收入桶'
 );
 
 select is(
@@ -195,6 +195,24 @@ select is(
     ),
     0::numeric,
     '分类汇总不再把核销结余计入支出'
+);
+
+
+select is(
+    (
+        select coalesce(sum(summary.income), 0)
+        from public.load_transaction_group_summaries_with_special_status(
+            p_ledger_id => (select ledger_id from test_issue_605_pr2_context),
+            p_group_by => 'category',
+            p_date_start => '2099-01-15 00:00:00+00',
+            p_date_end => '2099-01-16 00:00:00+00'
+        ) summary
+        where summary.group_key = (
+            select income_category_id::text from test_issue_605_pr2_context
+        )
+    ),
+    50::numeric,
+    '超额收入按报销明细的收入分类统计'
 );
 
 reset role;
