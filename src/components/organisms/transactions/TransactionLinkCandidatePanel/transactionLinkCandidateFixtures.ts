@@ -100,8 +100,8 @@ export const loadMixedMerchantPage = async (
 
 /** 同商家优先：当前商家的旧记录排在另一家更新的记录之前。 */
 export const merchantPriorityItems = [
-  { ...candidateItems[1], merchantName: "罗森", merchantId: "lawson" },
-  { ...candidateItems[0], merchantName: "Amazon", merchantId: "amazon" },
+  { ...candidateItems[0], merchantName: "罗森", merchantId: "lawson" },
+  { ...candidateItems[1], merchantName: "Amazon", merchantId: "amazon" },
 ];
 export const loadMerchantPriorityPage = async (
   input: TransactionLinkCandidatePageInput,

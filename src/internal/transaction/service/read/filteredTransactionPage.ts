@@ -44,8 +44,8 @@ export async function loadFilteredTransactionPage(
   );
   return {
     ...page,
-    items: page.entries.flatMap((entry) => {
-      const item = itemsByRecordId.get(entry.recordId);
+    items: recordIds.flatMap((recordId) => {
+      const item = itemsByRecordId.get(recordId);
       return item ? [item] : [];
     }),
   };
