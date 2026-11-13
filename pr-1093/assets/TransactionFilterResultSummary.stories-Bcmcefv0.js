@@ -1,0 +1,60 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";import{t}from"./jsx-runtime-Dwpk6tgA.js";import{n,t as r}from"./Typography-B_0Lz4TE.js";import{n as i,t as a}from"./styles-CVRvMqPM.js";import{l as o}from"./user-BLoxMKBL.js";import{n as s,t as c}from"./userThemeTokens-YIpWi7nb.js";import{n as l,r as u}from"./userThemeCssVariables-C8TQsSFi.js";import{R as d,z as f}from"./iframe-BjzT6tF-.js";import{n as p,t as m}from"./Stack-CedAN9w3.js";import{n as h,r as g}from"./DynamicMuiThemeProvider-CFmw8RMn.js";import{n as _,r as v,t as y}from"./TransactionFilterResultSummary-DB4J9XgA.js";var b,x,S,C,w,T,E,D,O;e((()=>{b=t(),d(),m(),a(),r(),u(),c(),g(),v(),x={title:`Templates/Transactions/TransactionFilterResultSummary`,component:y,decorators:[e=>(0,b.jsx)(f,{sx:{maxWidth:380},children:(0,b.jsx)(e,{})})]},S={chips:[],hasActiveFilters:!1,label:`筛选结果如下`,onClear:()=>void 0},C={name:`按商家筛选结果`,args:{chips:[`支出`,`日常`,`支付宝`,`2026/07`],hasActiveFilters:!0,label:`按商家显示，筛选结果如下`,onClear:()=>void 0}},w={name:`加载中：含筛选条件`,args:S,render:()=>(0,b.jsx)(_,{chipCount:4,hasActiveFilters:!0})},T={name:`加载中：无筛选条件`,args:S,render:()=>(0,b.jsx)(_,{chipCount:0,hasActiveFilters:!1})},E={name:`6 款主题`,render:e=>(0,b.jsx)(p,{spacing:2,children:o.map(t=>(0,b.jsx)(i,{theme:h(t),children:(0,b.jsxs)(f,{style:l(t),sx:{maxWidth:380},children:[(0,b.jsx)(n,{sx:{mb:.75,fontSize:12,fontWeight:800},children:s[t].name}),(0,b.jsx)(y,{...e})]})},t))}),args:{chips:[`支出`,`日常`,`支付宝`,`2026/07`],hasActiveFilters:!0,label:`按商家显示，筛选结果如下`,onClear:()=>void 0}},D={name:`加载中：6 款主题`,args:S,render:()=>(0,b.jsx)(p,{spacing:2,children:o.map(e=>(0,b.jsx)(i,{theme:h(e),children:(0,b.jsxs)(f,{style:l(e),sx:{maxWidth:380},children:[(0,b.jsx)(n,{sx:{mb:.75,fontSize:12,fontWeight:800},children:s[e].name}),(0,b.jsx)(_,{chipCount:4,hasActiveFilters:!0})]})},e))})},C.parameters={...C.parameters,docs:{...C.parameters?.docs,source:{originalSource:`{
+  name: "按商家筛选结果",
+  args: {
+    chips: ["支出", "日常", "支付宝", "2026/07"],
+    hasActiveFilters: true,
+    label: "按商家显示，筛选结果如下",
+    onClear: () => undefined
+  }
+}`,...C.parameters?.docs?.source}}},w.parameters={...w.parameters,docs:{...w.parameters?.docs,source:{originalSource:`{
+  name: "加载中：含筛选条件",
+  args: placeholderArgs,
+  render: () => <TransactionFilterResultSummarySkeleton chipCount={4} hasActiveFilters />
+}`,...w.parameters?.docs?.source}}},T.parameters={...T.parameters,docs:{...T.parameters?.docs,source:{originalSource:`{
+  name: "加载中：无筛选条件",
+  args: placeholderArgs,
+  render: () => <TransactionFilterResultSummarySkeleton chipCount={0} hasActiveFilters={false} />
+}`,...T.parameters?.docs?.source}}},E.parameters={...E.parameters,docs:{...E.parameters?.docs,source:{originalSource:`{
+  name: "6 款主题",
+  render: args => <Stack spacing={2}>
+      {userThemeKeys.map(themeKey => <ThemeProvider key={themeKey} theme={createDynamicMuiTheme(themeKey)}>
+          <Box style={getUserThemeCssVariables(themeKey) as CSSProperties} sx={{
+        maxWidth: 380
+      }}>
+            <Typography sx={{
+          mb: 0.75,
+          fontSize: 12,
+          fontWeight: 800
+        }}>
+              {userThemeTokens[themeKey].name}
+            </Typography>
+            <TransactionFilterResultSummary {...args} />
+          </Box>
+        </ThemeProvider>)}
+    </Stack>,
+  args: {
+    chips: ["支出", "日常", "支付宝", "2026/07"],
+    hasActiveFilters: true,
+    label: "按商家显示，筛选结果如下",
+    onClear: () => undefined
+  }
+}`,...E.parameters?.docs?.source}}},D.parameters={...D.parameters,docs:{...D.parameters?.docs,source:{originalSource:`{
+  name: "加载中：6 款主题",
+  args: placeholderArgs,
+  render: () => <Stack spacing={2}>
+      {userThemeKeys.map(themeKey => <ThemeProvider key={themeKey} theme={createDynamicMuiTheme(themeKey)}>
+          <Box style={getUserThemeCssVariables(themeKey) as CSSProperties} sx={{
+        maxWidth: 380
+      }}>
+            <Typography sx={{
+          mb: 0.75,
+          fontSize: 12,
+          fontWeight: 800
+        }}>
+              {userThemeTokens[themeKey].name}
+            </Typography>
+            <TransactionFilterResultSummarySkeleton chipCount={4} hasActiveFilters />
+          </Box>
+        </ThemeProvider>)}
+    </Stack>
+}`,...D.parameters?.docs?.source}}},O=[`FilteredByMerchant`,`LoadingWithFilters`,`LoadingWithoutFilters`,`AllThemes`,`LoadingAllThemes`]}))();export{E as AllThemes,C as FilteredByMerchant,D as LoadingAllThemes,w as LoadingWithFilters,T as LoadingWithoutFilters,O as __namedExportsOrder,x as default};
