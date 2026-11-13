@@ -23,6 +23,8 @@ export type TransactionBusinessStatus = {
   incomeLinkRole: TransactionIncomeLinkRole | null;
   offsetComposition: TransactionOffsetComposition;
   settlementStatus: TransactionSpecialStatus | null;
+  /** 此退款 / 报销收入明细没有抵消到原支出的金额。 */
+  surplusAmount?: string;
 };
 
 export const transactionWritableSpecialStatuses = [
@@ -92,6 +94,7 @@ export function resolveTransactionBusinessStatus({
   isReimbursementIncome = false,
   refundedAmount,
   reimbursementAmount,
+  surplusAmount,
   specialStatus = null,
 }: {
   currency?: string;
@@ -99,6 +102,7 @@ export function resolveTransactionBusinessStatus({
   isReimbursementIncome?: boolean;
   refundedAmount?: string;
   reimbursementAmount?: string;
+  surplusAmount?: string;
   specialStatus?:
     | TransactionSpecialStatus
     | TransactionSpecialStatusStorageValue
@@ -123,6 +127,7 @@ export function resolveTransactionBusinessStatus({
   if (
     settlementStatus === null &&
     incomeLinkRole === null &&
+    normalizePositiveAmount(surplusAmount, currency) === "0" &&
     refundAmount === "0" &&
     effectiveReimbursementAmount === "0"
   ) {
@@ -136,6 +141,9 @@ export function resolveTransactionBusinessStatus({
       reimbursementAmount: effectiveReimbursementAmount,
     },
     settlementStatus,
+    ...(incomeLinkRole && Number(surplusAmount ?? "0") > 0
+      ? { surplusAmount: normalizePositiveAmount(surplusAmount, currency) }
+      : {}),
   };
 }
 
