@@ -8,6 +8,7 @@ import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/Transac
 import { flowMessages as m } from "config/transactionStepFlowMessages";
 import { transactionAccentColor } from "theme/transactionColors";
 import { sumAmountTexts } from "../TransactionForm/TransactionForm.utils";
+import { getLinkedIncomeDisplayAmounts } from "../transactionLinkedIncomeDisplay";
 import type { TransactionItemSummary } from "../TransactionForm/TransactionForm.types";
 import type { useTransactionForm } from "../TransactionForm/useTransactionForm";
 import {
@@ -81,17 +82,9 @@ export function ReceiptItemsSection({
         currency,
         specialStatus: item.specialStatus,
       });
-    const isLinkedIncome =
-      Boolean(item.refundCandidate || item.reimbursementCandidate);
-    const rawSurplus = Number(
-      item.businessNetAmount ?? item.businessStatus?.surplusAmount ?? "0",
-    );
-    const surplusAmount = isLinkedIncome
-      ? Math.max(0, Math.min(Number(item.amount) || 0, rawSurplus))
-      : 0;
-    const offsetAmount = isLinkedIncome
-      ? Math.max(0, (Number(item.amount) || 0) - surplusAmount)
-      : 0;
+    const { kind, offsetAmount, surplusAmount } =
+      getLinkedIncomeDisplayAmounts(item);
+    const isLinkedIncome = kind !== null;
     const amountNode = readOnly ? (
       <ReceiptAmountText
         amount={amount}
