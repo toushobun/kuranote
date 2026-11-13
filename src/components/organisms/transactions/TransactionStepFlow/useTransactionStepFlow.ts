@@ -12,6 +12,7 @@ import { useTransactionReceiptForm } from "organisms/transactions/TransactionCon
 import type { TransactionFormInitialValues } from "organisms/transactions/TransactionForm/TransactionForm.types";
 import { useReceiptMerchantPicker } from "organisms/transactions/ReceiptMerchantDrawer/useReceiptMerchantPicker";
 import { useEntryReceiptGuard } from "../useEntryReceiptGuard";
+import { hasReceiptChanges, type ReceiptSnapshot } from "./receiptChanges";
 import type { ActionState } from "types/actions";
 import type { TransactionStepFlowProps } from "./TransactionStepFlow.types";
 import type { FlowMerchant } from "organisms/transactions/MerchantStep/MerchantStep.types";
@@ -50,18 +51,33 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
   const formId = useId();
   // 开始等待建议时的小票；之后与之不同即视为用户动过小票
   //（选账户、加 / 删 / 编辑明细、改分类 / 金额 / 特殊状态 / 关联、改备注 / 时间）。
+  const receipt: ReceiptSnapshot = {
+    items: form.itemSummaries.map(
+      ({
+        id,
+        categoryId,
+        amount,
+        specialStatus,
+        refundCandidate,
+        reimbursementCandidate,
+      }) => ({
+        id,
+        categoryId,
+        amount,
+        specialStatus: specialStatus ?? null,
+        refundCandidate: refundCandidate ?? null,
+        reimbursementCandidate: reimbursementCandidate ?? null,
+      }),
+    ),
+    payments: form.payments,
+    note: form.note,
+    transactionAt: form.transactionAtValue,
+  };
   const receiptSnapshot = JSON.stringify([
-    form.itemSummaries.map((item) => [
-      item.id,
-      item.categoryId,
-      item.amount,
-      item.specialStatus,
-      item.refundCandidate,
-      item.reimbursementCandidate,
-    ]),
-    form.payments.map((payment) => [payment.accountId, payment.amount]),
-    form.note,
-    form.transactionAtValue,
+    receipt.items,
+    receipt.payments.map(({ accountId, amount }) => [accountId, amount]),
+    receipt.note,
+    receipt.transactionAt,
   ]);
   // 晚到建议的保护还需要临时编辑状态；退出 dirty 只看已经写入小票的内容。
   const pendingSuggestionSnapshot = JSON.stringify([
@@ -74,7 +90,13 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
   // 商家选择、推荐账户、自动明细与初始时间不计入修改。
   // 基线与自动填充版本存在 state 中，避免在 render 期间读取 ref。
   const [autoRevision, setAutoRevision] = useState(0);
-  const receiptDirty = useEditedSinceAutoFill(receiptSnapshot, autoRevision);
+  const { receiptDirty, touched } = useReceiptChanges(
+    receipt,
+    receiptSnapshot,
+    autoRevision,
+    automaticItemIds,
+    automaticPaymentKey,
+  );
   const timeInitialized = !!form.transactionAtValue;
   const resetWaitStartSnapshot = useEffectEvent(() => {
     waitStartSnapshot.current = pendingSuggestionSnapshot;
@@ -86,8 +108,8 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 初始本地时间同步后更新自动填充版本。
     setAutoRevision((revision) => revision + 1);
   }, [timeInitialized]);
-  const { guard, touched } = useEntryReceiptGuard(
-    autoRevision > 0 && receiptDirty,
+  const { guard } = useEntryReceiptGuard(
+    receiptDirty,
     formId,
     props.onClose,
     props.draft,
@@ -227,17 +249,65 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
   };
 }
 
-/**
- * 自动填充提交后在布局阶段把当前快照记为干净基线（`revision` 变化即重记），
- * 返回之后快照是否与基线不同。基线存在 state 中，避免在 render 期间读取 ref。
- */
-function useEditedSinceAutoFill(snapshot: string, revision: number) {
-  const [baseline, setBaseline] = useState({ snapshot, revision: 0 });
-  const settled = baseline.revision === revision;
+// 自动填充完成后记录基线。换商家、晚到建议和自动提示继续使用原来的修改口径。
+function useReceiptChanges(
+  receipt: ReceiptSnapshot,
+  snapshot: string,
+  revision: number,
+  automaticItemIds: { current: number[] },
+  automaticPaymentKey: { current: number | null },
+) {
+  const [baseline, setBaseline] = useState<{
+    receipt: ReceiptSnapshot;
+    snapshot: string;
+    revision: number;
+    itemIds: number[];
+    paymentKey: number | null;
+  }>({ receipt, snapshot, revision: 0, itemIds: [], paymentKey: null });
+  const [touched, setTouched] = useState(false);
+  const [clearedPaymentRevision, setClearedPaymentRevision] = useState<
+    number | null
+  >(null);
+  const settled = revision > 0 && baseline.revision === revision;
   useLayoutEffect(() => {
-    if (settled) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 自动填充应用完成后同步干净基线。
-    setBaseline({ snapshot, revision });
-  }, [settled, snapshot, revision]);
-  return settled && snapshot !== baseline.snapshot;
+    if (revision === baseline.revision) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 自动填充完成后同步干净基线。
+    setBaseline({
+      receipt,
+      snapshot,
+      revision,
+      itemIds: automaticItemIds.current,
+      paymentKey: automaticPaymentKey.current,
+    });
+  }, [
+    automaticItemIds,
+    automaticPaymentKey,
+    baseline.revision,
+    receipt,
+    snapshot,
+    revision,
+  ]);
+
+  if (settled && !touched && snapshot !== baseline.snapshot) setTouched(true);
+  const automaticPayment = receipt.payments.find(
+    ({ key }) => key === baseline.paymentKey,
+  );
+  // 清空后再次手动选择账户也算修改，即使选回了同一个账户。
+  if (
+    settled &&
+    clearedPaymentRevision !== revision &&
+    automaticPayment?.accountId === ""
+  ) {
+    setClearedPaymentRevision(revision);
+  }
+  const receiptDirty =
+    settled &&
+    (hasReceiptChanges(
+      baseline.receipt,
+      receipt,
+      baseline.itemIds,
+      baseline.paymentKey,
+    ) ||
+      (clearedPaymentRevision === revision && !!automaticPayment?.accountId));
+  return { receiptDirty, touched };
 }

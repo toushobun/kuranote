@@ -33,6 +33,13 @@ export function selectEntryAccount(name = "PayPay JPY") {
   fireEvent.click(screen.getByRole("radio", { name }));
 }
 
+export async function addEntryPaymentAccount(name = "PayPay JPY") {
+  clickEntryButton("添加付款账户");
+  await screen.findByRole("radio", { name });
+  selectEntryAccount(name);
+  await screen.findByRole("button", { name: "更换支付账户 1" });
+}
+
 export function renderTransactionFlow(
   overrides: Partial<TransactionStepFlowProps> = {},
 ) {
