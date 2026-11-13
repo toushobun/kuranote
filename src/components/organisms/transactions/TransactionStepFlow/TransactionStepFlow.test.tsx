@@ -1291,9 +1291,7 @@ describe("TransactionStepFlow 关联明细确定后带出", () => {
     settledCount: 0,
   });
 
-  function setupLinkedFlow(
-    overrides: Partial<TransactionStepFlowProps> = {},
-  ) {
+  function setupLinkedFlow(overrides: Partial<TransactionStepFlowProps> = {}) {
     return setup({
       suggestions: emptySuggestions,
       suggestionsMerchantId: "seven",

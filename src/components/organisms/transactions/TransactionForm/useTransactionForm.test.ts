@@ -1074,7 +1074,6 @@ describe("useTransactionForm", () => {
     );
   });
 
-
   it.each(["refund", "reimbursement"] as const)(
     "选择%s原支出只改变抽屉草稿，确定后才填入商家和收款账户",
     (kind) => {
