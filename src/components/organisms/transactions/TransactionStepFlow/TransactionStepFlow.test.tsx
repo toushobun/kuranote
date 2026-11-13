@@ -1283,8 +1283,7 @@ describe("TransactionStepFlow 关联明细确定后带出", () => {
       : originalExpenses.filter(
           (candidate) =>
             (!input.merchantId || candidate.merchantId === input.merchantId) &&
-            (!input.currency ||
-              candidate.accountCurrency === input.currency) &&
+            (!input.currency || candidate.accountCurrency === input.currency) &&
             (!input.query || candidate.categoryName.includes(input.query)),
         ),
     nextOffset: null,

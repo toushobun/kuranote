@@ -1235,5 +1235,4 @@ describe("useTransactionForm", () => {
     expect(result.current.selectedMerchantId).toBe("merchant-2");
     expect(result.current.selectedAccount?.id).toBe("account-2");
   });
-
 });
