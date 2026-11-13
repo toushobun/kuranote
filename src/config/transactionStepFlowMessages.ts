@@ -154,6 +154,7 @@ export const transactionLinkCandidateMessages = {
   noSearchResults: "没有找到可关联的支出。",
   loading: "加载中…",
   loadMore: "加载更多",
+  settledGroup: (count: number) => `已结清的支出（${count} 笔）`,
   noCandidates: "没有可关联的原支出，试试搜索。",
   retry: "加载失败，点击重试",
   merchantExpenses: (name: string) => `${name} 的支出`,
