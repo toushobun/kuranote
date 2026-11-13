@@ -196,14 +196,19 @@ export type FilteredTransactionPageResult = {
 
 const filteredPageResultSchema = z.object({
   entries: z.array(
-    z.object({ recordId: z.string().uuid(), itemId: z.string().uuid().nullable() }),
+    z.object({
+      recordId: z.string().uuid(),
+      itemId: z.string().uuid().nullable(),
+    }),
   ),
   nextOffset: z.number().int().nonnegative().nullable(),
   settledCount: z.number().int().nonnegative(),
 });
 
 export interface TransactionContextRepository {
-  loadFilteredPage(input: FilteredTransactionPageInput): Promise<FilteredTransactionPageResult>;
+  loadFilteredPage(
+    input: FilteredTransactionPageInput,
+  ): Promise<FilteredTransactionPageResult>;
   findUserSummaries(
     ledgerId: string,
     userIds: string[],
@@ -1055,19 +1060,23 @@ export function createSupabaseTransactionRepository(
     },
 
     async loadFilteredPage(input) {
-      const { data, error } = await supabase.rpc("load_filtered_transaction_page", {
-        p_ledger_id: input.ledgerId,
+      const { data, error } = await supabase.rpc(
+        "load_filtered_transaction_page",
+        {
+          p_ledger_id: input.ledgerId,
         p_scope: input.scope,
         p_query: input.query,
         p_merchant_priority_id: input.merchantPriorityId ?? null,
         p_currency: input.currency ?? null,
-        p_special_statuses: input.specialStatuses?.map((status) =>
-          toTransactionSpecialStatusStorageValue(status),
-        ) ?? null,
+        p_special_statuses:
+          input.specialStatuses?.map((status) =>
+            toTransactionSpecialStatusStorageValue(status),
+          ) ?? null,
         p_settled: input.settled ?? false,
         p_offset: input.offset,
         p_limit: 20,
-      });
+        },
+      );
       const parsed = filteredPageResultSchema.safeParse(data);
       if (error || !parsed.success) {
         logger.error("[transaction] failed to load filtered transaction page", {

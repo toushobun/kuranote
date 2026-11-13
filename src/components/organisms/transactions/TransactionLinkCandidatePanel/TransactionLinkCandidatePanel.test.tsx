@@ -17,7 +17,9 @@ import {
   offPageCandidate,
 } from "./transactionLinkCandidateFixtures";
 
-const visibleCallbacks: Array<(entries: { isIntersecting: boolean }[]) => void> = [];
+const visibleCallbacks: Array<
+  (entries: { isIntersecting: boolean }[]) => void
+> = [];
 
 function observeNextPage() {
   const callback = visibleCallbacks.at(-1);
@@ -141,7 +143,9 @@ describe("TransactionLinkCandidatePanel", () => {
       merchantId: "no-records",
       currency: "JPY",
     });
-    expect(screen.queryByRole("button", { name: "加载更多" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "加载更多" }),
+    ).not.toBeInTheDocument();
   });
   it("已选商家候选在前但仍显示其他商家", async () => {
     const loadPage = vi.fn().mockResolvedValue({
@@ -150,7 +154,9 @@ describe("TransactionLinkCandidatePanel", () => {
       settledCount: 0,
     });
     renderPanel({ loadPageAction: loadPage });
-    const cards = await screen.findAllByRole("button", { name: /选择退款明细/ });
+    const cards = await screen.findAllByRole("button", {
+      name: /选择退款明细/,
+    });
     expect(cards[0]).toHaveAccessibleName("选择退款明细 咖啡豆 2 袋");
     expect(cards[1]).toHaveAccessibleName("选择退款明细 USB-C 充电器");
   });
@@ -238,11 +244,26 @@ describe("TransactionLinkCandidatePanel", () => {
   });
 
   it("已结清列表展开后滚动触底自动读取下一页", async () => {
-    const loadPage = vi.fn()
-      .mockResolvedValueOnce({ items: [candidateItems[0]], nextOffset: null, settledCount: 2 })
-      .mockResolvedValueOnce({ items: [candidateItems[3]], nextOffset: 1, settledCount: 2 })
+    const loadPage = vi
+      .fn()
       .mockResolvedValueOnce({
-        items: [{ ...candidateItems[3], id: "second-settled", categoryName: "已结清耳机" }],
+        items: [candidateItems[0]],
+        nextOffset: null,
+        settledCount: 2,
+      })
+      .mockResolvedValueOnce({
+        items: [candidateItems[3]],
+        nextOffset: 1,
+        settledCount: 2,
+      })
+      .mockResolvedValueOnce({
+        items: [
+          {
+            ...candidateItems[3],
+            id: "second-settled",
+            categoryName: "已结清耳机",
+          },
+        ],
         nextOffset: null,
         settledCount: 2,
       });
@@ -252,10 +273,15 @@ describe("TransactionLinkCandidatePanel", () => {
     await screen.findByText("外套");
     observeNextPage();
     await screen.findByText("已结清耳机");
-    expect(loadPage).toHaveBeenLastCalledWith(expect.objectContaining({
-      offset: 1, settled: true, merchantId: "amazon",
-    }));
+    expect(loadPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        offset: 1,
+        settled: true,
+        merchantId: "amazon",
+      }),
+    );
   });
+
   it("默认隐藏已结清候选，展开时才额外请求，仍可以选中", async () => {
     const loadPage = vi.fn(loadCandidatePage);
     renderPanel({ loadPageAction: loadPage });

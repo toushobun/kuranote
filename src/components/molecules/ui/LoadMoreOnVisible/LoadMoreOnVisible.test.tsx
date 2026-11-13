@@ -47,7 +47,13 @@ describe("LoadMoreOnVisible", () => {
       <LoadMoreOnVisible enabled isLoading={false} onVisible={onVisible} />,
     );
     expect(observers[0].options?.root).toBeNull();
-    rerender(<LoadMoreOnVisible enabled={false} isLoading={false} onVisible={onVisible} />);
+    rerender(
+      <LoadMoreOnVisible
+        enabled={false}
+        isLoading={false}
+        onVisible={onVisible}
+      />,
+    );
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
     expect(onVisible).not.toHaveBeenCalled();
   });

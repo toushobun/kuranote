@@ -8,6 +8,11 @@ function setup() {
     listRecords: vi.fn().mockResolvedValue([]),
     listItems: vi.fn().mockResolvedValue([]),
     listPayments: vi.fn().mockResolvedValue([]),
+    loadFilteredPage: vi.fn().mockResolvedValue({
+      entries: [],
+      nextOffset: null,
+      settledCount: 0,
+    }),
     findUserSummaries: vi
       .fn()
       .mockResolvedValue([{ id: "historical", display_name: "原记账人" }]),
