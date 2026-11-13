@@ -977,7 +977,8 @@ describe("TransactionService", () => {
       merchantId: "00000000-0000-4000-8000-000000001002",
       settled: true,
     });
-    expect(otherMerchant.items.map((item) => item.id)).toEqual(["candidate-20"]);
+    expect(otherMerchant.items).toHaveLength(1);
+    expect(otherMerchant.items[0].id).toBe("candidate-20");
     expect(otherMerchant.settledCount).toBe(1);
     const search = await service.getLinkCandidatePage(ledger, "refund", {
       query: "1000",
