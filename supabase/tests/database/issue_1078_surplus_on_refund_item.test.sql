@@ -1,7 +1,7 @@
 -- #1078：超出原支出部分属于退款 / 报销收入明细，按收入时间与明细顺序分配。
 begin;
 set local search_path = public, extensions;
-select plan(20);
+select plan(19);
 
 update public.ledger
 set transaction_item_special_status_enabled = true
@@ -30,7 +30,7 @@ from (
     ('10781000-0000-4000-8000-' || lpad(seq::text, 12, '0'))::uuid as id,
     '00000000-0000-4000-8000-000000000032'::uuid as ledger_id,
     ('10780000-0000-4000-8000-' || lpad(
-      (case when seq = 3 then 2 when seq = 7 then 6 else seq end)::text, 12, '0'
+      (case when seq = 3 then 2 when seq >= 4 then seq - 1 else seq end)::text, 12, '0'
     ))::uuid as transaction_record_id,
     '00000000-0000-4000-8000-000000000043'::uuid as account_id,
     case
@@ -127,7 +127,7 @@ select is(
 -- C 时间提前，则先由 C 占用 980，B 第一行倒赚 980，B 第二行倒赚 1000。
 update public.transaction_record
 set transaction_at = '2089-12-31 00:00:00+00'::timestamptz
-where id = '10780000-0000-4000-8000-000000000004';
+where id = '10780000-0000-4000-8000-000000000003';
 select results_eq(
   $$select id, business_net_amount from public.transaction_item_with_refund
     where id in (
@@ -143,7 +143,7 @@ select results_eq(
 );
 update public.transaction_record
 set transaction_at = '2090-01-04 00:00:00+00'::timestamptz
-where id = '10780000-0000-4000-8000-000000000004';
+where id = '10780000-0000-4000-8000-000000000003';
 
 -- 删掉最早的链接后，后续同目标关联自动补占新额度。
 select lives_ok(
