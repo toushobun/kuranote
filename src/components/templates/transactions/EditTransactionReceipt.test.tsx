@@ -379,7 +379,7 @@ describe("EditTransactionReceiptTemplate", () => {
 
     const reopenedDrawer = await openMerchantPicker();
     fireEvent.click(
-      within(reopenedDrawer).getByRole("button", { name: /^7-Eleven/ }),
+      within(reopenedDrawer).getByRole("button", { name: "7-Eleven" }),
     );
     expect(fetchClientJson).toHaveBeenCalledTimes(2);
     expect(fetchClientJson).toHaveBeenLastCalledWith(
