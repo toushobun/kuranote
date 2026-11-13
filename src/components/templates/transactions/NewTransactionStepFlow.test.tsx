@@ -410,8 +410,8 @@ describe("NewTransactionStepFlow", () => {
       expect(screen.queryByRole("button", { name: "删除明细 1" })).toBeNull();
       if (reselect) {
         await addEntryPaymentAccount();
-        await switchMethod("账户周转");
       }
+      await switchMethod("账户周转");
       click("关闭记账");
       if (reselect) {
         await screen.findByRole("dialog", { name: "尚未保存" });
