@@ -39,6 +39,11 @@ function renderPanel(
   }
   return render(<Harness />);
 }
+function toggleSettled(count: number) {
+  const name = `已结清的支出（${count} 笔）`;
+  fireEvent.click(screen.getByRole("button", { name }));
+}
+
 describe("TransactionLinkCandidatePanel", () => {
   afterEach(cleanup);
   it("打开只有一次分页请求，显示商家候选和部分已退", async () => {
@@ -193,17 +198,18 @@ describe("TransactionLinkCandidatePanel", () => {
     await screen.findByText("USB-C 充电器");
     expect(screen.queryByText("外套")).not.toBeInTheDocument();
     expect(loadPage).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByRole("button", { name: "已结清的支出（1 笔）" }));
+    toggleSettled(1);
     await screen.findByText("外套");
     expect(loadPage).toHaveBeenCalledTimes(2);
     expect(loadPage).toHaveBeenLastCalledWith(
       expect.objectContaining({ offset: 0, settled: true }),
     );
-    fireEvent.click(screen.getByRole("button", { name: "选择退款明细 外套" }));
-    expect(
-      screen.getByRole("button", { name: "选择退款明细 外套" }),
-    ).toHaveAttribute("aria-pressed", "true");
-    fireEvent.click(screen.getByRole("button", { name: "已结清的支出（1 笔）" }));
+    const settledCard = screen.getByRole("button", {
+      name: "选择退款明细 外套",
+    });
+    fireEvent.click(settledCard);
+    expect(settledCard).toHaveAttribute("aria-pressed", "true");
+    toggleSettled(1);
     expect(loadPage).toHaveBeenCalledTimes(2);
   });
 
@@ -216,7 +222,7 @@ describe("TransactionLinkCandidatePanel", () => {
     });
     await screen.findByRole("button", { name: "已结清的支出（1 笔）" });
     expect(screen.queryByText("外套")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "已结清的支出（1 笔）" }));
+    toggleSettled(1);
     await screen.findByText("外套");
     expect(loadPage).toHaveBeenLastCalledWith(
       expect.objectContaining({ query: "外套", settled: true }),
@@ -269,7 +275,7 @@ describe("TransactionLinkCandidatePanel", () => {
     expect(
       screen.queryByRole("button", { name: "选择退款明细 USB-C 充电器" }),
     ).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "已结清的支出（2 笔）" }));
+    toggleSettled(2);
     await screen.findByText("USB-C 充电器");
   });
 });
