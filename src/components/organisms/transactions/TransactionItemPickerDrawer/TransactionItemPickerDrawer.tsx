@@ -151,7 +151,7 @@ export function TransactionItemPickerDrawer({
     Number(pickerAmount || "0") - Math.max(remainingAmount, 0),
   );
   const amountCurrency =
-    selectedAccountCurrency ?? adjustedSelectedCandidate?.accountCurrency;
+    selectedAccountCurrency ?? adjustedSelectedCandidate?.accountCurrency ?? "";
   const displayedGroups = useMemo(() => {
     const typeGroups = categoryGroups.filter(
       (group) => group.categories[0]?.type === pickerMode,
