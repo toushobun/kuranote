@@ -243,7 +243,11 @@ async function buildEditTransactionView<
   if (record.type !== "normal" || items.length === 0) return null;
 
   const incomeItemIds = items.flatMap((item) =>
-    item.id && (item.is_refund_income || item.is_reimbursement_income)
+    item.id &&
+    (item.is_refund_income ||
+      item.is_reimbursement_income ||
+      item.has_refund_link ||
+      item.has_reimbursement_link)
       ? [item.id]
       : [],
   );
@@ -344,8 +348,11 @@ async function buildEditTransactionView<
           ...(businessNetAmount === undefined ? {} : { businessNetAmount }),
           businessStatus: resolveTransactionBusinessStatus({
             currency,
-            isRefundIncome: item.is_refund_income,
-            isReimbursementIncome: item.is_reimbursement_income,
+            isRefundIncome:
+              item.is_refund_income || Boolean(incomeLink?.refundItem),
+            isReimbursementIncome:
+              item.is_reimbursement_income ||
+              Boolean(incomeLink?.reimbursementItems.length),
             refundedAmount: item.refunded_amount,
             reimbursementAmount: item.reimbursement_amount,
             specialStatus: item.special_status ?? null,
