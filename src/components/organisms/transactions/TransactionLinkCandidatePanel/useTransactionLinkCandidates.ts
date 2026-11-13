@@ -103,7 +103,7 @@ export function useTransactionLinkCandidates({
     setLoadingMore(true);
     setError(false);
     try {
-      const next = await loadPageActionRef.current!({
+      const next = await loadPageActionRef.current({
         offset: page.nextOffset,
         query: term,
         merchantId: kind === "refund" ? merchantId : undefined,
@@ -138,7 +138,7 @@ export function useTransactionLinkCandidates({
     setSettledLoading(true);
     setSettledError(false);
     try {
-      const next = await loadPageActionRef.current!({
+      const next = await loadPageActionRef.current({
         offset: settledPage?.nextOffset ?? 0,
         query: term,
         merchantId: kind === "refund" ? merchantId : undefined,

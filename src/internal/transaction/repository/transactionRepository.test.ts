@@ -73,6 +73,55 @@ describe("TransactionRepository", () => {
     );
     return { defaultQuery, from, logger, repository, rpc };
   }
+  it("数据库分页只返回本页明细 ID，参数包含排序条件和已结清状态", async () => {
+    const entries = [
+      {
+        recordId: transactionRecordId,
+        itemId: transactionItemId,
+      },
+    ];
+    const rpc = vi.fn().mockResolvedValue({
+      data: { entries, nextOffset: 20, settledCount: 3 },
+      error: null,
+    });
+    const { repository } = createRepository({ rpc });
+    const result = await repository.loadFilteredPage({
+      ledgerId,
+      scope: "candidates",
+      query: "咖啡",
+      merchantPriorityId: merchantId,
+      currency: "JPY",
+      settled: true,
+      offset: 20,
+    });
+    expect(result).toEqual({ entries, nextOffset: 20, settledCount: 3 });
+    expect(rpc).toHaveBeenCalledWith("load_filtered_transaction_page", {
+      p_ledger_id: ledgerId,
+      p_scope: "candidates",
+      p_query: "咖啡",
+      p_merchant_priority_id: merchantId,
+      p_currency: "JPY",
+      p_special_statuses: null,
+      p_settled: true,
+      p_offset: 20,
+      p_limit: 20,
+    });
+  });
+
+  it("按记录 ID 列表仅读取当前页记录", async () => {
+    const query = createQuery();
+    const { repository } = createRepository({
+      queries: { transaction_record: query },
+    });
+    await repository.listRecords({
+      ledgerId,
+      recordIds: [transactionRecordId],
+      recordType: "all",
+    });
+    expect(query.in).toHaveBeenCalledWith("id", [transactionRecordId]);
+    expect(query.eq).toHaveBeenCalledWith("ledger_id", ledgerId);
+  });
+
   it("导出明细的内部分页保留账本限制及稳定排序", async () => {
     const query = createQuery();
     const { repository } = createRepository({
