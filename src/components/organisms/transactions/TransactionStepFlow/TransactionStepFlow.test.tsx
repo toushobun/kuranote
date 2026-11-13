@@ -1325,13 +1325,20 @@ describe("TransactionStepFlow 关联明细确定后带出", () => {
   }
 
   function expectEmptyReceipt() {
+    // 抽屉打开时背后的小票带 aria-hidden，仍要检查它的真实内容。
     expect(
-      screen.getByRole("button", { name: "修改商家：请选择商家" }),
+      screen.getByRole("button", {
+        name: "修改商家：请选择商家",
+        hidden: true,
+      }),
     ).toBeInTheDocument();
-    expect(new FormData(saveButton().closest("form")!).get("accountId")).toBe(
-      "",
-    );
-    expect(screen.queryByRole("button", { name: /更换收款账户 1/ })).toBeNull();
+    const form = screen
+      .getByRole("button", { name: "保存记账", hidden: true })
+      .closest("form")!;
+    expect(new FormData(form).get("accountId")).toBe("");
+    expect(
+      screen.queryByRole("button", { name: /更换收款账户 1/, hidden: true }),
+    ).toBeNull();
   }
 
   it.each(["refund", "reimbursement"] as const)(
@@ -1406,7 +1413,10 @@ describe("TransactionStepFlow 关联明细确定后带出", () => {
     expect(receiptLine("更换支付账户 1")).toHaveTextContent("PayPay");
     await selectOriginal("reimbursement");
     expect(
-      screen.getByRole("button", { name: "修改商家：7-Eleven" }),
+      screen.getByRole("button", {
+        name: "修改商家：7-Eleven",
+        hidden: true,
+      }),
     ).toBeInTheDocument();
     click("确定");
     expect(
