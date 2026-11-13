@@ -1,4 +1,5 @@
 import { flowMessages as m } from "config/transactionStepFlowMessages";
+import { getLinkedIncomeDisplayAmounts } from "./transactionLinkedIncomeDisplay";
 import type { TransactionItemSummary } from "organisms/transactions/TransactionForm/TransactionForm.types";
 import type {
   TransactionCategoryOption,
@@ -35,6 +36,9 @@ type ReceiptTotalItem = Pick<
   | "category"
   | "refundedAmount"
   | "reimbursementAmount"
+  | "businessStatus"
+  | "refundCandidate"
+  | "reimbursementCandidate"
 >;
 
 /**
@@ -51,7 +55,27 @@ export function summarizeStepReceiptTotals(items: readonly ReceiptTotalItem[]) {
   );
   const expenses = filled.filter((item) => item.type === "expense");
   const incomes = filled.filter((item) => item.type === "income");
+  const linked = incomes.map((item) => ({
+    ...getLinkedIncomeDisplayAmounts(item),
+    amount: item.amount,
+  }));
+  const linkedRefundTotal = sumAmountTexts(
+    linked.filter((item) => item.kind === "refund").map((item) => item.amount),
+  );
+  const linkedReimbursementTotal = sumAmountTexts(
+    linked
+      .filter((item) => item.kind === "reimbursement")
+      .map((item) => item.amount),
+  );
   return {
+    linkedRefundTotal,
+    linkedReimbursementTotal,
+    linkedOffsetTotal: sumAmountTexts(
+      linked.map((item) => String(item.offsetAmount)),
+    ),
+    linkedSurplusTotal: sumAmountTexts(
+      linked.map((item) => String(item.surplusAmount)),
+    ),
     expenseTotal: sumAmountTexts(expenses.map((item) => item.amount)),
     incomeTotal: sumAmountTexts(incomes.map((item) => item.amount)),
     ...sumTransactionItemBusinessTotals(typed),
