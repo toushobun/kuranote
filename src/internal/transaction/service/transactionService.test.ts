@@ -843,10 +843,14 @@ describe("TransactionService", () => {
     });
     expect(page.items.map((item) => item.id)).toEqual(["candidate-22"]);
     expect(page.settledCount).toBe(1);
-    const settled = await service.getLinkCandidatePage(ledger, "reimbursement", {
-      currency: "JPY",
-      settled: true,
-    });
+    const settled = await service.getLinkCandidatePage(
+      ledger,
+      "reimbursement",
+      {
+        currency: "JPY",
+        settled: true,
+      },
+    );
     expect(settled.items.map((item) => item.id)).toEqual(["candidate-20"]);
     expect(settled.items[0].remainingRefundableAmount).toBe("-200");
     expect(settled.settledCount).toBe(1);
