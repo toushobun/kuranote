@@ -741,14 +741,22 @@ export function useTransactionForm({
     }
 
     setLinkNotice(null);
-    // 原支出的商家仍可选、且小票未选商家时才带出。直接写表单，不进入换商家建议流程。
-    if (
+    // 临时带出的商家随原支出改选；手动选择的商家则不会被覆盖。
+    // 原支出无商家或商家已归档时撤回临时值，不进入商家建议流程。
+    const candidateMerchantId =
       candidate?.merchantId &&
-      !selectedMerchantId &&
       merchantOptions.some((merchant) => merchant.id === candidate.merchantId)
+        ? candidate.merchantId
+        : null;
+    if (
+      pendingLinkMerchantId.current &&
+      selectedMerchantId === pendingLinkMerchantId.current
     ) {
-      pendingLinkMerchantId.current = candidate.merchantId;
-      setSelectedMerchantId(candidate.merchantId);
+      pendingLinkMerchantId.current = candidateMerchantId;
+      setSelectedMerchantId(candidateMerchantId ?? "");
+    } else if (!selectedMerchantId && candidateMerchantId) {
+      pendingLinkMerchantId.current = candidateMerchantId;
+      setSelectedMerchantId(candidateMerchantId);
     }
     // 只在收款账户为空且原付款账户仍可选时预填，不覆盖用户已有选择。
     if (

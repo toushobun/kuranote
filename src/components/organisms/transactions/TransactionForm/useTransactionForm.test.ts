@@ -1161,6 +1161,105 @@ describe("useTransactionForm", () => {
     expect(result.current.itemSummaries).toHaveLength(1);
   });
 
+  it.each(["refund", "reimbursement"] as const)(
+    "改选%s原支出时更新临时商家，保存后保留最终选择",
+    (kind) => {
+      const { result } = renderTransactionFormHook({
+        categoryOptions: [
+          ...refundCategoryOptions,
+          {
+            id: "system-reimbursement",
+            name: "报销",
+            parentId: "income-category",
+            parentName: "收入",
+            type: "income",
+            systemKey: "reimbursement",
+          },
+        ],
+      });
+      const choose = (candidate: TransactionRefundCandidate | null) => {
+        if (kind === "refund")
+          result.current.setPickerRefundCandidate(candidate);
+        else result.current.setPickerReimbursementCandidate(candidate);
+      };
+      act(() => result.current.openSheet());
+      act(() => result.current.handlePickerModeChange(kind));
+      act(() => choose(refundCandidate));
+      expect(result.current.selectedMerchantId).toBe("merchant-1");
+      act(() =>
+        choose({ ...refundCandidate, id: "refund-item-2", merchantId: "merchant-2" }),
+      );
+      expect(result.current.selectedMerchantId).toBe("merchant-2");
+      expect(result.current.linkMerchantTouched).toBe(false);
+      act(() => {
+        expect(result.current.handlePickerAdd()).toBe(true);
+      });
+      act(() => result.current.closeSheet());
+      expect(result.current.selectedMerchantId).toBe("merchant-2");
+      expect(result.current.linkMerchantTouched).toBe(true);
+    },
+  );
+
+  it.each([
+    { merchantId: null, label: "无商家" },
+    { merchantId: "merchant-archived", label: "商家已归档" },
+  ])("改选$label原支出时撤回临时带出的商家", ({ merchantId }) => {
+    const { result } = renderTransactionFormHook();
+    act(() => result.current.openSheet());
+    act(() => result.current.handlePickerModeChange("refund"));
+    act(() => result.current.setPickerRefundCandidate(refundCandidate));
+    expect(result.current.selectedMerchantId).toBe("merchant-1");
+    act(() =>
+      result.current.setPickerRefundCandidate({
+        ...refundCandidate,
+        id: "refund-item-2",
+        merchantId,
+      }),
+    );
+    expect(result.current.selectedMerchantId).toBe("");
+    expect(result.current.linkMerchantTouched).toBe(false);
+    act(() => result.current.closeSheet());
+    expect(result.current.selectedMerchantId).toBe("");
+  });
+
+  it("清除原支出选择时撤回临时商家，重新选择仍可带出", () => {
+    const { result } = renderTransactionFormHook();
+    act(() => result.current.openSheet());
+    act(() => result.current.handlePickerModeChange("refund"));
+    act(() => result.current.setPickerRefundCandidate(refundCandidate));
+    expect(result.current.selectedMerchantId).toBe("merchant-1");
+    act(() => result.current.setPickerRefundCandidate(null));
+    expect(result.current.selectedMerchantId).toBe("");
+    act(() =>
+      result.current.setPickerRefundCandidate({
+        ...refundCandidate,
+        merchantId: "merchant-2",
+      }),
+    );
+    expect(result.current.selectedMerchantId).toBe("merchant-2");
+    act(() => result.current.closeSheet());
+    expect(result.current.selectedMerchantId).toBe("");
+    expect(result.current.linkMerchantTouched).toBe(false);
+  });
+
+  it("手动换商家后，继续改选原支出不覆盖商家，取消也不回滚", () => {
+    const { result } = renderTransactionFormHook();
+    act(() => result.current.openSheet());
+    act(() => result.current.handlePickerModeChange("refund"));
+    act(() => result.current.setPickerRefundCandidate(refundCandidate));
+    act(() => result.current.handleMerchantChange("merchant-2"));
+    act(() =>
+      result.current.setPickerRefundCandidate({
+        ...refundCandidate,
+        merchantId: null,
+      }),
+    );
+    expect(result.current.selectedMerchantId).toBe("merchant-2");
+    act(() => result.current.closeSheet());
+    expect(result.current.selectedMerchantId).toBe("merchant-2");
+    expect(result.current.linkMerchantTouched).toBe(false);
+  });
+
   it("已选商家不被原支出商家覆盖，编辑记账行为相同", () => {
     const { result } = renderTransactionFormHook({
       initialValues: { ...createInitialValues(), merchantId: "merchant-2" },
