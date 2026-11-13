@@ -202,6 +202,7 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     if (!changing) return;
     if (
       touched ||
+      form.linkMerchantTouched ||
       form.itemSummaries.length > automaticItemIds.current.length
     ) {
       stopWaiting();

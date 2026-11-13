@@ -1091,6 +1091,7 @@ describe("useTransactionForm", () => {
           : result.current.setPickerReimbursementCandidate(reimbursementCandidate),
       );
       expect(result.current.selectedMerchantId).toBe("merchant-1");
+      expect(result.current.linkMerchantTouched).toBe(true);
       expect(result.current.itemSummaries).toHaveLength(1);
       expect(result.current.itemSummaries[0]?.amount).toBe("300");
       expect(mocks.markEditDirty).toHaveBeenLastCalledWith(true);
@@ -1105,6 +1106,7 @@ describe("useTransactionForm", () => {
     act(() => result.current.handlePickerModeChange("refund"));
     act(() => result.current.setPickerRefundCandidate(refundCandidate));
     expect(result.current.selectedMerchantId).toBe("merchant-2");
+    expect(result.current.linkMerchantTouched).toBe(false);
   });
 
   it("归档商家、原支出未指定商家时均不自动填入", () => {

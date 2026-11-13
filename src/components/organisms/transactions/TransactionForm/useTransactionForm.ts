@@ -89,6 +89,7 @@ export function useTransactionForm({
   const [selectedMerchantId, setSelectedMerchantId] = useState(
     initialValues.merchantId,
   );
+  const [linkMerchantTouched, setLinkMerchantTouched] = useState(false);
   const [itemsByType, setItemsByType] = useState<
     Record<TransactionType, TransactionFormItem[]>
   >(() =>
@@ -733,6 +734,7 @@ export function useTransactionForm({
       merchantOptions.some((merchant) => merchant.id === candidate.merchantId)
     ) {
       setSelectedMerchantId(candidate.merchantId);
+      setLinkMerchantTouched(true);
     }
     // 只在收款账户为空且原付款账户仍可选时预填，不覆盖用户已有选择。
     if (
@@ -833,6 +835,7 @@ export function useTransactionForm({
     isIncomePayment,
     isSheetOpen,
     linkNotice,
+    linkMerchantTouched,
     itemSummaries,
     openItemSheet,
     openSheet,
