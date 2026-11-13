@@ -887,8 +887,8 @@ describe("getEditTransactionView income links", () => {
           amount,
           has_refund_link: kind === "refund",
           has_reimbursement_link: kind === "reimbursement",
-          is_refund_income: kind === "refund" && amount !== "0",
-          is_reimbursement_income: kind === "reimbursement" && amount !== "0",
+          is_refund_income: kind === "refund",
+          is_reimbursement_income: kind === "reimbursement",
         },
       });
       dependencies.accountQueryService.getTransactionContext.mockResolvedValue(

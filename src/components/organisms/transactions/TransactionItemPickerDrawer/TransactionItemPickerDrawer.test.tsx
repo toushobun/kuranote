@@ -91,6 +91,13 @@ describe("TransactionItemPickerDrawer", () => {
     return onAmountChange;
   }
 
+  it("已选部分报销的支出时，清空后的金额行显示零", () => {
+    renderLinkedAmount("");
+    expect(
+      screen.getByRole("button", { name: /报销金额 剩余未报/ }),
+    ).toHaveTextContent("¥0");
+  });
+
   it("已选结清支出时金额留空，金额行仍可打开计算器输入", () => {
     const onAmountChange = renderLinkedAmount("", {
       ...selectedCandidate,

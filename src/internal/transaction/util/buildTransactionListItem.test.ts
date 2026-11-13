@@ -482,6 +482,34 @@ describe("buildTransactionListItem", () => {
     expect(item.type).toBe("income");
   });
 
+  it.each(["refund", "reimbursement"] as const)(
+    "零金额待定收入仍在列表中标记 %s 角色",
+    (role) => {
+      const item = buildTransactionListItem({
+        accountById,
+        categoryById,
+        fallbackCurrency: "JPY",
+        merchantById: new Map(),
+        record: { ...baseRecord, type: "normal" as const },
+        recordItems: [
+          {
+            account_id: accountA.id,
+            amount: "0",
+            business_net_amount: "0",
+            category_id: categoryB.id,
+            is_refund_income: role === "refund",
+            is_reimbursement_income: role === "reimbursement",
+            transaction_record_id: baseRecord.id,
+          },
+        ],
+      });
+
+      expect(item.categoryItems).toMatchObject([
+        { amount: "0", businessStatus: { incomeLinkRole: role } },
+      ]);
+    },
+  );
+
   it("部分分配的退款收入在列表中显示剩余业务净额", () => {
     const item = buildTransactionListItem({
       accountById,

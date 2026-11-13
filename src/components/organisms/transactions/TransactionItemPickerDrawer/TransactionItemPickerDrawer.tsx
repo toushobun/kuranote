@@ -492,9 +492,9 @@ export function TransactionItemPickerDrawer({
                   fontWeight: 800,
                 }}
               >
-                {selectedCandidate && (pickerAmount.trim() || selectedIsSettled)
+                {selectedCandidate
                   ? formatUnsignedCurrencyAmount(
-                      pickerAmount.trim() ? pickerAmount : "0",
+                      pickerAmount.trim() || "0",
                       selectedAccountCurrency ??
                         selectedCandidate.accountCurrency,
                     )

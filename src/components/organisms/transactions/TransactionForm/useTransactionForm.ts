@@ -536,7 +536,7 @@ export function useTransactionForm({
     }
 
     setPickerErrors({});
-    // 已结清的退款 / 报销选定目标但未输入金额时，确认即保存 0（待定金额）。
+    // 退款 / 报销选定目标但未输入金额时，确认即保存 0（待定金额）。
     const amountToSave =
       selectedTarget && !pickerAmount.trim() ? "0" : pickerAmount;
     if (editingItemId === null) {

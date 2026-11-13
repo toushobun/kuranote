@@ -1,7 +1,7 @@
 -- Issue #1086：零金额关联待定、改选目标、补正数金额与状态/净额回归。
 begin;
 set local search_path = public, extensions;
-select plan(20);
+select plan(21);
 
 update public.ledger
 set transaction_item_special_status_enabled = true
@@ -93,6 +93,23 @@ select is(
   (select sum(business_net_amount) from public.transaction_item_with_refund
    where id in ('10861000-0000-4000-8000-000000000003','10861000-0000-4000-8000-000000000004')),
   0::numeric, '零金额关联不产生业务净收入'
+);
+select results_eq(
+  $$select id, is_refund_income, is_reimbursement_income
+    from public.transaction_item_with_refund
+    where id in (
+      '10861000-0000-4000-8000-000000000001',
+      '10861000-0000-4000-8000-000000000002',
+      '10861000-0000-4000-8000-000000000003',
+      '10861000-0000-4000-8000-000000000004'
+    )
+    order by id$$,
+  $$values
+    ('10861000-0000-4000-8000-000000000001'::uuid, false, false),
+    ('10861000-0000-4000-8000-000000000002'::uuid, false, false),
+    ('10861000-0000-4000-8000-000000000003'::uuid, true, false),
+    ('10861000-0000-4000-8000-000000000004'::uuid, false, true)$$,
+  '零金额退款和报销仅在收入方标记对应角色'
 );
 set local role authenticated;
 select set_config(
