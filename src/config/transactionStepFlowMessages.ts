@@ -158,7 +158,6 @@ export const transactionLinkCandidateMessages = {
   searchPlaceholder: "搜索原支出（全部商家）",
   searchAria: "搜索原支出",
   noSearchResults: "没有找到可关联的支出。",
-  loading: "加载中…",
   settledGroup: (count: number) => `已结清的支出（${count} 笔）`,
   expandSettled: "展开",
   collapseSettled: "收起",

@@ -15,7 +15,10 @@ select
     ('10980000-0000-4000-8000-' || lpad(seq::text, 12, '0'))::uuid,
     '00000000-0000-4000-8000-000000000032'::uuid,
     'normal', 'active',
-    '2099-01-01 00:00:00+00'::timestamptz + seq * interval '1 minute',
+    case when seq = 26
+      then '2098-01-01 00:00:00+00'::timestamptz
+      else '2099-01-01 00:00:00+00'::timestamptz + seq * interval '1 minute'
+    end,
     case when seq <= 3 or seq = 26 then '00000000-0000-4000-8000-000000001001'::uuid
          else '00000000-0000-4000-8000-000000001002'::uuid end,
     '1098 测试交易',
