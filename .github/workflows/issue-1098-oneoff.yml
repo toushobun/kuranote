@@ -51,5 +51,7 @@ jobs:
             supabase/schema_snapshot/current_schema.sql
           if ! git diff --cached --quiet; then
             git commit -m "style: 格式化候选分页代码并更新数据库快照"
+            git fetch origin fix/1098_refund_candidate_merchant_first
+            git rebase origin/fix/1098_refund_candidate_merchant_first
             git push origin HEAD:fix/1098_refund_candidate_merchant_first
           fi
