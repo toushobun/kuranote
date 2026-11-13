@@ -143,6 +143,15 @@ export function TransactionItemPickerDrawer({
   const selectedIsSettled =
     adjustedSelectedCandidate !== null &&
     Number(adjustedSelectedCandidate.remainingRefundableAmount) <= 0;
+  const remainingAmount = Number(
+    adjustedSelectedCandidate?.remainingRefundableAmount ?? "0",
+  );
+  const surplusAmount = Math.max(
+    0,
+    Number(pickerAmount || "0") - Math.max(remainingAmount, 0),
+  );
+  const amountCurrency =
+    selectedAccountCurrency ?? adjustedSelectedCandidate?.accountCurrency;
   const displayedGroups = useMemo(() => {
     const typeGroups = categoryGroups.filter(
       (group) => group.categories[0]?.type === pickerMode,
@@ -482,14 +491,25 @@ export function TransactionItemPickerDrawer({
                 {adjustedSelectedCandidate
                   ? selectedIsSettled
                     ? m.settledHint(pickerMode)
-                    : m.remaining(
-                        pickerMode,
-                        formatUnsignedCurrencyAmount(
-                          adjustedSelectedCandidate.remainingRefundableAmount,
-                          selectedAccountCurrency ??
-                            adjustedSelectedCandidate.accountCurrency,
-                        ),
-                      )
+                    : surplusAmount > 0
+                      ? m.remainingWithSurplus(
+                          pickerMode,
+                          formatUnsignedCurrencyAmount(
+                            adjustedSelectedCandidate.remainingRefundableAmount,
+                            amountCurrency,
+                          ),
+                          formatUnsignedCurrencyAmount(
+                            String(surplusAmount),
+                            amountCurrency,
+                          ),
+                        )
+                      : m.remaining(
+                          pickerMode,
+                          formatUnsignedCurrencyAmount(
+                            adjustedSelectedCandidate.remainingRefundableAmount,
+                            amountCurrency,
+                          ),
+                        )
                   : m.selectFirst(pickerMode)}
               </Typography>
             </Stack>
