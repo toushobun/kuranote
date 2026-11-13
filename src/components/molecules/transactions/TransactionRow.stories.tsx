@@ -126,6 +126,27 @@ const businessStatusItem: TransactionRowItem = {
   merchant_name: "关联收入",
 };
 
+const refundSurplusIncomeItem: TransactionRowItem = {
+  ...incomeItem,
+  amount: "1000",
+  originalAmount: "1980",
+  categoryItems: [
+    {
+      amount: "1980",
+      businessNetAmount: "1000",
+      categoryName: "退款",
+      categoryType: "income",
+      parentCategoryName: "特殊收入",
+      businessStatus: {
+        incomeLinkRole: "refund",
+        offsetComposition: { refundAmount: "0", reimbursementAmount: "0" },
+        settlementStatus: null,
+        surplusAmount: "1000",
+      },
+    },
+  ],
+};
+
 const transferItem: TransactionRowItem = {
   id: "00000000-0000-4000-8000-000000009003",
   type: "transfer",
@@ -179,7 +200,7 @@ export const BusinessStatuses: Story = {
 };
 
 export const BusinessBadgeHeightComparison: Story = {
-  name: "有无业务标签时的行高对比",
+  name: "记录列表：右下角业务标签与行高对比",
   render: () => {
     const categoryOnlyItem: TransactionRowItem = {
       ...expenseItem,
@@ -187,21 +208,13 @@ export const BusinessBadgeHeightComparison: Story = {
       categoryItems: [
         {
           amount: "220",
-          businessStatus: {
-            incomeLinkRole: null,
-            offsetComposition: {
-              refundAmount: "0",
-              reimbursementAmount: "0",
-            },
-            settlementStatus: null,
-          },
           categoryName: "特产",
           parentCategoryName: "购物",
           categoryType: "expense",
         },
       ],
       merchant_name: "Rakuten",
-      note: "teset",
+      note: null,
     };
     const businessBadgeItem: TransactionRowItem = {
       ...categoryOnlyItem,
@@ -220,14 +233,28 @@ export const BusinessBadgeHeightComparison: Story = {
         },
       ],
       merchant_name: "日本铁路",
-      note: null,
+    };
+    const longCategoryItem: TransactionRowItem = {
+      ...businessBadgeItem,
+      id: "00000000-0000-4000-8000-000000009004",
+      categoryItems: [
+        {
+          ...businessBadgeItem.categoryItems[0],
+          categoryName: "特别长的生活日用品与家庭采购分类名称需要在标签前省略",
+        },
+      ],
+      merchant_name: "便利店",
     };
 
     return (
-      <Stack divider={<Divider />}>
-        <TransactionRow item={categoryOnlyItem} showTime />
-        <TransactionRow item={businessBadgeItem} showTime />
-      </Stack>
+      <Box sx={{ maxWidth: 390 }}>
+        <Stack divider={<Divider />}>
+          <TransactionRow item={categoryOnlyItem} showTime />
+          <TransactionRow item={businessBadgeItem} showTime />
+          <TransactionRow item={refundSurplusIncomeItem} showTime />
+          <TransactionRow item={longCategoryItem} showTime />
+        </Stack>
+      </Box>
     );
   },
 };
@@ -699,25 +726,6 @@ export const FullyRefundedExpense1078: Story = {
 export const RefundSurplusIncome1078: Story = {
   name: "退款收入净额 +¥1,000 · 倒赚 ¥1,000",
   args: {
-    item: {
-      ...incomeItem,
-      amount: "1000",
-      originalAmount: "1980",
-      categoryItems: [
-        {
-          amount: "1980",
-          businessNetAmount: "1000",
-          categoryName: "退款",
-          categoryType: "income",
-          parentCategoryName: "特殊收入",
-          businessStatus: {
-            incomeLinkRole: "refund",
-            offsetComposition: { refundAmount: "0", reimbursementAmount: "0" },
-            settlementStatus: null,
-            surplusAmount: "1000",
-          },
-        },
-      ],
-    },
+    item: refundSurplusIncomeItem,
   },
 };

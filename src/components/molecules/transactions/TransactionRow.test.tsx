@@ -579,7 +579,7 @@ describe("TransactionRow", () => {
   });
 
   describe("业务标签", () => {
-    it("有无业务标签时分类摘要均独占详情首行", () => {
+    it("有无业务标签时分类和标签共用详情行且底部间距一致", () => {
       const detailText = "🥬 做饭食材/调料";
       render(
         <div>
@@ -589,7 +589,7 @@ describe("TransactionRow", () => {
                 categoryItems: [
                   {
                     amount: "1234",
-                    categoryName: "🥬 做饭食材/调料",
+                    categoryName: detailText,
                     categoryType: "expense",
                     parentCategoryName: "饮食",
                   },
@@ -605,7 +605,7 @@ describe("TransactionRow", () => {
                   {
                     amount: "1234",
                     businessStatus: incomeBusinessStatus("reimbursement"),
-                    categoryName: "🥬 做饭食材/调料",
+                    categoryName: detailText,
                     categoryType: "expense",
                     parentCategoryName: "饮食",
                   },
@@ -627,28 +627,100 @@ describe("TransactionRow", () => {
       expect(plainRow?.children).toHaveLength(2);
       expect(badgeRow?.children).toHaveLength(2);
       expect(plainRow).toHaveStyle({ paddingBottom: "6.4px" });
-      expect(badgeRow).toHaveStyle({ paddingBottom: "11.6px" });
-      expect(plainGroup).toHaveClass("MuiStack-root");
-      expect(badgeGroup).toHaveClass("MuiStack-root");
-      expect(plainGroup).toHaveStyle({ flexDirection: "column" });
-      expect(badgeGroup).toHaveStyle({ flexDirection: "column" });
+      expect(badgeRow).toHaveStyle({ paddingBottom: "6.4px" });
+      expect(plainGroup).toHaveStyle({
+        flexDirection: "row",
+        minHeight: "20px",
+      });
+      expect(badgeGroup).toHaveStyle({
+        flexDirection: "row",
+        minHeight: "20px",
+      });
       expect(plainGroup?.children).toHaveLength(1);
       expect(badgeGroup?.children).toHaveLength(2);
       expect(plainGroup?.children[0]).toBe(summaries[0]);
       expect(badgeGroup?.children[0]).toBe(summaries[1]);
-      expect(badgeSlot).toHaveClass("MuiStack-root");
-      expect(badgeSlot).toHaveStyle({ flexDirection: "row" });
+      expect(badgeSlot).toHaveStyle({
+        flexDirection: "row",
+        flexShrink: "0",
+        flexWrap: "nowrap",
+        marginLeft: "auto",
+      });
       expect(badgeSlot?.contains(badge)).toBe(true);
-      expect(summaries).toHaveLength(2);
       summaries.forEach((summary) => {
         expect(summary.closest(".MuiChip-root")).toBeNull();
         expect(summary).toHaveClass("MuiTypography-noWrap");
         expect(summary).toHaveStyle({
           color: "var(--user-theme-tx-meta)",
+          flex: "1",
           fontSize: "11px",
+          minWidth: "0",
         });
       });
       expect(badge).not.toBeNull();
+    });
+
+    it("只有标签没有分类文字时仍将标签靠右放在详情行", () => {
+      render(
+        <TransactionRow
+          item={createItem({
+            categoryItems: [
+              {
+                ...createItem().categoryItems[0],
+                businessStatus: incomeBusinessStatus("refund"),
+                categoryName: "",
+              },
+            ],
+          })}
+        />,
+      );
+
+      const badge = screen.getByText("退款收入").closest(".MuiChip-root");
+      const badgeSlot = badge?.closest(".MuiStack-root")?.parentElement;
+      const detailRow = badgeSlot?.parentElement;
+
+      expect(badgeSlot).toHaveStyle({
+        flexShrink: "0",
+        marginLeft: "auto",
+      });
+      expect(detailRow?.children).toHaveLength(1);
+      expect(detailRow).toHaveStyle({ flexDirection: "row", minHeight: "20px" });
+    });
+
+    it("长分类保持省略且多个标签完整显示在同一行", () => {
+      const categoryName = "特别长的退款收入明细分类名称需要在右侧标签前省略";
+      render(
+        <TransactionRow
+          item={createItem({
+            type: "income",
+            amount: "1000",
+            categoryItems: [
+              {
+                amount: "1980",
+                businessStatus: {
+                  ...incomeBusinessStatus("refund"),
+                  surplusAmount: "1000",
+                },
+                categoryName,
+                categoryType: "income",
+                parentCategoryName: "特殊收入",
+              },
+            ],
+          })}
+        />,
+      );
+
+      const category = screen.getByText(categoryName);
+      const badges = category.parentElement?.children[1];
+      expect(category).toHaveClass("MuiTypography-noWrap");
+      expect(category).toHaveStyle({ flex: "1", minWidth: "0" });
+      expect(badges).toHaveStyle({
+        flexShrink: "0",
+        flexWrap: "nowrap",
+      });
+      expect(badges?.querySelectorAll(".MuiChip-root")).toHaveLength(2);
+      expect(screen.getByText("退款收入")).toBeInTheDocument();
+      expect(screen.getByText("倒赚 ¥1,000")).toBeInTheDocument();
     });
 
     it("单条明细带业务状态时显示对应标签", () => {
