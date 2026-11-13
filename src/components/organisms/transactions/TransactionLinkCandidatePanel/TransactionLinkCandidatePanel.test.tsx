@@ -232,7 +232,11 @@ describe("TransactionLinkCandidatePanel", () => {
   });
 
   it("商家只有已结清原支出时不回退到全部商家", async () => {
-    const loadPage = vi.fn(loadCandidatePage);
+    const loadPage = vi.fn().mockResolvedValue({
+      items: [],
+      nextOffset: null,
+      settledCount: 1,
+    });
     renderPanel({ loadPageAction: loadPage, merchantId: "amazon" });
     await screen.findByRole("button", { name: "已结清的支出（1 笔）" });
     expect(loadPage).toHaveBeenCalledTimes(1);

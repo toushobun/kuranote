@@ -794,21 +794,23 @@ describe("TransactionService", () => {
     });
     expect(first.items).toHaveLength(20);
     expect(first.nextOffset).toBe(20);
+    expect(first.settledCount).toBe(1);
     expect(repository.listRecords).toHaveBeenCalledTimes(1);
     const next = await service.getLinkCandidatePage(ledger, "refund", {
       offset: 20,
       currency: "JPY",
     });
-    expect(next.items.map((item) => item.id)).toEqual([
-      "candidate-20",
-      "candidate-22",
-    ]);
+    expect(next.items.map((item) => item.id)).toEqual(["candidate-22"]);
     expect(next.nextOffset).toBeNull();
+    expect(next.settledCount).toBe(1);
     const merchant = await service.getLinkCandidatePage(ledger, "refund", {
       currency: "JPY",
       merchantId: "00000000-0000-4000-8000-000000001002",
     });
     expect(merchant.items.map((item) => item.id)).toEqual(["candidate-22"]);
+    expect(merchant.items[0]?.merchantId).toBe(
+      "00000000-0000-4000-8000-000000001002",
+    );
     const usd = await service.getLinkCandidatePage(ledger, "refund", {
       currency: "USD",
     });
@@ -823,8 +825,8 @@ describe("TransactionService", () => {
       offset: first.nextOffset ?? 0,
     });
     const candidates = [...first.items, ...next.items];
-    expect(candidates).toHaveLength(23);
-    expect(candidates.map((item) => item.id)).toContain("candidate-20");
+    expect(candidates).toHaveLength(22);
+    expect(candidates.map((item) => item.id)).not.toContain("candidate-20");
     expect(candidates.map((item) => item.id)).toContain("candidate-22");
     const usdCandidate = candidates.find((item) => item.id === "candidate-21");
     expect(usdCandidate).toMatchObject({
@@ -839,16 +841,47 @@ describe("TransactionService", () => {
       currency: "JPY",
       merchantId: "00000000-0000-4000-8000-000000001001",
     });
-    expect(page.items.map((item) => item.id)).toEqual([
-      "candidate-20",
-      "candidate-22",
-    ]);
-    expect(page.items[0].remainingRefundableAmount).toBe("-200");
+    expect(page.items.map((item) => item.id)).toEqual(["candidate-22"]);
+    expect(page.settledCount).toBe(1);
+    const settled = await service.getLinkCandidatePage(ledger, "reimbursement", {
+      currency: "JPY",
+      settled: true,
+    });
+    expect(settled.items.map((item) => item.id)).toEqual(["candidate-20"]);
+    expect(settled.items[0].remainingRefundableAmount).toBe("-200");
+    expect(settled.settledCount).toBe(1);
     const search = await service.getLinkCandidatePage(ledger, "reimbursement", {
       query: "1000",
       currency: "JPY",
     });
     expect(search.items).toEqual(page.items);
+  });
+
+  it("退款候选独立计算已结清数量与分页，搜索和商家筛选均一致", async () => {
+    const { service, ledger } = candidateService();
+    const first = await service.getLinkCandidatePage(ledger, "refund", {
+      currency: "JPY",
+    });
+    expect(first.items).toHaveLength(20);
+    expect(first.settledCount).toBe(1);
+    const settled = await service.getLinkCandidatePage(ledger, "refund", {
+      settled: true,
+      currency: "JPY",
+    });
+    expect(settled.items.map((item) => item.id)).toEqual(["candidate-20"]);
+    expect(settled.nextOffset).toBeNull();
+    const otherMerchant = await service.getLinkCandidatePage(ledger, "refund", {
+      merchantId: "00000000-0000-4000-8000-000000001002",
+      settled: true,
+    });
+    expect(otherMerchant.items).toHaveLength(0);
+    expect(otherMerchant.settledCount).toBe(0);
+    const search = await service.getLinkCandidatePage(ledger, "refund", {
+      query: "1000",
+      settled: true,
+      currency: "JPY",
+    });
+    expect(search.items).toEqual(settled.items);
   });
 
   it("候选分页拒绝非法输入且非成员仍不能读取", async () => {

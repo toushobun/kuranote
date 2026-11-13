@@ -50,12 +50,14 @@ const categoryOptions: TransactionCategoryOption[] = [
 ];
 const merchantOptions: TransactionMerchantOption[] = [
   { icon_url: null, id: "merchant-1", name: "便利店" },
+  { icon_url: null, id: "merchant-2", name: "其他商家" },
 ];
 
 const refundCandidate: TransactionRefundCandidate = {
   accountCurrency: "JPY",
   accountId: "account-1",
   amount: "1200",
+  merchantId: "merchant-1",
   categoryName: "午餐",
   id: "refund-item-1",
   parentCategoryName: "餐饮",
@@ -1070,5 +1072,58 @@ describe("useTransactionForm", () => {
     expect(onPickerItemCommit).toHaveBeenCalledWith(
       result.current.itemSummaries[0].id,
     );
+  });
+
+  it.each(["refund", "reimbursement"] as const)(
+    "选择%s原支出时自动填未选商家，且不清空小票已有明细",
+    (kind) => {
+      const { result } = renderTransactionFormHook({
+        initialValues: {
+          ...newFormInitialValues,
+          items: [{ amount: "300", categoryId: "expense-child" }],
+        },
+      });
+      act(() => result.current.openSheet());
+      act(() => result.current.handlePickerModeChange(kind));
+      act(() =>
+        kind === "refund"
+          ? result.current.setPickerRefundCandidate(refundCandidate)
+          : result.current.setPickerReimbursementCandidate(reimbursementCandidate),
+      );
+      expect(result.current.selectedMerchantId).toBe("merchant-1");
+      expect(result.current.itemSummaries).toHaveLength(1);
+      expect(result.current.itemSummaries[0]?.amount).toBe("300");
+      expect(mocks.markEditDirty).toHaveBeenLastCalledWith(true);
+    },
+  );
+
+  it("已选商家不被原支出商家覆盖，编辑记账行为相同", () => {
+    const { result } = renderTransactionFormHook({
+      initialValues: { ...createInitialValues(), merchantId: "merchant-2" },
+    });
+    act(() => result.current.openSheet());
+    act(() => result.current.handlePickerModeChange("refund"));
+    act(() => result.current.setPickerRefundCandidate(refundCandidate));
+    expect(result.current.selectedMerchantId).toBe("merchant-2");
+  });
+
+  it("归档商家、原支出未指定商家时均不自动填入", () => {
+    const { result } = renderTransactionFormHook();
+    act(() => result.current.openSheet());
+    act(() => result.current.handlePickerModeChange("refund"));
+    act(() =>
+      result.current.setPickerRefundCandidate({
+        ...refundCandidate,
+        merchantId: "merchant-archived",
+      }),
+    );
+    expect(result.current.selectedMerchantId).toBe("");
+    act(() =>
+      result.current.setPickerRefundCandidate({
+        ...refundCandidate,
+        merchantId: null,
+      }),
+    );
+    expect(result.current.selectedMerchantId).toBe("");
   });
 });
