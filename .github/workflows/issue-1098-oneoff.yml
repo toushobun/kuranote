@@ -1,0 +1,55 @@
+name: Issue 1098 one-off formatting and snapshot
+on:
+  push:
+    branches: [fix/1098_refund_candidate_merchant_first]
+    paths: [.github/workflows/issue-1098-oneoff.yml]
+permissions:
+  contents: write
+jobs:
+  format-and-snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/1098_refund_candidate_merchant_first
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install
+        run: npm ci
+      - name: Format changed files
+        run: |
+          npx prettier --write \
+            src/components/molecules/ui/LoadMoreOnVisible/LoadMoreOnVisible.test.tsx \
+            src/components/organisms/transactions/TransactionLinkCandidatePanel/TransactionLinkCandidatePanel.test.tsx \
+            src/internal/transaction/repository/transactionRepository.ts \
+            src/internal/transaction/service/transactionService.test.ts
+      - name: Read Supabase version
+        id: version
+        run: echo "version=$(cat .supabase-version)" >> "$GITHUB_OUTPUT"
+      - uses: supabase/setup-cli@v2
+        with:
+          version: ${{ steps.version.outputs.version }}
+      - name: Start database
+        id: start
+        continue-on-error: true
+        run: supabase start
+      - name: Generate snapshot
+        if: steps.start.outcome == 'success'
+        continue-on-error: true
+        run: CI=1 npm run db:schema:snapshot:update
+      - name: Commit generated artifacts
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            src/components/molecules/ui/LoadMoreOnVisible/LoadMoreOnVisible.test.tsx \
+            src/components/organisms/transactions/TransactionLinkCandidatePanel/TransactionLinkCandidatePanel.test.tsx \
+            src/internal/transaction/repository/transactionRepository.ts \
+            src/internal/transaction/service/transactionService.test.ts \
+            supabase/schema_snapshot/current_schema.sql
+          if ! git diff --cached --quiet; then
+            git commit -m "style: 格式化候选分页代码并更新数据库快照"
+            git push origin HEAD:fix/1098_refund_candidate_merchant_first
+          fi
