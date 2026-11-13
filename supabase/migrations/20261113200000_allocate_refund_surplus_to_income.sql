@@ -637,12 +637,6 @@ left join lateral (
     where link.ledger_id = ti.ledger_id and link.income_id = ti.id and link.kind = 'reimbursement'
 ) applied_income_reimbursements on true;
 
--- PostgreSQL 枚举无法直接删除成员，旧值保留在类型中但不再派生。
--- 将既有结余状态归一为已结清；状态检查复用受控写入通道。
-select set_config('kuranote.income_link_edit_flow', 'on', true);
-select set_config('kuranote.reimbursement_link_flow', 'on', true);
-update public.transaction_item
-set special_status = 'reimbursed'::public.transaction_item_special_status
-where special_status = 'reimbursement_surplus'::public.transaction_item_special_status;
-select set_config('kuranote.reimbursement_link_flow', 'off', true);
-select set_config('kuranote.income_link_edit_flow', 'off', true);
+-- PostgreSQL 枚举成员不能原地删除：旧值仍存在于枚举定义中，
+-- 但新写入 / 重算均不再产生 reimbursement_surplus。
+-- 根据上线前规则，不做历史数据自动迁移。
