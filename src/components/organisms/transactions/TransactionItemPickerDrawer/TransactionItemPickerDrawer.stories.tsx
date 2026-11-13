@@ -242,3 +242,27 @@ export const RefundFullySettled: Story = {
     pickerAmount: "",
   },
 };
+
+export const RefundWithSurplus1078: Story = {
+  name: "退款 · 剩余 ¥500 / 输入 ¥1,200 / 超额 ¥700",
+  args: {
+    pickerMode: "refund",
+    pickerRefundCandidate: {
+      ...selectedCandidate,
+      remainingRefundableAmount: "500",
+    },
+    pickerAmount: "1200",
+  },
+};
+
+export const ReimbursementFullySettled1078: Story = {
+  name: "报销 · 原支出已抵完，后续计入收入",
+  args: {
+    pickerMode: "reimbursement",
+    pickerReimbursementCandidate: {
+      ...selectedCandidate,
+      remainingRefundableAmount: "0",
+    },
+    pickerAmount: "",
+  },
+};
