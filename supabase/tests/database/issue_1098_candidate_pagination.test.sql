@@ -1,7 +1,7 @@
 -- #1098：同商家优先、明细级分页、跨页无重复、全量结清数、报销范围。
 begin;
 set local search_path = public, extensions;
-select plan(9);
+select plan(10);
 
 update public.ledger
 set transaction_item_special_status_enabled = true
@@ -16,13 +16,13 @@ select
     '00000000-0000-4000-8000-000000000032'::uuid,
     'normal', 'active',
     '2099-01-01 00:00:00+00'::timestamptz + seq * interval '1 minute',
-    case when seq <= 3 then '00000000-0000-4000-8000-000000001001'::uuid
+    case when seq <= 3 or seq = 26 then '00000000-0000-4000-8000-000000001001'::uuid
          else '00000000-0000-4000-8000-000000001002'::uuid end,
     '1098 测试交易',
     '1098候选 ' || seq,
     '00000000-0000-4000-8000-000000000031'::uuid,
     '00000000-0000-4000-8000-000000000031'::uuid
-from generate_series(1, 25) seq;
+from generate_series(1, 26) seq;
 
 select tests.insert_normal_transaction_items(jsonb_agg(item))
 from (
@@ -32,13 +32,13 @@ from (
         ('10980000-0000-4000-8000-' || lpad(seq::text, 12, '0'))::uuid as transaction_record_id,
         '00000000-0000-4000-8000-000000000043'::uuid as account_id,
         '00000000-0000-4000-8000-000000005021'::uuid as category_id,
-        case when seq = 25 then 0::numeric else 100::numeric end as amount,
-        case when seq = 1 then 'pending_reimbursement'::public.transaction_item_special_status
+        case when seq in (25, 26) then 0::numeric else 100::numeric end as amount,
+        case when seq in (1, 4) then 'pending_reimbursement'::public.transaction_item_special_status
              else null::public.transaction_item_special_status end as special_status,
         0 as sort_order,
         '00000000-0000-4000-8000-000000000031'::uuid as created_by,
         '00000000-0000-4000-8000-000000000031'::uuid as updated_by
-    from generate_series(1, 25) seq
+    from generate_series(1, 26) seq
 ) item;
 
 set local role authenticated;
@@ -103,13 +103,13 @@ select is(
 );
 select is(
     (select (pg_temp.page()->>'settledCount')::integer),
-    1,
+    2,
     '未结清页仍返回全部已结清数量'
 );
 select is(
     (select (pg_temp.page(0, true)->'entries'->0->>'itemId')::uuid),
-    '10981000-0000-4000-8000-000000000025'::uuid,
-    '零元支出进入已结清折叠区'
+    '10981000-0000-4000-8000-000000000026'::uuid,
+    '已结清折叠区同商家优先于更新的其他商家'
 );
 select is(
     (select pg_temp.page(0, true)->>'nextOffset'),
@@ -125,8 +125,21 @@ select is(
         p_currency => 'JPY'
       )->'entries'
     )),
-    1,
+    2,
     '报销候选仍仅包含允许的特殊状态'
+);
+
+select is(
+    (select (
+      public.load_filtered_transaction_page(
+        p_ledger_id => '00000000-0000-4000-8000-000000000032',
+        p_scope => 'candidates', p_query => '1098候选',
+        p_special_statuses => array['pending_reimbursement'],
+        p_currency => 'JPY'
+      )->'entries'->0->>'itemId'
+    )::uuid),
+    '10981000-0000-4000-8000-000000000004'::uuid,
+    '报销候选保持时间顺序，不套用同商家优先'
 );
 
 select * from finish();
