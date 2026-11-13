@@ -228,19 +228,25 @@ describe("TransactionLinkCandidatePanel", () => {
   });
 
   it("置顶已结清原支出从折叠数量中扣除，避免展开后笔数不一致", async () => {
-    const loadPage = vi.fn().mockResolvedValueOnce({
-      items: [candidateItems[0]],
-      nextOffset: null,
-      settledCount: 2,
-    }).mockResolvedValueOnce({
-      items: [candidateItems[3], {
-        ...candidateItems[3],
-        id: "another-settled",
-        categoryName: "已退清的耳机",
-      }],
-      nextOffset: null,
-      settledCount: 2,
-    });
+    const loadPage = vi
+      .fn()
+      .mockResolvedValueOnce({
+        items: [candidateItems[0]],
+        nextOffset: null,
+        settledCount: 2,
+      })
+      .mockResolvedValueOnce({
+        items: [
+          candidateItems[3],
+          {
+            ...candidateItems[3],
+            id: "another-settled",
+            categoryName: "已退清的耳机",
+          },
+        ],
+        nextOffset: null,
+        settledCount: 2,
+      });
     renderPanel({ value: candidateItems[3], loadPageAction: loadPage });
     await screen.findByRole("button", {
       name: "已结清的支出（1 笔）",
@@ -257,14 +263,16 @@ describe("TransactionLinkCandidatePanel", () => {
       id: "other-settled",
       categoryName: "运动鞋",
     };
-    const loadPage = vi.fn(async (input: Parameters<typeof loadCandidatePage>[0]) => {
-      const filtered = input.query ? [other] : [candidateItems[3], other];
-      return {
-        items: input.settled ? filtered : [],
-        nextOffset: null,
-        settledCount: filtered.length,
-      };
-    });
+    const loadPage = vi.fn(
+      async (input: Parameters<typeof loadCandidatePage>[0]) => {
+        const filtered = input.query ? [other] : [candidateItems[3], other];
+        return {
+          items: input.settled ? filtered : [],
+          nextOffset: null,
+          settledCount: filtered.length,
+        };
+      },
+    );
     renderPanel({ value: candidateItems[3], loadPageAction: loadPage });
     await screen.findByRole("button", { name: "已结清的支出（1 笔）" });
     fireEvent.change(screen.getByRole("textbox", { name: "搜索原支出" }), {

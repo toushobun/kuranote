@@ -111,9 +111,7 @@ export function TransactionLinkCandidatePanel(
   );
   const settledCount = Math.max(
     0,
-    (page?.settledCount ?? 0) +
-      settledDelta -
-      Number(selectedSettledInScope),
+    (page?.settledCount ?? 0) + settledDelta - Number(selectedSettledInScope),
   );
   const visibleCandidates = value
     ? [value, ...activeCandidates]
@@ -208,7 +206,11 @@ export function TransactionLinkCandidatePanel(
               },
             }}
           >
-            <Typography component="span" variant="body2" sx={{ fontWeight: 600 }}>
+            <Typography
+              component="span"
+              variant="body2"
+              sx={{ fontWeight: 600 }}
+            >
               {m.settledGroup(settledCount)}
             </Typography>
             <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
