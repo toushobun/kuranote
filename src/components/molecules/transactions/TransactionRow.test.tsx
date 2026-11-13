@@ -826,7 +826,7 @@ describe("TransactionRow", () => {
       expect(screen.queryByText("已结清")).not.toBeInTheDocument();
     });
 
-    it("存在核销结余明细且没有待报销时整行显示倒赚状态", () => {
+    it("原支出不存在已倒赚状态，超额时仍显示已结清", () => {
       render(
         <TransactionRow
           item={createItem({
@@ -864,8 +864,8 @@ describe("TransactionRow", () => {
         />,
       );
 
-      expect(screen.getByText("已倒赚")).toBeInTheDocument();
-      expect(screen.queryByText("已结清")).not.toBeInTheDocument();
+      expect(screen.getByText("已结清")).toBeInTheDocument();
+      expect(screen.queryByText("已倒赚")).not.toBeInTheDocument();
     });
 
     it("所有明细都没有业务状态时不渲染标签容器和额外间距", () => {
