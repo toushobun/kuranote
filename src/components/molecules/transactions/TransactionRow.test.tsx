@@ -472,6 +472,35 @@ describe("TransactionRow", () => {
     expect(screen.queryByText("不计入支出")).not.toBeInTheDocument();
   });
 
+  it("超额退款主金额显示净收入，副标题保留原金额", () => {
+    render(
+      <TransactionRow
+        item={createItem({
+          amount: "1000",
+          originalAmount: "1980",
+          originalType: "income",
+          type: "income",
+          categoryItems: [
+            {
+              amount: "1980",
+              businessNetAmount: "1000",
+              businessStatus: {
+                ...incomeBusinessStatus("refund"),
+                surplusAmount: "1000",
+              },
+              categoryName: "退款",
+              categoryType: "income",
+              parentCategoryName: "特殊收入",
+            },
+          ],
+        })}
+      />,
+    );
+    expect(screen.getByText("+ ¥ 1,000")).toBeVisible();
+    expect(screen.getByText("原金额 + ¥ 1,980")).toBeVisible();
+    expect(screen.queryByText("部分已核销")).not.toBeInTheDocument();
+  });
+
   it("已核销的退款收入显示净额和原金额", () => {
     render(
       <TransactionRow

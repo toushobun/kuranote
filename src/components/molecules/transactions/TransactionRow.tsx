@@ -115,11 +115,11 @@ export function TransactionRow({
   const categorySummaryText = getTransactionCategorySummaryText(item);
   const detailText = categorySummaryText ?? "";
   const adjustmentNode =
-    statisticsAdjustment?.kind === "fullyExcluded" ? (
+    hasSurplusIncome || statisticsAdjustment?.kind === "fullyExcluded" ? (
       item.originalAmount !== undefined ? (
         <TransactionOriginalAmount
           amount={formatTransactionRowAmount(
-            item.originalType ?? statisticsAdjustment.type ?? item.type,
+            item.originalType ?? statisticsAdjustment?.type ?? item.type,
             item.originalAmount,
             item.account_currency,
           )}

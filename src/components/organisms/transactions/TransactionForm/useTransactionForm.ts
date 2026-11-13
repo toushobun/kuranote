@@ -169,39 +169,47 @@ export function useTransactionForm({
     (item, index) => {
       const category = categoryById.get(item.categoryId);
       const target = item.refundCandidate ?? item.reimbursementCandidate;
-      const original = initialValues.items?.find(
-        (initial) => initial.id && initial.id === item.persistedId,
-      );
       if (!target || category?.type !== "income") return { ...item, category };
 
-      const earlierItems = allDisplayItems.slice(0, index);
-      const available = adjustLinkCandidate(
-        target,
-        earlierItems,
-        initialValues.items,
-      );
-      // 未改动的已保存明细沿用数据库的排序结果，包括同一目标的其他记录。
+      const original = initialValues.items[item.id - 1];
+      const linksToTarget = (
+        entry: Pick<
+          TransactionFormItem,
+          "refundCandidate" | "reimbursementCandidate"
+        >,
+      ) =>
+        entry.refundCandidate?.id === target.id ||
+        entry.reimbursementCandidate?.id === target.id;
+      const earlierItems = allDisplayItems
+        .slice(0, index)
+        .filter(linksToTarget);
+      const originalEarlierItems = initialValues.items
+        .slice(0, item.id - 1)
+        .filter(linksToTarget);
+      // 表单编号在初始化时按原明细顺序分配，新增明细使用后续编号。
       const unchanged =
         original?.amount === item.amount &&
-        (original.refundCandidate ?? original.reimbursementCandidate)?.id ===
-          target.id &&
+        linksToTarget(original) &&
+        earlierItems.length === originalEarlierItems.length &&
         earlierItems.every(
           (earlier, i) =>
-            earlier.amount === initialValues.items[i]?.amount &&
-            earlier.refundCandidate?.id ===
-              initialValues.items[i]?.refundCandidate?.id &&
-            earlier.reimbursementCandidate?.id ===
-              initialValues.items[i]?.reimbursementCandidate?.id,
+            earlier.persistedId === originalEarlierItems[i]?.id &&
+            earlier.amount === originalEarlierItems[i]?.amount,
         );
+      const available = unchanged
+        ? null
+        : adjustLinkCandidate(target, earlierItems, initialValues.items);
       return {
         ...item,
         category,
-        businessNetAmount: unchanged
-          ? (original.businessNetAmount ?? original.amount)
-          : summarizeRefundAllocationAmounts(
-              item.amount,
-              available.remainingRefundableAmount,
-            )?.netIncomeAmount,
+        businessNetAmount:
+          available === null && original
+            ? (original.businessNetAmount ?? original.amount)
+            : summarizeRefundAllocationAmounts(
+                item.amount,
+                available?.remainingRefundableAmount ??
+                  target.remainingRefundableAmount,
+              )?.netIncomeAmount,
       };
     },
   );

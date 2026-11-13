@@ -33,6 +33,7 @@ import type { TransactionFormInitialValues } from "organisms/transactions/Transa
 import {
   receiptItemsOptions,
   receiptSuggestions,
+  savedRefundReceipt,
 } from "test/mocks/transactionReceipt";
 import { flowFixture } from "test/mocks/transactionStepFlow";
 import {
@@ -135,6 +136,38 @@ async function requestLeaveFromDirtyReceipt() {
 }
 
 describe("EditTransactionReceiptTemplate", () => {
+  it.each([false, true])(
+    "打开已保存的超额退款时保留净额（包含已抵消支出：%s）",
+    (mixed) => {
+      renderReceipt({
+        categoryOptions: savedRefundReceipt.categoryOptions,
+        initialValues: {
+          ...initialValues,
+          type: "income",
+          items: mixed
+            ? [
+                ...savedRefundReceipt.items,
+                {
+                  id: "other-expense",
+                  amount: "100",
+                  businessNetAmount: "0",
+                  categoryId: "lunch",
+                  refundedAmount: "100",
+                },
+              ]
+            : savedRefundReceipt.items,
+        },
+      });
+      expect(screen.getByText("抵消原支出 ¥980")).toBeVisible();
+      expect(
+        screen.getByText("倒赚 ¥1,000", { selector: ".MuiChip-label" }),
+      ).toBeVisible();
+      expect(screen.getByText("净额").nextElementSibling).toHaveTextContent(
+        "+ ¥1,000",
+      );
+    },
+  );
+
   beforeEach(() => {
     fetchClientJson.mockImplementation(async (url: string) =>
       url.includes("merchantId=seven") ? receiptSuggestions : emptySuggestions,

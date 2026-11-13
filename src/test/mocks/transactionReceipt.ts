@@ -1,3 +1,5 @@
+import { selectedCandidate } from "organisms/transactions/TransactionLinkCandidatePanel/transactionLinkCandidateFixtures";
+import type { TransactionFormInitialValues } from "organisms/transactions/TransactionForm/TransactionForm.types";
 import type { MerchantEntrySuggestions } from "internal/transaction";
 import type {
   ItemsStepOptions,
@@ -105,4 +107,42 @@ export const receiptFlowFixture: Partial<TransactionStepFlowProps> = {
     initialItems: filledItems,
     initialPayments: [{ accountId: "paypay", amount: null }],
   },
+};
+
+export const savedRefundReceipt = {
+  categoryOptions: [
+    ...receiptItemsOptions.categoryOptions,
+    {
+      id: "refund-system",
+      name: "退款",
+      parentId: "special-income",
+      parentName: "特殊收入",
+      systemKey: "refund",
+      type: "income",
+    },
+  ],
+  items: [
+    {
+      id: "00000000-0000-4000-8000-000000008002",
+      amount: "1980",
+      businessNetAmount: "1000",
+      businessStatus: {
+        incomeLinkRole: "refund",
+        offsetComposition: { refundAmount: "0", reimbursementAmount: "0" },
+        settlementStatus: null,
+        surplusAmount: "1000",
+      },
+      categoryId: "refund-system",
+      refundCandidate: {
+        ...selectedCandidate,
+        amount: "980",
+        refundedAmount: "1980",
+        remainingRefundableAmount: "-1000",
+      },
+      specialStatus: null,
+    },
+  ],
+} satisfies {
+  categoryOptions: ItemsStepOptions["categoryOptions"];
+  items: TransactionFormInitialValues["items"];
 };
