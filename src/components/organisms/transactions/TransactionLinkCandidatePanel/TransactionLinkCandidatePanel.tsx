@@ -8,6 +8,7 @@ import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import { designTokens } from "theme/theme";
 import { isLinkCandidateSettled } from "internal/transaction";
 import { transactionLinkCandidateMessages as m } from "config/transactionStepFlowMessages";
 import { mergeUniqueById } from "utils/collections";
@@ -58,26 +59,27 @@ export function TransactionLinkCandidatePanel(
 
   // 服务端只知道数据库状态。旧关联 / 未保存草稿带来的少量差异，
   // 通过已持有的候选在前端重分组，不为此额外发起首屏请求。
+  function matchesCurrentScope(candidate: TransactionRefundCandidate) {
+    if (accountCurrency && candidate.accountCurrency !== accountCurrency)
+      return false;
+    if (
+      kind === "refund" &&
+      browseMerchantId &&
+      candidate.merchantId !== browseMerchantId
+    )
+      return false;
+    const term = query.trim().toLocaleLowerCase();
+    if (!term) return true;
+    return [
+      candidate.categoryName,
+      candidate.merchantName,
+      candidate.accountName,
+      candidate.amount,
+      candidate.transactionAt,
+    ].some((text) => text?.toLocaleLowerCase().includes(term));
+  }
   const scopedAffected = (props.linkAffectedCandidates ?? []).filter(
-    (candidate) => {
-      if (accountCurrency && candidate.accountCurrency !== accountCurrency)
-        return false;
-      if (
-        kind === "refund" &&
-        browseMerchantId &&
-        candidate.merchantId !== browseMerchantId
-      )
-        return false;
-      const term = query.trim().toLocaleLowerCase();
-      if (!term) return true;
-      return [
-        candidate.categoryName,
-        candidate.merchantName,
-        candidate.accountName,
-        candidate.amount,
-        candidate.transactionAt,
-      ].some((text) => text?.toLocaleLowerCase().includes(term));
-    },
+    matchesCurrentScope,
   );
   const allCandidates = mergeUniqueById(
     mergeUniqueById(page?.items ?? [], settledPage?.items ?? []),
@@ -101,7 +103,18 @@ export function TransactionLinkCandidatePanel(
     );
     return sum + Number(actualSettled) - Number(databaseSettled);
   }, 0);
-  const settledCount = Math.max(0, (page?.settledCount ?? 0) + settledDelta);
+  const selectedSettledInScope = Boolean(
+    page &&
+      value &&
+      matchesCurrentScope(value) &&
+      isLinkCandidateSettled(props.resolveLinkCandidate?.(value) ?? value),
+  );
+  const settledCount = Math.max(
+    0,
+    (page?.settledCount ?? 0) +
+      settledDelta -
+      Number(selectedSettledInScope),
+  );
   const visibleCandidates = value
     ? [value, ...activeCandidates]
     : activeCandidates;
@@ -175,17 +188,39 @@ export function TransactionLinkCandidatePanel(
         <Stack spacing={1}>
           <Button
             aria-expanded={settledExpanded}
-            endIcon={
-              settledExpanded ? (
-                <ExpandLessRoundedIcon />
-              ) : (
-                <ExpandMoreRoundedIcon />
-              )
-            }
+            aria-label={m.settledGroup(settledCount)}
+            fullWidth
             onClick={toggleSettled}
-            sx={{ justifyContent: "space-between", color: "text.secondary" }}
+            sx={{
+              border: 1,
+              borderStyle: "dashed",
+              borderColor: "divider",
+              borderRadius: `${designTokens.radius.item}px`,
+              bgcolor: "action.hover",
+              color: "text.secondary",
+              justifyContent: "space-between",
+              minHeight: 52,
+              px: 1.5,
+              py: 1,
+              textTransform: "none",
+              "@media (hover: hover)": {
+                "&:hover": { bgcolor: "action.selected" },
+              },
+            }}
           >
-            {m.settledGroup(settledCount)}
+            <Typography component="span" variant="body2" sx={{ fontWeight: 600 }}>
+              {m.settledGroup(settledCount)}
+            </Typography>
+            <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
+              <Typography component="span" variant="body2">
+                {settledExpanded ? m.collapseSettled : m.expandSettled}
+              </Typography>
+              {settledExpanded ? (
+                <ExpandLessRoundedIcon fontSize="small" />
+              ) : (
+                <ExpandMoreRoundedIcon fontSize="small" />
+              )}
+            </Stack>
           </Button>
           {settledExpanded ? (
             <>
