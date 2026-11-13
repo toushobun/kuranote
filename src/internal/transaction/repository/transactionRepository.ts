@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type { Logger } from "internal/shared/logging/logger";
 import {
   AuthenticationError,
@@ -143,6 +144,7 @@ export type TransactionRecordQuery = {
   memberId?: string;
   merchantId?: string;
   offset?: number;
+  recordIds?: string[];
   recordType: TransactionFilterRecordType | "normal";
 };
 
@@ -175,7 +177,33 @@ export interface TransactionCommandRepository {
   void(ledgerId: string, transactionRecordId: string): Promise<void>;
 }
 
+export type FilteredTransactionPageInput = {
+  ledgerId: string;
+  scope: "candidates" | "records";
+  query: string;
+  offset: number;
+  merchantPriorityId?: string;
+  currency?: string;
+  specialStatuses?: TransactionSpecialStatusFilterValue[];
+  settled?: boolean;
+};
+
+export type FilteredTransactionPageResult = {
+  entries: { recordId: string; itemId: string | null }[];
+  nextOffset: number | null;
+  settledCount: number;
+};
+
+const filteredPageResultSchema = z.object({
+  entries: z.array(
+    z.object({ recordId: z.string().uuid(), itemId: z.string().uuid().nullable() }),
+  ),
+  nextOffset: z.number().int().nonnegative().nullable(),
+  settledCount: z.number().int().nonnegative(),
+});
+
 export interface TransactionContextRepository {
+  loadFilteredPage(input: FilteredTransactionPageInput): Promise<FilteredTransactionPageResult>;
   findUserSummaries(
     ledgerId: string,
     userIds: string[],
@@ -1026,6 +1054,34 @@ export function createSupabaseTransactionRepository(
       };
     },
 
+    async loadFilteredPage(input) {
+      const { data, error } = await supabase.rpc("load_filtered_transaction_page", {
+        p_ledger_id: input.ledgerId,
+        p_scope: input.scope,
+        p_query: input.query,
+        p_merchant_priority_id: input.merchantPriorityId ?? null,
+        p_currency: input.currency ?? null,
+        p_special_statuses: input.specialStatuses?.map((status) =>
+          toTransactionSpecialStatusStorageValue(status),
+        ) ?? null,
+        p_settled: input.settled ?? false,
+        p_offset: input.offset,
+        p_limit: 20,
+      });
+      const parsed = filteredPageResultSchema.safeParse(data);
+      if (error || !parsed.success) {
+        logger.error("[transaction] failed to load filtered transaction page", {
+          databaseCode: error?.code,
+          ledgerId: input.ledgerId,
+        });
+        throw toRepositoryError(
+          "transaction_filtered_page_load_failed",
+          transactionLoadErrorMessages.itemsLoadFailed,
+        );
+      }
+      return parsed.data;
+    },
+
     async listRecords(input) {
       let query = supabase
         .from("transaction_record")
@@ -1035,6 +1091,7 @@ export function createSupabaseTransactionRepository(
         .eq("ledger_id", input.ledgerId)
         .eq("status", "active")
         .in("type", ["normal", "transfer", "balance_adjustment"]);
+      if (input.recordIds) query = query.in("id", input.recordIds);
       if (input.dateStart) query = query.gte("transaction_at", input.dateStart);
       if (input.dateEnd) query = query.lt("transaction_at", input.dateEnd);
       if (input.recordType === "transfer") query = query.eq("type", "transfer");
