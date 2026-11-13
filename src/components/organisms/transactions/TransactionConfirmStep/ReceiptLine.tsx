@@ -5,13 +5,14 @@ import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
+import type { Theme } from "@mui/material/styles";
 import type { ReactNode } from "react";
 import { designTokens } from "theme/theme";
 
 /**
  * 小票中的明细行 / 支付行：名称旁的铅笔编辑明细或账户，金额按钮内的铅笔编辑金额。
  * 没有可删除的内容时 × 位置留空，保持行尾对齐。
- * `subline`（明细的业务状态标签等）显示在名称下面一行。
+ * `subline`（明细的业务状态标签等）显示在名称下面一行，`sublineEnd` 与金额列右侧对齐。
  */
 export function ReceiptLine({
   icon,
@@ -20,6 +21,7 @@ export function ReceiptLine({
   compact = false,
   tags,
   subline,
+  sublineEnd,
   amount,
   error = false,
   errorLabel = error,
@@ -38,6 +40,7 @@ export function ReceiptLine({
   compact?: boolean;
   tags?: ReactNode;
   subline?: ReactNode;
+  sublineEnd?: ReactNode;
   amount?: ReactNode;
   error?: boolean;
   /** 名称是否标红；默认与 `error` 一致，只缺金额时由金额的「待输入」提示。 */
@@ -96,8 +99,19 @@ export function ReceiptLine({
           <Box sx={{ width: actionSize }} />
         )}
       </Box>
-      {subline && (
-        <Box sx={[sublineSx, compact && compactSublineSx]}>{subline}</Box>
+      {(subline || sublineEnd) && (
+        <Box
+          data-receipt-subline
+          sx={[
+            sublineSx,
+            compact && compactSublineSx,
+            !!sublineEnd && alignedSublineSx,
+            !!sublineEnd && !!onEdit && sublineActionInsetSx,
+          ]}
+        >
+          {subline}
+          {sublineEnd && <Box sx={sublineEndSx}>{sublineEnd}</Box>}
+        </Box>
       )}
     </Box>
   );
@@ -160,10 +174,11 @@ export const expenseAmountColor = "var(--user-theme-negative-amount)";
 export const incomeAmountColor = "var(--user-theme-income-amount)";
 const actionSize = 32;
 const errorTextSx = { color: "error.main" };
+const lineGap = 1;
 const lineSx = {
   display: "flex",
   alignItems: "center",
-  gap: 1,
+  gap: lineGap,
   minHeight: 40,
 };
 const iconSx = {
@@ -199,6 +214,15 @@ const sublineSx = {
   alignItems: "center",
   gap: 0.75,
 };
+const alignedSublineSx = {
+  flexWrap: "nowrap",
+  "& > .MuiChip-root": { flexShrink: 0 },
+  "& > .MuiTypography-root": { minWidth: 0, overflowWrap: "anywhere" },
+};
+const sublineActionInsetSx = {
+  pr: (theme: Theme) => `calc(${actionSize}px + ${theme.spacing(lineGap)})`,
+};
+const sublineEndSx = { display: "flex", ml: "auto", flexShrink: 0 };
 const actionSx = {
   color: "text.disabled",
   flexShrink: 0,
