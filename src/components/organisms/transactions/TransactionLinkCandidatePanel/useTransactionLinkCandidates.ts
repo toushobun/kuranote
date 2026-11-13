@@ -27,18 +27,23 @@ export function useTransactionLinkCandidates({
   const [settledPage, setSettledPage] =
     useState<TransactionLinkCandidatePage | null>(null);
   const [settledExpanded, setSettledExpanded] = useState(false);
-  const [browseMerchantId, setBrowseMerchantId] = useState<string>();
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [settledLoading, setSettledLoading] = useState(false);
   const [error, setError] = useState(false);
   const [settledError, setSettledError] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
+  const loadPageActionRef = useRef(loadPageAction);
+  const hasLoadPageAction = Boolean(loadPageAction);
   const generation = useRef(0);
   const pendingMore = useRef(false);
   const pendingSettled = useRef(false);
   const pageGeneration = useRef(0);
   const term = query.trim();
+
+  useEffect(() => {
+    loadPageActionRef.current = loadPageAction;
+  }, [loadPageAction]);
 
   useEffect(() => {
     const revision = ++generation.current;
@@ -48,42 +53,27 @@ export function useTransactionLinkCandidates({
         setPage(null);
         setSettledPage(null);
         setSettledExpanded(false);
-        setLoading(Boolean(loadPageAction));
+        setLoading(hasLoadPageAction);
         setLoadingMore(false);
         setSettledLoading(false);
         setError(false);
         setSettledError(false);
         pendingMore.current = false;
         pendingSettled.current = false;
-        if (!loadPageAction) return;
+        const action = loadPageActionRef.current;
+        if (!action) return;
         void (async () => {
-          let appliedMerchantId =
-            kind === "refund" && !term ? merchantId : undefined;
           try {
-            let next = await loadPageAction({
+            const next = await action({
               offset: 0,
               query: term,
-              merchantId: appliedMerchantId,
+              merchantId: kind === "refund" ? merchantId : undefined,
               currency: accountCurrency,
             });
-            if (!current()) return;
-            if (
-              appliedMerchantId &&
-              next.items.length === 0 &&
-              !next.settledCount
-            ) {
-              appliedMerchantId = undefined;
-              next = await loadPageAction({
-                offset: 0,
-                query: term,
-                currency: accountCurrency,
-              });
-            }
             if (current()) {
               pageGeneration.current = revision;
               setPage(next);
               setLoadedTerm(term);
-              setBrowseMerchantId(appliedMerchantId);
             }
           } catch {
             if (current()) setError(true);
@@ -98,11 +88,11 @@ export function useTransactionLinkCandidates({
       clearTimeout(timeout);
       generation.current = revision + 1;
     };
-  }, [loadPageAction, merchantId, accountCurrency, kind, term, retryKey]);
+  }, [hasLoadPageAction, merchantId, accountCurrency, kind, term, retryKey]);
 
   async function loadMore() {
     if (
-      !loadPageAction ||
+      !loadPageActionRef.current ||
       page?.nextOffset == null ||
       pendingMore.current ||
       pageGeneration.current !== generation.current
@@ -113,10 +103,10 @@ export function useTransactionLinkCandidates({
     setLoadingMore(true);
     setError(false);
     try {
-      const next = await loadPageAction({
+      const next = await loadPageActionRef.current!({
         offset: page.nextOffset,
         query: term,
-        merchantId: browseMerchantId,
+        merchantId: kind === "refund" ? merchantId : undefined,
         currency: accountCurrency,
       });
       if (generation.current === revision)
@@ -137,7 +127,7 @@ export function useTransactionLinkCandidates({
 
   async function loadSettled() {
     if (
-      !loadPageAction ||
+      !loadPageActionRef.current ||
       pendingSettled.current ||
       pageGeneration.current !== generation.current ||
       (settledPage !== null && settledPage.nextOffset === null)
@@ -148,10 +138,10 @@ export function useTransactionLinkCandidates({
     setSettledLoading(true);
     setSettledError(false);
     try {
-      const next = await loadPageAction({
+      const next = await loadPageActionRef.current!({
         offset: settledPage?.nextOffset ?? 0,
         query: term,
-        merchantId: browseMerchantId,
+        merchantId: kind === "refund" ? merchantId : undefined,
         currency: accountCurrency,
         settled: true,
       });
@@ -188,8 +178,7 @@ export function useTransactionLinkCandidates({
     settledPage: queryStale ? null : settledPage,
     settledExpanded,
     toggleSettled,
-    browseMerchantId,
-    loading: loading || (queryStale && !error && Boolean(loadPageAction)),
+    loading: loading || (queryStale && !error && hasLoadPageAction),
     loadingMore,
     settledLoading,
     error,

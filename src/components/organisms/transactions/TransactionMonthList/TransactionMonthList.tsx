@@ -1,16 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useRef, useState, useTransition } from "react";
 
 import KeyboardArrowDownRoundedIcon from "@mui/icons-material/KeyboardArrowDownRounded";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import CircularProgress from "@mui/material/CircularProgress";
 import Collapse from "@mui/material/Collapse";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
 import { EmptyState } from "molecules/ui/EmptyState";
+import { LoadMoreOnVisible } from "molecules/ui/LoadMoreOnVisible/LoadMoreOnVisible";
 import { TransactionSharedPaymentNote } from "atoms/transactions/TransactionSharedPaymentNote";
 import { TransactionGroupList } from "organisms/transactions/TransactionGroupList/TransactionGroupList";
 import { designTokens } from "theme/theme";
@@ -452,51 +452,6 @@ function InlineLoadError({
       >
         重试
       </Button>
-    </Stack>
-  );
-}
-
-function LoadMoreOnVisible({
-  enabled,
-  isLoading,
-  onVisible,
-}: {
-  enabled: boolean;
-  isLoading: boolean;
-  onVisible: () => void;
-}) {
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
-  const onVisibleRef = useRef(onVisible);
-
-  useEffect(() => {
-    onVisibleRef.current = onVisible;
-  }, [onVisible]);
-
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-
-    if (!enabled || !sentinel) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry?.isIntersecting) onVisibleRef.current();
-      },
-      { rootMargin: "0px 0px 75% 0px" },
-    );
-
-    observer.observe(sentinel);
-
-    return () => observer.disconnect();
-  }, [enabled]);
-
-  if (!enabled) return null;
-
-  return (
-    <Stack
-      ref={sentinelRef}
-      sx={{ alignItems: "center", minHeight: 40, py: 1 }}
-    >
-      {isLoading ? <CircularProgress size={22} /> : null}
     </Stack>
   );
 }

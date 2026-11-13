@@ -68,9 +68,6 @@ function fixturePage(
 export const loadCandidatePage = async (
   input: TransactionLinkCandidatePageInput,
 ) => fixturePage(candidateItems, input);
-export const loadFallbackCandidatePage = async (
-  input: TransactionLinkCandidatePageInput,
-) => (input.merchantId ? emptyCandidatePage : loadCandidatePage(input));
 export const loadReimbursementPage = async (
   input: TransactionLinkCandidatePageInput,
 ) =>
@@ -94,8 +91,27 @@ export const mixedMerchantItems: TransactionRefundCandidate[] = candidateItems
     ...item,
     categoryName: "餐饮",
     merchantName: index === 0 ? "全家" : "罗森",
+    merchantId: index === 0 ? "family" : "lawson",
     accountName: "招行信用卡",
   }));
 export const loadMixedMerchantPage = async (
   input: TransactionLinkCandidatePageInput,
 ) => fixturePage(mixedMerchantItems, input);
+
+/** 同商家优先：当前商家的旧记录排在另一家更新的记录之前。 */
+export const merchantPriorityItems = [
+  { ...candidateItems[1], merchantName: "罗森", merchantId: "lawson" },
+  { ...candidateItems[0], merchantName: "Amazon", merchantId: "amazon" },
+];
+export const loadMerchantPriorityPage = async (
+  input: TransactionLinkCandidatePageInput,
+) =>
+  fixturePage(
+    [...merchantPriorityItems].sort(
+      (a, b) =>
+        Number(b.merchantId === input.merchantId) -
+          Number(a.merchantId === input.merchantId) ||
+        b.transactionAt.localeCompare(a.transactionAt),
+    ),
+    input,
+  );
