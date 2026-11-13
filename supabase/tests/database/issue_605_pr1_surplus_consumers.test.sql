@@ -95,7 +95,7 @@ select is(
         from public.transaction_item
         where id = '60594000-0000-4000-8000-000000000001'
     ),
-    'reimbursement_surplus'::public.transaction_item_special_status,
+    'reimbursed'::public.transaction_item_special_status,
     '累计核销 200 大于原始支出 100 时为核销结余'
 );
 
@@ -140,7 +140,7 @@ select lives_ok(
     $$
         select set_config('kuranote.reimbursement_link_flow', 'on', true);
         update public.transaction_item
-        set special_status = 'reimbursement_surplus'
+        set special_status = 'reimbursed'
         where id = '60594000-0000-4000-8000-000000000005';
         select set_config('kuranote.reimbursement_link_flow', 'off', true);
     $$,
@@ -207,13 +207,13 @@ select is(
         from public.load_transaction_group_summaries_with_special_status(
             p_ledger_id => '00000000-0000-4000-8000-000000000032',
             p_group_by => 'specialStatus',
-            p_special_statuses => array['reimbursement_surplus']
+            p_special_statuses => array['reimbursed']
         )
-        where group_key = 'reimbursement_surplus'
+        where group_key = 'reimbursed'
         limit 1
     ),
-    '核销结余'::text,
-    '数据库特殊状态分组为第三态返回核销结余而不是未知状态'
+    '已报销'::text,
+    '不再派生旧结余状态，超额支出归入已报销分组'
 );
 
 select * from finish();
