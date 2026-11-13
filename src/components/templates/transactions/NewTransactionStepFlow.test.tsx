@@ -192,6 +192,39 @@ describe("NewTransactionStepFlow", () => {
     expectNoPaymentRow();
   });
 
+  it.each([true, false])(
+    "换到无记录商家后回选会重新读取（首次请求已完成：%s）",
+    async (receivedFirstSuggestions) => {
+      setup();
+      await selectEntryMerchant(/^7-Eleven/);
+      const firstRequest = requests.at(-1);
+      const suggestions = {
+        ...emptySuggestions,
+        recommendedAccountIds: ["paypay"],
+      };
+      if (receivedFirstSuggestions) {
+        respond("merchantId=seven", suggestions);
+        await waitFor(() => expect(paymentLine()).toHaveTextContent("PayPay"));
+      }
+
+      await selectEntryMerchant("新开商家", "7-Eleven");
+      expectSuggestionsLoadingRows(false);
+      if (!receivedFirstSuggestions) {
+        expect(firstRequest?.signal?.aborted).toBe(true);
+        await act(async () => respond("merchantId=seven", suggestions));
+      }
+      expect(requests).toHaveLength(0);
+      expectNoPaymentRow();
+
+      await selectEntryMerchant(/^7-Eleven/, "新开商家");
+      expectSuggestionsLoadingRows(true);
+      expect(requests).toHaveLength(1);
+      expect(requests[0]?.url).toContain("merchantId=seven");
+      respond("merchantId=seven", emptySuggestions);
+      await screen.findByRole("button", { name: "添加付款账户" });
+    },
+  );
+
   it("当前商家的建议到达后走快速路线", async () => {
     setup();
     await selectEntryMerchant(/^7-Eleven/);
