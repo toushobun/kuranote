@@ -214,6 +214,72 @@ describe("TransactionLinkCandidatePanel", () => {
     expect(loadPage).toHaveBeenCalledTimes(2);
   });
 
+  it("折叠行使用虚线边框和浅色背景，左右分别显示笔数及展开收起文案", async () => {
+    renderPanel();
+    const collapsed = await screen.findByRole("button", {
+      name: "已结清的支出（1 笔）",
+    });
+    expect(collapsed).toHaveAttribute("aria-expanded", "false");
+    expect(collapsed).toHaveStyle({ borderStyle: "dashed" });
+    expect(screen.getByText("展开")).toBeVisible();
+    toggleSettled(1);
+    expect(collapsed).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("收起")).toBeVisible();
+  });
+
+  it("置顶已结清原支出从折叠数量中扣除，避免展开后笔数不一致", async () => {
+    const loadPage = vi.fn().mockResolvedValueOnce({
+      items: [candidateItems[0]],
+      nextOffset: null,
+      settledCount: 2,
+    }).mockResolvedValueOnce({
+      items: [candidateItems[3], {
+        ...candidateItems[3],
+        id: "another-settled",
+        categoryName: "已退清的耳机",
+      }],
+      nextOffset: null,
+      settledCount: 2,
+    });
+    renderPanel({ value: candidateItems[3], loadPageAction: loadPage });
+    await screen.findByRole("button", {
+      name: "已结清的支出（1 笔）",
+    });
+    expect(screen.getAllByText("外套")).toHaveLength(1);
+    toggleSettled(1);
+    await screen.findByText("已退清的耳机");
+    expect(screen.getAllByText("外套")).toHaveLength(1);
+  });
+
+  it("搜索不匹配置顶的结清候选时只扣除搜索范围内的数量", async () => {
+    const other = {
+      ...candidateItems[3],
+      id: "other-settled",
+      categoryName: "运动鞋",
+    };
+    const loadPage = vi.fn(async (input: Parameters<typeof loadCandidatePage>[0]) => {
+      const filtered = input.query ? [other] : [candidateItems[3], other];
+      return {
+        items: input.settled ? filtered : [],
+        nextOffset: null,
+        settledCount: filtered.length,
+      };
+    });
+    renderPanel({ value: candidateItems[3], loadPageAction: loadPage });
+    await screen.findByRole("button", { name: "已结清的支出（1 笔）" });
+    fireEvent.change(screen.getByRole("textbox", { name: "搜索原支出" }), {
+      target: { value: "运动鞋" },
+    });
+    await waitFor(() =>
+      expect(loadPage).toHaveBeenLastCalledWith(
+        expect.objectContaining({ query: "运动鞋" }),
+      ),
+    );
+    expect(
+      await screen.findByRole("button", { name: "已结清的支出（1 笔）" }),
+    ).toBeInTheDocument();
+  });
+
   it("搜索结果也将结清候选单独折叠", async () => {
     const loadPage = vi.fn(loadCandidatePage);
     renderPanel({ loadPageAction: loadPage });
