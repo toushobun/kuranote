@@ -76,9 +76,11 @@ export const loadReimbursementPage = async (
     candidateItems.map((item, index) => ({
       ...item,
       refundedAmount: "0",
-      reimbursementAmount: index === 2 ? "500" : index === 3 ? item.amount : "0",
+      reimbursementAmount:
+        index === 2 ? "500" : index === 3 ? item.amount : "0",
       remainingRefundableAmount: String(
-        Number(item.amount) - (index === 2 ? 500 : index === 3 ? Number(item.amount) : 0),
+        Number(item.amount) -
+          (index === 2 ? 500 : index === 3 ? Number(item.amount) : 0),
       ),
     })),
     input,

@@ -1088,7 +1088,9 @@ describe("useTransactionForm", () => {
       act(() =>
         kind === "refund"
           ? result.current.setPickerRefundCandidate(refundCandidate)
-          : result.current.setPickerReimbursementCandidate(reimbursementCandidate),
+          : result.current.setPickerReimbursementCandidate(
+              reimbursementCandidate,
+            ),
       );
       expect(result.current.selectedMerchantId).toBe("merchant-1");
       expect(result.current.linkMerchantTouched).toBe(true);

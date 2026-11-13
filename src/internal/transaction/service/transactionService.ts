@@ -603,7 +603,9 @@ export function createTransactionService({
       const page = paginateItems(
         input.settled
           ? settledCandidates
-          : candidates.filter((candidate) => !isLinkCandidateSettled(candidate)),
+          : candidates.filter(
+              (candidate) => !isLinkCandidateSettled(candidate),
+            ),
         input.offset ?? 0,
         transactionPageSize,
       );

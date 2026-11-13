@@ -193,23 +193,17 @@ describe("TransactionLinkCandidatePanel", () => {
     await screen.findByText("USB-C 充电器");
     expect(screen.queryByText("外套")).not.toBeInTheDocument();
     expect(loadPage).toHaveBeenCalledTimes(1);
-    fireEvent.click(
-      screen.getByRole("button", { name: "已结清的支出（1 笔）" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "已结清的支出（1 笔）" }));
     await screen.findByText("外套");
     expect(loadPage).toHaveBeenCalledTimes(2);
     expect(loadPage).toHaveBeenLastCalledWith(
       expect.objectContaining({ offset: 0, settled: true }),
     );
-    fireEvent.click(
-      screen.getByRole("button", { name: "选择退款明细 外套" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "选择退款明细 外套" }));
     expect(
       screen.getByRole("button", { name: "选择退款明细 外套" }),
     ).toHaveAttribute("aria-pressed", "true");
-    fireEvent.click(
-      screen.getByRole("button", { name: "已结清的支出（1 笔）" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "已结清的支出（1 笔）" }));
     expect(loadPage).toHaveBeenCalledTimes(2);
   });
 
@@ -222,9 +216,7 @@ describe("TransactionLinkCandidatePanel", () => {
     });
     await screen.findByRole("button", { name: "已结清的支出（1 笔）" });
     expect(screen.queryByText("外套")).not.toBeInTheDocument();
-    fireEvent.click(
-      screen.getByRole("button", { name: "已结清的支出（1 笔）" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "已结清的支出（1 笔）" }));
     await screen.findByText("外套");
     expect(loadPage).toHaveBeenLastCalledWith(
       expect.objectContaining({ query: "外套", settled: true }),
@@ -266,16 +258,18 @@ describe("TransactionLinkCandidatePanel", () => {
       linkAffectedCandidates: [candidate],
       resolveLinkCandidate: (item) =>
         item.id === candidate.id
-          ? { ...item, refundedAmount: item.amount, remainingRefundableAmount: "0" }
+          ? {
+              ...item,
+              refundedAmount: item.amount,
+              remainingRefundableAmount: "0",
+            }
           : item,
     });
     await screen.findByText("收纳盒");
     expect(
       screen.queryByRole("button", { name: "选择退款明细 USB-C 充电器" }),
     ).not.toBeInTheDocument();
-    fireEvent.click(
-      screen.getByRole("button", { name: "已结清的支出（2 笔）" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "已结清的支出（2 笔）" }));
     await screen.findByText("USB-C 充电器");
   });
 });

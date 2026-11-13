@@ -60,11 +60,10 @@ describe("transactionLinkCandidates", () => {
     ]);
     expect(candidates[0]?.accountId).toBe("account-1");
     expect(toTransactionLinkCandidates([record])[0]?.accountId).toBeUndefined();
-    expect(
-      toTransactionLinkCandidates([
-        { ...record, merchant_id: "merchant-1" },
-      ])[0]?.merchantId,
-    ).toBe("merchant-1");
+    const withMerchant = { ...record, merchant_id: "merchant-1" };
+    expect(toTransactionLinkCandidates([withMerchant])[0]?.merchantId).toBe(
+      "merchant-1",
+    );
   });
   it("以剩余金额是否大于零区分未结清和已结清", () => {
     const candidate = toTransactionLinkCandidates([record])[0];

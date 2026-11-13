@@ -852,7 +852,10 @@ export function useTransactionForm({
       new Map(
         [...initialValues.items, ...itemsByType.income]
           .flatMap((item) => [item.refundCandidate, item.reimbursementCandidate])
-          .filter((candidate): candidate is TransactionRefundCandidate => Boolean(candidate))
+          .filter(
+            (candidate): candidate is TransactionRefundCandidate =>
+              Boolean(candidate),
+          )
           .map((candidate) => [candidate.id, candidate] as const),
       ).values(),
     ),
