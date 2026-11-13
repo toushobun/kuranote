@@ -1,50 +1,7 @@
 -- Issue #1078：原支出只抵到 0，按收入记录时间和明细顺序分配抵消。
 -- 零金额链接保留角色，不消耗原支出的额度。
 
-CREATE OR REPLACE FUNCTION "public"."calculate_transaction_item_remaining_offset_amount"("p_ledger_id" "uuid", "p_target_expense_item_id" "uuid") RETURNS numeric
-    LANGUAGE "sql" STABLE
-    SET "search_path" TO 'pg_catalog', 'pg_temp'
-    AS $$
-    select greatest(
-        target_item.amount
-        - coalesce((
-            select sum(refund_link.refund_amount)
-            from public.transaction_item_refund_link refund_link
-            join public.transaction_item refund_income
-              on refund_income.id = refund_link.refund_income_item_id
-             and refund_income.ledger_id = refund_link.ledger_id
-            join public.transaction_record refund_record
-              on refund_record.id = refund_income.transaction_record_id
-             and refund_record.ledger_id = refund_income.ledger_id
-            where refund_link.ledger_id = target_item.ledger_id
-              and refund_link.refunded_item_id = target_item.id
-              and refund_record.status = 'active'
-        ), 0)
-        - coalesce((
-            select sum(reimbursement_link.reimbursement_amount)
-            from public.transaction_item_reimbursement_link reimbursement_link
-            join public.transaction_item reimbursement_income
-              on reimbursement_income.id =
-                 reimbursement_link.reimbursement_income_item_id
-             and reimbursement_income.ledger_id = reimbursement_link.ledger_id
-            join public.transaction_record reimbursement_record
-              on reimbursement_record.id =
-                 reimbursement_income.transaction_record_id
-             and reimbursement_record.ledger_id = reimbursement_income.ledger_id
-            where reimbursement_link.ledger_id = target_item.ledger_id
-              and reimbursement_link.target_expense_item_id = target_item.id
-              and reimbursement_record.status = 'active'
-        ), 0)        , 0) as remaining_amount
-
-    from public.transaction_item target_item
-    join public.transaction_record target_record
-      on target_record.id = target_item.transaction_record_id
-     and target_record.ledger_id = target_item.ledger_id
-     and target_record.status = 'active'
-    where target_item.ledger_id = p_ledger_id
-      and target_item.id = p_target_expense_item_id;
-$$;
-
+-- 原始剩余可为负，供编辑小票的实时抵消计算使用。
 
 CREATE OR REPLACE FUNCTION "public"."recalculate_transaction_item_settlement_status"("p_ledger_id" "uuid", "p_target_expense_item_id" "uuid") RETURNS "void"
     LANGUAGE "plpgsql"
@@ -626,43 +583,59 @@ select
     ) as has_reimbursement_link,
     greatest(
         ti.amount
-        - coalesce(expense_refunds.refunded_amount, 0::numeric)
-        - coalesce(income_refunds.refunded_amount, 0::numeric)
-        - coalesce(expense_reimbursements.reimbursed_amount, 0::numeric)
-        - coalesce(income_reimbursements.reimbursed_amount, 0::numeric),
+        - coalesce(applied_expense_refunds.amount, 0::numeric)
+        - coalesce(applied_income_refunds.amount, 0::numeric)
+        - coalesce(applied_expense_reimbursements.amount, 0::numeric)
+        - coalesce(applied_income_reimbursements.amount, 0::numeric),
         0::numeric
     ) as business_net_amount,
     coalesce(expense_reimbursements.reimbursed_amount, 0::numeric)
         as reimbursement_amount
 from public.transaction_item ti
 left join lateral (
-    select sum(link.applied_amount) as refunded_amount
-    from allocated_links link
-    where link.ledger_id = ti.ledger_id
-      and link.target_id = ti.id
-      and link.kind = 'refund'
+    select sum(link.refund_amount) as refunded_amount
+    from public.transaction_item_refund_link link
+    join public.transaction_item income_item
+      on income_item.id = link.refund_income_item_id
+     and income_item.ledger_id = link.ledger_id
+    join public.transaction_record income_record
+      on income_record.id = income_item.transaction_record_id
+     and income_record.ledger_id = income_item.ledger_id
+     and income_record.status = 'active'
+    where link.ledger_id = ti.ledger_id and link.refunded_item_id = ti.id
 ) expense_refunds on true
 left join lateral (
-    select sum(link.applied_amount) as refunded_amount
-    from allocated_links link
-    where link.ledger_id = ti.ledger_id
-      and link.income_id = ti.id
-      and link.kind = 'refund'
-) income_refunds on true
-left join lateral (
-    select sum(link.applied_amount) as reimbursed_amount
-    from allocated_links link
-    where link.ledger_id = ti.ledger_id
-      and link.target_id = ti.id
-      and link.kind = 'reimbursement'
+    select sum(link.reimbursement_amount) as reimbursed_amount
+    from public.transaction_item_reimbursement_link link
+    join public.transaction_item income_item
+      on income_item.id = link.reimbursement_income_item_id
+     and income_item.ledger_id = link.ledger_id
+    join public.transaction_record income_record
+      on income_record.id = income_item.transaction_record_id
+     and income_record.ledger_id = income_item.ledger_id
+     and income_record.status = 'active'
+    where link.ledger_id = ti.ledger_id and link.target_expense_item_id = ti.id
 ) expense_reimbursements on true
 left join lateral (
-    select sum(link.applied_amount) as reimbursed_amount
+    select sum(link.applied_amount) as amount
     from allocated_links link
-    where link.ledger_id = ti.ledger_id
-      and link.income_id = ti.id
-      and link.kind = 'reimbursement'
-) income_reimbursements on true;
+    where link.ledger_id = ti.ledger_id and link.target_id = ti.id and link.kind = 'refund'
+) applied_expense_refunds on true
+left join lateral (
+    select sum(link.applied_amount) as amount
+    from allocated_links link
+    where link.ledger_id = ti.ledger_id and link.income_id = ti.id and link.kind = 'refund'
+) applied_income_refunds on true
+left join lateral (
+    select sum(link.applied_amount) as amount
+    from allocated_links link
+    where link.ledger_id = ti.ledger_id and link.target_id = ti.id and link.kind = 'reimbursement'
+) applied_expense_reimbursements on true
+left join lateral (
+    select sum(link.applied_amount) as amount
+    from allocated_links link
+    where link.ledger_id = ti.ledger_id and link.income_id = ti.id and link.kind = 'reimbursement'
+) applied_income_reimbursements on true;
 
 -- PostgreSQL 枚举无法直接删除成员，旧值保留在类型中但不再派生。
 -- 将既有结余状态归一为已结清；状态检查复用受控写入通道。
