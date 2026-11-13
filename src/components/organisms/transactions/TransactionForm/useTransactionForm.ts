@@ -726,6 +726,14 @@ export function useTransactionForm({
     }
 
     setLinkNotice(null);
+    // 原支出的商家仍可选、且小票未选商家时才带出。直接写表单，不进入换商家建议流程。
+    if (
+      candidate?.merchantId &&
+      !selectedMerchantId &&
+      merchantOptions.some((merchant) => merchant.id === candidate.merchantId)
+    ) {
+      setSelectedMerchantId(candidate.merchantId);
+    }
     // 只在收款账户为空且原付款账户仍可选时预填，不覆盖用户已有选择。
     if (
       candidate?.accountId &&
@@ -837,6 +845,14 @@ export function useTransactionForm({
     pickerErrors,
     pickerRefundCandidate,
     pickerReimbursementCandidate,
+    linkAffectedCandidates: Array.from(
+      new Map(
+        [...initialValues.items, ...itemsByType.income]
+          .flatMap((item) => [item.refundCandidate, item.reimbursementCandidate])
+          .filter((candidate): candidate is TransactionRefundCandidate => Boolean(candidate))
+          .map((candidate) => [candidate.id, candidate] as const),
+      ).values(),
+    ),
     resolveLinkCandidate,
     pickerSpecialStatus,
     pickerSpecialStatusLocked,

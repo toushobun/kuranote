@@ -96,6 +96,7 @@ export type TransactionRowItem = {
   categoryItems: CategorySummaryItem[];
   merchant_name: string | null;
   merchant_icon_url: string | null;
+  merchant_id?: string | null;
   note?: string | null;
   record_total_amount?: string;
   recorder_color?: ThemeColorKey | null;

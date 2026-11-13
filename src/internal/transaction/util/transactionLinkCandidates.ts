@@ -23,6 +23,7 @@ export function toTransactionLinkCandidates(
           accountId: record.account_id,
           accountName: record.account_name,
           merchantName: record.merchant_name,
+          merchantId: record.merchant_id,
           merchantIconUrl: record.merchant_icon_url,
           reimbursementAmount:
             item.businessStatus?.offsetComposition.reimbursementAmount ?? "0",
@@ -38,6 +39,11 @@ export function toTransactionLinkCandidates(
       ];
     }),
   );
+}
+
+/** 候选是否已结清：服务端使用数据库值，客户端使用小票实时调整后的值。 */
+export function isLinkCandidateSettled(candidate: TransactionRefundCandidate) {
+  return Number(candidate.remainingRefundableAmount) <= 0;
 }
 
 /** 已结清或核销结余的原支出仍可选择，金额由用户另行输入。 */

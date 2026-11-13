@@ -208,6 +208,7 @@ export function buildTransactionListItem({
     created_at: record.created_at,
     id: record.id,
     merchant_icon_url: merchant?.icon_url ?? null,
+    merchant_id: record.merchant_id,
     merchant_name: merchant?.name ?? null,
     note: record.note ?? firstItem?.note ?? null,
     ...(sharedPaymentAmounts

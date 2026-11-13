@@ -4,7 +4,10 @@ import {
 } from "internal/transaction/schema";
 import { paginateItems } from "utils/collections";
 import { transactionPageSize } from "internal/transaction/util/grouping/types";
-import { toTransactionLinkCandidates } from "internal/transaction/util/transactionLinkCandidates";
+import {
+  isLinkCandidateSettled,
+  toTransactionLinkCandidates,
+} from "internal/transaction/util/transactionLinkCandidates";
 import { filterAndSortTransactionSearchItems } from "internal/transaction/util/transactionSearchHelpers";
 import {
   createBalanceAdjustmentSchema,
@@ -596,12 +599,19 @@ export function createTransactionService({
         (candidate) =>
           !input.currency || candidate.accountCurrency === input.currency,
       );
+      const settledCandidates = candidates.filter(isLinkCandidateSettled);
       const page = paginateItems(
-        candidates,
+        input.settled
+          ? settledCandidates
+          : candidates.filter((candidate) => !isLinkCandidateSettled(candidate)),
         input.offset ?? 0,
         transactionPageSize,
       );
-      return { items: page.items, nextOffset: page.nextOffset };
+      return {
+        items: page.items,
+        nextOffset: page.nextOffset,
+        settledCount: settledCandidates.length,
+      };
     },
 
     async search(
