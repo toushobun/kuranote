@@ -49,6 +49,10 @@ export const flowMessages = {
     income: "收入",
     refunded: "已退款",
     reimbursed: "已报销",
+    offset: "抵消支出",
+    surplus: "倒赚",
+    refund: "退款",
+    reimbursement: "报销",
   },
   amountTitle: (category: string) => `${category} 的金额`,
   missingCategory: "未选择分类",
@@ -135,7 +139,7 @@ export const transactionItemPickerMessages = {
     { id: "reimbursement", label: "报销" },
   ] as const,
   categorySection: { expense: "支出分类", income: "收入分类" },
-  linkedHint: "退款 / 报销会抵消原支出，不计入收入。",
+  linkedHint: "退款 / 报销先抵消原支出，超出的部分算作收入。",
   searchCategory: "搜索小分类",
   clearSearch: "清空搜索",
   missingCategories: "请先新增分类。",
@@ -169,7 +173,15 @@ export const transactionLinkCandidateMessages = {
   remaining: (kind: "refund" | "reimbursement", amount: string) =>
     `剩余未${kind === "refund" ? "退" : "报"} ${amount}`,
   settledHint: (kind: "refund" | "reimbursement") =>
-    kind === "refund" ? "这笔已全额退款" : "这笔已全额报销",
+    kind === "refund"
+      ? "这笔已全额退款，再退的部分算作收入"
+      : "这笔已全额报销，再报的部分算作收入",
+  remainingWithSurplus: (
+    kind: "refund" | "reimbursement",
+    remaining: string,
+    surplus: string,
+  ) =>
+    `剩余未${kind === "refund" ? "退" : "报"} ${remaining}，超出的 ${surplus} 算作收入`,
   settledLabel: (hasRefund: boolean, hasReimbursement: boolean) =>
     hasRefund && hasReimbursement
       ? "已结清"
