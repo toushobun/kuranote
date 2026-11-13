@@ -762,12 +762,15 @@ describe("TransactionStepFlow 进入小票", () => {
     expectSuggestionsLoadingRows(false);
     expectNoPaymentRow();
     expect(screen.getByRole("button", { name: "添加明细" })).toBeVisible();
-    expect(props.onMerchantSelect).not.toHaveBeenCalled();
+    expect(props.onMerchantSelect).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ id: "new", hasTransactions: false }),
+    );
 
     await selectEntryMerchant("7-Eleven", "新开商家");
     expectSuggestionsLoadingRows(true);
-    expect(props.onMerchantSelect).toHaveBeenCalledExactlyOnceWith(
-      expect.objectContaining({ id: "seven" }),
+    expect(props.onMerchantSelect).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ id: "seven", hasTransactions: true }),
     );
   });
 
@@ -780,7 +783,7 @@ describe("TransactionStepFlow 进入小票", () => {
     expectAutomaticNotice(false);
     expectNoPaymentRow();
     expect(screen.queryByRole("button", { name: "编辑明细 1" })).toBeNull();
-    expect(props.onMerchantSelect).toHaveBeenCalledTimes(1);
+    expect(props.onMerchantSelect).toHaveBeenCalledTimes(2);
   });
 
   it("选商家后头像不加载，两处显示读取建议，建议到达后只应用一次", async () => {

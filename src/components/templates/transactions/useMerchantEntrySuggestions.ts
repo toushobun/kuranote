@@ -2,6 +2,7 @@
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { transactionEntryApiPaths } from "config/paths";
 import type { MerchantEntrySuggestions } from "internal/transaction";
+import type { FlowMerchant } from "organisms/transactions/MerchantStep/MerchantStep.types";
 import { fetchClientJson } from "lib/api/clientQuery";
 
 // 获取失败时按商家没有记录处理，不阻断记账。
@@ -46,6 +47,20 @@ export function useMerchantEntrySuggestions({
     });
   }
 
+  function clearSuggestions() {
+    suggestionRequest.current?.abort();
+    suggestionRequest.current = null;
+    setSuggestionState(null);
+  }
+
+  function selectSuggestionMerchant(merchant: FlowMerchant) {
+    if (merchant.hasTransactions) {
+      loadSuggestions(merchant.id);
+    } else {
+      clearSuggestions();
+    }
+  }
+
   const loadInitialSuggestions = useEffectEvent(loadSuggestions);
   useEffect(() => {
     if (initialMerchantId) loadInitialSuggestions(initialMerchantId);
@@ -55,6 +70,6 @@ export function useMerchantEntrySuggestions({
   return {
     suggestions: suggestionState?.suggestions,
     suggestionsMerchantId: suggestionState?.merchantId,
-    loadSuggestions,
+    selectSuggestionMerchant,
   };
 }

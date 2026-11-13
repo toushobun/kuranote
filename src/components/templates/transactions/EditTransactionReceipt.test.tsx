@@ -361,7 +361,7 @@ describe("EditTransactionReceiptTemplate", () => {
     );
   });
 
-  it("编辑记账切换到无记录商家时不读取建议且保留小票", async () => {
+  it("编辑记账换到无记录商家时保留小票，换回时重新读取建议", async () => {
     renderReceipt();
     await waitFor(() => expect(fetchClientJson).toHaveBeenCalledTimes(1));
     const drawer = await openMerchantPicker();
@@ -376,6 +376,16 @@ describe("EditTransactionReceiptTemplate", () => {
       screen.getByRole("button", { name: "修改明细 1 金额：¥800" }),
     ).toBeInTheDocument();
     expect(screen.getByText("PayPay")).toBeInTheDocument();
+
+    const reopenedDrawer = await openMerchantPicker();
+    fireEvent.click(
+      within(reopenedDrawer).getByRole("button", { name: /^7-Eleven/ }),
+    );
+    expect(fetchClientJson).toHaveBeenCalledTimes(2);
+    expect(fetchClientJson).toHaveBeenLastCalledWith(
+      expect.stringContaining("merchantId=seven"),
+      expect.anything(),
+    );
   });
 
   it("搜索商家后不选择、或重新选同一个商家，返回时不提示尚未保存", async () => {

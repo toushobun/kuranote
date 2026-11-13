@@ -33,7 +33,7 @@ export function useEditTransactionReceipt({
     initialValues,
   });
   // 只读时不需要快捷金额。
-  const { suggestions, suggestionsMerchantId, loadSuggestions } =
+  const { suggestions, suggestionsMerchantId, selectSuggestionMerchant } =
     useMerchantEntrySuggestions({
       initialMerchantId: readOnly
         ? undefined
@@ -44,7 +44,7 @@ export function useEditTransactionReceipt({
 
   function selectMerchant(merchant: FlowMerchant) {
     receipt.form.handleMerchantChange(merchant.id);
-    if (merchant.hasTransactions) loadSuggestions(merchant.id);
+    selectSuggestionMerchant(merchant);
   }
 
   return {
