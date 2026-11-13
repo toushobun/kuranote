@@ -772,20 +772,19 @@ begin
 
         v_reimbursement_amount := v_income_amount;
 
-            insert into public.transaction_item_reimbursement_link (
-                ledger_id,
-                target_expense_item_id,
-                reimbursement_income_item_id,
-                reimbursement_amount,
-                created_by
-            ) values (
-                p_ledger_id,
-                v_reimbursement_target_id,
-                p_income_item_id,
-                v_reimbursement_amount,
-                p_user_id
-            );
-
+        insert into public.transaction_item_reimbursement_link (
+            ledger_id,
+            target_expense_item_id,
+            reimbursement_income_item_id,
+            reimbursement_amount,
+            created_by
+        ) values (
+            p_ledger_id,
+            v_reimbursement_target_id,
+            p_income_item_id,
+            v_reimbursement_amount,
+            p_user_id
+        );
 
         if v_reimbursement_amount > 0 then
             perform set_config('kuranote.reimbursement_link_flow', 'on', true);
