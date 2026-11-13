@@ -2,6 +2,10 @@ import { StrictMode } from "react";
 import { setupGuardHistoryMock, backFromGuard } from "test/mockGuardHistory";
 setupGuardHistoryMock();
 import type { TransactionFormInitialValues } from "organisms/transactions/TransactionForm/TransactionForm.types";
+import type {
+  TransactionLinkCandidatePageInput,
+  TransactionRefundCandidate,
+} from "types/transactions";
 import { expectInBodyPortal } from "test/bodyPortal";
 import { ReceiptCreationProvider } from "organisms/transactions/ReceiptCreationProvider/ReceiptCreationProvider";
 import {
@@ -1213,5 +1217,237 @@ describe("TransactionStepFlow 页内新增", () => {
     await screen.findByRole("button", { name: "新增账户" });
     expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
     expect([...new FormData(form).entries()]).toEqual(before);
+  });
+});
+
+describe("TransactionStepFlow 关联明细确定后带出", () => {
+  const originalExpenses: TransactionRefundCandidate[] = [
+    {
+      id: "link-original-a",
+      transactionRecordId: "link-record-a",
+      categoryName: "原支出 A",
+      parentCategoryName: "购物",
+      amount: "1200",
+      refundedAmount: "0",
+      reimbursementAmount: "0",
+      remainingRefundableAmount: "1200",
+      accountCurrency: "JPY",
+      accountId: "cash",
+      accountName: "现金",
+      merchantId: "life",
+      merchantName: "LIFE超市",
+      transactionAt: "2026-11-01T09:00:00Z",
+    },
+    {
+      id: "link-original-b",
+      transactionRecordId: "link-record-b",
+      categoryName: "原支出 B",
+      parentCategoryName: "购物",
+      amount: "800",
+      refundedAmount: "0",
+      reimbursementAmount: "0",
+      remainingRefundableAmount: "800",
+      accountCurrency: "JPY",
+      accountId: "paypay",
+      accountName: "PayPay",
+      merchantId: "seven",
+      merchantName: "7-Eleven",
+      transactionAt: "2026-11-02T09:00:00Z",
+    },
+  ];
+
+  const linkCategories = [
+    ...receiptItemsOptions.categoryOptions,
+    {
+      id: "system-refund",
+      name: "退款",
+      parentId: "special-income",
+      parentName: "特殊收入",
+      systemKey: "refund" as const,
+      type: "income" as const,
+    },
+    {
+      id: "system-reimbursement",
+      name: "报销",
+      parentId: "special-income",
+      parentName: "特殊收入",
+      systemKey: "reimbursement" as const,
+      type: "income" as const,
+    },
+  ];
+
+  // 测真实抽屉与小票：候选服务端读取只替换为可控数据源。
+  const loadLinkedPage = async (input: TransactionLinkCandidatePageInput) => ({
+    items: input.settled
+      ? []
+      : originalExpenses.filter(
+          (candidate) =>
+            (!input.merchantId || candidate.merchantId === input.merchantId) &&
+            (!input.currency || candidate.accountCurrency === input.currency) &&
+            (!input.query || candidate.categoryName.includes(input.query)),
+        ),
+    nextOffset: null,
+    settledCount: 0,
+  });
+
+  function setupLinkedFlow(overrides: Partial<TransactionStepFlowProps> = {}) {
+    return setup({
+      suggestions: emptySuggestions,
+      suggestionsMerchantId: "seven",
+      itemsOptions: {
+        ...receiptItemsOptions,
+        categoryOptions: linkCategories,
+        loadRefundPageAction: loadLinkedPage,
+        loadReimbursementPageAction: loadLinkedPage,
+      },
+      ...overrides,
+    });
+  }
+
+  async function selectOriginal(
+    kind: "refund" | "reimbursement",
+    original: "A" | "B" = "A",
+  ) {
+    click("添加明细");
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: `明细类型${kind === "refund" ? "退款" : "报销"}`,
+      }),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: `选择${kind === "refund" ? "退款" : "报销"}明细 原支出 ${original}`,
+      }),
+    );
+  }
+
+  function expectEmptyReceipt() {
+    // 抽屉打开时背后的小票带 aria-hidden，仍要检查它的真实内容。
+    expect(
+      screen.getByRole("button", {
+        name: "修改商家：请选择商家",
+        hidden: true,
+      }),
+    ).toBeInTheDocument();
+    const form = screen
+      .getByRole("button", { name: "保存记账", hidden: true })
+      .closest("form")!;
+    expect(new FormData(form).get("accountId")).toBe("");
+    expect(
+      screen.queryByRole("button", { name: /更换收款账户 1/, hidden: true }),
+    ).toBeNull();
+  }
+
+  it.each(["refund", "reimbursement"] as const)(
+    "%s选原支出不改变小票，确定后才写入商家和收款账户",
+    async (kind) => {
+      setupLinkedFlow();
+      await selectOriginal(kind);
+      expectEmptyReceipt();
+      click("确定");
+      await waitFor(() =>
+        expect(
+          screen.getByRole("button", { name: "修改商家：LIFE超市" }),
+        ).toBeInTheDocument(),
+      );
+      expect(receiptLine("更换收款账户 1")).toHaveTextContent("现金");
+      expect(new FormData(saveButton().closest("form")!).get("accountId")).toBe(
+        "cash",
+      );
+    },
+  );
+
+  it.each(["取消", "关闭", "遮罩"] as const)(
+    "点选退款原支出后通过%s关闭抽屉，小票商家和账户仍为空",
+    async (closeType) => {
+      setupLinkedFlow();
+      await selectOriginal("refund");
+      expectEmptyReceipt();
+      if (closeType === "遮罩") {
+        const backdrop = document.querySelector(
+          ".MuiDrawer-root .MuiBackdrop-root",
+        );
+        expect(backdrop).not.toBeNull();
+        fireEvent.mouseDown(backdrop!);
+        fireEvent.click(backdrop!);
+      } else {
+        click(closeType);
+      }
+      await waitFor(() =>
+        expect(screen.queryByRole("heading", { name: "添加明细" })).toBeNull(),
+      );
+      expectEmptyReceipt();
+    },
+  );
+
+  it("报销选原支出后取消，不写入商家和收款账户", async () => {
+    setupLinkedFlow();
+    await selectOriginal("reimbursement");
+    expectEmptyReceipt();
+    click("取消");
+    await waitFor(() =>
+      expect(screen.queryByRole("heading", { name: "添加明细" })).toBeNull(),
+    );
+    expectEmptyReceipt();
+  });
+
+  it("同一抽屉改选原支出，确定前不改小票，确定后只用最终候选", async () => {
+    setupLinkedFlow();
+    await selectOriginal("refund");
+    fireEvent.click(
+      screen.getByRole("button", { name: "选择退款明细 原支出 B" }),
+    );
+    expectEmptyReceipt();
+    click("确定");
+    await screen.findByRole("button", { name: "修改商家：7-Eleven" });
+    expect(receiptLine("更换收款账户 1")).toHaveTextContent("PayPay");
+  });
+
+  it("小票已有商家和账户时，报销确定后均不覆盖", async () => {
+    setupLinkedFlow();
+    await selectEntryMerchant("7-Eleven");
+    await addEntryPaymentAccount("PayPay JPY");
+    expect(receiptLine("更换支付账户 1")).toHaveTextContent("PayPay");
+    await selectOriginal("reimbursement");
+    expect(
+      screen.getByRole("button", {
+        name: "修改商家：7-Eleven",
+        hidden: true,
+      }),
+    ).toBeInTheDocument();
+    click("确定");
+    await screen.findByRole("button", { name: "修改商家：7-Eleven" });
+    expect(receiptLine("更换收款账户 1")).toHaveTextContent("PayPay");
+    expect(new FormData(saveButton().closest("form")!).get("accountId")).toBe(
+      "paypay",
+    );
+  });
+
+  it("编辑已有退款明细改选原支出时也等到确定才带出", async () => {
+    setupLinkedFlow({
+      itemsOptions: {
+        ...receiptItemsOptions,
+        categoryOptions: linkCategories,
+        loadRefundPageAction: loadLinkedPage,
+        loadReimbursementPageAction: loadLinkedPage,
+        initialItems: [
+          {
+            categoryId: "system-refund",
+            amount: "200",
+            refundCandidate: originalExpenses[0],
+          },
+        ],
+      },
+    });
+    click("编辑明细 1");
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "选择退款明细 原支出 B",
+      }),
+    );
+    expectEmptyReceipt();
+    click("保存修改");
+    await screen.findByRole("button", { name: "修改商家：7-Eleven" });
+    expect(receiptLine("更换收款账户 1")).toHaveTextContent("PayPay");
   });
 });

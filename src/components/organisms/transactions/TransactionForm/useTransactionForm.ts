@@ -90,8 +90,6 @@ export function useTransactionForm({
     initialValues.merchantId,
   );
   const [linkMerchantTouched, setLinkMerchantTouched] = useState(false);
-  // 选择原支出时临时带出的商家，确认写入明细才正式保留。
-  const pendingLinkMerchantId = useRef<string | null>(null);
   const [itemsByType, setItemsByType] = useState<
     Record<TransactionType, TransactionFormItem[]>
   >(() =>
@@ -441,16 +439,7 @@ export function useTransactionForm({
     setIsSheetOpen(true);
   }
 
-  function finishPendingLinkMerchant(confirmed: boolean) {
-    const pendingMerchantId = pendingLinkMerchantId.current;
-    pendingLinkMerchantId.current = null;
-    if (!pendingMerchantId || selectedMerchantId !== pendingMerchantId) return;
-    if (confirmed) setLinkMerchantTouched(true);
-    else setSelectedMerchantId("");
-  }
-
   function closeSheet() {
-    finishPendingLinkMerchant(false);
     setIsSheetOpen(false);
     setEditingItemId(null);
   }
@@ -575,7 +564,35 @@ export function useTransactionForm({
     // 编辑已有明细时，只有金额还空着才通知（打开金额键盘）。
     if (editingItemId !== null && !amountToSave.trim())
       onPickerItemCommit?.(editingItemId);
-    finishPendingLinkMerchant(Boolean(selectedTarget));
+    // 仅在关联明细确实写入小票后，才自动补全商家与收款账户。
+    // 选择器内点选、改选或取消都只改草稿，不影响小票。
+    if (selectedTarget) {
+      if (
+        !selectedMerchantId &&
+        selectedTarget.merchantId &&
+        merchantOptions.some(
+          (merchant) => merchant.id === selectedTarget.merchantId,
+        )
+      ) {
+        setSelectedMerchantId(selectedTarget.merchantId);
+        setLinkMerchantTouched(true);
+      }
+      if (
+        !selectedAccountId &&
+        selectedTarget.accountId &&
+        accountOptions.some(
+          (account) => account.id === selectedTarget.accountId,
+        )
+      ) {
+        const primaryPayment = paymentFields.payments[0];
+        if (primaryPayment) {
+          handlePaymentAccountChange(
+            primaryPayment.key,
+            selectedTarget.accountId,
+          );
+        }
+      }
+    }
     setEditingItemId(null);
     setPickerCategoryId("");
     setPickerAmount("");
@@ -586,8 +603,6 @@ export function useTransactionForm({
   }
 
   function handleMerchantChange(merchantId: string) {
-    // 手动更换商家后不再回滚本次选择器的临时带出。
-    pendingLinkMerchantId.current = null;
     // 重新选了同一个商家不算修改（#962）。
     setSelectedMerchantId(merchantId);
   }
@@ -741,34 +756,6 @@ export function useTransactionForm({
     }
 
     setLinkNotice(null);
-    // 临时带出的商家随原支出改选；手动选择的商家则不会被覆盖。
-    // 原支出无商家或商家已归档时撤回临时值，不进入商家建议流程。
-    const candidateMerchantId =
-      candidate?.merchantId &&
-      merchantOptions.some((merchant) => merchant.id === candidate.merchantId)
-        ? candidate.merchantId
-        : null;
-    if (
-      pendingLinkMerchantId.current &&
-      selectedMerchantId === pendingLinkMerchantId.current
-    ) {
-      pendingLinkMerchantId.current = candidateMerchantId;
-      setSelectedMerchantId(candidateMerchantId ?? "");
-    } else if (!selectedMerchantId && candidateMerchantId) {
-      pendingLinkMerchantId.current = candidateMerchantId;
-      setSelectedMerchantId(candidateMerchantId);
-    }
-    // 只在收款账户为空且原付款账户仍可选时预填，不覆盖用户已有选择。
-    if (
-      candidate?.accountId &&
-      !selectedAccountId &&
-      accountOptions.some((account) => account.id === candidate.accountId)
-    ) {
-      const primaryPayment = paymentFields.payments[0];
-      if (primaryPayment) {
-        handlePaymentAccountChange(primaryPayment.key, candidate.accountId);
-      }
-    }
 
     if (kind === "refund") {
       setPickerRefundCandidate(candidate);
