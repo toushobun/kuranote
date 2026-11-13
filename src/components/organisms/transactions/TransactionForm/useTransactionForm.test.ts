@@ -699,35 +699,6 @@ describe("useTransactionForm", () => {
     expect(result.current.linkNotice).toContain("币种一致");
   });
 
-  it.each(["refund", "reimbursement"] as const)(
-    "未选账户时选择%s原支出后自动带出付款账户",
-    (kind) => {
-      const { result } = renderTransactionFormHook();
-      const candidate =
-        kind === "refund" ? refundCandidate : reimbursementCandidate;
-
-      act(() => {
-        result.current.openSheet();
-        result.current.handlePickerModeChange(kind);
-      });
-      act(() =>
-        kind === "refund"
-          ? result.current.setPickerRefundCandidate(candidate)
-          : result.current.setPickerReimbursementCandidate(candidate),
-      );
-
-      expect(result.current.selectedAccount?.id).toBe("account-1");
-      expect(result.current.payments[0]?.accountId).toBe("account-1");
-      expect(
-        kind === "refund"
-          ? result.current.pickerRefundCandidate
-          : result.current.pickerReimbursementCandidate,
-      ).toEqual(candidate);
-      expect(result.current.linkNotice).toBeNull();
-      expect(mocks.markEditDirty).toHaveBeenCalledWith(true);
-    },
-  );
-
   it("已有收款账户时不覆盖用户选择的同币种账户", () => {
     const { result } = renderTransactionFormHook({
       initialValues: {
@@ -743,21 +714,26 @@ describe("useTransactionForm", () => {
     expect(result.current.linkNotice).toBeNull();
   });
 
-  it("原付款账户已归档时允许先关联但不自动填账户", () => {
-    const { result } = renderTransactionFormHook();
+  it("原付款账户已归档时确定关联后也不自动填账户", () => {
+    const { result } = renderTransactionFormHook({
+      categoryOptions: refundCategoryOptions,
+    });
     const archivedCandidate = {
       ...refundCandidate,
       accountId: "archived-account",
     };
-
+    act(() => result.current.openSheet());
+    act(() => result.current.handlePickerModeChange("refund"));
     act(() => result.current.setPickerRefundCandidate(archivedCandidate));
-
-    expect(result.current.pickerRefundCandidate).toEqual(archivedCandidate);
+    expect(result.current.payments[0]?.accountId).toBe("");
+    act(() => {
+      expect(result.current.handlePickerAdd()).toBe(true);
+    });
+    expect(result.current.itemSummaries[0]?.refundCandidate).toEqual(
+      archivedCandidate,
+    );
     expect(result.current.payments[0]?.accountId).toBe("");
     expect(result.current.selectedAccount).toBeUndefined();
-    expect(result.current.linkNotice).toBeNull();
-    act(() => changePrimaryAccount(result, "account-2"));
-    expect(result.current.pickerRefundCandidate).toEqual(archivedCandidate);
   });
 
   it("切换收款账户后清空不匹配的退款候选", () => {

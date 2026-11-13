@@ -1416,9 +1416,7 @@ describe("TransactionStepFlow 关联明细确定后带出", () => {
       }),
     ).toBeInTheDocument();
     click("确定");
-    expect(
-      screen.getByRole("button", { name: "修改商家：7-Eleven" }),
-    ).toBeInTheDocument();
+    await screen.findByRole("button", { name: "修改商家：7-Eleven" });
     expect(receiptLine("更换收款账户 1")).toHaveTextContent("PayPay");
     expect(new FormData(saveButton().closest("form")!).get("accountId")).toBe(
       "paypay",
