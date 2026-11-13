@@ -7,6 +7,7 @@ import {
 } from "organisms/transactions/transactionStepFlowStoryUtils";
 import type { TransactionFormInitialValues } from "organisms/transactions/TransactionForm/TransactionForm.types";
 import { receiptItemsOptions } from "test/mocks/transactionReceipt";
+import { selectedCandidate } from "organisms/transactions/TransactionLinkCandidatePanel/transactionLinkCandidateFixtures";
 import { flowFixture } from "test/mocks/transactionStepFlow";
 import { EditTransactionReceiptTemplate } from "./EditTransactionReceipt";
 import { NewTransactionVisualFrame } from "./NewTransactionVisualFrame";
@@ -155,5 +156,39 @@ export const LinkedDeleteForbidden: Story = {
       await within(document.body).findByRole("button", { name: "删除" }),
     );
     await within(document.body).findByText("无法删除已关联明细");
+  },
+};
+
+export const RefundSurplusReceipt1078: Story = {
+  name: "小票 · 退款 ¥1,980 / 抵消 ¥980 / 倒赚 ¥1,000",
+  args: {
+    categoryOptions: [
+      ...receiptItemsOptions.categoryOptions,
+      {
+        id: "refund-system",
+        name: "退款",
+        parentId: "special-income",
+        parentName: "特殊收入",
+        systemKey: "refund",
+        type: "income",
+      },
+    ],
+    initialValues: {
+      ...initialValues,
+      type: "income",
+      items: [{
+        amount: "1980",
+        businessNetAmount: "1000",
+        businessStatus: {
+          incomeLinkRole: "refund",
+          offsetComposition: { refundAmount: "0", reimbursementAmount: "0" },
+          settlementStatus: null,
+          surplusAmount: "1000",
+        },
+        categoryId: "refund-system",
+        refundCandidate: { ...selectedCandidate, remainingRefundableAmount: "980" },
+        specialStatus: null,
+      }],
+    },
   },
 };
