@@ -42,7 +42,7 @@ describe("calculateRemainingOffsetMinorUnits", () => {
 });
 
 describe("summarizeRefundAllocationAmounts", () => {
-  it("解除封顶后始终以完整收入金额作为单目标核销金额", () => {
+  it("关联写入全额但只有超出剩余的部分成为净收入", () => {
     expect(summarizeRefundAllocationAmounts("600", "1000")).toEqual({
       allocatedAmount: "600",
       incomeAmount: "600",
@@ -56,11 +56,11 @@ describe("summarizeRefundAllocationAmounts", () => {
     expect(summarizeRefundAllocationAmounts("1500", "1000")).toEqual({
       allocatedAmount: "1500",
       incomeAmount: "1500",
-      netIncomeAmount: "0",
+      netIncomeAmount: "500",
     });
   });
 
-  it("只校验收入金额，剩余额度参数不再参与核销计算", () => {
+  it("剩余额度会影响收入净额且无效精度应返回 null", () => {
     expect(summarizeRefundAllocationAmounts("1.001", "1000")).toEqual({
       allocatedAmount: "1.001",
       incomeAmount: "1.001",
@@ -70,13 +70,13 @@ describe("summarizeRefundAllocationAmounts", () => {
     expect(summarizeRefundAllocationAmounts("1000", "1.001")).toEqual({
       allocatedAmount: "1000",
       incomeAmount: "1000",
-      netIncomeAmount: "0",
+      netIncomeAmount: "998.999",
     });
   });
 });
 
 describe("summarizeReimbursementAllocationAmounts", () => {
-  it("解除封顶后始终以完整收入金额作为单目标核销金额", () => {
+  it("关联写入全额但只有超出剩余的部分成为净收入", () => {
     expect(summarizeReimbursementAllocationAmounts("600", "1000")).toEqual({
       allocatedAmount: "600",
       incomeAmount: "600",
@@ -90,11 +90,11 @@ describe("summarizeReimbursementAllocationAmounts", () => {
     expect(summarizeReimbursementAllocationAmounts("1500", "1000")).toEqual({
       allocatedAmount: "1500",
       incomeAmount: "1500",
-      netIncomeAmount: "0",
+      netIncomeAmount: "500",
     });
   });
 
-  it("只校验收入金额，剩余额度参数不再参与核销计算", () => {
+  it("剩余额度会影响收入净额且无效精度应返回 null", () => {
     expect(summarizeReimbursementAllocationAmounts("1.001", "1000")).toEqual({
       allocatedAmount: "1.001",
       incomeAmount: "1.001",
@@ -106,7 +106,7 @@ describe("summarizeReimbursementAllocationAmounts", () => {
     expect(summarizeReimbursementAllocationAmounts("1000", "1.001")).toEqual({
       allocatedAmount: "1000",
       incomeAmount: "1000",
-      netIncomeAmount: "0",
+      netIncomeAmount: "998.999",
     });
   });
 });
