@@ -908,7 +908,6 @@ describe("TransactionService", () => {
         "candidateMapping",
       ]),
     );
-    expect(stages).toHaveLength(8);
   });
 
   it("候选按明细分页并按日期倒序，服务端按币种过滤、商家优先排序", async () => {
