@@ -87,7 +87,7 @@ candidate_decorated as (
         ) as first_item_note,
         sum(business_net_amount) over (partition by record_id) as record_amount,
         bool_or(
-            strpos(item_amount::text, (select amount_term from args)) > 0
+            strpos(trim_scale(item_amount)::text, (select amount_term from args)) > 0
         ) over (partition by record_id) as any_item_amount_match
     from candidate_base
 ),
@@ -145,7 +145,7 @@ record_matched as (
             ), 0::numeric) as net_amount,
             coalesce(bool_or(
                 (select amount_term from args) ~ '[0-9]'
-                and strpos(ti.amount::text, (select amount_term from args)) > 0
+                and strpos(trim_scale(ti.amount)::text, (select amount_term from args)) > 0
             ), false) as has_item_amount
         from public.transaction_item_with_refund ti
         left join public.category c
@@ -168,8 +168,8 @@ record_matched as (
               args.amount_term ~ '[0-9]'
               and (
                   (tr.type = 'normal' and strpos(abs(trim_scale(amounts.net_amount))::text, args.amount_term) > 0)
-                  or (tr.type = 'transfer' and strpos(coalesce(amounts.first_amount::text, ''), args.amount_term) > 0)
-                  or (tr.type = 'balance_adjustment' and strpos(coalesce(amounts.first_delta::text, ''), args.amount_term) > 0)
+                  or (tr.type = 'transfer' and strpos(coalesce(trim_scale(amounts.first_amount)::text, ''), args.amount_term) > 0)
+                  or (tr.type = 'balance_adjustment' and strpos(coalesce(trim_scale(amounts.first_delta)::text, ''), args.amount_term) > 0)
                   or (tr.type = 'normal' and amounts.has_item_amount)
               )
           )
