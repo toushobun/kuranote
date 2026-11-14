@@ -187,7 +187,8 @@ describe("TransactionLinkCandidatePanel", () => {
         settledCount: 0,
       }),
     });
-    const cards = await screen.findAllByRole("button", {
+    await screen.findByText("USB-C 充电器");
+    const cards = screen.getAllByRole("button", {
       name: /选择退款明细/,
     });
     expect(cards[0]).toHaveAccessibleName("选择退款明细 实时关联的旧支出");
