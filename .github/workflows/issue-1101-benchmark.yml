@@ -98,7 +98,7 @@ jobs:
           ROLLBACK;
           SQL
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f /tmp/bench1101.sql > /tmp/bench1101.log 2>&1 || { cat /tmp/bench1101.log; exit 1; }
-          grep -E 'BENCHMARK|Execution Time:|Time: |Buffers:|^ERROR' /tmp/bench1101.log | tail -n 100
+          grep -E 'BENCHMARK|Execution Time:|Time: |^ERROR' /tmp/bench1101.log | tail -n 30
           echo '--- Full plan artifact ---'
       - uses: actions/upload-artifact@v4
         if: always()
@@ -126,7 +126,9 @@ jobs:
           github-token: ${{ github.token }}
       - run: npm ci
       - name: Validate TS, lint, formatting and Vitest
-        run: npm run check
+        run: |
+          npx prettier .github/workflows/issue-1101-benchmark.yml --write
+          npm run check
       - name: Start local Supabase
         run: supabase start
       - name: Generate and check schema snapshot
