@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
   getGroupView: vi.fn(),
   getNewView: vi.fn(),
   logError: vi.fn(),
+  logInfo: vi.fn(),
   notFound: vi.fn(() => {
     throw new Error("NEXT_NOT_FOUND");
   }),
@@ -46,7 +47,7 @@ describe("Transaction SSR adapter", () => {
     vi.clearAllMocks();
     mocks.getCurrentLedgerOrRedirect.mockResolvedValue(currentLedger);
     mocks.createServerRequestDependencies.mockResolvedValue({
-      logger: { error: mocks.logError },
+      logger: { error: mocks.logError, info: mocks.logInfo },
     });
     mocks.getFrequentMerchants.mockResolvedValue([]);
     mocks.createRequestContainer.mockReturnValue({
@@ -90,21 +91,101 @@ describe("Transaction SSR adapter", () => {
       currentLedger,
       "refund",
       { merchantId, currency: "JPY", offset: 0 },
+      expect.any(Function),
     );
     expect(mocks.getLinkCandidatePage).toHaveBeenNthCalledWith(
       2,
       currentLedger,
       "refund",
       { query: "7930", currency: "JPY", offset: 20, merchantId: undefined },
+      expect.any(Function),
     );
     expect(mocks.getLinkCandidatePage).toHaveBeenNthCalledWith(
       3,
       currentLedger,
       "reimbursement",
       { merchantId: undefined, currency: "JPY", offset: 20 },
+      expect.any(Function),
     );
     expect(mocks.getGroupView).not.toHaveBeenCalled();
     expect(mocks.getGroupItems).not.toHaveBeenCalled();
+  });
+
+  it("退款与报销候选只向服务端日志记录分段耗时和条数", async () => {
+    const page = { items: [{ id: "example" }], nextOffset: null };
+    mocks.getLinkCandidatePage.mockImplementation(
+      async (
+        _ledger: unknown,
+        _kind: unknown,
+        _input: unknown,
+        onTiming: (stage: string, elapsedMs: number) => void,
+      ) => {
+        onTiming("readPermission", 2.8);
+        onTiming("pageRpc", 38.6);
+        onTiming("items", 10.2);
+        onTiming("payments", 3.3);
+        return page;
+      },
+    );
+
+    await expect(
+      loadReimbursementPickerPage({
+        query: "私人搜索词",
+        merchantId: "not-uuid",
+      }),
+    ).resolves.toEqual(page);
+
+    expect(mocks.logInfo).toHaveBeenCalledWith(
+      "[transaction] link candidate page timing",
+      expect.objectContaining({
+        kind: "reimbursement",
+        status: "success",
+        itemCount: 1,
+        readPermissionMs: 3,
+        pageRpcMs: 39,
+        itemsMs: 10,
+        paymentsMs: 3,
+        contextMs: expect.any(Number),
+        totalMs: expect.any(Number),
+      }),
+    );
+    const details = mocks.logInfo.mock.calls[0]?.[1];
+    expect(JSON.stringify(details)).not.toContain("私人搜索词");
+    expect(JSON.stringify(details)).not.toContain("not-uuid");
+  });
+
+  it("候选加载失败时保留部分计时并原样抛错", async () => {
+    const error = new Error("测试用数据库异常");
+    mocks.getLinkCandidatePage.mockImplementation(
+      async (
+        _ledger: unknown,
+        _kind: unknown,
+        _input: unknown,
+        onTiming: (stage: string, elapsedMs: number) => void,
+      ) => {
+        onTiming("readPermission", 4.2);
+        onTiming("pageRpc", 20.6);
+        throw error;
+      },
+    );
+
+    await expect(loadRefundPickerPage({ query: "私人退款记录" })).rejects.toBe(
+      error,
+    );
+    expect(mocks.logInfo).toHaveBeenCalledWith(
+      "[transaction] link candidate page timing",
+      expect.objectContaining({
+        kind: "refund",
+        status: "error",
+        readPermissionMs: 4,
+        pageRpcMs: 21,
+        totalMs: expect.any(Number),
+      }),
+    );
+    const details = mocks.logInfo.mock.calls[0]?.[1];
+    expect(details).not.toHaveProperty("itemCount");
+    expect(JSON.stringify(details)).not.toContain("私人退款记录");
+    expect(JSON.stringify(details)).not.toContain("测试用数据库异常");
   });
 
   it("普通搜索仍直接调用 Service，新建页面不预读关联候选", async () => {
@@ -157,7 +238,7 @@ describe("Transaction 编辑 SSR 边界", () => {
     vi.clearAllMocks();
     mocks.getCurrentLedgerOrRedirect.mockResolvedValue(currentLedger);
     mocks.createServerRequestDependencies.mockResolvedValue({
-      logger: { error: mocks.logError },
+      logger: { error: mocks.logError, info: mocks.logInfo },
     });
     mocks.getFrequentMerchants.mockResolvedValue([]);
     mocks.createRequestContainer.mockReturnValue({
