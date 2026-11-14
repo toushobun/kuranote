@@ -118,26 +118,48 @@ export async function loadTransactionSearchPage(
   return service.search(currentLedger, rawQuery, offset);
 }
 
+/** 单次候选请求的分段计时只记录耗时和条数，不记录账本、商家及搜索内容。 */
+async function loadLinkPickerPage(
+  kind: "refund" | "reimbursement",
+  input: TransactionLinkCandidatePageInput,
+) {
+  const startedAt = performance.now();
+  const { currentLedger, service, logger } = await getContext();
+  const timings: Record<string, number> = {
+    contextMs: Math.round(performance.now() - startedAt),
+  };
+  const page = await service.getLinkCandidatePage(
+    currentLedger,
+    kind,
+    {
+      ...input,
+      merchantId:
+        kind === "refund" && input.merchantId && uuidPattern.test(input.merchantId)
+          ? input.merchantId
+          : undefined,
+    },
+    (stage, elapsedMs) => {
+      timings[`${stage}Ms`] = Math.round(elapsedMs);
+    },
+  );
+  logger.info("[transaction] link candidate page timing", {
+    kind,
+    ...timings,
+    totalMs: Math.round(performance.now() - startedAt),
+    itemCount: page.items.length,
+  });
+  return page;
+}
+
 /** 打开和加载更多共用扁平候选分页，不读取月份分组。 */
 export async function loadRefundPickerPage(
   input: TransactionLinkCandidatePageInput = {},
 ) {
-  const { currentLedger, service } = await getContext();
-  return service.getLinkCandidatePage(currentLedger, "refund", {
-    ...input,
-    merchantId:
-      input.merchantId && uuidPattern.test(input.merchantId)
-        ? input.merchantId
-        : undefined,
-  });
+  return loadLinkPickerPage("refund", input);
 }
 
 export async function loadReimbursementPickerPage(
   input: TransactionLinkCandidatePageInput = {},
 ) {
-  const { currentLedger, service } = await getContext();
-  return service.getLinkCandidatePage(currentLedger, "reimbursement", {
-    ...input,
-    merchantId: undefined,
-  });
+  return loadLinkPickerPage("reimbursement", input);
 }
