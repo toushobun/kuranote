@@ -11906,6 +11906,7 @@ REVOKE ALL ON FUNCTION "public"."current_user_active_ledger_ids"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."current_user_active_ledger_ids"() TO "authenticated";
 
 
+
 REVOKE ALL ON FUNCTION "public"."current_user_can_manage_ledger"("p_ledger_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."current_user_can_manage_ledger"("p_ledger_id" "uuid") TO "authenticated";
 
