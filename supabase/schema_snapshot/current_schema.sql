@@ -4373,14 +4373,52 @@ candidate_base as (
         tr.note as record_note,
         ti.note as item_note,
         ti.amount as item_amount,
-        ti.business_net_amount,
+        greatest(
+            ti.amount
+            - coalesce(refund_totals.positive_amount, 0::numeric)
+            - coalesce(reimbursement_totals.positive_amount, 0::numeric),
+            0::numeric
+        ) as business_net_amount,
         ti.sort_order,
-        ti.amount - ti.refunded_amount - ti.reimbursement_amount <= 0 as settled,
+        ti.amount
+          - coalesce(refund_totals.total_amount, 0::numeric)
+          - coalesce(reimbursement_totals.total_amount, 0::numeric) <= 0 as settled,
         coalesce(preferred_alias.alias, m.name) as preferred_merchant_name,
         coalesce(nullif(trim(setting.display_name), ''), au.display_name) as recorder_name
     from public.transaction_record tr
-    join public.transaction_item_with_refund ti
+    join public.transaction_item ti
       on ti.transaction_record_id = tr.id and ti.ledger_id = tr.ledger_id
+    -- 候选净额最终按零截断，无需重算各笔关联的时间轴分摊和超额部分。
+    left join lateral (
+        select
+            sum(link.refund_amount) as total_amount,
+            sum(link.refund_amount) filter (where link.refund_amount > 0) as positive_amount
+        from public.transaction_item_refund_link link
+        join public.transaction_item income_item
+          on income_item.id = link.refund_income_item_id
+         and income_item.ledger_id = link.ledger_id
+        join public.transaction_record income_record
+          on income_record.id = income_item.transaction_record_id
+         and income_record.ledger_id = income_item.ledger_id
+         and income_record.status = 'active'
+        where link.ledger_id = ti.ledger_id
+          and link.refunded_item_id = ti.id
+    ) refund_totals on true
+    left join lateral (
+        select
+            sum(link.reimbursement_amount) as total_amount,
+            sum(link.reimbursement_amount) filter (where link.reimbursement_amount > 0) as positive_amount
+        from public.transaction_item_reimbursement_link link
+        join public.transaction_item income_item
+          on income_item.id = link.reimbursement_income_item_id
+         and income_item.ledger_id = link.ledger_id
+        join public.transaction_record income_record
+          on income_record.id = income_item.transaction_record_id
+         and income_record.ledger_id = income_item.ledger_id
+         and income_record.status = 'active'
+        where link.ledger_id = ti.ledger_id
+          and link.target_expense_item_id = ti.id
+    ) reimbursement_totals on true
     join public.category cat
       on cat.id = ti.category_id and cat.ledger_id = ti.ledger_id
      and cat.type = 'expense'
@@ -4413,7 +4451,7 @@ candidate_base as (
       and tr.ledger_id = p_ledger_id
       and tr.status = 'active'
       and tr.type = 'normal'
-      and public.current_user_is_active_ledger_member(p_ledger_id)
+      and (select public.current_user_is_active_ledger_member(p_ledger_id))
       and (p_currency is null or coalesce(first_payment.currency, ledger.base_currency) = p_currency)
       and (
           coalesce(array_length(p_special_statuses, 1), 0) = 0
@@ -4499,7 +4537,7 @@ record_matched as (
       and tr.ledger_id = p_ledger_id
       and tr.status = 'active'
       and tr.type in ('normal', 'transfer', 'balance_adjustment')
-      and public.current_user_is_active_ledger_member(p_ledger_id)
+      and (select public.current_user_is_active_ledger_member(p_ledger_id))
       and (
           args.term = ''
           or strpos(lower(coalesce(preferred_alias.alias, m.name, '')), args.term) > 0
