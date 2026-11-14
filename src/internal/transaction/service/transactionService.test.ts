@@ -885,6 +885,32 @@ describe("TransactionService", () => {
     return { ...context, ledger };
   }
 
+  it("候选服务端计时覆盖权限、RPC、明细、付款和上下文阶段", async () => {
+    const { service, ledger } = candidateService();
+    const stages: string[] = [];
+
+    await service.getLinkCandidatePage(
+      ledger,
+      "refund",
+      { currency: "JPY" },
+      (stage) => stages.push(stage),
+    );
+
+    expect(stages).toEqual(
+      expect.arrayContaining([
+        "readPermission",
+        "pageRpc",
+        "records",
+        "items",
+        "payments",
+        "contextLookups",
+        "buildListItems",
+        "candidateMapping",
+      ]),
+    );
+    expect(stages).toHaveLength(8);
+  });
+
   it("候选按明细分页并按日期倒序，服务端按币种过滤、商家优先排序", async () => {
     const { service, ledger, repository } = candidateService();
     const first = await service.getLinkCandidatePage(ledger, "refund", {
