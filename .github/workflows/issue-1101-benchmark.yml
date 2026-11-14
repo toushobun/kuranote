@@ -1,4 +1,4 @@
-name: Temporary #1101 RPC benchmark
+name: Temporary 1101 verification
 
 on:
   push:
@@ -11,107 +11,8 @@ permissions:
   contents: write
 
 jobs:
-  benchmark:
+  code:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: supabase/setup-cli@v2
-        with:
-          version: 2.106.0
-          github-token: ${{ github.token }}
-      - name: Start local Supabase
-        run: supabase start
-      - name: Benchmark 2000 candidate records
-        shell: bash
-        run: |
-          cat > /tmp/bench1101.sql <<'SQL'
-          BEGIN;
-          SET LOCAL search_path = public, extensions;
-          -- 与数据库测试同一测试账本；通过已有 helper 避免绕过明细约束。
-          INSERT INTO public.transaction_record (
-              id, ledger_id, type, status, transaction_at, merchant_id,
-              title, note, created_by, updated_by
-          )
-          SELECT
-              ('11010000-0000-4000-8000-' || lpad(seq::text, 12, '0'))::uuid,
-              '00000000-0000-4000-8000-000000000032'::uuid,
-              'normal', 'active',
-              '2026-11-01 00:00:00+00'::timestamptz + seq * interval '1 minute',
-              '00000000-0000-4000-8000-000000001001'::uuid,
-              '1101 基准测试', '1101候选 ' || seq,
-              '00000000-0000-4000-8000-000000000031'::uuid,
-              '00000000-0000-4000-8000-000000000031'::uuid
-          FROM generate_series(1, 2000) seq;
-          
-          SELECT tests.insert_normal_transaction_items(jsonb_agg(item))
-          FROM (
-              SELECT
-                  ('11011000-0000-4000-8000-' || lpad(seq::text, 12, '0'))::uuid AS id,
-                  '00000000-0000-4000-8000-000000000032'::uuid AS ledger_id,
-                  ('11010000-0000-4000-8000-' || lpad(seq::text, 12, '0'))::uuid AS transaction_record_id,
-                  '00000000-0000-4000-8000-000000000043'::uuid AS account_id,
-                  '00000000-0000-4000-8000-000000005021'::uuid AS category_id,
-                  100::numeric AS amount,
-                  null::public.transaction_item_special_status AS special_status,
-                  0 AS sort_order,
-                  '00000000-0000-4000-8000-000000000031'::uuid AS created_by,
-                  '00000000-0000-4000-8000-000000000031'::uuid AS updated_by
-              FROM generate_series(1, 2000) seq
-          ) item;
-          
-          \pset tuples_only on
-          \pset format unaligned
-          \o /tmp/prepared1101.sql
-          SELECT 'PREPARE candidate_bench(uuid,text,text,uuid,text,text[],boolean,integer,integer) AS ' || replace(replace(replace(replace(replace(replace(replace(replace(replace(prosrc, 'p_ledger_id', '$1'), 'p_scope', '$2'), 'p_query', '$3'), 'p_merchant_priority_id', '$4'), 'p_currency', '$5'), 'p_special_statuses', '$6'), 'p_settled', '$7'), 'p_offset', '$8'), 'p_limit', '$9') || ';'
-          FROM pg_proc
-          WHERE oid = 'public.load_filtered_transaction_page(uuid,text,text,uuid,text,text[],boolean,integer,integer)'::regprocedure;
-          \o
-          \pset format aligned
-          \pset tuples_only off
-          \i /tmp/prepared1101.sql
-          SET LOCAL ROLE authenticated;
-          SELECT set_config('request.jwt.claims',
-              '{"sub":"00000000-0000-4000-8000-000000000031","role":"authenticated"}',
-              true);
-          \timing on
-          \echo '===== BENCHMARK candidates baseline ====='
-          EXPLAIN (ANALYZE, BUFFERS)
-          EXECUTE candidate_bench(
-            '00000000-0000-4000-8000-000000000032',
-            'candidates', '', '00000000-0000-4000-8000-000000001001', 'JPY',
-            NULL, false, 0, 20
-          );
-          \echo '===== BENCHMARK candidates no merchant ====='
-          EXPLAIN (ANALYZE, BUFFERS)
-          EXECUTE candidate_bench(
-            '00000000-0000-4000-8000-000000000032',
-            'candidates', '', NULL, 'JPY',
-            NULL, false, 0, 20
-          );
-          \echo '===== BENCHMARK records #1099 ====='
-          EXPLAIN (ANALYZE, BUFFERS)
-          EXECUTE candidate_bench(
-            '00000000-0000-4000-8000-000000000032',
-            'records', '1101候选', NULL, NULL,
-            NULL, false, 0, 20
-          );
-          ROLLBACK;
-          SQL
-          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f /tmp/bench1101.sql > /tmp/bench1101.log 2>&1 || { cat /tmp/bench1101.log; exit 1; }
-          grep -E 'BENCHMARK|Execution Time:|Time: |^ERROR' /tmp/bench1101.log | tail -n 30
-          echo '--- Full plan artifact ---'
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: issue-1101-benchmark
-          path: /tmp/bench1101.log
-          if-no-files-found: ignore
-      - if: always()
-        run: supabase stop --no-backup
-
-  verification:
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
     env:
       NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: test-publishable-key
@@ -120,27 +21,27 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - run: npm ci
+      - name: Run check
+        run: |
+          npx prettier .github/workflows/issue-1101-benchmark.yml --write
+          npm run check
+
+  schema:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v2
         with:
           version: 2.106.0
           github-token: ${{ github.token }}
-      - run: npm ci
-      - name: Validate TS, lint, formatting and Vitest
-        run: |
-          npx prettier .github/workflows/issue-1101-benchmark.yml --write
-          npm run check
       - name: Start local Supabase
         run: supabase start
       - name: Generate and check schema snapshot
         run: |
           npm run db:schema:snapshot:update
           npm run db:schema:snapshot:check
-      - name: Run pgTAP and SECURITY DEFINER smoke
-        run: |
-          supabase test db
-          npm run db:security-definer:check
-          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f scripts/security-definer-smoke.sql
-      - name: Commit generated schema snapshot on this branch
+      - name: Commit generated schema snapshot
         shell: bash
         run: |
           if ! git diff --quiet -- supabase/schema_snapshot/current_schema.sql; then
@@ -150,5 +51,24 @@ jobs:
             git commit -m "chore: 更新 #1101 数据库结构快照"
             git push origin HEAD:perf/1101_link_candidate_speed
           fi
+      - if: always()
+        run: supabase stop --no-backup
+
+  database:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v2
+        with:
+          version: 2.106.0
+          github-token: ${{ github.token }}
+      - name: Start local Supabase
+        run: supabase start
+      - name: Run pgTAP
+        run: supabase test db
+      - name: Check SECURITY DEFINER
+        run: |
+          npm run db:security-definer:check
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f scripts/security-definer-smoke.sql
       - if: always()
         run: supabase stop --no-backup
