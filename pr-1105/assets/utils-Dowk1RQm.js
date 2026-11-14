@@ -1,0 +1,1 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";function t(e){return e!=null&&!(Array.isArray(e)&&e.length===0)}function n(e,n=!1){return e&&(t(e.value)&&e.value!==``||n&&t(e.defaultValue)&&e.defaultValue!==``)}function r(e){return e.startAdornment}var i=e((()=>{}));export{r as n,n as r,i as t};
