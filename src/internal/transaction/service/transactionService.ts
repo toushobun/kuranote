@@ -80,7 +80,10 @@ import {
   buildFilteredTransactionListItems,
   loadTransactionGroupLoaderContext,
 } from "internal/transaction/service/read/transactionContext";
-import { loadFilteredTransactionPage } from "internal/transaction/service/read/filteredTransactionPage";
+import {
+  loadFilteredTransactionPage,
+  type FilteredPageTimingStage,
+} from "internal/transaction/service/read/filteredTransactionPage";
 import {
   getTransactionReadDependencies,
   requireTransactionReadLedger,
@@ -113,6 +116,11 @@ export type TransactionServiceDependencies = {
     TransactionFormRepository &
     TransactionGroupRepository;
 };
+
+export type CandidatePageTimingStage =
+  | "readPermission"
+  | "candidateMapping"
+  | FilteredPageTimingStage;
 
 export interface TransactionService {
   createBalanceAdjustment(input: CreateBalanceAdjustmentInput): Promise<void>;
@@ -157,6 +165,7 @@ export interface TransactionService {
     currentLedger: CurrentLedger,
     kind: "refund" | "reimbursement",
     input: TransactionLinkCandidatePageInput,
+    onTiming?: (stage: CandidatePageTimingStage, elapsedMs: number) => void,
   ): Promise<TransactionLinkCandidatePage>;
   getNewView(currentLedger: CurrentLedger): Promise<NewTransactionView>;
   search(
@@ -560,8 +569,10 @@ export function createTransactionService({
       );
     },
 
-    async getLinkCandidatePage(currentLedger, kind, rawInput) {
+    async getLinkCandidatePage(currentLedger, kind, rawInput, onTiming) {
+      const permissionStartedAt = performance.now();
       const ledger = await requireReadLedger(currentLedger);
+      onTiming?.("readPermission", performance.now() - permissionStartedAt);
       const parsed =
         transactionLinkCandidatePageInputSchema.safeParse(rawInput);
       if (!parsed.success)
@@ -598,14 +609,16 @@ export function createTransactionService({
               : undefined,
         },
         filters,
+        onTiming,
       );
+      const mappingStartedAt = performance.now();
       const candidatesById = new Map(
         toTransactionLinkCandidates(page.items).map((candidate) => [
           candidate.id,
           candidate,
         ]),
       );
-      return {
+      const candidatePage = {
         items: page.entries.flatMap((entry) => {
           const candidate = entry.itemId
             ? candidatesById.get(entry.itemId)
@@ -615,6 +628,8 @@ export function createTransactionService({
         nextOffset: page.nextOffset,
         settledCount: page.settledCount,
       };
+      onTiming?.("candidateMapping", performance.now() - mappingStartedAt);
+      return candidatePage;
     },
 
     async search(
