@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - perf/1101_link_candidate_speed
+    paths:
+      - .github/workflows/issue-1101-benchmark.yml
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   benchmark:
@@ -104,5 +106,47 @@ jobs:
           name: issue-1101-benchmark
           path: /tmp/bench1101.log
           if-no-files-found: ignore
+      - if: always()
+        run: supabase stop --no-backup
+
+  verification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: test-publishable-key
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: supabase/setup-cli@v2
+        with:
+          version: 2.106.0
+          github-token: ${{ github.token }}
+      - run: npm ci
+      - name: Validate TS, lint, formatting and Vitest
+        run: npm run check
+      - name: Start local Supabase
+        run: supabase start
+      - name: Generate and check schema snapshot
+        run: |
+          npm run db:schema:snapshot:update
+          npm run db:schema:snapshot:check
+      - name: Run pgTAP and SECURITY DEFINER smoke
+        run: |
+          supabase test db
+          npm run db:security-definer:check
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f scripts/security-definer-smoke.sql
+      - name: Commit generated schema snapshot on this branch
+        shell: bash
+        run: |
+          if ! git diff --quiet -- supabase/schema_snapshot/current_schema.sql; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add supabase/schema_snapshot/current_schema.sql
+            git commit -m "chore: 更新 #1101 数据库结构快照"
+            git push origin HEAD:perf/1101_link_candidate_speed
+          fi
       - if: always()
         run: supabase stop --no-backup
