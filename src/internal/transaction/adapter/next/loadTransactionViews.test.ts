@@ -169,9 +169,9 @@ describe("Transaction SSR adapter", () => {
       },
     );
 
-    await expect(
-      loadRefundPickerPage({ query: "私人退款记录" }),
-    ).rejects.toBe(error);
+    await expect(loadRefundPickerPage({ query: "私人退款记录" })).rejects.toBe(
+      error,
+    );
     expect(mocks.logInfo).toHaveBeenCalledWith(
       "[transaction] link candidate page timing",
       expect.objectContaining({
