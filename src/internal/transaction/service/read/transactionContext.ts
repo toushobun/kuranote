@@ -52,7 +52,7 @@ export async function loadTransactionGroupLoaderContextForRecords(
   currentLedger: CurrentLedger,
   records: TransactionRecordDbRow[],
   onTiming?: (
-    step: "itemsPayments" | "contextLookups",
+    step: "items" | "payments" | "contextLookups",
     elapsedMs: number,
   ) => void,
 ): Promise<TransactionGroupLoaderContext> {
@@ -78,16 +78,23 @@ export async function loadTransactionGroupLoaderContextForRecords(
     .filter((record) => record.type === "normal")
     .map((record) => record.id);
   const itemsStartedAt = performance.now();
-  const [items, payments] = await Promise.all([
-    dependencies.transactionRepository.listItems(currentLedger.id, recordIds),
+  const itemsPromise = dependencies.transactionRepository
+    .listItems(currentLedger.id, recordIds)
+    .then((result) => {
+      onTiming?.("items", performance.now() - itemsStartedAt);
+      return result;
+    });
+  const paymentsStartedAt = performance.now();
+  const paymentsPromise =
     normalRecordIds.length > 0
-      ? dependencies.transactionRepository.listPayments(
-          currentLedger.id,
-          normalRecordIds,
-        )
-      : Promise.resolve([]),
-  ]);
-  onTiming?.("itemsPayments", performance.now() - itemsStartedAt);
+      ? dependencies.transactionRepository
+          .listPayments(currentLedger.id, normalRecordIds)
+          .then((result) => {
+            onTiming?.("payments", performance.now() - paymentsStartedAt);
+            return result;
+          })
+      : Promise.resolve([]);
+  const [items, payments] = await Promise.all([itemsPromise, paymentsPromise]);
   const itemsByRecordId = groupByKey(
     items,
     (item) => item.transaction_record_id,
