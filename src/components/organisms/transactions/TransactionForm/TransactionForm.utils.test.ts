@@ -7,6 +7,7 @@ import {
   getCurrencySymbol,
   getDefaultPickerCategory,
   getFirstEnabledCategoryId,
+  getMissingIncomeLinkKind,
   isValidMoneyText,
   isValidTransactionFormItem,
   sumAmountTexts,
@@ -217,6 +218,30 @@ describe("isValidTransactionFormItem", () => {
       ).toBe(expected);
     },
   );
+});
+
+describe("getMissingIncomeLinkKind", () => {
+  it.each(["refund", "reimbursement"] as const)(
+    "%s 系统分类缺原支出时返回待选择类型，已关联时不返回",
+    (kind) => {
+      const category = createCategory({ type: "income", systemKey: kind });
+      expect(getMissingIncomeLinkKind({ category })).toBe(kind);
+      const candidate = { id: "source" };
+      expect(
+        getMissingIncomeLinkKind({
+          category,
+          ...(kind === "refund"
+            ? { refundCandidate: candidate }
+            : { reimbursementCandidate: candidate }),
+        }),
+      ).toBeNull();
+    },
+  );
+
+  it("普通收入与未指定分类不要求原支出", () => {
+    expect(getMissingIncomeLinkKind({ category: createCategory({ type: "income" }) })).toBeNull();
+    expect(getMissingIncomeLinkKind({})).toBeNull();
+  });
 });
 
 describe("sumAmountTexts", () => {

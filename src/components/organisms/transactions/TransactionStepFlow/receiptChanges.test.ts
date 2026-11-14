@@ -40,6 +40,29 @@ describe("hasReceiptChanges", () => {
     ).toBe(true);
   });
 
+  it("自动带出的退款未关联直接删除不算修改，确认关联后算修改", () => {
+    const specialBaseline: ReceiptSnapshot = {
+      ...baseline,
+      items: [{ id: 1, categoryId: "refund-system", amount: "" }],
+    };
+    expect(
+      hasReceiptChanges(specialBaseline, { ...specialBaseline, items: [] }, [1], 1),
+    ).toBe(false);
+    const linked = {
+      ...specialBaseline.items[0]!,
+      amount: "980",
+      refundCandidate: { id: "source" },
+    };
+    expect(
+      hasReceiptChanges(
+        specialBaseline,
+        { ...specialBaseline, items: [linked] } as ReceiptSnapshot,
+        [1],
+        1,
+      ),
+    ).toBe(true);
+  });
+
   it("删除非自动明细或清空非自动账户算修改", () => {
     expect(hasReceiptChanges(baseline, { ...baseline, items: [] }, [], 1)).toBe(
       true,

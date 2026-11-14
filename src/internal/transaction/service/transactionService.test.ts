@@ -404,20 +404,23 @@ describe("TransactionService", () => {
     expect(repository.createNormal).not.toHaveBeenCalled();
   });
 
-  it("普通收入不允许使用退款系统分类", async () => {
-    const { repository, service } = createService(
-      "member",
-      createRepository(),
-      "income",
-      "refund",
-    );
-    await expect(
-      service.createNormal({ ...normalInput, type: "income" }),
-    ).rejects.toMatchObject({
-      code: transactionErrorCodes.incomeLinkCategoryInvalid,
-    });
-    expect(repository.createNormal).not.toHaveBeenCalled();
-  });
+  it.each(["refund", "reimbursement"] as const)(
+    "系统 %s 明细未关联原支出时服务端拒绝保存",
+    async (systemKey) => {
+      const { repository, service } = createService(
+        "member",
+        createRepository(),
+        "income",
+        systemKey,
+      );
+      await expect(
+        service.createNormal({ ...normalInput, type: "income" }),
+      ).rejects.toMatchObject({
+        code: transactionErrorCodes.incomeLinkCategoryInvalid,
+      });
+      expect(repository.createNormal).not.toHaveBeenCalled();
+    },
+  );
 
   it("支出分类允许保存待报销状态", async () => {
     const repository = createRepository();

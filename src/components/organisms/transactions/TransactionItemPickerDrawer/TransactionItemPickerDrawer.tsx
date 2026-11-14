@@ -540,12 +540,18 @@ export function TransactionItemPickerDrawer({
         <Stack direction="row" spacing={1.5}>
           <Button
             fullWidth
-            onClick={editingItemId === null ? closeDrawer : handleDelete}
+            onClick={
+              editingItemId === null || pendingLink ? closeDrawer : handleDelete
+            }
             type="button"
             variant="outlined"
-            sx={editingItemId === null ? drawerCancelButtonSx : deleteButtonSx}
+            sx={
+              editingItemId === null || pendingLink
+                ? drawerCancelButtonSx
+                : deleteButtonSx
+            }
           >
-            {editingItemId === null
+            {editingItemId === null || pendingLink
               ? transactionItemPickerMessages.cancel
               : transactionItemPickerMessages.remove}
           </Button>
