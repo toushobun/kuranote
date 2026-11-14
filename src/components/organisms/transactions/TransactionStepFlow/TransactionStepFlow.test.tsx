@@ -1199,7 +1199,7 @@ describe("TransactionStepFlow 自动特殊收入 #1102", () => {
     ).toBeVisible();
   });
 
-  it.each(kinds)("%s 保存报错后删除自动明细，错误与未保存提醒均消失", async (kind) => {
+  it.each(kinds)("%s 删除待关联明细后关闭不提醒", async (kind) => {
     const { props } = automaticSpecialSetup(kind);
     await selectEntryMerchant("7-Eleven");
     assertUnlinked(kind);
