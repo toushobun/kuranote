@@ -1120,7 +1120,9 @@ describe("TransactionStepFlow 自动特殊收入 #1102", () => {
     expect(new FormData(form).get("itemAmount")).toBe("");
     expect(new FormData(form).get("itemRefundedItemId")).toBe("");
     expect(new FormData(form).get("itemReimbursementItemId")).toBe("");
-    expect(screen.getByRole("button", { name: selectOriginalLabel(kind) })).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: selectOriginalLabel(kind) }),
+    ).toBeVisible();
     expect(receiptLine("编辑明细 1")).toHaveTextContent(
       kind === "refund" ? "退款收入" : "报销收入",
     );
