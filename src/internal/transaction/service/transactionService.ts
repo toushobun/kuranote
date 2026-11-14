@@ -84,6 +84,7 @@ import {
   loadFilteredTransactionPage,
   type FilteredPageTimingStage,
 } from "internal/transaction/service/read/filteredTransactionPage";
+import { measureReadStage } from "internal/transaction/service/read/measureReadStage";
 import {
   getTransactionReadDependencies,
   requireTransactionReadLedger,
@@ -570,9 +571,11 @@ export function createTransactionService({
     },
 
     async getLinkCandidatePage(currentLedger, kind, rawInput, onTiming) {
-      const permissionStartedAt = performance.now();
-      const ledger = await requireReadLedger(currentLedger);
-      onTiming?.("readPermission", performance.now() - permissionStartedAt);
+      const ledger = await measureReadStage(
+        "readPermission",
+        () => requireReadLedger(currentLedger),
+        onTiming,
+      );
       const parsed =
         transactionLinkCandidatePageInputSchema.safeParse(rawInput);
       if (!parsed.success)
