@@ -4435,7 +4435,7 @@ candidate_matched as (
            args.amount_term ~ '[0-9]'
            and (
                any_item_amount_match
-               or strpos(abs(record_amount)::text, args.amount_term) > 0
+               or strpos(abs(trim_scale(record_amount))::text, args.amount_term) > 0
            )
        )
 ),
@@ -4490,7 +4490,7 @@ record_matched as (
           or (
               args.amount_term ~ '[0-9]'
               and (
-                  (tr.type = 'normal' and strpos(abs(amounts.net_amount)::text, args.amount_term) > 0)
+                  (tr.type = 'normal' and strpos(abs(trim_scale(amounts.net_amount))::text, args.amount_term) > 0)
                   or (tr.type = 'transfer' and strpos(coalesce(amounts.first_amount::text, ''), args.amount_term) > 0)
                   or (tr.type = 'balance_adjustment' and strpos(coalesce(amounts.first_delta::text, ''), args.amount_term) > 0)
                   or (tr.type = 'normal' and amounts.has_item_amount)
@@ -4550,6 +4550,9 @@ select jsonb_build_object(
     end,
     'settledCount', (
         select count(*) from candidate_matched where settled
+    ),
+    'totalCount', (
+        select count(*) from all_matches
     )
 );
 $$;
