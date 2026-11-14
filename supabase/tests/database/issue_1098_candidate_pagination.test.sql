@@ -1,7 +1,7 @@
 -- #1098：同商家优先、明细级分页、跨页无重复、全量结清数、报销范围。
 begin;
 set local search_path = public, extensions;
-select plan(17);
+select plan(19);
 
 update public.ledger
 set transaction_item_special_status_enabled = true
@@ -72,6 +72,14 @@ from (
         '00000000-0000-4000-8000-000000000031'::uuid as updated_by
     from generate_series(1, 2) seq
 ) item;
+
+update public.merchant_alias
+set is_preferred = false
+where merchant_id = '00000000-0000-4000-8000-000000001001';
+
+update public.merchant_alias
+set is_preferred = true
+where id = '00000000-0000-4000-8000-000000003001';
 
 set local role authenticated;
 select set_config(
@@ -250,6 +258,26 @@ select is(
       where ti.id = '10982000-0000-4000-8000-000000000001'
     ),
     '记录搜索的明细金额部分同样保留原始小数文本'
+);
+
+
+select ok(
+    (
+      select (public.load_filtered_transaction_page(
+        p_ledger_id => '00000000-0000-4000-8000-000000000032',
+        p_scope => 'candidates', p_query => '业务超市'
+      )->>'totalCount')::integer
+    ) >= 4,
+    '退款候选搜索可命中当前商家的首选别名'
+);
+select ok(
+    (
+      select (public.load_filtered_transaction_page(
+        p_ledger_id => '00000000-0000-4000-8000-000000000032',
+        p_scope => 'records', p_query => '业务超市'
+      )->>'totalCount')::integer
+    ) >= 4,
+    '共用交易搜索接口可命中首选别名'
 );
 
 select * from finish();

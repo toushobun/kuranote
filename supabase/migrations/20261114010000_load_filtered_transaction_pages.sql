@@ -35,7 +35,7 @@ candidate_base as (
         ti.business_net_amount,
         ti.sort_order,
         ti.amount - ti.refunded_amount - ti.reimbursement_amount <= 0 as settled,
-        m.name as merchant_name,
+        coalesce(preferred_alias.alias, m.name) as preferred_merchant_name,
         coalesce(nullif(trim(setting.display_name), ''), au.display_name) as recorder_name
     from public.transaction_record tr
     join public.transaction_item_with_refund ti
@@ -46,6 +46,15 @@ candidate_base as (
     join public.ledger ledger on ledger.id = tr.ledger_id
     left join public.merchant m
       on m.id = tr.merchant_id and m.ledger_id = tr.ledger_id
+    -- 列表显示的是首选别名；搜索必须与 MerchantRepository 的显示名称一致。
+    left join lateral (
+        select ma.alias
+        from public.merchant_alias ma
+        where ma.merchant_id = tr.merchant_id
+          and ma.is_preferred
+          and not ma.is_archived
+        limit 1
+    ) preferred_alias on true
     left join public.app_user au on au.id = tr.created_by
     left join public.ledger_member_display_setting setting
       on setting.ledger_id = tr.ledger_id and setting.user_id = tr.created_by
@@ -87,7 +96,7 @@ candidate_matched as (
     from candidate_decorated
     cross join args
     where args.term = ''
-       or strpos(lower(coalesce(merchant_name, '')), args.term) > 0
+       or strpos(lower(coalesce(preferred_merchant_name, '')), args.term) > 0
        or strpos(lower(coalesce(record_note, first_item_note, '')), args.term) > 0
        or strpos(lower(coalesce(recorder_name, '')), args.term) > 0
        or (
@@ -110,6 +119,15 @@ record_matched as (
     from public.transaction_record tr
     left join public.merchant m
       on m.id = tr.merchant_id and m.ledger_id = tr.ledger_id
+    -- 列表显示的是首选别名；搜索必须与 MerchantRepository 的显示名称一致。
+    left join lateral (
+        select ma.alias
+        from public.merchant_alias ma
+        where ma.merchant_id = tr.merchant_id
+          and ma.is_preferred
+          and not ma.is_archived
+        limit 1
+    ) preferred_alias on true
     left join public.app_user au on au.id = tr.created_by
     left join public.ledger_member_display_setting setting
       on setting.ledger_id = tr.ledger_id and setting.user_id = tr.created_by
@@ -143,7 +161,7 @@ record_matched as (
       and public.current_user_is_active_ledger_member(p_ledger_id)
       and (
           args.term = ''
-          or strpos(lower(coalesce(m.name, '')), args.term) > 0
+          or strpos(lower(coalesce(preferred_alias.alias, m.name, '')), args.term) > 0
           or strpos(lower(coalesce(case when tr.type = 'normal' then coalesce(tr.note, amounts.first_note) else tr.note end, '')), args.term) > 0
           or strpos(lower(coalesce(nullif(trim(setting.display_name), ''), au.display_name, '')), args.term) > 0
           or (
