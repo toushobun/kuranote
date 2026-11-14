@@ -11,6 +11,7 @@ import {
 } from "internal/transaction/service/read/transactionContext";
 import type { TransactionListItem } from "internal/transaction/service/read/transactionReadModels";
 import type { TransactionFilters } from "internal/transaction/entity/transactionGrouping";
+import { measureReadStage } from "internal/transaction/service/read/measureReadStage";
 
 export type FilteredPageTimingStage =
   | "pageRpc"
@@ -32,22 +33,28 @@ export async function loadFilteredTransactionPage(
   filters: TransactionFilters,
   onTiming?: (stage: FilteredPageTimingStage, elapsedMs: number) => void,
 ): Promise<FilteredTransactionPageResult & { items: TransactionListItem[] }> {
-  const pageStartedAt = performance.now();
-  const page = await dependencies.transactionRepository.loadFilteredPage({
-    ...input,
-    ledgerId: ledger.id,
-  });
-  onTiming?.("pageRpc", performance.now() - pageStartedAt);
+  const page = await measureReadStage(
+    "pageRpc",
+    () =>
+      dependencies.transactionRepository.loadFilteredPage({
+        ...input,
+        ledgerId: ledger.id,
+      }),
+    onTiming,
+  );
   const recordIds = [...new Set(page.entries.map((entry) => entry.recordId))];
   if (recordIds.length === 0) return { ...page, items: [] };
 
-  const recordsStartedAt = performance.now();
-  const records = await dependencies.transactionRepository.listRecords({
-    ledgerId: ledger.id,
-    recordIds,
-    recordType: "all",
-  });
-  onTiming?.("records", performance.now() - recordsStartedAt);
+  const records = await measureReadStage(
+    "records",
+    () =>
+      dependencies.transactionRepository.listRecords({
+        ledgerId: ledger.id,
+        recordIds,
+        recordType: "all",
+      }),
+    onTiming,
+  );
   const context = await loadTransactionGroupLoaderContextForRecords(
     dependencies,
     ledger,
