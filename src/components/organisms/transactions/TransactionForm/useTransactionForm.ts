@@ -62,6 +62,7 @@ import {
   getDefaultPickerCategory,
   getCurrencyMismatchedLinkKinds,
   getFirstEnabledCategoryId,
+  getMissingIncomeLinkKind,
   isValidMoneyText,
   isValidTransactionFormItem,
 } from "./TransactionForm.utils";
@@ -260,8 +261,13 @@ export function useTransactionForm({
   });
   const hasValidItems =
     allDisplayItems.length > 0 &&
-    allDisplayItems.every((item) =>
-      isValidTransactionFormItem(item, selectedAccount?.currency),
+    allDisplayItems.every(
+      (item) =>
+        isValidTransactionFormItem(item, selectedAccount?.currency) &&
+        !getMissingIncomeLinkKind({
+          ...item,
+          category: categoryById.get(item.categoryId),
+        }),
     );
   const transactionAtValue = composeTransactionDateTimeLocalValue(
     transactionDate,

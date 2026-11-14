@@ -1,6 +1,9 @@
 "use client";
 import { useState } from "react";
-import { isValidTransactionFormItem } from "../TransactionForm/TransactionForm.utils";
+import {
+  getMissingIncomeLinkKind,
+  isValidTransactionFormItem,
+} from "../TransactionForm/TransactionForm.utils";
 import {
   canAddPaymentRow,
   isPaymentAccountSelectable,
@@ -26,17 +29,26 @@ export function useTransactionConfirmStep(
   // 单账户点 × 清空后，只保留换币种确认需要的原币种。
   const [previousCurrency, setPreviousCurrency] = useState<string>();
   const currency = form.selectedAccount?.currency;
+  const missingLinkedItems = form.itemSummaries.filter((item) =>
+    getMissingIncomeLinkKind(item),
+  );
   const invalidItems = form.itemSummaries.filter(
-    (item) => !item.category || !isValidTransactionFormItem(item, currency),
+    (item) =>
+      !item.category ||
+      !isValidTransactionFormItem(item, currency) ||
+      !!getMissingIncomeLinkKind(item),
   );
   // 换币种后小数位超出的金额单独提示，点一下重新输入。
   const excessDecimalItems = invalidItems.filter((item) =>
     exceedsCurrencyDecimalPlaces(item.amount, currency),
   );
   const otherInvalidItems = invalidItems.filter(
-    (item) => !excessDecimalItems.includes(item),
+    (item) =>
+      !excessDecimalItems.includes(item) && !missingLinkedItems.includes(item),
   );
-  const missingAmounts = invalidItems.filter((item) => !item.amount.trim());
+  const missingAmounts = otherInvalidItems.filter(
+    (item) => !item.amount.trim(),
+  );
   const primaryPayment = form.payments[0];
   const multiAccountAvailable = Boolean(
     props.multiAccountPaymentEnabled && form.selectedAccount,
@@ -123,6 +135,20 @@ export function useTransactionConfirmStep(
     ...(!form.itemSummaries.length
       ? [{ id: "items", message: m.missingItems, onClick: form.openSheet }]
       : []),
+    ...(["refund", "reimbursement"] as const).flatMap((kind) => {
+      const item = missingLinkedItems.find(
+        (entry) => getMissingIncomeLinkKind(entry) === kind,
+      );
+      return item
+        ? [
+            {
+              id: `originalExpense:${kind}`,
+              message: m.missingOriginalExpense(kind),
+              onClick: () => form.openItemSheet(item.id),
+            },
+          ]
+        : [];
+    }),
     ...(excessDecimalItems.length
       ? [
           {

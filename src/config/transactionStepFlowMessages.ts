@@ -59,6 +59,14 @@ export const flowMessages = {
   amountTitle: (category: string) => `${category} 的金额`,
   missingCategory: "未选择分类",
   pendingAmount: "待输入",
+  selectOriginalExpense: "选择原支出",
+  selectOriginalExpenseAria: (
+    kind: "refund" | "reimbursement",
+    index: number,
+  ) => `第${index}条${kind === "refund" ? "退款" : "报销"}明细：选择原支出`,
+  originalExpenseNotSelected: "还没选原支出",
+  missingOriginalExpense: (kind: "refund" | "reimbursement") =>
+    kind === "refund" ? "请为退款明细选择原支出" : "请为报销明细选择原支出",
   lastAmount: (amount: string) => `上次 ${amount}`,
   quickAmounts: "快捷金额",
   confirmAmount: "确定",

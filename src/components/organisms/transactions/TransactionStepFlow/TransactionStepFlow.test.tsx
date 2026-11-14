@@ -46,8 +46,16 @@ import {
 } from "test/mocks/transactionReceipt";
 import { flowFixture } from "test/mocks/transactionStepFlow";
 import { TransactionStepFlow } from "./TransactionStepFlow";
-import type { TransactionStepFlowProps } from "./TransactionStepFlow.types";
+import type {
+  ItemsStepOptions,
+  TransactionStepFlowProps,
+} from "./TransactionStepFlow.types";
 import { quickRouteSuggestionTimeoutMs } from "./useTransactionStepFlow";
+import {
+  loadCandidatePage,
+  loadReimbursementPage,
+  selectedCandidate,
+} from "../TransactionLinkCandidatePanel/transactionLinkCandidateFixtures";
 
 const quickSuggestions = {
   ...receiptSuggestions,
@@ -1054,6 +1062,248 @@ describe("TransactionStepFlow 编辑明细", () => {
         expect(screen.queryByRole("button", { name: "保存修改" })).toBeNull(),
       );
     expect(!!screen.queryByLabelText("金额计算器")).toBe(opens);
+  });
+});
+
+describe("TransactionStepFlow 自动特殊收入 #1102", () => {
+  const kinds = ["refund", "reimbursement"] as const;
+  const categories: ItemsStepOptions["categoryOptions"] = [
+    ...receiptItemsOptions.categoryOptions,
+    {
+      id: "refund-system",
+      name: "退款",
+      parentId: "special-income",
+      parentName: "特殊收入",
+      systemKey: "refund",
+      type: "income",
+    },
+    {
+      id: "reimbursement-system",
+      name: "报销",
+      parentId: "special-income",
+      parentName: "特殊收入",
+      systemKey: "reimbursement",
+      type: "income",
+    },
+  ];
+  function automaticSpecialSetup(kind: (typeof kinds)[number]) {
+    return quickSetup({
+      itemsOptions: {
+        ...receiptItemsOptions,
+        categoryOptions: categories,
+        loadRefundPageAction: loadCandidatePage,
+        loadReimbursementPageAction: loadReimbursementPage,
+      },
+      suggestions: {
+        ...quickSuggestions,
+        automaticCategoryIds: [`${kind}-system`],
+        quickAmounts: [
+          {
+            categoryId: `${kind}-system`,
+            currency: "JPY",
+            lastAmount: "999",
+            frequentAmounts: ["500"],
+          },
+        ],
+      },
+      action: vi.fn(async () => ({})),
+    });
+  }
+  function selectOriginalLabel(kind: (typeof kinds)[number], index = 1) {
+    return `第${index}条${kind === "refund" ? "退款" : "报销"}明细：选择原支出`;
+  }
+  function clickSelectOriginal(kind: (typeof kinds)[number]) {
+    click(selectOriginalLabel(kind));
+  }
+  function assertUnlinked(kind: (typeof kinds)[number]) {
+    const form = saveButton().closest("form")!;
+    expect(new FormData(form).get("itemAmount")).toBe("");
+    expect(new FormData(form).get("itemRefundedItemId")).toBe("");
+    expect(new FormData(form).get("itemReimbursementItemId")).toBe("");
+    expect(
+      screen.getByRole("button", { name: selectOriginalLabel(kind) }),
+    ).toBeVisible();
+    expect(receiptLine("编辑明细 1")).toHaveTextContent(
+      kind === "refund" ? "退款收入" : "报销收入",
+    );
+    expect(receiptLine("编辑明细 1")).toHaveTextContent("还没选原支出");
+    return form;
+  }
+  async function chooseOriginal(kind: (typeof kinds)[number]) {
+    await screen.findByRole("button", {
+      name: `选择${kind === "refund" ? "退款" : "报销"}明细 USB-C 充电器`,
+    });
+    click(`选择${kind === "refund" ? "退款" : "报销"}明细 USB-C 充电器`);
+  }
+
+  it.each(kinds)("自动带出 %s 显示待选择原支出", async (kind) => {
+    automaticSpecialSetup(kind);
+    await selectEntryMerchant("7-Eleven");
+    assertUnlinked(kind);
+    expectAutomaticNotice();
+    expect(screen.queryByLabelText("金额计算器")).toBeNull();
+    clickSelectOriginal(kind);
+    expect(
+      screen.getByRole("button", {
+        name: `明细类型${kind === "refund" ? "退款" : "报销"}`,
+      }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "确定" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "取消" })).toBeVisible();
+  });
+
+  it.each(kinds)("%s 保存拦截与关联确认", async (kind) => {
+    const { props } = automaticSpecialSetup(kind);
+    await selectEntryMerchant("7-Eleven");
+    const form = assertUnlinked(kind);
+    const pendingText = within(receiptLine("编辑明细 1")).getByText(
+      "还没选原支出",
+    );
+    const pendingColor = getComputedStyle(pendingText).color;
+    click("保存记账");
+    expect(props.action).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("button", {
+        name: `请为${kind === "refund" ? "退款" : "报销"}明细选择原支出`,
+      }),
+    ).toBeInTheDocument();
+    expect(receiptLine("编辑明细 1")).toHaveAttribute("data-invalid", "true");
+    expect(getComputedStyle(pendingText).color).not.toBe(pendingColor);
+    const before = [...new FormData(form).entries()];
+    clickSelectOriginal(kind);
+    await chooseOriginal(kind);
+    // MUI 抽屉打开期间小票被 aria-hidden，直接检查隐藏字段而不查询背景按钮。
+    expect([...new FormData(form).entries()]).toEqual(before);
+    click("确定");
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "取消" })).toBeNull(),
+    );
+    expect(new FormData(form).get("itemAmount")).toBe("3280");
+    expect(
+      new FormData(form).get(
+        kind === "refund" ? "itemRefundedItemId" : "itemReimbursementItemId",
+      ),
+    ).toBe(selectedCandidate.id);
+    expect(screen.queryByText("还没选原支出")).toBeNull();
+    expect(
+      screen.queryByRole("button", {
+        name: `请为${kind === "refund" ? "退款" : "报销"}明细选择原支出`,
+      }),
+    ).toBeNull();
+    expect(receiptLine("编辑明细 1")).not.toHaveAttribute("data-invalid");
+    expect(receiptLine("编辑明细 1")).toHaveTextContent("抵消原支出 ¥3,280");
+    expectAutomaticNotice(false);
+    click("关闭记账");
+    expect(
+      await screen.findByRole("dialog", { name: "尚未保存" }),
+    ).toBeVisible();
+  });
+
+  it.each(kinds)("%s 删除待关联明细后关闭不提醒", async (kind) => {
+    const { props } = automaticSpecialSetup(kind);
+    await selectEntryMerchant("7-Eleven");
+    assertUnlinked(kind);
+    click("保存记账");
+    const errorName = `请为${kind === "refund" ? "退款" : "报销"}明细选择原支出`;
+    expect(screen.getByRole("button", { name: errorName })).toBeVisible();
+    click("删除明细 1");
+    expect(screen.queryByRole("button", { name: errorName })).toBeNull();
+    expect(screen.queryByText("还没选原支出")).toBeNull();
+    click("关闭记账");
+    await waitFor(() => expect(props.onClose).toHaveBeenCalledOnce());
+    expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
+  });
+
+  it.each([
+    ["取消", "取消"],
+    ["右上关闭", "关闭"],
+    ["点抽屉外部", "backdrop"],
+  ] as const)("选候选后%s不改小票", async (_, route) => {
+    const { props } = automaticSpecialSetup("refund");
+    await selectEntryMerchant("7-Eleven");
+    const form = assertUnlinked("refund");
+    const original = [...new FormData(form).entries()];
+    clickSelectOriginal("refund");
+    await chooseOriginal("refund");
+    expect([...new FormData(form).entries()]).toEqual(original);
+    if (route === "backdrop") {
+      const backdrop = document.querySelector(
+        ".MuiDrawer-root .MuiBackdrop-root",
+      );
+      expect(backdrop).not.toBeNull();
+      fireEvent.click(backdrop!);
+    } else {
+      click(route);
+    }
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "取消" })).toBeNull(),
+    );
+    expect([...new FormData(form).entries()]).toEqual(original);
+    assertUnlinked("refund");
+    click("关闭记账");
+    await waitFor(() => expect(props.onClose).toHaveBeenCalledOnce());
+    expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
+  });
+
+  it("点分类名进入退款页，删除自动明细后关闭不提醒", async () => {
+    const { props } = automaticSpecialSetup("refund");
+    await selectEntryMerchant("7-Eleven");
+    const line = receiptLine("编辑明细 1");
+    fireEvent.click(within(line).getByRole("button", { name: "退款" }));
+    expect(
+      screen.getByRole("button", { name: "明细类型退款" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    click("取消");
+    fireEvent.click(await screen.findByRole("button", { name: "删除明细 1" }));
+    expect(screen.queryByText("还没选原支出")).toBeNull();
+    click("关闭记账");
+    await waitFor(() => expect(props.onClose).toHaveBeenCalledOnce());
+    expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
+  });
+
+  it("自动带出退款与报销时，选择按钮名称区分明细类型和序号", async () => {
+    quickSetup({
+      itemsOptions: { ...receiptItemsOptions, categoryOptions: categories },
+      suggestions: {
+        ...quickSuggestions,
+        automaticCategoryIds: ["refund-system", "reimbursement-system"],
+        quickAmounts: [],
+      },
+    });
+    await selectEntryMerchant("7-Eleven");
+    for (const [index, kind] of kinds.entries()) {
+      const row = receiptLine(`编辑明细 ${index + 1}`);
+      expect(
+        within(row).getByRole("button", {
+          name: selectOriginalLabel(kind, index + 1),
+        }),
+      ).toBeVisible();
+      expect(row).toHaveTextContent(
+        kind === "refund" ? "退款收入" : "报销收入",
+      );
+    }
+    click("保存记账");
+    for (const kind of kinds) {
+      expect(
+        screen.getByRole("button", {
+          name: `请为${kind === "refund" ? "退款" : "报销"}明细选择原支出`,
+        }),
+      ).toBeInTheDocument();
+    }
+  });
+
+  it("自动退款手动选择原支出后金额键盘不使用历史常用金额", async () => {
+    automaticSpecialSetup("refund");
+    await selectEntryMerchant("7-Eleven");
+    clickSelectOriginal("refund");
+    await chooseOriginal("refund");
+    click("确定");
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "取消" })).toBeNull(),
+    );
+    click("修改明细 1 金额：+ ¥3,280");
+    expect(await screen.findByLabelText("金额计算器")).toBeInTheDocument();
+    expect(screen.queryByText("上次 ¥999")).toBeNull();
   });
 });
 

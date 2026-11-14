@@ -48,6 +48,7 @@ import type { TransactionIncomeLinksContextValue } from "../TransactionForm/Tran
 type TransactionItemPickerDrawerProps = TransactionIncomeLinksContextValue & {
   categoryGroups: CategoryPickerGroup[];
   editingItemId?: number | null;
+  pendingLink?: boolean;
   filteredCategoryOptions: TransactionCategoryOption[];
   // 退款 / 报销关联提示；抽屉打开时表单顶部的提示会被遮罩挡住，因此在抽屉内同步显示。
   linkNotice?: string | null;
@@ -90,6 +91,7 @@ type TransactionItemPickerDrawerProps = TransactionIncomeLinksContextValue & {
 export function TransactionItemPickerDrawer({
   categoryGroups,
   editingItemId = null,
+  pendingLink = false,
   filteredCategoryOptions,
   linkNotice = null,
   onCategoryToggle,
@@ -227,7 +229,7 @@ export function TransactionItemPickerDrawer({
 
       <Stack direction="row" sx={drawerHeaderSx}>
         <Typography component="h2" variant="h6" sx={drawerTitleSx}>
-          {editingItemId === null
+          {editingItemId === null || pendingLink
             ? transactionItemPickerMessages.addTitle
             : transactionItemPickerMessages.editTitle}
         </Typography>
@@ -538,12 +540,18 @@ export function TransactionItemPickerDrawer({
         <Stack direction="row" spacing={1.5}>
           <Button
             fullWidth
-            onClick={editingItemId === null ? closeDrawer : handleDelete}
+            onClick={
+              editingItemId === null || pendingLink ? closeDrawer : handleDelete
+            }
             type="button"
             variant="outlined"
-            sx={editingItemId === null ? drawerCancelButtonSx : deleteButtonSx}
+            sx={
+              editingItemId === null || pendingLink
+                ? drawerCancelButtonSx
+                : deleteButtonSx
+            }
           >
-            {editingItemId === null
+            {editingItemId === null || pendingLink
               ? transactionItemPickerMessages.cancel
               : transactionItemPickerMessages.remove}
           </Button>
@@ -554,7 +562,7 @@ export function TransactionItemPickerDrawer({
             type="button"
             sx={drawerDoneButtonSx}
           >
-            {editingItemId === null
+            {editingItemId === null || pendingLink
               ? transactionItemPickerMessages.confirm
               : transactionItemPickerMessages.saveEdit}
           </PrimaryActionButton>

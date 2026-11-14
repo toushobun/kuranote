@@ -1,6 +1,7 @@
 "use client";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import IconButton from "@mui/material/IconButton";
@@ -27,6 +28,7 @@ export function ReceiptLine({
   errorLabel = error,
   editLabel,
   onEdit,
+  onLabelClick,
   removeLabel,
   onRemove,
 }: {
@@ -48,6 +50,7 @@ export function ReceiptLine({
   /** 不传时（只读）不显示铅笔与 × 的位置。 */
   editLabel?: string;
   onEdit?: () => void;
+  onLabelClick?: () => void;
   removeLabel?: string;
   onRemove?: () => void;
 }) {
@@ -80,7 +83,13 @@ export function ReceiptLine({
         )}
         <Box sx={labelColumnSx}>
           <Box sx={labelBoxSx}>
-            {primaryLabel}
+            {onLabelClick ? (
+              <ButtonBase onClick={onLabelClick} sx={labelClickSx}>
+                {primaryLabel}
+              </ButtonBase>
+            ) : (
+              primaryLabel
+            )}
             {tags}
             {editButton}
           </Box>
@@ -126,12 +135,14 @@ export function ReceiptAmountButton({
   amount,
   pending = false,
   income = false,
+  selectOriginalExpense = false,
   onClick,
 }: {
   label: string;
   amount: string;
   pending?: boolean;
   income?: boolean;
+  selectOriginalExpense?: boolean;
   onClick: () => void;
 }) {
   return (
@@ -141,11 +152,19 @@ export function ReceiptAmountButton({
       sx={[
         amountButtonSx,
         income && { color: incomeAmountColor },
+        selectOriginalExpense && { color: "primary.main" },
         pending && { color: "error.main" },
       ]}
     >
       {amount}
-      <EditOutlinedIcon aria-hidden sx={pencilSx} />
+      {selectOriginalExpense ? (
+        <ChevronRightRoundedIcon
+          aria-hidden
+          sx={{ fontSize: receiptIconSize }}
+        />
+      ) : (
+        <EditOutlinedIcon aria-hidden sx={pencilSx} />
+      )}
     </ButtonBase>
   );
 }
@@ -197,6 +216,12 @@ const labelColumnSx = {
   gap: 0.25,
   flex: 1,
   minWidth: 0,
+};
+const labelClickSx = {
+  minWidth: 0,
+  textAlign: "left",
+  borderRadius: `${designTokens.radius.sm}px`,
+  "&.Mui-focusVisible": { outline: "2px solid", outlineColor: "primary.main" },
 };
 const labelBoxSx = {
   display: "flex",

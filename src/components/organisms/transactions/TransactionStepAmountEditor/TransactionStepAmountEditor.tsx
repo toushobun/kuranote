@@ -32,7 +32,12 @@ export function TransactionStepAmountEditor({
           ? amountItem.amount
           : ""
       }
-      quickAmounts={suggestions?.quickAmounts}
+      quickAmounts={
+        amountItem?.category?.systemKey === "refund" ||
+        amountItem?.category?.systemKey === "reimbursement"
+          ? undefined
+          : suggestions?.quickAmounts
+      }
       onConfirm={confirmAmount}
       onClose={() => onAmountItemChange(null)}
     />

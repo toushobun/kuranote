@@ -1,6 +1,7 @@
 "use client";
 import { TransactionItemPickerDrawer } from "organisms/transactions/TransactionItemPickerDrawer/TransactionItemPickerDrawer";
 import type { TransactionReceiptProps } from "../TransactionConfirmStep/TransactionConfirmStep.types";
+import { getMissingIncomeLinkKind } from "../TransactionForm/TransactionForm.utils";
 
 /** 从商家记账的选择分类抽屉：小票内添加 / 编辑明细。 */
 export function TransactionStepItemPicker(props: TransactionReceiptProps) {
@@ -11,6 +12,12 @@ export function TransactionStepItemPicker(props: TransactionReceiptProps) {
       categoryGroups={f.categoryGroups}
       filteredCategoryOptions={f.allNormalCategoryOptions}
       editingItemId={f.editingItemId}
+      pendingLink={
+        !!f.itemSummaries.find(
+          (item) =>
+            item.id === f.editingItemId && getMissingIncomeLinkKind(item),
+        )
+      }
       linkNotice={f.linkNotice}
       open={f.isSheetOpen}
       onClose={f.closeSheet}

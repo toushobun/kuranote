@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { hasReceiptChanges, type ReceiptSnapshot } from "./receiptChanges";
+import { selectedCandidate } from "../TransactionLinkCandidatePanel/transactionLinkCandidateFixtures";
 
 const item = { id: 1, categoryId: "lunch", amount: "" };
 const payment = { key: 1, accountId: "paypay", amount: "" };
@@ -37,6 +38,34 @@ describe("hasReceiptChanges", () => {
   ])("%s算修改", (_, change) => {
     expect(
       hasReceiptChanges(baseline, { ...baseline, ...change }, [1], 1),
+    ).toBe(true);
+  });
+
+  it("自动带出的退款未关联直接删除不算修改，确认关联后算修改", () => {
+    const specialBaseline: ReceiptSnapshot = {
+      ...baseline,
+      items: [{ id: 1, categoryId: "refund-system", amount: "" }],
+    };
+    expect(
+      hasReceiptChanges(
+        specialBaseline,
+        { ...specialBaseline, items: [] },
+        [1],
+        1,
+      ),
+    ).toBe(false);
+    const linked = {
+      ...specialBaseline.items[0]!,
+      amount: "980",
+      refundCandidate: selectedCandidate,
+    };
+    expect(
+      hasReceiptChanges(
+        specialBaseline,
+        { ...specialBaseline, items: [linked] },
+        [1],
+        1,
+      ),
     ).toBe(true);
   });
 

@@ -87,6 +87,57 @@ export const QuickEntry: Story = {
     itemsOptions: receiptItemsOptions,
   },
 };
+const pendingRefundOptions = {
+  ...receiptItemsOptions,
+  initialItems: [],
+  categoryOptions: [
+    ...receiptItemsOptions.categoryOptions,
+    {
+      id: "refund-system",
+      name: "退款",
+      parentId: "special-income",
+      parentName: "特殊收入",
+      systemKey: "refund" as const,
+      type: "income" as const,
+    },
+  ],
+};
+
+export const AutomaticRefundPending: Story = {
+  name: "自动带出退款：未选择原支出",
+  args: {
+    itemsOptions: pendingRefundOptions,
+    suggestionsMerchantId: "seven",
+    suggestions: {
+      automaticCategoryIds: ["refund-system"],
+      recommendedAccountIds: ["paypay"],
+      quickAmounts: [],
+    },
+  },
+  play: async ({ canvasElement }) => {
+    await enterReceipt(canvasElement);
+    const body = within(canvasElement.ownerDocument.body);
+    await expect(
+      await body.findByRole("button", { name: "第1条退款明细：选择原支出" }),
+    ).toBeVisible();
+    await expect(body.getByText("还没选原支出")).toBeVisible();
+  },
+};
+
+export const AutomaticRefundPendingAfterSave: Story = {
+  name: "自动带出退款：未选原支出点保存后",
+  args: AutomaticRefundPending.args,
+  play: async ({ canvasElement }) => {
+    await enterReceipt(canvasElement);
+    const body = within(canvasElement.ownerDocument.body);
+    await body.findByRole("button", { name: "第1条退款明细：选择原支出" });
+    await userEvent.click(body.getByRole("button", { name: "保存记账" }));
+    await expect(
+      body.getByRole("button", { name: "请为退款明细选择原支出" }),
+    ).toBeVisible();
+  },
+};
+
 export const AutomaticAccountOnly: Story = {
   name: "只自动选付款账户：显示自动添加提示",
   args: {
