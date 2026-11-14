@@ -1,0 +1,27 @@
+name: Issue 1101 temporary prettier diff
+
+on:
+  push:
+    branches:
+      - perf/1101_link_candidate_speed
+
+jobs:
+  show-format-diff:
+    name: Show prettier diff
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/cache@v4
+        id: modules
+        with:
+          path: node_modules
+          key: node-modules-${{ hashFiles('package-lock.json') }}
+      - if: steps.modules.outputs.cache-hit != 'true'
+        run: npm ci
+      - name: Display exact formatting patch
+        run: |
+          npx prettier src/internal/transaction/adapter/next/loadTransactionViews.test.ts src/internal/transaction/service/read/transactionContext.ts src/internal/transaction/service/read/filteredTransactionPage.ts src/internal/transaction/service/read/measureReadStage.ts src/internal/transaction/service/read/measureReadStage.test.ts src/internal/transaction/service/transactionService.ts --write
+          git diff -- src/internal/transaction/adapter/next/loadTransactionViews.test.ts src/internal/transaction/service/read/transactionContext.ts src/internal/transaction/service/read/filteredTransactionPage.ts src/internal/transaction/service/read/measureReadStage.ts src/internal/transaction/service/read/measureReadStage.test.ts src/internal/transaction/service/transactionService.ts
