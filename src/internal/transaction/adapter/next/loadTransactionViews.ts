@@ -128,29 +128,36 @@ async function loadLinkPickerPage(
   const timings: Record<string, number> = {
     contextMs: Math.round(performance.now() - startedAt),
   };
-  const page = await service.getLinkCandidatePage(
-    currentLedger,
-    kind,
-    {
-      ...input,
-      merchantId:
-        kind === "refund" &&
-        input.merchantId &&
-        uuidPattern.test(input.merchantId)
-          ? input.merchantId
-          : undefined,
-    },
-    (stage, elapsedMs) => {
-      timings[`${stage}Ms`] = Math.round(elapsedMs);
-    },
-  );
-  logger.info("[transaction] link candidate page timing", {
-    kind,
-    ...timings,
-    totalMs: Math.round(performance.now() - startedAt),
-    itemCount: page.items.length,
-  });
-  return page;
+  let itemCount: number | undefined;
+  try {
+    const page = await service.getLinkCandidatePage(
+      currentLedger,
+      kind,
+      {
+        ...input,
+        merchantId:
+          kind === "refund" &&
+          input.merchantId &&
+          uuidPattern.test(input.merchantId)
+            ? input.merchantId
+            : undefined,
+      },
+      (stage, elapsedMs) => {
+        timings[`${stage}Ms`] = Math.round(elapsedMs);
+      },
+    );
+    itemCount = page.items.length;
+    return page;
+  } finally {
+    // 请求抛错或超时后仍保留已完成阶段的耗时，便于定位瓶颈；不记录输入及错误详情。
+    logger.info("[transaction] link candidate page timing", {
+      kind,
+      ...timings,
+      totalMs: Math.round(performance.now() - startedAt),
+      status: itemCount === undefined ? "error" : "success",
+      ...(itemCount === undefined ? {} : { itemCount }),
+    });
+  }
 }
 
 /** 打开和加载更多共用扁平候选分页，不读取月份分组。 */
