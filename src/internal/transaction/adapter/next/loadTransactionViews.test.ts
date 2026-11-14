@@ -122,7 +122,8 @@ describe("Transaction SSR adapter", () => {
       ) => {
         onTiming("readPermission", 2.8);
         onTiming("pageRpc", 38.6);
-        onTiming("itemsPayments", 10.2);
+        onTiming("items", 10.2);
+        onTiming("payments", 3.3);
         return page;
       },
     );
@@ -141,7 +142,8 @@ describe("Transaction SSR adapter", () => {
         itemCount: 1,
         readPermissionMs: 3,
         pageRpcMs: 39,
-        itemsPaymentsMs: 10,
+        itemsMs: 10,
+        paymentsMs: 3,
         contextMs: expect.any(Number),
         totalMs: expect.any(Number),
       }),
