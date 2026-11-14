@@ -1156,9 +1156,11 @@ describe("TransactionStepFlow 自动特殊收入 #1102", () => {
       }),
     ).toBeInTheDocument();
     expect(receiptLine("编辑明细 1")).toHaveAttribute("data-invalid", "true");
+    const before = [...new FormData(form).entries()];
     click("选择原支出");
     await chooseOriginal(kind);
-    assertUnlinked(kind);
+    // MUI 抽屉打开期间小票被 aria-hidden，直接检查隐藏字段而不查询背景按钮。
+    expect([...new FormData(form).entries()]).toEqual(before);
     click("确定");
     await waitFor(() =>
       expect(screen.queryByRole("button", { name: "取消" })).toBeNull(),
