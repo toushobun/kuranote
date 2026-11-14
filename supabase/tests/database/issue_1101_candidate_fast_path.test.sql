@@ -1,7 +1,7 @@
 -- #1101：候选快速抵消计算须与原视图在候选范围、顺序、结清数上保持一致。
 begin;
 set local search_path = public, extensions;
-select plan(7);
+select plan(12);
 
 set local role authenticated;
 select set_config(
@@ -128,6 +128,68 @@ select is(
        and tr.status = 'active'
        and tr.type in ('normal','transfer','balance_adjustment')),
     'records 模式继续正常返回总数'
+);
+
+-- 使用 seed 已存在的「部分退款」和「退款 + 报销倒赚」验证净额搜索，
+-- 避免只有无关联明细时通过，实际开启优化后金额搜索却发生偏差。
+select is(
+    (select business_net_amount
+     from public.transaction_item_with_refund
+     where id = '00000000-0000-4000-8000-000000009242'),
+    4300::numeric,
+    '部分退款的原支出净额是 6800 - 2500 = 4300'
+);
+
+select ok(
+    exists (
+        select 1
+        from jsonb_array_elements(public.load_filtered_transaction_page(
+            p_ledger_id => '00000000-0000-4000-8000-000000000032',
+            p_scope => 'candidates',
+            p_query => '4300',
+            p_merchant_priority_id => '00000000-0000-4000-8000-000000001008'
+        )->'entries') entry
+        where entry.value->>'itemId' = '00000000-0000-4000-8000-000000009242'
+    ),
+    '候选金额搜索能命中部分退款后的业务净额'
+);
+
+select is(
+    (select business_net_amount
+     from public.transaction_item_with_refund
+     where id = '00000000-0000-4000-8000-000000009283'),
+    0::numeric,
+    '退款和报销合计倒赚时原支出净额按零截断'
+);
+
+select ok(
+    exists (
+        select 1
+        from jsonb_array_elements(public.load_filtered_transaction_page(
+            p_ledger_id => '00000000-0000-4000-8000-000000000032',
+            p_scope => 'candidates',
+            p_query => '2000',
+            p_settled => true,
+            p_merchant_priority_id => '00000000-0000-4000-8000-000000001005'
+        )->'entries') entry
+        where entry.value->>'itemId' = '00000000-0000-4000-8000-000000009283'
+    ),
+    '已倒赚的原支出仍能按原始明细金额搜索'
+);
+
+select ok(
+    not exists (
+        select 1
+        from jsonb_array_elements(public.load_filtered_transaction_page(
+            p_ledger_id => '00000000-0000-4000-8000-000000000032',
+            p_scope => 'candidates',
+            p_query => '2230',
+            p_settled => true,
+            p_merchant_priority_id => '00000000-0000-4000-8000-000000001005'
+        )->'entries') entry
+        where entry.value->>'itemId' = '00000000-0000-4000-8000-000000009283'
+    ),
+    '收入侧超过原支出的部分不得误算成原支出可搜索净额'
 );
 
 select set_config(
