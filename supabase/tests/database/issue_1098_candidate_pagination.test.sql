@@ -1,7 +1,7 @@
 -- #1098：同商家优先、明细级分页、跨页无重复、全量结清数、报销范围。
 begin;
 set local search_path = public, extensions;
-select plan(15);
+select plan(16);
 
 update public.ledger
 set transaction_item_special_status_enabled = true
@@ -44,7 +44,7 @@ from (
     from generate_series(1, 26) seq
 ) item;
 
--- 两条 40 元明细组成 80 元整笔，防止 numeric(18,3) 尾零影响搜索。
+-- 两条 4376571 元明细组成独特金额 8753142，避免与种子数据的金额子串冲突。
 insert into public.transaction_record (
     id, ledger_id, type, status, transaction_at, merchant_id,
     title, note, created_by, updated_by
@@ -66,7 +66,7 @@ from (
         '10980000-0000-4000-8000-000000000027'::uuid as transaction_record_id,
         '00000000-0000-4000-8000-000000000043'::uuid as account_id,
         '00000000-0000-4000-8000-000000005021'::uuid as category_id,
-        40::numeric as amount,
+        4376571::numeric as amount,
         seq as sort_order,
         '00000000-0000-4000-8000-000000000031'::uuid as created_by,
         '00000000-0000-4000-8000-000000000031'::uuid as updated_by
@@ -193,33 +193,45 @@ select is(
     (
       select jsonb_array_length(public.load_filtered_transaction_page(
         p_ledger_id => '00000000-0000-4000-8000-000000000032',
-        p_scope => 'candidates', p_query => '80.0',
+        p_scope => 'candidates', p_query => '8753142.0',
         p_currency => 'JPY'
       )->'entries')
     ),
     0,
-    '小数搜索不误命中整笔为 80 的多明细记录'
+    '小数搜索不误命中整笔为 8753142 的多明细记录'
 );
 select is(
     (
       select jsonb_array_length(public.load_filtered_transaction_page(
         p_ledger_id => '00000000-0000-4000-8000-000000000032',
-        p_scope => 'candidates', p_query => '80',
+        p_scope => 'candidates', p_query => '8753142',
         p_currency => 'JPY'
       )->'entries')
     ),
     2,
-    '搜索整笔 80 返回对应两条支出明细'
+    '搜索整笔 8753142 返回对应两条支出明细'
 );
 select is(
     (
       select (public.load_filtered_transaction_page(
         p_ledger_id => '00000000-0000-4000-8000-000000000032',
-        p_scope => 'records', p_query => '80'
+        p_scope => 'records', p_query => '8753142'
       )->>'totalCount')::integer
     ),
     1,
-    '记录搜索可读取整笔金额命中总数'
+    '记录搜索可读取独特整笔金额命中总数'
+);
+
+select is(
+    (
+      select jsonb_array_length(public.load_filtered_transaction_page(
+        p_ledger_id => '00000000-0000-4000-8000-000000000032',
+        p_scope => 'candidates', p_query => '4376571.0',
+        p_currency => 'JPY'
+      )->'entries')
+    ),
+    0,
+    '单条明细数值去尾零后不会错误匹配带小数的搜索词'
 );
 
 select * from finish();

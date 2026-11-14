@@ -20,7 +20,7 @@ as $$
 with args as (
     select
         lower(left(trim(coalesce(p_query, '')), 80)) as term,
-        regexp_replace(coalesce(p_query, ''), '[[:space:],，¥￥円]', '', 'g') as amount_term
+        regexp_replace(left(trim(coalesce(p_query, '')), 80), '[[:space:],，¥￥円]', '', 'g') as amount_term
 ),
 candidate_base as (
     select
@@ -78,7 +78,7 @@ candidate_decorated as (
         ) as first_item_note,
         sum(business_net_amount) over (partition by record_id) as record_amount,
         bool_or(
-            strpos(item_amount::text, (select amount_term from args)) > 0
+            strpos(trim_scale(item_amount)::text, (select amount_term from args)) > 0
         ) over (partition by record_id) as any_item_amount_match
     from candidate_base
 ),
@@ -116,7 +116,7 @@ record_matched as (
     left join lateral (
         select
             (array_agg(ti.note order by ti.sort_order, ti.id))[1] as first_note,
-            (array_agg(ti.amount order by ti.sort_order, ti.id))[1] as first_amount,
+            (array_agg(ti.amount order by (case when ti.balance_delta < 0 then 0 else 1 end), ti.sort_order, ti.id))[1] as first_amount,
             (array_agg(ti.balance_delta order by ti.sort_order, ti.id))[1] as first_delta,
             coalesce(sum(
                 case
@@ -127,7 +127,7 @@ record_matched as (
             ), 0::numeric) as net_amount,
             coalesce(bool_or(
                 (select amount_term from args) ~ '[0-9]'
-                and strpos(ti.amount::text, (select amount_term from args)) > 0
+                and strpos(trim_scale(ti.amount)::text, (select amount_term from args)) > 0
             ), false) as has_item_amount
         from public.transaction_item_with_refund ti
         left join public.category c
@@ -144,14 +144,14 @@ record_matched as (
       and (
           args.term = ''
           or strpos(lower(coalesce(m.name, '')), args.term) > 0
-          or strpos(lower(coalesce(tr.note, amounts.first_note, '')), args.term) > 0
+          or strpos(lower(coalesce(case when tr.type = 'normal' then coalesce(tr.note, amounts.first_note) else tr.note end, '')), args.term) > 0
           or strpos(lower(coalesce(nullif(trim(setting.display_name), ''), au.display_name, '')), args.term) > 0
           or (
               args.amount_term ~ '[0-9]'
               and (
                   (tr.type = 'normal' and strpos(abs(trim_scale(amounts.net_amount))::text, args.amount_term) > 0)
-                  or (tr.type = 'transfer' and strpos(coalesce(amounts.first_amount::text, ''), args.amount_term) > 0)
-                  or (tr.type = 'balance_adjustment' and strpos(coalesce(amounts.first_delta::text, ''), args.amount_term) > 0)
+                  or (tr.type = 'transfer' and strpos(coalesce(trim_scale(amounts.first_amount)::text, ''), args.amount_term) > 0)
+                  or (tr.type = 'balance_adjustment' and strpos(coalesce(trim_scale(amounts.first_delta)::text, ''), args.amount_term) > 0)
                   or (tr.type = 'normal' and amounts.has_item_amount)
               )
           )
