@@ -2502,6 +2502,22 @@ $$;
 ALTER FUNCTION "public"."current_app_user_is_active"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."current_user_active_ledger_ids"() RETURNS SETOF "uuid"
+    LANGUAGE "sql" STABLE SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+    select lm.ledger_id
+    from public.ledger_member lm
+    join public.app_user au on au.id = lm.user_id
+    where lm.user_id = (select auth.uid())
+      and lm.status = 'active'
+      and au.status = 'active';
+$$;
+
+
+ALTER FUNCTION "public"."current_user_active_ledger_ids"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."current_user_can_manage_ledger"("p_ledger_id" "uuid") RETURNS boolean
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -10251,66 +10267,6 @@ ALTER TABLE "public"."transaction_item_reimbursement_link" OWNER TO "postgres";
 
 
 CREATE OR REPLACE VIEW "public"."transaction_item_with_refund" WITH ("security_invoker"='true') AS
- WITH "link_events" AS (
-         SELECT "link"."ledger_id",
-            "link"."refunded_item_id" AS "target_id",
-            "link"."refund_income_item_id" AS "income_id",
-            "link"."refund_amount" AS "amount",
-            "target_item"."amount" AS "target_amount",
-            "income_record"."transaction_at",
-            "income_record"."created_at" AS "record_created_at",
-            "income_item"."sort_order"
-           FROM (((("public"."transaction_item_refund_link" "link"
-             JOIN "public"."transaction_item" "target_item" ON ((("target_item"."id" = "link"."refunded_item_id") AND ("target_item"."ledger_id" = "link"."ledger_id"))))
-             JOIN "public"."transaction_record" "target_record" ON ((("target_record"."id" = "target_item"."transaction_record_id") AND ("target_record"."ledger_id" = "target_item"."ledger_id") AND ("target_record"."status" = 'active'::"text"))))
-             JOIN "public"."transaction_item" "income_item" ON ((("income_item"."id" = "link"."refund_income_item_id") AND ("income_item"."ledger_id" = "link"."ledger_id"))))
-             JOIN "public"."transaction_record" "income_record" ON ((("income_record"."id" = "income_item"."transaction_record_id") AND ("income_record"."ledger_id" = "income_item"."ledger_id") AND ("income_record"."status" = 'active'::"text"))))
-          WHERE ("link"."refund_amount" > (0)::numeric)
-        UNION ALL
-         SELECT "link"."ledger_id",
-            "link"."target_expense_item_id",
-            "link"."reimbursement_income_item_id",
-            "link"."reimbursement_amount",
-            "target_item"."amount",
-            "income_record"."transaction_at",
-            "income_record"."created_at",
-            "income_item"."sort_order"
-           FROM (((("public"."transaction_item_reimbursement_link" "link"
-             JOIN "public"."transaction_item" "target_item" ON ((("target_item"."id" = "link"."target_expense_item_id") AND ("target_item"."ledger_id" = "link"."ledger_id"))))
-             JOIN "public"."transaction_record" "target_record" ON ((("target_record"."id" = "target_item"."transaction_record_id") AND ("target_record"."ledger_id" = "target_item"."ledger_id") AND ("target_record"."status" = 'active'::"text"))))
-             JOIN "public"."transaction_item" "income_item" ON ((("income_item"."id" = "link"."reimbursement_income_item_id") AND ("income_item"."ledger_id" = "link"."ledger_id"))))
-             JOIN "public"."transaction_record" "income_record" ON ((("income_record"."id" = "income_item"."transaction_record_id") AND ("income_record"."ledger_id" = "income_item"."ledger_id") AND ("income_record"."status" = 'active'::"text"))))
-          WHERE ("link"."reimbursement_amount" > (0)::numeric)
-        ), "ordered_links" AS (
-         SELECT "events"."ledger_id",
-            "events"."target_id",
-            "events"."income_id",
-            "events"."amount",
-            "events"."target_amount",
-            "events"."transaction_at",
-            "events"."record_created_at",
-            "events"."sort_order",
-            COALESCE("sum"("events"."amount") OVER (PARTITION BY "events"."ledger_id", "events"."target_id" ORDER BY "events"."transaction_at", "events"."record_created_at", "events"."sort_order", "events"."income_id" ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), (0)::numeric) AS "prior_amount"
-           FROM "link_events" "events"
-        ), "allocated_links" AS (
-         SELECT "ordered"."ledger_id",
-            "ordered"."target_id",
-            "ordered"."income_id",
-            LEAST("ordered"."amount", GREATEST(("ordered"."target_amount" - "ordered"."prior_amount"), (0)::numeric)) AS "applied_amount"
-           FROM "ordered_links" "ordered"
-        ), "expense_offsets" AS (
-         SELECT "allocated_links"."ledger_id",
-            "allocated_links"."target_id",
-            "sum"("allocated_links"."applied_amount") AS "amount"
-           FROM "allocated_links"
-          GROUP BY "allocated_links"."ledger_id", "allocated_links"."target_id"
-        ), "income_offsets" AS (
-         SELECT "allocated_links"."ledger_id",
-            "allocated_links"."income_id",
-            "sum"("allocated_links"."applied_amount") AS "amount"
-           FROM "allocated_links"
-          GROUP BY "allocated_links"."ledger_id", "allocated_links"."income_id"
-        )
  SELECT "ti"."id",
     "ti"."ledger_id",
     "ti"."transaction_record_id",
@@ -10326,7 +10282,7 @@ CREATE OR REPLACE VIEW "public"."transaction_item_with_refund" WITH ("security_i
     "ti"."updated_by",
     "ti"."updated_at",
     "ti"."special_status",
-    COALESCE("expense_refunds"."refunded_amount", (0)::numeric) AS "refunded_amount",
+    COALESCE("offsets"."refunded_amount", (0)::numeric) AS "refunded_amount",
     (EXISTS ( SELECT 1
            FROM (("public"."transaction_item_refund_link" "link"
              JOIN "public"."transaction_item" "target_item" ON ((("target_item"."id" = "link"."refunded_item_id") AND ("target_item"."ledger_id" = "link"."ledger_id"))))
@@ -10343,21 +10299,62 @@ CREATE OR REPLACE VIEW "public"."transaction_item_with_refund" WITH ("security_i
     (EXISTS ( SELECT 1
            FROM "public"."transaction_item_reimbursement_link" "link"
           WHERE (("link"."ledger_id" = "ti"."ledger_id") AND (("link"."target_expense_item_id" = "ti"."id") OR ("link"."reimbursement_income_item_id" = "ti"."id"))))) AS "has_reimbursement_link",
-    GREATEST((("ti"."amount" - COALESCE("expense_offsets"."amount", (0)::numeric)) - COALESCE("income_offsets"."amount", (0)::numeric)), (0)::numeric) AS "business_net_amount",
-    COALESCE("expense_reimbursements"."reimbursed_amount", (0)::numeric) AS "reimbursement_amount"
-   FROM (((("public"."transaction_item" "ti"
-     LEFT JOIN LATERAL ( SELECT "sum"("link"."refund_amount") AS "refunded_amount"
-           FROM (("public"."transaction_item_refund_link" "link"
-             JOIN "public"."transaction_item" "income_item" ON ((("income_item"."id" = "link"."refund_income_item_id") AND ("income_item"."ledger_id" = "link"."ledger_id"))))
-             JOIN "public"."transaction_record" "income_record" ON ((("income_record"."id" = "income_item"."transaction_record_id") AND ("income_record"."ledger_id" = "income_item"."ledger_id") AND ("income_record"."status" = 'active'::"text"))))
-          WHERE (("link"."ledger_id" = "ti"."ledger_id") AND ("link"."refunded_item_id" = "ti"."id"))) "expense_refunds" ON (true))
-     LEFT JOIN LATERAL ( SELECT "sum"("link"."reimbursement_amount") AS "reimbursed_amount"
-           FROM (("public"."transaction_item_reimbursement_link" "link"
-             JOIN "public"."transaction_item" "income_item" ON ((("income_item"."id" = "link"."reimbursement_income_item_id") AND ("income_item"."ledger_id" = "link"."ledger_id"))))
-             JOIN "public"."transaction_record" "income_record" ON ((("income_record"."id" = "income_item"."transaction_record_id") AND ("income_record"."ledger_id" = "income_item"."ledger_id") AND ("income_record"."status" = 'active'::"text"))))
-          WHERE (("link"."ledger_id" = "ti"."ledger_id") AND ("link"."target_expense_item_id" = "ti"."id"))) "expense_reimbursements" ON (true))
-     LEFT JOIN "expense_offsets" ON ((("expense_offsets"."ledger_id" = "ti"."ledger_id") AND ("expense_offsets"."target_id" = "ti"."id"))))
-     LEFT JOIN "income_offsets" ON ((("income_offsets"."ledger_id" = "ti"."ledger_id") AND ("income_offsets"."income_id" = "ti"."id"))));
+    GREATEST(("ti"."amount" - COALESCE("offsets"."applied_amount", (0)::numeric)), (0)::numeric) AS "business_net_amount",
+    COALESCE("offsets"."reimbursed_amount", (0)::numeric) AS "reimbursement_amount"
+   FROM ("public"."transaction_item" "ti"
+     LEFT JOIN LATERAL ( WITH "targets" AS (
+                 SELECT "ti"."id"
+                UNION
+                 SELECT "link"."refunded_item_id"
+                   FROM "public"."transaction_item_refund_link" "link"
+                  WHERE (("link"."ledger_id" = "ti"."ledger_id") AND ("link"."refund_income_item_id" = "ti"."id") AND ("link"."refund_amount" > (0)::numeric))
+                UNION
+                 SELECT "link"."target_expense_item_id"
+                   FROM "public"."transaction_item_reimbursement_link" "link"
+                  WHERE (("link"."ledger_id" = "ti"."ledger_id") AND ("link"."reimbursement_income_item_id" = "ti"."id") AND ("link"."reimbursement_amount" > (0)::numeric))
+                ), "events" AS (
+                 SELECT "target"."id" AS "target_id",
+                    "target"."amount" AS "target_amount",
+                    ("target_record"."id" IS NOT NULL) AS "target_is_active",
+                    "links"."amount",
+                    "links"."is_refund",
+                    "income"."id" AS "income_id",
+                    "income_record"."transaction_at",
+                    "income_record"."created_at" AS "record_created_at",
+                    "income"."sort_order"
+                   FROM ((((("targets"
+                     CROSS JOIN LATERAL ( SELECT "link"."refund_income_item_id" AS "income_id",
+                            "link"."refund_amount" AS "amount",
+                            true AS "is_refund"
+                           FROM "public"."transaction_item_refund_link" "link"
+                          WHERE (("link"."ledger_id" = "ti"."ledger_id") AND ("link"."refunded_item_id" = "targets"."id"))
+                        UNION ALL
+                         SELECT "link"."reimbursement_income_item_id",
+                            "link"."reimbursement_amount",
+                            false
+                           FROM "public"."transaction_item_reimbursement_link" "link"
+                          WHERE (("link"."ledger_id" = "ti"."ledger_id") AND ("link"."target_expense_item_id" = "targets"."id"))) "links")
+                     JOIN "public"."transaction_item" "target" ON ((("target"."ledger_id" = "ti"."ledger_id") AND ("target"."id" = "targets"."id"))))
+                     LEFT JOIN "public"."transaction_record" "target_record" ON ((("target_record"."ledger_id" = "target"."ledger_id") AND ("target_record"."id" = "target"."transaction_record_id") AND ("target_record"."status" = 'active'::"text"))))
+                     JOIN "public"."transaction_item" "income" ON ((("income"."ledger_id" = "ti"."ledger_id") AND ("income"."id" = "links"."income_id"))))
+                     JOIN "public"."transaction_record" "income_record" ON ((("income_record"."ledger_id" = "income"."ledger_id") AND ("income_record"."id" = "income"."transaction_record_id") AND ("income_record"."status" = 'active'::"text"))))
+                ), "ordered" AS (
+                 SELECT "events"."target_id",
+                    "events"."target_amount",
+                    "events"."target_is_active",
+                    "events"."amount",
+                    "events"."is_refund",
+                    "events"."income_id",
+                    "events"."transaction_at",
+                    "events"."record_created_at",
+                    "events"."sort_order",
+                    COALESCE("sum"("events"."amount") OVER (PARTITION BY "events"."target_id" ORDER BY "events"."transaction_at", "events"."record_created_at", "events"."sort_order", "events"."income_id" ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), (0)::numeric) AS "prior_amount"
+                   FROM "events"
+                )
+         SELECT "sum"("ordered"."amount") FILTER (WHERE (("ordered"."target_id" = "ti"."id") AND "ordered"."is_refund")) AS "refunded_amount",
+            "sum"("ordered"."amount") FILTER (WHERE (("ordered"."target_id" = "ti"."id") AND (NOT "ordered"."is_refund"))) AS "reimbursed_amount",
+            "sum"(LEAST("ordered"."amount", GREATEST(("ordered"."target_amount" - "ordered"."prior_amount"), (0)::numeric))) FILTER (WHERE ("ordered"."target_is_active" AND (("ordered"."target_id" = "ti"."id") OR ("ordered"."income_id" = "ti"."id")))) AS "applied_amount"
+           FROM "ordered") "offsets" ON (true));
 
 
 ALTER VIEW "public"."transaction_item_with_refund" OWNER TO "postgres";
@@ -11697,18 +11694,18 @@ CREATE POLICY "transaction_item_insert_authorized" ON "public"."transaction_item
 ALTER TABLE "public"."transaction_item_refund_link" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "transaction_item_refund_link_select_active_member" ON "public"."transaction_item_refund_link" FOR SELECT TO "authenticated" USING ("public"."current_user_is_active_ledger_member"("ledger_id"));
+CREATE POLICY "transaction_item_refund_link_select_active_member" ON "public"."transaction_item_refund_link" FOR SELECT TO "authenticated" USING (("ledger_id" IN ( SELECT "public"."current_user_active_ledger_ids"() AS "current_user_active_ledger_ids")));
 
 
 
 ALTER TABLE "public"."transaction_item_reimbursement_link" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "transaction_item_reimbursement_link_select_active_member" ON "public"."transaction_item_reimbursement_link" FOR SELECT TO "authenticated" USING ("public"."current_user_is_active_ledger_member"("ledger_id"));
+CREATE POLICY "transaction_item_reimbursement_link_select_active_member" ON "public"."transaction_item_reimbursement_link" FOR SELECT TO "authenticated" USING (("ledger_id" IN ( SELECT "public"."current_user_active_ledger_ids"() AS "current_user_active_ledger_ids")));
 
 
 
-CREATE POLICY "transaction_item_select_active_record" ON "public"."transaction_item" FOR SELECT TO "authenticated" USING (("public"."current_user_is_active_ledger_member"("ledger_id") AND (EXISTS ( SELECT 1
+CREATE POLICY "transaction_item_select_active_record" ON "public"."transaction_item" FOR SELECT TO "authenticated" USING ((("ledger_id" IN ( SELECT "public"."current_user_active_ledger_ids"() AS "current_user_active_ledger_ids")) AND (EXISTS ( SELECT 1
    FROM "public"."transaction_record" "tr"
   WHERE (("tr"."id" = "transaction_item"."transaction_record_id") AND ("tr"."ledger_id" = "transaction_item"."ledger_id") AND ("tr"."status" = 'active'::"text"))))));
 
@@ -11740,7 +11737,7 @@ CREATE POLICY "transaction_record_insert_writer" ON "public"."transaction_record
 
 
 
-CREATE POLICY "transaction_record_select_active_member" ON "public"."transaction_record" FOR SELECT TO "authenticated" USING ((("status" = 'active'::"text") AND "public"."current_user_is_active_ledger_member"("ledger_id")));
+CREATE POLICY "transaction_record_select_active_member" ON "public"."transaction_record" FOR SELECT TO "authenticated" USING ((("status" = 'active'::"text") AND ("ledger_id" IN ( SELECT "public"."current_user_active_ledger_ids"() AS "current_user_active_ledger_ids"))));
 
 
 
@@ -11903,6 +11900,10 @@ GRANT ALL ON FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid
 REVOKE ALL ON FUNCTION "public"."current_app_user_is_active"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."current_app_user_is_active"() TO "authenticated";
 
+
+
+REVOKE ALL ON FUNCTION "public"."current_user_active_ledger_ids"() FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."current_user_active_ledger_ids"() TO "authenticated";
 
 
 REVOKE ALL ON FUNCTION "public"."current_user_can_manage_ledger"("p_ledger_id" "uuid") FROM PUBLIC;
