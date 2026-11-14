@@ -1,0 +1,105 @@
+name: Temporary #1101 RPC benchmark
+
+on:
+  push:
+    branches:
+      - perf/1101_link_candidate_speed
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v2
+        with:
+          version: 2.106.0
+          github-token: ${{ github.token }}
+      - name: Start local Supabase
+        run: supabase start
+      - name: Benchmark 2000 candidate records
+        shell: bash
+        run: |
+          cat > /tmp/bench1101.sql <<'SQL'
+          BEGIN;
+          SET LOCAL search_path = public, extensions;
+          -- 与数据库测试同一测试账本；通过已有 helper 避免绕过明细约束。
+          INSERT INTO public.transaction_record (
+              id, ledger_id, type, status, transaction_at, merchant_id,
+              title, note, created_by, updated_by
+          )
+          SELECT
+              ('11010000-0000-4000-8000-' || lpad(seq::text, 12, '0'))::uuid,
+              '00000000-0000-4000-8000-000000000032'::uuid,
+              'normal', 'active',
+              '2026-11-01 00:00:00+00'::timestamptz + seq * interval '1 minute',
+              '00000000-0000-4000-8000-000000001001'::uuid,
+              '1101 基准测试', '1101候选 ' || seq,
+              '00000000-0000-4000-8000-000000000031'::uuid,
+              '00000000-0000-4000-8000-000000000031'::uuid
+          FROM generate_series(1, 2000) seq;
+          
+          SELECT tests.insert_normal_transaction_items(jsonb_agg(item))
+          FROM (
+              SELECT
+                  ('11011000-0000-4000-8000-' || lpad(seq::text, 12, '0'))::uuid AS id,
+                  '00000000-0000-4000-8000-000000000032'::uuid AS ledger_id,
+                  ('11010000-0000-4000-8000-' || lpad(seq::text, 12, '0'))::uuid AS transaction_record_id,
+                  '00000000-0000-4000-8000-000000000043'::uuid AS account_id,
+                  '00000000-0000-4000-8000-000000005021'::uuid AS category_id,
+                  100::numeric AS amount,
+                  null::public.transaction_item_special_status AS special_status,
+                  0 AS sort_order,
+                  '00000000-0000-4000-8000-000000000031'::uuid AS created_by,
+                  '00000000-0000-4000-8000-000000000031'::uuid AS updated_by
+              FROM generate_series(1, 2000) seq
+          ) item;
+          
+          SET LOCAL ROLE authenticated;
+          SELECT set_config('request.jwt.claims',
+              '{"sub":"00000000-0000-4000-8000-000000000031","role":"authenticated"}',
+              true);
+          LOAD 'auto_explain';
+          SET LOCAL client_min_messages = log;
+          SET LOCAL auto_explain.log_min_duration = '0ms';
+          SET LOCAL auto_explain.log_analyze = on;
+          SET LOCAL auto_explain.log_buffers = on;
+          SET LOCAL auto_explain.log_nested_statements = on;
+          SET LOCAL auto_explain.log_format = text;
+          \timing on
+          \echo '===== BENCHMARK candidates baseline ====='
+          EXPLAIN (ANALYZE, BUFFERS)
+          SELECT public.load_filtered_transaction_page(
+            '00000000-0000-4000-8000-000000000032',
+            'candidates', '', '00000000-0000-4000-8000-000000001001', 'JPY',
+            NULL, false, 0, 20
+          );
+          \echo '===== BENCHMARK candidates no merchant ====='
+          EXPLAIN (ANALYZE, BUFFERS)
+          SELECT public.load_filtered_transaction_page(
+            '00000000-0000-4000-8000-000000000032',
+            'candidates', '', NULL, 'JPY',
+            NULL, false, 0, 20
+          );
+          \echo '===== BENCHMARK records #1099 ====='
+          EXPLAIN (ANALYZE, BUFFERS)
+          SELECT public.load_filtered_transaction_page(
+            '00000000-0000-4000-8000-000000000032',
+            'records', '1101候选', NULL, NULL,
+            NULL, false, 0, 20
+          );
+          ROLLBACK;
+          SQL
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f /tmp/bench1101.sql > /tmp/bench1101.log 2>&1 || { cat /tmp/bench1101.log; exit 1; }
+          grep -E 'BENCHMARK|Execution Time:|Time: |Buffers:|^ERROR' /tmp/bench1101.log | tail -n 100
+          echo '--- Full plan artifact ---'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: issue-1101-benchmark
+          path: /tmp/bench1101.log
+          if-no-files-found: ignore
+      - if: always()
+        run: supabase stop --no-backup
