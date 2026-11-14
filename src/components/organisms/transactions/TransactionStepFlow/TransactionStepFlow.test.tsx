@@ -1109,12 +1109,18 @@ describe("TransactionStepFlow 自动特殊收入 #1102", () => {
       action: vi.fn(async () => ({})),
     });
   }
+  function selectOriginalLabel(kind: (typeof kinds)[number], index = 1) {
+    return `第${index}条${kind === "refund" ? "退款" : "报销"}明细：选择原支出`;
+  }
+  function clickSelectOriginal(kind: (typeof kinds)[number]) {
+    click(selectOriginalLabel(kind));
+  }
   function assertUnlinked(kind: (typeof kinds)[number]) {
     const form = saveButton().closest("form")!;
     expect(new FormData(form).get("itemAmount")).toBe("");
     expect(new FormData(form).get("itemRefundedItemId")).toBe("");
     expect(new FormData(form).get("itemReimbursementItemId")).toBe("");
-    expect(screen.getByRole("button", { name: "选择原支出" })).toBeVisible();
+    expect(screen.getByRole("button", { name: selectOriginalLabel(kind) })).toBeVisible();
     expect(receiptLine("编辑明细 1")).toHaveTextContent(
       kind === "refund" ? "退款收入" : "报销收入",
     );
@@ -1134,7 +1140,7 @@ describe("TransactionStepFlow 自动特殊收入 #1102", () => {
     assertUnlinked(kind);
     expectAutomaticNotice();
     expect(screen.queryByLabelText("金额计算器")).toBeNull();
-    click("选择原支出");
+    clickSelectOriginal(kind);
     expect(
       screen.getByRole("button", {
         name: `明细类型${kind === "refund" ? "退款" : "报销"}`,
@@ -1157,7 +1163,7 @@ describe("TransactionStepFlow 自动特殊收入 #1102", () => {
     ).toBeInTheDocument();
     expect(receiptLine("编辑明细 1")).toHaveAttribute("data-invalid", "true");
     const before = [...new FormData(form).entries()];
-    click("选择原支出");
+    clickSelectOriginal(kind);
     await chooseOriginal(kind);
     // MUI 抽屉打开期间小票被 aria-hidden，直接检查隐藏字段而不查询背景按钮。
     expect([...new FormData(form).entries()]).toEqual(before);
@@ -1195,7 +1201,7 @@ describe("TransactionStepFlow 自动特殊收入 #1102", () => {
     await selectEntryMerchant("7-Eleven");
     const form = assertUnlinked("refund");
     const original = [...new FormData(form).entries()];
-    click("选择原支出");
+    clickSelectOriginal("refund");
     await chooseOriginal("refund");
     expect([...new FormData(form).entries()]).toEqual(original);
     if (route === "backdrop") {
@@ -1233,10 +1239,41 @@ describe("TransactionStepFlow 自动特殊收入 #1102", () => {
     expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
   });
 
+  it("自动带出退款与报销时，选择按钮名称区分明细类型和序号", async () => {
+    quickSetup({
+      itemsOptions: { ...receiptItemsOptions, categoryOptions: categories },
+      suggestions: {
+        ...quickSuggestions,
+        automaticCategoryIds: ["refund-system", "reimbursement-system"],
+        quickAmounts: [],
+      },
+    });
+    await selectEntryMerchant("7-Eleven");
+    for (const [index, kind] of kinds.entries()) {
+      const row = receiptLine(`编辑明细 ${index + 1}`);
+      expect(
+        within(row).getByRole("button", {
+          name: selectOriginalLabel(kind, index + 1),
+        }),
+      ).toBeVisible();
+      expect(row).toHaveTextContent(
+        kind === "refund" ? "退款收入" : "报销收入",
+      );
+    }
+    click("保存记账");
+    for (const kind of kinds) {
+      expect(
+        screen.getByRole("button", {
+          name: `请为${kind === "refund" ? "退款" : "报销"}明细选择原支出`,
+        }),
+      ).toBeInTheDocument();
+    }
+  });
+
   it("自动退款手动选择原支出后金额键盘不使用历史常用金额", async () => {
     automaticSpecialSetup("refund");
     await selectEntryMerchant("7-Eleven");
-    click("选择原支出");
+    clickSelectOriginal("refund");
     await chooseOriginal("refund");
     click("确定");
     await waitFor(() =>

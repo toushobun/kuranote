@@ -98,7 +98,7 @@ export function ReceiptItemsSection({
       <ReceiptAmountButton
         label={
           missingLinkKind
-            ? m.selectOriginalExpense
+            ? m.selectOriginalExpenseAria(missingLinkKind, index + 1)
             : m.editAmount(index + 1, amount)
         }
         amount={missingLinkKind ? m.selectOriginalExpense : amount}

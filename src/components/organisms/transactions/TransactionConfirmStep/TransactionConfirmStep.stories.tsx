@@ -118,7 +118,7 @@ export const AutomaticRefundPending: Story = {
     await enterReceipt(canvasElement);
     const body = within(canvasElement.ownerDocument.body);
     await expect(
-      await body.findByRole("button", { name: "选择原支出" }),
+      await body.findByRole("button", { name: "第1条退款明细：选择原支出" }),
     ).toBeVisible();
     await expect(body.getByText("还没选原支出")).toBeVisible();
   },
@@ -130,7 +130,7 @@ export const AutomaticRefundPendingAfterSave: Story = {
   play: async ({ canvasElement }) => {
     await enterReceipt(canvasElement);
     const body = within(canvasElement.ownerDocument.body);
-    await body.findByRole("button", { name: "选择原支出" });
+    await body.findByRole("button", { name: "第1条退款明细：选择原支出" });
     await userEvent.click(body.getByRole("button", { name: "保存记账" }));
     await expect(
       body.getByRole("button", { name: "请为退款明细选择原支出" }),
