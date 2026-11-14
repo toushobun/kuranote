@@ -77,24 +77,27 @@ export async function loadTransactionGroupLoaderContextForRecords(
   const normalRecordIds = records
     .filter((record) => record.type === "normal")
     .map((record) => record.id);
-  const itemsStartedAt = performance.now();
-  const itemsPromise = dependencies.transactionRepository
-    .listItems(currentLedger.id, recordIds)
-    .then((result) => {
-      onTiming?.("items", performance.now() - itemsStartedAt);
+  function measureRead<T>(step: "items" | "payments", read: () => Promise<T>) {
+    const startedAt = performance.now();
+    return read().then((result) => {
+      onTiming?.(step, performance.now() - startedAt);
       return result;
     });
-  const paymentsStartedAt = performance.now();
-  const paymentsPromise =
+  }
+
+  const [items, payments] = await Promise.all([
+    measureRead("items", () =>
+      dependencies.transactionRepository.listItems(currentLedger.id, recordIds),
+    ),
     normalRecordIds.length > 0
-      ? dependencies.transactionRepository
-          .listPayments(currentLedger.id, normalRecordIds)
-          .then((result) => {
-            onTiming?.("payments", performance.now() - paymentsStartedAt);
-            return result;
-          })
-      : Promise.resolve([]);
-  const [items, payments] = await Promise.all([itemsPromise, paymentsPromise]);
+      ? measureRead("payments", () =>
+          dependencies.transactionRepository.listPayments(
+            currentLedger.id,
+            normalRecordIds,
+          ),
+        )
+      : Promise.resolve([]),
+  ]);
   const itemsByRecordId = groupByKey(
     items,
     (item) => item.transaction_record_id,
