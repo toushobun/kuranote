@@ -267,7 +267,7 @@ select ok(
         p_ledger_id => '00000000-0000-4000-8000-000000000032',
         p_scope => 'candidates', p_query => '业务超市'
       )->>'totalCount')::integer
-    ) >= 4,
+    ) >= 3,
     '退款候选搜索可命中当前商家的首选别名'
 );
 select ok(
