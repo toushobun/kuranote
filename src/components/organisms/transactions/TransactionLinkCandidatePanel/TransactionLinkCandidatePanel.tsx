@@ -12,6 +12,7 @@ import { designTokens } from "theme/theme";
 import { isLinkCandidateSettled } from "internal/transaction";
 import { transactionLinkCandidateMessages as m } from "config/transactionStepFlowMessages";
 import { mergeUniqueById } from "utils/collections";
+import { LoadMoreOnVisible } from "molecules/ui/LoadMoreOnVisible/LoadMoreOnVisible";
 import { TransactionLinkCandidateCards } from "../TransactionLinkCandidateCards/TransactionLinkCandidateCards";
 import type { TransactionRefundCandidate } from "types/transactions";
 import {
@@ -45,7 +46,6 @@ export function TransactionLinkCandidatePanel(
     settledPage,
     settledExpanded,
     toggleSettled,
-    browseMerchantId,
     loading,
     loadingMore,
     settledLoading,
@@ -61,12 +61,6 @@ export function TransactionLinkCandidatePanel(
   // 通过已持有的候选在前端重分组，不为此额外发起首屏请求。
   function matchesCurrentScope(candidate: TransactionRefundCandidate) {
     if (accountCurrency && candidate.accountCurrency !== accountCurrency)
-      return false;
-    if (
-      kind === "refund" &&
-      browseMerchantId &&
-      candidate.merchantId !== browseMerchantId
-    )
       return false;
     const term = query.trim().toLocaleLowerCase();
     if (!term) return true;
@@ -85,13 +79,25 @@ export function TransactionLinkCandidatePanel(
     mergeUniqueById(page?.items ?? [], settledPage?.items ?? []),
     scopedAffected,
   ).filter((candidate) => candidate.id !== value?.id);
-  const activeCandidates = allCandidates.filter(
+  // 小票内实时调整的候选可能不在服务端本页，仍遵守同商家优先。
+  // 日期相同时沿用数据库分页及合并后的稳定原顺序。
+  const orderedCandidates =
+    kind === "refund" && props.merchantId
+      ? [...allCandidates].sort(
+          (a, b) =>
+            Number(b.merchantId === props.merchantId) -
+              Number(a.merchantId === props.merchantId) ||
+            new Date(b.transactionAt).getTime() -
+              new Date(a.transactionAt).getTime(),
+        )
+      : allCandidates;
+  const activeCandidates = orderedCandidates.filter(
     (candidate) =>
       !isLinkCandidateSettled(
         props.resolveLinkCandidate?.(candidate) ?? candidate,
       ),
   );
-  const settledCandidates = allCandidates.filter((candidate) =>
+  const settledCandidates = orderedCandidates.filter((candidate) =>
     isLinkCandidateSettled(
       props.resolveLinkCandidate?.(candidate) ?? candidate,
     ),
@@ -118,7 +124,6 @@ export function TransactionLinkCandidatePanel(
     : activeCandidates;
   const showMerchantName =
     kind === "reimbursement" ||
-    !browseMerchantId ||
     Boolean(query.trim()) ||
     [...visibleCandidates, ...settledCandidates].some(
       (candidate) =>
@@ -157,11 +162,7 @@ export function TransactionLinkCandidatePanel(
         sx={{ justifyContent: "space-between", color: "text.secondary" }}
       >
         <Typography variant="caption">
-          {kind === "reimbursement"
-            ? m.pending
-            : browseMerchantId && !query.trim()
-              ? m.merchantExpenses(merchantName ?? "")
-              : m.allExpenses}
+          {kind === "reimbursement" ? m.pending : m.allExpenses}
         </Typography>
         <Typography variant="caption">{accountCurrency}</Typography>
       </Stack>
@@ -176,11 +177,11 @@ export function TransactionLinkCandidatePanel(
           {query.trim() ? m.noSearchResults : m.noCandidates}
         </Typography>
       ) : null}
-      {page?.nextOffset != null ? (
-        <Button disabled={loadingMore} onClick={() => void loadMore()}>
-          {loadingMore ? m.loading : m.loadMore}
-        </Button>
-      ) : null}
+      <LoadMoreOnVisible
+        enabled={page?.nextOffset != null && !error}
+        isLoading={loadingMore}
+        onVisible={() => void loadMore()}
+      />
       {error ? <Button onClick={retry}>{m.retry}</Button> : null}
       {page && settledCount > 0 ? (
         <Stack spacing={1}>
@@ -227,14 +228,11 @@ export function TransactionLinkCandidatePanel(
                 {...cardProps}
               />
               {settledLoading ? <CircularProgress size={24} /> : null}
-              {settledPage?.nextOffset != null ? (
-                <Button
-                  disabled={settledLoading}
-                  onClick={() => void loadMoreSettled()}
-                >
-                  {settledLoading ? m.loading : m.loadMore}
-                </Button>
-              ) : null}
+              <LoadMoreOnVisible
+                enabled={settledPage?.nextOffset != null && !settledError}
+                isLoading={settledLoading}
+                onVisible={() => void loadMoreSettled()}
+              />
               {settledError ? (
                 <Button onClick={() => void retrySettled()}>{m.retry}</Button>
               ) : null}

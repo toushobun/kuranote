@@ -1,4 +1,5 @@
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -6,15 +7,25 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { useState, type ComponentProps } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TransactionLinkCandidatePanel } from "./TransactionLinkCandidatePanel";
 import {
   candidateItems,
   candidatePage,
-  emptyCandidatePage,
+  merchantPriorityItems,
   loadCandidatePage,
   offPageCandidate,
 } from "./transactionLinkCandidateFixtures";
+
+const visibleCallbacks: Array<
+  (entries: { isIntersecting: boolean }[]) => void
+> = [];
+
+function observeNextPage() {
+  const callback = visibleCallbacks.at(-1);
+  expect(callback).toBeDefined();
+  act(() => callback?.([{ isIntersecting: true }]));
+}
 
 function renderPanel(
   props: Partial<ComponentProps<typeof TransactionLinkCandidatePanel>> = {},
@@ -45,7 +56,25 @@ function toggleSettled(count: number) {
 }
 
 describe("TransactionLinkCandidatePanel", () => {
-  afterEach(cleanup);
+  beforeEach(() => {
+    visibleCallbacks.length = 0;
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor(
+          callback: (entries: { isIntersecting: boolean }[]) => void,
+        ) {
+          visibleCallbacks.push(callback);
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
+  });
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
   it("打开只有一次分页请求，显示商家候选和部分已退", async () => {
     const loadPage = vi.fn().mockResolvedValue(candidatePage);
     renderPanel({ loadPageAction: loadPage });
@@ -56,7 +85,7 @@ describe("TransactionLinkCandidatePanel", () => {
       merchantId: "amazon",
       currency: "JPY",
     });
-    expect(screen.getByText("Amazon 的支出")).toBeVisible();
+    expect(screen.getByText("全部支出")).toBeVisible();
     expect(screen.getByText("11/08 · 乐天信用卡")).toBeVisible();
     expect(screen.getByText("已退 ¥500")).toBeVisible();
     fireEvent.click(
@@ -95,21 +124,75 @@ describe("TransactionLinkCandidatePanel", () => {
       expect.objectContaining({ accountCurrency: "USD" }),
     );
   });
-  it("商家没有候选最多请求两次，回退全部并改标题", async () => {
-    const loadPage = vi
-      .fn()
-      .mockResolvedValueOnce(emptyCandidatePage)
-      .mockResolvedValueOnce(candidatePage);
-    renderPanel({ loadPageAction: loadPage });
+  it("当前商家没有记录时仍一次读取全部商家候选", async () => {
+    const other = {
+      ...candidateItems[0],
+      merchantId: "lawson",
+      merchantName: "罗森",
+    };
+    const loadPage = vi.fn().mockResolvedValue({
+      items: [other],
+      nextOffset: null,
+      settledCount: 0,
+    });
+    renderPanel({
+      merchantId: "no-records",
+      merchantName: "新商家",
+      loadPageAction: loadPage,
+    });
     await screen.findByText("USB-C 充电器");
-    expect(screen.getByText("全部支出")).toBeVisible();
-    expect(screen.getByText("Amazon · 11/08 · 乐天信用卡")).toBeVisible();
-    expect(loadPage).toHaveBeenCalledTimes(2);
-    expect(loadPage).toHaveBeenLastCalledWith({
+    expect(screen.getByText("罗森 · 11/08 · 乐天信用卡")).toBeVisible();
+    expect(loadPage).toHaveBeenCalledExactlyOnceWith({
       offset: 0,
       query: "",
+      merchantId: "no-records",
       currency: "JPY",
     });
+    expect(
+      screen.queryByRole("button", { name: "加载更多" }),
+    ).not.toBeInTheDocument();
+  });
+  it("已选商家候选在前但仍显示其他商家", async () => {
+    const loadPage = vi.fn().mockResolvedValue({
+      items: [merchantPriorityItems[1], merchantPriorityItems[0]],
+      nextOffset: null,
+      settledCount: 0,
+    });
+    renderPanel({ loadPageAction: loadPage });
+    const cards = await screen.findAllByRole("button", {
+      name: /选择退款明细/,
+    });
+    expect(cards[0]).toHaveAccessibleName("选择退款明细 咖啡豆 2 袋");
+    expect(cards[1]).toHaveAccessibleName("选择退款明细 USB-C 充电器");
+  });
+  it("小票实时关联的页外同商家候选仍排在其他商家前面", async () => {
+    const currentMerchant = {
+      ...candidateItems[1],
+      id: "related-current-merchant",
+      merchantId: "amazon",
+      merchantName: "Amazon",
+      categoryName: "实时关联的旧支出",
+      transactionAt: "2026-10-20T10:00:00.000Z",
+    };
+    const other = {
+      ...candidateItems[0],
+      merchantId: "lawson",
+      merchantName: "罗森",
+    };
+    renderPanel({
+      linkAffectedCandidates: [currentMerchant],
+      loadPageAction: vi.fn().mockResolvedValue({
+        items: [other],
+        nextOffset: null,
+        settledCount: 0,
+      }),
+    });
+    await screen.findByText("USB-C 充电器");
+    const cards = screen.getAllByRole("button", {
+      name: /选择退款明细/,
+    });
+    expect(cards[0]).toHaveAccessibleName("选择退款明细 实时关联的旧支出");
+    expect(cards[1]).toHaveAccessibleName("选择退款明细 USB-C 充电器");
   });
   it("报销只有一次请求且不携带商家筛选", async () => {
     const loadPage = vi.fn().mockResolvedValue(candidatePage);
@@ -137,7 +220,8 @@ describe("TransactionLinkCandidatePanel", () => {
       name: "选择退款明细 往年差旅支出",
     });
     expect(old).toHaveAttribute("aria-pressed", "true");
-    fireEvent.click(await screen.findByRole("button", { name: "加载更多" }));
+    await screen.findByText("USB-C 充电器");
+    observeNextPage();
     await screen.findByText("咖啡豆 2 袋");
     expect(loadPage).toHaveBeenLastCalledWith({
       offset: 1,
@@ -165,7 +249,7 @@ describe("TransactionLinkCandidatePanel", () => {
       expect(loadPage).toHaveBeenLastCalledWith({
         offset: 0,
         query: "收纳",
-        merchantId: undefined,
+        merchantId: "amazon",
         currency: "JPY",
       }),
     );
@@ -180,7 +264,8 @@ describe("TransactionLinkCandidatePanel", () => {
       .mockRejectedValueOnce(new Error())
       .mockResolvedValue({ items: [candidateItems[1]], nextOffset: null });
     renderPanel({ loadPageAction: loadPage });
-    fireEvent.click(await screen.findByRole("button", { name: "加载更多" }));
+    await screen.findByText("USB-C 充电器");
+    observeNextPage();
     fireEvent.click(
       await screen.findByRole("button", { name: "加载失败，点击重试" }),
     );
@@ -189,6 +274,45 @@ describe("TransactionLinkCandidatePanel", () => {
     expect(loadPage).toHaveBeenNthCalledWith(
       3,
       expect.objectContaining({ offset: 1 }),
+    );
+  });
+
+  it("已结清列表展开后滚动触底自动读取下一页", async () => {
+    const loadPage = vi
+      .fn()
+      .mockResolvedValueOnce({
+        items: [candidateItems[0]],
+        nextOffset: null,
+        settledCount: 2,
+      })
+      .mockResolvedValueOnce({
+        items: [candidateItems[3]],
+        nextOffset: 1,
+        settledCount: 2,
+      })
+      .mockResolvedValueOnce({
+        items: [
+          {
+            ...candidateItems[3],
+            id: "second-settled",
+            categoryName: "已结清耳机",
+          },
+        ],
+        nextOffset: null,
+        settledCount: 2,
+      });
+    renderPanel({ loadPageAction: loadPage });
+    await screen.findByText("USB-C 充电器");
+    toggleSettled(2);
+    await screen.findByText("外套");
+    observeNextPage();
+    await screen.findByText("已结清耳机");
+    expect(loadPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        offset: 1,
+        settled: true,
+        merchantId: "amazon",
+      }),
     );
   });
 

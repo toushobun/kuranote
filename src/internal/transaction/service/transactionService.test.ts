@@ -47,6 +47,12 @@ function createRepository(
     listActiveMemberIds: vi.fn().mockResolvedValue([]),
     listItems: vi.fn().mockResolvedValue([]),
     listPayments: vi.fn().mockResolvedValue([]),
+    loadFilteredPage: vi.fn().mockResolvedValue({
+      entries: [],
+      nextOffset: null,
+      settledCount: 0,
+      totalCount: 0,
+    }),
     listRecords: vi.fn().mockResolvedValue([]),
     loadGroupSummaries: vi.fn().mockResolvedValue([]),
     updateNormal: vi.fn(),
@@ -747,22 +753,114 @@ describe("TransactionService", () => {
       reimbursement_amount: index === 20 ? "1200" : "0",
       special_status: index >= 20 ? "pending_reimbursement" : null,
     }));
+    const payments = records.map((record) => ({
+      id: `payment-${record.id}`,
+      transaction_record_id: record.id,
+      account_id:
+        record.id === "usd-record"
+          ? "usd-account"
+          : normalInput.payments[0].accountId,
+      amount: "1000",
+      balance_delta: "-1000",
+      sort_order: 0,
+    }));
     const repository = createRepository({
-      listRecords: vi.fn().mockResolvedValue(records),
-      listItems: vi.fn().mockResolvedValue(items),
-      listPayments: vi.fn().mockResolvedValue(
-        records.map((record) => ({
-          id: `payment-${record.id}`,
-          transaction_record_id: record.id,
-          account_id:
-            record.id === "usd-record"
-              ? "usd-account"
-              : normalInput.payments[0].accountId,
-          amount: "1000",
-          balance_delta: "-1000",
-          sort_order: 0,
-        })),
-      ),
+      loadFilteredPage: vi
+        .fn()
+        .mockImplementation(
+          async (input: {
+            merchantPriorityId?: string;
+            currency?: string;
+            offset: number;
+            query: string;
+            settled?: boolean;
+            specialStatuses?: string[];
+          }) => {
+            const matched = items.filter((item) => {
+              const record = records.find(
+                (record) => record.id === item.transaction_record_id,
+              );
+              if (!record) return false;
+              if (
+                input.currency &&
+                (record.id === "usd-record" ? "USD" : "JPY") !== input.currency
+              )
+                return false;
+              if (
+                input.specialStatuses?.length &&
+                !input.specialStatuses.some(
+                  (status) =>
+                    status === "pendingReimbursement" &&
+                    item.special_status === "pending_reimbursement",
+                )
+              )
+                return false;
+              if (input.query && !String(item.amount).includes(input.query))
+                return false;
+              return true;
+            });
+            const settled = matched.filter(
+              (item) =>
+                Number(item.amount) -
+                  Number(item.refunded_amount) -
+                  Number(item.reimbursement_amount) <=
+                0,
+            );
+            const selected = matched
+              .filter(
+                (item) => settled.includes(item) === Boolean(input.settled),
+              )
+              .sort((left, right) => {
+                const a = records.find(
+                  (record) => record.id === left.transaction_record_id,
+                )!;
+                const b = records.find(
+                  (record) => record.id === right.transaction_record_id,
+                )!;
+                const priority =
+                  Number(b.merchant_id === input.merchantPriorityId) -
+                  Number(a.merchant_id === input.merchantPriorityId);
+                return input.merchantPriorityId && priority
+                  ? priority
+                  : b.transaction_at.localeCompare(a.transaction_at) ||
+                      b.created_at.localeCompare(a.created_at) ||
+                      b.id.localeCompare(a.id) ||
+                      left.id.localeCompare(right.id);
+              });
+            const page = selected.slice(input.offset, input.offset + 20);
+            return {
+              entries: page.map((item) => ({
+                itemId: item.id,
+                recordId: item.transaction_record_id,
+              })),
+              nextOffset:
+                input.offset + 20 < selected.length ? input.offset + 20 : null,
+              settledCount: settled.length,
+              totalCount: selected.length,
+            };
+          },
+        ),
+      listRecords: vi
+        .fn()
+        .mockImplementation(async (input: { recordIds?: string[] }) =>
+          input.recordIds
+            ? records.filter((record) => input.recordIds?.includes(record.id))
+            : records,
+        ),
+      listItems: vi
+        .fn()
+        .mockImplementation(async (_ledgerId: string, recordIds: string[]) =>
+          items.filter((item) =>
+            recordIds.includes(item.transaction_record_id),
+          ),
+        ),
+      listPayments: vi
+        .fn()
+        .mockImplementation(async (_ledgerId: string, recordIds: string[]) =>
+          payments.filter((payment) =>
+            recordIds.includes(payment.transaction_record_id),
+          ),
+        ),
     });
     const context = createService("member", repository, "expense");
     context.accountQueryService.getTransactionContext.mockResolvedValue({
@@ -787,7 +885,7 @@ describe("TransactionService", () => {
     return { ...context, ledger };
   }
 
-  it("候选按明细分页并按日期倒序，服务端过滤币种和商家", async () => {
+  it("候选按明细分页并按日期倒序，服务端按币种过滤、商家优先排序", async () => {
     const { service, ledger, repository } = candidateService();
     const first = await service.getLinkCandidatePage(ledger, "refund", {
       currency: "JPY",
@@ -807,7 +905,10 @@ describe("TransactionService", () => {
       currency: "JPY",
       merchantId: "00000000-0000-4000-8000-000000001002",
     });
-    expect(merchant.items.map((item) => item.id)).toEqual(["candidate-22"]);
+    expect(merchant.items[0].id).toBe("candidate-22");
+    expect(merchant.items).toHaveLength(20);
+    expect(merchant.nextOffset).toBe(20);
+    expect(merchant.settledCount).toBe(1);
     expect(merchant.items[0]?.merchantId).toBe(
       "00000000-0000-4000-8000-000000001002",
     );
@@ -861,7 +962,7 @@ describe("TransactionService", () => {
     expect(search.items).toEqual(page.items);
   });
 
-  it("退款候选独立计算已结清数量与分页，搜索和商家筛选均一致", async () => {
+  it("退款候选独立计算全部已结清数量且搜索时商家优先", async () => {
     const { service, ledger } = candidateService();
     const first = await service.getLinkCandidatePage(ledger, "refund", {
       currency: "JPY",
@@ -878,14 +979,50 @@ describe("TransactionService", () => {
       merchantId: "00000000-0000-4000-8000-000000001002",
       settled: true,
     });
-    expect(otherMerchant.items).toHaveLength(0);
-    expect(otherMerchant.settledCount).toBe(0);
+    expect(otherMerchant.items).toHaveLength(1);
+    expect(otherMerchant.items[0].id).toBe("candidate-20");
+    expect(otherMerchant.settledCount).toBe(1);
     const search = await service.getLinkCandidatePage(ledger, "refund", {
       query: "1000",
       settled: true,
       currency: "JPY",
     });
     expect(search.items).toEqual(settled.items);
+  });
+
+  it("同商家优先后翻页不重复，且只读取当前页记录详情", async () => {
+    const { service, ledger, repository } = candidateService();
+    const input = {
+      merchantId: "00000000-0000-4000-8000-000000001002",
+      currency: "JPY",
+    };
+    const first = await service.getLinkCandidatePage(ledger, "refund", input);
+    const next = await service.getLinkCandidatePage(ledger, "refund", {
+      ...input,
+      offset: first.nextOffset ?? 0,
+    });
+    const ids = [...first.items, ...next.items].map((item) => item.id);
+    expect(ids[0]).toBe("candidate-22");
+    expect(ids).toHaveLength(21);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(first.nextOffset).toBe(20);
+    expect(next.nextOffset).toBeNull();
+    expect(repository.listRecords).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        recordIds: expect.arrayContaining(["old-record", "new-record"]),
+      }),
+    );
+    expect(repository.listItems).toHaveBeenNthCalledWith(2, ledger.id, [
+      "new-record",
+    ]);
+    expect(repository.listRecords).toHaveBeenCalledTimes(2);
+    expect(first.settledCount).toBe(1);
+    const search = await service.getLinkCandidatePage(ledger, "refund", {
+      ...input,
+      query: "1000",
+    });
+    expect(search.items[0].id).toBe("candidate-22");
   });
 
   it("候选分页拒绝非法输入且非成员仍不能读取", async () => {

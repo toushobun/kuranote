@@ -2,13 +2,7 @@ import {
   transactionLinkCandidatePageInputSchema,
   type TransactionLinkCandidatePageInput,
 } from "internal/transaction/schema";
-import { paginateItems } from "utils/collections";
-import { transactionPageSize } from "internal/transaction/util/grouping/types";
-import {
-  isLinkCandidateSettled,
-  toTransactionLinkCandidates,
-} from "internal/transaction/util/transactionLinkCandidates";
-import { filterAndSortTransactionSearchItems } from "internal/transaction/util/transactionSearchHelpers";
+import { toTransactionLinkCandidates } from "internal/transaction/util/transactionLinkCandidates";
 import {
   createBalanceAdjustmentSchema,
   type CreateBalanceAdjustmentInput,
@@ -86,6 +80,7 @@ import {
   buildFilteredTransactionListItems,
   loadTransactionGroupLoaderContext,
 } from "internal/transaction/service/read/transactionContext";
+import { loadFilteredTransactionPage } from "internal/transaction/service/read/filteredTransactionPage";
 import {
   getTransactionReadDependencies,
   requireTransactionReadLedger,
@@ -577,7 +572,6 @@ export function createTransactionService({
       const input = parsed.data;
       const filters: TransactionFilters = {
         recordType: "refundableExpense",
-        merchantId: kind === "refund" ? input.merchantId : undefined,
         ...(kind === "reimbursement"
           ? {
               specialStatuses: [
@@ -588,31 +582,38 @@ export function createTransactionService({
             }
           : {}),
       };
-      const context = await loadTransactionGroupLoaderContext(
+      const page = await loadFilteredTransactionPage(
         getReadDependencies(),
         ledger,
+        {
+          scope: "candidates",
+          offset: input.offset ?? 0,
+          query: normalizeTransactionSearchQuery(input.query ?? ""),
+          merchantPriorityId: kind === "refund" ? input.merchantId : undefined,
+          currency: input.currency,
+          settled: input.settled,
+          specialStatuses:
+            kind === "reimbursement"
+              ? ["pendingReimbursement", "reimbursed", "reimbursementSurplus"]
+              : undefined,
+        },
+        filters,
       );
-      const items = buildFilteredTransactionListItems(context, filters);
-      const candidates = toTransactionLinkCandidates(
-        filterAndSortTransactionSearchItems(items, input.query),
-      ).filter(
-        (candidate) =>
-          !input.currency || candidate.accountCurrency === input.currency,
-      );
-      const settledCandidates = candidates.filter(isLinkCandidateSettled);
-      const page = paginateItems(
-        input.settled
-          ? settledCandidates
-          : candidates.filter(
-              (candidate) => !isLinkCandidateSettled(candidate),
-            ),
-        input.offset ?? 0,
-        transactionPageSize,
+      const candidatesById = new Map(
+        toTransactionLinkCandidates(page.items).map((candidate) => [
+          candidate.id,
+          candidate,
+        ]),
       );
       return {
-        items: page.items,
+        items: page.entries.flatMap((entry) => {
+          const candidate = entry.itemId
+            ? candidatesById.get(entry.itemId)
+            : undefined;
+          return candidate ? [candidate] : [];
+        }),
         nextOffset: page.nextOffset,
-        settledCount: settledCandidates.length,
+        settledCount: page.settledCount,
       };
     },
 

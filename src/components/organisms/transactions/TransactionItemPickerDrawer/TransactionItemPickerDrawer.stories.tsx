@@ -5,7 +5,7 @@ import {
   candidateItems,
   loadCandidatePage,
   loadReimbursementPage,
-  loadFallbackCandidatePage,
+  loadMerchantPriorityPage,
   selectedCandidate,
   offPageCandidate,
 } from "../TransactionLinkCandidatePanel/transactionLinkCandidateFixtures";
@@ -176,7 +176,7 @@ export const RefundFallback: Story = {
   name: "退款 · 回退全部",
   args: {
     pickerMode: "refund",
-    loadRefundPageAction: loadFallbackCandidatePage,
+    loadRefundPageAction: loadMerchantPriorityPage,
   },
 };
 export const Reimbursement: Story = {

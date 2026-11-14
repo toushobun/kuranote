@@ -6,7 +6,7 @@ import {
   loadCandidatePage,
   loadMixedMerchantPage,
   loadReimbursementPage,
-  loadFallbackCandidatePage,
+  loadMerchantPriorityPage,
   selectedCandidate,
   offPageCandidate,
 } from "./transactionLinkCandidateFixtures";
@@ -40,9 +40,9 @@ export const RefundWithoutAccount: Story = {
   name: "退款 · 未选收款账户",
   args: { accountCurrency: undefined },
 };
-export const RefundFallback: Story = {
-  name: "退款 · 无商家候选回退全部",
-  args: { loadPageAction: loadFallbackCandidatePage },
+export const RefundMerchantFirst: Story = {
+  name: "退款 · 同商家优先 · 包含其他商家",
+  args: { loadPageAction: loadMerchantPriorityPage },
 };
 export const Reimbursement: Story = {
   name: "报销 · 已选原支出",
