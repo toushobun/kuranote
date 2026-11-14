@@ -61,12 +61,24 @@ describe("LoadMoreOnVisible", () => {
     expect(onVisible).not.toHaveBeenCalled();
   });
 
-  it("正在读取时显示进度但只通过可见性回调请求下一页", () => {
+  it("正在读取时暂停观察；读取完成仍在视口内可继续加载下一页", () => {
     const onVisible = vi.fn();
-    render(<LoadMoreOnVisible enabled isLoading onVisible={onVisible} />);
-    expect(screen.getByRole("progressbar")).toBeVisible();
-    expect(onVisible).not.toHaveBeenCalled();
+    const { rerender } = render(
+      <LoadMoreOnVisible enabled isLoading={false} onVisible={onVisible} />,
+    );
+    expect(observers).toHaveLength(1);
     act(() => observers[0].callback([{ isIntersecting: true }]));
     expect(onVisible).toHaveBeenCalledOnce();
+
+    rerender(<LoadMoreOnVisible enabled isLoading onVisible={onVisible} />);
+    expect(screen.getByRole("progressbar")).toBeVisible();
+    expect(observers).toHaveLength(1);
+
+    rerender(
+      <LoadMoreOnVisible enabled isLoading={false} onVisible={onVisible} />,
+    );
+    expect(observers).toHaveLength(2);
+    act(() => observers[1].callback([{ isIntersecting: true }]));
+    expect(onVisible).toHaveBeenCalledTimes(2);
   });
 });

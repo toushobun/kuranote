@@ -24,7 +24,12 @@ export function LoadMoreOnVisible({
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
-    if (!enabled || !sentinel || typeof IntersectionObserver === "undefined")
+    if (
+      !enabled ||
+      isLoading ||
+      !sentinel ||
+      typeof IntersectionObserver === "undefined"
+    )
       return;
 
     // 底部抽屉的 paper 禁止滚动，实际滚动的是内层 body。
@@ -44,7 +49,7 @@ export function LoadMoreOnVisible({
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [enabled]);
+  }, [enabled, isLoading]);
 
   if (!enabled) return null;
 
