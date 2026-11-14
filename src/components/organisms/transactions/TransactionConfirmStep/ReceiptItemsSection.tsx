@@ -7,7 +7,10 @@ import { resolveTransactionBusinessStatus } from "internal/transaction";
 import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/TransactionBusinessBadge";
 import { flowMessages as m } from "config/transactionStepFlowMessages";
 import { transactionAccentColor } from "theme/transactionColors";
-import { sumAmountTexts } from "../TransactionForm/TransactionForm.utils";
+import {
+  getMissingIncomeLinkKind,
+  sumAmountTexts,
+} from "../TransactionForm/TransactionForm.utils";
 import { getLinkedIncomeDisplayAmounts } from "../transactionLinkedIncomeDisplay";
 import type { TransactionItemSummary } from "../TransactionForm/TransactionForm.types";
 import type { useTransactionForm } from "../TransactionForm/useTransactionForm";
@@ -76,6 +79,7 @@ export function ReceiptItemsSection({
     const amount = formatStepItemAmount(item, currency);
     const excessDecimals = exceedsCurrencyDecimalPlaces(item.amount, currency);
     const invalid = invalidItems.includes(item);
+    const missingLinkKind = getMissingIncomeLinkKind(item);
     const businessStatus =
       item.businessStatus ??
       resolveTransactionBusinessStatus({
@@ -92,11 +96,20 @@ export function ReceiptItemsSection({
       />
     ) : (
       <ReceiptAmountButton
-        label={m.editAmount(index + 1, amount)}
-        amount={amount}
-        pending={invalid && (!item.amount.trim() || excessDecimals)}
+        label={
+          missingLinkKind
+            ? m.selectOriginalExpense
+            : m.editAmount(index + 1, amount)
+        }
+        amount={missingLinkKind ? m.selectOriginalExpense : amount}
+        pending={
+          !missingLinkKind && invalid && (!item.amount.trim() || excessDecimals)
+        }
         income={item.category?.type === "income"}
-        onClick={() => onAmount(item.id)}
+        selectOriginalExpense={!!missingLinkKind}
+        onClick={() =>
+          missingLinkKind ? form.openItemSheet(item.id) : onAmount(item.id)
+        }
       />
     );
     return (
@@ -108,13 +121,36 @@ export function ReceiptItemsSection({
         error={invalid}
         errorLabel={invalid && !!item.amount.trim()}
         subline={
-          (businessStatus || isLinkedIncome || (invalid && excessDecimals)) && (
+          (businessStatus ||
+            missingLinkKind ||
+            isLinkedIncome ||
+            (invalid && excessDecimals)) && (
             <>
-              {businessStatus && (
+              {missingLinkKind ? (
+                <TransactionBusinessBadge
+                  currency={currency}
+                  status={{
+                    incomeLinkRole: missingLinkKind,
+                    offsetComposition: {
+                      refundAmount: "0",
+                      reimbursementAmount: "0",
+                    },
+                    settlementStatus: null,
+                  }}
+                />
+              ) : businessStatus ? (
                 <TransactionBusinessBadge
                   currency={currency}
                   status={{ ...businessStatus, surplusAmount: undefined }}
                 />
+              ) : null}
+              {missingLinkKind && (
+                <Typography
+                  variant="caption"
+                  sx={{ color: invalid ? "error.main" : "text.secondary" }}
+                >
+                  {m.originalExpenseNotSelected}
+                </Typography>
               )}
               {isLinkedIncome && Number(item.amount) > 0 && (
                 <Typography variant="caption" color="textSecondary">

@@ -12,6 +12,7 @@ import {
 
 import type {
   TransactionFormItem,
+  TransactionItemSummary,
   CategoryPickerGroup,
 } from "./TransactionForm.types";
 
@@ -120,6 +121,23 @@ export function getCurrencyMismatchedLinkKinds(
     kinds.push("reimbursement");
   }
   return kinds;
+}
+
+/** 未关联原支出的系统退款 / 报销明细不能当作普通收入。 */
+export function getMissingIncomeLinkKind(
+  item: Pick<
+    TransactionItemSummary,
+    "category" | "refundCandidate" | "reimbursementCandidate"
+  >,
+): "refund" | "reimbursement" | null {
+  if (item.category?.systemKey === "refund" && !item.refundCandidate)
+    return "refund";
+  if (
+    item.category?.systemKey === "reimbursement" &&
+    !item.reimbursementCandidate
+  )
+    return "reimbursement";
+  return null;
 }
 
 export function isValidTransactionFormItem(

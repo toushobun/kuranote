@@ -1,6 +1,7 @@
 "use client";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
 import IconButton from "@mui/material/IconButton";
@@ -126,12 +127,14 @@ export function ReceiptAmountButton({
   amount,
   pending = false,
   income = false,
+  selectOriginalExpense = false,
   onClick,
 }: {
   label: string;
   amount: string;
   pending?: boolean;
   income?: boolean;
+  selectOriginalExpense?: boolean;
   onClick: () => void;
 }) {
   return (
@@ -141,11 +144,16 @@ export function ReceiptAmountButton({
       sx={[
         amountButtonSx,
         income && { color: incomeAmountColor },
+        selectOriginalExpense && { color: "primary.main" },
         pending && { color: "error.main" },
       ]}
     >
       {amount}
-      <EditOutlinedIcon aria-hidden sx={pencilSx} />
+      {selectOriginalExpense ? (
+        <ChevronRightRoundedIcon aria-hidden sx={{ fontSize: receiptIconSize }} />
+      ) : (
+        <EditOutlinedIcon aria-hidden sx={pencilSx} />
+      )}
     </ButtonBase>
   );
 }
