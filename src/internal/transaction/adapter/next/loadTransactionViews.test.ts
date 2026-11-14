@@ -139,6 +139,7 @@ describe("Transaction SSR adapter", () => {
       "[transaction] link candidate page timing",
       expect.objectContaining({
         kind: "reimbursement",
+        status: "success",
         itemCount: 1,
         readPermissionMs: 3,
         pageRpcMs: 39,
@@ -151,6 +152,40 @@ describe("Transaction SSR adapter", () => {
     const details = mocks.logInfo.mock.calls[0]?.[1];
     expect(JSON.stringify(details)).not.toContain("私人搜索词");
     expect(JSON.stringify(details)).not.toContain("not-uuid");
+  });
+
+  it("候选加载失败时保留部分计时并原样抛错", async () => {
+    const error = new Error("测试用数据库异常");
+    mocks.getLinkCandidatePage.mockImplementation(
+      async (
+        _ledger: unknown,
+        _kind: unknown,
+        _input: unknown,
+        onTiming: (stage: string, elapsedMs: number) => void,
+      ) => {
+        onTiming("readPermission", 4.2);
+        onTiming("pageRpc", 20.6);
+        throw error;
+      },
+    );
+
+    await expect(
+      loadRefundPickerPage({ query: "私人退款记录" }),
+    ).rejects.toBe(error);
+    expect(mocks.logInfo).toHaveBeenCalledWith(
+      "[transaction] link candidate page timing",
+      expect.objectContaining({
+        kind: "refund",
+        status: "error",
+        readPermissionMs: 4,
+        pageRpcMs: 21,
+        totalMs: expect.any(Number),
+      }),
+    );
+    const details = mocks.logInfo.mock.calls[0]?.[1];
+    expect(details).not.toHaveProperty("itemCount");
+    expect(JSON.stringify(details)).not.toContain("私人退款记录");
+    expect(JSON.stringify(details)).not.toContain("测试用数据库异常");
   });
 
   it("普通搜索仍直接调用 Service，新建页面不预读关联候选", async () => {
