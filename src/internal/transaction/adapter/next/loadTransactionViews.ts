@@ -134,7 +134,9 @@ async function loadLinkPickerPage(
     {
       ...input,
       merchantId:
-        kind === "refund" && input.merchantId && uuidPattern.test(input.merchantId)
+        kind === "refund" &&
+        input.merchantId &&
+        uuidPattern.test(input.merchantId)
           ? input.merchantId
           : undefined,
     },
