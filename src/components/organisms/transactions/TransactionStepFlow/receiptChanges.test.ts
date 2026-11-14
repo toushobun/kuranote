@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { hasReceiptChanges, type ReceiptSnapshot } from "./receiptChanges";
+import { selectedCandidate } from "../TransactionLinkCandidatePanel/transactionLinkCandidateFixtures";
 
 const item = { id: 1, categoryId: "lunch", amount: "" };
 const payment = { key: 1, accountId: "paypay", amount: "" };
@@ -46,17 +47,22 @@ describe("hasReceiptChanges", () => {
       items: [{ id: 1, categoryId: "refund-system", amount: "" }],
     };
     expect(
-      hasReceiptChanges(specialBaseline, { ...specialBaseline, items: [] }, [1], 1),
+      hasReceiptChanges(
+        specialBaseline,
+        { ...specialBaseline, items: [] },
+        [1],
+        1,
+      ),
     ).toBe(false);
     const linked = {
       ...specialBaseline.items[0]!,
       amount: "980",
-      refundCandidate: { id: "source" },
+      refundCandidate: selectedCandidate,
     };
     expect(
       hasReceiptChanges(
         specialBaseline,
-        { ...specialBaseline, items: [linked] } as ReceiptSnapshot,
+        { ...specialBaseline, items: [linked] },
         [1],
         1,
       ),

@@ -192,6 +192,9 @@ export function ReceiptItemsSection({
         {...(!readOnly && {
           editLabel: m.editItem(index + 1),
           onEdit: () => form.openItemSheet(item.id),
+          ...(missingLinkKind && {
+            onLabelClick: () => form.openItemSheet(item.id),
+          }),
           removeLabel: m.removeItem(index + 1),
           onRemove: () => form.removeItem(item.id),
         })}

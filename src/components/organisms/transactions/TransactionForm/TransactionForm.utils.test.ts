@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { TransactionCategoryOption } from "types/transactions";
+import { selectedCandidate } from "../TransactionLinkCandidatePanel/transactionLinkCandidateFixtures";
 
 import {
   buildCategoryPickerGroups,
@@ -226,7 +227,7 @@ describe("getMissingIncomeLinkKind", () => {
     (kind) => {
       const category = createCategory({ type: "income", systemKey: kind });
       expect(getMissingIncomeLinkKind({ category })).toBe(kind);
-      const candidate = { id: "source" };
+      const candidate = selectedCandidate;
       expect(
         getMissingIncomeLinkKind({
           category,
@@ -239,7 +240,9 @@ describe("getMissingIncomeLinkKind", () => {
   );
 
   it("普通收入与未指定分类不要求原支出", () => {
-    expect(getMissingIncomeLinkKind({ category: createCategory({ type: "income" }) })).toBeNull();
+    expect(
+      getMissingIncomeLinkKind({ category: createCategory({ type: "income" }) }),
+    ).toBeNull();
     expect(getMissingIncomeLinkKind({})).toBeNull();
   });
 });

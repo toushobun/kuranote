@@ -28,6 +28,7 @@ export function ReceiptLine({
   errorLabel = error,
   editLabel,
   onEdit,
+  onLabelClick,
   removeLabel,
   onRemove,
 }: {
@@ -49,6 +50,7 @@ export function ReceiptLine({
   /** 不传时（只读）不显示铅笔与 × 的位置。 */
   editLabel?: string;
   onEdit?: () => void;
+  onLabelClick?: () => void;
   removeLabel?: string;
   onRemove?: () => void;
 }) {
@@ -81,7 +83,13 @@ export function ReceiptLine({
         )}
         <Box sx={labelColumnSx}>
           <Box sx={labelBoxSx}>
-            {primaryLabel}
+            {onLabelClick ? (
+              <ButtonBase onClick={onLabelClick} sx={labelClickSx}>
+                {primaryLabel}
+              </ButtonBase>
+            ) : (
+              primaryLabel
+            )}
             {tags}
             {editButton}
           </Box>
@@ -205,6 +213,12 @@ const labelColumnSx = {
   gap: 0.25,
   flex: 1,
   minWidth: 0,
+};
+const labelClickSx = {
+  minWidth: 0,
+  textAlign: "left",
+  borderRadius: `${designTokens.radius.sm}px`,
+  "&.Mui-focusVisible": { outline: "2px solid", outlineColor: "primary.main" },
 };
 const labelBoxSx = {
   display: "flex",
