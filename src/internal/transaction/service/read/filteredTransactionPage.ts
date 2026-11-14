@@ -15,7 +15,8 @@ import type { TransactionFilters } from "internal/transaction/entity/transaction
 export type FilteredPageTimingStage =
   | "pageRpc"
   | "records"
-  | "itemsPayments"
+  | "items"
+  | "payments"
   | "contextLookups"
   | "buildListItems";
 
