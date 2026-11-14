@@ -17,6 +17,10 @@ export type FilteredPageTimingStage =
   | "records"
   | "items"
   | "payments"
+  | "accounts"
+  | "categories"
+  | "merchants"
+  | "recorders"
   | "contextLookups"
   | "buildListItems";
 
