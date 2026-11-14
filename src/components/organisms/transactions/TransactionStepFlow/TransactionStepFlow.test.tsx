@@ -1213,8 +1213,8 @@ describe("TransactionStepFlow 自动特殊收入 #1102", () => {
     expect([...new FormData(form).entries()]).toEqual(original);
     assertUnlinked("refund");
     click("关闭记账");
+    await waitFor(() => expect(props.onClose).toHaveBeenCalledOnce());
     expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
-    expect(props.onClose).toHaveBeenCalledOnce();
   });
 
   it("点分类名进入退款页，删除自动明细后关闭不提醒", async () => {
@@ -1226,11 +1226,11 @@ describe("TransactionStepFlow 自动特殊收入 #1102", () => {
       screen.getByRole("button", { name: "明细类型退款" }),
     ).toHaveAttribute("aria-pressed", "true");
     click("取消");
-    click("删除明细 1");
+    fireEvent.click(await screen.findByRole("button", { name: "删除明细 1" }));
     expect(screen.queryByText("还没选原支出")).toBeNull();
     click("关闭记账");
+    await waitFor(() => expect(props.onClose).toHaveBeenCalledOnce());
     expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
-    expect(props.onClose).toHaveBeenCalledOnce();
   });
 
   it("自动退款手动选择原支出后金额键盘不使用历史常用金额", async () => {
