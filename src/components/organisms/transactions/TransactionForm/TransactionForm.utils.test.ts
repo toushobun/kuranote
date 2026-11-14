@@ -241,7 +241,9 @@ describe("getMissingIncomeLinkKind", () => {
 
   it("普通收入与未指定分类不要求原支出", () => {
     expect(
-      getMissingIncomeLinkKind({ category: createCategory({ type: "income" }) }),
+      getMissingIncomeLinkKind({
+        category: createCategory({ type: "income" }),
+      }),
     ).toBeNull();
     expect(getMissingIncomeLinkKind({})).toBeNull();
   });

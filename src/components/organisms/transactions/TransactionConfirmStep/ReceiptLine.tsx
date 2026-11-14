@@ -158,7 +158,10 @@ export function ReceiptAmountButton({
     >
       {amount}
       {selectOriginalExpense ? (
-        <ChevronRightRoundedIcon aria-hidden sx={{ fontSize: receiptIconSize }} />
+        <ChevronRightRoundedIcon
+          aria-hidden
+          sx={{ fontSize: receiptIconSize }}
+        />
       ) : (
         <EditOutlinedIcon aria-hidden sx={pencilSx} />
       )}

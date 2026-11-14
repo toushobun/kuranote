@@ -1128,7 +1128,7 @@ describe("TransactionStepFlow 自动特殊收入 #1102", () => {
     click(`选择${kind === "refund" ? "退款" : "报销"}明细 USB-C 充电器`);
   }
 
-  it.each(kinds)("自动带出 %s 只等待手动选原支出，普通自动明细不受影响", async (kind) => {
+  it.each(kinds)("自动带出 %s 显示待选择原支出", async (kind) => {
     automaticSpecialSetup(kind);
     await selectEntryMerchant("7-Eleven");
     assertUnlinked(kind);
@@ -1144,7 +1144,7 @@ describe("TransactionStepFlow 自动特殊收入 #1102", () => {
     expect(screen.getByRole("button", { name: "取消" })).toBeVisible();
   });
 
-  it.each(kinds)("%s 未选原支出保存被拦，确认关联后提示消失且金额默认剩余", async (kind) => {
+  it.each(kinds)("%s 保存拦截与关联确认", async (kind) => {
     const { props } = automaticSpecialSetup(kind);
     await selectEntryMerchant("7-Eleven");
     const form = assertUnlinked(kind);
@@ -1181,14 +1181,16 @@ describe("TransactionStepFlow 自动特殊收入 #1102", () => {
     expect(receiptLine("编辑明细 1")).toHaveTextContent("抵消原支出 ¥3,280");
     expectAutomaticNotice(false);
     click("关闭记账");
-    expect(await screen.findByRole("dialog", { name: "尚未保存" })).toBeVisible();
+    expect(
+      await screen.findByRole("dialog", { name: "尚未保存" }),
+    ).toBeVisible();
   });
 
   it.each([
     ["取消", "取消"],
     ["右上关闭", "关闭"],
     ["点抽屉外部", "backdrop"],
-  ] as const)("选择候选后%s仍不改小票，也不触发未保存提醒", async (_, route) => {
+  ] as const)("选候选后%s不改小票", async (_, route) => {
     const { props } = automaticSpecialSetup("refund");
     await selectEntryMerchant("7-Eleven");
     const form = assertUnlinked("refund");
@@ -1215,12 +1217,14 @@ describe("TransactionStepFlow 自动特殊收入 #1102", () => {
     expect(props.onClose).toHaveBeenCalledOnce();
   });
 
-  it("点自动退款的分类名称也直接进入退款页，删除未选择的明细后关闭不提醒", async () => {
+  it("点分类名进入退款页，删除自动明细后关闭不提醒", async () => {
     const { props } = automaticSpecialSetup("refund");
     await selectEntryMerchant("7-Eleven");
     const line = receiptLine("编辑明细 1");
     fireEvent.click(within(line).getByRole("button", { name: "退款" }));
-    expect(screen.getByRole("button", { name: "明细类型退款" })).toHaveAttribute(
+    expect(
+      screen.getByRole("button", { name: "明细类型退款" }),
+    ).toHaveAttribute(
       "aria-pressed",
       "true",
     );
