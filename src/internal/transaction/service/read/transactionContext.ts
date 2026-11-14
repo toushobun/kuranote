@@ -18,6 +18,7 @@ import { listRecordAccountMovements } from "internal/transaction/util/grouping/r
 import type { TransactionGroupLoaderContext } from "internal/transaction/util/grouping/types";
 import type { TransactionListGroupContext } from "internal/transaction/util/grouping/recordContribution";
 import { groupByKey } from "utils/collections";
+import { measureReadStage } from "internal/transaction/service/read/measureReadStage";
 
 type TransactionReadBaseDependencies = {
   accountQueryService: AccountQueryService;
@@ -84,34 +85,18 @@ export async function loadTransactionGroupLoaderContextForRecords(
   const normalRecordIds = records
     .filter((record) => record.type === "normal")
     .map((record) => record.id);
-  function measureRead<T>(
-    step:
-      | "items"
-      | "payments"
-      | "accounts"
-      | "categories"
-      | "merchants"
-      | "recorders",
-    read: () => Promise<T>,
-  ) {
-    if (!onTiming) return read();
-    const startedAt = performance.now();
-    return read().then((result) => {
-      onTiming(step, performance.now() - startedAt);
-      return result;
-    });
-  }
-
   const [items, payments] = await Promise.all([
-    measureRead("items", () =>
+    measureReadStage("items", () =>
       dependencies.transactionRepository.listItems(currentLedger.id, recordIds),
+      onTiming,
     ),
     normalRecordIds.length > 0
-      ? measureRead("payments", () =>
+      ? measureReadStage("payments", () =>
           dependencies.transactionRepository.listPayments(
             currentLedger.id,
             normalRecordIds,
           ),
+          onTiming,
         )
       : Promise.resolve([]),
   ]);
@@ -156,36 +141,52 @@ export async function loadTransactionGroupLoaderContextForRecords(
     ),
   ];
 
-  const lookupsStartedAt = performance.now();
-  const [accountContext, categories, merchants, recorders] = await Promise.all([
-    measureRead("accounts", () =>
-      dependencies.accountQueryService.getTransactionContext({
-        accountIds,
-        ledgerId: currentLedger.id,
-        userId: dependencies.currentUserId,
-      }),
-    ),
-    measureRead("categories", () =>
-      dependencies.categoryQueryService.findSummariesByIds({
-        categoryIds,
-        ledgerId: currentLedger.id,
-        userId: dependencies.currentUserId,
-      }),
-    ),
-    measureRead("merchants", () =>
-      dependencies.merchantQueryService.findSummariesByIds({
-        ledgerId: currentLedger.id,
-        merchantIds,
-      }),
-    ),
-    measureRead("recorders", () =>
-      dependencies.transactionRepository.findUserSummaries(
-        currentLedger.id,
-        recorderIds,
-      ),
-    ),
-  ]);
-  onTiming?.("contextLookups", performance.now() - lookupsStartedAt);
+  const [accountContext, categories, merchants, recorders] =
+    await measureReadStage(
+      "contextLookups",
+      () =>
+        Promise.all([
+          measureReadStage(
+            "accounts",
+            () =>
+              dependencies.accountQueryService.getTransactionContext({
+                accountIds,
+                ledgerId: currentLedger.id,
+                userId: dependencies.currentUserId,
+              }),
+            onTiming,
+          ),
+          measureReadStage(
+            "categories",
+            () =>
+              dependencies.categoryQueryService.findSummariesByIds({
+                categoryIds,
+                ledgerId: currentLedger.id,
+                userId: dependencies.currentUserId,
+              }),
+            onTiming,
+          ),
+          measureReadStage(
+            "merchants",
+            () =>
+              dependencies.merchantQueryService.findSummariesByIds({
+                ledgerId: currentLedger.id,
+                merchantIds,
+              }),
+            onTiming,
+          ),
+          measureReadStage(
+            "recorders",
+            () =>
+              dependencies.transactionRepository.findUserSummaries(
+                currentLedger.id,
+                recorderIds,
+              ),
+            onTiming,
+          ),
+        ]),
+      onTiming,
+    );
   return {
     accountColorById: accountContext.accountColorById,
     accounts: accountContext.accounts,
