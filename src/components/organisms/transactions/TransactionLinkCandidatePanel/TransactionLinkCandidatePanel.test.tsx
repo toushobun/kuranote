@@ -165,6 +165,34 @@ describe("TransactionLinkCandidatePanel", () => {
     expect(cards[0]).toHaveAccessibleName("选择退款明细 咖啡豆 2 袋");
     expect(cards[1]).toHaveAccessibleName("选择退款明细 USB-C 充电器");
   });
+  it("小票实时关联的页外同商家候选仍排在其他商家前面", async () => {
+    const currentMerchant = {
+      ...candidateItems[1],
+      id: "related-current-merchant",
+      merchantId: "amazon",
+      merchantName: "Amazon",
+      categoryName: "实时关联的旧支出",
+      transactionAt: "2026-10-20T10:00:00.000Z",
+    };
+    const other = {
+      ...candidateItems[0],
+      merchantId: "lawson",
+      merchantName: "罗森",
+    };
+    renderPanel({
+      linkAffectedCandidates: [currentMerchant],
+      loadPageAction: vi.fn().mockResolvedValue({
+        items: [other],
+        nextOffset: null,
+        settledCount: 0,
+      }),
+    });
+    const cards = await screen.findAllByRole("button", {
+      name: /选择退款明细/,
+    });
+    expect(cards[0]).toHaveAccessibleName("选择退款明细 实时关联的旧支出");
+    expect(cards[1]).toHaveAccessibleName("选择退款明细 USB-C 充电器");
+  });
   it("报销只有一次请求且不携带商家筛选", async () => {
     const loadPage = vi.fn().mockResolvedValue(candidatePage);
     renderPanel({ kind: "reimbursement", loadPageAction: loadPage });

@@ -79,13 +79,25 @@ export function TransactionLinkCandidatePanel(
     mergeUniqueById(page?.items ?? [], settledPage?.items ?? []),
     scopedAffected,
   ).filter((candidate) => candidate.id !== value?.id);
-  const activeCandidates = allCandidates.filter(
+  // 小票内实时调整的候选可能不在服务端本页，仍遵守同商家优先。
+  // 日期相同时沿用数据库分页及合并后的稳定原顺序。
+  const orderedCandidates =
+    kind === "refund" && props.merchantId
+      ? [...allCandidates].sort(
+          (a, b) =>
+            Number(b.merchantId === props.merchantId) -
+              Number(a.merchantId === props.merchantId) ||
+            new Date(b.transactionAt).getTime() -
+              new Date(a.transactionAt).getTime(),
+        )
+      : allCandidates;
+  const activeCandidates = orderedCandidates.filter(
     (candidate) =>
       !isLinkCandidateSettled(
         props.resolveLinkCandidate?.(candidate) ?? candidate,
       ),
   );
-  const settledCandidates = allCandidates.filter((candidate) =>
+  const settledCandidates = orderedCandidates.filter((candidate) =>
     isLinkCandidateSettled(
       props.resolveLinkCandidate?.(candidate) ?? candidate,
     ),
