@@ -57,6 +57,20 @@ jobs:
               FROM generate_series(1, 2000) seq
           ) item;
           
+          \pset tuples_only on
+          \pset format unaligned
+          \o /tmp/prepared1101.sql
+          SELECT 'PREPARE candidate_bench(uuid,text,text,uuid,text,text[],boolean,integer,integer) AS ' || replace(replace(replace(replace(replace(replace(replace(replace(replace(prosrc, 'p_ledger_id', '$1'), 'p_scope', '$2'), 'p_query', '$3'), 'p_merchant_priority_id', '$4'), 'p_currency', '$5'), 'p_special_statuses', '$6'), 'p_settled', '$7'), 'p_offset', '$8'), 'p_limit', '$9') || ';'
+          FROM pg_proc
+          WHERE oid = 'public.load_filtered_transaction_page(uuid,text,text,uuid,text,text[],boolean,integer,integer)'::regprocedure;
+          \o
+          \pset format aligned
+          \pset tuples_only off
+          \i /tmp/prepared1101.sql
+          SET LOCAL ROLE authenticated;
+          SELECT set_config('request.jwt.claims',
+              '{"sub":"00000000-0000-4000-8000-000000000031","role":"authenticated"}',
+              true);
           \timing on
           \echo '===== BENCHMARK candidates baseline ====='
           EXPLAIN (ANALYZE, BUFFERS)
