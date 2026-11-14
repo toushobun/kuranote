@@ -86,16 +86,23 @@ export async function loadTransactionGroupLoaderContextForRecords(
     .filter((record) => record.type === "normal")
     .map((record) => record.id);
   const [items, payments] = await Promise.all([
-    measureReadStage("items", () =>
-      dependencies.transactionRepository.listItems(currentLedger.id, recordIds),
+    measureReadStage(
+      "items",
+      () =>
+        dependencies.transactionRepository.listItems(
+          currentLedger.id,
+          recordIds,
+        ),
       onTiming,
     ),
     normalRecordIds.length > 0
-      ? measureReadStage("payments", () =>
-          dependencies.transactionRepository.listPayments(
-            currentLedger.id,
-            normalRecordIds,
-          ),
+      ? measureReadStage(
+          "payments",
+          () =>
+            dependencies.transactionRepository.listPayments(
+              currentLedger.id,
+              normalRecordIds,
+            ),
           onTiming,
         )
       : Promise.resolve([]),
