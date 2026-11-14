@@ -1156,6 +1156,10 @@ describe("TransactionStepFlow 自动特殊收入 #1102", () => {
     const { props } = automaticSpecialSetup(kind);
     await selectEntryMerchant("7-Eleven");
     const form = assertUnlinked(kind);
+    const pendingText = within(receiptLine("编辑明细 1")).getByText(
+      "还没选原支出",
+    );
+    const pendingColor = getComputedStyle(pendingText).color;
     click("保存记账");
     expect(props.action).not.toHaveBeenCalled();
     expect(
@@ -1164,6 +1168,7 @@ describe("TransactionStepFlow 自动特殊收入 #1102", () => {
       }),
     ).toBeInTheDocument();
     expect(receiptLine("编辑明细 1")).toHaveAttribute("data-invalid", "true");
+    expect(getComputedStyle(pendingText).color).not.toBe(pendingColor);
     const before = [...new FormData(form).entries()];
     clickSelectOriginal(kind);
     await chooseOriginal(kind);
@@ -1192,6 +1197,21 @@ describe("TransactionStepFlow 自动特殊收入 #1102", () => {
     expect(
       await screen.findByRole("dialog", { name: "尚未保存" }),
     ).toBeVisible();
+  });
+
+  it.each(kinds)("%s 保存报错后删除自动明细，错误与未保存提醒均消失", async (kind) => {
+    const { props } = automaticSpecialSetup(kind);
+    await selectEntryMerchant("7-Eleven");
+    assertUnlinked(kind);
+    click("保存记账");
+    const errorName = `请为${kind === "refund" ? "退款" : "报销"}明细选择原支出`;
+    expect(screen.getByRole("button", { name: errorName })).toBeVisible();
+    click("删除明细 1");
+    expect(screen.queryByRole("button", { name: errorName })).toBeNull();
+    expect(screen.queryByText("还没选原支出")).toBeNull();
+    click("关闭记账");
+    await waitFor(() => expect(props.onClose).toHaveBeenCalledOnce());
+    expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
   });
 
   it.each([
