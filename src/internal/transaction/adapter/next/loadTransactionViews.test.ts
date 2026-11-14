@@ -128,7 +128,10 @@ describe("Transaction SSR adapter", () => {
     );
 
     await expect(
-      loadReimbursementPickerPage({ query: "私人搜索词", merchantId: "not-uuid" }),
+      loadReimbursementPickerPage({
+        query: "私人搜索词",
+        merchantId: "not-uuid",
+      }),
     ).resolves.toEqual(page);
 
     expect(mocks.logInfo).toHaveBeenCalledWith(
