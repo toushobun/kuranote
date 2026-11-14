@@ -51,6 +51,7 @@ export async function loadTransactionGroupLoaderContextForRecords(
   dependencies: TransactionReadDependencies,
   currentLedger: CurrentLedger,
   records: TransactionRecordDbRow[],
+  onTiming?: (step: "itemsPayments" | "contextLookups", elapsedMs: number) => void,
 ): Promise<TransactionGroupLoaderContext> {
   const recordIds = records.map((record) => record.id);
 
@@ -73,6 +74,7 @@ export async function loadTransactionGroupLoaderContextForRecords(
   const normalRecordIds = records
     .filter((record) => record.type === "normal")
     .map((record) => record.id);
+  const itemsStartedAt = performance.now();
   const [items, payments] = await Promise.all([
     dependencies.transactionRepository.listItems(currentLedger.id, recordIds),
     normalRecordIds.length > 0
@@ -82,6 +84,7 @@ export async function loadTransactionGroupLoaderContextForRecords(
         )
       : Promise.resolve([]),
   ]);
+  onTiming?.("itemsPayments", performance.now() - itemsStartedAt);
   const itemsByRecordId = groupByKey(
     items,
     (item) => item.transaction_record_id,
@@ -123,6 +126,7 @@ export async function loadTransactionGroupLoaderContextForRecords(
     ),
   ];
 
+  const lookupsStartedAt = performance.now();
   const [accountContext, categories, merchants, recorders] = await Promise.all([
     dependencies.accountQueryService.getTransactionContext({
       accountIds,
@@ -143,6 +147,7 @@ export async function loadTransactionGroupLoaderContextForRecords(
       recorderIds,
     ),
   ]);
+  onTiming?.("contextLookups", performance.now() - lookupsStartedAt);
   return {
     accountColorById: accountContext.accountColorById,
     accounts: accountContext.accounts,
