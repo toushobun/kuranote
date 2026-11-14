@@ -51,7 +51,10 @@ export async function loadTransactionGroupLoaderContextForRecords(
   dependencies: TransactionReadDependencies,
   currentLedger: CurrentLedger,
   records: TransactionRecordDbRow[],
-  onTiming?: (step: "itemsPayments" | "contextLookups", elapsedMs: number) => void,
+  onTiming?: (
+    step: "itemsPayments" | "contextLookups",
+    elapsedMs: number,
+  ) => void,
 ): Promise<TransactionGroupLoaderContext> {
   const recordIds = records.map((record) => record.id);
 
