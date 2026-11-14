@@ -48,7 +48,7 @@ candidate_base as (
     from public.transaction_record tr
     join public.transaction_item ti
       on ti.transaction_record_id = tr.id and ti.ledger_id = tr.ledger_id
-    -- 候选只需原支出抵消额；正向抵消的总额与窗口顺序分摊后总额等价。
+    -- 候选净额最终按零截断，无需重算各笔关联的时间轴分摊和超额部分。
     left join lateral (
         select
             sum(link.refund_amount) as total_amount,
