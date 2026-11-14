@@ -52,7 +52,14 @@ export async function loadTransactionGroupLoaderContextForRecords(
   currentLedger: CurrentLedger,
   records: TransactionRecordDbRow[],
   onTiming?: (
-    step: "items" | "payments" | "contextLookups",
+    step:
+      | "items"
+      | "payments"
+      | "accounts"
+      | "categories"
+      | "merchants"
+      | "recorders"
+      | "contextLookups",
     elapsedMs: number,
   ) => void,
 ): Promise<TransactionGroupLoaderContext> {
@@ -77,10 +84,20 @@ export async function loadTransactionGroupLoaderContextForRecords(
   const normalRecordIds = records
     .filter((record) => record.type === "normal")
     .map((record) => record.id);
-  function measureRead<T>(step: "items" | "payments", read: () => Promise<T>) {
+  function measureRead<T>(
+    step:
+      | "items"
+      | "payments"
+      | "accounts"
+      | "categories"
+      | "merchants"
+      | "recorders",
+    read: () => Promise<T>,
+  ) {
+    if (!onTiming) return read();
     const startedAt = performance.now();
     return read().then((result) => {
-      onTiming?.(step, performance.now() - startedAt);
+      onTiming(step, performance.now() - startedAt);
       return result;
     });
   }
@@ -141,23 +158,31 @@ export async function loadTransactionGroupLoaderContextForRecords(
 
   const lookupsStartedAt = performance.now();
   const [accountContext, categories, merchants, recorders] = await Promise.all([
-    dependencies.accountQueryService.getTransactionContext({
-      accountIds,
-      ledgerId: currentLedger.id,
-      userId: dependencies.currentUserId,
-    }),
-    dependencies.categoryQueryService.findSummariesByIds({
-      categoryIds,
-      ledgerId: currentLedger.id,
-      userId: dependencies.currentUserId,
-    }),
-    dependencies.merchantQueryService.findSummariesByIds({
-      ledgerId: currentLedger.id,
-      merchantIds,
-    }),
-    dependencies.transactionRepository.findUserSummaries(
-      currentLedger.id,
-      recorderIds,
+    measureRead("accounts", () =>
+      dependencies.accountQueryService.getTransactionContext({
+        accountIds,
+        ledgerId: currentLedger.id,
+        userId: dependencies.currentUserId,
+      }),
+    ),
+    measureRead("categories", () =>
+      dependencies.categoryQueryService.findSummariesByIds({
+        categoryIds,
+        ledgerId: currentLedger.id,
+        userId: dependencies.currentUserId,
+      }),
+    ),
+    measureRead("merchants", () =>
+      dependencies.merchantQueryService.findSummariesByIds({
+        ledgerId: currentLedger.id,
+        merchantIds,
+      }),
+    ),
+    measureRead("recorders", () =>
+      dependencies.transactionRepository.findUserSummaries(
+        currentLedger.id,
+        recorderIds,
+      ),
     ),
   ]);
   onTiming?.("contextLookups", performance.now() - lookupsStartedAt);
