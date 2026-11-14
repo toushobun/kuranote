@@ -1224,10 +1224,7 @@ describe("TransactionStepFlow 自动特殊收入 #1102", () => {
     fireEvent.click(within(line).getByRole("button", { name: "退款" }));
     expect(
       screen.getByRole("button", { name: "明细类型退款" }),
-    ).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    ).toHaveAttribute("aria-pressed", "true");
     click("取消");
     click("删除明细 1");
     expect(screen.queryByText("还没选原支出")).toBeNull();
