@@ -1,7 +1,7 @@
 -- #1098：同商家优先、明细级分页、跨页无重复、全量结清数、报销范围。
 begin;
 set local search_path = public, extensions;
-select plan(16);
+select plan(17);
 
 update public.ledger
 set transaction_item_special_status_enabled = true
@@ -230,8 +230,26 @@ select is(
         p_currency => 'JPY'
       )->'entries')
     ),
-    0,
-    '单条明细数值去尾零后不会错误匹配带小数的搜索词'
+    (
+      select case when strpos(ti.amount::text, '4376571.0') > 0 then 2 else 0 end
+      from public.transaction_item_with_refund ti
+      where ti.id = '10982000-0000-4000-8000-000000000001'
+    ),
+    '明细金额搜索遵守数据库返回的原始小数文本口径'
+);
+select is(
+    (
+      select (public.load_filtered_transaction_page(
+        p_ledger_id => '00000000-0000-4000-8000-000000000032',
+        p_scope => 'records', p_query => '4376571.0'
+      )->>'totalCount')::integer
+    ),
+    (
+      select case when strpos(ti.amount::text, '4376571.0') > 0 then 1 else 0 end
+      from public.transaction_item_with_refund ti
+      where ti.id = '10982000-0000-4000-8000-000000000001'
+    ),
+    '记录搜索的明细金额部分同样保留原始小数文本'
 );
 
 select * from finish();
