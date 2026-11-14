@@ -425,6 +425,47 @@ describe("NewTransactionStepFlow", () => {
     },
   );
 
+  it("自动退款未选原支出时切换记账方式，草稿保留且关闭不提醒", async () => {
+    setup({
+      categoryOptions: [
+        ...receiptItemsOptions.categoryOptions,
+        {
+          id: "refund-system",
+          name: "退款",
+          parentId: "special-income",
+          parentName: "特殊收入",
+          systemKey: "refund",
+          type: "income",
+        },
+      ],
+      transactionItemSpecialStatusEnabled: true,
+    });
+    await selectEntryMerchant(/^7-Eleven/);
+    respond("merchantId=seven", {
+      ...emptySuggestions,
+      automaticCategoryIds: ["refund-system"],
+      recommendedAccountIds: ["paypay"],
+    });
+    expect(
+      await screen.findByRole("button", {
+        name: "第1条退款明细：选择原支出",
+      }),
+    ).toBeVisible();
+    await switchMethod("账户周转");
+    await switchMethod("从商家记账");
+    expect(
+      screen.getByRole("button", {
+        name: "第1条退款明细：选择原支出",
+      }),
+    ).toBeVisible();
+    await switchMethod("账户周转");
+    click("关闭记账");
+    await waitFor(() =>
+      expect(router.push).toHaveBeenCalledWith("/transactions"),
+    );
+    expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull();
+  });
+
   it("保存并退出只提交当前方式的表单", async () => {
     const action = vi.fn(async (_: unknown, data: FormData) => {
       expect(data.get(saveAndLeaveField)).toBe("true");
