@@ -1,7 +1,7 @@
 -- #1098：同商家优先、明细级分页、跨页无重复、全量结清数、报销范围。
 begin;
 set local search_path = public, extensions;
-select plan(10);
+select plan(15);
 
 update public.ledger
 set transaction_item_special_status_enabled = true
@@ -42,6 +42,35 @@ from (
         '00000000-0000-4000-8000-000000000031'::uuid as created_by,
         '00000000-0000-4000-8000-000000000031'::uuid as updated_by
     from generate_series(1, 26) seq
+) item;
+
+-- 两条 40 元明细组成 80 元整笔，防止 numeric(18,3) 尾零影响搜索。
+insert into public.transaction_record (
+    id, ledger_id, type, status, transaction_at, merchant_id,
+    title, note, created_by, updated_by
+) values (
+    '10980000-0000-4000-8000-000000000027',
+    '00000000-0000-4000-8000-000000000032',
+    'normal', 'active', '2097-01-01 00:00:00+00',
+    '00000000-0000-4000-8000-000000001002',
+    '金额文本规范', '金额文本规范',
+    '00000000-0000-4000-8000-000000000031',
+    '00000000-0000-4000-8000-000000000031'
+);
+
+select tests.insert_normal_transaction_items(jsonb_agg(item))
+from (
+    select
+        ('10982000-0000-4000-8000-' || lpad(seq::text, 12, '0'))::uuid as id,
+        '00000000-0000-4000-8000-000000000032'::uuid as ledger_id,
+        '10980000-0000-4000-8000-000000000027'::uuid as transaction_record_id,
+        '00000000-0000-4000-8000-000000000043'::uuid as account_id,
+        '00000000-0000-4000-8000-000000005021'::uuid as category_id,
+        40::numeric as amount,
+        seq as sort_order,
+        '00000000-0000-4000-8000-000000000031'::uuid as created_by,
+        '00000000-0000-4000-8000-000000000031'::uuid as updated_by
+    from generate_series(1, 2) seq
 ) item;
 
 set local role authenticated;
@@ -143,6 +172,54 @@ select is(
     )::uuid),
     '10981000-0000-4000-8000-000000000004'::uuid,
     '报销候选保持时间顺序，不套用同商家优先'
+);
+
+select is(
+    (select (pg_temp.page()->>'totalCount')::integer),
+    24,
+    '分页元数据提供未结清候选的总数'
+);
+select is(
+    (
+      select (public.load_filtered_transaction_page(
+        p_ledger_id => '00000000-0000-4000-8000-000000000032',
+        p_scope => 'records', p_query => '1098候选'
+      )->>'totalCount')::integer
+    ),
+    26,
+    '共用记录分页接口返回全部命中数'
+);
+select is(
+    (
+      select jsonb_array_length(public.load_filtered_transaction_page(
+        p_ledger_id => '00000000-0000-4000-8000-000000000032',
+        p_scope => 'candidates', p_query => '80.0',
+        p_currency => 'JPY'
+      )->'entries')
+    ),
+    0,
+    '小数搜索不误命中整笔为 80 的多明细记录'
+);
+select is(
+    (
+      select jsonb_array_length(public.load_filtered_transaction_page(
+        p_ledger_id => '00000000-0000-4000-8000-000000000032',
+        p_scope => 'candidates', p_query => '80',
+        p_currency => 'JPY'
+      )->'entries')
+    ),
+    2,
+    '搜索整笔 80 返回对应两条支出明细'
+);
+select is(
+    (
+      select (public.load_filtered_transaction_page(
+        p_ledger_id => '00000000-0000-4000-8000-000000000032',
+        p_scope => 'records', p_query => '80'
+      )->>'totalCount')::integer
+    ),
+    1,
+    '记录搜索可读取整笔金额命中总数'
 );
 
 select * from finish();

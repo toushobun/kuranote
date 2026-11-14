@@ -51,6 +51,7 @@ function createRepository(
       entries: [],
       nextOffset: null,
       settledCount: 0,
+      totalCount: 0,
     }),
     listRecords: vi.fn().mockResolvedValue([]),
     loadGroupSummaries: vi.fn().mockResolvedValue([]),
@@ -835,6 +836,7 @@ describe("TransactionService", () => {
               nextOffset:
                 input.offset + 20 < selected.length ? input.offset + 20 : null,
               settledCount: settled.length,
+              totalCount: selected.length,
             };
           },
         ),

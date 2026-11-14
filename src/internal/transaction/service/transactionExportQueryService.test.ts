@@ -12,6 +12,7 @@ function setup() {
       entries: [],
       nextOffset: null,
       settledCount: 0,
+      totalCount: 0,
     }),
     findUserSummaries: vi
       .fn()

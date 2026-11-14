@@ -192,6 +192,7 @@ export type FilteredTransactionPageResult = {
   entries: { recordId: string; itemId: string | null }[];
   nextOffset: number | null;
   settledCount: number;
+  totalCount: number;
 };
 
 const filteredPageResultSchema = z.object({
@@ -203,6 +204,7 @@ const filteredPageResultSchema = z.object({
   ),
   nextOffset: z.number().int().nonnegative().nullable(),
   settledCount: z.number().int().nonnegative(),
+  totalCount: z.number().int().nonnegative(),
 });
 
 export interface TransactionContextRepository {

@@ -81,7 +81,7 @@ describe("TransactionRepository", () => {
       },
     ];
     const rpc = vi.fn().mockResolvedValue({
-      data: { entries, nextOffset: 20, settledCount: 3 },
+      data: { entries, nextOffset: 20, settledCount: 3, totalCount: 42 },
       error: null,
     });
     const { repository } = createRepository({ rpc });
@@ -94,7 +94,12 @@ describe("TransactionRepository", () => {
       settled: true,
       offset: 20,
     });
-    expect(result).toEqual({ entries, nextOffset: 20, settledCount: 3 });
+    expect(result).toEqual({
+      entries,
+      nextOffset: 20,
+      settledCount: 3,
+      totalCount: 42,
+    });
     expect(rpc).toHaveBeenCalledWith("load_filtered_transaction_page", {
       p_ledger_id: ledgerId,
       p_scope: "candidates",
