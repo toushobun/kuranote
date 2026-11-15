@@ -13,6 +13,7 @@ import { getCurrencySymbol } from "utils/currency";
 import { transactionLinkMessages } from "utils/transactionMessages";
 import {
   formatNumber,
+  formatUnsignedCurrencyAmount,
   formatDateKey,
   hasLinkCandidateCurrencyMismatch,
 } from "utils/transactions";
@@ -23,6 +24,7 @@ export function TransactionLinkCandidateCards({
   selectableCurrency,
   resolveLinkCandidate,
   selectedId = null,
+  lockedAmounts,
   selectionKind = "refund",
   showMerchantName = true,
 }: {
@@ -33,6 +35,7 @@ export function TransactionLinkCandidateCards({
     candidate: TransactionRefundCandidate,
   ) => TransactionRefundCandidate;
   selectedId?: string | null;
+  lockedAmounts?: ReadonlyMap<string, string>;
   selectionKind?: "refund" | "reimbursement";
   showMerchantName?: boolean;
 }) {
@@ -46,6 +49,8 @@ export function TransactionLinkCandidateCards({
         const settled =
           Number(candidate.remainingRefundableAmount) <= 0 &&
           (refunded > 0 || reimbursed > 0);
+        const lockedAmount = lockedAmounts?.get(candidate.id);
+        const locked = lockedAmount !== undefined;
         const selected = selectedId === candidate.id;
         const formattedRefundedAmount = formatNumber(
           candidate.refundedAmount,
@@ -79,8 +84,8 @@ export function TransactionLinkCandidateCards({
               selectionKind,
               candidate.categoryName,
             )}
-            aria-pressed={selected}
-            disabled={isCurrencyMismatched}
+            aria-pressed={selected || locked}
+            disabled={isCurrencyMismatched || locked}
             key={candidate.id}
             onClick={() => onSelect(originalCandidate)}
             sx={{
@@ -109,6 +114,16 @@ export function TransactionLinkCandidateCards({
               >
                 {subtitle}
               </Typography>
+              {locked ? (
+                <Typography color="textSecondary" variant="caption">
+                  {m.onReceipt(
+                    formatUnsignedCurrencyAmount(
+                      lockedAmount,
+                      candidate.accountCurrency,
+                    ),
+                  )}
+                </Typography>
+              ) : null}
               {currencyMismatchReason ? (
                 <Typography color="textSecondary" variant="caption">
                   {currencyMismatchReason}
@@ -152,18 +167,20 @@ export function TransactionLinkCandidateCards({
               )}
             </Stack>
             <Radio
-              checked={selected}
+              checked={selected || locked}
               checkedIcon={
-                <CheckRoundedIcon
-                  sx={{
-                    bgcolor: "primary.main",
-                    color: "primary.contrastText",
-                    borderRadius: "50%",
-                    p: 0.25,
-                  }}
-                />
+                locked ? undefined : (
+                  <CheckRoundedIcon
+                    sx={{
+                      bgcolor: "primary.main",
+                      color: "primary.contrastText",
+                      borderRadius: "50%",
+                      p: 0.25,
+                    }}
+                  />
+                )
               }
-              disabled={isCurrencyMismatched}
+              disabled={isCurrencyMismatched || locked}
               tabIndex={-1}
               sx={{ p: 0, pointerEvents: "none" }}
             />

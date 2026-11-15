@@ -240,6 +240,32 @@ describe("TransactionConfirmStep", () => {
     );
   });
 
+  it("报销全额抵消时显示 ¥0 并列出核销构成", async () => {
+    await renderConfirmFlow({
+      itemsOptions: {
+        ...receiptItemsOptions,
+        initialItems: [
+          {
+            amount: "980",
+            businessNetAmount: "0",
+            categoryId: "points",
+            businessStatus: {
+              incomeLinkRole: "reimbursement",
+              offsetComposition: {
+                refundAmount: "0",
+                reimbursementAmount: "0",
+              },
+              settlementStatus: null,
+            },
+          },
+        ],
+      },
+    });
+    expect(screen.getByText("净额").nextElementSibling).toHaveTextContent(
+      "¥0报销 ¥980 · 抵消支出 ¥980",
+    );
+  });
+
   it("被其他记录退款 / 报销时合计显示净额，下方列出已退款与已报销，支付金额仍为原金额", async () => {
     await renderConfirmFlow({
       itemsOptions: {

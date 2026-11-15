@@ -57,6 +57,7 @@ type TransactionItemPickerDrawerProps = TransactionIncomeLinksContextValue & {
   /** 切换大分类；带 categoryId 时同时选中它，否则选中该组第一个可用小分类。 */
   onGroupSelect: (groupId: string, categoryId?: string) => void;
   onPickerAdd: () => boolean;
+  lockedLinkAmounts?: ReadonlyMap<string, string>;
   onPickerModeChange?: (mode: TransactionItemPickerMode) => void;
   onPickerAmountChange?: (amount: string) => void;
   onRemoveItem: (itemId: number) => void;
@@ -98,6 +99,7 @@ export function TransactionItemPickerDrawer({
   onClose,
   onGroupSelect,
   onPickerAdd,
+  lockedLinkAmounts,
   onPickerModeChange = () => undefined,
   onPickerAmountChange = () => undefined,
   onRemoveItem,
@@ -295,7 +297,8 @@ export function TransactionItemPickerDrawer({
             accountCurrency={selectedAccountCurrency}
             merchantName={merchantName}
             kind={pickerMode}
-            merchantId={pickerMode === "refund" ? merchantId : undefined}
+            merchantId={merchantId}
+            lockedAmounts={lockedLinkAmounts}
             loadPageAction={
               pickerMode === "refund"
                 ? loadRefundPageAction

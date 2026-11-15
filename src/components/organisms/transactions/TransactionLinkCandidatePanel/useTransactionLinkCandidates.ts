@@ -67,7 +67,7 @@ export function useTransactionLinkCandidates({
             const next = await action({
               offset: 0,
               query: term,
-              merchantId: kind === "refund" ? merchantId : undefined,
+              merchantId,
               currency: accountCurrency,
             });
             if (current()) {
@@ -106,7 +106,7 @@ export function useTransactionLinkCandidates({
       const next = await loadPageActionRef.current({
         offset: page.nextOffset,
         query: term,
-        merchantId: kind === "refund" ? merchantId : undefined,
+        merchantId,
         currency: accountCurrency,
       });
       if (generation.current === revision)
@@ -114,6 +114,8 @@ export function useTransactionLinkCandidates({
           items: mergeUniqueById(page.items, next.items),
           nextOffset: next.nextOffset,
           settledCount: next.settledCount ?? page.settledCount,
+          historyMerchantIds:
+            next.historyMerchantIds ?? page.historyMerchantIds,
         });
     } catch {
       if (generation.current === revision) setError(true);
@@ -141,7 +143,7 @@ export function useTransactionLinkCandidates({
       const next = await loadPageActionRef.current({
         offset: settledPage?.nextOffset ?? 0,
         query: term,
-        merchantId: kind === "refund" ? merchantId : undefined,
+        merchantId,
         currency: accountCurrency,
         settled: true,
       });

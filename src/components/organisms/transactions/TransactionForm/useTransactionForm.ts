@@ -870,6 +870,12 @@ export function useTransactionForm({
   }
 
   const linkAffectedItems = [...initialValues.items, ...itemsByType.income];
+  const editingIncomeItem = itemsByType.income.find(
+    ({ id }) => id === editingItemId,
+  );
+  const editingCandidateId =
+    editingIncomeItem?.refundCandidate?.id ??
+    editingIncomeItem?.reimbursementCandidate?.id;
   return {
     note,
     addItem,
@@ -919,6 +925,14 @@ export function useTransactionForm({
       "reimbursement",
     ),
     resolveLinkCandidate,
+    lockedLinkAmounts: new Map(
+      itemsByType.income.flatMap((item) => {
+        const candidate = item.refundCandidate ?? item.reimbursementCandidate;
+        return candidate && candidate.id !== editingCandidateId
+          ? [[candidate.id, item.amount] as const]
+          : [];
+      }),
+    ),
     pickerSpecialStatus,
     pickerSpecialStatusLocked,
     removeItem,

@@ -36,6 +36,7 @@ export function TransactionStepItemPicker(props: TransactionReceiptProps) {
       pickerRefundCandidate={f.pickerRefundCandidate}
       pickerReimbursementCandidate={f.pickerReimbursementCandidate}
       resolveLinkCandidate={f.resolveLinkCandidate}
+      lockedLinkAmounts={f.lockedLinkAmounts}
       linkAffectedCandidates={f.linkAffectedCandidates}
       linkAffectedReimbursementCandidates={
         f.linkAffectedReimbursementCandidates

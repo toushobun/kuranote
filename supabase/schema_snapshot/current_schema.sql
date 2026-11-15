@@ -4370,7 +4370,7 @@ $$;
 ALTER FUNCTION "public"."list_pending_ledger_invites"("p_ledger_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."load_filtered_transaction_page"("p_ledger_id" "uuid", "p_scope" "text", "p_query" "text" DEFAULT ''::"text", "p_merchant_priority_id" "uuid" DEFAULT NULL::"uuid", "p_currency" "text" DEFAULT NULL::"text", "p_special_statuses" "text"[] DEFAULT NULL::"text"[], "p_settled" boolean DEFAULT false, "p_offset" integer DEFAULT 0, "p_limit" integer DEFAULT 20) RETURNS "jsonb"
+CREATE OR REPLACE FUNCTION "public"."load_filtered_transaction_page"("p_ledger_id" "uuid", "p_scope" "text", "p_query" "text" DEFAULT ''::"text", "p_merchant_priority_id" "uuid" DEFAULT NULL::"uuid", "p_currency" "text" DEFAULT NULL::"text", "p_special_statuses" "text"[] DEFAULT NULL::"text"[], "p_settled" boolean DEFAULT false, "p_offset" integer DEFAULT 0, "p_limit" integer DEFAULT 20, "p_history_merchant_id" "uuid" DEFAULT NULL::"uuid") RETURNS "jsonb"
     LANGUAGE "sql" STABLE
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -4378,6 +4378,45 @@ with args as (
     select
         lower(left(trim(coalesce(p_query, '')), 80)) as term,
         regexp_replace(left(trim(coalesce(p_query, '')), 80), '[[:space:],，¥￥円]', '', 'g') as amount_term
+),
+history_merchants as materialized (
+    select array(
+        select distinct expense_record.merchant_id
+        from public.transaction_record income_record
+        join public.transaction_item income_item
+          on income_item.transaction_record_id = income_record.id
+         and income_item.ledger_id = income_record.ledger_id
+        join lateral (
+            select link.refunded_item_id as expense_item_id
+            from public.transaction_item_refund_link link
+            where p_merchant_priority_id is not null
+              and link.refund_income_item_id = income_item.id
+              and link.ledger_id = income_item.ledger_id
+              and link.refund_amount > 0
+            union all
+            select link.target_expense_item_id
+            from public.transaction_item_reimbursement_link link
+            where p_merchant_priority_id is null
+              and link.reimbursement_income_item_id = income_item.id
+              and link.ledger_id = income_item.ledger_id
+              and link.reimbursement_amount > 0
+        ) history on true
+        join public.transaction_item expense_item
+          on expense_item.id = history.expense_item_id
+         and expense_item.ledger_id = income_item.ledger_id
+        join public.transaction_record expense_record
+          on expense_record.id = expense_item.transaction_record_id
+         and expense_record.ledger_id = expense_item.ledger_id
+         and expense_record.status = 'active'
+        where p_scope = 'candidates'
+          and not coalesce(p_settled, false)
+          and p_history_merchant_id is not null
+          and (select public.current_user_is_active_ledger_member(p_ledger_id))
+          and income_record.ledger_id = p_ledger_id
+          and income_record.merchant_id = p_history_merchant_id
+          and income_record.status = 'active'
+          and expense_record.merchant_id is not null
+    ) as ids
 ),
 candidate_base as (
     select
@@ -4588,9 +4627,12 @@ ordered_page as (
         row_number() over (
             order by
                 case when p_scope = 'candidates'
-                       and p_merchant_priority_id is not null
-                       and merchant_id = p_merchant_priority_id
-                     then 0 else 1 end,
+                      and merchant_id = any(array(select unnest(ids) from history_merchants))
+                    then 0
+                    when p_scope = 'candidates' and merchant_id = p_merchant_priority_id
+                    then 1
+                    else 2
+                end,
                 transaction_at desc,
                 created_at desc,
                 record_id desc,
@@ -4627,11 +4669,14 @@ select jsonb_build_object(
     'totalCount', (
         select count(*) from all_matches
     )
-);
+) || case when p_scope = 'candidates'
+    then jsonb_build_object('historyMerchantIds', (select ids from history_merchants))
+    else '{}'::jsonb
+end;
 $$;
 
 
-ALTER FUNCTION "public"."load_filtered_transaction_page"("p_ledger_id" "uuid", "p_scope" "text", "p_query" "text", "p_merchant_priority_id" "uuid", "p_currency" "text", "p_special_statuses" "text"[], "p_settled" boolean, "p_offset" integer, "p_limit" integer) OWNER TO "postgres";
+ALTER FUNCTION "public"."load_filtered_transaction_page"("p_ledger_id" "uuid", "p_scope" "text", "p_query" "text", "p_merchant_priority_id" "uuid", "p_currency" "text", "p_special_statuses" "text"[], "p_settled" boolean, "p_offset" integer, "p_limit" integer, "p_history_merchant_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."load_frequent_transaction_merchants"("p_ledger_id" "uuid", "p_limit" integer) RETURNS TABLE("merchant_id" "uuid", "record_count" bigint)
@@ -12078,8 +12123,8 @@ GRANT ALL ON FUNCTION "public"."list_pending_ledger_invites"("p_ledger_id" "uuid
 
 
 
-REVOKE ALL ON FUNCTION "public"."load_filtered_transaction_page"("p_ledger_id" "uuid", "p_scope" "text", "p_query" "text", "p_merchant_priority_id" "uuid", "p_currency" "text", "p_special_statuses" "text"[], "p_settled" boolean, "p_offset" integer, "p_limit" integer) FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."load_filtered_transaction_page"("p_ledger_id" "uuid", "p_scope" "text", "p_query" "text", "p_merchant_priority_id" "uuid", "p_currency" "text", "p_special_statuses" "text"[], "p_settled" boolean, "p_offset" integer, "p_limit" integer) TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."load_filtered_transaction_page"("p_ledger_id" "uuid", "p_scope" "text", "p_query" "text", "p_merchant_priority_id" "uuid", "p_currency" "text", "p_special_statuses" "text"[], "p_settled" boolean, "p_offset" integer, "p_limit" integer, "p_history_merchant_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."load_filtered_transaction_page"("p_ledger_id" "uuid", "p_scope" "text", "p_query" "text", "p_merchant_priority_id" "uuid", "p_currency" "text", "p_special_statuses" "text"[], "p_settled" boolean, "p_offset" integer, "p_limit" integer, "p_history_merchant_id" "uuid") TO "authenticated";
 
 
 

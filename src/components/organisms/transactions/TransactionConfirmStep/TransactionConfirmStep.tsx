@@ -82,56 +82,38 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
   );
   const format = (amount: number) =>
     formatStepCurrencyAmount(String(amount), currency);
-  // 有倒赚时按总退款 / 报销、实际抵消、超额收入展示构成。
+  // 退款 / 报销按实际抵消和超额收入展示，普通收入单独列出。
   const normalIncome = Math.max(
     0,
     totals.incomeTotal -
       totals.linkedRefundTotal -
       totals.linkedReimbursementTotal,
   );
-  const breakdown = (
-    totals.linkedSurplusTotal > 0
-      ? [
-          {
-            label: m.totalBreakdown.expense,
-            amount: totals.expenseTotal,
-            color: expenseAmountColor,
-          },
-          {
-            label: m.totalBreakdown.income,
-            amount: normalIncome,
-            color: incomeAmountColor,
-          },
-          { label: m.totalBreakdown.refund, amount: totals.linkedRefundTotal },
-          {
-            label: m.totalBreakdown.reimbursement,
-            amount: totals.linkedReimbursementTotal,
-          },
-          { label: m.totalBreakdown.offset, amount: totals.linkedOffsetTotal },
-          {
-            label: m.totalBreakdown.surplus,
-            amount: totals.linkedSurplusTotal,
-            color: incomeAmountColor,
-          },
-        ]
-      : [
-          {
-            label: m.totalBreakdown.expense,
-            amount: totals.expenseTotal,
-            color: expenseAmountColor,
-          },
-          {
-            label: m.totalBreakdown.income,
-            amount: totals.incomeTotal,
-            color: incomeAmountColor,
-          },
-          { label: m.totalBreakdown.refunded, amount: totals.refundedTotal },
-          {
-            label: m.totalBreakdown.reimbursed,
-            amount: totals.reimbursedTotal,
-          },
-        ]
-  ).filter((part) => part.amount > 0);
+  const breakdown = [
+    {
+      label: m.totalBreakdown.expense,
+      amount: totals.expenseTotal,
+      color: expenseAmountColor,
+    },
+    {
+      label: m.totalBreakdown.income,
+      amount: normalIncome,
+      color: incomeAmountColor,
+    },
+    { label: m.totalBreakdown.refund, amount: totals.linkedRefundTotal },
+    {
+      label: m.totalBreakdown.reimbursement,
+      amount: totals.linkedReimbursementTotal,
+    },
+    { label: m.totalBreakdown.offset, amount: totals.linkedOffsetTotal },
+    {
+      label: m.totalBreakdown.surplus,
+      amount: totals.linkedSurplusTotal,
+      color: incomeAmountColor,
+    },
+    { label: m.totalBreakdown.refunded, amount: totals.refundedTotal },
+    { label: m.totalBreakdown.reimbursed, amount: totals.reimbursedTotal },
+  ].filter((part) => part.amount > 0);
   const amountPayment = f.payments.find(
     (payment) => payment.key === w.paymentAmountKey,
   );

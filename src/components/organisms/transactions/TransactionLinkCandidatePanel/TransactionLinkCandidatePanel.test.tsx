@@ -194,14 +194,43 @@ describe("TransactionLinkCandidatePanel", () => {
     expect(cards[0]).toHaveAccessibleName("选择退款明细 实时关联的旧支出");
     expect(cards[1]).toHaveAccessibleName("选择退款明细 USB-C 充电器");
   });
-  it("报销只有一次请求且不携带商家筛选", async () => {
+  it("历史商家排在同商家之前，已添加的候选在原位置锁定", async () => {
+    const historical = {
+      ...offPageCandidate,
+      remainingRefundableAmount: "1080",
+    };
+    const onChange = vi.fn();
+    renderPanel({
+      onChange,
+      lockedAmounts: new Map([[historical.id, "750"]]),
+      resolveLinkCandidate: (candidate) =>
+        candidate.id === historical.id
+          ? { ...candidate, remainingRefundableAmount: "0" }
+          : candidate,
+      loadPageAction: vi.fn().mockResolvedValue({
+        items: [candidateItems[0], historical],
+        historyMerchantIds: [historical.merchantId],
+        nextOffset: null,
+      }),
+    });
+    await screen.findByText("已在小票上 · ¥750");
+    const cards = screen.getAllByRole("button", { name: /选择退款明细/ });
+    expect(cards[0]).toHaveAccessibleName("选择退款明细 往年差旅支出");
+    expect(cards[0]).toBeDisabled();
+    fireEvent.click(cards[0]);
+    expect(onChange).not.toHaveBeenCalled();
+    fireEvent.click(cards[1]);
+    expect(onChange).toHaveBeenCalledWith(candidateItems[0]);
+  });
+
+  it("报销只请求一次并传入用于查询历史的商家", async () => {
     const loadPage = vi.fn().mockResolvedValue(candidatePage);
     renderPanel({ kind: "reimbursement", loadPageAction: loadPage });
     await screen.findByText("USB-C 充电器");
     expect(loadPage).toHaveBeenCalledExactlyOnceWith({
       offset: 0,
       query: "",
-      merchantId: undefined,
+      merchantId: "amazon",
       currency: "JPY",
     });
     expect(screen.getByText("待报销")).toBeVisible();

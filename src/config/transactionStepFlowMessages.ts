@@ -162,6 +162,7 @@ export const transactionItemPickerMessages = {
 
 /** 退款 / 报销的原支出候选列表与金额输入。 */
 export const transactionLinkCandidateMessages = {
+  onReceipt: (amount: string) => `已在小票上 · ${amount}`,
   unassignedMerchant: "未指定商家",
   searchPlaceholder: "搜索原支出（全部商家）",
   searchAria: "搜索原支出",
