@@ -145,13 +145,14 @@ from (
 
 insert into public.transaction_record (
     id, ledger_id, type, status, transaction_at, merchant_id,
-    note, created_by, updated_by
+    note, deleted_at, deleted_by, created_by, updated_by
 ) values (
     '10990000-0000-4000-8000-000000000051',
     '00000000-0000-4000-8000-000000000032',
     'normal', 'deleted', '2100-01-01 00:00:00+00',
     '00000000-0000-4000-8000-000000001001',
-    '1099作废', '00000000-0000-4000-8000-000000000031', '00000000-0000-4000-8000-000000000031'
+    '1099作废', now(), '00000000-0000-4000-8000-000000000031',
+    '00000000-0000-4000-8000-000000000031', '00000000-0000-4000-8000-000000000031'
 );
 
 -- 余额调整只查 balance_delta（带负号），无明细分类。
@@ -288,6 +289,18 @@ select is((pg_temp.search_page('1099根本不存在')->>'totalCount')::integer, 
     '没有命中时总数为零');
 select is(pg_temp.search_page('1099根本不存在')->>'nextOffset', null::text,
     '没有命中时不提供下一页');
+
+-- 已归档的首选别名不再作为商家展示名，回退为商家主名称。
+reset role;
+update public.merchant_alias set is_archived = true
+where id = '00000000-0000-4000-8000-000000003001';
+set local role authenticated;
+select is((pg_temp.search_page('业务超市')->>'totalCount')::integer, 0,
+    '归档的首选别名不会被搜索');
+select ok(exists (
+    select 1 from jsonb_array_elements(pg_temp.search_page('業務スーパー')->'entries') entry
+    where entry->>'recordId' = '10990000-0000-4000-8000-000000000042'
+), '归档别名后回退搜索商家本名');
 
 select set_config(
     'request.jwt.claims',
