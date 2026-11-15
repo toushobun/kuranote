@@ -110,6 +110,29 @@ select tests.insert_normal_transaction_items(jsonb_build_array(
     )
 ));
 
+-- 长备注里开头连续制表符与全角空格，旧 TS .trim() 会先移除再截取 80 字。
+insert into public.transaction_record (
+    id, ledger_id, type, transaction_at, merchant_id,
+    note, created_by, updated_by
+) values (
+    '10990000-0000-4000-8000-000000000054',
+    '00000000-0000-4000-8000-000000000032',
+    'normal', '2098-01-05 00:00:00+00',
+    '00000000-0000-4000-8000-000000001002',
+    repeat(E'\\t', 90) || repeat('　', 90) || '1099长备注空白',
+    '00000000-0000-4000-8000-000000000031', '00000000-0000-4000-8000-000000000031'
+);
+select tests.insert_normal_transaction_items(jsonb_build_array(jsonb_build_object(
+    'id', '10992100-0000-4000-8000-000000000054',
+    'ledger_id', '00000000-0000-4000-8000-000000000032',
+    'transaction_record_id', '10990000-0000-4000-8000-000000000054',
+    'account_id', '00000000-0000-4000-8000-000000000043',
+    'category_id', '00000000-0000-4000-8000-000000005021',
+    'amount', 100, 'sort_order', 0,
+    'created_by', '00000000-0000-4000-8000-000000000031',
+    'updated_by', '00000000-0000-4000-8000-000000000031'
+)));
+
 -- 同交易时间按创建时间倒序，再按 UUID 倒序。
 insert into public.transaction_record (
     id, ledger_id, type, transaction_at, created_at,
@@ -242,6 +265,8 @@ select is((pg_temp.search_page('1099明细被覆盖')->>'totalCount')::integer, 
     '记录有备注时不会额外搜索明细备注');
 select is((pg_temp.search_page('1099尾部不可匹配')->>'totalCount')::integer, 0,
     '字段超过 80 字的后半段不命中');
+select is((pg_temp.search_page('1099长备注空白')->>'totalCount')::integer, 1,
+    '长备注头部的制表符、全角空格先裁剪再按 80 字搜索');
 select ok((pg_temp.search_page('1099成员昵称')->>'totalCount')::integer >= 23,
     '记录人使用账本成员显示名优先');
 

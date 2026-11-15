@@ -20,7 +20,8 @@ as $$
 with args as (
     select
         lower(left(trim(coalesce(p_query, '')), 80)) as term,
-        regexp_replace(left(trim(coalesce(p_query, '')), 80), '[[:space:],，¥￥円]', '', 'g') as amount_term
+        regexp_replace(left(trim(coalesce(p_query, '')), 80), '[[:space:],，¥￥円]', '', 'g') as amount_term,
+        concat(' ', chr(9), chr(10), chr(11), chr(12), chr(13), chr(160), chr(5760), chr(8192), chr(8193), chr(8194), chr(8195), chr(8196), chr(8197), chr(8198), chr(8199), chr(8200), chr(8201), chr(8202), chr(8232), chr(8233), chr(8239), chr(8287), chr(12288), chr(65279)) as text_trim_chars
 ),
 candidate_base as (
     select
@@ -200,9 +201,9 @@ record_matched as (
       and (select public.current_user_is_active_ledger_member(p_ledger_id))
       and (
           args.term = ''
-          or (tr.type = 'normal' and strpos(lower(left(btrim(coalesce(preferred_alias.alias, m.name, '')), 80)), args.term) > 0)
-          or strpos(lower(left(btrim(coalesce(case when tr.type = 'normal' then coalesce(tr.note, amounts.first_note) else tr.note end, '')), 80)), args.term) > 0
-          or strpos(lower(left(btrim(coalesce(nullif(trim(setting.display_name), ''), au.display_name, '')), 80)), args.term) > 0
+          or (tr.type = 'normal' and strpos(lower(left(btrim(coalesce(preferred_alias.alias, m.name, ''), args.text_trim_chars), 80)), args.term) > 0)
+          or strpos(lower(left(btrim(coalesce(case when tr.type = 'normal' then coalesce(tr.note, amounts.first_note) else tr.note end, ''), args.text_trim_chars), 80)), args.term) > 0
+          or strpos(lower(left(btrim(coalesce(nullif(btrim(setting.display_name, args.text_trim_chars), ''), au.display_name, ''), args.text_trim_chars), 80)), args.term) > 0
           or (
               args.amount_term ~ '[0-9]'
               and (
