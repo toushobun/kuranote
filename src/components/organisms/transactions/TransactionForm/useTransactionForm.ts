@@ -656,11 +656,7 @@ export function useTransactionForm({
       ) {
         const primaryPayment = paymentFields.payments[0];
         if (primaryPayment) {
-          handlePaymentAccountChange(
-            primaryPayment.key,
-            nextAccountId,
-            true,
-          );
+          handlePaymentAccountChange(primaryPayment.key, nextAccountId, true);
           tracked.accountId = nextAccountId;
         }
       }

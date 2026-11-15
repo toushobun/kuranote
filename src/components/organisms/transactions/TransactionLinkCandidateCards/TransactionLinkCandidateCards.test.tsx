@@ -46,7 +46,10 @@ describe("TransactionLinkCandidateCards", () => {
   it("备注在商家日期账户下面显示单行，空备注不增加额外行，锁定时也显示", () => {
     const original = { ...candidate, note: "生日礼物，保留包装".repeat(8) };
     const { rerender } = render(
-      <TransactionLinkCandidateCards candidates={[original]} onSelect={vi.fn()} />,
+      <TransactionLinkCandidateCards
+        candidates={[original]}
+        onSelect={vi.fn()}
+      />,
     );
     const note = screen.getByText(original.note);
     expect(note).toHaveAttribute("title", original.note);

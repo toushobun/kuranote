@@ -1277,7 +1277,8 @@ describe("useTransactionForm", () => {
       const { result } = renderTransactionFormHook({
         categoryOptions: allLinkCategories,
       });
-      const original = kind === "refund" ? refundCandidate : reimbursementCandidate;
+      const original =
+        kind === "refund" ? refundCandidate : reimbursementCandidate;
       const id = addOriginal(result, kind, original);
       expect(result.current.selectedMerchantId).toBe("merchant-1");
       expect(result.current.selectedAccount?.id).toBe("account-1");
@@ -1288,8 +1289,10 @@ describe("useTransactionForm", () => {
         accountId: "account-2",
       };
       retargetOriginal(result, id, kind, changed);
-      expect(result.current.itemSummaries[0]?.refundCandidate?.id ??
-        result.current.itemSummaries[0]?.reimbursementCandidate?.id).toBe(changed.id);
+      expect(
+        result.current.itemSummaries[0]?.refundCandidate?.id ??
+          result.current.itemSummaries[0]?.reimbursementCandidate?.id,
+      ).toBe(changed.id);
       expect(result.current.selectedMerchantId).toBe("merchant-2");
       expect(result.current.selectedAccount?.id).toBe("account-2");
     },
@@ -1364,5 +1367,4 @@ describe("useTransactionForm", () => {
     expect(result.current.selectedMerchantId).toBe("merchant-1");
     expect(result.current.selectedAccount?.id).toBe("account-1");
   });
-
 });

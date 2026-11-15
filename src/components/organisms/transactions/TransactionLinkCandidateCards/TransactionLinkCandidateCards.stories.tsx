@@ -47,7 +47,9 @@ export const LongNote: Story = {
     candidates: [
       {
         ...candidateItems[0],
-        note: "蓝牙音箱 JBL Flip 6 黑色，送朋友的生日礼物，请记得保存包装和购买小票".repeat(3),
+        note: "蓝牙音箱 JBL Flip 6 黑色，送朋友的生日礼物，请记得保存包装和购买小票".repeat(
+          3,
+        ),
       },
     ],
   },
