@@ -114,6 +114,17 @@ export function TransactionLinkCandidateCards({
               >
                 {subtitle}
               </Typography>
+              {candidate.note?.trim() ? (
+                <Typography
+                  color="textSecondary"
+                  variant="caption"
+                  noWrap
+                  title={candidate.note}
+                  sx={{ display: "block" }}
+                >
+                  {candidate.note}
+                </Typography>
+              ) : null}
               {locked ? (
                 <Typography color="textSecondary" variant="caption">
                   {m.onReceipt(

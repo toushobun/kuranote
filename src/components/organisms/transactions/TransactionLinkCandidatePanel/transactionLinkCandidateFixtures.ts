@@ -23,6 +23,7 @@ export const candidateItems: TransactionRefundCandidate[] = [
   merchantId: "amazon",
   transactionAt: date,
   parentCategoryName: "购物",
+  note: index === 0 ? "USB-C 充电器，办公室备用" : index === 2 ? "收纳盒送货备注" : null,
 }));
 export const candidatePage: TransactionLinkCandidatePage = fixturePage(
   candidateItems,

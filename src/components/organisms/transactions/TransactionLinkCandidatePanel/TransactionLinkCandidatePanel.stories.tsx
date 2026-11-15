@@ -93,3 +93,12 @@ export const SettledSearch: Story = {
     );
   },
 };
+
+export const DraftLockedFirst: Story = {
+  name: "退款 · 小票锁定优先于历史商家",
+  args: {
+    loadPageAction: loadMerchantPriorityPage,
+    lockedAmounts: new Map([[selectedCandidate.id, "200"]]),
+    historyMerchantIds: [],
+  },
+};
