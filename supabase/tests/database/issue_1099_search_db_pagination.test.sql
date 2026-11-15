@@ -322,6 +322,7 @@ select diag('1099 零命中 EXPLAIN (ANALYZE, BUFFERS): '
 reset role;
 update public.merchant_alias
 set is_archived = true,
+    is_preferred = false,
     archived_at = now(),
     archived_by = '00000000-0000-4000-8000-000000000031'
 where id = '00000000-0000-4000-8000-000000003001';
