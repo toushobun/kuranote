@@ -136,7 +136,7 @@ select ok(not has_function_privilege('anon',
 -- 在相同权限和 seed 数据下各记录一次 EXPLAIN (ANALYZE, BUFFERS)；
 -- 通过 pgTAP diag 发送至 CI 输出，供 PR 记载真实数值。
 create function pg_temp.explain_1108(p_term text)
-returns text language plpgsql as $
+returns text language plpgsql as $explain$
 declare
     v_plan jsonb;
 begin
@@ -155,7 +155,7 @@ begin
         v_plan->0->'Plan'->>'Shared Read Blocks'
     );
 end;
-$;
+$explain$;
 select diag(pg_temp.explain_1108(''));
 select diag(pg_temp.explain_1108('1108明细备注甲'));
 
