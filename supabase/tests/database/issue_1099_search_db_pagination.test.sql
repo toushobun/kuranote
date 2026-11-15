@@ -292,7 +292,7 @@ select is(pg_temp.search_page('1099根本不存在')->>'nextOffset', null::text,
 
 -- 仅用于 pgTAP 回归时记录实际数据库计划，不增加应用日志或性能阈值断言。
 create function pg_temp.explain_search(p_query text)
-returns text language plpgsql as $
+returns text language plpgsql as $bench$
 declare
     plan_line text;
     detail text := '';
@@ -312,7 +312,7 @@ begin
     end loop;
     return detail;
 end;
-$;
+$bench$;
 select diag('1099 多条命中 EXPLAIN (ANALYZE, BUFFERS): '
     || pg_temp.explain_search('1099分页'));
 select diag('1099 零命中 EXPLAIN (ANALYZE, BUFFERS): '
