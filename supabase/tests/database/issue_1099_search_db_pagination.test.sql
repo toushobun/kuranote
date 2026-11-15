@@ -119,7 +119,7 @@ insert into public.transaction_record (
     '00000000-0000-4000-8000-000000000032',
     'normal', '2098-01-05 00:00:00+00',
     '00000000-0000-4000-8000-000000001002',
-    repeat(E'\\t', 90) || repeat('　', 90) || '1099长备注空白',
+    repeat(chr(9), 90) || repeat('　', 90) || '1099长备注空白',
     '00000000-0000-4000-8000-000000000031', '00000000-0000-4000-8000-000000000031'
 );
 select tests.insert_normal_transaction_items(jsonb_build_array(jsonb_build_object(
