@@ -203,6 +203,7 @@ const filteredPageResultSchema = z.object({
     z.object({
       recordId: z.string().uuid(),
       itemId: z.string().uuid().nullable(),
+      note: z.string().nullable().optional(),
     }),
   ),
   historyMerchantIds: z.array(z.string().uuid()).optional(),

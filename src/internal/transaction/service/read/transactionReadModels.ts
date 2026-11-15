@@ -20,6 +20,7 @@ export type TransactionCategorySummaryItem = {
   categoryType?: CategoryType;
   id?: string;
   parentCategoryName: string | null;
+  note?: string | null;
   refundedAmount?: string;
   remainingRefundableAmount?: string;
 };
@@ -152,6 +153,7 @@ type TransactionIncomeLinkCandidate = {
   categoryName: string;
   id: string;
   parentCategoryName: string | null;
+  note?: string | null;
   refundedAmount: string;
   remainingRefundableAmount: string;
   transactionAt: string;

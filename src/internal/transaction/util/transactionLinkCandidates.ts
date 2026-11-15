@@ -31,6 +31,7 @@ export function toTransactionLinkCandidates(
           categoryName: item.categoryName,
           id: item.id,
           parentCategoryName: item.parentCategoryName,
+          note: item.note?.trim() || record.note?.trim() || null,
           refundedAmount: item.refundedAmount ?? "0",
           remainingRefundableAmount: item.remainingRefundableAmount,
           transactionAt: record.transaction_at,

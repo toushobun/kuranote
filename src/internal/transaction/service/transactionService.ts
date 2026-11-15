@@ -606,7 +606,9 @@ export function createTransactionService({
           const candidate = entry.itemId
             ? candidatesById.get(entry.itemId)
             : undefined;
-          return candidate ? [candidate] : [];
+          return candidate
+            ? [{ ...candidate, note: entry.note ?? candidate.note ?? null }]
+            : [];
         }),
         nextOffset: page.nextOffset,
         settledCount: page.settledCount,

@@ -479,6 +479,7 @@ function buildIncomeLinkCandidate(
     categoryName: category?.name ?? transactionFallbackLabels.category,
     id: linkedItem.id,
     parentCategoryName: category?.parentName ?? null,
+    note: linkedItem.note,
     refundedAmount: linkedItem.refundedAmount,
     remainingRefundableAmount,
     transactionAt: linkedItem.transactionAt,

@@ -172,6 +172,7 @@ export function buildTransactionListItem({
         categoryName: category?.name ?? "",
         categoryType: category?.type,
         parentCategoryName: parent?.name ?? null,
+        ...(item.note?.trim() ? { note: item.note } : {}),
         ...(item.id
           ? {
               id: item.id,

@@ -36,6 +36,7 @@ export type TransactionRefundCandidate = {
   merchantName?: string | null;
   merchantId?: string | null;
   merchantIconUrl?: string | null;
+  note?: string | null;
   reimbursementAmount?: string;
   amount: string;
   categoryName: string;
