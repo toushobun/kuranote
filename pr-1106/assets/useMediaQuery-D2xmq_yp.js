@@ -1,0 +1,1 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";import{K as t,W as n,f as r,p as i}from"./DefaultPropsProvider-BKxRfWYI.js";var a,o=e((()=>{n(),i(),a=t({themeId:r})}));export{a as n,o as t};
