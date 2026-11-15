@@ -1086,7 +1086,6 @@ describe("TransactionService", () => {
     });
   });
 
-
   describe("明细搜索数据库分页", () => {
     const ledger = {
       baseCurrency: "JPY",
