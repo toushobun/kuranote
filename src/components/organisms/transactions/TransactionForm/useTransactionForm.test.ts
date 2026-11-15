@@ -165,7 +165,15 @@ function retargetOriginal(
 }
 
 const allLinkCategories: TransactionCategoryOption[] = [
-  ...refundCategoryOptions,
+  ...categoryOptions,
+  {
+    id: "system-refund",
+    name: "退款",
+    parentId: "income-category",
+    parentName: "收入",
+    type: "income",
+    systemKey: "refund",
+  },
   {
     id: "system-reimbursement",
     name: "报销",
