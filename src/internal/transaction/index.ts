@@ -62,7 +62,6 @@ export {
 } from "internal/transaction/util/refundAllocation";
 export { transactionFallbackLabels } from "internal/transaction/util/transactionFallbackLabels";
 export {
-  buildTransactionSearchPage,
   emptyTransactionSearchPage,
   normalizeTransactionSearchQuery,
 } from "internal/transaction/util/transactionSearchHelpers";

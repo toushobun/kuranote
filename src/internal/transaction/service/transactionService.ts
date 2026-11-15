@@ -76,10 +76,6 @@ import {
   getEditTransactionView,
   getNewTransactionView,
 } from "internal/transaction/service/read/transactionFormService";
-import {
-  buildFilteredTransactionListItems,
-  loadTransactionGroupLoaderContext,
-} from "internal/transaction/service/read/transactionContext";
 import { loadFilteredTransactionPage } from "internal/transaction/service/read/filteredTransactionPage";
 import {
   getTransactionReadDependencies,
@@ -89,7 +85,6 @@ import {
 } from "internal/transaction/service/read/transactionReadAccess";
 import { loadTransactionFilterOptions } from "internal/transaction/service/read/options";
 import {
-  buildTransactionSearchPage,
   emptyTransactionSearchPage,
   normalizeTransactionSearchQuery,
 } from "internal/transaction/util/transactionSearchHelpers";
@@ -163,7 +158,6 @@ export interface TransactionService {
     currentLedger: CurrentLedger,
     rawQuery: string,
     offset?: number,
-    filters?: TransactionFilters,
   ): Promise<TransactionSearchPage>;
   updateNormal(input: UpdateNormalTransactionInput): Promise<void>;
   updateTransfer(input: UpdateTransferTransactionInput): Promise<void>;
@@ -617,24 +611,21 @@ export function createTransactionService({
       };
     },
 
-    async search(
-      currentLedger,
-      rawQuery,
-      offset = 0,
-      filters = defaultTransactionFilters,
-    ) {
+    async search(currentLedger, rawQuery, offset = 0) {
       const query = normalizeTransactionSearchQuery(rawQuery);
       if (!query) return emptyTransactionSearchPage;
       const ledger = await requireReadLedger(currentLedger);
-      const context = await loadTransactionGroupLoaderContext(
+      const page = await loadFilteredTransactionPage(
         getReadDependencies(),
         ledger,
+        { scope: "records", query, offset },
+        defaultTransactionFilters,
       );
-      return buildTransactionSearchPage(
-        buildFilteredTransactionListItems(context, filters),
-        query,
-        offset,
-      );
+      return {
+        items: page.items,
+        nextOffset: page.nextOffset,
+        totalCount: page.totalCount,
+      };
     },
 
     async updateNormal(input) {

@@ -1060,6 +1060,12 @@ describe("TransactionService", () => {
           type: "normal",
         },
       ]),
+      loadFilteredPage: vi.fn().mockResolvedValue({
+        entries: [{ recordId: transactionRecordId, itemId: null }],
+        nextOffset: null,
+        settledCount: 0,
+        totalCount: 1,
+      }),
     });
     const { service } = createService("member", repository, "expense");
 
@@ -1077,6 +1083,140 @@ describe("TransactionService", () => {
     expect(page.items[0]).toMatchObject({
       amount: "7930",
       id: transactionRecordId,
+    });
+  });
+
+
+  describe("明细搜索数据库分页", () => {
+    const ledger = {
+      baseCurrency: "JPY",
+      currentUserRole: "member",
+      id: ledgerId,
+      name: "家庭账本",
+    } as const;
+
+    it("空关键词不请求数据库也不检查账本权限", async () => {
+      const { repository, service } = createService(null);
+      expect(await service.search(ledger, "  ")).toEqual({
+        items: [],
+        nextOffset: null,
+        totalCount: 0,
+      });
+      expect(repository.loadFilteredPage).not.toHaveBeenCalled();
+      expect(repository.listRecords).not.toHaveBeenCalled();
+    });
+
+    it("规整关键词并沿用数据库的顺序和分页元数据，跳过读不到的记录", async () => {
+      const secondId = "00000000-0000-4000-8000-000000009998";
+      const missingId = "00000000-0000-4000-8000-000000009997";
+      const record = (id: string) => ({
+        created_at: "2026-08-01T10:00:00.000Z",
+        created_by: userId,
+        id,
+        merchant_id: null,
+        note: "相同备注",
+        transaction_at: "2026-08-01T10:00:00.000Z",
+        type: "normal",
+      });
+      const repository = createRepository({
+        loadFilteredPage: vi.fn().mockResolvedValue({
+          entries: [
+            { recordId: secondId, itemId: null },
+            { recordId: transactionRecordId, itemId: null },
+            { recordId: missingId, itemId: null },
+          ],
+          nextOffset: 40,
+          settledCount: 0,
+          totalCount: 43,
+        }),
+        // Repository 返回顺序故意与 RPC 相反。
+        listRecords: vi.fn().mockResolvedValue([
+          record(transactionRecordId),
+          record(secondId),
+        ]),
+        listItems: vi.fn().mockResolvedValue([
+          {
+            amount: "150",
+            category_id: normalInput.items[0].categoryId,
+            transaction_record_id: transactionRecordId,
+          },
+          {
+            amount: "200",
+            category_id: normalInput.items[0].categoryId,
+            transaction_record_id: secondId,
+          },
+        ]),
+      });
+      const { service } = createService("member", repository, "expense");
+      const query = `  ${"A".repeat(90)}  `;
+      const result = await service.search(ledger, query, 20);
+
+      expect(repository.loadFilteredPage).toHaveBeenCalledWith({
+        ledgerId,
+        scope: "records",
+        query: "A".repeat(80),
+        offset: 20,
+      });
+      expect(repository.listRecords).toHaveBeenCalledWith({
+        ledgerId,
+        recordIds: [secondId, transactionRecordId, missingId],
+        recordType: "all",
+      });
+      expect(result.items.map((item) => item.id)).toEqual([
+        secondId,
+        transactionRecordId,
+      ]);
+      expect(result).toMatchObject({
+        nextOffset: 40,
+        totalCount: 43,
+      });
+      expect(repository.listRecords).toHaveBeenCalledTimes(1);
+    });
+
+    it("按 RPC 返回的下一页游标读取，最后一页为 null", async () => {
+      const repository = createRepository({
+        loadFilteredPage: vi
+          .fn()
+          .mockResolvedValueOnce({
+            entries: [],
+            nextOffset: 20,
+            settledCount: 0,
+            totalCount: 21,
+          })
+          .mockResolvedValueOnce({
+            entries: [],
+            nextOffset: null,
+            settledCount: 0,
+            totalCount: 21,
+          }),
+      });
+      const { service } = createService("member", repository);
+      const first = await service.search(ledger, "咖啡");
+      const second = await service.search(ledger, "咖啡", first.nextOffset ?? 0);
+
+      expect(first).toEqual({ items: [], nextOffset: 20, totalCount: 21 });
+      expect(second).toEqual({ items: [], nextOffset: null, totalCount: 21 });
+      expect(repository.loadFilteredPage).toHaveBeenNthCalledWith(1, {
+        ledgerId,
+        scope: "records",
+        query: "咖啡",
+        offset: 0,
+      });
+      expect(repository.loadFilteredPage).toHaveBeenNthCalledWith(2, {
+        ledgerId,
+        scope: "records",
+        query: "咖啡",
+        offset: 20,
+      });
+      expect(repository.listRecords).not.toHaveBeenCalled();
+    });
+
+    it("非成员无法执行搜索 RPC", async () => {
+      const { repository, service } = createService(null);
+      await expect(service.search(ledger, "咖啡")).rejects.toBeInstanceOf(
+        NotFoundError,
+      );
+      expect(repository.loadFilteredPage).not.toHaveBeenCalled();
     });
   });
 
