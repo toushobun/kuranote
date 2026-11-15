@@ -1,0 +1,1 @@
+import{c as e,i as t}from"./preload-helper-D2yxXLVK.js";import{t as n}from"./react-DAMDAfNa.js";function r(){let[e,t]=(0,i.useState)(0);return(0,i.useEffect)(()=>{if(e<=0)return;let n=window.setInterval(()=>{t(e=>Math.max(0,e-1))},1e3);return()=>window.clearInterval(n)},[e]),[e,t]}var i,a=t((()=>{i=e(n())}));export{r as n,a as t};
