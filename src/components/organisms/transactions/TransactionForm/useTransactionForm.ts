@@ -631,7 +631,9 @@ export function useTransactionForm({
         editingPickerItem?.refundCandidate ??
         editingPickerItem?.reimbursementCandidate;
       const retargeted =
-        editingItemId !== null && originalTarget?.id !== selectedTarget.id;
+        editingItemId !== null &&
+        originalTarget !== undefined &&
+        originalTarget.id !== selectedTarget.id;
       const nextMerchantId = selectedTarget.merchantId;
       const nextAccountId = selectedTarget.accountId;
       const canWriteMerchant =
@@ -642,8 +644,10 @@ export function useTransactionForm({
         accountOptions.some((account) => account.id === nextAccountId);
       if (
         canWriteMerchant &&
-        (!selectedMerchantId ||
-          (retargeted && tracked.merchantId === selectedMerchantId))
+        (retargeted
+          ? tracked.merchantId !== undefined &&
+            tracked.merchantId === selectedMerchantId
+          : !selectedMerchantId)
       ) {
         setSelectedMerchantId(nextMerchantId);
         setLinkMerchantTouched(true);
@@ -651,8 +655,10 @@ export function useTransactionForm({
       }
       if (
         canWriteAccount &&
-        (!selectedAccountId ||
-          (retargeted && tracked.accountId === selectedAccountId))
+        (retargeted
+          ? tracked.accountId !== undefined &&
+            tracked.accountId === selectedAccountId
+          : !selectedAccountId)
       ) {
         const primaryPayment = paymentFields.payments[0];
         if (primaryPayment) {
