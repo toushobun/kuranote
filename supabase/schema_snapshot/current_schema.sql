@@ -4427,6 +4427,9 @@ candidate_base as (
         tr.merchant_id,
         tr.note as record_note,
         ti.note as item_note,
+        cat.name as category_name,
+        parent_cat.name as parent_category_name,
+        first_payment.account_name,
         ti.amount as item_amount,
         greatest(
             ti.amount
@@ -4478,6 +4481,8 @@ candidate_base as (
       on cat.id = ti.category_id and cat.ledger_id = ti.ledger_id
      and cat.type = 'expense'
     join public.ledger ledger on ledger.id = tr.ledger_id
+    left join public.category parent_cat
+      on parent_cat.id = cat.parent_id and parent_cat.ledger_id = cat.ledger_id
     left join public.merchant m
       on m.id = tr.merchant_id and m.ledger_id = tr.ledger_id
     -- 列表显示的是首选别名；搜索必须与 MerchantRepository 的显示名称一致。
@@ -4493,7 +4498,7 @@ candidate_base as (
     left join public.ledger_member_display_setting setting
       on setting.ledger_id = tr.ledger_id and setting.user_id = tr.created_by
     left join lateral (
-        select a.currency
+        select a.currency, a.name as account_name
         from public.transaction_payment payment
         join public.account a
           on a.id = payment.account_id and a.ledger_id = payment.ledger_id
@@ -4532,6 +4537,10 @@ candidate_matched as (
     where args.term = ''
        or strpos(lower(coalesce(preferred_merchant_name, '')), args.term) > 0
        or strpos(lower(coalesce(record_note, first_item_note, '')), args.term) > 0
+       or strpos(lower(coalesce(item_note, '')), args.term) > 0
+       or strpos(lower(coalesce(account_name, '')), args.term) > 0
+       or strpos(lower(coalesce(category_name, '')), args.term) > 0
+       or strpos(lower(coalesce(parent_category_name, '')), args.term) > 0
        or strpos(lower(coalesce(recorder_name, '')), args.term) > 0
        or (
            args.amount_term ~ '[0-9]'
@@ -4612,18 +4621,21 @@ record_matched as (
 ),
 all_matches as (
     select
-        record_id, item_id, transaction_at, created_at, merchant_id, sort_order
+        record_id, item_id, transaction_at, created_at, merchant_id, sort_order,
+        coalesce(nullif(btrim(item_note), ''), nullif(btrim(record_note), '')) as candidate_note
     from candidate_matched
     where settled = p_settled
     union all
     select
-        record_id, item_id, transaction_at, created_at, merchant_id, sort_order
+        record_id, item_id, transaction_at, created_at, merchant_id, sort_order,
+        null::text as candidate_note
     from record_matched
 ),
 ordered_page as (
     select
         record_id,
         item_id,
+        candidate_note,
         row_number() over (
             order by
                 case when p_scope = 'candidates'
@@ -4651,6 +4663,9 @@ select jsonb_build_object(
     'entries', coalesce((
         select jsonb_agg(
             jsonb_build_object('recordId', record_id, 'itemId', item_id)
+            || case when p_scope = 'candidates'
+              then jsonb_build_object('note', candidate_note)
+              else '{}'::jsonb end
             order by ordinal
         )
         from page
