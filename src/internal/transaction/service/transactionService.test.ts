@@ -1129,10 +1129,9 @@ describe("TransactionService", () => {
           totalCount: 43,
         }),
         // Repository 返回顺序故意与 RPC 相反。
-        listRecords: vi.fn().mockResolvedValue([
-          record(transactionRecordId),
-          record(secondId),
-        ]),
+        listRecords: vi
+          .fn()
+          .mockResolvedValue([record(transactionRecordId), record(secondId)]),
         listItems: vi.fn().mockResolvedValue([
           {
             amount: "150",
@@ -1191,7 +1190,11 @@ describe("TransactionService", () => {
       });
       const { service } = createService("member", repository);
       const first = await service.search(ledger, "咖啡");
-      const second = await service.search(ledger, "咖啡", first.nextOffset ?? 0);
+      const second = await service.search(
+        ledger,
+        "咖啡",
+        first.nextOffset ?? 0,
+      );
 
       expect(first).toEqual({ items: [], nextOffset: 20, totalCount: 21 });
       expect(second).toEqual({ items: [], nextOffset: null, totalCount: 21 });
