@@ -133,6 +133,42 @@ select tests.insert_normal_transaction_items(jsonb_build_array(jsonb_build_objec
     'updated_by', '00000000-0000-4000-8000-000000000031'
 )));
 
+-- 原 SQL 的普通记录金额仅含有分类的明细：用合法 helper 写正常明细，
+-- 然后仅在本事务临时关闭校验触发器，插入普通流程不允许的 category_id=NULL 明细。
+insert into public.transaction_record (
+    id, ledger_id, type, transaction_at, merchant_id, note, created_by, updated_by
+) values (
+    '10990000-0000-4000-8000-000000000055',
+    '00000000-0000-4000-8000-000000000032',
+    'normal', '2098-02-01 00:00:00+00',
+    '00000000-0000-4000-8000-000000001002',
+    '1099大小写 MIXEDCASE ＡＢＣ',
+    '00000000-0000-4000-8000-000000000031', '00000000-0000-4000-8000-000000000031'
+);
+select tests.insert_normal_transaction_items(jsonb_build_array(jsonb_build_object(
+    'id', '10992100-0000-4000-8000-000000000055',
+    'ledger_id', '00000000-0000-4000-8000-000000000032',
+    'transaction_record_id', '10990000-0000-4000-8000-000000000055',
+    'account_id', '00000000-0000-4000-8000-000000000043',
+    'category_id', '00000000-0000-4000-8000-000000005021',
+    'amount', 12877, 'sort_order', 0,
+    'created_by', '00000000-0000-4000-8000-000000000031',
+    'updated_by', '00000000-0000-4000-8000-000000000031'
+)));
+-- validate_transaction_item_category_shape 拒绝普通记录的 NULL 分类；replica 仅用于此条 fixture。
+set local session_replication_role = replica;
+insert into public.transaction_item (
+    id, ledger_id, transaction_record_id, category_id,
+    amount, sort_order, created_by, updated_by
+) values (
+    '10992100-0000-4000-8000-000000000056',
+    '00000000-0000-4000-8000-000000000032',
+    '10990000-0000-4000-8000-000000000055',
+    null, 936425, 1,
+    '00000000-0000-4000-8000-000000000031', '00000000-0000-4000-8000-000000000031'
+);
+set local session_replication_role = origin;
+
 -- 同交易时间按创建时间倒序，再按 UUID 倒序。
 insert into public.transaction_record (
     id, ledger_id, type, transaction_at, created_at,
@@ -267,8 +303,20 @@ select is((pg_temp.search_page('1099尾部不可匹配')->>'totalCount')::intege
     '字段超过 80 字的后半段不命中');
 select is((pg_temp.search_page('1099长备注空白')->>'totalCount')::integer, 1,
     '长备注头部的制表符、全角空格先裁剪再按 80 字搜索');
-select ok((pg_temp.search_page('1099成员昵称')->>'totalCount')::integer >= 23,
-    '记录人使用账本成员显示名优先');
+select is((pg_temp.search_page('mixedcase')->>'totalCount')::integer, 1,
+    '英文大写备注可用英文小写搜索');
+select is((pg_temp.search_page('ａｂｃ')->>'totalCount')::integer, 1,
+    '全角英文大写备注可用全角小写搜索');
+select is((pg_temp.search_page('936425')->>'totalCount')::integer, 0,
+    '无分类明细的独有金额不会被搜索匹配');
+select ok(exists (
+    select 1 from jsonb_array_elements(pg_temp.search_page('12877')->'entries') entry
+    where entry->>'recordId' = '10990000-0000-4000-8000-000000000055'
+), '同记录有分类明细的金额仍能匹配');
+select ok(exists (
+    select 1 from jsonb_array_elements(pg_temp.search_page('1099成员昵称')->'entries') entry
+    where entry->>'recordId' = '10990000-0000-4000-8000-000000000042'
+), '记录人使用账本成员昵称命中指定记录');
 
 select ok(exists (
     select 1 from jsonb_array_elements(pg_temp.search_page('业务超市')->'entries') entry
@@ -308,40 +356,36 @@ select is((pg_temp.search_page('61983')->>'totalCount')::integer, 1,
     '转账按照展示金额匹配');
 select is((pg_temp.search_page('1099转账')->>'totalCount')::integer, 1,
     '转账按照记录备注匹配');
+-- balance_adjustment_no_merchant CHECK 禁止余额调整带商家；改用允许带商家 ID 的转账。
+-- 这条转账的时间放到最前，避免错误匹配时被 20 条分页截断而漏报。
+reset role;
+update public.transaction_record
+set merchant_id = '00000000-0000-4000-8000-000000001001',
+    transaction_at = '2101-01-01 00:00:00+00'
+where ledger_id = '00000000-0000-4000-8000-000000000032'
+  and type = 'transfer' and note = '1099转账';
+set local role authenticated;
+select is((
+    select count(*)::integer from public.transaction_record
+    where ledger_id = '00000000-0000-4000-8000-000000000032'
+      and type = 'transfer' and note = '1099转账'
+      and merchant_id = '00000000-0000-4000-8000-000000001001'
+), 1, '非普通记录已设置真实商家 ID');
+select ok(not exists (
+    select 1 from jsonb_array_elements(pg_temp.search_page('业务超市')->'entries') entry
+    join public.transaction_record tr on tr.id = (entry->>'recordId')::uuid
+    where tr.type = 'transfer' and tr.note = '1099转账'
+), '商家名称搜索不命中带商家 ID 的转账');
+select ok(exists (
+    select 1 from jsonb_array_elements(pg_temp.search_page('业务超市')->'entries') entry
+    where entry->>'recordId' = '10990000-0000-4000-8000-000000000042'
+), '相同商家的普通记录仍然命中');
 select is((pg_temp.search_page('1099作废')->>'totalCount')::integer, 0,
     '作废记录不出现');
 select is((pg_temp.search_page('1099根本不存在')->>'totalCount')::integer, 0,
     '没有命中时总数为零');
 select is(pg_temp.search_page('1099根本不存在')->>'nextOffset', null::text,
     '没有命中时不提供下一页');
-
--- 仅用于 pgTAP 回归时记录实际数据库计划，不增加应用日志或性能阈值断言。
-create function pg_temp.explain_search(p_query text)
-returns text language plpgsql as $bench$
-declare
-    plan_line text;
-    detail text := '';
-begin
-    for plan_line in execute format(
-        $plan$explain (analyze, buffers)
-          select public.load_filtered_transaction_page(
-              p_ledger_id => '00000000-0000-4000-8000-000000000032',
-              p_scope => 'records',
-              p_query => %L
-          )$plan$,
-        p_query
-    ) loop
-        if plan_line like 'Execution Time:%' or plan_line like '%Buffers:%' then
-            detail := detail || plan_line || E'\\n';
-        end if;
-    end loop;
-    return detail;
-end;
-$bench$;
-select diag('1099 多条命中 EXPLAIN (ANALYZE, BUFFERS): '
-    || pg_temp.explain_search('1099分页'));
-select diag('1099 零命中 EXPLAIN (ANALYZE, BUFFERS): '
-    || pg_temp.explain_search('1099根本不存在'));
 
 -- 已归档的首选别名不再作为商家展示名，回退为商家主名称。
 reset role;
