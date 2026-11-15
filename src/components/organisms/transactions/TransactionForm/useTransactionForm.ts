@@ -91,6 +91,10 @@ export function useTransactionForm({
     initialValues.merchantId,
   );
   const [linkMerchantTouched, setLinkMerchantTouched] = useState(false);
+  // 记录每条关联明细确实自动写入的字段；手动修改后失去跟随资格。
+  const autoLinkedFields = useRef(
+    new Map<number, { merchantId?: string; accountId?: string }>(),
+  );
   const [itemsByType, setItemsByType] = useState<
     Record<TransactionType, TransactionFormItem[]>
   >(() =>
@@ -429,6 +433,7 @@ export function useTransactionForm({
   }
 
   function removeItem(itemId: number) {
+    autoLinkedFields.current.delete(itemId);
     setItemsByType((current) => ({
       expense: current.expense.filter((item) => item.id !== itemId),
       income: current.income.filter((item) => item.id !== itemId),
@@ -589,6 +594,7 @@ export function useTransactionForm({
     }
 
     setPickerErrors({});
+    let committedItemId = editingItemId;
     // 退款 / 报销选定目标但未输入金额时，确认即保存 0（待定金额）。
     const amountToSave =
       selectedTarget && !pickerAmount.trim() ? "0" : pickerAmount;
@@ -600,6 +606,7 @@ export function useTransactionForm({
         pickerRefundCandidate,
         pickerReimbursementCandidate,
       );
+      committedItemId = itemId;
       if (pickerMode !== "refund" && pickerMode !== "reimbursement") {
         onPickerItemCommit?.(itemId);
       }
@@ -618,32 +625,49 @@ export function useTransactionForm({
       onPickerItemCommit?.(editingItemId);
     // 仅在关联明细确实写入小票后，才自动补全商家与收款账户。
     // 选择器内点选、改选或取消都只改草稿，不影响小票。
-    if (selectedTarget) {
-      if (
-        !selectedMerchantId &&
+    if (selectedTarget && committedItemId !== null) {
+      const tracked = autoLinkedFields.current.get(committedItemId) ?? {};
+      const originalTarget =
+        editingPickerItem?.refundCandidate ??
+        editingPickerItem?.reimbursementCandidate;
+      const retargeted =
+        editingItemId !== null && originalTarget?.id !== selectedTarget.id;
+      const canWriteMerchant =
         selectedTarget.merchantId &&
         merchantOptions.some(
           (merchant) => merchant.id === selectedTarget.merchantId,
-        )
-      ) {
-        setSelectedMerchantId(selectedTarget.merchantId);
-        setLinkMerchantTouched(true);
-      }
-      if (
-        !selectedAccountId &&
+        );
+      const canWriteAccount =
         selectedTarget.accountId &&
         accountOptions.some(
           (account) => account.id === selectedTarget.accountId,
-        )
+        );
+      if (
+        canWriteMerchant &&
+        (!selectedMerchantId ||
+          (retargeted && tracked.merchantId === selectedMerchantId))
+      ) {
+        setSelectedMerchantId(selectedTarget.merchantId);
+        setLinkMerchantTouched(true);
+        tracked.merchantId = selectedTarget.merchantId;
+      }
+      if (
+        canWriteAccount &&
+        (!selectedAccountId ||
+          (retargeted && tracked.accountId === selectedAccountId))
       ) {
         const primaryPayment = paymentFields.payments[0];
         if (primaryPayment) {
           handlePaymentAccountChange(
             primaryPayment.key,
             selectedTarget.accountId,
+            true,
           );
+          tracked.accountId = selectedTarget.accountId;
         }
       }
+      if (tracked.merchantId || tracked.accountId)
+        autoLinkedFields.current.set(committedItemId, tracked);
     }
     setEditingItemId(null);
     setPickerCategoryId("");
@@ -656,13 +680,25 @@ export function useTransactionForm({
 
   function handleMerchantChange(merchantId: string) {
     // 重新选了同一个商家不算修改（#962）。
+    if (merchantId !== selectedMerchantId) {
+      for (const tracked of autoLinkedFields.current.values())
+        delete tracked.merchantId;
+    }
     setSelectedMerchantId(merchantId);
   }
 
-  function handlePaymentAccountChange(key: number, accountId: string) {
+  function handlePaymentAccountChange(
+    key: number,
+    accountId: string,
+    automatic = false,
+  ) {
     if (key !== paymentFields.payments[0]?.key) {
       paymentFields.changeAccount(key, accountId);
       return;
+    }
+    if (!automatic && accountId !== selectedAccountId) {
+      for (const tracked of autoLinkedFields.current.values())
+        delete tracked.accountId;
     }
     handlePrimaryAccountChange(key, accountId);
   }
