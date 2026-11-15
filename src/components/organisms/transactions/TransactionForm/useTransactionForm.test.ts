@@ -1314,6 +1314,22 @@ describe("useTransactionForm", () => {
     expect(result.current.selectedAccount?.id).toBe("account-2");
   });
 
+  it("手动清空自动带出商家后，改选原支出不会重新自动填入", () => {
+    const { result } = renderTransactionFormHook({
+      categoryOptions: allLinkCategories,
+    });
+    const id = addOriginal(result, "refund", refundCandidate);
+    act(() => result.current.handleMerchantChange(""));
+    retargetOriginal(result, id, "refund", {
+      ...refundCandidate,
+      id: "changed-original-after-merchant-clear",
+      merchantId: "merchant-2",
+      accountId: "account-2",
+    });
+    expect(result.current.selectedMerchantId).toBe("");
+    expect(result.current.selectedAccount?.id).toBe("account-2");
+  });
+
   it("手动改过首个账户后只让商家跟随原支出的改选", () => {
     const { result } = renderTransactionFormHook({
       categoryOptions: allLinkCategories,
