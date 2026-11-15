@@ -133,6 +133,32 @@ select ok(not has_function_privilege('anon',
     'public.load_filtered_transaction_page(uuid, text, text, uuid, text, text[], boolean, integer, integer, uuid, text)',
     'EXECUTE'), 'anon 没有候选 RPC 执行权限');
 
+-- 在相同权限和 seed 数据下各记录一次 EXPLAIN (ANALYZE, BUFFERS)；
+-- 通过 pgTAP diag 发送至 CI 输出，供 PR 记载真实数值。
+create function pg_temp.explain_1108(p_term text)
+returns text language plpgsql as $
+declare
+    v_plan jsonb;
+begin
+    execute format(
+        'EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) '
+        || 'select public.load_filtered_transaction_page('
+        || 'p_ledger_id => %L::uuid, p_scope => %L, p_query => %L, p_limit => 20)',
+        '00000000-0000-4000-8000-000000000032', 'candidates', p_term
+    ) into v_plan;
+    return format(
+        '候选查询 term=%L: execution=%s ms, planning=%s ms, shared_hit=%s, shared_read=%s',
+        p_term,
+        v_plan->0->>'Execution Time',
+        v_plan->0->>'Planning Time',
+        v_plan->0->'Plan'->>'Shared Hit Blocks',
+        v_plan->0->'Plan'->>'Shared Read Blocks'
+    );
+end;
+$;
+select diag(pg_temp.explain_1108(''));
+select diag(pg_temp.explain_1108('1108明细备注甲'));
+
 select set_config(
     'request.jwt.claims',
     '{"sub":"11080000-0000-4000-8000-000000000999","role":"authenticated"}',
