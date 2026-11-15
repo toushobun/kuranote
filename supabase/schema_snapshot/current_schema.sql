@@ -4540,6 +4540,7 @@ record_matched as (
             ), 0::numeric) as net_amount,
             coalesce(bool_or(
                 (select amount_term from args) ~ '[0-9]'
+                and ti.category_id is not null
                 and strpos(trim_scale(ti.amount)::text, (select amount_term from args)) > 0
             ), false) as has_item_amount
         from public.transaction_item_with_refund ti
@@ -4556,9 +4557,9 @@ record_matched as (
       and (select public.current_user_is_active_ledger_member(p_ledger_id))
       and (
           args.term = ''
-          or strpos(lower(coalesce(preferred_alias.alias, m.name, '')), args.term) > 0
-          or strpos(lower(coalesce(case when tr.type = 'normal' then coalesce(tr.note, amounts.first_note) else tr.note end, '')), args.term) > 0
-          or strpos(lower(coalesce(nullif(trim(setting.display_name), ''), au.display_name, '')), args.term) > 0
+          or (tr.type = 'normal' and strpos(lower(left(btrim(coalesce(preferred_alias.alias, m.name, ''), U&'\0009\000A\000B\000C\000D\0020\00A0\1680\2000\2001\2002\2003\2004\2005\2006\2007\2008\2009\200A\2028\2029\202F\205F\3000\FEFF'), 80)), args.term) > 0)
+          or strpos(lower(left(btrim(coalesce(case when tr.type = 'normal' then coalesce(tr.note, amounts.first_note) else tr.note end, ''), U&'\0009\000A\000B\000C\000D\0020\00A0\1680\2000\2001\2002\2003\2004\2005\2006\2007\2008\2009\200A\2028\2029\202F\205F\3000\FEFF'), 80)), args.term) > 0
+          or strpos(lower(left(btrim(coalesce(nullif(btrim(setting.display_name, U&'\0009\000A\000B\000C\000D\0020\00A0\1680\2000\2001\2002\2003\2004\2005\2006\2007\2008\2009\200A\2028\2029\202F\205F\3000\FEFF'), ''), au.display_name, ''), U&'\0009\000A\000B\000C\000D\0020\00A0\1680\2000\2001\2002\2003\2004\2005\2006\2007\2008\2009\200A\2028\2029\202F\205F\3000\FEFF'), 80)), args.term) > 0
           or (
               args.amount_term ~ '[0-9]'
               and (
