@@ -409,3 +409,27 @@ migration 在新增 CHECK 之前，把残留的匿名待接受邀请（`placehol
 不再作为当前调用入口。上文 #395 的逐步骤 RPC 说明仅保留为迁移历史，
 不得作为现行接口规范。外层整个账本的删除仍通过
 `abandon_ledger_setup`；向导内的「放弃修改」不调用它。
+
+## Issue #1101：交易读取策略共享有效账本集合
+
+`20261114140000_optimize_transaction_item_view.sql` 新增
+`current_user_active_ledger_ids()`，供交易读取的 RLS 策略取得当前用户的有效账本集合。
+函数为 `STABLE SECURITY DEFINER`，固定 `search_path = pg_catalog, pg_temp`。
+用户身份只取 `auth.uid()`，仅返回该用户以 active 成员身份加入的账本 ID，
+且其 `app_user` 状态也必须为 active。撤销 PUBLIC / anon / service_role 的
+EXECUTE，仅授予 authenticated。
+
+以下四条 SELECT 策略改用不相关子查询
+`ledger_id IN (SELECT public.current_user_active_ledger_ids())`，
+账本成员判断与原来的 `current_user_is_active_ledger_member(ledger_id)` 语义相同，
+可避免逐行调用成员判断函数。
+
+- `transaction_item_refund_link_select_active_member`（`transaction_item_refund_link`）
+- `transaction_item_reimbursement_link_select_active_member`（`transaction_item_reimbursement_link`）
+- `transaction_record_select_active_member`（`transaction_record`）
+- `transaction_item_select_active_record`（`transaction_item`）
+
+记录和明细原有的有效记录条件继续生效，其他使用旧函数的策略保持原样。
+
+`transaction_item_with_refund` 保留 `security_invoker = true`，
+改用按明细关联的 `LATERAL` 子查询，只计算当前明细及其所关联原支出涉及的退款和报销抵消。

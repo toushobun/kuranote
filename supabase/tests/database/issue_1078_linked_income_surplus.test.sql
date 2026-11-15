@@ -1,7 +1,7 @@
 -- Issue #1078：退款与报销按发生顺序共用原支出的待核销额度。
 begin;
 set local search_path = public, extensions;
-select plan(11);
+select plan(16);
 
 update public.ledger
 set transaction_item_special_status_enabled = true
@@ -52,6 +52,29 @@ select public.apply_transaction_item_links(
   '00000000-0000-4000-8000-000000000031'
 )
 from generate_series(3, 6) seq;
+-- 以下各列的期望值来自优化前视图对同一组明细的查询结果。
+prepare linked_income_columns as
+  select right(id::text, 1)::integer, refunded_amount, reimbursement_amount, business_net_amount,
+         is_refund_income, is_reimbursement_income, has_refund_link, has_reimbursement_link
+  from public.transaction_item_with_refund
+  where ledger_id = '00000000-0000-4000-8000-000000000032'
+    and transaction_record_id in (
+      select ('10780000-0000-4000-8000-' || lpad(seq::text, 12, '0'))::uuid
+      from generate_series(1, 6) seq
+    )
+  order by id;
+
+select results_eq(
+  'execute linked_income_columns',
+  $$values (1, 2000::numeric, 980::numeric, 0::numeric, false, false, true, true),
+           (2, 0, 0, 800, false, false, false, false),
+           (3, 0, 0, 0, true, false, true, false),
+           (4, 0, 0, 0, false, true, false, true),
+           (5, 0, 0, 1000, true, false, true, false),
+           (6, 0, 0, 1000, true, false, true, false)$$,
+  '逐列保留原视图的零金额关联、混合核销、倒赚和无关联结果'
+);
+
 select is(
   (select array_agg(business_net_amount order by id)
    from public.transaction_item_with_refund where id in ('10781000-0000-4000-8000-000000000001', '10781000-0000-4000-8000-000000000003', '10781000-0000-4000-8000-000000000004', '10781000-0000-4000-8000-000000000005', '10781000-0000-4000-8000-000000000006')),
@@ -173,6 +196,62 @@ select is(
   array[980, 0, 600, 200]::numeric[],
   '删除较早的退款关联后恢复原支出，另一原支出的分配独立'
 );
+
+-- 恢复已解除的退款关联，重建前一组数据的关联状态后作废原支出。
+set local session_replication_role = replica;
+insert into public.transaction_item_refund_link (
+  ledger_id, refunded_item_id, refund_income_item_id, refund_amount
+) values (
+  '00000000-0000-4000-8000-000000000032',
+  '10781000-0000-4000-8000-000000000001',
+  '10781000-0000-4000-8000-000000000005', 1000
+);
+update public.transaction_item_refund_link
+set refunded_item_id = '10781000-0000-4000-8000-000000000001'
+where refund_income_item_id = '10781000-0000-4000-8000-000000000006';
+update public.transaction_item set amount = 1000
+where id = '10781000-0000-4000-8000-000000000005';
+update public.transaction_record set status = 'deleted', deleted_at = now()
+where id = '10780000-0000-4000-8000-000000000001';
+set local session_replication_role = origin;
+
+select results_eq(
+  'execute linked_income_columns',
+  $$values (1, 2000::numeric, 0::numeric, 980::numeric, false, false, true, true),
+           (2, 0, 0, 800, false, false, false, false),
+           (3, 0, 0, 0, false, false, true, false),
+           (4, 0, 0, 980, false, false, false, true),
+           (5, 0, 0, 1000, false, false, true, false),
+           (6, 0, 0, 1000, false, false, true, false)$$,
+  '逐列保留原视图对已作废支出和收入的关联金额、净额及标记'
+);
+
+set local role authenticated;
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"00000000-0000-4000-8000-000000000031","role":"authenticated"}',
+  true
+);
+select results_eq(
+  'execute linked_income_columns',
+  $$values (2, 0::numeric, 0::numeric, 800::numeric, false, false, false, false),
+           (3, 0, 0, 0, false, false, true, false),
+           (5, 0, 0, 1000, false, false, true, false),
+           (6, 0, 0, 1000, false, false, true, false)$$,
+  '有效成员的逐列结果保持一致，并由行级权限隐藏作废明细'
+);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"11010000-0000-4000-8000-000000000001","role":"authenticated"}',
+  true
+);
+select is_empty('execute linked_income_columns', '非账本成员看不到明细或关联结果');
+
+select set_config('request.jwt.claims', '{}', true);
+select is_empty('execute linked_income_columns', '没有登录用户的请求看不到明细或关联结果');
+
+deallocate linked_income_columns;
 
 select * from finish();
 rollback;
