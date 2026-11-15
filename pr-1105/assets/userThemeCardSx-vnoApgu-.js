@@ -1,1 +1,0 @@
-import{i as e}from"./preload-helper-D2yxXLVK.js";var t,n,r=e((()=>{t=`1px solid var(--user-theme-card-border)`,n={border:t}}));export{t as n,n as r,r as t};
