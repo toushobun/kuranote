@@ -320,7 +320,10 @@ select diag('1099 零命中 EXPLAIN (ANALYZE, BUFFERS): '
 
 -- 已归档的首选别名不再作为商家展示名，回退为商家主名称。
 reset role;
-update public.merchant_alias set is_archived = true
+update public.merchant_alias
+set is_archived = true,
+    archived_at = now(),
+    archived_by = '00000000-0000-4000-8000-000000000031'
 where id = '00000000-0000-4000-8000-000000003001';
 set local role authenticated;
 select is((pg_temp.search_page('业务超市')->>'totalCount')::integer, 0,
