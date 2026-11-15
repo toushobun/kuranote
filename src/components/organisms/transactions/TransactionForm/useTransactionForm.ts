@@ -632,7 +632,7 @@ export function useTransactionForm({
         editingPickerItem?.reimbursementCandidate;
       const retargeted =
         editingItemId !== null &&
-        originalTarget !== undefined &&
+        originalTarget != null &&
         originalTarget.id !== selectedTarget.id;
       const nextMerchantId = selectedTarget.merchantId;
       const nextAccountId = selectedTarget.accountId;
