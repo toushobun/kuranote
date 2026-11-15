@@ -290,6 +290,34 @@ select is((pg_temp.search_page('1099根本不存在')->>'totalCount')::integer, 
 select is(pg_temp.search_page('1099根本不存在')->>'nextOffset', null::text,
     '没有命中时不提供下一页');
 
+-- 仅用于 pgTAP 回归时记录实际数据库计划，不增加应用日志或性能阈值断言。
+create function pg_temp.explain_search(p_query text)
+returns text language plpgsql as $
+declare
+    plan_line text;
+    detail text := '';
+begin
+    for plan_line in execute format(
+        $plan$explain (analyze, buffers)
+          select public.load_filtered_transaction_page(
+              p_ledger_id => '00000000-0000-4000-8000-000000000032',
+              p_scope => 'records',
+              p_query => %L
+          )$plan$,
+        p_query
+    ) loop
+        if plan_line like 'Execution Time:%' or plan_line like '%Buffers:%' then
+            detail := detail || plan_line || E'\\n';
+        end if;
+    end loop;
+    return detail;
+end;
+$;
+select diag('1099 多条命中 EXPLAIN (ANALYZE, BUFFERS): '
+    || pg_temp.explain_search('1099分页'));
+select diag('1099 零命中 EXPLAIN (ANALYZE, BUFFERS): '
+    || pg_temp.explain_search('1099根本不存在'));
+
 -- 已归档的首选别名不再作为商家展示名，回退为商家主名称。
 reset role;
 update public.merchant_alias set is_archived = true
