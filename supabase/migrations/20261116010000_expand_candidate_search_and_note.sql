@@ -1,8 +1,4 @@
 -- #1108：候选模式支持账户与分类检索，并携带明细优先的备注；记录模式不变。
-drop function public.load_filtered_transaction_page(
-    uuid, text, text, uuid, text, text[], boolean, integer, integer, uuid
-);
-
 create or replace function public.load_filtered_transaction_page(
     p_ledger_id uuid,
     p_scope text,

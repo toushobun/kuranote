@@ -632,24 +632,22 @@ export function useTransactionForm({
         editingPickerItem?.reimbursementCandidate;
       const retargeted =
         editingItemId !== null && originalTarget?.id !== selectedTarget.id;
+      const nextMerchantId = selectedTarget.merchantId;
+      const nextAccountId = selectedTarget.accountId;
       const canWriteMerchant =
-        selectedTarget.merchantId &&
-        merchantOptions.some(
-          (merchant) => merchant.id === selectedTarget.merchantId,
-        );
+        nextMerchantId &&
+        merchantOptions.some((merchant) => merchant.id === nextMerchantId);
       const canWriteAccount =
-        selectedTarget.accountId &&
-        accountOptions.some(
-          (account) => account.id === selectedTarget.accountId,
-        );
+        nextAccountId &&
+        accountOptions.some((account) => account.id === nextAccountId);
       if (
         canWriteMerchant &&
         (!selectedMerchantId ||
           (retargeted && tracked.merchantId === selectedMerchantId))
       ) {
-        setSelectedMerchantId(selectedTarget.merchantId);
+        setSelectedMerchantId(nextMerchantId);
         setLinkMerchantTouched(true);
-        tracked.merchantId = selectedTarget.merchantId;
+        tracked.merchantId = nextMerchantId;
       }
       if (
         canWriteAccount &&
@@ -660,10 +658,10 @@ export function useTransactionForm({
         if (primaryPayment) {
           handlePaymentAccountChange(
             primaryPayment.key,
-            selectedTarget.accountId,
+            nextAccountId,
             true,
           );
-          tracked.accountId = selectedTarget.accountId;
+          tracked.accountId = nextAccountId;
         }
       }
       if (tracked.merchantId || tracked.accountId)

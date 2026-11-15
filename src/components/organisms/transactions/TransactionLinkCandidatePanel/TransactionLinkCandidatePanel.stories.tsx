@@ -99,6 +99,5 @@ export const DraftLockedFirst: Story = {
   args: {
     loadPageAction: loadMerchantPriorityPage,
     lockedAmounts: new Map([[selectedCandidate.id, "200"]]),
-    historyMerchantIds: [],
   },
 };
