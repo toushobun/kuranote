@@ -7,7 +7,11 @@ import {
 import { candidateItems } from "./transactionLinkCandidateFixtures";
 
 const target: TransactionRefundCandidate = candidateItems[0];
-const expense = (id: string, merchantId: string, day: number): TransactionRefundCandidate => ({
+const expense = (
+  id: string,
+  merchantId: string,
+  day: number,
+): TransactionRefundCandidate => ({
   ...target,
   id,
   merchantId,
@@ -20,28 +24,40 @@ const latest = expense("latest", "other", 4);
 
 describe("transactionLinkCandidateUtils", () => {
   it("退款按照小票锁定、历史商家、同商家、时间逆序排序", () => {
-    const sorted = sortLinkCandidates([latest, sameMerchant, historical, locked], {
-      kind: "refund",
-      merchantId: "amazon",
-      historyMerchantIds: ["history"],
-      lockedAmounts: new Map([["locked", "50"]]),
-      settled: false,
-    });
+    const sorted = sortLinkCandidates(
+      [latest, sameMerchant, historical, locked],
+      {
+        kind: "refund",
+        merchantId: "amazon",
+        historyMerchantIds: ["history"],
+        lockedAmounts: new Map([["locked", "50"]]),
+        settled: false,
+      },
+    );
     expect(sorted.map(({ id }) => id)).toEqual([
-      "locked", "historical", "same", "latest",
+      "locked",
+      "historical",
+      "same",
+      "latest",
     ]);
   });
 
   it("报销不使用同商家优先，锁定和历史优先后按时间倒序", () => {
-    const sorted = sortLinkCandidates([sameMerchant, latest, locked, historical], {
-      kind: "reimbursement",
-      merchantId: "amazon",
-      historyMerchantIds: ["history"],
-      lockedAmounts: new Map([["locked", "50"]]),
-      settled: false,
-    });
+    const sorted = sortLinkCandidates(
+      [sameMerchant, latest, locked, historical],
+      {
+        kind: "reimbursement",
+        merchantId: "amazon",
+        historyMerchantIds: ["history"],
+        lockedAmounts: new Map([["locked", "50"]]),
+        settled: false,
+      },
+    );
     expect(sorted.map(({ id }) => id)).toEqual([
-      "locked", "historical", "latest", "same",
+      "locked",
+      "historical",
+      "latest",
+      "same",
     ]);
   });
 

@@ -44,13 +44,13 @@ export function sortLinkCandidates(
       options.kind === "refund" &&
       options.merchantId &&
       candidate.merchantId === options.merchantId
-    ) return 2;
+    )
+      return 2;
     return 3;
   }
   return [...candidates].sort(
     (a, b) =>
       rank(a) - rank(b) ||
-      new Date(b.transactionAt).getTime() -
-        new Date(a.transactionAt).getTime(),
+      new Date(b.transactionAt).getTime() - new Date(a.transactionAt).getTime(),
   );
 }

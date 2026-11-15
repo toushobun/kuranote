@@ -101,20 +101,26 @@ describe("TransactionLinkCandidatePanel", () => {
     renderPanel();
     await screen.findByText("USB-C 充电器");
     const names = () =>
-      screen.getAllByRole("button", { name: /选择退款明细/ }).map((card) =>
-        card.getAttribute("aria-label"),
-      );
+      screen
+        .getAllByRole("button", { name: /选择退款明细/ })
+        .map((card) => card.getAttribute("aria-label"));
     const initialNames = names();
-    fireEvent.click(screen.getByRole("button", {
-      name: "选择退款明细 收纳盒",
-    }));
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "选择退款明细 收纳盒",
+      }),
+    );
     expect(names()).toEqual(initialNames);
-    expect(screen.getByRole("button", {
-      name: "选择退款明细 收纳盒",
-    })).toHaveAttribute("aria-pressed", "true");
-    fireEvent.click(screen.getByRole("button", {
-      name: "选择退款明细 咖啡豆 2 袋",
-    }));
+    expect(
+      screen.getByRole("button", {
+        name: "选择退款明细 收纳盒",
+      }),
+    ).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "选择退款明细 咖啡豆 2 袋",
+      }),
+    );
     expect(names()).toEqual(initialNames);
   });
 
