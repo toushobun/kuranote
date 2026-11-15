@@ -279,6 +279,7 @@ ordered_page as (
     select
         record_id,
         item_id,
+        candidate_note,
         row_number() over (
             order by
                 case when p_scope = 'candidates'
