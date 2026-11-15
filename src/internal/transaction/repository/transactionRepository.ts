@@ -191,7 +191,7 @@ export type FilteredTransactionPageInput = {
 };
 
 export type FilteredTransactionPageResult = {
-  entries: { recordId: string; itemId: string | null }[];
+  entries: { recordId: string; itemId: string | null; note?: string | null }[];
   nextOffset: number | null;
   settledCount: number;
   historyMerchantIds?: string[];
