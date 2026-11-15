@@ -129,7 +129,7 @@ describe("TransactionLinkCandidatePanel", () => {
       categoryName: "电子配件",
       parentCategoryName: "日常购物",
     };
-    const loadPage = vi.fn(async (input: Parameters<typeof loadCandidatePage>[0]) => ({
+    const loadPage = vi.fn(async () => ({
       items: [],
       nextOffset: null,
       settledCount: 0,

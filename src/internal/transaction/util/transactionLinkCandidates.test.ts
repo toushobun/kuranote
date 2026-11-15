@@ -54,6 +54,21 @@ describe("transactionLinkCandidates", () => {
       }),
     ]);
   });
+  it("候选备注优先使用明细备注，没有明细备注时使用记录备注", () => {
+    const detail = {
+      ...record,
+      note: "记录备注",
+      categoryItems: [
+        { ...record.categoryItems[0], note: "明细备注" },
+      ],
+    };
+    expect(toTransactionLinkCandidates([detail])[0]?.note).toBe("明细备注");
+    expect(toTransactionLinkCandidates([{
+      ...detail,
+      categoryItems: [{ ...record.categoryItems[0] }],
+    }])[0]?.note).toBe("记录备注");
+  });
+
   it("候选可携带原支出首个付款账户的 ID", () => {
     const candidates = toTransactionLinkCandidates([
       { ...record, account_id: "account-1" },
