@@ -97,6 +97,64 @@ describe("TransactionLinkCandidatePanel", () => {
         .filter((radio) => (radio as HTMLInputElement).checked),
     ).toHaveLength(1);
   });
+  it("新增时点击候选只改变选中样式，原有顺序保持不变", async () => {
+    renderPanel();
+    await screen.findByText("USB-C 充电器");
+    const names = () =>
+      screen.getAllByRole("button", { name: /选择退款明细/ }).map((card) =>
+        card.getAttribute("aria-label"),
+      );
+    const initialNames = names();
+    fireEvent.click(screen.getByRole("button", {
+      name: "选择退款明细 收纳盒",
+    }));
+    expect(names()).toEqual(initialNames);
+    expect(screen.getByRole("button", {
+      name: "选择退款明细 收纳盒",
+    })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", {
+      name: "选择退款明细 咖啡豆 2 袋",
+    }));
+    expect(names()).toEqual(initialNames);
+  });
+
+  it("草稿候选的重筛支持备注、账户与大小分类", async () => {
+    const affected = {
+      ...candidateItems[0],
+      id: "draft-outside-page",
+      merchantId: "outside",
+      merchantName: "另一家",
+      note: "蓝牙音箱限量版",
+      accountName: "家庭信用卡",
+      categoryName: "电子配件",
+      parentCategoryName: "日常购物",
+    };
+    const loadPage = vi.fn(async (input: Parameters<typeof loadCandidatePage>[0]) => ({
+      items: [],
+      nextOffset: null,
+      settledCount: 0,
+      historyMerchantIds: [],
+    }));
+    renderPanel({
+      linkAffectedCandidates: [affected],
+      loadPageAction: loadPage,
+    });
+    await screen.findByRole("button", { name: "选择退款明细 电子配件" });
+    for (const query of ["限量版", "家庭信用卡", "电子配件", "日常购物"]) {
+      fireEvent.change(screen.getByRole("textbox", { name: "搜索原支出" }), {
+        target: { value: query },
+      });
+      await waitFor(() =>
+        expect(loadPage).toHaveBeenLastCalledWith(
+          expect.objectContaining({ query }),
+        ),
+      );
+      expect(
+        screen.getByRole("button", { name: "选择退款明细 电子配件" }),
+      ).toBeInTheDocument();
+    }
+  });
+
   it("未选账户时不传币种过滤，异币种候选可直接选择", async () => {
     const onChange = vi.fn();
     const loadPage = vi.fn().mockResolvedValue({
@@ -236,7 +294,7 @@ describe("TransactionLinkCandidatePanel", () => {
     expect(screen.getByText("待报销")).toBeVisible();
     expect(screen.getByText("Amazon · 11/08 · 乐天信用卡")).toBeVisible();
   });
-  it("已关联的页外原支出置顶，后续页去重，改选后置顶新候选", async () => {
+  it("编辑打开时的页外原支出固定置顶，分页去重且改选后不跳动", async () => {
     const loadPage = vi
       .fn()
       .mockResolvedValueOnce({ items: [candidateItems[0]], nextOffset: 1 })
@@ -263,9 +321,10 @@ describe("TransactionLinkCandidatePanel", () => {
       screen.getByRole("button", { name: "选择退款明细 咖啡豆 2 袋" }),
     );
     const cards = screen.getAllByRole("button", { name: /选择退款明细/ });
-    expect(cards[0]).toHaveAccessibleName("选择退款明细 咖啡豆 2 袋");
-    expect(cards[0]).toHaveAttribute("aria-pressed", "true");
-    expect(old).toHaveAttribute("aria-pressed", "false");
+    expect(cards[0]).toHaveAccessibleName("选择退款明细 往年差旅支出");
+    expect(cards[0]).toHaveAttribute("aria-pressed", "false");
+    expect(cards[2]).toHaveAccessibleName("选择退款明细 咖啡豆 2 袋");
+    expect(cards[2]).toHaveAttribute("aria-pressed", "true");
   });
   it("搜索跨商家并保留已选卡片", async () => {
     const loadPage = vi.fn().mockResolvedValue(candidatePage);
@@ -363,10 +422,10 @@ describe("TransactionLinkCandidatePanel", () => {
       const selected = screen.getByRole("button", { name });
       expect(selected).toHaveAttribute("aria-pressed", "true");
     });
-    // 已选的结清原支出置顶后，不再计入折叠数量。
+    // 新选中已结清的候选仍留在已结清组内，不扣减折叠数量。
     expect(
-      screen.queryByRole("button", { name: "已结清的支出（1 笔）" }),
-    ).not.toBeInTheDocument();
+      screen.getByRole("button", { name: "已结清的支出（1 笔）" }),
+    ).toHaveAttribute("aria-expanded", "true");
     expect(loadPage).toHaveBeenCalledTimes(2);
   });
 
