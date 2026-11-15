@@ -888,6 +888,17 @@ describe("TransactionService", () => {
     return { ...context, ledger };
   }
 
+  it.each(["refund", "reimbursement"] as const)(
+    "候选分页将关联类型 %s 传入 repository",
+    async (kind) => {
+      const { service, ledger, repository } = candidateService();
+      await service.getLinkCandidatePage(ledger, kind, {});
+      expect(repository.loadFilteredPage).toHaveBeenCalledWith(
+        expect.objectContaining({ scope: "candidates", linkKind: kind }),
+      );
+    },
+  );
+
   it("候选按明细分页并按日期倒序，服务端按币种过滤、商家优先排序", async () => {
     const { service, ledger, repository } = candidateService();
     const first = await service.getLinkCandidatePage(ledger, "refund", {

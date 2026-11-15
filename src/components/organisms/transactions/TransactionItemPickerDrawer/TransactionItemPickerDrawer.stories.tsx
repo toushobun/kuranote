@@ -125,6 +125,21 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+export const MerchantHistoryAndLockedCandidate: Story = {
+  name: "历史商家优先 · 已添加原支出锁定",
+  args: {
+    pickerMode: "refund",
+    loadRefundPageAction: async (input) => ({
+      ...(await loadCandidatePage(input)),
+      items: input.settled
+        ? []
+        : [offPageCandidate, ...candidateItems.slice(0, 3)],
+      historyMerchantIds: [offPageCandidate.merchantId ?? ""],
+    }),
+    lockedLinkAmounts: new Map([[offPageCandidate.id, "750"]]),
+  },
+};
+
 export const Default: Story = {
   name: "选择分类",
 };

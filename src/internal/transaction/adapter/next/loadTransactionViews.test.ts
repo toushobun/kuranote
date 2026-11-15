@@ -101,7 +101,7 @@ describe("Transaction SSR adapter", () => {
       3,
       currentLedger,
       "reimbursement",
-      { merchantId: undefined, currency: "JPY", offset: 20 },
+      { merchantId, currency: "JPY", offset: 20 },
     );
     expect(mocks.getGroupView).not.toHaveBeenCalled();
     expect(mocks.getGroupItems).not.toHaveBeenCalled();

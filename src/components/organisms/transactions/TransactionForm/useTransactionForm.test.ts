@@ -315,7 +315,7 @@ describe("useTransactionForm", () => {
     expect(result.current.pickerAmount).toBe("1200");
   });
 
-  it("新建小票给同一目标关联第二笔退款时扣除第一笔草稿", () => {
+  it("添加时锁定已关联候选并显示改后的金额，编辑自己时解锁", () => {
     const { result } = renderTransactionFormHook({
       categoryOptions: refundCategoryOptions,
     });
@@ -331,11 +331,14 @@ describe("useTransactionForm", () => {
     act(() => result.current.updateItem(1, { amount: "200" }));
     act(() => result.current.openSheet());
     act(() => result.current.handlePickerModeChange("refund"));
-    act(() => result.current.setPickerRefundCandidate(refundCandidate));
-    expect(result.current.pickerAmount).toBe("1000");
-    expect(
-      result.current.resolveLinkCandidate(refundCandidate).refundedAmount,
-    ).toBe("200");
+    expect(result.current.lockedLinkAmounts.get(refundCandidate.id)).toBe(
+      "200",
+    );
+    act(() => result.current.openItemSheet(1));
+    expect(result.current.lockedLinkAmounts.has(refundCandidate.id)).toBe(
+      false,
+    );
+    expect(result.current.pickerAmount).toBe("200");
   });
 
   it("新增超额退款时只将超过剩余额度的部分计入收入", () => {

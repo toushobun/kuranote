@@ -581,9 +581,11 @@ export function createTransactionService({
         ledger,
         {
           scope: "candidates",
+          linkKind: kind,
           offset: input.offset ?? 0,
           query: normalizeTransactionSearchQuery(input.query ?? ""),
           merchantPriorityId: kind === "refund" ? input.merchantId : undefined,
+          historyMerchantId: input.merchantId,
           currency: input.currency,
           settled: input.settled,
           specialStatuses:
@@ -608,6 +610,9 @@ export function createTransactionService({
         }),
         nextOffset: page.nextOffset,
         settledCount: page.settledCount,
+        ...(page.historyMerchantIds
+          ? { historyMerchantIds: page.historyMerchantIds }
+          : {}),
       };
     },
 

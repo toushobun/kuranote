@@ -122,8 +122,15 @@ export async function loadTransactionSearchPage(
 export async function loadRefundPickerPage(
   input: TransactionLinkCandidatePageInput = {},
 ) {
+  return loadLinkPickerPage("refund", input);
+}
+
+async function loadLinkPickerPage(
+  kind: "refund" | "reimbursement",
+  input: TransactionLinkCandidatePageInput,
+) {
   const { currentLedger, service } = await getContext();
-  return service.getLinkCandidatePage(currentLedger, "refund", {
+  return service.getLinkCandidatePage(currentLedger, kind, {
     ...input,
     merchantId:
       input.merchantId && uuidPattern.test(input.merchantId)
@@ -135,9 +142,5 @@ export async function loadRefundPickerPage(
 export async function loadReimbursementPickerPage(
   input: TransactionLinkCandidatePageInput = {},
 ) {
-  const { currentLedger, service } = await getContext();
-  return service.getLinkCandidatePage(currentLedger, "reimbursement", {
-    ...input,
-    merchantId: undefined,
-  });
+  return loadLinkPickerPage("reimbursement", input);
 }

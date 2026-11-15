@@ -33,6 +33,7 @@ type TransactionLinkCandidatePanelProps = {
     candidate: TransactionRefundCandidate,
   ) => TransactionRefundCandidate;
   value: TransactionRefundCandidate | null;
+  lockedAmounts?: ReadonlyMap<string, string>;
 };
 
 export function TransactionLinkCandidatePanel(
@@ -79,34 +80,38 @@ export function TransactionLinkCandidatePanel(
     mergeUniqueById(page?.items ?? [], settledPage?.items ?? []),
     scopedAffected,
   ).filter((candidate) => candidate.id !== value?.id);
-  // 小票内实时调整的候选可能不在服务端本页，仍遵守同商家优先。
-  // 日期相同时沿用数据库分页及合并后的稳定原顺序。
-  const orderedCandidates =
-    kind === "refund" && props.merchantId
-      ? [...allCandidates].sort(
-          (a, b) =>
-            Number(b.merchantId === props.merchantId) -
-              Number(a.merchantId === props.merchantId) ||
-            new Date(b.transactionAt).getTime() -
-              new Date(a.transactionAt).getTime(),
-        )
-      : allCandidates;
-  const activeCandidates = orderedCandidates.filter(
-    (candidate) =>
-      !isLinkCandidateSettled(
-        props.resolveLinkCandidate?.(candidate) ?? candidate,
-      ),
-  );
-  const settledCandidates = orderedCandidates.filter((candidate) =>
-    isLinkCandidateSettled(
-      props.resolveLinkCandidate?.(candidate) ?? candidate,
-    ),
-  );
+  function isSettled(candidate: TransactionRefundCandidate) {
+    return isLinkCandidateSettled(
+      props.lockedAmounts?.has(candidate.id)
+        ? candidate
+        : (props.resolveLinkCandidate?.(candidate) ?? candidate),
+    );
+  }
+
+  const historyMerchants = new Set(page?.historyMerchantIds);
+  function rank(candidate: TransactionRefundCandidate, settled: boolean) {
+    if (!settled && historyMerchants.has(candidate.merchantId ?? "")) return 0;
+    return kind === "refund" &&
+      props.merchantId &&
+      candidate.merchantId === props.merchantId
+      ? 1
+      : 2;
+  }
+  function orderCandidates(settled: boolean) {
+    return allCandidates
+      .filter((candidate) => isSettled(candidate) === settled)
+      .sort(
+        (a, b) =>
+          rank(a, settled) - rank(b, settled) ||
+          new Date(b.transactionAt).getTime() -
+            new Date(a.transactionAt).getTime(),
+      );
+  }
+  const activeCandidates = orderCandidates(false);
+  const settledCandidates = orderCandidates(true);
   const settledDelta = scopedAffected.reduce((sum, candidate) => {
     const databaseSettled = isLinkCandidateSettled(candidate);
-    const actualSettled = isLinkCandidateSettled(
-      props.resolveLinkCandidate?.(candidate) ?? candidate,
-    );
+    const actualSettled = isSettled(candidate);
     return sum + Number(actualSettled) - Number(databaseSettled);
   }, 0);
   const selectedSettledInScope =
@@ -133,6 +138,7 @@ export function TransactionLinkCandidatePanel(
     resolveLinkCandidate: props.resolveLinkCandidate,
     onSelect: onChange,
     selectableCurrency: accountCurrency,
+    lockedAmounts: props.lockedAmounts,
     selectedId: value?.id,
     selectionKind: kind,
     showMerchantName,
