@@ -182,6 +182,7 @@ export type FilteredTransactionPageInput = {
   scope: "candidates" | "records";
   query: string;
   offset: number;
+  linkKind?: "refund" | "reimbursement";
   merchantPriorityId?: string;
   historyMerchantId?: string;
   currency?: string;
@@ -1070,6 +1071,7 @@ export function createSupabaseTransactionRepository(
         {
           p_ledger_id: input.ledgerId,
           p_scope: input.scope,
+          p_link_kind: input.linkKind ?? null,
           p_query: input.query,
           p_merchant_priority_id: input.merchantPriorityId ?? null,
           ...(input.historyMerchantId

@@ -1,7 +1,7 @@
 -- #945：历史商家只改变未结清候选的顺序。
 begin;
 set local search_path = public, extensions;
-select plan(8);
+select plan(9);
 
 update public.ledger
 set transaction_item_special_status_enabled = true
@@ -69,13 +69,15 @@ create function pg_temp.page(
     p_refund boolean,
     p_history_merchant integer default 1001,
     p_scope text default 'candidates',
-    p_settled boolean default false
+    p_settled boolean default false,
+    p_force_merchant_priority boolean default false
 ) returns jsonb language sql stable as $$
     select public.load_filtered_transaction_page(
         p_ledger_id => pg_temp.seed_uuid(32),
         p_scope => p_scope,
+        p_link_kind => case when p_refund then 'refund' else 'reimbursement' end,
         p_query => '945历史测试条目',
-        p_merchant_priority_id => case when p_refund then pg_temp.seed_uuid(1001) end,
+        p_merchant_priority_id => case when p_refund or p_force_merchant_priority then pg_temp.seed_uuid(1001) end,
         p_history_merchant_id => case when p_history_merchant is not null then pg_temp.seed_uuid(p_history_merchant) end,
         p_special_statuses => case when not p_refund then array['pending_reimbursement'] end,
         p_settled => p_settled
@@ -95,6 +97,10 @@ select is(pg_temp.item_ids(pg_temp.page(false)),
     array[pg_temp.fixture_uuid(102), pg_temp.fixture_uuid(104), pg_temp.fixture_uuid(103), pg_temp.fixture_uuid(101)],
     '报销候选先按报销历史商家，其余只按时间');
 
+select is(pg_temp.page(false, p_force_merchant_priority => true)->'historyMerchantIds',
+    jsonb_build_array(pg_temp.seed_uuid(1003)),
+    '报销即使传入同商家优先 ID，历史仍只读取报销关联');
+
 select is(pg_temp.item_ids(pg_temp.page(true, 1999)), pg_temp.item_ids(pg_temp.page(true, null)),
     '无退款历史时沿用原排序');
 
@@ -111,6 +117,7 @@ select is(
     public.load_filtered_transaction_page(
         p_ledger_id => pg_temp.fixture_uuid(90),
         p_scope => 'candidates',
+        p_link_kind => 'refund',
         p_merchant_priority_id => pg_temp.seed_uuid(1001),
         p_history_merchant_id => pg_temp.seed_uuid(1001)
     )->'historyMerchantIds',

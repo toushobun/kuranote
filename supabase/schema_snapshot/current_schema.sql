@@ -4370,7 +4370,7 @@ $$;
 ALTER FUNCTION "public"."list_pending_ledger_invites"("p_ledger_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."load_filtered_transaction_page"("p_ledger_id" "uuid", "p_scope" "text", "p_query" "text" DEFAULT ''::"text", "p_merchant_priority_id" "uuid" DEFAULT NULL::"uuid", "p_currency" "text" DEFAULT NULL::"text", "p_special_statuses" "text"[] DEFAULT NULL::"text"[], "p_settled" boolean DEFAULT false, "p_offset" integer DEFAULT 0, "p_limit" integer DEFAULT 20, "p_history_merchant_id" "uuid" DEFAULT NULL::"uuid") RETURNS "jsonb"
+CREATE OR REPLACE FUNCTION "public"."load_filtered_transaction_page"("p_ledger_id" "uuid", "p_scope" "text", "p_query" "text" DEFAULT ''::"text", "p_merchant_priority_id" "uuid" DEFAULT NULL::"uuid", "p_currency" "text" DEFAULT NULL::"text", "p_special_statuses" "text"[] DEFAULT NULL::"text"[], "p_settled" boolean DEFAULT false, "p_offset" integer DEFAULT 0, "p_limit" integer DEFAULT 20, "p_history_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_link_kind" "text" DEFAULT NULL::"text") RETURNS "jsonb"
     LANGUAGE "sql" STABLE
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -4389,14 +4389,14 @@ history_merchants as materialized (
         join lateral (
             select link.refunded_item_id as expense_item_id
             from public.transaction_item_refund_link link
-            where p_merchant_priority_id is not null
+            where p_link_kind = 'refund'
               and link.refund_income_item_id = income_item.id
               and link.ledger_id = income_item.ledger_id
               and link.refund_amount > 0
             union all
             select link.target_expense_item_id
             from public.transaction_item_reimbursement_link link
-            where p_merchant_priority_id is null
+            where p_link_kind = 'reimbursement'
               and link.reimbursement_income_item_id = income_item.id
               and link.ledger_id = income_item.ledger_id
               and link.reimbursement_amount > 0
@@ -4676,7 +4676,7 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."load_filtered_transaction_page"("p_ledger_id" "uuid", "p_scope" "text", "p_query" "text", "p_merchant_priority_id" "uuid", "p_currency" "text", "p_special_statuses" "text"[], "p_settled" boolean, "p_offset" integer, "p_limit" integer, "p_history_merchant_id" "uuid") OWNER TO "postgres";
+ALTER FUNCTION "public"."load_filtered_transaction_page"("p_ledger_id" "uuid", "p_scope" "text", "p_query" "text", "p_merchant_priority_id" "uuid", "p_currency" "text", "p_special_statuses" "text"[], "p_settled" boolean, "p_offset" integer, "p_limit" integer, "p_history_merchant_id" "uuid", "p_link_kind" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."load_frequent_transaction_merchants"("p_ledger_id" "uuid", "p_limit" integer) RETURNS TABLE("merchant_id" "uuid", "record_count" bigint)
@@ -12123,8 +12123,8 @@ GRANT ALL ON FUNCTION "public"."list_pending_ledger_invites"("p_ledger_id" "uuid
 
 
 
-REVOKE ALL ON FUNCTION "public"."load_filtered_transaction_page"("p_ledger_id" "uuid", "p_scope" "text", "p_query" "text", "p_merchant_priority_id" "uuid", "p_currency" "text", "p_special_statuses" "text"[], "p_settled" boolean, "p_offset" integer, "p_limit" integer, "p_history_merchant_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."load_filtered_transaction_page"("p_ledger_id" "uuid", "p_scope" "text", "p_query" "text", "p_merchant_priority_id" "uuid", "p_currency" "text", "p_special_statuses" "text"[], "p_settled" boolean, "p_offset" integer, "p_limit" integer, "p_history_merchant_id" "uuid") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."load_filtered_transaction_page"("p_ledger_id" "uuid", "p_scope" "text", "p_query" "text", "p_merchant_priority_id" "uuid", "p_currency" "text", "p_special_statuses" "text"[], "p_settled" boolean, "p_offset" integer, "p_limit" integer, "p_history_merchant_id" "uuid", "p_link_kind" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."load_filtered_transaction_page"("p_ledger_id" "uuid", "p_scope" "text", "p_query" "text", "p_merchant_priority_id" "uuid", "p_currency" "text", "p_special_statuses" "text"[], "p_settled" boolean, "p_offset" integer, "p_limit" integer, "p_history_merchant_id" "uuid", "p_link_kind" "text") TO "authenticated";
 
 
 
