@@ -607,7 +607,7 @@ export function createTransactionService({
             ? candidatesById.get(entry.itemId)
             : undefined;
           return candidate
-            ? [{ ...candidate, note: entry.note ?? candidate.note ?? null }]
+            ? [{ ...candidate, note: entry.note !== undefined ? entry.note : candidate.note ?? null }]
             : [];
         }),
         nextOffset: page.nextOffset,

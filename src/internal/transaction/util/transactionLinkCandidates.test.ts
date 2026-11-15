@@ -67,6 +67,16 @@ describe("transactionLinkCandidates", () => {
       ...detail,
       categoryItems: [{ ...record.categoryItems[0] }],
     }])[0]?.note).toBe("记录备注");
+    const withoutRecordNote = {
+      ...record,
+      note: "列表回退到了第一明细备注",
+      record_note: null,
+      categoryItems: [
+        { ...record.categoryItems[0], id: "first", note: "第一明细备注" },
+        { ...record.categoryItems[0], id: "second", note: null },
+      ],
+    };
+    expect(toTransactionLinkCandidates([withoutRecordNote])[1]?.note).toBeNull();
   });
 
   it("候选可携带原支出首个付款账户的 ID", () => {

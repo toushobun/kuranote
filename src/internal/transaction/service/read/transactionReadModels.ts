@@ -40,6 +40,8 @@ export type TransactionListItem = {
   merchant_id?: string | null;
   merchant_name: string | null;
   note: string | null;
+  /** 真实记录备注，不受列表级首明细备注回退影响。 */
+  record_note?: string | null;
   /** 有账户筛选 ∧ 多账户记录时：整笔金额（付款明细 amount 合计），用于「共同支付」行。 */
   record_total_amount?: string;
   recorder_color?: ThemeColorKey | null;
