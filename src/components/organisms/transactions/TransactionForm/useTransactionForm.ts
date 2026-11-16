@@ -929,8 +929,8 @@ export function useTransactionForm({
     const candidate = item.refundCandidate ?? item.reimbursementCandidate;
     if (!candidate) continue;
     const existing =
-      toRefundMinorUnits(lockedLinkAmounts.get(candidate.id) ?? "0") ?? 0n;
-    const amount = toRefundMinorUnits(item.amount) ?? 0n;
+      toRefundMinorUnits(lockedLinkAmounts.get(candidate.id) ?? "0") ?? BigInt(0);
+    const amount = toRefundMinorUnits(item.amount) ?? BigInt(0);
     lockedLinkAmounts.set(
       candidate.id,
       formatRefundMinorUnits(existing + amount),
