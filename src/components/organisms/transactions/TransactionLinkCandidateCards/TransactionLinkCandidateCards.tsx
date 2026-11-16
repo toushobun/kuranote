@@ -14,7 +14,7 @@ import { transactionLinkMessages } from "utils/transactionMessages";
 import {
   formatNumber,
   formatUnsignedCurrencyAmount,
-  formatDateKey,
+  formatTransactionMonthDay,
   hasLinkCandidateCurrencyMismatch,
 } from "utils/transactions";
 
@@ -72,7 +72,7 @@ export function TransactionLinkCandidateCards({
           ...(showMerchantName
             ? [candidate.merchantName || m.unassignedMerchant]
             : []),
-          formatDateKey(candidate.transactionAt).slice(5).replace("-", "/"),
+          formatTransactionMonthDay(candidate.transactionAt),
           candidate.accountName,
         ]
           .filter(Boolean)
