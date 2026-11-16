@@ -650,8 +650,7 @@ export function useTransactionForm({
       // 新增明细一旦确定，即使没有带出过字段，后续也不能取得跟随资格。
       const canFirstAutoFill =
         firstCommit &&
-        (!originalTarget ||
-          (isInitialItem(committedItemId) && retargeted));
+        (!originalTarget || (isInitialItem(committedItemId) && retargeted));
       const nextMerchantId = selectedTarget.merchantId;
       const nextAccountId = selectedTarget.accountId;
       const canWriteMerchant =
