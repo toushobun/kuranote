@@ -32,7 +32,11 @@ describe("buildOffsetEntryDraft", () => {
   );
   it("已归档原账户无有效推荐时保持账户为空，仍保留待核销明细", () => {
     const draft = buildOffsetEntryDraft(
-      { ...offsetEntry, accountId: "", candidates: [offsetEntry.candidates[0]] },
+      {
+        ...offsetEntry,
+        accountId: "",
+        candidates: [offsetEntry.candidates[0]],
+      },
       offsetItemsOptions.categoryOptions,
     );
     expect(draft.payments[0].accountId).toBe("");
