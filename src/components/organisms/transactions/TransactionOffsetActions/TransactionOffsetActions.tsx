@@ -12,6 +12,7 @@ import type { TransactionFormInitialValues } from "../TransactionForm/Transactio
 export function TransactionOffsetActions({
   initialValues,
   canWriteTransactions,
+  transactionItemSpecialStatusEnabled,
 }: {
   initialValues: Omit<TransactionFormInitialValues, "type"> & {
     type:
@@ -20,9 +21,11 @@ export function TransactionOffsetActions({
       | "balance_adjustment";
   };
   canWriteTransactions: boolean;
+  transactionItemSpecialStatusEnabled: boolean;
 }) {
   if (
     !canWriteTransactions ||
+    !transactionItemSpecialStatusEnabled ||
     initialValues.type !== "expense" ||
     !initialValues.transactionRecordId
   )
