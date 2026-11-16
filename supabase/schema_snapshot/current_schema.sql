@@ -5176,7 +5176,7 @@ declare
 begin
   if p_kind not in ('refund', 'reimbursement') or p_kind is null or not exists (
     select 1 from public.ledger_member lm join public.app_user u on u.id = lm.user_id
-    join public.ledger ledger on ledger.id = lm.ledger_id and not ledger.is_archived and ledger.setup_status = 'completed'
+    join public.ledger ledger on ledger.id = lm.ledger_id and not ledger.is_archived and ledger.setup_status = 'completed' and ledger.transaction_item_special_status_enabled
     where lm.ledger_id = p_ledger_id and lm.user_id = auth.uid()
       and lm.status = 'active' and u.status = 'active' and lm.role in ('owner', 'admin', 'member')
   ) then return null; end if;
