@@ -97,19 +97,16 @@ function renderTransactionFormHook(
   );
 }
 
-function changePrimaryAccount(
-  result: { current: ReturnType<typeof useTransactionForm> },
-  accountId: string,
-) {
+type FormHookResult = { current: ReturnType<typeof useTransactionForm> };
+
+function changePrimaryAccount(result: FormHookResult, accountId: string) {
   result.current.handlePaymentAccountChange(
     result.current.payments[0]!.key,
     accountId,
   );
 }
 
-function clearPrimaryPayment(
-  result: { current: ReturnType<typeof useTransactionForm> },
-) {
+function clearPrimaryPayment(result: FormHookResult) {
   act(() =>
     result.current.handleRemovePayment(result.current.payments[0]!.key),
   );
@@ -117,10 +114,7 @@ function clearPrimaryPayment(
 }
 
 // 与小票一致：明细先以空金额加入，再用金额键盘写入。
-function enterAddedItemAmount(
-  result: { current: ReturnType<typeof useTransactionForm> },
-  amount: string,
-) {
+function enterAddedItemAmount(result: FormHookResult, amount: string) {
   act(() =>
     result.current.updateItem(result.current.itemSummaries[0]!.id, { amount }),
   );
@@ -138,7 +132,7 @@ function createInitialValues() {
 }
 
 function addOriginal(
-  result: { current: ReturnType<typeof useTransactionForm> },
+  result: FormHookResult,
   kind: "refund" | "reimbursement",
   candidate: TransactionRefundCandidate,
 ) {
@@ -154,7 +148,7 @@ function addOriginal(
 }
 
 function retargetOriginal(
-  result: { current: ReturnType<typeof useTransactionForm> },
+  result: FormHookResult,
   id: number,
   kind: "refund" | "reimbursement",
   candidate: TransactionRefundCandidate,
