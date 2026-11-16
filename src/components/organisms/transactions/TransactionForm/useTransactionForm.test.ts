@@ -1274,6 +1274,50 @@ describe("useTransactionForm", () => {
     expect(result.current.selectedMerchantId).toBe("merchant-2");
     expect(result.current.selectedAccount?.id).toBe("account-2");
   });
+  it("初始加载与新增明细分别应用首次换原支出规则", () => {
+    const { result } = renderTransactionFormHook({
+      categoryOptions: allLinkCategories,
+      initialValues: {
+        ...newFormInitialValues,
+        items: [
+          {
+            amount: "300",
+            categoryId: "system-refund",
+            refundCandidate,
+          },
+        ],
+      },
+    });
+    const initialItemId = result.current.itemSummaries[0]!.id;
+    expect(initialItemId).toBe(1);
+
+    // 编辑页初始明细首次改选原支出，即使无追踪记录也允许补全空字段。
+    retargetOriginal(result, initialItemId, "refund", {
+      ...refundCandidate,
+      id: "initial-item-retarget",
+      merchantId: "merchant-2",
+      accountId: "account-2",
+    });
+    expect(result.current.selectedMerchantId).toBe("merchant-2");
+    expect(result.current.selectedAccount?.id).toBe("account-2");
+
+    // 新增明细从 N+1 编号；首次加入时字段已非空，不能取得跟随资格。
+    act(() => result.current.openSheet());
+    act(() => result.current.handlePickerModeChange("refund"));
+    act(() => result.current.setPickerRefundCandidate(refundCandidate));
+    act(() => expect(result.current.handlePickerAdd()).toBe(true));
+    const addedItemId = result.current.itemSummaries[1]!.id;
+    expect(addedItemId).toBe(2);
+    retargetOriginal(result, addedItemId, "refund", {
+      ...refundCandidate,
+      id: "added-item-retarget",
+      merchantId: "merchant-1",
+      accountId: "account-1",
+    });
+    expect(result.current.selectedMerchantId).toBe("merchant-2");
+    expect(result.current.selectedAccount?.id).toBe("account-2");
+  });
+
   it.each(["refund", "reimbursement"] as const)(
     "已自动带出的%s明细换原支出并确定后商家和账户一起跟随",
     (kind) => {
