@@ -645,8 +645,9 @@ export function useTransactionForm({
       if (
         canWriteMerchant &&
         (retargeted
-          ? tracked.merchantId !== undefined &&
-            tracked.merchantId === selectedMerchantId
+          ? tracked.merchantId === undefined
+            ? !selectedMerchantId
+            : !!tracked.merchantId && tracked.merchantId === selectedMerchantId
           : !selectedMerchantId)
       ) {
         setSelectedMerchantId(nextMerchantId);
@@ -656,8 +657,9 @@ export function useTransactionForm({
       if (
         canWriteAccount &&
         (retargeted
-          ? tracked.accountId !== undefined &&
-            tracked.accountId === selectedAccountId
+          ? tracked.accountId === undefined
+            ? !selectedAccountId
+            : !!tracked.accountId && tracked.accountId === selectedAccountId
           : !selectedAccountId)
       ) {
         const primaryPayment = paymentFields.payments[0];
@@ -682,7 +684,7 @@ export function useTransactionForm({
     // 重新选了同一个商家不算修改（#962）。
     if (merchantId !== selectedMerchantId) {
       for (const tracked of autoLinkedFields.current.values())
-        delete tracked.merchantId;
+        tracked.merchantId = "";
     }
     setSelectedMerchantId(merchantId);
   }
@@ -698,7 +700,7 @@ export function useTransactionForm({
     }
     if (!automatic && accountId !== selectedAccountId) {
       for (const tracked of autoLinkedFields.current.values())
-        delete tracked.accountId;
+        tracked.accountId = "";
     }
     handlePrimaryAccountChange(key, accountId);
   }
