@@ -1354,11 +1354,17 @@ describe("useTransactionForm", () => {
         ],
       },
     });
-    expect(result.current.lockedLinkAmounts.get(refundCandidate.id)).toBe("600");
+    expect(result.current.lockedLinkAmounts.get(refundCandidate.id)).toBe(
+      "600",
+    );
     act(() => result.current.openItemSheet(1));
-    expect(result.current.lockedLinkAmounts.get(refundCandidate.id)).toBe("500");
+    expect(result.current.lockedLinkAmounts.get(refundCandidate.id)).toBe(
+      "500",
+    );
     act(() => result.current.openItemSheet(2));
-    expect(result.current.lockedLinkAmounts.get(refundCandidate.id)).toBe("400");
+    expect(result.current.lockedLinkAmounts.get(refundCandidate.id)).toBe(
+      "400",
+    );
   });
 
   it("每次新建或编辑打开抽屉时递增会话，关闭不重复增加", () => {
