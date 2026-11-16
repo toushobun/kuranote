@@ -28,7 +28,7 @@ export function TransactionOffsetEntryNotice() {
     >
       {offsetEntryMessages[entry.kind]}：
       {candidate
-        ? `${candidate.merchantName ?? ""} ${Number(dateParts[1])}/${Number(dateParts[2])} ${candidate.categoryName} ${formatStepCurrencyAmount(candidate.amount, candidate.accountCurrency)}`
+        ? `${candidate.merchantName ?? ""} ${Number(dateParts[1])}/${Number(dateParts[2])} ${candidate.note?.trim() || candidate.categoryName} ${formatStepCurrencyAmount(candidate.amount, candidate.accountCurrency)}`
         : ""}
     </Alert>
   );
