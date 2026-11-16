@@ -436,6 +436,6 @@ EXECUTE，仅授予 authenticated。
 
 ## #945 从旧记录发起核销
 
-`public.load_transaction_offset_entry(uuid, uuid, text)`：仅授予 `authenticated` 执行权限，固定 `search_path = pg_catalog, pg_temp`。函数先校验当前用户和账本成员均为 active 且具有记账角色，再验证来源属于当前账本、active、普通支出；报销入口额外要求待报销明细。历史关联的原记录、收入记录、商家及账户均限定账本，排除已删除记录和已归档推荐商家、账户；若原商家或原付款账户已归档且没有有效推荐，则对应预填项留空，要求用户手选，候选仍保留来源账户币种。按关联次数、最近核销时间、商家 ID 固定排序。没有合法来源返回 null；数据库错误由 Repository 安全转换。
+`public.load_transaction_offset_entry(uuid, uuid, text)`：仅授予 `authenticated` 执行权限，固定 `search_path = pg_catalog, pg_temp`。函数先校验当前用户和账本成员均为 active、具有记账角色，且账本的 `transaction_item_special_status_enabled` 为 true，再验证来源属于当前账本、active、普通支出；开关关闭时直接返回 null（由新增页按普通记账处理），报销入口额外要求待报销明细。2026-11-17 新增 `20261117010000_gate_offset_entry_by_special_status.sql` 重新定义同签名函数，仅补充开关校验，沿用原有 `stable security definer`、`search_path`、`authenticated` EXECUTE 权限与账本隔离规则。历史关联的原记录、收入记录、商家及账户均限定账本，排除已删除记录和已归档推荐商家、账户；若原商家或原付款账户已归档且没有有效推荐，则对应预填项留空，要求用户手选，候选仍保留来源账户币种。按关联次数、最近核销时间、商家 ID 固定排序。没有合法来源返回 null；数据库错误由 Repository 安全转换。
 
 内部查询 `transaction_offset_merchant_history(uuid, text, uuid)` 为可内联的 `SECURITY INVOKER` SQL 表函数，仅函数所有者可执行。入口先按原商家过滤并聚合，只有原商家没有报销历史时才统计账本内的报销关联；不读取整个账本的交易记录。来源商家先用已有商家和明细索引定位目标，再通过相关子查询逐目标使用核销目标索引；账本回退只枚举有关联的目标，不读取全账本记录。
