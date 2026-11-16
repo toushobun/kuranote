@@ -1330,6 +1330,48 @@ describe("useTransactionForm", () => {
     expect(result.current.selectedAccount?.id).toBe("account-2");
   });
 
+  it("手动清空商家之后重新确定同一原支出也不会填回", () => {
+    const { result } = renderTransactionFormHook({
+      categoryOptions: allLinkCategories,
+    });
+    const id = addOriginal(result, "refund", refundCandidate);
+    act(() => result.current.handleMerchantChange(""));
+    act(() => result.current.openItemSheet(id));
+    act(() => expect(result.current.handlePickerAdd()).toBe(true));
+    expect(result.current.selectedMerchantId).toBe("");
+    expect(result.current.selectedAccount?.id).toBe("account-1");
+  });
+
+  it("关联明细改成普通明细再改回关联后不能沿用旧的自动带出资格", () => {
+    const { result } = renderTransactionFormHook({
+      categoryOptions: allLinkCategories,
+    });
+    const id = addOriginal(result, "refund", refundCandidate);
+    act(() => result.current.openItemSheet(id));
+    act(() => result.current.handlePickerModeChange("expense"));
+    act(() => expect(result.current.handlePickerAdd()).toBe(true));
+    expect(result.current.itemSummaries[0]?.refundCandidate).toBeNull();
+
+    act(() => result.current.openItemSheet(id));
+    act(() => result.current.handlePickerModeChange("refund"));
+    act(() =>
+      result.current.setPickerRefundCandidate({
+        ...refundCandidate,
+        id: "brand-new-associated-original",
+      }),
+    );
+    act(() => expect(result.current.handlePickerAdd()).toBe(true));
+
+    retargetOriginal(result, id, "refund", {
+      ...refundCandidate,
+      id: "retarget-after-normal-item",
+      merchantId: "merchant-2",
+      accountId: "account-2",
+    });
+    expect(result.current.selectedMerchantId).toBe("merchant-1");
+    expect(result.current.selectedAccount?.id).toBe("account-1");
+  });
+
   it("手动改过首个账户后只让商家跟随原支出的改选", () => {
     const { result } = renderTransactionFormHook({
       categoryOptions: allLinkCategories,
