@@ -19,6 +19,7 @@ describe("TransactionOffsetEntryNotice", () => {
         kind === "refund" ? "记录退款" : "记录报销到账",
       );
       expect(screen.getByRole("alert")).toHaveTextContent("7-Eleven");
+      expect(screen.getByRole("alert")).toHaveTextContent("11/08");
       expect(screen.getByRole("alert")).toHaveTextContent(
         "USB-C 充电器，办公室备用",
       );
