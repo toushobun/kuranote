@@ -29,7 +29,7 @@ describe("TransactionOffsetActions", () => {
   it("无记账权限不显示入口", () => {
     render(
       <TransactionOffsetActions
-          transactionItemSpecialStatusEnabled
+        transactionItemSpecialStatusEnabled
         initialValues={initialValues}
         canWriteTransactions={false}
       />,
