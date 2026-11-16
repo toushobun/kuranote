@@ -174,6 +174,9 @@ function EditTransactionReceipt({
           <TransactionOffsetActions
             initialValues={props.initialValues}
             canWriteTransactions={props.canWriteTransactions}
+            transactionItemSpecialStatusEnabled={
+              props.transactionItemSpecialStatusEnabled
+            }
           />
         }
       />
