@@ -28,7 +28,8 @@ export function resolveNewTransactionEntry(
 
 /** 冲突、数组或非法标识都按普通新增处理。 */
 export function resolveOffsetEntry(params: NewTransactionEntrySearchParams) {
-  if (params.refundFrom && params.reimbursementFrom) return null;
+  if (params.refundFrom !== undefined && params.reimbursementFrom !== undefined)
+    return null;
   const recordId = params.refundFrom ?? params.reimbursementFrom;
   if (typeof recordId !== "string" || !isUuid(recordId)) return null;
   return {
