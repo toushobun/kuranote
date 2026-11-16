@@ -5171,6 +5171,7 @@ declare
   preferred_merchant uuid;
   source_account uuid;
   source_currency text;
+  source_account_archived boolean;
   candidates jsonb;
 begin
   if p_kind not in ('refund', 'reimbursement') or p_kind is null or not exists (
@@ -5192,7 +5193,7 @@ begin
       and i.transaction_record_id = p_record_id and i.special_status = 'pending_reimbursement'
   ) then return null; end if;
 
-  select p.account_id, a.currency into source_account, source_currency
+  select p.account_id, a.currency, a.is_archived into source_account, source_currency, source_account_archived
     from public.transaction_payment p join public.account a on a.id = p.account_id and a.ledger_id = p.ledger_id
     where p.ledger_id = p_ledger_id and p.transaction_record_id = p_record_id order by p.sort_order, p.id limit 1;
   if source_account is null then return null; end if;
@@ -5208,7 +5209,11 @@ begin
       group by h.merchant_id
       order by count(*) desc, max(h.transaction_at) desc, h.merchant_id limit 1;
   end if;
-  if preferred_merchant is null and p_kind = 'refund' then preferred_merchant := source.merchant_id; end if;
+  if preferred_merchant is null and p_kind = 'refund' then
+    -- 原商家已归档时不能作为新记账商家；交由用户手动选择。
+    select m.id into preferred_merchant from public.merchant m
+      where m.id = source.merchant_id and m.ledger_id = p_ledger_id and not m.is_archived;
+  end if;
 
   select coalesce(jsonb_agg(jsonb_build_object(
     'id', i.id, 'transactionRecordId', source.id, 'transactionAt', source.transaction_at,
@@ -5229,7 +5234,7 @@ begin
     and (p_kind = 'refund' or i.special_status in ('pending_reimbursement', 'reimbursed', 'reimbursement_surplus'));
   return jsonb_build_object(
     'entry', jsonb_build_object('kind', p_kind, 'merchantId', preferred_merchant,
-      'accountId', source_account, 'candidates', candidates),
+      'accountId', case when source_account_archived then '' else source_account::text end, 'candidates', candidates),
     'merchantHistory', public.load_merchant_entry_history(p_ledger_id, preferred_merchant, 20)
   );
 end;
