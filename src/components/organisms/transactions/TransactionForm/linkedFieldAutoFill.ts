@@ -8,7 +8,5 @@ export function shouldFollowLinkedField(
   targetChanged: boolean,
   canFirstAutoFill: boolean,
 ) {
-  return wasAutoFilled
-    ? targetChanged
-    : canFirstAutoFill && !currentValue;
+  return wasAutoFilled ? targetChanged : canFirstAutoFill && !currentValue;
 }
