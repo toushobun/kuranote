@@ -45,6 +45,14 @@ describe("resolveOffsetEntry", () => {
       refundFrom: "00000000-0000-4000-8000-000000000945",
       reimbursementFrom: "00000000-0000-4000-8000-000000000945",
     },
+    {
+      refundFrom: "00000000-0000-4000-8000-000000000945",
+      reimbursementFrom: "",
+    },
+    {
+      refundFrom: "",
+      reimbursementFrom: "00000000-0000-4000-8000-000000000945",
+    },
   ])("无效参数当普通新增", (params) => {
     expect(resolveOffsetEntry(params)).toBeNull();
   });
