@@ -56,8 +56,8 @@ import type {
   TransactionFormItem,
   TransactionItemSummary,
   TransactionPickerErrors,
-import { shouldFollowLinkedField } from "./linkedFieldAutoFill";
 } from "./TransactionForm.types";
+import { shouldFollowLinkedField } from "./linkedFieldAutoFill";
 import {
   buildCategoryPickerGroups,
   getDefaultPickerCategory,
