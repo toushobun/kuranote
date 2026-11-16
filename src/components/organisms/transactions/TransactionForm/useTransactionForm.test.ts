@@ -1298,7 +1298,7 @@ describe("useTransactionForm", () => {
     },
   );
 
-  it("手动改过商家后只让账户跟随原支出的改选", () => {
+  it("手动改过自动带出的商家后，换原支出时商家和账户都跟随", () => {
     const { result } = renderTransactionFormHook({
       categoryOptions: allLinkCategories,
     });
@@ -1310,11 +1310,11 @@ describe("useTransactionForm", () => {
       merchantId: "merchant-1",
       accountId: "account-2",
     });
-    expect(result.current.selectedMerchantId).toBe("merchant-2");
+    expect(result.current.selectedMerchantId).toBe("merchant-1");
     expect(result.current.selectedAccount?.id).toBe("account-2");
   });
 
-  it("手动清空自动带出商家后，改选原支出不会重新自动填入", () => {
+  it("手动清空自动带出的商家后，改选原支出仍跟随新商家", () => {
     const { result } = renderTransactionFormHook({
       categoryOptions: allLinkCategories,
     });
@@ -1326,7 +1326,7 @@ describe("useTransactionForm", () => {
       merchantId: "merchant-2",
       accountId: "account-2",
     });
-    expect(result.current.selectedMerchantId).toBe("");
+    expect(result.current.selectedMerchantId).toBe("merchant-2");
     expect(result.current.selectedAccount?.id).toBe("account-2");
   });
 
@@ -1382,7 +1382,7 @@ describe("useTransactionForm", () => {
     expect(result.current.pickerSessionKey).toBe(3);
   });
 
-  it("手动清空商家之后重新确定同一原支出也不会填回", () => {
+  it("只重新确定同一原支出时，不覆盖手动清空的商家", () => {
     const { result } = renderTransactionFormHook({
       categoryOptions: allLinkCategories,
     });
@@ -1424,7 +1424,7 @@ describe("useTransactionForm", () => {
     expect(result.current.selectedAccount?.id).toBe("account-1");
   });
 
-  it("手动改过首个账户后只让商家跟随原支出的改选", () => {
+  it("手动改过自动带出的账户后，换原支出时商家和账户都跟随", () => {
     const { result } = renderTransactionFormHook({
       categoryOptions: allLinkCategories,
     });
@@ -1437,6 +1437,64 @@ describe("useTransactionForm", () => {
       accountId: "account-1",
     });
     expect(result.current.selectedMerchantId).toBe("merchant-2");
+    expect(result.current.selectedAccount?.id).toBe("account-1");
+  });
+
+  it("删掉自动带出的收款账户并重新添加后，换原支出仍会跟随", () => {
+    const { result } = renderTransactionFormHook({
+      categoryOptions: allLinkCategories,
+    });
+    const id = addOriginal(result, "refund", refundCandidate);
+    act(() => result.current.handleRemovePayment(result.current.payments[0]!.key));
+    expect(result.current.payments).toHaveLength(0);
+    act(() => expect(result.current.addPayment("account-2")).toBe(true));
+    expect(result.current.selectedAccount?.id).toBe("account-2");
+
+    retargetOriginal(result, id, "refund", {
+      ...refundCandidate,
+      id: "new-original-after-readding-account",
+      merchantId: "merchant-2",
+      accountId: "account-1",
+    });
+    expect(result.current.selectedMerchantId).toBe("merchant-2");
+    expect(result.current.selectedAccount?.id).toBe("account-1");
+  });
+
+  it("先选商家和账户再加退款，未自动带出的字段不会随原支出改选", () => {
+    const { result } = renderTransactionFormHook({
+      categoryOptions: allLinkCategories,
+      initialValues: {
+        ...newFormInitialValues,
+        merchantId: "merchant-2",
+        payments: [{ accountId: "account-2", amount: null }],
+      },
+    });
+    const id = addOriginal(result, "refund", refundCandidate);
+    retargetOriginal(result, id, "refund", {
+      ...refundCandidate,
+      id: "another-original-without-auto-fill",
+      merchantId: "merchant-1",
+      accountId: "account-1",
+    });
+    expect(result.current.selectedMerchantId).toBe("merchant-2");
+    expect(result.current.selectedAccount?.id).toBe("account-2");
+  });
+
+  it("仅修改金额而未换原支出时，保持手动修改的商家和账户", () => {
+    const { result } = renderTransactionFormHook({
+      categoryOptions: allLinkCategories,
+    });
+    const id = addOriginal(result, "refund", refundCandidate);
+    act(() => result.current.handleMerchantChange("merchant-2"));
+    act(() => changePrimaryAccount(result, "account-2"));
+    act(() => result.current.openItemSheet(id));
+    act(() => result.current.setPickerAmount("500"));
+    act(() => expect(result.current.handlePickerAdd()).toBe(true));
+    expect(result.current.itemSummaries[0]?.amount).toBe("500");
+    expect(result.current.itemSummaries[0]?.refundCandidate?.id).toBe(
+      refundCandidate.id,
+    );
+    expect(result.current.selectedMerchantId).toBe("merchant-2");
     expect(result.current.selectedAccount?.id).toBe("account-2");
   });
 
@@ -1445,6 +1503,8 @@ describe("useTransactionForm", () => {
       categoryOptions: allLinkCategories,
     });
     const id = addOriginal(result, "reimbursement", reimbursementCandidate);
+    act(() => result.current.handleMerchantChange("merchant-2"));
+    act(() => changePrimaryAccount(result, "account-2"));
     const changed = {
       ...reimbursementCandidate,
       id: "reimbursement-another",
@@ -1455,12 +1515,12 @@ describe("useTransactionForm", () => {
     expect(result.current.itemSummaries[0]?.reimbursementCandidate?.id).toBe(
       reimbursementCandidate.id,
     );
-    expect(result.current.selectedMerchantId).toBe("merchant-1");
-    expect(result.current.selectedAccount?.id).toBe("account-1");
+    expect(result.current.selectedMerchantId).toBe("merchant-2");
+    expect(result.current.selectedAccount?.id).toBe("account-2");
     act(() => result.current.removeItem(id));
     expect(result.current.itemSummaries).toHaveLength(0);
-    expect(result.current.selectedMerchantId).toBe("merchant-1");
-    expect(result.current.selectedAccount?.id).toBe("account-1");
+    expect(result.current.selectedMerchantId).toBe("merchant-2");
+    expect(result.current.selectedAccount?.id).toBe("account-2");
   });
 
   it("改选无效商家或归档账户时不覆盖之前自动带出的值", () => {

@@ -92,12 +92,9 @@ export function useTransactionForm({
     initialValues.merchantId,
   );
   const [linkMerchantTouched, setLinkMerchantTouched] = useState(false);
-  // 记录每条关联明细确实自动写入的字段；手动修改后失去跟随资格。
+  // 按明细记录曾自动带出的字段；手动修改商家或账户不取消跟随资格。
   const autoLinkedFields = useRef(
-    new Map<
-      number,
-      { merchantId?: string | null; accountId?: string | null }
-    >(),
+    new Map<number, { merchantId?: true; accountId?: true }>(),
   );
   const [itemsByType, setItemsByType] = useState<
     Record<TransactionType, TransactionFormItem[]>
@@ -663,7 +660,7 @@ export function useTransactionForm({
       ) {
         setSelectedMerchantId(nextMerchantId);
         setLinkMerchantTouched(true);
-        tracked.merchantId = nextMerchantId;
+        tracked.merchantId = true;
       }
       if (
         canWriteAccount &&
@@ -675,8 +672,8 @@ export function useTransactionForm({
       ) {
         const primaryPayment = paymentFields.payments[0];
         if (primaryPayment) {
-          handlePaymentAccountChange(primaryPayment.key, nextAccountId, true);
-          tracked.accountId = nextAccountId;
+          handlePrimaryAccountChange(primaryPayment.key, nextAccountId);
+          tracked.accountId = true;
         }
       }
       if (tracked.merchantId || tracked.accountId)
@@ -692,26 +689,13 @@ export function useTransactionForm({
   }
 
   function handleMerchantChange(merchantId: string) {
-    // 重新选了同一个商家不算修改（#962）。
-    if (merchantId !== selectedMerchantId) {
-      for (const tracked of autoLinkedFields.current.values())
-        tracked.merchantId = null;
-    }
     setSelectedMerchantId(merchantId);
   }
 
-  function handlePaymentAccountChange(
-    key: number,
-    accountId: string,
-    automatic = false,
-  ) {
+  function handlePaymentAccountChange(key: number, accountId: string) {
     if (key !== paymentFields.payments[0]?.key) {
       paymentFields.changeAccount(key, accountId);
       return;
-    }
-    if (!automatic && accountId !== selectedAccountId) {
-      for (const tracked of autoLinkedFields.current.values())
-        tracked.accountId = null;
     }
     handlePrimaryAccountChange(key, accountId);
   }
@@ -729,10 +713,6 @@ export function useTransactionForm({
   }
 
   function handleRemovePayment(key: number) {
-    if (paymentFields.payments[0]?.key === key) {
-      for (const tracked of autoLinkedFields.current.values())
-        tracked.accountId = null;
-    }
     paymentFields.removePayment(key, selectedAccount?.currency);
   }
 

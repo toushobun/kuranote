@@ -1,15 +1,11 @@
 /**
- * 同一笔原支出关联从草稿切换时，只允许本行曾自动带出的值跟随。
- * undefined：未自动带出，可在目标字段尚空时首次补全；
- * null：用户已手动修改，后续即使清空或改回原值也不覆盖；
- * string：最后一次自动写入的值，仅在真正换原支出时允许跟随。
+ * 字段未由本行自动带出时，只在字段为空时首次补全；
+ * 曾由本行自动带出的字段，仅在确认换原支出时跟随，手动修改不影响资格。
  */
 export function shouldFollowLinkedField(
   currentValue: string | undefined,
-  lastAutomaticValue: string | null | undefined,
+  wasAutoFilled: boolean | undefined,
   targetChanged: boolean,
 ) {
-  if (lastAutomaticValue === null) return false;
-  if (lastAutomaticValue === undefined) return !currentValue;
-  return targetChanged && currentValue === lastAutomaticValue;
+  return wasAutoFilled ? targetChanged : !currentValue;
 }
