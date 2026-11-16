@@ -53,7 +53,6 @@ insert into public.ledger(id, name, base_currency, owner_user_id, created_by, up
 values(pg_temp.u(90), '入口 B 其他账本', 'JPY', pg_temp.s(31), pg_temp.s(31), pg_temp.s(31));
 insert into public.ledger_member(ledger_id, user_id, role, status, joined_at, created_by, updated_by)
 values(pg_temp.u(90), pg_temp.s(31), 'owner', 'active', now(), pg_temp.s(31), pg_temp.s(31));
-update public.ledger set transaction_item_special_status_enabled = true where id = pg_temp.u(90);
 insert into public.merchant(id, ledger_id, name, created_by, updated_by)
 values(pg_temp.u(6), pg_temp.u(90), '另一账本报销商家', pg_temp.s(31), pg_temp.s(31));
 insert into public.account(id, ledger_id, name, type, currency, created_by, updated_by)
@@ -63,6 +62,27 @@ values(pg_temp.u(92), pg_temp.u(90), null, 'expense', '支出', pg_temp.s(31), p
 (pg_temp.u(93), pg_temp.u(90), pg_temp.u(92), 'expense', '支出明细', pg_temp.s(31), pg_temp.s(31)),
 (pg_temp.u(94), pg_temp.u(90), null, 'income', '收入', pg_temp.s(31), pg_temp.s(31)),
 (pg_temp.u(95), pg_temp.u(90), pg_temp.u(94), 'income', '收入明细', pg_temp.s(31), pg_temp.s(31));
+-- 独立账本默认关闭特殊状态：先建立普通有效支出，验证开关确实阻止入口 B，
+-- 再开启开关证明同一来源可用，避免“无效来源本来就返回 null”的假阳性。
+insert into public.transaction_record(id, ledger_id, type, transaction_at, merchant_id, created_by, updated_by)
+values(pg_temp.u(36), pg_temp.u(90), 'normal', '2199-11-17'::timestamptz, pg_temp.u(6), pg_temp.s(31), pg_temp.s(31));
+select tests.insert_normal_transaction_items(jsonb_build_array(jsonb_build_object(
+  'id', pg_temp.u(136), 'ledger_id', pg_temp.u(90), 'transaction_record_id', pg_temp.u(36),
+  'account_id', pg_temp.u(91), 'category_id', pg_temp.u(93), 'amount', 100,
+  'sort_order', 0, 'created_by', pg_temp.s(31), 'updated_by', pg_temp.s(31)
+)));
+select pg_temp.actor();
+set local role authenticated;
+select is(public.load_transaction_offset_entry(pg_temp.u(90), pg_temp.u(36), 'refund'),
+  null::jsonb, '特殊状态开关关闭时退款来源返回 null');
+select is(public.load_transaction_offset_entry(pg_temp.u(90), pg_temp.u(36), 'reimbursement'),
+  null::jsonb, '特殊状态开关关闭时报销来源返回 null');
+reset role;
+update public.ledger set transaction_item_special_status_enabled = true where id = pg_temp.u(90);
+set local role authenticated;
+select ok(public.load_transaction_offset_entry(pg_temp.u(90), pg_temp.u(36), 'refund') is not null,
+  '相同有效支出在开启开关后允许发起退款');
+reset role;
 insert into public.transaction_record(id, ledger_id, type, transaction_at, merchant_id, created_by, updated_by)
 select pg_temp.u(n), pg_temp.u(90), 'normal', '2199-11-16'::timestamptz + n * interval '1 minute', pg_temp.u(6), pg_temp.s(31), pg_temp.s(31) from generate_series(30,35) n;
 select tests.insert_normal_transaction_items(jsonb_agg(jsonb_build_object(
