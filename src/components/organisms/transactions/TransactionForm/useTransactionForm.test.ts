@@ -1330,6 +1330,37 @@ describe("useTransactionForm", () => {
     expect(result.current.selectedAccount?.id).toBe("account-2");
   });
 
+  it("编辑自己时不计入锁定，但其他明细引用同一原支出仍锁定且金额累加", () => {
+    const { result } = renderTransactionFormHook({
+      categoryOptions: allLinkCategories,
+      initialValues: {
+        ...newFormInitialValues,
+        items: [
+          {
+            amount: "100",
+            categoryId: "system-refund",
+            refundCandidate,
+          },
+          {
+            amount: "200",
+            categoryId: "system-refund",
+            refundCandidate,
+          },
+          {
+            amount: "300",
+            categoryId: "system-refund",
+            refundCandidate,
+          },
+        ],
+      },
+    });
+    expect(result.current.lockedLinkAmounts.get(refundCandidate.id)).toBe("600");
+    act(() => result.current.openItemSheet(1));
+    expect(result.current.lockedLinkAmounts.get(refundCandidate.id)).toBe("500");
+    act(() => result.current.openItemSheet(2));
+    expect(result.current.lockedLinkAmounts.get(refundCandidate.id)).toBe("400");
+  });
+
   it("每次新建或编辑打开抽屉时递增会话，关闭不重复增加", () => {
     const { result } = renderTransactionFormHook({
       categoryOptions: allLinkCategories,

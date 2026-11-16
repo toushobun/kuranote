@@ -923,12 +923,19 @@ export function useTransactionForm({
   }
 
   const linkAffectedItems = [...initialValues.items, ...itemsByType.income];
-  const editingIncomeItem = itemsByType.income.find(
-    ({ id }) => id === editingItemId,
-  );
-  const editingCandidateId =
-    editingIncomeItem?.refundCandidate?.id ??
-    editingIncomeItem?.reimbursementCandidate?.id;
+  const lockedLinkAmounts = new Map<string, string>();
+  for (const item of itemsByType.income) {
+    if (item.id === editingItemId) continue;
+    const candidate = item.refundCandidate ?? item.reimbursementCandidate;
+    if (!candidate) continue;
+    const existing =
+      toRefundMinorUnits(lockedLinkAmounts.get(candidate.id) ?? "0") ?? 0n;
+    const amount = toRefundMinorUnits(item.amount) ?? 0n;
+    lockedLinkAmounts.set(
+      candidate.id,
+      formatRefundMinorUnits(existing + amount),
+    );
+  }
   return {
     note,
     addItem,
@@ -979,14 +986,7 @@ export function useTransactionForm({
       "reimbursement",
     ),
     resolveLinkCandidate,
-    lockedLinkAmounts: new Map(
-      itemsByType.income.flatMap((item) => {
-        const candidate = item.refundCandidate ?? item.reimbursementCandidate;
-        return candidate && candidate.id !== editingCandidateId
-          ? [[candidate.id, item.amount] as const]
-          : [];
-      }),
-    ),
+    lockedLinkAmounts,
     pickerSpecialStatus,
     pickerSpecialStatusLocked,
     removeItem,
