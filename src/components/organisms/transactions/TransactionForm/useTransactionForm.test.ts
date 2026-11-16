@@ -107,6 +107,15 @@ function changePrimaryAccount(
   );
 }
 
+function clearPrimaryPayment(
+  result: { current: ReturnType<typeof useTransactionForm> },
+) {
+  act(() =>
+    result.current.handleRemovePayment(result.current.payments[0]!.key),
+  );
+  act(() => expect(result.current.addPayment()).toBe(true));
+}
+
 // 与小票一致：明细先以空金额加入，再用金额键盘写入。
 function enterAddedItemAmount(
   result: { current: ReturnType<typeof useTransactionForm> },
@@ -1493,10 +1502,7 @@ describe("useTransactionForm", () => {
     });
     const id = addOriginal(result, "refund", refundCandidate);
     act(() => result.current.handleMerchantChange(""));
-    act(() =>
-      result.current.handleRemovePayment(result.current.payments[0]!.key),
-    );
-    act(() => expect(result.current.addPayment()).toBe(true));
+    clearPrimaryPayment(result);
     expect(result.current.selectedMerchantId).toBe("");
     expect(result.current.selectedAccount?.id).toBeUndefined();
 
@@ -1543,10 +1549,7 @@ describe("useTransactionForm", () => {
     });
     const id = addOriginal(result, "refund", refundCandidate);
     act(() => result.current.handleMerchantChange(""));
-    act(() =>
-      result.current.handleRemovePayment(result.current.payments[0]!.key),
-    );
-    act(() => expect(result.current.addPayment()).toBe(true));
+    clearPrimaryPayment(result);
 
     act(() => result.current.openItemSheet(id));
     act(() => result.current.setPickerAmount("500"));

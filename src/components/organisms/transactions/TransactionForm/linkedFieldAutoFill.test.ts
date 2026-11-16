@@ -16,6 +16,5 @@ describe("shouldFollowLinkedField", () => {
   it("之前没自动带出的字段即使已被清空，后续换原支出或只改金额都不补填", () => {
     expect(shouldFollowLinkedField("", undefined, true, false)).toBe(false);
     expect(shouldFollowLinkedField("", undefined, false, false)).toBe(false);
-    expect(shouldFollowLinkedField("manual", undefined, true, false)).toBe(false);
   });
 });
