@@ -137,11 +137,11 @@ set local role authenticated;
 select is(pg_temp.entry(12, 'reimbursement'), null::jsonb, '没有待报销明细时不接受报销入口');
 reset role;
 -- 只读详情页可能来自已归档商家/账户；新记账不能预填失效对象。
-update public.merchant set is_archived = true where id = pg_temp.u(5);
+update public.merchant set is_archived = true, archived_at = now(), archived_by = pg_temp.s(31) where id = pg_temp.u(5);
 set local role authenticated;
 select is(pg_temp.entry(12)->'merchantId', 'null'::jsonb, '退款来源商家已归档且无有效历史时需手选商家');
 reset role;
-update public.account set is_archived = true where id = pg_temp.s(43);
+update public.account set is_archived = true, archived_at = now(), archived_by = pg_temp.s(31) where id = pg_temp.s(43);
 set local role authenticated;
 select is(pg_temp.entry(12)->>'accountId', '', '原支出账户归档且无有效推荐时收款账户留空');
 select ok(pg_temp.entry(12)->'candidates'->0->>'accountCurrency' is not null, '账户归档时仍保留来源币种供候选匹配');
