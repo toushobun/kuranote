@@ -1445,7 +1445,9 @@ describe("useTransactionForm", () => {
       categoryOptions: allLinkCategories,
     });
     const id = addOriginal(result, "refund", refundCandidate);
-    act(() => result.current.handleRemovePayment(result.current.payments[0]!.key));
+    act(() =>
+      result.current.handleRemovePayment(result.current.payments[0]!.key),
+    );
     expect(result.current.payments).toHaveLength(0);
     act(() => expect(result.current.addPayment("account-2")).toBe(true));
     expect(result.current.selectedAccount?.id).toBe("account-2");
