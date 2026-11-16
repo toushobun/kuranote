@@ -92,7 +92,7 @@ export function useTransactionForm({
     initialValues.merchantId,
   );
   const [linkMerchantTouched, setLinkMerchantTouched] = useState(false);
-  // 按明细记录曾自动带出的字段；手动修改商家或账户不取消跟随资格。
+  // 按明细记录曾自动带出的字段；空对象表示已确定但从未自动带出。
   const autoLinkedFields = useRef(
     new Map<number, { merchantId?: true; accountId?: true }>(),
   );
@@ -635,6 +635,7 @@ export function useTransactionForm({
     }
     if (selectedTarget && committedItemId !== null) {
       const tracked = autoLinkedFields.current.get(committedItemId) ?? {};
+      const firstCommit = !autoLinkedFields.current.has(committedItemId);
       const originalTarget =
         editingPickerItem?.refundCandidate ??
         editingPickerItem?.reimbursementCandidate;
@@ -642,6 +643,12 @@ export function useTransactionForm({
         editingItemId !== null &&
         originalTarget != null &&
         originalTarget.id !== selectedTarget.id;
+      // 首次新增关联或首次改选初始加载的明细时，保留原有空字段自动补全规则。
+      // 新增明细一旦确定，即使没有带出过字段，后续也不能取得跟随资格。
+      const canFirstAutoFill =
+        firstCommit &&
+        (!originalTarget ||
+          (committedItemId <= initialValues.items.length && retargeted));
       const nextMerchantId = selectedTarget.merchantId;
       const nextAccountId = selectedTarget.accountId;
       const canWriteMerchant =
@@ -656,6 +663,7 @@ export function useTransactionForm({
           selectedMerchantId,
           tracked.merchantId,
           retargeted,
+          canFirstAutoFill,
         )
       ) {
         setSelectedMerchantId(nextMerchantId);
@@ -668,6 +676,7 @@ export function useTransactionForm({
           selectedAccountId,
           tracked.accountId,
           retargeted,
+          canFirstAutoFill,
         )
       ) {
         const primaryPayment = paymentFields.payments[0];
@@ -676,8 +685,7 @@ export function useTransactionForm({
           tracked.accountId = true;
         }
       }
-      if (tracked.merchantId || tracked.accountId)
-        autoLinkedFields.current.set(committedItemId, tracked);
+      autoLinkedFields.current.set(committedItemId, tracked);
     }
     setEditingItemId(null);
     setPickerCategoryId("");

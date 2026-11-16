@@ -2,19 +2,22 @@ import { describe, expect, it } from "vitest";
 import { shouldFollowLinkedField } from "./linkedFieldAutoFill";
 
 describe("shouldFollowLinkedField", () => {
-  it("字段未曾自动填写时，仅允许空字段首次自动带出", () => {
-    expect(shouldFollowLinkedField("", undefined, false)).toBe(true);
-    expect(shouldFollowLinkedField(undefined, undefined, true)).toBe(true);
-    expect(shouldFollowLinkedField("manual", undefined, true)).toBe(false);
+  it("首次可自动带出时，只补全尚空的字段", () => {
+    expect(shouldFollowLinkedField("", undefined, false, true)).toBe(true);
+    expect(shouldFollowLinkedField(undefined, undefined, true, true)).toBe(true);
+    expect(shouldFollowLinkedField("manual", undefined, true, true)).toBe(false);
   });
   it("曾自动填写的字段改选原支出时跟随，即使后来手动修改或清空", () => {
-    expect(shouldFollowLinkedField("old", true, true)).toBe(true);
-    expect(shouldFollowLinkedField("changed", true, true)).toBe(true);
-    expect(shouldFollowLinkedField("", true, true)).toBe(true);
-    expect(shouldFollowLinkedField("old", true, false)).toBe(false);
+    expect(shouldFollowLinkedField("old", true, true, false)).toBe(true);
+    expect(shouldFollowLinkedField("changed", true, true, false)).toBe(true);
+    expect(shouldFollowLinkedField("", true, true, false)).toBe(true);
+    expect(shouldFollowLinkedField("old", true, false, false)).toBe(false);
   });
-  it("没有自动带出资格的非空字段在换原支出时不受影响", () => {
-    expect(shouldFollowLinkedField("manual", false, true)).toBe(false);
-    expect(shouldFollowLinkedField("manual", false, false)).toBe(false);
+  it("之前没自动带出的字段即使已被清空，后续换原支出或只改金额都不补填", () => {
+    expect(shouldFollowLinkedField("", undefined, true, false)).toBe(false);
+    expect(shouldFollowLinkedField("", undefined, false, false)).toBe(false);
+    expect(shouldFollowLinkedField("manual", undefined, true, false)).toBe(
+      false,
+    );
   });
 });

@@ -1482,6 +1482,80 @@ describe("useTransactionForm", () => {
     expect(result.current.selectedAccount?.id).toBe("account-2");
   });
 
+  it("先选商家和账户再加退款，清空后换原支出也不补填", () => {
+    const { result } = renderTransactionFormHook({
+      categoryOptions: allLinkCategories,
+      initialValues: {
+        ...newFormInitialValues,
+        merchantId: "merchant-2",
+        payments: [{ accountId: "account-2", amount: null }],
+      },
+    });
+    const id = addOriginal(result, "refund", refundCandidate);
+    act(() => result.current.handleMerchantChange(""));
+    act(() =>
+      result.current.handleRemovePayment(result.current.payments[0]!.key),
+    );
+    act(() => expect(result.current.addPayment()).toBe(true));
+    expect(result.current.selectedMerchantId).toBe("");
+    expect(result.current.selectedAccount?.id).toBeUndefined();
+
+    retargetOriginal(result, id, "refund", {
+      ...refundCandidate,
+      id: "another-original-after-empty-manual-fields",
+      merchantId: "merchant-1",
+      accountId: "account-1",
+    });
+    expect(result.current.selectedMerchantId).toBe("");
+    expect(result.current.selectedAccount?.id).toBeUndefined();
+  });
+
+  it("未带出商家但自动带出了账户时，换原支出只跟随账户", () => {
+    const { result } = renderTransactionFormHook({
+      categoryOptions: allLinkCategories,
+      initialValues: {
+        ...newFormInitialValues,
+        merchantId: "merchant-2",
+      },
+    });
+    const id = addOriginal(result, "reimbursement", reimbursementCandidate);
+    expect(result.current.selectedAccount?.id).toBe("account-1");
+    act(() => result.current.handleMerchantChange(""));
+
+    retargetOriginal(result, id, "reimbursement", {
+      ...reimbursementCandidate,
+      id: "another-reimbursement-original",
+      merchantId: "merchant-1",
+      accountId: "account-2",
+    });
+    expect(result.current.selectedMerchantId).toBe("");
+    expect(result.current.selectedAccount?.id).toBe("account-2");
+  });
+
+  it("未自动带出字段的关联只改金额也不会重新补填", () => {
+    const { result } = renderTransactionFormHook({
+      categoryOptions: allLinkCategories,
+      initialValues: {
+        ...newFormInitialValues,
+        merchantId: "merchant-2",
+        payments: [{ accountId: "account-2", amount: null }],
+      },
+    });
+    const id = addOriginal(result, "refund", refundCandidate);
+    act(() => result.current.handleMerchantChange(""));
+    act(() =>
+      result.current.handleRemovePayment(result.current.payments[0]!.key),
+    );
+    act(() => expect(result.current.addPayment()).toBe(true));
+
+    act(() => result.current.openItemSheet(id));
+    act(() => result.current.setPickerAmount("500"));
+    act(() => expect(result.current.handlePickerAdd()).toBe(true));
+    expect(result.current.itemSummaries[0]?.amount).toBe("500");
+    expect(result.current.selectedMerchantId).toBe("");
+    expect(result.current.selectedAccount?.id).toBeUndefined();
+  });
+
   it("仅修改金额而未换原支出时，保持手动修改的商家和账户", () => {
     const { result } = renderTransactionFormHook({
       categoryOptions: allLinkCategories,
