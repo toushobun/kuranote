@@ -108,6 +108,7 @@ export function useTransactionForm({
     ),
   );
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [pickerSessionKey, setPickerSessionKey] = useState(0);
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
   const [selectedCategoryGroupId, setSelectedCategoryGroupId] = useState("");
   const [pickerCategoryId, setPickerCategoryId] = useState("");
@@ -454,6 +455,7 @@ export function useTransactionForm({
   }
 
   function openSheet() {
+    setPickerSessionKey((key) => key + 1);
     const { groupId, categoryId } = getDefaultPickerCategory(
       categoryGroups,
       disabledCategoryType,
@@ -475,6 +477,7 @@ export function useTransactionForm({
       (currentItem) => currentItem.id === itemId,
     );
     if (!item) return;
+    setPickerSessionKey((key) => key + 1);
 
     const categoryGroup = categoryGroups.find((group) =>
       group.categories.some((category) => category.id === item.categoryId),
@@ -962,6 +965,7 @@ export function useTransactionForm({
     pickerAmount,
     pickerMode,
     pickerModeLocked,
+    pickerSessionKey,
     pickerCategoryId,
     pickerErrors,
     pickerRefundCandidate,

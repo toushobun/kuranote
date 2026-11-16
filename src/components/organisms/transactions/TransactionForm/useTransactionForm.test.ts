@@ -1330,6 +1330,21 @@ describe("useTransactionForm", () => {
     expect(result.current.selectedAccount?.id).toBe("account-2");
   });
 
+  it("每次新建或编辑打开抽屉时递增会话，关闭不重复增加", () => {
+    const { result } = renderTransactionFormHook({
+      categoryOptions: allLinkCategories,
+    });
+    expect(result.current.pickerSessionKey).toBe(0);
+    act(() => result.current.openSheet());
+    expect(result.current.pickerSessionKey).toBe(1);
+    act(() => result.current.closeSheet());
+    expect(result.current.pickerSessionKey).toBe(1);
+    const id = addOriginal(result, "refund", refundCandidate);
+    expect(result.current.pickerSessionKey).toBe(2);
+    act(() => result.current.openItemSheet(id));
+    expect(result.current.pickerSessionKey).toBe(3);
+  });
+
   it("手动清空商家之后重新确定同一原支出也不会填回", () => {
     const { result } = renderTransactionFormHook({
       categoryOptions: allLinkCategories,

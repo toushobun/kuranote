@@ -91,6 +91,55 @@ describe("TransactionItemPickerDrawer", () => {
     return onAmountChange;
   }
 
+  it("快速重新打开相同类型的抽屉时，不复用上次置顶的原支出", () => {
+    const other = {
+      ...selectedCandidate,
+      id: "another-original",
+      categoryName: "另一笔原支出",
+    };
+    const renderDrawer = (session: number, candidate: typeof selectedCandidate) => (
+      <TransactionItemPickerDrawer
+        categoryGroups={categoryGroups}
+        filteredCategoryOptions={categoryOptions}
+        editingItemId={1}
+        onCategoryToggle={vi.fn()}
+        onClose={vi.fn()}
+        onGroupSelect={vi.fn()}
+        onPickerAdd={() => true}
+        onRemoveItem={vi.fn()}
+        open
+        pickerMode="refund"
+        pickerAmount="500"
+        pickerCategoryId="system-refund"
+        pickerErrors={{}}
+        pickerSessionKey={session}
+        specialStatusEnabled
+        selectedAccountCurrency="JPY"
+        pickerRefundCandidate={candidate}
+      />
+    );
+    const { rerender } = render(renderDrawer(1, selectedCandidate));
+    expect(screen.getByRole("button", {
+      name: "选择退款明细 USB-C 充电器",
+    })).toBeInTheDocument();
+    // 同一会话内点选新候选不能使它取代打开时的置顶候选。
+    rerender(renderDrawer(1, other));
+    expect(screen.getByRole("button", {
+      name: "选择退款明细 USB-C 充电器",
+    })).toBeInTheDocument();
+    expect(screen.queryByRole("button", {
+      name: "选择退款明细 另一笔原支出",
+    })).not.toBeInTheDocument();
+    // 新会话即使 Drawer 尚未完成退出动画，也重新冻结新的原关联。
+    rerender(renderDrawer(2, other));
+    expect(screen.getByRole("button", {
+      name: "选择退款明细 另一笔原支出",
+    })).toBeInTheDocument();
+    expect(screen.queryByRole("button", {
+      name: "选择退款明细 USB-C 充电器",
+    })).not.toBeInTheDocument();
+  });
+
   it("已选部分报销的支出时，清空后的金额行显示零", () => {
     renderLinkedAmount("");
     expect(
