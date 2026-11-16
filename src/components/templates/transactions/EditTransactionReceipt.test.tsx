@@ -77,6 +77,7 @@ function renderReceipt(
       accountOptions={flowFixture.accounts}
       action={vi.fn(async () => ({}))}
       canDelete
+      canWriteTransactions
       categoryOptions={receiptItemsOptions.categoryOptions}
       deleteAction={vi.fn(async () => ({}))}
       editRestriction={null}
@@ -626,4 +627,45 @@ describe("EditTransactionReceiptTemplate", () => {
       expect(routerMock.push).not.toHaveBeenCalled();
     },
   );
+});
+
+describe("从旧记录发起核销", () => {
+  it.each([null, "archivedAccount", "permission"] as const)(
+    "%s 详情在有记账权限时仍显示入口",
+    (editRestriction) => {
+      renderReceipt({
+        editRestriction,
+        canWriteTransactions: true,
+        initialValues: {
+          ...initialValues,
+          items: [
+            {
+              ...initialValues.items[0],
+              specialStatus: "pendingReimbursement",
+            },
+          ],
+        },
+      });
+      expect(
+        screen.getByRole("link", { name: "记录退款" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("link", { name: "记录报销到账" }),
+      ).toBeInTheDocument();
+    },
+  );
+  it("未保存时点退款先走现有确认，不立即跳转", async () => {
+    renderReceipt({ canWriteTransactions: true });
+    fireEvent.click(screen.getByRole("button", { name: /修改备注/ }));
+    fireEvent.change(screen.getByRole("textbox", { name: "备注" }), {
+      target: { value: "改过的备注" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "完成" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("textbox", { name: "备注" })).toBeNull(),
+    );
+    fireEvent.click(screen.getByRole("link", { name: "记录退款" }));
+    expect(await screen.findByText("尚未保存")).toBeInTheDocument();
+    expect(routerMock.push).not.toHaveBeenCalled();
+  });
 });

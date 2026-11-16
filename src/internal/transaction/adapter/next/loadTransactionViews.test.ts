@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
   getGroupPage: vi.fn(),
   getGroupView: vi.fn(),
   getNewView: vi.fn(),
+  getOffsetEntry: vi.fn(),
   logError: vi.fn(),
   notFound: vi.fn(() => {
     throw new Error("NEXT_NOT_FOUND");
@@ -53,6 +54,7 @@ describe("Transaction SSR adapter", () => {
       transaction: {
         merchantEntryQueryService: {
           getFrequentMerchants: mocks.getFrequentMerchants,
+          getOffsetEntry: mocks.getOffsetEntry,
         },
         service: {
           getLinkCandidatePage: mocks.getLinkCandidatePage,
@@ -64,6 +66,22 @@ describe("Transaction SSR adapter", () => {
         },
       },
     });
+  });
+  it("来源预填与新增选项并行读取，非法 URL 不触发来源查询", async () => {
+    mocks.getNewView.mockResolvedValue({ canWriteTransactions: true });
+    mocks.getOffsetEntry.mockResolvedValue(null);
+    const recordId = "00000000-0000-4000-8000-000000000945";
+    expect(
+      await loadNewTransactionView({ refundFrom: recordId }),
+    ).toMatchObject({ offsetEntry: null });
+    expect(mocks.getOffsetEntry).toHaveBeenCalledWith({
+      ledgerId: currentLedger.id,
+      recordId,
+      kind: "refund",
+    });
+    mocks.getOffsetEntry.mockClear();
+    await loadNewTransactionView({ refundFrom: "bad" });
+    expect(mocks.getOffsetEntry).not.toHaveBeenCalled();
   });
   it("SSR 分组读取直接调用 Service", async () => {
     mocks.getGroupView.mockResolvedValue({ groups: [] });
@@ -164,6 +182,7 @@ describe("Transaction 编辑 SSR 边界", () => {
       transaction: {
         merchantEntryQueryService: {
           getFrequentMerchants: mocks.getFrequentMerchants,
+          getOffsetEntry: mocks.getOffsetEntry,
         },
         service: {
           getEditEntryView: mocks.getEditEntryView,

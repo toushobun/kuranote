@@ -30,6 +30,7 @@ export default function Receipt({
         accountOptions={flowFixture.accounts}
         action={save}
         canDelete
+        canWriteTransactions
         categoryOptions={receiptItemsOptions.categoryOptions}
         deleteAction={remove}
         editRestriction={null}

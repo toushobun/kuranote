@@ -211,3 +211,8 @@ export const linkedTransactionSyncMessages = {
   retargetDetails:
     "同步修改后会按时间顺序重新计算旧支出与新支出的抵消额和结清状态。超出部分计入对应的退款或报销收入。取消不会保存任何修改。",
 };
+
+export const offsetEntryMessages = {
+  refund: "记录退款",
+  reimbursement: "记录报销到账",
+};

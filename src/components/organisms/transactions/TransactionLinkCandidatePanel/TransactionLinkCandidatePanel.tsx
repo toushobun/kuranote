@@ -1,4 +1,5 @@
 "use client";
+import { useTransactionOffsetEntry } from "../TransactionOffsetEntry/TransactionOffsetEntry";
 import { useState } from "react";
 import ExpandLessRoundedIcon from "@mui/icons-material/ExpandLessRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
@@ -27,6 +28,7 @@ import {
 
 type TransactionLinkCandidatePanelProps = {
   accountCurrency?: string;
+  pinInitialSelection?: boolean;
   kind: "refund" | "reimbursement";
   merchantId?: string;
   merchantName?: string;
@@ -44,9 +46,13 @@ type TransactionLinkCandidatePanelProps = {
 export function TransactionLinkCandidatePanel(
   props: TransactionLinkCandidatePanelProps,
 ) {
+  const source = useTransactionOffsetEntry();
+  const sourceCandidates = source?.kind === props.kind ? source.candidates : [];
   const { accountCurrency, kind, merchantName, onChange, value } = props;
   // 只固定打开抽屉时已经关联的原支出，点选后不重新置顶。
-  const [initialSelection] = useState(value);
+  const [initialSelection] = useState(
+    props.pinInitialSelection === false ? null : value,
+  );
   const {
     query,
     setQuery,
@@ -69,9 +75,10 @@ export function TransactionLinkCandidatePanel(
   // 通过已持有的候选在前端重分组，不为此额外发起首屏请求。
   const matchesCurrentScope = (candidate: TransactionRefundCandidate) =>
     matchesLinkCandidateScope(candidate, accountCurrency, query);
-  const scopedAffected = (props.linkAffectedCandidates ?? []).filter(
-    matchesCurrentScope,
-  );
+  const scopedAffected = mergeUniqueById(
+    props.linkAffectedCandidates ?? [],
+    sourceCandidates,
+  ).filter(matchesCurrentScope);
   const allCandidates = mergeUniqueById(
     mergeUniqueById(page?.items ?? [], settledPage?.items ?? []),
     scopedAffected,
@@ -93,6 +100,7 @@ export function TransactionLinkCandidatePanel(
         historyMerchantIds: page?.historyMerchantIds,
         lockedAmounts: props.lockedAmounts,
         settled,
+        sourceItemIds: sourceCandidates.map((candidate) => candidate.id),
       },
     );
   }

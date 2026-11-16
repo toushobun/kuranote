@@ -1,3 +1,7 @@
+import {
+  offsetEntry,
+  offsetItemsOptions,
+} from "test/mocks/transactionOffsetEntry";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect, userEvent, within } from "storybook/test";
 import {
@@ -85,4 +89,16 @@ export const RetainedDrafts: Story = {
       await body.findByRole("button", { name: "修改备注：周末采购" }),
     ).toBeVisible();
   },
+};
+
+export const OffsetSingle: Story = {
+  name: "从旧记录退款：单明细与来源提示",
+  args: {
+    offsetEntry: { ...offsetEntry, candidates: [offsetEntry.candidates[0]] },
+    categoryOptions: offsetItemsOptions.categoryOptions,
+  },
+};
+export const OffsetMultiple: Story = {
+  name: "从旧记录退款：多明细自动打开现有抽屉",
+  args: { offsetEntry, categoryOptions: offsetItemsOptions.categoryOptions },
 };

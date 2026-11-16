@@ -5,7 +5,19 @@ import type { MerchantEntryHistoryRecord } from "internal/transaction/entity/mer
 import { merchantEntryErrorMessages } from "internal/transaction/errors";
 import type { FrequentMerchant } from "internal/transaction/schema";
 
+import type { TransactionOffsetEntry } from "internal/transaction/entity/offsetEntry";
+
+type TransactionOffsetEntryData = {
+  entry: TransactionOffsetEntry;
+  merchantHistory: MerchantEntryHistoryRecord[];
+};
+
 export interface MerchantEntryRepository {
+  loadOffsetEntry(
+    ledgerId: string,
+    recordId: string,
+    kind: "refund" | "reimbursement",
+  ): Promise<TransactionOffsetEntryData | null>;
   loadFrequentMerchantCounts(
     ledgerId: string,
     limit: number,
@@ -31,6 +43,18 @@ export function createMerchantEntryRepository(
     );
   }
   return {
+    async loadOffsetEntry(ledgerId, recordId, kind) {
+      const { data, error } = await supabase.rpc(
+        "load_transaction_offset_entry",
+        {
+          p_ledger_id: ledgerId,
+          p_record_id: recordId,
+          p_kind: kind,
+        },
+      );
+      if (error) fail(error.code);
+      return data as TransactionOffsetEntryData | null;
+    },
     async loadFrequentMerchantCounts(ledgerId, limit) {
       const { data, error } = await supabase.rpc(
         "load_frequent_transaction_merchants",

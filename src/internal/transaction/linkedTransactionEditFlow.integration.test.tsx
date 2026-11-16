@@ -123,6 +123,7 @@ function createView(side: "parent" | "child"): NormalEditView {
   return {
     accountOptions,
     canDelete: true,
+    canWriteTransactions: true,
     categoryOptions,
     editRestriction: null,
     initialValues: {

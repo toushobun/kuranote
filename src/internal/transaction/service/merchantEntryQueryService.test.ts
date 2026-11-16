@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { offsetEntry } from "test/mocks/transactionOffsetEntry";
 import { describe, expect, it, vi } from "vitest";
 import {
   AuthenticationError,
@@ -16,6 +17,7 @@ function setup(userId: string | null = "user") {
     findSummariesByIds: vi.fn().mockResolvedValue([{ id: merchantId }]),
   };
   const repository = {
+    loadOffsetEntry: vi.fn().mockResolvedValue(null),
     loadFrequentMerchantCounts: vi
       .fn()
       .mockResolvedValue([{ merchantId, recordCount: 50 }]),
@@ -126,4 +128,128 @@ describe("merchantEntryQueryService", () => {
     ).rejects.toMatchObject({ code: "merchant_invalid" });
     expect(repository.loadMerchantHistory).not.toHaveBeenCalled();
   });
+});
+
+it("来源预填要求写权限，且无效标识不读取数据库", async () => {
+  const { service, repository, ledgerAccessService } = setup();
+  expect(
+    await service.getOffsetEntry({ ledgerId, recordId: "bad", kind: "refund" }),
+  ).toBeNull();
+  expect(repository.loadOffsetEntry).not.toHaveBeenCalled();
+  repository.loadOffsetEntry.mockResolvedValue({
+    entry: offsetEntry,
+    merchantHistory: [],
+  });
+  ledgerAccessService.getActiveMemberRole.mockResolvedValue("viewer");
+  expect(
+    await service.getOffsetEntry({
+      ledgerId,
+      recordId: merchantId,
+      kind: "refund",
+    }),
+  ).toBeNull();
+  ledgerAccessService.getActiveMemberRole.mockResolvedValue("member");
+  await service.getOffsetEntry({
+    ledgerId,
+    recordId: merchantId,
+    kind: "refund",
+  });
+  expect(repository.loadOffsetEntry).toHaveBeenCalledWith(
+    ledgerId,
+    merchantId,
+    "refund",
+  );
+});
+
+it.each([
+  [
+    "优先采用推荐列表里的第一个同币种账户",
+    [{ accountId: "recommended", currency: "JPY", isArchived: false }],
+    "recommended",
+  ],
+  [
+    "跳过推荐列表里币种不一致的账户",
+    [
+      { accountId: "other-currency", currency: "THB", isArchived: false },
+      { accountId: "same-currency", currency: "JPY", isArchived: false },
+    ],
+    "same-currency",
+  ],
+  [
+    "没有同币种推荐账户时回退原付款账户",
+    [{ accountId: "other-currency", currency: "THB", isArchived: false }],
+    "paypay",
+  ],
+  ["没有商家历史时回退原付款账户", [], "paypay"],
+  [
+    "已归档的推荐账户不采用",
+    [{ accountId: "archived", currency: "JPY", isArchived: true }],
+    "paypay",
+  ],
+  [
+    "仅在商家的前三个推荐账户中选择",
+    [
+      { accountId: "a", currency: "THB", isArchived: false },
+      { accountId: "b", currency: "USD", isArchived: false },
+      { accountId: "c", currency: "CNY", isArchived: false },
+      { accountId: "d", currency: "JPY", isArchived: false },
+    ],
+    "paypay",
+  ],
+])("%s", async (_label, payments, expected) => {
+  const { service, repository } = setup();
+  repository.loadOffsetEntry.mockResolvedValue({
+    entry: offsetEntry,
+    merchantHistory: [{ id: "history", items: [], payments }],
+  });
+  expect(
+    (
+      await service.getOffsetEntry({
+        ledgerId,
+        recordId: merchantId,
+        kind: "refund",
+      })
+    )?.accountId,
+  ).toBe(expected);
+});
+
+it.each([
+  {
+    name: "退款采用原商家的历史退款商家",
+    kind: "refund" as const,
+    merchantId: "history-refund",
+  },
+  {
+    name: "退款无历史时保留原商家回退",
+    kind: "refund" as const,
+    merchantId: "seven",
+  },
+  {
+    name: "报销采用原商家的历史报销商家",
+    kind: "reimbursement" as const,
+    merchantId: "history-reimbursement",
+  },
+  {
+    name: "报销原商家无历史时保留账本推荐",
+    kind: "reimbursement" as const,
+    merchantId: "ledger-reimbursement",
+  },
+  {
+    name: "报销完全无历史时保持商家为空，不误带出候选商家",
+    kind: "reimbursement" as const,
+    merchantId: null,
+  },
+])("$name", async ({ kind, merchantId: recommendedMerchantId }) => {
+  const { service, repository } = setup();
+  repository.loadOffsetEntry.mockResolvedValue({
+    entry: { ...offsetEntry, kind, merchantId: recommendedMerchantId },
+    merchantHistory: [],
+  });
+  const result = await service.getOffsetEntry({
+    ledgerId,
+    recordId: merchantId,
+    kind,
+  });
+  expect(result?.merchantId).toBe(recommendedMerchantId);
+  expect(result?.accountId).toBe(offsetEntry.accountId);
 });

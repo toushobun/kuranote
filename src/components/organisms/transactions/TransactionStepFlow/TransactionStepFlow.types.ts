@@ -35,6 +35,8 @@ export type TransactionStepFlowProps = {
   ) => Promise<ActionState>;
   suggestionsMerchantId?: string;
   open: boolean;
+  /** 初始化该草稿后固定来源，页面数据刷新不替换来源。 */
+  offsetEntry?: import("internal/transaction").TransactionOffsetEntry | null;
   draft?: EntryReceiptDraft;
   merchantPickerSuspended?: boolean;
   merchants: FlowMerchant[];

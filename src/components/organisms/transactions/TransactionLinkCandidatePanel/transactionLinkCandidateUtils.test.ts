@@ -86,3 +86,28 @@ describe("transactionLinkCandidateUtils", () => {
     expect(matchesLinkCandidateScope(entry, "USD", "蓝牙")).toBe(false);
   });
 });
+
+it("来源明细在锁定项后按小票顺序，优先于历史与同商家", () => {
+  const first = expense("source-first", "other", 1);
+  const second = expense("source-second", "other", 16);
+  expect(
+    sortLinkCandidates(
+      [second, latest, historical, first, locked, sameMerchant],
+      {
+        kind: "refund",
+        settled: false,
+        merchantId: "amazon",
+        historyMerchantIds: ["history"],
+        sourceItemIds: [first.id, second.id],
+        lockedAmounts: new Map([[locked.id, "30"]]),
+      },
+    ).map(({ id }) => id),
+  ).toEqual([
+    locked.id,
+    first.id,
+    second.id,
+    historical.id,
+    sameMerchant.id,
+    latest.id,
+  ]);
+});

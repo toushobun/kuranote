@@ -433,3 +433,9 @@ EXECUTE，仅授予 authenticated。
 
 `transaction_item_with_refund` 保留 `security_invoker = true`，
 改用按明细关联的 `LATERAL` 子查询，只计算当前明细及其所关联原支出涉及的退款和报销抵消。
+
+## #945 从旧记录发起核销
+
+`public.load_transaction_offset_entry(uuid, uuid, text)`：仅授予 `authenticated` 执行权限，固定 `search_path = pg_catalog, pg_temp`。函数先校验当前用户和账本成员均为 active 且具有记账角色，再验证来源属于当前账本、active、普通支出；报销入口额外要求待报销明细。历史关联的原记录、收入记录、商家及账户均限定账本，排除已删除记录和已归档推荐商家、账户。按关联次数、最近核销时间、商家 ID 固定排序。没有合法来源返回 null；数据库错误由 Repository 安全转换。
+
+内部查询 `transaction_offset_merchant_history(uuid, text, uuid)` 为可内联的 `SECURITY INVOKER` SQL 表函数，仅函数所有者可执行。入口先按原商家过滤并聚合，只有原商家没有报销历史时才统计账本内的报销关联；不读取整个账本的交易记录。来源商家先用已有商家和明细索引定位目标，再通过相关子查询逐目标使用核销目标索引；账本回退只枚举有关联的目标，不读取全账本记录。

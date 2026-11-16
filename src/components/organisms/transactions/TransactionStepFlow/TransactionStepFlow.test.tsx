@@ -1,3 +1,7 @@
+import {
+  offsetEntry,
+  offsetItemsOptions,
+} from "test/mocks/transactionOffsetEntry";
 import { StrictMode } from "react";
 import { setupGuardHistoryMock, backFromGuard } from "test/mockGuardHistory";
 setupGuardHistoryMock();
@@ -1698,5 +1702,160 @@ describe("TransactionStepFlow 关联明细确定后带出", () => {
     click("保存修改");
     await screen.findByRole("button", { name: "修改商家：7-Eleven" });
     expect(receiptLine("更换收款账户 1")).toHaveTextContent("PayPay");
+  });
+});
+
+describe("从旧记录发起的草稿", () => {
+  function setupOffsetDraft(
+    entry = offsetEntry,
+    overrides: Partial<TransactionStepFlowProps> = {},
+  ) {
+    return quickSetup({
+      offsetEntry: entry,
+      itemsOptions: {
+        ...offsetItemsOptions,
+        loadRefundPageAction: loadCandidatePage,
+        loadReimbursementPageAction: loadReimbursementPage,
+      },
+      ...overrides,
+    });
+  }
+  it.each([
+    [["cny", "paypay"], "PayPay"],
+    [["cny"], "现金"],
+    [[], "现金"],
+  ] as const)(
+    "首次手选报销商家按同币种推荐账户或原账户回退：%j",
+    async (recommendedAccountIds, accountName) => {
+      setupOffsetDraft(
+        {
+          ...offsetEntry,
+          kind: "reimbursement",
+          merchantId: null,
+          accountId: "cash",
+          candidates: [offsetEntry.candidates[0]],
+        },
+        {
+          suggestions: {
+            ...quickSuggestions,
+            recommendedAccountIds: [...recommendedAccountIds],
+          },
+        },
+      );
+      await screen.findByRole("textbox", { name: "搜索商家" });
+      fireEvent.click(screen.getByRole("button", { name: "7-Eleven" }));
+      await waitFor(() =>
+        expect(receiptLine("更换收款账户 1")).toHaveTextContent(accountName),
+      );
+      expect(
+        screen.getAllByRole("button", { name: /编辑明细 \d/ }),
+      ).toHaveLength(1);
+      expectAutomaticNotice(false);
+    },
+  );
+  it("单条直接预填剩余金额，不应用记账习惯，换原支出不跟随商家账户", async () => {
+    setupOffsetDraft({
+      ...offsetEntry,
+      candidates: [offsetEntry.candidates[0]],
+    });
+    expect(screen.getByText(/记录退款：7-Eleven/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "编辑明细 1" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("正在按习惯准备明细…")).toBeNull();
+    expect(screen.queryByText(/已按记账习惯/)).toBeNull();
+    click("编辑明细 1");
+    const different = await screen.findByRole("button", {
+      name: /咖啡豆 2 袋/,
+    });
+    fireEvent.click(different);
+    click("保存修改");
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "保存修改" })).toBeNull(),
+    );
+    expect(
+      await screen.findByRole("button", { name: /修改商家：7-Eleven/ }),
+    ).toBeInTheDocument();
+    expect(receiptLine("更换收款账户 1")).toHaveTextContent("PayPay");
+  });
+  it("多条自动打开抽屉并预选第一条，取消后为空小票；再次打开来源仍在前面", async () => {
+    setupOffsetDraft();
+    const first = await screen.findByRole("button", { name: /旧午餐/ });
+    expect(first).toHaveAttribute("aria-pressed", "true");
+    click("取消");
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "确定" })).toBeNull(),
+    );
+    expect(screen.queryByRole("button", { name: "编辑明细 1" })).toBeNull();
+    click("添加明细");
+    const source = await screen.findByRole("button", { name: /旧午餐/ });
+    fireEvent.click(source);
+    click("确定");
+    await screen.findByRole("button", { name: "编辑明细 1" });
+    click("添加明细");
+    const nextSource = await screen.findByRole("button", { name: /旧咖啡/ });
+    const lockedSource = screen.getByRole("button", { name: /旧午餐/ });
+    const otherRecord = await screen.findByRole("button", {
+      name: /USB-C 充电器/,
+    });
+    expect(lockedSource).toBeDisabled();
+    expect(
+      lockedSource.compareDocumentPosition(nextSource) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      nextSource.compareDocumentPosition(otherRecord) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+  it("报销没有推荐商家时先让用户选商家，之后预选来源且不应用记账习惯", async () => {
+    setupOffsetDraft({
+      ...offsetEntry,
+      kind: "reimbursement",
+      merchantId: null,
+    });
+    await screen.findByRole("textbox", { name: "搜索商家" });
+    expect(screen.queryByRole("button", { name: /旧午餐/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "7-Eleven" }));
+    const candidate = await screen.findByRole("button", { name: /旧午餐/ });
+    expect(candidate).toHaveAttribute("aria-pressed", "true");
+    click("取消");
+    expect(screen.queryByRole("button", { name: "编辑明细 1" })).toBeNull();
+    expect(screen.queryByText("正在按习惯准备明细…")).toBeNull();
+  });
+  it("取消首次商家选择后手动添加明细，不因自动补全商家再次打开初始抽屉", async () => {
+    setupOffsetDraft({
+      ...offsetEntry,
+      kind: "reimbursement",
+      merchantId: null,
+    });
+    await screen.findByRole("textbox", { name: "搜索商家" });
+    fireEvent.click(screen.getByRole("button", { name: "关闭商家编辑" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("textbox", { name: "搜索商家" })).toBeNull(),
+    );
+    click("添加明细");
+    fireEvent.click(await screen.findByRole("button", { name: /旧午餐/ }));
+    click("确定");
+    expect(
+      await screen.findByRole("button", { name: "保存记账" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "编辑明细 1" }),
+    ).toBeInTheDocument();
+  });
+  it("页面数据刷新不替换草稿来源，后续添加仍优先显示原记录", async () => {
+    const { rerender, props } = setupOffsetDraft();
+    await screen.findByRole("button", { name: /旧午餐/ });
+    click("取消");
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "确定" })).toBeNull(),
+    );
+    rerender(<TransactionStepFlow {...props} offsetEntry={null} />);
+    expect(screen.getByText(/记录退款：7-Eleven/)).toBeInTheDocument();
+    click("添加明细");
+    expect(
+      await screen.findByRole("button", { name: /旧午餐/ }),
+    ).toBeInTheDocument();
   });
 });

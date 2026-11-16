@@ -1,5 +1,6 @@
 import { merchantRecentTransactionLimit } from "@/constants/recentUsage";
 import {
+  canWriteTransaction,
   requireActiveLedgerMemberRole,
   type LedgerAccessService,
 } from "internal/ledger";
@@ -16,6 +17,7 @@ import {
 import type { MerchantEntryRepository } from "internal/transaction/repository/merchantEntryRepository";
 import {
   transactionLedgerQuerySchema,
+  transactionOffsetEntryQuerySchema,
   merchantEntrySuggestionsQuerySchema,
   type FrequentMerchant,
   type MerchantEntrySuggestions,
@@ -24,7 +26,14 @@ import { requireTransactionUserId } from "internal/transaction/service/read/tran
 import { frequentMerchantLimit } from "internal/transaction/service/read/recentUsage";
 import { buildMerchantEntrySuggestions } from "internal/transaction/util/merchantEntrySuggestions";
 
+import type { TransactionOffsetEntry } from "internal/transaction/entity/offsetEntry";
+
 export interface MerchantEntryQueryService {
+  getOffsetEntry(input: {
+    ledgerId: string;
+    recordId: string;
+    kind: "refund" | "reimbursement";
+  }): Promise<TransactionOffsetEntry | null>;
   getFrequentMerchants(input: {
     ledgerId: string;
   }): Promise<FrequentMerchant[]>;
@@ -48,7 +57,7 @@ export function createMerchantEntryQueryService({
   repository,
 }: MerchantEntryQueryServiceDependencies): MerchantEntryQueryService {
   async function authorize(ledgerId: string) {
-    await requireActiveLedgerMemberRole(ledgerAccessService, {
+    return requireActiveLedgerMemberRole(ledgerAccessService, {
       ledgerId,
       userId: requireTransactionUserId(currentUserId),
     });
@@ -60,6 +69,41 @@ export function createMerchantEntryQueryService({
     );
   }
   return {
+    async getOffsetEntry({ ledgerId, recordId, kind }) {
+      if (
+        !transactionOffsetEntryQuerySchema.safeParse({
+          ledgerId,
+          recordId,
+          kind,
+        }).success
+      )
+        return null;
+      requireTransactionUserId(currentUserId);
+      // RPC 自身再次校验记账权限，读取与 Service 的权限防线可以并行。
+      const [role, data] = await Promise.all([
+        authorize(ledgerId),
+        repository.loadOffsetEntry(ledgerId, recordId, kind),
+      ]);
+      if (!canWriteTransaction(role) || !data) return null;
+      const currency = data.entry.candidates[0]?.accountCurrency;
+      const accounts = buildMerchantEntrySuggestions(
+        data.merchantHistory,
+      ).recommendedAccountIds;
+      const recommendedAccountId = accounts.find((id) =>
+        data.merchantHistory.some((record) =>
+          record.payments.some(
+            (payment) =>
+              payment.accountId === id &&
+              payment.currency === currency &&
+              !payment.isArchived,
+          ),
+        ),
+      );
+      return {
+        ...data.entry,
+        accountId: recommendedAccountId ?? data.entry.accountId,
+      };
+    },
     async getFrequentMerchants(input) {
       requireTransactionUserId(currentUserId);
       const parsed = transactionLedgerQuerySchema.safeParse(input);

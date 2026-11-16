@@ -23,6 +23,8 @@ import type {
 } from "types/transactions";
 import { useNewTransactionStepFlow } from "./useNewTransactionStepFlow";
 
+import type { TransactionOffsetEntry } from "internal/transaction";
+
 type NewTransactionStepFlowProps = Pick<
   TransactionStepFlowProps,
   "action" | "frequentMerchants"
@@ -33,6 +35,7 @@ type NewTransactionStepFlowProps = Pick<
   /** 打开记一笔时的方式（由 URL 决定）；之后在浏览器端切换。 */
   initialMethod?: TransactionEntryMethod;
   ledgerId: string;
+  offsetEntry?: TransactionOffsetEntry | null;
   loadPresetsAction: MerchantPresetLoadAction;
   merchantOptions: FlowMerchant[];
   merchantTags: MerchantTag[];
@@ -70,6 +73,7 @@ export function NewTransactionStepFlow(props: NewTransactionStepFlowProps) {
       <TransactionStepFlow
         draft={{ otherTouched: transferTouched, onTouched: touchMerchant }}
         open
+        offsetEntry={props.offsetEntry}
         merchantPickerSuspended={w.presetsOpen}
         action={props.action}
         accounts={props.accountOptions}

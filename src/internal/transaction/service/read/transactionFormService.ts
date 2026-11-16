@@ -93,7 +93,13 @@ export async function getEditTransactionEntryView(
     transactionRecordId,
     loadTransactionEntryOptions,
   );
-  return view && { ...view, ledgerId: currentLedger.id };
+  return (
+    view && {
+      ...view,
+      ledgerId: currentLedger.id,
+      canWriteTransactions: canWriteTransaction(currentLedger.currentUserRole),
+    }
+  );
 }
 
 async function buildEditTransactionView<

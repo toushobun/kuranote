@@ -1,5 +1,9 @@
 "use server";
 
+import {
+  resolveOffsetEntry,
+  type NewTransactionEntrySearchParams,
+} from "./newTransactionEntry";
 import { notFound } from "next/navigation";
 
 import { getCurrentLedgerOrRedirect } from "internal/ledger/adapter/next/currentLedger";
@@ -49,14 +53,23 @@ function loadFrequentMerchants({
     });
 }
 
-export async function loadNewTransactionView() {
+export async function loadNewTransactionView(
+  params: NewTransactionEntrySearchParams = {},
+) {
   const context = await getContext();
   const { currentLedger, service } = context;
-  const [view, frequentMerchants] = await Promise.all([
+  const source = resolveOffsetEntry(params);
+  const [view, frequentMerchants, offsetEntry] = await Promise.all([
     service.getNewView(currentLedger),
     loadFrequentMerchants(context),
+    source
+      ? context.merchantEntryQueryService.getOffsetEntry({
+          ledgerId: currentLedger.id,
+          ...source,
+        })
+      : Promise.resolve(null),
   ]);
-  return { ...view, frequentMerchants };
+  return { ...view, frequentMerchants, offsetEntry };
 }
 
 export async function loadEditTransactionView(transactionRecordId: string) {

@@ -66,6 +66,7 @@ const meta = {
     accountOptions: flowFixture.accounts,
     action: async () => ({}),
     canDelete: true,
+    canWriteTransactions: true,
     categoryOptions: receiptItemsOptions.categoryOptions,
     deleteAction: async () => ({}),
     editRestriction: null,
@@ -171,4 +172,30 @@ export const RefundSurplusReceipt1078: Story = {
       items: savedRefundReceipt.items,
     },
   },
+};
+
+export const OffsetActions: Story = {
+  name: "编辑支出：退款入口",
+  args: { canWriteTransactions: true },
+};
+export const OffsetActionsPending: Story = {
+  name: "编辑支出：退款及报销入口",
+  args: {
+    canWriteTransactions: true,
+    initialValues: {
+      ...initialValues,
+      items: [
+        { ...initialValues.items[0], specialStatus: "pendingReimbursement" },
+      ],
+    },
+  },
+};
+export const ReadOnlyOffsetActions: Story = {
+  name: "只读支出：退款入口",
+  args: { canWriteTransactions: true, editRestriction: "archivedAccount" },
+};
+export const ReadOnlyOffsetActionsPending: Story = {
+  ...OffsetActionsPending,
+  name: "只读支出：退款及报销入口",
+  args: { ...OffsetActionsPending.args, editRestriction: "permission" },
 };

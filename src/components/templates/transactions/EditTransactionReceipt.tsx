@@ -22,6 +22,7 @@ import type {
   TransactionStateAction,
 } from "types/transactions";
 
+import { TransactionOffsetActions } from "organisms/transactions/TransactionOffsetActions/TransactionOffsetActions";
 import { EditTransactionShell } from "./EditTransactionShell";
 import { useEditAccountOptions } from "./useEditAccountOptions";
 import { useEditTransactionReceipt } from "./useEditTransactionReceipt";
@@ -34,6 +35,7 @@ type EditTransactionReceiptTemplateProps = {
   /** 已归档的付款账户（只读时用来显示账户名称与记录实际币种）。 */
   archivedAccountOptions?: TransactionAccountOption[];
   canDelete: boolean;
+  canWriteTransactions: boolean;
   categoryOptions: TransactionCategoryOption[];
   deleteAction: TransactionStateAction;
   /** 有限制时显示只读小票（没有铅笔、×、保存）。 */
@@ -168,6 +170,12 @@ function EditTransactionReceipt({
         submitLabel={m.saveEdit}
         onMerchantClick={w.merchantPicker.openPicker}
         readOnly={readOnly}
+        footer={
+          <TransactionOffsetActions
+            initialValues={props.initialValues}
+            canWriteTransactions={props.canWriteTransactions}
+          />
+        }
       />
       <ReceiptMerchantDrawer
         picker={w.merchantPicker}
