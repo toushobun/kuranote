@@ -96,9 +96,14 @@ export const OffsetSingle: Story = {
   args: {
     offsetEntry: { ...offsetEntry, candidates: [offsetEntry.candidates[0]] },
     categoryOptions: offsetItemsOptions.categoryOptions,
+    transactionItemSpecialStatusEnabled: true,
   },
 };
 export const OffsetMultiple: Story = {
   name: "从旧记录退款：多明细自动打开现有抽屉",
-  args: { offsetEntry, categoryOptions: offsetItemsOptions.categoryOptions },
+  args: {
+    offsetEntry,
+    categoryOptions: offsetItemsOptions.categoryOptions,
+    transactionItemSpecialStatusEnabled: true,
+  },
 };
