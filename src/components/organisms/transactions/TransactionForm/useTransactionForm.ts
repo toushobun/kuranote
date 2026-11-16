@@ -85,6 +85,8 @@ export function useTransactionForm({
 }: UseTransactionFormOptions) {
   const reportEditDirty = useEditTransactionDirty();
   const nextItemIdRef = useRef(initialValues.items.length + 1);
+  // 初始明细在 createInitialItemsByType 中按 1..N 编号，新增明细从 N+1 起编号。
+  const isInitialItem = (itemId: number) => itemId <= initialValues.items.length;
   const selectedType: TransactionType = initialValues.type;
   const paymentFields = useTransactionPaymentFields(initialValues.payments);
   const selectedAccountId = paymentFields.primaryAccountId;
@@ -648,7 +650,7 @@ export function useTransactionForm({
       const canFirstAutoFill =
         firstCommit &&
         (!originalTarget ||
-          (committedItemId <= initialValues.items.length && retargeted));
+          (isInitialItem(committedItemId) && retargeted));
       const nextMerchantId = selectedTarget.merchantId;
       const nextAccountId = selectedTarget.accountId;
       const canWriteMerchant =
