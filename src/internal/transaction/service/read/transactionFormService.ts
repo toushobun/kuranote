@@ -473,6 +473,7 @@ function buildIncomeLinkCandidate(
     accountId: linkedItem.accountId,
     accountName: account?.name ?? transactionFallbackLabels.account,
     merchantName: merchant?.name ?? null,
+    merchantId: linkedItem.merchantId ?? null,
     merchantIconUrl: merchant?.icon_url ?? null,
     reimbursementAmount: linkedItem.reimbursementAmount,
     amount: linkedItem.amount,

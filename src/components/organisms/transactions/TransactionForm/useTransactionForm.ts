@@ -56,6 +56,7 @@ import type {
   TransactionFormItem,
   TransactionItemSummary,
   TransactionPickerErrors,
+import { shouldFollowLinkedField } from "./linkedFieldAutoFill";
 } from "./TransactionForm.types";
 import {
   buildCategoryPickerGroups,
@@ -93,7 +94,10 @@ export function useTransactionForm({
   const [linkMerchantTouched, setLinkMerchantTouched] = useState(false);
   // 记录每条关联明细确实自动写入的字段；手动修改后失去跟随资格。
   const autoLinkedFields = useRef(
-    new Map<number, { merchantId?: string; accountId?: string }>(),
+    new Map<
+      number,
+      { merchantId?: string | null; accountId?: string | null }
+    >(),
   );
   const [itemsByType, setItemsByType] = useState<
     Record<TransactionType, TransactionFormItem[]>
@@ -625,6 +629,10 @@ export function useTransactionForm({
       onPickerItemCommit?.(editingItemId);
     // 仅在关联明细确实写入小票后，才自动补全商家与收款账户。
     // 选择器内点选、改选或取消都只改草稿，不影响小票。
+    // 编辑成普通明细后，该行不再是最初自动补全商家/账户的来源。
+    if (editingItemId !== null && !selectedTarget) {
+      autoLinkedFields.current.delete(editingItemId);
+    }
     if (selectedTarget && committedItemId !== null) {
       const tracked = autoLinkedFields.current.get(committedItemId) ?? {};
       const originalTarget =
@@ -644,11 +652,11 @@ export function useTransactionForm({
         accountOptions.some((account) => account.id === nextAccountId);
       if (
         canWriteMerchant &&
-        (retargeted
-          ? tracked.merchantId === undefined
-            ? !selectedMerchantId
-            : !!tracked.merchantId && tracked.merchantId === selectedMerchantId
-          : !selectedMerchantId)
+        shouldFollowLinkedField(
+          selectedMerchantId,
+          tracked.merchantId,
+          retargeted,
+        )
       ) {
         setSelectedMerchantId(nextMerchantId);
         setLinkMerchantTouched(true);
@@ -656,11 +664,11 @@ export function useTransactionForm({
       }
       if (
         canWriteAccount &&
-        (retargeted
-          ? tracked.accountId === undefined
-            ? !selectedAccountId
-            : !!tracked.accountId && tracked.accountId === selectedAccountId
-          : !selectedAccountId)
+        shouldFollowLinkedField(
+          selectedAccountId,
+          tracked.accountId,
+          retargeted,
+        )
       ) {
         const primaryPayment = paymentFields.payments[0];
         if (primaryPayment) {
@@ -684,7 +692,7 @@ export function useTransactionForm({
     // 重新选了同一个商家不算修改（#962）。
     if (merchantId !== selectedMerchantId) {
       for (const tracked of autoLinkedFields.current.values())
-        tracked.merchantId = "";
+        tracked.merchantId = null;
     }
     setSelectedMerchantId(merchantId);
   }
@@ -700,7 +708,7 @@ export function useTransactionForm({
     }
     if (!automatic && accountId !== selectedAccountId) {
       for (const tracked of autoLinkedFields.current.values())
-        tracked.accountId = "";
+        tracked.accountId = null;
     }
     handlePrimaryAccountChange(key, accountId);
   }
@@ -718,6 +726,10 @@ export function useTransactionForm({
   }
 
   function handleRemovePayment(key: number) {
+    if (paymentFields.payments[0]?.key === key) {
+      for (const tracked of autoLinkedFields.current.values())
+        tracked.accountId = null;
+    }
     paymentFields.removePayment(key, selectedAccount?.currency);
   }
 
