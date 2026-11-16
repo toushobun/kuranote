@@ -18,6 +18,7 @@ describe("TransactionOffsetActions", () => {
     (type) => {
       render(
         <TransactionOffsetActions
+          transactionItemSpecialStatusEnabled
           initialValues={{ ...initialValues, type }}
           canWriteTransactions
         />,
@@ -28,6 +29,7 @@ describe("TransactionOffsetActions", () => {
   it("无记账权限不显示入口", () => {
     render(
       <TransactionOffsetActions
+          transactionItemSpecialStatusEnabled
         initialValues={initialValues}
         canWriteTransactions={false}
       />,
@@ -35,10 +37,34 @@ describe("TransactionOffsetActions", () => {
     expect(screen.queryByRole("link")).toBeNull();
   });
   it.each([false, true])(
+    "特殊状态开关关闭时不显示退款和报销入口（待报销：%s）",
+    (pending) => {
+      render(
+        <TransactionOffsetActions
+          initialValues={{
+            ...initialValues,
+            items: [
+              {
+                amount: "30",
+                categoryId: "expense",
+                specialStatus: pending ? "pendingReimbursement" : null,
+              },
+            ],
+          }}
+          canWriteTransactions
+          transactionItemSpecialStatusEnabled={false}
+        />,
+      );
+      expect(screen.queryByRole("link", { name: "记录退款" })).toBeNull();
+      expect(screen.queryByRole("link", { name: "记录报销到账" })).toBeNull();
+    },
+  );
+  it.each([false, true])(
     "支出显示退款，待报销状态为 %s 时按条件显示报销入口",
     (pending) => {
       render(
         <TransactionOffsetActions
+          transactionItemSpecialStatusEnabled
           initialValues={{
             ...initialValues,
             items: [
