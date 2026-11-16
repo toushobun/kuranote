@@ -57,6 +57,8 @@ import type {
   TransactionItemSummary,
   TransactionPickerErrors,
 } from "./TransactionForm.types";
+import { useTransactionOffsetEntry } from "../TransactionOffsetEntry/TransactionOffsetEntry";
+import { offsetEntryCandidates } from "../TransactionOffsetEntry/offsetEntryDraft";
 import { shouldFollowLinkedField } from "./linkedFieldAutoFill";
 import {
   buildCategoryPickerGroups,
@@ -83,11 +85,17 @@ export function useTransactionForm({
   merchantOptions,
   onPickerItemCommit,
 }: UseTransactionFormOptions) {
+  const offsetEntry = useTransactionOffsetEntry();
+  const initialOffsetCandidates = offsetEntry
+    ? offsetEntryCandidates(offsetEntry)
+    : [];
+  const initialOffsetPicker =
+    initialOffsetCandidates.length > 1 ? initialOffsetCandidates[0] : null;
   const reportEditDirty = useEditTransactionDirty();
   const nextItemIdRef = useRef(initialValues.items.length + 1);
   // 初始明细在 createInitialItemsByType 中按 1..N 编号，新增明细从 N+1 起编号。
   const isInitialItem = (itemId: number) =>
-    itemId <= initialValues.items.length;
+    !offsetEntry && itemId <= initialValues.items.length;
   const selectedType: TransactionType = initialValues.type;
   const paymentFields = useTransactionPaymentFields(initialValues.payments);
   const selectedAccountId = paymentFields.primaryAccountId;
@@ -107,21 +115,36 @@ export function useTransactionForm({
       new Map(categoryOptions.map((category) => [category.id, category])),
     ),
   );
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isSheetOpen, setIsSheetOpen] = useState(
+    !!initialOffsetPicker && !!initialValues.merchantId,
+  );
   const [pickerSessionKey, setPickerSessionKey] = useState(0);
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
   const [selectedCategoryGroupId, setSelectedCategoryGroupId] = useState("");
-  const [pickerCategoryId, setPickerCategoryId] = useState("");
-  const [pickerAmount, setPickerAmount] = useState("");
+  const [pickerCategoryId, setPickerCategoryId] = useState(
+    offsetEntry
+      ? (categoryOptions.find((c) => c.systemKey === offsetEntry.kind)?.id ??
+          "")
+      : "",
+  );
+  const [pickerAmount, setPickerAmount] = useState(
+    initialOffsetPicker
+      ? getLinkCandidateDefaultAmount(initialOffsetPicker)
+      : "",
+  );
   const [pickerMode, setPickerMode] = useState<
     "expense" | "income" | "refund" | "reimbursement"
-  >("expense");
+  >(offsetEntry?.kind ?? "expense");
   const [pickerSpecialStatus, setPickerSpecialStatus] =
     useState<TransactionFormItem["specialStatus"]>(null);
   const [pickerRefundCandidate, setPickerRefundCandidate] =
-    useState<TransactionRefundCandidate | null>(null);
+    useState<TransactionRefundCandidate | null>(
+      offsetEntry?.kind === "refund" ? initialOffsetPicker : null,
+    );
   const [pickerReimbursementCandidate, setPickerReimbursementCandidate] =
-    useState<TransactionRefundCandidate | null>(null);
+    useState<TransactionRefundCandidate | null>(
+      offsetEntry?.kind === "reimbursement" ? initialOffsetPicker : null,
+    );
   const [pickerErrors, setPickerErrors] = useState<TransactionPickerErrors>({});
   const [note, setNote] = useState(initialValues.note);
   const [linkNotice, setLinkNotice] = useState<string | null>(null);
@@ -129,6 +152,9 @@ export function useTransactionForm({
   const [transactionTime, setTransactionTime] = useState("");
   const [timeZoneOffsetMinutes, setTimeZoneOffsetMinutes] = useState("");
 
+  const [waitingOffsetMerchant, setWaitingOffsetMerchant] = useState(
+    !!initialOffsetPicker && !initialValues.merchantId,
+  );
   const allDisplayItems = [...itemsByType.expense, ...itemsByType.income];
 
   useEffect(() => {
@@ -455,14 +481,22 @@ export function useTransactionForm({
   }
 
   function openSheet() {
+    setWaitingOffsetMerchant(false);
     setPickerSessionKey((key) => key + 1);
     const { groupId, categoryId } = getDefaultPickerCategory(
       categoryGroups,
       disabledCategoryType,
     );
     setEditingItemId(null);
-    setPickerCategoryId(categoryId);
-    setPickerMode(categoryById.get(categoryId)?.type ?? "expense");
+    setPickerCategoryId(
+      offsetEntry
+        ? (categoryOptions.find((c) => c.systemKey === offsetEntry.kind)?.id ??
+            "")
+        : categoryId,
+    );
+    setPickerMode(
+      offsetEntry?.kind ?? categoryById.get(categoryId)?.type ?? "expense",
+    );
     setPickerAmount("");
     setPickerSpecialStatus(null);
     setPickerRefundCandidate(null);
@@ -700,6 +734,10 @@ export function useTransactionForm({
 
   function handleMerchantChange(merchantId: string) {
     setSelectedMerchantId(merchantId);
+    if (waitingOffsetMerchant && merchantId) {
+      setWaitingOffsetMerchant(false);
+      setIsSheetOpen(true);
+    }
   }
 
   function handlePaymentAccountChange(key: number, accountId: string) {
@@ -833,7 +871,7 @@ export function useTransactionForm({
     return adjustLinkCandidate(
       candidate,
       itemsByType.income,
-      initialValues.items,
+      offsetEntry ? [] : initialValues.items,
       editingItemId,
     );
   }

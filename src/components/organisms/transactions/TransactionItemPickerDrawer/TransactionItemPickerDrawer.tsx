@@ -296,6 +296,7 @@ export function TransactionItemPickerDrawer({
         ) : null}
         {isLinkedMode ? (
           <TransactionLinkCandidatePanel
+            pinInitialSelection={editingItemId !== null}
             key={`${pickerMode}:${pickerSessionKey}`}
             accountCurrency={selectedAccountCurrency}
             merchantName={merchantName}

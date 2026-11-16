@@ -73,3 +73,21 @@ describe("merchantEntryRepository", () => {
     },
   );
 });
+
+it("来源 RPC 传入账本、来源记录和核销类型；无数据返回 null", async () => {
+  const { rpc, repository } = setup();
+  expect(
+    await repository.loadOffsetEntry("ledger", "record", "refund"),
+  ).toBeNull();
+  expect(rpc).toHaveBeenCalledWith("load_transaction_offset_entry", {
+    p_ledger_id: "ledger",
+    p_record_id: "record",
+    p_kind: "refund",
+  });
+});
+it("来源读取失败不作为无效入口吞掉", async () => {
+  const { repository } = setup(null, { code: "XX000" });
+  await expect(
+    repository.loadOffsetEntry("ledger", "record", "reimbursement"),
+  ).rejects.toBeInstanceOf(RepositoryError);
+});

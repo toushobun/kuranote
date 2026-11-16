@@ -17,6 +17,8 @@ import type { ActionState } from "types/actions";
 import type { TransactionStepFlowProps } from "./TransactionStepFlow.types";
 import type { FlowMerchant } from "organisms/transactions/MerchantStep/MerchantStep.types";
 
+import { buildOffsetEntryDraft } from "../TransactionOffsetEntry/offsetEntryDraft";
+
 // 选完商家后在明细与付款区显示读取状态，最多等待两秒；
 // 之后晚到的建议只在用户还没动过小票时补上。
 export const quickRouteSuggestionTimeoutMs = 2000;
@@ -24,20 +26,29 @@ export const quickRouteSuggestionTimeoutMs = 2000;
 export function useTransactionStepFlow(props: TransactionStepFlowProps) {
   // 等待建议数据的商家；只应用一次，超时后动过小票或已有输入时清空。
   const pendingQuickMerchantId = useRef<string | null>(null);
+  const pendingSourceAccountMerchantId = useRef<string | null>(null);
+  const sourceAccountPrefillDone = useRef(false);
   const [loadingMerchantId, setLoadingMerchantId] = useState<string | null>(
     null,
   );
   const baseItemsOptions = props.itemsOptions ?? { categoryOptions: [] };
-  const [initialValues] = useState<TransactionFormInitialValues>(() => ({
-    items: baseItemsOptions.initialItems ?? [],
-    merchantId: "",
-    note: "",
-    payments: baseItemsOptions.initialPayments ?? [
-      { accountId: "", amount: null },
-    ],
-    transactionAt: "",
-    type: "expense",
-  }));
+  const [initialValues] = useState<TransactionFormInitialValues>(() =>
+    props.offsetEntry
+      ? buildOffsetEntryDraft(
+          props.offsetEntry,
+          baseItemsOptions.categoryOptions,
+        )
+      : {
+          items: baseItemsOptions.initialItems ?? [],
+          merchantId: "",
+          note: "",
+          payments: baseItemsOptions.initialPayments ?? [
+            { accountId: "", amount: null },
+          ],
+          transactionAt: "",
+          type: "expense",
+        },
+  );
   const automaticItemIds = useRef<number[]>([]);
   const automaticPaymentKey = useRef<number | null>(null);
   const [showAutomaticNotice, setShowAutomaticNotice] = useState(false);
@@ -136,6 +147,27 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     if (loadingMerchantId !== null) resetWaitStartSnapshot();
   }, [loadingMerchantId]);
   const applySuggestions = useEffectEvent(() => {
+    if (props.offsetEntry) {
+      if (
+        !suggestionsReady ||
+        pendingSourceAccountMerchantId.current !== merchant?.id
+      )
+        return;
+      pendingSourceAccountMerchantId.current = null;
+      sourceAccountPrefillDone.current = true;
+      const primary = form.payments[0];
+      if (touched || primary?.accountId !== props.offsetEntry.accountId) return;
+      const currency = props.offsetEntry.candidates[0]?.accountCurrency;
+      const recommended = props.suggestions?.recommendedAccountIds
+        .map((id) => props.accounts.find((account) => account.id === id))
+        .find((account) => account?.currency === currency);
+      if (recommended) {
+        setAutoRevision((revision) => revision + 1);
+        form.handlePaymentAccountChange(primary.key, recommended.id);
+        props.onAccountSelect(recommended);
+      }
+      return;
+    }
     if (!suggestionsReady || pendingQuickMerchantId.current !== merchant?.id)
       return;
     stopWaiting();
@@ -200,6 +232,20 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     props.onMerchantSelect(value);
     // 重选当前商家时保留等待和晚到建议的关联状态。
     if (!changing) return;
+    if (props.offsetEntry) {
+      // 无历史商家时，首次手选商家只补同币种账户；不带出习惯明细。
+      pendingSourceAccountMerchantId.current = null;
+      if (
+        !props.offsetEntry.merchantId &&
+        !sourceAccountPrefillDone.current &&
+        !touched
+      ) {
+        if (value.hasTransactions)
+          pendingSourceAccountMerchantId.current = value.id;
+        else sourceAccountPrefillDone.current = true;
+      }
+      return;
+    }
     if (
       touched ||
       form.linkMerchantTouched ||
@@ -225,6 +271,11 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     setLoadingMerchantId(value.id);
   }
   const merchantPicker = useReceiptMerchantPicker(selectMerchant);
+  const openInitialMerchant = useEffectEvent(() => merchantPicker.openPicker());
+  useEffect(() => {
+    if (props.offsetEntry && !props.offsetEntry.merchantId)
+      openInitialMerchant();
+  }, [props.offsetEntry]);
   return {
     saveState,
     saveAction,

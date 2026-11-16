@@ -187,6 +187,11 @@ export function formatDateKey(value: string) {
   return getDateKeyInTimeZone(value, serverFallbackTimeZone);
 }
 
+/** 小票来源和关联候选共用的月/日显示，始终保留两位数字。 */
+export function formatTransactionMonthDay(value: string) {
+  return formatDateKey(value).slice(5).replace("-", "/");
+}
+
 export function formatDateLabel(dateKey: string) {
   const date = new Date(`${dateKey}T00:00:00Z`);
   const day = date.getUTCDate();

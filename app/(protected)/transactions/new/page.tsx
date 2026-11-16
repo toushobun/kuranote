@@ -34,7 +34,7 @@ export default async function TransactionsNewPage({
   }
 
   const [loadedView, receiptCreation] = await Promise.all([
-    loadNewTransactionView(),
+    loadNewTransactionView(params),
     loadReceiptCreationView(),
   ]);
   const {
@@ -68,7 +68,12 @@ export default async function TransactionsNewPage({
             addPresetsAction={addMerchantPresets}
             categoryOptions={view.categoryOptions}
             frequentMerchants={frequentMerchants}
-            initialMethod={resolveNewTransactionEntry(params)}
+            initialMethod={
+              loadedView.offsetEntry
+                ? "merchant"
+                : resolveNewTransactionEntry(params)
+            }
+            offsetEntry={loadedView.offsetEntry}
             ledgerId={ledgerId}
             loadPresetsAction={loadMerchantPresets}
             merchantOptions={view.merchantOptions}

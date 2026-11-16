@@ -27,8 +27,12 @@ export function sortLinkCandidates(
     historyMerchantIds?: readonly string[];
     lockedAmounts?: ReadonlyMap<string, string>;
     settled: boolean;
+    sourceItemIds?: readonly string[];
   },
 ) {
+  const sourceOrder = new Map(
+    options.sourceItemIds?.map((id, index) => [id, index]),
+  );
   const historical = new Set(options.historyMerchantIds);
   function rank(candidate: TransactionRefundCandidate) {
     if (options.settled) {
@@ -39,18 +43,22 @@ export function sortLinkCandidates(
         : 2;
     }
     if (options.lockedAmounts?.has(candidate.id)) return 0;
-    if (historical.has(candidate.merchantId ?? "")) return 1;
+    if (sourceOrder.has(candidate.id)) return 1;
+    if (historical.has(candidate.merchantId ?? "")) return 2;
     if (
       options.kind === "refund" &&
       options.merchantId &&
       candidate.merchantId === options.merchantId
     )
-      return 2;
-    return 3;
+      return 3;
+    return 4;
   }
   return [...candidates].sort(
     (a, b) =>
       rank(a) - rank(b) ||
+      (!options.settled && rank(a) === 1
+        ? sourceOrder.get(a.id)! - sourceOrder.get(b.id)!
+        : 0) ||
       new Date(b.transactionAt).getTime() - new Date(a.transactionAt).getTime(),
   );
 }

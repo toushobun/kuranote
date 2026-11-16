@@ -253,6 +253,7 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
               onChange={f.handleNoteChange}
               readOnly={readOnly}
             />
+            {props.footer}
           </ReceiptPaper>
           {!readOnly && (
             <ReceiptSubmitButton

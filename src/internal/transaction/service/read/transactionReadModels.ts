@@ -230,5 +230,6 @@ type EditTransactionViewOptions = Pick<
 /** 编辑记账页（#962）：选项与新增记账一致（账户带持有人、商家带商家分类），另附账本 ID 供浏览器端读取商家建议。 */
 export type EditTransactionEntryView =
   EditTransactionView<TransactionEntryOptions> & {
+    canWriteTransactions: boolean;
     ledgerId: string;
   };

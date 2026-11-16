@@ -1,4 +1,9 @@
 "use client";
+import { useState } from "react";
+import {
+  TransactionOffsetEntryContext,
+  TransactionOffsetEntryNotice,
+} from "../TransactionOffsetEntry/TransactionOffsetEntry";
 import { useReceiptCreation } from "organisms/transactions/ReceiptCreationProvider/ReceiptCreationProvider";
 import { mergeReceiptOptions } from "organisms/transactions/ReceiptCreationProvider/useReceiptCreationState";
 
@@ -21,9 +26,16 @@ import { useTransactionStepFlow } from "./useTransactionStepFlow";
 /** 从商家记账：直接在小票内选择商家和填写。 */
 export function TransactionStepFlow(props: TransactionStepFlowProps) {
   const active = useWizardDialogSwitchPane()?.active ?? true;
+  const [initialOffsetEntry] = useState(props.offsetEntry ?? null);
   return props.open ? (
     <BackLayerScope level={active ? transactionBackLayerLevels.flow : null}>
-      <TransactionStepFlowContent {...props} active={active} />
+      <TransactionOffsetEntryContext value={initialOffsetEntry}>
+        <TransactionStepFlowContent
+          {...props}
+          offsetEntry={initialOffsetEntry}
+          active={active}
+        />
+      </TransactionOffsetEntryContext>
     </BackLayerScope>
   ) : null;
 }
@@ -61,6 +73,7 @@ function TransactionStepFlowContent(
         <DialogContent
           sx={{ p: 2.5, display: "flex", flexDirection: "column" }}
         >
+          <TransactionOffsetEntryNotice />
           <TransactionConfirmStep
             {...w.itemsOptions}
             formId={w.formId}

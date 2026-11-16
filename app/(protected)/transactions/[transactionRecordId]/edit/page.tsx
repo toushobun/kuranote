@@ -76,6 +76,7 @@ export default async function TransactionEditPage({
             action={saveEditTransaction}
             archivedAccountOptions={view.archivedAccountOptions}
             canDelete={canDelete}
+            canWriteTransactions={view.canWriteTransactions}
             categoryOptions={view.categoryOptions}
             deleteAction={voidTransaction}
             editRestriction={editRestriction}

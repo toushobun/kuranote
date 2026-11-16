@@ -1,8 +1,11 @@
+import { isUuid } from "utils/formData";
 import type { TransactionEntryMethod } from "types/transactions";
 
 export type NewTransactionEntrySearchParams = {
   method?: string;
   type?: string;
+  refundFrom?: string | string[];
+  reimbursementFrom?: string | string[];
 };
 
 /**
@@ -21,4 +24,16 @@ export function resolveNewTransactionEntry(
     return "transfer";
   }
   return "merchant";
+}
+
+/** 冲突、数组或非法标识都按普通新增处理。 */
+export function resolveOffsetEntry(params: NewTransactionEntrySearchParams) {
+  if (params.refundFrom !== undefined && params.reimbursementFrom !== undefined)
+    return null;
+  const recordId = params.refundFrom ?? params.reimbursementFrom;
+  if (typeof recordId !== "string" || !isUuid(recordId)) return null;
+  return {
+    recordId,
+    kind: params.refundFrom ? ("refund" as const) : ("reimbursement" as const),
+  };
 }

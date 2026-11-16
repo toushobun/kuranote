@@ -31,4 +31,5 @@ export type TransactionConfirmStepProps = TransactionReceiptProps & {
   formId?: string;
   initialValues?: TransactionFormInitialValues;
   submitLabel?: string;
+  footer?: import("react").ReactNode;
 };

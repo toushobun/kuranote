@@ -673,3 +673,9 @@ export const transactionLinkCandidatePageInputSchema = z.object({
 export type TransactionLinkCandidatePageInput = z.input<
   typeof transactionLinkCandidatePageInputSchema
 >;
+
+export const transactionOffsetEntryQuerySchema = z.object({
+  ledgerId: z.uuid(),
+  recordId: z.uuid(),
+  kind: z.enum(["refund", "reimbursement"]),
+});

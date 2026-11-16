@@ -17,6 +17,7 @@ import {
   formatPlainAmount,
   formatSignedNumber,
   formatTransactionAt,
+  formatTransactionMonthDay,
   formatTransactionRowAmount,
   formatTransactionTime,
   formatUnsignedCurrencyAmount,
@@ -216,6 +217,11 @@ describe("transactions utils", () => {
 
     expect(formatDateKey("2026-06-10T12:34:56.000Z")).toBe("2026-06-10");
     expect(formatDateLabel("2026-06-10")).toBe("10日（周三）");
+  });
+
+  it("核销来源日期与候选卡片统一保留两位月日", () => {
+    expect(formatTransactionMonthDay("2026-11-07T09:00:00Z")).toBe("11/07");
+    expect(formatTransactionMonthDay("2026-11-08T09:00:00Z")).toBe("11/08");
   });
 
   it("formatDateKey 按 Asia/Tokyo 时区归入日期", () => {

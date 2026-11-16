@@ -90,3 +90,5 @@ export {
 } from "./util/transactionLinkCandidates";
 
 export type { TransactionLinkCandidatePageInput } from "./schema";
+
+export type { TransactionOffsetEntry } from "./entity/offsetEntry";
