@@ -19,7 +19,9 @@ describe("TransactionOffsetEntryNotice", () => {
         kind === "refund" ? "记录退款" : "记录报销到账",
       );
       expect(screen.getByRole("alert")).toHaveTextContent("7-Eleven");
-      expect(screen.getByRole("alert")).toHaveTextContent("USB-C 充电器，办公室备用");
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "USB-C 充电器，办公室备用",
+      );
     },
   );
   it("明细备注为空时回退分类名，空白备注也视为无说明", () => {
