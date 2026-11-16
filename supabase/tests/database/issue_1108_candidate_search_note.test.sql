@@ -1,7 +1,7 @@
 -- #1108：候选搜索新增付款账户、大小分类及单条明细备注；不改变 records 模式。
 begin;
 set local search_path = public, extensions;
-select plan(15);
+select plan(16);
 
 insert into public.transaction_record (
     id, ledger_id, type, status, transaction_at, merchant_id,
@@ -200,6 +200,69 @@ select ok(
     '规模测试的候选集包含 4000 条新增支出明细'
 );
 select diag('1108 大规模候选回归：4000 条新增记录和付款，无额外退款关联');
+select diag(pg_temp.explain_1108(''));
+select diag(pg_temp.explain_1108('1108规模关键词'));
+
+-- 在相同 4000 条原支出基础上再建立 400 条有效退款关联，贴近 #1101 压测规模。
+set local role postgres;
+insert into public.transaction_record (
+    id, ledger_id, type, status, transaction_at, merchant_id,
+    title, created_by, updated_by
+)
+select
+    md5('1108-scale-refund-record-' || g)::uuid,
+    '00000000-0000-4000-8000-000000000032',
+    'normal', 'active',
+    timestamptz '2026-11-16 00:00:00+00' - g * interval '1 minute',
+    '00000000-0000-4000-8000-000000001001',
+    '1108规模退款',
+    '00000000-0000-4000-8000-000000000031',
+    '00000000-0000-4000-8000-000000000031'
+from generate_series(1, 400) g;
+
+select tests.insert_normal_transaction_items((
+    select jsonb_agg(jsonb_build_object(
+        'id', md5('1108-scale-refund-item-' || g)::uuid,
+        'ledger_id', '00000000-0000-4000-8000-000000000032',
+        'transaction_record_id', md5('1108-scale-refund-record-' || g)::uuid,
+        'account_id', '00000000-0000-4000-8000-000000000043',
+        'category_id', (
+            select id from public.category
+            where ledger_id = '00000000-0000-4000-8000-000000000032'
+              and system_key = 'refund'
+        ),
+        'amount', 5,
+        'sort_order', 0,
+        'created_by', '00000000-0000-4000-8000-000000000031',
+        'updated_by', '00000000-0000-4000-8000-000000000031'
+    ))
+    from generate_series(1, 400) g
+));
+
+insert into public.transaction_item_refund_link (
+    ledger_id, refunded_item_id, refund_income_item_id, refund_amount, created_by
+)
+select
+    '00000000-0000-4000-8000-000000000032',
+    md5('1108-scale-item-' || g)::uuid,
+    md5('1108-scale-refund-item-' || g)::uuid,
+    5,
+    '00000000-0000-4000-8000-000000000031'
+from generate_series(1, 400) g;
+
+-- 提前强制检查 deferred 关联分类约束，确保性能对比的数据真实有效。
+set constraints all immediate;
+set local role authenticated;
+
+select is((
+    select count(*) from public.transaction_item_refund_link
+    where refunded_item_id = any(array(
+        select md5('1108-scale-item-' || g)::uuid
+        from generate_series(1, 400) g
+    ))
+), 400::bigint, '规模数据中有 400 条有效退款关联');
+
+select diag('1108 大规模候选回归：4000 条新增支出 + 400 条退款关联');
 select diag(pg_temp.explain_1108(''));
 select diag(pg_temp.explain_1108('1108规模关键词'));
 
