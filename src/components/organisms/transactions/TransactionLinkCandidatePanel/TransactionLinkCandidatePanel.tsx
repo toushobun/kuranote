@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import ExpandLessRoundedIcon from "@mui/icons-material/ExpandLessRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
@@ -19,6 +20,10 @@ import {
   useTransactionLinkCandidates,
   type LoadTransactionLinkCandidatePage,
 } from "./useTransactionLinkCandidates";
+import {
+  matchesLinkCandidateScope,
+  sortLinkCandidates,
+} from "./transactionLinkCandidateUtils";
 
 type TransactionLinkCandidatePanelProps = {
   accountCurrency?: string;
@@ -40,6 +45,8 @@ export function TransactionLinkCandidatePanel(
   props: TransactionLinkCandidatePanelProps,
 ) {
   const { accountCurrency, kind, merchantName, onChange, value } = props;
+  // 只固定打开抽屉时已经关联的原支出，点选后不重新置顶。
+  const [initialSelection] = useState(value);
   const {
     query,
     setQuery,
@@ -60,26 +67,15 @@ export function TransactionLinkCandidatePanel(
 
   // 服务端只知道数据库状态。旧关联 / 未保存草稿带来的少量差异，
   // 通过已持有的候选在前端重分组，不为此额外发起首屏请求。
-  function matchesCurrentScope(candidate: TransactionRefundCandidate) {
-    if (accountCurrency && candidate.accountCurrency !== accountCurrency)
-      return false;
-    const term = query.trim().toLocaleLowerCase();
-    if (!term) return true;
-    return [
-      candidate.categoryName,
-      candidate.merchantName,
-      candidate.accountName,
-      candidate.amount,
-      candidate.transactionAt,
-    ].some((text) => text?.toLocaleLowerCase().includes(term));
-  }
+  const matchesCurrentScope = (candidate: TransactionRefundCandidate) =>
+    matchesLinkCandidateScope(candidate, accountCurrency, query);
   const scopedAffected = (props.linkAffectedCandidates ?? []).filter(
     matchesCurrentScope,
   );
   const allCandidates = mergeUniqueById(
     mergeUniqueById(page?.items ?? [], settledPage?.items ?? []),
     scopedAffected,
-  ).filter((candidate) => candidate.id !== value?.id);
+  ).filter((candidate) => candidate.id !== initialSelection?.id);
   function isSettled(candidate: TransactionRefundCandidate) {
     return isLinkCandidateSettled(
       props.lockedAmounts?.has(candidate.id)
@@ -88,24 +84,17 @@ export function TransactionLinkCandidatePanel(
     );
   }
 
-  const historyMerchants = new Set(page?.historyMerchantIds);
-  function rank(candidate: TransactionRefundCandidate, settled: boolean) {
-    if (!settled && historyMerchants.has(candidate.merchantId ?? "")) return 0;
-    return kind === "refund" &&
-      props.merchantId &&
-      candidate.merchantId === props.merchantId
-      ? 1
-      : 2;
-  }
   function orderCandidates(settled: boolean) {
-    return allCandidates
-      .filter((candidate) => isSettled(candidate) === settled)
-      .sort(
-        (a, b) =>
-          rank(a, settled) - rank(b, settled) ||
-          new Date(b.transactionAt).getTime() -
-            new Date(a.transactionAt).getTime(),
-      );
+    return sortLinkCandidates(
+      allCandidates.filter((candidate) => isSettled(candidate) === settled),
+      {
+        kind,
+        merchantId: props.merchantId,
+        historyMerchantIds: page?.historyMerchantIds,
+        lockedAmounts: props.lockedAmounts,
+        settled,
+      },
+    );
   }
   const activeCandidates = orderCandidates(false);
   const settledCandidates = orderCandidates(true);
@@ -116,16 +105,18 @@ export function TransactionLinkCandidatePanel(
   }, 0);
   const selectedSettledInScope =
     !!page &&
-    !!value &&
-    matchesCurrentScope(value) &&
-    isLinkCandidateSettled(props.resolveLinkCandidate?.(value) ?? value);
+    !!initialSelection &&
+    matchesCurrentScope(initialSelection) &&
+    isLinkCandidateSettled(
+      props.resolveLinkCandidate?.(initialSelection) ?? initialSelection,
+    );
   const selectedOffset = selectedSettledInScope ? 1 : 0;
   const settledCount = Math.max(
     0,
     (page?.settledCount ?? 0) + settledDelta - selectedOffset,
   );
-  const visibleCandidates = value
-    ? [value, ...activeCandidates]
+  const visibleCandidates = initialSelection
+    ? [initialSelection, ...activeCandidates]
     : activeCandidates;
   const showMerchantName =
     kind === "reimbursement" ||

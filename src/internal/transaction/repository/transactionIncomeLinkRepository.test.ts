@@ -120,6 +120,7 @@ describe("TransactionIncomeLinkRepository", () => {
         incomeItemId,
         refundItem: {
           merchantId,
+          note: null,
           accountId,
           amount: "80.00",
           categoryId,
@@ -133,6 +134,7 @@ describe("TransactionIncomeLinkRepository", () => {
         reimbursementItems: [
           {
             merchantId,
+            note: null,
             accountId,
             amount: "100.00",
             categoryId,

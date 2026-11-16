@@ -172,6 +172,7 @@ export function buildTransactionListItem({
         categoryName: category?.name ?? "",
         categoryType: category?.type,
         parentCategoryName: parent?.name ?? null,
+        ...(item.note?.trim() ? { note: item.note } : {}),
         ...(item.id
           ? {
               id: item.id,
@@ -215,6 +216,7 @@ export function buildTransactionListItem({
     merchant_id: record.merchant_id,
     merchant_name: merchant?.name ?? null,
     note: record.note ?? firstItem?.note ?? null,
+    record_note: record.note,
     ...(sharedPaymentAmounts
       ? { record_total_amount: String(sharedPaymentAmounts.recordTotalAmount) }
       : {}),

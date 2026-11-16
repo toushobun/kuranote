@@ -68,6 +68,8 @@ type TransactionItemPickerDrawerProps = TransactionIncomeLinksContextValue & {
   pickerAmount: string;
   pickerMode?: TransactionItemPickerMode;
   pickerModeLocked?: boolean;
+  /** 每次打开抽屉递增，避免短时间内再次打开时复用上次置顶原支出。 */
+  pickerSessionKey?: number;
   pickerCategoryId: string;
   pickerErrors: TransactionPickerErrors;
   pickerRefundCandidate?: TransactionRefundCandidate | null;
@@ -110,6 +112,7 @@ export function TransactionItemPickerDrawer({
   pickerAmount,
   pickerMode = "expense",
   pickerModeLocked = false,
+  pickerSessionKey = 0,
   pickerCategoryId,
   pickerErrors,
   pickerRefundCandidate = null,
@@ -293,7 +296,7 @@ export function TransactionItemPickerDrawer({
         ) : null}
         {isLinkedMode ? (
           <TransactionLinkCandidatePanel
-            key={pickerMode}
+            key={`${pickerMode}:${pickerSessionKey}`}
             accountCurrency={selectedAccountCurrency}
             merchantName={merchantName}
             kind={pickerMode}

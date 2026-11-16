@@ -920,6 +920,7 @@ describe("getEditTransactionView income links", () => {
                 accountName: "归档信用卡",
                 accountCurrency: "JPY",
                 merchantName: "原支出商家",
+                merchantId,
                 merchantIconUrl: "/assets/kura-icons/merchant.png",
                 reimbursementAmount: "200",
               },

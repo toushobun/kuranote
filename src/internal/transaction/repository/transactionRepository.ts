@@ -191,7 +191,7 @@ export type FilteredTransactionPageInput = {
 };
 
 export type FilteredTransactionPageResult = {
-  entries: { recordId: string; itemId: string | null }[];
+  entries: { recordId: string; itemId: string | null; note?: string | null }[];
   nextOffset: number | null;
   settledCount: number;
   historyMerchantIds?: string[];
@@ -203,6 +203,7 @@ const filteredPageResultSchema = z.object({
     z.object({
       recordId: z.string().uuid(),
       itemId: z.string().uuid().nullable(),
+      note: z.string().nullable().optional(),
     }),
   ),
   historyMerchantIds: z.array(z.string().uuid()).optional(),

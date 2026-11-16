@@ -43,6 +43,36 @@ describe("TransactionLinkCandidateCards", () => {
     );
     expect(screen.getByText("未指定商家 · 11/11 · 招行信用卡")).toBeVisible();
   });
+  it("备注在商家日期账户下面显示单行，空备注不增加额外行，锁定时也显示", () => {
+    const original = { ...candidate, note: "生日礼物，保留包装".repeat(8) };
+    const { rerender } = render(
+      <TransactionLinkCandidateCards
+        candidates={[original]}
+        onSelect={vi.fn()}
+      />,
+    );
+    const note = screen.getByText(original.note);
+    expect(note).toHaveAttribute("title", original.note);
+    expect(note).toHaveStyle({ display: "block" });
+    expect(note).toHaveClass("MuiTypography-noWrap");
+    rerender(
+      <TransactionLinkCandidateCards
+        candidates={[{ ...original, note: null }]}
+        onSelect={vi.fn()}
+      />,
+    );
+    expect(screen.queryByText(original.note)).not.toBeInTheDocument();
+    rerender(
+      <TransactionLinkCandidateCards
+        candidates={[original]}
+        onSelect={vi.fn()}
+        lockedAmounts={new Map([[original.id, "750"]])}
+      />,
+    );
+    expect(screen.getByText(original.note)).toBeVisible();
+    expect(screen.getByText("已在小票上 · ¥750")).toBeVisible();
+  });
+
   it("部分核销显示橙色状态标签，零金额不显示已退标签", () => {
     const { rerender } = render(
       <TransactionLinkCandidateCards

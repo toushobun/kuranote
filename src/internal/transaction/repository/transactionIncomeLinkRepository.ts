@@ -9,6 +9,7 @@ export type TransactionIncomeLinkedItem = {
   amount: string;
   categoryId: string;
   id: string;
+  note: string | null;
   refundedAmount: string;
   reimbursementAmount: string;
   transactionAt: string;
@@ -52,6 +53,7 @@ type LinkedItemRow = {
   amount: string;
   category_id: string | null;
   id: string;
+  note: string | null;
   refunded_amount: string | null;
   reimbursement_amount: string | null;
   transaction_record_id: string;
@@ -60,6 +62,7 @@ type LinkedItemRow = {
 type TransactionAtRow = {
   merchant_id: string | null;
   id: string;
+  note: string | null;
   transaction_at: string;
 };
 
@@ -134,7 +137,7 @@ export function createSupabaseTransactionIncomeLinkRepository(
           : await supabase
               .from("transaction_item_with_refund")
               .select(
-                "id, transaction_record_id, category_id, amount, refunded_amount, reimbursement_amount",
+                "id, transaction_record_id, category_id, note, amount, refunded_amount, reimbursement_amount",
               )
               .eq("ledger_id", ledgerId)
               .in("id", linkedItemIds);
@@ -160,7 +163,7 @@ export function createSupabaseTransactionIncomeLinkRepository(
           : await Promise.all([
               supabase
                 .from("transaction_record")
-                .select("id, transaction_at, merchant_id")
+                .select("id, transaction_at, merchant_id, note")
                 .eq("ledger_id", ledgerId)
                 .eq("status", "active")
                 .in("id", transactionRecordIds),
@@ -276,6 +279,7 @@ function buildLinkedItem(
     refundedAmount: item.refunded_amount ?? "0",
     reimbursementAmount: item.reimbursement_amount ?? "0",
     merchantId: record.merchant_id ?? null,
+    note: item.note?.trim() || record.note?.trim() || null,
     transactionAt: record.transaction_at,
     transactionRecordId: item.transaction_record_id,
   };
