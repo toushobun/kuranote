@@ -4,7 +4,7 @@ import UndoRounded from "@mui/icons-material/UndoRounded";
 import ReceiptLongRounded from "@mui/icons-material/ReceiptLongRounded";
 import Alert from "@mui/material/Alert";
 import type { TransactionOffsetEntry } from "internal/transaction";
-import { formatDateKey } from "utils/transactions";
+import { formatTransactionMonthDay } from "utils/transactions";
 import { offsetEntryMessages } from "config/transactionStepFlowMessages";
 import { formatStepCurrencyAmount } from "../transactionStepFlowFormat";
 import { offsetEntryCandidates } from "./offsetEntryDraft";
@@ -17,9 +17,6 @@ export function TransactionOffsetEntryNotice() {
   const entry = useTransactionOffsetEntry();
   if (!entry) return null;
   const candidate = offsetEntryCandidates(entry)[0] ?? entry.candidates[0];
-  const dateParts = candidate
-    ? formatDateKey(candidate.transactionAt).split("-")
-    : [];
   return (
     <Alert
       severity="info"
@@ -28,7 +25,7 @@ export function TransactionOffsetEntryNotice() {
     >
       {offsetEntryMessages[entry.kind]}：
       {candidate
-        ? `${candidate.merchantName ?? ""} ${Number(dateParts[1])}/${Number(dateParts[2])} ${candidate.note?.trim() || candidate.categoryName} ${formatStepCurrencyAmount(candidate.amount, candidate.accountCurrency)}`
+        ? `${candidate.merchantName ?? ""} ${formatTransactionMonthDay(candidate.transactionAt)} ${candidate.note?.trim() || candidate.categoryName} ${formatStepCurrencyAmount(candidate.amount, candidate.accountCurrency)}`
         : ""}
     </Alert>
   );
