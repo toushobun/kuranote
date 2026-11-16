@@ -85,6 +85,9 @@ export function useTransactionForm({
 }: UseTransactionFormOptions) {
   const reportEditDirty = useEditTransactionDirty();
   const nextItemIdRef = useRef(initialValues.items.length + 1);
+  // 初始明细在 createInitialItemsByType 中按 1..N 编号，新增明细从 N+1 起编号。
+  const isInitialItem = (itemId: number) =>
+    itemId <= initialValues.items.length;
   const selectedType: TransactionType = initialValues.type;
   const paymentFields = useTransactionPaymentFields(initialValues.payments);
   const selectedAccountId = paymentFields.primaryAccountId;
@@ -92,12 +95,9 @@ export function useTransactionForm({
     initialValues.merchantId,
   );
   const [linkMerchantTouched, setLinkMerchantTouched] = useState(false);
-  // 记录每条关联明细确实自动写入的字段；手动修改后失去跟随资格。
+  // 按明细记录曾自动带出的字段；空对象表示已确定但从未自动带出。
   const autoLinkedFields = useRef(
-    new Map<
-      number,
-      { merchantId?: string | null; accountId?: string | null }
-    >(),
+    new Map<number, { merchantId?: true; accountId?: true }>(),
   );
   const [itemsByType, setItemsByType] = useState<
     Record<TransactionType, TransactionFormItem[]>
@@ -638,6 +638,7 @@ export function useTransactionForm({
     }
     if (selectedTarget && committedItemId !== null) {
       const tracked = autoLinkedFields.current.get(committedItemId) ?? {};
+      const firstCommit = !autoLinkedFields.current.has(committedItemId);
       const originalTarget =
         editingPickerItem?.refundCandidate ??
         editingPickerItem?.reimbursementCandidate;
@@ -645,6 +646,11 @@ export function useTransactionForm({
         editingItemId !== null &&
         originalTarget != null &&
         originalTarget.id !== selectedTarget.id;
+      // 首次新增关联或首次改选初始加载的明细时，保留原有空字段自动补全规则。
+      // 新增明细一旦确定，即使没有带出过字段，后续也不能取得跟随资格。
+      const canFirstAutoFill =
+        firstCommit &&
+        (!originalTarget || (isInitialItem(committedItemId) && retargeted));
       const nextMerchantId = selectedTarget.merchantId;
       const nextAccountId = selectedTarget.accountId;
       const canWriteMerchant =
@@ -659,11 +665,12 @@ export function useTransactionForm({
           selectedMerchantId,
           tracked.merchantId,
           retargeted,
+          canFirstAutoFill,
         )
       ) {
         setSelectedMerchantId(nextMerchantId);
         setLinkMerchantTouched(true);
-        tracked.merchantId = nextMerchantId;
+        tracked.merchantId = true;
       }
       if (
         canWriteAccount &&
@@ -671,16 +678,16 @@ export function useTransactionForm({
           selectedAccountId,
           tracked.accountId,
           retargeted,
+          canFirstAutoFill,
         )
       ) {
         const primaryPayment = paymentFields.payments[0];
         if (primaryPayment) {
-          handlePaymentAccountChange(primaryPayment.key, nextAccountId, true);
-          tracked.accountId = nextAccountId;
+          handlePrimaryAccountChange(primaryPayment.key, nextAccountId);
+          tracked.accountId = true;
         }
       }
-      if (tracked.merchantId || tracked.accountId)
-        autoLinkedFields.current.set(committedItemId, tracked);
+      autoLinkedFields.current.set(committedItemId, tracked);
     }
     setEditingItemId(null);
     setPickerCategoryId("");
@@ -692,26 +699,13 @@ export function useTransactionForm({
   }
 
   function handleMerchantChange(merchantId: string) {
-    // 重新选了同一个商家不算修改（#962）。
-    if (merchantId !== selectedMerchantId) {
-      for (const tracked of autoLinkedFields.current.values())
-        tracked.merchantId = null;
-    }
     setSelectedMerchantId(merchantId);
   }
 
-  function handlePaymentAccountChange(
-    key: number,
-    accountId: string,
-    automatic = false,
-  ) {
+  function handlePaymentAccountChange(key: number, accountId: string) {
     if (key !== paymentFields.payments[0]?.key) {
       paymentFields.changeAccount(key, accountId);
       return;
-    }
-    if (!automatic && accountId !== selectedAccountId) {
-      for (const tracked of autoLinkedFields.current.values())
-        tracked.accountId = null;
     }
     handlePrimaryAccountChange(key, accountId);
   }
@@ -729,10 +723,6 @@ export function useTransactionForm({
   }
 
   function handleRemovePayment(key: number) {
-    if (paymentFields.payments[0]?.key === key) {
-      for (const tracked of autoLinkedFields.current.values())
-        tracked.accountId = null;
-    }
     paymentFields.removePayment(key, selectedAccount?.currency);
   }
 
