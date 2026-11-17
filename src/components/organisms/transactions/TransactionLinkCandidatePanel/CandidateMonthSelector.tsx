@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
@@ -30,17 +30,13 @@ export function CandidateMonthSelector({
   const [pickerYear, setPickerYear] = useState(0);
   const [pickerMonth, setPickerMonth] = useState(0);
   const [pickerAll, setPickerAll] = useState(false);
+  const allMonthsRef = useRef<HTMLButtonElement>(null);
   const yearRef = useRef<HTMLButtonElement>(null);
   const monthRef = useRef<HTMLButtonElement>(null);
-  const syncClampedMonthRef = useRef(false);
   const today = currentTokyoCandidateMonth();
   const [thisYear, thisMonth] = today.split("-").map(Number);
   const yearOptions = Array.from({ length: 51 }, (_, i) => thisYear - i);
   const displayMonth = month ?? today;
-
-  function isMonthDisabled(year: number, option: number) {
-    return year > thisYear || (year === thisYear && option >= thisMonth);
-  }
 
   function openPicker() {
     const [year, selectedMonth] = displayMonth.split("-").map(Number);
@@ -61,17 +57,17 @@ export function CandidateMonthSelector({
 
   useBackLayer(open, () => setOpen(false), 1);
 
-  function centerSelectedOptions() {
-    if (monthRef.current) scrollPickerOptionIntoView(monthRef.current);
-    if (yearRef.current) scrollPickerOptionIntoView(yearRef.current);
-  }
-
-  // 切年时收紧未来月份后，滚轮位置也必须跟随新选中的月份。
-  useEffect(() => {
-    if (!open || !syncClampedMonthRef.current) return;
-    syncClampedMonthRef.current = false;
-    if (monthRef.current) scrollPickerOptionIntoView(monthRef.current);
-  }, [open, pickerYear, pickerMonth]);
+  // 在浏览器绘制弹窗前直接对齐选中项，避免先出现一月再跳到目标月。
+  useLayoutEffect(() => {
+    if (!open) return;
+    if (pickerAll) scrollPickerOptionIntoView(allMonthsRef.current!, "instant");
+    else {
+      if (yearRef.current)
+        scrollPickerOptionIntoView(yearRef.current, "instant");
+      if (monthRef.current)
+        scrollPickerOptionIntoView(monthRef.current, "instant");
+    }
+  }, [open, pickerAll, pickerYear, pickerMonth]);
 
   return (
     <>
@@ -136,8 +132,7 @@ export function CandidateMonthSelector({
         fullWidth
         maxWidth="xs"
         slotProps={{
-          paper: { sx: { height: searching ? 340 : 280, p: 1 } },
-          transition: { onEntered: centerSelectedOptions },
+          paper: { sx: { height: 280, p: 1 } },
         }}
       >
         <MonthPicker
@@ -147,27 +142,19 @@ export function CandidateMonthSelector({
                   label: m.monthAll,
                   selected: pickerAll,
                   onSelect: () => setPickerAll(true),
+                  ref: allMonthsRef,
                 }
               : undefined
           }
-          isMonthDisabled={isMonthDisabled}
           month={pickerMonth}
+          monthCount={pickerYear === thisYear ? thisMonth : 12}
           monthRef={monthRef}
-          onMonthChange={(value) => {
-            if (isMonthDisabled(pickerYear, value)) {
-              if (monthRef.current)
-                scrollPickerOptionIntoView(monthRef.current);
-              return;
-            }
-            setPickerMonth(value);
-            setPickerAll(false);
-          }}
+          onMonthChange={setPickerMonth}
           onSubmit={confirm}
           onYearChange={(value) => {
             setPickerYear(value);
-            if (isMonthDisabled(value, pickerMonth)) {
-              syncClampedMonthRef.current = true;
-              setPickerMonth(thisMonth - 1);
+            if (value === thisYear) {
+              setPickerMonth((previous) => Math.min(previous, thisMonth - 1));
             }
             setPickerAll(false);
           }}
