@@ -204,4 +204,52 @@ describe("groupLinkCandidates", () => {
     );
     expect(result).toEqual({ history: 0, sameMerchant: 0, other: 3 });
   });
+  it("部分结清排在普通组之后且默认独立成组", () => {
+    const partiallySettled = {
+      ...expense("partial", "amazon", 8),
+      amount: "100",
+      remainingRefundableAmount: "70",
+    };
+    const groups = groupLinkCandidates([partiallySettled, sameMerchant], {
+      kind: "refund",
+      merchantId: "amazon",
+    });
+    expect(groups.map(({ key }) => key)).toEqual(["sameMerchant", "partial"]);
+    expect(groups[1].count).toBe(1);
+  });
+
+  it("草稿把普通组转为部分结清，计数不能重复", () => {
+    const result = reconcileLinkCandidateGroupCounts(
+      { history: 0, sameMerchant: 0, other: 1, partial: 0 },
+      {
+        kind: "refund",
+        affectedCandidates: [expense("normal", "other", 1)],
+        isActuallySettled: () => false,
+        isActuallyPartiallySettled: () => true,
+      },
+    );
+    expect(result).toEqual({ history: 0, sameMerchant: 0, other: 0, partial: 1 });
+  });
+
+  it("草稿把部分结清变成已结清，或删除抵扣恢复到普通组", () => {
+    const originalPartial = {
+      ...expense("partial", "other", 2),
+      amount: "100",
+      remainingRefundableAmount: "60",
+    };
+    const originalSettled = {
+      ...expense("settled", "other", 3),
+      remainingRefundableAmount: "0",
+    };
+    const result = reconcileLinkCandidateGroupCounts(
+      { history: 0, sameMerchant: 0, other: 0, partial: 1 },
+      {
+        kind: "refund",
+        affectedCandidates: [originalPartial, originalSettled],
+        isActuallySettled: (item) => item.id === "partial",
+        isActuallyPartiallySettled: () => false,
+      },
+    );
+    expect(result).toEqual({ history: 0, sameMerchant: 0, other: 1, partial: 0 });
+  });
 });
