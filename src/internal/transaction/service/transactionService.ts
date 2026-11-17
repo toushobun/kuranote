@@ -584,6 +584,7 @@ export function createTransactionService({
           linkKind: kind,
           offset: input.offset ?? 0,
           query: normalizeTransactionSearchQuery(input.query ?? ""),
+          month: input.month,
           merchantPriorityId: kind === "refund" ? input.merchantId : undefined,
           historyMerchantId: input.merchantId,
           currency: input.currency,
