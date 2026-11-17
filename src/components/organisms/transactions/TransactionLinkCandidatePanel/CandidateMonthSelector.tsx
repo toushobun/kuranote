@@ -50,13 +50,17 @@ export function CandidateMonthSelector({
   }
 
   function confirm({ year, month: selectedMonth }: MonthPickerSelection) {
-    if (searching && year === -1) onChange(null);
-    else {
-      const monthIndex =
-        year === thisYear
-          ? Math.min(selectedMonth, thisMonth - 1)
-          : selectedMonth;
-      onChange(`${year}-${String(monthIndex + 1).padStart(2, "0")}`);
+    if (searching && year === -1) {
+      onChange(null);
+    } else {
+      // 尚未触发 scrollend 时不能用隐藏的旧月份提交，也不能提交已不存在的未来月份。
+      if (pickerAll || (year === thisYear && selectedMonth >= thisMonth)) {
+        setPickerYear(year);
+        setPickerMonth(Math.min(selectedMonth, thisMonth - 1));
+        setPickerAll(false);
+        return;
+      }
+      onChange(`${year}-${String(selectedMonth + 1).padStart(2, "0")}`);
     }
     setOpen(false);
   }
