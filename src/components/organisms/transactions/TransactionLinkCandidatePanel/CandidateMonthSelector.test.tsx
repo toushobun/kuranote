@@ -55,6 +55,20 @@ function MonthHarness({
   );
 }
 
+function mockPickerGeometry() {
+  const thisYear = Number(currentTokyoCandidateMonth().slice(0, 4));
+  vi.spyOn(HTMLElement.prototype, "offsetTop", "get").mockImplementation(
+    function (this: HTMLElement) {
+      const value = this.dataset.pickerValue;
+      if (value === undefined) return 0;
+      const number = Number(value);
+      return 80 + (number >= 1000 ? thisYear - number : number) * 40;
+    },
+  );
+  vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(40);
+  vi.spyOn(Element.prototype, "clientHeight", "get").mockReturnValue(200);
+}
+
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
@@ -117,6 +131,42 @@ describe("CandidateMonthSelector", () => {
         selected.offsetTop + selected.offsetHeight / 2,
       );
     }
+  });
+
+  it("滑动结束事件尚未触发时，确定读取滚轮中间显示的月份", async () => {
+    mockPickerGeometry();
+    const current = currentTokyoCandidateMonth();
+    render(<MonthHarness initialMonth={current} />);
+    fireEvent.click(screen.getByRole("button", { name: "选择月份" }));
+
+    const monthColumn = screen.getByRole("button", { name: "选择 8 月" })
+      .parentElement!;
+    monthColumn.scrollTop = 280;
+    fireEvent.click(screen.getByRole("button", { name: "确定年月" }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole("button", { name: "选择月份" })).toHaveTextContent(
+      `${Number(current.slice(0, 4))}年8月`,
+    );
+  });
+
+  it("点击月份不发起平滑滚动，避免紧接滑动受到滚动锁影响", () => {
+    mockPickerGeometry();
+    render(<MonthHarness initialMonth={currentTokyoCandidateMonth()} />);
+    fireEvent.click(screen.getByRole("button", { name: "选择月份" }));
+
+    const monthColumn = screen.getByRole("button", { name: "选择 8 月" })
+      .parentElement!;
+    const scrollTo = vi.fn();
+    Object.defineProperty(monthColumn, "scrollTo", {
+      configurable: true,
+      value: scrollTo,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "选择 8 月" }));
+    expect(scrollTo).not.toHaveBeenCalled();
   });
 
   it("默认月份的下一月箭头不可点击，上一月可切换", () => {
