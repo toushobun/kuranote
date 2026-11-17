@@ -99,9 +99,7 @@ export function TransactionLinkCandidatePanel(
     );
   }
   const sourceItemIds = sourceCandidates.map((candidate) => candidate.id);
-  const historyMerchantIds = props.merchantId
-    ? page?.historyMerchantIds
-    : [];
+  const historyMerchantIds = props.merchantId ? page?.historyMerchantIds : [];
   const orderOptions = {
     kind,
     merchantId: props.merchantId,
@@ -127,7 +125,9 @@ export function TransactionLinkCandidatePanel(
     .reduce(
       (sum, candidate) =>
         sum +
-        Number(!props.lockedAmounts?.has(candidate.id) && isSettled(candidate)) -
+        Number(
+          !props.lockedAmounts?.has(candidate.id) && isSettled(candidate),
+        ) -
         Number(isLinkCandidateSettled(candidate)),
       0,
     );
@@ -177,23 +177,21 @@ export function TransactionLinkCandidatePanel(
 
   // 展开后面的组时，按数据库顺序依次读完前面组的页，直到目标组有卡片。
   useEffect(() => {
-    if (
-      waitingGroupKey &&
-      page?.nextOffset != null &&
-      !loadingMore &&
-      !error
-    )
+    if (waitingGroupKey && page?.nextOffset != null && !loadingMore && !error)
       void loadMore();
   }, [waitingGroupKey, page?.nextOffset, loadingMore, error, loadMore]);
 
   const showMerchantName =
     kind === "reimbursement" ||
     searching ||
-    [...activeCandidates, ...settledCandidates, ...(initialSelection ? [initialSelection] : [])]
-      .some(
-        (candidate) =>
-          candidate.merchantName && candidate.merchantName !== merchantName,
-      );
+    [
+      ...activeCandidates,
+      ...settledCandidates,
+      ...(initialSelection ? [initialSelection] : []),
+    ].some(
+      (candidate) =>
+        candidate.merchantName && candidate.merchantName !== merchantName,
+    );
   const cardProps = {
     resolveLinkCandidate: props.resolveLinkCandidate,
     onSelect: onChange,
