@@ -225,17 +225,6 @@ export function TransactionLinkCandidatePanel(
           },
         }}
       />
-      {searching ? (
-        <Stack
-          direction="row"
-          sx={{ justifyContent: "space-between", color: "text.secondary" }}
-        >
-          <Typography variant="caption">
-            {kind === "reimbursement" ? m.pending : m.allExpenses}
-          </Typography>
-          <Typography variant="caption">{accountCurrency}</Typography>
-        </Stack>
-      ) : null}
       {initialSelection ? (
         <TransactionLinkCandidateCards
           candidates={[initialSelection]}
