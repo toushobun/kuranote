@@ -9,6 +9,7 @@ import Dialog from "@mui/material/Dialog";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import { MonthPicker } from "molecules/transactions/TransactionDateTimePicker/MonthPicker";
+import { scrollPickerOptionIntoView } from "molecules/transactions/TransactionDateTimePicker/PickerColumn";
 import { transactionLinkCandidateMessages as m } from "config/transactionStepFlowMessages";
 import {
   changeCandidateMonth,
@@ -54,8 +55,8 @@ export function CandidateMonthSelector({
 
   useEffect(() => {
     if (!open) return;
-    monthRef.current?.scrollIntoView?.({ block: "center" });
-    yearRef.current?.scrollIntoView?.({ block: "center" });
+    if (monthRef.current) scrollPickerOptionIntoView(monthRef.current);
+    if (yearRef.current) scrollPickerOptionIntoView(yearRef.current);
   }, [open]);
 
   return (
