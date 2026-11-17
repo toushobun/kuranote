@@ -121,7 +121,7 @@ describe("TransactionRepository", () => {
   );
 
   it("候选第一页校验并透传三层分组笔数", async () => {
-    const counts = { history: 2, sameMerchant: 3, other: 5 };
+    const counts = { history: 2, sameMerchant: 3, other: 5, partial: 0 };
     const { repository } = createRepository({
       rpc: vi.fn().mockResolvedValue({
         data: {
