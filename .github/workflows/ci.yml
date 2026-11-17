@@ -69,19 +69,6 @@ jobs:
         if: steps.node-modules-cache.outputs.cache-hit != 'true'
         run: npm ci
 
-      # 临时调试：本分支取得精确 Prettier 结果后移除此步骤。
-      - name: Emit formatted candidate source
-        run: |
-          for file in \
-            src/components/organisms/transactions/TransactionLinkCandidatePanel/TransactionLinkCandidatePanel.test.tsx \
-            src/components/organisms/transactions/TransactionLinkCandidatePanel/TransactionLinkCandidatePanel.tsx \
-            src/components/organisms/transactions/TransactionLinkCandidatePanel/transactionLinkCandidateUtils.ts; do
-            echo "PRETTIER_BEGIN:$file"
-            npx prettier "$file" | base64 -w 0
-            echo
-            echo "PRETTIER_END:$file"
-          done
-
       - name: Check formatting
         run: npm run format:check
 
