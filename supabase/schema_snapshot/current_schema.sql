@@ -4708,7 +4708,7 @@ select jsonb_build_object(
     )
 ) || case when p_scope = 'candidates'
     then jsonb_build_object('historyMerchantIds', (select ids from history_merchants))
-         || case when p_offset = 0
+         || case when p_offset = 0 and not coalesce(p_settled, false)
              then jsonb_build_object(
                  'groupCounts',
                  (select jsonb_build_object(
