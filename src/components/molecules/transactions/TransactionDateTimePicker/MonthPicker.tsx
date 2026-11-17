@@ -11,13 +11,17 @@ import { designTokens } from "theme/theme";
 
 import {
   PickerColumn,
+  getCenteredPickerValue,
   pickerOptionSx,
   scrollPickerOptionIntoView,
 } from "./PickerColumn";
 
+export type MonthPickerSelection = { year: number; month: number };
+
 export function MonthPicker({
   allMonthsOption,
   monthCount = 12,
+  selectionScrollBehavior = "smooth",
   submitLabel = "确定",
   month,
   monthRef,
@@ -35,11 +39,12 @@ export function MonthPicker({
     ref: RefObject<HTMLButtonElement | null>;
   };
   monthCount?: number;
+  selectionScrollBehavior?: "smooth" | "instant";
   submitLabel?: string;
   month: number;
   monthRef: RefObject<HTMLButtonElement | null>;
   onMonthChange: (value: number) => void;
-  onSubmit: () => void;
+  onSubmit: (selection: MonthPickerSelection) => void;
   onYearChange: (value: number) => void;
   year: number;
   yearOptions: number[];
@@ -84,7 +89,10 @@ export function MonthPicker({
               aria-pressed={allMonthsOption.selected}
               data-picker-value={-1}
               onClick={(event) => {
-                scrollPickerOptionIntoView(event.currentTarget);
+                scrollPickerOptionIntoView(
+                  event.currentTarget,
+                  selectionScrollBehavior,
+                );
                 allMonthsOption.onSelect();
               }}
               disableRipple
@@ -101,7 +109,10 @@ export function MonthPicker({
               aria-label={`选择 ${option} 年`}
               data-picker-value={option}
               onClick={(event) => {
-                scrollPickerOptionIntoView(event.currentTarget);
+                scrollPickerOptionIntoView(
+                  event.currentTarget,
+                  selectionScrollBehavior,
+                );
                 onYearChange(option);
               }}
               disableRipple
@@ -126,7 +137,10 @@ export function MonthPicker({
                 aria-label={`选择 ${option + 1} 月`}
                 data-picker-value={option}
                 onClick={(event) => {
-                  scrollPickerOptionIntoView(event.currentTarget);
+                  scrollPickerOptionIntoView(
+                    event.currentTarget,
+                    selectionScrollBehavior,
+                  );
                   onMonthChange(option);
                 }}
                 disableRipple
@@ -144,7 +158,21 @@ export function MonthPicker({
         <PrimaryActionButton
           aria-label={messages.selectMonth}
           fullWidth
-          onClick={onSubmit}
+          onClick={() => {
+            const selectedYearRef = allMonthsOption?.selected
+              ? allMonthsOption.ref
+              : yearRef;
+            const visibleYear = getCenteredPickerValue(
+              selectedYearRef.current?.parentElement ?? null,
+            );
+            const visibleMonth = getCenteredPickerValue(
+              monthRef.current?.parentElement ?? null,
+            );
+            onSubmit({
+              year: visibleYear ?? (allMonthsOption?.selected ? -1 : year),
+              month: visibleMonth ?? month,
+            });
+          }}
           type="button"
           sx={{
             borderRadius: `${designTokens.radius.md}px`,
