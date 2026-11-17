@@ -115,11 +115,8 @@ select ok(pg_temp.page(true) ? 'groupCounts',
     'candidates 首页返回分层计数');
 select ok(not (pg_temp.page(true, p_offset => 1) ? 'groupCounts'),
     'candidates 非首页不重复返回计数');
-select is(
-    pg_temp.page(true, p_settled => true)->'groupCounts',
-    '{"history": 1, "sameMerchant": 1, "other": 2}'::jsonb,
-    '已结清分页首页仍统计未结清分层'
-);
+select ok(not (pg_temp.page(true, p_settled => true) ? 'groupCounts'),
+    '已结清分页首页不重复统计未结清分层');
 select ok(not (pg_temp.page(true, p_scope => 'records') ? 'groupCounts'),
     'records 模式不增加字段');
 select is(
