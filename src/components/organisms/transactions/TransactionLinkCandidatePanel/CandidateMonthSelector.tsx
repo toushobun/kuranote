@@ -9,7 +9,10 @@ import Dialog from "@mui/material/Dialog";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import { useBackLayer } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
-import { MonthPicker } from "molecules/transactions/TransactionDateTimePicker/MonthPicker";
+import {
+  MonthPicker,
+  type MonthPickerSelection,
+} from "molecules/transactions/TransactionDateTimePicker/MonthPicker";
 import { scrollPickerOptionIntoView } from "molecules/transactions/TransactionDateTimePicker/PickerColumn";
 import { transactionLinkCandidateMessages as m } from "config/transactionStepFlowMessages";
 import {
@@ -46,11 +49,12 @@ export function CandidateMonthSelector({
     setOpen(true);
   }
 
-  function confirm() {
-    if (pickerAll && searching) onChange(null);
+  function confirm({ year, month: selectedMonth }: MonthPickerSelection) {
+    if (searching && year === -1) onChange(null);
     else {
-      const selected = `${pickerYear}-${String(pickerMonth + 1).padStart(2, "0")}`;
-      onChange(selected);
+      const monthIndex =
+        year === thisYear ? Math.min(selectedMonth, thisMonth - 1) : selectedMonth;
+      onChange(`${year}-${String(monthIndex + 1).padStart(2, "0")}`);
     }
     setOpen(false);
   }
@@ -159,6 +163,7 @@ export function CandidateMonthSelector({
             }
             setPickerAll(false);
           }}
+          selectionScrollBehavior="instant"
           submitLabel={m.monthConfirm}
           year={pickerYear}
           yearOptions={yearOptions}
