@@ -479,7 +479,10 @@ describe("TransactionLinkCandidatePanel", () => {
   });
 
   it("置顶已结清原支出从折叠数量中扣除，避免展开后笔数不一致", async () => {
-    const settled = { ...candidateItems[3], transactionAt: "2026-11-06T09:00:00Z" };
+    const settled = {
+      ...candidateItems[3],
+      transactionAt: "2026-11-06T09:00:00Z",
+    };
     const loadPage = vi
       .fn()
       .mockResolvedValueOnce({
@@ -510,7 +513,10 @@ describe("TransactionLinkCandidatePanel", () => {
   });
 
   it("搜索不匹配置顶的结清候选时只扣除搜索范围内的数量", async () => {
-    const settled = { ...candidateItems[3], transactionAt: "2026-11-06T09:00:00Z" };
+    const settled = {
+      ...candidateItems[3],
+      transactionAt: "2026-11-06T09:00:00Z",
+    };
     const other = {
       ...settled,
       id: "other-settled",
@@ -580,10 +586,16 @@ describe("TransactionLinkCandidatePanel", () => {
       linkAffectedCandidates: [candidate],
       resolveLinkCandidate: (item) =>
         item.id === candidate.id
-          ? { ...item, refundedAmount: "5800", remainingRefundableAmount: "200" }
+          ? {
+              ...item,
+              refundedAmount: "5800",
+              remainingRefundableAmount: "200",
+            }
           : item,
     });
-    fireEvent.click(await screen.findByRole("button", { name: "部分结清（1 笔）" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "部分结清（1 笔）" }),
+    );
     await screen.findByText("外套");
     expect(
       screen.getByRole("button", { name: "选择退款明细 外套" }),
