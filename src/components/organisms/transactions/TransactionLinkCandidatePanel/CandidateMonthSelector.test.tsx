@@ -52,17 +52,19 @@ describe("CandidateMonthSelector", () => {
     fireEvent.click(screen.getByRole("button", { name: "选择 8 月" }));
     fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "选择月份" })).toHaveTextContent(
-        "2026年9月",
-      ),
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole("button", { name: "选择月份" })).toHaveTextContent(
+      "2026年9月",
     );
     fireEvent.click(screen.getByRole("button", { name: "选择月份" }));
     fireEvent.click(screen.getByRole("button", { name: "选择 8 月" }));
     fireEvent.click(screen.getByRole("button", { name: "确定年月" }));
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "选择月份" })).toHaveTextContent(
-        "2026年8月",
-      ),
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole("button", { name: "选择月份" })).toHaveTextContent(
+      "2026年8月",
     );
   });
 
