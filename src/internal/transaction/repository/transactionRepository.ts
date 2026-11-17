@@ -185,6 +185,7 @@ export type FilteredTransactionPageInput = {
   linkKind?: "refund" | "reimbursement";
   merchantPriorityId?: string;
   historyMerchantId?: string;
+  month?: string | null;
   currency?: string;
   specialStatuses?: TransactionSpecialStatusFilterValue[];
   settled?: boolean;
@@ -195,7 +196,13 @@ export type FilteredTransactionPageResult = {
   nextOffset: number | null;
   settledCount: number;
   historyMerchantIds?: string[];
-  groupCounts?: { history: number; sameMerchant: number; other: number };
+  historyMerchantNames?: string[];
+  groupCounts?: {
+    history: number;
+    sameMerchant: number;
+    other: number;
+    partial: number;
+  };
   totalCount: number;
 };
 
@@ -208,11 +215,13 @@ const filteredPageResultSchema = z.object({
     }),
   ),
   historyMerchantIds: z.array(z.string().uuid()).optional(),
+  historyMerchantNames: z.array(z.string()).optional(),
   groupCounts: z
     .object({
       history: z.number().int().nonnegative(),
       sameMerchant: z.number().int().nonnegative(),
       other: z.number().int().nonnegative(),
+      partial: z.number().int().nonnegative(),
     })
     .optional(),
   nextOffset: z.number().int().nonnegative().nullable(),
@@ -1080,6 +1089,10 @@ export function createSupabaseTransactionRepository(
         {
           p_ledger_id: input.ledgerId,
           p_scope: input.scope,
+          p_month:
+            input.scope === "candidates" && input.month
+              ? `${input.month}-01`
+              : null,
           p_link_kind: input.linkKind ?? null,
           p_query: input.query,
           p_merchant_priority_id: input.merchantPriorityId ?? null,

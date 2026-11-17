@@ -90,12 +90,12 @@ returns uuid[] language sql immutable as $$
 $$;
 
 select is(pg_temp.item_ids(pg_temp.page(true)),
-    array[pg_temp.fixture_uuid(101), pg_temp.fixture_uuid(103), pg_temp.fixture_uuid(104), pg_temp.fixture_uuid(102)],
-    '退款候选先按历史商家，再按同商家，最后按时间');
+    array[pg_temp.fixture_uuid(103), pg_temp.fixture_uuid(104), pg_temp.fixture_uuid(102), pg_temp.fixture_uuid(101)],
+    '退款先按同商家与其他未抵扣，部分结清放最后');
 
 select is(pg_temp.item_ids(pg_temp.page(false)),
-    array[pg_temp.fixture_uuid(102), pg_temp.fixture_uuid(104), pg_temp.fixture_uuid(103), pg_temp.fixture_uuid(101)],
-    '报销候选先按报销历史商家，其余只按时间');
+    array[pg_temp.fixture_uuid(104), pg_temp.fixture_uuid(103), pg_temp.fixture_uuid(102), pg_temp.fixture_uuid(101)],
+    '报销优先未抵扣普通候选，部分结清放最后');
 
 select is(pg_temp.page(false, p_force_merchant_priority => true)->'historyMerchantIds',
     jsonb_build_array(pg_temp.seed_uuid(1003)),

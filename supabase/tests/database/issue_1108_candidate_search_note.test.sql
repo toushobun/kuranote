@@ -126,11 +126,11 @@ select ok(not (pg_temp.fetch_1108('1108明细备注甲', 'candidates',
     '请求另一账本不会读到当前账本候选');
 
 select ok(has_function_privilege('authenticated',
-    'public.load_filtered_transaction_page(uuid, text, text, uuid, text, text[], boolean, integer, integer, uuid, text)',
+    'public.load_filtered_transaction_page(uuid, text, text, uuid, text, text[], boolean, integer, integer, uuid, text, date)',
     'EXECUTE'), '只有 authenticated 被授予候选 RPC 执行权限');
 
 select ok(not has_function_privilege('anon',
-    'public.load_filtered_transaction_page(uuid, text, text, uuid, text, text[], boolean, integer, integer, uuid, text)',
+    'public.load_filtered_transaction_page(uuid, text, text, uuid, text, text[], boolean, integer, integer, uuid, text, date)',
     'EXECUTE'), 'anon 没有候选 RPC 执行权限');
 
 -- 在相同权限和 seed 数据下各记录一次 EXPLAIN (ANALYZE, BUFFERS)；

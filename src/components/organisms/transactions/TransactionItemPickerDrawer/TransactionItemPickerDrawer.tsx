@@ -1,5 +1,5 @@
 import { useBackLayer } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import EditRoundedIcon from "@mui/icons-material/EditRounded";
@@ -35,6 +35,11 @@ import type {
 } from "types/transactions";
 import { TransactionPendingReimbursementCheckbox } from "../TransactionPendingReimbursementCheckbox/TransactionPendingReimbursementCheckbox";
 import { TransactionLinkCandidatePanel } from "../TransactionLinkCandidatePanel/TransactionLinkCandidatePanel";
+import {
+  currentTokyoCandidateMonth,
+  toTokyoCandidateMonth,
+} from "../TransactionLinkCandidatePanel/candidateMonth";
+import { useTransactionOffsetEntry } from "../TransactionOffsetEntry/TransactionOffsetEntry";
 
 import type {
   CategoryPickerGroup,
@@ -133,6 +138,7 @@ export function TransactionItemPickerDrawer({
   merchantName,
 }: TransactionItemPickerDrawerProps) {
   useBackLayer(open, closeDrawer);
+  const offsetEntry = useTransactionOffsetEntry();
   const selectedCategoryType = filteredCategoryOptions.find(
     (category) => category.id === pickerCategoryId,
   )?.type;
@@ -144,6 +150,28 @@ export function TransactionItemPickerDrawer({
     pickerMode === "refund"
       ? pickerRefundCandidate
       : pickerReimbursementCandidate;
+  const initialCandidate =
+    selectedCandidate ?? offsetEntry?.candidates[0] ?? null;
+  const [candidateMonth, setCandidateMonth] = useState(() =>
+    initialCandidate
+      ? toTokyoCandidateMonth(initialCandidate.transactionAt)
+      : currentTokyoCandidateMonth(),
+  );
+  const initializedSessionRef = useRef<number | null>(null);
+  // 每次重新打开按原支出初始化；切换退款/报销不重置。
+  useEffect(() => {
+    if (!open) {
+      initializedSessionRef.current = null;
+      return;
+    }
+    if (initializedSessionRef.current === pickerSessionKey) return;
+    initializedSessionRef.current = pickerSessionKey;
+    setCandidateMonth(
+      initialCandidate
+        ? toTokyoCandidateMonth(initialCandidate.transactionAt)
+        : currentTokyoCandidateMonth(),
+    );
+  }, [open, pickerSessionKey, initialCandidate]);
   const adjustedSelectedCandidate = selectedCandidate
     ? (resolveLinkCandidate?.(selectedCandidate) ?? selectedCandidate)
     : null;
@@ -300,6 +328,8 @@ export function TransactionItemPickerDrawer({
             key={`${pickerMode}:${pickerSessionKey}`}
             accountCurrency={selectedAccountCurrency}
             merchantName={merchantName}
+            month={candidateMonth}
+            onMonthChange={setCandidateMonth}
             kind={pickerMode}
             merchantId={merchantId}
             lockedAmounts={lockedLinkAmounts}

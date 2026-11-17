@@ -52,6 +52,7 @@ export type TransactionLinkCandidateGroupCounts = {
   history: number;
   sameMerchant: number;
   other: number;
+  partial: number;
 };
 
 export type TransactionLinkCandidatePage = {
@@ -60,5 +61,6 @@ export type TransactionLinkCandidatePage = {
   /** 当前搜索与筛选条件内，数据库已结清的支出笔数。 */
   settledCount?: number;
   historyMerchantIds?: string[];
+  historyMerchantNames?: string[];
   groupCounts?: TransactionLinkCandidateGroupCounts;
 };

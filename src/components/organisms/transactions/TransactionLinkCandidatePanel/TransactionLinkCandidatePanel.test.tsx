@@ -41,6 +41,7 @@ function renderPanel(
         kind="refund"
         merchantId="amazon"
         merchantName="Amazon"
+        month="2026-11"
         loadPageAction={loadCandidatePage}
         {...props}
         value={value}
@@ -63,6 +64,15 @@ function toggleSettled(count: number) {
 }
 
 describe("TransactionLinkCandidatePanel", () => {
+  it("Storybook 候选模拟分页只返回指定月份的支出", async () => {
+    const november = await loadCandidatePage({ month: "2026-11" });
+    expect(november.items).toHaveLength(3);
+    expect(november.settledCount).toBe(1);
+    const october = await loadCandidatePage({ month: "2026-10" });
+    expect(october.items).toEqual([]);
+    expect(october.settledCount).toBe(0);
+  });
+
   beforeEach(() => {
     visibleCallbacks.length = 0;
     vi.stubGlobal(
@@ -89,13 +99,15 @@ describe("TransactionLinkCandidatePanel", () => {
     expect(loadPage).toHaveBeenCalledExactlyOnceWith({
       offset: 0,
       query: "",
+      month: "2026-11",
       merchantId: "amazon",
       currency: "JPY",
     });
     expect(
-      screen.getByRole("button", { name: "Amazon的支出（3 笔）" }),
+      screen.getByRole("button", { name: "Amazon的支出（2 笔）" }),
     ).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByText("11/08 · 乐天信用卡")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "部分结清（1 笔）" }));
     expect(screen.getByText("已退 ¥500")).toBeVisible();
     fireEvent.click(
       screen.getByRole("button", { name: "选择退款明细 收纳盒" }),
@@ -109,6 +121,7 @@ describe("TransactionLinkCandidatePanel", () => {
   it("新增时点击候选只改变选中样式，原有顺序保持不变", async () => {
     renderPanel();
     await screen.findByText("USB-C 充电器");
+    fireEvent.click(screen.getByRole("button", { name: "部分结清（1 笔）" }));
     const names = () =>
       screen
         .getAllByRole("button", { name: /选择退款明细/ })
@@ -218,6 +231,7 @@ describe("TransactionLinkCandidatePanel", () => {
     expect(loadPage).toHaveBeenCalledExactlyOnceWith({
       offset: 0,
       query: "",
+      month: "2026-11",
       merchantId: "no-records",
       currency: "JPY",
     });
@@ -247,7 +261,7 @@ describe("TransactionLinkCandidatePanel", () => {
       merchantId: "amazon",
       merchantName: "Amazon",
       categoryName: "实时关联的旧支出",
-      transactionAt: "2026-10-20T10:00:00.000Z",
+      transactionAt: "2026-11-01T10:00:00.000Z",
     };
     const other = {
       ...candidateItems[0],
@@ -273,7 +287,7 @@ describe("TransactionLinkCandidatePanel", () => {
     expect(cards[0]).toHaveAccessibleName("选择退款明细 实时关联的旧支出");
     expect(cards[1]).toHaveAccessibleName("选择退款明细 USB-C 充电器");
   });
-  it("历史商家排在同商家之前，已添加的候选在原位置锁定", async () => {
+  it("同商家排在历史商家之前，已添加的候选在原位置锁定", async () => {
     const historical = {
       ...offPageCandidate,
       remainingRefundableAmount: "1080",
@@ -314,11 +328,12 @@ describe("TransactionLinkCandidatePanel", () => {
     expect(loadPage).toHaveBeenCalledExactlyOnceWith({
       offset: 0,
       query: "",
+      month: "2026-11",
       merchantId: "amazon",
       currency: "JPY",
     });
     expect(
-      screen.getByRole("button", { name: "其他待报销（3 笔）" }),
+      screen.getByRole("button", { name: "其他待报销（2 笔）" }),
     ).toBeVisible();
     expect(screen.getByText("Amazon · 11/08 · 乐天信用卡")).toBeVisible();
   });
@@ -341,6 +356,7 @@ describe("TransactionLinkCandidatePanel", () => {
     expect(loadPage).toHaveBeenLastCalledWith({
       offset: 1,
       query: "",
+      month: "2026-11",
       merchantId: "amazon",
       currency: "JPY",
     });
@@ -365,6 +381,7 @@ describe("TransactionLinkCandidatePanel", () => {
       expect(loadPage).toHaveBeenLastCalledWith({
         offset: 0,
         query: "收纳",
+        month: null,
         merchantId: "amazon",
         currency: "JPY",
       }),
@@ -471,6 +488,10 @@ describe("TransactionLinkCandidatePanel", () => {
   });
 
   it("置顶已结清原支出从折叠数量中扣除，避免展开后笔数不一致", async () => {
+    const settled = {
+      ...candidateItems[3],
+      transactionAt: "2026-11-06T09:00:00Z",
+    };
     const loadPage = vi
       .fn()
       .mockResolvedValueOnce({
@@ -480,9 +501,9 @@ describe("TransactionLinkCandidatePanel", () => {
       })
       .mockResolvedValueOnce({
         items: [
-          candidateItems[3],
+          settled,
           {
-            ...candidateItems[3],
+            ...settled,
             id: "another-settled",
             categoryName: "已退清的耳机",
           },
@@ -490,7 +511,7 @@ describe("TransactionLinkCandidatePanel", () => {
         nextOffset: null,
         settledCount: 2,
       });
-    renderPanel({ value: candidateItems[3], loadPageAction: loadPage });
+    renderPanel({ value: settled, loadPageAction: loadPage });
     await screen.findByRole("button", {
       name: "已结清的支出（1 笔）",
     });
@@ -501,14 +522,18 @@ describe("TransactionLinkCandidatePanel", () => {
   });
 
   it("搜索不匹配置顶的结清候选时只扣除搜索范围内的数量", async () => {
-    const other = {
+    const settled = {
       ...candidateItems[3],
+      transactionAt: "2026-11-06T09:00:00Z",
+    };
+    const other = {
+      ...settled,
       id: "other-settled",
       categoryName: "运动鞋",
     };
     const loadPage = vi.fn(
       async (input: Parameters<typeof loadCandidatePage>[0]) => {
-        const filtered = input.query ? [other] : [candidateItems[3], other];
+        const filtered = input.query ? [other] : [settled, other];
         return {
           items: input.settled ? filtered : [],
           nextOffset: null,
@@ -516,7 +541,7 @@ describe("TransactionLinkCandidatePanel", () => {
         };
       },
     );
-    renderPanel({ value: candidateItems[3], loadPageAction: loadPage });
+    renderPanel({ value: settled, loadPageAction: loadPage });
     await screen.findByRole("button", { name: "已结清的支出（1 笔）" });
     fireEvent.change(screen.getByRole("textbox", { name: "搜索原支出" }), {
       target: { value: "运动鞋" },
@@ -564,14 +589,25 @@ describe("TransactionLinkCandidatePanel", () => {
   });
 
   it("小票未保存的核销变化可把服务端已结清候选提升到未结清列表", async () => {
-    const candidate = candidateItems[3];
+    const candidate = {
+      ...candidateItems[3],
+      transactionAt: "2026-10-20T09:00:00Z",
+    };
     renderPanel({
+      month: "2026-10",
       linkAffectedCandidates: [candidate],
       resolveLinkCandidate: (item) =>
         item.id === candidate.id
-          ? { ...item, remainingRefundableAmount: "200" }
+          ? {
+              ...item,
+              refundedAmount: "5800",
+              remainingRefundableAmount: "200",
+            }
           : item,
     });
+    fireEvent.click(
+      await screen.findByRole("button", { name: "部分结清（1 笔）" }),
+    );
     await screen.findByText("外套");
     expect(
       screen.getByRole("button", { name: "选择退款明细 外套" }),
@@ -594,7 +630,7 @@ describe("TransactionLinkCandidatePanel", () => {
             }
           : item,
     });
-    await screen.findByText("收纳盒");
+    await screen.findByText("咖啡豆 2 袋");
     expect(
       screen.queryByRole("button", { name: "选择退款明细 USB-C 充电器" }),
     ).not.toBeInTheDocument();
@@ -610,7 +646,7 @@ describe("TransactionLinkCandidatePanel", () => {
         nextOffset: null,
         settledCount: 1,
         historyMerchantIds: [],
-        groupCounts: { history: 0, sameMerchant: 3, other: 0 },
+        groupCounts: { history: 0, sameMerchant: 2, other: 0, partial: 1 },
       }),
     });
     const lockedHeader = await screen.findByRole("button", {
@@ -619,7 +655,7 @@ describe("TransactionLinkCandidatePanel", () => {
     expect(lockedHeader).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByText("USB-C 充电器")).not.toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Amazon的支出（2 笔）" }),
+      screen.getByRole("button", { name: "Amazon的支出（1 笔）" }),
     ).toHaveAttribute("aria-expanded", "true");
     expect(
       screen.getByRole("button", { name: "已结清的支出（1 笔）" }),
@@ -636,7 +672,7 @@ describe("TransactionLinkCandidatePanel", () => {
   it("搜索时取消分组，清空搜索后按默认规则重新展开", async () => {
     renderPanel();
     const group = await screen.findByRole("button", {
-      name: "Amazon的支出（3 笔）",
+      name: "Amazon的支出（2 笔）",
     });
     fireEvent.click(group);
     expect(group).toHaveAttribute("aria-expanded", "false");
@@ -652,7 +688,7 @@ describe("TransactionLinkCandidatePanel", () => {
       target: { value: "" },
     });
     const restored = await screen.findByRole("button", {
-      name: "Amazon的支出（3 笔）",
+      name: "Amazon的支出（2 笔）",
     });
     expect(restored).toHaveAttribute("aria-expanded", "true");
   });
@@ -670,6 +706,8 @@ describe("TransactionLinkCandidatePanel", () => {
     };
     const other = {
       ...candidateItems[2],
+      refundedAmount: "0",
+      remainingRefundableAmount: candidateItems[2].amount,
       merchantId: "family",
       merchantName: "全家",
     };
@@ -680,7 +718,7 @@ describe("TransactionLinkCandidatePanel", () => {
         nextOffset: 1,
         settledCount: 0,
         historyMerchantIds: ["lawson"],
-        groupCounts: { history: 2, sameMerchant: 0, other: 1 },
+        groupCounts: { history: 2, sameMerchant: 0, other: 1, partial: 0 },
       })
       .mockResolvedValueOnce({ items: [second], nextOffset: 2 })
       .mockResolvedValueOnce({ items: [other], nextOffset: null });
@@ -703,6 +741,45 @@ describe("TransactionLinkCandidatePanel", () => {
     expect(otherHeader).toHaveAttribute("aria-expanded", "true");
   });
 
+  it("编辑仅剩置顶原支出时不误提示当前月份为空", async () => {
+    renderPanel({
+      value: candidateItems[0],
+      loadPageAction: vi.fn().mockResolvedValue({
+        items: [candidateItems[0]],
+        nextOffset: null,
+        settledCount: 0,
+        groupCounts: { history: 0, sameMerchant: 1, other: 0, partial: 0 },
+      }),
+    });
+    expect(
+      await screen.findByRole("button", {
+        name: "选择退款明细 USB-C 充电器",
+      }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.queryByText("这个月没有可关联的支出，换个月份或直接搜索"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("搜索词不匹配置顶原支出时仍提示没有搜索结果", async () => {
+    renderPanel({
+      value: candidateItems[0],
+      loadPageAction: vi.fn().mockResolvedValue({
+        items: [],
+        nextOffset: null,
+        settledCount: 0,
+        groupCounts: { history: 0, sameMerchant: 0, other: 0, partial: 0 },
+      }),
+    });
+    await screen.findByRole("button", {
+      name: "选择退款明细 USB-C 充电器",
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "搜索原支出" }), {
+      target: { value: "不存在的消费" },
+    });
+    expect(await screen.findByText("没有找到可关联的支出。")).toBeVisible();
+  });
+
   it("编辑初始选中项置顶于所有组之上，服务端组计数扣除该项", async () => {
     renderPanel({
       value: candidateItems[0],
@@ -710,13 +787,96 @@ describe("TransactionLinkCandidatePanel", () => {
         items: candidateItems.slice(0, 3),
         nextOffset: null,
         settledCount: 0,
-        groupCounts: { history: 0, sameMerchant: 3, other: 0 },
+        groupCounts: { history: 0, sameMerchant: 2, other: 0, partial: 1 },
       }),
     });
-    await screen.findByRole("button", { name: "Amazon的支出（2 笔）" });
+    await screen.findByRole("button", { name: "Amazon的支出（1 笔）" });
     const cards = screen.getAllByRole("button", { name: /选择退款明细/ });
     expect(cards[0]).toHaveAccessibleName("选择退款明细 USB-C 充电器");
-    expect(cards).toHaveLength(3);
+    expect(cards).toHaveLength(2);
+  });
+
+  it("历史组尚未加载卡片时，组标题也展示已匹配的商家名称", async () => {
+    renderPanel({
+      loadPageAction: vi.fn().mockResolvedValue({
+        items: [candidateItems[0]],
+        nextOffset: 1,
+        settledCount: 0,
+        historyMerchantIds: ["lawson", "rakuten"],
+        historyMerchantNames: ["罗森", "乐天"],
+        groupCounts: { history: 2, sameMerchant: 1, other: 0, partial: 0 },
+      }),
+    });
+    const heading = await screen.findByRole("button", {
+      name: "常退商家支出（2 笔）",
+    });
+    expect(heading).toHaveTextContent("罗森、乐天");
+    expect(heading).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("入口 B 的已结清原支出仍保留在这笔记录组，不重复计算已结清笔数", async () => {
+    const sourceCandidate = {
+      ...candidateItems[3],
+      id: "source-settled",
+      transactionAt: "2026-11-15T09:00:00Z",
+    };
+    const loadPage = vi.fn().mockResolvedValue({
+      items: [],
+      nextOffset: null,
+      settledCount: 1,
+      historyMerchantIds: [],
+      groupCounts: { history: 0, sameMerchant: 0, other: 0, partial: 0 },
+    });
+    renderPanel(
+      { loadPageAction: loadPage },
+      {
+        kind: "refund",
+        accountId: "credit",
+        merchantId: "amazon",
+        candidates: [sourceCandidate],
+      },
+    );
+    const sourceGroup = await screen.findByRole("button", {
+      name: "这笔记录（1 笔）",
+    });
+    expect(sourceGroup).toHaveAttribute("aria-expanded", "true");
+    expect(
+      screen.getByRole("button", { name: "选择退款明细 外套" }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("button", { name: /已结清的支出/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("入口 B 的来源在其他月份时仍显示来源组并提示当前月份没有候选", async () => {
+    const sourceCandidate = {
+      ...candidateItems[0],
+      id: "source-previous-month",
+      transactionAt: "2026-10-15T09:00:00Z",
+    };
+    renderPanel(
+      {
+        loadPageAction: vi.fn().mockResolvedValue({
+          items: [],
+          nextOffset: null,
+          settledCount: 0,
+          historyMerchantIds: [],
+          groupCounts: { history: 0, sameMerchant: 0, other: 0, partial: 0 },
+        }),
+      },
+      {
+        kind: "refund",
+        accountId: "credit",
+        merchantId: "amazon",
+        candidates: [sourceCandidate],
+      },
+    );
+    expect(
+      await screen.findByRole("button", { name: "这笔记录（1 笔）" }),
+    ).toBeVisible();
+    expect(
+      screen.getByText("这个月没有可关联的支出，换个月份或直接搜索"),
+    ).toBeVisible();
   });
 
   it("入口 B 来源归在这笔记录，已在小票上的分组仍默认折叠", async () => {
@@ -735,7 +895,7 @@ describe("TransactionLinkCandidatePanel", () => {
           nextOffset: null,
           settledCount: 0,
           historyMerchantIds: [],
-          groupCounts: { history: 0, sameMerchant: 1, other: 1 },
+          groupCounts: { history: 0, sameMerchant: 1, other: 1, partial: 0 },
         }),
       },
       {

@@ -10,7 +10,10 @@ import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { isLinkCandidateSettled } from "internal/transaction";
+import {
+  isLinkCandidatePartiallySettled,
+  isLinkCandidateSettled,
+} from "internal/transaction";
 import { transactionLinkCandidateMessages as m } from "config/transactionStepFlowMessages";
 import { mergeUniqueById } from "utils/collections";
 import { LoadMoreOnVisible } from "molecules/ui/LoadMoreOnVisible/LoadMoreOnVisible";
@@ -27,6 +30,8 @@ import {
   sortLinkCandidates,
   type LinkCandidateGroupKey,
 } from "./transactionLinkCandidateUtils";
+import { CandidateMonthSelector } from "./CandidateMonthSelector";
+import { candidateInMonth, toTokyoCandidateMonth } from "./candidateMonth";
 
 type TransactionLinkCandidatePanelProps = {
   accountCurrency?: string;
@@ -34,6 +39,8 @@ type TransactionLinkCandidatePanelProps = {
   kind: "refund" | "reimbursement";
   merchantId?: string;
   merchantName?: string;
+  month?: string;
+  onMonthChange?: (month: string) => void;
   loadPageAction?: LoadTransactionLinkCandidatePage;
   /** 小票中已保存 / 草稿关联涉及的少量原支出，用于本地实时调整分组。 */
   linkAffectedCandidates?: TransactionRefundCandidate[];
@@ -55,12 +62,22 @@ export function TransactionLinkCandidatePanel(
   const [initialSelection] = useState(
     props.pinInitialSelection === false ? null : value,
   );
+  const [localMonth, setLocalMonth] = useState(() =>
+    toTokyoCandidateMonth(
+      value?.transactionAt ?? sourceCandidates[0]?.transactionAt ?? new Date(),
+    ),
+  );
+  const normalMonth = props.month ?? localMonth;
+  const setNormalMonth = props.onMonthChange ?? setLocalMonth;
   const [expandedByKey, setExpandedByKey] = useState<
     Partial<Record<LinkCandidateGroupKey, boolean>>
   >({});
   const {
     query,
     setQuery,
+    searchMonth,
+    setSearchMonth,
+    displayedMonth,
     page,
     settledPage,
     settledExpanded,
@@ -74,11 +91,15 @@ export function TransactionLinkCandidatePanel(
     loadMoreSettled,
     retry,
     retrySettled,
-  } = useTransactionLinkCandidates(props);
+  } = useTransactionLinkCandidates({ ...props, month: normalMonth });
   const searching = query.trim().length > 0;
 
+  const sourceItemIds = sourceCandidates.map((candidate) => candidate.id);
   const matchesCurrentScope = (candidate: TransactionRefundCandidate) =>
-    matchesLinkCandidateScope(candidate, accountCurrency, query);
+    matchesLinkCandidateScope(candidate, accountCurrency, query) &&
+    (candidateInMonth(candidate.transactionAt, displayedMonth) ||
+      !!props.lockedAmounts?.has(candidate.id) ||
+      sourceItemIds.includes(candidate.id));
   const lockedLoaded = mergeUniqueById(
     page?.items ?? [],
     settledPage?.items ?? [],
@@ -91,27 +112,33 @@ export function TransactionLinkCandidatePanel(
     mergeUniqueById(page?.items ?? [], settledPage?.items ?? []),
     scopedAffected,
   ).filter((candidate) => candidate.id !== initialSelection?.id);
-  function isSettled(candidate: TransactionRefundCandidate) {
-    return isLinkCandidateSettled(
-      props.lockedAmounts?.has(candidate.id)
-        ? candidate
-        : (props.resolveLinkCandidate?.(candidate) ?? candidate),
-    );
+  function effectiveCandidate(candidate: TransactionRefundCandidate) {
+    return props.lockedAmounts?.has(candidate.id)
+      ? candidate
+      : (props.resolveLinkCandidate?.(candidate) ?? candidate);
   }
-  const sourceItemIds = sourceCandidates.map((candidate) => candidate.id);
+  function isSettled(candidate: TransactionRefundCandidate) {
+    return isLinkCandidateSettled(effectiveCandidate(candidate));
+  }
+  function isPartial(candidate: TransactionRefundCandidate) {
+    return isLinkCandidatePartiallySettled(effectiveCandidate(candidate));
+  }
   const historyMerchantIds = props.merchantId ? page?.historyMerchantIds : [];
   const orderOptions = {
     kind,
     merchantId: props.merchantId,
     historyMerchantIds,
+    historyMerchantNames: page?.historyMerchantNames,
     lockedAmounts: props.lockedAmounts,
     sourceItemIds,
+    isActuallyPartiallySettled: isPartial,
   } as const;
   function orderCandidates(settled: boolean) {
     return sortLinkCandidates(
       allCandidates.filter(
         (candidate) =>
-          (props.lockedAmounts?.has(candidate.id)
+          (props.lockedAmounts?.has(candidate.id) ||
+          sourceItemIds.includes(candidate.id)
             ? false
             : isSettled(candidate)) === settled,
       ),
@@ -121,18 +148,27 @@ export function TransactionLinkCandidatePanel(
   const activeCandidates = orderCandidates(false);
   const settledCandidates = orderCandidates(true);
   const settledDelta = scopedAffected
-    .filter((candidate) => candidate.id !== initialSelection?.id)
+    .filter(
+      (candidate) =>
+        candidate.id !== initialSelection?.id &&
+        candidateInMonth(candidate.transactionAt, displayedMonth),
+    )
     .reduce(
       (sum, candidate) =>
         sum +
         Number(
-          !props.lockedAmounts?.has(candidate.id) && isSettled(candidate),
+          !props.lockedAmounts?.has(candidate.id) &&
+            !sourceItemIds.includes(candidate.id) &&
+            isSettled(candidate),
         ) -
         Number(isLinkCandidateSettled(candidate)),
       0,
     );
   const selectedInScope =
-    !!page && !!initialSelection && matchesCurrentScope(initialSelection);
+    !!page &&
+    !!initialSelection &&
+    matchesLinkCandidateScope(initialSelection, accountCurrency, query) &&
+    candidateInMonth(initialSelection.transactionAt, displayedMonth);
   const selectedSettledOffset =
     selectedInScope && isLinkCandidateSettled(initialSelection) ? 1 : 0;
   const settledCount = Math.max(
@@ -142,7 +178,9 @@ export function TransactionLinkCandidatePanel(
   );
   const groupCounts = reconcileLinkCandidateGroupCounts(page?.groupCounts, {
     ...orderOptions,
-    affectedCandidates: scopedAffected,
+    affectedCandidates: scopedAffected.filter((candidate) =>
+      candidateInMonth(candidate.transactionAt, displayedMonth),
+    ),
     initialSelection: selectedInScope ? initialSelection : null,
     isActuallySettled: isSettled,
   });
@@ -162,9 +200,23 @@ export function TransactionLinkCandidatePanel(
       ).length,
     },
   });
-  const defaultGroupKey = groups.find((group) => group.key !== "locked")?.key;
+  // 入口 B 的旧月份来源仍显示，但不能掩盖当前月份没有候选的事实。
+  const hasCurrentMonthCandidates =
+    selectedInScope ||
+    activeCandidates.some((candidate) =>
+      candidateInMonth(candidate.transactionAt, displayedMonth),
+    ) ||
+    settledCount > 0 ||
+    Object.values(groupCounts ?? {}).some((count) => (count ?? 0) > 0);
+  const showEmptyMessage = searching
+    ? !selectedInScope && activeCandidates.length === 0 && settledCount === 0
+    : !hasCurrentMonthCandidates;
+  const defaultGroupKey = groups.find(
+    (group) => group.key !== "locked" && group.key !== "partial",
+  )?.key;
   const isGroupExpanded = (key: LinkCandidateGroupKey) =>
-    expandedByKey[key] ?? (key !== "locked" && key === defaultGroupKey);
+    expandedByKey[key] ??
+    (key !== "locked" && key !== "partial" && key === defaultGroupKey);
   const waitingGroupKey = !searching
     ? groups.find(
         (group) =>
@@ -208,7 +260,10 @@ export function TransactionLinkCandidatePanel(
         fullWidth
         onChange={(event) => {
           const nextQuery = event.target.value;
-          if (searching !== Boolean(nextQuery.trim())) setExpandedByKey({});
+          if (searching !== Boolean(nextQuery.trim())) {
+            setExpandedByKey({});
+            if (!searching) setSearchMonth(null);
+          }
           setQuery(nextQuery);
         }}
         placeholder={m.searchPlaceholder}
@@ -223,6 +278,15 @@ export function TransactionLinkCandidatePanel(
               </InputAdornment>
             ),
           },
+        }}
+      />
+      <CandidateMonthSelector
+        month={searching ? searchMonth : normalMonth}
+        searching={searching}
+        onChange={(next) => {
+          setExpandedByKey({});
+          if (searching) setSearchMonth(next);
+          else if (next !== null) setNormalMonth(next);
         }}
       />
       {initialSelection ? (
@@ -285,12 +349,9 @@ export function TransactionLinkCandidatePanel(
         })
       )}
       {loading ? <CircularProgress size={24} /> : null}
-      {page &&
-      !initialSelection &&
-      activeCandidates.length === 0 &&
-      settledCount === 0 ? (
+      {page && showEmptyMessage ? (
         <Typography color="textSecondary" variant="body2">
-          {searching ? m.noSearchResults : m.noCandidates}
+          {searching ? m.noSearchResults : m.monthEmpty}
         </Typography>
       ) : null}
       {error ? <Button onClick={retry}>{m.retry}</Button> : null}

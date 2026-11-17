@@ -16,6 +16,9 @@ import {
 } from "./PickerColumn";
 
 export function MonthPicker({
+  allMonthsOption,
+  isMonthDisabled,
+  submitLabel = "确定",
   month,
   monthRef,
   onMonthChange,
@@ -25,6 +28,9 @@ export function MonthPicker({
   yearOptions,
   yearRef,
 }: {
+  allMonthsOption?: { label: string; selected: boolean; onSelect: () => void };
+  isMonthDisabled?: (year: number, month: number) => boolean;
+  submitLabel?: string;
   month: number;
   monthRef: RefObject<HTMLButtonElement | null>;
   onMonthChange: (value: number) => void;
@@ -36,6 +42,20 @@ export function MonthPicker({
 }) {
   return (
     <Stack sx={{ flex: 1, minHeight: 0 }}>
+      {allMonthsOption ? (
+        <Button
+          aria-pressed={allMonthsOption.selected}
+          onClick={allMonthsOption.onSelect}
+          sx={{
+            alignSelf: "center",
+            fontWeight: allMonthsOption.selected ? 700 : 400,
+            my: 1,
+          }}
+          type="button"
+        >
+          {allMonthsOption.label}
+        </Button>
+      ) : null}
       <Stack
         direction="row"
         sx={{
@@ -87,6 +107,7 @@ export function MonthPicker({
                 onMonthChange(option);
               }}
               disableRipple
+              disabled={isMonthDisabled?.(year, option) ?? false}
               ref={option === month ? monthRef : undefined}
               type="button"
               sx={pickerOptionSx(option === month)}
@@ -109,7 +130,7 @@ export function MonthPicker({
             ...primaryActionButtonNoHoverBrightenSx,
           }}
         >
-          确定
+          {submitLabel}
         </PrimaryActionButton>
       </Box>
     </Stack>

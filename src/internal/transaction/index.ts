@@ -87,6 +87,7 @@ export {
   getLinkCandidateDefaultAmount,
   adjustLinkCandidate,
   isLinkCandidateSettled,
+  isLinkCandidatePartiallySettled,
 } from "./util/transactionLinkCandidates";
 
 export type { TransactionLinkCandidatePageInput } from "./schema";

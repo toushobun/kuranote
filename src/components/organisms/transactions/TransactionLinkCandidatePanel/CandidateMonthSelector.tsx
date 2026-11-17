@@ -1,0 +1,182 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
+import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
+import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import IconButton from "@mui/material/IconButton";
+import Stack from "@mui/material/Stack";
+import { useBackLayer } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
+import { MonthPicker } from "molecules/transactions/TransactionDateTimePicker/MonthPicker";
+import { scrollPickerOptionIntoView } from "molecules/transactions/TransactionDateTimePicker/PickerColumn";
+import { transactionLinkCandidateMessages as m } from "config/transactionStepFlowMessages";
+import {
+  changeCandidateMonth,
+  currentTokyoCandidateMonth,
+} from "./candidateMonth";
+
+export function CandidateMonthSelector({
+  month,
+  searching,
+  onChange,
+}: {
+  month: string | null;
+  searching: boolean;
+  onChange: (month: string | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [pickerYear, setPickerYear] = useState(0);
+  const [pickerMonth, setPickerMonth] = useState(0);
+  const [pickerAll, setPickerAll] = useState(false);
+  const yearRef = useRef<HTMLButtonElement>(null);
+  const monthRef = useRef<HTMLButtonElement>(null);
+  const syncClampedMonthRef = useRef(false);
+  const today = currentTokyoCandidateMonth();
+  const [thisYear, thisMonth] = today.split("-").map(Number);
+  const yearOptions = Array.from({ length: 51 }, (_, i) => thisYear - i);
+  const displayMonth = month ?? today;
+
+  function isMonthDisabled(year: number, option: number) {
+    return year > thisYear || (year === thisYear && option >= thisMonth);
+  }
+
+  function openPicker() {
+    const [year, selectedMonth] = displayMonth.split("-").map(Number);
+    setPickerYear(year);
+    setPickerMonth(selectedMonth - 1);
+    setPickerAll(searching && month === null);
+    setOpen(true);
+  }
+
+  function confirm() {
+    if (pickerAll && searching) onChange(null);
+    else {
+      const selected = `${pickerYear}-${String(pickerMonth + 1).padStart(2, "0")}`;
+      if (selected <= today) onChange(selected);
+    }
+    setOpen(false);
+  }
+
+  useBackLayer(open, () => setOpen(false), 1);
+
+  function centerSelectedOptions() {
+    if (monthRef.current) scrollPickerOptionIntoView(monthRef.current);
+    if (yearRef.current) scrollPickerOptionIntoView(yearRef.current);
+  }
+
+  // 切年时收紧未来月份后，滚轮位置也必须跟随新选中的月份。
+  useEffect(() => {
+    if (!open || !syncClampedMonthRef.current) return;
+    syncClampedMonthRef.current = false;
+    if (monthRef.current) scrollPickerOptionIntoView(monthRef.current);
+  }, [open, pickerYear, pickerMonth]);
+
+  return (
+    <>
+      <Stack
+        direction="row"
+        sx={{
+          alignItems: "center",
+          justifyContent: "space-between",
+          minHeight: 42,
+        }}
+      >
+        {month !== null ? (
+          <IconButton
+            aria-label={m.monthPrevious}
+            onClick={() => onChange(changeCandidateMonth(month, -1))}
+            size="small"
+          >
+            <ChevronLeftRoundedIcon />
+          </IconButton>
+        ) : null}
+        <Button
+          aria-label={m.monthSelect}
+          onClick={openPicker}
+          sx={{
+            color: "text.primary",
+            fontWeight: 700,
+            textTransform: "none",
+            flex: 1,
+          }}
+        >
+          {month === null
+            ? m.monthAll
+            : m.monthLabel(
+                Number(month.slice(0, 4)),
+                Number(month.slice(5)),
+              )}{" "}
+          ▾
+        </Button>
+        {month !== null ? (
+          <IconButton
+            aria-label={m.monthNext}
+            disabled={month >= today}
+            onClick={() => onChange(changeCandidateMonth(month, 1))}
+            size="small"
+          >
+            <ChevronRightRoundedIcon />
+          </IconButton>
+        ) : null}
+        {searching && month !== null ? (
+          <IconButton
+            aria-label={m.monthClearSearch}
+            onClick={() => onChange(null)}
+            size="small"
+          >
+            <CloseRoundedIcon />
+          </IconButton>
+        ) : null}
+      </Stack>
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        fullWidth
+        maxWidth="xs"
+        slotProps={{
+          paper: { sx: { height: searching ? 340 : 280, p: 1 } },
+          transition: { onEntered: centerSelectedOptions },
+        }}
+      >
+        <MonthPicker
+          allMonthsOption={
+            searching
+              ? {
+                  label: m.monthAll,
+                  selected: pickerAll,
+                  onSelect: () => setPickerAll(true),
+                }
+              : undefined
+          }
+          isMonthDisabled={isMonthDisabled}
+          month={pickerMonth}
+          monthRef={monthRef}
+          onMonthChange={(value) => {
+            if (isMonthDisabled(pickerYear, value)) {
+              if (monthRef.current)
+                scrollPickerOptionIntoView(monthRef.current);
+              return;
+            }
+            setPickerMonth(value);
+            setPickerAll(false);
+          }}
+          onSubmit={confirm}
+          onYearChange={(value) => {
+            setPickerYear(value);
+            if (isMonthDisabled(value, pickerMonth)) {
+              syncClampedMonthRef.current = true;
+              setPickerMonth(thisMonth - 1);
+            }
+            setPickerAll(false);
+          }}
+          submitLabel={m.monthConfirm}
+          year={pickerYear}
+          yearOptions={yearOptions}
+          yearRef={yearRef}
+        />
+      </Dialog>
+    </>
+  );
+}

@@ -1,4 +1,5 @@
 import { isLinkCandidateSettled } from "internal/transaction";
+import { candidateInMonth } from "./candidateMonth";
 import type {
   TransactionLinkCandidatePage,
   TransactionLinkCandidatePageInput,
@@ -7,8 +8,8 @@ import type {
 export const candidateItems: TransactionRefundCandidate[] = [
   ["USB-C 充电器", "3280", "0", "2026-11-08T09:00:00Z"],
   ["咖啡豆 2 袋", "2960", "0", "2026-11-02T09:00:00Z"],
-  ["收纳盒", "1580", "500", "2026-10-27T09:00:00Z"],
-  ["外套", "6000", "6000", "2026-10-20T09:00:00Z"],
+  ["收纳盒", "1580", "500", "2026-11-01T09:00:00Z"],
+  ["外套", "6000", "6000", "2026-11-03T09:00:00Z"],
 ].map(([name, amount, refunded, date], index) => ({
   id: `item-${index}`,
   transactionRecordId: `record-${index}`,
@@ -56,6 +57,7 @@ function fixturePage(
   const filtered = items.filter(
     (item) =>
       (!input.currency || item.accountCurrency === input.currency) &&
+      candidateInMonth(item.transactionAt, input.month ?? null) &&
       (!input.query ||
         item.categoryName.includes(input.query) ||
         item.merchantName?.includes(input.query)),

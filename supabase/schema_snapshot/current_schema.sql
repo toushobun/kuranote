@@ -4370,7 +4370,7 @@ $$;
 ALTER FUNCTION "public"."list_pending_ledger_invites"("p_ledger_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."load_filtered_transaction_page"("p_ledger_id" "uuid", "p_scope" "text", "p_query" "text" DEFAULT ''::"text", "p_merchant_priority_id" "uuid" DEFAULT NULL::"uuid", "p_currency" "text" DEFAULT NULL::"text", "p_special_statuses" "text"[] DEFAULT NULL::"text"[], "p_settled" boolean DEFAULT false, "p_offset" integer DEFAULT 0, "p_limit" integer DEFAULT 20, "p_history_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_link_kind" "text" DEFAULT NULL::"text") RETURNS "jsonb"
+CREATE OR REPLACE FUNCTION "public"."load_filtered_transaction_page"("p_ledger_id" "uuid", "p_scope" "text", "p_query" "text" DEFAULT ''::"text", "p_merchant_priority_id" "uuid" DEFAULT NULL::"uuid", "p_currency" "text" DEFAULT NULL::"text", "p_special_statuses" "text"[] DEFAULT NULL::"text"[], "p_settled" boolean DEFAULT false, "p_offset" integer DEFAULT 0, "p_limit" integer DEFAULT 20, "p_history_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_link_kind" "text" DEFAULT NULL::"text", "p_month" "date" DEFAULT NULL::"date") RETURNS "jsonb"
     LANGUAGE "sql" STABLE
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -4417,6 +4417,11 @@ history_merchants as materialized (
           and income_record.status = 'active'
           and expense_record.merchant_id is not null
     ) as ids
+),
+candidate_accounts as materialized (
+    select id, ledger_id, currency, name
+    from public.account
+    where p_scope = 'candidates' and ledger_id = p_ledger_id
 ),
 candidate_base as (
     select
@@ -4500,7 +4505,7 @@ candidate_base as (
     left join lateral (
         select a.currency, a.name as account_name
         from public.transaction_payment payment
-        join public.account a
+        join candidate_accounts a
           on a.id = payment.account_id and a.ledger_id = payment.ledger_id
         where payment.ledger_id = tr.ledger_id
           and payment.transaction_record_id = tr.id
@@ -4511,6 +4516,13 @@ candidate_base as (
       and tr.ledger_id = p_ledger_id
       and tr.status = 'active'
       and tr.type = 'normal'
+      and (
+          p_month is null
+          or (
+              tr.transaction_at >= (date_trunc('month', p_month::timestamp) at time zone 'Asia/Tokyo')
+              and tr.transaction_at < ((date_trunc('month', p_month::timestamp) + interval '1 month') at time zone 'Asia/Tokyo')
+          )
+      )
       and (select public.current_user_is_active_ledger_member(p_ledger_id))
       and (p_currency is null or coalesce(first_payment.currency, ledger.base_currency) = p_currency)
       and (
@@ -4550,27 +4562,41 @@ candidate_matched as (
            )
        )
 ),
-candidate_group_counts as (
-    select
-        count(*) filter (
-            where coalesce(merchant_id = any(array(select unnest(ids) from history_merchants)), false)
-        ) as history,
-        count(*) filter (
-            where not coalesce(merchant_id = any(array(select unnest(ids) from history_merchants)), false)
-              and p_link_kind = 'refund'
-              and p_merchant_priority_id is not null
-              and merchant_id = p_merchant_priority_id
-        ) as same_merchant,
-        count(*) filter (
-            where not coalesce(merchant_id = any(array(select unnest(ids) from history_merchants)), false)
-              and not (
-                  p_link_kind = 'refund'
-                  and p_merchant_priority_id is not null
-                  and coalesce(merchant_id = p_merchant_priority_id, false)
-              )
-        ) as other
+candidate_classified as materialized (
+    select merchant_id,
+        case
+            when business_net_amount > 0 and business_net_amount < item_amount then 'partial'
+            when p_link_kind = 'refund' and merchant_id = p_merchant_priority_id then 'sameMerchant'
+            when merchant_id = any(array(select unnest(ids) from history_merchants)) then 'history'
+            else 'other'
+        end as group_key
     from candidate_matched
     where not settled
+),
+candidate_group_counts as (
+    select
+        count(*) filter (where group_key = 'history') as history,
+        count(*) filter (where group_key = 'sameMerchant') as same_merchant,
+        count(*) filter (where group_key = 'other') as other,
+        count(*) filter (where group_key = 'partial') as partial
+    from candidate_classified
+),
+history_names as (
+    select coalesce(jsonb_agg(distinct coalesce(preferred_alias.alias, m.name)
+        order by coalesce(preferred_alias.alias, m.name)), '[]'::jsonb) as names
+    from public.merchant m
+    left join lateral (
+        select ma.alias
+        from public.merchant_alias ma
+        where ma.merchant_id = m.id and ma.is_preferred and not ma.is_archived
+        limit 1
+    ) preferred_alias on true
+    where m.ledger_id = p_ledger_id
+      and m.id = any(array(select unnest(ids) from history_merchants))
+      and exists (
+          select 1 from candidate_classified c
+          where c.group_key = 'history' and c.merchant_id = m.id
+      )
 ),
 record_matched as (
     select
@@ -4644,13 +4670,15 @@ record_matched as (
 all_matches as (
     select
         record_id, item_id, transaction_at, created_at, merchant_id, sort_order,
-        coalesce(nullif(btrim(item_note), ''), nullif(btrim(record_note), '')) as candidate_note
+        coalesce(nullif(btrim(item_note), ''), nullif(btrim(record_note), '')) as candidate_note,
+        not settled and business_net_amount > 0 and business_net_amount < item_amount as partial
     from candidate_matched
     where settled = p_settled
     union all
     select
         record_id, item_id, transaction_at, created_at, merchant_id, sort_order,
-        null::text as candidate_note
+        null::text as candidate_note,
+        false as partial
     from record_matched
 ),
 ordered_page as (
@@ -4660,11 +4688,14 @@ ordered_page as (
         candidate_note,
         row_number() over (
             order by
-                case when p_scope = 'candidates'
-                      and merchant_id = any(array(select unnest(ids) from history_merchants))
-                    then 0
-                    when p_scope = 'candidates' and merchant_id = p_merchant_priority_id
-                    then 1
+                case
+                    when p_scope = 'candidates' and not coalesce(p_settled, false) and partial then 3
+                    when p_scope = 'candidates' and not coalesce(p_settled, false)
+                      and p_link_kind = 'refund' and merchant_id = p_merchant_priority_id then 0
+                    when p_scope = 'candidates'
+                      and coalesce(merchant_id = any(array(select unnest(ids) from history_merchants)), false) then
+                        case when p_link_kind = 'refund' and not coalesce(p_settled, false) then 1 else 0 end
+                    when p_scope = 'candidates' and merchant_id = p_merchant_priority_id then 1
                     else 2
                 end,
                 transaction_at desc,
@@ -4714,8 +4745,10 @@ select jsonb_build_object(
                  (select jsonb_build_object(
                      'history', history,
                      'sameMerchant', same_merchant,
-                     'other', other
-                 ) from candidate_group_counts)
+                     'other', other,
+                     'partial', partial
+                 ) from candidate_group_counts),
+                 'historyMerchantNames', (select names from history_names)
              )
              else '{}'::jsonb
          end
@@ -4724,7 +4757,7 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."load_filtered_transaction_page"("p_ledger_id" "uuid", "p_scope" "text", "p_query" "text", "p_merchant_priority_id" "uuid", "p_currency" "text", "p_special_statuses" "text"[], "p_settled" boolean, "p_offset" integer, "p_limit" integer, "p_history_merchant_id" "uuid", "p_link_kind" "text") OWNER TO "postgres";
+ALTER FUNCTION "public"."load_filtered_transaction_page"("p_ledger_id" "uuid", "p_scope" "text", "p_query" "text", "p_merchant_priority_id" "uuid", "p_currency" "text", "p_special_statuses" "text"[], "p_settled" boolean, "p_offset" integer, "p_limit" integer, "p_history_merchant_id" "uuid", "p_link_kind" "text", "p_month" "date") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."load_frequent_transaction_merchants"("p_ledger_id" "uuid", "p_limit" integer) RETURNS TABLE("merchant_id" "uuid", "record_count" bigint)
@@ -12287,8 +12320,8 @@ GRANT ALL ON FUNCTION "public"."list_pending_ledger_invites"("p_ledger_id" "uuid
 
 
 
-REVOKE ALL ON FUNCTION "public"."load_filtered_transaction_page"("p_ledger_id" "uuid", "p_scope" "text", "p_query" "text", "p_merchant_priority_id" "uuid", "p_currency" "text", "p_special_statuses" "text"[], "p_settled" boolean, "p_offset" integer, "p_limit" integer, "p_history_merchant_id" "uuid", "p_link_kind" "text") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."load_filtered_transaction_page"("p_ledger_id" "uuid", "p_scope" "text", "p_query" "text", "p_merchant_priority_id" "uuid", "p_currency" "text", "p_special_statuses" "text"[], "p_settled" boolean, "p_offset" integer, "p_limit" integer, "p_history_merchant_id" "uuid", "p_link_kind" "text") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."load_filtered_transaction_page"("p_ledger_id" "uuid", "p_scope" "text", "p_query" "text", "p_merchant_priority_id" "uuid", "p_currency" "text", "p_special_statuses" "text"[], "p_settled" boolean, "p_offset" integer, "p_limit" integer, "p_history_merchant_id" "uuid", "p_link_kind" "text", "p_month" "date") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."load_filtered_transaction_page"("p_ledger_id" "uuid", "p_scope" "text", "p_query" "text", "p_merchant_priority_id" "uuid", "p_currency" "text", "p_special_statuses" "text"[], "p_settled" boolean, "p_offset" integer, "p_limit" integer, "p_history_merchant_id" "uuid", "p_link_kind" "text", "p_month" "date") TO "authenticated";
 
 
 

@@ -52,6 +52,14 @@ export function isLinkCandidateSettled(candidate: TransactionRefundCandidate) {
   return Number(candidate.remainingRefundableAmount) <= 0;
 }
 
+/** 已有部分抵扣且剩余大于零的原支出，退款与报销共同按这个状态分组。 */
+export function isLinkCandidatePartiallySettled(
+  candidate: TransactionRefundCandidate,
+) {
+  const remaining = Number(candidate.remainingRefundableAmount);
+  return remaining > 0 && remaining < Number(candidate.amount);
+}
+
 /** 已结清或核销结余的原支出仍可选择，金额由用户另行输入。 */
 export function getLinkCandidateDefaultAmount(
   candidate: TransactionRefundCandidate,

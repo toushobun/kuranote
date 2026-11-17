@@ -108,6 +108,7 @@ describe("TransactionRepository", () => {
         p_ledger_id: ledgerId,
         p_scope: "candidates",
         p_link_kind: linkKind,
+        p_month: null,
         p_query: "咖啡",
         p_merchant_priority_id: merchantId,
         p_history_merchant_id: merchantId,
@@ -121,7 +122,7 @@ describe("TransactionRepository", () => {
   );
 
   it("候选第一页校验并透传三层分组笔数", async () => {
-    const counts = { history: 2, sameMerchant: 3, other: 5 };
+    const counts = { history: 2, sameMerchant: 3, other: 5, partial: 0 };
     const { repository } = createRepository({
       rpc: vi.fn().mockResolvedValue({
         data: {

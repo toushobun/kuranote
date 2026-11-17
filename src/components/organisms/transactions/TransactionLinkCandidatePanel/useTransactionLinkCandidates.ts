@@ -14,16 +14,20 @@ export function useTransactionLinkCandidates({
   merchantId,
   accountCurrency,
   kind,
+  month,
 }: {
   loadPageAction?: LoadTransactionLinkCandidatePage;
   merchantId?: string;
   accountCurrency?: string;
   kind: "refund" | "reimbursement";
+  month: string;
 }) {
   const [query, setQuery] = useState("");
+  const [searchMonth, setSearchMonth] = useState<string | null>(null);
   const [page, setPage] = useState<TransactionLinkCandidatePage | null>(null);
   // 搜索词变化时立刻隐藏旧页，不等防抖结束，避免旧折叠行仍可点击。
   const [loadedTerm, setLoadedTerm] = useState<string | null>(null);
+  const [loadedMonth, setLoadedMonth] = useState<string | null>(null);
   const [settledPage, setSettledPage] =
     useState<TransactionLinkCandidatePage | null>(null);
   const [settledExpanded, setSettledExpanded] = useState(false);
@@ -40,6 +44,7 @@ export function useTransactionLinkCandidates({
   const pendingSettled = useRef(false);
   const pageGeneration = useRef(0);
   const term = query.trim();
+  const displayedMonth = term ? searchMonth : month;
 
   useEffect(() => {
     loadPageActionRef.current = loadPageAction;
@@ -67,6 +72,7 @@ export function useTransactionLinkCandidates({
             const next = await action({
               offset: 0,
               query: term,
+              month: displayedMonth,
               merchantId,
               currency: accountCurrency,
             });
@@ -74,6 +80,7 @@ export function useTransactionLinkCandidates({
               pageGeneration.current = revision;
               setPage(next);
               setLoadedTerm(term);
+              setLoadedMonth(displayedMonth);
             }
           } catch {
             if (current()) setError(true);
@@ -88,7 +95,15 @@ export function useTransactionLinkCandidates({
       clearTimeout(timeout);
       generation.current = revision + 1;
     };
-  }, [hasLoadPageAction, merchantId, accountCurrency, kind, term, retryKey]);
+  }, [
+    hasLoadPageAction,
+    merchantId,
+    accountCurrency,
+    kind,
+    term,
+    displayedMonth,
+    retryKey,
+  ]);
 
   const loadMore = useCallback(async () => {
     if (
@@ -106,6 +121,7 @@ export function useTransactionLinkCandidates({
       const next = await loadPageActionRef.current({
         offset: page.nextOffset,
         query: term,
+        month: displayedMonth,
         merchantId,
         currency: accountCurrency,
       });
@@ -116,6 +132,8 @@ export function useTransactionLinkCandidates({
           settledCount: next.settledCount ?? page.settledCount,
           historyMerchantIds:
             next.historyMerchantIds ?? page.historyMerchantIds,
+          historyMerchantNames:
+            next.historyMerchantNames ?? page.historyMerchantNames,
           groupCounts: next.groupCounts ?? page.groupCounts,
         });
     } catch {
@@ -126,7 +144,7 @@ export function useTransactionLinkCandidates({
         pendingMore.current = false;
       }
     }
-  }, [page, term, merchantId, accountCurrency]);
+  }, [page, term, displayedMonth, merchantId, accountCurrency]);
 
   async function loadSettled() {
     if (
@@ -144,6 +162,7 @@ export function useTransactionLinkCandidates({
       const next = await loadPageActionRef.current({
         offset: settledPage?.nextOffset ?? 0,
         query: term,
+        month: displayedMonth,
         merchantId,
         currency: accountCurrency,
         settled: true,
@@ -173,10 +192,13 @@ export function useTransactionLinkCandidates({
     if (!settledPage) void loadSettled();
   }
 
-  const queryStale = loadedTerm !== term;
+  const queryStale = loadedTerm !== term || loadedMonth !== displayedMonth;
   return {
     query,
     setQuery,
+    searchMonth,
+    setSearchMonth,
+    displayedMonth,
     page: queryStale ? null : page,
     settledPage: queryStale ? null : settledPage,
     settledExpanded,

@@ -584,6 +584,7 @@ export function createTransactionService({
           linkKind: kind,
           offset: input.offset ?? 0,
           query: normalizeTransactionSearchQuery(input.query ?? ""),
+          month: input.month,
           merchantPriorityId: kind === "refund" ? input.merchantId : undefined,
           historyMerchantId: input.merchantId,
           currency: input.currency,
@@ -622,6 +623,9 @@ export function createTransactionService({
         settledCount: page.settledCount,
         ...(page.historyMerchantIds
           ? { historyMerchantIds: page.historyMerchantIds }
+          : {}),
+        ...(page.historyMerchantNames
+          ? { historyMerchantNames: page.historyMerchantNames }
           : {}),
         ...(page.groupCounts ? { groupCounts: page.groupCounts } : {}),
       };
