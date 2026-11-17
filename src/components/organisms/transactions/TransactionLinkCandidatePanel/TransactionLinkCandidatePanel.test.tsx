@@ -95,9 +95,10 @@ describe("TransactionLinkCandidatePanel", () => {
       currency: "JPY",
     });
     expect(
-      screen.getByRole("button", { name: "Amazon的支出（1 笔）" }),
+      screen.getByRole("button", { name: "Amazon的支出（2 笔）" }),
     ).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByText("11/08 · 乐天信用卡")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "部分结清（1 笔）" }));
     expect(screen.getByText("已退 ¥500")).toBeVisible();
     fireEvent.click(
       screen.getByRole("button", { name: "选择退款明细 收纳盒" }),
@@ -111,6 +112,7 @@ describe("TransactionLinkCandidatePanel", () => {
   it("新增时点击候选只改变选中样式，原有顺序保持不变", async () => {
     renderPanel();
     await screen.findByText("USB-C 充电器");
+    fireEvent.click(screen.getByRole("button", { name: "部分结清（1 笔）" }));
     const names = () =>
       screen
         .getAllByRole("button", { name: /选择退款明细/ })
@@ -322,7 +324,7 @@ describe("TransactionLinkCandidatePanel", () => {
       currency: "JPY",
     });
     expect(
-      screen.getByRole("button", { name: "其他待报销（3 笔）" }),
+      screen.getByRole("button", { name: "其他待报销（2 笔）" }),
     ).toBeVisible();
     expect(screen.getByText("Amazon · 11/08 · 乐天信用卡")).toBeVisible();
   });
@@ -571,6 +573,7 @@ describe("TransactionLinkCandidatePanel", () => {
   it("小票未保存的核销变化可把服务端已结清候选提升到未结清列表", async () => {
     const candidate = candidateItems[3];
     renderPanel({
+      month: "2026-10",
       linkAffectedCandidates: [candidate],
       resolveLinkCandidate: (item) =>
         item.id === candidate.id
@@ -624,7 +627,7 @@ describe("TransactionLinkCandidatePanel", () => {
     expect(lockedHeader).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByText("USB-C 充电器")).not.toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Amazon的支出（2 笔）" }),
+      screen.getByRole("button", { name: "Amazon的支出（1 笔）" }),
     ).toHaveAttribute("aria-expanded", "true");
     expect(
       screen.getByRole("button", { name: "已结清的支出（1 笔）" }),
@@ -720,10 +723,10 @@ describe("TransactionLinkCandidatePanel", () => {
         groupCounts: { history: 0, sameMerchant: 2, other: 0, partial: 1 },
       }),
     });
-    await screen.findByRole("button", { name: "Amazon的支出（2 笔）" });
+    await screen.findByRole("button", { name: "Amazon的支出（1 笔）" });
     const cards = screen.getAllByRole("button", { name: /选择退款明细/ });
     expect(cards[0]).toHaveAccessibleName("选择退款明细 USB-C 充电器");
-    expect(cards).toHaveLength(3);
+    expect(cards).toHaveLength(2);
   });
 
   it("入口 B 来源归在这笔记录，已在小票上的分组仍默认折叠", async () => {
