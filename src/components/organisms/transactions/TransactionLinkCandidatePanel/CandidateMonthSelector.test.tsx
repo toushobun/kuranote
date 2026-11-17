@@ -139,8 +139,9 @@ describe("CandidateMonthSelector", () => {
     render(<MonthHarness initialMonth={current} />);
     fireEvent.click(screen.getByRole("button", { name: "选择月份" }));
 
-    const monthColumn = screen.getByRole("button", { name: "选择 8 月" })
-      .parentElement!;
+    const monthColumn = screen.getByRole("button", {
+      name: "选择 8 月",
+    }).parentElement!;
     monthColumn.scrollTop = 280;
     fireEvent.click(screen.getByRole("button", { name: "确定年月" }));
 
@@ -157,8 +158,9 @@ describe("CandidateMonthSelector", () => {
     render(<MonthHarness initialMonth={currentTokyoCandidateMonth()} />);
     fireEvent.click(screen.getByRole("button", { name: "选择月份" }));
 
-    const monthColumn = screen.getByRole("button", { name: "选择 8 月" })
-      .parentElement!;
+    const monthColumn = screen.getByRole("button", {
+      name: "选择 8 月",
+    }).parentElement!;
     const scrollTo = vi.fn();
     Object.defineProperty(monthColumn, "scrollTo", {
       configurable: true,
