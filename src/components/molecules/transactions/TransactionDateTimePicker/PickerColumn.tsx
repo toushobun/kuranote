@@ -239,6 +239,14 @@ function handlePickerScrollEnd(
 ) {
   if (isPickerScrollLocked(container)) return;
 
+  const value = getCenteredPickerValue(container);
+  if (value !== null) onChange(value);
+}
+
+// 点击确定时读取滚轮当前可视中心，避免 scrollend 尚未触发时提交旧值。
+export function getCenteredPickerValue(container: HTMLElement | null): number | null {
+  if (!container || container.clientHeight === 0) return null;
+
   const center = container.scrollTop + container.clientHeight / 2;
   const options = Array.from(
     container.querySelectorAll<HTMLButtonElement>("[data-picker-value]"),
@@ -256,9 +264,9 @@ function handlePickerScrollEnd(
     },
     null,
   );
-  const value = Number(nearestOption?.dataset.pickerValue);
-
-  if (Number.isInteger(value)) onChange(value);
+  if (!nearestOption) return null;
+  const value = Number(nearestOption.dataset.pickerValue);
+  return Number.isInteger(value) ? value : null;
 }
 
 function isPickerScrollLocked(container: HTMLElement) {
