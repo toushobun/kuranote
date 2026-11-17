@@ -37,6 +37,10 @@ export function CandidateMonthSelector({
   const yearOptions = Array.from({ length: 51 }, (_, i) => thisYear - i);
   const displayMonth = month ?? today;
 
+  function isMonthDisabled(year: number, option: number) {
+    return year > thisYear || (year === thisYear && option >= thisMonth);
+  }
+
   function openPicker() {
     const [year, selectedMonth] = displayMonth.split("-").map(Number);
     setPickerYear(year);
@@ -141,19 +145,22 @@ export function CandidateMonthSelector({
                 }
               : undefined
           }
-          isMonthDisabled={(year, option) =>
-            year > thisYear || (year === thisYear && option + 1 > thisMonth)
-          }
+          isMonthDisabled={isMonthDisabled}
           month={pickerMonth}
           monthRef={monthRef}
           onMonthChange={(value) => {
+            if (isMonthDisabled(pickerYear, value)) {
+              if (monthRef.current)
+                scrollPickerOptionIntoView(monthRef.current);
+              return;
+            }
             setPickerMonth(value);
             setPickerAll(false);
           }}
           onSubmit={confirm}
           onYearChange={(value) => {
             setPickerYear(value);
-            if (value === thisYear && pickerMonth + 1 > thisMonth) {
+            if (isMonthDisabled(value, pickerMonth)) {
               syncClampedMonthRef.current = true;
               setPickerMonth(thisMonth - 1);
             }
