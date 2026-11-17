@@ -31,6 +31,7 @@ export function CandidateMonthSelector({
   const [pickerAll, setPickerAll] = useState(false);
   const yearRef = useRef<HTMLButtonElement>(null);
   const monthRef = useRef<HTMLButtonElement>(null);
+  const syncClampedMonthRef = useRef(false);
   const today = currentTokyoCandidateMonth();
   const [thisYear, thisMonth] = today.split("-").map(Number);
   const yearOptions = Array.from({ length: 51 }, (_, i) => thisYear - i);
@@ -58,6 +59,13 @@ export function CandidateMonthSelector({
     if (monthRef.current) scrollPickerOptionIntoView(monthRef.current);
     if (yearRef.current) scrollPickerOptionIntoView(yearRef.current);
   }, [open]);
+
+  // 切年时收紧未来月份后，滚轮位置也必须跟随新选中的月份。
+  useEffect(() => {
+    if (!open || !syncClampedMonthRef.current) return;
+    syncClampedMonthRef.current = false;
+    if (monthRef.current) scrollPickerOptionIntoView(monthRef.current);
+  }, [open, pickerYear, pickerMonth]);
 
   return (
     <>
@@ -145,8 +153,10 @@ export function CandidateMonthSelector({
           onSubmit={confirm}
           onYearChange={(value) => {
             setPickerYear(value);
-            if (value === thisYear && pickerMonth + 1 > thisMonth)
+            if (value === thisYear && pickerMonth + 1 > thisMonth) {
+              syncClampedMonthRef.current = true;
               setPickerMonth(thisMonth - 1);
+            }
             setPickerAll(false);
           }}
           submitLabel={m.monthConfirm}
