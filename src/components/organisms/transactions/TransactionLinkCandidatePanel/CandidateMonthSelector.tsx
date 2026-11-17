@@ -57,7 +57,7 @@ export function CandidateMonthSelector({
 
   return (
     <>
-      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ minHeight: 42 }}>
+      <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", minHeight: 42 }}>
         {month !== null ? (
           <IconButton
             aria-label={m.monthPrevious}
