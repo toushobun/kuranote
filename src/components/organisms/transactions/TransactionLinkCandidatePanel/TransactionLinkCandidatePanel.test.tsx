@@ -263,7 +263,10 @@ describe("TransactionLinkCandidatePanel", () => {
       }),
     });
     await screen.findByText("实时关联的旧支出");
-    fireEvent.click(screen.getByRole("button", { name: "其他支出（1 笔）" }));
+    const otherGroup = await screen.findByRole("button", {
+      name: "其他支出（1 笔）",
+    });
+    fireEvent.click(otherGroup);
     const cards = screen.getAllByRole("button", {
       name: /选择退款明细/,
     });
