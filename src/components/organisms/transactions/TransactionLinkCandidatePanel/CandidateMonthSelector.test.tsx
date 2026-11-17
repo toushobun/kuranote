@@ -62,6 +62,26 @@ describe("CandidateMonthSelector", () => {
     );
   });
 
+  it("滚轮禁用当年未来月份且确认时保持有效月份", async () => {
+    const current = currentTokyoCandidateMonth();
+    const monthNumber = Number(current.slice(5));
+    if (monthNumber === 12) return;
+    render(<MonthHarness initialMonth={current} />);
+    fireEvent.click(screen.getByRole("button", { name: "选择月份" }));
+    const future = screen.getByRole("button", {
+      name: `选择 ${monthNumber + 1} 月`,
+    });
+    expect(future).toBeDisabled();
+    fireEvent.click(future);
+    fireEvent.click(screen.getByRole("button", { name: "确定年月" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole("button", { name: "选择月份" })).toHaveTextContent(
+      `${Number(current.slice(0, 4))}年${monthNumber}月`,
+    );
+  });
+
   it("滚轮只有确定后才应用新月份，关闭相当于取消", async () => {
     render(<MonthHarness initialMonth="2026-09" />);
     fireEvent.click(screen.getByRole("button", { name: "选择月份" }));
