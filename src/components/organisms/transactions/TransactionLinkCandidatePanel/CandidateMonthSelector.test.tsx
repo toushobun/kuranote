@@ -117,19 +117,6 @@ describe("CandidateMonthSelector", () => {
         selected.offsetTop + selected.offsetHeight / 2,
       );
     }
-  });      Object.defineProperty(option.parentElement!, "clientHeight", {
-        configurable: true,
-        value: 200,
-      });
-    }
-    await waitFor(() => {
-      for (const option of selected) {
-        const column = option.parentElement!;
-        expect(column.scrollTop + column.clientHeight / 2).toBe(
-          option.offsetTop + option.offsetHeight / 2,
-        );
-      }
-    });
   });
 
   it("默认月份的下一月箭头不可点击，上一月可切换", () => {
@@ -171,6 +158,7 @@ describe("CandidateMonthSelector", () => {
     expect(
       screen.queryByRole("button", { name: `选择 ${monthNumber + 1} 月` }),
     ).not.toBeInTheDocument();
+
     fireEvent.click(
       screen.getByRole("button", { name: `选择 ${thisYear - 1} 年` }),
     );
@@ -179,22 +167,15 @@ describe("CandidateMonthSelector", () => {
     fireEvent.click(
       screen.getByRole("button", { name: `选择 ${thisYear} 年` }),
     );
-    expect(screen.queryByRole("button", { name: "选择 12 月" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "选择 12 月" }),
+    ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "确定年月" }));
     await waitFor(() =>
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
     );
     expect(screen.getByRole("button", { name: "选择月份" })).toHaveTextContent(
       `${thisYear}年${monthNumber}月`,
-    );
-  });    expect(future).toBeDisabled();
-    fireEvent.click(future);
-    fireEvent.click(screen.getByRole("button", { name: "确定年月" }));
-    await waitFor(() =>
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
-    );
-    expect(screen.getByRole("button", { name: "选择月份" })).toHaveTextContent(
-      `${Number(current.slice(0, 4))}年${monthNumber}月`,
     );
   });
 
@@ -227,7 +208,9 @@ describe("CandidateMonthSelector", () => {
     const allMonths = screen.getByRole("button", { name: "全部月份" });
     expect(allMonths).toHaveAttribute("data-picker-value", "-1");
     expect(allMonths).toHaveAttribute("aria-pressed", "true");
-    expect(screen.queryByRole("button", { name: "选择 11 月" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "选择 11 月" }),
+    ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "确定年月" }));
     await waitFor(() =>
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
@@ -236,6 +219,7 @@ describe("CandidateMonthSelector", () => {
       "全部月份",
     );
   });
+
   it("搜索全部月份时隐藏箭头，选年月后应用筛选，清除后还原全部", async () => {
     render(<MonthHarness searching initialMonth={null} />);
     expect(screen.getByRole("button", { name: "选择月份" })).toHaveTextContent(
@@ -247,12 +231,14 @@ describe("CandidateMonthSelector", () => {
     expect(
       screen.queryByRole("button", { name: "下个月" }),
     ).not.toBeInTheDocument();
+
     fireEvent.click(screen.getByRole("button", { name: "选择月份" }));
     expect(screen.getByRole("button", { name: "全部月份" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "选择 2026 年" }));
     expect(screen.getByRole("button", { name: "选择 8 月" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "选择 8 月" }));
     fireEvent.click(screen.getByRole("button", { name: "确定年月" }));
+
     const clearMonth = await screen.findByRole("button", {
       name: "搜索全部月份",
     });
@@ -268,10 +254,8 @@ describe("CandidateMonthSelector", () => {
   it("平时年份列不显示全部月份", () => {
     render(<MonthHarness initialMonth="2026-09" />);
     fireEvent.click(screen.getByRole("button", { name: "选择月份" }));
-    expect(screen.queryByRole("button", { name: "全部月份" })).not.toBeInTheDocument();
-  });    fireEvent.click(clearMonth);
-    expect(screen.getByRole("button", { name: "选择月份" })).toHaveTextContent(
-      "全部月份",
-    );
+    expect(
+      screen.queryByRole("button", { name: "全部月份" }),
+    ).not.toBeInTheDocument();
   });
 });
