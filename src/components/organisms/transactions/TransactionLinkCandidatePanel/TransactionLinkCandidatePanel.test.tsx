@@ -461,10 +461,10 @@ describe("TransactionLinkCandidatePanel", () => {
     });
     expect(collapsed).toHaveAttribute("aria-expanded", "false");
     expect(collapsed).not.toHaveStyle({ borderStyle: "dashed" });
-    expect(screen.getByText("展开")).toBeVisible();
+    expect(collapsed).toHaveTextContent("展开");
     toggleSettled(1);
     expect(collapsed).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByText("收起")).toBeVisible();
+    expect(collapsed).toHaveTextContent("收起");
   });
 
   it("置顶已结清原支出从折叠数量中扣除，避免展开后笔数不一致", async () => {
