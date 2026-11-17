@@ -4,6 +4,7 @@ import {
   adjustLinkCandidate,
   getLinkCandidateDefaultAmount,
   isLinkCandidateSettled,
+  isLinkCandidatePartiallySettled,
   toTransactionLinkCandidates,
 } from "./transactionLinkCandidates";
 
