@@ -623,6 +623,7 @@ export function createTransactionService({
         ...(page.historyMerchantIds
           ? { historyMerchantIds: page.historyMerchantIds }
           : {}),
+        ...(page.groupCounts ? { groupCounts: page.groupCounts } : {}),
       };
     },
 
