@@ -108,6 +108,7 @@ describe("TransactionRepository", () => {
         p_ledger_id: ledgerId,
         p_scope: "candidates",
         p_link_kind: linkKind,
+        p_month: null,
         p_query: "咖啡",
         p_merchant_priority_id: merchantId,
         p_history_merchant_id: merchantId,
