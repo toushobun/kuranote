@@ -202,13 +202,14 @@ export function TransactionLinkCandidatePanel(
   });
   // 入口 B 的旧月份来源仍显示，但不能掩盖当前月份没有候选的事实。
   const hasCurrentMonthCandidates =
+    selectedInScope ||
     activeCandidates.some((candidate) =>
       candidateInMonth(candidate.transactionAt, displayedMonth),
     ) ||
     settledCount > 0 ||
     Object.values(groupCounts ?? {}).some((count) => (count ?? 0) > 0);
   const showEmptyMessage = searching
-    ? !initialSelection && activeCandidates.length === 0 && settledCount === 0
+    ? !selectedInScope && activeCandidates.length === 0 && settledCount === 0
     : !hasCurrentMonthCandidates;
   const defaultGroupKey = groups.find(
     (group) => group.key !== "locked" && group.key !== "partial",
