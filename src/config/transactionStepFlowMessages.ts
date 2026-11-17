@@ -168,13 +168,20 @@ export const transactionLinkCandidateMessages = {
   searchAria: "搜索原支出",
   noSearchResults: "没有找到可关联的支出。",
   settledGroup: (count: number) => `已结清的支出（${count} 笔）`,
-  settledTitle: "已结清的支出",
+  settledTitle: "已结清",
+  partialGroup: "部分结清",
+  monthAll: "全部月份",
+  monthConfirm: "确定",
+  monthLabel: (year: number, month: number) => `${year}年${month}月`,
+  monthPrevious: "上个月",
+  monthNext: "下个月",
+  monthSelect: "选择月份",
+  monthClearSearch: "搜索全部月份",
+  monthEmpty: "这个月没有可关联的支出，换个月份或直接搜索",
   lockedGroup: "已在小票上",
   sourceGroup: "这笔记录",
-  historyGroup: (kind: "refund" | "reimbursement", merchant: string) =>
-    kind === "refund"
-      ? `以前退到${merchant}的商家`
-      : `以前由${merchant}报销的商家`,
+  historyGroup: (kind: "refund" | "reimbursement") =>
+    kind === "refund" ? "常退商家支出" : "常报销商家支出",
   sameMerchantGroup: (merchant: string) => `${merchant}的支出`,
   otherGroup: (kind: "refund" | "reimbursement") =>
     kind === "refund" ? "其他支出" : "其他待报销",
