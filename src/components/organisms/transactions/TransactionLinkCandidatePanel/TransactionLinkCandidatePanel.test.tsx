@@ -641,6 +641,7 @@ describe("TransactionLinkCandidatePanel", () => {
       target: { value: "收纳盒" },
     });
     await screen.findByRole("button", { name: "选择退款明细 收纳盒" });
+    expect(screen.queryByText("全部支出")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /Amazon的支出/ }),
     ).not.toBeInTheDocument();
