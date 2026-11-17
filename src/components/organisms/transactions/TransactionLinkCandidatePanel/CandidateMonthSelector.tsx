@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
@@ -57,20 +57,17 @@ export function CandidateMonthSelector({
 
   useBackLayer(open, () => setOpen(false), 1);
 
-  // 在浏览器绘制弹窗前直接对齐选中项，避免先出现一月再跳到目标月。
+  const centerSelectedOptions = useCallback(() => {
+    const selectedYear = pickerAll ? allMonthsRef.current : yearRef.current;
+    if (selectedYear) scrollPickerOptionIntoView(selectedYear, "instant");
+    if (!pickerAll && monthRef.current)
+      scrollPickerOptionIntoView(monthRef.current, "instant");
+  }, [pickerAll]);
+
+  // onEnter 覆盖 Portal 延迟挂载的情况；切换年月时在绘制前同步位置。
   useLayoutEffect(() => {
-    if (!open) return;
-    if (pickerAll) {
-      if (allMonthsRef.current)
-        scrollPickerOptionIntoView(allMonthsRef.current, "instant");
-    }
-    else {
-      if (yearRef.current)
-        scrollPickerOptionIntoView(yearRef.current, "instant");
-      if (monthRef.current)
-        scrollPickerOptionIntoView(monthRef.current, "instant");
-    }
-  }, [open, pickerAll, pickerYear, pickerMonth]);
+    if (open) centerSelectedOptions();
+  }, [open, pickerYear, pickerMonth, centerSelectedOptions]);
 
   return (
     <>
@@ -136,6 +133,7 @@ export function CandidateMonthSelector({
         maxWidth="xs"
         slotProps={{
           paper: { sx: { height: 280, p: 1 } },
+          transition: { onEnter: centerSelectedOptions },
         }}
       >
         <MonthPicker
