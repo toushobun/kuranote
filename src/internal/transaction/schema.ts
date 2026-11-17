@@ -666,7 +666,7 @@ export const transactionLinkCandidatePageInputSchema = z.object({
   query: z.string().optional(),
   month: z
     .string()
-    .regex(/^\d{4}-(0[1-9]|1[0-2])$/)
+    .regex(/^(?!0000)\d{4}-(0[1-9]|1[0-2])$/)
     .nullable()
     .optional(),
   merchantId: z.uuid().optional(),
