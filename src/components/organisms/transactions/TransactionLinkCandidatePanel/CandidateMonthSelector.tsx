@@ -145,6 +145,8 @@ export function CandidateMonthSelector({
           onSubmit={confirm}
           onYearChange={(value) => {
             setPickerYear(value);
+            if (value === thisYear && pickerMonth + 1 > thisMonth)
+              setPickerMonth(thisMonth - 1);
             setPickerAll(false);
           }}
           submitLabel={m.monthConfirm}
