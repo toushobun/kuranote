@@ -112,19 +112,16 @@ export function TransactionLinkCandidatePanel(
     mergeUniqueById(page?.items ?? [], settledPage?.items ?? []),
     scopedAffected,
   ).filter((candidate) => candidate.id !== initialSelection?.id);
+  function effectiveCandidate(candidate: TransactionRefundCandidate) {
+    return props.lockedAmounts?.has(candidate.id)
+      ? candidate
+      : (props.resolveLinkCandidate?.(candidate) ?? candidate);
+  }
   function isSettled(candidate: TransactionRefundCandidate) {
-    return isLinkCandidateSettled(
-      props.lockedAmounts?.has(candidate.id)
-        ? candidate
-        : (props.resolveLinkCandidate?.(candidate) ?? candidate),
-    );
+    return isLinkCandidateSettled(effectiveCandidate(candidate));
   }
   function isPartial(candidate: TransactionRefundCandidate) {
-    return isLinkCandidatePartiallySettled(
-      props.lockedAmounts?.has(candidate.id)
-        ? candidate
-        : (props.resolveLinkCandidate?.(candidate) ?? candidate),
-    );
+    return isLinkCandidatePartiallySettled(effectiveCandidate(candidate));
   }
   const historyMerchantIds = props.merchantId ? page?.historyMerchantIds : [];
   const orderOptions = {
