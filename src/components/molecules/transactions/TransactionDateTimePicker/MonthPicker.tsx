@@ -17,7 +17,7 @@ import {
 
 export function MonthPicker({
   allMonthsOption,
-  isMonthDisabled,
+  monthCount = 12,
   submitLabel = "确定",
   month,
   monthRef,
@@ -28,8 +28,13 @@ export function MonthPicker({
   yearOptions,
   yearRef,
 }: {
-  allMonthsOption?: { label: string; selected: boolean; onSelect: () => void };
-  isMonthDisabled?: (year: number, month: number) => boolean;
+  allMonthsOption?: {
+    label: string;
+    selected: boolean;
+    onSelect: () => void;
+    ref: RefObject<HTMLButtonElement | null>;
+  };
+  monthCount?: number;
   submitLabel?: string;
   month: number;
   monthRef: RefObject<HTMLButtonElement | null>;
@@ -42,42 +47,54 @@ export function MonthPicker({
 }) {
   return (
     <Stack sx={{ flex: 1, minHeight: 0 }}>
-      {allMonthsOption ? (
-        <Button
-          aria-pressed={allMonthsOption.selected}
-          onClick={allMonthsOption.onSelect}
-          sx={{
-            alignSelf: "center",
-            fontWeight: allMonthsOption.selected ? 700 : 400,
-            my: 1,
-          }}
-          type="button"
-        >
-          {allMonthsOption.label}
-        </Button>
-      ) : null}
       <Stack
         direction="row"
         sx={{
           flex: 1,
           minHeight: 0,
           position: "relative",
-          px: 4,
+          alignSelf: "center",
+          maxWidth: 320,
+          px: 2,
+          width: "100%",
         }}
       >
         <Box
           sx={{
             bgcolor: "action.hover",
             height: 40,
-            left: 4,
+            left: 16,
             pointerEvents: "none",
             position: "absolute",
-            right: 4,
+            right: 16,
             top: "50%",
             transform: "translateY(-50%)",
           }}
         />
-        <PickerColumn onChange={onYearChange} overlay={false}>
+        <PickerColumn
+          onChange={(value) => {
+            if (value === -1) allMonthsOption?.onSelect();
+            else onYearChange(value);
+          }}
+          overlay={false}
+        >
+          {allMonthsOption ? (
+            <Button
+              aria-label={allMonthsOption.label}
+              aria-pressed={allMonthsOption.selected}
+              data-picker-value={-1}
+              onClick={(event) => {
+                scrollPickerOptionIntoView(event.currentTarget);
+                allMonthsOption.onSelect();
+              }}
+              disableRipple
+              ref={allMonthsOption.selected ? allMonthsOption.ref : undefined}
+              type="button"
+              sx={pickerOptionSx(allMonthsOption.selected)}
+            >
+              {allMonthsOption.label}
+            </Button>
+          ) : null}
           {yearOptions.map((option) => (
             <Button
               key={option}
@@ -88,7 +105,11 @@ export function MonthPicker({
                 onYearChange(option);
               }}
               disableRipple
-              ref={option === year ? yearRef : undefined}
+              ref={
+                option === year && !allMonthsOption?.selected
+                  ? yearRef
+                  : undefined
+              }
               type="button"
               sx={pickerOptionSx(option === year)}
             >
@@ -97,7 +118,9 @@ export function MonthPicker({
           ))}
         </PickerColumn>
         <PickerColumn onChange={onMonthChange} overlay={false}>
-          {Array.from({ length: 12 }, (_, option) => (
+          {Array.from(
+            { length: allMonthsOption?.selected ? 0 : monthCount },
+            (_, option) => (
             <Button
               key={option}
               aria-label={`选择 ${option + 1} 月`}
@@ -107,14 +130,14 @@ export function MonthPicker({
                 onMonthChange(option);
               }}
               disableRipple
-              disabled={isMonthDisabled?.(year, option) ?? false}
               ref={option === month ? monthRef : undefined}
               type="button"
               sx={pickerOptionSx(option === month)}
             >
               {option + 1}月
             </Button>
-          ))}
+            ),
+          )}
         </PickerColumn>
       </Stack>
       <Box sx={{ flexShrink: 0, px: 3, py: 1 }}>
