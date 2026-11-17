@@ -788,18 +788,25 @@ describe("TransactionLinkCandidatePanel", () => {
       historyMerchantIds: [],
       groupCounts: { history: 0, sameMerchant: 0, other: 0, partial: 0 },
     });
-    renderPanel({ loadPageAction: loadPage }, {
-      kind: "refund",
-      accountId: "credit",
-      merchantId: "amazon",
-      candidates: [sourceCandidate],
-    });
+    renderPanel(
+      { loadPageAction: loadPage },
+      {
+        kind: "refund",
+        accountId: "credit",
+        merchantId: "amazon",
+        candidates: [sourceCandidate],
+      },
+    );
     const sourceGroup = await screen.findByRole("button", {
       name: "这笔记录（1 笔）",
     });
     expect(sourceGroup).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByRole("button", { name: "选择退款明细 外套" })).toBeVisible();
-    expect(screen.queryByRole("button", { name: /已结清的支出/ })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "选择退款明细 外套" }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("button", { name: /已结清的支出/ }),
+    ).not.toBeInTheDocument();
   });
 
   it("入口 B 的来源在其他月份时仍显示来源组并提示当前月份没有候选", async () => {
