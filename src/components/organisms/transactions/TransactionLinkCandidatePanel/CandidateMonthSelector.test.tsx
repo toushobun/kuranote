@@ -68,6 +68,22 @@ describe("CandidateMonthSelector", () => {
     );
   });
 
+  it("搜索全部月份打开滚轮后直接确定仍保持全部月份", async () => {
+    render(<MonthHarness searching initialMonth={null} />);
+    fireEvent.click(screen.getByRole("button", { name: "选择月份" }));
+    expect(screen.getByRole("button", { name: "全部月份" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "确定年月" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole("button", { name: "选择月份" })).toHaveTextContent(
+      "全部月份",
+    );
+  });
+
   it("搜索全部月份时隐藏箭头且滚轮增加全部月份选项", async () => {
     render(<MonthHarness searching initialMonth={null} />);
     expect(screen.getByRole("button", { name: "选择月份" })).toHaveTextContent(
