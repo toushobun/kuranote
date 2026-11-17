@@ -9,6 +9,8 @@ import {
 import { useState, type ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TransactionLinkCandidatePanel } from "./TransactionLinkCandidatePanel";
+import { TransactionOffsetEntryContext } from "../TransactionOffsetEntry/TransactionOffsetEntry";
+import type { TransactionOffsetEntry } from "internal/transaction";
 import {
   candidateItems,
   candidatePage,
@@ -29,6 +31,7 @@ function observeNextPage() {
 
 function renderPanel(
   props: Partial<ComponentProps<typeof TransactionLinkCandidatePanel>> = {},
+  source: TransactionOffsetEntry | null = null,
 ) {
   function Harness() {
     const [value, setValue] = useState(props.value ?? null);
@@ -48,7 +51,11 @@ function renderPanel(
       />
     );
   }
-  return render(<Harness />);
+  return render(
+    <TransactionOffsetEntryContext.Provider value={source}>
+      <Harness />
+    </TransactionOffsetEntryContext.Provider>,
+  );
 }
 function toggleSettled(count: number) {
   const name = `已结清的支出（${count} 笔）`;
@@ -85,7 +92,9 @@ describe("TransactionLinkCandidatePanel", () => {
       merchantId: "amazon",
       currency: "JPY",
     });
-    expect(screen.getByText("全部支出")).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Amazon的支出（3 笔）" }),
+    ).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByText("11/08 · 乐天信用卡")).toBeVisible();
     expect(screen.getByText("已退 ¥500")).toBeVisible();
     fireEvent.click(
@@ -223,7 +232,9 @@ describe("TransactionLinkCandidatePanel", () => {
       settledCount: 0,
     });
     renderPanel({ loadPageAction: loadPage });
-    const cards = await screen.findAllByRole("button", {
+    await screen.findByRole("button", { name: "其他支出（1 笔）" });
+    fireEvent.click(screen.getByRole("button", { name: "其他支出（1 笔）" }));
+    const cards = screen.getAllByRole("button", {
       name: /选择退款明细/,
     });
     expect(cards[0]).toHaveAccessibleName("选择退款明细 咖啡豆 2 袋");
@@ -251,7 +262,8 @@ describe("TransactionLinkCandidatePanel", () => {
         settledCount: 0,
       }),
     });
-    await screen.findByText("USB-C 充电器");
+    await screen.findByText("实时关联的旧支出");
+    fireEvent.click(screen.getByRole("button", { name: "其他支出（1 笔）" }));
     const cards = screen.getAllByRole("button", {
       name: /选择退款明细/,
     });
@@ -277,6 +289,11 @@ describe("TransactionLinkCandidatePanel", () => {
         nextOffset: null,
       }),
     });
+    const lockedGroup = await screen.findByRole("button", {
+      name: "已在小票上（1 笔）",
+    });
+    expect(lockedGroup).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(lockedGroup);
     await screen.findByText("已在小票上 · ¥750");
     const cards = screen.getAllByRole("button", { name: /选择退款明细/ });
     expect(cards[0]).toHaveAccessibleName("选择退款明细 往年差旅支出");
@@ -297,7 +314,7 @@ describe("TransactionLinkCandidatePanel", () => {
       merchantId: "amazon",
       currency: "JPY",
     });
-    expect(screen.getByText("待报销")).toBeVisible();
+    expect(screen.getByRole("button", { name: "其他待报销（3 笔）" })).toBeVisible();
     expect(screen.getByText("Amazon · 11/08 · 乐天信用卡")).toBeVisible();
   });
   it("编辑打开时的页外原支出固定置顶，分页去重且改选后不跳动", async () => {
@@ -435,13 +452,13 @@ describe("TransactionLinkCandidatePanel", () => {
     expect(loadPage).toHaveBeenCalledTimes(2);
   });
 
-  it("折叠行使用虚线边框和浅色背景，左右分别显示笔数及展开收起文案", async () => {
+  it("已结清改用统一分组标题，不再使用虚线按钮", async () => {
     renderPanel();
     const collapsed = await screen.findByRole("button", {
       name: "已结清的支出（1 笔）",
     });
     expect(collapsed).toHaveAttribute("aria-expanded", "false");
-    expect(collapsed).toHaveStyle({ borderStyle: "dashed" });
+    expect(collapsed).not.toHaveStyle({ borderStyle: "dashed" });
     expect(screen.getByText("展开")).toBeVisible();
     toggleSettled(1);
     expect(collapsed).toHaveAttribute("aria-expanded", "true");
