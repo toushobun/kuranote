@@ -596,4 +596,157 @@ describe("TransactionLinkCandidatePanel", () => {
     toggleSettled(2);
     await screen.findByText("USB-C 充电器");
   });
+  it("默认只展开第一个可选组，锁定和已结清默认折叠", async () => {
+    const locked = candidateItems[0];
+    renderPanel({
+      lockedAmounts: new Map([[locked.id, "100"]]),
+      loadPageAction: vi.fn().mockResolvedValue({
+        items: [locked, candidateItems[1], candidateItems[2]],
+        nextOffset: null,
+        settledCount: 1,
+        historyMerchantIds: [],
+        groupCounts: { history: 0, sameMerchant: 3, other: 0 },
+      }),
+    });
+    const lockedHeader = await screen.findByRole("button", {
+      name: "已在小票上（1 笔）",
+    });
+    expect(lockedHeader).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText("USB-C 充电器")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Amazon的支出（2 笔）" }),
+    ).toHaveAttribute("aria-expanded", "true");
+    expect(
+      screen.getByRole("button", { name: "已结清的支出（1 笔）" }),
+    ).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(lockedHeader);
+    expect(lockedHeader).toHaveAttribute("aria-expanded", "true");
+    expect(
+      screen.getByRole("button", { name: "选择退款明细 USB-C 充电器" }),
+    ).toBeDisabled();
+    fireEvent.click(lockedHeader);
+    expect(lockedHeader).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("搜索时取消分组，清空搜索后按默认规则重新展开", async () => {
+    renderPanel();
+    const group = await screen.findByRole("button", {
+      name: "Amazon的支出（3 笔）",
+    });
+    fireEvent.click(group);
+    expect(group).toHaveAttribute("aria-expanded", "false");
+    fireEvent.change(screen.getByRole("textbox", { name: "搜索原支出" }), {
+      target: { value: "收纳盒" },
+    });
+    await screen.findByRole("button", { name: "选择退款明细 收纳盒" });
+    expect(screen.queryByRole("button", { name: /Amazon的支出/ }))
+      .not.toBeInTheDocument();
+    fireEvent.change(screen.getByRole("textbox", { name: "搜索原支出" }), {
+      target: { value: "" },
+    });
+    const restored = await screen.findByRole("button", {
+      name: "Amazon的支出（3 笔）",
+    });
+    expect(restored).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("直接展开未加载的后组，顺序继续分页直到有卡片，并保持手动展开", async () => {
+    const history = {
+      ...candidateItems[0],
+      merchantId: "lawson",
+      merchantName: "罗森",
+    };
+    const second = {
+      ...candidateItems[1],
+      merchantId: "lawson",
+      merchantName: "罗森",
+    };
+    const other = {
+      ...candidateItems[2],
+      merchantId: "family",
+      merchantName: "全家",
+    };
+    const loadPage = vi
+      .fn()
+      .mockResolvedValueOnce({
+        items: [history],
+        nextOffset: 1,
+        settledCount: 0,
+        historyMerchantIds: ["lawson"],
+        groupCounts: { history: 2, sameMerchant: 0, other: 1 },
+      })
+      .mockResolvedValueOnce({ items: [second], nextOffset: 2 })
+      .mockResolvedValueOnce({ items: [other], nextOffset: null });
+    renderPanel({ loadPageAction: loadPage });
+    const otherHeader = await screen.findByRole("button", {
+      name: "其他支出（1 笔）",
+    });
+    expect(otherHeader).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(otherHeader);
+    await screen.findByText("收纳盒");
+    expect(loadPage).toHaveBeenCalledTimes(3);
+    expect(loadPage).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ offset: 1 }),
+    );
+    expect(loadPage).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({ offset: 2 }),
+    );
+    expect(otherHeader).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("编辑初始选中项置顶于所有组之上，服务端组计数扣除该项", async () => {
+    renderPanel({
+      value: candidateItems[0],
+      loadPageAction: vi.fn().mockResolvedValue({
+        items: candidateItems.slice(0, 3),
+        nextOffset: null,
+        settledCount: 0,
+        groupCounts: { history: 0, sameMerchant: 3, other: 0 },
+      }),
+    });
+    await screen.findByRole("button", { name: "Amazon的支出（2 笔）" });
+    const cards = screen.getAllByRole("button", { name: /选择退款明细/ });
+    expect(cards[0]).toHaveAccessibleName("选择退款明细 USB-C 充电器");
+    expect(cards).toHaveLength(3);
+  });
+
+  it("入口 B 来源归在这笔记录，已在小票上的分组仍默认折叠", async () => {
+    const sourceCandidate = {
+      ...candidateItems[0],
+      id: "source-item",
+      merchantId: "lawson",
+      merchantName: "罗森",
+    };
+    const locked = candidateItems[1];
+    renderPanel(
+      {
+        lockedAmounts: new Map([[locked.id, "500"]]),
+        loadPageAction: vi.fn().mockResolvedValue({
+          items: [locked, sourceCandidate],
+          nextOffset: null,
+          settledCount: 0,
+          historyMerchantIds: [],
+          groupCounts: { history: 0, sameMerchant: 1, other: 1 },
+        }),
+      },
+      {
+        kind: "refund",
+        accountId: "credit",
+        merchantId: "amazon",
+        candidates: [sourceCandidate],
+      },
+    );
+    expect(
+      await screen.findByRole("button", { name: "已在小票上（1 笔）" }),
+    ).toHaveAttribute("aria-expanded", "false");
+    expect(
+      screen.getByRole("button", { name: "这笔记录（1 笔）" }),
+    ).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("USB-C 充电器")).toBeVisible();
+    expect(screen.queryByRole("button", { name: /其他支出/ }))
+      .not.toBeInTheDocument();
+  });
+
 });
