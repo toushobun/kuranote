@@ -1794,7 +1794,13 @@ describe("从旧记录发起的草稿", () => {
     await screen.findByRole("button", { name: "编辑明细 1" });
     click("添加明细");
     const nextSource = await screen.findByRole("button", { name: /旧咖啡/ });
+    const lockedGroup = screen.getByRole("button", {
+      name: /已在小票上/,
+    });
+    expect(lockedGroup).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(lockedGroup);
     const lockedSource = screen.getByRole("button", { name: /旧午餐/ });
+    fireEvent.click(screen.getByRole("button", { name: /其他支出/ }));
     const otherRecord = await screen.findByRole("button", {
       name: /USB-C 充电器/,
     });
