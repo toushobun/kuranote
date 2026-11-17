@@ -53,7 +53,9 @@ export function CandidateMonthSelector({
     if (searching && year === -1) onChange(null);
     else {
       const monthIndex =
-        year === thisYear ? Math.min(selectedMonth, thisMonth - 1) : selectedMonth;
+        year === thisYear
+          ? Math.min(selectedMonth, thisMonth - 1)
+          : selectedMonth;
       onChange(`${year}-${String(monthIndex + 1).padStart(2, "0")}`);
     }
     setOpen(false);
