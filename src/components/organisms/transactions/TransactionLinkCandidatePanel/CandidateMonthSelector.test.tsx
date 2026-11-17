@@ -309,6 +309,59 @@ describe("CandidateMonthSelector", () => {
     );
   });
 
+  it("从全部月份快速滑到年份时，不用不可见的默认月份直接提交", async () => {
+    mockPickerGeometry();
+    const thisYear = Number(currentTokyoCandidateMonth().slice(0, 4));
+    render(<MonthHarness searching initialMonth={null} />);
+    fireEvent.click(screen.getByRole("button", { name: "选择月份" }));
+
+    const yearColumn = screen.getByRole("button", {
+      name: `选择 ${thisYear - 1} 年`,
+    }).parentElement!;
+    yearColumn.scrollTop = 40;
+    fireEvent.click(screen.getByRole("button", { name: "确定年月" }));
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "选择 8 月" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "选择 8 月" }));
+    fireEvent.click(screen.getByRole("button", { name: "确定年月" }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole("button", { name: "选择月份" })).toHaveTextContent(
+      `${thisYear - 1}年8月`,
+    );
+  });
+
+  it("快速切到当前年时，先显示收紧后的月份再允许确认", async () => {
+    mockPickerGeometry();
+    const current = currentTokyoCandidateMonth();
+    const thisYear = Number(current.slice(0, 4));
+    if (Number(current.slice(5)) === 12) return;
+    render(<MonthHarness initialMonth={`${thisYear - 1}-12`} />);
+    fireEvent.click(screen.getByRole("button", { name: "选择月份" }));
+
+    const yearColumn = screen.getByRole("button", {
+      name: `选择 ${thisYear} 年`,
+    }).parentElement!;
+    yearColumn.scrollTop = 0;
+    fireEvent.click(screen.getByRole("button", { name: "确定年月" }));
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "选择 12 月" }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "确定年月" }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole("button", { name: "选择月份" })).toHaveTextContent(
+      `${thisYear}年${Number(current.slice(5))}月`,
+    );
+  });
+
   it("平时年份列不显示全部月份", () => {
     render(<MonthHarness initialMonth="2026-09" />);
     fireEvent.click(screen.getByRole("button", { name: "选择月份" }));
