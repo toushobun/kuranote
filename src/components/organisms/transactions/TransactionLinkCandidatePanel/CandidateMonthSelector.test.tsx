@@ -235,9 +235,13 @@ describe("CandidateMonthSelector", () => {
     ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "选择月份" }));
-    expect(screen.getByRole("button", { name: "全部月份" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "全部月份" }),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "选择 2026 年" }));
-    expect(screen.getByRole("button", { name: "选择 8 月" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "选择 8 月" }),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "选择 8 月" }));
     fireEvent.click(screen.getByRole("button", { name: "确定年月" }));
 
