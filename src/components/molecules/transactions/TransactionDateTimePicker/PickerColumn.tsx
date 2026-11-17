@@ -195,16 +195,16 @@ export function scrollPickerOptionIntoView(
   const nextScrollTop =
     option.offsetTop + option.offsetHeight / 2 - container.clientHeight / 2;
 
+  if (behavior === "instant") {
+    container.scrollTop = Math.max(0, nextScrollTop);
+    return;
+  }
+
   programmaticPickerScrollLocks.set(
     container,
     Date.now() + PROGRAMMATIC_PICKER_SCROLL_LOCK_MS,
   );
   pendingProgrammaticScrollEnds.add(container);
-
-  if (behavior === "instant") {
-    container.scrollTop = Math.max(0, nextScrollTop);
-    return;
-  }
 
   if (typeof container.scrollTo === "function") {
     container.scrollTo({
