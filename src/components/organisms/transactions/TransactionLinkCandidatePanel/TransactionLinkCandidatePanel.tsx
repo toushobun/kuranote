@@ -205,7 +205,10 @@ export function TransactionLinkCandidatePanel(
       candidateInMonth(candidate.transactionAt, displayedMonth),
     ) ||
     settledCount > 0 ||
-    Object.values(groupCounts ?? {}).some((count) => count > 0);
+    Object.values(groupCounts ?? {}).some((count) => (count ?? 0) > 0);
+  const showEmptyMessage = searching
+    ? !initialSelection && activeCandidates.length === 0 && settledCount === 0
+    : !hasCurrentMonthCandidates;
   const defaultGroupKey = groups.find(
     (group) => group.key !== "locked" && group.key !== "partial",
   )?.key;
@@ -344,10 +347,7 @@ export function TransactionLinkCandidatePanel(
         })
       )}
       {loading ? <CircularProgress size={24} /> : null}
-      {page &&
-      (searching
-        ? !initialSelection && activeCandidates.length === 0 && settledCount === 0
-        : !hasCurrentMonthCandidates) ? (
+      {page && showEmptyMessage ? (
         <Typography color="textSecondary" variant="body2">
           {searching ? m.noSearchResults : m.monthEmpty}
         </Typography>
