@@ -745,6 +745,24 @@ describe("TransactionLinkCandidatePanel", () => {
     expect(cards).toHaveLength(2);
   });
 
+  it("历史组尚未加载卡片时，组标题也展示已匹配的商家名称", async () => {
+    renderPanel({
+      loadPageAction: vi.fn().mockResolvedValue({
+        items: [candidateItems[0]],
+        nextOffset: 1,
+        settledCount: 0,
+        historyMerchantIds: ["lawson", "rakuten"],
+        historyMerchantNames: ["罗森", "乐天"],
+        groupCounts: { history: 2, sameMerchant: 1, other: 0, partial: 0 },
+      }),
+    });
+    const heading = await screen.findByRole("button", {
+      name: "常退商家支出（2 笔）",
+    });
+    expect(heading).toHaveTextContent("罗森、乐天");
+    expect(heading).toHaveAttribute("aria-expanded", "false");
+  });
+
   it("入口 B 的来源在其他月份时仍显示来源组并提示当前月份没有候选", async () => {
     const sourceCandidate = {
       ...candidateItems[0],
