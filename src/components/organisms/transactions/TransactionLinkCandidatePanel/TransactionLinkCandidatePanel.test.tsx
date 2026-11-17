@@ -741,6 +741,45 @@ describe("TransactionLinkCandidatePanel", () => {
     expect(otherHeader).toHaveAttribute("aria-expanded", "true");
   });
 
+  it("编辑仅剩置顶原支出时不误提示当前月份为空", async () => {
+    renderPanel({
+      value: candidateItems[0],
+      loadPageAction: vi.fn().mockResolvedValue({
+        items: [candidateItems[0]],
+        nextOffset: null,
+        settledCount: 0,
+        groupCounts: { history: 0, sameMerchant: 1, other: 0, partial: 0 },
+      }),
+    });
+    expect(
+      await screen.findByRole("button", {
+        name: "选择退款明细 USB-C 充电器",
+      }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.queryByText("这个月没有可关联的支出，换个月份或直接搜索"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("搜索词不匹配置顶原支出时仍提示没有搜索结果", async () => {
+    renderPanel({
+      value: candidateItems[0],
+      loadPageAction: vi.fn().mockResolvedValue({
+        items: [],
+        nextOffset: null,
+        settledCount: 0,
+        groupCounts: { history: 0, sameMerchant: 0, other: 0, partial: 0 },
+      }),
+    });
+    await screen.findByRole("button", {
+      name: "选择退款明细 USB-C 充电器",
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "搜索原支出" }), {
+      target: { value: "不存在的消费" },
+    });
+    expect(await screen.findByText("没有找到可关联的支出。")).toBeVisible();
+  });
+
   it("编辑初始选中项置顶于所有组之上，服务端组计数扣除该项", async () => {
     renderPanel({
       value: candidateItems[0],
