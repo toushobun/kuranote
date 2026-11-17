@@ -52,6 +52,7 @@ export type TransactionLinkCandidateGroupCounts = {
   history: number;
   sameMerchant: number;
   other: number;
+  partial: number;
 };
 
 export type TransactionLinkCandidatePage = {
