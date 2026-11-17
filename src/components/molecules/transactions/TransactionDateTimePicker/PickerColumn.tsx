@@ -185,7 +185,10 @@ export function pickerOptionSx(selected: boolean, withOverlay = false) {
   };
 }
 
-export function scrollPickerOptionIntoView(option: HTMLButtonElement) {
+export function scrollPickerOptionIntoView(
+  option: HTMLButtonElement,
+  behavior: "smooth" | "instant" = "smooth",
+) {
   const container = option.parentElement;
   if (!container) return;
 
@@ -197,6 +200,11 @@ export function scrollPickerOptionIntoView(option: HTMLButtonElement) {
     Date.now() + PROGRAMMATIC_PICKER_SCROLL_LOCK_MS,
   );
   pendingProgrammaticScrollEnds.add(container);
+
+  if (behavior === "instant") {
+    container.scrollTop = Math.max(0, nextScrollTop);
+    return;
+  }
 
   if (typeof container.scrollTo === "function") {
     container.scrollTo({
