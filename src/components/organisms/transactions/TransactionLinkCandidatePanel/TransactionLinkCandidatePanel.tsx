@@ -77,11 +77,6 @@ export function TransactionLinkCandidatePanel(
   } = useTransactionLinkCandidates(props);
   const searching = query.trim().length > 0;
 
-  // 搜索与分组互换时重置折叠选择；单纯分页不改变手动状态。
-  useEffect(() => {
-    setExpandedByKey({});
-  }, [searching]);
-
   const matchesCurrentScope = (candidate: TransactionRefundCandidate) =>
     matchesLinkCandidateScope(candidate, accountCurrency, query);
   const lockedLoaded = mergeUniqueById(
@@ -213,7 +208,11 @@ export function TransactionLinkCandidatePanel(
     <Stack spacing={1.25} sx={{ mt: 1.5 }}>
       <TextField
         fullWidth
-        onChange={(event) => setQuery(event.target.value)}
+        onChange={(event) => {
+          const nextQuery = event.target.value;
+          if (searching !== Boolean(nextQuery.trim())) setExpandedByKey({});
+          setQuery(nextQuery);
+        }}
         placeholder={m.searchPlaceholder}
         size="small"
         value={query}
