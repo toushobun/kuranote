@@ -367,7 +367,11 @@ function CandidateGroupHeading({
         spacing={0.75}
         sx={{ minWidth: 0, alignItems: "center", flex: 1 }}
       >
-        <Typography component="span" variant="body2" sx={{ flexShrink: 0 }}>
+        <Typography
+          component="span"
+          variant="body2"
+          sx={{ flexShrink: 0, color: "text.primary", fontWeight: 700 }}
+        >
           {title}
         </Typography>
         {hint ? (
@@ -390,7 +394,7 @@ function CandidateGroupHeading({
           {m.groupCount(count)}
         </Typography>
         <Typography component="span" variant="caption">
-          {expanded ? m.collapseSettled : m.expandSettled}
+          {expanded ? m.collapse : m.expand}
         </Typography>
         {expanded ? (
           <ExpandLessRoundedIcon fontSize="small" />
