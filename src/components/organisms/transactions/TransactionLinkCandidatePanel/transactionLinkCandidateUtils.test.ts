@@ -202,7 +202,12 @@ describe("groupLinkCandidates", () => {
               : Number(candidate.remainingRefundableAmount) <= 0,
       },
     );
-    expect(result).toEqual({ history: 0, sameMerchant: 0, other: 3, partial: 0 });
+    expect(result).toEqual({
+      history: 0,
+      sameMerchant: 0,
+      other: 3,
+      partial: 0,
+    });
   });
   it("部分结清排在普通组之后且默认独立成组", () => {
     const partiallySettled = {
