@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { TransactionRefundCandidate } from "types/transactions";
 import {
+  groupLinkCandidates,
   matchesLinkCandidateScope,
+  reconcileLinkCandidateGroupCounts,
   sortLinkCandidates,
 } from "./transactionLinkCandidateUtils";
 import { candidateItems } from "./transactionLinkCandidateFixtures";
@@ -110,4 +112,95 @@ it("来源明细在锁定项后按小票顺序，优先于历史与同商家", (
     sameMerchant.id,
     latest.id,
   ]);
+});
+
+describe("groupLinkCandidates", () => {
+  it("退款按小票、入口来源、历史、同商家、其他顺序分组", () => {
+    const source = expense("source", "other", 5);
+    const groups = groupLinkCandidates(
+      [latest, sameMerchant, historical, source, locked],
+      {
+        kind: "refund",
+        merchantId: "amazon",
+        merchantName: "Amazon",
+        historyMerchantIds: ["history"],
+        lockedAmounts: new Map([[locked.id, "50"]]),
+        sourceItemIds: [source.id],
+        sourceCandidate: { ...source, merchantName: "乐天" },
+      },
+    );
+    expect(groups.map(({ key }) => key)).toEqual([
+      "locked",
+      "source",
+      "history",
+      "sameMerchant",
+      "other",
+    ]);
+    expect(groups.map(({ count }) => count)).toEqual([1, 1, 1, 1, 1]);
+    expect(groups[1].hint).toContain("11/05");
+    expect(groups[2].hint).toBe("Amazon");
+    expect(groups[2].title).toBe("以前退到Amazon的商家");
+  });
+
+  it("报销不显示同商家分组，没有商家时全部归其他待报销", () => {
+    const result = groupLinkCandidates([historical, sameMerchant, latest], {
+      kind: "reimbursement",
+      merchantId: "amazon",
+      merchantName: "Amazon",
+      historyMerchantIds: ["history"],
+    });
+    expect(result.map(({ key }) => key)).toEqual(["history", "other"]);
+    expect(result[0].title).toBe("以前由Amazon报销的商家");
+    expect(
+      groupLinkCandidates([historical, sameMerchant], {
+        kind: "reimbursement",
+      }).map(({ key }) => key),
+    ).toEqual(["other"]);
+  });
+
+  it("空组不显示，但服务端有未加载笔数的组要保留标题", () => {
+    expect(
+      groupLinkCandidates([sameMerchant], {
+        kind: "refund",
+        merchantId: "amazon",
+      }).map(({ key }) => key),
+    ).toEqual(["sameMerchant"]);
+    expect(
+      groupLinkCandidates([], {
+        kind: "refund",
+        merchantId: "amazon",
+        counts: { history: 2 },
+      }),
+    ).toEqual([
+      expect.objectContaining({ key: "history", count: 2, candidates: [] }),
+    ]);
+  });
+
+  it("锁定、来源、编辑初始选中从服务端层级中扣除且不重复计数", () => {
+    const source = expense("source", "other", 5);
+    const nowSettled = expense("settled", "amazon", 6);
+    const nowActive = {
+      ...expense("reactivated", "other", 7),
+      remainingRefundableAmount: "0",
+    };
+    const result = reconcileLinkCandidateGroupCounts(
+      { history: 1, sameMerchant: 2, other: 3 },
+      {
+        kind: "refund",
+        merchantId: "amazon",
+        historyMerchantIds: ["history"],
+        lockedAmounts: new Map([[historical.id, "100"]]),
+        sourceItemIds: [source.id],
+        affectedCandidates: [historical, source, nowSettled, nowActive],
+        initialSelection: sameMerchant,
+        isActuallySettled: (candidate) =>
+          candidate.id === nowSettled.id
+            ? true
+            : candidate.id === nowActive.id
+              ? false
+              : Number(candidate.remainingRefundableAmount) <= 0,
+      },
+    );
+    expect(result).toEqual({ history: 0, sameMerchant: 0, other: 3 });
+  });
 });
