@@ -247,7 +247,13 @@ function handlePickerScrollEnd(
 export function getCenteredPickerValue(
   container: HTMLElement | null,
 ): number | null {
-  if (!container || container.clientHeight === 0) return null;
+  // 平滑点选尚未完成时，中心位置可能只是动画中间值；交由调用方沿用已点选状态。
+  if (
+    !container ||
+    container.clientHeight === 0 ||
+    isPickerScrollLocked(container)
+  )
+    return null;
 
   const center = container.scrollTop + container.clientHeight / 2;
   const options = Array.from(
