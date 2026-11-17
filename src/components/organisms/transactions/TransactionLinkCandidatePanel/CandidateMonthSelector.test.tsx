@@ -83,9 +83,7 @@ describe("CandidateMonthSelector", () => {
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "选择 8 月" }));
     fireEvent.click(screen.getByRole("button", { name: "确定年月" }));
-    const clearMonth = await screen.findByRole("button", {
-      name: "搜索全部月份",
-    });
+    const clearMonth = await screen.findByRole("button", { name: "搜索全部月份" });
     fireEvent.click(clearMonth);
     expect(screen.getByRole("button", { name: "选择月份" })).toHaveTextContent(
       "全部月份",
