@@ -212,7 +212,8 @@ export function reconcileLinkCandidateGroupCounts(
     const original = isLinkCandidateSettled(candidate)
       ? null
       : getLinkCandidateGroupKey(candidate, groupOptions);
-    if (original) counts[original] -= 1;
+    if (original && original !== "locked" && original !== "source")
+      counts[original] -= 1;
 
     const movedToOwnGroup =
       candidate.id === options.initialSelection?.id ||
@@ -224,7 +225,8 @@ export function reconcileLinkCandidateGroupCounts(
           ...groupOptions,
           isActuallyPartiallySettled: options.isActuallyPartiallySettled,
         });
-    if (actual) counts[actual] += 1;
+    if (actual && actual !== "locked" && actual !== "source")
+      counts[actual] += 1;
   }
   return {
     history: Math.max(0, counts.history),
@@ -232,5 +234,4 @@ export function reconcileLinkCandidateGroupCounts(
     other: Math.max(0, counts.other),
     partial: Math.max(0, counts.partial),
   };
-}
 }
