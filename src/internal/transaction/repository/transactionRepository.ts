@@ -196,6 +196,7 @@ export type FilteredTransactionPageResult = {
   nextOffset: number | null;
   settledCount: number;
   historyMerchantIds?: string[];
+  historyMerchantNames?: string[];
   groupCounts?: {
     history: number;
     sameMerchant: number;
@@ -214,6 +215,7 @@ const filteredPageResultSchema = z.object({
     }),
   ),
   historyMerchantIds: z.array(z.string().uuid()).optional(),
+  historyMerchantNames: z.array(z.string()).optional(),
   groupCounts: z
     .object({
       history: z.number().int().nonnegative(),

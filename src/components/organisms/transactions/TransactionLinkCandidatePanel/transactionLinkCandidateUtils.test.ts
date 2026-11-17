@@ -159,6 +159,22 @@ describe("groupLinkCandidates", () => {
     ).toEqual(["other"]);
   });
 
+  it("历史组首屏尚无明细时仍显示服务端返回的商家名称", () => {
+    const groups = groupLinkCandidates([], {
+      kind: "refund",
+      merchantId: "amazon",
+      historyMerchantNames: ["罗森", "乐天"],
+      counts: { history: 2 },
+    });
+    expect(groups).toEqual([
+      expect.objectContaining({
+        key: "history",
+        count: 2,
+        hint: "罗森、乐天",
+      }),
+    ]);
+  });
+
   it("空组不显示，但服务端有未加载笔数的组要保留标题", () => {
     expect(
       groupLinkCandidates([sameMerchant], {

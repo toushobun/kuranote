@@ -1,7 +1,7 @@
 -- #1112：按原有优先级分层统计未结清候选，保持记录模式与权限边界。
 begin;
 set local search_path = public, extensions;
-select plan(21);
+select plan(22);
 
 update public.ledger
 set transaction_item_special_status_enabled = true
@@ -116,6 +116,8 @@ select is(
 );
 select ok(pg_temp.page(true) ? 'groupCounts',
     'candidates 首页返回分层计数');
+select is(pg_temp.page(true)->'historyMerchantNames', '[]'::jsonb,
+    '历史组当前只有部分结清候选时不误列历史商家名');
 select ok(not (pg_temp.page(true, p_offset => 1) ? 'groupCounts'),
     'candidates 非首页不重复返回计数');
 select ok(not (pg_temp.page(true, p_settled => true) ? 'groupCounts'),

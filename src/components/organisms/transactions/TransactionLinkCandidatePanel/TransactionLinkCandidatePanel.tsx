@@ -131,6 +131,7 @@ export function TransactionLinkCandidatePanel(
     kind,
     merchantId: props.merchantId,
     historyMerchantIds,
+    historyMerchantNames: page?.historyMerchantNames,
     lockedAmounts: props.lockedAmounts,
     sourceItemIds,
     isActuallyPartiallySettled: isPartial,

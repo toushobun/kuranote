@@ -4567,6 +4567,19 @@ candidate_group_counts as (
               )
               and coalesce(merchant_id = any(array(select unnest(ids) from history_merchants)), false)
         ) as history,
+        coalesce(
+            jsonb_agg(distinct preferred_merchant_name order by preferred_merchant_name)
+              filter (
+                where not (business_net_amount > 0 and business_net_amount < item_amount)
+                  and not (
+                      p_link_kind = 'refund' and p_merchant_priority_id is not null
+                      and coalesce(merchant_id = p_merchant_priority_id, false)
+                  )
+                  and coalesce(merchant_id = any(array(select unnest(ids) from history_merchants)), false)
+                  and preferred_merchant_name is not null
+              ),
+            '[]'::jsonb
+        ) as history_names,
         count(*) filter (
             where not (business_net_amount > 0 and business_net_amount < item_amount)
               and p_link_kind = 'refund'
@@ -4736,7 +4749,8 @@ select jsonb_build_object(
                      'sameMerchant', same_merchant,
                      'other', other,
                      'partial', partial
-                 ) from candidate_group_counts)
+                 ) from candidate_group_counts),
+                 'historyMerchantNames', (select history_names from candidate_group_counts)
              )
              else '{}'::jsonb
          end

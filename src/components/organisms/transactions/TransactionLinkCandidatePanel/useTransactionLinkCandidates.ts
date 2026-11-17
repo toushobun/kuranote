@@ -132,6 +132,8 @@ export function useTransactionLinkCandidates({
           settledCount: next.settledCount ?? page.settledCount,
           historyMerchantIds:
             next.historyMerchantIds ?? page.historyMerchantIds,
+          historyMerchantNames:
+            next.historyMerchantNames ?? page.historyMerchantNames,
           groupCounts: next.groupCounts ?? page.groupCounts,
         });
     } catch {

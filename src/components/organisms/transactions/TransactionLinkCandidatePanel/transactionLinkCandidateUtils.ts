@@ -37,6 +37,7 @@ type LinkCandidateOrderOptions = {
   kind: "refund" | "reimbursement";
   merchantId?: string;
   historyMerchantIds?: readonly string[];
+  historyMerchantNames?: readonly string[];
   lockedAmounts?: ReadonlyMap<string, string>;
   sourceItemIds?: readonly string[];
   isActuallyPartiallySettled?: (
@@ -164,11 +165,12 @@ export function groupLinkCandidates(
         }
       : {}),
     history: [
-      ...new Set(
-        buckets.history.map(
+      ...new Set([
+        ...(options.historyMerchantNames ?? []),
+        ...buckets.history.map(
           (item) => item.merchantName ?? m.unassignedMerchant,
         ),
-      ),
+      ]),
     ].join("、"),
   };
   const orderedKeys: LinkCandidateGroupKey[] = [
