@@ -42,7 +42,8 @@ export function getLinkCandidateRank(
 ): number {
   if (options.lockedAmounts?.has(candidate.id)) return 0;
   if (options.sourceItemIds?.includes(candidate.id)) return 1;
-  if (options.historyMerchantIds?.includes(candidate.merchantId ?? "")) return 2;
+  if (options.historyMerchantIds?.includes(candidate.merchantId ?? ""))
+    return 2;
   if (
     options.kind === "refund" &&
     options.merchantId &&
@@ -77,8 +78,8 @@ export function sortLinkCandidates(
   const rank = (candidate: TransactionRefundCandidate) =>
     options.settled
       ? options.kind === "refund" &&
-          options.merchantId &&
-          candidate.merchantId === options.merchantId
+        options.merchantId &&
+        candidate.merchantId === options.merchantId
         ? 1
         : 2
       : getLinkCandidateRank(candidate, options);
@@ -116,7 +117,10 @@ export function groupLinkCandidates(
     sameMerchant: [],
     other: [],
   };
-  for (const candidate of sortLinkCandidates(candidates, { ...options, settled: false })) {
+  for (const candidate of sortLinkCandidates(candidates, {
+    ...options,
+    settled: false,
+  })) {
     buckets[getLinkCandidateGroupKey(candidate, options)].push(candidate);
   }
   const name = options.merchantName ?? m.unassignedMerchant;
@@ -131,13 +135,21 @@ export function groupLinkCandidates(
   const hints: Partial<Record<LinkCandidateGroupKey, string>> = {
     ...(source
       ? {
-          source: [source.merchantName, formatTransactionMonthDay(source.transactionAt)]
+          source: [
+            source.merchantName,
+            formatTransactionMonthDay(source.transactionAt),
+          ]
             .filter(Boolean)
             .join(" · "),
         }
       : {}),
-    history: [...new Set(buckets.history.map((item) => item.merchantName ?? m.unassignedMerchant))]
-      .join("、"),
+    history: [
+      ...new Set(
+        buckets.history.map(
+          (item) => item.merchantName ?? m.unassignedMerchant,
+        ),
+      ),
+    ].join("、"),
   };
   const orderedKeys: LinkCandidateGroupKey[] = [
     "locked",
@@ -150,14 +162,24 @@ export function groupLinkCandidates(
     const items = buckets[key];
     const count = Math.max(options.counts?.[key] ?? items.length, items.length);
     return count > 0
-      ? [{ key, title: titles[key], hint: hints[key], candidates: items, count }]
+      ? [
+          {
+            key,
+            title: titles[key],
+            hint: hints[key],
+            candidates: items,
+            count,
+          },
+        ]
       : [];
   });
 }
 
 /** 将未保存草稿、入口来源及编辑置顶从数据库层级计数中去重。 */
 export function reconcileLinkCandidateGroupCounts(
-  databaseCounts: { history: number; sameMerchant: number; other: number } | undefined,
+  databaseCounts:
+    | { history: number; sameMerchant: number; other: number }
+    | undefined,
   options: LinkCandidateOrderOptions & {
     affectedCandidates: readonly TransactionRefundCandidate[];
     initialSelection?: TransactionRefundCandidate | null;
