@@ -745,6 +745,37 @@ describe("TransactionLinkCandidatePanel", () => {
     expect(cards).toHaveLength(2);
   });
 
+  it("入口 B 的来源在其他月份时仍显示来源组并提示当前月份没有候选", async () => {
+    const sourceCandidate = {
+      ...candidateItems[0],
+      id: "source-previous-month",
+      transactionAt: "2026-10-15T09:00:00Z",
+    };
+    renderPanel(
+      {
+        loadPageAction: vi.fn().mockResolvedValue({
+          items: [],
+          nextOffset: null,
+          settledCount: 0,
+          historyMerchantIds: [],
+          groupCounts: { history: 0, sameMerchant: 0, other: 0, partial: 0 },
+        }),
+      },
+      {
+        kind: "refund",
+        accountId: "credit",
+        merchantId: "amazon",
+        candidates: [sourceCandidate],
+      },
+    );
+    expect(
+      await screen.findByRole("button", { name: "这笔记录（1 笔）" }),
+    ).toBeVisible();
+    expect(
+      screen.getByText("这个月没有可关联的支出，换个月份或直接搜索"),
+    ).toBeVisible();
+  });
+
   it("入口 B 来源归在这笔记录，已在小票上的分组仍默认折叠", async () => {
     const sourceCandidate = {
       ...candidateItems[0],
