@@ -618,6 +618,25 @@ begin
 end;
 $$;
 
+-- #1112：候选分页函数只能存在新的月份签名，且匿名用户不得执行。
+do $
+begin
+    if to_regprocedure('public.load_filtered_transaction_page(uuid,text,text,uuid,text,text[],boolean,integer,integer,uuid,text,date)') is null then
+        raise exception 'candidate month function signature missing';
+    end if;
+    if to_regprocedure('public.load_filtered_transaction_page(uuid,text,text,uuid,text,text[],boolean,integer,integer,uuid,text)') is not null then
+        raise exception 'obsolete candidate function overload remains';
+    end if;
+    if has_function_privilege(
+        'anon',
+        'public.load_filtered_transaction_page(uuid,text,text,uuid,text,text[],boolean,integer,integer,uuid,text,date)',
+        'EXECUTE'
+    ) then
+        raise exception 'anon can execute candidate month function';
+    end if;
+end;
+$;
+
 rollback;
 
 \ir security-definer-smoke-issue-598.sql
