@@ -271,7 +271,7 @@ select diag(pg_temp.explain_1108('1108规模关键词'));
 -- 事务结束会回滚临时函数，正式 migration / 权限与数据库结构不受影响。
 set local role postgres;
 \set QUIET 1
-\ir ../../migrations/20261117020000_group_link_candidate_counts.sql
+\ir issue_1112_baseline.sql.inc
 \set QUIET 0
 alter function public.load_filtered_transaction_page(
     uuid, text, text, uuid, text, text[], boolean, integer, integer, uuid, text
