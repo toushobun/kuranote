@@ -322,7 +322,9 @@ describe("CandidateMonthSelector", () => {
     fireEvent.click(screen.getByRole("button", { name: "确定年月" }));
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "选择 8 月" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "选择 8 月" }),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "选择 8 月" }));
     fireEvent.click(screen.getByRole("button", { name: "确定年月" }));
 
