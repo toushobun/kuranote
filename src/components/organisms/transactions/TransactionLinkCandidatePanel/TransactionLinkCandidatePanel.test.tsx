@@ -314,7 +314,9 @@ describe("TransactionLinkCandidatePanel", () => {
       merchantId: "amazon",
       currency: "JPY",
     });
-    expect(screen.getByRole("button", { name: "其他待报销（3 笔）" })).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "其他待报销（3 笔）" }),
+    ).toBeVisible();
     expect(screen.getByText("Amazon · 11/08 · 乐天信用卡")).toBeVisible();
   });
   it("编辑打开时的页外原支出固定置顶，分页去重且改选后不跳动", async () => {
@@ -639,8 +641,9 @@ describe("TransactionLinkCandidatePanel", () => {
       target: { value: "收纳盒" },
     });
     await screen.findByRole("button", { name: "选择退款明细 收纳盒" });
-    expect(screen.queryByRole("button", { name: /Amazon的支出/ }))
-      .not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Amazon的支出/ }),
+    ).not.toBeInTheDocument();
     fireEvent.change(screen.getByRole("textbox", { name: "搜索原支出" }), {
       target: { value: "" },
     });
@@ -745,8 +748,8 @@ describe("TransactionLinkCandidatePanel", () => {
       screen.getByRole("button", { name: "这笔记录（1 笔）" }),
     ).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByText("USB-C 充电器")).toBeVisible();
-    expect(screen.queryByRole("button", { name: /其他支出/ }))
-      .not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /其他支出/ }),
+    ).not.toBeInTheDocument();
   });
-
 });
