@@ -159,7 +159,7 @@ $explain$;
 select diag(pg_temp.explain_1108(''));
 select diag(pg_temp.explain_1108('1108明细备注甲'));
 
--- 在同一事务中构造约 4,000 条跨多个月的真实普通支出记录及付款信息，
+-- 在同一事务中构造约 4,000 条真实的普通支出记录及付款信息，
 -- 验证候选 RPC 在较大数据集下的计数、索引和搜索成本；事务结束自动回滚。
 set local role postgres;
 insert into public.transaction_record (
@@ -170,7 +170,7 @@ select
     md5('1108-scale-record-' || g)::uuid,
     '00000000-0000-4000-8000-000000000032',
     'normal', 'active',
-    timestamptz '2026-11-16 00:00:00+00' - g * interval '1 hour',
+    timestamptz '2026-11-16 00:00:00+00' - g * interval '1 minute',
     '00000000-0000-4000-8000-000000001001',
     '1108规模测试',
     case when g % 10 = 0 then '1108规模关键词' else null end,
@@ -213,7 +213,7 @@ select
     md5('1108-scale-refund-record-' || g)::uuid,
     '00000000-0000-4000-8000-000000000032',
     'normal', 'active',
-    timestamptz '2026-11-16 00:00:00+00' - g * interval '1 hour',
+    timestamptz '2026-11-16 00:00:00+00' - g * interval '1 minute',
     '00000000-0000-4000-8000-000000001001',
     '1108规模退款',
     '00000000-0000-4000-8000-000000000031',
@@ -265,72 +265,6 @@ select is((
 select diag('1108 大规模候选回归：4000 条新增支出 + 400 条退款关联');
 select diag(pg_temp.explain_1108(''));
 select diag(pg_temp.explain_1108('1108规模关键词'));
-
--- #1112：同一事务、同一批 4000 支出 + 400 退款关联，临时恢复 main
--- 的 11 参数定义并改名，用来与本分支 12 参数定义执行相同的候选筛选。
--- 事务结束会回滚临时函数，正式 migration / 权限与数据库结构不受影响。
-set local role postgres;
-\set QUIET 1
-\ir issue_1112_baseline.sql.inc
-\set QUIET 0
-alter function public.load_filtered_transaction_page(
-    uuid, text, text, uuid, text, text[], boolean, integer, integer, uuid, text
-) rename to load_filtered_transaction_page_1112_baseline;
-set local role authenticated;
-
-create function pg_temp.benchmark_1112(
-    p_kind text, p_term text, p_new boolean
-) returns text language plpgsql as $benchmark$
-declare
-    v_plan jsonb;
-begin
-    execute format(
-        'EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) '
-        || 'select public.%I('
-        || 'p_ledger_id => %L::uuid, p_scope => ''candidates'', p_query => %L, '
-        || 'p_link_kind => %L, p_merchant_priority_id => %s, '
-        || 'p_history_merchant_id => %L::uuid, '
-        || 'p_currency => ''JPY'', p_special_statuses => %s, '
-        || 'p_settled => false, p_offset => 0, p_limit => 20%s)',
-        case when p_new
-            then 'load_filtered_transaction_page'
-            else 'load_filtered_transaction_page_1112_baseline'
-        end,
-        '00000000-0000-4000-8000-000000000032',
-        p_term,
-        p_kind,
-        case when p_kind = 'refund'
-            then '''00000000-0000-4000-8000-000000001001''::uuid'
-            else 'null::uuid'
-        end,
-        '00000000-0000-4000-8000-000000001001',
-        case when p_kind = 'reimbursement'
-            then 'array[''pending_reimbursement'']::text[]'
-            else 'null::text[]'
-        end,
-        case when p_new then ', p_month => date ''2026-11-01''' else '' end
-    ) into v_plan;
-    return format(
-        '1112 性能版本=%s 类型=%s 搜索=%L: execution=%s ms, planning=%s ms, shared_hit=%s, shared_read=%s',
-        case when p_new then 'branch/2026-11' else 'main/无月份' end,
-        p_kind,
-        p_term,
-        v_plan->0->>'Execution Time',
-        v_plan->0->>'Planning Time',
-        v_plan->0->'Plan'->>'Shared Hit Blocks',
-        v_plan->0->'Plan'->>'Shared Read Blocks'
-    );
-end;
-$benchmark$;
-
-select diag(pg_temp.benchmark_1112('refund', '', false));
-select diag(pg_temp.benchmark_1112('refund', '', true));
-select diag(pg_temp.benchmark_1112('refund', '1108规模关键词', false));
-select diag(pg_temp.benchmark_1112('refund', '1108规模关键词', true));
-select diag(pg_temp.benchmark_1112('reimbursement', '', false));
-select diag(pg_temp.benchmark_1112('reimbursement', '', true));
-select diag(pg_temp.benchmark_1112('reimbursement', '1108规模关键词', false));
-select diag(pg_temp.benchmark_1112('reimbursement', '1108规模关键词', true));
 
 select set_config(
     'request.jwt.claims',

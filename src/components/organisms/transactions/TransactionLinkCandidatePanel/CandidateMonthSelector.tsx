@@ -8,6 +8,7 @@ import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
+import { useBackLayer } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
 import { MonthPicker } from "molecules/transactions/TransactionDateTimePicker/MonthPicker";
 import { scrollPickerOptionIntoView } from "molecules/transactions/TransactionDateTimePicker/PickerColumn";
 import { transactionLinkCandidateMessages as m } from "config/transactionStepFlowMessages";
@@ -58,11 +59,12 @@ export function CandidateMonthSelector({
     setOpen(false);
   }
 
-  useEffect(() => {
-    if (!open) return;
+  useBackLayer(open, () => setOpen(false), 1);
+
+  function centerSelectedOptions() {
     if (monthRef.current) scrollPickerOptionIntoView(monthRef.current);
     if (yearRef.current) scrollPickerOptionIntoView(yearRef.current);
-  }, [open]);
+  }
 
   // 切年时收紧未来月份后，滚轮位置也必须跟随新选中的月份。
   useEffect(() => {
@@ -133,7 +135,10 @@ export function CandidateMonthSelector({
         onClose={() => setOpen(false)}
         fullWidth
         maxWidth="xs"
-        slotProps={{ paper: { sx: { height: 340, p: 1 } } }}
+        slotProps={{
+          paper: { sx: { height: searching ? 340 : 280, p: 1 } },
+          transition: { onEntered: centerSelectedOptions },
+        }}
       >
         <MonthPicker
           allMonthsOption={

@@ -1,7 +1,7 @@
 -- #1112：按原有优先级分层统计未结清候选，保持记录模式与权限边界。
 begin;
 set local search_path = public, extensions;
-select plan(22);
+select plan(25);
 
 update public.ledger
 set transaction_item_special_status_enabled = true
@@ -192,6 +192,20 @@ select is(
     pg_temp.page(true, p_scope => 'records', p_month => null),
     'records 模式不因月份参数改变返回内容'
 );
+
+reset role;
+update public.transaction_record set merchant_id = pg_temp.seed_uuid(1002)
+where id in (pg_temp.fixture_uuid(7), pg_temp.fixture_uuid(8));
+update public.merchant_alias set is_preferred = false where merchant_id = pg_temp.seed_uuid(1002);
+insert into public.merchant_alias (merchant_id, alias, is_preferred, created_by, updated_by)
+values (pg_temp.seed_uuid(1002), '1112历史商家首选名', true, pg_temp.seed_uuid(31), pg_temp.seed_uuid(31));
+set local role authenticated;
+select is(pg_temp.page(true)->'historyMerchantNames',
+    '["1112历史商家首选名"]'::jsonb, '历史组使用首选商家名且重复候选不重复列名');
+select is(pg_temp.page(true, p_month => '2099-03-01')->'historyMerchantNames',
+    '[]'::jsonb, '当前月份没有历史组候选时不列商家名');
+select is(pg_temp.page(true, p_query => '不存在')->'historyMerchantNames',
+    '[]'::jsonb, '搜索不命中历史组时不列商家名');
 
 select set_config(
     'request.jwt.claims',

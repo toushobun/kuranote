@@ -67,6 +67,12 @@ history_merchants as materialized (
           and expense_record.merchant_id is not null
     ) as ids
 ),
+-- 账户信息在同一账本内复用，避免逐笔付款重复扫描账户并执行 RLS。
+candidate_accounts as materialized (
+    select id, ledger_id, currency, name
+    from public.account
+    where p_scope = 'candidates' and ledger_id = p_ledger_id
+),
 candidate_base as (
     select
         tr.id as record_id,
@@ -149,7 +155,7 @@ candidate_base as (
     left join lateral (
         select a.currency, a.name as account_name
         from public.transaction_payment payment
-        join public.account a
+        join candidate_accounts a
           on a.id = payment.account_id and a.ledger_id = payment.ledger_id
         where payment.ledger_id = tr.ledger_id
           and payment.transaction_record_id = tr.id
@@ -206,48 +212,42 @@ candidate_matched as (
            )
        )
 ),
-candidate_group_counts as (
-    select
-        count(*) filter (
-            where not (business_net_amount > 0 and business_net_amount < item_amount)
-              and not (
-                  p_link_kind = 'refund' and p_merchant_priority_id is not null
-                  and coalesce(merchant_id = p_merchant_priority_id, false)
-              )
-              and coalesce(merchant_id = any(array(select unnest(ids) from history_merchants)), false)
-        ) as history,
-        coalesce(
-            jsonb_agg(distinct preferred_merchant_name order by preferred_merchant_name)
-              filter (
-                where not (business_net_amount > 0 and business_net_amount < item_amount)
-                  and not (
-                      p_link_kind = 'refund' and p_merchant_priority_id is not null
-                      and coalesce(merchant_id = p_merchant_priority_id, false)
-                  )
-                  and coalesce(merchant_id = any(array(select unnest(ids) from history_merchants)), false)
-                  and preferred_merchant_name is not null
-              ),
-            '[]'::jsonb
-        ) as history_names,
-        count(*) filter (
-            where not (business_net_amount > 0 and business_net_amount < item_amount)
-              and p_link_kind = 'refund'
-              and p_merchant_priority_id is not null
-              and merchant_id = p_merchant_priority_id
-        ) as same_merchant,
-        count(*) filter (
-            where not (business_net_amount > 0 and business_net_amount < item_amount)
-              and not coalesce(merchant_id = any(array(select unnest(ids) from history_merchants)), false)
-              and not (
-                  p_link_kind = 'refund' and p_merchant_priority_id is not null
-                  and coalesce(merchant_id = p_merchant_priority_id, false)
-              )
-        ) as other,
-        count(*) filter (
-            where business_net_amount > 0 and business_net_amount < item_amount
-        ) as partial
+-- 分组条件只计算一次，商家名称仅对命中的历史商家读取。
+candidate_classified as materialized (
+    select merchant_id,
+        case
+            when business_net_amount > 0 and business_net_amount < item_amount then 'partial'
+            when p_link_kind = 'refund' and merchant_id = p_merchant_priority_id then 'sameMerchant'
+            when merchant_id = any(array(select unnest(ids) from history_merchants)) then 'history'
+            else 'other'
+        end as group_key
     from candidate_matched
     where not settled
+),
+candidate_group_counts as (
+    select
+        count(*) filter (where group_key = 'history') as history,
+        count(*) filter (where group_key = 'sameMerchant') as same_merchant,
+        count(*) filter (where group_key = 'other') as other,
+        count(*) filter (where group_key = 'partial') as partial
+    from candidate_classified
+),
+history_names as (
+    select coalesce(jsonb_agg(distinct coalesce(preferred_alias.alias, m.name)
+        order by coalesce(preferred_alias.alias, m.name)), '[]'::jsonb) as names
+    from public.merchant m
+    left join lateral (
+        select ma.alias
+        from public.merchant_alias ma
+        where ma.merchant_id = m.id and ma.is_preferred and not ma.is_archived
+        limit 1
+    ) preferred_alias on true
+    where m.ledger_id = p_ledger_id
+      and m.id = any(array(select unnest(ids) from history_merchants))
+      and exists (
+          select 1 from candidate_classified c
+          where c.group_key = 'history' and c.merchant_id = m.id
+      )
 ),
 record_matched as (
     select
@@ -399,7 +399,7 @@ select jsonb_build_object(
                      'other', other,
                      'partial', partial
                  ) from candidate_group_counts),
-                 'historyMerchantNames', (select history_names from candidate_group_counts)
+                 'historyMerchantNames', (select names from history_names)
              )
              else '{}'::jsonb
          end

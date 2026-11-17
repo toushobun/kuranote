@@ -1,17 +1,42 @@
 import { useState } from "react";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
   screen,
   waitFor,
 } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { CandidateMonthSelector } from "./CandidateMonthSelector";
 import {
   changeCandidateMonth,
   currentTokyoCandidateMonth,
 } from "./candidateMonth";
+
+import {
+  BackLayerScope,
+  useBackLayer,
+} from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
+import { createUnsavedChangesCoordinator } from "providers/UnsavedChangesGuardProvider/unsavedChangesCoordinator";
+import { createGuardHistoryPort } from "test/guardHistory";
+
+const guardContext = vi.hoisted(() => ({
+  coordinator: null as ReturnType<
+    typeof createUnsavedChangesCoordinator
+  > | null,
+}));
+vi.mock(
+  "providers/UnsavedChangesGuardProvider/UnsavedChangesGuardProvider",
+  () => ({
+    useOptionalUnsavedChangesCoordinator: () => guardContext.coordinator,
+  }),
+);
+
+function DrawerHarness({ onClose }: { onClose: () => void }) {
+  useBackLayer(true, onClose);
+  return <MonthHarness initialMonth="2026-11" />;
+}
 
 function MonthHarness({
   initialMonth,
@@ -30,9 +55,80 @@ function MonthHarness({
   );
 }
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+  guardContext.coordinator = null;
+});
 
 describe("CandidateMonthSelector", () => {
+  it("返回只关闭年月滚轮，保留外层抽屉和原月份", async () => {
+    const browser = createGuardHistoryPort();
+    const coordinator = createUnsavedChangesCoordinator(
+      browser.port,
+      "候选月份测试",
+    );
+    guardContext.coordinator = coordinator;
+    browser.onPop(() =>
+      coordinator.handlePopState(new PopStateEvent("popstate")),
+    );
+    const closeDrawer = vi.fn();
+    render(
+      <BackLayerScope level={1}>
+        <DrawerHarness onClose={closeDrawer} />
+      </BackLayerScope>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "选择月份" }));
+    fireEvent.click(screen.getByRole("button", { name: "选择 8 月" }));
+    await act(async () => {
+      await browser.flush();
+    });
+    await act(async () => {
+      browser.port.go(-1);
+      await browser.flush();
+    });
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(closeDrawer).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "选择月份" })).toHaveTextContent(
+      "2026年11月",
+    );
+    await act(async () => {
+      browser.port.go(-1);
+      await browser.flush();
+    });
+    expect(closeDrawer).toHaveBeenCalledOnce();
+  });
+
+  it("打开动画完成后选中的年月位于滚轮可视中心", async () => {
+    render(<MonthHarness initialMonth="2026-11" />);
+    fireEvent.click(screen.getByRole("button", { name: "选择月份" }));
+    const selected = [
+      screen.getByRole("button", { name: "选择 2026 年" }),
+      screen.getByRole("button", { name: "选择 11 月" }),
+    ];
+    // jsdom 没有布局；在动画完成前提供滚轮尺寸，验证进入后才定位。
+    for (const option of selected) {
+      Object.defineProperties(option, {
+        offsetTop: { configurable: true, value: 500 },
+        offsetHeight: { configurable: true, value: 40 },
+      });
+      Object.defineProperty(option.parentElement!, "clientHeight", {
+        configurable: true,
+        value: 200,
+      });
+    }
+    await waitFor(() => {
+      for (const option of selected) {
+        const column = option.parentElement!;
+        expect(column.scrollTop + column.clientHeight / 2).toBe(
+          option.offsetTop + option.offsetHeight / 2,
+        );
+      }
+    });
+  });
+
   it("默认月份的下一月箭头不可点击，上一月可切换", () => {
     const thisMonth = currentTokyoCandidateMonth();
     render(<MonthHarness initialMonth={thisMonth} />);

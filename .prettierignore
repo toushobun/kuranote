@@ -1,3 +1,2 @@
 supabase/migrations/*.sql
 **/*.png
-supabase/tests/database/issue_1112_baseline.sql.inc
