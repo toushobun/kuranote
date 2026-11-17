@@ -72,12 +72,6 @@ jobs:
       - name: Check formatting
         run: npm run format:check
 
-      - name: 诊断月份测试格式差异（临时）
-        if: failure()
-        run: |
-          npx prettier src/components/organisms/transactions/TransactionLinkCandidatePanel/CandidateMonthSelector.test.tsx --write
-          git diff -- src/components/organisms/transactions/TransactionLinkCandidatePanel/CandidateMonthSelector.test.tsx
-
   lint:
     name: Lint
     if: *run_code_ci
