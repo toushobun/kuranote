@@ -1007,16 +1007,16 @@ describe("transactionLinkCandidatePageInputSchema", () => {
       transactionLinkCandidatePageInputSchema.safeParse({ month: "2026-11" })
         .success,
     ).toBe(true);
-    expect(transactionLinkCandidatePageInputSchema.safeParse({ month: null }).success).toBe(
-      true,
-    );
+    expect(
+      transactionLinkCandidatePageInputSchema.safeParse({ month: null }).success,
+    ).toBe(true);
   });
 
   it("拒绝零年和非法月份，避免数据库日期转换失败", () => {
     for (const month of ["0000-01", "2026-00", "2026-13", "2026-1"]) {
-      expect(transactionLinkCandidatePageInputSchema.safeParse({ month }).success).toBe(
-        false,
-      );
+      expect(
+        transactionLinkCandidatePageInputSchema.safeParse({ month }).success,
+      ).toBe(false);
     }
   });
 });
