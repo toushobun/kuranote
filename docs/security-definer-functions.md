@@ -448,6 +448,9 @@ EXECUTE，仅授予 authenticated。
 自然月过滤原支出明细（含搜索、已结清分页与统计）；`NULL` 表示全部月份。
 `history_merchants` 继续遍历全部有效历史，不受月份影响；
 商家历史仅在传入 `p_history_merchant_id` 时启用。
+候选未结清首页同时返回 `historyMerchantNames`，只列出当前月份（或搜索范围）
+常退／常报销组中实际有候选的去重商家名；与不受月份影响的
+`historyMerchantIds` 区分，用于未加载该组明细时显示分组标题提示。
 未结清分组笔数新增 `partial`（剩余金额大于零且小于原金额），
 普通的 history / sameMerchant / other 不重复计入部分结清。
 退款排序优先同商家再历史商家，报销优先历史商家，
