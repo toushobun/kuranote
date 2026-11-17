@@ -6,6 +6,7 @@ import {
   validateVoidTransactionForm,
   validateUpdateTransactionForm,
   validateUpdateTransferTransactionForm,
+  transactionLinkCandidatePageInputSchema,
 } from "./schema";
 describe("\u4EA4\u6613\u521B\u5EFA\u6821\u9A8C", () => {
   const accountId = "00000000-0000-4000-8000-000000000041";
@@ -997,5 +998,25 @@ describe("余额调整更新校验", () => {
       success: true,
       data: values,
     });
+  });
+});
+
+describe("transactionLinkCandidatePageInputSchema", () => {
+  it("接受有效月份及全部月份 null", () => {
+    expect(
+      transactionLinkCandidatePageInputSchema.safeParse({ month: "2026-11" })
+        .success,
+    ).toBe(true);
+    expect(transactionLinkCandidatePageInputSchema.safeParse({ month: null }).success).toBe(
+      true,
+    );
+  });
+
+  it("拒绝零年和非法月份，避免数据库日期转换失败", () => {
+    for (const month of ["0000-01", "2026-00", "2026-13", "2026-1"]) {
+      expect(transactionLinkCandidatePageInputSchema.safeParse({ month }).success).toBe(
+        false,
+      );
+    }
   });
 });
