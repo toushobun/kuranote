@@ -154,3 +154,47 @@ export function groupLinkCandidates(
       : [];
   });
 }
+
+/** 将未保存草稿、入口来源及编辑置顶从数据库层级计数中去重。 */
+export function reconcileLinkCandidateGroupCounts(
+  databaseCounts: { history: number; sameMerchant: number; other: number } | undefined,
+  options: LinkCandidateOrderOptions & {
+    affectedCandidates: readonly TransactionRefundCandidate[];
+    initialSelection?: TransactionRefundCandidate | null;
+    isActuallySettled: (candidate: TransactionRefundCandidate) => boolean;
+  },
+): Partial<Record<LinkCandidateGroupKey, number>> | undefined {
+  if (!databaseCounts) return undefined;
+  const counts = { ...databaseCounts };
+  const affected = new Map(
+    options.affectedCandidates.map((candidate) => [candidate.id, candidate]),
+  );
+  if (options.initialSelection)
+    affected.set(options.initialSelection.id, options.initialSelection);
+  for (const candidate of affected.values()) {
+    const key = getLinkCandidateGroupKey(candidate, {
+      kind: options.kind,
+      merchantId: options.merchantId,
+      historyMerchantIds: options.historyMerchantIds,
+    });
+    if (key !== "history" && key !== "sameMerchant" && key !== "other")
+      continue;
+    if (candidate.remainingRefundableAmount !== undefined) {
+      // 输入候选的原始剩余金额代表数据库状态，草稿调整由回调单独判断。
+      const originallySettled =
+        Number(candidate.remainingRefundableAmount) <= 0;
+      if (!originallySettled) counts[key] -= 1;
+    }
+    const movedToOwnGroup =
+      candidate.id === options.initialSelection?.id ||
+      options.lockedAmounts?.has(candidate.id) ||
+      options.sourceItemIds?.includes(candidate.id);
+    if (!movedToOwnGroup && !options.isActuallySettled(candidate))
+      counts[key] += 1;
+  }
+  return {
+    history: Math.max(0, counts.history),
+    sameMerchant: Math.max(0, counts.sameMerchant),
+    other: Math.max(0, counts.other),
+  };
+}
