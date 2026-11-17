@@ -1,5 +1,8 @@
 import type { TransactionRefundCandidate } from "types/transactions";
-import { isLinkCandidatePartiallySettled, isLinkCandidateSettled } from "internal/transaction";
+import {
+  isLinkCandidatePartiallySettled,
+  isLinkCandidateSettled,
+} from "internal/transaction";
 import { transactionLinkCandidateMessages as m } from "config/transactionStepFlowMessages";
 import { formatTransactionMonthDay } from "utils/transactions";
 
@@ -36,7 +39,9 @@ type LinkCandidateOrderOptions = {
   historyMerchantIds?: readonly string[];
   lockedAmounts?: ReadonlyMap<string, string>;
   sourceItemIds?: readonly string[];
-  isActuallyPartiallySettled?: (candidate: TransactionRefundCandidate) => boolean;
+  isActuallyPartiallySettled?: (
+    candidate: TransactionRefundCandidate,
+  ) => boolean;
 };
 
 export function getLinkCandidateRank(
@@ -46,18 +51,21 @@ export function getLinkCandidateRank(
   if (options.lockedAmounts?.has(candidate.id)) return 0;
   if (options.sourceItemIds?.includes(candidate.id)) return 1;
   if (
-    (options.isActuallyPartiallySettled?.(candidate) ??
-      isLinkCandidatePartiallySettled(candidate))
-  ) return 5;
+    options.isActuallyPartiallySettled?.(candidate) ??
+    isLinkCandidatePartiallySettled(candidate)
+  )
+    return 5;
   if (
     options.kind === "refund" &&
     options.merchantId &&
     candidate.merchantId === options.merchantId
-  ) return 2;
+  )
+    return 2;
   if (
     options.merchantId &&
     options.historyMerchantIds?.includes(candidate.merchantId ?? "")
-  ) return options.kind === "refund" ? 3 : 2;
+  )
+    return options.kind === "refund" ? 3 : 2;
   return options.kind === "refund" ? 4 : 3;
 }
 
@@ -70,7 +78,10 @@ export function getLinkCandidateGroupKey(
   if (rank === 1) return "source";
   if (rank === 5) return "partial";
   if (options.kind === "refund" && rank === 2) return "sameMerchant";
-  if ((options.kind === "refund" && rank === 3) || (options.kind === "reimbursement" && rank === 2))
+  if (
+    (options.kind === "refund" && rank === 3) ||
+    (options.kind === "reimbursement" && rank === 2)
+  )
     return "history";
   return "other";
 }
@@ -219,12 +230,13 @@ export function reconcileLinkCandidateGroupCounts(
       candidate.id === options.initialSelection?.id ||
       options.lockedAmounts?.has(candidate.id) ||
       options.sourceItemIds?.includes(candidate.id);
-    const actual = movedToOwnGroup || options.isActuallySettled(candidate)
-      ? null
-      : getLinkCandidateGroupKey(candidate, {
-          ...groupOptions,
-          isActuallyPartiallySettled: options.isActuallyPartiallySettled,
-        });
+    const actual =
+      movedToOwnGroup || options.isActuallySettled(candidate)
+        ? null
+        : getLinkCandidateGroupKey(candidate, {
+            ...groupOptions,
+            isActuallyPartiallySettled: options.isActuallyPartiallySettled,
+          });
     if (actual && actual !== "locked" && actual !== "source")
       counts[actual] += 1;
   }

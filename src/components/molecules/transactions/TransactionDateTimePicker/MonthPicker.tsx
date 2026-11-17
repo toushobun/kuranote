@@ -46,7 +46,11 @@ export function MonthPicker({
         <Button
           aria-pressed={allMonthsOption.selected}
           onClick={allMonthsOption.onSelect}
-          sx={{ alignSelf: "center", fontWeight: allMonthsOption.selected ? 700 : 400, my: 1 }}
+          sx={{
+            alignSelf: "center",
+            fontWeight: allMonthsOption.selected ? 700 : 400,
+            my: 1,
+          }}
           type="button"
         >
           {allMonthsOption.label}

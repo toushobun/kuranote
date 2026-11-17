@@ -228,7 +228,12 @@ describe("groupLinkCandidates", () => {
         isActuallyPartiallySettled: () => true,
       },
     );
-    expect(result).toEqual({ history: 0, sameMerchant: 0, other: 0, partial: 1 });
+    expect(result).toEqual({
+      history: 0,
+      sameMerchant: 0,
+      other: 0,
+      partial: 1,
+    });
   });
 
   it("草稿把部分结清变成已结清，或删除抵扣恢复到普通组", () => {
@@ -250,6 +255,11 @@ describe("groupLinkCandidates", () => {
         isActuallyPartiallySettled: () => false,
       },
     );
-    expect(result).toEqual({ history: 0, sameMerchant: 0, other: 1, partial: 0 });
+    expect(result).toEqual({
+      history: 0,
+      sameMerchant: 0,
+      other: 1,
+      partial: 0,
+    });
   });
 });

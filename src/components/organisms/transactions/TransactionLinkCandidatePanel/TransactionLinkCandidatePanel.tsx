@@ -10,7 +10,10 @@ import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { isLinkCandidatePartiallySettled, isLinkCandidateSettled } from "internal/transaction";
+import {
+  isLinkCandidatePartiallySettled,
+  isLinkCandidateSettled,
+} from "internal/transaction";
 import { transactionLinkCandidateMessages as m } from "config/transactionStepFlowMessages";
 import { mergeUniqueById } from "utils/collections";
 import { LoadMoreOnVisible } from "molecules/ui/LoadMoreOnVisible/LoadMoreOnVisible";
@@ -60,7 +63,9 @@ export function TransactionLinkCandidatePanel(
     props.pinInitialSelection === false ? null : value,
   );
   const [localMonth, setLocalMonth] = useState(() =>
-    toTokyoCandidateMonth(value?.transactionAt ?? sourceCandidates[0]?.transactionAt ?? new Date()),
+    toTokyoCandidateMonth(
+      value?.transactionAt ?? sourceCandidates[0]?.transactionAt ?? new Date(),
+    ),
   );
   const normalMonth = props.month ?? localMonth;
   const setNormalMonth = props.onMonthChange ?? setLocalMonth;
@@ -144,9 +149,10 @@ export function TransactionLinkCandidatePanel(
   const activeCandidates = orderCandidates(false);
   const settledCandidates = orderCandidates(true);
   const settledDelta = scopedAffected
-    .filter((candidate) =>
-      candidate.id !== initialSelection?.id &&
-      candidateInMonth(candidate.transactionAt, displayedMonth),
+    .filter(
+      (candidate) =>
+        candidate.id !== initialSelection?.id &&
+        candidateInMonth(candidate.transactionAt, displayedMonth),
     )
     .reduce(
       (sum, candidate) =>
@@ -158,7 +164,9 @@ export function TransactionLinkCandidatePanel(
       0,
     );
   const selectedInScope =
-    !!page && !!initialSelection && matchesLinkCandidateScope(initialSelection, accountCurrency, query) &&
+    !!page &&
+    !!initialSelection &&
+    matchesLinkCandidateScope(initialSelection, accountCurrency, query) &&
     candidateInMonth(initialSelection.transactionAt, displayedMonth);
   const selectedSettledOffset =
     selectedInScope && isLinkCandidateSettled(initialSelection) ? 1 : 0;
@@ -195,7 +203,8 @@ export function TransactionLinkCandidatePanel(
     (group) => group.key !== "locked" && group.key !== "partial",
   )?.key;
   const isGroupExpanded = (key: LinkCandidateGroupKey) =>
-    expandedByKey[key] ?? (key !== "locked" && key !== "partial" && key === defaultGroupKey);
+    expandedByKey[key] ??
+    (key !== "locked" && key !== "partial" && key === defaultGroupKey);
   const waitingGroupKey = !searching
     ? groups.find(
         (group) =>

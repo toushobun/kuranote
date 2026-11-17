@@ -15,7 +15,13 @@ function MonthHarness({
   searching?: boolean;
 }) {
   const [month, setMonth] = useState(initialMonth);
-  return <CandidateMonthSelector month={month} searching={searching} onChange={setMonth} />;
+  return (
+    <CandidateMonthSelector
+      month={month}
+      searching={searching}
+      onChange={setMonth}
+    />
+  );
 }
 
 afterEach(() => cleanup());
@@ -39,24 +45,40 @@ describe("CandidateMonthSelector", () => {
     expect(screen.queryByText("全部月份")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "选择 8 月" }));
     fireEvent.keyDown(document, { key: "Escape" });
-    expect(screen.getByRole("button", { name: "选择月份" })).toHaveTextContent("2026年9月");
+    expect(screen.getByRole("button", { name: "选择月份" })).toHaveTextContent(
+      "2026年9月",
+    );
     fireEvent.click(screen.getByRole("button", { name: "选择月份" }));
     fireEvent.click(screen.getByRole("button", { name: "选择 8 月" }));
     fireEvent.click(screen.getByRole("button", { name: "确定年月" }));
-    expect(screen.getByRole("button", { name: "选择月份" })).toHaveTextContent("2026年8月");
+    expect(screen.getByRole("button", { name: "选择月份" })).toHaveTextContent(
+      "2026年8月",
+    );
   });
 
   it("搜索全部月份时隐藏箭头且滚轮增加全部月份选项", () => {
     render(<MonthHarness searching initialMonth={null} />);
-    expect(screen.getByRole("button", { name: "选择月份" })).toHaveTextContent("全部月份");
-    expect(screen.queryByRole("button", { name: "上个月" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "下个月" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "选择月份" })).toHaveTextContent(
+      "全部月份",
+    );
+    expect(
+      screen.queryByRole("button", { name: "上个月" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "下个月" }),
+    ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "选择月份" }));
-    expect(screen.getByRole("button", { name: "全部月份" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "全部月份" }),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "选择 8 月" }));
     fireEvent.click(screen.getByRole("button", { name: "确定年月" }));
-    expect(screen.getByRole("button", { name: "搜索全部月份" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "搜索全部月份" }),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "搜索全部月份" }));
-    expect(screen.getByRole("button", { name: "选择月份" })).toHaveTextContent("全部月份");
+    expect(screen.getByRole("button", { name: "选择月份" })).toHaveTextContent(
+      "全部月份",
+    );
   });
 });

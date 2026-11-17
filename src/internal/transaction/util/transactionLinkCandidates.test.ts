@@ -11,15 +11,35 @@ import {
 describe("transactionLinkCandidates", () => {
   it("部分结清只接受正剩余且小于原金额", () => {
     const base = {
-      accountCurrency: "JPY", amount: "100", categoryName: "支出",
-      id: "partial", parentCategoryName: null, refundedAmount: "0",
-      remainingRefundableAmount: "100", transactionAt: "2026-11-01T00:00:00Z",
+      accountCurrency: "JPY",
+      amount: "100",
+      categoryName: "支出",
+      id: "partial",
+      parentCategoryName: null,
+      refundedAmount: "0",
+      remainingRefundableAmount: "100",
+      transactionAt: "2026-11-01T00:00:00Z",
       transactionRecordId: "record",
     };
     expect(isLinkCandidatePartiallySettled(base)).toBe(false);
-    expect(isLinkCandidatePartiallySettled({ ...base, remainingRefundableAmount: "90" })).toBe(true);
-    expect(isLinkCandidatePartiallySettled({ ...base, remainingRefundableAmount: "0" })).toBe(false);
-    expect(isLinkCandidatePartiallySettled({ ...base, remainingRefundableAmount: "-10" })).toBe(false);
+    expect(
+      isLinkCandidatePartiallySettled({
+        ...base,
+        remainingRefundableAmount: "90",
+      }),
+    ).toBe(true);
+    expect(
+      isLinkCandidatePartiallySettled({
+        ...base,
+        remainingRefundableAmount: "0",
+      }),
+    ).toBe(false);
+    expect(
+      isLinkCandidatePartiallySettled({
+        ...base,
+        remainingRefundableAmount: "-10",
+      }),
+    ).toBe(false);
   });
 
   const record = createTransactionListItem({

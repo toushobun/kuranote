@@ -10,7 +10,10 @@ import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import { MonthPicker } from "molecules/transactions/TransactionDateTimePicker/MonthPicker";
 import { transactionLinkCandidateMessages as m } from "config/transactionStepFlowMessages";
-import { changeCandidateMonth, currentTokyoCandidateMonth } from "./candidateMonth";
+import {
+  changeCandidateMonth,
+  currentTokyoCandidateMonth,
+} from "./candidateMonth";
 
 export function CandidateMonthSelector({
   month,
@@ -57,7 +60,14 @@ export function CandidateMonthSelector({
 
   return (
     <>
-      <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", minHeight: 42 }}>
+      <Stack
+        direction="row"
+        sx={{
+          alignItems: "center",
+          justifyContent: "space-between",
+          minHeight: 42,
+        }}
+      >
         {month !== null ? (
           <IconButton
             aria-label={m.monthPrevious}
@@ -70,11 +80,20 @@ export function CandidateMonthSelector({
         <Button
           aria-label={m.monthSelect}
           onClick={openPicker}
-          sx={{ color: "text.primary", fontWeight: 700, textTransform: "none", flex: 1 }}
+          sx={{
+            color: "text.primary",
+            fontWeight: 700,
+            textTransform: "none",
+            flex: 1,
+          }}
         >
           {month === null
             ? m.monthAll
-            : m.monthLabel(Number(month.slice(0, 4)), Number(month.slice(5)))} ▾
+            : m.monthLabel(
+                Number(month.slice(0, 4)),
+                Number(month.slice(5)),
+              )}{" "}
+          ▾
         </Button>
         {month !== null ? (
           <IconButton
@@ -87,26 +106,46 @@ export function CandidateMonthSelector({
           </IconButton>
         ) : null}
         {searching && month !== null ? (
-          <IconButton aria-label={m.monthClearSearch} onClick={() => onChange(null)} size="small">
+          <IconButton
+            aria-label={m.monthClearSearch}
+            onClick={() => onChange(null)}
+            size="small"
+          >
             <CloseRoundedIcon />
           </IconButton>
         ) : null}
       </Stack>
-      <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="xs"
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        fullWidth
+        maxWidth="xs"
         slotProps={{ paper: { sx: { height: 340, p: 1 } } }}
       >
         <MonthPicker
-          allMonthsOption={searching ? {
-            label: m.monthAll,
-            selected: pickerAll,
-            onSelect: () => setPickerAll(true),
-          } : undefined}
-          isMonthDisabled={(year, option) => year > thisYear || (year === thisYear && option + 1 > thisMonth)}
+          allMonthsOption={
+            searching
+              ? {
+                  label: m.monthAll,
+                  selected: pickerAll,
+                  onSelect: () => setPickerAll(true),
+                }
+              : undefined
+          }
+          isMonthDisabled={(year, option) =>
+            year > thisYear || (year === thisYear && option + 1 > thisMonth)
+          }
           month={pickerMonth}
           monthRef={monthRef}
-          onMonthChange={(value) => { setPickerMonth(value); setPickerAll(false); }}
+          onMonthChange={(value) => {
+            setPickerMonth(value);
+            setPickerAll(false);
+          }}
           onSubmit={confirm}
-          onYearChange={(value) => { setPickerYear(value); setPickerAll(false); }}
+          onYearChange={(value) => {
+            setPickerYear(value);
+            setPickerAll(false);
+          }}
           submitLabel={m.monthConfirm}
           year={pickerYear}
           yearOptions={yearOptions}

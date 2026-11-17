@@ -95,7 +95,15 @@ export function useTransactionLinkCandidates({
       clearTimeout(timeout);
       generation.current = revision + 1;
     };
-  }, [hasLoadPageAction, merchantId, accountCurrency, kind, term, displayedMonth, retryKey]);
+  }, [
+    hasLoadPageAction,
+    merchantId,
+    accountCurrency,
+    kind,
+    term,
+    displayedMonth,
+    retryKey,
+  ]);
 
   const loadMore = useCallback(async () => {
     if (

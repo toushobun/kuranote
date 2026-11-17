@@ -116,8 +116,18 @@ export const DraftLockedFirst: Story = {
 const groupedItems = [
   { ...candidateItems[0], merchantId: "lawson", merchantName: "罗森" },
   { ...candidateItems[1], merchantId: "amazon", merchantName: "Amazon" },
-  { ...candidateItems[2], merchantId: "family", merchantName: "全家", transactionAt: "2026-11-05T09:00:00Z" },
-  { ...candidateItems[3], merchantId: "amazon", merchantName: "Amazon", transactionAt: "2026-11-04T09:00:00Z" },
+  {
+    ...candidateItems[2],
+    merchantId: "family",
+    merchantName: "全家",
+    transactionAt: "2026-11-05T09:00:00Z",
+  },
+  {
+    ...candidateItems[3],
+    merchantId: "amazon",
+    merchantName: "Amazon",
+    transactionAt: "2026-11-04T09:00:00Z",
+  },
 ];
 const loadGroupedPage = async (input: TransactionLinkCandidatePageInput) => {
   const matched = groupedItems.filter(
@@ -140,9 +150,12 @@ const loadGroupedPage = async (input: TransactionLinkCandidatePageInput) => {
     ).length,
     historyMerchantIds: ["lawson"],
     ...(offset === 0
-      ? { groupCounts: input.month && input.month !== "2026-11"
-          ? { history: 0, sameMerchant: 0, other: 0, partial: 0 }
-          : { history: 1, sameMerchant: 1, other: 0, partial: 1 } }
+      ? {
+          groupCounts:
+            input.month && input.month !== "2026-11"
+              ? { history: 0, sameMerchant: 0, other: 0, partial: 0 }
+              : { history: 1, sameMerchant: 1, other: 0, partial: 1 },
+        }
       : {}),
   };
 };
@@ -241,10 +254,15 @@ export const SearchSelectedMonth: Story = {
   name: "月份 · 搜索时指定月份",
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.type(canvas.getByRole("textbox", { name: "搜索原支出" }), "充电器");
+    await userEvent.type(
+      canvas.getByRole("textbox", { name: "搜索原支出" }),
+      "充电器",
+    );
     await userEvent.click(canvas.getByRole("button", { name: "选择月份" }));
     const dialog = within(canvasElement.ownerDocument.body);
-    await userEvent.click(await dialog.findByRole("button", { name: "选择 8 月" }));
+    await userEvent.click(
+      await dialog.findByRole("button", { name: "选择 8 月" }),
+    );
     await userEvent.click(dialog.getByRole("button", { name: "确定年月" }));
   },
 };
@@ -254,7 +272,9 @@ export const EmptyMonth: Story = {
   args: {
     month: "2026-02",
     loadPageAction: async () => ({
-      items: [], nextOffset: null, settledCount: 0,
+      items: [],
+      nextOffset: null,
+      settledCount: 0,
       groupCounts: { history: 0, sameMerchant: 0, other: 0, partial: 0 },
     }),
   },

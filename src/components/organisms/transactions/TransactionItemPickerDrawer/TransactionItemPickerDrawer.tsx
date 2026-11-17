@@ -35,7 +35,10 @@ import type {
 } from "types/transactions";
 import { TransactionPendingReimbursementCheckbox } from "../TransactionPendingReimbursementCheckbox/TransactionPendingReimbursementCheckbox";
 import { TransactionLinkCandidatePanel } from "../TransactionLinkCandidatePanel/TransactionLinkCandidatePanel";
-import { currentTokyoCandidateMonth, toTokyoCandidateMonth } from "../TransactionLinkCandidatePanel/candidateMonth";
+import {
+  currentTokyoCandidateMonth,
+  toTokyoCandidateMonth,
+} from "../TransactionLinkCandidatePanel/candidateMonth";
 import { useTransactionOffsetEntry } from "../TransactionOffsetEntry/TransactionOffsetEntry";
 
 import type {
@@ -147,7 +150,8 @@ export function TransactionItemPickerDrawer({
     pickerMode === "refund"
       ? pickerRefundCandidate
       : pickerReimbursementCandidate;
-  const initialCandidate = selectedCandidate ?? offsetEntry?.candidates[0] ?? null;
+  const initialCandidate =
+    selectedCandidate ?? offsetEntry?.candidates[0] ?? null;
   const [candidateMonth, setCandidateMonth] = useState(() =>
     initialCandidate
       ? toTokyoCandidateMonth(initialCandidate.transactionAt)
