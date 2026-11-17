@@ -185,7 +185,7 @@ describe("groupLinkCandidates", () => {
       remainingRefundableAmount: "0",
     };
     const result = reconcileLinkCandidateGroupCounts(
-      { history: 1, sameMerchant: 2, other: 3 },
+      { history: 1, sameMerchant: 2, other: 3, partial: 0 },
       {
         kind: "refund",
         merchantId: "amazon",
