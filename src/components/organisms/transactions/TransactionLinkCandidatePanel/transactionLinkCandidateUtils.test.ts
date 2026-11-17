@@ -154,6 +154,7 @@ describe("groupLinkCandidates", () => {
     expect(
       groupLinkCandidates([historical, sameMerchant], {
         kind: "reimbursement",
+        historyMerchantIds: ["history"],
       }).map(({ key }) => key),
     ).toEqual(["other"]);
   });
