@@ -74,6 +74,12 @@ describe("transactionLinkCandidateUtils", () => {
     expect(sorted[0].id).toBe("same");
   });
 
+  it("草稿候选金额搜索与 RPC 一样识别千分位、货币符号及空格", () => {
+    expect(matchesLinkCandidateScope(target, "JPY", "¥3,280 円")).toBe(true);
+    expect(matchesLinkCandidateScope(target, "JPY", "3，280")).toBe(true);
+    expect(matchesLinkCandidateScope(target, "JPY", "¥3,281 円")).toBe(false);
+  });
+
   it("搜索草稿候选匹配备注、账户和大小分类，同时过滤币种", () => {
     const entry = {
       ...target,
