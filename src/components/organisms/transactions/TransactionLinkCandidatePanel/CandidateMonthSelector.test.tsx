@@ -162,7 +162,9 @@ describe("CandidateMonthSelector", () => {
     fireEvent.click(
       screen.getByRole("button", { name: `选择 ${thisYear - 1} 年` }),
     );
-    expect(screen.getByRole("button", { name: "选择 12 月" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "选择 12 月" }),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "选择 12 月" }));
     fireEvent.click(
       screen.getByRole("button", { name: `选择 ${thisYear} 年` }),
