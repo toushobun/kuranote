@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   TransactionLinkCandidatePage,
   TransactionLinkCandidatePageInput,
@@ -90,7 +90,7 @@ export function useTransactionLinkCandidates({
     };
   }, [hasLoadPageAction, merchantId, accountCurrency, kind, term, retryKey]);
 
-  async function loadMore() {
+  const loadMore = useCallback(async () => {
     if (
       !loadPageActionRef.current ||
       page?.nextOffset == null ||
@@ -116,6 +116,7 @@ export function useTransactionLinkCandidates({
           settledCount: next.settledCount ?? page.settledCount,
           historyMerchantIds:
             next.historyMerchantIds ?? page.historyMerchantIds,
+          groupCounts: next.groupCounts ?? page.groupCounts,
         });
     } catch {
       if (generation.current === revision) setError(true);
@@ -125,7 +126,7 @@ export function useTransactionLinkCandidates({
         pendingMore.current = false;
       }
     }
-  }
+  }, [page, term, merchantId, accountCurrency]);
 
   async function loadSettled() {
     if (

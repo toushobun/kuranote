@@ -168,12 +168,22 @@ export const transactionLinkCandidateMessages = {
   searchAria: "搜索原支出",
   noSearchResults: "没有找到可关联的支出。",
   settledGroup: (count: number) => `已结清的支出（${count} 笔）`,
-  expandSettled: "展开",
-  collapseSettled: "收起",
+  settledTitle: "已结清的支出",
+  lockedGroup: "已在小票上",
+  sourceGroup: "这笔记录",
+  historyGroup: (kind: "refund" | "reimbursement", merchant: string) =>
+    kind === "refund"
+      ? `以前退到${merchant}的商家`
+      : `以前由${merchant}报销的商家`,
+  sameMerchantGroup: (merchant: string) => `${merchant}的支出`,
+  otherGroup: (kind: "refund" | "reimbursement") =>
+    kind === "refund" ? "其他支出" : "其他待报销",
+  groupCount: (count: number) => String(count),
+  groupAriaLabel: (title: string, count: number) => `${title}（${count} 笔）`,
+  expand: "展开",
+  collapse: "收起",
   noCandidates: "没有可关联的原支出，试试搜索。",
   retry: "加载失败，点击重试",
-  allExpenses: "全部支出",
-  pending: "待报销",
   refundAmount: "退款金额",
   reimbursementAmount: "报销金额",
   selectFirst: (kind: "refund" | "reimbursement") =>

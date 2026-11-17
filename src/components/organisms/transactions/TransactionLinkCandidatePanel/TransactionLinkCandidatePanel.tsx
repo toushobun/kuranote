@@ -1,6 +1,6 @@
 "use client";
 import { useTransactionOffsetEntry } from "../TransactionOffsetEntry/TransactionOffsetEntry";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ExpandLessRoundedIcon from "@mui/icons-material/ExpandLessRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
@@ -10,7 +10,6 @@ import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { designTokens } from "theme/theme";
 import { isLinkCandidateSettled } from "internal/transaction";
 import { transactionLinkCandidateMessages as m } from "config/transactionStepFlowMessages";
 import { mergeUniqueById } from "utils/collections";
@@ -22,8 +21,11 @@ import {
   type LoadTransactionLinkCandidatePage,
 } from "./useTransactionLinkCandidates";
 import {
+  groupLinkCandidates,
   matchesLinkCandidateScope,
+  reconcileLinkCandidateGroupCounts,
   sortLinkCandidates,
+  type LinkCandidateGroupKey,
 } from "./transactionLinkCandidateUtils";
 
 type TransactionLinkCandidatePanelProps = {
@@ -49,10 +51,13 @@ export function TransactionLinkCandidatePanel(
   const source = useTransactionOffsetEntry();
   const sourceCandidates = source?.kind === props.kind ? source.candidates : [];
   const { accountCurrency, kind, merchantName, onChange, value } = props;
-  // 只固定打开抽屉时已经关联的原支出，点选后不重新置顶。
+  // 只固定抽屉打开时已关联的原支出，后续改选不重新置顶。
   const [initialSelection] = useState(
     props.pinInitialSelection === false ? null : value,
   );
+  const [expandedByKey, setExpandedByKey] = useState<
+    Partial<Record<LinkCandidateGroupKey, boolean>>
+  >({});
   const {
     query,
     setQuery,
@@ -70,14 +75,17 @@ export function TransactionLinkCandidatePanel(
     retry,
     retrySettled,
   } = useTransactionLinkCandidates(props);
+  const searching = query.trim().length > 0;
 
-  // 服务端只知道数据库状态。旧关联 / 未保存草稿带来的少量差异，
-  // 通过已持有的候选在前端重分组，不为此额外发起首屏请求。
   const matchesCurrentScope = (candidate: TransactionRefundCandidate) =>
     matchesLinkCandidateScope(candidate, accountCurrency, query);
+  const lockedLoaded = mergeUniqueById(
+    page?.items ?? [],
+    settledPage?.items ?? [],
+  ).filter((candidate) => props.lockedAmounts?.has(candidate.id));
   const scopedAffected = mergeUniqueById(
-    props.linkAffectedCandidates ?? [],
-    sourceCandidates,
+    mergeUniqueById(props.linkAffectedCandidates ?? [], sourceCandidates),
+    lockedLoaded,
   ).filter(matchesCurrentScope);
   const allCandidates = mergeUniqueById(
     mergeUniqueById(page?.items ?? [], settledPage?.items ?? []),
@@ -90,46 +98,97 @@ export function TransactionLinkCandidatePanel(
         : (props.resolveLinkCandidate?.(candidate) ?? candidate),
     );
   }
-
+  const sourceItemIds = sourceCandidates.map((candidate) => candidate.id);
+  const historyMerchantIds = props.merchantId ? page?.historyMerchantIds : [];
+  const orderOptions = {
+    kind,
+    merchantId: props.merchantId,
+    historyMerchantIds,
+    lockedAmounts: props.lockedAmounts,
+    sourceItemIds,
+  } as const;
   function orderCandidates(settled: boolean) {
     return sortLinkCandidates(
-      allCandidates.filter((candidate) => isSettled(candidate) === settled),
-      {
-        kind,
-        merchantId: props.merchantId,
-        historyMerchantIds: page?.historyMerchantIds,
-        lockedAmounts: props.lockedAmounts,
-        settled,
-        sourceItemIds: sourceCandidates.map((candidate) => candidate.id),
-      },
+      allCandidates.filter(
+        (candidate) =>
+          (props.lockedAmounts?.has(candidate.id)
+            ? false
+            : isSettled(candidate)) === settled,
+      ),
+      { ...orderOptions, settled },
     );
   }
   const activeCandidates = orderCandidates(false);
   const settledCandidates = orderCandidates(true);
-  const settledDelta = scopedAffected.reduce((sum, candidate) => {
-    const databaseSettled = isLinkCandidateSettled(candidate);
-    const actualSettled = isSettled(candidate);
-    return sum + Number(actualSettled) - Number(databaseSettled);
-  }, 0);
-  const selectedSettledInScope =
-    !!page &&
-    !!initialSelection &&
-    matchesCurrentScope(initialSelection) &&
-    isLinkCandidateSettled(
-      props.resolveLinkCandidate?.(initialSelection) ?? initialSelection,
+  const settledDelta = scopedAffected
+    .filter((candidate) => candidate.id !== initialSelection?.id)
+    .reduce(
+      (sum, candidate) =>
+        sum +
+        Number(
+          !props.lockedAmounts?.has(candidate.id) && isSettled(candidate),
+        ) -
+        Number(isLinkCandidateSettled(candidate)),
+      0,
     );
-  const selectedOffset = selectedSettledInScope ? 1 : 0;
+  const selectedInScope =
+    !!page && !!initialSelection && matchesCurrentScope(initialSelection);
+  const selectedSettledOffset =
+    selectedInScope && isLinkCandidateSettled(initialSelection) ? 1 : 0;
   const settledCount = Math.max(
     0,
-    (page?.settledCount ?? 0) + settledDelta - selectedOffset,
+    (page?.settledCount ?? 0) + settledDelta - selectedSettledOffset,
+    settledCandidates.length,
   );
-  const visibleCandidates = initialSelection
-    ? [initialSelection, ...activeCandidates]
-    : activeCandidates;
+  const groupCounts = reconcileLinkCandidateGroupCounts(page?.groupCounts, {
+    ...orderOptions,
+    affectedCandidates: scopedAffected,
+    initialSelection: selectedInScope ? initialSelection : null,
+    isActuallySettled: isSettled,
+  });
+  const groups = groupLinkCandidates(activeCandidates, {
+    ...orderOptions,
+    merchantName,
+    sourceCandidate: sourceCandidates[0],
+    counts: {
+      ...groupCounts,
+      locked: activeCandidates.filter((candidate) =>
+        props.lockedAmounts?.has(candidate.id),
+      ).length,
+      source: activeCandidates.filter(
+        (candidate) =>
+          !props.lockedAmounts?.has(candidate.id) &&
+          sourceItemIds.includes(candidate.id),
+      ).length,
+    },
+  });
+  const defaultGroupKey = groups.find((group) => group.key !== "locked")?.key;
+  const isGroupExpanded = (key: LinkCandidateGroupKey) =>
+    expandedByKey[key] ?? (key !== "locked" && key === defaultGroupKey);
+  const waitingGroupKey = !searching
+    ? groups.find(
+        (group) =>
+          group.key !== "locked" &&
+          isGroupExpanded(group.key) &&
+          group.count > 0 &&
+          group.candidates.length === 0,
+      )?.key
+    : undefined;
+
+  // 展开后面的组时，按数据库顺序依次读完前面组的页，直到目标组有卡片。
+  useEffect(() => {
+    if (waitingGroupKey && page?.nextOffset != null && !loadingMore && !error)
+      void loadMore();
+  }, [waitingGroupKey, page?.nextOffset, loadingMore, error, loadMore]);
+
   const showMerchantName =
     kind === "reimbursement" ||
-    Boolean(query.trim()) ||
-    [...visibleCandidates, ...settledCandidates].some(
+    searching ||
+    [
+      ...activeCandidates,
+      ...settledCandidates,
+      ...(initialSelection ? [initialSelection] : []),
+    ].some(
       (candidate) =>
         candidate.merchantName && candidate.merchantName !== merchantName,
     );
@@ -147,7 +206,11 @@ export function TransactionLinkCandidatePanel(
     <Stack spacing={1.25} sx={{ mt: 1.5 }}>
       <TextField
         fullWidth
-        onChange={(event) => setQuery(event.target.value)}
+        onChange={(event) => {
+          const nextQuery = event.target.value;
+          if (searching !== Boolean(nextQuery.trim())) setExpandedByKey({});
+          setQuery(nextQuery);
+        }}
         placeholder={m.searchPlaceholder}
         size="small"
         value={query}
@@ -162,70 +225,84 @@ export function TransactionLinkCandidatePanel(
           },
         }}
       />
-      <Stack
-        direction="row"
-        sx={{ justifyContent: "space-between", color: "text.secondary" }}
-      >
-        <Typography variant="caption">
-          {kind === "reimbursement" ? m.pending : m.allExpenses}
-        </Typography>
-        <Typography variant="caption">{accountCurrency}</Typography>
-      </Stack>
-      <TransactionLinkCandidateCards
-        candidates={visibleCandidates}
-        {...cardProps}
-      />
-      {loading ? (
-        <CircularProgress size={24} />
-      ) : page && visibleCandidates.length === 0 && settledCount === 0 ? (
+      {initialSelection ? (
+        <TransactionLinkCandidateCards
+          candidates={[initialSelection]}
+          {...cardProps}
+        />
+      ) : null}
+      {searching ? (
+        <>
+          <TransactionLinkCandidateCards
+            candidates={activeCandidates}
+            {...cardProps}
+          />
+          <LoadMoreOnVisible
+            enabled={page?.nextOffset != null && !error}
+            isLoading={loadingMore}
+            onVisible={() => void loadMore()}
+          />
+        </>
+      ) : (
+        groups.map((group) => {
+          const expanded = isGroupExpanded(group.key);
+          return (
+            <Stack key={group.key} spacing={0.75}>
+              <CandidateGroupHeading
+                title={group.title}
+                hint={group.hint}
+                count={group.count}
+                expanded={expanded}
+                onClick={() =>
+                  setExpandedByKey((state) => ({
+                    ...state,
+                    [group.key]: !expanded,
+                  }))
+                }
+              />
+              {expanded ? (
+                <>
+                  <TransactionLinkCandidateCards
+                    candidates={group.candidates}
+                    {...cardProps}
+                  />
+                  {group.key !== "locked" ? (
+                    <LoadMoreOnVisible
+                      enabled={
+                        page?.nextOffset != null &&
+                        !error &&
+                        (page?.groupCounts === undefined ||
+                          group.candidates.length < group.count)
+                      }
+                      isLoading={loadingMore}
+                      onVisible={() => void loadMore()}
+                    />
+                  ) : null}
+                </>
+              ) : null}
+            </Stack>
+          );
+        })
+      )}
+      {loading ? <CircularProgress size={24} /> : null}
+      {page &&
+      !initialSelection &&
+      activeCandidates.length === 0 &&
+      settledCount === 0 ? (
         <Typography color="textSecondary" variant="body2">
-          {query.trim() ? m.noSearchResults : m.noCandidates}
+          {searching ? m.noSearchResults : m.noCandidates}
         </Typography>
       ) : null}
-      <LoadMoreOnVisible
-        enabled={page?.nextOffset != null && !error}
-        isLoading={loadingMore}
-        onVisible={() => void loadMore()}
-      />
       {error ? <Button onClick={retry}>{m.retry}</Button> : null}
       {page && settledCount > 0 ? (
-        <Stack spacing={1}>
-          <Button
-            aria-expanded={settledExpanded}
-            aria-label={m.settledGroup(settledCount)}
-            fullWidth
+        <Stack spacing={0.75}>
+          <CandidateGroupHeading
+            title={m.settledTitle}
+            count={settledCount}
+            ariaLabel={m.settledGroup(settledCount)}
+            expanded={settledExpanded}
             onClick={toggleSettled}
-            sx={{
-              border: 1,
-              borderStyle: "dashed",
-              borderColor: "divider",
-              borderRadius: `${designTokens.radius.item}px`,
-              bgcolor: "action.hover",
-              color: "text.secondary",
-              justifyContent: "space-between",
-              minHeight: 52,
-              px: 1.5,
-              py: 1,
-              textTransform: "none",
-              "@media (hover: hover)": {
-                "&:hover": { bgcolor: "action.selected" },
-              },
-            }}
-          >
-            <Typography component="span" variant="body2">
-              {m.settledGroup(settledCount)}
-            </Typography>
-            <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
-              <Typography component="span" variant="body2">
-                {settledExpanded ? m.collapseSettled : m.expandSettled}
-              </Typography>
-              {settledExpanded ? (
-                <ExpandLessRoundedIcon fontSize="small" />
-              ) : (
-                <ExpandMoreRoundedIcon fontSize="small" />
-              )}
-            </Stack>
-          </Button>
+          />
           {settledExpanded ? (
             <>
               <TransactionLinkCandidateCards
@@ -246,5 +323,85 @@ export function TransactionLinkCandidatePanel(
         </Stack>
       ) : null}
     </Stack>
+  );
+}
+
+function CandidateGroupHeading({
+  title,
+  hint,
+  count,
+  ariaLabel,
+  expanded,
+  onClick,
+}: {
+  title: string;
+  hint?: string;
+  count: number;
+  ariaLabel?: string;
+  expanded: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      aria-expanded={expanded}
+      aria-label={ariaLabel ?? m.groupAriaLabel(title, count)}
+      fullWidth
+      onClick={onClick}
+      sx={{
+        borderBottom: 1,
+        borderColor: "divider",
+        borderRadius: 0,
+        color: "text.secondary",
+        justifyContent: "space-between",
+        minHeight: 44,
+        px: 0.5,
+        py: 0.75,
+        textTransform: "none",
+        "@media (hover: hover)": {
+          "&:hover": { bgcolor: "action.hover" },
+        },
+      }}
+    >
+      <Stack
+        direction="row"
+        spacing={0.75}
+        sx={{ minWidth: 0, alignItems: "center", flex: 1 }}
+      >
+        <Typography
+          component="span"
+          variant="body2"
+          sx={{ flexShrink: 0, color: "text.primary", fontWeight: 700 }}
+        >
+          {title}
+        </Typography>
+        {hint ? (
+          <Typography
+            component="span"
+            variant="caption"
+            noWrap
+            sx={{ minWidth: 0, color: "text.disabled" }}
+          >
+            {hint}
+          </Typography>
+        ) : null}
+      </Stack>
+      <Stack
+        direction="row"
+        spacing={0.5}
+        sx={{ ml: 0.5, flexShrink: 0, alignItems: "center" }}
+      >
+        <Typography component="span" variant="caption">
+          {m.groupCount(count)}
+        </Typography>
+        <Typography component="span" variant="caption">
+          {expanded ? m.collapse : m.expand}
+        </Typography>
+        {expanded ? (
+          <ExpandLessRoundedIcon fontSize="small" />
+        ) : (
+          <ExpandMoreRoundedIcon fontSize="small" />
+        )}
+      </Stack>
+    </Button>
   );
 }

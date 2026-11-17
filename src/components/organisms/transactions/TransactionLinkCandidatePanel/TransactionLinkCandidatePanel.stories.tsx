@@ -3,6 +3,7 @@ import { useState } from "react";
 import { userEvent, within } from "storybook/test";
 import { TransactionLinkCandidatePanel } from "./TransactionLinkCandidatePanel";
 import {
+  candidateItems,
   loadCandidatePage,
   loadMixedMerchantPage,
   loadReimbursementPage,
@@ -10,6 +11,9 @@ import {
   selectedCandidate,
   offPageCandidate,
 } from "./transactionLinkCandidateFixtures";
+import { TransactionOffsetEntryContext } from "../TransactionOffsetEntry/TransactionOffsetEntry";
+import { matchesLinkCandidateScope } from "./transactionLinkCandidateUtils";
+import type { TransactionLinkCandidatePageInput } from "types/transactions";
 const meta = {
   title: "Organisms/Transactions/TransactionLinkCandidatePanel",
   component: TransactionLinkCandidatePanel,
@@ -102,5 +106,107 @@ export const DraftLockedFirst: Story = {
       historyMerchantIds: ["amazon"],
     }),
     lockedAmounts: new Map([[selectedCandidate.id, "200"]]),
+  },
+};
+
+const groupedItems = [
+  { ...candidateItems[0], merchantId: "lawson", merchantName: "罗森" },
+  { ...candidateItems[1], merchantId: "amazon", merchantName: "Amazon" },
+  { ...candidateItems[2], merchantId: "family", merchantName: "全家" },
+  { ...candidateItems[3], merchantId: "amazon", merchantName: "Amazon" },
+];
+const loadGroupedPage = async (input: TransactionLinkCandidatePageInput) => {
+  const matched = groupedItems.filter(
+    (item) =>
+      matchesLinkCandidateScope(item, input.currency, input.query ?? "") &&
+      (input.settled
+        ? Number(item.remainingRefundableAmount) <= 0
+        : Number(item.remainingRefundableAmount) > 0),
+  );
+  const offset = input.offset ?? 0;
+  return {
+    items: matched.slice(offset, offset + 20),
+    nextOffset: offset + 20 < matched.length ? offset + 20 : null,
+    settledCount: groupedItems.filter(
+      (item) =>
+        matchesLinkCandidateScope(item, input.currency, input.query ?? "") &&
+        Number(item.remainingRefundableAmount) <= 0,
+    ).length,
+    historyMerchantIds: ["lawson"],
+    ...(offset === 0
+      ? { groupCounts: { history: 1, sameMerchant: 1, other: 1 } }
+      : {}),
+  };
+};
+
+export const GroupedRefund: Story = {
+  name: "方案 A · 退款 · 历史 / 同商家 / 其他 / 已结清",
+  args: {
+    loadPageAction: loadGroupedPage,
+  },
+};
+
+export const GroupedReimbursement: Story = {
+  name: "方案 A · 报销 · 历史与其他待报销",
+  args: {
+    kind: "reimbursement",
+    merchantId: "amazon",
+    loadPageAction: async (input) => {
+      const page = await loadGroupedPage(input);
+      return {
+        ...page,
+        groupCounts: { history: 1, sameMerchant: 0, other: 2 },
+      };
+    },
+  },
+};
+
+export const GroupedEntryAndLocked: Story = {
+  name: "方案 A · 入口 B + 已在小票上",
+  args: {
+    lockedAmounts: new Map([[groupedItems[0].id, "200"]]),
+    loadPageAction: loadGroupedPage,
+  },
+  render: function Render(args) {
+    const [value, setValue] = useState(args.value);
+    return (
+      <TransactionOffsetEntryContext.Provider
+        value={{
+          kind: "refund",
+          merchantId: "amazon",
+          accountId: "credit",
+          candidates: [groupedItems[2]],
+        }}
+      >
+        <TransactionLinkCandidatePanel
+          {...args}
+          value={value}
+          onChange={setValue}
+        />
+      </TransactionOffsetEntryContext.Provider>
+    );
+  },
+};
+
+export const GroupedSearchFlat: Story = {
+  name: "方案 A · 搜索结果平铺",
+  args: { loadPageAction: loadGroupedPage },
+  play: async ({ canvasElement }) => {
+    await userEvent.type(
+      within(canvasElement).getByRole("textbox", { name: "搜索原支出" }),
+      "全家",
+    );
+  },
+};
+
+export const GroupedSingleGroup: Story = {
+  name: "方案 A · 只有一个可选组",
+  args: {
+    loadPageAction: async (input) => ({
+      items: input.settled ? [] : [candidateItems[0]],
+      nextOffset: null,
+      settledCount: 0,
+      groupCounts: { history: 0, sameMerchant: 1, other: 0 },
+    }),
   },
 };

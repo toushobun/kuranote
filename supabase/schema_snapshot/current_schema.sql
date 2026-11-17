@@ -4550,6 +4550,28 @@ candidate_matched as (
            )
        )
 ),
+candidate_group_counts as (
+    select
+        count(*) filter (
+            where coalesce(merchant_id = any(array(select unnest(ids) from history_merchants)), false)
+        ) as history,
+        count(*) filter (
+            where not coalesce(merchant_id = any(array(select unnest(ids) from history_merchants)), false)
+              and p_link_kind = 'refund'
+              and p_merchant_priority_id is not null
+              and merchant_id = p_merchant_priority_id
+        ) as same_merchant,
+        count(*) filter (
+            where not coalesce(merchant_id = any(array(select unnest(ids) from history_merchants)), false)
+              and not (
+                  p_link_kind = 'refund'
+                  and p_merchant_priority_id is not null
+                  and coalesce(merchant_id = p_merchant_priority_id, false)
+              )
+        ) as other
+    from candidate_matched
+    where not settled
+),
 record_matched as (
     select
         tr.id as record_id,
@@ -4686,6 +4708,17 @@ select jsonb_build_object(
     )
 ) || case when p_scope = 'candidates'
     then jsonb_build_object('historyMerchantIds', (select ids from history_merchants))
+         || case when p_offset = 0 and not coalesce(p_settled, false)
+             then jsonb_build_object(
+                 'groupCounts',
+                 (select jsonb_build_object(
+                     'history', history,
+                     'sameMerchant', same_merchant,
+                     'other', other
+                 ) from candidate_group_counts)
+             )
+             else '{}'::jsonb
+         end
     else '{}'::jsonb
 end;
 $$;

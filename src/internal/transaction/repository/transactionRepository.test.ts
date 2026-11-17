@@ -120,6 +120,31 @@ describe("TransactionRepository", () => {
     },
   );
 
+  it("候选第一页校验并透传三层分组笔数", async () => {
+    const counts = { history: 2, sameMerchant: 3, other: 5 };
+    const { repository } = createRepository({
+      rpc: vi.fn().mockResolvedValue({
+        data: {
+          entries: [],
+          nextOffset: null,
+          settledCount: 1,
+          totalCount: 11,
+          groupCounts: counts,
+        },
+        error: null,
+      }),
+    });
+    await expect(
+      repository.loadFilteredPage({
+        ledgerId,
+        scope: "candidates",
+        linkKind: "refund",
+        query: "",
+        offset: 0,
+      }),
+    ).resolves.toMatchObject({ groupCounts: counts });
+  });
+
   it("按记录 ID 列表仅读取当前页记录", async () => {
     const query = createQuery();
     const { repository } = createRepository({
