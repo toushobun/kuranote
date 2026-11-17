@@ -166,26 +166,26 @@ export function TransactionLinkCandidatePanel(
   const defaultGroupKey = groups.find((group) => group.key !== "locked")?.key;
   const isGroupExpanded = (key: LinkCandidateGroupKey) =>
     expandedByKey[key] ?? (key !== "locked" && key === defaultGroupKey);
-  const waitingGroup = !searching
+  const waitingGroupKey = !searching
     ? groups.find(
         (group) =>
           group.key !== "locked" &&
           isGroupExpanded(group.key) &&
           group.count > 0 &&
           group.candidates.length === 0,
-      )
-    : null;
+      )?.key
+    : undefined;
 
   // 展开后面的组时，按数据库顺序依次读完前面组的页，直到目标组有卡片。
   useEffect(() => {
     if (
-      waitingGroup &&
+      waitingGroupKey &&
       page?.nextOffset != null &&
       !loadingMore &&
       !error
     )
       void loadMore();
-  }, [waitingGroup, page?.nextOffset, loadingMore, error, loadMore]);
+  }, [waitingGroupKey, page?.nextOffset, loadingMore, error, loadMore]);
 
   const showMerchantName =
     kind === "reimbursement" ||
