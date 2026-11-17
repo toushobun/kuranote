@@ -197,16 +197,16 @@ candidate_matched as (
 candidate_group_counts as (
     select
         count(*) filter (
-            where coalesce(merchant_id = any((select ids from history_merchants)), false)
+            where coalesce(merchant_id = any(array(select unnest(ids) from history_merchants)), false)
         ) as history,
         count(*) filter (
-            where not coalesce(merchant_id = any((select ids from history_merchants)), false)
+            where not coalesce(merchant_id = any(array(select unnest(ids) from history_merchants)), false)
               and p_link_kind = 'refund'
               and p_merchant_priority_id is not null
               and merchant_id = p_merchant_priority_id
         ) as same_merchant,
         count(*) filter (
-            where not coalesce(merchant_id = any((select ids from history_merchants)), false)
+            where not coalesce(merchant_id = any(array(select unnest(ids) from history_merchants)), false)
               and not (
                   p_link_kind = 'refund'
                   and p_merchant_priority_id is not null
