@@ -763,6 +763,33 @@ describe("TransactionLinkCandidatePanel", () => {
     expect(heading).toHaveAttribute("aria-expanded", "false");
   });
 
+  it("入口 B 的已结清原支出仍保留在这笔记录组，不重复计算已结清笔数", async () => {
+    const sourceCandidate = {
+      ...candidateItems[3],
+      id: "source-settled",
+      transactionAt: "2026-11-15T09:00:00Z",
+    };
+    const loadPage = vi.fn().mockResolvedValue({
+      items: [],
+      nextOffset: null,
+      settledCount: 1,
+      historyMerchantIds: [],
+      groupCounts: { history: 0, sameMerchant: 0, other: 0, partial: 0 },
+    });
+    renderPanel({ loadPageAction: loadPage }, {
+      kind: "refund",
+      accountId: "credit",
+      merchantId: "amazon",
+      candidates: [sourceCandidate],
+    });
+    const sourceGroup = await screen.findByRole("button", {
+      name: "这笔记录（1 笔）",
+    });
+    expect(sourceGroup).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: "选择退款明细 外套" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: /已结清的支出/ })).not.toBeInTheDocument();
+  });
+
   it("入口 B 的来源在其他月份时仍显示来源组并提示当前月份没有候选", async () => {
     const sourceCandidate = {
       ...candidateItems[0],
