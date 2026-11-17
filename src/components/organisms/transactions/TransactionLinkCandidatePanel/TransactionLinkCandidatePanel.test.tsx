@@ -580,7 +580,10 @@ describe("TransactionLinkCandidatePanel", () => {
   });
 
   it("小票未保存的核销变化可把服务端已结清候选提升到未结清列表", async () => {
-    const candidate = candidateItems[3];
+    const candidate = {
+      ...candidateItems[3],
+      transactionAt: "2026-10-20T09:00:00Z",
+    };
     renderPanel({
       month: "2026-10",
       linkAffectedCandidates: [candidate],
