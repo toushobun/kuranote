@@ -4565,7 +4565,7 @@ candidate_group_counts as (
                   p_link_kind = 'refund' and p_merchant_priority_id is not null
                   and coalesce(merchant_id = p_merchant_priority_id, false)
               )
-              and coalesce(merchant_id = any((select ids from history_merchants)), false)
+              and coalesce(merchant_id = any(array(select unnest(ids) from history_merchants)), false)
         ) as history,
         count(*) filter (
             where not (business_net_amount > 0 and business_net_amount < item_amount)
@@ -4575,7 +4575,7 @@ candidate_group_counts as (
         ) as same_merchant,
         count(*) filter (
             where not (business_net_amount > 0 and business_net_amount < item_amount)
-              and not coalesce(merchant_id = any((select ids from history_merchants)), false)
+              and not coalesce(merchant_id = any(array(select unnest(ids) from history_merchants)), false)
               and not (
                   p_link_kind = 'refund' and p_merchant_priority_id is not null
                   and coalesce(merchant_id = p_merchant_priority_id, false)
@@ -4682,7 +4682,7 @@ ordered_page as (
                     when p_scope = 'candidates' and not coalesce(p_settled, false)
                       and p_link_kind = 'refund' and merchant_id = p_merchant_priority_id then 0
                     when p_scope = 'candidates'
-                      and coalesce(merchant_id = any((select ids from history_merchants)), false) then
+                      and coalesce(merchant_id = any(array(select unnest(ids) from history_merchants)), false) then
                         case when p_link_kind = 'refund' and not coalesce(p_settled, false) then 1 else 0 end
                     when p_scope = 'candidates' and merchant_id = p_merchant_priority_id then 1
                     else 2
