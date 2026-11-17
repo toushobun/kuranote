@@ -116,6 +116,7 @@ export function useTransactionLinkCandidates({
           settledCount: next.settledCount ?? page.settledCount,
           historyMerchantIds:
             next.historyMerchantIds ?? page.historyMerchantIds,
+          groupCounts: next.groupCounts ?? page.groupCounts,
         });
     } catch {
       if (generation.current === revision) setError(true);
