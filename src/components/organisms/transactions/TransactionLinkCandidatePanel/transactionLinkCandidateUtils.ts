@@ -14,7 +14,7 @@ export function matchesLinkCandidateScope(
   if (currency && candidate.accountCurrency !== currency) return false;
   const term = query.trim().toLocaleLowerCase();
   if (!term) return true;
-  return [
+  const matchesText = [
     candidate.categoryName,
     candidate.parentCategoryName,
     candidate.note,
@@ -23,6 +23,10 @@ export function matchesLinkCandidateScope(
     candidate.amount,
     candidate.transactionAt,
   ].some((value) => value?.toLocaleLowerCase().includes(term));
+  if (matchesText) return true;
+  // 与候选 RPC 一致：金额搜索可包含千分位、货币符号和空白。
+  const amountTerm = term.replace(/[\\s,，¥￥円]/g, "");
+  return /[0-9]/.test(amountTerm) && candidate.amount.includes(amountTerm);
 }
 
 export type LinkCandidateGroupKey =
