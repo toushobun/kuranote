@@ -41,6 +41,7 @@ function renderPanel(
         kind="refund"
         merchantId="amazon"
         merchantName="Amazon"
+        month="2026-11"
         loadPageAction={loadCandidatePage}
         {...props}
         value={value}
@@ -89,11 +90,12 @@ describe("TransactionLinkCandidatePanel", () => {
     expect(loadPage).toHaveBeenCalledExactlyOnceWith({
       offset: 0,
       query: "",
+      month: "2026-11",
       merchantId: "amazon",
       currency: "JPY",
     });
     expect(
-      screen.getByRole("button", { name: "Amazon的支出（3 笔）" }),
+      screen.getByRole("button", { name: "Amazon的支出（1 笔）" }),
     ).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByText("11/08 · 乐天信用卡")).toBeVisible();
     expect(screen.getByText("已退 ¥500")).toBeVisible();
@@ -218,6 +220,7 @@ describe("TransactionLinkCandidatePanel", () => {
     expect(loadPage).toHaveBeenCalledExactlyOnceWith({
       offset: 0,
       query: "",
+      month: "2026-11",
       merchantId: "no-records",
       currency: "JPY",
     });
@@ -273,7 +276,7 @@ describe("TransactionLinkCandidatePanel", () => {
     expect(cards[0]).toHaveAccessibleName("选择退款明细 实时关联的旧支出");
     expect(cards[1]).toHaveAccessibleName("选择退款明细 USB-C 充电器");
   });
-  it("历史商家排在同商家之前，已添加的候选在原位置锁定", async () => {
+  it("同商家排在历史商家之前，已添加的候选在原位置锁定", async () => {
     const historical = {
       ...offPageCandidate,
       remainingRefundableAmount: "1080",
@@ -314,6 +317,7 @@ describe("TransactionLinkCandidatePanel", () => {
     expect(loadPage).toHaveBeenCalledExactlyOnceWith({
       offset: 0,
       query: "",
+      month: "2026-11",
       merchantId: "amazon",
       currency: "JPY",
     });
@@ -341,6 +345,7 @@ describe("TransactionLinkCandidatePanel", () => {
     expect(loadPage).toHaveBeenLastCalledWith({
       offset: 1,
       query: "",
+      month: "2026-11",
       merchantId: "amazon",
       currency: "JPY",
     });
@@ -610,7 +615,7 @@ describe("TransactionLinkCandidatePanel", () => {
         nextOffset: null,
         settledCount: 1,
         historyMerchantIds: [],
-        groupCounts: { history: 0, sameMerchant: 3, other: 0 },
+        groupCounts: { history: 0, sameMerchant: 2, other: 0, partial: 1 },
       }),
     });
     const lockedHeader = await screen.findByRole("button", {
@@ -636,7 +641,7 @@ describe("TransactionLinkCandidatePanel", () => {
   it("搜索时取消分组，清空搜索后按默认规则重新展开", async () => {
     renderPanel();
     const group = await screen.findByRole("button", {
-      name: "Amazon的支出（3 笔）",
+      name: "Amazon的支出（2 笔）",
     });
     fireEvent.click(group);
     expect(group).toHaveAttribute("aria-expanded", "false");
@@ -652,7 +657,7 @@ describe("TransactionLinkCandidatePanel", () => {
       target: { value: "" },
     });
     const restored = await screen.findByRole("button", {
-      name: "Amazon的支出（3 笔）",
+      name: "Amazon的支出（2 笔）",
     });
     expect(restored).toHaveAttribute("aria-expanded", "true");
   });
@@ -670,6 +675,8 @@ describe("TransactionLinkCandidatePanel", () => {
     };
     const other = {
       ...candidateItems[2],
+      refundedAmount: "0",
+      remainingRefundableAmount: candidateItems[2].amount,
       merchantId: "family",
       merchantName: "全家",
     };
@@ -680,7 +687,7 @@ describe("TransactionLinkCandidatePanel", () => {
         nextOffset: 1,
         settledCount: 0,
         historyMerchantIds: ["lawson"],
-        groupCounts: { history: 2, sameMerchant: 0, other: 1 },
+        groupCounts: { history: 2, sameMerchant: 0, other: 1, partial: 0 },
       })
       .mockResolvedValueOnce({ items: [second], nextOffset: 2 })
       .mockResolvedValueOnce({ items: [other], nextOffset: null });
@@ -710,7 +717,7 @@ describe("TransactionLinkCandidatePanel", () => {
         items: candidateItems.slice(0, 3),
         nextOffset: null,
         settledCount: 0,
-        groupCounts: { history: 0, sameMerchant: 3, other: 0 },
+        groupCounts: { history: 0, sameMerchant: 2, other: 0, partial: 1 },
       }),
     });
     await screen.findByRole("button", { name: "Amazon的支出（2 笔）" });
@@ -735,7 +742,7 @@ describe("TransactionLinkCandidatePanel", () => {
           nextOffset: null,
           settledCount: 0,
           historyMerchantIds: [],
-          groupCounts: { history: 0, sameMerchant: 1, other: 1 },
+          groupCounts: { history: 0, sameMerchant: 1, other: 1, partial: 0 },
         }),
       },
       {
