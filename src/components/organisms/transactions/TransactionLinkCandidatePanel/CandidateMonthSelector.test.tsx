@@ -45,6 +45,20 @@ describe("CandidateMonthSelector", () => {
     expect(screen.getByRole("button", { name: "下个月" })).not.toBeDisabled();
   });
 
+  it("选当前年时自动把尚未到来的月份收敛为本月", () => {
+    const current = currentTokyoCandidateMonth();
+    const thisYear = Number(current.slice(0, 4));
+    render(<MonthHarness initialMonth={`${thisYear - 1}-12`} />);
+    fireEvent.click(screen.getByRole("button", { name: "选择月份" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: `选择 ${thisYear} 年` }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "确定年月" }));
+    expect(screen.getByRole("button", { name: "选择月份" })).toHaveTextContent(
+      `${thisYear}年${Number(current.slice(5))}月`,
+    );
+  });
+
   it("滚轮只有确定后才应用新月份，关闭相当于取消", async () => {
     render(<MonthHarness initialMonth="2026-09" />);
     fireEvent.click(screen.getByRole("button", { name: "选择月份" }));
