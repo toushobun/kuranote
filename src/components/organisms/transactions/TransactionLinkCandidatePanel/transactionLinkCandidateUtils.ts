@@ -1,5 +1,5 @@
 import type { TransactionRefundCandidate } from "types/transactions";
-import { isLinkCandidateSettled } from "internal/transaction";
+import { isLinkCandidatePartiallySettled, isLinkCandidateSettled } from "internal/transaction";
 import { transactionLinkCandidateMessages as m } from "config/transactionStepFlowMessages";
 import { formatTransactionMonthDay } from "utils/transactions";
 
@@ -27,7 +27,8 @@ export type LinkCandidateGroupKey =
   | "source"
   | "history"
   | "sameMerchant"
-  | "other";
+  | "other"
+  | "partial";
 
 type LinkCandidateOrderOptions = {
   kind: "refund" | "reimbursement";
@@ -35,6 +36,7 @@ type LinkCandidateOrderOptions = {
   historyMerchantIds?: readonly string[];
   lockedAmounts?: ReadonlyMap<string, string>;
   sourceItemIds?: readonly string[];
+  isActuallyPartiallySettled?: (candidate: TransactionRefundCandidate) => boolean;
 };
 
 export function getLinkCandidateRank(
@@ -44,32 +46,33 @@ export function getLinkCandidateRank(
   if (options.lockedAmounts?.has(candidate.id)) return 0;
   if (options.sourceItemIds?.includes(candidate.id)) return 1;
   if (
-    options.merchantId &&
-    options.historyMerchantIds?.includes(candidate.merchantId ?? "")
-  )
-    return 2;
+    (options.isActuallyPartiallySettled?.(candidate) ??
+      isLinkCandidatePartiallySettled(candidate))
+  ) return 5;
   if (
     options.kind === "refund" &&
     options.merchantId &&
     candidate.merchantId === options.merchantId
-  )
-    return 3;
-  return 4;
+  ) return 2;
+  if (
+    options.merchantId &&
+    options.historyMerchantIds?.includes(candidate.merchantId ?? "")
+  ) return options.kind === "refund" ? 3 : 2;
+  return options.kind === "refund" ? 4 : 3;
 }
-
-const groupKeys: Record<number, LinkCandidateGroupKey> = {
-  0: "locked",
-  1: "source",
-  2: "history",
-  3: "sameMerchant",
-  4: "other",
-};
 
 export function getLinkCandidateGroupKey(
   candidate: TransactionRefundCandidate,
   options: LinkCandidateOrderOptions,
 ): LinkCandidateGroupKey {
-  return groupKeys[getLinkCandidateRank(candidate, options)];
+  const rank = getLinkCandidateRank(candidate, options);
+  if (rank === 0) return "locked";
+  if (rank === 1) return "source";
+  if (rank === 5) return "partial";
+  if (options.kind === "refund" && rank === 2) return "sameMerchant";
+  if ((options.kind === "refund" && rank === 3) || (options.kind === "reimbursement" && rank === 2))
+    return "history";
+  return "other";
 }
 
 export function sortLinkCandidates(
@@ -120,6 +123,7 @@ export function groupLinkCandidates(
     history: [],
     sameMerchant: [],
     other: [],
+    partial: [],
   };
   for (const candidate of sortLinkCandidates(candidates, {
     ...options,
@@ -131,9 +135,10 @@ export function groupLinkCandidates(
   const titles: Record<LinkCandidateGroupKey, string> = {
     locked: m.lockedGroup,
     source: m.sourceGroup,
-    history: m.historyGroup(options.kind, name),
+    history: m.historyGroup(options.kind),
     sameMerchant: m.sameMerchantGroup(name),
     other: m.otherGroup(options.kind),
+    partial: m.partialGroup,
   };
   const source = options.sourceCandidate;
   const hints: Partial<Record<LinkCandidateGroupKey, string>> = {
@@ -158,9 +163,10 @@ export function groupLinkCandidates(
   const orderedKeys: LinkCandidateGroupKey[] = [
     "locked",
     "source",
-    "history",
     ...(options.kind === "refund" ? (["sameMerchant"] as const) : []),
+    "history",
     "other",
+    "partial",
   ];
   return orderedKeys.flatMap((key) => {
     const items = buckets[key];
@@ -182,7 +188,7 @@ export function groupLinkCandidates(
 /** 将未保存草稿、入口来源及编辑置顶从数据库层级计数中去重。 */
 export function reconcileLinkCandidateGroupCounts(
   databaseCounts:
-    | { history: number; sameMerchant: number; other: number }
+    | { history: number; sameMerchant: number; other: number; partial: number }
     | undefined,
   options: LinkCandidateOrderOptions & {
     affectedCandidates: readonly TransactionRefundCandidate[];
@@ -198,25 +204,33 @@ export function reconcileLinkCandidateGroupCounts(
   if (options.initialSelection)
     affected.set(options.initialSelection.id, options.initialSelection);
   for (const candidate of affected.values()) {
-    const key = getLinkCandidateGroupKey(candidate, {
+    const groupOptions = {
       kind: options.kind,
       merchantId: options.merchantId,
       historyMerchantIds: options.historyMerchantIds,
-    });
-    if (key !== "history" && key !== "sameMerchant" && key !== "other")
-      continue;
-    // 输入候选的原始剩余金额代表数据库状态，草稿调整由回调单独判断。
-    if (!isLinkCandidateSettled(candidate)) counts[key] -= 1;
+    };
+    const original = isLinkCandidateSettled(candidate)
+      ? null
+      : getLinkCandidateGroupKey(candidate, groupOptions);
+    if (original) counts[original] -= 1;
+
     const movedToOwnGroup =
       candidate.id === options.initialSelection?.id ||
       options.lockedAmounts?.has(candidate.id) ||
       options.sourceItemIds?.includes(candidate.id);
-    if (!movedToOwnGroup && !options.isActuallySettled(candidate))
-      counts[key] += 1;
+    const actual = movedToOwnGroup || options.isActuallySettled(candidate)
+      ? null
+      : getLinkCandidateGroupKey(candidate, {
+          ...groupOptions,
+          isActuallyPartiallySettled: options.isActuallyPartiallySettled,
+        });
+    if (actual) counts[actual] += 1;
   }
   return {
     history: Math.max(0, counts.history),
     sameMerchant: Math.max(0, counts.sameMerchant),
     other: Math.max(0, counts.other),
+    partial: Math.max(0, counts.partial),
   };
+}
 }
