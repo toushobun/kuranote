@@ -159,7 +159,7 @@ $explain$;
 select diag(pg_temp.explain_1108(''));
 select diag(pg_temp.explain_1108('1108明细备注甲'));
 
--- 在同一事务中构造约 4,000 条真实的普通支出记录及付款信息，
+-- 在同一事务中构造约 4,000 条跨多个月的真实普通支出记录及付款信息，
 -- 验证候选 RPC 在较大数据集下的计数、索引和搜索成本；事务结束自动回滚。
 set local role postgres;
 insert into public.transaction_record (
@@ -170,7 +170,7 @@ select
     md5('1108-scale-record-' || g)::uuid,
     '00000000-0000-4000-8000-000000000032',
     'normal', 'active',
-    timestamptz '2026-11-16 00:00:00+00' - g * interval '1 minute',
+    timestamptz '2026-11-16 00:00:00+00' - g * interval '1 hour',
     '00000000-0000-4000-8000-000000001001',
     '1108规模测试',
     case when g % 10 = 0 then '1108规模关键词' else null end,
@@ -213,7 +213,7 @@ select
     md5('1108-scale-refund-record-' || g)::uuid,
     '00000000-0000-4000-8000-000000000032',
     'normal', 'active',
-    timestamptz '2026-11-16 00:00:00+00' - g * interval '1 minute',
+    timestamptz '2026-11-16 00:00:00+00' - g * interval '1 hour',
     '00000000-0000-4000-8000-000000001001',
     '1108规模退款',
     '00000000-0000-4000-8000-000000000031',
