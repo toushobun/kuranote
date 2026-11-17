@@ -1,4 +1,5 @@
 import type { TransactionRefundCandidate } from "types/transactions";
+import { isLinkCandidateSettled } from "internal/transaction";
 import { transactionLinkCandidateMessages as m } from "config/transactionStepFlowMessages";
 import { formatTransactionMonthDay } from "utils/transactions";
 
@@ -204,12 +205,8 @@ export function reconcileLinkCandidateGroupCounts(
     });
     if (key !== "history" && key !== "sameMerchant" && key !== "other")
       continue;
-    if (candidate.remainingRefundableAmount !== undefined) {
-      // 输入候选的原始剩余金额代表数据库状态，草稿调整由回调单独判断。
-      const originallySettled =
-        Number(candidate.remainingRefundableAmount) <= 0;
-      if (!originallySettled) counts[key] -= 1;
-    }
+    // 输入候选的原始剩余金额代表数据库状态，草稿调整由回调单独判断。
+    if (!isLinkCandidateSettled(candidate)) counts[key] -= 1;
     const movedToOwnGroup =
       candidate.id === options.initialSelection?.id ||
       options.lockedAmounts?.has(candidate.id) ||
