@@ -245,7 +245,7 @@ export const SearchSelectedMonth: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "选择月份" }));
     const dialog = within(canvasElement.ownerDocument.body);
     await userEvent.click(await dialog.findByRole("button", { name: "选择 8 月" }));
-    await userEvent.click(dialog.getByRole("button", { name: "选择月份" }));
+    await userEvent.click(dialog.getByRole("button", { name: "确定年月" }));
   },
 };
 
