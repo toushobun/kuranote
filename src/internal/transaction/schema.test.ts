@@ -1008,7 +1008,8 @@ describe("transactionLinkCandidatePageInputSchema", () => {
         .success,
     ).toBe(true);
     expect(
-      transactionLinkCandidatePageInputSchema.safeParse({ month: null }).success,
+      transactionLinkCandidatePageInputSchema.safeParse({ month: null })
+        .success,
     ).toBe(true);
   });
 
