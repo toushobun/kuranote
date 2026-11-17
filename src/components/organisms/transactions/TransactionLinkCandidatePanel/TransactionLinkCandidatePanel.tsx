@@ -140,7 +140,8 @@ export function TransactionLinkCandidatePanel(
     return sortLinkCandidates(
       allCandidates.filter(
         (candidate) =>
-          (props.lockedAmounts?.has(candidate.id)
+          (props.lockedAmounts?.has(candidate.id) ||
+          sourceItemIds.includes(candidate.id)
             ? false
             : isSettled(candidate)) === settled,
       ),
@@ -159,7 +160,9 @@ export function TransactionLinkCandidatePanel(
       (sum, candidate) =>
         sum +
         Number(
-          !props.lockedAmounts?.has(candidate.id) && isSettled(candidate),
+          !props.lockedAmounts?.has(candidate.id) &&
+            !sourceItemIds.includes(candidate.id) &&
+            isSettled(candidate),
         ) -
         Number(isLinkCandidateSettled(candidate)),
       0,
