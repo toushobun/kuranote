@@ -50,7 +50,7 @@ export function CandidateMonthSelector({
     if (pickerAll && searching) onChange(null);
     else {
       const selected = `${pickerYear}-${String(pickerMonth + 1).padStart(2, "0")}`;
-      if (selected <= today) onChange(selected);
+      onChange(selected);
     }
     setOpen(false);
   }
