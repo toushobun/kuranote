@@ -147,22 +147,27 @@ export function TransactionItemPickerDrawer({
     pickerMode === "refund"
       ? pickerRefundCandidate
       : pickerReimbursementCandidate;
-  const initialCandidateRef = useRef<TransactionRefundCandidate | null>(null);
-  initialCandidateRef.current = selectedCandidate ?? offsetEntry?.candidates[0] ?? null;
+  const initialCandidate = selectedCandidate ?? offsetEntry?.candidates[0] ?? null;
   const [candidateMonth, setCandidateMonth] = useState(() =>
-    initialCandidateRef.current
-      ? toTokyoCandidateMonth(initialCandidateRef.current.transactionAt)
+    initialCandidate
+      ? toTokyoCandidateMonth(initialCandidate.transactionAt)
       : currentTokyoCandidateMonth(),
   );
-  // 每次重新打开按原支出初始化；同一抽屉里切换退款/报销不重置。
+  const initializedSessionRef = useRef<number | null>(null);
+  // 每次重新打开按原支出初始化；切换退款/报销不重置。
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      initializedSessionRef.current = null;
+      return;
+    }
+    if (initializedSessionRef.current === pickerSessionKey) return;
+    initializedSessionRef.current = pickerSessionKey;
     setCandidateMonth(
-      initialCandidateRef.current
-        ? toTokyoCandidateMonth(initialCandidateRef.current.transactionAt)
+      initialCandidate
+        ? toTokyoCandidateMonth(initialCandidate.transactionAt)
         : currentTokyoCandidateMonth(),
     );
-  }, [open, pickerSessionKey]);
+  }, [open, pickerSessionKey, initialCandidate]);
   const adjustedSelectedCandidate = selectedCandidate
     ? (resolveLinkCandidate?.(selectedCandidate) ?? selectedCandidate)
     : null;
