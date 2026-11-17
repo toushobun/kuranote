@@ -42,7 +42,10 @@ export function getLinkCandidateRank(
 ): number {
   if (options.lockedAmounts?.has(candidate.id)) return 0;
   if (options.sourceItemIds?.includes(candidate.id)) return 1;
-  if (options.historyMerchantIds?.includes(candidate.merchantId ?? ""))
+  if (
+    options.merchantId &&
+    options.historyMerchantIds?.includes(candidate.merchantId ?? "")
+  )
     return 2;
   if (
     options.kind === "refund" &&
