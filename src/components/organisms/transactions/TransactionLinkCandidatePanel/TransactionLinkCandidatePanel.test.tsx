@@ -64,6 +64,15 @@ function toggleSettled(count: number) {
 }
 
 describe("TransactionLinkCandidatePanel", () => {
+  it("Storybook 候选模拟分页只返回指定月份的支出", async () => {
+    const november = await loadCandidatePage({ month: "2026-11" });
+    expect(november.items).toHaveLength(3);
+    expect(november.settledCount).toBe(1);
+    const october = await loadCandidatePage({ month: "2026-10" });
+    expect(october.items).toEqual([]);
+    expect(october.settledCount).toBe(0);
+  });
+
   beforeEach(() => {
     visibleCallbacks.length = 0;
     vi.stubGlobal(
