@@ -84,9 +84,13 @@ export function TransactionLinkCandidatePanel(
 
   const matchesCurrentScope = (candidate: TransactionRefundCandidate) =>
     matchesLinkCandidateScope(candidate, accountCurrency, query);
+  const lockedLoaded = mergeUniqueById(
+    page?.items ?? [],
+    settledPage?.items ?? [],
+  ).filter((candidate) => props.lockedAmounts?.has(candidate.id));
   const scopedAffected = mergeUniqueById(
-    props.linkAffectedCandidates ?? [],
-    sourceCandidates,
+    mergeUniqueById(props.linkAffectedCandidates ?? [], sourceCandidates),
+    lockedLoaded,
   ).filter(matchesCurrentScope);
   const allCandidates = mergeUniqueById(
     mergeUniqueById(page?.items ?? [], settledPage?.items ?? []),
