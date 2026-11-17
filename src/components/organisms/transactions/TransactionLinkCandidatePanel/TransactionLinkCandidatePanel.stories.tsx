@@ -13,6 +13,7 @@ import {
 } from "./transactionLinkCandidateFixtures";
 import { TransactionOffsetEntryContext } from "../TransactionOffsetEntry/TransactionOffsetEntry";
 import { matchesLinkCandidateScope } from "./transactionLinkCandidateUtils";
+import { candidateInMonth } from "./candidateMonth";
 import type { TransactionLinkCandidatePageInput } from "types/transactions";
 const meta = {
   title: "Organisms/Transactions/TransactionLinkCandidatePanel",
@@ -28,9 +29,12 @@ const meta = {
   },
   render: function Render(args) {
     const [value, setValue] = useState(args.value);
+    const [month, setMonth] = useState(args.month ?? "2026-11");
     return (
       <TransactionLinkCandidatePanel
         {...args}
+        month={month}
+        onMonthChange={setMonth}
         value={value}
         onChange={setValue}
       />
@@ -112,13 +116,14 @@ export const DraftLockedFirst: Story = {
 const groupedItems = [
   { ...candidateItems[0], merchantId: "lawson", merchantName: "罗森" },
   { ...candidateItems[1], merchantId: "amazon", merchantName: "Amazon" },
-  { ...candidateItems[2], merchantId: "family", merchantName: "全家" },
-  { ...candidateItems[3], merchantId: "amazon", merchantName: "Amazon" },
+  { ...candidateItems[2], merchantId: "family", merchantName: "全家", transactionAt: "2026-11-05T09:00:00Z" },
+  { ...candidateItems[3], merchantId: "amazon", merchantName: "Amazon", transactionAt: "2026-11-04T09:00:00Z" },
 ];
 const loadGroupedPage = async (input: TransactionLinkCandidatePageInput) => {
   const matched = groupedItems.filter(
     (item) =>
       matchesLinkCandidateScope(item, input.currency, input.query ?? "") &&
+      candidateInMonth(item.transactionAt, input.month ?? null) &&
       (input.settled
         ? Number(item.remainingRefundableAmount) <= 0
         : Number(item.remainingRefundableAmount) > 0),
@@ -130,17 +135,20 @@ const loadGroupedPage = async (input: TransactionLinkCandidatePageInput) => {
     settledCount: groupedItems.filter(
       (item) =>
         matchesLinkCandidateScope(item, input.currency, input.query ?? "") &&
+        candidateInMonth(item.transactionAt, input.month ?? null) &&
         Number(item.remainingRefundableAmount) <= 0,
     ).length,
     historyMerchantIds: ["lawson"],
     ...(offset === 0
-      ? { groupCounts: { history: 1, sameMerchant: 1, other: 1 } }
+      ? { groupCounts: input.month && input.month !== "2026-11"
+          ? { history: 0, sameMerchant: 0, other: 0, partial: 0 }
+          : { history: 1, sameMerchant: 1, other: 0, partial: 1 } }
       : {}),
   };
 };
 
 export const GroupedRefund: Story = {
-  name: "方案 A · 退款 · 历史 / 同商家 / 其他 / 已结清",
+  name: "退款 · 同商家 / 常退商家 / 部分结清 / 已结清",
   args: {
     loadPageAction: loadGroupedPage,
   },
@@ -155,7 +163,7 @@ export const GroupedReimbursement: Story = {
       const page = await loadGroupedPage(input);
       return {
         ...page,
-        groupCounts: { history: 1, sameMerchant: 0, other: 2 },
+        groupCounts: { history: 1, sameMerchant: 0, other: 1, partial: 1 },
       };
     },
   },
@@ -169,6 +177,7 @@ export const GroupedEntryAndLocked: Story = {
   },
   render: function Render(args) {
     const [value, setValue] = useState(args.value);
+    const [month, setMonth] = useState(args.month ?? "2026-11");
     return (
       <TransactionOffsetEntryContext.Provider
         value={{
@@ -180,6 +189,8 @@ export const GroupedEntryAndLocked: Story = {
       >
         <TransactionLinkCandidatePanel
           {...args}
+          month={month}
+          onMonthChange={setMonth}
           value={value}
           onChange={setValue}
         />
@@ -206,7 +217,45 @@ export const GroupedSingleGroup: Story = {
       items: input.settled ? [] : [candidateItems[0]],
       nextOffset: null,
       settledCount: 0,
-      groupCounts: { history: 0, sameMerchant: 1, other: 0 },
+      groupCounts: { history: 0, sameMerchant: 1, other: 0, partial: 0 },
+    }),
+  },
+};
+
+export const NormalMonth: Story = {
+  name: "月份 · 平时按本月分组",
+  args: { loadPageAction: loadGroupedPage },
+};
+
+export const SearchAllMonths: Story = {
+  name: "月份 · 搜索全部月份",
+  play: async ({ canvasElement }) => {
+    await userEvent.type(
+      within(canvasElement).getByRole("textbox", { name: "搜索原支出" }),
+      "充电器",
+    );
+  },
+};
+
+export const SearchSelectedMonth: Story = {
+  name: "月份 · 搜索时指定月份",
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.type(canvas.getByRole("textbox", { name: "搜索原支出" }), "充电器");
+    await userEvent.click(canvas.getByRole("button", { name: "选择月份" }));
+    const dialog = within(canvasElement.ownerDocument.body);
+    await userEvent.click(await dialog.findByRole("button", { name: "选择 8 月" }));
+    await userEvent.click(dialog.getByRole("button", { name: "选择月份" }));
+  },
+};
+
+export const EmptyMonth: Story = {
+  name: "月份 · 空月份",
+  args: {
+    month: "2026-02",
+    loadPageAction: async () => ({
+      items: [], nextOffset: null, settledCount: 0,
+      groupCounts: { history: 0, sameMerchant: 0, other: 0, partial: 0 },
     }),
   },
 };
