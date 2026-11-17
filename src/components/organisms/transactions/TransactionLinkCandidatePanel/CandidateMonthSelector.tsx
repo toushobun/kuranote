@@ -60,7 +60,10 @@ export function CandidateMonthSelector({
   // 在浏览器绘制弹窗前直接对齐选中项，避免先出现一月再跳到目标月。
   useLayoutEffect(() => {
     if (!open) return;
-    if (pickerAll) scrollPickerOptionIntoView(allMonthsRef.current!, "instant");
+    if (pickerAll) {
+      if (allMonthsRef.current)
+        scrollPickerOptionIntoView(allMonthsRef.current, "instant");
+    }
     else {
       if (yearRef.current)
         scrollPickerOptionIntoView(yearRef.current, "instant");
