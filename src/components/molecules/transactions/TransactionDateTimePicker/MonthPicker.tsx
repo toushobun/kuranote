@@ -52,8 +52,8 @@ export function MonthPicker({
         sx={{
           flex: 1,
           minHeight: 0,
-          position: "relative",
           alignSelf: "center",
+          position: "relative",
           maxWidth: 320,
           px: 2,
           width: "100%",
@@ -111,7 +111,7 @@ export function MonthPicker({
                   : undefined
               }
               type="button"
-              sx={pickerOptionSx(option === year)}
+              sx={pickerOptionSx(option === year && !allMonthsOption?.selected)}
             >
               {option}年
             </Button>
@@ -121,21 +121,21 @@ export function MonthPicker({
           {Array.from(
             { length: allMonthsOption?.selected ? 0 : monthCount },
             (_, option) => (
-            <Button
-              key={option}
-              aria-label={`选择 ${option + 1} 月`}
-              data-picker-value={option}
-              onClick={(event) => {
-                scrollPickerOptionIntoView(event.currentTarget);
-                onMonthChange(option);
-              }}
-              disableRipple
-              ref={option === month ? monthRef : undefined}
-              type="button"
-              sx={pickerOptionSx(option === month)}
-            >
-              {option + 1}月
-            </Button>
+              <Button
+                key={option}
+                aria-label={`选择 ${option + 1} 月`}
+                data-picker-value={option}
+                onClick={(event) => {
+                  scrollPickerOptionIntoView(event.currentTarget);
+                  onMonthChange(option);
+                }}
+                disableRipple
+                ref={option === month ? monthRef : undefined}
+                type="button"
+                sx={pickerOptionSx(option === month)}
+              >
+                {option + 1}月
+              </Button>
             ),
           )}
         </PickerColumn>
