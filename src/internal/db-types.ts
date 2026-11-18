@@ -4,6 +4,7 @@ import type { TransactionRecordStorageType } from "internal/transaction";
 import type { TransactionSpecialStatusStorageValue } from "internal/transaction";
 
 export type TransactionRecordDbRow = {
+  attachment_count?: number;
   id: string;
   type: TransactionRecordStorageType;
   transaction_at: string;
