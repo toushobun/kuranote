@@ -29,7 +29,7 @@ export type ReceiptPhotoViewerProps = {
   onClose: () => void;
 };
 
-function distance(touches: React.TouchList) {
+function distance(touches: TouchList) {
   const first = touches.item(0);
   const second = touches.item(1);
   if (!first || !second) return 0;
