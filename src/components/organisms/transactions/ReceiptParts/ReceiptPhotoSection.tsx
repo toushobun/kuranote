@@ -117,7 +117,9 @@ export function ReceiptPhotoSection({
                   zIndex: 2,
                   bgcolor: "rgba(0,0,0,.65)",
                   color: "#fff",
-                  "&:hover": { bgcolor: "rgba(0,0,0,.8)" },
+                  "@media (hover: hover)": {
+                    "&:hover": { bgcolor: "rgba(0,0,0,.8)" },
+                  },
                 }}
               >
                 <CloseRoundedIcon sx={{ fontSize: 16 }} />
