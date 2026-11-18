@@ -82,7 +82,7 @@ describe("ActionButton", () => {
     { iconPosition: "end" as const, label: "继续" },
   ])("带 $iconPosition 图标的按钮常态和处理中均保持单行排列", ({ iconPosition, label }) => {
     vi.useFakeTimers();
-    const icon = <span data-testid="original-icon">图标</span>;
+    const icon = <span aria-hidden="true" data-testid="original-icon">图标</span>;
     const props =
       iconPosition === "start" ? { startIcon: icon } : { endIcon: icon };
     const { rerender } = render(
