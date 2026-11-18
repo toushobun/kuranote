@@ -18,7 +18,7 @@ import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 import { DataItemCard, dataItemCardPadding } from "atoms/ui/DataItemCard";
 import { SoftCard } from "atoms/ui/SoftCard";
@@ -29,6 +29,7 @@ import {
   categorySystemMessages,
 } from "config/categoryMessages";
 import { defaultCategoryEmoji } from "config/categoryEmojis";
+import { actionPendingMessages } from "config/actionPendingMessages";
 import { DestructiveSubmitButton } from "molecules/ui/DestructiveSubmitButton/DestructiveSubmitButton";
 import { EmptyState } from "molecules/ui/EmptyState";
 import { SortableList } from "molecules/ui/SortableList/SortableList";
@@ -252,6 +253,16 @@ export function CategoryList({
     onClose: closeEditor,
   });
   const requestCloseEditor = guard.requestClose;
+  const [savingCategory, setSavingCategory] = useState(false);
+  async function submitCategoryUpdate(formData: FormData) {
+    if (savingCategory) return;
+    setSavingCategory(true);
+    try {
+      await updateCategoryAction(formData);
+    } finally {
+      setSavingCategory(false);
+    }
+  }
   useCategoryActionSuccess(updateState, closeEditor);
   useCategoryActionSuccess(archiveState, closeEditor);
 
@@ -460,7 +471,7 @@ export function CategoryList({
           {editingCategory ? (
             <Stack
               component="form"
-              action={updateCategoryAction}
+              action={submitCategoryUpdate}
               id="category-edit-form"
               spacing={2.5}
             >
@@ -488,6 +499,8 @@ export function CategoryList({
         </DialogContent>
         <CategoryDialogActions
           disabled={!canManageCategories}
+          pending={savingCategory}
+          pendingLabel={actionPendingMessages.save}
           form="category-edit-form"
           onCancel={requestCloseEditor}
           submitLabel="保存"
