@@ -10,6 +10,7 @@ import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog/UnsavedC
 import { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
 
 import { flowMessages } from "config/transactionStepFlowMessages";
+import { actionPendingMessages } from "config/actionPendingMessages";
 import {
   transactionErrorCodes,
   transactionLinkedEditErrorTitles,
@@ -84,7 +85,7 @@ export function EditTransactionShell({
     guard.runSaveAction,
     initialLinkedTargets,
   );
-  const [deleteState, deleteFormAction] = useActionState(
+  const [deleteState, deleteFormAction, deleting] = useActionState(
     (state: TransactionActionState, data: FormData) =>
       guard.runAction(() => deleteAction(state, data)),
     {},
@@ -120,6 +121,8 @@ export function EditTransactionShell({
           <EditTransactionActionButton
             color="error"
             onClick={() => setIsDeleteDialogOpen(true)}
+            pending={deleting}
+            pendingLabel={actionPendingMessages.remove}
             variant="outlined"
             sx={{ mt: 1.5 }}
           >

@@ -15,6 +15,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { AccountAvatar } from "atoms/accounts/AccountAvatar/AccountAvatar";
 import { balanceAdjustmentText as text } from "config/balanceAdjustmentText";
+import { actionPendingMessages } from "config/actionPendingMessages";
 import {
   balanceAdjustmentErrorMessages,
   type BalanceAdjustmentEditInitialValues,
@@ -197,7 +198,9 @@ export function BalanceAdjustmentEditForm({
           <EditTransactionActionButton
             color="error"
             onClick={requestDelete}
-            disabled={initialValues.accountArchived || pending || deleting}
+            disabled={initialValues.accountArchived || pending}
+            pending={deleting}
+            pendingLabel={actionPendingMessages.remove}
             variant="outlined"
             sx={{ mt: 1.5 }}
           >

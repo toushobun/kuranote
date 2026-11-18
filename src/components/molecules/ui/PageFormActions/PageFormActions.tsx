@@ -1,5 +1,4 @@
 import Button from "@mui/material/Button";
-import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
 import Link from "next/link";
 
@@ -41,20 +40,14 @@ export function PageFormActions({
         {cancelLabel}
       </Button>
       <PrimaryActionButton
-        disabled={pending || submitDisabled}
+        disabled={submitDisabled}
+        pending={pending}
+        pendingLabel={pendingLabel}
         fullWidth
         sx={submitButtonSx}
         type="submit"
       >
-        {pending ? (
-          <CircularProgress
-            aria-label={pendingLabel}
-            color="inherit"
-            size={22}
-          />
-        ) : (
-          submitLabel
-        )}
+        {submitLabel}
       </PrimaryActionButton>
     </Stack>
   );
