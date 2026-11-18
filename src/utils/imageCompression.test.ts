@@ -3,11 +3,20 @@ import { compressImage, getScaledImageSize } from "utils/imageCompression";
 
 describe("getScaledImageSize", () => {
   it("小图不放大，宽高等比缩放", () => {
-    expect(getScaledImageSize(300, 200, 1600)).toEqual({ width: 300, height: 200 });
-    expect(getScaledImageSize(3200, 1600, 1600)).toEqual({ width: 1600, height: 800 });
+    expect(getScaledImageSize(300, 200, 1600)).toEqual({
+      width: 300,
+      height: 200,
+    });
+    expect(getScaledImageSize(3200, 1600, 1600)).toEqual({
+      width: 1600,
+      height: 800,
+    });
   });
   it("极端长宽比仍保留最小一个像素", () => {
-    expect(getScaledImageSize(20000, 1, 320)).toEqual({ width: 320, height: 1 });
+    expect(getScaledImageSize(20000, 1, 320)).toEqual({
+      width: 320,
+      height: 1,
+    });
   });
 });
 
@@ -22,7 +31,9 @@ describe("compressImage", () => {
 
   beforeEach(() => {
     vi.stubGlobal("createImageBitmap", vi.fn().mockResolvedValue(bitmap));
-    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(context as never);
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
+      context as never,
+    );
     vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation(
       function (callback, mimeType) {
         callback(new Blob(["jpeg"], { type: mimeType }));
@@ -42,10 +53,9 @@ describe("compressImage", () => {
       mimeType: "image/jpeg",
       quality: 0.75,
     });
-    expect(createImageBitmap).toHaveBeenCalledWith(
-      expect.any(Blob),
-      { imageOrientation: "from-image" },
-    );
+    expect(createImageBitmap).toHaveBeenCalledWith(expect.any(Blob), {
+      imageOrientation: "from-image",
+    });
     expect(context.drawImage).toHaveBeenCalledWith(bitmap, 0, 0, 1600, 800);
     expect(context.fillRect).toHaveBeenCalledWith(0, 0, 1600, 800);
     expect(result).toEqual({
@@ -70,11 +80,13 @@ describe("compressImage", () => {
     vi.spyOn(HTMLCanvasElement.prototype, "toBlob").mockImplementation(
       (callback) => callback(new Blob(["png"], { type: "image/png" })),
     );
-    await expect(compressImage(new Blob(["img"]), {
-      maxDimension: 1600,
-      mimeType: "image/jpeg",
-      quality: 0.75,
-    })).rejects.toThrow();
+    await expect(
+      compressImage(new Blob(["img"]), {
+        maxDimension: 1600,
+        mimeType: "image/jpeg",
+        quality: 0.75,
+      }),
+    ).rejects.toThrow();
     expect(bitmap.close).toHaveBeenCalledOnce();
   });
 });

@@ -50,7 +50,10 @@ export interface AttachmentStorageRepository {
     userId: string;
   }): Promise<void>;
   deleteDraft(input: { attachmentId: string; ledgerId: string }): Promise<void>;
-  listByRecord(ledgerId: string, recordId: string): Promise<TransactionAttachment[]>;
+  listByRecord(
+    ledgerId: string,
+    recordId: string,
+  ): Promise<TransactionAttachment[]>;
   getSignedReadUrls(
     attachments: readonly TransactionAttachment[],
   ): Promise<SignedAttachmentRead[]>;
@@ -111,7 +114,12 @@ export function createSupabaseAttachmentStorageRepository(
       .is("transaction_record_id", null)
       .maybeSingle();
 
-    if (error) throw rpcError("getDraft", error, transactionAttachmentMessages.loadFailed);
+    if (error)
+      throw rpcError(
+        "getDraft",
+        error,
+        transactionAttachmentMessages.loadFailed,
+      );
     const parsed = attachmentRowSchema.safeParse(data);
     if (!parsed.success) {
       throw new ValidationError(
@@ -134,10 +142,17 @@ export function createSupabaseAttachmentStorageRepository(
         },
       );
       if (error) {
-        throw rpcError("requestUpload", error, transactionAttachmentMessages.uploadFailed);
+        throw rpcError(
+          "requestUpload",
+          error,
+          transactionAttachmentMessages.uploadFailed,
+        );
       }
       if (typeof data !== "string") {
-        throw repositoryError("requestUpload", transactionAttachmentMessages.uploadFailed);
+        throw repositoryError(
+          "requestUpload",
+          transactionAttachmentMessages.uploadFailed,
+        );
       }
       const fullPath = `${ledgerId}/${data}.jpg`;
       const thumbPath = `${ledgerId}/${data}_thumb.jpg`;
@@ -146,11 +161,17 @@ export function createSupabaseAttachmentStorageRepository(
         bucket().createSignedUploadUrl(thumbPath),
       ]);
       if (
-        fullResult.error || thumbResult.error ||
-        !fullResult.data?.signedUrl || !thumbResult.data?.signedUrl ||
-        !fullResult.data.token || !thumbResult.data.token
+        fullResult.error ||
+        thumbResult.error ||
+        !fullResult.data?.signedUrl ||
+        !thumbResult.data?.signedUrl ||
+        !fullResult.data.token ||
+        !thumbResult.data.token
       ) {
-        throw repositoryError("createUploadUrl", transactionAttachmentMessages.uploadFailed);
+        throw repositoryError(
+          "createUploadUrl",
+          transactionAttachmentMessages.uploadFailed,
+        );
       }
       return {
         attachmentId: data,
@@ -179,7 +200,12 @@ export function createSupabaseAttachmentStorageRepository(
         bucket().info(attachment.storage_path),
         bucket().info(attachment.thumbnail_path),
       ]);
-      if (fullResult.error || thumbResult.error || !fullResult.data || !thumbResult.data) {
+      if (
+        fullResult.error ||
+        thumbResult.error ||
+        !fullResult.data ||
+        !thumbResult.data
+      ) {
         throw new ValidationError(
           "transaction_attachment_upload_incomplete",
           transactionAttachmentMessages.confirmFailed,
@@ -190,17 +216,28 @@ export function createSupabaseAttachmentStorageRepository(
         { p_attachment_id: attachmentId, p_ledger_id: ledgerId },
       );
       if (error) {
-        throw rpcError("confirmUpload", error, transactionAttachmentMessages.uploadFailed);
+        throw rpcError(
+          "confirmUpload",
+          error,
+          transactionAttachmentMessages.uploadFailed,
+        );
       }
     },
 
     async deleteDraft({ attachmentId, ledgerId }) {
-      const { error } = await supabase.rpc("delete_transaction_attachment_draft", {
-        p_attachment_id: attachmentId,
-        p_ledger_id: ledgerId,
-      });
+      const { error } = await supabase.rpc(
+        "delete_transaction_attachment_draft",
+        {
+          p_attachment_id: attachmentId,
+          p_ledger_id: ledgerId,
+        },
+      );
       if (error) {
-        throw rpcError("deleteDraft", error, transactionAttachmentMessages.deleteFailed);
+        throw rpcError(
+          "deleteDraft",
+          error,
+          transactionAttachmentMessages.deleteFailed,
+        );
       }
     },
 
@@ -215,11 +252,18 @@ export function createSupabaseAttachmentStorageRepository(
         .eq("status", "uploaded")
         .order("sort_order", { ascending: true });
       if (error) {
-        throw rpcError("listByRecord", error, transactionAttachmentMessages.loadFailed);
+        throw rpcError(
+          "listByRecord",
+          error,
+          transactionAttachmentMessages.loadFailed,
+        );
       }
       const parsed = attachmentRowSchema.array().safeParse(data);
       if (!parsed.success) {
-        throw repositoryError("listByRecord", transactionAttachmentMessages.loadFailed);
+        throw repositoryError(
+          "listByRecord",
+          transactionAttachmentMessages.loadFailed,
+        );
       }
       return parsed.data;
     },
@@ -235,13 +279,19 @@ export function createSupabaseAttachmentStorageRepository(
         signedReadLifetimeSeconds,
       );
       if (error || !data || data.length !== paths.length) {
-        throw repositoryError("createSignedUrls", transactionAttachmentMessages.loadFailed);
+        throw repositoryError(
+          "createSignedUrls",
+          transactionAttachmentMessages.loadFailed,
+        );
       }
       const urls = data.map((item, index) =>
         item.path === paths[index] && !item.error ? item.signedUrl : undefined,
       );
       if (urls.some((url) => !url)) {
-        throw repositoryError("createSignedUrls", transactionAttachmentMessages.loadFailed);
+        throw repositoryError(
+          "createSignedUrls",
+          transactionAttachmentMessages.loadFailed,
+        );
       }
       return attachments.map((attachment, index) => ({
         id: attachment.id,

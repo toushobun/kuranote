@@ -25,7 +25,10 @@ export interface TransactionAttachmentService {
     ledgerId: string;
     width: number;
   }): Promise<SignedAttachmentUpload>;
-  confirmUpload(input: { attachmentId: string; ledgerId: string }): Promise<void>;
+  confirmUpload(input: {
+    attachmentId: string;
+    ledgerId: string;
+  }): Promise<void>;
   deleteDraft(input: { attachmentId: string; ledgerId: string }): Promise<void>;
   getRecordPhotos(input: {
     ledgerId: string;
@@ -68,10 +71,13 @@ export function createTransactionAttachmentService({
     async requestUpload(input) {
       await requireWrite(input.ledgerId);
       if (
-        !Number.isSafeInteger(input.byteSize) || input.byteSize < 1 ||
+        !Number.isSafeInteger(input.byteSize) ||
+        input.byteSize < 1 ||
         input.byteSize > 2097152 ||
-        !Number.isSafeInteger(input.width) || input.width < 1 ||
-        !Number.isSafeInteger(input.height) || input.height < 1
+        !Number.isSafeInteger(input.width) ||
+        input.width < 1 ||
+        !Number.isSafeInteger(input.height) ||
+        input.height < 1
       ) {
         throw new ValidationError(
           "transaction_attachment_invalid",

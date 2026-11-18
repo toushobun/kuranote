@@ -115,7 +115,9 @@ export type RequestContainer = {
     readonly service: ReturnType<typeof createStatisticsService>;
   };
   readonly transaction: {
-    readonly attachmentService: ReturnType<typeof createTransactionAttachmentService>;
+    readonly attachmentService: ReturnType<
+      typeof createTransactionAttachmentService
+    >;
     readonly merchantEntryQueryService: ReturnType<
       typeof createMerchantEntryQueryService
     >;
@@ -523,10 +525,11 @@ export function createRequestContainer(
 
         transactionContainer = {
           attachmentService: createTransactionAttachmentService({
-            attachmentStorageRepository: createSupabaseAttachmentStorageRepository(
-              dependencies.supabase,
-              dependencies.logger,
-            ),
+            attachmentStorageRepository:
+              createSupabaseAttachmentStorageRepository(
+                dependencies.supabase,
+                dependencies.logger,
+              ),
             currentUserId,
             ledgerAccessService,
             transactionRepository,
