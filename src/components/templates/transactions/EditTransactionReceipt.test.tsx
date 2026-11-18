@@ -46,6 +46,12 @@ import { EditTransactionReceiptTemplate } from "./EditTransactionReceipt";
 
 const fetchClientJson = vi.hoisted(() => vi.fn());
 vi.mock("lib/api/clientQuery", () => ({ fetchClientJson }));
+// 旧记录的照片读取独立于交易表单；测试需要模拟可正常完成的读取。
+const loadReceiptPhotos = vi.hoisted(() => vi.fn(async () => []));
+vi.mock("internal/transaction/adapter/next/attachmentActions", () => ({
+  loadReceiptPhotos,
+  discardReceiptPhoto: vi.fn(async () => {}),
+}));
 
 const transactionRecordId = "00000000-0000-4000-8000-000000009001";
 const expectedRecordUpdatedAt = "2026-10-30T01:00:00.000Z";
