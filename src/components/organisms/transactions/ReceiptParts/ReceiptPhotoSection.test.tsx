@@ -76,6 +76,13 @@ describe("ReceiptPhotoSection", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("上传失败");
   });
 
+  it("加载已有照片期间禁用添加按钮及文件输入", () => {
+    const c = { ...controller(), loading: true };
+    render(<ReceiptPhotoSection controller={c} />);
+    expect(screen.getByRole("button", { name: "添加照片" })).toBeDisabled();
+    expect(screen.getByLabelText("添加照片", { selector: "input" })).toBeDisabled();
+  });
+
   it("满五张不再出现添加格", () => {
     render(
       <ReceiptPhotoSection
