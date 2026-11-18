@@ -150,6 +150,29 @@ begin
     if not public.current_user_can_write_ledger(p_ledger_id) then
         raise exception 'ledger_forbidden' using errcode = '42501', detail = 'ledger_forbidden';
     end if;
+    -- RPC 可被已登录用户直接调用，数据库自身也必须确认两个文件存在。
+    if not exists (
+        select 1
+        from public.transaction_attachment a
+        where a.id = p_attachment_id
+          and a.ledger_id = p_ledger_id
+          and a.created_by = auth.uid()
+          and a.transaction_record_id is null
+          and a.status = 'pending'
+          and exists (
+              select 1 from storage.objects obj
+              where obj.bucket_id = 'transaction-attachments'
+                and obj.name = a.storage_path
+          )
+          and exists (
+              select 1 from storage.objects obj
+              where obj.bucket_id = 'transaction-attachments'
+                and obj.name = a.thumbnail_path
+          )
+    ) then
+        raise exception 'attachment_invalid'
+            using errcode = '22023', detail = 'attachment_invalid';
+    end if;
     update public.transaction_attachment
     set status = 'uploaded'
     where id = p_attachment_id
