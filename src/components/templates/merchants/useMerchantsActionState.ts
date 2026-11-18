@@ -11,11 +11,7 @@ import {
 import type { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
 import type { MerchantActionState, MerchantStateAction } from "types/merchants";
 
-type MerchantActionOperation =
-  | "archive"
-  | "create"
-  | "setPreferred"
-  | "update";
+type MerchantActionOperation = "archive" | "create" | "setPreferred" | "update";
 
 type UseMerchantsActionStateOptions = {
   merchantId?: string;

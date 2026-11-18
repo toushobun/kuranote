@@ -1,6 +1,9 @@
 "use client";
 
-import { BackLayerScope, transactionBackLayerLevels } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
+import {
+  BackLayerScope,
+  transactionBackLayerLevels,
+} from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
 import { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
 import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog/UnsavedChangesDialog";
 import Button from "@mui/material/Button";
@@ -66,65 +69,65 @@ export function MerchantEditTemplate({
   return (
     <BackLayerScope level={transactionBackLayerLevels.pageOverlay}>
       <SettingsPageLayout
-      action={
-        <form action={archive.action} ref={archiveFormRef}>
-          <input name="merchantId" type="hidden" value={merchant.id} />
-          <Button
-            color="error"
-            disabled={archive.pending}
-            onClick={() => setIsArchiveConfirmOpen(true)}
-            size="small"
-            sx={{ borderRadius: `${designTokens.radius.full}px` }}
-            type="button"
-            variant="outlined"
-          >
-            {merchantText.archive}
-          </Button>
-        </form>
-      }
-      back={{
-        href: routePaths.merchants,
-        label: merchantPageMessages.backToMerchants,
-      }}
-      subtitle={merchantPageMessages.editSubtitle(ledgerName)}
-      title={merchantText.edit}
-    >
-      <SectionCard sx={{ p: { xs: 2, sm: 3 } }}>
-        <MerchantEditForm
-          action={update.action}
-          id="merchant-edit-form"
-          onDirtyChange={setDirty}
-          savedKey={update.state.successKey}
-          fetchIconAction={fetchIconAction}
-          ledgerId={ledgerId}
-          merchant={merchant}
-          pending={update.pending}
-          tags={tags}
-        />
-      </SectionCard>
+        action={
+          <form action={archive.action} ref={archiveFormRef}>
+            <input name="merchantId" type="hidden" value={merchant.id} />
+            <Button
+              color="error"
+              disabled={archive.pending}
+              onClick={() => setIsArchiveConfirmOpen(true)}
+              size="small"
+              sx={{ borderRadius: `${designTokens.radius.full}px` }}
+              type="button"
+              variant="outlined"
+            >
+              {merchantText.archive}
+            </Button>
+          </form>
+        }
+        back={{
+          href: routePaths.merchants,
+          label: merchantPageMessages.backToMerchants,
+        }}
+        subtitle={merchantPageMessages.editSubtitle(ledgerName)}
+        title={merchantText.edit}
+      >
+        <SectionCard sx={{ p: { xs: 2, sm: 3 } }}>
+          <MerchantEditForm
+            action={update.action}
+            id="merchant-edit-form"
+            onDirtyChange={setDirty}
+            savedKey={update.state.successKey}
+            fetchIconAction={fetchIconAction}
+            ledgerId={ledgerId}
+            merchant={merchant}
+            pending={update.pending}
+            tags={tags}
+          />
+        </SectionCard>
 
-      <MerchantDisplayNameFeedback
-        state={update.state}
-        errorTitle={merchantText.editErrorTitle}
-      />
-      <MerchantFailureFeedback
-        state={archive.state}
-        title={merchantText.archiveErrorTitle}
-      />
-      {isArchiveConfirmOpen ? (
-        <DeleteConfirmationDialog
-          confirmLabel={merchantText.archive}
-          description={merchantText.archiveDescription}
-          onCancel={() => setIsArchiveConfirmOpen(false)}
-          onConfirm={() => {
-            setIsArchiveConfirmOpen(false);
-            archiveFormRef.current?.requestSubmit();
-          }}
-          open={isArchiveConfirmOpen}
-          title={merchantText.archiveConfirmTitle}
+        <MerchantDisplayNameFeedback
+          state={update.state}
+          errorTitle={merchantText.editErrorTitle}
         />
-      ) : null}
-      <UnsavedChangesDialog {...guard.dialogProps} />
+        <MerchantFailureFeedback
+          state={archive.state}
+          title={merchantText.archiveErrorTitle}
+        />
+        {isArchiveConfirmOpen ? (
+          <DeleteConfirmationDialog
+            confirmLabel={merchantText.archive}
+            description={merchantText.archiveDescription}
+            onCancel={() => setIsArchiveConfirmOpen(false)}
+            onConfirm={() => {
+              setIsArchiveConfirmOpen(false);
+              archiveFormRef.current?.requestSubmit();
+            }}
+            open={isArchiveConfirmOpen}
+            title={merchantText.archiveConfirmTitle}
+          />
+        ) : null}
+        <UnsavedChangesDialog {...guard.dialogProps} />
       </SettingsPageLayout>
     </BackLayerScope>
   );
