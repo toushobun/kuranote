@@ -95,7 +95,7 @@ export function ReceiptPhotoSection({
                 onClick={() => controller.remove(photo.key)}
                 size="small"
                 sx={{
-                  position: "absolute", right: 1, top: 1, p: 0.25,
+                  position: "absolute", right: 1, top: 1, p: 0.25, zIndex: 2,
                   bgcolor: "rgba(0,0,0,.65)", color: "#fff",
                   "&:hover": { bgcolor: "rgba(0,0,0,.8)" },
                 }}
