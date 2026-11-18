@@ -179,7 +179,7 @@ jobs:
     needs: [format-check, type-check, lint]
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
 
     steps:
       - name: Verify prerequisite checks
@@ -290,13 +290,7 @@ jobs:
 
       - name: Compare migrations with schema snapshot
         if: steps.scope.outputs.run == 'true'
-        run: |
-          # 临时在 CI runner 生成可复现的结构快照，供本 PR 提交。
-          npm run db:schema:snapshot:check >/tmp/schema-check.log 2>&1 || true
-          test -s /tmp/kuranote-current-schema.sql || { cat /tmp/schema-check.log; exit 1; }
-          printf 'SNAPSHOT_B64:'
-          base64 -w0 /tmp/kuranote-current-schema.sql
-          printf '\n'
+        run: npm run db:schema:snapshot:check
         env:
           ACTUAL_SCHEMA_SNAPSHOT_PATH: /tmp/kuranote-current-schema.sql
 
@@ -307,26 +301,6 @@ jobs:
             "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
             --set ON_ERROR_STOP=1 \
             --file scripts/security-definer-smoke.sql
-
-      - name: Commit generated schema snapshot (temporary)
-        if: steps.scope.outputs.run == 'true'
-        env:
-          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          git fetch origin "${PR_HEAD_REF}"
-          git checkout -B "${PR_HEAD_REF}" "origin/${PR_HEAD_REF}"
-          cp /tmp/kuranote-current-schema.sql supabase/schema_snapshot/current_schema.sql
-          git add supabase/schema_snapshot/current_schema.sql
-          if git diff --cached --quiet; then
-            echo 'Schema snapshot already matches'
-            exit 0
-          fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'chore: 根据 migrations 更新商家数据库结构快照'
-          git push origin "${PR_HEAD_REF}"
 
       - name: Upload generated snapshot
         if: always() && steps.scope.outputs.run == 'true'
