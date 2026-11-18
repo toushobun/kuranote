@@ -39,7 +39,9 @@ export async function compressImage(
   options: ImageCompressionOptions,
 ): Promise<CompressedImage> {
   // 必须在重编码前校正 EXIF 方向，重新编码后的 Blob 不包含原始 EXIF。
-  const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+  const bitmap = await createImageBitmap(file, {
+    imageOrientation: "from-image",
+  });
   try {
     const { height, width } = getScaledImageSize(
       bitmap.width,
@@ -61,7 +63,11 @@ export async function compressImage(
       context.fillRect(0, 0, width, height);
     }
 
-    const primary = await canvasToBlob(canvas, options.mimeType, options.quality);
+    const primary = await canvasToBlob(
+      canvas,
+      options.mimeType,
+      options.quality,
+    );
     if (primary?.type === options.mimeType) {
       return { blob: primary, height, width };
     }
@@ -70,7 +76,11 @@ export async function compressImage(
       context.globalCompositeOperation = "destination-over";
       context.fillStyle = "#fff";
       context.fillRect(0, 0, width, height);
-      const fallback = await canvasToBlob(canvas, "image/jpeg", options.quality);
+      const fallback = await canvasToBlob(
+        canvas,
+        "image/jpeg",
+        options.quality,
+      );
       if (fallback?.type === "image/jpeg") {
         return { blob: fallback, height, width };
       }
