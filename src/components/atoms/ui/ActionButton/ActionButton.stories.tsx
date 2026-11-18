@@ -3,13 +3,21 @@ import Typography from "@mui/material/Typography";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
 import { actionPendingMessages } from "config/actionPendingMessages";
+import { designTokens } from "theme/theme";
 
 import { ActionButton } from "./ActionButton";
+
+const pillSx = { borderRadius: `${designTokens.radius.full}px` } as const;
 
 const meta = {
   title: "Atoms/UI/ActionButton",
   component: ActionButton,
-  args: { children: "保存", pendingLabel: actionPendingMessages.save },
+  args: {
+    children: "保存",
+    pendingLabel: actionPendingMessages.save,
+    variant: "contained",
+    sx: pillSx,
+  },
 } satisfies Meta<typeof ActionButton>;
 
 export default meta;
@@ -50,6 +58,7 @@ export const Variants: Story = {
             <ActionButton
               variant={variant}
               color={color}
+              sx={pillSx}
               pendingLabel={actionPendingMessages.save}
             >
               保存
@@ -57,6 +66,7 @@ export const Variants: Story = {
             <ActionButton
               variant={variant}
               color={color}
+              sx={pillSx}
               pending
               pendingLabel={actionPendingMessages.save}
             >
@@ -65,6 +75,7 @@ export const Variants: Story = {
             <ActionButton
               variant={variant}
               color={color}
+              sx={pillSx}
               disabled
               pendingLabel={actionPendingMessages.save}
             >
