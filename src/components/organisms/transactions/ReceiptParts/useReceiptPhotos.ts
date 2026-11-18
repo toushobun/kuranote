@@ -167,7 +167,7 @@ export function useReceiptPhotos({
 
   const addFiles = useCallback(
     (files: FileList | File[]) => {
-      if (readOnly) return;
+      if (readOnly || (recordId && (loading || loadFailed))) return;
       const available = Math.max(0, maxPhotos - photosRef.current.length);
       const selected = Array.from(files);
       if (selected.length > available) setError(m.maxCount);
@@ -190,7 +190,7 @@ export function useReceiptPhotos({
       }
       if (selected.length && available > 0) setTouched(true);
     },
-    [readOnly, updatePhotos, upload],
+    [loadFailed, loading, readOnly, recordId, updatePhotos, upload],
   );
 
   const remove = useCallback(
