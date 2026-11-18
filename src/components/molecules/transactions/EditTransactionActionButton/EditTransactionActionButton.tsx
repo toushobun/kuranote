@@ -1,14 +1,17 @@
 "use client";
 
-import Button, { type ButtonProps } from "@mui/material/Button";
+import type { ActionButtonProps } from "atoms/ui/ActionButton/ActionButton";
+import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
+import { userThemePrimaryButtonColors } from "atoms/ui/ActionButton/actionButtonStyles";
 import { designTokens } from "theme/theme";
 
 /** 编辑记账页底部操作共用尺寸，颜色与行为由 MUI 属性区分。 */
-export function EditTransactionActionButton({ sx, ...props }: ButtonProps) {
+export function EditTransactionActionButton(props: ActionButtonProps) {
+  const { sx, ...buttonProps } = props;
   return (
-    <Button
+    <ActionButton
       variant="contained"
-      {...props}
+      {...buttonProps}
       fullWidth
       size="large"
       sx={[actionButtonSx, ...(Array.isArray(sx) ? sx : [sx])]}
@@ -26,12 +29,13 @@ const actionButtonSx = {
   borderColor: "transparent",
   px: 2.5,
   py: 1,
-  "&&.MuiButton-outlined.MuiButton-colorError:not(.Mui-disabled)": {
-    borderColor: "error.main",
-    color: "error.main",
+  "&&.MuiButton-outlined.MuiButton-colorError": {
+    "&:not(.Mui-disabled), &[data-action-pending='true']": {
+      borderColor: "error.main",
+      color: "error.main",
+    },
   },
-  "&.MuiButton-contained:not(.Mui-disabled)": {
-    background: "var(--user-theme-fab-bg)",
-    color: "var(--user-theme-fab-text)",
-  },
+  "&.MuiButton-contained:not(.Mui-disabled)": userThemePrimaryButtonColors,
+  "&&[data-action-pending='true'].Mui-disabled.MuiButton-contained":
+    userThemePrimaryButtonColors,
 };

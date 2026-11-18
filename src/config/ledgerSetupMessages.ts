@@ -77,7 +77,6 @@ export const ledgerSetupConfirmMessages = {
     title: "分类（自动创建）",
   },
   complete: "完成创建",
-  completing: "创建中",
   description: (ledgerName: string) => `以下内容将添加到「${ledgerName}」`,
   edit: "修改",
   editLabel: (sectionTitle: string) => `修改${sectionTitle}`,

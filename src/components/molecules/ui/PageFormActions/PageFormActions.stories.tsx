@@ -8,7 +8,7 @@ const meta = {
   args: {
     cancelHref: "/accounts",
     cancelLabel: "取消",
-    pendingLabel: "保存中",
+    pendingLabel: "保存中…",
     submitLabel: "保存账户",
   },
 } satisfies Meta<typeof PageFormActions>;

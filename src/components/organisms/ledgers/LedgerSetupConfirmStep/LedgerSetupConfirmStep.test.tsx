@@ -78,7 +78,7 @@ describe("LedgerSetupConfirmStep", () => {
       persistSetup,
     });
     clickCompleteSetup();
-    expect(screen.getByRole("button", { name: "创建中" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "创建中…" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "上一步" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "修改基本信息" })).toBeDisabled();
     expect(persistSetup).toHaveBeenCalledOnce();

@@ -11,6 +11,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useState, type ReactNode } from "react";
 
+import { actionPendingMessages } from "config/actionPendingMessages";
 import {
   ledgerSetupConfirmMessages,
   ledgerSetupWizardMessages,
@@ -64,7 +65,7 @@ export function LedgerSetupConfirmStep({
           next={{
             label: messages.complete,
             loading: step.isCompleting,
-            loadingLabel: messages.completing,
+            loadingLabel: actionPendingMessages.createLedger,
             onClick: step.complete,
           }}
           previous={{

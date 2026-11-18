@@ -1,7 +1,6 @@
 "use client";
 
 import Button from "@mui/material/Button";
-import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
 
 import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
@@ -18,9 +17,9 @@ export type WizardActionBarNextButton = {
   /** 关联的 form 元素 ID。按钮在 form 外部时用于提交该表单。 */
   form?: string;
   label: string;
-  /** 处理中：显示 CircularProgress 并禁用按钮。 */
+  /** 处理中：通过共用按钮零件展示并防连点。 */
   loading?: boolean;
-  /** 处理中时 CircularProgress 的无障碍名称。 */
+  /** 处理中时按钮的无障碍名称。 */
   loadingLabel?: string;
   onClick?: () => void;
   type?: "button" | "submit";
@@ -52,22 +51,15 @@ export function WizardActionBar({ next, previous }: WizardActionBarProps) {
         </Button>
       ) : null}
       <PrimaryActionButton
-        aria-label={nextLoading ? loadingLabel : undefined}
-        disabled={next.disabled || nextLoading}
+        disabled={next.disabled}
+        pending={nextLoading}
+        pendingLabel={loadingLabel}
         form={next.form}
         fullWidth
         onClick={next.onClick}
         type={next.type ?? "button"}
       >
-        {nextLoading ? (
-          <CircularProgress
-            aria-label={loadingLabel}
-            color="inherit"
-            size={22}
-          />
-        ) : (
-          next.label
-        )}
+        {next.label}
       </PrimaryActionButton>
     </Stack>
   );

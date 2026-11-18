@@ -22,24 +22,25 @@ describe("WizardActionBar", () => {
       />,
     );
 
-    expect(
-      screen.getAllByRole("button").map((button) => button.textContent),
-    ).toEqual(["上一步", "下一步"]);
+    expect(screen.getAllByRole("button")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "上一步" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "下一步" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "上一步" }));
     expect(onPrevious).toHaveBeenCalledTimes(1);
   });
 
-  it("处理中时下一步显示加载状态并禁用", () => {
+  it("处理中时下一步保留加载状态、名称并禁用", async () => {
     render(
       <WizardActionBar
-        next={{ label: "下一步", loading: true, loadingLabel: "保存中" }}
+        next={{ label: "下一步", loading: true, loadingLabel: "保存中…" }}
       />,
     );
 
-    const button = screen.getByRole("button", { name: "保存中" });
+    const button = screen.getByRole("button", { name: "保存中…" });
     expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-busy", "true");
     expect(
-      screen.getByRole("progressbar", { name: "保存中" }),
+      await screen.findByRole("progressbar", { name: "保存中…" }),
     ).toBeInTheDocument();
   });
 

@@ -34,16 +34,21 @@ describe("EditTransactionActionButton", () => {
     expect(onDelete).toHaveBeenCalledOnce();
   });
 
-  it("保存中保留加载指示并禁止点击，禁用条件可透传", () => {
+  it("保存中保留加载指示并禁止点击，禁用条件可透传", async () => {
     const onClick = vi.fn();
     const { rerender } = render(
-      <EditTransactionActionButton loading onClick={onClick}>
+      <EditTransactionActionButton
+        pending
+        pendingLabel="保存中…"
+        onClick={onClick}
+      >
         保存修改
       </EditTransactionActionButton>,
     );
-    const button = screen.getByRole("button", { name: "保存修改" });
+    const button = screen.getByRole("button", { name: "保存中…" });
     expect(button).toBeDisabled();
-    expect(screen.getByRole("progressbar")).toBeInTheDocument();
+    expect(button).toHaveAttribute("aria-busy", "true");
+    expect(await screen.findByRole("progressbar")).toBeInTheDocument();
     fireEvent.click(button);
     expect(onClick).not.toHaveBeenCalled();
     rerender(

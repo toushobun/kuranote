@@ -435,12 +435,12 @@ describe("RegisterForm", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "重新发送验证码" }));
     expect(
-      await screen.findByRole("button", { name: "发送中..." }),
+      await screen.findByRole("button", { name: "发送中…" }),
     ).toBeDisabled();
     resolveResend({ retryAfterSeconds: 0, status: "success" });
     await waitFor(() => {
       expect(
-        screen.queryByRole("button", { name: "发送中..." }),
+        screen.queryByRole("button", { name: "发送中…" }),
       ).not.toBeInTheDocument();
     });
   });

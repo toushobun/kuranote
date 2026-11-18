@@ -4,6 +4,7 @@ setupGuardHistoryMock();
 
 vi.mock("next/navigation", () => import("test/mocks/navigation"));
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -22,7 +23,10 @@ import {
   type TransactionEditRestriction,
 } from "internal/transaction";
 import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
-import type { TransactionStateAction } from "types/transactions";
+import type {
+  TransactionActionState,
+  TransactionStateAction,
+} from "types/transactions";
 import { transactionEditRestrictionMessages } from "utils/transactionMessages";
 
 import { UnsavedChangesHistory } from "molecules/ui/UnsavedChangesDialog/unsavedChangesHistory";
@@ -204,6 +208,28 @@ describe("EditTransactionShell", () => {
     ).toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole("button", { name: "删除" }));
     expect(requestSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it("确认删除后显示删除中并阻止重复点击", async () => {
+    let complete!: (state: TransactionActionState) => void;
+    const deleteAction = vi.fn(
+      () =>
+        new Promise<TransactionActionState>((done) => {
+          complete = done;
+        }),
+    );
+    const { container } = renderShell({ deleteAction });
+    await clickDelete(container);
+    await waitFor(() => expect(deleteAction).toHaveBeenCalledOnce());
+    const button = within(container).getByRole("button", {
+      name: "删除中…",
+      hidden: true,
+    });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-busy", "true");
+    fireEvent.click(button);
+    expect(deleteAction).toHaveBeenCalledOnce();
+    await act(async () => complete({}));
   });
 
   it("有删除权限时只读详情仍可删除", () => {
