@@ -1556,6 +1556,57 @@ $$;
 ALTER FUNCTION "public"."complete_ledger_setup"("p_ledger_id" "uuid", "p_payload" "jsonb") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."confirm_transaction_attachment_upload"("p_ledger_id" "uuid", "p_attachment_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+begin
+    if auth.uid() is null then
+        raise exception 'not_authenticated' using errcode = '28000', detail = 'not_authenticated';
+    end if;
+    if not public.current_user_can_write_ledger(p_ledger_id) then
+        raise exception 'ledger_forbidden' using errcode = '42501', detail = 'ledger_forbidden';
+    end if;
+    -- RPC 可被已登录用户直接调用，数据库自身也必须确认两个文件存在。
+    if not exists (
+        select 1
+        from public.transaction_attachment a
+        where a.id = p_attachment_id
+          and a.ledger_id = p_ledger_id
+          and a.created_by = auth.uid()
+          and a.transaction_record_id is null
+          and a.status = 'pending'
+          and exists (
+              select 1 from storage.objects obj
+              where obj.bucket_id = 'transaction-attachments'
+                and obj.name = a.storage_path
+          )
+          and exists (
+              select 1 from storage.objects obj
+              where obj.bucket_id = 'transaction-attachments'
+                and obj.name = a.thumbnail_path
+          )
+    ) then
+        raise exception 'attachment_invalid'
+            using errcode = '22023', detail = 'attachment_invalid';
+    end if;
+    update public.transaction_attachment
+    set status = 'uploaded'
+    where id = p_attachment_id
+      and ledger_id = p_ledger_id
+      and created_by = auth.uid()
+      and transaction_record_id is null
+      and status = 'pending';
+    if not found then
+        raise exception 'attachment_invalid' using errcode = '22023', detail = 'attachment_invalid';
+    end if;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."confirm_transaction_attachment_upload"("p_ledger_id" "uuid", "p_attachment_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[] DEFAULT '{}'::"uuid"[], "p_placeholder_id" "uuid" DEFAULT NULL::"uuid", "p_website_url" "text" DEFAULT NULL::"text", "p_icon_url" "text" DEFAULT NULL::"text") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -2218,6 +2269,28 @@ $$;
 ALTER FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_note" "text") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_note" "text", "p_attachment_ids" "uuid"[]) RETURNS "uuid"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+    v_record_id uuid;
+begin
+    v_record_id := public.create_transaction(
+        p_ledger_id, p_type, p_transaction_at, p_items,
+        p_payments, p_merchant_id, p_note
+    );
+    if p_attachment_ids is not null then
+        perform public.sync_transaction_attachments(p_ledger_id, v_record_id, p_attachment_ids);
+    end if;
+    return v_record_id;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_note" "text", "p_attachment_ids" "uuid"[]) OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."create_transaction_locked_impl"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -2738,6 +2811,32 @@ $$;
 ALTER FUNCTION "public"."delete_ledger_placeholder_member"("p_ledger_id" "uuid", "p_placeholder_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."delete_transaction_attachment_draft"("p_ledger_id" "uuid", "p_attachment_id" "uuid") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+begin
+    if auth.uid() is null then
+        raise exception 'not_authenticated' using errcode = '28000', detail = 'not_authenticated';
+    end if;
+    if not public.current_user_can_write_ledger(p_ledger_id) then
+        raise exception 'ledger_forbidden' using errcode = '42501', detail = 'ledger_forbidden';
+    end if;
+    delete from public.transaction_attachment
+    where id = p_attachment_id
+      and ledger_id = p_ledger_id
+      and created_by = auth.uid()
+      and transaction_record_id is null;
+    if not found then
+        raise exception 'attachment_invalid' using errcode = '22023', detail = 'attachment_invalid';
+    end if;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."delete_transaction_attachment_draft"("p_ledger_id" "uuid", "p_attachment_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."enforce_ledger_management_permission"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -3194,6 +3293,22 @@ $$;
 
 
 ALTER FUNCTION "public"."enforce_transaction_record_permission"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."enqueue_transaction_attachment_deletion"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+begin
+    insert into public.transaction_attachment_storage_deletion(storage_path, thumbnail_path)
+    values (old.storage_path, old.thumbnail_path)
+    on conflict (storage_path, thumbnail_path) do nothing;
+    return old;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."enqueue_transaction_attachment_deletion"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."ensure_ledger_placeholder_members"("p_ledger_id" "uuid", "p_display_names" "text"[]) RETURNS TABLE("display_name" "text", "placeholder_id" "uuid")
@@ -6621,6 +6736,45 @@ $$;
 ALTER FUNCTION "public"."replace_transaction_payments"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_payments" "jsonb", "p_user_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."request_transaction_attachment_upload"("p_ledger_id" "uuid", "p_byte_size" integer, "p_width" integer, "p_height" integer) RETURNS "uuid"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+    v_id uuid := extensions.gen_random_uuid();
+begin
+    if auth.uid() is null then
+        raise exception 'not_authenticated'
+            using errcode = '28000', detail = 'not_authenticated';
+    end if;
+    if not public.current_user_can_write_ledger(p_ledger_id) then
+        raise exception 'ledger_forbidden'
+            using errcode = '42501', detail = 'ledger_forbidden';
+    end if;
+    if p_byte_size not between 1 and 2097152
+       or p_width not between 1 and 20000
+       or p_height not between 1 and 20000 then
+        raise exception 'attachment_invalid'
+            using errcode = '22023', detail = 'attachment_invalid';
+    end if;
+    insert into public.transaction_attachment(
+        id, ledger_id, status, storage_path, thumbnail_path,
+        byte_size, width, height, created_by
+    )
+    values (
+        v_id, p_ledger_id, 'pending',
+        p_ledger_id::text || '/' || v_id::text || '.jpg',
+        p_ledger_id::text || '/' || v_id::text || '_thumb.jpg',
+        p_byte_size, p_width, p_height, auth.uid()
+    );
+    return v_id;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."request_transaction_attachment_upload"("p_ledger_id" "uuid", "p_byte_size" integer, "p_width" integer, "p_height" integer) OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."revoke_ledger_invite"("p_ledger_id" "uuid", "p_invite_id" "uuid") RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -6827,6 +6981,67 @@ $$;
 
 
 ALTER FUNCTION "public"."sync_account_name_scope"("p_account_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."sync_transaction_attachments"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_attachment_ids" "uuid"[]) RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+    v_ids uuid[] := coalesce(p_attachment_ids, array[]::uuid[]);
+    v_valid_count integer;
+begin
+    if auth.uid() is null then
+        raise exception 'not_authenticated' using errcode = '28000', detail = 'not_authenticated';
+    end if;
+    if not public.current_user_can_mutate_transaction(p_ledger_id, p_transaction_record_id) then
+        raise exception 'ledger_forbidden' using errcode = '42501', detail = 'ledger_forbidden';
+    end if;
+    perform 1 from public.transaction_record
+    where id = p_transaction_record_id and ledger_id = p_ledger_id
+      and type = 'normal' and status = 'active';
+    if not found then
+        raise exception 'attachment_invalid' using errcode = '22023', detail = 'attachment_invalid';
+    end if;
+    if cardinality(v_ids) > 5
+       or array_position(v_ids, null) is not null
+       or (select count(distinct id) from unnest(v_ids) as ids(id)) <> cardinality(v_ids) then
+        raise exception 'attachment_invalid' using errcode = '22023', detail = 'attachment_invalid';
+    end if;
+
+    -- 固定加锁顺序，避免并发认领时发生交叉等待。
+    select count(*) into v_valid_count
+    from (
+        select id
+        from public.transaction_attachment
+        where id = any(v_ids)
+          and ledger_id = p_ledger_id
+          and status = 'uploaded'
+          and (
+              transaction_record_id = p_transaction_record_id
+              or (transaction_record_id is null and created_by = auth.uid())
+          )
+        order by id
+        for update
+    ) as available;
+    if v_valid_count <> cardinality(v_ids) then
+        raise exception 'attachment_invalid' using errcode = '22023', detail = 'attachment_invalid';
+    end if;
+
+    delete from public.transaction_attachment
+    where ledger_id = p_ledger_id
+      and transaction_record_id = p_transaction_record_id
+      and not (id = any(v_ids));
+
+    update public.transaction_attachment
+    set transaction_record_id = p_transaction_record_id,
+        sort_order = array_position(v_ids, id) - 1
+    where ledger_id = p_ledger_id and id = any(v_ids);
+end;
+$$;
+
+
+ALTER FUNCTION "public"."sync_transaction_attachments"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_attachment_ids" "uuid"[]) OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."transaction_offset_merchant_history"("p_ledger_id" "uuid", "p_kind" "text", "p_source_merchant_id" "uuid" DEFAULT NULL::"uuid") RETURNS TABLE("source_merchant_id" "uuid", "merchant_id" "uuid", "transaction_at" timestamp with time zone)
@@ -7775,6 +7990,28 @@ $$;
 ALTER FUNCTION "public"."update_linked_transaction_edit"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_merchant_id" "uuid", "p_note" "text", "p_item_updates" "jsonb", "p_payments" "jsonb", "p_expected_record_updated_at" timestamp with time zone) OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."update_linked_transaction_edit"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_merchant_id" "uuid", "p_note" "text", "p_item_updates" "jsonb", "p_payments" "jsonb", "p_expected_record_updated_at" timestamp with time zone, "p_attachment_ids" "uuid"[]) RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+begin
+    perform public.update_linked_transaction_edit(
+        p_ledger_id, p_transaction_record_id, p_transaction_at,
+        p_merchant_id, p_note, p_item_updates,
+        p_payments, p_expected_record_updated_at
+    );
+    if p_attachment_ids is not null then
+        perform public.sync_transaction_attachments(
+            p_ledger_id, p_transaction_record_id, p_attachment_ids
+        );
+    end if;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."update_linked_transaction_edit"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_merchant_id" "uuid", "p_note" "text", "p_item_updates" "jsonb", "p_payments" "jsonb", "p_expected_record_updated_at" timestamp with time zone, "p_attachment_ids" "uuid"[]) OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."update_linked_transaction_item"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_category_id" "uuid") RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -8178,6 +8415,28 @@ $$;
 
 
 ALTER FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_note" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_note" "text", "p_attachment_ids" "uuid"[]) RETURNS "uuid"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+declare
+    v_record_id uuid;
+begin
+    v_record_id := public.update_transaction(
+        p_ledger_id, p_transaction_record_id, p_type,
+        p_transaction_at, p_items, p_payments, p_merchant_id, p_note
+    );
+    if p_attachment_ids is not null then
+        perform public.sync_transaction_attachments(p_ledger_id, v_record_id, p_attachment_ids);
+    end if;
+    return v_record_id;
+end;
+$$;
+
+
+ALTER FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_note" "text", "p_attachment_ids" "uuid"[]) OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."update_transaction_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
@@ -10478,6 +10737,43 @@ UNION ALL
 ALTER VIEW "public"."transaction_account_movement" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."transaction_attachment" (
+    "id" "uuid" DEFAULT "extensions"."gen_random_uuid"() NOT NULL,
+    "ledger_id" "uuid" NOT NULL,
+    "transaction_record_id" "uuid",
+    "status" "text" DEFAULT 'pending'::"text" NOT NULL,
+    "storage_path" "text" NOT NULL,
+    "thumbnail_path" "text" NOT NULL,
+    "byte_size" integer NOT NULL,
+    "width" integer NOT NULL,
+    "height" integer NOT NULL,
+    "sort_order" integer DEFAULT 0 NOT NULL,
+    "created_by" "uuid" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "attachment_claim_requires_upload" CHECK ((("transaction_record_id" IS NULL) OR ("status" = 'uploaded'::"text"))),
+    CONSTRAINT "attachment_paths_match_id" CHECK ((("storage_path" = (((("ledger_id")::"text" || '/'::"text") || ("id")::"text") || '.jpg'::"text")) AND ("thumbnail_path" = (((("ledger_id")::"text" || '/'::"text") || ("id")::"text") || '_thumb.jpg'::"text")))),
+    CONSTRAINT "transaction_attachment_byte_size_check" CHECK ((("byte_size" >= 1) AND ("byte_size" <= 2097152))),
+    CONSTRAINT "transaction_attachment_height_check" CHECK ((("height" >= 1) AND ("height" <= 20000))),
+    CONSTRAINT "transaction_attachment_sort_order_check" CHECK (("sort_order" >= 0)),
+    CONSTRAINT "transaction_attachment_status_check" CHECK (("status" = ANY (ARRAY['pending'::"text", 'uploaded'::"text"]))),
+    CONSTRAINT "transaction_attachment_width_check" CHECK ((("width" >= 1) AND ("width" <= 20000)))
+);
+
+
+ALTER TABLE "public"."transaction_attachment" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."transaction_attachment_storage_deletion" (
+    "id" "uuid" DEFAULT "extensions"."gen_random_uuid"() NOT NULL,
+    "storage_path" "text" NOT NULL,
+    "thumbnail_path" "text" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+ALTER TABLE "public"."transaction_attachment_storage_deletion" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."transaction_item_refund_link" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "ledger_id" "uuid" NOT NULL,
@@ -10747,6 +11043,31 @@ ALTER TABLE ONLY "public"."merchant_tags"
 
 
 
+ALTER TABLE ONLY "public"."transaction_attachment"
+    ADD CONSTRAINT "transaction_attachment_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."transaction_attachment_storage_deletion"
+    ADD CONSTRAINT "transaction_attachment_storage__storage_path_thumbnail_path_key" UNIQUE ("storage_path", "thumbnail_path");
+
+
+
+ALTER TABLE ONLY "public"."transaction_attachment_storage_deletion"
+    ADD CONSTRAINT "transaction_attachment_storage_deletion_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."transaction_attachment"
+    ADD CONSTRAINT "transaction_attachment_storage_path_key" UNIQUE ("storage_path");
+
+
+
+ALTER TABLE ONLY "public"."transaction_attachment"
+    ADD CONSTRAINT "transaction_attachment_thumbnail_path_key" UNIQUE ("thumbnail_path");
+
+
+
 ALTER TABLE ONLY "public"."transaction_item"
     ADD CONSTRAINT "transaction_item_id_ledger_id_unique" UNIQUE ("id", "ledger_id");
 
@@ -10976,6 +11297,18 @@ CREATE INDEX "merchant_tags_active_order_idx" ON "public"."merchant_tags" USING 
 
 
 
+CREATE INDEX "transaction_attachment_pending_cleanup_idx" ON "public"."transaction_attachment" USING "btree" ("created_at", "id") WHERE ("transaction_record_id" IS NULL);
+
+
+
+CREATE INDEX "transaction_attachment_record_order_idx" ON "public"."transaction_attachment" USING "btree" ("ledger_id", "transaction_record_id", "sort_order");
+
+
+
+CREATE INDEX "transaction_attachment_storage_deletion_created_idx" ON "public"."transaction_attachment_storage_deletion" USING "btree" ("created_at", "id");
+
+
+
 CREATE INDEX "transaction_item_account_id_idx" ON "public"."transaction_item" USING "btree" ("ledger_id", "account_id", "created_at" DESC, "id" DESC);
 
 
@@ -11109,6 +11442,10 @@ CREATE OR REPLACE TRIGGER "category_set_updated_at" BEFORE UPDATE ON "public"."c
 
 
 CREATE OR REPLACE TRIGGER "category_validate_parent" BEFORE INSERT OR UPDATE ON "public"."category" FOR EACH ROW EXECUTE FUNCTION "public"."validate_category_parent"();
+
+
+
+CREATE OR REPLACE TRIGGER "enqueue_deleted_transaction_attachment" AFTER DELETE ON "public"."transaction_attachment" FOR EACH ROW EXECUTE FUNCTION "public"."enqueue_transaction_attachment_deletion"();
 
 
 
@@ -11600,6 +11937,21 @@ ALTER TABLE ONLY "public"."merchant"
 
 
 
+ALTER TABLE ONLY "public"."transaction_attachment"
+    ADD CONSTRAINT "transaction_attachment_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."app_user"("id");
+
+
+
+ALTER TABLE ONLY "public"."transaction_attachment"
+    ADD CONSTRAINT "transaction_attachment_ledger_id_fkey" FOREIGN KEY ("ledger_id") REFERENCES "public"."ledger"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."transaction_attachment"
+    ADD CONSTRAINT "transaction_attachment_transaction_record_id_fkey" FOREIGN KEY ("transaction_record_id") REFERENCES "public"."transaction_record"("id") ON DELETE CASCADE;
+
+
+
 ALTER TABLE ONLY "public"."transaction_item"
     ADD CONSTRAINT "transaction_item_account_same_ledger_fk" FOREIGN KEY ("account_id", "ledger_id") REFERENCES "public"."account"("id", "ledger_id") ON DELETE RESTRICT;
 
@@ -11923,6 +12275,16 @@ CREATE POLICY "merchant_update_admin" ON "public"."merchant" FOR UPDATE TO "auth
 
 
 
+ALTER TABLE "public"."transaction_attachment" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "transaction_attachment_select_active_member" ON "public"."transaction_attachment" FOR SELECT TO "authenticated" USING (("ledger_id" IN ( SELECT "public"."current_user_active_ledger_ids"() AS "current_user_active_ledger_ids")));
+
+
+
+ALTER TABLE "public"."transaction_attachment_storage_deletion" ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE "public"."transaction_item" ENABLE ROW LEVEL SECURITY;
 
 
@@ -12077,6 +12439,11 @@ GRANT ALL ON FUNCTION "public"."complete_ledger_setup"("p_ledger_id" "uuid", "p_
 
 
 
+REVOKE ALL ON FUNCTION "public"."confirm_transaction_attachment_upload"("p_ledger_id" "uuid", "p_attachment_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."confirm_transaction_attachment_upload"("p_ledger_id" "uuid", "p_attachment_id" "uuid") TO "authenticated";
+
+
+
 REVOKE ALL ON FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[], "p_placeholder_id" "uuid", "p_website_url" "text", "p_icon_url" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[], "p_placeholder_id" "uuid", "p_website_url" "text", "p_icon_url" "text") TO "authenticated";
 
@@ -12129,6 +12496,11 @@ GRANT ALL ON FUNCTION "public"."create_merchant_with_tags"("p_ledger_id" "uuid",
 
 REVOKE ALL ON FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_note" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_note" "text") TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_note" "text", "p_attachment_ids" "uuid"[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."create_transaction"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_note" "text", "p_attachment_ids" "uuid"[]) TO "authenticated";
 
 
 
@@ -12190,6 +12562,11 @@ GRANT ALL ON FUNCTION "public"."delete_ledger_placeholder_member"("p_ledger_id" 
 
 
 
+REVOKE ALL ON FUNCTION "public"."delete_transaction_attachment_draft"("p_ledger_id" "uuid", "p_attachment_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."delete_transaction_attachment_draft"("p_ledger_id" "uuid", "p_attachment_id" "uuid") TO "authenticated";
+
+
+
 REVOKE ALL ON FUNCTION "public"."enforce_ledger_management_permission"() FROM PUBLIC;
 
 
@@ -12211,6 +12588,10 @@ REVOKE ALL ON FUNCTION "public"."enforce_transaction_child_permission"() FROM PU
 
 
 REVOKE ALL ON FUNCTION "public"."enforce_transaction_record_permission"() FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."enqueue_transaction_attachment_deletion"() FROM PUBLIC;
 
 
 
@@ -12433,6 +12814,11 @@ REVOKE ALL ON FUNCTION "public"."replace_transaction_payments"("p_ledger_id" "uu
 
 
 
+REVOKE ALL ON FUNCTION "public"."request_transaction_attachment_upload"("p_ledger_id" "uuid", "p_byte_size" integer, "p_width" integer, "p_height" integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."request_transaction_attachment_upload"("p_ledger_id" "uuid", "p_byte_size" integer, "p_width" integer, "p_height" integer) TO "authenticated";
+
+
+
 REVOKE ALL ON FUNCTION "public"."revoke_ledger_invite"("p_ledger_id" "uuid", "p_invite_id" "uuid") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."revoke_ledger_invite"("p_ledger_id" "uuid", "p_invite_id" "uuid") TO "authenticated";
 
@@ -12444,6 +12830,10 @@ GRANT ALL ON FUNCTION "public"."set_merchant_preferred_alias"("p_ledger_id" "uui
 
 
 REVOKE ALL ON FUNCTION "public"."sync_account_name_scope"("p_account_id" "uuid") FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."sync_transaction_attachments"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_attachment_ids" "uuid"[]) FROM PUBLIC;
 
 
 
@@ -12489,6 +12879,11 @@ GRANT ALL ON FUNCTION "public"."update_linked_transaction_edit"("p_ledger_id" "u
 
 
 
+REVOKE ALL ON FUNCTION "public"."update_linked_transaction_edit"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_merchant_id" "uuid", "p_note" "text", "p_item_updates" "jsonb", "p_payments" "jsonb", "p_expected_record_updated_at" timestamp with time zone, "p_attachment_ids" "uuid"[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."update_linked_transaction_edit"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_merchant_id" "uuid", "p_note" "text", "p_item_updates" "jsonb", "p_payments" "jsonb", "p_expected_record_updated_at" timestamp with time zone, "p_attachment_ids" "uuid"[]) TO "authenticated";
+
+
+
 REVOKE ALL ON FUNCTION "public"."update_linked_transaction_item"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_item_id" "uuid", "p_expected_updated_at" timestamp with time zone, "p_amount" numeric, "p_category_id" "uuid") FROM PUBLIC;
 
 
@@ -12504,6 +12899,11 @@ GRANT ALL ON FUNCTION "public"."update_merchant_with_tags"("p_ledger_id" "uuid",
 
 REVOKE ALL ON FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_note" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_note" "text") TO "authenticated";
+
+
+
+REVOKE ALL ON FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_note" "text", "p_attachment_ids" "uuid"[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."update_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_note" "text", "p_attachment_ids" "uuid"[]) TO "authenticated";
 
 
 
@@ -12651,6 +13051,15 @@ GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_record
 
 
 GRANT SELECT ON TABLE "public"."transaction_account_movement" TO "authenticated";
+
+
+
+GRANT SELECT ON TABLE "public"."transaction_attachment" TO "authenticated";
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE "public"."transaction_attachment" TO "service_role";
+
+
+
+GRANT SELECT,DELETE ON TABLE "public"."transaction_attachment_storage_deletion" TO "service_role";
 
 
 
