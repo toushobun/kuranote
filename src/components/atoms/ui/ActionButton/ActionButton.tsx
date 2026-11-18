@@ -23,6 +23,8 @@ export function ActionButton<C extends ElementType = "button">({
   children,
   color,
   disabled,
+  startIcon,
+  endIcon,
   pending = false,
   pendingLabel,
   sx,
@@ -31,6 +33,10 @@ export function ActionButton<C extends ElementType = "button">({
 }: ActionButtonProps<C>) {
   const visible = usePendingIndicator(pending);
   const blocked = pending || visible;
+  const hasIcon = Boolean(startIcon || endIcon);
+  const iconIndicator = (
+    <CircularProgress color="inherit" size={props.size === "small" ? 18 : 20} />
+  );
   const tone = color ?? "primary";
   const activeColor = tone === "inherit" ? "text.primary" : `${tone}.main`;
   const textColor =
@@ -51,16 +57,20 @@ export function ActionButton<C extends ElementType = "button">({
       aria-busy={blocked ? "true" : undefined}
       aria-label={blocked && pendingLabel ? pendingLabel : ariaLabel}
       color={color}
+      startIcon={startIcon ? (visible ? iconIndicator : startIcon) : undefined}
+      endIcon={!startIcon && endIcon && visible ? iconIndicator : endIcon}
       data-action-pending={blocked ? "true" : undefined}
       disabled={disabled || blocked}
-      loading={visible}
+      loading={visible && !hasIcon}
       loadingIndicator={
-        <CircularProgress color="inherit" size={18} aria-label={pendingLabel} />
+        !hasIcon ? (
+          <CircularProgress color="inherit" size={18} aria-label={pendingLabel} />
+        ) : null
       }
       loadingPosition={pendingLabel ? "center" : "start"}
       sx={[
         pressFeedbackSx,
-        ...(pendingLabel ? [stableLoadingLayoutSx] : []),
+        ...(pendingLabel && !hasIcon ? [stableLoadingLayoutSx] : []),
         {
           "&&[data-action-pending='true'].Mui-disabled.MuiButton-contained": {
             bgcolor: activeColor,
@@ -106,7 +116,7 @@ export function ActionButton<C extends ElementType = "button">({
             aria-hidden={!visible}
             sx={{
               gridArea: "1 / 1",
-              pl: 3,
+              pl: hasIcon ? 0 : 3,
               whiteSpace: "nowrap",
               visibility: visible ? "visible" : "hidden",
             }}
@@ -134,6 +144,8 @@ const pressFeedbackSx = {
 } as const;
 
 /**
+ * 无图标按钮使用网格固定宽度；带图标按钮保留 MUI 原生 flex 排版，
+ * 处理中将图标原位替换为进度指示器，避免额外的网格列导致换行。
  * MUI 9 的 loadingPosition="start" 会在加载后额外生成 startIcon，
  * 对于非 fullWidth 按钮会改变宽度。用同一网格轨道放置加载图标和双文案，
  * 既使用 MUI 自带 loading，又保证任何宽度下不会跳动。
