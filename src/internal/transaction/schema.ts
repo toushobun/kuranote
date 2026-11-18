@@ -500,6 +500,7 @@ const transactionItemRequestSchema = z.object({
 });
 
 const normalTransactionRequestSchema = z.object({
+  attachmentIds: z.array(z.string().uuid()).max(5).optional(),
   accountId: z.string().uuid(),
   items: z.array(transactionItemRequestSchema).min(1),
   ledgerId: z.string().uuid(),
@@ -718,3 +719,24 @@ export const attachmentSignedReadResponseSchema = z.object({
     }),
   ),
 });
+
+/**
+ * 未提供照片字段：不改动编辑记录已有的附件；
+ * 提供 attachmentIdsPresent 隐藏字段：空数组表示全部移除。
+ */
+export function parseTransactionAttachmentIds(
+  formData: FormData,
+): { ok: true; value: string[] | undefined } | { ok: false } {
+  if (!formData.has("attachmentIdsPresent") && !formData.has("attachmentIds")) {
+    return { ok: true, value: undefined };
+  }
+  const parsed = z.array(z.string().uuid()).max(5).safeParse(
+    formData.getAll("attachmentIds").map((value) =>
+      typeof value === "string" ? value : null,
+    ),
+  );
+  if (!parsed.success || new Set(parsed.data).size !== parsed.data.length) {
+    return { ok: false };
+  }
+  return { ok: true, value: parsed.data };
+}
