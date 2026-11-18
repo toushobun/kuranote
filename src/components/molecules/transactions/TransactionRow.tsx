@@ -171,7 +171,7 @@ export function TransactionRow({
           label: item.note,
         }
       : null,
-  ].filter((segment): segment is MetaSegment => segment !== null);
+  ].filter((segment): segment is NonNullable<typeof segment> => segment !== null);
 
   return (
     <Stack
