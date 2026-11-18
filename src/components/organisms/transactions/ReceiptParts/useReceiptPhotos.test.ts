@@ -123,6 +123,43 @@ describe("useReceiptPhotos", () => {
     );
   });
 
+  it("保存认领期间卸载页面不会抢先删除已上传照片", async () => {
+    mocks.uploadReceiptPhoto.mockResolvedValue({
+      attachmentId: "photo-saving",
+      width: 100,
+      height: 100,
+    });
+    const { result, unmount } = renderHook(() => useReceiptPhotos());
+    act(() => result.current.addFiles([file()]));
+    await waitFor(() =>
+      expect(result.current.photos[0]?.status).toBe("uploaded"),
+    );
+
+    const data = new FormData();
+    expect(await result.current.prepareForSave(data)).toBe(true);
+    expect(data.getAll("attachmentIds")).toEqual(["photo-saving"]);
+    unmount();
+    await Promise.resolve();
+    expect(mocks.discardReceiptPhoto).not.toHaveBeenCalled();
+  });
+
+  it("未开始保存时卸载仍会尽力删除草稿照片", async () => {
+    mocks.uploadReceiptPhoto.mockResolvedValue({
+      attachmentId: "photo-abandoned",
+      width: 100,
+      height: 100,
+    });
+    const { result, unmount } = renderHook(() => useReceiptPhotos());
+    act(() => result.current.addFiles([file()]));
+    await waitFor(() =>
+      expect(result.current.photos[0]?.status).toBe("uploaded"),
+    );
+    unmount();
+    await waitFor(() =>
+      expect(mocks.discardReceiptPhoto).toHaveBeenCalledWith("photo-abandoned"),
+    );
+  });
+
   it("旧记录照片仍在读取时不能保存，避免意外清空已有照片", async () => {
     let resolveLoad:
       | ((
