@@ -1,12 +1,13 @@
 "use client";
 
-import Button, { type ButtonProps } from "@mui/material/Button";
+import type { ActionButtonProps } from "atoms/ui/ActionButton/ActionButton";
+import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
 import { designTokens } from "theme/theme";
 
 /** 编辑记账页底部操作共用尺寸，颜色与行为由 MUI 属性区分。 */
-export function EditTransactionActionButton({ sx, ...props }: ButtonProps) {
+export function EditTransactionActionButton({ sx, ...props }: ActionButtonProps) {
   return (
-    <Button
+    <ActionButton
       variant="contained"
       {...props}
       fullWidth
@@ -26,11 +27,11 @@ const actionButtonSx = {
   borderColor: "transparent",
   px: 2.5,
   py: 1,
-  "&&.MuiButton-outlined.MuiButton-colorError:not(.Mui-disabled)": {
+  "&&.MuiButton-outlined.MuiButton-colorError:is(:not(.Mui-disabled), [data-action-pending='true'])": {
     borderColor: "error.main",
     color: "error.main",
   },
-  "&.MuiButton-contained:not(.Mui-disabled)": {
+  "&.MuiButton-contained:is(:not(.Mui-disabled), [data-action-pending='true'])": {
     background: "var(--user-theme-fab-bg)",
     color: "var(--user-theme-fab-text)",
   },

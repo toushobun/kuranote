@@ -1,16 +1,25 @@
 "use client";
 
-import Button, { type ButtonProps } from "@mui/material/Button";
+import type { ButtonProps } from "@mui/material/Button";
 import Link from "next/link";
 
 import { designTokens } from "theme/theme";
+import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
+import type { ActionButtonProps } from "atoms/ui/ActionButton/ActionButton";
 
-type PrimaryActionButtonCommonProps = "href" | "variant";
+type PrimaryActionButtonCommonProps =
+  | "href"
+  | "variant"
+  | "loading"
+  | "loadingPosition"
+  | "loadingIndicator";
 
 export type PrimaryActionButtonProps =
-  | (Omit<ButtonProps, PrimaryActionButtonCommonProps> & { href?: undefined })
+  | (Omit<ActionButtonProps, PrimaryActionButtonCommonProps> & {
+      href?: undefined;
+    })
   | (Omit<
-      ButtonProps<typeof Link>,
+      ActionButtonProps<typeof Link>,
       PrimaryActionButtonCommonProps | "component"
     > & {
       href: string;
@@ -20,7 +29,7 @@ export function PrimaryActionButton(props: PrimaryActionButtonProps) {
   if (typeof props.href === "string") {
     const { href, sx, ...linkProps } = props;
     return (
-      <Button
+      <ActionButton<typeof Link>
         {...linkProps}
         component={Link}
         href={href}
@@ -33,7 +42,7 @@ export function PrimaryActionButton(props: PrimaryActionButtonProps) {
   const { sx, ...buttonProps } = props;
 
   return (
-    <Button
+    <ActionButton
       {...buttonProps}
       sx={[primaryActionButtonSx, ...(Array.isArray(sx) ? sx : [sx])]}
       variant="contained"
@@ -45,7 +54,7 @@ const primaryActionButtonSx = {
   borderRadius: `${designTokens.radius.full}px`,
   fontWeight: 900,
   minHeight: 48,
-  "&:not(.Mui-disabled)": {
+  "&:is(:not(.Mui-disabled), [data-action-pending='true'])": {
     background: "var(--user-theme-fab-bg)",
     color: "var(--user-theme-fab-text)",
   },

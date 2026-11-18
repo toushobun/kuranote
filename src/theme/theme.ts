@@ -40,6 +40,11 @@ export const designTokens = {
     disabled: 0.56,
   },
   motion: {
+    actionButton: {
+      pendingDelay: 150,
+      minVisible: 400,
+      press: 120,
+    },
     // 通用折叠 / 展开时长（毫秒）。
     collapse: 280,
     presetDisclosure: {
