@@ -1,3 +1,5 @@
+import AddRoundedIcon from "@mui/icons-material/AddRounded";
+import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
@@ -84,6 +86,54 @@ export const Variants: Story = {
           </Stack>
         </Stack>
       ))}
+    </Stack>
+  ),
+};
+
+export const WithIcons: Story = {
+  name: "左右图标 × 常态 / 处理中",
+  render: () => (
+    <Stack spacing={2}>
+      <Stack spacing={1}>
+        <Typography variant="subtitle2">左侧图标</Typography>
+        <Stack direction="row" spacing={1}>
+          <ActionButton
+            startIcon={<AddRoundedIcon />}
+            pendingLabel={actionPendingMessages.add}
+            variant="contained"
+          >
+            添加别名
+          </ActionButton>
+          <ActionButton
+            startIcon={<AddRoundedIcon />}
+            pending
+            pendingLabel={actionPendingMessages.add}
+            variant="contained"
+          >
+            添加别名
+          </ActionButton>
+        </Stack>
+      </Stack>
+      <Stack spacing={1}>
+        <Typography variant="subtitle2">右侧图标</Typography>
+        <Stack direction="row" spacing={1}>
+          <ActionButton
+            endIcon={<ChevronRightRoundedIcon />}
+            pendingLabel={actionPendingMessages.continue}
+            variant="outlined"
+          >
+            继续创建
+          </ActionButton>
+          <ActionButton
+            endIcon={<ChevronRightRoundedIcon />}
+            pending
+            pendingLabel={actionPendingMessages.continue}
+            variant="outlined"
+          >
+            继续创建
+          </ActionButton>
+        </Stack>
+      </Stack>
     </Stack>
   ),
 };
