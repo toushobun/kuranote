@@ -74,7 +74,7 @@ export function ActionButton<C extends ElementType = "button">({
         <Box
           component="span"
           data-action-button-content=""
-          sx={{ display: "inline-grid", alignItems: "center" }}
+          sx={{ display: "inline-grid", alignItems: "center", textAlign: "center" }}
         >
           <Box
             component="span"
