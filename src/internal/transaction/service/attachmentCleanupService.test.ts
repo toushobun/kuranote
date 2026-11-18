@@ -32,8 +32,12 @@ describe("runAttachmentCleanup", () => {
 
   it("草稿删除失败时仍尝试删除软删照片和队列", async () => {
     const repo = repository();
-    vi.mocked(repo.deleteUnclaimedBefore).mockRejectedValueOnce(new Error("database error"));
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.mocked(repo.deleteUnclaimedBefore).mockRejectedValueOnce(
+      new Error("database error"),
+    );
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
     try {
       const result = await runAttachmentCleanup(repo);
       expect(result.pendingDeleted).toBe(0);
