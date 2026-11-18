@@ -2,7 +2,8 @@
 
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import CircularProgress from "@mui/material/CircularProgress";
+import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
+import { actionPendingMessages } from "config/actionPendingMessages";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -92,18 +93,14 @@ export function ProfileNicknameDialog({
             >
               {text.cancel}
             </Button>
-            <Button
-              disabled={!dialog.canSave}
-              startIcon={
-                dialog.pending ? (
-                  <CircularProgress color="inherit" size={18} />
-                ) : undefined
-              }
-              type="submit"
+            <ActionButton
+              pending={dialog.pending}
+              pendingLabel={actionPendingMessages.save}
+                          disabled={!dialog.canSave && !dialog.pending}              type="submit"
               variant="contained"
             >
               {text.save}
-            </Button>
+            </ActionButton>
           </DialogActions>
         </Box>
       </Dialog>

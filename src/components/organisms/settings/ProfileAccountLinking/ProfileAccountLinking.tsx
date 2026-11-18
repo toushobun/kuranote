@@ -3,8 +3,8 @@
 import GoogleIcon from "@mui/icons-material/Google";
 import LinkRoundedIcon from "@mui/icons-material/LinkRounded";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
-import CircularProgress from "@mui/material/CircularProgress";
+import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
+import { actionPendingMessages } from "config/actionPendingMessages";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
@@ -78,34 +78,26 @@ export function ProfileAccountLinking({
               </Typography>
             </Box>
             {googleIdentity.linked ? (
-              <Button
-                color="error"
-                disabled={unlinkDisabledReason !== null || linking.pending}
+              <ActionButton
+                pending={linking.isUnlinking}
+                pendingLabel={actionPendingMessages.unlink}
+                              color="error"
+                disabled={unlinkDisabledReason !== null || linking.isLinking}
                 onClick={linking.unlink}
-                size="small"
-                startIcon={
-                  linking.isUnlinking ? (
-                    <CircularProgress color="inherit" size={16} />
-                  ) : undefined
-                }
-                variant="outlined"
+                size="small"                variant="outlined"
               >
                 {text.unlink}
-              </Button>
+              </ActionButton>
             ) : (
-              <Button
-                disabled={linking.pending}
+              <ActionButton
+                pending={linking.isLinking}
+                pendingLabel={actionPendingMessages.link}
+                              disabled={linking.isUnlinking}
                 onClick={linking.link}
-                size="small"
-                startIcon={
-                  linking.isLinking ? (
-                    <CircularProgress color="inherit" size={16} />
-                  ) : undefined
-                }
-                variant="contained"
+                size="small"                variant="contained"
               >
                 {text.link}
-              </Button>
+              </ActionButton>
             )}
           </Stack>
           {unlinkDisabledReason ? (

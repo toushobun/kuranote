@@ -1,8 +1,9 @@
 "use client";
 
 import Button from "@mui/material/Button";
+import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
+import { actionPendingMessages } from "config/actionPendingMessages";
 import Checkbox from "@mui/material/Checkbox";
-import CircularProgress from "@mui/material/CircularProgress";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -129,17 +130,14 @@ export function LedgerNicknameSyncDialog({
         >
           {text.onlyPersonal}
         </Button>
-        <Button
-          disabled={pending}
-          onClick={onConfirm}
-          startIcon={
-            pending ? <CircularProgress color="inherit" size={18} /> : undefined
-          }
-          type="button"
+        <ActionButton
+          pending={pending}
+          pendingLabel={actionPendingMessages.submit}
+                  onClick={onConfirm}          type="button"
           variant="contained"
         >
           {text.confirm}
-        </Button>
+        </ActionButton>
       </DialogActions>
     </Dialog>
   );

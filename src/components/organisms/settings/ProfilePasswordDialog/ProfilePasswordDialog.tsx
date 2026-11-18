@@ -2,7 +2,8 @@
 
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import CircularProgress from "@mui/material/CircularProgress";
+import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
+import { actionPendingMessages } from "config/actionPendingMessages";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -68,15 +69,11 @@ export function ProfilePasswordDialog({
               <Typography color="textSecondary" variant="body2">
                 {text.description(email)}
               </Typography>
-              <Button
-                disabled={!dialog.canSendOtp}
-                onClick={dialog.sendOtp}
-                startIcon={
-                  dialog.isSending ? (
-                    <CircularProgress color="inherit" size={18} />
-                  ) : undefined
-                }
-                type="button"
+              <ActionButton
+                pending={dialog.isSending}
+                pendingLabel={actionPendingMessages.send}
+                              disabled={!dialog.canSendOtp && !dialog.isSending}
+                onClick={dialog.sendOtp}                type="button"
                 variant="outlined"
               >
                 {dialog.cooldownSeconds > 0
@@ -84,7 +81,7 @@ export function ProfilePasswordDialog({
                   : dialog.otpSent
                     ? text.resendOtp
                     : text.sendOtp}
-              </Button>
+              </ActionButton>
               {dialog.otpSent ? (
                 <>
                   <Typography color="success" role="status" variant="body2">
@@ -137,18 +134,14 @@ export function ProfilePasswordDialog({
             >
               {text.cancel}
             </Button>
-            <Button
-              disabled={!dialog.canSave}
-              startIcon={
-                dialog.isSaving ? (
-                  <CircularProgress color="inherit" size={18} />
-                ) : undefined
-              }
-              type="submit"
+            <ActionButton
+              pending={dialog.isSaving}
+              pendingLabel={actionPendingMessages.save}
+                          disabled={!dialog.canSave && !dialog.isSaving}              type="submit"
               variant="contained"
             >
               {text.save}
-            </Button>
+            </ActionButton>
           </DialogActions>
         </Box>
       </Dialog>

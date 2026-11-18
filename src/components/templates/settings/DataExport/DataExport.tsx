@@ -2,8 +2,8 @@
 
 import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import Alert from "@mui/material/Alert";
-import Button from "@mui/material/Button";
-import CircularProgress from "@mui/material/CircularProgress";
+import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
+import { actionPendingMessages } from "config/actionPendingMessages";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import {
@@ -44,21 +44,14 @@ export function DataExportTemplate({
                 {text}
               </Typography>
             ))}
-            <Button
-              disabled={isExporting}
-              onClick={handleExport}
+            <ActionButton
+              pending={isExporting}
+              pendingLabel={actionPendingMessages.export}
+                          onClick={handleExport}
               variant="contained"
-              fullWidth
-              startIcon={
-                isExporting ? (
-                  <CircularProgress color="inherit" size={20} />
-                ) : (
-                  <DownloadRoundedIcon />
-                )
-              }
-            >
-              {isExporting ? messages.exporting : messages.button}
-            </Button>
+              fullWidth            >
+              {messages.button}
+            </ActionButton>
           </Stack>
         </SectionCard>
         {hasDownloaded ? (
