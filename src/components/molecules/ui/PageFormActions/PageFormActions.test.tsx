@@ -6,7 +6,7 @@ import { PageFormActions } from "./PageFormActions";
 const props = {
   cancelHref: "/accounts",
   cancelLabel: "取消",
-  pendingLabel: "保存中",
+  pendingLabel: "保存中…",
   submitLabel: "保存账户",
 };
 
@@ -40,11 +40,12 @@ describe("PageFormActions", () => {
     );
   });
 
-  it("提交中显示加载并禁用保存", () => {
+  it("提交中保留原色、名称和加载状态并禁用保存", async () => {
     render(<PageFormActions {...props} pending />);
-
-    expect(screen.getByLabelText("保存中").closest("button")).toBeDisabled();
-    expect(screen.queryByText("保存账户")).toBeNull();
+    const button = screen.getByRole("button", { name: "保存中…" });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-busy", "true");
+    expect(await screen.findByRole("progressbar")).toBeInTheDocument();
   });
 
   it("submitDisabled 时禁用保存但仍显示文字", () => {

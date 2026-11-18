@@ -56,7 +56,7 @@ describe("MerchantForm", () => {
     );
 
     expect(container.querySelector('button[type="submit"]')).toBeDisabled();
-    expect(screen.getByLabelText("新增中")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "新增中…" })).toBeInTheDocument();
   });
   it("预填名称作为初值，可保存字段和分类修改后报告 dirty，全部还原恢复干净", () => {
     const dirty = vi.fn();
