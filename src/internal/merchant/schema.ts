@@ -381,9 +381,6 @@ export const merchantLedgerParamsSchema = z.object({
 export const merchantParamsSchema = merchantLedgerParamsSchema.extend({
   merchantId: z.string().uuid(),
 });
-export const merchantAliasParamsSchema = merchantLedgerParamsSchema.extend({
-  aliasId: z.string().uuid(),
-});
 export const merchantListQuerySchema = z.object({
   q: z.string().optional().default(""),
   tagId: z.string().uuid().optional(),
