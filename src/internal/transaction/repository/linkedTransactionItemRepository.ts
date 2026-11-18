@@ -29,6 +29,7 @@ export type LinkedTransactionItemEditSnapshot = {
 };
 
 export type UpdateLinkedTransactionEditInput = {
+  attachmentIds?: string[];
   expectedRecordUpdatedAt?: string;
   itemUpdates: Array<{
     amount: number;
@@ -306,6 +307,7 @@ export function createSupabaseLinkedTransactionItemRepository(
 
     async updateEdit(input) {
       const { error } = await supabase.rpc("update_linked_transaction_edit", {
+        p_attachment_ids: input.attachmentIds ?? null,
         p_expected_record_updated_at: input.expectedRecordUpdatedAt ?? null,
         p_item_updates: input.itemUpdates,
         p_ledger_id: input.ledgerId,
