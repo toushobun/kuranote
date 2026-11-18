@@ -245,7 +245,6 @@ export function MerchantDisplayNameDrawer({
         <Stack spacing={0.5}>
           <Stack direction="row" spacing={1}>
             <TextField
-              aria-label={merchantText.newAliasPlaceholder}
               autoComplete="off"
               error={Boolean(error)}
               fullWidth
@@ -260,7 +259,7 @@ export function MerchantDisplayNameDrawer({
               onKeyDown={addOnEnter}
               placeholder={merchantText.newAliasPlaceholder}
               size="small"
-              slotProps={{ htmlInput: { maxLength: 100 } }}
+              slotProps={{ htmlInput: { maxLength: 100, 'aria-label': merchantText.newAliasPlaceholder } }}
               sx={{
                 "& .MuiOutlinedInput-root": {
                   borderRadius: `${designTokens.radius.item}px`,

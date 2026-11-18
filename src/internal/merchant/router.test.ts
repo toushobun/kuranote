@@ -174,9 +174,6 @@ describe("merchant router", () => {
       note: null,
       siteUrl: "https://example.com",
       tagIds: [],
-      addedAliases: ["来福"],
-      archivedAliasIds: [],
-      preferredAlias: "来福",
     });
     expect(revalidatePath).toHaveBeenCalledWith(routePaths.merchants);
   });

@@ -271,6 +271,9 @@ describe("createSupabaseMerchantRepository", () => {
     ).resolves.toBe(true);
 
     expect(supabase.rpc).toHaveBeenCalledWith("update_merchant_with_tags", {
+      p_added_aliases: [],
+      p_archived_alias_ids: [],
+      p_preferred_alias: null,
       p_icon_url: null,
       p_ledger_id: ledgerId,
       p_merchant_id: merchantId,
