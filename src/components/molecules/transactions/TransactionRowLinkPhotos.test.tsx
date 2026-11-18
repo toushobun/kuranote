@@ -97,7 +97,8 @@ describe("TransactionRowLink 小票照片", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "查看照片" }));
     fireEvent.click(screen.getByRole("button", { name: "关闭照片预览" }));
-    fireEvent.click(screen.getByRole("button", { name: "查看照片" }));
+    // Dialog 退出动画期间，背景暂时保持 aria-hidden。
+    fireEvent.click(await screen.findByRole("button", { name: "查看照片" }));
     await act(async () => {
       resolves[0]?.([
         {
