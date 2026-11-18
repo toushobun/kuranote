@@ -4,10 +4,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   createMerchantRequestSchema,
-  validateArchiveMerchantAliasForm,
   validateArchiveMerchantForm,
   validateArchiveMerchantTagForm,
-  validateCreateMerchantAliasForm,
   validateCreateMerchantForm,
   validateCreateMerchantTagForm,
   validateFetchMerchantIconForm,
@@ -30,6 +28,9 @@ function createFormData(overrides: Record<string, string> = {}) {
   formData.set("websiteUrl", "https://example.com");
   formData.set("note", "常用超市");
   formData.set("alias", "来福");
+  formData.set("addedAliases", "[]");
+  formData.set("archivedAliasIds", "[]");
+  formData.set("preferredAlias", "");
   formData.set("icon", "🛒");
   formData.set("tagId", tagId);
   for (const [key, value] of Object.entries(overrides))
@@ -54,20 +55,6 @@ describe("merchant schema", () => {
     ).toEqual({ error: "website_url_invalid", ok: false });
   });
 
-  it("展示名可选择正式名或有效别名", () => {
-    expect(validateSetPreferredMerchantAliasForm(createFormData())).toEqual({
-      ok: true,
-      value: { aliasId, merchantId },
-    });
-    expect(
-      validateSetPreferredMerchantAliasForm(createFormData({ aliasId: "" })),
-    ).toEqual({ ok: true, value: { aliasId: null, merchantId } });
-    expect(
-      validateSetPreferredMerchantAliasForm(
-        createFormData({ aliasId: "not-a-uuid" }),
-      ),
-    ).toMatchObject({ ok: false, error: "alias_invalid" });
-  });
   it("新增商家表单允许 HTTP/HTTPS 网址及空可选字段", () => {
     expect(validateCreateMerchantForm(createFormData())).toEqual({
       ok: true,
@@ -155,24 +142,35 @@ describe("merchant schema", () => {
     ).toBe(false);
   });
 
-  it("更新和新增别名失败时返回对应校验错误", () => {
+  it("更新商家校验新增、归档别名及显示名", () => {
     expect(validateUpdateMerchantForm(createFormData({ name: "" }))).toEqual({
       error: "name_required",
       ok: false,
     });
-    expect(
-      validateCreateMerchantAliasForm(createFormData({ alias: "" })),
-    ).toEqual({ error: "alias_required", ok: false });
+    expect(validateUpdateMerchantForm(createFormData({
+      addedAliases: '["来福","LIFE日语"]', archivedAliasIds: '["00000000-0000-4000-8000-000000001002"]', preferredAlias: "来福",
+    }))).toMatchObject({ ok: true, value: {
+      addedAliases: ["来福", "LIFE日语"],
+      archivedAliasIds: [aliasId], preferredAlias: "来福",
+    } });
+    expect(validateUpdateMerchantForm(createFormData({
+      addedAliases: '["来福","来福"]',
+    }))).toEqual({ error: "alias_invalid", ok: false });
+    expect(validateUpdateMerchantForm(createFormData({
+      addedAliases: '["LIFE"]',
+    }))).toEqual({ error: "alias_invalid", ok: false });
+    expect(validateUpdateMerchantForm(createFormData({
+      archivedAliasIds: '["not-uuid"]',
+    }))).toEqual({ error: "alias_invalid", ok: false });
+    expect(validateUpdateMerchantForm(createFormData({
+      addedAliases: "not-json",
+    }))).toEqual({ error: "alias_invalid", ok: false });
   });
 
-  it("归档商家与别名只接受 UUID", () => {
+  it("归档商家只接受 UUID", () => {
     expect(validateArchiveMerchantForm(createFormData())).toEqual({
       ok: true,
       value: { merchantId },
-    });
-    expect(validateArchiveMerchantAliasForm(createFormData())).toEqual({
-      ok: true,
-      value: { aliasId },
     });
   });
 

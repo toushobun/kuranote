@@ -44,10 +44,8 @@ function createRepository(
 ): MerchantRepository {
   return {
     listExportTagNames: vi.fn().mockResolvedValue([]),
-    archiveAlias: vi.fn().mockResolvedValue(true),
     archiveMerchant: vi.fn().mockResolvedValue(true),
     archiveTag: vi.fn().mockResolvedValue(true),
-    createAlias: vi.fn(),
     createMerchant: vi.fn().mockResolvedValue(merchantId),
     createTag: vi.fn().mockResolvedValue(tagId),
     findActiveAlias: vi.fn().mockResolvedValue({ merchantId }),
@@ -298,6 +296,9 @@ describe("createMerchantService", () => {
     );
 
     await service.updateMerchant({
+        addedAliases: [],
+        archivedAliasIds: [],
+        preferredAlias: null,
       ledgerId,
       merchantId,
       name: "LIFE",
@@ -334,6 +335,12 @@ describe("createMerchantService", () => {
 
     await expect(
       service.updateMerchant({
+        addedAliases: [],
+        archivedAliasIds: [],
+        preferredAlias: null,
+        addedAliases: [],
+        archivedAliasIds: [],
+        preferredAlias: null,
         ledgerId,
         merchantId,
         name: "新名称",
@@ -371,6 +378,12 @@ describe("createMerchantService", () => {
     );
 
     await service.updateMerchant({
+        addedAliases: [],
+        archivedAliasIds: [],
+        preferredAlias: null,
+        addedAliases: [],
+        archivedAliasIds: [],
+        preferredAlias: null,
       ledgerId,
       merchantId,
       name: "LIFE",
@@ -403,6 +416,12 @@ describe("createMerchantService", () => {
     );
 
     await service.updateMerchant({
+        addedAliases: [],
+        archivedAliasIds: [],
+        preferredAlias: null,
+        addedAliases: [],
+        archivedAliasIds: [],
+        preferredAlias: null,
       ledgerId,
       merchantId,
       name: "LIFE",
@@ -437,6 +456,12 @@ describe("createMerchantService", () => {
     );
 
     await service.updateMerchant({
+        addedAliases: [],
+        archivedAliasIds: [],
+        preferredAlias: null,
+        addedAliases: [],
+        archivedAliasIds: [],
+        preferredAlias: null,
       ledgerId,
       merchantId,
       name: "LIFE",
@@ -618,21 +643,6 @@ describe("createMerchantService", () => {
     });
   });
 
-  it("新增别名前确认商家属于当前账本且未归档", async () => {
-    const repository = createRepository({
-      findActiveMerchant: vi.fn().mockResolvedValue(false),
-    });
-
-    await expect(
-      createService(repository).createAlias({
-        alias: "来福",
-        ledgerId,
-        merchantId,
-      }),
-    ).rejects.toBeInstanceOf(NotFoundError);
-    expect(repository.createAlias).not.toHaveBeenCalled();
-  });
-
   it("更新或归档不存在的标签时统一返回校验错误", async () => {
     const repository = createRepository();
     const service = createService(repository);
@@ -645,39 +655,6 @@ describe("createMerchantService", () => {
     ).rejects.toBeInstanceOf(ValidationError);
     expect(repository.archiveTag).not.toHaveBeenCalled();
     expect(repository.updateTag).not.toHaveBeenCalled();
-  });
-
-  it("归档别名时验证所属商家并返回商家 ID", async () => {
-    const repository = createRepository();
-
-    await expect(
-      createService(repository).archiveAlias({ aliasId, ledgerId }),
-    ).resolves.toBe(merchantId);
-    expect(repository.archiveAlias).toHaveBeenCalledWith({ aliasId, userId });
-  });
-
-  it("别名所属商家不在当前账本时返回 alias_invalid", async () => {
-    const repository = createRepository({
-      findActiveMerchant: vi.fn().mockResolvedValue(false),
-    });
-
-    await expect(
-      createService(repository).archiveAlias({ aliasId, ledgerId }),
-    ).rejects.toMatchObject({ code: merchantErrorCodes.aliasInvalid });
-    expect(repository.archiveAlias).not.toHaveBeenCalled();
-  });
-
-  it("别名归档未命中时不向错误详情暴露内部 ID", async () => {
-    const repository = createRepository({
-      archiveAlias: vi.fn().mockResolvedValue(false),
-    });
-
-    await expect(
-      createService(repository).archiveAlias({ aliasId, ledgerId }),
-    ).rejects.toMatchObject({
-      code: merchantErrorCodes.aliasArchiveFailed,
-      details: undefined,
-    });
   });
 
   it("商家更新或归档在前置检查后未命中时返回 409", async () => {
@@ -693,6 +670,12 @@ describe("createMerchantService", () => {
     ).rejects.toBeInstanceOf(ConflictError);
     await expect(
       service.updateMerchant({
+        addedAliases: [],
+        archivedAliasIds: [],
+        preferredAlias: null,
+        addedAliases: [],
+        archivedAliasIds: [],
+        preferredAlias: null,
         ledgerId,
         merchantId,
         name: "LIFE",
@@ -713,6 +696,12 @@ describe("createMerchantService", () => {
     ).rejects.toBeInstanceOf(NotFoundError);
     await expect(
       service.updateMerchant({
+        addedAliases: [],
+        archivedAliasIds: [],
+        preferredAlias: null,
+        addedAliases: [],
+        archivedAliasIds: [],
+        preferredAlias: null,
         ledgerId,
         merchantId,
         name: "LIFE",

@@ -257,6 +257,9 @@ describe("createSupabaseMerchantRepository", () => {
 
     await expect(
       repository.updateMerchant({
+        addedAliases: [],
+        archivedAliasIds: [],
+        preferredAlias: null,
         iconUrl: null,
         ledgerId,
         merchantId,
@@ -324,28 +327,18 @@ describe("createSupabaseMerchantRepository", () => {
     await expect(operation).rejects.toBeInstanceOf(ConflictError);
   });
 
-  it("重复别名使用统一权威文案返回 ConflictError", async () => {
+  it("别名无效时返回安全的 ValidationError，且通过同一 RPC 保存", async () => {
     const supabase = createSupabaseMock({
-      queryResponses: [
-        { error: { code: "23505", message: "merchant_alias_active_unique" } },
-      ],
+      rpcResponse: { error: {
+        code: "22023", details: "merchant_alias_duplicate", message: "private detail",
+      } },
     });
-    const repository = createSupabaseMerchantRepository(
-      supabase.client as never,
-      createLogger(),
-    );
-
-    const operation = repository.createAlias({
-      alias: "来福",
-      merchantId,
-      userId,
-    });
-
-    await expect(operation).rejects.toMatchObject({
-      code: merchantErrorCodes.aliasCreateFailed,
-      message: merchantErrorMessages[merchantErrorCodes.aliasCreateFailed],
-    });
-    await expect(operation).rejects.toBeInstanceOf(ConflictError);
+    const repository = createSupabaseMerchantRepository(supabase.client as never, createLogger());
+    await expect(repository.updateMerchant({
+      addedAliases: ["来福"], archivedAliasIds: [], preferredAlias: "来福",
+      iconUrl: null, ledgerId, merchantId, name: "LIFE",
+      note: null, siteUrl: null, userId,
+    })).rejects.toMatchObject({ code: merchantErrorCodes.aliasInvalid });
   });
 
   it.each([
@@ -371,6 +364,12 @@ describe("createSupabaseMerchantRepository", () => {
         repository: ReturnType<typeof createSupabaseMerchantRepository>,
       ) =>
         repository.updateMerchant({
+          addedAliases: [],
+          archivedAliasIds: [],
+          preferredAlias: null,
+        addedAliases: [],
+        archivedAliasIds: [],
+        preferredAlias: null,
           iconUrl: null,
           ledgerId,
           merchantId,

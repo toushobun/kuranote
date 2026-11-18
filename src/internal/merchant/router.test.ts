@@ -45,11 +45,9 @@ function createService(
   overrides: Partial<MerchantService> = {},
 ): MerchantService {
   return {
-    archiveAlias: vi.fn(),
     archiveMerchant: vi.fn(),
     archiveTag: vi.fn(),
     assertCanManage: vi.fn(),
-    createAlias: vi.fn(),
     createMerchant: vi.fn(),
     createTag: vi.fn(),
     findSummariesByIds: vi.fn().mockResolvedValue([]),
@@ -177,6 +175,9 @@ describe("merchant router", () => {
       note: null,
       siteUrl: "https://example.com",
       tagIds: [],
+      addedAliases: ["来福"],
+      archivedAliasIds: [],
+      preferredAlias: "来福",
     });
     expect(revalidatePath).toHaveBeenCalledWith(routePaths.merchants);
   });
@@ -214,6 +215,9 @@ describe("merchant router", () => {
           name: "ライフ",
           note: null,
           siteUrl: null,
+          addedAliases: ["来福"],
+          archivedAliasIds: [],
+          preferredAlias: "来福",
         }),
         headers: writeHeaders,
         method: "PATCH",
@@ -230,35 +234,6 @@ describe("merchant router", () => {
       tagIds: [],
     });
     expect(revalidatePath).toHaveBeenCalledWith(routePaths.merchants);
-  });
-
-  it("创建和归档别名会传递资源 ID 并刷新商家页面", async () => {
-    const createAlias = vi.fn();
-    const archiveAlias = vi.fn();
-    const app = createApp(createService({ archiveAlias, createAlias }));
-
-    const createResponse = await app.request(
-      `https://kuranote.example/ledgers/${ledgerId}/merchants/${merchantId}/aliases`,
-      {
-        body: JSON.stringify({ alias: "来福" }),
-        headers: writeHeaders,
-        method: "POST",
-      },
-    );
-    const archiveResponse = await app.request(
-      `https://kuranote.example/ledgers/${ledgerId}/merchants/aliases/${aliasId}`,
-      { headers: { origin: "https://kuranote.example" }, method: "DELETE" },
-    );
-
-    expect(createResponse.status).toBe(201);
-    expect(archiveResponse.status).toBe(200);
-    expect(createAlias).toHaveBeenCalledWith({
-      alias: "来福",
-      ledgerId,
-      merchantId,
-    });
-    expect(archiveAlias).toHaveBeenCalledWith({ aliasId, ledgerId });
-    expect(revalidatePath).toHaveBeenCalledTimes(2);
   });
 
   it("跨来源写请求返回 403 且不调用 Service 或缓存失效", async () => {
@@ -315,7 +290,7 @@ describe("merchant router", () => {
     const response = await app.request(
       `https://kuranote.example/ledgers/${ledgerId}/merchants/${merchantId}`,
       {
-        body: JSON.stringify({ name: "LIFE", note: null, siteUrl: null }),
+        body: JSON.stringify({ name: "LIFE", note: null, siteUrl: null, addedAliases: [], archivedAliasIds: [], preferredAlias: null }),
         headers: writeHeaders,
         method: "PATCH",
       },

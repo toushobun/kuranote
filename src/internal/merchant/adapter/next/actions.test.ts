@@ -18,10 +18,8 @@ import type { MerchantActionState, MerchantStateAction } from "types/merchants";
 const mocks = vi.hoisted(() => ({
   addPresets: vi.fn(),
   loadPresets: vi.fn(),
-  archiveAlias: vi.fn(),
   archiveMerchant: vi.fn(),
   archiveTag: vi.fn(),
-  createAlias: vi.fn(),
   getMerchant: vi.fn(),
   createMerchant: vi.fn(),
   createTag: vi.fn(),
@@ -58,10 +56,8 @@ import {
   addMerchantPresets,
   loadMerchantPresets,
   archiveMerchant,
-  archiveMerchantAlias,
   archiveMerchantTag,
   createMerchant,
-  createMerchantAlias,
   createMerchantTag,
   fetchMerchantIcon,
   setPreferredMerchantAlias,
@@ -81,6 +77,9 @@ function merchantForm(overrides: Record<string, string> = {}) {
   formData.set("merchantId", merchantId);
   formData.set("aliasId", aliasId);
   formData.set("alias", "来福");
+  formData.set("addedAliases", "[]");
+  formData.set("archivedAliasIds", "[]");
+  formData.set("preferredAlias", "");
   formData.set("name", "LIFE");
   formData.set("websiteUrl", "https://example.com");
   formData.set("note", "常用超市");
@@ -123,10 +122,8 @@ beforeEach(() => {
     merchant: {
       presetService: { add: mocks.addPresets, load: mocks.loadPresets },
       service: {
-        archiveAlias: mocks.archiveAlias,
         archiveMerchant: mocks.archiveMerchant,
         archiveTag: mocks.archiveTag,
-        createAlias: mocks.createAlias,
         getMerchant: mocks.getMerchant,
         createMerchant: mocks.createMerchant,
         createTag: mocks.createTag,
@@ -192,18 +189,6 @@ describe("Merchant Server Actions", () => {
       expected: merchantErrorMessages[merchantErrorCodes.merchantInvalid],
       formData: merchantForm({ merchantId: "invalid" }),
       name: "归档商家",
-    },
-    {
-      action: createMerchantAlias,
-      expected: merchantErrorMessages[merchantErrorCodes.aliasRequired],
-      formData: merchantForm({ alias: "" }),
-      name: "新增别名",
-    },
-    {
-      action: archiveMerchantAlias,
-      expected: merchantErrorMessages[merchantErrorCodes.aliasInvalid],
-      formData: merchantForm({ aliasId: "invalid" }),
-      name: "归档别名",
     },
   ])(
     "$name 校验失败时返回 inline error state",
@@ -338,15 +323,15 @@ describe("Merchant Server Actions", () => {
       throw new Error("container unavailable");
     });
 
-    const state = await runAction(createMerchantAlias);
+    const state = await runAction(updateMerchant);
 
     expectErrorState(
       state,
-      merchantErrorMessages[merchantErrorCodes.aliasCreateFailed],
+      merchantErrorMessages[merchantErrorCodes.updateFailed],
     );
-    expect(mocks.createAlias).not.toHaveBeenCalled();
+    expect(mocks.updateMerchant).not.toHaveBeenCalled();
     expect(consoleError).toHaveBeenCalledWith(
-      "[merchant] create alias action failed unexpectedly",
+      "[merchant] update action failed unexpectedly",
       { errorName: "Error" },
     );
     consoleError.mockRestore();
@@ -387,7 +372,7 @@ describe("Merchant Server Actions", () => {
     ).rejects.toThrow(`NEXT_REDIRECT:${expected}`);
   });
 
-  it("保留别名草稿时更新基本资料返回成功状态并刷新当前商家，不跳转", async () => {
+  it("弹窗方式一次保存商家和别名并返回成功状态，不跳转", async () => {
     const data = merchantForm();
     data.set("presentation", "dialog");
     await expect(runAction(updateMerchant, data)).resolves.toMatchObject({
@@ -407,13 +392,6 @@ describe("Merchant Server Actions", () => {
       await expect(runAction(action)).rejects.toThrow(`NEXT_REDIRECT:${path}`);
     }
 
-    await expect(runAction(createMerchantAlias)).resolves.toMatchObject({
-      success: "添加成功",
-    });
-    await expect(runAction(archiveMerchantAlias)).resolves.toEqual({
-      success: "删除成功",
-    });
-
     expect(mocks.createMerchant).toHaveBeenCalledWith({
       ledgerId,
       name: "LIFE",
@@ -430,18 +408,15 @@ describe("Merchant Server Actions", () => {
       previewIconUrl: null,
       siteUrl: "https://example.com",
       tagIds: [],
+      addedAliases: [],
+      archivedAliasIds: [],
+      preferredAlias: null,
     });
     expect(mocks.archiveMerchant).toHaveBeenCalledWith({
       ledgerId,
       merchantId,
     });
-    expect(mocks.createAlias).toHaveBeenCalledWith({
-      alias: "来福",
-      ledgerId,
-      merchantId,
-    });
-    expect(mocks.archiveAlias).toHaveBeenCalledWith({ aliasId, ledgerId });
-    expect(mocks.revalidateMerchantMutation).toHaveBeenCalledTimes(5);
+    expect(mocks.revalidateMerchantMutation).toHaveBeenCalledTimes(3);
     expect(mocks.revalidateMerchantMutation).toHaveBeenCalledWith(merchantId);
     expect(mocks.redirect).toHaveBeenCalledTimes(3);
   });
