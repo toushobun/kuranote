@@ -2,9 +2,7 @@ import type { z } from "@hono/zod-openapi";
 
 import { revalidateMerchantMutation } from "internal/merchant/adapter/next/revalidate";
 import {
-  createMerchantAliasRequestSchema,
   createMerchantRequestSchema,
-  merchantAliasParamsSchema,
   merchantLedgerParamsSchema,
   merchantListQuerySchema,
   merchantParamsSchema,
@@ -18,10 +16,6 @@ type MerchantLedgerParams = z.infer<typeof merchantLedgerParamsSchema>;
 type CreateMerchantRequest = z.infer<typeof createMerchantRequestSchema>;
 type MerchantParams = z.infer<typeof merchantParamsSchema>;
 type UpdateMerchantRequest = z.infer<typeof updateMerchantRequestSchema>;
-type CreateMerchantAliasRequest = z.infer<
-  typeof createMerchantAliasRequestSchema
->;
-type MerchantAliasParams = z.infer<typeof merchantAliasParamsSchema>;
 
 export const listMerchantsHandler = async (
   c: ControllerContext<{
@@ -91,26 +85,3 @@ export const archiveMerchantHandler = async (
   return c.json({ ok: true as const }, 200);
 };
 
-export const createMerchantAliasHandler = async (
-  c: ControllerContext<{
-    json: CreateMerchantAliasRequest;
-    param: MerchantParams;
-  }>,
-) => {
-  requireAuthenticatedUserId(c.get("requestDependencies").auth);
-  await c.get("container").merchant.service.createAlias({
-    ...c.req.valid("json"),
-    ...c.req.valid("param"),
-  });
-  revalidateMerchantMutation();
-  return c.json({ ok: true as const }, 201);
-};
-
-export const archiveMerchantAliasHandler = async (
-  c: ControllerContext<{ param: MerchantAliasParams }>,
-) => {
-  requireAuthenticatedUserId(c.get("requestDependencies").auth);
-  await c.get("container").merchant.service.archiveAlias(c.req.valid("param"));
-  revalidateMerchantMutation();
-  return c.json({ ok: true as const }, 200);
-};

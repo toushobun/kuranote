@@ -140,6 +140,14 @@ const merchantAccessBusinessErrorCodes = {
   permission_denied: merchantErrorCodes.permissionDenied,
 } as const;
 
+const merchantAliasWriteBusinessErrorCodes = {
+  merchant_alias_invalid: merchantErrorCodes.aliasInvalid,
+  merchant_alias_duplicate: merchantErrorCodes.aliasInvalid,
+  merchant_preferred_invalid: merchantErrorCodes.aliasInvalid,
+  merchant_tag_link_invalid: merchantErrorCodes.merchantTagInvalid,
+  merchant_tags_invalid: merchantErrorCodes.merchantTagInvalid,
+} as const;
+
 const merchantTagWriteBusinessErrorCodes = {
   merchant_tag_link_invalid: merchantErrorCodes.merchantTagInvalid,
   merchant_tags_invalid: merchantErrorCodes.merchantTagInvalid,
@@ -204,19 +212,15 @@ export type CreateMerchantInput = {
   userId: string;
 };
 
-export type UpdateMerchantInput = CreateMerchantInput & { merchantId: string };
+export type UpdateMerchantInput = CreateMerchantInput & {
+  merchantId: string;
+  addedAliases: string[];
+  archivedAliasIds: string[];
+  preferredAlias: string | null;
+};
 export type ArchiveMerchantInput = {
   ledgerId: string;
   merchantId: string;
-  userId: string;
-};
-export type CreateMerchantAliasInput = {
-  alias: string;
-  merchantId: string;
-  userId: string;
-};
-export type ArchiveMerchantAliasInput = {
-  aliasId: string;
   userId: string;
 };
 export type SetPreferredMerchantAliasInput = {
@@ -241,10 +245,8 @@ export interface MerchantRepository {
     ledgerId: string,
     merchantIds: string[],
   ): Promise<{ merchantId: string; name: string }[]>;
-  archiveAlias(input: ArchiveMerchantAliasInput): Promise<boolean>;
   archiveMerchant(input: ArchiveMerchantInput): Promise<boolean>;
   archiveTag(ledgerId: string, tagId: string): Promise<boolean>;
-  createAlias(input: CreateMerchantAliasInput): Promise<void>;
   createMerchant(input: CreateMerchantInput): Promise<string>;
   createTag(input: CreateMerchantTagInput): Promise<string>;
   findActiveAlias(aliasId: string): Promise<{ merchantId: string } | null>;
@@ -605,35 +607,6 @@ export function createSupabaseMerchantRepository(
       });
     },
 
-    async archiveAlias(input) {
-      // merchant_alias 没有 ledger_id；别名归属当前账本的不变量由 Service 层在调用前保证。
-      const { error, count } = await supabase
-        .from("merchant_alias")
-        .update(
-          {
-            archived_at: new Date().toISOString(),
-            archived_by: input.userId,
-            is_preferred: false,
-            is_archived: true,
-            updated_by: input.userId,
-          },
-          { count: "exact" },
-        )
-        .eq("id", input.aliasId)
-        .eq("is_archived", false);
-
-      if (error) {
-        fail(
-          "[merchant] failed to archive merchant alias",
-          merchantErrorCodes.aliasArchiveFailed,
-          getMerchantErrorMessage(merchantErrorCodes.aliasArchiveFailed),
-          { aliasId: input.aliasId },
-          error,
-        );
-      }
-      return count === 1;
-    },
-
     async archiveMerchant(input) {
       const { error, count } = await supabase
         .from("merchant")
@@ -677,27 +650,6 @@ export function createSupabaseMerchantRepository(
         );
       }
       return data === true;
-    },
-
-    async createAlias(input) {
-      const { error } = await supabase.from("merchant_alias").insert({
-        alias: input.alias,
-        created_by: input.userId,
-        merchant_id: input.merchantId,
-        sort_order: 0,
-        updated_by: input.userId,
-      });
-
-      if (error) {
-        fail(
-          "[merchant] failed to create merchant alias",
-          merchantErrorCodes.aliasCreateFailed,
-          getMerchantErrorMessage(merchantErrorCodes.aliasCreateFailed),
-          { merchantId: input.merchantId },
-          error,
-          merchantErrorCodes.aliasCreateFailed,
-        );
-      }
     },
 
     async createMerchant(input) {
@@ -1094,6 +1046,9 @@ export function createSupabaseMerchantRepository(
 
     async updateMerchant(input) {
       const { data, error } = await supabase.rpc("update_merchant_with_tags", {
+        p_added_aliases: input.addedAliases,
+        p_archived_alias_ids: input.archivedAliasIds,
+        p_preferred_alias: input.preferredAlias,
         p_icon_url: input.iconUrl,
         p_ledger_id: input.ledgerId,
         p_merchant_id: input.merchantId,
@@ -1111,7 +1066,7 @@ export function createSupabaseMerchantRepository(
           { ledgerId: input.ledgerId, merchantId: input.merchantId },
           error,
           merchantErrorCodes.updateFailed,
-          merchantTagWriteBusinessErrorCodes,
+          merchantAliasWriteBusinessErrorCodes,
         );
       }
       return data === true;

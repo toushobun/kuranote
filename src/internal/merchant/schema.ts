@@ -34,19 +34,13 @@ export type CreateMerchantValues = {
 
 export type UpdateMerchantValues = CreateMerchantValues & {
   merchantId: string;
+  addedAliases: string[];
+  archivedAliasIds: string[];
+  preferredAlias: string | null;
 };
 
 export type ArchiveMerchantValues = {
   merchantId: string;
-};
-
-export type CreateMerchantAliasValues = {
-  alias: string;
-  merchantId: string;
-};
-
-export type ArchiveMerchantAliasValues = {
-  aliasId: string;
 };
 
 export type SetPreferredMerchantAliasValues = {
@@ -166,6 +160,35 @@ export function validateFetchMerchantIconForm(
   return valid({ websiteUrl });
 }
 
+function parseAliasArrayField(
+  formData: FormData,
+  field: string,
+): ValidationResult<string[], typeof merchantErrorCodes.aliasInvalid> {
+  try {
+    const parsed: unknown = JSON.parse(getFormText(formData, field));
+    const result = addedAliasesSchema.safeParse(parsed);
+    return result.success
+      ? valid(result.data)
+      : invalid(merchantErrorCodes.aliasInvalid);
+  } catch {
+    return invalid(merchantErrorCodes.aliasInvalid);
+  }
+}
+
+function parseArchivedAliasIds(
+  formData: FormData,
+): ValidationResult<string[], typeof merchantErrorCodes.aliasInvalid> {
+  try {
+    const parsed: unknown = JSON.parse(getFormText(formData, "archivedAliasIds"));
+    const result = archivedAliasIdsSchema.safeParse(parsed);
+    return result.success
+      ? valid(result.data)
+      : invalid(merchantErrorCodes.aliasInvalid);
+  } catch {
+    return invalid(merchantErrorCodes.aliasInvalid);
+  }
+}
+
 export function validateUpdateMerchantForm(
   formData: FormData,
 ): ValidationResult<UpdateMerchantValues, MerchantValidationErrorCode> {
@@ -179,9 +202,27 @@ export function validateUpdateMerchantForm(
   const merchantValuesResult = parseMerchantValues(formData);
   if (!merchantValuesResult.ok) return merchantValuesResult;
 
+  const addedAliasesResult = parseAliasArrayField(formData, "addedAliases");
+  if (!addedAliasesResult.ok) return addedAliasesResult;
+  const archivedAliasIdsResult = parseArchivedAliasIds(formData);
+  if (!archivedAliasIdsResult.ok) return archivedAliasIdsResult;
+  const preferredValue = getFormText(formData, "preferredAlias").trim();
+  if (preferredValue.length > merchantAliasMaxLength) {
+    return invalid(merchantErrorCodes.aliasTooLong);
+  }
+  if (
+    addedAliasesResult.value.some(
+      (alias) => alias.toLowerCase() === merchantValuesResult.value.name.toLowerCase(),
+    )
+  ) {
+    return invalid(merchantErrorCodes.aliasInvalid);
+  }
   return valid({
     merchantId: merchantIdResult.value,
     ...merchantValuesResult.value,
+    addedAliases: addedAliasesResult.value,
+    archivedAliasIds: archivedAliasIdsResult.value,
+    preferredAlias: preferredValue || null,
   });
 }
 
@@ -199,45 +240,6 @@ export function validateArchiveMerchantForm(
   return merchantIdResult.ok
     ? valid({ merchantId: merchantIdResult.value })
     : merchantIdResult;
-}
-
-export function validateCreateMerchantAliasForm(
-  formData: FormData,
-): ValidationResult<CreateMerchantAliasValues, MerchantValidationErrorCode> {
-  const merchantIdResult = parseRequiredUuidField(
-    formData,
-    "merchantId",
-    merchantErrorCodes.merchantInvalid,
-  );
-  if (!merchantIdResult.ok) return merchantIdResult;
-
-  const aliasResult = parseTextField(formData, "alias", {
-    maxLength: merchantAliasMaxLength,
-    maxLengthError: merchantErrorCodes.aliasTooLong,
-    requiredError: merchantErrorCodes.aliasRequired,
-  });
-  if (!aliasResult.ok) return aliasResult;
-
-  return valid({
-    alias: aliasResult.value,
-    merchantId: merchantIdResult.value,
-  });
-}
-
-export function validateArchiveMerchantAliasForm(
-  formData: FormData,
-): ValidationResult<
-  ArchiveMerchantAliasValues,
-  typeof merchantErrorCodes.aliasInvalid
-> {
-  const aliasIdResult = parseRequiredUuidField(
-    formData,
-    "aliasId",
-    merchantErrorCodes.aliasInvalid,
-  );
-  return aliasIdResult.ok
-    ? valid({ aliasId: aliasIdResult.value })
-    : aliasIdResult;
 }
 
 export function validateSetPreferredMerchantAliasForm(
@@ -394,10 +396,24 @@ export const createMerchantRequestSchema = z.object({
   tagIds: merchantTagIdsSchema.optional().default([]),
 });
 
-export const updateMerchantRequestSchema = createMerchantRequestSchema;
-export const createMerchantAliasRequestSchema = z.object({
-  alias: z.string().trim().min(1).max(merchantAliasMaxLength),
-});
+const addedAliasesSchema = z.array(z.string().trim().min(1).max(merchantAliasMaxLength))
+  .max(100)
+  .refine((values) => new Set(values.map((value) => value.toLowerCase())).size === values.length);
+
+const archivedAliasIdsSchema = z.array(z.string().uuid())
+  .max(100)
+  .refine((values) => new Set(values).size === values.length);
+
+export const updateMerchantRequestSchema = createMerchantRequestSchema.extend({
+  addedAliases: addedAliasesSchema,
+  archivedAliasIds: archivedAliasIdsSchema,
+  preferredAlias: z.string().trim().min(1).max(merchantAliasMaxLength).nullable(),
+}).refine(
+  (value) => value.addedAliases.every(
+    (alias) => alias.toLowerCase() !== value.name.toLowerCase(),
+  ),
+  { message: merchantErrorMessages[merchantErrorCodes.aliasInvalid] },
+);
 
 export const merchantAliasSchema = z.object({
   alias: z.string(),
