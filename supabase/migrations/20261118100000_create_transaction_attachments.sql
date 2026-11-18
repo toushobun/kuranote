@@ -22,7 +22,7 @@ create policy transaction_attachments_storage_read_active_member
 -- 不授予前端 Storage 写策略。所有上传签名、物理删除均经服务端完成。
 
 create table public.transaction_attachment (
-    id uuid primary key default gen_random_uuid(),
+    id uuid primary key default extensions.gen_random_uuid(),
     ledger_id uuid not null references public.ledger(id) on delete cascade,
     transaction_record_id uuid references public.transaction_record(id) on delete cascade,
     status text not null default 'pending'
@@ -63,7 +63,7 @@ create policy transaction_attachment_select_active_member
 
 -- 独立于账本 FK：账本物理删除时队列必须保留，等待 Storage API 清除。
 create table public.transaction_attachment_storage_deletion (
-    id uuid primary key default gen_random_uuid(),
+    id uuid primary key default extensions.gen_random_uuid(),
     storage_path text not null,
     thumbnail_path text not null,
     created_at timestamptz not null default now(),
@@ -102,7 +102,7 @@ returns uuid language plpgsql security definer
 set search_path = pg_catalog, pg_temp
 as $$
 declare
-    v_id uuid := gen_random_uuid();
+    v_id uuid := extensions.gen_random_uuid();
 begin
     if auth.uid() is null then
         raise exception 'not_authenticated'
