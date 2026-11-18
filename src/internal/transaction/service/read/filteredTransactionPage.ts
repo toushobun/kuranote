@@ -27,6 +27,7 @@ export async function loadFilteredTransactionPage(
   if (recordIds.length === 0) return { ...page, items: [] };
 
   const records = await dependencies.transactionRepository.listRecords({
+    includeAttachmentCount: true,
     ledgerId: ledger.id,
     recordIds,
     recordType: "all",
