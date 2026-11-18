@@ -3,7 +3,7 @@
 import Box from "@mui/material/Box";
 import Button, { type ButtonProps } from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
-import type { ElementType } from "react";
+import type { ElementType, MouseEvent } from "react";
 
 import { designTokens } from "theme/theme";
 
@@ -39,6 +39,15 @@ export function ActionButton<C extends ElementType = "button">({
   return (
     <Button
       {...props}
+      // 链接没有原生 disabled，键盘或脚本触发时仍需显式阻止跳转和回调。
+      {...(blocked || disabled
+        ? {
+            onClickCapture: (event: MouseEvent<HTMLElement>) => {
+              event.preventDefault();
+              event.stopPropagation();
+            },
+          }
+        : {})}
       aria-busy={blocked ? "true" : undefined}
       aria-label={blocked && pendingLabel ? pendingLabel : ariaLabel}
       color={color}

@@ -86,6 +86,52 @@ describe("ActionButton", () => {
     expect(button).not.toHaveAttribute("aria-busy");
   });
 
+  it("链接模式在处理中或禁用时不会执行跳转与点击回调", () => {
+    const onClick = vi.fn((event: React.MouseEvent) => event.preventDefault());
+    const { rerender } = render(
+      <ActionButton<"a">
+        component="a"
+        href="#ledger"
+        pending
+        pendingLabel="切换中…"
+        onClick={onClick}
+      >
+        切换
+      </ActionButton>,
+    );
+    const link = screen.getByRole("link", { name: "切换中…" });
+    expect(link).toHaveAttribute("aria-disabled", "true");
+    fireEvent.click(link);
+    expect(onClick).not.toHaveBeenCalled();
+
+    rerender(
+      <ActionButton<"a">
+        component="a"
+        href="#ledger"
+        disabled
+        pendingLabel="切换中…"
+        onClick={onClick}
+      >
+        切换
+      </ActionButton>,
+    );
+    fireEvent.click(link);
+    expect(onClick).not.toHaveBeenCalled();
+
+    rerender(
+      <ActionButton<"a">
+        component="a"
+        href="#ledger"
+        pendingLabel="切换中…"
+        onClick={onClick}
+      >
+        切换
+      </ActionButton>,
+    );
+    fireEvent.click(link);
+    expect(onClick).toHaveBeenCalledOnce();
+  });
+
   it("主按钮、描边和红色危险按钮均支持统一处理反馈", () => {
     vi.useFakeTimers();
     render(
