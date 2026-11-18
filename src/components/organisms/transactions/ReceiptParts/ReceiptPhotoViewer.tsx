@@ -29,7 +29,7 @@ export type ReceiptPhotoViewerProps = {
   onClose: () => void;
 };
 
-function distance(touches: TouchList) {
+function distance(touches: React.TouchList) {
   const first = touches.item(0);
   const second = touches.item(1);
   if (!first || !second) return 0;
@@ -140,9 +140,7 @@ export function ReceiptPhotoViewer({
       <Stack sx={{ bgcolor: "#101010", height: "100dvh", minHeight: 0 }}>
         <Stack
           direction="row"
-          alignItems="center"
-          justifyContent="space-between"
-          sx={{ px: 1, pt: "env(safe-area-inset-top)", minHeight: 60 }}
+          sx={{ alignItems: "center", justifyContent: "space-between", px: 1, pt: "env(safe-area-inset-top)", minHeight: 60 }}
         >
           <IconButton color="inherit" aria-label={m.photoClose} onClick={onClose}>
             <CloseRoundedIcon />
@@ -174,7 +172,7 @@ export function ReceiptPhotoViewer({
           }}
         >
           {loading ? (
-            <Stack spacing={1} alignItems="center">
+            <Stack spacing={1} sx={{ alignItems: "center" }}>
               <CircularProgress color="inherit" size={26} />
               <Typography variant="caption" sx={{ color: "#fff" }}>{m.photoLoading}</Typography>
             </Stack>
@@ -217,7 +215,7 @@ export function ReceiptPhotoViewer({
             <Typography sx={{ color: "#fff" }}>{error || m.loadFailed}</Typography>
           )}
         </Box>
-        <Stack sx={{ pb: "max(20px, env(safe-area-inset-bottom))", pt: 1 }} alignItems="center">
+        <Stack sx={{ alignItems: "center", pb: "max(20px, env(safe-area-inset-bottom))", pt: 1 }}>
           <Button
             color="inherit"
             disabled={!photo || loading}
