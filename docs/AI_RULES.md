@@ -40,8 +40,8 @@
 
 - 静态语义图标优先使用 `@mui/icons-material`。
   - 例如：成功、错误、编辑、删除、添加、日历、账户等。
-- 加载 / 处理中状态优先使用 `@mui/material/CircularProgress` 或同类 MUI loading 组件。
-  - 例如：检查中、提交中、保存中、加载中。
+- 非按钮的加载 / 处理中状态优先使用 `@mui/material/CircularProgress` 或同类 MUI loading 组件。
+  - 例如：页面加载、邮箱检查、数据读取。按钮处理状态统一使用 `ActionButton`，不各自插入转圈。
 - 不为了统一 import 来源而把 loading 状态改成静态 icon。
 - UI 整体固定 MUI 风格，自定义组件需与 MUI 视觉风格保持一致。
 - 不引入 MUI 以外的新图标库，除非当前 Issue 明确要求并说明理由。
@@ -191,6 +191,14 @@ Review（包括 review 他人 PR、自查 diff、处理 review 意见）的核�
     "&:hover": { bgcolor: "action.hover" },
   },
   ```
+
+## 交互反馈
+
+- 按下后需要等待服务器结果的按钮，必须复用 `src/components/atoms/ui/ActionButton/ActionButton.tsx` 的 `pending` / `pendingLabel`。处理中保留按钮原色、显示小转圈和「X中…」（全角省略号）、防重复点击；不要只设置 `disabled` 变灰，也不要各自实现 `CircularProgress`。
+- 灰色 `disabled` 只表示输入不完整、权限不足等真正不能按的情况；处理中旁边的取消等按钮可继续按原有逻辑禁用。
+- 按钮有按下反馈（约 0.97 缩放、轻微加深、约 120ms），动效尊重 `prefers-reduced-motion`。
+- 请求开始立即锁定；持续 150ms 才显示处理中转圈；一旦显示至少保持 400ms。这些值统一放在 `designTokens.motion.actionButton`，不要在业务层复制计时器。
+- 新增交互时，逐一确认按下、处理中、完成、失败阶段的用户反馈是否明确；成功 / 失败提示仍按现有业务方式处理。
 
 ## 实现时的注意事项
 

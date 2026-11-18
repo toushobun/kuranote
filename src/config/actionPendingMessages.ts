@@ -7,4 +7,5 @@ export const actionPendingMessages = {
   submit: "提交中…",
   add: "添加中…",
   create: "新增中…",
+  createLedger: "创建中…",
 } as const;

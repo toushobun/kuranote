@@ -65,7 +65,7 @@ export function LedgerSetupConfirmStep({
           next={{
             label: messages.complete,
             loading: step.isCompleting,
-            loadingLabel: actionPendingMessages.create,
+            loadingLabel: actionPendingMessages.createLedger,
             onClick: step.complete,
           }}
           previous={{
