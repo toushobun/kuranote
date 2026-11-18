@@ -185,6 +185,7 @@ describe("TransactionFilterDialog", () => {
       });
     });
   });
+
   it("应用处理中显示应用中并防止再次应用", () => {
     const onApply = vi.fn();
     render(
@@ -207,5 +208,4 @@ describe("TransactionFilterDialog", () => {
     fireEvent.click(button);
     expect(onApply).not.toHaveBeenCalled();
   });
-
 });

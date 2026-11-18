@@ -14,7 +14,7 @@ import {
   getCurrentStepItem,
   ledgerSetupWizardTestDefaults,
 } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardTestUtils";
-import { ledgerSetupEntryMessages } from "config/ledgerSetupMessages";
+import { ledgerSetupAbandonMessages, ledgerSetupEntryMessages } from "config/ledgerSetupMessages";
 import { actionPendingMessages } from "config/actionPendingMessages";
 import {
   ledgerSetupErrorCodes,

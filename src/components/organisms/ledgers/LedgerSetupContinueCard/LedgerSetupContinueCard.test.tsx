@@ -60,6 +60,7 @@ describe("LedgerSetupContinueCard", () => {
 
     expect(onContinue).toHaveBeenCalledTimes(1);
   });
+
   it("继续创建读取中禁止重复点击并显示继续中", () => {
     const onContinue = vi.fn();
     render(
@@ -77,7 +78,6 @@ describe("LedgerSetupContinueCard", () => {
     fireEvent.click(button);
     expect(onContinue).not.toHaveBeenCalled();
   });
-
 });
 
 describe("LedgerSetupContinueCard 放弃创建", () => {
