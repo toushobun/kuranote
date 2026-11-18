@@ -129,17 +129,22 @@ export const merchantEntrySuggestionsRoute = createRoute({
   },
 });
 
-
 /** #1120：签名上传、确认、撤销草稿及记录照片只读签名。 */
 export const attachmentUploadRoute = createRoute({
   method: "post",
   path: "/attachments/upload-requests",
   request: {
-    body: { content: { "application/json": { schema: attachmentUploadRequestSchema } } },
+    body: {
+      content: {
+        "application/json": { schema: attachmentUploadRequestSchema },
+      },
+    },
   },
   responses: {
     201: {
-      content: { "application/json": { schema: attachmentUploadResponseSchema } },
+      content: {
+        "application/json": { schema: attachmentUploadResponseSchema },
+      },
       description: "签发大图与缩略图上传 URL",
     },
     ...errorResponses,
@@ -151,7 +156,9 @@ export const attachmentConfirmRoute = createRoute({
   path: "/attachments/{attachmentId}/confirm",
   request: {
     params: attachmentIdParamsSchema,
-    body: { content: { "application/json": { schema: transactionLedgerQuerySchema } } },
+    body: {
+      content: { "application/json": { schema: transactionLedgerQuerySchema } },
+    },
   },
   responses: {
     200: {
@@ -187,7 +194,9 @@ export const transactionAttachmentsRoute = createRoute({
   },
   responses: {
     200: {
-      content: { "application/json": { schema: attachmentSignedReadResponseSchema } },
+      content: {
+        "application/json": { schema: attachmentSignedReadResponseSchema },
+      },
       description: "获取记录照片的短期签名 URL",
     },
     ...readErrorResponses,
@@ -200,10 +209,22 @@ transactionRouter.use("*", sameOriginMiddleware);
 transactionRouter.openapi(createTransactionRoute, createTransactionHandler);
 transactionRouter.openapi(updateTransactionRoute, updateTransactionHandler);
 transactionRouter.openapi(voidTransactionRoute, voidTransactionHandler);
-transactionRouter.openapi(attachmentUploadRoute, requestAttachmentUploadHandler);
-transactionRouter.openapi(attachmentConfirmRoute, confirmAttachmentUploadHandler);
-transactionRouter.openapi(attachmentDraftDeleteRoute, deleteAttachmentDraftHandler);
-transactionRouter.openapi(transactionAttachmentsRoute, getRecordAttachmentsHandler);
+transactionRouter.openapi(
+  attachmentUploadRoute,
+  requestAttachmentUploadHandler,
+);
+transactionRouter.openapi(
+  attachmentConfirmRoute,
+  confirmAttachmentUploadHandler,
+);
+transactionRouter.openapi(
+  attachmentDraftDeleteRoute,
+  deleteAttachmentDraftHandler,
+);
+transactionRouter.openapi(
+  transactionAttachmentsRoute,
+  getRecordAttachmentsHandler,
+);
 
 transactionRouter.openapi(frequentMerchantsRoute, frequentMerchantsHandler);
 transactionRouter.openapi(
