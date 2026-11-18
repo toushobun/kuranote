@@ -96,7 +96,6 @@ export const flowMessages = {
   saveEdit: "保存修改",
   editTitle: "编辑记账",
   delete: "删除",
-  saving: "保存中…",
   selectMerchant: "请选择商家",
   selectAccount: (income: boolean) =>
     income ? "请添加收款账户" : "请添加付款账户",

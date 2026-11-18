@@ -11,7 +11,6 @@ export const merchantPageMessages = {
 
 export const merchantText = {
   cancel: "取消",
-  creating: "新增中",
   saveMerchant: "保存商家",
   reorderErrorTitle: "商家排序失败",
   addCategory: "新增分类",

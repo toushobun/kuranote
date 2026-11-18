@@ -12,7 +12,6 @@ export const merchantPresetMessages = {
   close: "关闭",
   cancel: "取消",
   submit: (count: number) => `添加 ${count} 个商家`,
-  submitting: "添加中…",
   success: (count: number) => `已添加 ${count} 个商家`,
   failureTitle: "添加失败",
   loading: "正在读取预设商家…",

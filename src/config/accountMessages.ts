@@ -40,7 +40,6 @@ export const accountFormMessages = {
   cancel: "取消",
   save: "保存账户",
   saveChanges: "保存修改",
-  saving: "保存中",
 } as const;
 
 export const accountIconMessages = {

@@ -21,11 +21,9 @@ export const registerFormMessages = {
   },
   modifyRegisterInfo: "修改注册信息",
   requestOtp: "获取验证码",
-  requestOtpPending: "发送中...",
   resendOtp: "重新发送验证码",
   retryTurnstile: "重新加载验证",
   submitOtp: "完成注册",
-  submitOtpPending: "提交中...",
   otpInstruction: "请输入邮件中的 6 位数字验证码。",
   getInitialCooldownText: (cooldownSeconds: number) =>
     `${cooldownSeconds} 秒后可重新获取验证码。`,
