@@ -165,7 +165,11 @@ describe("useReceiptPhotos", () => {
     unmount();
 
     await act(async () => {
-      resolveUpload?.({ attachmentId: "photo-pending", width: 100, height: 100 });
+      resolveUpload?.({
+        attachmentId: "photo-pending",
+        width: 100,
+        height: 100,
+      });
       expect(await saving).toBe(true);
     });
     expect(data.getAll("attachmentIds")).toEqual(["photo-pending"]);
