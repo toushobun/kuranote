@@ -164,7 +164,7 @@ describe("MerchantImportService", () => {
           ],
         }),
       ),
-    });
+    } as never);
 
     await importService.addTag({
       ledgerId: "ledger-1",
