@@ -1,7 +1,8 @@
 "use client";
 
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import Button from "@mui/material/Button";
+import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
+import { actionPendingMessages } from "config/actionPendingMessages";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
@@ -92,8 +93,9 @@ export function MerchantDisplayNameEditor({
           }}
           value={alias}
         />
-        <Button
-          disabled={pending}
+        <ActionButton
+          pending={pending}
+          pendingLabel={actionPendingMessages.add}
           startIcon={<AddRoundedIcon />}
           sx={{
             borderRadius: `${designTokens.radius.item}px`,
@@ -104,7 +106,7 @@ export function MerchantDisplayNameEditor({
           variant="outlined"
         >
           {merchantText.addAlias}
-        </Button>
+        </ActionButton>
         <input name="merchantId" type="hidden" value={merchant.id} />
       </Stack>
       <Typography color="textSecondary" variant="caption" sx={{ px: 0.5 }}>

@@ -1,4 +1,6 @@
 import Button from "@mui/material/Button";
+import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
+import { actionPendingMessages } from "config/actionPendingMessages";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -261,15 +263,16 @@ export function TransactionFilterDialog({
         >
           重置
         </Button>
-        <Button
-          disabled={isPending}
+        <ActionButton
+          pending={isPending}
+          pendingLabel={actionPendingMessages.apply}
           fullWidth
           onClick={onApply}
           sx={applyButtonSx}
           variant="contained"
         >
           应用
-        </Button>
+        </ActionButton>
       </DialogActions>
     </Dialog>
   );

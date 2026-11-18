@@ -46,6 +46,7 @@ type EditTransactionShellProps = {
   children: (edit: {
     formAction: (formData: FormData) => void;
     isPending: boolean;
+    saveDisabled: boolean;
     onValidationFailed: () => void;
   }) => ReactNode;
   deleteAction: TransactionStateAction;
@@ -116,11 +117,16 @@ export function EditTransactionShell({
             <TransactionEditRestrictionAlert reason={editRestriction} />
           </Box>
         ) : null}
-        {children({ ...editAction, onValidationFailed: guard.cancelSave })}
+        {children({
+          ...editAction,
+          saveDisabled: deleting,
+          onValidationFailed: guard.cancelSave,
+        })}
         {canDelete ? (
           <EditTransactionActionButton
             color="error"
             onClick={() => setIsDeleteDialogOpen(true)}
+            disabled={editAction.isPending}
             pending={deleting}
             pendingLabel={actionPendingMessages.remove}
             variant="outlined"

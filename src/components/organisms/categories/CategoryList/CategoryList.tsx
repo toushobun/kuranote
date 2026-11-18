@@ -29,6 +29,7 @@ import {
   categorySystemMessages,
 } from "config/categoryMessages";
 import { defaultCategoryEmoji } from "config/categoryEmojis";
+import { actionPendingMessages } from "config/actionPendingMessages";
 import { DestructiveSubmitButton } from "molecules/ui/DestructiveSubmitButton/DestructiveSubmitButton";
 import { EmptyState } from "molecules/ui/EmptyState";
 import { SortableList } from "molecules/ui/SortableList/SortableList";
@@ -65,6 +66,7 @@ type CategoryListProps = {
   onReorderError: (state: CategoryActionState) => void;
   reorderCategoryAction: CategoryReorderAction;
   updateCategoryAction: CategoryAction;
+  updatePending?: boolean;
   updateState?: CategoryActionState;
 };
 
@@ -214,6 +216,7 @@ export function CategoryList({
   onReorderError,
   reorderCategoryAction,
   updateCategoryAction,
+  updatePending = false,
   updateState,
 }: CategoryListProps) {
   const {
@@ -488,6 +491,8 @@ export function CategoryList({
         </DialogContent>
         <CategoryDialogActions
           disabled={!canManageCategories}
+          pending={updatePending}
+          pendingLabel={actionPendingMessages.save}
           form="category-edit-form"
           onCancel={requestCloseEditor}
           submitLabel="保存"

@@ -48,3 +48,8 @@ export const LongName: Story = {
     },
   },
 };
+
+export const Pending: Story = {
+  name: "继续中",
+  args: { pending: true },
+};

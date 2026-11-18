@@ -153,6 +153,5 @@ export const ledgerSetupAbandonMessages = {
   cancel: "取消",
   title: (name: string) => `放弃创建「${name}」？`,
   description: "已填写的内容将被删除，且无法恢复。",
-  pending: "正在放弃创建",
   failed: "放弃创建失败",
 } as const;

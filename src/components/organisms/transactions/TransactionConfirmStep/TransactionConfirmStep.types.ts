@@ -19,6 +19,7 @@ export type TransactionConfirmStepProps = TransactionReceiptProps & {
   errorMessage?: string;
   successMessage?: string;
   saving: boolean;
+  saveDisabled?: boolean;
   itemsLoading?: boolean;
   paymentsLoading?: boolean;
   onMerchantClick: () => void;

@@ -2,7 +2,6 @@
 
 import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
-import CircularProgress from "@mui/material/CircularProgress";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -15,6 +14,8 @@ import ListItemText from "@mui/material/ListItemText";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useId } from "react";
+import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
+import { actionPendingMessages } from "config/actionPendingMessages";
 
 import { ledgerNicknameSyncDialogMessages as text } from "config/settingsMessages";
 import type { UserLedgerDisplayName } from "internal/user";
@@ -129,17 +130,15 @@ export function LedgerNicknameSyncDialog({
         >
           {text.onlyPersonal}
         </Button>
-        <Button
-          disabled={pending}
+        <ActionButton
+          pending={pending}
+          pendingLabel={actionPendingMessages.confirm}
           onClick={onConfirm}
-          startIcon={
-            pending ? <CircularProgress color="inherit" size={18} /> : undefined
-          }
           type="button"
           variant="contained"
         >
           {text.confirm}
-        </Button>
+        </ActionButton>
       </DialogActions>
     </Dialog>
   );
