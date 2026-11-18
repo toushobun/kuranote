@@ -64,7 +64,6 @@ export function useReceiptPhotos({
   useEffect(() => {
     let mounted = true;
     if (recordId) {
-      setLoadFailed(false);
       void loadReceiptPhotos(recordId)
         .then((result) => {
           if (!mounted) return;
