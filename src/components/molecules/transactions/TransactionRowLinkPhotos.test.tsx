@@ -1,4 +1,10 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createTransactionListItem } from "@/test/mocks/transactions";
 import { TransactionRowLink } from "./TransactionRowLink";
@@ -23,13 +29,22 @@ describe("TransactionRowLink 小票照片", () => {
         item={createTransactionListItem({ id: "record-1", attachmentCount: 0 })}
       />,
     );
-    expect(screen.queryByRole("button", { name: "查看照片" })).not.toBeInTheDocument();
-    expect(screen.getByRole("link")).toHaveAttribute("href", "/transactions/record-1/edit");
+    expect(
+      screen.queryByRole("button", { name: "查看照片" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("link")).toHaveAttribute(
+      "href",
+      "/transactions/record-1/edit",
+    );
   });
 
   it("点击照片图标只打开预览，不进入记录；加载 URL 延迟到点击后", async () => {
     mocks.loadReceiptPhotos.mockResolvedValue([
-      { id: "photo-1", fullUrl: "/receipt-1.jpg", thumbnailUrl: "/thumb-1.jpg" },
+      {
+        id: "photo-1",
+        fullUrl: "/receipt-1.jpg",
+        thumbnailUrl: "/thumb-1.jpg",
+      },
     ]);
     render(
       <TransactionRowLink
@@ -57,7 +72,9 @@ describe("TransactionRowLink 小票照片", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "关闭照片预览" }));
     await waitFor(() =>
-      expect(screen.queryByRole("img", { name: "查看照片" })).not.toBeInTheDocument(),
+      expect(
+        screen.queryByRole("img", { name: "查看照片" }),
+      ).not.toBeInTheDocument(),
     );
   });
 
