@@ -45,6 +45,7 @@ export function useReceiptPhotos({
   const pendingRef = useRef(new Map<string, Promise<void>>());
   const removedRef = useRef(new Set<string>());
   const draftIdsRef = useRef(new Set<string>());
+  const saveInFlightRef = useRef(false);
   const keyCounter = useRef(0);
   const [loading, setLoading] = useState(Boolean(recordId));
   const [loadFailed, setLoadFailed] = useState(false);
@@ -100,6 +101,8 @@ export function useReceiptPhotos({
     const drafts = draftIdsRef.current;
     const pending = pendingRef.current;
     return () => {
+      // 保存已开始时不能与服务端原子认领竞争删除；遗留草稿由定时任务兜底。
+      if (saveInFlightRef.current) return;
       // 未认领草稿尽力回收；请求失败由定时清理兜底。
       const cleanup = async () => {
         await Promise.allSettled([...pending.values()]);
@@ -231,6 +234,8 @@ export function useReceiptPhotos({
         setError(m.loadFailed);
         return false;
       }
+      // 从开始等待上传到服务端认领期间，禁止卸载清理抢先删除照片。
+      saveInFlightRef.current = true;
       setSavingPhotos(true);
       try {
         await Promise.allSettled([...pendingRef.current.values()]);
@@ -240,6 +245,7 @@ export function useReceiptPhotos({
             (photo) => photo.status !== "uploaded" || !photo.attachmentId,
           )
         ) {
+          saveInFlightRef.current = false;
           setError(m.photoUploadBlock);
           return false;
         }
