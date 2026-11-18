@@ -47,6 +47,7 @@ export function useReceiptPhotos({
   const draftIdsRef = useRef(new Set<string>());
   const keyCounter = useRef(0);
   const [loading, setLoading] = useState(Boolean(recordId));
+  const [loadFailed, setLoadFailed] = useState(false);
   const [savingPhotos, setSavingPhotos] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
@@ -63,9 +64,11 @@ export function useReceiptPhotos({
   useEffect(() => {
     let mounted = true;
     if (recordId) {
+      setLoadFailed(false);
       void loadReceiptPhotos(recordId)
         .then((result) => {
           if (!mounted) return;
+          setError((current) => current === m.loadFailed ? null : current);
           // 异步读取时用户可能已开始上传，不要覆盖新选照片。
           updatePhotos((entries) => [
             ...result.map((photo) => ({
@@ -80,7 +83,10 @@ export function useReceiptPhotos({
           ]);
         })
         .catch(() => {
-          if (mounted) setError(m.loadFailed);
+          if (mounted) {
+            setLoadFailed(true);
+            setError(m.loadFailed);
+          }
         })
         .finally(() => {
           if (mounted) setLoading(false);
@@ -221,6 +227,10 @@ export function useReceiptPhotos({
   );
 
   const prepareForSave = useCallback(async (data: FormData) => {
+    if (recordId && (loading || loadFailed)) {
+      setError(m.loadFailed);
+      return false;
+    }
     setSavingPhotos(true);
     try {
       await Promise.allSettled([...pendingRef.current.values()]);
@@ -240,7 +250,7 @@ export function useReceiptPhotos({
     } finally {
       setSavingPhotos(false);
     }
-  }, []);
+  }, [loadFailed, loading, recordId]);
 
   return {
     photos,
