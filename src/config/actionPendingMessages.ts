@@ -19,4 +19,5 @@ export const actionPendingMessages = {
   abandon: "放弃中…",
   archive: "归档中…",
   connect: "连接中…",
+  confirm: "确认中…",
 } as const;

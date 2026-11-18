@@ -132,7 +132,7 @@ export function LedgerNicknameSyncDialog({
         </Button>
         <ActionButton
           pending={pending}
-          pendingLabel={actionPendingMessages.submit}
+          pendingLabel={actionPendingMessages.confirm}
           onClick={onConfirm}
           type="button"
           variant="contained"

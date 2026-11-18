@@ -8,7 +8,7 @@ import {
 } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { alpha, hexToRgb, ThemeProvider } from "@mui/material/styles";
+import { hexToRgb, ThemeProvider } from "@mui/material/styles";
 import { theme } from "theme/theme";
 import { typographyStyles } from "theme/typographyTokens";
 import { UserThemeProvider } from "theme/UserThemeProvider";
@@ -178,7 +178,7 @@ describe("LedgerDeletion", () => {
     const dialog = await secondStep("我们家");
     fireEvent.click(screen.getByRole("button", { name: "永久删除" }));
     await waitFor(() => expect(action).toHaveBeenCalledOnce());
-    expect(screen.getByRole("button", { name: "正在删除…" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "删除中…" })).toBeDisabled();
     expect(screen.getByRole("status")).toHaveTextContent("正在删除账本");
     expect(
       screen.queryByRole("button", { name: "返回" }),
@@ -233,9 +233,8 @@ describe("LedgerDeletion", () => {
       const button = await screen.findByRole("button", { name: "正在删除…" });
       expect(button).toBeDisabled();
       expect(within(button).getByRole("progressbar")).toBeInTheDocument();
-      expect(getComputedStyle(button).backgroundColor).toBe(
-        alpha(theme.palette.error.main, 0.5),
-      );
+      expect(button).toHaveAttribute("data-action-pending", "true");
+      expect(button).toHaveClass("MuiButton-colorError");
     });
   });
 });

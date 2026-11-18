@@ -53,4 +53,26 @@ describe("PageFormActions", () => {
 
     expect(screen.getByRole("button", { name: "保存账户" })).toBeDisabled();
   });
+
+  it("保存中取消链接不再能导航，取消回调也不能调用", () => {
+    const onCancel = vi.fn();
+    const { rerender } = render(<PageFormActions {...props} pending />);
+    expect(screen.queryByRole("link", { name: "取消" })).toBeNull();
+    const cancel = screen.getByRole("button", { name: "取消" });
+    expect(cancel).toBeDisabled();
+    fireEvent.click(cancel);
+
+    rerender(
+      <PageFormActions
+        cancelLabel="取消"
+        onCancel={onCancel}
+        pending
+        pendingLabel="保存中…"
+        submitLabel="保存账户"
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "取消" }));
+    expect(onCancel).not.toHaveBeenCalled();
+  });
+
 });
