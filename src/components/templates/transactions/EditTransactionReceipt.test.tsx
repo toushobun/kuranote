@@ -179,6 +179,39 @@ describe("EditTransactionReceiptTemplate", () => {
     vi.clearAllMocks();
   });
 
+  it("切换到另一笔记录时重新挂载小票，旧备注不会残留", async () => {
+    const { rerender } = renderReceipt();
+    click("修改备注：编辑前备注");
+    fireEvent.change(screen.getByRole("textbox", { name: "备注" }), {
+      target: { value: "第一笔未保存备注" },
+    });
+    click("完成");
+    rerender(
+      <EditTransactionReceiptTemplate
+        accountOptions={flowFixture.accounts}
+        action={vi.fn(async () => ({}))}
+        canDelete
+        canWriteTransactions
+        categoryOptions={receiptItemsOptions.categoryOptions}
+        deleteAction={vi.fn(async () => ({}))}
+        editRestriction={null}
+        frequentMerchants={flowFixture.frequentMerchants}
+        initialValues={{
+          ...initialValues,
+          transactionRecordId: "00000000-0000-4000-8000-000000009002",
+          note: "第二笔备注",
+        }}
+        ledgerId="ledger-1"
+        merchantOptions={flowFixture.merchants}
+        merchantTags={flowFixture.merchantTags}
+        multiAccountPaymentEnabled
+        transactionItemSpecialStatusEnabled={false}
+      />,
+    );
+    expect(await screen.findByText("第二笔备注")).toBeInTheDocument();
+    expect(screen.queryByText("第一笔未保存备注")).not.toBeInTheDocument();
+  });
+
   it("编辑小票保存与删除复用相同的底部按钮尺寸", () => {
     renderReceipt();
     for (const name of ["保存修改", "删除"]) {
