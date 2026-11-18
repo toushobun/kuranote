@@ -55,8 +55,8 @@ export function ReceiptPhotoViewer({
   useBackLayer(open, onClose, 3);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 每次打开使用当前点击的缩略图编号。
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- 每次打开使用当前点击的缩略图编号并重置预览状态。
       setIndex(Math.min(initialIndex, Math.max(0, photos.length - 1)));
       setScale(1);
       setError("");
