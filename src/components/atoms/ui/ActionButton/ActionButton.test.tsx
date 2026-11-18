@@ -60,14 +60,18 @@ describe("ActionButton", () => {
       expect(getComputedStyle(button).display).toBe("inline-grid");
       expect(getComputedStyle(button).gridTemplateColumns).toBe("max-content");
       const content = container.querySelector("[data-action-button-content]");
-      expect(getComputedStyle(content!).gridArea.replaceAll(" ", "")).toBe("1/1");
+      expect(
+        getComputedStyle(content!).gridArea.replaceAll(" ", ""),
+      ).toBe("1/1");
       act(() => vi.advanceTimersByTime(150));
       // center 模式不额外生成 startIcon，占位由 grid 本身保证。
       expect(button).toHaveClass("MuiButton-loadingPositionCenter");
       expect(button.querySelector(".MuiButton-startIcon")).toBeNull();
       const indicator = button.querySelector(".MuiButton-loadingIndicator");
       expect(indicator).toBeInTheDocument();
-      expect(getComputedStyle(indicator!).gridArea.replaceAll(" ", "")).toBe("1/1");
+      expect(
+        getComputedStyle(indicator!).gridArea.replaceAll(" ", ""),
+      ).toBe("1/1");
       expect(getComputedStyle(indicator!).position).toBe("relative");
       expect(getComputedStyle(indicator!).justifySelf).toBe("start");
     },
