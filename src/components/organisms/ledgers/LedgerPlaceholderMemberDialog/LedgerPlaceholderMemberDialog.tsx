@@ -5,8 +5,9 @@ import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import LinkRoundedIcon from "@mui/icons-material/LinkRounded";
 import Button from "@mui/material/Button";
+import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
+import { actionPendingMessages } from "config/actionPendingMessages";
 import Chip from "@mui/material/Chip";
-import CircularProgress from "@mui/material/CircularProgress";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
@@ -169,23 +170,18 @@ export function LedgerPlaceholderMemberDialog({
                     )}
                   </Stack>
                   <Divider />
-                  <Button
+                  <ActionButton
                     color="error"
-                    disabled={deleting}
+                    pending={deleting}
+                    pendingLabel={actionPendingMessages.remove}
                     fullWidth
                     onClick={() => void requestDelete(row.placeholder)}
-                    startIcon={
-                      deleting ? (
-                        <CircularProgress color="inherit" size={18} />
-                      ) : (
-                        <DeleteOutlineRoundedIcon />
-                      )
-                    }
+                    startIcon={<DeleteOutlineRoundedIcon />}
                     type="button"
                     variant="outlined"
                   >
                     {text.deleteAction}
-                  </Button>
+                  </ActionButton>
                 </>
               ) : null}
             </Stack>
@@ -205,17 +201,15 @@ export function LedgerPlaceholderMemberDialog({
 
 function SubmitButton({ label, pending }: { label: string; pending: boolean }) {
   return (
-    <Button
-      disabled={pending}
+    <ActionButton
       fullWidth
-      startIcon={
-        pending ? <CircularProgress color="inherit" size={18} /> : undefined
-      }
+      pending={pending}
+      pendingLabel={actionPendingMessages.save}
       type="submit"
       variant="contained"
     >
       {label}
-    </Button>
+    </ActionButton>
   );
 }
 

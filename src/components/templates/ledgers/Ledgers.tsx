@@ -11,9 +11,10 @@ import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
 import WalletRoundedIcon from "@mui/icons-material/WalletRounded";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
+import { actionPendingMessages } from "config/actionPendingMessages";
 import ButtonBase from "@mui/material/ButtonBase";
 import Chip from "@mui/material/Chip";
-import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
 import type { SvgIconProps } from "@mui/material/SvgIcon";
 import Typography from "@mui/material/Typography";
@@ -154,6 +155,8 @@ export function LedgersTemplate({
       action={
         <CreateButton
           onClick={() => setupWizard.openWizard("create")}
+          pending={setupWizard.state.status === "loading" && setupWizard.state.intent === "create"}
+          pendingLabel={actionPendingMessages.createLedger}
           size="small"
           sx={settingsPageActionButtonSx}
         >
@@ -171,7 +174,10 @@ export function LedgersTemplate({
         {currentLedger ? (
           <CurrentLedgerCard ledger={currentLedger} />
         ) : (
-          <LedgersEmptyCard onCreate={() => setupWizard.openWizard("create")} />
+          <LedgersEmptyCard
+            onCreate={() => setupWizard.openWizard("create")}
+            pending={setupWizard.state.status === "loading" && setupWizard.state.intent === "create"}
+          />
         )}
 
         <Stack spacing={1}>
@@ -194,6 +200,7 @@ export function LedgersTemplate({
                 abandonAction={setupWizardActions.wizard.abandonSetup}
                 onAbandoned={setupWizard.closeWizard}
                 onContinue={() => setupWizard.openWizard("resume")}
+                pending={setupWizard.state.status === "loading" && setupWizard.state.intent === "resume"}
                 setup={setupInProgress}
               />
             ) : null}
@@ -338,11 +345,13 @@ function LedgerSetupInProgressItem({
   abandonAction,
   onAbandoned,
   onContinue,
+  pending,
   setup,
 }: {
   abandonAction: LedgerSetupAbandonAction;
   onAbandoned: () => void;
   onContinue: () => void;
+  pending: boolean;
   setup: LedgerSetupInProgressSummary;
 }) {
   const [busy, setBusy] = useState(false);
@@ -378,8 +387,10 @@ function LedgerSetupInProgressItem({
             </Typography>
           </Stack>
 
-          <Button
+          <ActionButton
             disabled={busy}
+            pending={pending}
+            pendingLabel={actionPendingMessages.continue}
             aria-label={ledgerSetupEntryMessages.continueLedger(setup.name)}
             endIcon={<ChevronRightRoundedIcon />}
             onClick={onContinue}
@@ -387,7 +398,7 @@ function LedgerSetupInProgressItem({
             sx={continueButtonSx}
           >
             {ledgerSetupEntryMessages.continue}
-          </Button>
+          </ActionButton>
         </Stack>
         <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
           <LedgerSetupAbandonButton
@@ -410,20 +421,13 @@ function SwitchLedgerButton({ ledgerName }: { ledgerName: string }) {
   return (
     <PrimaryActionButton
       aria-label={`切换到${ledgerName}`}
-      disabled={pending}
+      pending={pending}
+      pendingLabel={actionPendingMessages.switchLedger}
       size="small"
       sx={switchButtonSx}
       type="submit"
     >
-      {pending ? (
-        <CircularProgress
-          aria-label={`正在切换到${ledgerName}`}
-          color="inherit"
-          size={18}
-        />
-      ) : (
-        "切换使用"
-      )}
+      切换使用
     </PrimaryActionButton>
   );
 }
@@ -438,7 +442,7 @@ function LedgerSwitchHint() {
   );
 }
 
-function LedgersEmptyCard({ onCreate }: { onCreate: () => void }) {
+function LedgersEmptyCard({ onCreate, pending }: { onCreate: () => void; pending: boolean }) {
   return (
     <DataItemCard>
       <Stack spacing={1.25} sx={{ alignItems: "center", textAlign: "center" }}>
@@ -453,7 +457,7 @@ function LedgersEmptyCard({ onCreate }: { onCreate: () => void }) {
             创建第一个账本后，就可以开始整理家庭记录。
           </Typography>
         </Stack>
-        <CreateButton onClick={onCreate} sx={createButtonSx}>
+        <CreateButton onClick={onCreate} pending={pending} pendingLabel={actionPendingMessages.createLedger} sx={createButtonSx}>
           {ledgerPageMessages.create}
         </CreateButton>
       </Stack>
