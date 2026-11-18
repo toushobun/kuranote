@@ -232,7 +232,7 @@ describe("LedgerDeletion", () => {
       fireEvent.click(screen.getByRole("button", { name: "永久删除" }));
       const button = await screen.findByRole("button", { name: "删除中…" });
       expect(button).toBeDisabled();
-      expect(within(button).getByRole("progressbar")).toBeInTheDocument();
+      expect(await within(button).findByRole("progressbar")).toBeInTheDocument();
       expect(button).toHaveAttribute("data-action-pending", "true");
       expect(button).toHaveClass("MuiButton-colorError");
     });
