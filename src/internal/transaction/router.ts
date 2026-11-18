@@ -12,11 +12,21 @@ import {
   merchantEntrySuggestionsHandler,
 } from "internal/transaction/controller/merchantEntryController";
 import {
+  requestAttachmentUploadHandler,
+  confirmAttachmentUploadHandler,
+  deleteAttachmentDraftHandler,
+  getRecordAttachmentsHandler,
+} from "internal/transaction/controller/transactionAttachmentController";
+import {
   createTransactionHandler,
   updateTransactionHandler,
   voidTransactionHandler,
 } from "internal/transaction/controller/transactionController";
 import {
+  attachmentIdParamsSchema,
+  attachmentSignedReadResponseSchema,
+  attachmentUploadRequestSchema,
+  attachmentUploadResponseSchema,
   merchantEntrySuggestionsQuerySchema,
   merchantEntrySuggestionsSchema,
   frequentMerchantsSchema,
@@ -119,12 +129,81 @@ export const merchantEntrySuggestionsRoute = createRoute({
   },
 });
 
+
+/** #1120：签名上传、确认、撤销草稿及记录照片只读签名。 */
+export const attachmentUploadRoute = createRoute({
+  method: "post",
+  path: "/attachments/upload-requests",
+  request: {
+    body: { content: { "application/json": { schema: attachmentUploadRequestSchema } } },
+  },
+  responses: {
+    201: {
+      content: { "application/json": { schema: attachmentUploadResponseSchema } },
+      description: "签发大图与缩略图上传 URL",
+    },
+    ...errorResponses,
+  },
+});
+
+export const attachmentConfirmRoute = createRoute({
+  method: "post",
+  path: "/attachments/{attachmentId}/confirm",
+  request: {
+    params: attachmentIdParamsSchema,
+    body: { content: { "application/json": { schema: transactionLedgerQuerySchema } } },
+  },
+  responses: {
+    200: {
+      content: { "application/json": { schema: okResponseSchema } },
+      description: "确认照片上传完成",
+    },
+    ...errorResponses,
+  },
+});
+
+export const attachmentDraftDeleteRoute = createRoute({
+  method: "delete",
+  path: "/attachments/{attachmentId}",
+  request: {
+    params: attachmentIdParamsSchema,
+    query: transactionLedgerQuerySchema,
+  },
+  responses: {
+    200: {
+      content: { "application/json": { schema: okResponseSchema } },
+      description: "取消未认领照片",
+    },
+    ...errorResponses,
+  },
+});
+
+export const transactionAttachmentsRoute = createRoute({
+  method: "get",
+  path: "/{transactionRecordId}/attachments",
+  request: {
+    params: transactionIdParamsSchema,
+    query: transactionLedgerQuerySchema,
+  },
+  responses: {
+    200: {
+      content: { "application/json": { schema: attachmentSignedReadResponseSchema } },
+      description: "获取记录照片的短期签名 URL",
+    },
+    ...readErrorResponses,
+  },
+});
+
 export const transactionRouter = new OpenAPIHono<AppEnv>();
 
 transactionRouter.use("*", sameOriginMiddleware);
 transactionRouter.openapi(createTransactionRoute, createTransactionHandler);
 transactionRouter.openapi(updateTransactionRoute, updateTransactionHandler);
 transactionRouter.openapi(voidTransactionRoute, voidTransactionHandler);
+transactionRouter.openapi(attachmentUploadRoute, requestAttachmentUploadHandler);
+transactionRouter.openapi(attachmentConfirmRoute, confirmAttachmentUploadHandler);
+transactionRouter.openapi(attachmentDraftDeleteRoute, deleteAttachmentDraftHandler);
+transactionRouter.openapi(transactionAttachmentsRoute, getRecordAttachmentsHandler);
 
 transactionRouter.openapi(frequentMerchantsRoute, frequentMerchantsHandler);
 transactionRouter.openapi(
