@@ -262,7 +262,9 @@ export function MerchantDisplayNameDrawer({
               slotProps={{
                 htmlInput: { maxLength: 100 },
                 input: {
-                  inputProps: { "aria-label": merchantText.newAliasPlaceholder },
+                  inputProps: {
+                    "aria-label": merchantText.newAliasPlaceholder,
+                  },
                 },
               }}
               sx={{
