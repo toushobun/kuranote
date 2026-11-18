@@ -227,6 +227,7 @@ async function loadStep4TimeGroupedTransactionGroupPage(
   while (filteredGroupKeyCount < targetGroupCount) {
     const candidateRecords =
       await dependencies.transactionRepository.listRecords({
+        includeAttachmentCount: true,
         dateEnd: dateBounds?.endIso,
         dateStart: dateBounds?.startIso,
         ledgerId: currentLedger.id,
@@ -349,6 +350,7 @@ async function loadStep4TransactionGroupItemsPage(
   while (matchingRecords.length < targetCount) {
     const candidateRecords =
       await dependencies.transactionRepository.listRecords({
+        includeAttachmentCount: true,
         dateEnd: recordDateBounds?.endIso,
         dateStart: recordDateBounds?.startIso,
         groupKeyPushDown: { groupBy, groupKey },
