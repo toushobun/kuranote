@@ -38,7 +38,7 @@ export const WithPhotoAndSpecialLabel: Story = {
         amount: "680", categoryName: "餐饮 · 午餐", parentCategoryName: "餐饮",
         businessStatus: {
           incomeLinkRole: null,
-          settlementStatus: "refunded",
+          settlementStatus: "reimbursed",
           offsetComposition: { refundAmount: "180", reimbursementAmount: "0" },
         },
       }],
