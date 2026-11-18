@@ -145,6 +145,17 @@ afterEach(() => {
 });
 
 describe("CategoryList", () => {
+  it("分类更新未完成时显示保存中并阻止重复提交", () => {
+    const updateCategoryAction = vi.fn(async () => {});
+    renderList({ updateCategoryAction, updatePending: true });
+    fireEvent.click(screen.getByRole("button", { name: "编辑餐饮" }));
+    const save = screen.getByRole("button", { name: "保存中…" });
+    expect(save).toBeDisabled();
+    expect(save).toHaveAttribute("aria-busy", "true");
+    fireEvent.click(save);
+    expect(updateCategoryAction).not.toHaveBeenCalled();
+  });
+
   it("编辑小分类并确认新图标后提交完整表单", async () => {
     const updateCategoryAction = vi.fn<(data: FormData) => Promise<void>>(
       async () => {},
