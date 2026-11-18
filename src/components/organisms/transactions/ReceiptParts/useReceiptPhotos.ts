@@ -67,7 +67,7 @@ export function useReceiptPhotos({
       void loadReceiptPhotos(recordId)
         .then((result) => {
           if (!mounted) return;
-          setError((current) => current === m.loadFailed ? null : current);
+          setError((current) => (current === m.loadFailed ? null : current));
           // 异步读取时用户可能已开始上传，不要覆盖新选照片。
           updatePhotos((entries) => [
             ...result.map((photo) => ({
@@ -225,31 +225,34 @@ export function useReceiptPhotos({
     [readOnly, upload],
   );
 
-  const prepareForSave = useCallback(async (data: FormData) => {
-    if (recordId && (loading || loadFailed)) {
-      setError(m.loadFailed);
-      return false;
-    }
-    setSavingPhotos(true);
-    try {
-      await Promise.allSettled([...pendingRef.current.values()]);
-      const next = photosRef.current;
-      if (
-        next.some((photo) => photo.status !== "uploaded" || !photo.attachmentId)
-      ) {
-        setError(m.photoUploadBlock);
+  const prepareForSave = useCallback(
+    async (data: FormData) => {
+      if (recordId && (loading || loadFailed)) {
+        setError(m.loadFailed);
         return false;
       }
-      // React 在点击保存时已经序列化 FormData，上传完成后需覆盖最新 ID。
-      data.delete("attachmentIds");
-      data.set("attachmentIdsPresent", "true");
-      for (const photo of next)
-        data.append("attachmentIds", photo.attachmentId!);
-      return true;
-    } finally {
-      setSavingPhotos(false);
-    }
-  }, [loadFailed, loading, recordId]);
+      setSavingPhotos(true);
+      try {
+        await Promise.allSettled([...pendingRef.current.values()]);
+        const next = photosRef.current;
+        if (
+          next.some((photo) => photo.status !== "uploaded" || !photo.attachmentId)
+        ) {
+          setError(m.photoUploadBlock);
+          return false;
+        }
+        // React 在点击保存时已经序列化 FormData，上传完成后需覆盖最新 ID。
+        data.delete("attachmentIds");
+        data.set("attachmentIdsPresent", "true");
+        for (const photo of next)
+          data.append("attachmentIds", photo.attachmentId!);
+        return true;
+      } finally {
+        setSavingPhotos(false);
+      }
+    },
+    [loadFailed, loading, recordId],
+  );
 
   return {
     photos,
