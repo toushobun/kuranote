@@ -34,7 +34,6 @@ export const ledgerDeletionMessages = {
   matched: "账本名已匹配",
   permanentDelete: "永久删除",
   back: "返回",
-  pending: "正在删除…",
   pendingHint: "正在删除账本，请稍候…",
   failure: "账本删除失败",
 } as const;

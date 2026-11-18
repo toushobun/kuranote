@@ -230,7 +230,7 @@ describe("LedgerDeletion", () => {
       setup(vi.fn(() => new Promise<ActionState>(() => {})));
       await secondStep("我们家");
       fireEvent.click(screen.getByRole("button", { name: "永久删除" }));
-      const button = await screen.findByRole("button", { name: "正在删除…" });
+      const button = await screen.findByRole("button", { name: "删除中…" });
       expect(button).toBeDisabled();
       expect(within(button).getByRole("progressbar")).toBeInTheDocument();
       expect(button).toHaveAttribute("data-action-pending", "true");
