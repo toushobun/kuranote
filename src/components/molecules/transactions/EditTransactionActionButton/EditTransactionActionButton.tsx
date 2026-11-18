@@ -33,9 +33,11 @@ const actionButtonSx = {
   borderColor: "transparent",
   px: 2.5,
   py: 1,
-  "&&.MuiButton-outlined.MuiButton-colorError:is(:not(.Mui-disabled), [data-action-pending='true'])": {
-    borderColor: "error.main",
-    color: "error.main",
+  "&&.MuiButton-outlined.MuiButton-colorError": {
+    "&:not(.Mui-disabled), &[data-action-pending='true']": {
+      borderColor: "error.main",
+      color: "error.main",
+    },
   },
   "&.MuiButton-contained:not(.Mui-disabled)": primaryButtonColors,
   "&&[data-action-pending='true'].Mui-disabled.MuiButton-contained":
