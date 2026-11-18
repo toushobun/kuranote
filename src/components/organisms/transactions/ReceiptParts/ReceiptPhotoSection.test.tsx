@@ -85,6 +85,15 @@ describe("ReceiptPhotoSection", () => {
     ).toBeDisabled();
   });
 
+  it("旧照片读取失败后禁用添加入口，避免点击没有反应", () => {
+    const c = controller([], "照片读取失败，请稍后重试。");
+    render(<ReceiptPhotoSection controller={c} />);
+    expect(screen.getByRole("button", { name: "添加照片" })).toBeDisabled();
+    expect(
+      screen.getByLabelText("添加照片", { selector: "input" }),
+    ).toBeDisabled();
+  });
+
   it("满五张不再出现添加格", () => {
     render(
       <ReceiptPhotoSection
