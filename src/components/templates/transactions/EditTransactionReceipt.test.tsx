@@ -15,6 +15,7 @@ import {
 } from "test/receiptCreation";
 import type { ReceiptCreationData } from "organisms/transactions/ReceiptCreationProvider/ReceiptCreationProvider";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -507,6 +508,29 @@ describe("EditTransactionReceiptTemplate", () => {
     expect(
       await screen.findByRole("button", { name: "上次 ¥498" }),
     ).toBeInTheDocument();
+  });
+
+  it("照片准备完成后的编辑保存会保持处理中直至 Action 返回", async () => {
+    let resolveSave: ((state: { success: string }) => void) | undefined;
+    const action = vi.fn<TransactionStateAction>().mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveSave = resolve;
+        }),
+    );
+    renderReceipt({ action });
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "添加照片" })).toBeEnabled(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "保存修改" }));
+    await waitFor(() => expect(action).toHaveBeenCalledOnce());
+    expect(screen.getByRole("button", { name: "保存中…" })).toHaveAttribute(
+      "data-action-pending",
+      "true",
+    );
+    await act(async () => {
+      resolveSave?.({ success: "已保存" });
+    });
   });
 
   it("编辑小票首次不显示校验，弹窗保存失败后修正可再次保存", async () => {
