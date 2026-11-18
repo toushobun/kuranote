@@ -2,6 +2,7 @@
 
 import type { ActionButtonProps } from "atoms/ui/ActionButton/ActionButton";
 import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
+import { userThemePrimaryButtonColors } from "atoms/ui/ActionButton/actionButtonStyles";
 import { designTokens } from "theme/theme";
 
 /** 编辑记账页底部操作共用尺寸，颜色与行为由 MUI 属性区分。 */
@@ -17,11 +18,6 @@ export function EditTransactionActionButton(props: ActionButtonProps) {
     />
   );
 }
-
-const primaryButtonColors = {
-  background: "var(--user-theme-fab-bg)",
-  color: "var(--user-theme-fab-text)",
-} as const;
 
 const actionButtonSx = {
   borderRadius: `${designTokens.radius.md}px`,
@@ -39,7 +35,7 @@ const actionButtonSx = {
       color: "error.main",
     },
   },
-  "&.MuiButton-contained:not(.Mui-disabled)": primaryButtonColors,
+  "&.MuiButton-contained:not(.Mui-disabled)": userThemePrimaryButtonColors,
   "&&[data-action-pending='true'].Mui-disabled.MuiButton-contained":
-    primaryButtonColors,
+    userThemePrimaryButtonColors,
 };

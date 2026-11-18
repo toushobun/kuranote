@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { designTokens } from "theme/theme";
 import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
+import { userThemePrimaryButtonColors } from "atoms/ui/ActionButton/actionButtonStyles";
 import type { ActionButtonProps } from "atoms/ui/ActionButton/ActionButton";
 
 type PrimaryActionButtonCommonProps = "href" | "variant";
@@ -44,18 +45,13 @@ export function PrimaryActionButton(props: PrimaryActionButtonProps) {
   );
 }
 
-const primaryButtonColors = {
-  background: "var(--user-theme-fab-bg)",
-  color: "var(--user-theme-fab-text)",
-} as const;
-
 const primaryActionButtonSx = {
   borderRadius: `${designTokens.radius.full}px`,
   fontWeight: 900,
   minHeight: 48,
-  "&:not(.Mui-disabled)": primaryButtonColors,
+  "&:not(.Mui-disabled)": userThemePrimaryButtonColors,
   "&&[data-action-pending='true'].Mui-disabled.MuiButton-contained":
-    primaryButtonColors,
+    userThemePrimaryButtonColors,
   "@media (hover: hover)": {
     "&:not(.Mui-disabled):hover": {
       background: "var(--user-theme-fab-bg)",
