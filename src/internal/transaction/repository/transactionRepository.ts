@@ -1189,7 +1189,10 @@ export function createSupabaseTransactionRepository(
         .map((record) => record.id);
       const counts = new Map<string, number>();
       // 查询每页一次，按 100 个 ID 分块；不在列表里对每条记录请求照片。
-      for (const ids of chunkArray(normalRecordIds, itemQueryRecordIdChunkSize)) {
+      for (const ids of chunkArray(
+        normalRecordIds,
+        itemQueryRecordIdChunkSize,
+      )) {
         const { data: attachmentRows, error: attachmentError } = await supabase
           .from("transaction_attachment")
           .select("transaction_record_id")
