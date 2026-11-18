@@ -450,7 +450,13 @@ function LedgerSwitchHint() {
   );
 }
 
-function LedgersEmptyCard({ onCreate, pending }: { onCreate: () => void; pending: boolean }) {
+function LedgersEmptyCard({
+  onCreate,
+  pending,
+}: {
+  onCreate: () => void;
+  pending: boolean;
+}) {
   return (
     <DataItemCard>
       <Stack spacing={1.25} sx={{ alignItems: "center", textAlign: "center" }}>
@@ -465,7 +471,12 @@ function LedgersEmptyCard({ onCreate, pending }: { onCreate: () => void; pending
             创建第一个账本后，就可以开始整理家庭记录。
           </Typography>
         </Stack>
-        <CreateButton onClick={onCreate} pending={pending} pendingLabel={actionPendingMessages.createLedger} sx={createButtonSx}>
+        <CreateButton
+          onClick={onCreate}
+          pending={pending}
+          pendingLabel={actionPendingMessages.createLedger}
+          sx={createButtonSx}
+        >
           {ledgerPageMessages.create}
         </CreateButton>
       </Stack>

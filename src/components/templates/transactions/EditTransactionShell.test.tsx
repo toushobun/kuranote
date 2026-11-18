@@ -233,7 +233,10 @@ describe("EditTransactionShell", () => {
     });
     expect(button).toBeDisabled();
     expect(button).toHaveAttribute("aria-busy", "true");
-    const save = within(container).getByRole("button", { name: "保存修改", hidden: true });
+    const save = within(container).getByRole("button", {
+      name: "保存修改",
+      hidden: true,
+    });
     expect(save).toBeDisabled();
     fireEvent.click(save);
     expect(deleteAction).toHaveBeenCalledOnce();
@@ -257,10 +260,9 @@ describe("EditTransactionShell", () => {
     expect(deleteButton).toBeDisabled();
     fireEvent.click(deleteButton);
     expect(screen.queryByRole("dialog", { name: "删除记账？" })).toBeNull();
-    expect(within(container).getByRole("button", { name: "保存中…" })).toHaveAttribute(
-      "aria-busy",
-      "true",
-    );
+    expect(
+      within(container).getByRole("button", { name: "保存中…" }),
+    ).toHaveAttribute("aria-busy", "true");
     await act(async () => complete({}));
     await waitFor(() => expect(deleteButton).toBeEnabled());
   });

@@ -325,4 +325,3 @@ const dialogTitleSx = {
   ...typographyStyles.cardTitle,
   textAlign: "center",
 } as const;
-

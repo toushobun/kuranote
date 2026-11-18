@@ -60,5 +60,4 @@ describe("CategoryDialogActions", () => {
     fireEvent.click(button);
     expect(onSubmit).not.toHaveBeenCalled();
   });
-
 });

@@ -74,5 +74,4 @@ describe("PageFormActions", () => {
     fireEvent.click(screen.getByRole("button", { name: "取消" }));
     expect(onCancel).not.toHaveBeenCalled();
   });
-
 });

@@ -52,9 +52,13 @@ describe("LedgerSetupAbandonButton", () => {
     const dialog = await openLedgerSetupAbandonConfirm("我们家");
     confirmLedgerSetupAbandon(dialog);
     expect(
-      await screen.findByRole("progressbar", { name: actionPendingMessages.abandon }),
+      await screen.findByRole("progressbar", {
+        name: actionPendingMessages.abandon,
+      }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: actionPendingMessages.abandon })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: actionPendingMessages.abandon }),
+    ).toBeDisabled();
     await waitFor(() => expect(action).toHaveBeenCalledOnce());
     await act(async () => resolve({ error: "无法放弃", errorKey: "first" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("无法放弃");
