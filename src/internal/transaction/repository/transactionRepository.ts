@@ -81,6 +81,7 @@ type TransactionPaymentRepositoryRow = Omit<
 };
 
 export type CreateNormalTransactionInput = {
+  attachmentIds?: string[];
   items: TransactionItemInput[];
   ledgerId: string;
   merchantId: string;
@@ -651,6 +652,7 @@ export function createSupabaseTransactionRepository(
   return {
     async createNormal(input) {
       const { error } = await supabase.rpc("create_transaction", {
+        p_attachment_ids: input.attachmentIds ?? [],
         p_items: toTransactionRpcItems(input.items),
         p_ledger_id: input.ledgerId,
         p_merchant_id: input.merchantId,
@@ -1220,6 +1222,7 @@ export function createSupabaseTransactionRepository(
 
     async updateNormal(input) {
       const { error } = await supabase.rpc("update_transaction", {
+        p_attachment_ids: input.attachmentIds ?? null,
         p_items: toTransactionRpcItems(input.items),
         p_ledger_id: input.ledgerId,
         p_merchant_id: input.merchantId,
