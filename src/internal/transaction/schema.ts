@@ -684,3 +684,37 @@ export const transactionOffsetEntryQuerySchema = z.object({
   recordId: z.uuid(),
   kind: z.enum(["refund", "reimbursement"]),
 });
+
+/** #1120：照片上传与签名读取 API 的统一输入、输出协议。 */
+export const attachmentUploadRequestSchema = z.object({
+  ledgerId: z.string().uuid(),
+  byteSize: z.number().int().min(1).max(2097152),
+  width: z.number().int().min(1).max(20000),
+  height: z.number().int().min(1).max(20000),
+});
+
+export const attachmentIdParamsSchema = z.object({
+  attachmentId: z.string().uuid(),
+});
+
+export const attachmentUploadTokenSchema = z.object({
+  path: z.string(),
+  signedUrl: z.string().url(),
+  token: z.string(),
+});
+
+export const attachmentUploadResponseSchema = z.object({
+  attachmentId: z.string().uuid(),
+  full: attachmentUploadTokenSchema,
+  thumbnail: attachmentUploadTokenSchema,
+});
+
+export const attachmentSignedReadResponseSchema = z.object({
+  attachments: z.array(
+    z.object({
+      id: z.string().uuid(),
+      fullUrl: z.string().url(),
+      thumbnailUrl: z.string().url(),
+    }),
+  ),
+});
