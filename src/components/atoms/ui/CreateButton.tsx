@@ -1,16 +1,19 @@
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
-import type { ActionButtonProps } from "./ActionButton/ActionButton";
 import Link from "next/link";
 
 import { designTokens } from "theme/theme";
 
+import type { ActionButtonProps } from "./ActionButton/ActionButton";
 import { PrimaryActionButton } from "./PrimaryActionButton/PrimaryActionButton";
 
 type CreateButtonCommonProps = "href" | "startIcon" | "variant";
 
 export type CreateButtonProps =
   | (Omit<ActionButtonProps, CreateButtonCommonProps> & { href?: undefined })
-  | (Omit<ActionButtonProps<typeof Link>, CreateButtonCommonProps | "component"> & {
+  | (Omit<
+      ActionButtonProps<typeof Link>,
+      CreateButtonCommonProps | "component"
+    > & {
       href: string;
     });
 

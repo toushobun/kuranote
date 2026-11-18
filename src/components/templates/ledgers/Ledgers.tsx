@@ -154,7 +154,10 @@ export function LedgersTemplate({
       action={
         <CreateButton
           onClick={() => setupWizard.openWizard("create")}
-          pending={setupWizard.state.status === "loading" && setupWizard.state.intent === "create"}
+          pending={
+            setupWizard.state.status === "loading" &&
+            setupWizard.state.intent === "create"
+          }
           pendingLabel={actionPendingMessages.createLedger}
           size="small"
           sx={settingsPageActionButtonSx}
@@ -175,7 +178,10 @@ export function LedgersTemplate({
         ) : (
           <LedgersEmptyCard
             onCreate={() => setupWizard.openWizard("create")}
-            pending={setupWizard.state.status === "loading" && setupWizard.state.intent === "create"}
+            pending={
+              setupWizard.state.status === "loading" &&
+              setupWizard.state.intent === "create"
+            }
           />
         )}
 
@@ -199,7 +205,10 @@ export function LedgersTemplate({
                 abandonAction={setupWizardActions.wizard.abandonSetup}
                 onAbandoned={setupWizard.closeWizard}
                 onContinue={() => setupWizard.openWizard("resume")}
-                pending={setupWizard.state.status === "loading" && setupWizard.state.intent === "resume"}
+                pending={
+                  setupWizard.state.status === "loading" &&
+                  setupWizard.state.intent === "resume"
+                }
                 setup={setupInProgress}
               />
             ) : null}

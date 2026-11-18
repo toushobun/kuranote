@@ -79,7 +79,10 @@ export function DashboardTemplate({
         hasLedger={hasLedger}
         income={monthSummary.income}
         onOpenSetupWizard={() => setupWizard.openWizard("resume")}
-        continuePending={setupWizard.state.status === "loading" && setupWizard.state.intent === "resume"}
+        continuePending={
+          setupWizard.state.status === "loading" &&
+          setupWizard.state.intent === "resume"
+        }
       />
 
       <DashboardMonthSummaryCard

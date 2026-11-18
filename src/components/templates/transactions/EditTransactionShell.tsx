@@ -117,7 +117,11 @@ export function EditTransactionShell({
             <TransactionEditRestrictionAlert reason={editRestriction} />
           </Box>
         ) : null}
-        {children({ ...editAction, saveDisabled: deleting, onValidationFailed: guard.cancelSave })}
+        {children({
+          ...editAction,
+          saveDisabled: deleting,
+          onValidationFailed: guard.cancelSave,
+        })}
         {canDelete ? (
           <EditTransactionActionButton
             color="error"

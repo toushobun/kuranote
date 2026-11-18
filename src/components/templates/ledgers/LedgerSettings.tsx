@@ -698,9 +698,7 @@ function MemberSettingsDialogContent({
         <SettingsField icon={<PersonRoundedIcon />} label="当前账本昵称">
           <TextField
             autoComplete="off"
-            disabled={!canEditProfile}
-            pending={form.pending}
-            pendingLabel={actionPendingMessages.save}
+            disabled={!canEditProfile || form.pending}
             fullWidth
             name={canEditProfile ? "memberDisplayName" : undefined}
             onChange={(event) => setDisplayName(event.target.value)}
@@ -800,7 +798,9 @@ function MemberSettingsDialogContent({
             取消
           </Button>
           <PrimaryActionButton
-            disabled={!canEditProfile || form.pending}
+            disabled={!canEditProfile}
+            pending={form.pending}
+            pendingLabel={actionPendingMessages.save}
             fullWidth
             type="submit"
           >

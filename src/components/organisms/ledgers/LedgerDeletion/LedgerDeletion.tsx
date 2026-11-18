@@ -14,6 +14,7 @@ import Button from "@mui/material/Button";
 import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
 import { actionPendingMessages } from "config/actionPendingMessages";
 import CircularProgress from "@mui/material/CircularProgress";
+import { alpha } from "@mui/material/styles";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import Stack from "@mui/material/Stack";
