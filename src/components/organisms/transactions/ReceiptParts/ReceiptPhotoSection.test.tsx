@@ -80,7 +80,9 @@ describe("ReceiptPhotoSection", () => {
     const c = { ...controller(), loading: true };
     render(<ReceiptPhotoSection controller={c} />);
     expect(screen.getByRole("button", { name: "添加照片" })).toBeDisabled();
-    expect(screen.getByLabelText("添加照片", { selector: "input" })).toBeDisabled();
+    expect(
+      screen.getByLabelText("添加照片", { selector: "input" }),
+    ).toBeDisabled();
   });
 
   it("满五张不再出现添加格", () => {
