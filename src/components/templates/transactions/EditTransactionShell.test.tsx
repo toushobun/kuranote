@@ -23,7 +23,10 @@ import {
   type TransactionEditRestriction,
 } from "internal/transaction";
 import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
-import type { TransactionStateAction } from "types/transactions";
+import type {
+  TransactionActionState,
+  TransactionStateAction,
+} from "types/transactions";
 import { transactionEditRestrictionMessages } from "utils/transactionMessages";
 
 import { UnsavedChangesHistory } from "molecules/ui/UnsavedChangesDialog/unsavedChangesHistory";

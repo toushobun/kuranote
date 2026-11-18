@@ -5,14 +5,12 @@ import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
 import { designTokens } from "theme/theme";
 
 /** 编辑记账页底部操作共用尺寸，颜色与行为由 MUI 属性区分。 */
-export function EditTransactionActionButton({
-  sx,
-  ...props
-}: ActionButtonProps) {
+export function EditTransactionActionButton(props: ActionButtonProps) {
+  const { sx, ...buttonProps } = props;
   return (
     <ActionButton
       variant="contained"
-      {...props}
+      {...buttonProps}
       fullWidth
       size="large"
       sx={[actionButtonSx, ...(Array.isArray(sx) ? sx : [sx])]}

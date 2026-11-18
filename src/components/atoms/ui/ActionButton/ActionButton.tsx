@@ -31,11 +31,10 @@ export function ActionButton<C extends ElementType = "button">({
 }: ActionButtonProps<C>) {
   const visible = usePendingIndicator(pending);
   const blocked = pending || visible;
-  const tone = color === "inherit" ? "text.primary" : `${color ?? "primary"}.main`;
-  const contrast =
-    color === "inherit"
-      ? "text.primary"
-      : `${color ?? "primary"}.contrastText`;
+  const tone = color ?? "primary";
+  const activeColor = tone === "inherit" ? "text.primary" : `${tone}.main`;
+  const textColor =
+    tone === "inherit" ? "text.primary" : `${tone}.contrastText`;
 
   return (
     <Button
@@ -54,17 +53,17 @@ export function ActionButton<C extends ElementType = "button">({
         pressFeedbackSx,
         {
           "&&[data-action-pending='true'].Mui-disabled.MuiButton-contained": {
-            bgcolor: tone,
-            color: contrast,
+            bgcolor: activeColor,
+            color: textColor,
             opacity: 1,
           },
           "&&[data-action-pending='true'].Mui-disabled.MuiButton-outlined": {
-            borderColor: tone,
-            color: tone,
+            borderColor: activeColor,
+            color: activeColor,
             opacity: 1,
           },
           "&&[data-action-pending='true'].Mui-disabled.MuiButton-text": {
-            color: tone,
+            color: activeColor,
             opacity: 1,
           },
         },
