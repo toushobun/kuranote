@@ -45,7 +45,7 @@ export function ReceiptPhotoSection({
 
   return (
     <Box sx={receiptSectionSx}>
-      <Stack direction="row" alignItems="center" justifyContent="space-between">
+      <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between" }}>
         <Typography variant="caption" sx={receiptSectionTitleSx}>
           {m.photoSection}
         </Typography>
@@ -56,7 +56,7 @@ export function ReceiptPhotoSection({
         )}
       </Stack>
       {controller.loading && (
-        <Stack direction="row" alignItems="center" spacing={1} sx={{ py: 1 }}>
+        <Stack direction="row" spacing={1} sx={{ alignItems: "center", py: 1 }}>
           <CircularProgress size={18} />
           <Typography variant="caption">{m.photoLoading}</Typography>
         </Stack>
@@ -105,9 +105,8 @@ export function ReceiptPhotoSection({
             )}
             {photo.status === "uploading" && (
               <Stack
-                alignItems="center"
-                justifyContent="center"
                 sx={{
+                  alignItems: "center", justifyContent: "center",
                   position: "absolute", inset: 0,
                   bgcolor: "rgba(0,0,0,.34)", pointerEvents: "none",
                 }}
