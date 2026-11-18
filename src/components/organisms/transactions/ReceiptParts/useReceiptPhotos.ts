@@ -101,16 +101,19 @@ export function useReceiptPhotos({
     const drafts = draftIdsRef.current;
     const pending = pendingRef.current;
     return () => {
-      // 保存已开始时不能与服务端原子认领竞争删除；遗留草稿由定时任务兜底。
-      if (saveInFlightRef.current) return;
-      // 未认领草稿尽力回收；请求失败由定时清理兜底。
-      const cleanup = async () => {
-        await Promise.allSettled([...pending.values()]);
-        await Promise.allSettled(
-          [...drafts].map((attachmentId) => discardReceiptPhoto(attachmentId)),
-        );
-      };
-      void cleanup();
+      // 保存开始后不能与服务端认领竞争删除；遗留草稿由定时任务兜底。
+      // 即使跳过删除，也必须释放图片预览所占的浏览器 Object URL。
+      if (!saveInFlightRef.current) {
+        const cleanup = async () => {
+          await Promise.allSettled([...pending.values()]);
+          await Promise.allSettled(
+            [...drafts].map((attachmentId) =>
+              discardReceiptPhoto(attachmentId),
+            ),
+          );
+        };
+        void cleanup();
+      }
       for (const photo of photosRef.current) {
         if (photo.file && photo.previewUrl.startsWith("blob:")) {
           URL.revokeObjectURL(photo.previewUrl);
