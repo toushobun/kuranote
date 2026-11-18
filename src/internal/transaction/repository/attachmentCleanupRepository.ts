@@ -40,7 +40,8 @@ export function createAttachmentCleanupRepository(
         .is("transaction_record_id", null)
         .lt("created_at", cutoff)
         .select("id");
-      if (deleteError) throw new Error("attachment_cleanup_pending_delete_failed");
+      if (deleteError)
+        throw new Error("attachment_cleanup_pending_delete_failed");
       return deleted?.length ?? 0;
     },
 
@@ -60,7 +61,8 @@ export function createAttachmentCleanupRepository(
         .from("transaction_attachment")
         .delete()
         .in("id", ids);
-      if (deleteError) throw new Error("attachment_cleanup_deleted_delete_failed");
+      if (deleteError)
+        throw new Error("attachment_cleanup_deleted_delete_failed");
       return ids.length;
     },
 
@@ -92,7 +94,10 @@ export function createAttachmentCleanupRepository(
           const { error: queueError } = await supabase
             .from("transaction_attachment_storage_deletion")
             .delete()
-            .in("id", batch.map((entry) => entry.id));
+            .in(
+              "id",
+              batch.map((entry) => entry.id),
+            );
           if (queueError) {
             failed += batch.length;
             continue;
