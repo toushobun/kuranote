@@ -33,7 +33,10 @@ function distance(touches: React.TouchList) {
   const first = touches.item(0);
   const second = touches.item(1);
   if (!first || !second) return 0;
-  return Math.hypot(first.clientX - second.clientX, first.clientY - second.clientY);
+  return Math.hypot(
+    first.clientX - second.clientX,
+    first.clientY - second.clientY,
+  );
 }
 
 /** MUI Dialog 默认 Portal 至 body，绕开 AppShell 的 main 层叠上下文。 */
@@ -58,7 +61,9 @@ export function ReceiptPhotoViewer({
 
   const photo = photos[index];
   const move = (offset: number) => {
-    setIndex((current) => Math.min(Math.max(0, current + offset), photos.length - 1));
+    setIndex((current) =>
+      Math.min(Math.max(0, current + offset), photos.length - 1),
+    );
     setScale(1);
     setError("");
   };
@@ -77,7 +82,8 @@ export function ReceiptPhotoViewer({
   };
   const handleTouchMove = (event: React.TouchEvent) => {
     if (event.touches.length === 2 && pinchStart.current) {
-      const ratio = distance(event.touches) / Math.max(1, pinchStart.current.distance);
+      const ratio =
+        distance(event.touches) / Math.max(1, pinchStart.current.distance);
       setScale(Math.max(1, Math.min(5, pinchStart.current.scale * ratio)));
     }
   };
@@ -105,7 +111,9 @@ export function ReceiptPhotoViewer({
       const response = await fetch(photo.fullUrl);
       if (!response.ok) throw new Error(m.loadFailed);
       const blob = await response.blob();
-      const file = new File([blob], `receipt-${index + 1}.jpg`, { type: "image/jpeg" });
+      const file = new File([blob], `receipt-${index + 1}.jpg`, {
+        type: "image/jpeg",
+      });
       if (
         navigator.share &&
         (!navigator.canShare || navigator.canShare({ files: [file] }))
@@ -121,7 +129,8 @@ export function ReceiptPhotoViewer({
       setTimeout(() => URL.revokeObjectURL(downloadUrl), 0);
     } catch (caught: unknown) {
       // 用户取消系统分享不视为文件损坏。
-      if (caught instanceof DOMException && caught.name === "AbortError") return;
+      if (caught instanceof DOMException && caught.name === "AbortError")
+        return;
       setError(m.loadFailed);
     }
   };
@@ -140,9 +149,19 @@ export function ReceiptPhotoViewer({
       <Stack sx={{ bgcolor: "#101010", height: "100dvh", minHeight: 0 }}>
         <Stack
           direction="row"
-          sx={{ alignItems: "center", justifyContent: "space-between", px: 1, pt: "env(safe-area-inset-top)", minHeight: 60 }}
+          sx={{
+            alignItems: "center",
+            justifyContent: "space-between",
+            px: 1,
+            pt: "env(safe-area-inset-top)",
+            minHeight: 60,
+          }}
         >
-          <IconButton color="inherit" aria-label={m.photoClose} onClick={onClose}>
+          <IconButton
+            color="inherit"
+            aria-label={m.photoClose}
+            onClick={onClose}
+          >
             <CloseRoundedIcon />
           </IconButton>
           <Typography sx={{ color: "#fff", fontSize: 14 }}>
@@ -174,7 +193,9 @@ export function ReceiptPhotoViewer({
           {loading ? (
             <Stack spacing={1} sx={{ alignItems: "center" }}>
               <CircularProgress color="inherit" size={26} />
-              <Typography variant="caption" sx={{ color: "#fff" }}>{m.photoLoading}</Typography>
+              <Typography variant="caption" sx={{ color: "#fff" }}>
+                {m.photoLoading}
+              </Typography>
             </Stack>
           ) : photo ? (
             <>
@@ -182,10 +203,12 @@ export function ReceiptPhotoViewer({
                 component="img"
                 alt={m.photoPreview}
                 src={photo.fullUrl}
-                onDoubleClick={() => setScale((value) => value === 1 ? 2 : 1)}
+                onDoubleClick={() => setScale((value) => (value === 1 ? 2 : 1))}
                 sx={{
-                  maxWidth: "100%", maxHeight: "100%",
-                  objectFit: "contain", userSelect: "none",
+                  maxWidth: "100%",
+                  maxHeight: "100%",
+                  objectFit: "contain",
+                  userSelect: "none",
                   transform: `scale(${scale})`,
                   transition: "transform 120ms ease",
                 }}
@@ -212,10 +235,18 @@ export function ReceiptPhotoViewer({
               ) : null}
             </>
           ) : (
-            <Typography sx={{ color: "#fff" }}>{error || m.loadFailed}</Typography>
+            <Typography sx={{ color: "#fff" }}>
+              {error || m.loadFailed}
+            </Typography>
           )}
         </Box>
-        <Stack sx={{ alignItems: "center", pb: "max(20px, env(safe-area-inset-bottom))", pt: 1 }}>
+        <Stack
+          sx={{
+            alignItems: "center",
+            pb: "max(20px, env(safe-area-inset-bottom))",
+            pt: 1,
+          }}
+        >
           <Button
             color="inherit"
             disabled={!photo || loading}
@@ -225,7 +256,11 @@ export function ReceiptPhotoViewer({
           >
             {m.photoSaveAlbum}
           </Button>
-          {error && <Typography variant="caption" sx={{ color: "#ffc6bd" }}>{error}</Typography>}
+          {error && (
+            <Typography variant="caption" sx={{ color: "#ffc6bd" }}>
+              {error}
+            </Typography>
+          )}
         </Stack>
       </Stack>
     </Dialog>
