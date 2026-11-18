@@ -141,6 +141,7 @@ describe("useReceiptPhotos", () => {
     unmount();
     await Promise.resolve();
     expect(mocks.discardReceiptPhoto).not.toHaveBeenCalled();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:test");
   });
 
   it("未开始保存时卸载仍会尽力删除草稿照片", async () => {
