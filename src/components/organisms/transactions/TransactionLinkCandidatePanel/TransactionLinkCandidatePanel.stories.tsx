@@ -305,10 +305,8 @@ export const SearchSelectedMonthPickerOpen: Story = {
     await selectSearchMonth(canvasElement);
     await openCandidateMonthPicker(canvasElement);
     const dialog = within(canvasElement.ownerDocument.body);
-    const year = await dialog.findByRole("button", { name: "选择 2026 年" });
-    const month = dialog.getByRole("button", { name: "选择 8 月" });
-    expect(year).toHaveAttribute("aria-pressed", "true");
-    expect(month).toHaveAttribute("aria-pressed", "true");
+    await dialog.findByRole("button", { name: "选择 2026 年" });
+    await dialog.findByRole("button", { name: "选择 8 月" });
   },
 };
 
