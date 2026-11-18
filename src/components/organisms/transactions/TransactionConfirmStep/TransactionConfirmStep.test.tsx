@@ -929,7 +929,8 @@ describe("TransactionConfirmStep", () => {
       expect(
         await screen.findByText(success ? "已保存" : "保存失败，请重试"),
       ).toBeInTheDocument();
-      expect(saveButton()).toBeEnabled();
+      // 转圈出现后需至少保留 400ms；等待处理态结束再验证可重新操作。
+      await waitFor(() => expect(saveButton()).toBeEnabled());
     },
   );
 
