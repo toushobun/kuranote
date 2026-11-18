@@ -9,7 +9,9 @@ const basic: TransactionRowItem = {
   amount: "680",
   account_name: "乐天信用卡",
   account_currency: "JPY",
-  categoryItems: [{ amount: "680", categoryName: "餐饮 · 午餐", parentCategoryName: "餐饮" }],
+  categoryItems: [
+    { amount: "680", categoryName: "餐饮 · 午餐", parentCategoryName: "餐饮" },
+  ],
   merchant_name: "7-Eleven",
   merchant_icon_url: null,
   note: null,
@@ -18,7 +20,10 @@ const basic: TransactionRowItem = {
 const meta = {
   title: "Molecules/Transactions/TransactionRowLinkPhotos",
   component: TransactionRowLink,
-  args: { href: "/transactions/00000000-0000-4000-8000-000000009001", item: basic },
+  args: {
+    href: "/transactions/00000000-0000-4000-8000-000000009001",
+    item: basic,
+  },
   parameters: { viewport: { defaultViewport: "mobile2" } },
 } satisfies Meta<typeof TransactionRowLink>;
 export default meta;
@@ -34,14 +39,21 @@ export const WithPhotoAndSpecialLabel: Story = {
     item: {
       ...basic,
       attachmentCount: 2,
-      categoryItems: [{
-        amount: "680", categoryName: "餐饮 · 午餐", parentCategoryName: "餐饮",
-        businessStatus: {
-          incomeLinkRole: null,
-          settlementStatus: "reimbursed",
-          offsetComposition: { refundAmount: "180", reimbursementAmount: "0" },
+      categoryItems: [
+        {
+          amount: "680",
+          categoryName: "餐饮 · 午餐",
+          parentCategoryName: "餐饮",
+          businessStatus: {
+            incomeLinkRole: null,
+            settlementStatus: "reimbursed",
+            offsetComposition: {
+              refundAmount: "180",
+              reimbursementAmount: "0",
+            },
+          },
         },
-      }],
+      ],
     },
   },
 };

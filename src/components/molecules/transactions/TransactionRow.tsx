@@ -171,7 +171,9 @@ export function TransactionRow({
           label: item.note,
         }
       : null,
-  ].filter((segment): segment is NonNullable<typeof segment> => segment !== null);
+  ].filter(
+    (segment): segment is NonNullable<typeof segment> => segment !== null,
+  );
 
   return (
     <Stack
@@ -272,8 +274,13 @@ export function TransactionRow({
                         {"|"}
                       </Typography>
                     )}
-                    {segment.kind === "action" ? segment.node : (
-                      <Typography noWrap sx={{ color: segment.color, fontSize: 11 }}>
+                    {segment.kind === "action" ? (
+                      segment.node
+                    ) : (
+                      <Typography
+                        noWrap
+                        sx={{ color: segment.color, fontSize: 11 }}
+                      >
                         {segment.label}
                       </Typography>
                     )}

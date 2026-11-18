@@ -75,7 +75,10 @@ export function EditTransactionShell({
   transactionRecordId,
 }: EditTransactionShellProps) {
   const readOnly = editRestriction !== null;
-  const [dirtySources, setDirtySources] = useState({ form: false, photos: false });
+  const [dirtySources, setDirtySources] = useState({
+    form: false,
+    photos: false,
+  });
   const setHasUnsavedChanges = useCallback(
     (dirty: boolean, source: "form" | "photos" = "form") =>
       setDirtySources((current) =>

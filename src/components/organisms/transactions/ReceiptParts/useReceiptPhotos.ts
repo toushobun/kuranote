@@ -86,7 +86,9 @@ export function useReceiptPhotos({
           if (mounted) setLoading(false);
         });
     }
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [recordId, updatePhotos]);
 
   useEffect(() => {
@@ -111,9 +113,13 @@ export function useReceiptPhotos({
 
   const upload = useCallback(
     (key: string, file: File) => {
-      updatePhotos((list) => list.map((photo) =>
-        photo.key === key ? { ...photo, status: "uploading" as const } : photo,
-      ));
+      updatePhotos((list) =>
+        list.map((photo) =>
+          photo.key === key
+            ? { ...photo, status: "uploading" as const }
+            : photo,
+        ),
+      );
       const task = uploadReceiptPhoto(file)
         .then((uploaded) => {
           draftIdsRef.current.add(uploaded.attachmentId);
@@ -122,18 +128,28 @@ export function useReceiptPhotos({
             draftIdsRef.current.delete(uploaded.attachmentId);
             return;
           }
-          updatePhotos((list) => list.map((photo) =>
-            photo.key === key
-              ? { ...photo, attachmentId: uploaded.attachmentId, status: "uploaded" as const }
-              : photo,
-          ));
+          updatePhotos((list) =>
+            list.map((photo) =>
+              photo.key === key
+                ? {
+                    ...photo,
+                    attachmentId: uploaded.attachmentId,
+                    status: "uploaded" as const,
+                  }
+                : photo,
+            ),
+          );
         })
         .catch((caught: unknown) => {
           if (!removedRef.current.has(key)) {
             setError(caught instanceof Error ? caught.message : m.uploadFailed);
-            updatePhotos((list) => list.map((photo) =>
-              photo.key === key ? { ...photo, status: "failed" as const } : photo,
-            ));
+            updatePhotos((list) =>
+              list.map((photo) =>
+                photo.key === key
+                  ? { ...photo, status: "failed" as const }
+                  : photo,
+              ),
+            );
           }
         })
         .finally(() => {
@@ -156,7 +172,14 @@ export function useReceiptPhotos({
         const previewUrl = URL.createObjectURL(file);
         updatePhotos((list) => [
           ...list,
-          { key, previewUrl, fullUrl: previewUrl, file, status: "uploading", source: "draft" },
+          {
+            key,
+            previewUrl,
+            fullUrl: previewUrl,
+            file,
+            status: "uploading",
+            source: "draft",
+          },
         ]);
         upload(key, file);
       }
@@ -202,14 +225,17 @@ export function useReceiptPhotos({
     try {
       await Promise.allSettled([...pendingRef.current.values()]);
       const next = photosRef.current;
-      if (next.some((photo) => photo.status !== "uploaded" || !photo.attachmentId)) {
+      if (
+        next.some((photo) => photo.status !== "uploaded" || !photo.attachmentId)
+      ) {
         setError(m.photoUploadBlock);
         return false;
       }
       // React 在点击保存时已经序列化 FormData，上传完成后需覆盖最新 ID。
       data.delete("attachmentIds");
       data.set("attachmentIdsPresent", "true");
-      for (const photo of next) data.append("attachmentIds", photo.attachmentId!);
+      for (const photo of next)
+        data.append("attachmentIds", photo.attachmentId!);
       return true;
     } finally {
       setSavingPhotos(false);

@@ -52,14 +52,16 @@ export async function uploadReceiptPhoto(
       full.blob,
       { contentType: "image/jpeg" },
     );
-    if (fullResult.error) throw new Error(transactionAttachmentMessages.uploadFailed);
+    if (fullResult.error)
+      throw new Error(transactionAttachmentMessages.uploadFailed);
     const thumbnailResult = await storage.uploadToSignedUrl(
       signed.thumbnail.path,
       signed.thumbnail.token,
       thumbnail.blob,
       { contentType: "image/jpeg" },
     );
-    if (thumbnailResult.error) throw new Error(transactionAttachmentMessages.uploadFailed);
+    if (thumbnailResult.error)
+      throw new Error(transactionAttachmentMessages.uploadFailed);
     await confirmReceiptPhotoUpload(signed.attachmentId);
     return {
       attachmentId: signed.attachmentId,
