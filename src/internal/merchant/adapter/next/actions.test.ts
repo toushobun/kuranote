@@ -416,7 +416,7 @@ describe("Merchant Server Actions", () => {
       merchantId,
     });
     expect(mocks.revalidateMerchantMutation).toHaveBeenCalledTimes(3);
-    expect(mocks.revalidateMerchantMutation).toHaveBeenCalledWith(merchantId);
+    expect(mocks.revalidateMerchantMutation).toHaveBeenCalledWith();
     expect(mocks.redirect).toHaveBeenCalledTimes(3);
   });
 

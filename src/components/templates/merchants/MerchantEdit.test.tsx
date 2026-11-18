@@ -177,6 +177,9 @@ describe("MerchantEditTemplate #1125", () => {
       within(dialog).getByRole("button", { name: "保存并退出" }),
     ).toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole("button", { name: "继续编辑" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "尚未保存" })).toBeNull(),
+    );
     expect(
       screen.getByRole("button", { name: "管理显示名与别名" }),
     ).toHaveTextContent("别名 2 个");
