@@ -460,3 +460,33 @@ EXECUTE，仅授予 authenticated。
 `search_path = pg_catalog, pg_temp`，由原有 active 账本成员检查及表 RLS
 双重约束。新签名撤销 PUBLIC / anon / service_role 执行权限，
 仅向 authenticated 授权；原签名先 DROP，避免留下旧重载。
+
+## Issue #1120：交易照片与删除队列
+
+迁移 `20261118100000_create_transaction_attachments.sql` 建立私有 bucket
+`transaction-attachments`、`transaction_attachment` 与队列表
+`transaction_attachment_storage_deletion`。附件 SELECT 只允许
+`current_user_active_ledger_ids()` 内的账本；Storage SELECT 同理，且客户端没有
+Storage INSERT / UPDATE / DELETE 策略，写操作只能由服务端签名上传或批量删除。
+
+新增的 SECURITY DEFINER 函数全部固定 `search_path = pg_catalog, pg_temp`，
+不允许未经认证调用：
+
+- `request_transaction_attachment_upload(uuid,integer,integer,integer)`：
+  通过 `auth.uid()` 和 `current_user_can_write_ledger` 检查权限，建立待上传元数据；
+  仅对 authenticated 授予 EXECUTE。
+- `confirm_transaction_attachment_upload(uuid,uuid)`：仅本人上传、同账本、
+  未认领且待确认的照片可以改为 uploaded。双文件存在性由服务端 Storage Repository
+  先检查；仅授予 authenticated。
+- `delete_transaction_attachment_draft(uuid,uuid)`：只允许本人移除未认领照片，
+  交由触发器记录待删文件；仅授予 authenticated。
+- `sync_transaction_attachments(uuid,uuid,uuid[])`：创建 / 编辑事务内部执行，
+  校验记录修改权限、所属账本、创建者、状态、重复和五张上限，在同一事务中
+  完成认领、排序及解除，撤销 PUBLIC / anon / authenticated / service_role 的直接执行权限。
+- `enqueue_transaction_attachment_deletion()`：附件 DELETE 触发器，在账本
+  CASCADE 删除时也保留路径到独立的待删队列；不授予客户端直接执行。
+- `create_transaction(...,uuid[])`、`update_transaction(...,uuid[])`
+  和 `update_linked_transaction_edit(...,uuid[])`：调用原有的业务 RPC，再原子同步附件；
+  新签名仅授予 authenticated。未传附件更新参数时继续保留照片，传空数组则移除全部。
+
+Storage 物理文件不能通过 SQL 删除，必须由具有服务端权限的 Storage API 清理队列。
