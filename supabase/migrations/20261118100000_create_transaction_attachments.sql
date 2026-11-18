@@ -335,7 +335,7 @@ create function public.update_linked_transaction_edit(
 )
 returns void language plpgsql security definer
 set search_path = pg_catalog, pg_temp
-as $
+as $$
 begin
     perform public.update_linked_transaction_edit(
         p_ledger_id, p_transaction_record_id, p_transaction_at,
@@ -348,7 +348,7 @@ begin
         );
     end if;
 end;
-$;
+$$;
 revoke all on function public.update_linked_transaction_edit(
     uuid, uuid, timestamptz, uuid, text, jsonb, jsonb, timestamptz, uuid[]
 ) from public, anon, authenticated, service_role;
