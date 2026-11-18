@@ -260,9 +260,9 @@ export function MerchantDisplayNameDrawer({
               placeholder={merchantText.newAliasPlaceholder}
               size="small"
               slotProps={{
-                htmlInput: {
-                  maxLength: 100,
-                  "aria-label": merchantText.newAliasPlaceholder,
+                htmlInput: { maxLength: 100 },
+                input: {
+                  inputProps: { "aria-label": merchantText.newAliasPlaceholder },
                 },
               }}
               sx={{
