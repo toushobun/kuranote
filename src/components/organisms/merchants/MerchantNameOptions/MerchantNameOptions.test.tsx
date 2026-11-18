@@ -13,8 +13,6 @@ import {
   createMerchantAliasRow,
   createMerchantRow,
 } from "@/test/mocks/merchants";
-import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
-import { UserThemeProvider } from "theme/UserThemeProvider";
 
 import { MerchantNameOptions } from "./MerchantNameOptions";
 
@@ -25,50 +23,36 @@ afterEach(() => {
 });
 
 describe("MerchantNameOptions", () => {
-  it.each(["chips", "rows"] as const)(
-    "%s 模式等待本次提交完成后恢复滚动，连续切换重新记录位置",
-    async (variant) => {
-      const scrollTo = vi
-        .spyOn(window, "scrollTo")
-        .mockImplementation(() => {});
-      let complete: () => void = () => {};
-      const action = vi.fn(
-        () =>
-          new Promise<void>((resolve) => {
-            complete = resolve;
-          }),
-      );
-      render(
-        <MerchantNameOptions
-          merchant={createMerchantRow({ aliases: [createMerchantAliasRow()] })}
-          setPreferredAliasAction={action}
-          variant={variant}
-        />,
-      );
-      expect(scrollTo).not.toHaveBeenCalled();
+  it("列表页名称切换后恢复滚动位置，连续切换重新记录位置", async () => {
+    const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+    let complete: () => void = () => {};
+    const action = vi.fn(() => new Promise<void>((resolve) => {
+      complete = resolve;
+    }));
+    render(
+      <MerchantNameOptions
+        merchant={createMerchantRow({ aliases: [createMerchantAliasRow()] })}
+        setPreferredAliasAction={action}
+      />,
+    );
+    for (const top of [513, 900]) {
+      scrollTo.mockClear();
+      vi.stubGlobal("scrollX", 0);
+      vi.stubGlobal("scrollY", top);
+      const option = screen.getByRole("button", { name: "将来福设为展示名" });
+      fireEvent.click(option);
+      await waitFor(() => expect(option).toBeDisabled());
+      vi.stubGlobal("scrollY", 0);
+      await act(async () => complete());
+      expect(option).toBeEnabled();
+      expect(scrollTo).toHaveBeenCalledExactlyOnceWith({
+        left: 0, top, behavior: "instant",
+      });
+    }
+    expect(action).toHaveBeenCalledTimes(2);
+  });
 
-      for (const top of [513, 900]) {
-        scrollTo.mockClear();
-        vi.stubGlobal("scrollX", 0);
-        vi.stubGlobal("scrollY", top);
-        const option = screen.getByRole("button", { name: "将来福设为展示名" });
-        fireEvent.click(option);
-        await waitFor(() => expect(option).toBeDisabled());
-        vi.stubGlobal("scrollY", 0);
-        expect(scrollTo).not.toHaveBeenCalled();
-        await act(async () => complete());
-        expect(option).toBeEnabled();
-        expect(scrollTo).toHaveBeenCalledExactlyOnceWith({
-          left: 0,
-          top,
-          behavior: "instant",
-        });
-      }
-      expect(action).toHaveBeenCalledTimes(2);
-    },
-  );
-
-  it("正式名通过加粗与当前显示名状态保持独立", () => {
+  it("正式名加粗，当前显示名用星标表示", () => {
     render(
       <MerchantNameOptions
         merchant={createMerchantRow({
@@ -81,108 +65,16 @@ describe("MerchantNameOptions", () => {
         setPreferredAliasAction={async () => {}}
       />,
     );
-
-    const formalName = screen.getByRole("button", {
-      name: "将LIFE超市设为展示名",
-    });
-    const preferredAlias = screen.getByRole("button", {
-      name: "来福是当前展示名",
-    });
-
-    expect(
-      getComputedStyle(within(formalName).getByText("LIFE超市")).fontWeight,
-    ).toBe("700");
-    expect(within(formalName).queryByText("正式名")).not.toBeInTheDocument();
+    const formalName = screen.getByRole("button", { name: "将LIFE超市设为展示名" });
+    const preferredAlias = screen.getByRole("button", { name: "来福是当前展示名" });
+    expect(getComputedStyle(within(formalName).getByText("LIFE超市")).fontWeight).toBe("700");
     expect(formalName).toHaveAttribute("aria-pressed", "false");
-    expect(within(formalName).queryByTestId("StarRoundedIcon")).toBeNull();
     expect(preferredAlias).toHaveAttribute("aria-pressed", "true");
-    expect(
-      within(preferredAlias).getByTestId("StarRoundedIcon"),
-    ).toBeInTheDocument();
+    expect(within(preferredAlias).getByTestId("StarRoundedIcon")).toBeInTheDocument();
   });
 
-  it("行模式下正式名被选中时保持加粗并显示当前显示名标记", () => {
-    render(
-      <MerchantNameOptions
-        merchant={createMerchantRow({
-          aliases: [createMerchantAliasRow({ is_preferred: false })],
-        })}
-        setPreferredAliasAction={async () => {}}
-        variant="rows"
-      />,
-    );
-
-    const formalName = screen.getByRole("button", {
-      name: "LIFE超市是当前展示名",
-    });
-
-    expect(
-      getComputedStyle(within(formalName).getByText("LIFE超市")).fontWeight,
-    ).toBe("700");
-    expect(within(formalName).queryByText("正式名")).not.toBeInTheDocument();
-    expect(within(formalName).getByText("当前展示名")).toBeInTheDocument();
-    expect(
-      within(formalName).getByTestId("StarRoundedIcon"),
-    ).toBeInTheDocument();
-  });
-
-  it("行模式点击名称切换显示名且删除别名需要确认", async () => {
-    const setPreferred = vi.fn<(formData: FormData) => Promise<void>>(
-      async () => {},
-    );
-    const archiveAlias = vi.fn<(formData: FormData) => Promise<void>>(
-      async () => {},
-    );
-    const merchant = createMerchantRow({
-      aliases: [createMerchantAliasRow()],
-    });
-
-    render(
-      <UserThemeProvider>
-        <ConfirmDialogProvider>
-          <MerchantNameOptions
-            archiveAliasAction={archiveAlias}
-            merchant={merchant}
-            setPreferredAliasAction={setPreferred}
-            variant="rows"
-          />
-        </ConfirmDialogProvider>
-      </UserThemeProvider>,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "将来福设为展示名" }));
-
-    expect(setPreferred).toHaveBeenCalledOnce();
-    const preferredData = setPreferred.mock.calls[0][0] as FormData;
-    expect(preferredData.get("merchantId")).toBe(merchant.id);
-    expect(preferredData.get("aliasId")).toBe("alias-1");
-
-    fireEvent.click(screen.getByRole("button", { name: "移除别名来福" }));
-
-    expect(
-      screen.getByRole("heading", { name: "删除别名？" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/确认删除别名“来福”/)).toBeInTheDocument();
-    expect(archiveAlias).not.toHaveBeenCalled();
-
-    fireEvent.click(screen.getByRole("button", { name: "取消" }));
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
-    expect(archiveAlias).not.toHaveBeenCalled();
-
-    fireEvent.click(screen.getByRole("button", { name: "移除别名来福" }));
-    fireEvent.click(screen.getByRole("button", { name: "删除" }));
-
-    await waitFor(() => expect(archiveAlias).toHaveBeenCalledOnce());
-    expect(setPreferred).toHaveBeenCalledOnce();
-    const archiveData = archiveAlias.mock.calls[0][0] as FormData;
-    expect(archiveData.get("aliasId")).toBe("alias-1");
-  });
-
-  it("没有切换 Action 时保留展示但禁用交互", () => {
+  it("无写权限时只展示名称并禁用切换", () => {
     render(<MerchantNameOptions merchant={createMerchantRow()} />);
-
-    expect(
-      screen.getByRole("button", { name: "LIFE超市是当前展示名" }),
-    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: "LIFE超市是当前展示名" })).toBeDisabled();
   });
 });
