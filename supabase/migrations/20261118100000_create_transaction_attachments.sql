@@ -278,7 +278,9 @@ begin
         p_ledger_id, p_type, p_transaction_at, p_items,
         p_payments, p_merchant_id, p_note
     );
-    perform public.sync_transaction_attachments(p_ledger_id, v_record_id, p_attachment_ids);
+    if p_attachment_ids is not null then
+        perform public.sync_transaction_attachments(p_ledger_id, v_record_id, p_attachment_ids);
+    end if;
     return v_record_id;
 end;
 $$;
@@ -308,7 +310,9 @@ begin
         p_ledger_id, p_transaction_record_id, p_type,
         p_transaction_at, p_items, p_payments, p_merchant_id, p_note
     );
-    perform public.sync_transaction_attachments(p_ledger_id, v_record_id, p_attachment_ids);
+    if p_attachment_ids is not null then
+        perform public.sync_transaction_attachments(p_ledger_id, v_record_id, p_attachment_ids);
+    end if;
     return v_record_id;
 end;
 $$;
@@ -316,5 +320,40 @@ revoke all on function public.update_transaction(uuid, uuid, text, timestamptz, 
     from public, anon, authenticated, service_role;
 grant execute on function public.update_transaction(uuid, uuid, text, timestamptz, jsonb, jsonb, uuid, text, uuid[])
     to authenticated;
+
+-- 关联退款 / 报销编辑使用专门 RPC；照片同步仍必须处于同一事务。
+create function public.update_linked_transaction_edit(
+    p_ledger_id uuid,
+    p_transaction_record_id uuid,
+    p_transaction_at timestamptz,
+    p_merchant_id uuid,
+    p_note text,
+    p_item_updates jsonb,
+    p_payments jsonb,
+    p_expected_record_updated_at timestamptz,
+    p_attachment_ids uuid[]
+)
+returns void language plpgsql security definer
+set search_path = pg_catalog, pg_temp
+as $
+begin
+    perform public.update_linked_transaction_edit(
+        p_ledger_id, p_transaction_record_id, p_transaction_at,
+        p_merchant_id, p_note, p_item_updates,
+        p_payments, p_expected_record_updated_at
+    );
+    if p_attachment_ids is not null then
+        perform public.sync_transaction_attachments(
+            p_ledger_id, p_transaction_record_id, p_attachment_ids
+        );
+    end if;
+end;
+$;
+revoke all on function public.update_linked_transaction_edit(
+    uuid, uuid, timestamptz, uuid, text, jsonb, jsonb, timestamptz, uuid[]
+) from public, anon, authenticated, service_role;
+grant execute on function public.update_linked_transaction_edit(
+    uuid, uuid, timestamptz, uuid, text, jsonb, jsonb, timestamptz, uuid[]
+) to authenticated;
 
 commit;
