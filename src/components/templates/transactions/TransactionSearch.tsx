@@ -5,13 +5,13 @@ import CancelRoundedIcon from "@mui/icons-material/CancelRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
-import { actionPendingMessages } from "config/actionPendingMessages";
 import IconButton from "@mui/material/IconButton";
 import InputBase from "@mui/material/InputBase";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
+import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
+import { actionPendingMessages } from "config/actionPendingMessages";
 
 import { routePaths } from "config/paths";
 import { TransactionRowLink } from "molecules/transactions/TransactionRowLink";
@@ -181,7 +181,7 @@ export function TransactionSearchTemplate({
               <ActionButton
                 pending={search.isPending}
                 pendingLabel={actionPendingMessages.load}
-                              onClick={search.loadMoreResults}
+                onClick={search.loadMoreResults}
                 sx={loadMoreButtonSx}
               >
                 加载更多

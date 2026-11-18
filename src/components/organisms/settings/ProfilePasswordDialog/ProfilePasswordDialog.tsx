@@ -2,8 +2,6 @@
 
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
-import { actionPendingMessages } from "config/actionPendingMessages";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -12,6 +10,8 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useId, type FormEvent } from "react";
+import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
+import { actionPendingMessages } from "config/actionPendingMessages";
 
 import { profilePasswordDialogMessages as text } from "config/settingsMessages";
 import { passwordMaxLength } from "lib/validators/auth";
@@ -72,8 +72,9 @@ export function ProfilePasswordDialog({
               <ActionButton
                 pending={dialog.isSending}
                 pendingLabel={actionPendingMessages.send}
-                              disabled={!dialog.canSendOtp && !dialog.isSending}
-                onClick={dialog.sendOtp}                type="button"
+                disabled={!dialog.canSendOtp && !dialog.isSending}
+                onClick={dialog.sendOtp}
+                type="button"
                 variant="outlined"
               >
                 {dialog.cooldownSeconds > 0
@@ -137,7 +138,8 @@ export function ProfilePasswordDialog({
             <ActionButton
               pending={dialog.isSaving}
               pendingLabel={actionPendingMessages.save}
-                          disabled={!dialog.canSave && !dialog.isSaving}              type="submit"
+              disabled={!dialog.canSave && !dialog.isSaving}
+              type="submit"
               variant="contained"
             >
               {text.save}

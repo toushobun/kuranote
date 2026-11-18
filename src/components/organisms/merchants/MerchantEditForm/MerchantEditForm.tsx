@@ -2,10 +2,10 @@
 import { useState } from "react";
 import { useDirtySnapshot } from "molecules/ui/UnsavedChangesDialog/useDirtySnapshot";
 
-import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
-import { actionPendingMessages } from "config/actionPendingMessages";
 import Stack from "@mui/material/Stack";
 
+import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
+import { actionPendingMessages } from "config/actionPendingMessages";
 import { merchantText } from "config/merchantText";
 import { MerchantDetailsFields } from "organisms/merchants/MerchantDetailsFields/MerchantDetailsFields";
 import { MerchantTagsField } from "organisms/merchants/MerchantTagsField/MerchantTagsField";
@@ -91,7 +91,7 @@ export function MerchantEditForm({
         <ActionButton
           pending={pending}
           pendingLabel={actionPendingMessages.save}
-                  fullWidth
+          fullWidth
           sx={{ borderRadius: `${designTokens.radius.full}px` }}
           type="submit"
           variant="contained"

@@ -2,10 +2,10 @@
 
 import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import Alert from "@mui/material/Alert";
-import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
-import { actionPendingMessages } from "config/actionPendingMessages";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
+import { actionPendingMessages } from "config/actionPendingMessages";
 import {
   dataExportPageMessages as messages,
   dataTransferBackMessages,
@@ -47,9 +47,11 @@ export function DataExportTemplate({
             <ActionButton
               pending={isExporting}
               pendingLabel={actionPendingMessages.export}
-                          onClick={handleExport}
+              onClick={handleExport}
+              startIcon={<DownloadRoundedIcon />}
               variant="contained"
-              fullWidth            >
+              fullWidth
+            >
               {messages.button}
             </ActionButton>
           </Stack>

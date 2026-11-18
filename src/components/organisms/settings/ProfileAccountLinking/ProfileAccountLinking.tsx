@@ -3,10 +3,10 @@
 import GoogleIcon from "@mui/icons-material/Google";
 import LinkRoundedIcon from "@mui/icons-material/LinkRounded";
 import Box from "@mui/material/Box";
-import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
-import { actionPendingMessages } from "config/actionPendingMessages";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
+import { actionPendingMessages } from "config/actionPendingMessages";
 
 import {
   profileAccountLinkingMessages as text,
@@ -81,10 +81,11 @@ export function ProfileAccountLinking({
               <ActionButton
                 pending={linking.isUnlinking}
                 pendingLabel={actionPendingMessages.unlink}
-                              color="error"
+                color="error"
                 disabled={unlinkDisabledReason !== null || linking.isLinking}
                 onClick={linking.unlink}
-                size="small"                variant="outlined"
+                size="small"
+                variant="outlined"
               >
                 {text.unlink}
               </ActionButton>
@@ -92,9 +93,10 @@ export function ProfileAccountLinking({
               <ActionButton
                 pending={linking.isLinking}
                 pendingLabel={actionPendingMessages.link}
-                              disabled={linking.isUnlinking}
+                disabled={linking.isUnlinking}
                 onClick={linking.link}
-                size="small"                variant="contained"
+                size="small"
+                variant="contained"
               >
                 {text.link}
               </ActionButton>

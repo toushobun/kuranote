@@ -1,8 +1,6 @@
 "use client";
 
 import Button from "@mui/material/Button";
-import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
-import { actionPendingMessages } from "config/actionPendingMessages";
 import Checkbox from "@mui/material/Checkbox";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -16,6 +14,8 @@ import ListItemText from "@mui/material/ListItemText";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useId } from "react";
+import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
+import { actionPendingMessages } from "config/actionPendingMessages";
 
 import { ledgerNicknameSyncDialogMessages as text } from "config/settingsMessages";
 import type { UserLedgerDisplayName } from "internal/user";
@@ -133,7 +133,8 @@ export function LedgerNicknameSyncDialog({
         <ActionButton
           pending={pending}
           pendingLabel={actionPendingMessages.submit}
-                  onClick={onConfirm}          type="button"
+          onClick={onConfirm}
+          type="button"
           variant="contained"
         >
           {text.confirm}
