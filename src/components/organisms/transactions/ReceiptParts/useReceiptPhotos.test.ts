@@ -163,6 +163,38 @@ describe("useReceiptPhotos", () => {
     expect(result.current.error).toBeTruthy();
   });
 
+  it("旧照片读取期间禁止添加，避免新旧照片合计超过五张", async () => {
+    let resolveLoad:
+      | ((photos: { id: string; fullUrl: string; thumbnailUrl: string }[]) => void)
+      | undefined;
+    mocks.loadReceiptPhotos.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveLoad = resolve;
+        }),
+    );
+    const { result } = renderHook(() =>
+      useReceiptPhotos({ recordId: "record-1" }),
+    );
+    act(() => result.current.addFiles([file()]));
+    expect(result.current.photos).toHaveLength(0);
+    expect(mocks.uploadReceiptPhoto).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveLoad?.(
+        Array.from({ length: 5 }, (_, index) => ({
+          id: `saved-${index}`,
+          fullUrl: "/full.jpg",
+          thumbnailUrl: "/thumb.jpg",
+        })),
+      );
+    });
+    await waitFor(() => expect(result.current.photos).toHaveLength(5));
+    act(() => result.current.addFiles([file()]));
+    expect(result.current.photos).toHaveLength(5);
+    expect(mocks.uploadReceiptPhoto).not.toHaveBeenCalled();
+  });
+
   it("编辑记录读取原照片并在提交时保留全部未移除 ID", async () => {
     mocks.loadReceiptPhotos.mockResolvedValue([
       { id: "saved-1", fullUrl: "/full.jpg", thumbnailUrl: "/thumb.jpg" },
