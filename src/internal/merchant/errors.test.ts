@@ -11,8 +11,8 @@ describe("merchantErrorMessages", () => {
     expect(merchantErrorMessages[merchantErrorCodes.nameRequired]).toBe(
       "请输入商家名称。",
     );
-    expect(merchantErrorMessages[merchantErrorCodes.aliasRequired]).toBe(
-      "请输入商家别名。",
+    expect(merchantErrorMessages[merchantErrorCodes.aliasInvalid]).toBe(
+      "商家别名指定不正确。",
     );
     expect(merchantErrorMessages[merchantErrorCodes.websiteUrlInvalid]).toBe(
       "网址必须以 http:// 或 https:// 开头。",

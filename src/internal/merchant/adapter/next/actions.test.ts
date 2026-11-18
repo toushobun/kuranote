@@ -107,7 +107,6 @@ function expectErrorState(state: MerchantActionState, message: string) {
 
 beforeEach(() => {
   vi.resetAllMocks();
-  mocks.archiveAlias.mockResolvedValue(merchantId);
   mocks.fetchMerchantIcon.mockResolvedValue({
     url: "https://t2.gstatic.com/faviconV2?url=https://example.com",
   });
