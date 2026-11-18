@@ -1,5 +1,5 @@
 "use client";
-import { useEffect } from "react";
+import { startTransition, useEffect } from "react";
 import { useReceiptPhotos } from "organisms/transactions/ReceiptParts/useReceiptPhotos";
 import { useEditTransactionDirty } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
 import {
@@ -140,7 +140,10 @@ function EditTransactionReceipt({
     reportDirty?.(photos.touched, "photos");
   }, [reportDirty, photos.touched]);
   async function submitWithPhotos(formData: FormData) {
-    if (await photos.prepareForSave(formData)) formAction(formData);
+    if (await photos.prepareForSave(formData)) {
+      // 等待照片上传后，必须重新进入 Transition 才能让 ActionState 跟踪 pending。
+      startTransition(() => formAction(formData));
+    }
   }
   const accountOptions = useEditAccountOptions(
     props.accountOptions,
