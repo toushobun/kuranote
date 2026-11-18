@@ -236,7 +236,9 @@ export function useReceiptPhotos({
         await Promise.allSettled([...pendingRef.current.values()]);
         const next = photosRef.current;
         if (
-          next.some((photo) => photo.status !== "uploaded" || !photo.attachmentId)
+          next.some(
+            (photo) => photo.status !== "uploaded" || !photo.attachmentId,
+          )
         ) {
           setError(m.photoUploadBlock);
           return false;
