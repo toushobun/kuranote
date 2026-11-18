@@ -165,7 +165,9 @@ describe("useReceiptPhotos", () => {
 
   it("旧照片读取期间禁止添加，避免新旧照片合计超过五张", async () => {
     let resolveLoad:
-      | ((photos: { id: string; fullUrl: string; thumbnailUrl: string }[]) => void)
+      | ((
+          photos: { id: string; fullUrl: string; thumbnailUrl: string }[],
+        ) => void)
       | undefined;
     mocks.loadReceiptPhotos.mockImplementation(
       () =>
