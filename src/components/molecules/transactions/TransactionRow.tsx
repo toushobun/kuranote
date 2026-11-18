@@ -44,10 +44,6 @@ export type TransactionRowProps = {
   showTime?: boolean;
 };
 
-type MetaSegment =
-  | { color: string; key: string; kind: "text"; label: string }
-  | { key: string; kind: "action"; node: ReactNode };
-
 type StatisticsAdjustment = {
   kind: "fullyExcluded" | "partiallyExcluded" | "partiallyOffset";
   type: TransactionCategoryType | null;
