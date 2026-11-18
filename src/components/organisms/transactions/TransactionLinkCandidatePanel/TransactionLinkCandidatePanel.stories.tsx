@@ -259,7 +259,9 @@ async function selectSearchMonth(canvasElement: HTMLElement) {
   await userEvent.click(dialog.getByRole("button", { name: "确定年月" }));
   // 等待关闭动画真正移除 Dialog，避免背景的 aria-hidden 阻止再次定位月份按钮。
   await waitFor(() => {
-    expect(canvasElement.ownerDocument.querySelector('[role="dialog"]')).toBeNull();
+    expect(
+      canvasElement.ownerDocument.querySelector('[role="dialog"]'),
+    ).toBeNull();
   });
 }
 
