@@ -14,10 +14,8 @@ import {
   getCurrentStepItem,
   ledgerSetupWizardTestDefaults,
 } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupWizardTestUtils";
-import {
-  ledgerSetupAbandonMessages,
-  ledgerSetupEntryMessages,
-} from "config/ledgerSetupMessages";
+import { ledgerSetupEntryMessages } from "config/ledgerSetupMessages";
+import { actionPendingMessages } from "config/actionPendingMessages";
 import {
   ledgerSetupErrorCodes,
   ledgerSetupErrorMessages,
@@ -240,7 +238,7 @@ describe("LedgerSetupWizardLauncher", () => {
     await waitFor(() => expect(restart).toBeDisabled());
     expect(
       within(restart).getByRole("progressbar", {
-        name: ledgerSetupAbandonMessages.pending,
+        name: actionPendingMessages.abandon,
       }),
     ).toBeInTheDocument();
     expect(close).toBeDisabled();
