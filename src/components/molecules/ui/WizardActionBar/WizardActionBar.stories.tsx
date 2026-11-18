@@ -34,7 +34,7 @@ export const PreviousAndNext: Story = {
 export const Loading: Story = {
   name: "处理中",
   args: {
-    next: { label: "下一步", loading: true, loadingLabel: "保存中" },
+    next: { label: "下一步", loading: true, loadingLabel: "保存中…" },
     previous: { disabled: true, label: "上一步", onClick: () => {} },
   },
 };

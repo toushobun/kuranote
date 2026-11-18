@@ -23,5 +23,5 @@ export const Actions: Story = {
     </Stack>
   ),
 };
-export const Saving: Story = { name: "保存中", args: { loading: true } };
+export const Saving: Story = { name: "保存中", args: { pending: true, pendingLabel: "保存中…" } };
 export const Disabled: Story = { name: "禁止保存", args: { disabled: true } };
