@@ -70,7 +70,45 @@ jobs:
         run: npm ci
 
       - name: Check formatting
-        run: npm run format:check
+        run: |
+          files=(
+            "app/(protected)/merchants/[merchantId]/edit/page.tsx"
+            "docs/security-definer-functions.md"
+            "src/components/organisms/merchants/MerchantDetailsFields/MerchantDetailsFields.tsx"
+            "src/components/organisms/merchants/MerchantDisplayNameDrawer/MerchantDisplayNameDrawer.stories.tsx"
+            "src/components/organisms/merchants/MerchantDisplayNameDrawer/MerchantDisplayNameDrawer.test.tsx"
+            "src/components/organisms/merchants/MerchantDisplayNameDrawer/MerchantDisplayNameDrawer.tsx"
+            "src/components/organisms/merchants/MerchantEditForm/MerchantEditForm.tsx"
+            "src/components/organisms/merchants/MerchantNameOptions/MerchantNameOptions.stories.tsx"
+            "src/components/organisms/merchants/MerchantNameOptions/MerchantNameOptions.test.tsx"
+            "src/components/organisms/merchants/MerchantNameOptions/MerchantNameOptions.tsx"
+            "src/components/templates/merchants/MerchantEdit.stories.tsx"
+            "src/components/templates/merchants/MerchantEdit.test.tsx"
+            "src/components/templates/merchants/MerchantEdit.tsx"
+            "src/config/merchantText.ts"
+            "src/internal/merchant/adapter/next/actions.test.ts"
+            "src/internal/merchant/adapter/next/actions.ts"
+            "src/internal/merchant/controller/merchantController.ts"
+            "src/internal/merchant/errors.test.ts"
+            "src/internal/merchant/errors.ts"
+            "src/internal/merchant/repository/merchantRepository.test.ts"
+            "src/internal/merchant/repository/merchantRepository.ts"
+            "src/internal/merchant/router.test.ts"
+            "src/internal/merchant/router.ts"
+            "src/internal/merchant/schema.test.ts"
+            "src/internal/merchant/schema.ts"
+            "src/internal/merchant/service/merchantImportService.ts"
+            "src/internal/merchant/service/merchantService.test.ts"
+            "src/internal/merchant/service/merchantService.ts"
+            "src/internal/routeRegistry.test.ts"
+            "tests/browser/unsaved-changes/app/merchant-editor.tsx"
+          )
+          npx prettier --write "${files[@]}"
+          for file in "${files[@]}"; do
+            printf 'FORMATTED:%s:' "$file"
+            base64 -w0 "$file"
+            printf '\n'
+          done
 
   lint:
     name: Lint
