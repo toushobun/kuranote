@@ -18,6 +18,11 @@ export function EditTransactionActionButton(props: ActionButtonProps) {
   );
 }
 
+const primaryButtonColors = {
+  background: "var(--user-theme-fab-bg)",
+  color: "var(--user-theme-fab-text)",
+} as const;
+
 const actionButtonSx = {
   borderRadius: `${designTokens.radius.md}px`,
   fontSize: "1rem",
@@ -32,8 +37,7 @@ const actionButtonSx = {
     borderColor: "error.main",
     color: "error.main",
   },
-  "&.MuiButton-contained:is(:not(.Mui-disabled), [data-action-pending='true'])": {
-    background: "var(--user-theme-fab-bg)",
-    color: "var(--user-theme-fab-text)",
-  },
+  "&.MuiButton-contained:not(.Mui-disabled)": primaryButtonColors,
+  "&&[data-action-pending='true'].Mui-disabled.MuiButton-contained":
+    primaryButtonColors,
 };

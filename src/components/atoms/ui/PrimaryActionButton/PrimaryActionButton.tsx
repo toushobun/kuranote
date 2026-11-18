@@ -1,18 +1,12 @@
 "use client";
 
-import type { ButtonProps } from "@mui/material/Button";
 import Link from "next/link";
 
 import { designTokens } from "theme/theme";
 import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
 import type { ActionButtonProps } from "atoms/ui/ActionButton/ActionButton";
 
-type PrimaryActionButtonCommonProps =
-  | "href"
-  | "variant"
-  | "loading"
-  | "loadingPosition"
-  | "loadingIndicator";
+type PrimaryActionButtonCommonProps = "href" | "variant";
 
 export type PrimaryActionButtonProps =
   | (Omit<ActionButtonProps, PrimaryActionButtonCommonProps> & {
@@ -50,14 +44,18 @@ export function PrimaryActionButton(props: PrimaryActionButtonProps) {
   );
 }
 
+const primaryButtonColors = {
+  background: "var(--user-theme-fab-bg)",
+  color: "var(--user-theme-fab-text)",
+} as const;
+
 const primaryActionButtonSx = {
   borderRadius: `${designTokens.radius.full}px`,
   fontWeight: 900,
   minHeight: 48,
-  "&:is(:not(.Mui-disabled), [data-action-pending='true'])": {
-    background: "var(--user-theme-fab-bg)",
-    color: "var(--user-theme-fab-text)",
-  },
+  "&:not(.Mui-disabled)": primaryButtonColors,
+  "&&[data-action-pending='true'].Mui-disabled.MuiButton-contained":
+    primaryButtonColors,
   "@media (hover: hover)": {
     "&:not(.Mui-disabled):hover": {
       background: "var(--user-theme-fab-bg)",
