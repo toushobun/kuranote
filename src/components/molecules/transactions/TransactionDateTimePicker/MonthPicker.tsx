@@ -11,13 +11,17 @@ import { designTokens } from "theme/theme";
 
 import {
   PickerColumn,
+  getCenteredPickerValue,
   pickerOptionSx,
   scrollPickerOptionIntoView,
 } from "./PickerColumn";
 
+export type MonthPickerSelection = { year: number; month: number };
+
 export function MonthPicker({
   allMonthsOption,
-  isMonthDisabled,
+  monthCount = 12,
+  selectionScrollBehavior = "smooth",
   submitLabel = "确定",
   month,
   monthRef,
@@ -28,13 +32,19 @@ export function MonthPicker({
   yearOptions,
   yearRef,
 }: {
-  allMonthsOption?: { label: string; selected: boolean; onSelect: () => void };
-  isMonthDisabled?: (year: number, month: number) => boolean;
+  allMonthsOption?: {
+    label: string;
+    selected: boolean;
+    onSelect: () => void;
+    ref: RefObject<HTMLButtonElement | null>;
+  };
+  monthCount?: number;
+  selectionScrollBehavior?: "smooth" | "instant";
   submitLabel?: string;
   month: number;
   monthRef: RefObject<HTMLButtonElement | null>;
   onMonthChange: (value: number) => void;
-  onSubmit: () => void;
+  onSubmit: (selection: MonthPickerSelection) => void;
   onYearChange: (value: number) => void;
   year: number;
   yearOptions: number[];
@@ -42,86 +52,127 @@ export function MonthPicker({
 }) {
   return (
     <Stack sx={{ flex: 1, minHeight: 0 }}>
-      {allMonthsOption ? (
-        <Button
-          aria-pressed={allMonthsOption.selected}
-          onClick={allMonthsOption.onSelect}
-          sx={{
-            alignSelf: "center",
-            fontWeight: allMonthsOption.selected ? 700 : 400,
-            my: 1,
-          }}
-          type="button"
-        >
-          {allMonthsOption.label}
-        </Button>
-      ) : null}
       <Stack
         direction="row"
         sx={{
           flex: 1,
           minHeight: 0,
+          alignSelf: "center",
           position: "relative",
-          px: 4,
+          maxWidth: 320,
+          px: 2,
+          width: "100%",
         }}
       >
         <Box
           sx={{
             bgcolor: "action.hover",
             height: 40,
-            left: 4,
+            left: 16,
             pointerEvents: "none",
             position: "absolute",
-            right: 4,
+            right: 16,
             top: "50%",
             transform: "translateY(-50%)",
           }}
         />
-        <PickerColumn onChange={onYearChange} overlay={false}>
+        <PickerColumn
+          onChange={(value) => {
+            if (value === -1) allMonthsOption?.onSelect();
+            else onYearChange(value);
+          }}
+          overlay={false}
+        >
+          {allMonthsOption ? (
+            <Button
+              aria-label={allMonthsOption.label}
+              aria-pressed={allMonthsOption.selected}
+              data-picker-value={-1}
+              onClick={(event) => {
+                scrollPickerOptionIntoView(
+                  event.currentTarget,
+                  selectionScrollBehavior,
+                );
+                allMonthsOption.onSelect();
+              }}
+              disableRipple
+              ref={allMonthsOption.selected ? allMonthsOption.ref : undefined}
+              type="button"
+              sx={pickerOptionSx(allMonthsOption.selected)}
+            >
+              {allMonthsOption.label}
+            </Button>
+          ) : null}
           {yearOptions.map((option) => (
             <Button
               key={option}
               aria-label={`选择 ${option} 年`}
               data-picker-value={option}
               onClick={(event) => {
-                scrollPickerOptionIntoView(event.currentTarget);
+                scrollPickerOptionIntoView(
+                  event.currentTarget,
+                  selectionScrollBehavior,
+                );
                 onYearChange(option);
               }}
               disableRipple
-              ref={option === year ? yearRef : undefined}
+              ref={
+                option === year && !allMonthsOption?.selected
+                  ? yearRef
+                  : undefined
+              }
               type="button"
-              sx={pickerOptionSx(option === year)}
+              sx={pickerOptionSx(option === year && !allMonthsOption?.selected)}
             >
               {option}年
             </Button>
           ))}
         </PickerColumn>
         <PickerColumn onChange={onMonthChange} overlay={false}>
-          {Array.from({ length: 12 }, (_, option) => (
-            <Button
-              key={option}
-              aria-label={`选择 ${option + 1} 月`}
-              data-picker-value={option}
-              onClick={(event) => {
-                scrollPickerOptionIntoView(event.currentTarget);
-                onMonthChange(option);
-              }}
-              disableRipple
-              disabled={isMonthDisabled?.(year, option) ?? false}
-              ref={option === month ? monthRef : undefined}
-              type="button"
-              sx={pickerOptionSx(option === month)}
-            >
-              {option + 1}月
-            </Button>
-          ))}
+          {Array.from(
+            { length: allMonthsOption?.selected ? 0 : monthCount },
+            (_, option) => (
+              <Button
+                key={option}
+                aria-label={`选择 ${option + 1} 月`}
+                data-picker-value={option}
+                onClick={(event) => {
+                  scrollPickerOptionIntoView(
+                    event.currentTarget,
+                    selectionScrollBehavior,
+                  );
+                  onMonthChange(option);
+                }}
+                disableRipple
+                ref={option === month ? monthRef : undefined}
+                type="button"
+                sx={pickerOptionSx(option === month)}
+              >
+                {option + 1}月
+              </Button>
+            ),
+          )}
         </PickerColumn>
       </Stack>
       <Box sx={{ flexShrink: 0, px: 3, py: 1 }}>
         <PrimaryActionButton
           aria-label={messages.selectMonth}
           fullWidth
-          onClick={onSubmit}
+          onClick={() => {
+            const selectedYearRef = allMonthsOption?.selected
+              ? allMonthsOption.ref
+              : yearRef;
+            const visibleYear = getCenteredPickerValue(
+              selectedYearRef.current?.parentElement ?? null,
+            );
+            const visibleMonth = getCenteredPickerValue(
+              monthRef.current?.parentElement ?? null,
+            );
+            onSubmit({
+              year: visibleYear ?? (allMonthsOption?.selected ? -1 : year),
+              month: visibleMonth ?? month,
+            });
+          }}
           type="button"
           sx={{
             borderRadius: `${designTokens.radius.md}px`,

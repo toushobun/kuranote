@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useState } from "react";
-import { userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { TransactionLinkCandidatePanel } from "./TransactionLinkCandidatePanel";
 import {
   candidateItems,
@@ -235,35 +235,78 @@ export const GroupedSingleGroup: Story = {
   },
 };
 
+async function enterMonthSearch(canvasElement: HTMLElement) {
+  await userEvent.type(
+    within(canvasElement).getByRole("textbox", { name: "搜索原支出" }),
+    "充电器",
+  );
+}
+
+async function openCandidateMonthPicker(canvasElement: HTMLElement) {
+  await userEvent.click(
+    await within(canvasElement).findByRole("button", { name: "选择月份" }),
+  );
+}
+
+async function selectSearchMonth(canvasElement: HTMLElement) {
+  await enterMonthSearch(canvasElement);
+  await openCandidateMonthPicker(canvasElement);
+  const dialog = within(canvasElement.ownerDocument.body);
+  await userEvent.click(
+    await dialog.findByRole("button", { name: "选择 2026 年" }),
+  );
+  await userEvent.click(dialog.getByRole("button", { name: "选择 8 月" }));
+  await userEvent.click(dialog.getByRole("button", { name: "确定年月" }));
+  // 等待关闭动画真正移除 Dialog，避免背景的 aria-hidden 阻止再次定位月份按钮。
+  await waitFor(() => {
+    expect(
+      canvasElement.ownerDocument.querySelector('[role="dialog"]'),
+    ).toBeNull();
+  });
+}
+
 export const NormalMonth: Story = {
   name: "月份 · 平时按本月分组",
   args: { loadPageAction: loadGroupedPage },
 };
 
+export const NormalMonthPickerOpen: Story = {
+  name: "月份滚轮 · 平时",
+  play: async ({ canvasElement }) => {
+    await openCandidateMonthPicker(canvasElement);
+  },
+};
+
 export const SearchAllMonths: Story = {
   name: "月份 · 搜索全部月份",
   play: async ({ canvasElement }) => {
-    await userEvent.type(
-      within(canvasElement).getByRole("textbox", { name: "搜索原支出" }),
-      "充电器",
-    );
+    await enterMonthSearch(canvasElement);
+  },
+};
+
+export const SearchAllMonthsPickerOpen: Story = {
+  name: "月份滚轮 · 搜索全部月份",
+  play: async ({ canvasElement }) => {
+    await enterMonthSearch(canvasElement);
+    await openCandidateMonthPicker(canvasElement);
   },
 };
 
 export const SearchSelectedMonth: Story = {
   name: "月份 · 搜索时指定月份",
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await userEvent.type(
-      canvas.getByRole("textbox", { name: "搜索原支出" }),
-      "充电器",
-    );
-    await userEvent.click(canvas.getByRole("button", { name: "选择月份" }));
+    await selectSearchMonth(canvasElement);
+  },
+};
+
+export const SearchSelectedMonthPickerOpen: Story = {
+  name: "月份滚轮 · 搜索时指定月份",
+  play: async ({ canvasElement }) => {
+    await selectSearchMonth(canvasElement);
+    await openCandidateMonthPicker(canvasElement);
     const dialog = within(canvasElement.ownerDocument.body);
-    await userEvent.click(
-      await dialog.findByRole("button", { name: "选择 8 月" }),
-    );
-    await userEvent.click(dialog.getByRole("button", { name: "确定年月" }));
+    await dialog.findByRole("button", { name: "选择 2026 年" });
+    await dialog.findByRole("button", { name: "选择 8 月" });
   },
 };
 

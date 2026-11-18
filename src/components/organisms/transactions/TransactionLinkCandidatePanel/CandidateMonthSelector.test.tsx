@@ -55,6 +55,20 @@ function MonthHarness({
   );
 }
 
+function mockPickerGeometry() {
+  const thisYear = Number(currentTokyoCandidateMonth().slice(0, 4));
+  vi.spyOn(HTMLElement.prototype, "offsetTop", "get").mockImplementation(
+    function (this: HTMLElement) {
+      const value = this.dataset.pickerValue;
+      if (value === undefined) return 0;
+      const number = Number(value);
+      return 80 + (number >= 1000 ? thisYear - number : number) * 40;
+    },
+  );
+  vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(40);
+  vi.spyOn(Element.prototype, "clientHeight", "get").mockReturnValue(200);
+}
+
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
@@ -101,32 +115,60 @@ describe("CandidateMonthSelector", () => {
     expect(closeDrawer).toHaveBeenCalledOnce();
   });
 
-  it("打开动画完成后选中的年月位于滚轮可视中心", async () => {
+  it("打开时直接定位到选中年月，不等待弹窗动画完成", () => {
+    vi.spyOn(HTMLElement.prototype, "offsetTop", "get").mockReturnValue(500);
+    vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockReturnValue(40);
+    vi.spyOn(Element.prototype, "clientHeight", "get").mockReturnValue(200);
+
     render(<MonthHarness initialMonth="2026-11" />);
     fireEvent.click(screen.getByRole("button", { name: "选择月份" }));
-    const selected = [
-      screen.getByRole("button", { name: "选择 2026 年" }),
-      screen.getByRole("button", { name: "选择 11 月" }),
-    ];
-    // jsdom 没有布局；在动画完成前提供滚轮尺寸，验证进入后才定位。
-    for (const option of selected) {
-      Object.defineProperties(option, {
-        offsetTop: { configurable: true, value: 500 },
-        offsetHeight: { configurable: true, value: 40 },
-      });
-      Object.defineProperty(option.parentElement!, "clientHeight", {
-        configurable: true,
-        value: 200,
-      });
+
+    for (const label of ["选择 2026 年", "选择 11 月"]) {
+      const selected = screen.getByRole("button", { name: label });
+      const column = selected.parentElement!;
+      expect(column.scrollTop).toBe(420);
+      expect(column.scrollTop + column.clientHeight / 2).toBe(
+        selected.offsetTop + selected.offsetHeight / 2,
+      );
     }
-    await waitFor(() => {
-      for (const option of selected) {
-        const column = option.parentElement!;
-        expect(column.scrollTop + column.clientHeight / 2).toBe(
-          option.offsetTop + option.offsetHeight / 2,
-        );
-      }
+  });
+
+  it("滑动结束事件尚未触发时，确定读取滚轮中间显示的月份", async () => {
+    mockPickerGeometry();
+    const current = currentTokyoCandidateMonth();
+    render(<MonthHarness initialMonth={current} />);
+    fireEvent.click(screen.getByRole("button", { name: "选择月份" }));
+
+    const monthColumn = screen.getByRole("button", {
+      name: "选择 8 月",
+    }).parentElement!;
+    monthColumn.scrollTop = 280;
+    fireEvent.click(screen.getByRole("button", { name: "确定年月" }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole("button", { name: "选择月份" })).toHaveTextContent(
+      `${Number(current.slice(0, 4))}年8月`,
+    );
+  });
+
+  it("点击月份不发起平滑滚动，避免紧接滑动受到滚动锁影响", () => {
+    mockPickerGeometry();
+    render(<MonthHarness initialMonth={currentTokyoCandidateMonth()} />);
+    fireEvent.click(screen.getByRole("button", { name: "选择月份" }));
+
+    const monthColumn = screen.getByRole("button", {
+      name: "选择 8 月",
+    }).parentElement!;
+    const scrollTo = vi.fn();
+    Object.defineProperty(monthColumn, "scrollTo", {
+      configurable: true,
+      value: scrollTo,
     });
+
+    fireEvent.click(screen.getByRole("button", { name: "选择 8 月" }));
+    expect(scrollTo).not.toHaveBeenCalled();
   });
 
   it("默认月份的下一月箭头不可点击，上一月可切换", () => {
@@ -158,23 +200,36 @@ describe("CandidateMonthSelector", () => {
     );
   });
 
-  it("滚轮禁用当年未来月份且确认时保持有效月份", async () => {
+  it("本年只显示到本月，往年可以选到十二月", async () => {
     const current = currentTokyoCandidateMonth();
+    const thisYear = Number(current.slice(0, 4));
     const monthNumber = Number(current.slice(5));
     if (monthNumber === 12) return;
     render(<MonthHarness initialMonth={current} />);
     fireEvent.click(screen.getByRole("button", { name: "选择月份" }));
-    const future = screen.getByRole("button", {
-      name: `选择 ${monthNumber + 1} 月`,
-    });
-    expect(future).toBeDisabled();
-    fireEvent.click(future);
+    expect(
+      screen.queryByRole("button", { name: `选择 ${monthNumber + 1} 月` }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: `选择 ${thisYear - 1} 年` }),
+    );
+    expect(
+      screen.getByRole("button", { name: "选择 12 月" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "选择 12 月" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: `选择 ${thisYear} 年` }),
+    );
+    expect(
+      screen.queryByRole("button", { name: "选择 12 月" }),
+    ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "确定年月" }));
     await waitFor(() =>
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
     );
     expect(screen.getByRole("button", { name: "选择月份" })).toHaveTextContent(
-      `${Number(current.slice(0, 4))}年${monthNumber}月`,
+      `${thisYear}年${monthNumber}月`,
     );
   });
 
@@ -201,13 +256,15 @@ describe("CandidateMonthSelector", () => {
     );
   });
 
-  it("搜索全部月份打开滚轮后直接确定仍保持全部月份", async () => {
+  it("搜索全部月份打开时年份停在全部月份，月份列为空，直接确定保持不变", async () => {
     render(<MonthHarness searching initialMonth={null} />);
     fireEvent.click(screen.getByRole("button", { name: "选择月份" }));
-    expect(screen.getByRole("button", { name: "全部月份" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    const allMonths = screen.getByRole("button", { name: "全部月份" });
+    expect(allMonths).toHaveAttribute("data-picker-value", "-1");
+    expect(allMonths).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.queryByRole("button", { name: "选择 11 月" }),
+    ).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "确定年月" }));
     await waitFor(() =>
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
@@ -217,7 +274,7 @@ describe("CandidateMonthSelector", () => {
     );
   });
 
-  it("搜索全部月份时隐藏箭头且滚轮增加全部月份选项", async () => {
+  it("搜索全部月份时隐藏箭头，选年月后应用筛选，清除后还原全部", async () => {
     render(<MonthHarness searching initialMonth={null} />);
     expect(screen.getByRole("button", { name: "选择月份" })).toHaveTextContent(
       "全部月份",
@@ -228,18 +285,90 @@ describe("CandidateMonthSelector", () => {
     expect(
       screen.queryByRole("button", { name: "下个月" }),
     ).not.toBeInTheDocument();
+
     fireEvent.click(screen.getByRole("button", { name: "选择月份" }));
     expect(
       screen.getByRole("button", { name: "全部月份" }),
     ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "选择 2026 年" }));
+    expect(
+      screen.getByRole("button", { name: "选择 8 月" }),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "选择 8 月" }));
     fireEvent.click(screen.getByRole("button", { name: "确定年月" }));
+
     const clearMonth = await screen.findByRole("button", {
       name: "搜索全部月份",
     });
+    expect(screen.getByRole("button", { name: "选择月份" })).toHaveTextContent(
+      "2026年8月",
+    );
     fireEvent.click(clearMonth);
     expect(screen.getByRole("button", { name: "选择月份" })).toHaveTextContent(
       "全部月份",
     );
+  });
+
+  it("从全部月份快速滑到年份时，不用不可见的默认月份直接提交", async () => {
+    mockPickerGeometry();
+    const thisYear = Number(currentTokyoCandidateMonth().slice(0, 4));
+    render(<MonthHarness searching initialMonth={null} />);
+    fireEvent.click(screen.getByRole("button", { name: "选择月份" }));
+
+    const yearColumn = screen.getByRole("button", {
+      name: `选择 ${thisYear - 1} 年`,
+    }).parentElement!;
+    yearColumn.scrollTop = 40;
+    fireEvent.click(screen.getByRole("button", { name: "确定年月" }));
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "选择 8 月" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "选择 8 月" }));
+    fireEvent.click(screen.getByRole("button", { name: "确定年月" }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole("button", { name: "选择月份" })).toHaveTextContent(
+      `${thisYear - 1}年8月`,
+    );
+  });
+
+  it("快速切到当前年时，先显示收紧后的月份再允许确认", async () => {
+    mockPickerGeometry();
+    const current = currentTokyoCandidateMonth();
+    const thisYear = Number(current.slice(0, 4));
+    if (Number(current.slice(5)) === 12) return;
+    render(<MonthHarness initialMonth={`${thisYear - 1}-12`} />);
+    fireEvent.click(screen.getByRole("button", { name: "选择月份" }));
+
+    const yearColumn = screen.getByRole("button", {
+      name: `选择 ${thisYear} 年`,
+    }).parentElement!;
+    yearColumn.scrollTop = 0;
+    fireEvent.click(screen.getByRole("button", { name: "确定年月" }));
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "选择 12 月" }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "确定年月" }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole("button", { name: "选择月份" })).toHaveTextContent(
+      `${thisYear}年${Number(current.slice(5))}月`,
+    );
+  });
+
+  it("平时年份列不显示全部月份", () => {
+    render(<MonthHarness initialMonth="2026-09" />);
+    fireEvent.click(screen.getByRole("button", { name: "选择月份" }));
+    expect(
+      screen.queryByRole("button", { name: "全部月份" }),
+    ).not.toBeInTheDocument();
   });
 });

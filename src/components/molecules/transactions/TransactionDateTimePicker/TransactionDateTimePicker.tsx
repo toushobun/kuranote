@@ -21,7 +21,7 @@ import { TransactionBottomEditorDrawer } from "molecules/transactions/Transactio
 
 import { CalendarGrid } from "./CalendarGrid";
 import { DateSettingRow, TimeSettingRow } from "./DateTimeSettingRows";
-import { MonthPicker } from "./MonthPicker";
+import { MonthPicker, type MonthPickerSelection } from "./MonthPicker";
 import { TimePickerColumns } from "./TimePickerColumns";
 import {
   buildCalendarDays,
@@ -161,9 +161,9 @@ export function TransactionDateTimePicker({
     setMonthPickerOpen((current) => !current);
   }
 
-  function confirmMonthPicker() {
+  function confirmMonthPicker({ year, month }: MonthPickerSelection) {
     setMonthSlide((current) => ({ direction: 0, key: current.key + 1 }));
-    setVisibleMonth(new Date(pickerYear, pickerMonth, 1));
+    setVisibleMonth(new Date(year, month, 1));
     setMonthPickerOpen(false);
   }
 

@@ -185,12 +185,20 @@ export function pickerOptionSx(selected: boolean, withOverlay = false) {
   };
 }
 
-export function scrollPickerOptionIntoView(option: HTMLButtonElement) {
+export function scrollPickerOptionIntoView(
+  option: HTMLButtonElement,
+  behavior: "smooth" | "instant" = "smooth",
+) {
   const container = option.parentElement;
   if (!container) return;
 
   const nextScrollTop =
     option.offsetTop + option.offsetHeight / 2 - container.clientHeight / 2;
+
+  if (behavior === "instant") {
+    container.scrollTop = Math.max(0, nextScrollTop);
+    return;
+  }
 
   programmaticPickerScrollLocks.set(
     container,
@@ -231,6 +239,22 @@ function handlePickerScrollEnd(
 ) {
   if (isPickerScrollLocked(container)) return;
 
+  const value = getCenteredPickerValue(container);
+  if (value !== null) onChange(value);
+}
+
+// 点击确定时读取滚轮当前可视中心，避免 scrollend 尚未触发时提交旧值。
+export function getCenteredPickerValue(
+  container: HTMLElement | null,
+): number | null {
+  // 平滑点选尚未完成时，中心位置可能只是动画中间值；交由调用方沿用已点选状态。
+  if (
+    !container ||
+    container.clientHeight === 0 ||
+    isPickerScrollLocked(container)
+  )
+    return null;
+
   const center = container.scrollTop + container.clientHeight / 2;
   const options = Array.from(
     container.querySelectorAll<HTMLButtonElement>("[data-picker-value]"),
@@ -248,9 +272,9 @@ function handlePickerScrollEnd(
     },
     null,
   );
-  const value = Number(nearestOption?.dataset.pickerValue);
-
-  if (Number.isInteger(value)) onChange(value);
+  if (!nearestOption) return null;
+  const value = Number(nearestOption.dataset.pickerValue);
+  return Number.isInteger(value) ? value : null;
 }
 
 function isPickerScrollLocked(container: HTMLElement) {

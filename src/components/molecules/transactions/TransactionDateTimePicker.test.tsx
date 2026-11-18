@@ -169,6 +169,49 @@ describe("TransactionDateTimePicker", () => {
     ).toHaveTextContent("2028年9月");
   });
 
+  it("年月滚轮未触发滚动结束时直接确定仍采用可视中心", () => {
+    vi.useFakeTimers();
+    setScrollEndSupport(false);
+    renderPicker();
+
+    fireEvent.click(screen.getByRole("button", { name: "选择记账时间" }));
+    fireEvent.click(screen.getByRole("button", { name: "手动选择年月" }));
+    scrollPickerOption("选择 2028 年");
+    scrollPickerOption("选择 9 月");
+    fireEvent.click(screen.getByRole("button", { name: "确定年月" }));
+
+    expect(
+      screen.getByRole("button", { name: "手动选择年月" }),
+    ).toHaveTextContent("2028年9月");
+  });
+
+  it("点选年月后平滑滚动尚未结束时，确定优先提交刚点选的年月", () => {
+    vi.useFakeTimers();
+    setScrollEndSupport(false);
+    renderPicker();
+
+    fireEvent.click(screen.getByRole("button", { name: "选择记账时间" }));
+    fireEvent.click(screen.getByRole("button", { name: "手动选择年月" }));
+    const yearColumn = scrollPickerOption("选择 2026 年");
+    const monthColumn = scrollPickerOption("选择 6 月");
+
+    // 模拟浏览器的异步平滑滚动：点击已更新选择状态，但滚轮尚停在旧位置。
+    for (const column of [yearColumn, monthColumn]) {
+      Object.defineProperty(column, "scrollTo", {
+        configurable: true,
+        value: vi.fn(),
+      });
+    }
+
+    fireEvent.click(screen.getByRole("button", { name: "选择 2028 年" }));
+    fireEvent.click(screen.getByRole("button", { name: "选择 9 月" }));
+    fireEvent.click(screen.getByRole("button", { name: "确定年月" }));
+
+    expect(
+      screen.getByRole("button", { name: "手动选择年月" }),
+    ).toHaveTextContent("2028年9月");
+  });
+
   it("滚动结束后才更新小时分钟", () => {
     vi.useFakeTimers();
     setScrollEndSupport(false);
