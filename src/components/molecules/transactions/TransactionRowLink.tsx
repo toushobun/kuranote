@@ -36,7 +36,6 @@ export function TransactionRowLink({
   const [viewerOpen, setViewerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [photos, setPhotos] = useState<ReceiptPhotoPreview[]>([]);
-  const [loadFailed, setLoadFailed] = useState(false);
   const hasPhotos = item.type !== "transfer"
     && item.type !== "balance_adjustment"
     && (item.attachmentCount ?? 0) > 0;
@@ -49,7 +48,6 @@ export function TransactionRowLink({
   async function openPhotoViewer() {
     setViewerOpen(true);
     setLoading(true);
-    setLoadFailed(false);
     try {
       const urls = await loadReceiptPhotos(item.id);
       setPhotos(urls.map((photo) => ({
@@ -58,7 +56,6 @@ export function TransactionRowLink({
         thumbnailUrl: photo.thumbnailUrl,
       })));
     } catch {
-      setLoadFailed(true);
       setPhotos([]);
     } finally {
       setLoading(false);
@@ -112,9 +109,6 @@ export function TransactionRowLink({
           onClose={() => setViewerOpen(false)}
         />
       </BackLayerScope>
-      {loadFailed && viewerOpen && !loading && photos.length === 0 ? (
-        <Box role="alert" sx={{ display: "none" }}>{m.loadFailed}</Box>
-      ) : null}
     </Box>
   );
 }
