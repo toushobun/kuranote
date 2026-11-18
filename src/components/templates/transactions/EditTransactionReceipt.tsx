@@ -64,6 +64,7 @@ export function EditTransactionReceiptTemplate(
   return (
     <BackLayerScope level={transactionBackLayerLevels.receiptEditor}>
       <EditTransactionShell
+        key={transactionRecordId}
         action={props.action}
         canDelete={props.canDelete}
         deleteAction={props.deleteAction}
