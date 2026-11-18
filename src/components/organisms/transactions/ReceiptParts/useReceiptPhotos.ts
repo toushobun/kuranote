@@ -68,14 +68,14 @@ export function useReceiptPhotos({
           if (!mounted) return;
           // 异步读取时用户可能已开始上传，不要覆盖新选照片。
           updatePhotos((entries) => [
-            ...result.attachments?.map((photo) => ({
+            ...result.map((photo) => ({
               key: photo.id,
               attachmentId: photo.id,
               previewUrl: photo.thumbnailUrl,
               fullUrl: photo.fullUrl,
               status: "uploaded" as const,
               source: "saved" as const,
-            })) ?? [],
+            })),
             ...entries,
           ]);
         })
