@@ -28,6 +28,7 @@ export function ReceiptPhotoSection({
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const { photos } = controller;
   const count = photos.length;
+  const addDisabled = disabled || controller.loading;
 
   if (readOnly && count === 0 && !controller.loading) return null;
 
@@ -158,7 +159,7 @@ export function ReceiptPhotoSection({
         {!readOnly && count < 5 && (
           <ButtonBase
             aria-label={count ? m.photoAddShort : m.photoAdd}
-            disabled={disabled}
+            disabled={addDisabled}
             onClick={() => inputRef.current?.click()}
             sx={{
               border: "1px dashed",
@@ -192,7 +193,7 @@ export function ReceiptPhotoSection({
           accept="image/*"
           multiple
           onChange={selectFiles}
-          disabled={disabled || count >= 5}
+          disabled={addDisabled || count >= 5}
           style={{ display: "none" }}
           aria-label={m.photoAdd}
         />
