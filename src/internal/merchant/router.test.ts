@@ -232,6 +232,9 @@ describe("merchant router", () => {
       note: null,
       siteUrl: null,
       tagIds: [],
+      addedAliases: ["来福"],
+      archivedAliasIds: [],
+      preferredAlias: "来福",
     });
     expect(revalidatePath).toHaveBeenCalledWith(routePaths.merchants);
   });

@@ -296,9 +296,9 @@ describe("createMerchantService", () => {
     );
 
     await service.updateMerchant({
-        addedAliases: [],
-        archivedAliasIds: [],
-        preferredAlias: null,
+      addedAliases: [],
+      archivedAliasIds: [],
+      preferredAlias: null,
       ledgerId,
       merchantId,
       name: "LIFE",
@@ -335,9 +335,6 @@ describe("createMerchantService", () => {
 
     await expect(
       service.updateMerchant({
-        addedAliases: [],
-        archivedAliasIds: [],
-        preferredAlias: null,
         addedAliases: [],
         archivedAliasIds: [],
         preferredAlias: null,
@@ -378,12 +375,9 @@ describe("createMerchantService", () => {
     );
 
     await service.updateMerchant({
-        addedAliases: [],
-        archivedAliasIds: [],
-        preferredAlias: null,
-        addedAliases: [],
-        archivedAliasIds: [],
-        preferredAlias: null,
+      addedAliases: [],
+      archivedAliasIds: [],
+      preferredAlias: null,
       ledgerId,
       merchantId,
       name: "LIFE",
@@ -416,12 +410,9 @@ describe("createMerchantService", () => {
     );
 
     await service.updateMerchant({
-        addedAliases: [],
-        archivedAliasIds: [],
-        preferredAlias: null,
-        addedAliases: [],
-        archivedAliasIds: [],
-        preferredAlias: null,
+      addedAliases: [],
+      archivedAliasIds: [],
+      preferredAlias: null,
       ledgerId,
       merchantId,
       name: "LIFE",
@@ -456,12 +447,9 @@ describe("createMerchantService", () => {
     );
 
     await service.updateMerchant({
-        addedAliases: [],
-        archivedAliasIds: [],
-        preferredAlias: null,
-        addedAliases: [],
-        archivedAliasIds: [],
-        preferredAlias: null,
+      addedAliases: [],
+      archivedAliasIds: [],
+      preferredAlias: null,
       ledgerId,
       merchantId,
       name: "LIFE",
@@ -673,9 +661,6 @@ describe("createMerchantService", () => {
         addedAliases: [],
         archivedAliasIds: [],
         preferredAlias: null,
-        addedAliases: [],
-        archivedAliasIds: [],
-        preferredAlias: null,
         ledgerId,
         merchantId,
         name: "LIFE",
@@ -696,9 +681,6 @@ describe("createMerchantService", () => {
     ).rejects.toBeInstanceOf(NotFoundError);
     await expect(
       service.updateMerchant({
-        addedAliases: [],
-        archivedAliasIds: [],
-        preferredAlias: null,
         addedAliases: [],
         archivedAliasIds: [],
         preferredAlias: null,
