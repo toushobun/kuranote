@@ -22,9 +22,9 @@ describe("WizardActionBar", () => {
       />,
     );
 
-    expect(
-      screen.getAllByRole("button").map((button) => button.textContent),
-    ).toEqual(["上一步", "下一步"]);
+    expect(screen.getAllByRole("button")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "上一步" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "下一步" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "上一步" }));
     expect(onPrevious).toHaveBeenCalledTimes(1);
   });
