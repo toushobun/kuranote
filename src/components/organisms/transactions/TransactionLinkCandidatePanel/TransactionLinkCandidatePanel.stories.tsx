@@ -244,7 +244,7 @@ async function enterMonthSearch(canvasElement: HTMLElement) {
 
 async function openCandidateMonthPicker(canvasElement: HTMLElement) {
   await userEvent.click(
-    within(canvasElement).getByRole("button", { name: "选择月份" }),
+    await within(canvasElement).findByRole("button", { name: "选择月份" }),
   );
 }
 
