@@ -255,7 +255,9 @@ describe("EditTransactionShell", () => {
     const { container } = renderShell({ action });
     await clickSave(container);
     await waitFor(() => expect(action).toHaveBeenCalledOnce());
-    const deleteButton = within(container).getByRole("button", { name: "删除" });
+    const deleteButton = within(container).getByRole("button", {
+      name: "删除",
+    });
     expect(deleteButton).toBeDisabled();
     fireEvent.click(deleteButton);
     expect(screen.queryByRole("dialog", { name: "删除记账？" })).toBeNull();
