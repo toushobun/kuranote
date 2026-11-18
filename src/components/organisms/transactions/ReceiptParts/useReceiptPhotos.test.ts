@@ -144,6 +144,35 @@ describe("useReceiptPhotos", () => {
     expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:test");
   });
 
+  it("上传未结束就开始保存，页面卸载后仍允许交给服务端认领", async () => {
+    let resolveUpload:
+      | ((value: {
+          attachmentId: string;
+          width: number;
+          height: number;
+        }) => void)
+      | undefined;
+    mocks.uploadReceiptPhoto.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveUpload = resolve;
+        }),
+    );
+    const { result, unmount } = renderHook(() => useReceiptPhotos());
+    act(() => result.current.addFiles([file()]));
+    const data = new FormData();
+    const saving = result.current.prepareForSave(data);
+    unmount();
+
+    await act(async () => {
+      resolveUpload?.({ attachmentId: "photo-pending", width: 100, height: 100 });
+      expect(await saving).toBe(true);
+    });
+    expect(data.getAll("attachmentIds")).toEqual(["photo-pending"]);
+    expect(mocks.discardReceiptPhoto).not.toHaveBeenCalled();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:test");
+  });
+
   it("未开始保存时卸载仍会尽力删除草稿照片", async () => {
     mocks.uploadReceiptPhoto.mockResolvedValue({
       attachmentId: "photo-abandoned",
