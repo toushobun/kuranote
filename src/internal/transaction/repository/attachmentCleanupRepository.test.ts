@@ -30,25 +30,38 @@ function fixture({
     from,
     storage: { from: vi.fn().mockReturnValue({ remove }) },
   } as unknown as SupabaseClient;
-  return { repo: createAttachmentCleanupRepository(supabase), from, remove, queueDelete };
+  return {
+    repo: createAttachmentCleanupRepository(supabase),
+    from,
+    remove,
+    queueDelete,
+  };
 }
 
 describe("照片文件删除队列", () => {
   it("空队列不访问 Storage", async () => {
     const { repo, remove } = fixture();
-    await expect(repo.deleteQueuedFiles()).resolves.toEqual({ removed: 0, failed: 0 });
+    await expect(repo.deleteQueuedFiles()).resolves.toEqual({
+      removed: 0,
+      failed: 0,
+    });
     expect(remove).not.toHaveBeenCalled();
   });
 
   it("Storage 成功后才移除待删队列", async () => {
     const { repo, remove, queueDelete } = fixture({
-      queuedRows: [{
-        id: "row-1",
-        storage_path: "ledger/photo.jpg",
-        thumbnail_path: "ledger/photo_thumb.jpg",
-      }],
+      queuedRows: [
+        {
+          id: "row-1",
+          storage_path: "ledger/photo.jpg",
+          thumbnail_path: "ledger/photo_thumb.jpg",
+        },
+      ],
     });
-    await expect(repo.deleteQueuedFiles()).resolves.toEqual({ removed: 1, failed: 0 });
+    await expect(repo.deleteQueuedFiles()).resolves.toEqual({
+      removed: 1,
+      failed: 0,
+    });
     expect(remove).toHaveBeenCalledWith([
       "ledger/photo.jpg",
       "ledger/photo_thumb.jpg",
@@ -58,14 +71,19 @@ describe("照片文件删除队列", () => {
 
   it("Storage 删除失败时保留队列以便下次重试", async () => {
     const { repo, remove, queueDelete } = fixture({
-      queuedRows: [{
-        id: "row-1",
-        storage_path: "ledger/photo.jpg",
-        thumbnail_path: "ledger/photo_thumb.jpg",
-      }],
+      queuedRows: [
+        {
+          id: "row-1",
+          storage_path: "ledger/photo.jpg",
+          thumbnail_path: "ledger/photo_thumb.jpg",
+        },
+      ],
       removeFailed: true,
     });
-    await expect(repo.deleteQueuedFiles()).resolves.toEqual({ removed: 0, failed: 1 });
+    await expect(repo.deleteQueuedFiles()).resolves.toEqual({
+      removed: 0,
+      failed: 1,
+    });
     expect(remove).toHaveBeenCalledOnce();
     expect(queueDelete).not.toHaveBeenCalled();
   });
@@ -77,8 +95,13 @@ describe("照片文件删除队列", () => {
       thumbnail_path: `ledger/${index}_thumb.jpg`,
     }));
     const { repo, remove } = fixture({ queuedRows: rows });
-    await expect(repo.deleteQueuedFiles()).resolves.toEqual({ removed: 235, failed: 0 });
+    await expect(repo.deleteQueuedFiles()).resolves.toEqual({
+      removed: 235,
+      failed: 0,
+    });
     expect(remove).toHaveBeenCalledTimes(3);
-    expect(remove.mock.calls.map(([paths]) => paths.length)).toEqual([200, 200, 70]);
+    expect(remove.mock.calls.map(([paths]) => paths.length)).toEqual([
+      200, 200, 70,
+    ]);
   });
 });
