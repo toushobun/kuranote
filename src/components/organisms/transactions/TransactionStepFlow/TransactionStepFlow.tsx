@@ -78,6 +78,7 @@ function TransactionStepFlowContent(
             {...w.itemsOptions}
             formId={w.formId}
             form={w.form}
+            photos={w.photos}
             showAutomaticNotice={w.showAutomaticNotice}
             amountItemId={w.amountItemId}
             onAmountItemChange={w.setAmountItemId}
