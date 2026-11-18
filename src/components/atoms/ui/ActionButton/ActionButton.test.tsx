@@ -80,37 +80,50 @@ describe("ActionButton", () => {
   it.each([
     { iconPosition: "start" as const, label: "下载" },
     { iconPosition: "end" as const, label: "继续" },
-  ])("带 $iconPosition 图标的按钮常态和处理中均保持单行排列", ({ iconPosition, label }) => {
-    vi.useFakeTimers();
-    const icon = <span aria-hidden="true" data-testid="original-icon">图标</span>;
-    const props =
-      iconPosition === "start" ? { startIcon: icon } : { endIcon: icon };
-    const { rerender } = render(
-      <ActionButton {...props} pendingLabel="读取中…">
-        {label}
-      </ActionButton>,
-    );
-    const button = screen.getByRole("button", { name: label });
-    const content = button.querySelector("[data-action-button-content]");
-    expect(getComputedStyle(button).display).toBe("inline-flex");
-    expect(button.querySelector(".MuiButton-startIcon, .MuiButton-endIcon")).toBeInTheDocument();
-    expect(content).toBeInTheDocument();
-    expect(content?.parentElement).toBe(button);
-    expect(screen.getByTestId("original-icon")).toBeInTheDocument();
+  ])(
+    "带 $iconPosition 图标的按钮常态和处理中均保持单行排列",
+    ({ iconPosition, label }) => {
+      vi.useFakeTimers();
+      const icon = (
+        <span aria-hidden="true" data-testid="original-icon">
+          图标
+        </span>
+      );
+      const props =
+        iconPosition === "start" ? { startIcon: icon } : { endIcon: icon };
+      const { rerender } = render(
+        <ActionButton {...props} pendingLabel="读取中…">
+          {label}
+        </ActionButton>,
+      );
+      const button = screen.getByRole("button", { name: label });
+      const content = button.querySelector("[data-action-button-content]");
+      expect(getComputedStyle(button).display).toBe("inline-flex");
+      expect(
+        button.querySelector(".MuiButton-startIcon, .MuiButton-endIcon"),
+      ).toBeInTheDocument();
+      expect(content).toBeInTheDocument();
+      expect(content?.parentElement).toBe(button);
+      expect(screen.getByTestId("original-icon")).toBeInTheDocument();
 
-    rerender(
-      <ActionButton {...props} pending pendingLabel="读取中…">
-        {label}
-      </ActionButton>,
-    );
-    expect(getComputedStyle(button).display).toBe("inline-flex");
-    expect(button).toHaveAccessibleName("读取中…");
-    act(() => vi.advanceTimersByTime(150));
-    expect(button.querySelector(".MuiButton-startIcon, .MuiButton-endIcon")).toBeInTheDocument();
-    expect(button.querySelectorAll('[role="progressbar"]')).toHaveLength(1);
-    expect(screen.queryByTestId("original-icon")).not.toBeInTheDocument();
-    expect(button.querySelector("[data-action-button-content]")?.parentElement).toBe(button);
-  });
+      rerender(
+        <ActionButton {...props} pending pendingLabel="读取中…">
+          {label}
+        </ActionButton>,
+      );
+      expect(getComputedStyle(button).display).toBe("inline-flex");
+      expect(button).toHaveAccessibleName("读取中…");
+      act(() => vi.advanceTimersByTime(150));
+      expect(
+        button.querySelector(".MuiButton-startIcon, .MuiButton-endIcon"),
+      ).toBeInTheDocument();
+      expect(button.querySelectorAll('[role="progressbar"]')).toHaveLength(1);
+      expect(screen.queryByTestId("original-icon")).not.toBeInTheDocument();
+      expect(
+        button.querySelector("[data-action-button-content]")?.parentElement,
+      ).toBe(button);
+    },
+  );
 
   it("真的禁用与处理中不同，只有后者保留状态标记", () => {
     render(
