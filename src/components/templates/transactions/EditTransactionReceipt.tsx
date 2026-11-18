@@ -1,4 +1,7 @@
 "use client";
+import { useEffect } from "react";
+import { useReceiptPhotos } from "organisms/transactions/ReceiptParts/useReceiptPhotos";
+import { useEditTransactionDirty } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
 import {
   BackLayerScope,
   transactionBackLayerLevels,
@@ -127,6 +130,17 @@ function EditTransactionReceipt({
     ),
   };
   const readOnly = props.editRestriction !== null;
+  const photos = useReceiptPhotos({
+    recordId: props.initialValues.transactionRecordId,
+    readOnly,
+  });
+  const reportDirty = useEditTransactionDirty();
+  useEffect(() => {
+    reportDirty?.(photos.touched, "photos");
+  }, [reportDirty, photos.touched]);
+  async function submitWithPhotos(formData: FormData) {
+    if (await photos.prepareForSave(formData)) formAction(formData);
+  }
   const accountOptions = useEditAccountOptions(
     props.accountOptions,
     props.archivedAccountOptions,
@@ -164,9 +178,10 @@ function EditTransactionReceipt({
         onAmountItemChange={w.setAmountItemId}
         accountOptions={accountOptions}
         suggestions={w.suggestions}
-        action={formAction}
+        action={submitWithPhotos}
+        photos={photos}
         onValidationFailed={onValidationFailed}
-        saving={saving}
+        saving={saving || photos.savingPhotos}
         submitLabel={m.saveEdit}
         onMerchantClick={w.merchantPicker.openPicker}
         readOnly={readOnly}
