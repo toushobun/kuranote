@@ -49,7 +49,9 @@ describe("MerchantEditForm", () => {
     );
 
     expect(container.querySelector('button[type="submit"]')).toBeDisabled();
-    expect(screen.getByLabelText("保存中")).toBeInTheDocument();
+    const button = screen.getByRole("button", { name: "保存中…" });
+    expect(button).toHaveAttribute("aria-busy", "true");
+    fireEvent.click(button);
   });
   it("标签与基本资料都按快照比较，还原后恢复干净", async () => {
     const dirty = vi.fn();

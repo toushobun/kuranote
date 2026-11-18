@@ -185,4 +185,27 @@ describe("TransactionFilterDialog", () => {
       });
     });
   });
+  it("应用处理中显示应用中并防止再次应用", () => {
+    const onApply = vi.fn();
+    render(
+      <TransactionFilterDialog
+        draftFilters={{ recordType: "all" }}
+        draftGroupBy="month"
+        filterOptions={filterOptions}
+        isPending
+        onApply={onApply}
+        onChangeFilters={vi.fn()}
+        onChangeGroupBy={vi.fn()}
+        onClose={vi.fn()}
+        onReset={vi.fn()}
+        open
+      />,
+    );
+    const button = screen.getByRole("button", { name: "应用中…" });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-busy", "true");
+    fireEvent.click(button);
+    expect(onApply).not.toHaveBeenCalled();
+  });
+
 });

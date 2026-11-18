@@ -60,6 +60,24 @@ describe("LedgerSetupContinueCard", () => {
 
     expect(onContinue).toHaveBeenCalledTimes(1);
   });
+  it("继续创建读取中禁止重复点击并显示继续中", () => {
+    const onContinue = vi.fn();
+    render(
+      <LedgerSetupContinueCard
+        abandonAction={async () => ({})}
+        onAbandoned={vi.fn()}
+        onContinue={onContinue}
+        pending
+        setup={{ id: "ledger", name: "我们家", step: 2 }}
+      />,
+    );
+    const button = screen.getByRole("button", { name: "继续中…" });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-busy", "true");
+    fireEvent.click(button);
+    expect(onContinue).not.toHaveBeenCalled();
+  });
+
 });
 
 describe("LedgerSetupContinueCard 放弃创建", () => {

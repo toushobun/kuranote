@@ -55,16 +55,17 @@ describe("DataExportTemplate", () => {
       screen.getByText(/包含全部收支、转账和余额变更/),
     ).toBeInTheDocument();
   });
-  it("导出期间禁用按钮并阻止重复请求", () => {
+  it("导出期间禁用按钮并阻止重复请求", async () => {
     const action = vi.fn(
       () => new Promise<Awaited<ReturnType<DataExportAction>>>(() => {}),
     );
     startExport(action);
-    const button = screen.getByRole("button", { name: "正在导出…" });
+    const button = screen.getByRole("button", { name: "导出中…" });
     expect(button).toBeDisabled();
     fireEvent.click(button);
     expect(action).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole("progressbar")).toBeInTheDocument();
+    expect(button).toHaveAttribute("aria-busy", "true");
+    expect(await screen.findByRole("progressbar")).toBeInTheDocument();
   });
   it("空账本成功生成文件、触发下载并延后回收 Blob URL", async () => {
     vi.useFakeTimers();
