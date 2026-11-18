@@ -176,11 +176,15 @@ const routeSpecs: RouteSpec[] = [
   {
     basePath: "/transactions",
     expectedRoutes: {
+      attachmentConfirmRoute: { method: "post", path: "/attachments/{attachmentId}/confirm" },
+      attachmentDraftDeleteRoute: { method: "delete", path: "/attachments/{attachmentId}" },
+      attachmentUploadRoute: { method: "post", path: "/attachments/upload-requests" },
       frequentMerchantsRoute: { method: "get", path: "/frequent-merchants" },
       merchantEntrySuggestionsRoute: {
         method: "get",
         path: "/merchant-entry-suggestions",
       },
+      transactionAttachmentsRoute: { method: "get", path: "/{transactionRecordId}/attachments" },
       createTransactionRoute: { method: "post", path: "/" },
       updateTransactionRoute: {
         method: "patch",
