@@ -45,6 +45,7 @@ type TransferReceiptProps = {
   readOnly?: boolean;
   errorMessage?: string | null;
   saving?: boolean;
+  saveDisabled?: boolean;
   /** 客户端校验拦截提交时通知外框（清除未完成的「保存并退出」）。 */
   onValidationFailed?: () => void;
 };
@@ -173,6 +174,7 @@ export function TransferReceipt(props: TransferReceiptProps) {
               edit={!!props.initialValues}
               label={props.initialValues ? m.saveEdit : t.save}
               saving={props.saving}
+              disabled={props.saveDisabled}
             />
           )}
         </Stack>
