@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, type ReactNode } from "react";
+import { useActionState, useCallback, useState, type ReactNode } from "react";
 
 import Box from "@mui/material/Box";
 import { EditTransactionActionButton } from "molecules/transactions/EditTransactionActionButton/EditTransactionActionButton";
@@ -75,7 +75,15 @@ export function EditTransactionShell({
   transactionRecordId,
 }: EditTransactionShellProps) {
   const readOnly = editRestriction !== null;
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [dirtySources, setDirtySources] = useState({ form: false, photos: false });
+  const setHasUnsavedChanges = useCallback(
+    (dirty: boolean, source: "form" | "photos" = "form") =>
+      setDirtySources((current) =>
+        current[source] === dirty ? current : { ...current, [source]: dirty },
+      ),
+    [],
+  );
+  const hasUnsavedChanges = dirtySources.form || dirtySources.photos;
   const guard = useUnsavedChangesGuard({
     isDirty: hasUnsavedChanges && !readOnly,
     saveFormId,
