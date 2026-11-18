@@ -15,6 +15,7 @@ import { ReceiptAmountRow } from "organisms/transactions/ReceiptParts/ReceiptAmo
 import { ReceiptHeaderButton } from "organisms/transactions/ReceiptParts/ReceiptHeaderButton";
 import { ReceiptIssueAlerts } from "organisms/transactions/ReceiptParts/ReceiptIssueAlerts";
 import { ReceiptNoteSection } from "organisms/transactions/ReceiptParts/ReceiptNoteSection";
+import { ReceiptPhotoSection } from "organisms/transactions/ReceiptParts/ReceiptPhotoSection";
 import { ReceiptPaper } from "organisms/transactions/ReceiptParts/ReceiptPaper";
 import { ReceiptSubmitButton } from "organisms/transactions/ReceiptParts/ReceiptSubmitButton";
 import { ReceiptTimeButton } from "organisms/transactions/ReceiptParts/ReceiptTimeButton";
@@ -253,13 +254,20 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
               onChange={f.handleNoteChange}
               readOnly={readOnly}
             />
+            {props.photos && (
+              <ReceiptPhotoSection
+                controller={props.photos}
+                readOnly={readOnly}
+                disabled={props.saving || props.photos.savingPhotos}
+              />
+            )}
             {props.footer}
           </ReceiptPaper>
           {!readOnly && (
             <ReceiptSubmitButton
               edit={!!props.initialValues}
               label={props.submitLabel ?? m.save}
-              saving={props.saving}
+              saving={props.saving || props.photos?.savingPhotos}
             />
           )}
         </Stack>
