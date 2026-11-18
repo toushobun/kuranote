@@ -15,6 +15,7 @@ export type TransactionReceiptProps = ItemsStepOptions & {
 };
 
 export type TransactionConfirmStepProps = TransactionReceiptProps & {
+  photos?: import("../ReceiptParts/useReceiptPhotos").ReceiptPhotoController;
   action: (data: FormData) => void;
   errorMessage?: string;
   successMessage?: string;
