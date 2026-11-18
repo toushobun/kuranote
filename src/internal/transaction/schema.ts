@@ -730,11 +730,14 @@ export function parseTransactionAttachmentIds(
   if (!formData.has("attachmentIdsPresent") && !formData.has("attachmentIds")) {
     return { ok: true, value: undefined };
   }
-  const parsed = z.array(z.string().uuid()).max(5).safeParse(
-    formData.getAll("attachmentIds").map((value) =>
-      typeof value === "string" ? value : null,
-    ),
-  );
+  const parsed = z
+    .array(z.string().uuid())
+    .max(5)
+    .safeParse(
+      formData
+        .getAll("attachmentIds")
+        .map((value) => (typeof value === "string" ? value : null)),
+    );
   if (!parsed.success || new Set(parsed.data).size !== parsed.data.length) {
     return { ok: false };
   }
