@@ -259,7 +259,12 @@ export function MerchantDisplayNameDrawer({
               onKeyDown={addOnEnter}
               placeholder={merchantText.newAliasPlaceholder}
               size="small"
-              slotProps={{ htmlInput: { maxLength: 100, 'aria-label': merchantText.newAliasPlaceholder } }}
+              slotProps={{
+                htmlInput: {
+                  maxLength: 100,
+                  "aria-label": merchantText.newAliasPlaceholder,
+                },
+              }}
               sx={{
                 "& .MuiOutlinedInput-root": {
                   borderRadius: `${designTokens.radius.item}px`,
