@@ -26,7 +26,9 @@ function renderDrawer(aliases = [{ id: "alias-1", alias: "来福" }]) {
 describe("MerchantDisplayNameDrawer", () => {
   it("正式名与别名单选，无别名时提示空状态", () => {
     renderDrawer([]);
-    expect(screen.getByRole("button", { name: "LIFE超市是当前展示名" })).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.getByRole("button", { name: "LIFE超市是当前展示名" }),
+    ).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByText("还没有别名。")).toBeInTheDocument();
   });
 
@@ -37,13 +39,18 @@ describe("MerchantDisplayNameDrawer", () => {
     expect(add).toBeDisabled();
     fireEvent.change(input, { target: { value: "  ライフ  " } });
     fireEvent.keyDown(input, { key: "Enter" });
-    expect(screen.getByRole("button", { name: "将ライフ设为展示名" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "将ライフ设为展示名" }),
+    ).toBeInTheDocument();
     expect(input).toHaveValue("");
     expect(onConfirm).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "将ライフ设为展示名" }));
     fireEvent.click(screen.getByRole("button", { name: "确定" }));
     expect(onConfirm).toHaveBeenCalledWith(
-      [{ id: "alias-1", alias: "来福" }, { id: expect.stringMatching(/^new:/), alias: "ライフ" }],
+      [
+        { id: "alias-1", alias: "来福" },
+        { id: expect.stringMatching(/^new:/), alias: "ライフ" },
+      ],
       expect.stringMatching(/^new:/),
     );
   });
@@ -56,10 +63,14 @@ describe("MerchantDisplayNameDrawer", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("请输入非空的别名");
     fireEvent.change(input, { target: { value: "life" } });
     fireEvent.click(screen.getByRole("button", { name: "添加" }));
-    expect(screen.getByRole("alert")).toHaveTextContent("别名与正式名或已有别名重复");
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "别名与正式名或已有别名重复",
+    );
     fireEvent.change(input, { target: { value: "life超市" } });
     fireEvent.click(screen.getByRole("button", { name: "添加" }));
-    expect(screen.getByRole("alert")).toHaveTextContent("别名与正式名或已有别名重复");
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "别名与正式名或已有别名重复",
+    );
   });
 
   it("关闭只触发关闭事件，不调用确认保存", () => {

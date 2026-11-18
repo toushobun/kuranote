@@ -329,16 +329,32 @@ describe("createSupabaseMerchantRepository", () => {
 
   it("别名无效时返回安全的 ValidationError，且通过同一 RPC 保存", async () => {
     const supabase = createSupabaseMock({
-      rpcResponse: { error: {
-        code: "22023", details: "merchant_alias_duplicate", message: "private detail",
-      } },
+      rpcResponse: {
+        error: {
+          code: "22023",
+          details: "merchant_alias_duplicate",
+          message: "private detail",
+        },
+      },
     });
-    const repository = createSupabaseMerchantRepository(supabase.client as never, createLogger());
-    await expect(repository.updateMerchant({
-      addedAliases: ["来福"], archivedAliasIds: [], preferredAlias: "来福",
-      iconUrl: null, ledgerId, merchantId, name: "LIFE",
-      note: null, siteUrl: null, userId,
-    })).rejects.toMatchObject({ code: merchantErrorCodes.aliasInvalid });
+    const repository = createSupabaseMerchantRepository(
+      supabase.client as never,
+      createLogger(),
+    );
+    await expect(
+      repository.updateMerchant({
+        addedAliases: ["来福"],
+        archivedAliasIds: [],
+        preferredAlias: "来福",
+        iconUrl: null,
+        ledgerId,
+        merchantId,
+        name: "LIFE",
+        note: null,
+        siteUrl: null,
+        userId,
+      }),
+    ).rejects.toMatchObject({ code: merchantErrorCodes.aliasInvalid });
   });
 
   it.each([

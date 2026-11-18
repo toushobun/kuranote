@@ -84,4 +84,3 @@ export const archiveMerchantHandler = async (
   revalidateMerchantMutation();
   return c.json({ ok: true as const }, 200);
 };
-

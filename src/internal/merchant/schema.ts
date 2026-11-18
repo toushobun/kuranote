@@ -179,7 +179,9 @@ function parseArchivedAliasIds(
   formData: FormData,
 ): ValidationResult<string[], typeof merchantErrorCodes.aliasInvalid> {
   try {
-    const parsed: unknown = JSON.parse(getFormText(formData, "archivedAliasIds"));
+    const parsed: unknown = JSON.parse(
+      getFormText(formData, "archivedAliasIds"),
+    );
     const result = archivedAliasIdsSchema.safeParse(parsed);
     return result.success
       ? valid(result.data)
@@ -212,7 +214,8 @@ export function validateUpdateMerchantForm(
   }
   if (
     addedAliasesResult.value.some(
-      (alias) => alias.toLowerCase() === merchantValuesResult.value.name.toLowerCase(),
+      (alias) =>
+        alias.toLowerCase() === merchantValuesResult.value.name.toLowerCase(),
     )
   ) {
     return invalid(merchantErrorCodes.aliasInvalid);
@@ -393,24 +396,38 @@ export const createMerchantRequestSchema = z.object({
   tagIds: merchantTagIdsSchema.optional().default([]),
 });
 
-const addedAliasesSchema = z.array(z.string().trim().min(1).max(merchantAliasMaxLength))
+const addedAliasesSchema = z
+  .array(z.string().trim().min(1).max(merchantAliasMaxLength))
   .max(100)
-  .refine((values) => new Set(values.map((value) => value.toLowerCase())).size === values.length);
+  .refine(
+    (values) =>
+      new Set(values.map((value) => value.toLowerCase())).size ===
+      values.length,
+  );
 
-const archivedAliasIdsSchema = z.array(z.string().uuid())
+const archivedAliasIdsSchema = z
+  .array(z.string().uuid())
   .max(100)
   .refine((values) => new Set(values).size === values.length);
 
-export const updateMerchantRequestSchema = createMerchantRequestSchema.extend({
-  addedAliases: addedAliasesSchema,
-  archivedAliasIds: archivedAliasIdsSchema,
-  preferredAlias: z.string().trim().min(1).max(merchantAliasMaxLength).nullable(),
-}).refine(
-  (value) => value.addedAliases.every(
-    (alias) => alias.toLowerCase() !== value.name.toLowerCase(),
-  ),
-  { message: merchantErrorMessages[merchantErrorCodes.aliasInvalid] },
-);
+export const updateMerchantRequestSchema = createMerchantRequestSchema
+  .extend({
+    addedAliases: addedAliasesSchema,
+    archivedAliasIds: archivedAliasIdsSchema,
+    preferredAlias: z
+      .string()
+      .trim()
+      .min(1)
+      .max(merchantAliasMaxLength)
+      .nullable(),
+  })
+  .refine(
+    (value) =>
+      value.addedAliases.every(
+        (alias) => alias.toLowerCase() !== value.name.toLowerCase(),
+      ),
+    { message: merchantErrorMessages[merchantErrorCodes.aliasInvalid] },
+  );
 
 export const merchantAliasSchema = z.object({
   alias: z.string(),

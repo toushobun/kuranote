@@ -24,7 +24,10 @@ type MerchantDisplayNameDrawerProps = {
   aliases: MerchantAliasDraft[];
   merchantName: string;
   onClose: () => void;
-  onConfirm: (aliases: MerchantAliasDraft[], preferredAliasId: string | null) => void;
+  onConfirm: (
+    aliases: MerchantAliasDraft[],
+    preferredAliasId: string | null,
+  ) => void;
   preferredAliasId: string | null;
 };
 
@@ -88,8 +91,10 @@ export function MerchantDisplayNameDrawer({
       tone: "delete",
     });
     if (!accepted) return;
-    setDraftAliases((current) => current.filter((item) => item.id !== alias.id));
-    setSelectedId((current) => current === alias.id ? null : current);
+    setDraftAliases((current) =>
+      current.filter((item) => item.id !== alias.id),
+    );
+    setSelectedId((current) => (current === alias.id ? null : current));
   }
 
   function nameRow(label: string, id: string | null) {
@@ -110,7 +115,9 @@ export function MerchantDisplayNameDrawer({
         }}
       >
         <Box sx={{ width: 24, flexShrink: 0 }}>
-          {selected ? <CheckRoundedIcon fontSize="small" sx={{ color: "primary.main" }} /> : null}
+          {selected ? (
+            <CheckRoundedIcon fontSize="small" sx={{ color: "primary.main" }} />
+          ) : null}
         </Box>
         <Typography
           sx={{
@@ -140,13 +147,35 @@ export function MerchantDisplayNameDrawer({
         },
       }}
     >
-      <Stack spacing={2} sx={{ p: 2, pb: "max(16px, env(safe-area-inset-bottom))", overflowY: "auto" }}>
-        <Box aria-hidden sx={{ alignSelf: "center", bgcolor: "divider", borderRadius: `${designTokens.radius.full}px`, height: 4, width: 44 }} />
-        <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between" }}>
+      <Stack
+        spacing={2}
+        sx={{
+          p: 2,
+          pb: "max(16px, env(safe-area-inset-bottom))",
+          overflowY: "auto",
+        }}
+      >
+        <Box
+          aria-hidden
+          sx={{
+            alignSelf: "center",
+            bgcolor: "divider",
+            borderRadius: `${designTokens.radius.full}px`,
+            height: 4,
+            width: 44,
+          }}
+        />
+        <Stack
+          direction="row"
+          sx={{ alignItems: "center", justifyContent: "space-between" }}
+        >
           <Typography component="h2" variant="h6" sx={{ fontWeight: 800 }}>
             {merchantText.preferredTitle}
           </Typography>
-          <IconButton aria-label={merchantText.closeDisplayName} onClick={onClose}>
+          <IconButton
+            aria-label={merchantText.closeDisplayName}
+            onClick={onClose}
+          >
             <CloseRoundedIcon />
           </IconButton>
         </Stack>
@@ -155,22 +184,46 @@ export function MerchantDisplayNameDrawer({
         </Typography>
 
         <Stack spacing={0.75}>
-          <Typography variant="subtitle2">{merchantText.formalNameTitle}</Typography>
-          <Box sx={{ bgcolor: "background.paper", border: 1, borderColor: "divider", borderRadius: `${designTokens.radius.item}px`, overflow: "hidden" }}>
+          <Typography variant="subtitle2">
+            {merchantText.formalNameTitle}
+          </Typography>
+          <Box
+            sx={{
+              bgcolor: "background.paper",
+              border: 1,
+              borderColor: "divider",
+              borderRadius: `${designTokens.radius.item}px`,
+              overflow: "hidden",
+            }}
+          >
             {nameRow(merchantName, null)}
           </Box>
         </Stack>
         <Stack spacing={0.75}>
           <Typography variant="subtitle2">{merchantText.aliasLabel}</Typography>
           {draftAliases.length ? (
-            <Box sx={{ bgcolor: "background.paper", border: 1, borderColor: "divider", borderRadius: `${designTokens.radius.item}px`, overflow: "hidden" }}>
+            <Box
+              sx={{
+                bgcolor: "background.paper",
+                border: 1,
+                borderColor: "divider",
+                borderRadius: `${designTokens.radius.item}px`,
+                overflow: "hidden",
+              }}
+            >
               {draftAliases.map((alias, index) => (
                 <Stack
                   key={alias.id}
                   direction="row"
-                  sx={{ alignItems: "center", borderTop: index ? 1 : 0, borderColor: "divider" }}
+                  sx={{
+                    alignItems: "center",
+                    borderTop: index ? 1 : 0,
+                    borderColor: "divider",
+                  }}
                 >
-                  <Box sx={{ flex: 1, minWidth: 0 }}>{nameRow(alias.alias, alias.id)}</Box>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    {nameRow(alias.alias, alias.id)}
+                  </Box>
                   <IconButton
                     aria-label={merchantText.removeAliasLabel(alias.alias)}
                     onClick={() => void removeAlias(alias)}
@@ -183,7 +236,9 @@ export function MerchantDisplayNameDrawer({
               ))}
             </Box>
           ) : (
-            <Typography color="textSecondary" variant="body2">{merchantText.aliasEmptyHint}</Typography>
+            <Typography color="textSecondary" variant="body2">
+              {merchantText.aliasEmptyHint}
+            </Typography>
           )}
         </Stack>
 
@@ -195,7 +250,8 @@ export function MerchantDisplayNameDrawer({
               error={Boolean(error)}
               fullWidth
               onBlur={() => {
-                if (newAlias.length > 0 && !newAlias.trim()) setError(merchantText.aliasEmptyError);
+                if (newAlias.length > 0 && !newAlias.trim())
+                  setError(merchantText.aliasEmptyError);
               }}
               onChange={(event) => {
                 setNewAlias(event.target.value);
@@ -205,20 +261,31 @@ export function MerchantDisplayNameDrawer({
               placeholder={merchantText.newAliasPlaceholder}
               size="small"
               slotProps={{ htmlInput: { maxLength: 100 } }}
-              sx={{ "& .MuiOutlinedInput-root": { borderRadius: `${designTokens.radius.item}px` } }}
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: `${designTokens.radius.item}px`,
+                },
+              }}
               value={newAlias}
             />
             <Button
               disabled={!newAlias.trim()}
               onClick={addAlias}
               startIcon={<AddRoundedIcon />}
-              sx={{ borderRadius: `${designTokens.radius.item}px`, flexShrink: 0 }}
+              sx={{
+                borderRadius: `${designTokens.radius.item}px`,
+                flexShrink: 0,
+              }}
               variant="outlined"
             >
               {merchantText.addAliasShort}
             </Button>
           </Stack>
-          {error ? <Typography color="error" role="alert" variant="caption">{error}</Typography> : null}
+          {error ? (
+            <Typography color="error" role="alert" variant="caption">
+              {error}
+            </Typography>
+          ) : null}
         </Stack>
         <Button
           fullWidth

@@ -292,7 +292,14 @@ describe("merchant router", () => {
     const response = await app.request(
       `https://kuranote.example/ledgers/${ledgerId}/merchants/${merchantId}`,
       {
-        body: JSON.stringify({ name: "LIFE", note: null, siteUrl: null, addedAliases: [], archivedAliasIds: [], preferredAlias: null }),
+        body: JSON.stringify({
+          name: "LIFE",
+          note: null,
+          siteUrl: null,
+          addedAliases: [],
+          archivedAliasIds: [],
+          preferredAlias: null,
+        }),
         headers: writeHeaders,
         method: "PATCH",
       },

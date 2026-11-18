@@ -73,7 +73,8 @@ export function createMerchantImportService(
       await service.updateMerchant({
         addedAliases: [],
         archivedAliasIds: [],
-        preferredAlias: merchant.aliases.find((alias) => alias.is_preferred)?.alias ?? null,
+        preferredAlias:
+          merchant.aliases.find((alias) => alias.is_preferred)?.alias ?? null,
         ledgerId,
         merchantId,
         name: merchant.name,

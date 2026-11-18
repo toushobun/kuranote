@@ -4,7 +4,10 @@ import { expect, userEvent, within } from "storybook/test";
 import { ConfirmDialogProvider } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import { MerchantDisplayNameDrawer } from "./MerchantDisplayNameDrawer";
 
-const aliases = [{ id: "alias-1", alias: "来福" }, { id: "alias-2", alias: "ライフ" }];
+const aliases = [
+  { id: "alias-1", alias: "来福" },
+  { id: "alias-2", alias: "ライフ" },
+];
 const meta = {
   title: "Organisms/Merchants/MerchantDisplayNameDrawer",
   component: MerchantDisplayNameDrawer,
@@ -15,7 +18,13 @@ const meta = {
     onConfirm: () => {},
     preferredAliasId: "alias-1",
   },
-  decorators: [(Story) => <ConfirmDialogProvider><Story /></ConfirmDialogProvider>],
+  decorators: [
+    (Story) => (
+      <ConfirmDialogProvider>
+        <Story />
+      </ConfirmDialogProvider>
+    ),
+  ],
 } satisfies Meta<typeof MerchantDisplayNameDrawer>;
 
 export default meta;
@@ -41,6 +50,8 @@ export const DeleteConfirmation: Story = {
   play: async ({ canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body);
     await userEvent.click(body.getByRole("button", { name: "移除别名来福" }));
-    await expect(body.getByRole("heading", { name: "删除别名「来福」？" })).toBeInTheDocument();
+    await expect(
+      body.getByRole("heading", { name: "删除别名「来福」？" }),
+    ).toBeInTheDocument();
   },
 };

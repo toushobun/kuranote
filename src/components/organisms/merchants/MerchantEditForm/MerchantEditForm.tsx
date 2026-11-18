@@ -85,8 +85,16 @@ export function MerchantEditForm({
   return (
     <Stack component="form" id={id} action={action} spacing={2.5}>
       <input name="merchantId" type="hidden" value={merchant.id} />
-      <input name="addedAliases" type="hidden" value={JSON.stringify(addedAliases)} />
-      <input name="archivedAliasIds" type="hidden" value={JSON.stringify(archivedAliasIds)} />
+      <input
+        name="addedAliases"
+        type="hidden"
+        value={JSON.stringify(addedAliases)}
+      />
+      <input
+        name="archivedAliasIds"
+        type="hidden"
+        value={JSON.stringify(archivedAliasIds)}
+      />
       <input name="preferredAlias" type="hidden" value={preferredAlias ?? ""} />
       <Stack
         component="fieldset"
@@ -136,7 +144,9 @@ export function MerchantEditForm({
               <Typography color="textSecondary" variant="caption">
                 {merchantText.aliasCount(aliases.length)}
               </Typography>
-              <ChevronRightRoundedIcon sx={{ color: "text.secondary", ml: 0.5 }} />
+              <ChevronRightRoundedIcon
+                sx={{ color: "text.secondary", ml: 0.5 }}
+              />
             </ButtonBase>
           }
         />

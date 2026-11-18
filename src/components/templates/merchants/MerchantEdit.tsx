@@ -51,7 +51,9 @@ export function MerchantEditTemplate({
   const archiveFormRef = useRef<HTMLFormElement>(null);
   const update = useMerchantsActionState(
     (state, data) =>
-      guard.runSaveAction(data, (values) => updateMerchantAction(state, values)),
+      guard.runSaveAction(data, (values) =>
+        updateMerchantAction(state, values),
+      ),
     { merchantId: merchant.id, operation: "update" },
   );
   const archive = useMerchantsActionState(archiveMerchantAction, {

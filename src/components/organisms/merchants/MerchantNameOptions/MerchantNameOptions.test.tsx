@@ -26,9 +26,12 @@ describe("MerchantNameOptions", () => {
   it("列表页名称切换后恢复滚动位置，连续切换重新记录位置", async () => {
     const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
     let complete: () => void = () => {};
-    const action = vi.fn(() => new Promise<void>((resolve) => {
-      complete = resolve;
-    }));
+    const action = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          complete = resolve;
+        }),
+    );
     render(
       <MerchantNameOptions
         merchant={createMerchantRow({ aliases: [createMerchantAliasRow()] })}
@@ -46,7 +49,9 @@ describe("MerchantNameOptions", () => {
       await act(async () => complete());
       expect(option).toBeEnabled();
       expect(scrollTo).toHaveBeenCalledExactlyOnceWith({
-        left: 0, top, behavior: "instant",
+        left: 0,
+        top,
+        behavior: "instant",
       });
     }
     expect(action).toHaveBeenCalledTimes(2);
@@ -65,16 +70,26 @@ describe("MerchantNameOptions", () => {
         setPreferredAliasAction={async () => {}}
       />,
     );
-    const formalName = screen.getByRole("button", { name: "将LIFE超市设为展示名" });
-    const preferredAlias = screen.getByRole("button", { name: "来福是当前展示名" });
-    expect(getComputedStyle(within(formalName).getByText("LIFE超市")).fontWeight).toBe("700");
+    const formalName = screen.getByRole("button", {
+      name: "将LIFE超市设为展示名",
+    });
+    const preferredAlias = screen.getByRole("button", {
+      name: "来福是当前展示名",
+    });
+    expect(
+      getComputedStyle(within(formalName).getByText("LIFE超市")).fontWeight,
+    ).toBe("700");
     expect(formalName).toHaveAttribute("aria-pressed", "false");
     expect(preferredAlias).toHaveAttribute("aria-pressed", "true");
-    expect(within(preferredAlias).getByTestId("StarRoundedIcon")).toBeInTheDocument();
+    expect(
+      within(preferredAlias).getByTestId("StarRoundedIcon"),
+    ).toBeInTheDocument();
   });
 
   it("无写权限时只展示名称并禁用切换", () => {
     render(<MerchantNameOptions merchant={createMerchantRow()} />);
-    expect(screen.getByRole("button", { name: "LIFE超市是当前展示名" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "LIFE超市是当前展示名" }),
+    ).toBeDisabled();
   });
 });

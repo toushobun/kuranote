@@ -34,7 +34,10 @@ export const FormalNameSelected: Story = {
   args: {
     merchant: {
       ...merchant,
-      aliases: merchant.aliases.map((alias) => ({ ...alias, is_preferred: false })),
+      aliases: merchant.aliases.map((alias) => ({
+        ...alias,
+        is_preferred: false,
+      })),
       display_name: merchant.name,
     },
   },
