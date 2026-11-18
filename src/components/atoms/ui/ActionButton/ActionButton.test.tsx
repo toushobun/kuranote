@@ -42,6 +42,37 @@ describe("ActionButton", () => {
     expect(getComputedStyle(grid!.children[1]!).visibility).toBe("visible");
   });
 
+  it.each([false, true])(
+    "无论 fullWidth=%s，加载前后均在同一网格轨道占位",
+    (fullWidth) => {
+      vi.useFakeTimers();
+      const { container } = render(
+        <ActionButton
+          fullWidth={fullWidth}
+          pending
+          pendingLabel="保存中…"
+          variant="contained"
+        >
+          保存
+        </ActionButton>,
+      );
+      const button = screen.getByRole("button", { name: "保存中…" });
+      expect(getComputedStyle(button).display).toBe("inline-grid");
+      expect(getComputedStyle(button).gridTemplateColumns).toBe("max-content");
+      const content = container.querySelector("[data-action-button-content]");
+      expect(getComputedStyle(content!).gridArea).toBe("1 / 1");
+      act(() => vi.advanceTimersByTime(150));
+      // center 模式不额外生成 startIcon，占位由 grid 本身保证。
+      expect(button).toHaveClass("MuiButton-loadingPositionCenter");
+      expect(button.querySelector(".MuiButton-startIcon")).toBeNull();
+      const indicator = button.querySelector(".MuiButton-loadingIndicator");
+      expect(indicator).toBeInTheDocument();
+      expect(getComputedStyle(indicator!).gridArea).toBe("1 / 1");
+      expect(getComputedStyle(indicator!).position).toBe("relative");
+      expect(getComputedStyle(indicator!).justifySelf).toBe("start");
+    },
+  );
+
   it("真的禁用与处理中不同，只有后者保留状态标记", () => {
     render(
       <ActionButton disabled pendingLabel="保存中…" variant="contained">

@@ -48,9 +48,10 @@ export function ActionButton<C extends ElementType = "button">({
       loadingIndicator={
         <CircularProgress color="inherit" size={18} aria-label={pendingLabel} />
       }
-      loadingPosition="start"
+      loadingPosition={pendingLabel ? "center" : "start"}
       sx={[
         pressFeedbackSx,
+        ...(pendingLabel ? [stableLoadingLayoutSx] : []),
         {
           "&&[data-action-pending='true'].Mui-disabled.MuiButton-contained": {
             bgcolor: activeColor,
@@ -120,5 +121,28 @@ const pressFeedbackSx = {
   "@media (prefers-reduced-motion: reduce)": {
     transition: "none",
     "&&:active:not(.Mui-disabled)": { transform: "none" },
+  },
+} as const;
+
+/**
+ * MUI 9 的 loadingPosition="start" 会在加载后额外生成 startIcon，
+ * 对于非 fullWidth 按钮会改变宽度。用同一网格轨道放置加载图标和双文案，
+ * 既使用 MUI 自带 loading，又保证任何宽度下不会跳动。
+ */
+const stableLoadingLayoutSx = {
+  display: "inline-grid",
+  gridTemplateColumns: "max-content",
+  justifyContent: "center",
+  alignItems: "center",
+  "& .MuiButton-loadingIndicator": {
+    gridArea: "1 / 1",
+    position: "relative",
+    left: "auto",
+    transform: "none",
+    justifySelf: "start",
+    color: "inherit",
+  },
+  "& [data-action-button-content]": {
+    gridArea: "1 / 1",
   },
 } as const;
