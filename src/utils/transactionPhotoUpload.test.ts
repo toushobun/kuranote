@@ -56,10 +56,15 @@ beforeEach(() => {
 describe("uploadReceiptPhoto", () => {
   it("浏览器无法解码 HEIC 时显示友好提示，且不申请上传", async () => {
     mocks.compressImage.mockRejectedValueOnce(
-      new DOMException("The source image could not be decoded", "InvalidStateError"),
+      new DOMException(
+        "The source image could not be decoded",
+        "InvalidStateError",
+      ),
     );
 
-    await expect(uploadReceiptPhoto(file())).rejects.toThrow(m.imageDecodeFailed);
+    await expect(uploadReceiptPhoto(file())).rejects.toThrow(
+      m.imageDecodeFailed,
+    );
     expect(mocks.requestReceiptPhotoUpload).not.toHaveBeenCalled();
     expect(mocks.uploadToSignedUrl).not.toHaveBeenCalled();
   });
@@ -69,12 +74,16 @@ describe("uploadReceiptPhoto", () => {
       .mockResolvedValueOnce(full)
       .mockRejectedValueOnce(new Error("image encoding failed"));
 
-    await expect(uploadReceiptPhoto(file())).rejects.toThrow(m.imageDecodeFailed);
+    await expect(uploadReceiptPhoto(file())).rejects.toThrow(
+      m.imageDecodeFailed,
+    );
     expect(mocks.requestReceiptPhotoUpload).not.toHaveBeenCalled();
   });
 
   it("正常压缩的大图和缩略图保持原有签名上传、确认流程", async () => {
-    mocks.compressImage.mockResolvedValueOnce(full).mockResolvedValueOnce(thumb);
+    mocks.compressImage
+      .mockResolvedValueOnce(full)
+      .mockResolvedValueOnce(thumb);
 
     await expect(uploadReceiptPhoto(file())).resolves.toEqual({
       attachmentId: "attachment-1",
@@ -97,7 +106,9 @@ describe("uploadReceiptPhoto", () => {
       width: 1200,
     });
     expect(mocks.uploadToSignedUrl).toHaveBeenCalledTimes(2);
-    expect(mocks.confirmReceiptPhotoUpload).toHaveBeenCalledWith("attachment-1");
+    expect(mocks.confirmReceiptPhotoUpload).toHaveBeenCalledWith(
+      "attachment-1",
+    );
     expect(mocks.discardReceiptPhoto).not.toHaveBeenCalled();
   });
 });
