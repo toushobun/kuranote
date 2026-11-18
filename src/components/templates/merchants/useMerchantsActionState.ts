@@ -13,9 +13,7 @@ import type { MerchantActionState, MerchantStateAction } from "types/merchants";
 
 type MerchantActionOperation =
   | "archive"
-  | "archiveAlias"
   | "create"
-  | "createAlias"
   | "setPreferred"
   | "update";
 

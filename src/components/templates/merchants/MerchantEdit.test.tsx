@@ -96,6 +96,26 @@ describe("MerchantEditTemplate #1125", () => {
     expect(JSON.parse(String(editFormData().get("addedAliases")))).toEqual([]);
   });
 
+
+  it("抽屉草稿在返回键关闭时丢弃且不触发页面离开", async () => {
+    renderTemplate();
+    openDrawer();
+    addAlias("返回时丢弃");
+    await backFromGuard();
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: "关闭显示名抽屉" }),
+      ).toBeNull(),
+    );
+    expect(
+      screen.getByRole("button", { name: "管理显示名与别名" }),
+    ).toHaveTextContent("别名 1 个");
+    expect(JSON.parse(String(editFormData().get("addedAliases")))).toEqual([]);
+    expect(
+      screen.queryByRole("dialog", { name: "尚未保存" }),
+    ).toBeNull();
+  });
+
   it("确认抽屉结果暂存且一次提交新增、删除与显示名", async () => {
     const save = vi.fn<MerchantStateAction>(async () => ({
       error: "数据库保存失败",

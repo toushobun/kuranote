@@ -6,7 +6,7 @@ import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import ButtonBase from "@mui/material/ButtonBase";
-import Drawer from "@mui/material/Drawer";
+import SwipeableDrawer from "@mui/material/SwipeableDrawer";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
@@ -134,8 +134,10 @@ export function MerchantDisplayNameDrawer({
   }
 
   return (
-    <Drawer
+    <SwipeableDrawer
       anchor="bottom"
+      disableSwipeToOpen
+      onOpen={() => undefined}
       open
       onClose={onClose}
       slotProps={{
@@ -302,6 +304,6 @@ export function MerchantDisplayNameDrawer({
           {merchantText.confirmDisplayName}
         </Button>
       </Stack>
-    </Drawer>
+    </SwipeableDrawer>
   );
 }

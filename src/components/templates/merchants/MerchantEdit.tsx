@@ -1,5 +1,6 @@
 "use client";
 
+import { BackLayerScope, transactionBackLayerLevels } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
 import { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
 import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog/UnsavedChangesDialog";
 import Button from "@mui/material/Button";
@@ -63,7 +64,8 @@ export function MerchantEditTemplate({
   });
 
   return (
-    <SettingsPageLayout
+    <BackLayerScope level={transactionBackLayerLevels.pageOverlay}>
+      <SettingsPageLayout
       action={
         <form action={archive.action} ref={archiveFormRef}>
           <input name="merchantId" type="hidden" value={merchant.id} />
@@ -123,6 +125,7 @@ export function MerchantEditTemplate({
         />
       ) : null}
       <UnsavedChangesDialog {...guard.dialogProps} />
-    </SettingsPageLayout>
+      </SettingsPageLayout>
+    </BackLayerScope>
   );
 }
