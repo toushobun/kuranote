@@ -123,6 +123,33 @@ describe("useReceiptPhotos", () => {
     );
   });
 
+  it("旧记录照片仍在读取时不能保存，避免意外清空已有照片", async () => {
+    let resolveLoad: ((photos: { id: string; fullUrl: string; thumbnailUrl: string }[]) => void) | undefined;
+    mocks.loadReceiptPhotos.mockImplementation(() => new Promise((resolve) => {
+      resolveLoad = resolve;
+    }));
+    const { result } = renderHook(() => useReceiptPhotos({ recordId: "record-1" }));
+    const data = new FormData();
+    expect(await result.current.prepareForSave(data)).toBe(false);
+    expect(data.has("attachmentIdsPresent")).toBe(false);
+    await act(async () => {
+      resolveLoad?.([{ id: "saved-1", fullUrl: "/full.jpg", thumbnailUrl: "/thumb.jpg" }]);
+    });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(await result.current.prepareForSave(data)).toBe(true);
+    expect(data.getAll("attachmentIds")).toEqual(["saved-1"]);
+  });
+
+  it("旧照片读取失败时禁止提交空关联，防止误删", async () => {
+    mocks.loadReceiptPhotos.mockRejectedValue(new Error("network unavailable"));
+    const { result } = renderHook(() => useReceiptPhotos({ recordId: "record-1" }));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    const data = new FormData();
+    expect(await result.current.prepareForSave(data)).toBe(false);
+    expect(data.has("attachmentIdsPresent")).toBe(false);
+    expect(result.current.error).toBeTruthy();
+  });
+
   it("编辑记录读取原照片并在提交时保留全部未移除 ID", async () => {
     mocks.loadReceiptPhotos.mockResolvedValue([
       { id: "saved-1", fullUrl: "/full.jpg", thumbnailUrl: "/thumb.jpg" },
