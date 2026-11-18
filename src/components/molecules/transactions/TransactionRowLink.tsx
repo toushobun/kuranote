@@ -36,9 +36,10 @@ export function TransactionRowLink({
   const [viewerOpen, setViewerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [photos, setPhotos] = useState<ReceiptPhotoPreview[]>([]);
-  const hasPhotos = item.type !== "transfer"
-    && item.type !== "balance_adjustment"
-    && (item.attachmentCount ?? 0) > 0;
+  const hasPhotos =
+    item.type !== "transfer" &&
+    item.type !== "balance_adjustment" &&
+    (item.attachmentCount ?? 0) > 0;
 
   const rowSx = [
     transactionRowLinkSx,
@@ -50,11 +51,13 @@ export function TransactionRowLink({
     setLoading(true);
     try {
       const urls = await loadReceiptPhotos(item.id);
-      setPhotos(urls.map((photo) => ({
-        id: photo.id,
-        fullUrl: photo.fullUrl,
-        thumbnailUrl: photo.thumbnailUrl,
-      })));
+      setPhotos(
+        urls.map((photo) => ({
+          id: photo.id,
+          fullUrl: photo.fullUrl,
+          thumbnailUrl: photo.thumbnailUrl,
+        })),
+      );
     } catch {
       setPhotos([]);
     } finally {
@@ -81,7 +84,12 @@ export function TransactionRowLink({
         component={Link}
         aria-label="进入记录"
         href={href}
-        sx={{ ...transactionRowLinkSx, position: "absolute", inset: 0, zIndex: 1 }}
+        sx={{
+          ...transactionRowLinkSx,
+          position: "absolute",
+          inset: 0,
+          zIndex: 1,
+        }}
       />
       <TransactionRow
         item={item}
@@ -92,9 +100,14 @@ export function TransactionRowLink({
             aria-label={m.photoPreview}
             onClick={() => void openPhotoViewer()}
             sx={{
-              position: "relative", zIndex: 2, flexShrink: 0,
-              height: 44, width: 44, my: "-14px",
-              color: "text.secondary", p: 0,
+              position: "relative",
+              zIndex: 2,
+              flexShrink: 0,
+              height: 44,
+              width: 44,
+              my: "-14px",
+              color: "text.secondary",
+              p: 0,
             }}
           >
             <ImageOutlinedIcon sx={{ fontSize: 14 }} />
