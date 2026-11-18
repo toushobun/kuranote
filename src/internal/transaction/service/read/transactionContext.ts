@@ -37,6 +37,7 @@ export async function loadTransactionGroupLoaderContext(
   currentLedger: CurrentLedger,
 ): Promise<TransactionGroupLoaderContext> {
   const records = await dependencies.transactionRepository.listRecords({
+    includeAttachmentCount: true,
     ledgerId: currentLedger.id,
     recordType: "all",
   });
