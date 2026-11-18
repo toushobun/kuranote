@@ -1,4 +1,5 @@
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -75,6 +76,54 @@ describe("TransactionRowLink 小票照片", () => {
       expect(
         screen.queryByRole("img", { name: "查看照片" }),
       ).not.toBeInTheDocument(),
+    );
+  });
+
+  it("关闭后重新打开时忽略上次尚未完成的读取", async () => {
+    const resolves: Array<
+      (photos: { id: string; fullUrl: string; thumbnailUrl: string }[]) => void
+    > = [];
+    mocks.loadReceiptPhotos.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolves.push(resolve);
+        }),
+    );
+    render(
+      <TransactionRowLink
+        href="/transactions/record-1/edit"
+        item={createTransactionListItem({ id: "record-1", attachmentCount: 1 })}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "查看照片" }));
+    fireEvent.click(screen.getByRole("button", { name: "关闭照片预览" }));
+    fireEvent.click(screen.getByRole("button", { name: "查看照片" }));
+    await act(async () => {
+      resolves[0]?.([
+        {
+          id: "old",
+          fullUrl: "/old.jpg",
+          thumbnailUrl: "/old-thumb.jpg",
+        },
+      ]);
+    });
+    expect(screen.getByText("照片读取中…")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("img", { name: "查看照片" }),
+    ).not.toBeInTheDocument();
+
+    await act(async () => {
+      resolves[1]?.([
+        {
+          id: "new",
+          fullUrl: "/new.jpg",
+          thumbnailUrl: "/new-thumb.jpg",
+        },
+      ]);
+    });
+    expect(screen.getByRole("img", { name: "查看照片" })).toHaveAttribute(
+      "src",
+      "/new.jpg",
     );
   });
 
