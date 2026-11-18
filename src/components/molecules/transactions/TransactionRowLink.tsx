@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
@@ -36,6 +36,7 @@ export function TransactionRowLink({
   const [viewerOpen, setViewerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [photos, setPhotos] = useState<ReceiptPhotoPreview[]>([]);
+  const photoRequest = useRef(0);
   const hasPhotos =
     item.type !== "transfer" &&
     item.type !== "balance_adjustment" &&
@@ -47,10 +48,13 @@ export function TransactionRowLink({
   ];
 
   async function openPhotoViewer() {
+    const request = ++photoRequest.current;
+    setPhotos([]);
     setViewerOpen(true);
     setLoading(true);
     try {
       const urls = await loadReceiptPhotos(item.id);
+      if (request !== photoRequest.current) return;
       setPhotos(
         urls.map((photo) => ({
           id: photo.id,
@@ -59,10 +63,17 @@ export function TransactionRowLink({
         })),
       );
     } catch {
-      setPhotos([]);
+      if (request === photoRequest.current) setPhotos([]);
     } finally {
-      setLoading(false);
+      if (request === photoRequest.current) setLoading(false);
     }
+  }
+
+  function closePhotoViewer() {
+    // 关闭后废弃正在进行的读取，避免过期结果污染下一次预览。
+    photoRequest.current += 1;
+    setViewerOpen(false);
+    setLoading(false);
   }
 
   if (!hasPhotos) {
@@ -119,7 +130,7 @@ export function TransactionRowLink({
           photos={photos}
           loading={loading}
           open={viewerOpen}
-          onClose={() => setViewerOpen(false)}
+          onClose={closePhotoViewer}
         />
       </BackLayerScope>
     </Box>
