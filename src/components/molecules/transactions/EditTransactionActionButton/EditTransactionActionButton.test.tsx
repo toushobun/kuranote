@@ -37,7 +37,11 @@ describe("EditTransactionActionButton", () => {
   it("保存中保留加载指示并禁止点击，禁用条件可透传", async () => {
     const onClick = vi.fn();
     const { rerender } = render(
-      <EditTransactionActionButton pending pendingLabel="保存中…" onClick={onClick}>
+      <EditTransactionActionButton
+        pending
+        pendingLabel="保存中…"
+        onClick={onClick}
+      >
         保存修改
       </EditTransactionActionButton>,
     );

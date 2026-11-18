@@ -21,7 +21,7 @@ export type ActionButtonProps<C extends ElementType = "button"> = Omit<
 /** 共用异步操作按钮：原色锁定、延迟加载、保持宽度和按下反馈。 */
 export function ActionButton<C extends ElementType = "button">({
   children,
-  color = "primary",
+  color,
   disabled,
   pending = false,
   pendingLabel,
@@ -31,8 +31,11 @@ export function ActionButton<C extends ElementType = "button">({
 }: ActionButtonProps<C>) {
   const visible = usePendingIndicator(pending);
   const blocked = pending || visible;
-  const tone = color === "inherit" ? "text.primary" : `${color}.main`;
-  const contrast = color === "inherit" ? "text.primary" : `${color}.contrastText`;
+  const tone = color === "inherit" ? "text.primary" : `${color ?? "primary"}.main`;
+  const contrast =
+    color === "inherit"
+      ? "text.primary"
+      : `${color ?? "primary"}.contrastText`;
 
   return (
     <Button

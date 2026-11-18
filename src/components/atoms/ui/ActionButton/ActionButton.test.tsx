@@ -59,9 +59,20 @@ describe("ActionButton", () => {
     vi.useFakeTimers();
     render(
       <>
-        <ActionButton variant="contained" pending pendingLabel="保存中…">保存</ActionButton>
-        <ActionButton variant="outlined" pending pendingLabel="提交中…">提交</ActionButton>
-        <ActionButton color="error" variant="outlined" pending pendingLabel="删除中…">删除</ActionButton>
+        <ActionButton variant="contained" pending pendingLabel="保存中…">
+          保存
+        </ActionButton>
+        <ActionButton variant="outlined" pending pendingLabel="提交中…">
+          提交
+        </ActionButton>
+        <ActionButton
+          color="error"
+          variant="outlined"
+          pending
+          pendingLabel="删除中…"
+        >
+          删除
+        </ActionButton>
       </>,
     );
     act(() => vi.advanceTimersByTime(150));
