@@ -7,6 +7,7 @@ import { useCallback, useEffect, useId } from "react";
 import { WizardDialog } from "molecules/ui/WizardDialog/WizardDialog";
 
 import { merchantPresetMessages as messages } from "config/merchantPresetMessages";
+import { actionPendingMessages } from "config/actionPendingMessages";
 import type { MerchantPresetOptions } from "internal/merchant";
 import { MerchantPresetSelector } from "organisms/merchants/MerchantPresetSelector/MerchantPresetSelector";
 import { ActionFailureFeedback } from "molecules/ui/OperationFeedbackDialogs";
@@ -63,7 +64,7 @@ export function MerchantPresetDialog({
               next={{
                 label: messages.submit(dialog.selectedKeys.length),
                 loading: pending,
-                loadingLabel: messages.submitting,
+                loadingLabel: actionPendingMessages.add,
                 disabled: dialog.selectedKeys.length === 0,
                 type: "submit",
                 form: formId,

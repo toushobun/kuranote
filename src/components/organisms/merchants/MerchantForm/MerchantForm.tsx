@@ -5,6 +5,7 @@ import { useDirtySnapshot } from "molecules/ui/UnsavedChangesDialog/useDirtySnap
 import Stack from "@mui/material/Stack";
 
 import { merchantText } from "config/merchantText";
+import { actionPendingMessages } from "config/actionPendingMessages";
 import { routePaths } from "config/paths";
 import { PageFormActions } from "molecules/ui/PageFormActions/PageFormActions";
 import { MerchantDetailsFields } from "organisms/merchants/MerchantDetailsFields/MerchantDetailsFields";
@@ -71,7 +72,7 @@ export function MerchantForm({
           : { cancelHref: returnTo ?? routePaths.merchants })}
         cancelLabel={merchantText.cancel}
         pending={pending}
-        pendingLabel={merchantText.creating}
+        pendingLabel={actionPendingMessages.create}
         submitLabel={merchantText.saveMerchant}
       />
     </Stack>

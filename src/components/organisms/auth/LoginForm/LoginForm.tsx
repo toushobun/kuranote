@@ -2,7 +2,8 @@
 
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
+import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
+import { actionPendingMessages } from "config/actionPendingMessages";
 import TextField from "@mui/material/TextField";
 import { useActionState } from "react";
 
@@ -58,15 +59,16 @@ export function LoginForm({ action, defaultEmail = "" }: LoginFormProps) {
         slotProps={shrinkInputLabelSlotProps}
       />
 
-      <Button
+      <ActionButton
         type="submit"
         variant="contained"
         size="large"
-        disabled={isPending}
+        pending={isPending}
+        pendingLabel={actionPendingMessages.login}
         fullWidth
       >
-        {isPending ? "登录中..." : "登录"}
-      </Button>
+        登录
+      </ActionButton>
     </Box>
   );
 }

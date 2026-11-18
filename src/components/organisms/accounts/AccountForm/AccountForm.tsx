@@ -12,6 +12,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useEffect, type ReactNode } from "react";
 
+import { actionPendingMessages } from "config/actionPendingMessages";
 import {
   accountFormMessages,
   accountIconMessages,
@@ -334,7 +335,7 @@ export function AccountForm({
           : { cancelHref: returnTo ?? routePaths.accounts })}
         cancelLabel={accountFormMessages.cancel}
         pending={pending}
-        pendingLabel={accountFormMessages.saving}
+        pendingLabel={actionPendingMessages.save}
         submitDisabled={adjustment ? !adjustment.valid : false}
         submitLabel={
           account ? accountFormMessages.saveChanges : accountFormMessages.save

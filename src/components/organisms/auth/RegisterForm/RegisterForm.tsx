@@ -1,6 +1,8 @@
 "use client";
 
 import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
+import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
+import { actionPendingMessages } from "config/actionPendingMessages";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -233,17 +235,17 @@ export function RegisterForm(props: RegisterFormProps) {
           />
           {shouldShowTurnstile ? <Box ref={turnstileContainerRef} /> : null}
           {retryTurnstileButton}
-          <Button
+          <ActionButton
             type="submit"
             variant="contained"
             size="large"
             disabled={!canRequestOtp}
+            pending={isRequestOtpPending}
+            pendingLabel={actionPendingMessages.send}
             fullWidth
           >
-            {isRequestOtpPending
-              ? registerFormMessages.requestOtpPending
-              : registerFormMessages.requestOtp}
-          </Button>
+            {registerFormMessages.requestOtp}
+          </ActionButton>
         </Box>
       ) : null}
 
@@ -295,17 +297,17 @@ export function RegisterForm(props: RegisterFormProps) {
                 )}
               </Typography>
             ) : null}
-            <Button
+            <ActionButton
               type="submit"
               variant="contained"
               size="large"
               disabled={!canSubmitOtp}
+              pending={isSubmitOtpPending}
+              pendingLabel={actionPendingMessages.submit}
               fullWidth
             >
-              {isSubmitOtpPending
-                ? registerFormMessages.submitOtpPending
-                : registerFormMessages.submitOtp}
-            </Button>
+              {registerFormMessages.submitOtp}
+            </ActionButton>
           </Box>
           {cooldownSeconds <= 0 &&
           !isResendPreparing &&
@@ -319,17 +321,17 @@ export function RegisterForm(props: RegisterFormProps) {
             <Box sx={{ display: "grid", gap: 2 }}>
               <Box ref={turnstileContainerRef} />
               {retryTurnstileButton}
-              <Button
+              <ActionButton
                 type="button"
                 variant="outlined"
                 disabled={!canResendOtp}
+                pending={isRequestOtpPending}
+                pendingLabel={actionPendingMessages.send}
                 onClick={handleResendOtp}
                 fullWidth
               >
-                {isRequestOtpPending
-                  ? registerFormMessages.requestOtpPending
-                  : registerFormMessages.resendOtp}
-              </Button>
+                {registerFormMessages.resendOtp}
+              </ActionButton>
             </Box>
           ) : null}
           <Button
