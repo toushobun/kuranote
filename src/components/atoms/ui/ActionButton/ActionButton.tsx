@@ -64,7 +64,11 @@ export function ActionButton<C extends ElementType = "button">({
       loading={visible && !hasIcon}
       loadingIndicator={
         !hasIcon ? (
-          <CircularProgress color="inherit" size={18} aria-label={pendingLabel} />
+          <CircularProgress
+            color="inherit"
+            size={18}
+            aria-label={pendingLabel}
+          />
         ) : null
       }
       loadingPosition={pendingLabel ? "center" : "start"}
