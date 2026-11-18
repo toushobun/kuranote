@@ -34,7 +34,6 @@ import { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUns
 import { useEditTransactionDirty } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
 
 import { EditTransactionShell } from "./EditTransactionShell";
-import { ReceiptSubmitButton } from "organisms/transactions/ReceiptParts/ReceiptSubmitButton";
 
 const saveFormId = "edit-test-form";
 
@@ -66,12 +65,12 @@ function ShellHarness({
         <form action={editAction.formAction} id={saveFormId}>
           <DirtyReportingInput />
           <input aria-label="未报告的输入" defaultValue="" />
-          <ReceiptSubmitButton
-            edit
-            label="保存修改"
-            saving={editAction.isPending}
-            disabled={editAction.saveDisabled}
-          />
+          <button
+            disabled={editAction.saveDisabled || editAction.isPending}
+            type="submit"
+          >
+            保存修改
+          </button>
         </form>
       )}
     </EditTransactionShell>
@@ -261,8 +260,8 @@ describe("EditTransactionShell", () => {
     fireEvent.click(deleteButton);
     expect(screen.queryByRole("dialog", { name: "删除记账？" })).toBeNull();
     expect(
-      within(container).getByRole("button", { name: "保存中…" }),
-    ).toHaveAttribute("aria-busy", "true");
+      within(container).getByRole("button", { name: "保存修改" }),
+    ).toBeDisabled();
     await act(async () => complete({}));
     await waitFor(() => expect(deleteButton).toBeEnabled());
   });
