@@ -89,7 +89,7 @@ describe("ProfilePasswordDialog", () => {
     expect(screen.getByLabelText("新密码")).toBeInTheDocument();
     expect(screen.getByLabelText("确认新密码")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "60 秒后可重新发送" }),
+      await screen.findByRole("button", { name: "60 秒后可重新发送" }),
     ).toBeDisabled();
   });
 
@@ -103,7 +103,7 @@ describe("ProfilePasswordDialog", () => {
       screen.getByText(passwordChangeOtpRateLimitedMessage),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "60 秒后可重新发送" }),
+      await screen.findByRole("button", { name: "60 秒后可重新发送" }),
     ).toBeDisabled();
     expect(screen.queryByLabelText("新密码")).not.toBeInTheDocument();
   });

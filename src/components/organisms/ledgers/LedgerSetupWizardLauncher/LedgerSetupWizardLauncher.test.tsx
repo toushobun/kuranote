@@ -240,7 +240,7 @@ describe("LedgerSetupWizardLauncher", () => {
     confirmLedgerSetupAbandon(await openRestartConfirm());
     await waitFor(() => expect(restart).toBeDisabled());
     expect(
-      within(restart).getByRole("progressbar", {
+      await within(restart).findByRole("progressbar", {
         name: actionPendingMessages.abandon,
       }),
     ).toBeInTheDocument();
