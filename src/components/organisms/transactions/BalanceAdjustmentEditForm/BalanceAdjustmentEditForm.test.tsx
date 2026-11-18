@@ -5,6 +5,7 @@ setupGuardHistoryMock();
 vi.mock("next/navigation", () => import("test/mocks/navigation"));
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -18,6 +19,7 @@ import type {
   TransactionEditRestriction,
 } from "internal/transaction";
 import { transactionEditRestrictionMessages } from "utils/transactionMessages";
+import type { TransactionActionState, TransactionStateAction } from "types/transactions";
 const initialValues: BalanceAdjustmentEditInitialValues = {
   type: "balance_adjustment",
   accountId: "account",
@@ -46,13 +48,14 @@ function setup(
   {
     canDelete = true,
     editRestriction = null,
+    deleteAction = vi.fn(async () => ({})),
   }: {
     canDelete?: boolean;
     editRestriction?: TransactionEditRestriction | null;
+    deleteAction?: TransactionStateAction;
   } = {},
 ) {
   const action = vi.fn(async () => ({}));
-  const deleteAction = vi.fn(async () => ({}));
   render(
     <ConfirmDialogTestProviders>
       <BalanceAdjustmentEditForm
@@ -113,6 +116,31 @@ describe("BalanceAdjustmentEditForm", () => {
     );
     expect(deleteAction).not.toHaveBeenCalled();
   });
+  it("余额调整确认删除后按钮显示删除中", async () => {
+    let complete!: (state: TransactionActionState) => void;
+    const deleteAction = vi.fn(
+      () =>
+        new Promise<TransactionActionState>((done) => {
+          complete = done;
+        }),
+    );
+    setup(false, { deleteAction });
+    fireEvent.click(screen.getByRole("button", { name: "删除" }));
+    fireEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "删除",
+      }),
+    );
+    await waitFor(() => expect(deleteAction).toHaveBeenCalledOnce());
+    const button = screen.getByRole("button", {
+      name: "删除中…",
+      hidden: true,
+    });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-busy", "true");
+    await act(async () => complete({}));
+  });
+
   it("无修改权限时显示只读详情：提示原因，没有铅笔、保存和删除", () => {
     const { action } = setup(false, {
       canDelete: false,
