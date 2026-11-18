@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useState } from "react";
-import { userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { TransactionLinkCandidatePanel } from "./TransactionLinkCandidatePanel";
 import {
   candidateItems,
@@ -257,6 +257,10 @@ async function selectSearchMonth(canvasElement: HTMLElement) {
   );
   await userEvent.click(dialog.getByRole("button", { name: "选择 8 月" }));
   await userEvent.click(dialog.getByRole("button", { name: "确定年月" }));
+  // 等待关闭动画真正移除 Dialog，避免背景的 aria-hidden 阻止再次定位月份按钮。
+  await waitFor(() => {
+    expect(canvasElement.ownerDocument.querySelector('[role="dialog"]')).toBeNull();
+  });
 }
 
 export const NormalMonth: Story = {
@@ -298,6 +302,11 @@ export const SearchSelectedMonthPickerOpen: Story = {
   play: async ({ canvasElement }) => {
     await selectSearchMonth(canvasElement);
     await openCandidateMonthPicker(canvasElement);
+    const dialog = within(canvasElement.ownerDocument.body);
+    const year = await dialog.findByRole("button", { name: "选择 2026 年" });
+    const month = dialog.getByRole("button", { name: "选择 8 月" });
+    expect(year).toHaveAttribute("aria-pressed", "true");
+    expect(month).toHaveAttribute("aria-pressed", "true");
   },
 };
 
