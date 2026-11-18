@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { transactionAttachmentMessages } from "config/transactionAttachmentMessages";
 
 import {
   transactionResultValues,
@@ -30,6 +31,7 @@ import {
   voidTransactionValidationErrorMessages,
 } from "internal/transaction/errors";
 import {
+  parseTransactionAttachmentIds,
   validateTransactionForm,
   validateUpdateTransferTransactionForm,
   validateVoidTransactionForm,
@@ -93,6 +95,8 @@ export async function createTransaction(
   }
 
   const values = validation.value;
+  const attachments = parseTransactionAttachmentIds(formData);
+  if (!attachments.ok) return createErrorState(transactionAttachmentMessages.invalid);
   try {
     const service = await getTransactionService();
     if (values.type === "transfer") {
@@ -105,7 +109,7 @@ export async function createTransaction(
         transferTargetAccountId: values.transferTargetAccountId,
       });
     } else {
-      await service.createNormal({ ledgerId: currentLedger.id, ...values });
+      await service.createNormal({ ledgerId: currentLedger.id, ...values, attachmentIds: attachments.value ?? [] });
     }
   } catch (error) {
     return appErrorState(error, transactionActionErrorMessages.createFailed);
@@ -126,6 +130,8 @@ export async function updateTransaction(
       updateTransactionValidationErrorMessages[validation.error],
     );
   }
+  const attachments = parseTransactionAttachmentIds(formData);
+  if (!attachments.ok) return createErrorState(transactionAttachmentMessages.invalid);
   const linkedEditInput = parseLinkedEditActionInput(
     formData,
     validation.value.items.map((item) => item.id),
@@ -140,6 +146,7 @@ export async function updateTransaction(
       ledgerId: currentLedger.id,
       ...validation.value,
       ...linkedEditInput,
+      attachmentIds: attachments.value,
     });
   } catch (error) {
     return appErrorState(error, transactionActionErrorMessages.updateFailed);
