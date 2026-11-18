@@ -31,7 +31,8 @@ export function ReceiptPhotoSection({
   const addDisabled =
     disabled || controller.loading || controller.error === m.loadFailed;
 
-  if (readOnly && count === 0 && !controller.loading) return null;
+  if (readOnly && count === 0 && !controller.loading && !controller.error)
+    return null;
 
   function selectFiles(event: ChangeEvent<HTMLInputElement>) {
     if (event.target.files) controller.addFiles(event.target.files);
