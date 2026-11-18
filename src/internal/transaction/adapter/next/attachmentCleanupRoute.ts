@@ -32,7 +32,8 @@ export async function handleAttachmentCleanupRequest(
   }
 
   try {
-    const cleanup = options.cleanup ??
+    const cleanup =
+      options.cleanup ??
       (() => runAttachmentCleanup(createAttachmentCleanupRepository()));
     const summary = await cleanup();
     return Response.json(summary, { status: 200 });
