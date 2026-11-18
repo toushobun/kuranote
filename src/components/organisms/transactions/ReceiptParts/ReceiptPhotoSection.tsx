@@ -45,7 +45,10 @@ export function ReceiptPhotoSection({
 
   return (
     <Box sx={receiptSectionSx}>
-      <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between" }}>
+      <Stack
+        direction="row"
+        sx={{ alignItems: "center", justifyContent: "space-between" }}
+      >
         <Typography variant="caption" sx={receiptSectionTitleSx}>
           {m.photoSection}
         </Typography>
@@ -64,15 +67,24 @@ export function ReceiptPhotoSection({
       <Stack
         direction="row"
         spacing={0.8}
-        sx={{ alignItems: "center", overflowX: "auto", py: 0.4, minHeight: count ? 70 : 0 }}
+        sx={{
+          alignItems: "center",
+          overflowX: "auto",
+          py: 0.4,
+          minHeight: count ? 70 : 0,
+        }}
       >
         {photos.map((photo, index) => (
           <Box
             key={photo.key}
             sx={{
-              width: 62, height: 62, borderRadius: 1.4,
-              bgcolor: "action.hover", flexShrink: 0,
-              overflow: "hidden", position: "relative",
+              width: 62,
+              height: 62,
+              borderRadius: 1.4,
+              bgcolor: "action.hover",
+              flexShrink: 0,
+              overflow: "hidden",
+              position: "relative",
             }}
           >
             <ButtonBase
@@ -95,8 +107,13 @@ export function ReceiptPhotoSection({
                 onClick={() => controller.remove(photo.key)}
                 size="small"
                 sx={{
-                  position: "absolute", right: 1, top: 1, p: 0.25, zIndex: 2,
-                  bgcolor: "rgba(0,0,0,.65)", color: "#fff",
+                  position: "absolute",
+                  right: 1,
+                  top: 1,
+                  p: 0.25,
+                  zIndex: 2,
+                  bgcolor: "rgba(0,0,0,.65)",
+                  color: "#fff",
                   "&:hover": { bgcolor: "rgba(0,0,0,.8)" },
                 }}
               >
@@ -106,9 +123,12 @@ export function ReceiptPhotoSection({
             {photo.status === "uploading" && (
               <Stack
                 sx={{
-                  alignItems: "center", justifyContent: "center",
-                  position: "absolute", inset: 0,
-                  bgcolor: "rgba(0,0,0,.34)", pointerEvents: "none",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  position: "absolute",
+                  inset: 0,
+                  bgcolor: "rgba(0,0,0,.34)",
+                  pointerEvents: "none",
                 }}
               >
                 <CircularProgress size={21} sx={{ color: "#fff" }} />
@@ -120,9 +140,14 @@ export function ReceiptPhotoSection({
                 onClick={() => controller.retry(photo.key)}
                 disabled={disabled}
                 sx={{
-                  position: "absolute", inset: 0, width: "100%", height: "100%",
-                  bgcolor: "rgba(147,28,28,.78)", color: "#fff",
-                  fontSize: 12, fontWeight: 600,
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                  bgcolor: "rgba(147,28,28,.78)",
+                  color: "#fff",
+                  fontSize: 12,
+                  fontWeight: 600,
                 }}
               >
                 {m.photoRetry}
@@ -143,13 +168,19 @@ export function ReceiptPhotoSection({
               flex: count ? "0 0 62px" : "1 1 auto",
               height: count ? 62 : 40,
               width: count ? 62 : "100%",
-              display: "flex", alignItems: "center",
-              justifyContent: "center", gap: 0.6,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 0.6,
               flexDirection: count ? "column" : "row",
               fontSize: count ? 11 : 13,
             }}
           >
-            {count ? <AddRoundedIcon fontSize="small" /> : <CameraAltOutlinedIcon fontSize="small" />}
+            {count ? (
+              <AddRoundedIcon fontSize="small" />
+            ) : (
+              <CameraAltOutlinedIcon fontSize="small" />
+            )}
             <Box component="span">{count ? m.photoAddShort : m.photoAdd}</Box>
           </ButtonBase>
         )}
@@ -167,12 +198,19 @@ export function ReceiptPhotoSection({
         />
       )}
       {!readOnly && count === 0 && (
-        <Typography variant="caption" sx={{ color: "text.disabled", fontSize: 11 }}>
+        <Typography
+          variant="caption"
+          sx={{ color: "text.disabled", fontSize: 11 }}
+        >
           {m.photoEmptyHint}
         </Typography>
       )}
       {controller.error && (
-        <Typography role="alert" variant="caption" sx={{ color: "error.main", display: "block", mt: 0.6 }}>
+        <Typography
+          role="alert"
+          variant="caption"
+          sx={{ color: "error.main", display: "block", mt: 0.6 }}
+        >
           {controller.error}
         </Typography>
       )}
