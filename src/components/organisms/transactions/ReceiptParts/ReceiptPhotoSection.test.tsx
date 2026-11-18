@@ -106,6 +106,22 @@ describe("ReceiptPhotoSection", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("只读详情读取照片失败时显示错误，不误当成没有照片", () => {
+    render(
+      <ReceiptPhotoSection
+        readOnly
+        controller={controller([], "照片读取失败，请稍后重试。")}
+      />,
+    );
+    expect(screen.getByText("照片")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "照片读取失败，请稍后重试。",
+    );
+    expect(
+      screen.queryByRole("button", { name: "添加照片" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("只读详情仅显示缩略图，没有照片时整个区域不显示", () => {
     const { rerender } = render(
       <ReceiptPhotoSection readOnly controller={controller([photo(1)])} />,
