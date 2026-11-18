@@ -32,12 +32,16 @@ export function createAttachmentCleanupRepository(
       if (error) throw new Error("attachment_cleanup_pending_query_failed");
       const ids = (data ?? []).map((row) => row.id);
       if (!ids.length) return 0;
-      const { error: deleteError } = await supabase
+      // 再次确认未认领和创建时间，避免选中后被用户保存的附件被删。
+      const { data: deleted, error: deleteError } = await supabase
         .from("transaction_attachment")
         .delete()
-        .in("id", ids);
+        .in("id", ids)
+        .is("transaction_record_id", null)
+        .lt("created_at", cutoff)
+        .select("id");
       if (deleteError) throw new Error("attachment_cleanup_pending_delete_failed");
-      return ids.length;
+      return deleted?.length ?? 0;
     },
 
     async deleteOnSoftDeletedRecords() {
