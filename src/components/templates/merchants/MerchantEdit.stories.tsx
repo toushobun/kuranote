@@ -34,4 +34,3 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = { name: "编辑商家·显示名一行" };
 
-export const Pending: Story = { name: "保存中", args: {} };

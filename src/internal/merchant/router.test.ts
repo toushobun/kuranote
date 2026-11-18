@@ -30,7 +30,6 @@ import {
 const ledgerId = "00000000-0000-4000-8000-000000000032";
 const userId = "00000000-0000-4000-8000-000000000031";
 const merchantId = "00000000-0000-4000-8000-000000001001";
-const aliasId = "00000000-0000-4000-8000-000000001002";
 const authenticated: RequestDependencies["auth"] = {
   email: "user@example.com",
   isAuthenticated: true,

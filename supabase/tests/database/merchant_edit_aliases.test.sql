@@ -1,16 +1,16 @@
 begin;
 
 set local search_path = public, extensions;
-select plan(18);
+select plan(19);
 
 select has_function(
     'public', 'update_merchant_with_tags',
     array['uuid', 'uuid', 'text', 'text', 'text', 'text', 'uuid[]', 'text[]', 'uuid[]', 'text'],
     '商家统一保存 RPC 同时接受新增、归档别名与显示名'
 );
-select ok(
-    not has_function('public', 'update_merchant_with_tags',
-        array['uuid', 'uuid', 'text', 'text', 'text', 'text', 'uuid[]']),
+select hasnt_function(
+    'public', 'update_merchant_with_tags',
+    array['uuid', 'uuid', 'text', 'text', 'text', 'text', 'uuid[]'],
     '旧的仅保存商家资料 RPC 已删除'
 );
 

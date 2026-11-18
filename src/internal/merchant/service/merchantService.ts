@@ -124,7 +124,6 @@ function permissionError(): AuthorizationError {
 
 function conflictError(
   code:
-    | typeof merchantErrorCodes.aliasArchiveFailed
     | typeof merchantErrorCodes.aliasPreferredUpdateFailed
     | typeof merchantErrorCodes.archiveFailed
     | typeof merchantErrorCodes.merchantTagArchiveFailed

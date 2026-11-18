@@ -89,6 +89,11 @@ const merchantRpcBusinessErrors: Partial<
     message: getMerchantErrorMessage(merchantErrorCodes.ledgerInvalid),
     type: "not_found",
   },
+  [merchantErrorCodes.aliasInvalid]: {
+    code: merchantErrorCodes.aliasInvalid,
+    message: getMerchantErrorMessage(merchantErrorCodes.aliasInvalid),
+    type: "validation",
+  },
   [merchantErrorCodes.merchantTagInvalid]: {
     code: merchantErrorCodes.merchantTagInvalid,
     message: getMerchantErrorMessage(merchantErrorCodes.merchantTagInvalid),
