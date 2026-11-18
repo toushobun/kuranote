@@ -54,6 +54,8 @@ import { createStatisticsService } from "internal/statistics/service/statisticsS
 import { createSupabaseLinkedTransactionItemRepository } from "internal/transaction/repository/linkedTransactionItemRepository";
 import { createSupabaseTransactionIncomeLinkRepository } from "internal/transaction/repository/transactionIncomeLinkRepository";
 import { createSupabaseTransactionRepository } from "internal/transaction/repository/transactionRepository";
+import { createSupabaseAttachmentStorageRepository } from "internal/transaction/repository/attachmentStorageRepository";
+import { createTransactionAttachmentService } from "internal/transaction/service/transactionAttachmentService";
 import { createLinkedTransactionItemService } from "internal/transaction/service/linkedTransactionItemService";
 import { createLinkedTransactionEditService } from "internal/transaction/service/linkedTransactionEditService";
 import { createTransactionDashboardQueryService } from "internal/transaction/service/transactionDashboardQueryService";
@@ -113,6 +115,7 @@ export type RequestContainer = {
     readonly service: ReturnType<typeof createStatisticsService>;
   };
   readonly transaction: {
+    readonly attachmentService: ReturnType<typeof createTransactionAttachmentService>;
     readonly merchantEntryQueryService: ReturnType<
       typeof createMerchantEntryQueryService
     >;
@@ -519,6 +522,15 @@ export function createRequestContainer(
         });
 
         transactionContainer = {
+          attachmentService: createTransactionAttachmentService({
+            attachmentStorageRepository: createSupabaseAttachmentStorageRepository(
+              dependencies.supabase,
+              dependencies.logger,
+            ),
+            currentUserId,
+            ledgerAccessService,
+            transactionRepository,
+          }),
           merchantEntryQueryService: createMerchantEntryQueryService({
             currentUserId,
             ledgerAccessService,
