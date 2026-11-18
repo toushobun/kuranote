@@ -161,5 +161,31 @@ reset role;
 select is((select count(*) from public.transaction_attachment_storage_deletion
     where storage_path='00000000-0000-4000-8000-000000000032/'||pg_temp.id(2)::text||'.jpg'),
   1::bigint,'移除后的文件路径进入待删队列');
+-- 即使绕过服务端直接调用确认 RPC，也不能跳过双文件存在检查。
+set local role authenticated;
+select pg_temp.set_user('00000000-0000-4000-8000-000000000031');
+select is(
+  pg_temp.try_sql(format(
+    'select public.confirm_transaction_attachment_upload(%L,%L)',
+    '00000000-0000-4000-8000-000000000032', pg_temp.id(5)
+  )),
+  '22023',
+  '缺少缩略图时不能直接确认上传'
+);
+reset role;
+insert into storage.objects(bucket_id,name,owner_id)
+select 'transaction-attachments',thumbnail_path,created_by::text
+from public.transaction_attachment where id=pg_temp.id(5);
+set local role authenticated;
+select pg_temp.set_user('00000000-0000-4000-8000-000000000031');
+select is(
+  pg_temp.try_sql(format(
+    'select public.confirm_transaction_attachment_upload(%L,%L)',
+    '00000000-0000-4000-8000-000000000032', pg_temp.id(5)
+  )),
+  'ok',
+  '两张图片均存在时允许确认上传'
+);
+reset role;
 select * from finish();
 rollback;
