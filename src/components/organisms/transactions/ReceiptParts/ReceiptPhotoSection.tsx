@@ -28,7 +28,8 @@ export function ReceiptPhotoSection({
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const { photos } = controller;
   const count = photos.length;
-  const addDisabled = disabled || controller.loading;
+  const addDisabled =
+    disabled || controller.loading || controller.error === m.loadFailed;
 
   if (readOnly && count === 0 && !controller.loading) return null;
 
