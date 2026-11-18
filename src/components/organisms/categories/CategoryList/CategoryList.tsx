@@ -18,7 +18,7 @@ import Tab from "@mui/material/Tab";
 import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import { DataItemCard, dataItemCardPadding } from "atoms/ui/DataItemCard";
 import { SoftCard } from "atoms/ui/SoftCard";
@@ -66,6 +66,7 @@ type CategoryListProps = {
   onReorderError: (state: CategoryActionState) => void;
   reorderCategoryAction: CategoryReorderAction;
   updateCategoryAction: CategoryAction;
+  updatePending?: boolean;
   updateState?: CategoryActionState;
 };
 
@@ -215,6 +216,7 @@ export function CategoryList({
   onReorderError,
   reorderCategoryAction,
   updateCategoryAction,
+  updatePending = false,
   updateState,
 }: CategoryListProps) {
   const {
@@ -253,16 +255,6 @@ export function CategoryList({
     onClose: closeEditor,
   });
   const requestCloseEditor = guard.requestClose;
-  const [savingCategory, setSavingCategory] = useState(false);
-  async function submitCategoryUpdate(formData: FormData) {
-    if (savingCategory) return;
-    setSavingCategory(true);
-    try {
-      await updateCategoryAction(formData);
-    } finally {
-      setSavingCategory(false);
-    }
-  }
   useCategoryActionSuccess(updateState, closeEditor);
   useCategoryActionSuccess(archiveState, closeEditor);
 
@@ -471,7 +463,7 @@ export function CategoryList({
           {editingCategory ? (
             <Stack
               component="form"
-              action={submitCategoryUpdate}
+              action={updateCategoryAction}
               id="category-edit-form"
               spacing={2.5}
             >
@@ -499,7 +491,7 @@ export function CategoryList({
         </DialogContent>
         <CategoryDialogActions
           disabled={!canManageCategories}
-          pending={savingCategory}
+          pending={updatePending}
           pendingLabel={actionPendingMessages.save}
           form="category-edit-form"
           onCancel={requestCloseEditor}
