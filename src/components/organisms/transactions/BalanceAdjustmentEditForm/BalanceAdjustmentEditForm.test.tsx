@@ -19,7 +19,10 @@ import type {
   TransactionEditRestriction,
 } from "internal/transaction";
 import { transactionEditRestrictionMessages } from "utils/transactionMessages";
-import type { TransactionActionState, TransactionStateAction } from "types/transactions";
+import type {
+  TransactionActionState,
+  TransactionStateAction,
+} from "types/transactions";
 const initialValues: BalanceAdjustmentEditInitialValues = {
   type: "balance_adjustment",
   accountId: "account",

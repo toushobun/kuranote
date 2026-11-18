@@ -218,7 +218,7 @@ describe("AccountForm", () => {
   it("提交中按钮显示加载且不可再次点击", () => {
     renderAccountForm({ pending: true });
 
-    expect(screen.getByRole("button", { name: "保存中…" }).closest("button")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "保存中…" })).toBeDisabled();
   });
 });
 
