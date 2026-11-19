@@ -31,6 +31,12 @@ import type { TransactionService } from "internal/transaction/service/transactio
 
 const transactionActionModuleMocks = getTransactionActionModuleMocks();
 
+// 此集成测试关注交易更新；附件读取由独立服务完成，按“无照片”模拟。
+vi.mock("internal/transaction/adapter/next/attachmentActions", () => ({
+  loadReceiptPhotos: vi.fn(async () => []),
+  discardReceiptPhoto: vi.fn(async () => {}),
+}));
+
 // 小票换商家时的快捷金额；这里不关心建议内容。
 vi.mock("lib/api/clientQuery", () => ({
   fetchClientJson: vi.fn(async () => null),
@@ -454,6 +460,9 @@ describe("Issue #915 多账户付款跨层编辑流程", () => {
     const view = createMultiAccountView();
     const { persisted, updateNormal } = renderScenario(view);
 
+    await vi.waitFor(() =>
+      expect(screen.getByRole("button", { name: "添加照片" })).toBeEnabled(),
+    );
     fireEvent.click(screen.getByRole("button", { name: "保存修改" }));
     await vi.waitFor(() => expect(updateNormal).toHaveBeenCalledOnce());
 
@@ -470,6 +479,9 @@ describe("Issue #915 多账户付款跨层编辑流程", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "删除支付账户 2" }));
+    await vi.waitFor(() =>
+      expect(screen.getByRole("button", { name: "添加照片" })).toBeEnabled(),
+    );
     fireEvent.click(screen.getByRole("button", { name: "保存修改" }));
     await vi.waitFor(() => expect(updateNormal).toHaveBeenCalledOnce());
 
