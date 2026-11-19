@@ -95,6 +95,7 @@ export function EditTransferTransactionTemplate({
             sourceType="transfer"
             readOnly={editRestriction !== null}
             saving={editAction.isPending}
+            saveDisabled={editAction.saveDisabled}
             onValidationFailed={editAction.onValidationFailed}
           />
         )}

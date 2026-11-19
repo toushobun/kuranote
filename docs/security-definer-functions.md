@@ -490,3 +490,21 @@ Storage INSERT / UPDATE / DELETE 策略，写操作只能由服务端签名上�
   新签名仅授予 authenticated。未传附件更新参数时继续保留照片，传空数组则移除全部。
 
 Storage 物理文件不能通过 SQL 删除，必须由具有服务端权限的 Storage API 清理队列。
+
+## Issue #1125：商家资料、分类、别名与显示名统一保存
+
+`20261119000000_update_merchant_with_aliases.sql` 替换原签名
+`update_merchant_with_tags(uuid,uuid,text,text,text,text,uuid[])`，新增
+`p_added_aliases text[]`、`p_archived_alias_ids uuid[]`、`p_preferred_alias text`。
+新签名为 `SECURITY DEFINER`，固定 `search_path = pg_catalog, pg_temp`；
+仅使用 `auth.uid()` 获取当前用户，且通过
+`current_user_can_manage_ledger(p_ledger_id)` 校验商家维护权限，并核对商家属于该账本且未归档。
+撤销 PUBLIC / anon / service_role 的 EXECUTE，仅向 authenticated 授权。
+
+先以 `FOR UPDATE` 锁住商家行，校验分类有效性、待归档别名归属、
+新增别名去空白和不区分大小写的唯一性及目标显示名是否在保存后的有效集合中；
+任一步不满足直接报错，不落任何数据。资料、分类关联、别名归档/新增及显示名切换
+都在同一 SQL 事务中执行；先清除原首选标记再设置新的首选标记，保持
+`merchant_alias_single_preferred_idx` 与 `merchant_alias_active_alias_unique` 约束。
+选择正式名时传 `NULL`，可选择此次新加的别名。旧的独立快捷切换函数
+`set_merchant_preferred_alias(uuid,uuid,uuid)` 仍供商家列表使用，不改变其权限边界。

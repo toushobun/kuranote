@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import Button from "@mui/material/Button";
-import CircularProgress from "@mui/material/CircularProgress";
+import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
+import { actionPendingMessages } from "config/actionPendingMessages";
 import {
   ledgerSetupAbandonMessages as messages,
   ledgerSetupEntryMessages,
@@ -28,26 +28,18 @@ export function LedgerSetupAbandonButton(props: {
   }, [flow.pending, onBusyChange]);
   return (
     <>
-      <Button
+      <ActionButton
         size={props.size}
         color="error"
-        disabled={props.disabled || flow.pending}
+        disabled={props.disabled}
+        pending={flow.pending}
+        pendingLabel={actionPendingMessages.abandon}
         onClick={() => void flow.abandon()}
         variant="text"
         sx={props.restart ? restartSx : undefined}
       >
-        {flow.pending ? (
-          <CircularProgress
-            aria-label={messages.pending}
-            color="inherit"
-            size={18}
-          />
-        ) : props.restart ? (
-          ledgerSetupEntryMessages.restart
-        ) : (
-          messages.abandon
-        )}
-      </Button>
+        {props.restart ? ledgerSetupEntryMessages.restart : messages.abandon}
+      </ActionButton>
       <FailureFeedbackDialog
         description={flow.error}
         onClose={flow.dismissError}

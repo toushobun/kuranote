@@ -2,8 +2,8 @@
 
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
-import CircularProgress from "@mui/material/CircularProgress";
+import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
+import { actionPendingMessages } from "config/actionPendingMessages";
 import Divider from "@mui/material/Divider";
 import SvgIcon from "@mui/material/SvgIcon";
 import Typography from "@mui/material/Typography";
@@ -41,12 +41,13 @@ function GoogleSubmitButton() {
   const { pending } = useFormStatus();
 
   return (
-    <Button
+    <ActionButton
       type="submit"
       variant="outlined"
       size="large"
-      disabled={pending}
-      startIcon={pending ? <CircularProgress size="1em" /> : <GoogleLogoIcon />}
+      pending={pending}
+      pendingLabel={actionPendingMessages.connect}
+      startIcon={<GoogleLogoIcon />}
       fullWidth
       sx={{
         borderColor: "divider",
@@ -54,8 +55,8 @@ function GoogleSubmitButton() {
         textTransform: "none",
       }}
     >
-      {pending ? "正在连接 Google..." : "使用 Google 账号继续"}
-    </Button>
+      使用 Google 账号继续
+    </ActionButton>
   );
 }
 

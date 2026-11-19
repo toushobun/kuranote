@@ -41,4 +41,23 @@ describe("CategoryDialogActions", () => {
     fireEvent.click(cancel);
     expect(onCancel).toHaveBeenCalledOnce();
   });
+
+  it("提交中保留处理中文案，不能重复提交", () => {
+    const onSubmit = vi.fn((event: React.FormEvent) => event.preventDefault());
+    render(
+      <form onSubmit={onSubmit}>
+        <CategoryDialogActions
+          onCancel={vi.fn()}
+          pending
+          pendingLabel="保存中…"
+          submitLabel="保存"
+        />
+      </form>,
+    );
+    const button = screen.getByRole("button", { name: "保存中…" });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-busy", "true");
+    fireEvent.click(button);
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
 });

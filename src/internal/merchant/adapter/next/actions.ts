@@ -22,10 +22,8 @@ import {
   type MerchantValidationErrorCode,
 } from "internal/merchant/errors";
 import {
-  validateArchiveMerchantAliasForm,
   validateArchiveMerchantForm,
   validateArchiveMerchantTagForm,
-  validateCreateMerchantAliasForm,
   validateCreateMerchantForm,
   validateCreateMerchantTagForm,
   validateFetchMerchantIconForm,
@@ -195,57 +193,6 @@ export const archiveMerchant: MerchantStateAction =
 
     revalidateMerchantMutation();
     redirect(merchantsResultHref(merchantResultValues.archived));
-  };
-
-export const createMerchantAlias: MerchantStateAction =
-  async function createMerchantAlias(_previousState, formData) {
-    const { currentLedger } = await requireCurrentUserAndLedger();
-    const validation = validateCreateMerchantAliasForm(formData);
-    if (!validation.ok) return validationErrorState(validation.error);
-
-    try {
-      await (
-        await getMerchantService()
-      ).createAlias({
-        ledgerId: currentLedger.id,
-        ...validation.value,
-      });
-    } catch (error) {
-      return actionErrorState(
-        error,
-        merchantErrorCodes.aliasCreateFailed,
-        "create alias",
-      );
-    }
-
-    revalidateMerchantMutation(validation.value.merchantId);
-    return createSuccessState(merchantText.createAliasSuccess);
-  };
-
-export const archiveMerchantAlias: MerchantStateAction =
-  async function archiveMerchantAlias(_previousState, formData) {
-    const { currentLedger } = await requireCurrentUserAndLedger();
-    const validation = validateArchiveMerchantAliasForm(formData);
-    if (!validation.ok) return validationErrorState(validation.error);
-
-    let merchantId: string;
-    try {
-      merchantId = await (
-        await getMerchantService()
-      ).archiveAlias({
-        aliasId: validation.value.aliasId,
-        ledgerId: currentLedger.id,
-      });
-    } catch (error) {
-      return actionErrorState(
-        error,
-        merchantErrorCodes.aliasArchiveFailed,
-        "archive alias",
-      );
-    }
-
-    revalidateMerchantMutation(merchantId);
-    return { success: merchantText.archiveAliasSuccess };
   };
 
 export const setPreferredMerchantAlias: MerchantStateAction =

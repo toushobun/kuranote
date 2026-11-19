@@ -6,7 +6,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import { WebsiteIconField } from "molecules/ui/WebsiteIconField/WebsiteIconField";
 import { merchantText } from "config/merchantText";
@@ -15,6 +15,7 @@ import type { MerchantIconStateAction } from "types/merchants";
 import { MerchantAvatar } from "../MerchantAvatar/MerchantAvatar";
 
 type MerchantDetailsFieldsProps = {
+  displayNameField?: ReactNode;
   fetchIconAction: MerchantIconStateAction;
   previewIconUrl: string;
   ledgerId: string;
@@ -31,6 +32,7 @@ type MerchantDetailsFieldsProps = {
 type IconPreviewStatus = "error" | "idle" | "loading" | "success";
 
 export function MerchantDetailsFields({
+  displayNameField,
   fetchIconAction,
   previewIconUrl,
   ledgerId,
@@ -118,6 +120,8 @@ export function MerchantDetailsFields({
         slotProps={{ htmlInput: { maxLength: 100 } }}
         value={name}
       />
+
+      {displayNameField}
 
       <WebsiteIconField
         label={merchantText.websiteLabel}

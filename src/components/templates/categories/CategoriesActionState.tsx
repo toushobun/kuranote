@@ -61,7 +61,7 @@ export function CategoriesActionStateTemplate({
   const [createFeedback, setCreateFeedback] = useState(
     initialCategoryActionState,
   );
-  const [updateState, updateAction] = useActionState(
+  const [updateState, updateAction, updatePending] = useActionState(
     updateCategoryAction,
     initialCategoryActionState,
   );
@@ -84,6 +84,7 @@ export function CategoriesActionStateTemplate({
         onCreateFeedback={setCreateFeedback}
         onReorderError={setReorderState}
         updateCategoryAction={updateAction}
+        updatePending={updatePending}
         updateState={updateState}
       />
       <CategorySuccessFeedback state={createFeedback} />

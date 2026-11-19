@@ -15,6 +15,10 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = { name: "左右等宽操作" };
 export const Disabled: Story = { name: "不可提交", args: { disabled: true } };
+export const Pending: Story = {
+  name: "保存中",
+  args: { pending: true, pendingLabel: "保存中…" },
+};
 
 export const Create: Story = {
   name: "新增分类操作",

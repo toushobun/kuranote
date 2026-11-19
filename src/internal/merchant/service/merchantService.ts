@@ -59,13 +59,6 @@ export type UpdateMerchantServiceInput = Omit<
 export type ArchiveMerchantServiceInput = MerchantLedgerInput & {
   merchantId: string;
 };
-export type CreateMerchantAliasServiceInput = MerchantLedgerInput & {
-  alias: string;
-  merchantId: string;
-};
-export type ArchiveMerchantAliasServiceInput = MerchantLedgerInput & {
-  aliasId: string;
-};
 export type MerchantIconInput = MerchantLedgerInput & { websiteUrl: string };
 export type SetPreferredMerchantAliasServiceInput = MerchantLedgerInput & {
   aliasId: string | null;
@@ -94,11 +87,9 @@ export interface MerchantQueryService {
 }
 
 export interface MerchantService extends MerchantQueryService {
-  archiveAlias(input: ArchiveMerchantAliasServiceInput): Promise<string>;
   archiveMerchant(input: ArchiveMerchantServiceInput): Promise<void>;
   archiveTag(input: MerchantTagServiceInput): Promise<void>;
   assertCanManage(input: MerchantLedgerInput): Promise<void>;
-  createAlias(input: CreateMerchantAliasServiceInput): Promise<void>;
   createMerchant(input: CreateMerchantServiceInput): Promise<string>;
   createTag(input: CreateMerchantTagServiceInput): Promise<string>;
   fetchMerchantIcon(input: MerchantIconInput): Promise<WebsiteIcon>;
@@ -133,7 +124,6 @@ function permissionError(): AuthorizationError {
 
 function conflictError(
   code:
-    | typeof merchantErrorCodes.aliasArchiveFailed
     | typeof merchantErrorCodes.aliasPreferredUpdateFailed
     | typeof merchantErrorCodes.archiveFailed
     | typeof merchantErrorCodes.merchantTagArchiveFailed
@@ -263,37 +253,6 @@ export function createMerchantService({
   }
 
   return {
-    async archiveAlias({ aliasId, ledgerId }) {
-      const { userId } = await requireLedgerRole(ledgerId, true);
-      const alias = await merchantRepository.findActiveAlias(aliasId);
-      if (!alias) {
-        throw new NotFoundError(
-          merchantErrorCodes.aliasInvalid,
-          getMerchantErrorMessage(merchantErrorCodes.aliasInvalid),
-        );
-      }
-      if (
-        !(await merchantRepository.findActiveMerchant(
-          ledgerId,
-          alias.merchantId,
-        ))
-      ) {
-        throw new NotFoundError(
-          merchantErrorCodes.aliasInvalid,
-          getMerchantErrorMessage(merchantErrorCodes.aliasInvalid),
-        );
-      }
-
-      const archived = await merchantRepository.archiveAlias({
-        aliasId,
-        userId,
-      });
-      if (!archived) {
-        throw conflictError(merchantErrorCodes.aliasArchiveFailed);
-      }
-      return alias.merchantId;
-    },
-
     async archiveMerchant({ ledgerId, merchantId }) {
       const { userId } = await requireLedgerRole(ledgerId, true);
       await requireActiveMerchant(ledgerId, merchantId);
@@ -317,12 +276,6 @@ export function createMerchantService({
 
     async assertCanManage({ ledgerId }) {
       await requireLedgerRole(ledgerId, true);
-    },
-
-    async createAlias({ alias, ledgerId, merchantId }) {
-      const { userId } = await requireLedgerRole(ledgerId, true);
-      await requireActiveMerchant(ledgerId, merchantId);
-      await merchantRepository.createAlias({ alias, merchantId, userId });
     },
 
     async createMerchant(input) {

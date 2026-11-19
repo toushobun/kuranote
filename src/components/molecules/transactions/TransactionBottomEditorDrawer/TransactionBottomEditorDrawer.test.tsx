@@ -70,6 +70,22 @@ describe("TransactionBottomEditorDrawer", () => {
       vi.useRealTimers();
     }
   });
+  it("手指下滑拖动条关闭抽屉，向上滑动则保持打开", () => {
+    const onClose = vi.fn();
+    renderEntryComponent(
+      <TransactionBottomEditorDrawer open title="备注" onClose={onClose}>
+        内容
+      </TransactionBottomEditorDrawer>,
+    );
+    const handle = screen.getByTestId("bottom-editor-drag-handle");
+    fireEvent.touchStart(handle, { touches: [{ clientY: 100 }] });
+    fireEvent.touchEnd(handle, { changedTouches: [{ clientY: 50 }] });
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.touchStart(handle, { touches: [{ clientY: 100 }] });
+    fireEvent.touchEnd(handle, { changedTouches: [{ clientY: 180 }] });
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
   it.each(["完成", "关闭备注编辑"])("通过%s结束编辑", (button) => {
     const close = vi.fn();
     renderEntryComponent(

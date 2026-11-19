@@ -2,19 +2,15 @@ import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 
 import type { AppEnv } from "internal/appEnv";
 import {
-  archiveMerchantAliasHandler,
   archiveMerchantHandler,
-  createMerchantAliasHandler,
   createMerchantHandler,
   listMerchantOptionsHandler,
   listMerchantsHandler,
   updateMerchantHandler,
 } from "internal/merchant/controller/merchantController";
 import {
-  createMerchantAliasRequestSchema,
   createMerchantRequestSchema,
   errorResponseSchema,
-  merchantAliasParamsSchema,
   merchantLedgerParamsSchema,
   merchantListQuerySchema,
   merchantListResponseSchema,
@@ -114,39 +110,6 @@ export const archiveMerchantRoute = createRoute({
   },
 });
 
-export const createMerchantAliasRoute = createRoute({
-  method: "post",
-  path: "/{ledgerId}/merchants/{merchantId}/aliases",
-  request: {
-    params: merchantParamsSchema,
-    body: {
-      content: {
-        "application/json": { schema: createMerchantAliasRequestSchema },
-      },
-    },
-  },
-  responses: {
-    201: {
-      content: { "application/json": { schema: okResponseSchema } },
-      description: "创建成功",
-    },
-    ...errorResponses,
-  },
-});
-
-export const archiveMerchantAliasRoute = createRoute({
-  method: "delete",
-  path: "/{ledgerId}/merchants/aliases/{aliasId}",
-  request: { params: merchantAliasParamsSchema },
-  responses: {
-    200: {
-      content: { "application/json": { schema: okResponseSchema } },
-      description: "归档成功",
-    },
-    ...errorResponses,
-  },
-});
-
 export const merchantRouter = new OpenAPIHono<AppEnv>();
 
 merchantRouter.use("*", sameOriginMiddleware);
@@ -155,5 +118,3 @@ merchantRouter.openapi(listMerchantOptionsRoute, listMerchantOptionsHandler);
 merchantRouter.openapi(createMerchantRoute, createMerchantHandler);
 merchantRouter.openapi(updateMerchantRoute, updateMerchantHandler);
 merchantRouter.openapi(archiveMerchantRoute, archiveMerchantHandler);
-merchantRouter.openapi(createMerchantAliasRoute, createMerchantAliasHandler);
-merchantRouter.openapi(archiveMerchantAliasRoute, archiveMerchantAliasHandler);

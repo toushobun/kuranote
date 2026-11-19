@@ -35,3 +35,8 @@ export const WithoutOptionalFields: Story = {
     }),
   },
 };
+
+export const Pending: Story = {
+  name: "保存中",
+  args: { pending: true },
+};
