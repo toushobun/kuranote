@@ -7,7 +7,7 @@ const accountTypeLabelsText = accountTypeOptions
 export const dataImportExportPageMessages = {
   title: "数据导入导出",
   backToSettings: "返回设置",
-  subtitle: "迁移历史记账数据，或导出当前账本数据备份",
+  subtitle: "导入历史记录，或导出备份",
 } as const;
 
 export const dataImportExportEntryMessages = {
@@ -23,7 +23,7 @@ export const dataImportExportEntryMessages = {
 
 export const dataExportPageMessages = {
   title: "数据导出",
-  subtitle: "下载当前账本的全部交易记录",
+  subtitle: "下载全部记录为 xlsx 文件",
   scopeTitle: "导出内容",
   scope:
     "包含全部收支、转账和余额变更记录，保存到「收支」「转账」「余额变更」三个工作表；多账户记录在「收支」中用分号按顺序列出账户、持有人、类型及付款金额。",
@@ -43,7 +43,7 @@ export const dataTransferBackMessages = {
 
 export const dataImportPageMessages = {
   title: "数据导入",
-  subtitle: "从 xlsx 文件批量导入收支和转账记录",
+  subtitle: "从 xlsx 文件批量导入记录",
   loading: "导入页面加载中",
 } as const;
 

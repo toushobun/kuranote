@@ -8,6 +8,7 @@ export default function AccountEditLoading() {
     <AccountFormPageSkeleton
       action={<Skeleton aria-hidden height={30} width={64} />}
       loadingLabel={accountFormMessages.editLoading}
+      subtitle={accountFormMessages.editSubtitle}
       title={accountFormMessages.editTitle}
     />
   );

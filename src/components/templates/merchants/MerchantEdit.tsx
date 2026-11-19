@@ -31,7 +31,6 @@ type MerchantEditTemplateProps = {
   archiveMerchantAction: MerchantStateAction;
   fetchIconAction: MerchantIconStateAction;
   ledgerId: string;
-  ledgerName: string;
   merchant: Merchant;
   tags: MerchantTag[];
   updateMerchantAction: MerchantStateAction;
@@ -41,7 +40,6 @@ export function MerchantEditTemplate({
   archiveMerchantAction,
   fetchIconAction,
   ledgerId,
-  ledgerName,
   merchant,
   tags,
   updateMerchantAction,
@@ -89,7 +87,7 @@ export function MerchantEditTemplate({
           href: routePaths.merchants,
           label: merchantPageMessages.backToMerchants,
         }}
-        subtitle={merchantPageMessages.editSubtitle(ledgerName)}
+        subtitle={merchantPageMessages.editSubtitle}
         title={merchantText.edit}
       >
         <SectionCard sx={{ p: { xs: 2, sm: 3 } }}>

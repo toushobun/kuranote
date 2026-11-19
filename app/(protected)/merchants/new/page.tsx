@@ -20,7 +20,6 @@ export default async function MerchantCreatePage({
       fetchIconAction={fetchMerchantIcon}
       initialName={params.name?.trim() ?? ""}
       ledgerId={view.ledgerId}
-      ledgerName={view.ledgerName}
       returnTo={getSafeNextPath(params.returnTo)}
       tags={view.tags}
     />

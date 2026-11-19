@@ -1,5 +1,3 @@
-import Skeleton from "@mui/material/Skeleton";
-
 import { merchantPageMessages, merchantText } from "config/merchantText";
 import { routePaths } from "config/paths";
 import { LoadingState } from "molecules/ui/LoadingState";
@@ -12,7 +10,7 @@ export default function MerchantCreateLoading() {
         href: routePaths.merchants,
         label: merchantPageMessages.backToMerchants,
       }}
-      subtitle={<Skeleton sx={{ maxWidth: "100%" }} width={200} />}
+      subtitle={merchantPageMessages.createSubtitle}
       title={merchantText.create}
     >
       <LoadingState description="新增商家页面准备中，请稍等。" />

@@ -39,14 +39,12 @@ export default function NewReceipt({
           createMerchantAction: createMerchant,
           fetchIconAction: fetchMerchantIcon,
           ledgerId: "ledger-1",
-          ledgerName: "验证账本",
           tags: [],
         },
         account: {
           createAccountAction: createAccount,
           baseCurrency: "JPY",
           holderOptions: accountHolderOptionsFixture,
-          ledgerName: "验证账本",
         },
       }}
     >

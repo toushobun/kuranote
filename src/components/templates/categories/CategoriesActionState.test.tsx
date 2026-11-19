@@ -76,7 +76,6 @@ function renderTemplate({
         canManageCategories
         categories={categories}
         createCategoryAction={createCategoryAction}
-        ledgerName="家庭账本"
         parentOptions={categories.map((category) => ({
           id: category.id,
           name: category.name,

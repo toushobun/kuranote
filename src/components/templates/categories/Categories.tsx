@@ -19,7 +19,6 @@ type CategoriesTemplateProps = {
   categories: CategoryTreeItem[];
   createCategoryAction: CategoryAction;
   createState?: CategoryActionState;
-  ledgerName: string;
   onCreateFeedback?: (state: CategoryActionState) => void;
   onReorderError: (state: CategoryActionState) => void;
   parentOptions: CategoryParentOption[];
@@ -36,7 +35,6 @@ export function CategoriesTemplate({
   categories,
   createCategoryAction,
   createState,
-  ledgerName,
   onCreateFeedback,
   onReorderError,
   parentOptions,
@@ -61,7 +59,7 @@ export function CategoriesTemplate({
         href: routePaths.settings,
         label: categoryPageMessages.backToSettings,
       }}
-      subtitle={categoryPageMessages.subtitle(ledgerName)}
+      subtitle={categoryPageMessages.subtitle}
       title={categoryPageMessages.title}
     >
       <CategoryList

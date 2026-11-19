@@ -23,7 +23,6 @@ const meta = {
     baseCurrency: "JPY",
     fetchIconAction: fetchAccountIconFixture,
     holderOptions: accountHolderOptionsFixture,
-    ledgerName: "家庭账本",
     placeholderHolderOptions: accountPlaceholderHolderOptionsFixture,
     updateAccountAction: async () => ({}),
   },

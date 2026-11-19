@@ -30,7 +30,7 @@ export default function CategoriesLoadingPage() {
           href: routePaths.settings,
           label: categoryPageMessages.backToSettings,
         }}
-        subtitle={<Skeleton sx={{ maxWidth: "100%" }} width={230} />}
+        subtitle={categoryPageMessages.subtitle}
         title={categoryPageMessages.title}
       >
         <Stack spacing={2.5}>

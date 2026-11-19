@@ -29,7 +29,6 @@ export type MerchantCreateTemplateProps = {
   /** 从记一笔搜索不到时带来的关键词，预填到商家名称。 */
   initialName?: string;
   ledgerId: string;
-  ledgerName: string;
   returnTo?: string | null;
   tags: MerchantTag[];
 };
@@ -45,7 +44,7 @@ export function MerchantCreateTemplate(props: MerchantCreateTemplateProps) {
           ? merchantPageMessages.back
           : merchantPageMessages.backToMerchants,
       }}
-      subtitle={merchantPageMessages.createSubtitle(props.ledgerName)}
+      subtitle={merchantPageMessages.createSubtitle}
       title={merchantText.create}
     >
       <MerchantCreateBody

@@ -15,7 +15,6 @@ export function NewAccountEditor() {
       fetchIconAction={async () => ({
         iconUrl: accountWebsiteIconFixture.icon_url,
       })}
-      ledgerName="验证账本"
       createAccountAction={save}
     />
   );
@@ -24,7 +23,6 @@ export function CategoryEditor() {
   return (
     <div id="category-page">
       <CategoriesActionStateTemplate
-        ledgerName="验证账本"
         parentOptions={[]}
         categories={[
           {

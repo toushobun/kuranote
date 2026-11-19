@@ -85,13 +85,11 @@ describe("createCategoryService", () => {
     await expect(
       service.getCategoriesView({
         ledgerId,
-        ledgerName: "家庭账本",
         userId,
       }),
     ).resolves.toEqual({
       canManageCategories: false,
       categories: [{ ...rows[0], children: [rows[1]] }],
-      ledgerName: "家庭账本",
       parentOptions: [{ id: categoryId, name: "餐饮", type: "expense" }],
     });
   });
@@ -130,7 +128,7 @@ describe("createCategoryService", () => {
     const service = createService(repository, null);
 
     await expect(
-      service.getCategoriesView({ ledgerId, ledgerName: "家庭账本", userId }),
+      service.getCategoriesView({ ledgerId, userId }),
     ).rejects.toBeInstanceOf(NotFoundError);
     expect(repository.findActiveByLedgerId).not.toHaveBeenCalled();
   });
@@ -444,7 +442,6 @@ describe("Issue #944：系统分类 Service 防线", () => {
 
     const management = await service.getCategoriesView({
       ledgerId,
-      ledgerName: "家庭账本",
       userId,
     });
     expect(management.categories[1].children[0].system_key).toBe("refund");

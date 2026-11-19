@@ -19,7 +19,6 @@ export default async function MerchantEditPage({
       archiveMerchantAction={archiveMerchant}
       fetchIconAction={fetchMerchantIcon}
       ledgerId={view.ledgerId}
-      ledgerName={view.ledgerName}
       merchant={view.merchant}
       tags={view.tags}
       updateMerchantAction={updateMerchant}

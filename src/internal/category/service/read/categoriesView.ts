@@ -22,11 +22,9 @@ function buildCategoryTree(categories: CategoryData[]): CategoryTreeItem[] {
 
 export function buildCategoriesView({
   categories,
-  ledgerName,
   role,
 }: {
   categories: CategoryData[];
-  ledgerName: string;
   role: CurrentLedgerRole;
 }) {
   const roots = buildCategoryTree(categories);
@@ -34,7 +32,6 @@ export function buildCategoriesView({
   return {
     canManageCategories: canManageMasterData(role),
     categories: roots,
-    ledgerName,
     parentOptions: roots
       .filter((category) => !category.system_key)
       .map((category) => ({

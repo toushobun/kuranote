@@ -41,15 +41,7 @@ export function PageHeader({
           <Box
             sx={{
               flexShrink: 0,
-              ...(compact
-                ? {
-                    "& > .MuiIconButton-root": {
-                      border: "1px solid",
-                      borderColor: "divider",
-                      boxShadow: "0 4px 14px rgba(91, 62, 34, 0.08)",
-                    },
-                  }
-                : {}),
+              ...(compact ? { ml: -1, mt: -0.5 } : {}),
             }}
           >
             {leading}

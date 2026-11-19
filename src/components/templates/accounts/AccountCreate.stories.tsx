@@ -17,7 +17,6 @@ const meta = {
     fetchIconAction: fetchAccountIconFixture,
     createAccountAction: async () => ({}),
     holderOptions: accountHolderOptionsFixture,
-    ledgerName: "家庭账本",
     placeholderHolderOptions: accountPlaceholderHolderOptionsFixture,
   },
 } satisfies Meta<typeof AccountCreateTemplate>;

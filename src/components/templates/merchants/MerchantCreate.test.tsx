@@ -11,19 +11,19 @@ import type { MerchantStateAction } from "types/merchants";
 import { MerchantCreateTemplate } from "./MerchantCreate";
 
 describe("MerchantCreateTemplate", () => {
-  it("显示与列表页一致的新增页标题、面包屑与返回入口", () => {
+  it("显示与列表页一致的新增页标题、副标题与返回入口", () => {
     renderMerchantCreate();
 
     const heading = screen.getByRole("heading", { name: "新增商家" });
-    const breadcrumb = screen.getByText(/新增商家 · 家庭账本/);
+    const subtitle = screen.getByText("设置商家名称、头像和分类");
     const backLink = screen.getByRole("link", { name: "返回商家管理" });
 
     expect(heading).toHaveClass("MuiTypography-h5");
     expect(getComputedStyle(heading).fontWeight).toBe("900");
-    expect(breadcrumb).toHaveClass("MuiTypography-body2");
+    expect(subtitle).toHaveClass("MuiTypography-body2");
     expect(backLink).toHaveAttribute("href", "/merchants");
-    expect(getComputedStyle(backLink).borderTopStyle).toBe("solid");
-    expect(getComputedStyle(backLink).boxShadow).toContain("14px");
+    expect(getComputedStyle(backLink).borderTopStyle).not.toBe("solid");
+    expect(getComputedStyle(backLink).boxShadow).not.toContain("14px");
   });
 
   it("提交新增商家表单", async () => {
@@ -79,7 +79,6 @@ function renderMerchantCreate(
       createMerchantAction={vi.fn(async () => ({}))}
       fetchIconAction={vi.fn(async () => ({}))}
       ledgerId="ledger-1"
-      ledgerName="家庭账本"
       tags={[]}
       {...props}
     />,

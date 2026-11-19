@@ -16,6 +16,7 @@ type AccountFormPageSkeletonProps = {
   /** 页面右上角操作（编辑页的删除）的占位。 */
   action?: ReactNode;
   loadingLabel: string;
+  subtitle: string;
   title: string;
 };
 
@@ -23,6 +24,7 @@ type AccountFormPageSkeletonProps = {
 export function AccountFormPageSkeleton({
   action,
   loadingLabel,
+  subtitle,
   title,
 }: AccountFormPageSkeletonProps) {
   return (
@@ -33,7 +35,7 @@ export function AccountFormPageSkeleton({
           href: routePaths.accounts,
           label: accountFormMessages.backToAccounts,
         }}
-        subtitle={<Skeleton sx={{ maxWidth: "100%" }} width={200} />}
+        subtitle={subtitle}
         title={title}
       >
         <Stack spacing={2}>

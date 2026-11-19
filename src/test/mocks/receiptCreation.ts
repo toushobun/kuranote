@@ -27,7 +27,6 @@ export function receiptCreationData(
       }),
       fetchIconAction: async () => ({}),
       ledgerId: "ledger-1",
-      ledgerName: "家庭账本",
       tags: [],
     },
     account: {
@@ -41,7 +40,6 @@ export function receiptCreationData(
       baseCurrency: "JPY",
       holderOptions: accountHolderOptionsFixture,
       placeholderHolderOptions: accountPlaceholderHolderOptionsFixture,
-      ledgerName: "家庭账本",
     },
   };
 }

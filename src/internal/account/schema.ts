@@ -136,7 +136,6 @@ export const accountsViewResponseSchema = z.object({
   canManageAccounts: z.boolean(),
   canWriteTransactions: z.boolean(),
   holderOptions: z.array(holderOptionSchema),
-  ledgerName: z.string(),
   placeholderHolderOptions: z.array(
     z.object({
       display_name: z.string(),

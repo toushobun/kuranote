@@ -125,7 +125,6 @@ describe("account router", () => {
       canManageAccounts: true,
       canWriteTransactions: true,
       holderOptions: [],
-      ledgerName: "家庭账本",
     };
     const getView = vi.fn().mockResolvedValue(view);
     const app = createApp(createContainer({ getView }));

@@ -18,7 +18,6 @@ export default function Editor({ save }: { save: typeof saveAction }) {
       fetchIconAction={async () => ({
         iconUrl: accountWebsiteIconFixture.icon_url,
       })}
-      ledgerName="兼容性测试账本"
       updateAccountAction={save}
     />
   );

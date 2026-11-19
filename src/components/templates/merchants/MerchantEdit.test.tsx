@@ -37,7 +37,6 @@ function renderTemplate(updateMerchantAction: MerchantStateAction = action) {
         archiveMerchantAction={action}
         fetchIconAction={async () => ({})}
         ledgerId="ledger-1"
-        ledgerName="家庭账本"
         merchant={merchant}
         tags={[]}
         updateMerchantAction={updateMerchantAction}

@@ -75,11 +75,11 @@ describe("PageHeader", () => {
     ).toBeInTheDocument();
   });
 
-  it("紧凑模式使用列表页的标题层级和前置按钮样式", () => {
+  it("紧凑模式使用紧凑标题且不为前置按钮添加边框和阴影", () => {
     const { container } = render(
       <PageHeader
         leading={<IconButton aria-label="返回">返</IconButton>}
-        subtitle="商家管理 〉 新增商家"
+        subtitle="设置商家名称、头像和分类"
         title="新增商家"
         variant="compact"
       />,
@@ -88,13 +88,13 @@ describe("PageHeader", () => {
     const heading = within(container).getByRole("heading", {
       name: "新增商家",
     });
-    const subtitle = within(container).getByText("商家管理 〉 新增商家");
+    const subtitle = within(container).getByText("设置商家名称、头像和分类");
     const backButton = within(container).getByRole("button", { name: "返回" });
 
     expect(heading).toHaveClass("MuiTypography-h5");
     expect(getComputedStyle(heading).fontWeight).toBe("900");
     expect(subtitle).toHaveClass("MuiTypography-body2");
-    expect(getComputedStyle(backButton).borderTopStyle).toBe("solid");
-    expect(getComputedStyle(backButton).boxShadow).toContain("14px");
+    expect(getComputedStyle(backButton).borderTopStyle).not.toBe("solid");
+    expect(getComputedStyle(backButton).boxShadow).not.toContain("14px");
   });
 });

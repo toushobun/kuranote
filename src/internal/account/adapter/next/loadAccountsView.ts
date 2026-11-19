@@ -33,7 +33,6 @@ function pickAccountFormView(
     baseCurrency: view.baseCurrency,
     canWriteTransactions: view.canWriteTransactions,
     holderOptions: view.holderOptions,
-    ledgerName: view.ledgerName,
     placeholderHolderOptions: view.placeholderHolderOptions,
   };
 }
@@ -55,7 +54,6 @@ export async function loadAccountCreateView() {
   return {
     baseCurrency: currentLedger.baseCurrency,
     canWriteTransactions: canWriteTransaction(currentLedger.currentUserRole),
-    ledgerName: currentLedger.name,
     ...formOptions,
   };
 }

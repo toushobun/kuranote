@@ -45,6 +45,5 @@ export type CategoryParentOption = {
 
 export type CategoriesViewData = {
   categories: CategoryTreeItem[];
-  ledgerName: string;
   parentOptions: CategoryParentOption[];
 };

@@ -125,7 +125,6 @@ export function buildAccountsView({
     canManageAccounts: canManageMasterData(role),
     canWriteTransactions: canWriteTransaction(role),
     holderOptions,
-    ledgerName: ledger.name,
     placeholderHolderOptions,
   };
 }

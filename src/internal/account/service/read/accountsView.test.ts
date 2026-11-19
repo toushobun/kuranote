@@ -153,7 +153,6 @@ describe("accountsView", () => {
       ledger: {
         baseCurrency: "JPY",
         id: "00000000-0000-4000-8000-000000000032",
-        name: "家庭账本",
       },
       members: [
         {
@@ -201,7 +200,6 @@ describe("accountsView", () => {
           user_id: userId,
         },
       ],
-      ledgerName: "家庭账本",
       placeholderHolderOptions: [
         { display_name: "奶奶", placeholder_id: "placeholder-1" },
       ],

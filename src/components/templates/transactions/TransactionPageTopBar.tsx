@@ -2,12 +2,10 @@
 
 import type { ReactNode } from "react";
 
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import Box from "@mui/material/Box";
-import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
-import Link from "next/link";
 
+import { PageBackButton } from "atoms/ui/PageBackButton/PageBackButton";
 import { routePaths } from "config/paths";
 
 /** 新增 / 编辑记账页的顶栏：返回明细、居中标题、右侧操作。离开确认由页面的公共守卫统一处理。 */
@@ -20,14 +18,7 @@ export function TransactionPageTopBar({
 }) {
   return (
     <Box sx={newTransactionTopBarSx}>
-      <IconButton
-        aria-label="关闭"
-        component={Link}
-        href={routePaths.transactions}
-        sx={newTransactionCloseButtonSx}
-      >
-        <ArrowBackRoundedIcon />
-      </IconButton>
+      <PageBackButton aria-label="关闭" href={routePaths.transactions} />
       <Typography component="h1" variant="h5" sx={newTransactionTitleSx}>
         {title}
       </Typography>
@@ -47,16 +38,6 @@ const newTransactionTopBarSx = {
   gridTemplateColumns: "minmax(40px, 1fr) auto minmax(40px, 1fr)",
   pb: 1.5,
   pt: { xs: 0, sm: 0.5 },
-};
-
-const newTransactionCloseButtonSx = {
-  "@media (hover: hover)": {
-    "&:hover": {
-      bgcolor: "action.hover",
-    },
-  },
-  color: "text.secondary",
-  justifySelf: "start",
 };
 
 const newTransactionTitleSx = {

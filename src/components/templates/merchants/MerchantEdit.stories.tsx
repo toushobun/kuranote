@@ -18,7 +18,6 @@ const meta = {
       success: "网站图标已获取，保存后会缓存",
     }),
     ledgerId: "ledger-1",
-    ledgerName: "家庭账本",
     merchant: createMerchantRow({
       aliases: [createMerchantAliasRow({ is_preferred: true })],
       display_name: "来福",
