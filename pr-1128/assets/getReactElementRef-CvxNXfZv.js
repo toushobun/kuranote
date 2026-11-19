@@ -1,0 +1,1 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";import{t}from"./react-DAMDAfNa.js";function n(e){return e?.props?.ref||null}var r=e((()=>{t()})),i=e((()=>{r()}));export{n,r,i as t};
