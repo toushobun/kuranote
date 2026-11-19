@@ -404,7 +404,7 @@ grant execute on function public.update_transfer_transaction(
 CREATE OR REPLACE FUNCTION "public"."void_transaction_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
-    AS $
+    AS $$
 declare
     v_user_id uuid := auth.uid();
     v_record public.transaction_record;
@@ -519,7 +519,7 @@ begin
 
     return p_transaction_record_id;
 end;
-$;
+$$;
 
 -- 金额搜索对转账的任一笔明细匹配，不改变候选搜索行为。
 create or replace function public.load_filtered_transaction_page(
