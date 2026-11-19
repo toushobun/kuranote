@@ -58,7 +58,7 @@ describe("DataExportTemplate", () => {
   it("默认关闭照片开关，开启后展示大文件提示并把选项传给服务端", async () => {
     const action = vi.fn().mockResolvedValue({ data: createEmptyDataExport() });
     render(<DataExportTemplate exportAction={action} />);
-    const toggle = screen.getByRole("checkbox", { name: "导出照片" });
+    const toggle = screen.getByRole("switch", { name: "导出照片" });
     expect(toggle).not.toBeChecked();
     fireEvent.click(toggle);
     expect(screen.getByText(/文件可能较大/)).toBeInTheDocument();
