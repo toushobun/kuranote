@@ -564,7 +564,9 @@ describe("transfer transaction validators", () => {
   it("到账金额非正数或超过两位小数时拒绝", () => {
     for (const transferTargetAmount of ["0", "-1", "2.555", "invalid"]) {
       expect(
-        validateTransactionForm(createTransferFormData({ transferTargetAmount })),
+        validateTransactionForm(
+          createTransferFormData({ transferTargetAmount }),
+        ),
       ).toEqual({ error: transactionErrorCodes.amountInvalid, ok: false });
     }
   });

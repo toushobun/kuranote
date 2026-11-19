@@ -22,11 +22,13 @@ export function transferAmountsAfterAccountChange({
     const preservedTargetAmount = wasSameCurrency ? amount : targetAmount;
     const newSourceAmount = sourceCurrency === nextCurrency ? amount : "";
     return nextCurrency === targetCurrency && !!nextCurrency
-      ? { amount: wasSameCurrency ? newSourceAmount : preservedTargetAmount, targetAmount: "" }
+      ? {
+          amount: wasSameCurrency ? newSourceAmount : preservedTargetAmount,
+          targetAmount: "",
+        }
       : { amount: newSourceAmount, targetAmount: preservedTargetAmount };
   }
-  const newTargetAmount =
-    targetCurrency === nextCurrency ? targetAmount : "";
+  const newTargetAmount = targetCurrency === nextCurrency ? targetAmount : "";
   return nextCurrency === sourceCurrency && !!nextCurrency
     ? { amount: amount || newTargetAmount, targetAmount: "" }
     : { amount, targetAmount: newTargetAmount };
@@ -43,7 +45,8 @@ export function calculateTransferRate(
     !targetCurrency ||
     !isValidPositiveMoneyText(sourceAmount, { currency: sourceCurrency }) ||
     !isValidPositiveMoneyText(targetAmount, { currency: targetCurrency })
-  ) return null;
+  )
+    return null;
   const source = Number(sourceAmount);
   const target = Number(targetAmount);
   const sourcePerTarget = source / target;

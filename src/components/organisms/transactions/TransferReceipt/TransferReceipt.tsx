@@ -192,7 +192,12 @@ export function TransferReceipt(props: TransferReceiptProps) {
                   <Typography
                     variant="caption"
                     color="textSecondary"
-                    sx={{ display: "block", px: 2, pb: 1.5, textAlign: "right" }}
+                    sx={{
+                      display: "block",
+                      px: 2,
+                      pb: 1.5,
+                      textAlign: "right",
+                    }}
                   >
                     {t.exchangeRate(w.rate.base, w.rate.quote, w.rate.value)}
                   </Typography>

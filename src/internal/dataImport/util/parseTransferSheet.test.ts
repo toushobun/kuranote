@@ -168,25 +168,35 @@ describe("parseTransferSheet", () => {
     ]);
 
     const filled = parseTransferSheet(
-      buildTable([validRowCells({
-        转出账户币种: "JPY",
-        转入账户币种: "CNY",
-        金额: "100000",
-        到账金额: "4850.50",
-      })]),
+      buildTable([
+        validRowCells({
+          转出账户币种: "JPY",
+          转入账户币种: "CNY",
+          金额: "100000",
+          到账金额: "4850.50",
+        }),
+      ]),
     );
     expect(filled.issues).toEqual([]);
-    expect(filled.rows[0]).toMatchObject({ amount: 100000, targetAmount: 4850.5 });
+    expect(filled.rows[0]).toMatchObject({
+      amount: 100000,
+      targetAmount: 4850.5,
+    });
   });
 
   it("同币种到账金额不同及超币种精度时报行错误", () => {
-    const result = parseTransferSheet(buildTable([
-      validRowCells({ 到账金额: "400" }),
-      validRowCells({ 转出账户币种: "JPY", 金额: "100.5", 到账金额: "4.5" }),
-      validRowCells({ 转入账户币种: "JPY", 到账金额: "20.5" }),
-    ]));
+    const result = parseTransferSheet(
+      buildTable([
+        validRowCells({ 到账金额: "400" }),
+        validRowCells({ 转出账户币种: "JPY", 金额: "100.5", 到账金额: "4.5" }),
+        validRowCells({ 转入账户币种: "JPY", 到账金额: "20.5" }),
+      ]),
+    );
     expect(result.issues).toEqual([
-      expect.objectContaining({ rowNumber: 2, message: transferImportErrorMessages.targetAmountMismatch }),
+      expect.objectContaining({
+        rowNumber: 2,
+        message: transferImportErrorMessages.targetAmountMismatch,
+      }),
       expect.objectContaining({ rowNumber: 3, column: "金额" }),
       expect.objectContaining({ rowNumber: 4, column: "到账金额" }),
     ]);

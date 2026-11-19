@@ -131,7 +131,8 @@ export const transferReceiptMessages = {
   targetAmountTitle: (currency: string) => `到账金额（${currency}）`,
   exchangeRate: (base: string, quote: string, rate: string) =>
     `汇率 1 ${base} ≈ ${rate} ${quote}（按两边金额算出）`,
-  listArrival: (amount: string, currency: string) => `到账 ${amount} ${currency}`,
+  listArrival: (amount: string, currency: string) =>
+    `到账 ${amount} ${currency}`,
   save: "保存转账",
   missingSource: "请选择转出账户",
   missingTarget: "请选择转入账户",

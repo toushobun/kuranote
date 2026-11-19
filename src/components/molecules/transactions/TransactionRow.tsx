@@ -245,20 +245,22 @@ export function TransactionRow({
           {sharedPaymentLabel ? (
             <TransactionSharedPaymentNote label={sharedPaymentLabel} />
           ) : null}
-          {isTransfer && item.transferTargetAmount && item.transferTargetCurrency && (
-            <Typography
-              variant="caption"
-              sx={{ color: mutedText, fontSize: 11, textAlign: "right" }}
-            >
-              {transferReceiptMessages.listArrival(
-                formatUnsignedCurrencyAmount(
-                  item.transferTargetAmount,
+          {isTransfer &&
+            item.transferTargetAmount &&
+            item.transferTargetCurrency && (
+              <Typography
+                variant="caption"
+                sx={{ color: mutedText, fontSize: 11, textAlign: "right" }}
+              >
+                {transferReceiptMessages.listArrival(
+                  formatUnsignedCurrencyAmount(
+                    item.transferTargetAmount,
+                    item.transferTargetCurrency,
+                  ),
                   item.transferTargetCurrency,
-                ),
-                item.transferTargetCurrency,
-              )}
-            </Typography>
-          )}
+                )}
+              </Typography>
+            )}
 
           {metaSegments.length > 0 || adjustmentNode ? (
             <Stack

@@ -317,7 +317,9 @@ export function validateTransactionForm(
       return transferAmountResult;
     }
 
-    const rawTargetAmount = String(formData.get("transferTargetAmount") ?? "").trim();
+    const rawTargetAmount = String(
+      formData.get("transferTargetAmount") ?? "",
+    ).trim();
     const transferTargetAmountResult = rawTargetAmount
       ? parseMoneyAmount(rawTargetAmount, {
           allowNegative: false,
@@ -536,9 +538,14 @@ const transferTransactionRequestSchema = z.object({
     message: transactionErrorCodes.amountInvalid,
   }),
   transferTargetAccountId: z.string().uuid(),
-  transferTargetAmount: z.number().positive().refine(hasValidMoneyPrecision, {
-    message: transactionErrorCodes.amountInvalid,
-  }).nullable().optional(),
+  transferTargetAmount: z
+    .number()
+    .positive()
+    .refine(hasValidMoneyPrecision, {
+      message: transactionErrorCodes.amountInvalid,
+    })
+    .nullable()
+    .optional(),
   type: z.literal("transfer"),
 });
 

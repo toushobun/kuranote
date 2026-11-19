@@ -509,7 +509,6 @@ Storage 物理文件不能通过 SQL 删除，必须由具有服务端权限的 
 选择正式名时传 `NULL`，可选择此次新加的别名。旧的独立快捷切换函数
 `set_merchant_preferred_alias(uuid,uuid,uuid)` 仍供商家列表使用，不改变其权限边界。
 
-
 ## Issue #247：跨币种转账两侧金额
 
 `20261120010000_cross_currency_transfer.sql` 重新定义

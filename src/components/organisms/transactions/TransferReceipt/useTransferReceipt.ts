@@ -61,9 +61,15 @@ export function useTransferReceipt({
   const target = accountOptions.find((account) => account.id === targetId);
   const currency = source?.currency ?? target?.currency ?? "";
   const targetCurrency = target?.currency ?? "";
-  const crossCurrency = !!source && !!target && source.currency !== target.currency;
+  const crossCurrency =
+    !!source && !!target && source.currency !== target.currency;
   const rate = crossCurrency
-    ? calculateTransferRate(amount, transferTargetAmount, currency, targetCurrency)
+    ? calculateTransferRate(
+        amount,
+        transferTargetAmount,
+        currency,
+        targetCurrency,
+      )
     : null;
   const pickerAccounts = accountOptions.filter(
     (account) => account.id !== (picker === "source" ? targetId : sourceId),
@@ -71,40 +77,79 @@ export function useTransferReceipt({
 
   const issues: ReceiptIssue[] = [
     ...(!source
-      ? [{ id: "source", message: t.missingSource, onClick: () => setPicker("source") }]
+      ? [
+          {
+            id: "source",
+            message: t.missingSource,
+            onClick: () => setPicker("source"),
+          },
+        ]
       : []),
     ...(!target
-      ? [{ id: "target", message: t.missingTarget, onClick: () => setPicker("target") }]
+      ? [
+          {
+            id: "target",
+            message: t.missingTarget,
+            onClick: () => setPicker("target"),
+          },
+        ]
       : []),
     ...(!isValidPositiveMoneyText(amount, { currency })
-      ? [{
-          id: "amount",
-          message: amount.trim() ? t.invalidAmount : t.missingAmount,
-          onClick: () => setAmountSide("source"),
-        }]
+      ? [
+          {
+            id: "amount",
+            message: amount.trim() ? t.invalidAmount : t.missingAmount,
+            onClick: () => setAmountSide("source"),
+          },
+        ]
       : []),
     ...(crossCurrency &&
-    !isValidPositiveMoneyText(transferTargetAmount, { currency: targetCurrency })
-      ? [{
-          id: "targetAmount",
-          message: transferTargetAmount.trim()
-            ? t.invalidTargetAmount
-            : t.missingTargetAmount,
-          onClick: () => setAmountSide("target"),
-        }]
+    !isValidPositiveMoneyText(transferTargetAmount, {
+      currency: targetCurrency,
+    })
+      ? [
+          {
+            id: "targetAmount",
+            message: transferTargetAmount.trim()
+              ? t.invalidTargetAmount
+              : t.missingTargetAmount,
+            onClick: () => setAmountSide("target"),
+          },
+        ]
       : []),
     ...(!dateTime.transactionAtValue
-      ? [{ id: "time", message: m.invalidTime, onClick: () => setTimeOpen(true) }]
+      ? [
+          {
+            id: "time",
+            message: m.invalidTime,
+            onClick: () => setTimeOpen(true),
+          },
+        ]
       : []),
   ];
   const issueCheck = useReceiptIssueCheck(issues.map((issue) => issue.id));
-  const visibleIssues = issues.filter((issue) => issueCheck.isChecked(issue.id));
-  const isMarked = (id: string) => visibleIssues.some((issue) => issue.id === id);
+  const visibleIssues = issues.filter((issue) =>
+    issueCheck.isChecked(issue.id),
+  );
+  const isMarked = (id: string) =>
+    visibleIssues.some((issue) => issue.id === id);
 
   return {
-    source, target, sourceId, targetId, currency, targetCurrency, crossCurrency,
-    amount, transferTargetAmount, rate, note, dateTime,
-    picker, setPicker, pickerAccounts,
+    source,
+    target,
+    sourceId,
+    targetId,
+    currency,
+    targetCurrency,
+    crossCurrency,
+    amount,
+    transferTargetAmount,
+    rate,
+    note,
+    dateTime,
+    picker,
+    setPicker,
+    pickerAccounts,
     pickerSelectedAccount: picker === "source" ? source : target,
     selectAccount(account: TransactionAccountOption) {
       if (!picker) return;
@@ -129,11 +174,15 @@ export function useTransferReceipt({
       else setAmount(value);
       setAmountSide(null);
     },
-    timeOpen, setTimeOpen,
-    handleNoteChange(event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
+    timeOpen,
+    setTimeOpen,
+    handleNoteChange(
+      event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    ) {
       setNote(event.target.value);
     },
-    visibleIssues, isMarked,
+    visibleIssues,
+    isMarked,
     pulseCount: issueCheck.pulseCount,
     firstIssueRef: issueCheck.firstIssueRef,
     checkIssues() {
