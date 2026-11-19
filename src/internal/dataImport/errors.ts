@@ -48,6 +48,7 @@ export const importPhotoValidationMessages = {
   notFirstRow: "账单关联的照片只能放在该组第一行。",
   multipleIncomeExpenseSheets:
     "含照片时只能保留一个「收支」工作表，否则无法区分图片对应的记录。",
+  unsupportedSheet: "小票照片只能放在「收支」工作表的「照片1」～「照片5」列。",
 } as const;
 
 /** 「收支」「转账」「余额变更」表中两种以上共用的行校验错误。 */

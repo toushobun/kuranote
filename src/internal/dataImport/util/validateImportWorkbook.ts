@@ -152,12 +152,14 @@ export function analyzeImportWorkbook(
 
   const transferRows: TransferImportRow[] = [];
   for (const table of transferTables) {
+    issues.push(...(table.photoIssues ?? []));
     const result = parseTransferSheet(table);
     issues.push(...result.issues);
     transferRows.push(...result.rows);
   }
 
   const balanceAdjustmentRows = balanceAdjustmentTables.flatMap((table) => {
+    issues.push(...(table.photoIssues ?? []));
     const parsed = parseBalanceAdjustmentSheet(table);
     issues.push(...parsed.issues);
     return parsed.rows;

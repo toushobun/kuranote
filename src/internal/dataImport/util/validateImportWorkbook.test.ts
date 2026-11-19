@@ -153,6 +153,32 @@ describe("validateImportWorkbook", () => {
     }
   });
 
+  it.each([
+    ["转账", "transfer", transferHeader, transferRowCells()],
+    ["余额变更", "balanceAdjustment", ["日期"], ["2026-01-05"]],
+  ] as const)("含图片的「%s」不能显示校验成功", (name, kind, header, row) => {
+    const source = table(name, [...header], [[...row]]);
+    source.photoIssues = [
+      {
+        column: "日期",
+        kind: "row",
+        message: "照片不应出现在该工作表",
+        rowNumber: 2,
+        sheet: kind,
+      },
+    ];
+    const result = validateImportWorkbook([source]);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.issues).toContainEqual(
+        expect.objectContaining({
+          message: "照片不应出现在该工作表",
+          sheet: kind,
+        }),
+      );
+    }
+  });
+
   it("只有余额变更表也能解析并产出执行单元", () => {
     const { result, units } = analyzeImportWorkbook([balanceAdjustmentTable()]);
     expect(result).toMatchObject({

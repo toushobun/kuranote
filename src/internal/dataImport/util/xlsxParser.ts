@@ -1,6 +1,8 @@
 import ExcelJS from "exceljs";
 
-import { importSheetKindLabels } from "internal/dataImport/entity/importSheetKind";
+import { detectSheetKind } from "internal/dataImport/util/detectSheetKind";
+import { importPhotoValidationMessages } from "internal/dataImport/errors";
+import type { ImportRowIssue } from "internal/dataImport/entity/importValidationIssue";
 import { readWorksheetPhotos } from "internal/dataImport/util/readWorksheetPhotos";
 import type { ParsedTable } from "internal/dataImport/entity/parsedTable";
 import { cellToText } from "internal/dataImport/util/cellText";
@@ -47,20 +49,38 @@ export async function parseXlsxWorkbook(
       dataRows.push({ cells, rowNumber });
     });
 
-    if (!headerRow) {
+    const kind = detectSheetKind(worksheet.name);
+    const pictures = worksheet.getImages();
+    if (!headerRow && (!kind || pictures.length === 0)) {
       continue;
     }
 
     const photos =
-      worksheet.name.trim() === importSheetKindLabels.incomeExpense
-        ? readWorksheetPhotos(workbook, worksheet, headerRow, headerRowNumber)
+      kind === "incomeExpense"
+        ? readWorksheetPhotos(
+            workbook,
+            worksheet,
+            headerRow ?? [],
+            headerRowNumber,
+          )
         : null;
+    const otherSheetPhotoIssues: ImportRowIssue[] =
+      kind && kind !== "incomeExpense"
+        ? pictures.map((picture) => ({
+            column: (headerRow?.[picture.range.tl.nativeCol] ?? "").trim(),
+            kind: "row",
+            message: importPhotoValidationMessages.unsupportedSheet,
+            rowNumber: picture.range.tl.nativeRow + 1,
+            sheet: kind,
+          }))
+        : [];
+    const photoIssues = [...(photos?.issues ?? []), ...otherSheetPhotoIssues];
     tables.push({
-      headerRow,
+      headerRow: headerRow ?? [],
       rows: dataRows,
       sourceName: worksheet.name,
       ...(photos?.images.length ? { photos: photos.images } : {}),
-      ...(photos?.issues.length ? { photoIssues: photos.issues } : {}),
+      ...(photoIssues.length ? { photoIssues } : {}),
     });
   }
 
