@@ -28,7 +28,7 @@ export const IncludePhotos: Story = {
   name: "导出照片开关",
   play: async ({ canvasElement }) => {
     await userEvent.click(
-      within(canvasElement).getByRole("checkbox", { name: "导出照片" }),
+      within(canvasElement).getByRole("switch", { name: "导出照片" }),
     );
   },
 };
@@ -53,7 +53,7 @@ export const DownloadingPhotos: Story = {
     globalThis.fetch = () => new Promise<Response>(() => {});
     try {
       const canvas = within(canvasElement);
-      await userEvent.click(canvas.getByRole("checkbox", { name: "导出照片" }));
+      await userEvent.click(canvas.getByRole("switch", { name: "导出照片" }));
       await userEvent.click(canvas.getByRole("button", { name: "导出 xlsx" }));
       await canvas.findByText("正在下载照片 0/1");
     } finally {
