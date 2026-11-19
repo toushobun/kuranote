@@ -7,6 +7,7 @@ import ExcelJS from "exceljs";
 import type { AccountExportSummary } from "internal/account";
 import {
   IncompleteDataExportError,
+  dataExportErrorMessages,
   AccountSeparatorDataExportError,
   type DataExport,
 } from "internal/dataExport";
@@ -36,7 +37,7 @@ type PhotoWorkbookOptions = {
 
 async function fetchPhoto(url: string): Promise<Uint8Array> {
   const response = await fetch(url);
-  if (!response.ok) throw new Error("照片下载失败");
+  if (!response.ok) throw new Error(dataExportErrorMessages.downloadFailed);
   return new Uint8Array(await response.arrayBuffer());
 }
 
@@ -264,7 +265,7 @@ export async function buildDataExportWorkbook(
           const bytes = await (options?.downloadPhoto ?? fetchPhoto)(task.url);
           // 原始 Storage 文件是 JPEG；拒绝空文件或非 JPEG 响应，不能静默漏图。
           if (bytes.length < 3 || bytes[0] !== 0xff || bytes[1] !== 0xd8)
-            throw new Error("照片格式错误");
+            throw new Error(dataExportErrorMessages.downloadFailed);
           const imageId = workbook.addImage({
             buffer: bytes as never,
             extension: "jpeg",
