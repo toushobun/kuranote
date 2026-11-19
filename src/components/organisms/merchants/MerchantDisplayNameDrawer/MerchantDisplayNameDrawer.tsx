@@ -2,6 +2,7 @@
 
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
+import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import ButtonBase from "@mui/material/ButtonBase";
@@ -246,11 +247,9 @@ function MerchantDisplayNameDraft({
               placeholder={merchantText.newAliasPlaceholder}
               size="small"
               slotProps={{
-                htmlInput: { maxLength: 100 },
-                input: {
-                  inputProps: {
-                    "aria-label": merchantText.newAliasPlaceholder,
-                  },
+                htmlInput: {
+                  "aria-label": merchantText.newAliasPlaceholder,
+                  maxLength: merchantAliasMaxLength,
                 },
               }}
               sx={{
