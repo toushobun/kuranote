@@ -9,6 +9,14 @@ import type { EmbeddedWorksheetPhoto } from "internal/dataImport/entity/parsedTa
 import { SectionCard } from "molecules/ui/SectionCard";
 import { dataImportResultMessages } from "config/dataImportExportMessages";
 
+export type DataImportPhotoPreviewRow = {
+  amount: number;
+  merchantName: string;
+  photos: EmbeddedWorksheetPhoto[];
+  rowNumber: number;
+  transactionAt: string;
+};
+
 function PhotoThumbnail({ photo }: { photo: EmbeddedWorksheetPhoto }) {
   const wrapper = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -70,7 +78,7 @@ function PhotoThumbnail({ photo }: { photo: EmbeddedWorksheetPhoto }) {
 export function DataImportPhotoPreview({
   rows,
 }: {
-  rows: { rowNumber: number; photos: EmbeddedWorksheetPhoto[] }[];
+  rows: DataImportPhotoPreviewRow[];
 }) {
   return (
     <SectionCard>
@@ -78,10 +86,15 @@ export function DataImportPhotoPreview({
         <Typography sx={{ fontWeight: 700 }}>
           {dataImportResultMessages.photoPreviewTitle}
         </Typography>
-        {rows.map(({ rowNumber, photos }) => (
+        {rows.map(({ rowNumber, photos, transactionAt, merchantName, amount }) => (
           <Stack key={rowNumber} spacing={1}>
             <Typography variant="body2">
-              {dataImportResultMessages.issueRowLabel(rowNumber)}
+              {dataImportResultMessages.issueRowLabel(rowNumber)} ·{" "}
+              {dataImportResultMessages.photoPreviewDetail(
+                transactionAt,
+                merchantName,
+                amount,
+              )}
             </Typography>
             <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
               {photos.map((photo) => (

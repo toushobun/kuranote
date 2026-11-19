@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { dataImportExecutionMessages } from "config/dataImportExportMessages";
 import type { EmbeddedWorksheetPhoto } from "internal/dataImport/entity/parsedTable";
 import { prepareImportPhotoBatch } from "utils/dataImportPhotoBatch";
+import type { DataImportPhotoPreviewRow } from "organisms/settings/DataImportPhotoPreview/DataImportPhotoPreview";
 import type { AccountImportHolder } from "internal/account";
 import {
   analyzeImportFile,
@@ -88,7 +89,7 @@ export function useDataImportForm(
   const unitsRef = useRef<ImportExecutionUnit[]>([]);
   const photosRef = useRef<Map<number, EmbeddedWorksheetPhoto[]>>(new Map());
   const [photoPreviewRows, setPhotoPreviewRows] = useState<
-    { rowNumber: number; photos: EmbeddedWorksheetPhoto[] }[]
+    DataImportPhotoPreviewRow[]
   >([]);
 
   useEffect(() => {
@@ -139,10 +140,20 @@ export function useDataImportForm(
       photosRef.current = photosByRow ?? new Map();
       setPhotoPreviewRows(
         result.ok && photosByRow
-          ? [...photosByRow.entries()].map(([rowNumber, photos]) => ({
-              rowNumber,
-              photos,
-            }))
+          ? units.flatMap((unit) => {
+              if (unit.kind !== "incomeExpense") return [];
+              const rowNumber = unit.group.rowNumbers[0];
+              const photos = photosByRow.get(rowNumber);
+              if (!photos?.length) return [];
+              const first = unit.group.items[0];
+              return [{
+                amount: first.amount,
+                merchantName: first.merchantName,
+                photos,
+                rowNumber,
+                transactionAt: first.transactionAt,
+              }];
+            })
           : [],
       );
       if (mountedRef.current) {

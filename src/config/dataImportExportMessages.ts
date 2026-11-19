@@ -86,6 +86,8 @@ export const dataImportResultMessages = {
   balanceAdjustmentCountLabel: (count: number) => `余额变更记录 ${count} 笔`,
   failureTitle: "格式检查未通过",
   photoPreviewTitle: "小票照片预览",
+  photoPreviewDetail: (date: string, merchant: string, amount: number) =>
+    `${date} · ${merchant} · 金额 ${amount}`,
   incomeExpenseCountLabel: (count: number) => `收支记录 ${count} 笔`,
   issueRowLabel: (rowNumber: number) => `第 ${rowNumber} 行`,
   successTitle: "格式检查通过",
