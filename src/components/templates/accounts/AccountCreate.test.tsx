@@ -23,7 +23,6 @@ function renderAccountCreate(
       baseCurrency="JPY"
       createAccountAction={vi.fn<AccountStateAction>(async () => ({}))}
       holderOptions={accountHolderOptionsFixture}
-      ledgerName="家庭账本"
       placeholderHolderOptions={accountPlaceholderHolderOptionsFixture}
       {...props}
     />,
@@ -41,15 +40,13 @@ async function submitCashAccount(createAccountAction: AccountStateAction) {
 }
 
 describe("AccountCreateTemplate", () => {
-  it("显示新增页标题、面包屑与返回账户管理入口", () => {
+  it("显示新增页标题、副标题与返回账户管理入口", () => {
     renderAccountCreate();
 
     expect(
       screen.getByRole("heading", { name: "新增账户" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText("账户管理 〉 新增账户 · 家庭账本"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("设置名称、类型和初始金额")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "返回账户管理" })).toHaveAttribute(
       "href",
       "/accounts",

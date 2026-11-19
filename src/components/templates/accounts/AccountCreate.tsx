@@ -36,7 +36,6 @@ export type AccountCreateTemplateProps = {
   fetchIconAction?: WebsiteIconStateAction;
   createAccountAction: AccountStateAction;
   holderOptions: AccountHolderOption[];
-  ledgerName: string;
   placeholderHolderOptions?: AccountPlaceholderHolderOption[];
   /** 从记一笔等页面进入时的来源路径：保存和取消均直接返回这里。 */
   returnTo?: string | null;
@@ -54,7 +53,7 @@ export function AccountCreateTemplate(props: AccountCreateTemplateProps) {
             ? accountFormMessages.back
             : accountFormMessages.backToAccounts,
         }}
-        subtitle={accountFormMessages.createSubtitle(props.ledgerName)}
+        subtitle={accountFormMessages.createSubtitle}
         title={accountFormMessages.createTitle}
       >
         <AccountCreateBody

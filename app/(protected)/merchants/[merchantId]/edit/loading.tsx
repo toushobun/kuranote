@@ -14,7 +14,7 @@ export default function MerchantEditLoading() {
         href: routePaths.merchants,
         label: merchantPageMessages.backToMerchants,
       }}
-      subtitle={<Skeleton sx={{ maxWidth: "100%" }} width={200} />}
+      subtitle={merchantPageMessages.editSubtitle}
       title={merchantText.edit}
     >
       <SectionCard role="status" sx={{ p: { xs: 2, sm: 3 } }}>

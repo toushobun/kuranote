@@ -12,7 +12,6 @@ const meta = {
       success: "网站图标已获取，保存后会缓存",
     }),
     ledgerId: "ledger-1",
-    ledgerName: "家庭账本",
     tags: [],
   },
 } satisfies Meta<typeof MerchantCreateTemplate>;

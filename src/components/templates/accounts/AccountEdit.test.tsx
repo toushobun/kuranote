@@ -27,7 +27,6 @@ function renderAccountEdit(
         archiveAccountAction={vi.fn<AccountStateAction>(async () => ({}))}
         baseCurrency="JPY"
         holderOptions={accountHolderOptionsFixture}
-        ledgerName="家庭账本"
         placeholderHolderOptions={accountPlaceholderHolderOptionsFixture}
         updateAccountAction={vi.fn<AccountStateAction>(async () => ({}))}
         {...props}
@@ -37,15 +36,13 @@ function renderAccountEdit(
 }
 
 describe("AccountEditTemplate", () => {
-  it("显示编辑页标题、面包屑与返回账户管理入口", () => {
+  it("显示编辑页标题、副标题与返回账户管理入口", () => {
     renderAccountEdit();
 
     expect(
       screen.getByRole("heading", { name: "编辑账户" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText("账户管理 〉 编辑账户 · 家庭账本"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("修改账户信息与当前余额")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "返回账户管理" })).toHaveAttribute(
       "href",
       "/accounts",

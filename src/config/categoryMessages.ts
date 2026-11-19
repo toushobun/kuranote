@@ -1,7 +1,7 @@
 export const categoryPageMessages = {
   title: "分类管理",
   backToSettings: "返回设置",
-  subtitle: (ledgerName: string) => `整理「${ledgerName}」的收支分类`,
+  subtitle: "管理收入和支出分类",
   loading: "分类数据加载中",
 } as const;
 

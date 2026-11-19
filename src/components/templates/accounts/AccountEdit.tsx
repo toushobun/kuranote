@@ -40,7 +40,6 @@ type AccountEditTemplateProps = {
   canWriteTransactions?: boolean;
   fetchIconAction?: WebsiteIconStateAction;
   holderOptions: AccountHolderOption[];
-  ledgerName: string;
   placeholderHolderOptions?: AccountPlaceholderHolderOption[];
   updateAccountAction: AccountStateAction;
 };
@@ -55,7 +54,6 @@ export function AccountEditTemplate({
   canWriteTransactions = true,
   fetchIconAction,
   holderOptions,
-  ledgerName,
   placeholderHolderOptions = [],
   updateAccountAction,
 }: AccountEditTemplateProps) {
@@ -94,7 +92,7 @@ export function AccountEditTemplate({
           href: routePaths.accounts,
           label: accountFormMessages.backToAccounts,
         }}
-        subtitle={accountFormMessages.editSubtitle(ledgerName)}
+        subtitle={accountFormMessages.editSubtitle}
         title={accountFormMessages.editTitle}
       >
         <AccountForm

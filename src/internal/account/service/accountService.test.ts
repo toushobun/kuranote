@@ -48,7 +48,6 @@ function createRepository(): AccountRepository {
     findActiveLedger: vi.fn().mockResolvedValue({
       baseCurrency: "JPY",
       id: ledgerId,
-      name: "家庭账本",
     }),
     findSummariesByIds: vi.fn().mockResolvedValue([]),
     isActiveAccount: vi.fn().mockResolvedValue(true),
@@ -242,7 +241,6 @@ describe("AccountService", () => {
         baseCurrency: "JPY",
         canManageAccounts: true,
         canWriteTransactions: true,
-        ledgerName: "家庭账本",
       }),
     );
     expect(view.accounts[0].holders[0]).toEqual(

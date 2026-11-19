@@ -26,13 +26,11 @@ describe("categoriesView", () => {
     expect(
       buildCategoriesView({
         categories,
-        ledgerName: "家庭账本",
         role: "owner",
       }),
     ).toEqual({
       canManageCategories: true,
       categories: [{ ...categories[0], children: [categories[1]] }],
-      ledgerName: "家庭账本",
       parentOptions: [{ id: parentId, name: "餐饮", type: "expense" }],
     });
   });
@@ -48,13 +46,11 @@ describe("categoriesView", () => {
     expect(
       buildCategoriesView({
         categories: [orphan],
-        ledgerName: "家庭账本",
         role: "member",
       }),
     ).toEqual({
       canManageCategories: false,
       categories: [],
-      ledgerName: "家庭账本",
       parentOptions: [],
     });
   });

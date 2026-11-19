@@ -2,11 +2,11 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import type { ReactNode } from "react";
 
+import { PageBackButton } from "atoms/ui/PageBackButton/PageBackButton";
 import { designTokens } from "theme/theme";
 
 import { PageHeader } from "./PageHeader";
 import { PageShell } from "./PageShell";
-import { SettingsPageBackButton } from "./SettingsPageBackButton";
 import { fullViewportPageBackgroundSx } from "./fullViewportPageBackgroundSx";
 
 type SettingsPageBack = {
@@ -43,7 +43,7 @@ export function SettingsPageLayout({
             action={action}
             leading={
               back ? (
-                <SettingsPageBackButton href={back.href} label={back.label} />
+                <PageBackButton aria-label={back.label} href={back.href} />
               ) : null
             }
             subtitle={subtitle}

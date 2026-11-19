@@ -105,7 +105,6 @@ export interface CategoryService extends CategoryQueryService {
   create(input: CreateCategoryInput): Promise<string>;
   getCategoriesView(input: {
     ledgerId: string;
-    ledgerName: string;
     userId: string;
   }): Promise<CategoriesView>;
   reorder(input: ReorderCategoriesInput): Promise<void>;
@@ -283,11 +282,11 @@ export function createCategoryService({
       return categoryRepository.findByIdsWithParents(ledgerId, categoryIds);
     },
 
-    async getCategoriesView({ ledgerId, ledgerName, userId }) {
+    async getCategoriesView({ ledgerId, userId }) {
       const role = await requireActiveMemberRole(ledgerId, userId);
       const categories =
         await categoryRepository.findActiveByLedgerId(ledgerId);
-      return buildCategoriesView({ categories, ledgerName, role });
+      return buildCategoriesView({ categories, role });
     },
 
     async listActiveSummaries({ includeSystem = false, ledgerId, userId }) {

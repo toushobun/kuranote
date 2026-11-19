@@ -5,6 +5,7 @@ export default function AccountCreateLoading() {
   return (
     <AccountFormPageSkeleton
       loadingLabel={accountFormMessages.loading}
+      subtitle={accountFormMessages.createSubtitle}
       title={accountFormMessages.createTitle}
     />
   );

@@ -10,7 +10,6 @@ export function MerchantEditor({ edit }: { edit: boolean }) {
       archiveMerchantAction={save}
       fetchIconAction={fetchMerchantIcon}
       ledgerId="ledger-1"
-      ledgerName="兼容性测试账本"
       merchant={merchant}
       tags={[]}
       updateMerchantAction={saveMerchantDetails}
@@ -20,7 +19,6 @@ export function MerchantEditor({ edit }: { edit: boolean }) {
       createMerchantAction={save}
       fetchIconAction={fetchMerchantIcon}
       ledgerId="ledger-1"
-      ledgerName="兼容性测试账本"
       tags={[]}
     />
   );

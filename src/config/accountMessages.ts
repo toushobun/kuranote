@@ -1,6 +1,6 @@
 export const accountPageMessages = {
   title: "账户管理",
-  subtitle: "整理家里的现金、银行卡、电子钱包和信用卡",
+  subtitle: "管理现金、银行卡等账户",
   backToSettings: "返回设置",
   create: "新增账户",
   loading: "账户数据加载中",
@@ -11,12 +11,11 @@ export const accountFormMessages = {
   back: "返回",
   backToAccounts: "返回账户管理",
   createTitle: "新增账户",
-  createSubtitle: (ledgerName: string) =>
-    `账户管理 〉 新增账户 · ${ledgerName}`,
+  createSubtitle: "设置名称、类型和初始金额",
   createErrorTitle: "新增账户失败",
   loading: "新增账户页面加载中",
   editTitle: "编辑账户",
-  editSubtitle: (ledgerName: string) => `账户管理 〉 编辑账户 · ${ledgerName}`,
+  editSubtitle: "修改账户信息与当前余额",
   editErrorTitle: "保存账户失败",
   editLoading: "编辑账户页面加载中",
   archive: "删除",

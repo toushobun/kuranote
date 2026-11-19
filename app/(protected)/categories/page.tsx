@@ -16,7 +16,7 @@ export default async function CategoriesRoute() {
   const container = createRequestContainer(dependencies);
   const view = await container.category.service.getCategoriesView({
     ledgerId: currentLedger.id,
-    ledgerName: currentLedger.name,
+
     userId,
   });
 

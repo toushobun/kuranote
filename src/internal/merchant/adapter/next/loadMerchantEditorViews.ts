@@ -17,7 +17,7 @@ export async function loadMerchantCreateView() {
     service.listTags({ ledgerId: currentLedger.id }),
   ]);
 
-  return { ledgerId: currentLedger.id, ledgerName: currentLedger.name, tags };
+  return { ledgerId: currentLedger.id, tags };
 }
 
 export async function loadMerchantEditView(merchantId: string) {
@@ -35,7 +35,6 @@ export async function loadMerchantEditView(merchantId: string) {
     const tags = await service.listTags({ ledgerId: currentLedger.id });
     return {
       ledgerId: currentLedger.id,
-      ledgerName: currentLedger.name,
       merchant,
       tags,
     };

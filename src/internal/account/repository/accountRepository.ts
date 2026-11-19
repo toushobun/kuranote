@@ -92,7 +92,6 @@ export type AccountMemberDisplaySetting = {
 export type AccountLedgerSummary = {
   baseCurrency: string;
   id: string;
-  name: string;
 };
 
 export type AccountLedgerMember = {
@@ -335,7 +334,7 @@ export function createSupabaseAccountRepository(
     async findActiveLedger(ledgerId) {
       const { data, error } = await supabase
         .from("ledger")
-        .select("id, name, base_currency")
+        .select("id, base_currency")
         .eq("id", ledgerId)
         .eq("is_archived", false)
         .maybeSingle();
@@ -352,7 +351,6 @@ export function createSupabaseAccountRepository(
         ? {
             baseCurrency: data.base_currency,
             id: data.id,
-            name: data.name,
           }
         : null;
     },

@@ -104,7 +104,6 @@ describe("账户画面响应 Schema", () => {
         user_id: "00000000-0000-4000-8000-000000000042",
       },
     ],
-    ledgerName: "家庭账本",
     placeholderHolderOptions: [],
   };
 

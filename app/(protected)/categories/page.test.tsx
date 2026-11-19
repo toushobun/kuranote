@@ -46,7 +46,6 @@ describe("CategoriesRoute SSR", () => {
     mocks.getCategoriesView.mockResolvedValue({
       canManageCategories: true,
       categories: [],
-      ledgerName: "家庭账本",
       parentOptions: [],
     });
     mocks.createRequestContainer.mockReturnValue({
@@ -60,14 +59,12 @@ describe("CategoriesRoute SSR", () => {
 
     expect(mocks.getCategoriesView).toHaveBeenCalledWith({
       ledgerId,
-      ledgerName: "家庭账本",
       userId,
     });
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(result.props).toMatchObject({
       canManageCategories: true,
       categories: [],
-      ledgerName: "家庭账本",
       parentOptions: [],
     });
 

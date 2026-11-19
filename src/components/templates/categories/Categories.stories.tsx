@@ -52,7 +52,6 @@ const meta = {
     archiveCategoryAction: async () => {},
     categories,
     createCategoryAction: async () => {},
-    ledgerName: "家庭账本",
     onReorderError: () => {},
     parentOptions: categories.map((category) => ({
       id: category.id,

@@ -4,9 +4,8 @@ export const merchantPageMessages = {
   backToSettings: "返回设置",
   backToMerchants: "返回商家管理",
   back: "返回",
-  createSubtitle: (ledgerName: string) =>
-    `商家管理 〉 新增商家 · ${ledgerName}`,
-  editSubtitle: (ledgerName: string) => `商家管理 〉 编辑商家 · ${ledgerName}`,
+  createSubtitle: "设置商家名称、头像和分类",
+  editSubtitle: "修改商家名称、头像和分类",
 } as const;
 
 export const merchantText = {

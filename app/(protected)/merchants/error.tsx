@@ -23,7 +23,7 @@ export default function MerchantsError({
         href: routePaths.settings,
         label: merchantPageMessages.backToSettings,
       }}
-      subtitle="商家信息读取时发生错误。"
+      subtitle={merchantPageMessages.subtitle}
       title={merchantPageMessages.title}
     >
       <ErrorState

@@ -68,7 +68,6 @@ const manageableView = {
   canManageAccounts: true,
   canWriteTransactions: true,
   holderOptions: [],
-  ledgerName: "家庭账本",
   placeholderHolderOptions: [],
 };
 
@@ -76,7 +75,6 @@ const accountFormView = {
   baseCurrency: "JPY",
   canWriteTransactions: true,
   holderOptions: [],
-  ledgerName: "家庭账本",
   placeholderHolderOptions: [],
 };
 
@@ -90,7 +88,6 @@ describe("loadAccountsView", () => {
       canManageAccounts: true,
       canWriteTransactions: true,
       holderOptions: [],
-      ledgerName: "家庭账本",
     };
     mocks.getView.mockResolvedValue(view);
     const fetchSpy = vi.spyOn(globalThis, "fetch");
