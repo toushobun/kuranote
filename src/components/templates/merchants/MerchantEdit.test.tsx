@@ -73,6 +73,7 @@ describe("MerchantEditTemplate #1125", () => {
       screen.getByRole("button", { name: "管理显示名与别名" }),
     ).toHaveTextContent("别名 1 个");
     expect(screen.getAllByRole("button", { name: "保存修改" })).toHaveLength(1);
+    expect(screen.getByLabelText("显示名")).toHaveValue("来福");
     expect(screen.queryByRole("textbox", { name: "别名" })).toBeNull();
   });
 

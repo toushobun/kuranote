@@ -32,4 +32,4 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = { name: "编辑商家·显示名一行" };
+export const Default: Story = { name: "编辑商家·显示名 Outlined 输入框" };

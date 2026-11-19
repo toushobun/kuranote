@@ -490,6 +490,18 @@ async function checkOtherPage(browser, kind) {
   await page.close();
   return { records, errors };
 }
+async function addMerchantAliasDraft(page, alias) {
+  await page.getByRole("button", { name: "管理显示名与别名" }).click();
+  const input = page.getByRole("textbox", { name: "输入新的别名" });
+  await input.fill(alias);
+  await page.getByRole("button", { name: "添加", exact: true }).click();
+  await page.getByRole("button", { name: `将${alias}设为展示名` }).waitFor();
+  await page.getByRole("button", { name: "确定", exact: true }).click();
+  await page
+    .getByRole("button", { name: "关闭显示名抽屉" })
+    .waitFor({ state: "hidden" });
+}
+
 async function checkMerchant(browser, edit) {
   const formId = edit ? "merchant-edit-form" : "create-merchant-form";
   const session = await newSession(
@@ -521,47 +533,20 @@ async function checkMerchant(browser, edit) {
   assert.equal(row.length, baseline.length + 1);
   assert.equal(rsc.length, 0);
   if (edit) {
-    await setValueWithoutScrolling(
-      page.getByRole("textbox", { name: "别名", exact: true }),
-      "别名草稿",
-    );
-    await browserBack(page);
-    assert.equal(
-      await page
-        .getByRole("dialog", { name: "尚未保存" })
-        .getByRole("button", { name: "保存并退出", exact: true })
-        .count(),
-      0,
-    );
-    await cancel(page);
-    // 保存基本资料返回同页成功状态并触发真实 Next revalidation，别名继续保护。
-    await page.getByRole("button", { name: "保存修改", exact: true }).click();
-    await page
-      .getByRole("status")
-      .getByText("保存成功", { exact: true })
-      .waitFor();
-    await page.waitForLoadState("networkidle");
+    await addMerchantAliasDraft(page, "别名草稿");
     await position(page, "sentinel");
-    await page.getByRole("textbox", { name: "别名", exact: true }).blur();
     await scroll(page, 2000);
-    // revalidation 会让可见 Link 重新预取，待滚动后的可见区域稳定再统计内部后退请求。
-    await page.evaluate(
-      () => new Promise((resolve) => requestIdleCallback(resolve)),
-    );
-    await page.waitForLoadState("networkidle");
     resetRsc();
     await backAndCancel(2000);
-    const afterSave = await record(
-      "部分保存并 revalidate 后，别名仍保护且不重挂载",
+    const afterAlias = await record(
+      "抽屉确定后由 merchant-edit-form 统一保护，后退取消不重挂载",
     );
-    assert.equal(afterSave.mounts, baseline.mounts);
-    assert.equal(afterSave.sameForm, true);
-    assert.equal(afterSave.navigationRscRequests, 0);
+    assert.equal(afterAlias.mounts, baseline.mounts);
+    assert.equal(afterAlias.sameForm, true);
+    assert.equal(afterAlias.navigationRscRequests, 0);
     assert.equal(
-      await page
-        .getByRole("textbox", { name: "别名", exact: true })
-        .inputValue(),
-      "别名草稿",
+      await page.locator('#merchant-edit-form input[name="addedAliases"]').inputValue(),
+      '["别名草稿"]',
     );
   }
   await discardAndCheckSource();
@@ -976,12 +961,14 @@ async function checkBalance(browser) {
   return finishSession(session);
 }
 async function checkAliasSave(browser, viaLink = false) {
-  const session = await newSession(browser, "编辑商家", "merchant-alias-form");
+  const session = await newSession(browser, "编辑商家", "merchant-edit-form");
   const { page, baseline, record } = session;
-  await page
-    .getByRole("textbox", { name: "别名", exact: true })
-    .fill("单独别名草稿");
+  await addMerchantAliasDraft(page, "统一保存别名");
   await position(page, "sentinel");
+  assert.equal(
+    await page.locator('#merchant-edit-form input[name="addedAliases"]').inputValue(),
+    '["统一保存别名"]',
+  );
   if (viaLink) await page.getByRole("link", { name: "返回商家管理" }).click();
   else await browserBack(page);
   await page
@@ -990,12 +977,46 @@ async function checkAliasSave(browser, viaLink = false) {
     .click();
   await page.waitForURL(viaLink ? `${baseUrl}/merchants` : sourceUrl);
   await page.getByRole("heading", { name: "离开守卫兼容性验证" }).waitFor();
-  const row = await record("别名保存成功后继续原离开意图");
+  const row = await record("显示名抽屉确定后，统一保存并继续原离开意图");
   assert.equal(
     row.currentIndex,
     viaLink ? baseline.currentIndex + 1 : baseline.currentIndex - 1,
   );
   assert.equal(row.length, baseline.length + 1);
+  return finishSession(session);
+}
+async function checkAliasDrawerBack(browser) {
+  const session = await newSession(browser, "编辑商家", "merchant-edit-form");
+  const { page, baseline, record } = session;
+  const open = page.getByRole("button", { name: "管理显示名与别名" });
+  await open.click();
+  await page.getByRole("textbox", { name: "输入新的别名" }).fill("放弃的草稿");
+  await page.getByRole("button", { name: "添加", exact: true }).click();
+  await page.getByRole("button", { name: "将放弃的草稿设为展示名" }).waitFor();
+  await browserBack(page);
+  await page
+    .getByRole("button", { name: "关闭显示名抽屉" })
+    .waitFor({ state: "hidden" });
+  assert.equal(await page.locator("#merchant-edit-form").count(), 1);
+  assert.equal(await page.getByRole("dialog", { name: "尚未保存" }).count(), 0);
+  assert.equal(
+    await page.locator('#merchant-edit-form input[name="addedAliases"]').inputValue(),
+    "[]",
+  );
+  await open.click();
+  assert.equal(
+    await page.getByRole("button", { name: "将放弃的草稿设为展示名" }).count(),
+    0,
+  );
+  await page.getByRole("button", { name: "关闭显示名抽屉" }).click();
+  await page
+    .getByRole("button", { name: "关闭显示名抽屉" })
+    .waitFor({ state: "hidden" });
+  const row = await record("返回键先关抽屉并丢弃草稿，页面保持原位置");
+  assert.equal(row.mounts, baseline.mounts);
+  assert.equal(row.sameForm, true);
+  await browserBack(page);
+  await page.waitForURL(sourceUrl);
   return finishSession(session);
 }
 // 不动不弹：进入后只聚焦、失焦（小票为打开备注层不改直接完成）而不修改，不停在哨兵，浏览器后退直接回来源。
@@ -1174,6 +1195,7 @@ try {
     balance: () => checkBalance(browser),
     aliasBack: () => checkAliasSave(browser),
     aliasLink: () => checkAliasSave(browser, true),
+    aliasDrawerBack: () => checkAliasDrawerBack(browser),
     untouched: () => checkUntouched(browser),
     newReceiptMerchantOnly: () => checkNewReceiptMerchantOnly(browser),
     newReceiptMethodSwitch: () => checkNewReceiptMethodSwitch(browser),

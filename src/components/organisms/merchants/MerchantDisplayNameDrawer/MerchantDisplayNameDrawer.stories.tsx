@@ -14,6 +14,8 @@ const meta = {
   args: {
     aliases,
     merchantName: "LIFE超市",
+    open: true,
+    sessionId: 1,
     onClose: () => {},
     onConfirm: () => {},
     preferredAliasId: "alias-1",
