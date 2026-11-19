@@ -44,25 +44,29 @@ const rowSx = {
 } as const;
 
 export function MerchantDisplayNameDrawer({
-  sessionId,
-  ...props
-}: MerchantDisplayNameDrawerProps) {
-  return <MerchantDisplayNameDraft key={sessionId} {...props} />;
-}
-
-function MerchantDisplayNameDraft({
   aliases,
   merchantName,
   onClose,
   onConfirm,
   open,
   preferredAliasId,
-}: Omit<MerchantDisplayNameDrawerProps, "sessionId">) {
+  sessionId,
+}: MerchantDisplayNameDrawerProps) {
   const confirm = useConfirmDialog();
   const [draftAliases, setDraftAliases] = useState(aliases);
   const [selectedId, setSelectedId] = useState<string | null>(preferredAliasId);
   const [newAlias, setNewAlias] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [activeSessionId, setActiveSessionId] = useState(sessionId);
+
+  // 调整会话时同步重设抽屉草稿，避免重新挂载 Modal 打断退出动画。
+  if (activeSessionId !== sessionId) {
+    setActiveSessionId(sessionId);
+    setDraftAliases(aliases);
+    setSelectedId(preferredAliasId);
+    setNewAlias("");
+    setError(null);
+  }
 
   function addAlias() {
     const value = newAlias.trim();

@@ -84,6 +84,9 @@ export function BottomEditorDrawer({
           p: 2,
           pb: "max(16px, env(safe-area-inset-bottom))",
           minHeight: 0,
+          maxHeight: "90dvh",
+          boxSizing: "border-box",
+          overflow: "hidden",
         }}
       >
         <Box
@@ -127,7 +130,7 @@ export function BottomEditorDrawer({
         </Stack>
         <Box
           data-testid="bottom-editor-scroll-content"
-          sx={{ overflowY: "auto", minHeight: 0 }}
+          sx={{ flex: "1 1 auto", overflowY: "auto", minHeight: 0 }}
         >
           {children}
         </Box>

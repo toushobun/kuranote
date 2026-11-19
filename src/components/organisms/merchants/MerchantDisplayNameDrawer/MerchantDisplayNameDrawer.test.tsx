@@ -132,6 +132,33 @@ describe("MerchantDisplayNameDrawer", () => {
     expect(onConfirm).toHaveBeenCalledWith(aliases, null);
   });
 
+  it("快速关闭并重新打开时不重挂载抽屉外壳且丢弃旧草稿", () => {
+    const alias = [{ id: "alias-1", alias: "来福" }];
+    const view = (open: boolean, sessionId: number) => (
+      <ConfirmDialogTestProviders>
+        <MerchantDisplayNameDrawer
+          aliases={alias}
+          merchantName="LIFE超市"
+          onClose={() => {}}
+          onConfirm={() => {}}
+          open={open}
+          sessionId={sessionId}
+          preferredAliasId={null}
+        />
+      </ConfirmDialogTestProviders>
+    );
+    const { rerender } = render(view(true, 1));
+    const input = screen.getByRole("textbox", { name: "输入新的别名" });
+    fireEvent.change(input, { target: { value: "丢弃我" } });
+    fireEvent.click(screen.getByRole("button", { name: "添加" }));
+    const drawerRoot = screen.getByRole("dialog").closest(".MuiDrawer-root");
+    rerender(view(false, 1));
+    rerender(view(true, 2));
+    expect(screen.getByRole("dialog").closest(".MuiDrawer-root")).toBe(drawerRoot);
+    expect(screen.queryByRole("button", { name: "将丢弃我设为展示名" })).toBeNull();
+    expect(screen.getByRole("button", { name: "将来福设为展示名" })).toBeVisible();
+  });
+
   it("关闭只触发关闭事件，不调用确认保存", () => {
     const { onClose, onConfirm } = renderDrawer();
     fireEvent.click(screen.getByRole("button", { name: "关闭显示名抽屉" }));
