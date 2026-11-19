@@ -75,7 +75,7 @@ describe("MerchantEditTemplate #1125", () => {
     expect(screen.queryByRole("textbox", { name: "别名" })).toBeNull();
   });
 
-  it("抽屉的正式名使用当前输入内容，关闭时丢弃别名草稿", () => {
+  it("抽屉的正式名使用当前输入内容，关闭时丢弃别名草稿", async () => {
     renderTemplate();
     fireEvent.change(screen.getByLabelText(/商家名称/), {
       target: { value: "新正式名" },
@@ -89,9 +89,11 @@ describe("MerchantEditTemplate #1125", () => {
       screen.getByRole("button", { name: "将ライフ设为展示名" }),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "关闭显示名抽屉" }));
-    expect(
-      screen.getByRole("button", { name: "管理显示名与别名" }),
-    ).toHaveTextContent("别名 1 个");
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "管理显示名与别名" }),
+      ).toHaveTextContent("别名 1 个"),
+    );
     expect(JSON.parse(String(editFormData().get("addedAliases")))).toEqual([]);
   });
 
@@ -139,7 +141,8 @@ describe("MerchantEditTemplate #1125", () => {
     ]);
     expect(pendingData.get("preferredAlias")).toBe("ライフ");
     expect(save).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "保存修改" }));
+    const submit = await screen.findByRole("button", { name: "保存修改" });
+    fireEvent.click(submit);
     await waitFor(() => expect(save).toHaveBeenCalledOnce());
     const submitted = save.mock.calls[0][1] as FormData;
     expect(JSON.parse(String(submitted.get("addedAliases")))).toEqual([
