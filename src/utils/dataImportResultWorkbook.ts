@@ -70,9 +70,10 @@ export async function buildDataImportResultWorkbook(
     const reasonColumn = resultColumn + 1;
     const showPhotoCount =
       sheetKind === "incomeExpense" &&
-      [...(resultsBySheet.get(sheetKind)?.values() ?? [])].some(
-        (row) => row.photoCount !== undefined,
-      );
+      (worksheet.getImages().length > 0 ||
+        [...(resultsBySheet.get(sheetKind)?.values() ?? [])].some(
+          (row) => row.photoCount !== undefined,
+        ));
     const photoCountColumn = reasonColumn + 1;
     const header = worksheet.getRow(headerRowNumber);
     header.getCell(resultColumn).value =
