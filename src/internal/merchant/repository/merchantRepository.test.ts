@@ -330,7 +330,7 @@ describe("createSupabaseMerchantRepository", () => {
     await expect(operation).rejects.toBeInstanceOf(ConflictError);
   });
 
-  it("别名无效时返回安全的 ValidationError，且通过同一 RPC 保存", async () => {
+  it("已有别名重复返回安全的 409 冲突错误，且不泄露数据库信息", async () => {
     const supabase = createSupabaseMock({
       rpcResponse: {
         error: {
@@ -344,11 +344,42 @@ describe("createSupabaseMerchantRepository", () => {
       supabase.client as never,
       createLogger(),
     );
-    await expect(
-      repository.updateMerchant({
-        addedAliases: ["来福"],
+    const operation = repository.updateMerchant({
+      addedAliases: ["来福"],
+      archivedAliasIds: [],
+      preferredAlias: "来福",
+      iconUrl: null,
+      ledgerId,
+      merchantId,
+      name: "LIFE",
+      note: null,
+      siteUrl: null,
+      userId,
+    });
+
+    await expect(operation).rejects.toMatchObject({
+      code: merchantErrorCodes.aliasDuplicate,
+      message: merchantErrorMessages[merchantErrorCodes.aliasDuplicate],
+    });
+    await expect(operation).rejects.toBeInstanceOf(ConflictError);
+  });
+
+  it.each(["merchant_alias_invalid", "merchant_preferred_invalid"])(
+    "别名参数无效时按校验错误处理：%s",
+    async (details) => {
+      const supabase = createSupabaseMock({
+        rpcResponse: {
+          error: { code: "22023", details, message: "private detail" },
+        },
+      });
+      const repository = createSupabaseMerchantRepository(
+        supabase.client as never,
+        createLogger(),
+      );
+      const operation = repository.updateMerchant({
+        addedAliases: [],
         archivedAliasIds: [],
-        preferredAlias: "来福",
+        preferredAlias: null,
         iconUrl: null,
         ledgerId,
         merchantId,
@@ -356,9 +387,14 @@ describe("createSupabaseMerchantRepository", () => {
         note: null,
         siteUrl: null,
         userId,
-      }),
-    ).rejects.toMatchObject({ code: merchantErrorCodes.aliasInvalid });
-  });
+      });
+      await expect(operation).rejects.toMatchObject({
+        code: merchantErrorCodes.aliasInvalid,
+        message: merchantErrorMessages[merchantErrorCodes.aliasInvalid],
+      });
+      await expect(operation).rejects.toBeInstanceOf(ValidationError);
+    },
+  );
 
   it.each([
     {

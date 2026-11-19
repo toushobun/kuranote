@@ -94,6 +94,11 @@ const merchantRpcBusinessErrors: Partial<
     message: getMerchantErrorMessage(merchantErrorCodes.aliasInvalid),
     type: "validation",
   },
+  [merchantErrorCodes.aliasDuplicate]: {
+    code: merchantErrorCodes.aliasDuplicate,
+    message: getMerchantErrorMessage(merchantErrorCodes.aliasDuplicate),
+    type: "conflict",
+  },
   [merchantErrorCodes.merchantTagInvalid]: {
     code: merchantErrorCodes.merchantTagInvalid,
     message: getMerchantErrorMessage(merchantErrorCodes.merchantTagInvalid),
@@ -147,7 +152,7 @@ const merchantAccessBusinessErrorCodes = {
 
 const merchantAliasWriteBusinessErrorCodes = {
   merchant_alias_invalid: merchantErrorCodes.aliasInvalid,
-  merchant_alias_duplicate: merchantErrorCodes.aliasInvalid,
+  merchant_alias_duplicate: merchantErrorCodes.aliasDuplicate,
   merchant_preferred_invalid: merchantErrorCodes.aliasInvalid,
   merchant_tag_link_invalid: merchantErrorCodes.merchantTagInvalid,
   merchant_tags_invalid: merchantErrorCodes.merchantTagInvalid,

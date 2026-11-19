@@ -5,6 +5,7 @@ import {
 import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
 
 export const merchantErrorCodes = {
+  aliasDuplicate: "alias_duplicate",
   aliasInvalid: "alias_invalid",
   aliasPreferredUpdateFailed: "alias_preferred_update_failed",
   aliasTooLong: "alias_too_long",
@@ -68,6 +69,7 @@ export type MerchantActionErrorCode =
   | typeof merchantErrorCodes.merchantPresetAddFailed
   | MerchantValidationErrorCode
   | typeof merchantErrorCodes.aliasPreferredUpdateFailed
+  | typeof merchantErrorCodes.aliasDuplicate
   | typeof merchantErrorCodes.archiveFailed
   | typeof merchantErrorCodes.authRequired
   | typeof merchantErrorCodes.createFailed
@@ -89,6 +91,7 @@ const merchantActionErrorCodeSet = new Set<string>([
   merchantErrorCodes.merchantPresetAddFailed,
   merchantErrorCodes.merchantPresetLoadFailed,
   merchantErrorCodes.aliasInvalid,
+  merchantErrorCodes.aliasDuplicate,
   merchantErrorCodes.aliasPreferredUpdateFailed,
   merchantErrorCodes.aliasTooLong,
   merchantErrorCodes.archiveFailed,
@@ -126,6 +129,7 @@ export const merchantErrorMessages: Record<MerchantErrorCode, string> = {
     "预设商家读取失败，请稍后重试。",
   [merchantErrorCodes.merchantPresetAddFailed]:
     "预设商家添加失败，请稍后重试。",
+  [merchantErrorCodes.aliasDuplicate]: "商家别名已存在，请修改后重试。",
   [merchantErrorCodes.aliasInvalid]: "商家别名指定不正确。",
   [merchantErrorCodes.aliasPreferredUpdateFailed]:
     "展示名更新失败，请稍后重试。",
