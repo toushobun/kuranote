@@ -33,7 +33,7 @@ export function readWorksheetPhotos(
   header: string[],
   headerRowNumber: number,
   photoColumnNames: readonly string[] = incomeExpensePhotoColumnNames,
-): { images: EmbeddedWorksheetPhoto[]; issues: ImportRowIssue[] } {
+): { images: EmbeddedWorksheetPhoto[]; photosByRow: Map<number, EmbeddedWorksheetPhoto[]>; issues: ImportRowIssue[] } {
   const images: EmbeddedWorksheetPhoto[] = [];
   const issues: ImportRowIssue[] = [];
   const seenCells = new Set<string>();
@@ -93,5 +93,18 @@ export function readWorksheetPhotos(
     }
     images.push({ bytes, columnName, mimeType, rowNumber });
   }
-  return { images, issues };
+  const photosByRow = new Map<number, EmbeddedWorksheetPhoto[]>();
+  for (const photo of images) {
+    const row = photosByRow.get(photo.rowNumber) ?? [];
+    row.push(photo);
+    photosByRow.set(photo.rowNumber, row);
+  }
+  for (const photos of photosByRow.values()) {
+    photos.sort(
+      (a, b) =>
+        photoColumnNames.indexOf(a.columnName) -
+        photoColumnNames.indexOf(b.columnName),
+    );
+  }
+  return { images, photosByRow, issues };
 }
