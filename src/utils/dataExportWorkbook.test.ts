@@ -453,9 +453,9 @@ describe("dataExportWorkbook", () => {
       "照片4",
       "照片5",
     ]);
-    expect(sheet.getColumn("照片1").width).toBe(12);
-    expect(sheet.getColumn("照片5").width).toBe(12);
-    expect(sheet.getColumn("金额").width).toBe(22);
+    expect(sheet.getColumn(columns.indexOf("照片1")).width).toBe(12);
+    expect(sheet.getColumn(columns.indexOf("照片5")).width).toBe(12);
+    expect(sheet.getColumn(columns.indexOf("金额")).width).toBe(22);
     expect(sheet.getRow(2).height).toBe(90);
     const images = sheet.getImages();
     expect(images).toHaveLength(3);
