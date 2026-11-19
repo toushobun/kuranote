@@ -508,3 +508,24 @@ Storage 物理文件不能通过 SQL 删除，必须由具有服务端权限的 
 `merchant_alias_single_preferred_idx` 与 `merchant_alias_active_alias_unique` 约束。
 选择正式名时传 `NULL`，可选择此次新加的别名。旧的独立快捷切换函数
 `set_merchant_preferred_alias(uuid,uuid,uuid)` 仍供商家列表使用，不改变其权限边界。
+
+
+## Issue #247：跨币种转账两侧金额
+
+`20261120010000_cross_currency_transfer.sql` 重新定义
+`create_transfer_transaction(uuid,timestamptz,numeric,uuid,uuid,text,numeric)`
+和 `update_transfer_transaction(uuid,uuid,timestamptz,numeric,uuid,uuid,text,numeric)`，
+末尾新增 `p_to_amount numeric default null`。旧签名 DROP，不留下 PostgREST 重载；
+这两个函数仍为 `SECURITY DEFINER`，固定 `search_path = pg_catalog, pg_temp`，
+只从 `auth.uid()` 取身份，检查当前用户可写账本，按账户 ID 顺序加锁且验证归属和归档状态。
+撤销 PUBLIC / anon / service_role 执行权限，仅授予 authenticated。
+
+同币种时 `p_to_amount IS NULL` 自动取 `p_amount`，若两者不等则拒绝；
+不同币种时两边金额均须大于零且符合各币种的小数位规则（总体不超过两位）。
+新增 `is_valid_transfer_amount(numeric,text)`（`IMMUTABLE SECURITY INVOKER`）与
+`transfer_items_consistent(uuid,uuid)`（`STABLE SECURITY INVOKER`），
+都不授予客户端直接执行权限；后者统一供编辑、作废校验两条明细一正一负、
+各自金额与余额变化量一致，同币种额外要求相同金额，跨币种不要求变化量求和为零。
+编辑时分别逆转旧转出、旧到账金额；作废依两个旧明细的 `balance_delta` 回滚。
+金额搜索的 `load_filtered_transaction_page` 保持 `SECURITY INVOKER` 及原有
+账本成员权限检查，records 模式从原先匹配转出金额改为任一明细金额匹配。

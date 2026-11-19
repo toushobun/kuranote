@@ -124,6 +124,38 @@ describe("TransactionRow", () => {
     expect(screen.queryByText("转账")).toBeNull();
     expect(screen.getByTestId("SyncAltIcon")).toBeInTheDocument();
   });
+  it("跨币种转账右上保留转出金额，右下显示到账币种金额", () => {
+    render(
+      <TransactionRow
+        item={createItem({
+          type: "transfer",
+          account_currency: "JPY",
+          amount: "100000",
+          categoryItems: [],
+          merchant_name: null,
+          merchant_icon_url: null,
+          transferTargetAmount: "4850",
+          transferTargetCurrency: "CNY",
+        })}
+      />,
+    );
+    expect(screen.getByText("¥ 100,000")).toBeInTheDocument();
+    expect(screen.getByText(/到账.*4,850.*CNY/)).toBeInTheDocument();
+  });
+  it("同币种转账不额外显示到账行", () => {
+    render(
+      <TransactionRow
+        item={createItem({
+          type: "transfer",
+          amount: "1000",
+          categoryItems: [],
+          merchant_name: null,
+          merchant_icon_url: null,
+        })}
+      />,
+    );
+    expect(screen.queryByText(/到账/)).toBeNull();
+  });
   it("转账记录在第二行显示转出到账户摘要", () => {
     render(
       <TransactionRow

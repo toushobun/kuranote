@@ -517,6 +517,7 @@ describe("getEditTransactionView", () => {
       transactionAt: "2026-06-04T01:30:05.000Z",
       transactionRecordId,
       transferAmount: "5000.123",
+      transferTargetAmount: "5000.123",
       transferTargetAccountId: targetAccountId,
       type: "transfer",
     } satisfies TransferEditInitialValues);
