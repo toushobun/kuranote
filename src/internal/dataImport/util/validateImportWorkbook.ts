@@ -99,7 +99,8 @@ export function analyzeImportWorkbook(
   if (
     incomeExpenseTables.length > 1 &&
     incomeExpenseTables.some(
-      (table) => (table.photos?.length ?? 0) > 0 || (table.photoIssues?.length ?? 0) > 0,
+      (table) =>
+        (table.photos?.length ?? 0) > 0 || (table.photoIssues?.length ?? 0) > 0,
     )
   ) {
     issues.push({

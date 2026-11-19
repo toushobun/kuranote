@@ -74,9 +74,11 @@ describe("validateImportWorkbook", () => {
   });
 
   it("含照片的多个收支工作表阻止导入，避免相同行号的图片串单", () => {
-    const first = table("收支", [...incomeExpenseHeader, "照片1"], [
-      [...incomeExpenseRowCells(), ""],
-    ]);
+    const first = table(
+      "收支",
+      [...incomeExpenseHeader, "照片1"],
+      [[...incomeExpenseRowCells(), ""]],
+    );
     first.photos = [
       {
         bytes: new Uint8Array([0xff, 0xd8, 0xff, 0xd9]),
