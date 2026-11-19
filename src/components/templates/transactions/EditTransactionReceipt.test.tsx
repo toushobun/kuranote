@@ -15,6 +15,7 @@ import {
 } from "test/receiptCreation";
 import type { ReceiptCreationData } from "organisms/transactions/ReceiptCreationProvider/ReceiptCreationProvider";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -46,6 +47,12 @@ import { EditTransactionReceiptTemplate } from "./EditTransactionReceipt";
 
 const fetchClientJson = vi.hoisted(() => vi.fn());
 vi.mock("lib/api/clientQuery", () => ({ fetchClientJson }));
+// 旧记录的照片读取独立于交易表单；测试需要模拟可正常完成的读取。
+const loadReceiptPhotos = vi.hoisted(() => vi.fn(async () => []));
+vi.mock("utils/transactionAttachmentClient", () => ({
+  loadReceiptPhotos,
+  discardReceiptPhoto: vi.fn(async () => {}),
+}));
 
 const transactionRecordId = "00000000-0000-4000-8000-000000009001";
 const expectedRecordUpdatedAt = "2026-10-30T01:00:00.000Z";
@@ -177,6 +184,39 @@ describe("EditTransactionReceiptTemplate", () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+  });
+
+  it("切换到另一笔记录时重新挂载小票，旧备注不会残留", async () => {
+    const { rerender } = renderReceipt();
+    click("修改备注：编辑前备注");
+    fireEvent.change(screen.getByRole("textbox", { name: "备注" }), {
+      target: { value: "第一笔未保存备注" },
+    });
+    click("完成");
+    rerender(
+      <EditTransactionReceiptTemplate
+        accountOptions={flowFixture.accounts}
+        action={vi.fn(async () => ({}))}
+        canDelete
+        canWriteTransactions
+        categoryOptions={receiptItemsOptions.categoryOptions}
+        deleteAction={vi.fn(async () => ({}))}
+        editRestriction={null}
+        frequentMerchants={flowFixture.frequentMerchants}
+        initialValues={{
+          ...initialValues,
+          transactionRecordId: "00000000-0000-4000-8000-000000009002",
+          note: "第二笔备注",
+        }}
+        ledgerId="ledger-1"
+        merchantOptions={flowFixture.merchants}
+        merchantTags={flowFixture.merchantTags}
+        multiAccountPaymentEnabled
+        transactionItemSpecialStatusEnabled={false}
+      />,
+    );
+    expect(await screen.findByText("第二笔备注")).toBeInTheDocument();
+    expect(screen.queryByText("第一笔未保存备注")).not.toBeInTheDocument();
   });
 
   it("编辑小票保存与删除复用相同的底部按钮尺寸", () => {
@@ -468,6 +508,29 @@ describe("EditTransactionReceiptTemplate", () => {
     expect(
       await screen.findByRole("button", { name: "上次 ¥498" }),
     ).toBeInTheDocument();
+  });
+
+  it("照片准备完成后的编辑保存会保持处理中直至 Action 返回", async () => {
+    let resolveSave: ((state: { success: string }) => void) | undefined;
+    const action = vi.fn<TransactionStateAction>().mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveSave = resolve;
+        }),
+    );
+    renderReceipt({ action });
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "添加照片" })).toBeEnabled(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "保存修改" }));
+    await waitFor(() => expect(action).toHaveBeenCalledOnce());
+    expect(screen.getByRole("button", { name: "保存中…" })).toHaveAttribute(
+      "data-action-pending",
+      "true",
+    );
+    await act(async () => {
+      resolveSave?.({ success: "已保存" });
+    });
   });
 
   it("编辑小票首次不显示校验，弹窗保存失败后修正可再次保存", async () => {

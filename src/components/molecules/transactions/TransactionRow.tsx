@@ -5,7 +5,7 @@ import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import { Fragment, useSyncExternalStore } from "react";
+import { Fragment, useSyncExternalStore, type ReactNode } from "react";
 
 import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/TransactionBusinessBadge";
 import { TransactionOriginalAmount } from "atoms/transactions/TransactionOriginalAmount";
@@ -38,16 +38,11 @@ import {
 
 export type TransactionRowProps = {
   item: TransactionRowItem;
+  photoAction?: ReactNode;
+  linkLabelIds?: { amount: string; merchant: string };
   receiptCard?: boolean;
   showAccount?: boolean;
   showTime?: boolean;
-};
-
-type MetaSegment = {
-  color: string;
-  key: string;
-  kind: "text";
-  label: string;
 };
 
 type StatisticsAdjustment = {
@@ -63,6 +58,8 @@ const themeDotColor = "var(--user-theme-tx-accent)";
 
 export function TransactionRow({
   item,
+  photoAction,
+  linkLabelIds,
   receiptCard = false,
   showAccount = false,
   showTime = false,
@@ -161,6 +158,9 @@ export function TransactionRow({
           label: time,
         }
       : null,
+    photoAction
+      ? { key: "photo", kind: "action" as const, node: photoAction }
+      : null,
     item.note
       ? {
           color: mutedText,
@@ -169,7 +169,9 @@ export function TransactionRow({
           label: item.note,
         }
       : null,
-  ].filter((segment): segment is MetaSegment => segment !== null);
+  ].filter(
+    (segment): segment is NonNullable<typeof segment> => segment !== null,
+  );
 
   return (
     <Stack
@@ -210,6 +212,7 @@ export function TransactionRow({
             }}
           >
             <Typography
+              id={linkLabelIds?.merchant}
               noWrap
               sx={{
                 color: textColor,
@@ -224,6 +227,7 @@ export function TransactionRow({
             </Typography>
 
             <Typography
+              id={linkLabelIds?.amount}
               sx={{
                 color: amountColor,
                 flexShrink: 0,
@@ -258,7 +262,7 @@ export function TransactionRow({
               >
                 {metaSegments.map((segment, index) => (
                   <Fragment key={segment.key}>
-                    {index > 0 && (
+                    {index > 0 && segment.kind === "text" && (
                       <Typography
                         sx={{
                           color: mutedText,
@@ -270,12 +274,16 @@ export function TransactionRow({
                         {"|"}
                       </Typography>
                     )}
-                    <Typography
-                      noWrap
-                      sx={{ color: segment.color, fontSize: 11 }}
-                    >
-                      {segment.label}
-                    </Typography>
+                    {segment.kind === "action" ? (
+                      segment.node
+                    ) : (
+                      <Typography
+                        noWrap
+                        sx={{ color: segment.color, fontSize: 11 }}
+                      >
+                        {segment.label}
+                      </Typography>
+                    )}
                   </Fragment>
                 ))}
               </Stack>

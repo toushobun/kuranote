@@ -27,6 +27,7 @@ export type TransactionCategorySummaryItem = {
 
 export type TransactionListItem = {
   attachmentCount?: number;
+  attachmentLedgerId?: string;
   account_color?: ThemeColorKey | null;
   account_currency: string;
   account_id?: string;

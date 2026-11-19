@@ -104,6 +104,7 @@ export function createTransactionDashboardQueryService({
       }
 
       const recentRecords = await transactionRepository.listRecords({
+        includeAttachmentCount: true,
         ledgerId: ledger.id,
         limit: dashboardRecentTransactionCount,
         recordType: "all",

@@ -9,6 +9,8 @@ import {
   useState,
 } from "react";
 import { useTransactionReceiptForm } from "organisms/transactions/TransactionConfirmStep/useTransactionReceiptForm";
+import { useReceiptPhotos } from "organisms/transactions/ReceiptParts/useReceiptPhotos";
+import { transactionAttachmentMessages } from "config/transactionAttachmentMessages";
 import type { TransactionFormInitialValues } from "organisms/transactions/TransactionForm/TransactionForm.types";
 import { useReceiptMerchantPicker } from "organisms/transactions/ReceiptMerchantDrawer/useReceiptMerchantPicker";
 import { useEntryReceiptGuard } from "../useEntryReceiptGuard";
@@ -59,6 +61,7 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
       itemsOptions: baseItemsOptions,
       initialValues,
     });
+  const photos = useReceiptPhotos({ ledgerId: props.ledgerId });
   const formId = useId();
   // 开始等待建议时的小票；之后与之不同即视为用户动过小票
   //（选账户、加 / 删 / 编辑明细、改分类 / 金额 / 特殊状态 / 关联、改备注 / 时间）。
@@ -120,14 +123,18 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
     setAutoRevision((revision) => revision + 1);
   }, [timeInitialized]);
   const { guard } = useEntryReceiptGuard(
-    receiptDirty,
+    receiptDirty || photos.touched,
     formId,
     props.onClose,
     props.draft,
   );
   const [saveState, saveAction, saving] = useActionState<ActionState, FormData>(
     (state, data) =>
-      guard.runSaveAction(data, (values) => props.action(state, values)),
+      guard.runSaveAction(data, async (values) =>
+        (await photos.prepareForSave(values))
+          ? props.action(state, values)
+          : { error: transactionAttachmentMessages.photoUploadBlock },
+      ),
     {},
   );
   const [methodOpen, setMethodOpen] = useState(false);
@@ -279,6 +286,7 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
   return {
     saveState,
     saveAction,
+    photos,
     saving,
     suggestions:
       !props.suggestionsMerchantId || suggestionsReady

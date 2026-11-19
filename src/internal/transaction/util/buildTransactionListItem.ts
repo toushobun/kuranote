@@ -39,6 +39,7 @@ export function buildTransactionListItem({
   filters,
   group,
   holderIdsByAccountId,
+  ledgerId,
   merchantById,
   payments,
   record,
@@ -55,6 +56,7 @@ export function buildTransactionListItem({
   /** 行所在的分组；组内行金额与组合计同口径。 */
   group?: TransactionListGroupContext;
   holderIdsByAccountId: HolderIdsByAccountId;
+  ledgerId?: string;
   merchantById: Map<string, MerchantSummaryDbRow>;
   /** 普通记录的付款明细（按 sort_order）。 */
   payments: TransactionPaymentDbRow[];
@@ -214,6 +216,9 @@ export function buildTransactionListItem({
     id: record.id,
     merchant_icon_url: merchant?.icon_url ?? null,
     attachmentCount: record.attachment_count ?? 0,
+    ...((record.attachment_count ?? 0) > 0 && ledgerId
+      ? { attachmentLedgerId: ledgerId }
+      : {}),
     merchant_id: record.merchant_id,
     merchant_name: merchant?.name ?? null,
     note: record.note ?? firstItem?.note ?? null,

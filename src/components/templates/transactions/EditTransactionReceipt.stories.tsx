@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { userEvent, within } from "storybook/test";
+import { mocked, userEvent, within } from "storybook/test";
 import { transactionErrorCodes } from "internal/transaction";
 import {
   transactionEntryStoryDecorators,
@@ -11,6 +11,7 @@ import {
   savedRefundReceipt,
 } from "test/mocks/transactionReceipt";
 import { flowFixture } from "test/mocks/transactionStepFlow";
+import { loadReceiptPhotos } from "utils/transactionAttachmentClient";
 import { EditTransactionReceiptTemplate } from "./EditTransactionReceipt";
 import { NewTransactionVisualFrame } from "./NewTransactionVisualFrame";
 
@@ -53,6 +54,9 @@ const reimbursedInitialValues: TransactionFormInitialValues = {
 const meta = {
   title: "Templates/Transactions/EditTransactionReceipt",
   component: EditTransactionReceiptTemplate,
+  beforeEach() {
+    mocked(loadReceiptPhotos).mockResolvedValue([]);
+  },
   decorators: [
     ...transactionEntryStoryDecorators,
     receiptCreationStoryDecorator,

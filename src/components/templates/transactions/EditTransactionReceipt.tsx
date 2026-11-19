@@ -1,4 +1,7 @@
 "use client";
+import { startTransition, useEffect } from "react";
+import { useReceiptPhotos } from "organisms/transactions/ReceiptParts/useReceiptPhotos";
+import { useEditTransactionDirty } from "organisms/transactions/EditTransactionDirtyContext/EditTransactionDirtyContext";
 import {
   BackLayerScope,
   transactionBackLayerLevels,
@@ -61,6 +64,7 @@ export function EditTransactionReceiptTemplate(
   return (
     <BackLayerScope level={transactionBackLayerLevels.receiptEditor}>
       <EditTransactionShell
+        key={transactionRecordId}
         action={props.action}
         canDelete={props.canDelete}
         deleteAction={props.deleteAction}
@@ -130,6 +134,21 @@ function EditTransactionReceipt({
     ),
   };
   const readOnly = props.editRestriction !== null;
+  const photos = useReceiptPhotos({
+    ledgerId: props.ledgerId,
+    recordId: props.initialValues.transactionRecordId,
+    readOnly,
+  });
+  const reportDirty = useEditTransactionDirty();
+  useEffect(() => {
+    reportDirty?.(photos.touched, "photos");
+  }, [reportDirty, photos.touched]);
+  async function submitWithPhotos(formData: FormData) {
+    if (await photos.prepareForSave(formData)) {
+      // 等待照片上传后，必须重新进入 Transition 才能让 ActionState 跟踪 pending。
+      startTransition(() => formAction(formData));
+    }
+  }
   const accountOptions = useEditAccountOptions(
     props.accountOptions,
     props.archivedAccountOptions,
@@ -167,9 +186,10 @@ function EditTransactionReceipt({
         onAmountItemChange={w.setAmountItemId}
         accountOptions={accountOptions}
         suggestions={w.suggestions}
-        action={formAction}
+        action={submitWithPhotos}
+        photos={photos}
         onValidationFailed={onValidationFailed}
-        saving={saving}
+        saving={saving || photos.savingPhotos}
         saveDisabled={saveDisabled}
         submitLabel={m.saveEdit}
         onMerchantClick={w.merchantPicker.openPicker}

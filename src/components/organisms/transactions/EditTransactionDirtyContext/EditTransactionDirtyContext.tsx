@@ -2,8 +2,9 @@
 
 import { createContext, useContext, type ReactNode } from "react";
 
+export type EditDirtySource = "form" | "photos";
 const EditTransactionDirtyContext = createContext<
-  ((dirty: boolean) => void) | null
+  ((dirty: boolean, source?: EditDirtySource) => void) | null
 >(null);
 
 export function EditTransactionDirtyProvider({
@@ -11,7 +12,7 @@ export function EditTransactionDirtyProvider({
   onDirty,
 }: {
   children: ReactNode;
-  onDirty: (dirty: boolean) => void;
+  onDirty: (dirty: boolean, source?: EditDirtySource) => void;
 }) {
   return (
     <EditTransactionDirtyContext.Provider value={onDirty}>
