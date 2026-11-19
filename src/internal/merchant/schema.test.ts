@@ -39,6 +39,27 @@ function createFormData(overrides: Record<string, string> = {}) {
 }
 
 describe("merchant schema", () => {
+  it("展示名可选择正式名或有效别名", () => {
+    const missingMerchantId = createFormData();
+    missingMerchantId.delete("merchantId");
+    expect(validateSetPreferredMerchantAliasForm(missingMerchantId)).toEqual({
+      error: "merchant_invalid",
+      ok: false,
+    });
+    expect(validateSetPreferredMerchantAliasForm(createFormData())).toEqual({
+      ok: true,
+      value: { aliasId, merchantId },
+    });
+    expect(
+      validateSetPreferredMerchantAliasForm(createFormData({ aliasId: "" })),
+    ).toEqual({ ok: true, value: { aliasId: null, merchantId } });
+    expect(
+      validateSetPreferredMerchantAliasForm(
+        createFormData({ aliasId: "not-a-uuid" }),
+      ),
+    ).toMatchObject({ ok: false, error: "alias_invalid" });
+  });
+
   it("图标获取表单只校验网址，不接受商家写入参数", () => {
     expect(validateFetchMerchantIconForm(createFormData())).toEqual({
       ok: true,
