@@ -88,21 +88,32 @@ export function BottomEditorDrawer({
       >
         <Box
           aria-hidden
+          data-testid="bottom-editor-drag-handle"
           onTouchStart={onHandleTouchStart}
           onTouchEnd={onHandleTouchEnd}
           onTouchCancel={() => {
             touchStartY.current = null;
           }}
           sx={{
+            alignItems: "center",
             alignSelf: "center",
-            bgcolor: "divider",
-            borderRadius: `${designTokens.radius.full}px`,
-            height: 4,
-            width: 44,
+            display: "flex",
             flexShrink: 0,
+            height: 24,
+            justifyContent: "center",
             touchAction: "pan-y",
+            width: 88,
           }}
-        />
+        >
+          <Box
+            sx={{
+              bgcolor: "divider",
+              borderRadius: `${designTokens.radius.full}px`,
+              height: 4,
+              width: 44,
+            }}
+          />
+        </Box>
         <Stack
           direction="row"
           sx={{ alignItems: "center", justifyContent: "space-between" }}
