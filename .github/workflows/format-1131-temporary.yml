@@ -1,0 +1,30 @@
+name: Temporary formatting for Issue 1131
+on:
+  push:
+    branches:
+      - feat/1131_export_receipt_photos
+      - feat/1131_import_receipt_photos
+permissions:
+  contents: write
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Run Prettier and commit
+        run: |
+          npx prettier . --write
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -u
+          if ! git diff --cached --quiet; then
+            git commit -m "style: 格式化小票照片导入导出代码"
+            git push
+          fi
