@@ -25,6 +25,7 @@ jobs:
           npx prettier src --write > /dev/null
           git diff --exit-code -- src
       - run: npx vitest run src/utils/dataExportWorkbook.test.ts src/utils/dataImportPhotoBatch.test.ts src/components/templates/settings/useDataImportForm.test.ts src/components/organisms/settings/DataImportPhotoPreview/DataImportPhotoPreview.test.tsx src/components/organisms/settings/DataImportExecutionStatus/DataImportExecutionStatus.test.tsx
+      - run: npm run build-storybook
   full:
     runs-on: ubuntu-latest
     steps:
