@@ -146,13 +146,15 @@ export function useDataImportForm(
               const photos = photosByRow.get(rowNumber);
               if (!photos?.length) return [];
               const first = unit.group.items[0];
-              return [{
-                amount: first.amount,
-                merchantName: first.merchantName,
-                photos,
-                rowNumber,
-                transactionAt: first.transactionAt,
-              }];
+              return [
+                {
+                  amount: first.amount,
+                  merchantName: first.merchantName,
+                  photos,
+                  rowNumber,
+                  transactionAt: first.transactionAt,
+                },
+              ];
             })
           : [],
       );
@@ -244,10 +246,14 @@ export function useDataImportForm(
             batchUnits.some(
               (unit) =>
                 unit.kind === "incomeExpense" &&
-                (photosRef.current.get(unit.group.rowNumbers[0])?.length ?? 0) > 0,
+                (photosRef.current.get(unit.group.rowNumbers[0])?.length ?? 0) >
+                  0,
             )
           ) {
-            setPhotoUploadProgress({ done: uploadedPhotoCount, total: totalPhotos });
+            setPhotoUploadProgress({
+              done: uploadedPhotoCount,
+              total: totalPhotos,
+            });
           }
           const prepared = await prepareImportPhotoBatch(
             batchUnits,
@@ -255,9 +261,13 @@ export function useDataImportForm(
             ledgerId,
             undefined,
             () => {
-              if (!mountedRef.current || runTokenRef.current !== runToken) return;
+              if (!mountedRef.current || runTokenRef.current !== runToken)
+                return;
               uploadedPhotoCount += 1;
-              setPhotoUploadProgress({ done: uploadedPhotoCount, total: totalPhotos });
+              setPhotoUploadProgress({
+                done: uploadedPhotoCount,
+                total: totalPhotos,
+              });
             },
           );
           // 图片上传是额外的异步阶段：切换文件或离开页面后不能再提交数据。

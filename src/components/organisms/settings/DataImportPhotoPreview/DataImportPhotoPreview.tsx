@@ -86,23 +86,25 @@ export function DataImportPhotoPreview({
         <Typography sx={{ fontWeight: 700 }}>
           {dataImportResultMessages.photoPreviewTitle}
         </Typography>
-        {rows.map(({ rowNumber, photos, transactionAt, merchantName, amount }) => (
-          <Stack key={rowNumber} spacing={1}>
-            <Typography variant="body2">
-              {dataImportResultMessages.issueRowLabel(rowNumber)} ·{" "}
-              {dataImportResultMessages.photoPreviewDetail(
-                transactionAt,
-                merchantName,
-                amount,
-              )}
-            </Typography>
-            <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
-              {photos.map((photo) => (
-                <PhotoThumbnail key={photo.columnName} photo={photo} />
-              ))}
+        {rows.map(
+          ({ rowNumber, photos, transactionAt, merchantName, amount }) => (
+            <Stack key={rowNumber} spacing={1}>
+              <Typography variant="body2">
+                {dataImportResultMessages.issueRowLabel(rowNumber)} ·{" "}
+                {dataImportResultMessages.photoPreviewDetail(
+                  transactionAt,
+                  merchantName,
+                  amount,
+                )}
+              </Typography>
+              <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
+                {photos.map((photo) => (
+                  <PhotoThumbnail key={photo.columnName} photo={photo} />
+                ))}
+              </Stack>
             </Stack>
-          </Stack>
-        ))}
+          ),
+        )}
       </Stack>
     </SectionCard>
   );

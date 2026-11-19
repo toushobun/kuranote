@@ -338,13 +338,17 @@ describe("useDataImportForm 浏览器端解析与分批发送", () => {
     act(() => {
       importPromise = result.current.handleStartImport();
     });
-    await waitFor(() => expect(uploadReceiptPhotoMock).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(uploadReceiptPhotoMock).toHaveBeenCalledTimes(1),
+    );
     expect(result.current.photoUploadProgress).toEqual({ done: 0, total: 2 });
     await act(async () => {
       first.resolve({ attachmentId: "photo-1" });
       await flushMicrotasks();
     });
-    await waitFor(() => expect(uploadReceiptPhotoMock).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(uploadReceiptPhotoMock).toHaveBeenCalledTimes(2),
+    );
     expect(result.current.photoUploadProgress).toEqual({ done: 1, total: 2 });
     await act(async () => {
       second.resolve({ attachmentId: "photo-2" });
