@@ -166,14 +166,29 @@ function MerchantDisplayNameDraft({
 
   return (
     <Stack spacing={2}>
-        <Typography color="textSecondary" variant="body2">
-          {merchantText.preferredHelper}
-        </Typography>
+      <Typography color="textSecondary" variant="body2">
+        {merchantText.preferredHelper}
+      </Typography>
 
-        <Stack spacing={0.75}>
-          <Typography variant="subtitle2">
-            {merchantText.formalNameTitle}
-          </Typography>
+      <Stack spacing={0.75}>
+        <Typography variant="subtitle2">
+          {merchantText.formalNameTitle}
+        </Typography>
+        <Box
+          sx={{
+            bgcolor: "background.paper",
+            border: 1,
+            borderColor: "divider",
+            borderRadius: `${designTokens.radius.item}px`,
+            overflow: "hidden",
+          }}
+        >
+          {nameRow(merchantName, null)}
+        </Box>
+      </Stack>
+      <Stack spacing={0.75}>
+        <Typography variant="subtitle2">{merchantText.aliasLabel}</Typography>
+        {draftAliases.length ? (
           <Box
             sx={{
               bgcolor: "background.paper",
@@ -183,109 +198,94 @@ function MerchantDisplayNameDraft({
               overflow: "hidden",
             }}
           >
-            {nameRow(merchantName, null)}
-          </Box>
-        </Stack>
-        <Stack spacing={0.75}>
-          <Typography variant="subtitle2">{merchantText.aliasLabel}</Typography>
-          {draftAliases.length ? (
-            <Box
-              sx={{
-                bgcolor: "background.paper",
-                border: 1,
-                borderColor: "divider",
-                borderRadius: `${designTokens.radius.item}px`,
-                overflow: "hidden",
-              }}
-            >
-              {draftAliases.map((alias, index) => (
-                <Stack
-                  key={alias.id}
-                  direction="row"
-                  sx={{
-                    alignItems: "center",
-                    borderTop: index ? 1 : 0,
-                    borderColor: "divider",
-                  }}
+            {draftAliases.map((alias, index) => (
+              <Stack
+                key={alias.id}
+                direction="row"
+                sx={{
+                  alignItems: "center",
+                  borderTop: index ? 1 : 0,
+                  borderColor: "divider",
+                }}
+              >
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  {nameRow(alias.alias, alias.id)}
+                </Box>
+                <IconButton
+                  aria-label={merchantText.removeAliasLabel(alias.alias)}
+                  onClick={() => void removeAlias(alias)}
+                  size="small"
+                  sx={{ bgcolor: "action.hover", mr: 1.5 }}
                 >
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    {nameRow(alias.alias, alias.id)}
-                  </Box>
-                  <IconButton
-                    aria-label={merchantText.removeAliasLabel(alias.alias)}
-                    onClick={() => void removeAlias(alias)}
-                    size="small"
-                    sx={{ bgcolor: "action.hover", mr: 1.5 }}
-                  >
-                    <CloseRoundedIcon fontSize="small" />
-                  </IconButton>
-                </Stack>
-              ))}
-            </Box>
-          ) : (
-            <Typography color="textSecondary" variant="body2">
-              {merchantText.aliasEmptyHint}
-            </Typography>
-          )}
-        </Stack>
+                  <CloseRoundedIcon fontSize="small" />
+                </IconButton>
+              </Stack>
+            ))}
+          </Box>
+        ) : (
+          <Typography color="textSecondary" variant="body2">
+            {merchantText.aliasEmptyHint}
+          </Typography>
+        )}
+      </Stack>
 
-        <Stack spacing={0.5}>
-          <Stack direction="row" spacing={1}>
-            <TextField
-              autoComplete="off"
-              error={Boolean(error)}
-              fullWidth
-              onBlur={() => {
-                if (newAlias.length > 0 && !newAlias.trim())
-                  setError(merchantText.aliasEmptyError);
-              }}
-              onChange={(event) => {
-                setNewAlias(event.target.value);
-                setError(null);
-              }}
-              onKeyDown={addOnEnter}
-              placeholder={merchantText.newAliasPlaceholder}
-              size="small"
-              slotProps={{
-                htmlInput: {
-                  "aria-label": merchantText.newAliasPlaceholder,
-                  maxLength: merchantAliasMaxLength,
-                },
-              }}
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: `${designTokens.radius.item}px`,
-                },
-              }}
-              value={newAlias}
-            />
-            <Button
-              disabled={!newAlias.trim()}
-              onClick={addAlias}
-              startIcon={<AddRoundedIcon />}
-              sx={{
+      <Stack spacing={0.5}>
+        <Stack direction="row" spacing={1}>
+          <TextField
+            autoComplete="off"
+            error={Boolean(error)}
+            fullWidth
+            onBlur={() => {
+              if (newAlias.length > 0 && !newAlias.trim())
+                setError(merchantText.aliasEmptyError);
+            }}
+            onChange={(event) => {
+              setNewAlias(event.target.value);
+              setError(null);
+            }}
+            onKeyDown={addOnEnter}
+            placeholder={merchantText.newAliasPlaceholder}
+            size="small"
+            slotProps={{
+              htmlInput: {
+                "aria-label": merchantText.newAliasPlaceholder,
+                maxLength: merchantAliasMaxLength,
+              },
+            }}
+            sx={{
+              "& .MuiOutlinedInput-root": {
                 borderRadius: `${designTokens.radius.item}px`,
-                flexShrink: 0,
-              }}
-              variant="outlined"
-            >
-              {merchantText.addAliasShort}
-            </Button>
-          </Stack>
-          {error ? (
-            <Typography color="error" role="alert" variant="caption">
-              {error}
-            </Typography>
-          ) : null}
+              },
+            }}
+            value={newAlias}
+          />
+          <Button
+            disabled={!newAlias.trim()}
+            onClick={addAlias}
+            startIcon={<AddRoundedIcon />}
+            sx={{
+              borderRadius: `${designTokens.radius.item}px`,
+              flexShrink: 0,
+            }}
+            variant="outlined"
+          >
+            {merchantText.addAliasShort}
+          </Button>
         </Stack>
-        <Button
-          fullWidth
-          onClick={() => onConfirm(draftAliases, selectedId)}
-          sx={{ borderRadius: `${designTokens.radius.full}px` }}
-          variant="contained"
-        >
-          {merchantText.confirmDisplayName}
-        </Button>
+        {error ? (
+          <Typography color="error" role="alert" variant="caption">
+            {error}
+          </Typography>
+        ) : null}
+      </Stack>
+      <Button
+        fullWidth
+        onClick={() => onConfirm(draftAliases, selectedId)}
+        sx={{ borderRadius: `${designTokens.radius.full}px` }}
+        variant="contained"
+      >
+        {merchantText.confirmDisplayName}
+      </Button>
     </Stack>
   );
 }

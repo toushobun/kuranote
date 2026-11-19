@@ -1,4 +1,10 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
@@ -99,11 +105,17 @@ describe("MerchantDisplayNameDrawer", () => {
     fireEvent.click(screen.getByRole("button", { name: "添加" }));
     rerender(view(false, 1));
     await waitFor(() =>
-      expect(screen.queryByRole("button", { name: "关闭显示名抽屉" })).toBeNull(),
+      expect(
+        screen.queryByRole("button", { name: "关闭显示名抽屉" }),
+      ).toBeNull(),
     );
     rerender(view(true, 2));
-    expect(screen.queryByRole("button", { name: "将这次不保存设为展示名" })).toBeNull();
-    expect(screen.getByRole("button", { name: "将来福设为展示名" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "将这次不保存设为展示名" }),
+    ).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "将来福设为展示名" }),
+    ).toBeInTheDocument();
     expect(onConfirm).not.toHaveBeenCalled();
   });
 

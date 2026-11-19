@@ -80,7 +80,11 @@ export function BottomEditorDrawer({
     >
       <Stack
         spacing={2}
-        sx={{ p: 2, pb: "max(16px, env(safe-area-inset-bottom))", minHeight: 0 }}
+        sx={{
+          p: 2,
+          pb: "max(16px, env(safe-area-inset-bottom))",
+          minHeight: 0,
+        }}
       >
         <Box
           aria-hidden

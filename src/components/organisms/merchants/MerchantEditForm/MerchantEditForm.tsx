@@ -173,17 +173,17 @@ export function MerchantEditForm({
         </ActionButton>
       </Stack>
       <MerchantDisplayNameDrawer
-          aliases={aliases}
-          merchantName={details.name}
-          open={drawerOpen}
-          sessionId={drawerSessionId}
-          onClose={() => setDrawerOpen(false)}
-          onConfirm={(nextAliases, nextPreferredAliasId) => {
-            setAliases(nextAliases);
-            setPreferredAliasId(nextPreferredAliasId);
-            setDrawerOpen(false);
-          }}
-          preferredAliasId={preferredAliasId}
+        aliases={aliases}
+        merchantName={details.name}
+        open={drawerOpen}
+        sessionId={drawerSessionId}
+        onClose={() => setDrawerOpen(false)}
+        onConfirm={(nextAliases, nextPreferredAliasId) => {
+          setAliases(nextAliases);
+          setPreferredAliasId(nextPreferredAliasId);
+          setDrawerOpen(false);
+        }}
+        preferredAliasId={preferredAliasId}
       />
     </Stack>
   );

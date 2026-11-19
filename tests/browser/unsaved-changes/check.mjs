@@ -545,7 +545,9 @@ async function checkMerchant(browser, edit) {
     assert.equal(afterAlias.sameForm, true);
     assert.equal(afterAlias.navigationRscRequests, 0);
     assert.equal(
-      await page.locator('#merchant-edit-form input[name="addedAliases"]').inputValue(),
+      await page
+        .locator('#merchant-edit-form input[name="addedAliases"]')
+        .inputValue(),
       '["别名草稿"]',
     );
   }
@@ -966,7 +968,9 @@ async function checkAliasSave(browser, viaLink = false) {
   await addMerchantAliasDraft(page, "统一保存别名");
   await position(page, "sentinel");
   assert.equal(
-    await page.locator('#merchant-edit-form input[name="addedAliases"]').inputValue(),
+    await page
+      .locator('#merchant-edit-form input[name="addedAliases"]')
+      .inputValue(),
     '["统一保存别名"]',
   );
   if (viaLink) await page.getByRole("link", { name: "返回商家管理" }).click();
@@ -1000,7 +1004,9 @@ async function checkAliasDrawerBack(browser) {
   assert.equal(await page.locator("#merchant-edit-form").count(), 1);
   assert.equal(await page.getByRole("dialog", { name: "尚未保存" }).count(), 0);
   assert.equal(
-    await page.locator('#merchant-edit-form input[name="addedAliases"]').inputValue(),
+    await page
+      .locator('#merchant-edit-form input[name="addedAliases"]')
+      .inputValue(),
     "[]",
   );
   await open.click();
