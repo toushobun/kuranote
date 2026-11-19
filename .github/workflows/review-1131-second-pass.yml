@@ -20,6 +20,6 @@ jobs:
       - run: npm ci
       - run: npm run type-check
       - run: npm run lint
-      - run: npm run format:check
+      - run: npx prettier src --check
       - run: npx vitest run src/components/templates/settings/useDataImportForm.test.ts src/internal/dataImport/util/readWorksheetPhotos.test.ts src/utils/dataImportPhotoBatch.test.ts
       - run: npm test
