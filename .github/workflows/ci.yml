@@ -19,7 +19,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # 所有检查同时开始、互不等待；合并前仍需全部必需检查通过。
+  # 各检查并行执行，只有 Test 汇总等待 4 个分片、Storybook preview 等待 Storybook build；合并前仍需全部必需检查通过。
   type-check:
     name: Type check
     if: *run_code_ci
