@@ -13,8 +13,6 @@ const meta = {
   component: MerchantEditTemplate,
   args: {
     archiveMerchantAction: action,
-    archiveMerchantAliasAction: action,
-    createMerchantAliasAction: action,
     fetchIconAction: async () => ({
       iconUrl: "https://t2.gstatic.com/faviconV2?url=https://example.com",
       success: "网站图标已获取，保存后会缓存",
@@ -26,7 +24,6 @@ const meta = {
       display_name: "来福",
       note: "常去的超市",
     }),
-    setPreferredMerchantAliasAction: action,
     tags: [],
     updateMerchantAction: action,
   },
@@ -35,4 +32,4 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = { name: "编辑商家页面" };
+export const Default: Story = { name: "编辑商家·显示名 Outlined 输入框" };

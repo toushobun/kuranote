@@ -135,17 +135,9 @@ const routeSpecs: RouteSpec[] = [
   {
     basePath: "/ledgers",
     expectedRoutes: {
-      archiveMerchantAliasRoute: {
-        method: "delete",
-        path: "/{ledgerId}/merchants/aliases/{aliasId}",
-      },
       archiveMerchantRoute: {
         method: "delete",
         path: "/{ledgerId}/merchants/{merchantId}",
-      },
-      createMerchantAliasRoute: {
-        method: "post",
-        path: "/{ledgerId}/merchants/{merchantId}/aliases",
       },
       createMerchantRoute: { method: "post", path: "/{ledgerId}/merchants" },
       listMerchantOptionsRoute: {

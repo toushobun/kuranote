@@ -80,22 +80,18 @@ export async function addPresets(
 }
 
 export async function saveMerchantDetails(
-  previous: ActionState,
+  _previous: ActionState,
   data: FormData,
 ): Promise<ActionState> {
+  if (String(data.get("name") ?? "").includes("失败")) {
+    return { error: "验证用保存失败", errorKey: "probe-failure" };
+  }
+  revalidatePath("/merchant-edit");
   if (data.get("presentation") === "dialog") {
-    const { revalidatePath } = await import("next/cache");
-    revalidatePath("/merchant-edit");
     return { success: "保存成功", successKey: String(Date.now()) };
   }
-  return save(previous, data);
+  return redirectAfterGuardedSave(data, "/dashboard?saved=1");
 }
-export async function saveAlias(): Promise<ActionState> {
-  const { revalidatePath } = await import("next/cache");
-  revalidatePath("/merchant-edit");
-  return { success: "添加成功", successKey: String(Date.now()) };
-}
-
 export async function saveCategory(
   _previous: ActionState,
   data: FormData,
