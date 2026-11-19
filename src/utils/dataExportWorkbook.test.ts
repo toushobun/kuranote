@@ -376,6 +376,33 @@ describe("dataExportWorkbook", () => {
     ).rejects.toMatchObject(error);
   });
 
+  it("带照片的 Excel 原样重新解析后，记录数和照片顺序不变", async () => {
+    const data = createDataExportFixture();
+    data.photos = [
+      { recordId: "normal", sortOrder: 1, fullUrl: "https://example.com/b.jpg" },
+      { recordId: "normal", sortOrder: 0, fullUrl: "https://example.com/a.jpg" },
+    ];
+    const output = await buildDataExportWorkbook(data, {
+      downloadPhoto: async (url) =>
+        new Uint8Array([
+          0xff, 0xd8, 0xff,
+          url.endsWith("/a.jpg") ? 0x61 : 0x62,
+          0xff, 0xd9,
+        ]),
+    });
+    const { result, units, photosByRow } = await analyzeImportFile(
+      new File([output], "photos.xlsx"),
+    );
+    expect(result.ok).toBe(true);
+    const record = units.find((unit) => unit.kind === "incomeExpense");
+    if (record?.kind !== "incomeExpense") throw new Error("没有收支记录");
+    expect(record.group.rowNumbers).toEqual([2, 3, 4]);
+    expect(photosByRow?.get(2)?.map((photo) => photo.bytes[3])).toEqual([
+      0x61, 0x62,
+    ]);
+    expect(photosByRow?.has(3)).toBe(false);
+  });
+
   it("照片按排序写在首行，使用双单元格锚点且不在后续明细重复", async () => {
     const data = createDataExportFixture();
     data.photos = [
