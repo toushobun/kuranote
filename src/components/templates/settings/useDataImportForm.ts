@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 
 import { dataImportExecutionMessages } from "config/dataImportExportMessages";
+import type { EmbeddedWorksheetPhoto } from "internal/dataImport/entity/parsedTable";
+import { prepareImportPhotoBatch } from "utils/dataImportPhotoBatch";
 import type { AccountImportHolder } from "internal/account";
 import {
   analyzeImportFile,
@@ -53,6 +55,7 @@ function createEmptyExecutionResult(totalCount: number): ImportExecutionResult {
 export function useDataImportForm(
   executeBatchAction: DataImportBatchStateAction,
   holderMembers: AccountImportHolder[] = [],
+  ledgerId?: string,
 ) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [validationState, setValidationState] = useState<DataImportActionState>(
@@ -79,6 +82,10 @@ export function useDataImportForm(
   const estimatedBatchDurationRef = useRef(initialEstimatedBatchDurationMs);
   // 浏览器端「检查格式」解析出的全部执行单元，「开始导入」按批切片发给服务端。
   const unitsRef = useRef<ImportExecutionUnit[]>([]);
+  const photosRef = useRef<Map<number, EmbeddedWorksheetPhoto[]>>(new Map());
+  const [photoPreviewRows, setPhotoPreviewRows] = useState<
+    { rowNumber: number; photos: EmbeddedWorksheetPhoto[] }[]
+  >([]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -91,6 +98,8 @@ export function useDataImportForm(
   function resetAfterFileChange(file: File | null) {
     runTokenRef.current += 1;
     unitsRef.current = [];
+    photosRef.current.clear();
+    setPhotoPreviewRows([]);
     setSelectedFile(file);
     setValidationState(initialValidationState);
     setHolderMappingCandidates([]);
@@ -115,8 +124,17 @@ export function useDataImportForm(
     setDownloadError(null);
 
     try {
-      const { result, units } = await analyzeImportFile(selectedFile);
+      const { result, units, photosByRow } = await analyzeImportFile(selectedFile);
       unitsRef.current = units;
+      photosRef.current = photosByRow ?? new Map();
+      setPhotoPreviewRows(
+        result.ok && photosByRow
+          ? [...photosByRow.entries()].map(([rowNumber, photos]) => ({
+              rowNumber,
+              photos,
+            }))
+          : [],
+      );
       if (mountedRef.current) {
         setHolderMappingCandidates(
           result.ok ? collectHolderMappingCandidates(units, holderMembers) : [],
@@ -193,11 +211,42 @@ export function useDataImportForm(
             );
           }, simulatedImportProgressTickIntervalMs);
 
+          const prepared = await prepareImportPhotoBatch(
+            batchUnits,
+            photosRef.current,
+            ledgerId,
+          );
           const formData = new FormData();
-          formData.set("units", JSON.stringify(batchUnits));
+          formData.set("units", JSON.stringify(prepared.units));
           formData.set("holderMapping", JSON.stringify(currentHolderMapping));
           formData.set("timeZoneOffsetMinutes", String(timeZoneOffsetMinutes));
-          state = await executeBatchAction({}, formData);
+          state =
+            prepared.units.length > 0
+              ? await executeBatchAction({}, formData)
+              : {
+                  batch: {
+                    createdPlaceholderCount: 0,
+                    details: [],
+                    duplicateCount: 0,
+                    failureCount: 0,
+                    holderMissingCount: 0,
+                    processedCount: 0,
+                    rowResults: [],
+                    successCount: 0,
+                  },
+                };
+          if (state.batch) {
+            state = {
+              ...state,
+              batch: {
+                ...state.batch,
+                details: [...prepared.failedDetails, ...state.batch.details],
+                failureCount: prepared.failedDetails.length + state.batch.failureCount,
+                processedCount: prepared.failedDetails.length + state.batch.processedCount,
+                rowResults: [...prepared.failedRows, ...state.batch.rowResults],
+              },
+            };
+          }
 
           estimatedBatchDurationRef.current = updateEstimatedBatchDuration(
             estimatedBatchDurationRef.current,
@@ -312,6 +361,7 @@ export function useDataImportForm(
     isDownloading,
     isImporting,
     selectedFileName: selectedFile?.name ?? null,
+    photoPreviewRows,
     validationState,
   };
 }

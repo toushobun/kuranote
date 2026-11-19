@@ -83,6 +83,7 @@ export const dataImportFileFieldMessages = {
 export const dataImportResultMessages = {
   balanceAdjustmentCountLabel: (count: number) => `余额变更记录 ${count} 笔`,
   failureTitle: "格式检查未通过",
+  photoPreviewTitle: "小票照片预览",
   incomeExpenseCountLabel: (count: number) => `收支记录 ${count} 笔`,
   issueRowLabel: (rowNumber: number) => `第 ${rowNumber} 行`,
   successTitle: "格式检查通过",
