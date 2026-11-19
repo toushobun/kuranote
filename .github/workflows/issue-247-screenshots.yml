@@ -7,7 +7,7 @@ permissions:
 jobs:
   screenshot:
     if: github.actor != 'github-actions[bot]'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: test-publishable-key
@@ -20,6 +20,17 @@ jobs:
         with:
           node-version: 20
       - run: npm ci
+      - name: Generate schema snapshot
+        run: |
+          version="$(cat .supabase-version)"
+          npx --yes "supabase@${version}" start
+          npm run db:schema:snapshot:update
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add supabase/schema_snapshot/current_schema.sql
+          if ! git diff --cached --quiet; then
+            git commit -m 'chore: 更新转账删除修复后的数据库快照'
+          fi
       - name: Build Storybook
         run: npm run build-storybook
       - name: Install screenshot browser

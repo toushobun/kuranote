@@ -404,12 +404,14 @@ grant execute on function public.update_transfer_transaction(
 CREATE OR REPLACE FUNCTION "public"."void_transaction_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
-    AS $$
+    AS $
 declare
     v_user_id uuid := auth.uid();
     v_record public.transaction_record;
     v_item public.transaction_item;
     v_item_count integer := 0;
+    v_account_id uuid;
+    v_account_delta numeric(14,2);
 begin
     if v_user_id is null then
         raise exception 'not_authenticated' using errcode = '28000';
@@ -436,13 +438,14 @@ begin
     from public.account a
     where a.ledger_id = p_ledger_id
       and a.id in (
-          select distinct ti.account_id
-          from public.transaction_item ti
-          where ti.transaction_record_id = p_transaction_record_id
-            and ti.ledger_id = p_ledger_id
+          -- 普通记录的账户来自付款明细，转账 / 余额调整来自明细。
+          select m.account_id
+          from public.transaction_account_movement m
+          where m.transaction_record_id = p_transaction_record_id
+            and m.ledger_id = p_ledger_id
       )
     order by a.id
-    for update;
+    for no key update;
 
     if v_record.type = 'balance_adjustment' and exists (
         select 1 from public.transaction_item ti join public.account a on a.id=ti.account_id and a.ledger_id=ti.ledger_id
@@ -475,18 +478,29 @@ begin
         for update
     loop
         v_item_count := v_item_count + 1;
-
-        perform public.apply_account_balance_delta(
-            p_ledger_id,
-            v_item.account_id,
-            -v_item.balance_delta,
-            v_user_id
-        );
     end loop;
 
     if v_item_count = 0 then
         raise exception 'transaction_item_invalid' using errcode = '22023';
     end if;
+
+    -- 按账户回滚余额；普通记录的付款明细与明细一样保留供追溯。
+    -- 余额为 0 的账户也调用一次，保持「含已归档账户的记录不可删除」。
+    for v_account_id, v_account_delta in
+        select m.account_id, sum(m.balance_delta)
+        from public.transaction_account_movement m
+        where m.transaction_record_id = p_transaction_record_id
+          and m.ledger_id = p_ledger_id
+        group by m.account_id
+        order by m.account_id
+    loop
+        perform public.apply_account_balance_delta(
+            p_ledger_id,
+            v_account_id,
+            -v_account_delta,
+            v_user_id
+        );
+    end loop;
 
     update public.transaction_record tr
     set
@@ -505,7 +519,7 @@ begin
 
     return p_transaction_record_id;
 end;
-$$;
+$;
 
 -- 金额搜索对转账的任一笔明细匹配，不改变候选搜索行为。
 create or replace function public.load_filtered_transaction_page(
