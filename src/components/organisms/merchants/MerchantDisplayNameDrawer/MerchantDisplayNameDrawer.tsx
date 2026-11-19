@@ -2,11 +2,9 @@
 
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import ButtonBase from "@mui/material/ButtonBase";
-import SwipeableDrawer from "@mui/material/SwipeableDrawer";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
@@ -14,15 +12,18 @@ import Typography from "@mui/material/Typography";
 import { useState, type KeyboardEvent } from "react";
 
 import { merchantText } from "config/merchantText";
-import { useBackLayer } from "molecules/ui/UnsavedChangesDialog/BackLayerScope";
+import { BottomEditorDrawer } from "molecules/ui/BottomEditorDrawer/BottomEditorDrawer";
 import { useConfirmDialog } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import { designTokens } from "theme/theme";
+import { merchantAliasMaxLength } from "internal/merchant/schema";
 
 export type MerchantAliasDraft = { id: string; alias: string };
 
 type MerchantDisplayNameDrawerProps = {
   aliases: MerchantAliasDraft[];
   merchantName: string;
+  open: boolean;
+  sessionId: number;
   onClose: () => void;
   onConfirm: (
     aliases: MerchantAliasDraft[],
@@ -45,10 +46,38 @@ export function MerchantDisplayNameDrawer({
   merchantName,
   onClose,
   onConfirm,
+  open,
   preferredAliasId,
+  sessionId,
 }: MerchantDisplayNameDrawerProps) {
+  return (
+    <BottomEditorDrawer
+      closeLabel={merchantText.closeDisplayName}
+      onClose={onClose}
+      open={open}
+      title={merchantText.preferredTitle}
+    >
+      <MerchantDisplayNameDraft
+        key={sessionId}
+        aliases={aliases}
+        merchantName={merchantName}
+        onConfirm={onConfirm}
+        preferredAliasId={preferredAliasId}
+      />
+    </BottomEditorDrawer>
+  );
+}
+
+function MerchantDisplayNameDraft({
+  aliases,
+  merchantName,
+  onConfirm,
+  preferredAliasId,
+}: Pick<
+  MerchantDisplayNameDrawerProps,
+  "aliases" | "merchantName" | "onConfirm" | "preferredAliasId"
+>) {
   const confirm = useConfirmDialog();
-  useBackLayer(true, onClose);
   const [draftAliases, setDraftAliases] = useState(aliases);
   const [selectedId, setSelectedId] = useState<string | null>(preferredAliasId);
   const [newAlias, setNewAlias] = useState("");
@@ -106,6 +135,7 @@ export function MerchantDisplayNameDrawer({
         onClick={() => setSelectedId(id)}
         sx={{
           ...rowSx,
+          justifyContent: "flex-start",
           textAlign: "left",
           width: "100%",
           "&:active": { bgcolor: "action.selected" },
@@ -134,53 +164,7 @@ export function MerchantDisplayNameDrawer({
   }
 
   return (
-    <SwipeableDrawer
-      anchor="bottom"
-      disableSwipeToOpen
-      onOpen={() => undefined}
-      open
-      onClose={onClose}
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: `${designTokens.radius.lg}px ${designTokens.radius.lg}px 0 0`,
-            maxHeight: "90dvh",
-          },
-        },
-      }}
-    >
-      <Stack
-        spacing={2}
-        sx={{
-          p: 2,
-          pb: "max(16px, env(safe-area-inset-bottom))",
-          overflowY: "auto",
-        }}
-      >
-        <Box
-          aria-hidden
-          sx={{
-            alignSelf: "center",
-            bgcolor: "divider",
-            borderRadius: `${designTokens.radius.full}px`,
-            height: 4,
-            width: 44,
-          }}
-        />
-        <Stack
-          direction="row"
-          sx={{ alignItems: "center", justifyContent: "space-between" }}
-        >
-          <Typography component="h2" variant="h6" sx={{ fontWeight: 800 }}>
-            {merchantText.preferredTitle}
-          </Typography>
-          <IconButton
-            aria-label={merchantText.closeDisplayName}
-            onClick={onClose}
-          >
-            <CloseRoundedIcon />
-          </IconButton>
-        </Stack>
+    <Stack spacing={2}>
         <Typography color="textSecondary" variant="body2">
           {merchantText.preferredHelper}
         </Typography>
@@ -303,7 +287,6 @@ export function MerchantDisplayNameDrawer({
         >
           {merchantText.confirmDisplayName}
         </Button>
-      </Stack>
-    </SwipeableDrawer>
+    </Stack>
   );
 }

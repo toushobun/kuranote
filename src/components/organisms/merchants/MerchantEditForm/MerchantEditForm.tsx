@@ -1,8 +1,10 @@
 "use client";
 
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
+import InputAdornment from "@mui/material/InputAdornment";
 import ButtonBase from "@mui/material/ButtonBase";
 import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
 import { useDirtySnapshot } from "molecules/ui/UnsavedChangesDialog/useDirtySnapshot";
@@ -61,6 +63,7 @@ export function MerchantEditForm({
     () => merchant.aliases.find((alias) => alias.is_preferred)?.id ?? null,
   );
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerSessionId, setDrawerSessionId] = useState(0);
   const [tagIds, setTagIds] = useState(() =>
     merchant.tags.map((tag) => tag.id).sort(),
   );
@@ -117,35 +120,38 @@ export function MerchantEditForm({
           displayNameField={
             <ButtonBase
               aria-label={merchantText.openDisplayName}
+              component="div"
               disabled={pending}
-              onClick={() => setDrawerOpen(true)}
-              sx={{
-                alignItems: "center",
-                border: 1,
-                borderColor: "divider",
-                borderRadius: `${designTokens.radius.item}px`,
-                display: "flex",
-                minHeight: 56,
-                px: 2,
-                textAlign: "left",
-                width: "100%",
-                "&:active": { bgcolor: "action.selected" },
-                "@media (hover: hover)": {
-                  "&:hover": { bgcolor: "action.hover" },
-                },
+              onClick={() => {
+                setDrawerSessionId((current) => current + 1);
+                setDrawerOpen(true);
               }}
+              role="button"
+              tabIndex={0}
+              sx={{ display: "block", textAlign: "left", width: "100%" }}
             >
-              <Stack sx={{ flex: 1, minWidth: 0 }}>
-                <Typography color="textSecondary" variant="caption">
-                  {merchantText.preferredTitle}
-                </Typography>
-                <Typography noWrap>{displayName}</Typography>
-              </Stack>
-              <Typography color="textSecondary" variant="caption">
-                {merchantText.aliasCount(aliases.length)}
-              </Typography>
-              <ChevronRightRoundedIcon
-                sx={{ color: "text.secondary", ml: 0.5 }}
+              <TextField
+                fullWidth
+                label={merchantText.preferredTitle}
+                size="small"
+                value={displayName}
+                slotProps={{
+                  input: {
+                    readOnly: true,
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <Typography color="textSecondary" variant="caption">
+                          {merchantText.aliasCount(aliases.length)}
+                        </Typography>
+                        <ChevronRightRoundedIcon
+                          sx={{ color: "text.secondary", ml: 0.5 }}
+                        />
+                      </InputAdornment>
+                    ),
+                  },
+                  htmlInput: { tabIndex: -1, "aria-hidden": true },
+                }}
+                sx={{ pointerEvents: "none" }}
               />
             </ButtonBase>
           }
@@ -166,10 +172,11 @@ export function MerchantEditForm({
           {merchantText.save}
         </ActionButton>
       </Stack>
-      {drawerOpen ? (
-        <MerchantDisplayNameDrawer
+      <MerchantDisplayNameDrawer
           aliases={aliases}
           merchantName={details.name}
+          open={drawerOpen}
+          sessionId={drawerSessionId}
           onClose={() => setDrawerOpen(false)}
           onConfirm={(nextAliases, nextPreferredAliasId) => {
             setAliases(nextAliases);
@@ -177,8 +184,7 @@ export function MerchantEditForm({
             setDrawerOpen(false);
           }}
           preferredAliasId={preferredAliasId}
-        />
-      ) : null}
+      />
     </Stack>
   );
 }

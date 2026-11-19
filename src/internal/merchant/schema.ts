@@ -160,29 +160,14 @@ export function validateFetchMerchantIconForm(
   return valid({ websiteUrl });
 }
 
-function parseAliasArrayField(
+function parseAliasList(
   formData: FormData,
-  field: string,
+  field: "addedAliases" | "archivedAliasIds",
+  schema: typeof addedAliasesSchema | typeof archivedAliasIdsSchema,
 ): ValidationResult<string[], typeof merchantErrorCodes.aliasInvalid> {
   try {
     const parsed: unknown = JSON.parse(getFormText(formData, field));
-    const result = addedAliasesSchema.safeParse(parsed);
-    return result.success
-      ? valid(result.data)
-      : invalid(merchantErrorCodes.aliasInvalid);
-  } catch {
-    return invalid(merchantErrorCodes.aliasInvalid);
-  }
-}
-
-function parseArchivedAliasIds(
-  formData: FormData,
-): ValidationResult<string[], typeof merchantErrorCodes.aliasInvalid> {
-  try {
-    const parsed: unknown = JSON.parse(
-      getFormText(formData, "archivedAliasIds"),
-    );
-    const result = archivedAliasIdsSchema.safeParse(parsed);
+    const result = schema.safeParse(parsed);
     return result.success
       ? valid(result.data)
       : invalid(merchantErrorCodes.aliasInvalid);
@@ -204,9 +189,17 @@ export function validateUpdateMerchantForm(
   const merchantValuesResult = parseMerchantValues(formData);
   if (!merchantValuesResult.ok) return merchantValuesResult;
 
-  const addedAliasesResult = parseAliasArrayField(formData, "addedAliases");
+  const addedAliasesResult = parseAliasList(
+    formData,
+    "addedAliases",
+    addedAliasesSchema,
+  );
   if (!addedAliasesResult.ok) return addedAliasesResult;
-  const archivedAliasIdsResult = parseArchivedAliasIds(formData);
+  const archivedAliasIdsResult = parseAliasList(
+    formData,
+    "archivedAliasIds",
+    archivedAliasIdsSchema,
+  );
   if (!archivedAliasIdsResult.ok) return archivedAliasIdsResult;
   const preferredValue = getFormText(formData, "preferredAlias").trim();
   if (preferredValue.length > merchantAliasMaxLength) {
