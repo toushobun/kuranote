@@ -262,6 +262,7 @@ function LedgerSettingsContent({
         id={form.formId}
         spacing={1.45}
         sx={formSx}
+        useFlexGap
       >
         <input name="intent" type="hidden" value="ledger" />
         <input name="ledgerId" type="hidden" value={ledger.id} />
@@ -668,6 +669,7 @@ function MemberSettingsDialogContent({
         id={form.formId}
         key={member.userId}
         spacing={2.2}
+        useFlexGap
       >
         <input name="intent" type="hidden" value="member" />
         <input name="ledgerId" type="hidden" value={ledger.id} />

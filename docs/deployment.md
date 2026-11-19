@@ -158,7 +158,7 @@ workflow 文件：
 
 ### 普通 PR
 
-1. 开发中持续 push，CI 自动运行（Stage 1: format-check / type-check / lint 并行 → Stage 2: test → Stage 3: build / storybook-build 并行）。
+1. 开发中持续 push，CI 自动运行（format-check / type-check / lint、4 个 Test 分片、Schema snapshot check、Migration check、Build、Storybook build 并行；Test 汇总 job 等待 4 个分片，Storybook preview 等待 Storybook build；同一 PR 推送新提交时自动取消旧的运行）。
 2. CI 全部通过后发起 Review，确认无问题后 merge。
 3. merge 到 main 后，`deploy.yml` 自动启动，并在生产部署前执行 `supabase db push`。
 4. 打开 Vercel Production URL，验证登录、Dashboard、记账相关页面。
@@ -174,7 +174,7 @@ workflow 文件：
 
 ## PR Storybook 预览
 
-CI 的 `storybook-build` job 会在每次 PR push 后自动把 Storybook 构建产物发布到 `gh-pages` 分支下 `pr-<PR编号>/` 子目录，并把预览链接自动更新到 PR 的评论里（同一条评论持续更新，不会重复刷屏）：
+每次 PR push 后，CI 的 `storybook-build` job 构建 Storybook 并上传为 artifact；`storybook-preview` job 等待其完成后，把构建产物发布到 `gh-pages` 分支下 `pr-<PR编号>/` 子目录，并把预览链接自动更新到 PR 的评论里（同一条评论持续更新，不会重复刷屏）：
 
 ```text
 https://toushobun.github.io/kuranote/pr-<PR编号>/

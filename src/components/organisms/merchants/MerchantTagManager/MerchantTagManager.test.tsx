@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { merchantErrorCodes, merchantErrorMessages } from "internal/merchant";
 import { dragSortable, dropSortable, mockSortableRects } from "test/sortable";
+import { expectFirstVisibleStackChildHasNoTopMargin } from "test/formStackSpacing";
 import { designTokens } from "theme/theme";
 
 import { MerchantTagManager } from "./MerchantTagManager";
@@ -182,6 +183,9 @@ describe("MerchantTagManager", () => {
       ).not.toBeInTheDocument(),
     );
     fireEvent.click(screen.getByRole("button", { name: "编辑超市" }));
+    expectFirstVisibleStackChildHasNoTopMargin(
+      document.getElementById("merchant-tag-edit-form"),
+    );
     expect(
       screen.getByRole("heading", { name: "编辑分类" }),
     ).toBeInTheDocument();

@@ -47,7 +47,13 @@ export function LedgerSetupBasicInfoStep(props: LedgerSetupWizardStepProps) {
         />
       }
     >
-      <Stack component="form" id={formId} onSubmit={handleSubmit} spacing={2.5}>
+      <Stack
+        component="form"
+        id={formId}
+        onSubmit={handleSubmit}
+        spacing={2.5}
+        useFlexGap
+      >
         <input name="ledgerId" type="hidden" value={ledgerId} />
         <Stack spacing={0.75}>
           <Typography component="h3" sx={titleSx}>

@@ -466,6 +466,7 @@ export function CategoryList({
               action={updateCategoryAction}
               id="category-edit-form"
               spacing={2.5}
+              useFlexGap
             >
               <input
                 name="categoryId"

@@ -13,6 +13,7 @@ import {
   ledgerPlaceholderMemberErrorMessages,
 } from "internal/ledger";
 import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
+import { expectFirstVisibleStackChildHasNoTopMargin } from "test/formStackSpacing";
 import type {
   LedgerPlaceholderMemberActionState,
   LedgerPlaceholderMemberActions,
@@ -71,6 +72,9 @@ describe("LedgerPlaceholderMemberDialog 详情", () => {
       successKey: "success-rename",
     }));
     const { onClose } = renderDialog({ actions: createActions({ rename }) });
+    expectFirstVisibleStackChildHasNoTopMargin(
+      document.querySelector('input[name="placeholderId"]')?.closest("form"),
+    );
 
     fireEvent.change(screen.getByLabelText(/修改名字/), {
       target: { value: "外婆" },
