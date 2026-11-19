@@ -460,6 +460,9 @@ describe("Issue #915 多账户付款跨层编辑流程", () => {
     const view = createMultiAccountView();
     const { persisted, updateNormal } = renderScenario(view);
 
+    await vi.waitFor(() =>
+      expect(screen.getByRole("button", { name: "添加照片" })).toBeEnabled(),
+    );
     fireEvent.click(screen.getByRole("button", { name: "保存修改" }));
     await vi.waitFor(() => expect(updateNormal).toHaveBeenCalledOnce());
 
@@ -476,6 +479,9 @@ describe("Issue #915 多账户付款跨层编辑流程", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "删除支付账户 2" }));
+    await vi.waitFor(() =>
+      expect(screen.getByRole("button", { name: "添加照片" })).toBeEnabled(),
+    );
     fireEvent.click(screen.getByRole("button", { name: "保存修改" }));
     await vi.waitFor(() => expect(updateNormal).toHaveBeenCalledOnce());
 
