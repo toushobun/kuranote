@@ -13,6 +13,7 @@ import {
   importCurrencyPattern,
   importNoteMaxLength,
   incomeExpenseColumns,
+  incomeExpensePhotoColumns,
   incomeExpensePaymentColumns,
   incomeExpenseSharedColumns,
   incomeExpenseTypeValues,
@@ -78,7 +79,7 @@ export function parseIncomeExpenseSheet(
 ): ParseIncomeExpenseSheetResult {
   const structuralIssues = findColumnStructuralIssues(
     table,
-    incomeExpenseColumns,
+    [...incomeExpenseColumns, ...incomeExpensePhotoColumns],
     "incomeExpense",
   );
 

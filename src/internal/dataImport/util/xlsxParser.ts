@@ -1,5 +1,7 @@
 import ExcelJS from "exceljs";
 
+import { importSheetKindLabels } from "internal/dataImport/entity/importSheetKind";
+import { readWorksheetPhotos } from "internal/dataImport/util/readWorksheetPhotos";
 import type { ParsedTable } from "internal/dataImport/entity/parsedTable";
 import { cellToText } from "internal/dataImport/util/cellText";
 
@@ -20,6 +22,7 @@ export async function parseXlsxWorkbook(
     const columnCount = worksheet.actualColumnCount;
     const dataRows: { cells: string[]; rowNumber: number }[] = [];
     let headerRow: string[] | null = null;
+    let headerRowNumber = 0;
 
     worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
       const cells: string[] = [];
@@ -37,6 +40,7 @@ export async function parseXlsxWorkbook(
 
       if (!headerRow) {
         headerRow = cells;
+        headerRowNumber = rowNumber;
         return;
       }
 
@@ -47,10 +51,16 @@ export async function parseXlsxWorkbook(
       continue;
     }
 
+    const photos =
+      worksheet.name.trim() === importSheetKindLabels.incomeExpense
+        ? readWorksheetPhotos(workbook, worksheet, headerRow, headerRowNumber)
+        : null;
     tables.push({
       headerRow,
       rows: dataRows,
       sourceName: worksheet.name,
+      ...(photos?.images.length ? { photos: photos.images } : {}),
+      ...(photos?.issues.length ? { photoIssues: photos.issues } : {}),
     });
   }
 
