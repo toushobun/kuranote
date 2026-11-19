@@ -23,7 +23,7 @@ export async function exportCurrentLedgerData(
     ).dataExport.service.getData({
       ledgerId: currentLedger.id,
       userId,
-      includePhotos,
+      ...(includePhotos ? { includePhotos: true } : {}),
     });
     return { data };
   } catch (error) {
