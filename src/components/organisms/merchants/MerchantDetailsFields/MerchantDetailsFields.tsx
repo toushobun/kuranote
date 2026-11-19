@@ -73,7 +73,7 @@ export function MerchantDetailsFields({
   }[previewStatus];
 
   return (
-    <Stack spacing={2}>
+    <Stack spacing={2} useFlexGap>
       <input name="previewIconUrl" type="hidden" value={previewIconUrl} />
       <Stack direction="row" spacing={2} sx={{ alignItems: "center", px: 0.5 }}>
         <MerchantAvatar

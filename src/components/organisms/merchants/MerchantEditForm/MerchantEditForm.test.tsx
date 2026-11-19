@@ -8,6 +8,7 @@ import {
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createMerchantRow } from "@/test/mocks/merchants";
+import { expectFirstVisibleStackChildHasNoTopMargin } from "test/formStackSpacing";
 
 import { MerchantEditForm } from "./MerchantEditForm";
 
@@ -30,6 +31,7 @@ describe("MerchantEditForm", () => {
     expect(container.querySelector('input[name="merchantId"]')).toHaveValue(
       merchant.id,
     );
+    expectFirstVisibleStackChildHasNoTopMargin(container.querySelector("form"));
 
     fireEvent.change(screen.getByLabelText(/商家名称/), {
       target: { value: "LIFE" },

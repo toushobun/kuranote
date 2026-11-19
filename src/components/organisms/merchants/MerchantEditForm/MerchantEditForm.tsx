@@ -86,7 +86,13 @@ export function MerchantEditForm({
   );
 
   return (
-    <Stack component="form" id={id} action={action} spacing={2.5}>
+    <Stack
+      component="form"
+      id={id}
+      action={action}
+      spacing={2.5}
+      useFlexGap
+    >
       <input name="merchantId" type="hidden" value={merchant.id} />
       <input
         name="addedAliases"
