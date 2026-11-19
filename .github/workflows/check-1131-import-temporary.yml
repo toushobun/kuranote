@@ -15,6 +15,10 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
+      - name: Show Prettier changes
+        run: |
+          npx prettier src --write >/dev/null
+          git diff -- src
       - run: npm run type-check
       - run: npm run lint
       - run: npm run format:check
