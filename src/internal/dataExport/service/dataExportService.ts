@@ -5,7 +5,11 @@ import type { TransactionExportQueryService } from "internal/transaction";
 import type { DataExport } from "internal/dataExport/entity/dataExport";
 
 export interface DataExportService {
-  getData(input: { ledgerId: string; userId: string; includePhotos?: boolean }): Promise<DataExport>;
+  getData(input: {
+    ledgerId: string;
+    userId: string;
+    includePhotos?: boolean;
+  }): Promise<DataExport>;
 }
 
 async function loadReferences<T>(
