@@ -1,0 +1,34 @@
+name: Issue 1131 review validation
+on:
+  push:
+    branches:
+      - feat/1131_import_receipt_photos
+permissions:
+  contents: read
+jobs:
+  quick:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Show source format patch
+        run: |
+          npx prettier src --write >/dev/null
+          git diff -- src
+      - run: npm run type-check
+      - run: npm run lint
+      - run: npx vitest run src/components/templates/settings/useDataImportForm.test.ts src/internal/dataImport/util/validateImportWorkbook.test.ts src/utils/dataImportPhotoBatch.test.ts src/internal/dataImport/util/readWorksheetPhotos.test.ts src/utils/dataExportWorkbook.test.ts
+  full:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
