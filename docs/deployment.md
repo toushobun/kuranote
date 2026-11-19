@@ -158,7 +158,7 @@ workflow 文件：
 
 ### 普通 PR
 
-1. 开发中持续 push，CI 自动运行（Stage 1: format-check / type-check / lint 并行 → Stage 2: test → Stage 3: build / storybook-build 并行）。
+1. 开发中持续 push，CI 自动运行（format-check / type-check / lint / test（vitest 分 4 片）/ build / storybook-build 等全部 job 同时开始；同一 PR 推送新提交时自动取消旧的运行）。
 2. CI 全部通过后发起 Review，确认无问题后 merge。
 3. merge 到 main 后，`deploy.yml` 自动启动，并在生产部署前执行 `supabase db push`。
 4. 打开 Vercel Production URL，验证登录、Dashboard、记账相关页面。
