@@ -70,11 +70,7 @@ jobs:
         run: npm ci
 
       - name: Check formatting
-        run: |
-          npx prettier --write src/internal/merchant/router.test.ts
-          printf 'FORMATTED:src/internal/merchant/router.test.ts:'
-          base64 -w0 src/internal/merchant/router.test.ts
-          printf '\n'
+        run: npm run format:check
 
   lint:
     name: Lint

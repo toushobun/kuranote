@@ -236,12 +236,14 @@ describe("merchant router", () => {
   });
 
   it("已有别名冲突时更新商家返回安全的 409 且不刷新缓存", async () => {
-    const updateMerchant = vi.fn().mockRejectedValue(
-      new ConflictError(
-        merchantErrorCodes.aliasDuplicate,
-        merchantErrorMessages[merchantErrorCodes.aliasDuplicate],
-      ),
-    );
+    const updateMerchant = vi
+      .fn()
+      .mockRejectedValue(
+        new ConflictError(
+          merchantErrorCodes.aliasDuplicate,
+          merchantErrorMessages[merchantErrorCodes.aliasDuplicate],
+        ),
+      );
     const app = createApp(createService({ updateMerchant }));
 
     const response = await app.request(
