@@ -137,7 +137,7 @@ function rowResultsForUnit(
 ): ImportExecutionRowResult[] {
   const sheet: ImportExecutionSheetKind = unit.kind;
   return unitRowNumbers(unit).map((rowNumber, index) => ({
-    ...(unit.kind === "incomeExpense" && unit.group.attachmentIds && index === 0
+    ...(status !== "failed" && unit.kind === "incomeExpense" && unit.group.attachmentIds && index === 0
       ? { photoCount: unit.group.attachmentIds.length }
       : {}),
     reason,
