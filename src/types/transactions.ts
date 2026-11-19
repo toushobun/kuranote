@@ -236,7 +236,7 @@ export type TransferEditInitialValues = {
   transactionAt: string;
   transactionRecordId: string;
   transferAmount: string;
-  transferTargetAmount: string;
+  transferTargetAmount?: string;
   transferTargetAccountId: string;
   type: "transfer";
 };

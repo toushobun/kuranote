@@ -19,6 +19,7 @@ import { parseAccountType } from "internal/dataImport/util/parseAccountType";
 import { parseHolderName } from "internal/dataImport/util/parseHolderName";
 import { parseImportAmount } from "internal/dataImport/util/parseImportAmount";
 import { parseImportDate } from "internal/dataImport/util/parseImportDate";
+import { exceedsCurrencyDecimalPlaces } from "utils/transactionAmountInput";
 
 export type ParseTransferSheetResult = {
   issues: ImportValidationIssue[];
@@ -111,6 +112,48 @@ export function parseTransferSheet(
       addIssue("金额", transferImportErrorMessages.amountInvalid);
     }
 
+    const rawTargetAmount = get("到账金额");
+    const isCrossCurrency =
+      fromAccountCurrencyValid &&
+      toAccountCurrencyValid &&
+      fromAccountCurrencyText.toUpperCase() !==
+        toAccountCurrencyText.toUpperCase();
+    const targetAmountResult = rawTargetAmount
+      ? parseImportAmount(rawTargetAmount, { allowZero: false })
+      : null;
+    if (isCrossCurrency && !rawTargetAmount) {
+      addIssue("到账金额", transferImportErrorMessages.targetAmountRequired);
+    } else if (
+      rawTargetAmount &&
+      (!targetAmountResult?.ok ||
+        exceedsCurrencyDecimalPlaces(
+          rawTargetAmount,
+          toAccountCurrencyText.toUpperCase(),
+        ))
+    ) {
+      addIssue("到账金额", transferImportErrorMessages.targetAmountInvalid);
+    } else if (
+      !isCrossCurrency &&
+      fromAccountCurrencyValid &&
+      toAccountCurrencyValid &&
+      targetAmountResult?.ok &&
+      amountResult.ok &&
+      targetAmountResult.value !== amountResult.value
+    ) {
+      addIssue("到账金额", transferImportErrorMessages.targetAmountMismatch);
+    }
+
+    if (
+      amountResult.ok &&
+      fromAccountCurrencyValid &&
+      exceedsCurrencyDecimalPlaces(
+        get("金额"),
+        fromAccountCurrencyText.toUpperCase(),
+      )
+    ) {
+      addIssue("金额", transferImportErrorMessages.amountInvalid);
+    }
+
     const note = get("备注");
     if (note.length > importNoteMaxLength) {
       addIssue("备注", importRowErrorMessages.noteTooLong);
@@ -176,6 +219,10 @@ export function parseTransferSheet(
 
     rows.push({
       amount: amountResult.ok ? amountResult.value : 0,
+      targetAmount:
+        isCrossCurrency && targetAmountResult?.ok
+          ? targetAmountResult.value
+          : null,
       fromAccountCurrency: fromAccountCurrencyText.toUpperCase(),
       fromAccountHolder: fromAccountHolderResult.value,
       fromAccountName,
