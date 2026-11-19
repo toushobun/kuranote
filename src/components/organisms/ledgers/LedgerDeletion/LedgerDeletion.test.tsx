@@ -17,6 +17,7 @@ import {
   ledgerDeletionFixture,
   loadLedgerDeletionImpactWith,
 } from "test/ledgerDeletion";
+import { expectFirstVisibleStackChildHasNoTopMargin } from "test/formStackSpacing";
 import type { ActionState } from "types/actions";
 import type { LoadLedgerDeletionImpactAction } from "types/ledgers";
 import { LedgerDeletion } from "./LedgerDeletion";
@@ -159,6 +160,9 @@ describe("LedgerDeletion", () => {
   it("完全匹配后显示对勾并允许返回", async () => {
     setup();
     await secondStep("我们家");
+    expectFirstVisibleStackChildHasNoTopMargin(
+      document.querySelector('input[name="ledgerId"]')?.closest("form"),
+    );
     expect(screen.getByRole("button", { name: "永久删除" })).toBeEnabled();
     expect(screen.getByTitle("账本名已匹配")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "返回" }));
