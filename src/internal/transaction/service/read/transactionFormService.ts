@@ -220,7 +220,12 @@ async function buildEditTransactionView<
       toItems.length !== 1 ||
       !fromItem ||
       !toItem ||
-      !isValidTransferPair(fromItem, toItem)
+      !isValidTransferPair(
+        fromItem,
+        toItem,
+        currencyByAccountId.get(requireItemAccountId(fromItem)),
+        currencyByAccountId.get(requireItemAccountId(toItem)),
+      )
     ) {
       return null;
     }
@@ -502,6 +507,8 @@ function buildIncomeLinkCandidate(
 function isValidTransferPair(
   fromItem: TransactionItemDbRow,
   toItem: TransactionItemDbRow,
+  fromCurrency?: string,
+  toCurrency?: string,
 ) {
   const fromAmount = Number(fromItem.amount);
   const toAmount = Number(toItem.amount);
@@ -513,7 +520,8 @@ function isValidTransferPair(
     fromDelta < 0 &&
     toDelta > 0 &&
     fromAmount === Math.abs(fromDelta) &&
-    toAmount === Math.abs(toDelta)
+    toAmount === Math.abs(toDelta) &&
+    (fromCurrency !== toCurrency || fromAmount === toAmount)
   );
 }
 
