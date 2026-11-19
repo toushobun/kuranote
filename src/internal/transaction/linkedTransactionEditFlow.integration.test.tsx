@@ -31,6 +31,12 @@ import type { TransactionService } from "internal/transaction/service/transactio
 
 const transactionActionModuleMocks = getTransactionActionModuleMocks();
 
+// 此集成测试关注交易更新；附件读取由独立服务完成，按“无照片”模拟。
+vi.mock("internal/transaction/adapter/next/attachmentActions", () => ({
+  loadReceiptPhotos: vi.fn(async () => []),
+  discardReceiptPhoto: vi.fn(async () => {}),
+}));
+
 // 小票换商家时的快捷金额；这里不关心建议内容。
 vi.mock("lib/api/clientQuery", () => ({
   fetchClientJson: vi.fn(async () => null),
