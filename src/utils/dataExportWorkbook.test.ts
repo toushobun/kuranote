@@ -400,7 +400,7 @@ describe("dataExportWorkbook", () => {
     const images = sheet.getImages();
     expect(images).toHaveLength(3);
     for (const [index, item] of images.entries()) {
-      expect(item.range.editAs).toBe("twoCell");
+      expect((item.range as typeof item.range & { editAs?: string }).editAs).toBe("twoCell");
       expect(item.range.tl.nativeRow).toBe(1);
       expect(item.range.tl.nativeCol).toBe(columns.indexOf(`照片${index + 1}`) - 1);
       expect(item.range.tl.nativeColOff).toBe(0);

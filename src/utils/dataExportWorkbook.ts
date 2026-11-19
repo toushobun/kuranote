@@ -272,14 +272,17 @@ export async function buildDataExportWorkbook(
           if (bytes.length < 3 || bytes[0] !== 0xff || bytes[1] !== 0xd8)
             throw new Error("照片格式错误");
           const imageId = workbook.addImage({
-            buffer: bytes as unknown as Buffer,
+            buffer: bytes as never,
             extension: "jpeg",
           });
-          incomeExpense.addImage(imageId, {
-            tl: { col: task.column - 1, row: task.row - 1 },
-            br: { col: task.column, row: task.row },
-            editAs: "twoCell",
-          });
+          incomeExpense.addImage(
+            imageId,
+            {
+              tl: { col: task.column - 1, row: task.row - 1 },
+              br: { col: task.column, row: task.row },
+              editAs: "twoCell",
+            } as unknown as Parameters<typeof incomeExpense.addImage>[1],
+          );
           options?.onPhotoProgress?.(++completed, photoTasks.length);
         }
       },
