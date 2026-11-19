@@ -44,6 +44,19 @@ describe("prepareImportPhotoBatch", () => {
     expect(out.failedRows).toEqual([]);
   });
 
+  it("PNG 图片保留正确扩展名并继续使用统一压缩上传流程", async () => {
+    const upload = vi.fn().mockResolvedValue({ attachmentId: ids[0] });
+    await prepareImportPhotoBatch(
+      [unit],
+      new Map([[2, [{ ...photo("照片1"), mimeType: "image/png" }]]]),
+      "ledger",
+      upload,
+    );
+    const file = upload.mock.calls[0][0] as File;
+    expect(file.name).toBe("receipt-2-1.png");
+    expect(file.type).toBe("image/png");
+  });
+
   it("上传失败时跳过整条记录，标记账单多行失败", async () => {
     const upload = vi
       .fn()
