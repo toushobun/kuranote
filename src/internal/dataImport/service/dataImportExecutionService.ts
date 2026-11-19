@@ -136,7 +136,10 @@ function rowResultsForUnit(
   reason: string | null,
 ): ImportExecutionRowResult[] {
   const sheet: ImportExecutionSheetKind = unit.kind;
-  return unitRowNumbers(unit).map((rowNumber) => ({
+  return unitRowNumbers(unit).map((rowNumber, index) => ({
+    ...(unit.kind === "incomeExpense" && unit.group.attachmentIds && index === 0
+      ? { photoCount: unit.group.attachmentIds.length }
+      : {}),
     reason,
     rowNumber,
     sheet,
@@ -623,6 +626,7 @@ export function createDataImportExecutionService({
         const input = {
           payments,
           items,
+          ...(group.attachmentIds ? { attachmentIds: group.attachmentIds } : {}),
           ledgerId,
           merchantId: merchant.id,
           note: first.note,

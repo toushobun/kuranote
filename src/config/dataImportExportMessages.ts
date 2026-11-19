@@ -111,6 +111,7 @@ export const dataImportExecutionMessages = {
   downloadingButton: "正在生成结果文件…",
   downloadFailed: "结果文件生成失败，请稍后重试。",
   resultColumnTitle: "导入结果",
+  photoCountColumnTitle: "照片数",
   reasonColumnTitle: "原因",
   resultSuccess: "成功",
   resultDuplicate: "成功（疑似重复）",

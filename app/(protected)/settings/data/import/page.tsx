@@ -7,7 +7,7 @@ import { DataImportTemplate } from "templates/settings/DataImport";
 export const maxDuration = 60;
 
 export default async function SettingsDataImportRoute() {
-  const { canManageMembers, members, placeholders } =
+  const { canManageMembers, members, placeholders, ledgerId } =
     await loadDataImportHolderMappingOptions();
 
   return (
@@ -15,6 +15,7 @@ export default async function SettingsDataImportRoute() {
       canCreatePlaceholders={canManageMembers}
       executeBatchAction={executeDataImportBatch}
       holderMembers={members}
+      ledgerId={ledgerId}
       holderPlaceholders={placeholders}
     />
   );

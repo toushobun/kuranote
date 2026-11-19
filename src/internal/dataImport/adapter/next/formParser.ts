@@ -1,6 +1,7 @@
 import { z } from "@hono/zod-openapi";
 
 import { accountTypes } from "internal/account";
+import { transactionAttachmentLimits } from "config/transactionAttachmentLimits";
 import type { ImportExecutionUnit } from "internal/dataImport/entity/importRow";
 import {
   dataImportErrorCodes,
@@ -120,6 +121,11 @@ const executionUnitSchema = z.discriminatedUnion("kind", [
       .object({
         items: z.array(incomeExpenseRowSchema).min(1),
         rowNumbers: z.array(rowNumberSchema).min(1),
+        attachmentIds: z
+          .array(z.string().uuid())
+          .max(transactionAttachmentLimits.maxCount)
+          .refine((ids) => new Set(ids).size === ids.length)
+          .optional(),
       })
       .refine(isConsistentGroup)
       .refine(

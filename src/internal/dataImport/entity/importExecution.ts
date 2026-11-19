@@ -9,6 +9,7 @@ export type ImportExecutionRowStatus =
   | "success";
 
 export type ImportExecutionRowResult = {
+  photoCount?: number;
   reason: string | null;
   rowNumber: number;
   sheet: ImportExecutionSheetKind;

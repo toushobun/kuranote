@@ -18,6 +18,7 @@ export async function loadDataImportHolderMappingOptions() {
 
   return {
     ...options,
+    ledgerId: currentLedger.id,
     canManageMembers: canManageMembers(currentLedger.currentUserRole),
   };
 }
