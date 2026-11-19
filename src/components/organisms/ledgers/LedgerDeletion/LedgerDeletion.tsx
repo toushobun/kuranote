@@ -239,6 +239,7 @@ export function LedgerDeletion({
               component="form"
               action={flow.formAction}
               spacing={2}
+              useFlexGap
               aria-busy={flow.pending}
             >
               <input type="hidden" name="ledgerId" value={ledger.id} />

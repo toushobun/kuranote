@@ -109,6 +109,7 @@ export function LedgerPlaceholderMemberDialog({
                   component="form"
                   key={row.placeholder.id}
                   spacing={1.25}
+                  useFlexGap
                 >
                   <input name="ledgerId" type="hidden" value={ledgerId} />
                   <input
