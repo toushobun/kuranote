@@ -1,0 +1,1 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";var t,n=e((()=>{t={title:`余额调整`,failureTitle:`操作失败`,noteLabel:`余额调整备注`,increase:`将增加`,decrease:`将减少`,amount:`调整金额`,increaseTag:`余额调整 · 增加`,decreaseTag:`余额调整 · 减少`,save:`保存修改`,remove:`删除`,deleteTitle:`删除余额调整`,deleteDescription:`删除后将按原调整金额反向冲销账户余额。确定删除吗？`,invalidBalance:`请输入最多两位小数的有效余额。`}}));export{n,t};
