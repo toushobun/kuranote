@@ -328,6 +328,7 @@ describe("TransactionRepository", () => {
     const { repository, rpc } = createRepository();
     await repository.createNormal(normalInput);
     expect(rpc).toHaveBeenCalledWith("create_transaction", {
+      p_attachment_ids: [],
       p_payments: [{ accountId }],
       p_items: [
         {

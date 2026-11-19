@@ -1167,6 +1167,7 @@ describe("TransactionService", () => {
         offset: 20,
       });
       expect(repository.listRecords).toHaveBeenCalledWith({
+        includeAttachmentCount: true,
         ledgerId,
         recordIds: [secondId, transactionRecordId, missingId],
         recordType: "all",

@@ -81,6 +81,7 @@ type TransactionPaymentRepositoryRow = Omit<
 };
 
 export type CreateNormalTransactionInput = {
+  attachmentIds?: string[];
   items: TransactionItemInput[];
   ledgerId: string;
   merchantId: string;
@@ -136,6 +137,7 @@ type TransactionDashboardRecentAccountMovement = Pick<
 >;
 
 export type TransactionRecordQuery = {
+  includeAttachmentCount?: boolean;
   dateEnd?: string;
   dateStart?: string;
   groupKeyPushDown?: { groupBy: TransactionGroupBy; groupKey: string };
@@ -651,6 +653,7 @@ export function createSupabaseTransactionRepository(
   return {
     async createNormal(input) {
       const { error } = await supabase.rpc("create_transaction", {
+        p_attachment_ids: input.attachmentIds ?? [],
         p_items: toTransactionRpcItems(input.items),
         p_ledger_id: input.ledgerId,
         p_merchant_id: input.merchantId,
@@ -1179,7 +1182,46 @@ export function createSupabaseTransactionRepository(
           transactionLoadErrorMessages.recordsLoadFailed,
         );
       }
-      return (data ?? []) as TransactionRecordDbRow[];
+      const records = (data ?? []) as TransactionRecordDbRow[];
+      if (!input.includeAttachmentCount) return records;
+      const normalRecordIds = records
+        .filter((record) => record.type === "normal")
+        .map((record) => record.id);
+      const counts = new Map<string, number>();
+      // 查询每页一次，按 100 个 ID 分块；不在列表里对每条记录请求照片。
+      for (const ids of chunkArray(
+        normalRecordIds,
+        itemQueryRecordIdChunkSize,
+      )) {
+        const { data: attachmentRows, error: attachmentError } = await supabase
+          .from("transaction_attachment")
+          .select("transaction_record_id")
+          .eq("ledger_id", input.ledgerId)
+          .in("transaction_record_id", ids);
+        if (attachmentError) {
+          logger.error("[transaction] failed to load attachment indicators", {
+            databaseCode: attachmentError.code,
+            ledgerId: input.ledgerId,
+          });
+          throw toRepositoryError(
+            "transaction_attachments_load_failed",
+            transactionLoadErrorMessages.recordsLoadFailed,
+          );
+        }
+        for (const row of attachmentRows ?? []) {
+          if (row.transaction_record_id) {
+            counts.set(
+              row.transaction_record_id,
+              (counts.get(row.transaction_record_id) ?? 0) + 1,
+            );
+          }
+        }
+      }
+      return records.map((record) =>
+        record.type === "normal"
+          ? { ...record, attachment_count: counts.get(record.id) ?? 0 }
+          : record,
+      );
     },
 
     async loadGroupSummaries(input) {
@@ -1220,6 +1262,7 @@ export function createSupabaseTransactionRepository(
 
     async updateNormal(input) {
       const { error } = await supabase.rpc("update_transaction", {
+        p_attachment_ids: input.attachmentIds ?? null,
         p_items: toTransactionRpcItems(input.items),
         p_ledger_id: input.ledgerId,
         p_merchant_id: input.merchantId,

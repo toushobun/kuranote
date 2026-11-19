@@ -500,6 +500,7 @@ const transactionItemRequestSchema = z.object({
 });
 
 const normalTransactionRequestSchema = z.object({
+  attachmentIds: z.array(z.string().uuid()).max(5).optional(),
   accountId: z.string().uuid(),
   items: z.array(transactionItemRequestSchema).min(1),
   ledgerId: z.string().uuid(),
@@ -684,3 +685,61 @@ export const transactionOffsetEntryQuerySchema = z.object({
   recordId: z.uuid(),
   kind: z.enum(["refund", "reimbursement"]),
 });
+
+/** #1120：照片上传与签名读取 API 的统一输入、输出协议。 */
+export const attachmentUploadRequestSchema = z.object({
+  ledgerId: z.string().uuid(),
+  byteSize: z.number().int().min(1).max(2097152),
+  width: z.number().int().min(1).max(20000),
+  height: z.number().int().min(1).max(20000),
+});
+
+export const attachmentIdParamsSchema = z.object({
+  attachmentId: z.string().uuid(),
+});
+
+export const attachmentUploadTokenSchema = z.object({
+  path: z.string(),
+  signedUrl: z.string().url(),
+  token: z.string(),
+});
+
+export const attachmentUploadResponseSchema = z.object({
+  attachmentId: z.string().uuid(),
+  full: attachmentUploadTokenSchema,
+  thumbnail: attachmentUploadTokenSchema,
+});
+
+export const attachmentSignedReadResponseSchema = z.object({
+  attachments: z.array(
+    z.object({
+      id: z.string().uuid(),
+      fullUrl: z.string().url(),
+      thumbnailUrl: z.string().url(),
+    }),
+  ),
+});
+
+/**
+ * 未提供照片字段：不改动编辑记录已有的附件；
+ * 提供 attachmentIdsPresent 隐藏字段：空数组表示全部移除。
+ */
+export function parseTransactionAttachmentIds(
+  formData: FormData,
+): { ok: true; value: string[] | undefined } | { ok: false } {
+  if (!formData.has("attachmentIdsPresent") && !formData.has("attachmentIds")) {
+    return { ok: true, value: undefined };
+  }
+  const parsed = z
+    .array(z.string().uuid())
+    .max(5)
+    .safeParse(
+      formData
+        .getAll("attachmentIds")
+        .map((value) => (typeof value === "string" ? value : null)),
+    );
+  if (!parsed.success || new Set(parsed.data).size !== parsed.data.length) {
+    return { ok: false };
+  }
+  return { ok: true, value: parsed.data };
+}
