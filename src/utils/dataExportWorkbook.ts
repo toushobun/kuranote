@@ -28,6 +28,7 @@ import { getCategoryDisplayName } from "utils/categoryNames";
 import { formatDateTimeLocalInputValue } from "utils/transactions";
 
 const photoRowHeight = 90;
+const photoColumnWidth = 12;
 const photoDownloadConcurrency = 4;
 
 type PhotoWorkbookOptions = {
@@ -51,7 +52,11 @@ export async function buildDataExportWorkbook(
     sheet.columns = columns.map(({ name }) => ({
       header: name,
       key: name,
-      width: name === "备注" ? 36 : 22,
+      width: incomeExpensePhotoColumnNames.some((photoName) => photoName === name)
+        ? photoColumnWidth
+        : name === "备注"
+          ? 36
+          : 22,
     }));
     sheet.getRow(1).eachCell((cell) => {
       cell.font = { bold: true };
