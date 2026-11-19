@@ -97,25 +97,20 @@ describe("TransferReceipt", () => {
     expect(screen.getByRole("radiogroup", { name: "收支账户" })).toBeVisible();
   });
 
-  it("已解决的问题再次出现时不显示，下次保存才显示", async () => {
+  it("跨币种缺少到账金额时点保存才标红，换回同币种后提示消失", async () => {
     setup();
     chooseAccount("转出", "现金 JPY");
     chooseAccount("转入", "招商银行卡 CNY");
     click("保存转账");
-    expect(screen.getByText("暂不支持不同币种之间的转账")).toBeInTheDocument();
+    expect(screen.getByText("请输入到账金额")).toBeInTheDocument();
     chooseAccount("转入", "PayPay JPY");
     await waitFor(() =>
-      expect(screen.queryByText("暂不支持不同币种之间的转账")).toBeNull(),
+      expect(screen.queryByText("请输入到账金额")).toBeNull(),
     );
     chooseAccount("转入", "招商银行卡 CNY");
-    await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: "更换转入账户：招商银行卡" }),
-      ).toBeVisible(),
-    );
-    expect(screen.queryByText("暂不支持不同币种之间的转账")).toBeNull();
+    expect(screen.queryByText("请输入到账金额")).toBeNull();
     click("保存转账");
-    expect(screen.getByText("暂不支持不同币种之间的转账")).toBeInTheDocument();
+    expect(screen.getByText("请输入到账金额")).toBeInTheDocument();
   });
 
   it("选账户时不列出另一边已选的账户，填完后提交转账字段", async () => {
@@ -142,7 +137,7 @@ describe("TransferReceipt", () => {
     expect(form.has("transactionRecordId")).toBe(false);
   });
 
-  it("转出与转入币种不同时不能保存", async () => {
+  it("跨币种必须填写两个金额才能保存", async () => {
     const { action } = setup();
     chooseAccount("转出", "招商银行卡 CNY");
     await waitFor(() =>
@@ -151,14 +146,18 @@ describe("TransferReceipt", () => {
       ).toBeVisible(),
     );
     chooseAccount("转入", "现金 JPY");
-    enterAmount("1");
+    click(/^修改转出金额：/);
+    pressItemAmountKey("1");
+    pressItemAmountKey("确定");
     click("保存转账");
     expect(action).not.toHaveBeenCalled();
-    expect(
-      screen
-        .getAllByRole("alert", { hidden: true })
-        .map((alert) => alert.textContent),
-    ).toEqual(["暂不支持不同币种之间的转账"]);
+    expect(screen.getByText("请输入到账金额")).toBeInTheDocument();
+    click(/^修改到账金额：/);
+    pressItemAmountKey("2");
+    pressItemAmountKey("确定");
+    click("保存转账");
+    await waitFor(() => expect(action).toHaveBeenCalledOnce());
+    expect(submittedForm(action).get("transferTargetAmount")).toBe("2");
   });
 
   it("编辑转账预填原记录，动过才报告未保存，提交原记录 id 与类型", async () => {
@@ -181,6 +180,23 @@ describe("TransferReceipt", () => {
     expect(form.get("sourceType")).toBe("transfer");
     expect(form.get("transferTargetAccountId")).toBe("bank");
     expect(form.get("note")).toBe("取现");
+  });
+
+  it("只读跨币种同时显示转出、到账和计算汇率", () => {
+    setup({
+      initialValues: {
+        ...editValues,
+        accountId: "cash",
+        transferTargetAccountId: "cny",
+        transferAmount: "100000",
+        transferTargetAmount: "4850",
+      },
+      readOnly: true,
+    });
+    expect(screen.getByText("转出金额")).toBeInTheDocument();
+    expect(screen.getByText("到账金额")).toBeInTheDocument();
+    expect(screen.getByText(/汇率 1 CNY ≈ 20.62 JPY/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "保存转账" })).toBeNull();
   });
 
   it("只读详情没有铅笔、提示和保存", () => {
