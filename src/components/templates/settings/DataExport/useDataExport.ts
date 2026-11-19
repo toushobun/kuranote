@@ -14,6 +14,11 @@ export function useDataExport(exportAction: DataExportAction) {
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasDownloaded, setHasDownloaded] = useState(false);
+  const [includePhotos, setIncludePhotos] = useState(false);
+  const [photoProgress, setPhotoProgress] = useState<{
+    done: number;
+    total: number;
+  } | null>(null);
 
   async function handleExport() {
     if (busy.current) return;
@@ -21,15 +26,22 @@ export function useDataExport(exportAction: DataExportAction) {
     setIsExporting(true);
     setError(null);
     setHasDownloaded(false);
+    setPhotoProgress(null);
     try {
-      const state = await exportAction();
+      const state = await exportAction(includePhotos);
       if (!state.data) {
         setError(state.error ?? dataExportErrorMessages.exportFailed);
         return;
       }
       const { buildDataExportWorkbook } =
         await import("utils/dataExportWorkbook");
-      const buffer = await buildDataExportWorkbook(state.data);
+      const buffer = includePhotos
+        ? await buildDataExportWorkbook(state.data, {
+            onPhotoProgress: (done, total) => {
+              if (total > 0) setPhotoProgress({ done, total });
+            },
+          })
+        : await buildDataExportWorkbook(state.data);
       const blob = new Blob([buffer], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
@@ -56,9 +68,13 @@ export function useDataExport(exportAction: DataExportAction) {
     } finally {
       busy.current = false;
       setIsExporting(false);
+      setPhotoProgress(null);
     }
   }
   return {
+    includePhotos,
+    setIncludePhotos,
+    photoProgress,
     isExporting,
     error,
     hasDownloaded,

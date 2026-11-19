@@ -2,6 +2,8 @@
 
 import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import Alert from "@mui/material/Alert";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Switch from "@mui/material/Switch";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
@@ -22,8 +24,16 @@ export function DataExportTemplate({
 }: {
   exportAction: DataExportAction;
 }) {
-  const { isExporting, error, hasDownloaded, handleExport, closeError } =
-    useDataExport(exportAction);
+  const {
+    includePhotos,
+    setIncludePhotos,
+    photoProgress,
+    isExporting,
+    error,
+    hasDownloaded,
+    handleExport,
+    closeError,
+  } = useDataExport(exportAction);
   return (
     <SettingsPageLayout
       back={{
@@ -44,6 +54,21 @@ export function DataExportTemplate({
                 {text}
               </Typography>
             ))}
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={includePhotos}
+                  disabled={isExporting}
+                  onChange={(_, checked) => setIncludePhotos(checked)}
+                />
+              }
+              label={messages.includePhotos}
+            />
+            {includePhotos ? (
+              <Typography color="textSecondary" variant="body2">
+                {messages.photoSizeHint}
+              </Typography>
+            ) : null}
             <ActionButton
               pending={isExporting}
               pendingLabel={actionPendingMessages.export}
@@ -54,6 +79,11 @@ export function DataExportTemplate({
             >
               {messages.button}
             </ActionButton>
+            {photoProgress ? (
+              <Typography role="status" color="textSecondary" variant="body2">
+                {messages.photoProgress(photoProgress.done, photoProgress.total)}
+              </Typography>
+            ) : null}
           </Stack>
         </SectionCard>
         {hasDownloaded ? (

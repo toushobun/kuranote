@@ -55,6 +55,20 @@ describe("DataExportTemplate", () => {
       screen.getByText(/包含全部收支、转账和余额变更/),
     ).toBeInTheDocument();
   });
+  it("默认关闭照片开关，开启后展示大文件提示并把选项传给服务端", async () => {
+    const action = vi.fn().mockResolvedValue({ data: createEmptyDataExport() });
+    render(<DataExportTemplate exportAction={action} />);
+    const toggle = screen.getByRole("checkbox", { name: "导出照片" });
+    expect(toggle).not.toBeChecked();
+    fireEvent.click(toggle);
+    expect(screen.getByText(/文件可能较大/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "导出 xlsx" }));
+    await waitFor(() => expect(action).toHaveBeenCalledWith(true));
+    expect(buildWorkbook).toHaveBeenCalledWith(
+      createEmptyDataExport(),
+      expect.objectContaining({ onPhotoProgress: expect.any(Function) }),
+    );
+  });
   it("导出期间禁用按钮并阻止重复请求", async () => {
     const action = vi.fn(
       () => new Promise<Awaited<ReturnType<DataExportAction>>>(() => {}),

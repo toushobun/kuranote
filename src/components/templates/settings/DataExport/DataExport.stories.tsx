@@ -24,6 +24,39 @@ const startExport: NonNullable<Story["play"]> = async ({ canvasElement }) => {
   );
 };
 export const Default: Story = { name: "默认（可下载示例）" };
+export const IncludePhotos: Story = {
+  name: "导出照片开关",
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      within(canvasElement).getByRole("checkbox", { name: "导出照片" }),
+    );
+  },
+};
+export const DownloadingPhotos: Story = {
+  name: "正在下载照片",
+  args: {
+    exportAction: async () => ({
+      data: {
+        ...createDataExportFixture(),
+        photos: [
+          { recordId: "normal", sortOrder: 0, fullUrl: "https://example.com/photo.jpg" },
+        ],
+      },
+    }),
+  },
+  play: async ({ canvasElement }) => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = () => new Promise<Response>(() => {});
+    try {
+      const canvas = within(canvasElement);
+      await userEvent.click(canvas.getByRole("checkbox", { name: "导出照片" }));
+      await userEvent.click(canvas.getByRole("button", { name: "导出 xlsx" }));
+      await canvas.findByText("正在下载照片 0/1");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  },
+};
 export const Exporting: Story = {
   name: "导出中",
   args: { exportAction: () => new Promise(() => {}) },

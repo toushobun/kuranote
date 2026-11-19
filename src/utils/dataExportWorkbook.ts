@@ -12,6 +12,8 @@ import {
 } from "internal/dataExport";
 import {
   incomeExpenseColumns,
+  incomeExpensePhotoColumnNames,
+  incomeExpensePhotoColumns,
   incomeExpensePaymentColumnNames,
   incomeExpensePaymentColumns,
   transferColumns,
@@ -24,8 +26,23 @@ import { getAccountTypeLabel } from "utils/accounts";
 import { getCategoryDisplayName } from "utils/categoryNames";
 import { formatDateTimeLocalInputValue } from "utils/transactions";
 
+const photoRowHeight = 90;
+const photoDownloadConcurrency = 4;
+
+type PhotoWorkbookOptions = {
+  downloadPhoto?: (url: string) => Promise<Uint8Array>;
+  onPhotoProgress?: (done: number, total: number) => void;
+};
+
+async function fetchPhoto(url: string): Promise<Uint8Array> {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error("照片下载失败");
+  return new Uint8Array(await response.arrayBuffer());
+}
+
 export async function buildDataExportWorkbook(
   data: DataExport,
+  options?: PhotoWorkbookOptions,
 ): Promise<ArrayBuffer> {
   const workbook = new ExcelJS.Workbook();
   function createSheet(name: string, columns: ImportColumnDef[]) {
@@ -46,16 +63,33 @@ export async function buildDataExportWorkbook(
     sheet.views = [{ state: "frozen", ySplit: 1 }];
     return sheet;
   }
+  const withPhotos = Boolean(data.photos?.length);
   const incomeExpense = createSheet(
     importSheetKindLabels.incomeExpense,
-    incomeExpenseColumns.filter(
-      (column) =>
-        column.name !== incomeExpensePaymentColumnNames.paymentAmount ||
-        data.records.some(
-          (record) => record.type === "normal" && record.payments.length > 1,
-        ),
-    ),
+    [
+      ...incomeExpenseColumns.filter(
+        (column) =>
+          column.name !== incomeExpensePaymentColumnNames.paymentAmount ||
+          data.records.some(
+            (record) => record.type === "normal" && record.payments.length > 1,
+          ),
+      ),
+      ...(withPhotos ? incomeExpensePhotoColumns : []),
+    ],
   );
+  const photosByRecord = new Map<
+    string,
+    NonNullable<DataExport["photos"]>
+  >();
+  for (const photo of data.photos ?? []) {
+    const recordPhotos = photosByRecord.get(photo.recordId) ?? [];
+    recordPhotos.push(photo);
+    photosByRecord.set(photo.recordId, recordPhotos);
+  }
+  for (const photos of photosByRecord.values()) {
+    photos.sort((a, b) => a.sortOrder - b.sortOrder);
+  }
+  const photoTasks: { column: number; row: number; url: string }[] = [];
   const transfer = createSheet(importSheetKindLabels.transfer, transferColumns);
   const adjustment = createSheet(
     importSheetKindLabels.balanceAdjustment,
@@ -176,6 +210,23 @@ export async function buildDataExportWorkbook(
             : "",
           金额: item.amount,
         });
+        if (index === 0) {
+          const photos = photosByRecord.get(record.id) ?? [];
+          if (photos.length > incomeExpensePhotoColumnNames.length)
+            throw new IncompleteDataExportError();
+          if (photos.length > 0) {
+            row.height = photoRowHeight;
+            photos.forEach((photo, photoIndex) => {
+              photoTasks.push({
+                column: incomeExpense.getColumn(
+                  incomeExpensePhotoColumnNames[photoIndex],
+                ).number,
+                row: row.number,
+                url: photo.fullUrl,
+              });
+            });
+          }
+        }
         if (record.payments.length === 1) {
           writeAccount(
             row,
@@ -207,5 +258,32 @@ export async function buildDataExportWorkbook(
       }
     }
   }
+  let nextTask = 0;
+  let completed = 0;
+  options?.onPhotoProgress?.(0, photoTasks.length);
+  await Promise.all(
+    Array.from(
+      { length: Math.min(photoDownloadConcurrency, photoTasks.length) },
+      async () => {
+        while (nextTask < photoTasks.length) {
+          const task = photoTasks[nextTask++];
+          const bytes = await (options?.downloadPhoto ?? fetchPhoto)(task.url);
+          // 原始 Storage 文件是 JPEG；拒绝空文件或非 JPEG 响应，不能静默漏图。
+          if (bytes.length < 3 || bytes[0] !== 0xff || bytes[1] !== 0xd8)
+            throw new Error("照片格式错误");
+          const imageId = workbook.addImage({
+            buffer: bytes as unknown as Buffer,
+            extension: "jpeg",
+          });
+          incomeExpense.addImage(imageId, {
+            tl: { col: task.column - 1, row: task.row - 1 },
+            br: { col: task.column, row: task.row },
+            editAs: "twoCell",
+          });
+          options?.onPhotoProgress?.(++completed, photoTasks.length);
+        }
+      },
+    ),
+  );
   return (await workbook.xlsx.writeBuffer()) as unknown as ArrayBuffer;
 }
