@@ -18,13 +18,7 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
-      - name: Run Prettier and commit
+      - name: Show formatted source patch
         run: |
-          npx prettier . --write
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -u
-          if ! git diff --cached --quiet; then
-            git commit -m "style: 格式化小票照片导入导出代码"
-            git push
-          fi
+          npx prettier . --write >/dev/null
+          git diff -- src
