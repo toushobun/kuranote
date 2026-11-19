@@ -10,6 +10,8 @@ env:
   RUN_CODE_CI: &run_code_ci >-
     github.event_name != 'pull_request' ||
     startsWith(github.head_ref, 'docs/') == false
+  # DB 检查只需要 Postgres、Auth、Storage 等表结构来源，不启动与测试无关的服务以缩短 supabase start。
+  SUPABASE_START_EXCLUDE: studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor,realtime,postgres-meta
 
 # 同一 PR 推送新提交时取消仍在运行的旧 CI，只保留最新一次的结果。
 concurrency:
@@ -276,7 +278,7 @@ jobs:
 
       - name: Start local Supabase
         if: steps.scope.outputs.run == 'true'
-        run: supabase start
+        run: supabase start -x "${SUPABASE_START_EXCLUDE}"
 
       - name: Compare migrations with schema snapshot
         if: steps.scope.outputs.run == 'true'
@@ -299,10 +301,6 @@ jobs:
           name: current-schema-snapshot
           path: /tmp/kuranote-current-schema.sql
           if-no-files-found: ignore
-
-      - name: Stop local Supabase
-        if: always() && steps.scope.outputs.run == 'true'
-        run: supabase stop --no-backup
 
   migration-check:
     name: Migration check
@@ -369,7 +367,7 @@ jobs:
         if: steps.scope.outputs.run == 'true'
         shell: bash
         run: |
-          if ! supabase start > /tmp/supabase-start.log 2>&1; then
+          if ! supabase start -x "${SUPABASE_START_EXCLUDE}" > /tmp/supabase-start.log 2>&1; then
             cat /tmp/supabase-start.log
             exit 1
           fi
@@ -386,10 +384,6 @@ jobs:
           bash supabase/tests/database/issue_944_link_retarget_concurrency.sh
           bash supabase/tests/database/transaction_payment_account_lock_concurrency.sh
           bash supabase/tests/database/account_currency_lock_concurrency.sh
-
-      - name: Stop local Supabase
-        if: always() && steps.scope.outputs.run == 'true'
-        run: supabase stop --no-backup > /dev/null 2>&1
 
       - name: Check required configuration
         if: steps.scope.outputs.run == 'true'
