@@ -33,7 +33,8 @@ export const dataExportPageMessages = {
   button: "导出 xlsx",
   includePhotos: "导出照片",
   photoSizeHint: "包含照片的文件可能较大，导出时间也会更长。",
-  photoProgress: (done: number, total: number) => `正在下载照片 ${done}/${total}`,
+  photoProgress: (done: number, total: number) =>
+    `正在下载照片 ${done}/${total}`,
   success: "导出文件已生成，已开始下载。",
   failureTitle: "导出失败",
   fileName: "KuraNote-账本交易.xlsx",

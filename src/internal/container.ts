@@ -326,10 +326,11 @@ export function createRequestContainer(
               ledgerAccessService: getLedgerAccessService(),
             }),
             transactionQueryService: createTransactionExportQueryService({
-              attachmentStorageRepository: createSupabaseAttachmentStorageRepository(
-                dependencies.supabase,
-                dependencies.logger,
-              ),
+              attachmentStorageRepository:
+                createSupabaseAttachmentStorageRepository(
+                  dependencies.supabase,
+                  dependencies.logger,
+                ),
               transactionRepository: createSupabaseTransactionRepository(
                 dependencies.supabase,
                 dependencies.logger,

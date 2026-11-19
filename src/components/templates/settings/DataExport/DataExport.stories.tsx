@@ -39,7 +39,11 @@ export const DownloadingPhotos: Story = {
       data: {
         ...createDataExportFixture(),
         photos: [
-          { recordId: "normal", sortOrder: 0, fullUrl: "https://example.com/photo.jpg" },
+          {
+            recordId: "normal",
+            sortOrder: 0,
+            fullUrl: "https://example.com/photo.jpg",
+          },
         ],
       },
     }),

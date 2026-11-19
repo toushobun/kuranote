@@ -20,7 +20,11 @@ export async function exportCurrentLedgerData(
     dependencies = await createServerRequestDependencies();
     const data = await createRequestContainer(
       dependencies,
-    ).dataExport.service.getData({ ledgerId: currentLedger.id, userId, includePhotos });
+    ).dataExport.service.getData({
+      ledgerId: currentLedger.id,
+      userId,
+      includePhotos,
+    });
     return { data };
   } catch (error) {
     if (error instanceof AppError) return createErrorState(error.message);

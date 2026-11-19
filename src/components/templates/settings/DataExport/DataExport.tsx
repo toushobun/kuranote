@@ -81,7 +81,10 @@ export function DataExportTemplate({
             </ActionButton>
             {photoProgress ? (
               <Typography role="status" color="textSecondary" variant="body2">
-                {messages.photoProgress(photoProgress.done, photoProgress.total)}
+                {messages.photoProgress(
+                  photoProgress.done,
+                  photoProgress.total,
+                )}
               </Typography>
             ) : null}
           </Stack>
