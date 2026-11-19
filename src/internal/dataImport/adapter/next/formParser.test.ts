@@ -89,10 +89,22 @@ describe("parseExecuteDataImportBatchForm", () => {
       ...incomeExpenseUnit,
       group: { ...incomeExpenseUnit.group, attachmentIds: ids },
     });
-    expect(parseExecuteDataImportBatchForm(buildFormData([unitWith([one, two])], "0")).ok).toBe(true);
-    for (const ids of [[one, one], ["not-a-uuid"], Array.from({ length: 6 }, (_, i) =>
-      `00000000-0000-4000-8000-${String(91 + i).padStart(12, "0")}`)]) {
-      expect(parseExecuteDataImportBatchForm(buildFormData([unitWith(ids)], "0"))).toEqual(executionInvalid);
+    expect(
+      parseExecuteDataImportBatchForm(
+        buildFormData([unitWith([one, two])], "0"),
+      ).ok,
+    ).toBe(true);
+    for (const ids of [
+      [one, one],
+      ["not-a-uuid"],
+      Array.from(
+        { length: 6 },
+        (_, i) => `00000000-0000-4000-8000-${String(91 + i).padStart(12, "0")}`,
+      ),
+    ]) {
+      expect(
+        parseExecuteDataImportBatchForm(buildFormData([unitWith(ids)], "0")),
+      ).toEqual(executionInvalid);
     }
   });
 

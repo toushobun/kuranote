@@ -30,7 +30,8 @@ describe("readWorksheetPhotos", () => {
   it("按锚点列名读取内嵌 JPEG 原图", async () => {
     const { workbook, sheet } = await sheetWithPictures([{ col: 2, row: 1 }]);
     const result = readWorksheetPhotos(
-      workbook, sheet,
+      workbook,
+      sheet,
       ["日期", "金额", "照片1", "照片2", "照片3", "照片4", "照片5"],
       1,
     );
@@ -48,7 +49,8 @@ describe("readWorksheetPhotos", () => {
       { col: 3, row: 1, data: "AAEC" },
     ]);
     const result = readWorksheetPhotos(
-      workbook, sheet,
+      workbook,
+      sheet,
       ["日期", "金额", "照片1", "照片2", "照片3", "照片4", "照片5"],
       1,
     );

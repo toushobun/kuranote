@@ -55,7 +55,8 @@ export async function analyzeImportFile(
 
   // 使用完即关闭位图，防止一次性导入大文件时持续占用移动端图片内存。
   if (typeof createImageBitmap === "function") {
-    const issues: import("internal/dataImport/entity/importValidationIssue").ImportRowIssue[] = [];
+    const issues: import("internal/dataImport/entity/importValidationIssue").ImportRowIssue[] =
+      [];
     for (const [rowNumber, images] of analyzed.photosByRow) {
       for (const photo of images) {
         try {
