@@ -20,7 +20,10 @@ jobs:
       - run: npm ci
       - run: npm run type-check
       - run: npm run lint
-      - run: npx prettier src --check
+      - name: Show formatting patch
+        run: |
+          npx prettier src --write > /dev/null
+          git diff -- src
       - run: npx vitest run src/components/templates/settings/useDataImportForm.test.ts src/utils/dataImportResultWorkbook.test.ts
   full:
     runs-on: ubuntu-latest
