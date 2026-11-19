@@ -30,10 +30,13 @@ export function PageFormActions({
   return (
     <Stack direction="row" spacing={1.5}>
       <Button
+        disabled={pending}
         fullWidth
-        {...(onCancel
+        {...(onCancel && !pending
           ? { onClick: onCancel, type: "button" as const }
-          : { component: Link, href: cancelHref })}
+          : pending
+            ? { type: "button" as const }
+            : { component: Link, href: cancelHref })}
         sx={{ borderRadius: `${designTokens.radius.full}px` }}
         variant="outlined"
       >

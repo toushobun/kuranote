@@ -29,6 +29,7 @@ export type ItemsStepOptions = TransactionIncomeLinksContextValue & {
 };
 
 export type TransactionStepFlowProps = {
+  ledgerId: string;
   action: (
     previousState: ActionState,
     formData: FormData,

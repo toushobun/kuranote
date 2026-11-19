@@ -176,6 +176,7 @@ export function buildTransactionListItemsFromContext(
       filters: normalizedFilters,
       group,
       holderIdsByAccountId: context.holderIdsByAccountId,
+      ledgerId: context.currentLedger.id,
       merchantById: lookups.merchantById,
       payments: lookups.paymentsByRecordId.get(record.id) ?? [],
       record,

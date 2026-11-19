@@ -1,3 +1,4 @@
+import { transactionAttachmentLimits } from "config/transactionAttachmentLimits";
 import { transactionAttachmentMessages } from "config/transactionAttachmentMessages";
 import {
   canViewLedger,
@@ -11,6 +12,7 @@ import {
   NotFoundError,
   ValidationError,
 } from "internal/shared/errors/appError";
+import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
 import type {
   AttachmentStorageRepository,
   SignedAttachmentRead,
@@ -49,7 +51,10 @@ export function createTransactionAttachmentService({
 }): TransactionAttachmentService {
   async function memberRole(ledgerId: string) {
     if (!currentUserId) {
-      throw new AuthenticationError("not_authenticated", "请先登录。");
+      throw new AuthenticationError(
+        "not_authenticated",
+        sharedErrorMessages.authRequired,
+      );
     }
     return requireActiveLedgerMemberRole(ledgerAccessService, {
       ledgerId,
@@ -73,7 +78,7 @@ export function createTransactionAttachmentService({
       if (
         !Number.isSafeInteger(input.byteSize) ||
         input.byteSize < 1 ||
-        input.byteSize > 2097152 ||
+        input.byteSize > transactionAttachmentLimits.maxBytes ||
         !Number.isSafeInteger(input.width) ||
         input.width < 1 ||
         !Number.isSafeInteger(input.height) ||

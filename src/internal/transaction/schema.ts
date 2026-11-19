@@ -1,4 +1,5 @@
 import { z } from "@hono/zod-openapi";
+import { transactionAttachmentLimits } from "config/transactionAttachmentLimits";
 import {
   parseTimeZoneOffsetMinutes,
   toTransactionTimestamp,
@@ -500,7 +501,10 @@ const transactionItemRequestSchema = z.object({
 });
 
 const normalTransactionRequestSchema = z.object({
-  attachmentIds: z.array(z.string().uuid()).max(5).optional(),
+  attachmentIds: z
+    .array(z.string().uuid())
+    .max(transactionAttachmentLimits.maxCount)
+    .optional(),
   accountId: z.string().uuid(),
   items: z.array(transactionItemRequestSchema).min(1),
   ledgerId: z.string().uuid(),
@@ -686,38 +690,16 @@ export const transactionOffsetEntryQuerySchema = z.object({
   kind: z.enum(["refund", "reimbursement"]),
 });
 
-/** #1120：照片上传与签名读取 API 的统一输入、输出协议。 */
+/** #1120：照片上传与签名读取 API 的输入校验。 */
 export const attachmentUploadRequestSchema = z.object({
   ledgerId: z.string().uuid(),
-  byteSize: z.number().int().min(1).max(2097152),
+  byteSize: z.number().int().min(1).max(transactionAttachmentLimits.maxBytes),
   width: z.number().int().min(1).max(20000),
   height: z.number().int().min(1).max(20000),
 });
 
 export const attachmentIdParamsSchema = z.object({
   attachmentId: z.string().uuid(),
-});
-
-export const attachmentUploadTokenSchema = z.object({
-  path: z.string(),
-  signedUrl: z.string().url(),
-  token: z.string(),
-});
-
-export const attachmentUploadResponseSchema = z.object({
-  attachmentId: z.string().uuid(),
-  full: attachmentUploadTokenSchema,
-  thumbnail: attachmentUploadTokenSchema,
-});
-
-export const attachmentSignedReadResponseSchema = z.object({
-  attachments: z.array(
-    z.object({
-      id: z.string().uuid(),
-      fullUrl: z.string().url(),
-      thumbnailUrl: z.string().url(),
-    }),
-  ),
 });
 
 /**
@@ -732,7 +714,7 @@ export function parseTransactionAttachmentIds(
   }
   const parsed = z
     .array(z.string().uuid())
-    .max(5)
+    .max(transactionAttachmentLimits.maxCount)
     .safeParse(
       formData
         .getAll("attachmentIds")

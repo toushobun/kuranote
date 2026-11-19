@@ -85,6 +85,7 @@ export type CategorySummaryItem = {
 
 export type TransactionRowItem = {
   attachmentCount?: number;
+  attachmentLedgerId?: string;
   id: string;
   type: TransactionRecordType | "balance_adjustment";
   transaction_at: string;

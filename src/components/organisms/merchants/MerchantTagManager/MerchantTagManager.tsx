@@ -5,6 +5,8 @@ import EditRoundedIcon from "@mui/icons-material/EditRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
+import { actionPendingMessages } from "config/actionPendingMessages";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -349,14 +351,15 @@ function MerchantTagManagement({
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setCreating(false)}>取消</Button>
-          <Button
-            disabled={createPending}
+          <ActionButton
+            pending={createPending}
+            pendingLabel={actionPendingMessages.create}
             form="merchant-tag-create-form"
             type="submit"
             variant="contained"
           >
             新增
-          </Button>
+          </ActionButton>
         </DialogActions>
       </Dialog>
 
@@ -392,25 +395,27 @@ function MerchantTagManagement({
         <DialogActions sx={{ justifyContent: "space-between" }}>
           <Stack action={dispatchArchive} component="form">
             <input name="tagId" type="hidden" value={editingTag?.id ?? ""} />
-            <Button
+            <ActionButton
               color="error"
-              disabled={archivePending}
+              pending={archivePending}
+              pendingLabel={actionPendingMessages.archive}
               startIcon={<ArchiveRoundedIcon />}
               type="submit"
             >
               {merchantText.archiveCategory}
-            </Button>
+            </ActionButton>
           </Stack>
           <Stack direction="row" spacing={1}>
             <Button onClick={() => setEditingTag(null)}>取消</Button>
-            <Button
-              disabled={updatePending}
+            <ActionButton
+              pending={updatePending}
+              pendingLabel={actionPendingMessages.save}
               form="merchant-tag-edit-form"
               type="submit"
               variant="contained"
             >
               保存
-            </Button>
+            </ActionButton>
           </Stack>
         </DialogActions>
       </Dialog>

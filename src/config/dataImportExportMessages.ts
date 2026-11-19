@@ -31,7 +31,6 @@ export const dataExportPageMessages = {
     "文件格式为 Excel（.xlsx），列名与导入模板一致。日期使用当前设备时区。",
   empty: "没有交易记录时，仍会下载包含三个工作表表头的文件。",
   button: "导出 xlsx",
-  exporting: "正在导出…",
   success: "导出文件已生成，已开始下载。",
   failureTitle: "导出失败",
   fileName: "KuraNote-账本交易.xlsx",

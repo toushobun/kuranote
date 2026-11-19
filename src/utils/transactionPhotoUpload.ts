@@ -1,11 +1,12 @@
+import { transactionAttachmentLimits } from "config/transactionAttachmentLimits";
 import { transactionAttachmentMessages } from "config/transactionAttachmentMessages";
+import { createClient } from "lib/supabase/client";
+import { compressImage } from "utils/imageCompression";
 import {
   confirmReceiptPhotoUpload,
   discardReceiptPhoto,
   requestReceiptPhotoUpload,
-} from "internal/transaction/adapter/next/attachmentActions";
-import { createClient } from "lib/supabase/client";
-import { compressImage } from "utils/imageCompression";
+} from "./transactionAttachmentClient";
 
 export type UploadedReceiptPhoto = {
   attachmentId: string;
@@ -19,11 +20,15 @@ export type UploadedReceiptPhoto = {
  */
 export async function uploadReceiptPhoto(
   file: File,
+  ledgerId: string,
 ): Promise<UploadedReceiptPhoto> {
   const full = await compressReceiptPhoto(file, 1600, 0.75);
-  const thumbnail = await compressReceiptPhoto(file, 320, 0.7);
+  const thumbnail = await compressReceiptPhoto(full.blob, 320, 0.7);
 
-  if (full.blob.size > 2097152 || thumbnail.blob.size > 2097152) {
+  if (
+    full.blob.size > transactionAttachmentLimits.maxBytes ||
+    thumbnail.blob.size > transactionAttachmentLimits.maxBytes
+  ) {
     throw new Error(transactionAttachmentMessages.sizeExceeded);
   }
   if (!full.blob.size || !thumbnail.blob.size) {
@@ -33,28 +38,16 @@ export async function uploadReceiptPhoto(
   const signed = await requestReceiptPhotoUpload({
     byteSize: full.blob.size,
     height: full.height,
+    ledgerId,
     width: full.width,
   });
 
   try {
-    const storage = createClient().storage.from("transaction-attachments");
-    const fullResult = await storage.uploadToSignedUrl(
-      signed.full.path,
-      signed.full.token,
-      full.blob,
-      { contentType: "image/jpeg" },
-    );
-    if (fullResult.error)
-      throw new Error(transactionAttachmentMessages.uploadFailed);
-    const thumbnailResult = await storage.uploadToSignedUrl(
-      signed.thumbnail.path,
-      signed.thumbnail.token,
-      thumbnail.blob,
-      { contentType: "image/jpeg" },
-    );
-    if (thumbnailResult.error)
-      throw new Error(transactionAttachmentMessages.uploadFailed);
-    await confirmReceiptPhotoUpload(signed.attachmentId);
+    await uploadSignedPhotos([
+      { ...signed.full, blob: full.blob },
+      { ...signed.thumbnail, blob: thumbnail.blob },
+    ]);
+    await confirmReceiptPhotoUpload(ledgerId, signed.attachmentId);
     return {
       attachmentId: signed.attachmentId,
       height: full.height,
@@ -62,14 +55,30 @@ export async function uploadReceiptPhoto(
     };
   } catch (error) {
     // 即使只上传大图也要删除附件元数据；下游队列清理物理文件。
-    void discardReceiptPhoto(signed.attachmentId).catch(() => {});
+    void discardReceiptPhoto(ledgerId, signed.attachmentId).catch(() => {});
     throw error;
+  }
+}
+
+async function uploadSignedPhotos(
+  targets: { path: string; token: string; blob: Blob }[],
+) {
+  try {
+    const storage = createClient().storage.from("transaction-attachments");
+    for (const { blob, path, token } of targets) {
+      const { error } = await storage.uploadToSignedUrl(path, token, blob, {
+        contentType: "image/jpeg",
+      });
+      if (error) throw error;
+    }
+  } catch {
+    throw new Error(transactionAttachmentMessages.uploadFailed);
   }
 }
 
 /** 浏览器不支持 HEIC 等格式或编码失败时，统一返回可理解的提示。 */
 async function compressReceiptPhoto(
-  file: File,
+  file: Blob,
   maxDimension: number,
   quality: number,
 ) {

@@ -71,6 +71,7 @@ export function NewTransactionStepFlow(props: NewTransactionStepFlowProps) {
     }
     return (
       <TransactionStepFlow
+        ledgerId={props.ledgerId}
         draft={{ otherTouched: transferTouched, onTouched: touchMerchant }}
         open
         offsetEntry={props.offsetEntry}

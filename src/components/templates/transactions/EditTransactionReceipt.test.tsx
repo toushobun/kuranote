@@ -49,7 +49,7 @@ const fetchClientJson = vi.hoisted(() => vi.fn());
 vi.mock("lib/api/clientQuery", () => ({ fetchClientJson }));
 // 旧记录的照片读取独立于交易表单；测试需要模拟可正常完成的读取。
 const loadReceiptPhotos = vi.hoisted(() => vi.fn(async () => []));
-vi.mock("internal/transaction/adapter/next/attachmentActions", () => ({
+vi.mock("utils/transactionAttachmentClient", () => ({
   loadReceiptPhotos,
   discardReceiptPhoto: vi.fn(async () => {}),
 }));

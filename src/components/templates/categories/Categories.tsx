@@ -25,6 +25,7 @@ type CategoriesTemplateProps = {
   parentOptions: CategoryParentOption[];
   reorderCategoryAction: CategoryReorderAction;
   updateCategoryAction: CategoryAction;
+  updatePending?: boolean;
   updateState?: CategoryActionState;
 };
 
@@ -41,6 +42,7 @@ export function CategoriesTemplate({
   parentOptions,
   reorderCategoryAction,
   updateCategoryAction,
+  updatePending,
   updateState,
 }: CategoriesTemplateProps) {
   return (
@@ -70,6 +72,7 @@ export function CategoriesTemplate({
         onReorderError={onReorderError}
         reorderCategoryAction={reorderCategoryAction}
         updateCategoryAction={updateCategoryAction}
+        updatePending={updatePending}
         updateState={updateState}
       />
     </SettingsPageLayout>

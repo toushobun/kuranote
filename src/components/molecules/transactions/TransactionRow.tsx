@@ -39,6 +39,7 @@ import {
 export type TransactionRowProps = {
   item: TransactionRowItem;
   photoAction?: ReactNode;
+  linkLabelIds?: { amount: string; merchant: string };
   receiptCard?: boolean;
   showAccount?: boolean;
   showTime?: boolean;
@@ -58,6 +59,7 @@ const themeDotColor = "var(--user-theme-tx-accent)";
 export function TransactionRow({
   item,
   photoAction,
+  linkLabelIds,
   receiptCard = false,
   showAccount = false,
   showTime = false,
@@ -210,6 +212,7 @@ export function TransactionRow({
             }}
           >
             <Typography
+              id={linkLabelIds?.merchant}
               noWrap
               sx={{
                 color: textColor,
@@ -224,6 +227,7 @@ export function TransactionRow({
             </Typography>
 
             <Typography
+              id={linkLabelIds?.amount}
               sx={{
                 color: amountColor,
                 flexShrink: 0,

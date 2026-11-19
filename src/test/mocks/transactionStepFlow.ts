@@ -5,6 +5,7 @@ const tags = [
 ];
 export const flowFixture: TransactionStepFlowProps = {
   open: true,
+  ledgerId: "ledger-1",
   action: async () => ({}),
   merchants: [
     {

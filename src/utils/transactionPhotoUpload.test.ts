@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("utils/imageCompression", () => ({
   compressImage: mocks.compressImage,
 }));
-vi.mock("internal/transaction/adapter/next/attachmentActions", () => ({
+vi.mock("utils/transactionAttachmentClient", () => ({
   requestReceiptPhotoUpload: mocks.requestReceiptPhotoUpload,
   confirmReceiptPhotoUpload: mocks.confirmReceiptPhotoUpload,
   discardReceiptPhoto: mocks.discardReceiptPhoto,
@@ -26,6 +26,7 @@ vi.mock("lib/supabase/client", () => ({
   }),
 }));
 
+const ledgerId = "ledger-1";
 const file = () => new File(["image"], "receipt.heic", { type: "image/heic" });
 const full = {
   blob: new Blob(["full"], { type: "image/jpeg" }),
@@ -62,7 +63,7 @@ describe("uploadReceiptPhoto", () => {
       ),
     );
 
-    await expect(uploadReceiptPhoto(file())).rejects.toThrow(
+    await expect(uploadReceiptPhoto(file(), ledgerId)).rejects.toThrow(
       m.imageDecodeFailed,
     );
     expect(mocks.requestReceiptPhotoUpload).not.toHaveBeenCalled();
@@ -74,28 +75,29 @@ describe("uploadReceiptPhoto", () => {
       .mockResolvedValueOnce(full)
       .mockRejectedValueOnce(new Error("image encoding failed"));
 
-    await expect(uploadReceiptPhoto(file())).rejects.toThrow(
+    await expect(uploadReceiptPhoto(file(), ledgerId)).rejects.toThrow(
       m.imageDecodeFailed,
     );
     expect(mocks.requestReceiptPhotoUpload).not.toHaveBeenCalled();
   });
 
-  it("正常压缩的大图和缩略图保持原有签名上传、确认流程", async () => {
+  it("原图只解码一次，使用压缩大图生成缩略图并完成签名上传", async () => {
     mocks.compressImage
       .mockResolvedValueOnce(full)
       .mockResolvedValueOnce(thumb);
 
-    await expect(uploadReceiptPhoto(file())).resolves.toEqual({
+    const original = file();
+    await expect(uploadReceiptPhoto(original, ledgerId)).resolves.toEqual({
       attachmentId: "attachment-1",
       width: 1200,
       height: 800,
     });
-    expect(mocks.compressImage).toHaveBeenNthCalledWith(1, expect.any(File), {
+    expect(mocks.compressImage).toHaveBeenNthCalledWith(1, original, {
       maxDimension: 1600,
       mimeType: "image/jpeg",
       quality: 0.75,
     });
-    expect(mocks.compressImage).toHaveBeenNthCalledWith(2, expect.any(File), {
+    expect(mocks.compressImage).toHaveBeenNthCalledWith(2, full.blob, {
       maxDimension: 320,
       mimeType: "image/jpeg",
       quality: 0.7,
@@ -103,12 +105,32 @@ describe("uploadReceiptPhoto", () => {
     expect(mocks.requestReceiptPhotoUpload).toHaveBeenCalledWith({
       byteSize: full.blob.size,
       height: 800,
+      ledgerId,
       width: 1200,
     });
     expect(mocks.uploadToSignedUrl).toHaveBeenCalledTimes(2);
     expect(mocks.confirmReceiptPhotoUpload).toHaveBeenCalledWith(
+      ledgerId,
       "attachment-1",
     );
     expect(mocks.discardReceiptPhoto).not.toHaveBeenCalled();
+  });
+
+  it("存储网络异常时显示中文提示并撤销草稿", async () => {
+    mocks.compressImage
+      .mockResolvedValueOnce(full)
+      .mockResolvedValueOnce(thumb);
+    mocks.uploadToSignedUrl.mockRejectedValueOnce(
+      new TypeError("Failed to fetch"),
+    );
+
+    await expect(uploadReceiptPhoto(file(), ledgerId)).rejects.toThrow(
+      m.uploadFailed,
+    );
+    expect(mocks.confirmReceiptPhotoUpload).not.toHaveBeenCalled();
+    expect(mocks.discardReceiptPhoto).toHaveBeenCalledWith(
+      ledgerId,
+      "attachment-1",
+    );
   });
 });

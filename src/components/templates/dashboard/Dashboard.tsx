@@ -79,6 +79,10 @@ export function DashboardTemplate({
         hasLedger={hasLedger}
         income={monthSummary.income}
         onOpenSetupWizard={() => setupWizard.openWizard("resume")}
+        continuePending={
+          setupWizard.state.status === "loading" &&
+          setupWizard.state.intent === "resume"
+        }
       />
 
       <DashboardMonthSummaryCard
@@ -140,6 +144,7 @@ function DashboardHeroPanel({
   hasLedger,
   income,
   onOpenSetupWizard,
+  continuePending,
 }: {
   abandonAction: LedgerSetupAbandonAction;
   onAbandoned: () => void;
@@ -149,6 +154,7 @@ function DashboardHeroPanel({
   hasLedger: boolean;
   income: string;
   onOpenSetupWizard: () => void;
+  continuePending: boolean;
 }) {
   return (
     <Stack spacing={0}>
@@ -162,6 +168,7 @@ function DashboardHeroPanel({
           abandonAction={abandonAction}
           onAbandoned={onAbandoned}
           onContinue={onOpenSetupWizard}
+          pending={continuePending}
           setup={continueSetup}
         />
       ) : null}

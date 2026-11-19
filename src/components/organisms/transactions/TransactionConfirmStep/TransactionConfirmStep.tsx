@@ -268,6 +268,7 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
               edit={!!props.initialValues}
               label={props.submitLabel ?? m.save}
               saving={props.saving || props.photos?.savingPhotos}
+              disabled={props.saveDisabled}
             />
           )}
         </Stack>

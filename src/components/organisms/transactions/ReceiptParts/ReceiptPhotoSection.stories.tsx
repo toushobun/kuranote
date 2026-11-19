@@ -38,6 +38,7 @@ function photoState(
     error,
     loading: false,
     touched: false,
+    loadFailed: false,
     savingPhotos: false,
     addFiles: () => {},
     remove: () => {},

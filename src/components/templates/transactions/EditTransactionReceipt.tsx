@@ -99,6 +99,7 @@ export function EditTransactionReceiptTemplate(
             {...props}
             formAction={editAction.formAction}
             saving={editAction.isPending}
+            saveDisabled={editAction.saveDisabled}
             onValidationFailed={editAction.onValidationFailed}
           />
         )}
@@ -111,11 +112,13 @@ export function EditTransactionReceiptTemplate(
 function EditTransactionReceipt({
   formAction,
   saving,
+  saveDisabled,
   onValidationFailed,
   ...input
 }: EditTransactionReceiptTemplateProps & {
   formAction: (formData: FormData) => void;
   saving: boolean;
+  saveDisabled: boolean;
   onValidationFailed: () => void;
 }) {
   const creation = useReceiptCreation();
@@ -132,6 +135,7 @@ function EditTransactionReceipt({
   };
   const readOnly = props.editRestriction !== null;
   const photos = useReceiptPhotos({
+    ledgerId: props.ledgerId,
     recordId: props.initialValues.transactionRecordId,
     readOnly,
   });
@@ -186,6 +190,7 @@ function EditTransactionReceipt({
         photos={photos}
         onValidationFailed={onValidationFailed}
         saving={saving || photos.savingPhotos}
+        saveDisabled={saveDisabled}
         submitLabel={m.saveEdit}
         onMerchantClick={w.merchantPicker.openPicker}
         readOnly={readOnly}

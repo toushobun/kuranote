@@ -29,6 +29,7 @@ function controller(
     error,
     loading: false,
     touched: false,
+    loadFailed: false,
     savingPhotos: false,
     addFiles: vi.fn(),
     remove: vi.fn(),
@@ -86,7 +87,10 @@ describe("ReceiptPhotoSection", () => {
   });
 
   it("旧照片读取失败后禁用添加入口，避免点击没有反应", () => {
-    const c = controller([], "照片读取失败，请稍后重试。");
+    const c = {
+      ...controller([], "无法读取这笔记录的照片。"),
+      loadFailed: true,
+    };
     render(<ReceiptPhotoSection controller={c} />);
     expect(screen.getByRole("button", { name: "添加照片" })).toBeDisabled();
     expect(

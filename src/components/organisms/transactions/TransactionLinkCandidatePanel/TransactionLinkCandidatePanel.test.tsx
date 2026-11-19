@@ -875,7 +875,7 @@ describe("TransactionLinkCandidatePanel", () => {
       await screen.findByRole("button", { name: "这笔记录（1 笔）" }),
     ).toBeVisible();
     expect(
-      screen.getByText("这个月没有可关联的支出，换个月份或直接搜索"),
+      await screen.findByText("这个月没有可关联的支出，换个月份或直接搜索"),
     ).toBeVisible();
   });
 

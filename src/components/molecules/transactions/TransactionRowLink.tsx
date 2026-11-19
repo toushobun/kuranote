@@ -1,13 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Link from "next/link";
 
 import { transactionAttachmentMessages as m } from "config/transactionAttachmentMessages";
-import { loadReceiptPhotos } from "internal/transaction/adapter/next/attachmentActions";
+import { loadReceiptPhotos } from "utils/transactionAttachmentClient";
 import {
   BackLayerScope,
   transactionBackLayerLevels,
@@ -35,9 +35,18 @@ export function TransactionRowLink({
 }: TransactionRowLinkProps) {
   const [viewerOpen, setViewerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [photos, setPhotos] = useState<ReceiptPhotoPreview[]>([]);
   const photoRequest = useRef(0);
+  const labelId = useId();
+  const linkLabelIds = {
+    merchant: `${labelId}-merchant`,
+    amount: `${labelId}-amount`,
+  };
+  const rowLabel = `${labelId} ${linkLabelIds.merchant} ${linkLabelIds.amount}`;
+  const ledgerId = item.attachmentLedgerId;
   const hasPhotos =
+    Boolean(ledgerId) &&
     item.type !== "transfer" &&
     item.type !== "balance_adjustment" &&
     (item.attachmentCount ?? 0) > 0;
@@ -48,22 +57,19 @@ export function TransactionRowLink({
   ];
 
   async function openPhotoViewer() {
+    if (!ledgerId) return;
     const request = ++photoRequest.current;
     setPhotos([]);
+    setLoadError(null);
     setViewerOpen(true);
     setLoading(true);
     try {
-      const urls = await loadReceiptPhotos(item.id);
-      if (request !== photoRequest.current) return;
-      setPhotos(
-        urls.map((photo) => ({
-          id: photo.id,
-          fullUrl: photo.fullUrl,
-          thumbnailUrl: photo.thumbnailUrl,
-        })),
-      );
-    } catch {
-      if (request === photoRequest.current) setPhotos([]);
+      const urls = await loadReceiptPhotos(ledgerId, item.id);
+      if (request === photoRequest.current) setPhotos(urls);
+    } catch (caught) {
+      if (request === photoRequest.current) {
+        setLoadError(caught instanceof Error ? caught.message : m.loadFailed);
+      }
     } finally {
       if (request === photoRequest.current) setLoading(false);
     }
@@ -91,9 +97,12 @@ export function TransactionRowLink({
         showDivider && { borderBottom: userThemeCardBorder },
       ]}
     >
+      <span id={labelId} hidden>
+        {m.enterRecord}
+      </span>
       <Box
         component={Link}
-        aria-label="进入记录"
+        aria-labelledby={rowLabel}
         href={href}
         sx={{
           ...transactionRowLinkSx,
@@ -104,6 +113,7 @@ export function TransactionRowLink({
       />
       <TransactionRow
         item={item}
+        linkLabelIds={linkLabelIds}
         showAccount
         showTime
         photoAction={
@@ -129,6 +139,7 @@ export function TransactionRowLink({
         <ReceiptPhotoViewer
           photos={photos}
           loading={loading}
+          loadError={loadError}
           open={viewerOpen}
           onClose={closePhotoViewer}
         />

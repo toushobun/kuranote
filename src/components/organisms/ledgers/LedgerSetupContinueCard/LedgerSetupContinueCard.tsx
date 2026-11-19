@@ -11,6 +11,7 @@ import { LedgerSetupAbandonButton } from "organisms/ledgers/LedgerSetupAbandonBu
 import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
 import { SoftCard } from "atoms/ui/SoftCard";
 import { ledgerSetupEntryMessages } from "config/ledgerSetupMessages";
+import { actionPendingMessages } from "config/actionPendingMessages";
 import { getLedgerSetupProgressSummary } from "organisms/ledgers/LedgerSetupWizard/ledgerSetupProgressSummary";
 import { designTokens } from "theme/theme";
 import { typographyStyles } from "theme/typographyTokens";
@@ -25,6 +26,7 @@ type LedgerSetupContinueCardProps = {
   abandonAction: LedgerSetupAbandonAction;
   onAbandoned: () => void;
   onContinue: () => void;
+  pending?: boolean;
   setup: LedgerSetupInProgressSummary;
 };
 
@@ -33,6 +35,7 @@ export function LedgerSetupContinueCard({
   abandonAction,
   onAbandoned,
   onContinue,
+  pending = false,
   setup,
 }: LedgerSetupContinueCardProps) {
   const [busy, setBusy] = useState(false);
@@ -69,7 +72,13 @@ export function LedgerSetupContinueCard({
           </Typography>
         </Stack>
 
-        <PrimaryActionButton disabled={busy} fullWidth onClick={onContinue}>
+        <PrimaryActionButton
+          disabled={busy}
+          fullWidth
+          onClick={onContinue}
+          pending={pending}
+          pendingLabel={actionPendingMessages.continue}
+        >
           {messages.continue}
         </PrimaryActionButton>
         <LedgerSetupAbandonButton

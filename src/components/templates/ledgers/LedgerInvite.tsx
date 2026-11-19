@@ -4,7 +4,8 @@ import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import CircularProgress from "@mui/material/CircularProgress";
+import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
+import { actionPendingMessages } from "config/actionPendingMessages";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -199,17 +200,15 @@ export function LedgerInviteTemplate({
                   取消
                 </Button>
                 <Box component="form" onSubmit={acceptInvite} sx={{ flex: 1 }}>
-                  <Button
-                    disabled={isSubmitting}
+                  <ActionButton
                     fullWidth
-                    startIcon={
-                      isSubmitting ? <CircularProgress size={18} /> : undefined
-                    }
+                    pending={isSubmitting}
+                    pendingLabel={actionPendingMessages.join}
                     type="submit"
                     variant="contained"
                   >
-                    {isSubmitting ? "加入中" : "加入账本"}
-                  </Button>
+                    加入账本
+                  </ActionButton>
                 </Box>
               </Stack>
             )}

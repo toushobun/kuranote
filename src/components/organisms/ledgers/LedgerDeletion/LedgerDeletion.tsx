@@ -5,14 +5,16 @@ import GroupOutlinedIcon from "@mui/icons-material/GroupOutlined";
 import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
 import LinkOffRoundedIcon from "@mui/icons-material/LinkOffRounded";
 import LightbulbOutlinedIcon from "@mui/icons-material/LightbulbOutlined";
-import { alpha, type Theme } from "@mui/material/styles";
 import WarningRoundedIcon from "@mui/icons-material/WarningRounded";
 import DeleteOutlineRoundedIcon from "@mui/icons-material/DeleteOutlineRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
+import { actionPendingMessages } from "config/actionPendingMessages";
 import CircularProgress from "@mui/material/CircularProgress";
+import { alpha } from "@mui/material/styles";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import Stack from "@mui/material/Stack";
@@ -278,21 +280,18 @@ export function LedgerDeletion({
                   },
                 }}
               />
-              <Button
+              <ActionButton
                 type="submit"
-                disabled={!flow.matched || flow.pending}
+                disabled={!flow.matched}
+                pending={flow.pending}
+                pendingLabel={actionPendingMessages.remove}
                 color="error"
                 variant="contained"
-                sx={flow.pending ? pendingDeleteButtonSx : { minHeight: 48 }}
+                sx={{ minHeight: 48 }}
                 fullWidth
-                startIcon={
-                  flow.pending ? (
-                    <CircularProgress color="inherit" size={20} />
-                  ) : undefined
-                }
               >
-                {flow.pending ? messages.pending : messages.permanentDelete}
-              </Button>
+                {messages.permanentDelete}
+              </ActionButton>
               {flow.pending ? (
                 <Typography
                   role="status"
@@ -325,13 +324,4 @@ export function LedgerDeletion({
 const dialogTitleSx = {
   ...typographyStyles.cardTitle,
   textAlign: "center",
-} as const;
-
-// 提交中仍禁用，但保持淡红而不是 MUI 默认的灰色禁用样式。
-const pendingDeleteButtonSx = {
-  minHeight: 48,
-  "&.Mui-disabled": {
-    bgcolor: (theme: Theme) => alpha(theme.palette.error.main, 0.5),
-    color: "error.contrastText",
-  },
 } as const;

@@ -1,4 +1,8 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
+import {
+  attachmentSignedReadResponseSchema,
+  attachmentUploadResponseSchema,
+} from "config/transactionAttachmentResponses";
 
 import type { AppEnv } from "internal/appEnv";
 import {
@@ -24,9 +28,7 @@ import {
 } from "internal/transaction/controller/transactionController";
 import {
   attachmentIdParamsSchema,
-  attachmentSignedReadResponseSchema,
   attachmentUploadRequestSchema,
-  attachmentUploadResponseSchema,
   merchantEntrySuggestionsQuerySchema,
   merchantEntrySuggestionsSchema,
   frequentMerchantsSchema,
