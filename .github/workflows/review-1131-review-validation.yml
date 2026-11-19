@@ -1,0 +1,37 @@
+name: Issue 1131 review verification
+on:
+  push:
+    branches:
+      - feat/1131_import_receipt_photos
+permissions:
+  contents: read
+jobs:
+  quick:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: test-publishable-key
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run lint
+      - name: Check source formatting and show exact patch
+        run: |
+          npx prettier src --write > /dev/null
+          git diff --exit-code -- src
+      - run: npx vitest run src/utils/dataExportWorkbook.test.ts src/utils/dataImportPhotoBatch.test.ts src/components/templates/settings/useDataImportForm.test.ts src/components/organisms/settings/DataImportPhotoPreview/DataImportPhotoPreview.test.tsx src/components/organisms/settings/DataImportExecutionStatus/DataImportExecutionStatus.test.tsx
+  full:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm test
