@@ -68,7 +68,11 @@ export async function buildDataImportResultWorkbook(
 
     const resultColumn = worksheet.actualColumnCount + 1;
     const reasonColumn = resultColumn + 1;
-    const showPhotoCount = sheetKind === "incomeExpense" && [...(resultsBySheet.get(sheetKind)?.values() ?? [])].some((row) => row.photoCount !== undefined);
+    const showPhotoCount =
+      sheetKind === "incomeExpense" &&
+      [...(resultsBySheet.get(sheetKind)?.values() ?? [])].some(
+        (row) => row.photoCount !== undefined,
+      );
     const photoCountColumn = reasonColumn + 1;
     const header = worksheet.getRow(headerRowNumber);
     header.getCell(resultColumn).value =
@@ -84,7 +88,8 @@ export async function buildDataImportResultWorkbook(
       const row = worksheet.getRow(rowNumber);
       row.getCell(resultColumn).value = resultLabel(result.status);
       row.getCell(reasonColumn).value = result.reason ?? "";
-      if (showPhotoCount) row.getCell(photoCountColumn).value = result.photoCount ?? 0;
+      if (showPhotoCount)
+        row.getCell(photoCountColumn).value = result.photoCount ?? 0;
     }
   }
 

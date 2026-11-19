@@ -5,10 +5,23 @@ import type { ImportRowIssue } from "internal/dataImport/entity/importValidation
 import { importPhotoValidationMessages } from "internal/dataImport/errors";
 import { incomeExpensePhotoColumnNames } from "internal/dataImport/schema";
 
-function mimeForImage(bytes: Uint8Array): EmbeddedWorksheetPhoto["mimeType"] | null {
-  if (bytes.length >= 4 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff)
+function mimeForImage(
+  bytes: Uint8Array,
+): EmbeddedWorksheetPhoto["mimeType"] | null {
+  if (
+    bytes.length >= 4 &&
+    bytes[0] === 0xff &&
+    bytes[1] === 0xd8 &&
+    bytes[2] === 0xff
+  )
     return "image/jpeg";
-  if (bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47)
+  if (
+    bytes.length >= 8 &&
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47
+  )
     return "image/png";
   return null;
 }
@@ -26,15 +39,28 @@ export function readWorksheetPhotos(
   const seenCells = new Set<string>();
   const perRow = new Map<number, number>();
   const addIssue = (rowNumber: number, column: string, message: string) => {
-    issues.push({ column, kind: "row", message, rowNumber, sheet: "incomeExpense" });
+    issues.push({
+      column,
+      kind: "row",
+      message,
+      rowNumber,
+      sheet: "incomeExpense",
+    });
   };
 
   for (const picture of worksheet.getImages()) {
     const rowNumber = picture.range.tl.nativeRow + 1;
     const columnIndex = picture.range.tl.nativeCol;
     const columnName = header[columnIndex] ?? "";
-    if (rowNumber <= headerRowNumber || !photoColumnNames.includes(columnName)) {
-      addIssue(rowNumber, columnName, importPhotoValidationMessages.invalidPosition);
+    if (
+      rowNumber <= headerRowNumber ||
+      !photoColumnNames.includes(columnName)
+    ) {
+      addIssue(
+        rowNumber,
+        columnName,
+        importPhotoValidationMessages.invalidPosition,
+      );
       continue;
     }
     const key = `${rowNumber}:${columnIndex}`;

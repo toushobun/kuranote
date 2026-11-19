@@ -108,7 +108,13 @@ describe("dataImportResultWorkbook", () => {
   it("带照片时导入结果表追加照片数，无照片的旧文件保持两列结果", async () => {
     const source = await createSourceWorkbook();
     const out = await buildDataImportResultWorkbook(source, [
-      { reason: null, rowNumber: 2, sheet: "incomeExpense", status: "success", photoCount: 3 },
+      {
+        reason: null,
+        rowNumber: 2,
+        sheet: "incomeExpense",
+        status: "success",
+        photoCount: 3,
+      },
       { reason: null, rowNumber: 3, sheet: "incomeExpense", status: "success" },
     ]);
     const workbook = new ExcelJS.Workbook();
@@ -122,7 +128,9 @@ describe("dataImportResultWorkbook", () => {
     ]);
     const unchanged = new ExcelJS.Workbook();
     await unchanged.xlsx.load(original);
-    expect(unchanged.getWorksheet("收支")!.getRow(1).getCell(5).value).toBeNull();
+    expect(
+      unchanged.getWorksheet("收支")!.getRow(1).getCell(5).value,
+    ).toBeNull();
   });
 
   it("结果文件名在原文件名后追加导入结果后缀", () => {

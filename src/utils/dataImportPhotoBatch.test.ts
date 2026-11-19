@@ -18,13 +18,17 @@ const unit: ImportExecutionUnit = {
   kind: "incomeExpense",
   group: {
     rowNumbers: [2, 3],
-    items: [{ merchantName: "商家" } as never, { merchantName: "商家" } as never],
+    items: [
+      { merchantName: "商家" } as never,
+      { merchantName: "商家" } as never,
+    ],
   },
 };
 
 describe("prepareImportPhotoBatch", () => {
   it("逐张上传并按 Excel 照片列顺序传递 ID，组内后续行不单独上传", async () => {
-    const upload = vi.fn()
+    const upload = vi
+      .fn()
       .mockResolvedValueOnce({ attachmentId: ids[0] })
       .mockResolvedValueOnce({ attachmentId: ids[1] });
     const out = await prepareImportPhotoBatch(
@@ -41,7 +45,8 @@ describe("prepareImportPhotoBatch", () => {
   });
 
   it("上传失败时跳过整条记录，标记账单多行失败", async () => {
-    const upload = vi.fn()
+    const upload = vi
+      .fn()
       .mockResolvedValueOnce({ attachmentId: ids[0] })
       .mockRejectedValueOnce(new Error("failed"));
     const out = await prepareImportPhotoBatch(
@@ -63,7 +68,12 @@ describe("prepareImportPhotoBatch", () => {
 
   it("没有照片时不变更导入单元、不调用上传", async () => {
     const upload = vi.fn();
-    const out = await prepareImportPhotoBatch([unit], new Map(), undefined, upload);
+    const out = await prepareImportPhotoBatch(
+      [unit],
+      new Map(),
+      undefined,
+      upload,
+    );
     expect(out.units).toEqual([unit]);
     expect(upload).not.toHaveBeenCalled();
   });

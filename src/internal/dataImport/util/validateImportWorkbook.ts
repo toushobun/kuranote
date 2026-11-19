@@ -1,4 +1,7 @@
-import type { EmbeddedWorksheetPhoto, ParsedTable } from "internal/dataImport/entity/parsedTable";
+import type {
+  EmbeddedWorksheetPhoto,
+  ParsedTable,
+} from "internal/dataImport/entity/parsedTable";
 import type {
   ImportExecutionUnit,
   TransferImportRow,
@@ -7,7 +10,10 @@ import type {
   ImportValidationIssue,
   ImportValidationResult,
 } from "internal/dataImport/entity/importValidationIssue";
-import { importPhotoValidationMessages, importStructuralErrorMessages } from "internal/dataImport/errors";
+import {
+  importPhotoValidationMessages,
+  importStructuralErrorMessages,
+} from "internal/dataImport/errors";
 import { incomeExpensePhotoColumnNames } from "internal/dataImport/schema";
 import { detectSheetKind } from "internal/dataImport/util/detectSheetKind";
 import { groupIncomeExpenseRows } from "internal/dataImport/util/groupIncomeExpenseRows";
