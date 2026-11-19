@@ -16,6 +16,7 @@ import { merchantText } from "config/merchantText";
 import { BottomEditorDrawer } from "molecules/ui/BottomEditorDrawer/BottomEditorDrawer";
 import { useConfirmDialog } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import { designTokens } from "theme/theme";
+import { amountKeypadZIndex } from "theme/zIndex";
 import { merchantAliasMaxLength } from "config/merchantLimits";
 
 export type MerchantAliasDraft = { id: string; alias: string };
@@ -57,6 +58,7 @@ export function MerchantDisplayNameDrawer({
       onClose={onClose}
       open={open}
       title={merchantText.preferredTitle}
+      zIndex={amountKeypadZIndex}
     >
       <MerchantDisplayNameDraft
         key={sessionId}
