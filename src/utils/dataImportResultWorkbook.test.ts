@@ -146,7 +146,14 @@ describe("dataImportResultWorkbook", () => {
     } as unknown as Parameters<typeof sheet.addImage>[1]);
     const out = await buildDataImportResultWorkbook(
       (await source.xlsx.writeBuffer()) as unknown as ArrayBuffer,
-      [{ rowNumber: 2, sheet: "incomeExpense", status: "failed", reason: "上传失败" }],
+      [
+        {
+          rowNumber: 2,
+          sheet: "incomeExpense",
+          status: "failed",
+          reason: "上传失败",
+        },
+      ],
     );
     const restored = new ExcelJS.Workbook();
     await restored.xlsx.load(out);
