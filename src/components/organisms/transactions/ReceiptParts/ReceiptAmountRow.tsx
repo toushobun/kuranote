@@ -50,16 +50,22 @@ export function ReceiptAmountRow({
       direction="row"
       sx={[receiptSectionSx, { alignItems: "center", py: 1.5 }]}
     >
-      <Stack sx={{ flex: 1, minWidth: 0, pr: 1 }}>
-        <Typography sx={{ fontWeight: 700, whiteSpace: "nowrap" }}>
-          {label}
-        </Typography>
-        {labelCaption && (
+      {labelCaption ? (
+        <Stack sx={{ flex: 1, minWidth: 0, pr: 1 }}>
+          <Typography sx={{ fontWeight: 700, whiteSpace: "nowrap" }}>
+            {label}
+          </Typography>
           <Typography variant="caption" color="textSecondary">
             {labelCaption}
           </Typography>
-        )}
-      </Stack>
+        </Stack>
+      ) : (
+        <Typography
+          sx={{ flex: 1, fontWeight: 700, pr: 1, whiteSpace: "nowrap" }}
+        >
+          {label}
+        </Typography>
+      )}
       <Stack sx={{ alignItems: "flex-end", minWidth: 0 }}>
         {onClick ? (
           <ButtonBase
