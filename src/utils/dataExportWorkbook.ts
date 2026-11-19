@@ -52,11 +52,7 @@ export async function buildDataExportWorkbook(
     sheet.columns = columns.map(({ name }) => ({
       header: name,
       key: name,
-      width: incomeExpensePhotoColumnNames.some((photoName) => photoName === name)
-        ? photoColumnWidth
-        : name === "备注"
-          ? 36
-          : 22,
+      width: name === "备注" ? 36 : 22,
     }));
     sheet.getRow(1).eachCell((cell) => {
       cell.font = { bold: true };
@@ -80,6 +76,11 @@ export async function buildDataExportWorkbook(
     ),
     ...(withPhotos ? incomeExpensePhotoColumns : []),
   ]);
+  if (withPhotos) {
+    for (const name of incomeExpensePhotoColumnNames) {
+      incomeExpense.getColumn(name).width = photoColumnWidth;
+    }
+  }
   const photosByRecord = new Map<string, NonNullable<DataExport["photos"]>>();
   for (const photo of data.photos ?? []) {
     const recordPhotos = photosByRecord.get(photo.recordId) ?? [];
