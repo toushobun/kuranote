@@ -248,7 +248,12 @@ function FormatDescriptionCard() {
         <Typography sx={{ fontWeight: 700 }} variant="body2">
           {messages.incomeExpenseColumnsTitle}
         </Typography>
-        <ColumnList columns={[...importColumnsBySheetKind.incomeExpense, ...incomeExpensePhotoColumns]} />
+        <ColumnList
+          columns={[
+            ...importColumnsBySheetKind.incomeExpense,
+            ...incomeExpensePhotoColumns,
+          ]}
+        />
 
         <Typography sx={{ fontWeight: 700 }} variant="body2">
           {messages.transferColumnsTitle}

@@ -124,7 +124,8 @@ export function useDataImportForm(
     setDownloadError(null);
 
     try {
-      const { result, units, photosByRow } = await analyzeImportFile(selectedFile);
+      const { result, units, photosByRow } =
+        await analyzeImportFile(selectedFile);
       unitsRef.current = units;
       photosRef.current = photosByRow ?? new Map();
       setPhotoPreviewRows(
@@ -241,8 +242,10 @@ export function useDataImportForm(
               batch: {
                 ...state.batch,
                 details: [...prepared.failedDetails, ...state.batch.details],
-                failureCount: prepared.failedDetails.length + state.batch.failureCount,
-                processedCount: prepared.failedDetails.length + state.batch.processedCount,
+                failureCount:
+                  prepared.failedDetails.length + state.batch.failureCount,
+                processedCount:
+                  prepared.failedDetails.length + state.batch.processedCount,
                 rowResults: [...prepared.failedRows, ...state.batch.rowResults],
               },
             };

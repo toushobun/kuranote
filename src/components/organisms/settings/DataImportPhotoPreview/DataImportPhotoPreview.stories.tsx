@@ -9,8 +9,18 @@ const meta = {
       {
         rowNumber: 2,
         photos: [
-          { bytes: new Uint8Array([0xff, 0xd8, 0xff, 0xd9]), columnName: "照片1", mimeType: "image/jpeg" as const, rowNumber: 2 },
-          { bytes: new Uint8Array([0xff, 0xd8, 0xff, 0xd9]), columnName: "照片2", mimeType: "image/jpeg" as const, rowNumber: 2 },
+          {
+            bytes: new Uint8Array([0xff, 0xd8, 0xff, 0xd9]),
+            columnName: "照片1",
+            mimeType: "image/jpeg" as const,
+            rowNumber: 2,
+          },
+          {
+            bytes: new Uint8Array([0xff, 0xd8, 0xff, 0xd9]),
+            columnName: "照片2",
+            mimeType: "image/jpeg" as const,
+            rowNumber: 2,
+          },
         ],
       },
     ],

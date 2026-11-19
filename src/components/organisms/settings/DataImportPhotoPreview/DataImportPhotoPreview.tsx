@@ -44,7 +44,12 @@ function PhotoThumbnail({ photo }: { photo: EmbeddedWorksheetPhoto }) {
           alt={photo.columnName}
           loading="lazy"
           src={src}
-          sx={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 1 }}
+          sx={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            borderRadius: 1,
+          }}
         />
       ) : null}
     </Box>
