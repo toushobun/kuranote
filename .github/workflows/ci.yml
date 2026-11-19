@@ -45,6 +45,9 @@ jobs:
       - name: Type check
         run: npx tsc --noEmit
 
+      - name: Targeted merchant review tests (temporary)
+        run: npx vitest run src/components/templates/merchants/MerchantEdit.test.tsx src/components/organisms/merchants/MerchantDisplayNameDrawer/MerchantDisplayNameDrawer.test.tsx src/components/molecules/transactions/TransactionBottomEditorDrawer/TransactionBottomEditorDrawer.test.tsx
+
   format-check:
     name: Format check
     runs-on: ubuntu-latest
