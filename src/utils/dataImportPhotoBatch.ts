@@ -12,6 +12,7 @@ export async function prepareImportPhotoBatch(
   photosByRow: Map<number, EmbeddedWorksheetPhoto[]>,
   ledgerId?: string,
   upload = uploadReceiptPhoto,
+  onPhotoUploaded?: () => void,
 ): Promise<{
   units: ImportExecutionUnit[];
   failedRows: ImportExecutionRowResult[];
@@ -43,6 +44,7 @@ export async function prepareImportPhotoBatch(
         );
         const uploaded = await upload(file, ledgerId);
         attachmentIds.push(uploaded.attachmentId);
+        onPhotoUploaded?.();
       }
       prepared.push({
         ...unit,

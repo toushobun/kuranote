@@ -96,6 +96,8 @@ export const dataImportExecutionMessages = {
   startButton: "开始导入",
   importingButton: "正在导入…",
   progressTitle: "正在导入",
+  photoUploadProgress: (done: number, total: number) =>
+    `正在上传照片 ${done}/${total}`,
   keepPageOpenHint: "导入需要一些时间，请保持页面打开，不要离开。",
   completedTitle: "导入完成",
   successCount: (count: number) => `成功导入 ${count} 条`,

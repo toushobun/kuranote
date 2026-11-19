@@ -77,6 +77,10 @@ export function useDataImportForm(
   const [downloadError, setDownloadError] = useState<string | null>(null);
   // 仅用于进度条的展示值：批次等待期间按预测平滑推进，批次返回后对齐真实进度。
   const [displayProgress, setDisplayProgress] = useState<number | null>(null);
+  const [photoUploadProgress, setPhotoUploadProgress] = useState<{
+    done: number;
+    total: number;
+  } | null>(null);
   const mountedRef = useRef(true);
   const runTokenRef = useRef(0);
   const estimatedBatchDurationRef = useRef(initialEstimatedBatchDurationMs);
@@ -109,6 +113,7 @@ export function useDataImportForm(
     setExecutionStatus(null);
     setDownloadError(null);
     setDisplayProgress(null);
+    setPhotoUploadProgress(null);
   }
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -176,6 +181,11 @@ export function useDataImportForm(
     let currentHolderMapping = holderMapping;
     let aggregate = createEmptyExecutionResult(totalCount);
     let offset = 0;
+    let uploadedPhotoCount = 0;
+    const totalPhotos = [...photosRef.current.values()].reduce(
+      (total, photos) => total + photos.length,
+      0,
+    );
     const timeZoneOffsetMinutes = new Date().getTimezoneOffset();
     const runToken = runTokenRef.current + 1;
     runTokenRef.current = runToken;
@@ -185,6 +195,7 @@ export function useDataImportForm(
     setExecutionResult(aggregate);
     setExecutionStatus("importing");
     setDisplayProgress(0);
+    setPhotoUploadProgress(null);
     // 只有表头、没有数据行的模板：无需请求服务端，直接按 0 条完成。
     if (totalCount === 0) {
       setExecutionStatus("completed");
@@ -218,13 +229,29 @@ export function useDataImportForm(
             );
           }, simulatedImportProgressTickIntervalMs);
 
+          if (
+            batchUnits.some(
+              (unit) =>
+                unit.kind === "incomeExpense" &&
+                (photosRef.current.get(unit.group.rowNumbers[0])?.length ?? 0) > 0,
+            )
+          ) {
+            setPhotoUploadProgress({ done: uploadedPhotoCount, total: totalPhotos });
+          }
           const prepared = await prepareImportPhotoBatch(
             batchUnits,
             photosRef.current,
             ledgerId,
+            undefined,
+            () => {
+              if (!mountedRef.current || runTokenRef.current !== runToken) return;
+              uploadedPhotoCount += 1;
+              setPhotoUploadProgress({ done: uploadedPhotoCount, total: totalPhotos });
+            },
           );
           // 图片上传是额外的异步阶段：切换文件或离开页面后不能再提交数据。
           if (!mountedRef.current || runTokenRef.current !== runToken) return;
+          setPhotoUploadProgress(null);
           const formData = new FormData();
           formData.set("units", JSON.stringify(prepared.units));
           formData.set("holderMapping", JSON.stringify(currentHolderMapping));
@@ -312,6 +339,7 @@ export function useDataImportForm(
     } finally {
       if (mountedRef.current && runTokenRef.current === runToken) {
         setIsImporting(false);
+        setPhotoUploadProgress(null);
       }
     }
   }
@@ -379,6 +407,7 @@ export function useDataImportForm(
     isImporting,
     selectedFileName: selectedFile?.name ?? null,
     photoPreviewRows,
+    photoUploadProgress,
     validationState,
   };
 }

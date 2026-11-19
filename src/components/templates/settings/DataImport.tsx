@@ -72,6 +72,7 @@ export function DataImportTemplate({
     isImporting,
     selectedFileName,
     photoPreviewRows,
+    photoUploadProgress,
     validationState,
   } = useDataImportForm(executeBatchAction, holderMembers, ledgerId);
 
@@ -183,6 +184,7 @@ export function DataImportTemplate({
           <DataImportExecutionStatus
             displayProgress={displayProgress ?? undefined}
             isDownloading={isDownloading}
+            photoUploadProgress={photoUploadProgress ?? undefined}
             onDownload={
               executionStatus === "completed" ? handleDownloadResult : undefined
             }
