@@ -1,13 +1,16 @@
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { transactionAttachmentMessages as m } from "config/transactionAttachmentMessages";
 import { useReceiptPhotos } from "./useReceiptPhotos";
+
+const ledgerId = "ledger-1";
 
 const mocks = vi.hoisted(() => ({
   loadReceiptPhotos: vi.fn(),
   uploadReceiptPhoto: vi.fn(),
   discardReceiptPhoto: vi.fn(),
 }));
-vi.mock("internal/transaction/adapter/next/attachmentActions", () => ({
+vi.mock("utils/transactionAttachmentClient", () => ({
   loadReceiptPhotos: mocks.loadReceiptPhotos,
   discardReceiptPhoto: mocks.discardReceiptPhoto,
 }));
@@ -40,7 +43,7 @@ describe("useReceiptPhotos", () => {
       width: 100,
       height: 100,
     });
-    const { result } = renderHook(() => useReceiptPhotos());
+    const { result } = renderHook(() => useReceiptPhotos({ ledgerId }));
     act(() =>
       result.current.addFiles(
         Array.from({ length: 6 }, (_, i) => file(`${i}.jpg`)),
@@ -65,7 +68,7 @@ describe("useReceiptPhotos", () => {
           resolveUpload = resolve;
         }),
     );
-    const { result } = renderHook(() => useReceiptPhotos());
+    const { result } = renderHook(() => useReceiptPhotos({ ledgerId }));
     act(() => result.current.addFiles([file()]));
     const form = new FormData();
     let saved: boolean | undefined;
@@ -90,7 +93,7 @@ describe("useReceiptPhotos", () => {
       width: 100,
       height: 100,
     });
-    const { result } = renderHook(() => useReceiptPhotos());
+    const { result } = renderHook(() => useReceiptPhotos({ ledgerId }));
     act(() => result.current.addFiles([file()]));
     await waitFor(() =>
       expect(result.current.photos[0]?.status).toBe("failed"),
@@ -109,7 +112,7 @@ describe("useReceiptPhotos", () => {
       width: 100,
       height: 100,
     });
-    const { result } = renderHook(() => useReceiptPhotos());
+    const { result } = renderHook(() => useReceiptPhotos({ ledgerId }));
     act(() => result.current.addFiles([file()]));
     await waitFor(() =>
       expect(result.current.photos[0]?.status).toBe("uploaded"),
@@ -119,7 +122,10 @@ describe("useReceiptPhotos", () => {
     expect(result.current.photos).toHaveLength(0);
     expect(result.current.touched).toBe(true);
     await waitFor(() =>
-      expect(mocks.discardReceiptPhoto).toHaveBeenCalledWith("photo-1"),
+      expect(mocks.discardReceiptPhoto).toHaveBeenCalledWith(
+        ledgerId,
+        "photo-1",
+      ),
     );
   });
 
@@ -129,7 +135,9 @@ describe("useReceiptPhotos", () => {
       width: 100,
       height: 100,
     });
-    const { result, unmount } = renderHook(() => useReceiptPhotos());
+    const { result, unmount } = renderHook(() =>
+      useReceiptPhotos({ ledgerId }),
+    );
     act(() => result.current.addFiles([file()]));
     await waitFor(() =>
       expect(result.current.photos[0]?.status).toBe("uploaded"),
@@ -158,7 +166,9 @@ describe("useReceiptPhotos", () => {
           resolveUpload = resolve;
         }),
     );
-    const { result, unmount } = renderHook(() => useReceiptPhotos());
+    const { result, unmount } = renderHook(() =>
+      useReceiptPhotos({ ledgerId }),
+    );
     act(() => result.current.addFiles([file()]));
     const data = new FormData();
     const saving = result.current.prepareForSave(data);
@@ -183,14 +193,19 @@ describe("useReceiptPhotos", () => {
       width: 100,
       height: 100,
     });
-    const { result, unmount } = renderHook(() => useReceiptPhotos());
+    const { result, unmount } = renderHook(() =>
+      useReceiptPhotos({ ledgerId }),
+    );
     act(() => result.current.addFiles([file()]));
     await waitFor(() =>
       expect(result.current.photos[0]?.status).toBe("uploaded"),
     );
     unmount();
     await waitFor(() =>
-      expect(mocks.discardReceiptPhoto).toHaveBeenCalledWith("photo-abandoned"),
+      expect(mocks.discardReceiptPhoto).toHaveBeenCalledWith(
+        ledgerId,
+        "photo-abandoned",
+      ),
     );
   });
 
@@ -207,7 +222,7 @@ describe("useReceiptPhotos", () => {
         }),
     );
     const { result } = renderHook(() =>
-      useReceiptPhotos({ recordId: "record-1" }),
+      useReceiptPhotos({ ledgerId, recordId: "record-1" }),
     );
     const data = new FormData();
     expect(await result.current.prepareForSave(data)).toBe(false);
@@ -223,15 +238,15 @@ describe("useReceiptPhotos", () => {
   });
 
   it("旧照片读取失败时禁止提交空关联，防止误删", async () => {
-    mocks.loadReceiptPhotos.mockRejectedValue(new Error("network unavailable"));
+    mocks.loadReceiptPhotos.mockRejectedValue(new Error(m.noPermission));
     const { result } = renderHook(() =>
-      useReceiptPhotos({ recordId: "record-1" }),
+      useReceiptPhotos({ ledgerId, recordId: "record-1" }),
     );
     await waitFor(() => expect(result.current.loading).toBe(false));
     const data = new FormData();
     expect(await result.current.prepareForSave(data)).toBe(false);
     expect(data.has("attachmentIdsPresent")).toBe(false);
-    expect(result.current.error).toBeTruthy();
+    expect(result.current.error).toBe(m.noPermission);
   });
 
   it("旧照片读取期间禁止添加，避免新旧照片合计超过五张", async () => {
@@ -247,7 +262,7 @@ describe("useReceiptPhotos", () => {
         }),
     );
     const { result } = renderHook(() =>
-      useReceiptPhotos({ recordId: "record-1" }),
+      useReceiptPhotos({ ledgerId, recordId: "record-1" }),
     );
     act(() => result.current.addFiles([file()]));
     expect(result.current.photos).toHaveLength(0);
@@ -273,7 +288,7 @@ describe("useReceiptPhotos", () => {
       { id: "saved-1", fullUrl: "/full.jpg", thumbnailUrl: "/thumb.jpg" },
     ]);
     const { result } = renderHook(() =>
-      useReceiptPhotos({ recordId: "record-1" }),
+      useReceiptPhotos({ ledgerId, recordId: "record-1" }),
     );
     await waitFor(() => expect(result.current.photos).toHaveLength(1));
     const data = new FormData();

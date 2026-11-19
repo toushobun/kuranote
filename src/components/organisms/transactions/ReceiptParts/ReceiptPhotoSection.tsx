@@ -10,6 +10,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+import { transactionAttachmentLimits } from "config/transactionAttachmentLimits";
 import { transactionAttachmentMessages as m } from "config/transactionAttachmentMessages";
 import { receiptSectionSx, receiptSectionTitleSx } from "./receiptStyles";
 import { ReceiptPhotoViewer } from "./ReceiptPhotoViewer";
@@ -28,8 +29,8 @@ export function ReceiptPhotoSection({
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const { photos } = controller;
   const count = photos.length;
-  const addDisabled =
-    disabled || controller.loading || controller.error === m.loadFailed;
+  const { maxCount } = transactionAttachmentLimits;
+  const addDisabled = disabled || controller.loading || controller.loadFailed;
 
   if (readOnly && count === 0 && !controller.loading && !controller.error)
     return null;
@@ -57,7 +58,7 @@ export function ReceiptPhotoSection({
         </Typography>
         {!readOnly && count > 0 && (
           <Typography variant="caption" sx={{ color: "text.secondary" }}>
-            {count} / 5
+            {count} / {maxCount}
           </Typography>
         )}
       </Stack>
@@ -70,9 +71,10 @@ export function ReceiptPhotoSection({
       <Stack
         direction="row"
         spacing={0.8}
+        useFlexGap
         sx={{
           alignItems: "center",
-          overflowX: "auto",
+          flexWrap: "wrap",
           py: 0.4,
           minHeight: count ? 70 : 0,
         }}
@@ -160,7 +162,7 @@ export function ReceiptPhotoSection({
             )}
           </Box>
         ))}
-        {!readOnly && count < 5 && (
+        {!readOnly && count < maxCount && (
           <ButtonBase
             aria-label={count ? m.photoAddShort : m.photoAdd}
             disabled={addDisabled}
@@ -197,7 +199,7 @@ export function ReceiptPhotoSection({
           accept="image/*"
           multiple
           onChange={selectFiles}
-          disabled={addDisabled || count >= 5}
+          disabled={addDisabled || count >= maxCount}
           style={{ display: "none" }}
           aria-label={m.photoAdd}
         />

@@ -17,6 +17,12 @@ const basic: TransactionRowItem = {
   note: null,
 };
 
+const withPhotos = {
+  ...basic,
+  attachmentCount: 2,
+  attachmentLedgerId: "00000000-0000-4000-8000-000000009002",
+};
+
 const meta = {
   title: "Molecules/Transactions/TransactionRowLinkPhotos",
   component: TransactionRowLink,
@@ -31,14 +37,13 @@ type Story = StoryObj<typeof meta>;
 export const WithoutPhoto: Story = { name: "无照片图标" };
 export const WithPhoto: Story = {
   name: "照片图标独立打开预览",
-  args: { item: { ...basic, attachmentCount: 2 } },
+  args: { item: withPhotos },
 };
 export const WithPhotoAndSpecialLabel: Story = {
   name: "有照片且有特殊标签",
   args: {
     item: {
-      ...basic,
-      attachmentCount: 2,
+      ...withPhotos,
       categoryItems: [
         {
           amount: "680",

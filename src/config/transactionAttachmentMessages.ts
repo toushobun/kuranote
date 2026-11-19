@@ -1,3 +1,5 @@
+import { transactionAttachmentLimits } from "./transactionAttachmentLimits";
+
 export const transactionAttachmentMessages = {
   invalid: "照片信息无效，请重新选择。",
   imageDecodeFailed: "无法读取这张照片，请换一张图片。",
@@ -8,14 +10,17 @@ export const transactionAttachmentMessages = {
   deleteFailed: "照片移除失败，请稍后重试。",
   recordUnavailable: "记录不存在或已删除。",
   noPermission: "没有权限操作这条记录的照片。",
-  maxCount: "最多 5 张照片",
+  maxCount: `最多 ${transactionAttachmentLimits.maxCount} 张照片`,
   photoSection: "照片",
   photoAdd: "添加照片",
   photoAddShort: "添加",
-  photoEmptyHint: "可以拍小票、发票、刷卡单，最多 5 张",
+  photoEmptyHint: `可以拍小票、发票、刷卡单，最多 ${transactionAttachmentLimits.maxCount} 张`,
   photoUploading: "照片上传中…",
   photoRetry: "重试",
   photoRemove: "移除照片",
+  enterRecord: "进入记录",
+  previousPhoto: "上一张",
+  nextPhoto: "下一张",
   photoPreview: "查看照片",
   photoLoading: "照片读取中…",
   photoSaveAlbum: "保存到相册",

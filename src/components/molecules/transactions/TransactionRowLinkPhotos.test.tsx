@@ -10,10 +10,17 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createTransactionListItem } from "@/test/mocks/transactions";
 import { TransactionRowLink } from "./TransactionRowLink";
 
+const ledgerId = "ledger-1";
+const photoRecord = {
+  id: "record-1",
+  attachmentCount: 1,
+  attachmentLedgerId: ledgerId,
+};
+
 const mocks = vi.hoisted(() => ({
   loadReceiptPhotos: vi.fn(),
 }));
-vi.mock("internal/transaction/adapter/next/attachmentActions", () => ({
+vi.mock("utils/transactionAttachmentClient", () => ({
   loadReceiptPhotos: mocks.loadReceiptPhotos,
 }));
 
@@ -51,20 +58,22 @@ describe("TransactionRowLink 小票照片", () => {
       <TransactionRowLink
         href="/transactions/record-1/edit"
         item={createTransactionListItem({
-          id: "record-1",
-          attachmentCount: 1,
+          ...photoRecord,
+          amount: "680",
           merchant_name: "便利店",
         })}
       />,
     );
-    const link = screen.getByRole("link", { name: "进入记录" });
+    const link = screen.getByRole("link", {
+      name: /进入记录.*便利店.*680/,
+    });
     const photoButton = screen.getByRole("button", { name: "查看照片" });
     expect(link).toHaveAttribute("href", "/transactions/record-1/edit");
     expect(link.contains(photoButton)).toBe(false);
     expect(mocks.loadReceiptPhotos).not.toHaveBeenCalled();
 
     fireEvent.click(photoButton);
-    expect(mocks.loadReceiptPhotos).toHaveBeenCalledWith("record-1");
+    expect(mocks.loadReceiptPhotos).toHaveBeenCalledWith(ledgerId, "record-1");
     await waitFor(() =>
       expect(screen.getByRole("img", { name: "查看照片" })).toHaveAttribute(
         "src",
@@ -92,7 +101,7 @@ describe("TransactionRowLink 小票照片", () => {
     render(
       <TransactionRowLink
         href="/transactions/record-1/edit"
-        item={createTransactionListItem({ id: "record-1", attachmentCount: 1 })}
+        item={createTransactionListItem(photoRecord)}
       />,
     );
     fireEvent.click(screen.getByRole("button", { name: "查看照片" }));
@@ -128,12 +137,24 @@ describe("TransactionRowLink 小票照片", () => {
     );
   });
 
+  it("服务端读取照片失败时显示响应中的中文原因", async () => {
+    mocks.loadReceiptPhotos.mockRejectedValue(new Error("照片已删除。"));
+    render(
+      <TransactionRowLink
+        href="/transactions/record-1/edit"
+        item={createTransactionListItem(photoRecord)}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "查看照片" }));
+    expect(await screen.findByText("照片已删除。")).toBeInTheDocument();
+  });
+
   it("加载签名 URL 时显示读取中", () => {
     mocks.loadReceiptPhotos.mockReturnValue(new Promise(() => {}));
     render(
       <TransactionRowLink
         href="/transactions/record-1/edit"
-        item={createTransactionListItem({ id: "record-1", attachmentCount: 1 })}
+        item={createTransactionListItem(photoRecord)}
       />,
     );
     fireEvent.click(screen.getByRole("button", { name: "查看照片" }));

@@ -37,7 +37,10 @@ function createRecord(
 describe("TransactionDashboardQueryService", () => {
   it("混合展示普通交易与转账并保持本月汇总口径", async () => {
     const recentRecords = [
-      createRecord("recent-1", "2026-07-05T01:00:00.000Z"),
+      {
+        ...createRecord("recent-1", "2026-07-05T01:00:00.000Z"),
+        attachment_count: 2,
+      },
       createRecord("recent-2", "2026-07-04T01:00:00.000Z", "transfer"),
       createRecord("recent-3", "2026-05-04T01:00:00.000Z"),
       createRecord("recent-4", "2026-04-04T01:00:00.000Z", "transfer"),
@@ -215,6 +218,7 @@ describe("TransactionDashboardQueryService", () => {
     );
     expect(listRecords).toHaveBeenCalledOnce();
     expect(listRecords).toHaveBeenCalledWith({
+      includeAttachmentCount: true,
       ledgerId,
       limit: dashboardRecentTransactionCount,
       recordType: "all",
@@ -261,6 +265,8 @@ describe("TransactionDashboardQueryService", () => {
     expect(result.recentTransactions[0]).toMatchObject({
       account_color: null,
       amount: "50",
+      attachmentCount: 2,
+      attachmentLedgerId: ledgerId,
       merchant_name: "超市",
       recorder_color: null,
       recorder_name: null,

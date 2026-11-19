@@ -61,7 +61,7 @@ export function useTransactionStepFlow(props: TransactionStepFlowProps) {
       itemsOptions: baseItemsOptions,
       initialValues,
     });
-  const photos = useReceiptPhotos();
+  const photos = useReceiptPhotos({ ledgerId: props.ledgerId });
   const formId = useId();
   // 开始等待建议时的小票；之后与之不同即视为用户动过小票
   //（选账户、加 / 删 / 编辑明细、改分类 / 金额 / 特殊状态 / 关联、改备注 / 时间）。

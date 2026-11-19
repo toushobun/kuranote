@@ -6,7 +6,7 @@ type ClientMutationOptions = {
   fallbackErrorMessage: string;
   init: RequestInit;
   networkErrorMessage: string;
-  onSuccess?: () => Promise<void> | void;
+  onSuccess?: (response: Response) => Promise<void> | void;
   url: string;
 };
 
@@ -34,7 +34,7 @@ export async function executeClientMutation({
     };
   }
 
-  await onSuccess?.();
+  await onSuccess?.(response);
   return { ok: true };
 }
 

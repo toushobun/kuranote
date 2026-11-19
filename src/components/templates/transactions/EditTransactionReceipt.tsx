@@ -135,6 +135,7 @@ function EditTransactionReceipt({
   };
   const readOnly = props.editRestriction !== null;
   const photos = useReceiptPhotos({
+    ledgerId: props.ledgerId,
     recordId: props.initialValues.transactionRecordId,
     readOnly,
   });

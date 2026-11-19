@@ -2,11 +2,14 @@ import { UnsavedChangesGuardProvider } from "../src/components/providers/Unsaved
 import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import type { Preview } from "@storybook/nextjs-vite";
+import { sb } from "storybook/test";
 import type { ComponentProps, CSSProperties, ReactNode } from "react";
 
 import { defaultUserThemeCssVariables } from "../src/theme/userThemeCssVariables";
 import { theme } from "../src/theme/theme";
 import { UserThemeProvider } from "../src/theme/UserThemeProvider";
+
+sb.mock("../src/utils/transactionAttachmentClient.ts", { spy: true });
 
 // Story 通过 parameters.userTheme 指定初始主题 / 收支配色；未指定时使用默认主题。
 type UserThemeParameters = Omit<

@@ -25,6 +25,7 @@ export type ReceiptPhotoViewerProps = {
   photos: readonly ReceiptPhotoPreview[];
   open: boolean;
   loading?: boolean;
+  loadError?: string | null;
   initialIndex?: number;
   onClose: () => void;
 };
@@ -44,6 +45,7 @@ export function ReceiptPhotoViewer({
   photos,
   open,
   loading = false,
+  loadError,
   initialIndex = 0,
   onClose,
 }: ReceiptPhotoViewerProps) {
@@ -220,7 +222,7 @@ export function ReceiptPhotoViewer({
               {photos.length > 1 && scale === 1 ? (
                 <>
                   <IconButton
-                    aria-label="上一张"
+                    aria-label={m.previousPhoto}
                     disabled={index === 0}
                     onClick={() => move(-1)}
                     sx={{ position: "absolute", left: 4, color: "#fff" }}
@@ -228,7 +230,7 @@ export function ReceiptPhotoViewer({
                     <ArrowBackIosNewRoundedIcon />
                   </IconButton>
                   <IconButton
-                    aria-label="下一张"
+                    aria-label={m.nextPhoto}
                     disabled={index === photos.length - 1}
                     onClick={() => move(1)}
                     sx={{ position: "absolute", right: 4, color: "#fff" }}
@@ -240,7 +242,7 @@ export function ReceiptPhotoViewer({
             </>
           ) : (
             <Typography sx={{ color: "#fff" }}>
-              {error || m.loadFailed}
+              {loadError ?? m.loadFailed}
             </Typography>
           )}
         </Box>

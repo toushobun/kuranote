@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { transactionAttachmentLimits } from "config/transactionAttachmentLimits";
 import { transactionAttachmentMessages as m } from "config/transactionAttachmentMessages";
 import {
   discardReceiptPhoto,
   loadReceiptPhotos,
-} from "internal/transaction/adapter/next/attachmentActions";
+} from "utils/transactionAttachmentClient";
 import { uploadReceiptPhoto } from "utils/transactionPhotoUpload";
 
 export type ReceiptPhotoEntry = {
@@ -22,6 +23,7 @@ export type ReceiptPhotoController = {
   photos: ReceiptPhotoEntry[];
   error: string | null;
   loading: boolean;
+  loadFailed: boolean;
   touched: boolean;
   savingPhotos: boolean;
   addFiles: (files: FileList | File[]) => void;
@@ -30,16 +32,16 @@ export type ReceiptPhotoController = {
   prepareForSave: (data: FormData) => Promise<boolean>;
 };
 
-const maxPhotos = 5;
-
 /** 只控制照片状态、重试、清理与待保存 ID；不依赖任何小票 UI。 */
 export function useReceiptPhotos({
+  ledgerId,
   recordId,
   readOnly = false,
 }: {
+  ledgerId: string;
   recordId?: string;
   readOnly?: boolean;
-} = {}): ReceiptPhotoController {
+}): ReceiptPhotoController {
   const [photos, setPhotos] = useState<ReceiptPhotoEntry[]>([]);
   const photosRef = useRef<ReceiptPhotoEntry[]>([]);
   const pendingRef = useRef(new Map<string, Promise<void>>());
@@ -48,7 +50,7 @@ export function useReceiptPhotos({
   const saveInFlightRef = useRef(false);
   const keyCounter = useRef(0);
   const [loading, setLoading] = useState(Boolean(recordId));
-  const [loadFailed, setLoadFailed] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [savingPhotos, setSavingPhotos] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
@@ -65,10 +67,9 @@ export function useReceiptPhotos({
   useEffect(() => {
     let mounted = true;
     if (recordId) {
-      void loadReceiptPhotos(recordId)
+      void loadReceiptPhotos(ledgerId, recordId)
         .then((result) => {
           if (!mounted) return;
-          setError((current) => (current === m.loadFailed ? null : current));
           // 异步读取时用户可能已开始上传，不要覆盖新选照片。
           updatePhotos((entries) => [
             ...result.map((photo) => ({
@@ -82,10 +83,11 @@ export function useReceiptPhotos({
             ...entries,
           ]);
         })
-        .catch(() => {
+        .catch((caught: unknown) => {
           if (mounted) {
-            setLoadFailed(true);
-            setError(m.loadFailed);
+            setLoadError(
+              caught instanceof Error ? caught.message : m.loadFailed,
+            );
           }
         })
         .finally(() => {
@@ -95,7 +97,7 @@ export function useReceiptPhotos({
     return () => {
       mounted = false;
     };
-  }, [recordId, updatePhotos]);
+  }, [ledgerId, recordId, updatePhotos]);
 
   useEffect(() => {
     const drafts = draftIdsRef.current;
@@ -108,7 +110,7 @@ export function useReceiptPhotos({
           await Promise.allSettled([...pending.values()]);
           await Promise.allSettled(
             [...drafts].map((attachmentId) =>
-              discardReceiptPhoto(attachmentId),
+              discardReceiptPhoto(ledgerId, attachmentId),
             ),
           );
         };
@@ -120,7 +122,7 @@ export function useReceiptPhotos({
         }
       }
     };
-  }, []);
+  }, [ledgerId]);
 
   const upload = useCallback(
     (key: string, file: File) => {
@@ -131,11 +133,13 @@ export function useReceiptPhotos({
             : photo,
         ),
       );
-      const task = uploadReceiptPhoto(file)
+      const task = uploadReceiptPhoto(file, ledgerId)
         .then((uploaded) => {
           draftIdsRef.current.add(uploaded.attachmentId);
           if (removedRef.current.has(key)) {
-            void discardReceiptPhoto(uploaded.attachmentId).catch(() => {});
+            void discardReceiptPhoto(ledgerId, uploaded.attachmentId).catch(
+              () => {},
+            );
             draftIdsRef.current.delete(uploaded.attachmentId);
             return;
           }
@@ -168,13 +172,16 @@ export function useReceiptPhotos({
         });
       pendingRef.current.set(key, task);
     },
-    [updatePhotos],
+    [ledgerId, updatePhotos],
   );
 
   const addFiles = useCallback(
     (files: FileList | File[]) => {
-      if (readOnly || (recordId && (loading || loadFailed))) return;
-      const available = Math.max(0, maxPhotos - photosRef.current.length);
+      if (readOnly || (recordId && (loading || loadError))) return;
+      const available = Math.max(
+        0,
+        transactionAttachmentLimits.maxCount - photosRef.current.length,
+      );
       const selected = Array.from(files);
       if (selected.length > available) setError(m.maxCount);
       else setError(null);
@@ -196,7 +203,7 @@ export function useReceiptPhotos({
       }
       if (selected.length && available > 0) setTouched(true);
     },
-    [loadFailed, loading, readOnly, recordId, updatePhotos, upload],
+    [loadError, loading, readOnly, recordId, updatePhotos, upload],
   );
 
   const remove = useCallback(
@@ -213,10 +220,10 @@ export function useReceiptPhotos({
       }
       if (photo.source === "draft" && photo.attachmentId) {
         draftIdsRef.current.delete(photo.attachmentId);
-        void discardReceiptPhoto(photo.attachmentId).catch(() => {});
+        void discardReceiptPhoto(ledgerId, photo.attachmentId).catch(() => {});
       }
     },
-    [readOnly, updatePhotos],
+    [ledgerId, readOnly, updatePhotos],
   );
 
   const retry = useCallback(
@@ -233,8 +240,7 @@ export function useReceiptPhotos({
 
   const prepareForSave = useCallback(
     async (data: FormData) => {
-      if (recordId && (loading || loadFailed)) {
-        setError(m.loadFailed);
+      if (recordId && (loading || loadError)) {
         return false;
       }
       // 从开始等待上传到服务端认领期间，禁止卸载清理抢先删除照片。
@@ -262,13 +268,14 @@ export function useReceiptPhotos({
         setSavingPhotos(false);
       }
     },
-    [loadFailed, loading, recordId],
+    [loadError, loading, recordId],
   );
 
   return {
     photos,
-    error,
+    error: loadError ?? error,
     loading,
+    loadFailed: Boolean(loadError),
     touched,
     savingPhotos,
     addFiles,

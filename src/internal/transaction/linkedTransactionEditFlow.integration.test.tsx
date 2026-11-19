@@ -32,7 +32,7 @@ import type { TransactionService } from "internal/transaction/service/transactio
 const transactionActionModuleMocks = getTransactionActionModuleMocks();
 
 // 此集成测试关注交易更新；附件读取由独立服务完成，按“无照片”模拟。
-vi.mock("internal/transaction/adapter/next/attachmentActions", () => ({
+vi.mock("utils/transactionAttachmentClient", () => ({
   loadReceiptPhotos: vi.fn(async () => []),
   discardReceiptPhoto: vi.fn(async () => {}),
 }));
