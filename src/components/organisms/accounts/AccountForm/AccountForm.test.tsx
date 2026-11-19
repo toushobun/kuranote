@@ -10,6 +10,7 @@ import {
   inactiveAccountHolderOptionFixture,
 } from "test/mocks/accountHolders";
 import { bankAccountFixture } from "test/mocks/accounts";
+import { expectFirstVisibleStackChildHasNoTopMargin } from "test/formStackSpacing";
 import type { Account } from "types/accounts";
 
 import { AccountForm } from "./AccountForm";
@@ -50,6 +51,14 @@ function fillCreditCard() {
 }
 
 describe("AccountForm", () => {
+  it("从记账进入新增账户时首张卡片没有额外上边距", () => {
+    renderAccountForm({ returnTo: "/transactions/new" });
+
+    expectFirstVisibleStackChildHasNoTopMargin(
+      document.querySelector('input[name="returnTo"]')?.closest("form"),
+    );
+  });
+
   it("没有独立预览卡，网址位于名称与类型之间", () => {
     renderAccountForm({ fetchIconAction: vi.fn() });
     const name = screen.getByLabelText(/账户名称/);
@@ -237,6 +246,14 @@ async function submitEditForm(
 }
 
 describe("AccountForm 编辑", () => {
+  it("编辑账户时首张卡片没有额外上边距", () => {
+    renderEditForm();
+
+    expectFirstVisibleStackChildHasNoTopMargin(
+      document.querySelector('input[name="accountId"]')?.closest("form"),
+    );
+  });
+
   it("以当前值填入表单，余额为当前余额", () => {
     renderEditForm();
 
@@ -360,6 +377,12 @@ describe("AccountForm 编辑", () => {
     ).toBeInTheDocument();
     const formData = await submitEditForm(action);
     expect(formData.getAll("currency")).toEqual(["JPY"]);
+    const currencyField = screen
+      .getByRole("combobox", { name: "货币" })
+      .closest(".MuiFormControl-root");
+    expect(
+      Number.parseFloat(window.getComputedStyle(currencyField!).marginLeft) || 0,
+    ).toBe(0);
   });
 
   it("账户币种不在常见清单里时也显示为当前币种", () => {

@@ -1,11 +1,26 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { expectFirstVisibleStackChildHasNoTopMargin } from "test/formStackSpacing";
+
 import { MerchantForm } from "./MerchantForm";
 
 afterEach(cleanup);
 
 describe("MerchantForm", () => {
+  it("带 returnTo 新增商家时首个内容没有额外上边距", () => {
+    const { container } = render(
+      <MerchantForm
+        action={vi.fn()}
+        fetchIconAction={vi.fn()}
+        ledgerId="ledger-1"
+        returnTo="/transactions/new"
+      />,
+    );
+
+    expectFirstVisibleStackChildHasNoTopMargin(container.querySelector("form"));
+  });
+
   it("编辑新增商家的各字段", () => {
     render(
       <MerchantForm

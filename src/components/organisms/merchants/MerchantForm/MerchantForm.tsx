@@ -49,7 +49,13 @@ export function MerchantForm({
     true,
   );
   return (
-    <Stack component="form" id={id} action={action} spacing={2.5}>
+    <Stack
+      component="form"
+      id={id}
+      action={action}
+      spacing={2.5}
+      useFlexGap
+    >
       {returnTo ? (
         <input name="returnTo" readOnly type="hidden" value={returnTo} />
       ) : null}

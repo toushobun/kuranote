@@ -111,6 +111,7 @@ export function AccountForm({
         if (adjustment && !adjustment.valid) event.preventDefault();
       }}
       spacing={2}
+      useFlexGap
     >
       {account ? (
         <input name="accountId" readOnly type="hidden" value={account.id} />
@@ -226,7 +227,7 @@ export function AccountForm({
 
       <AccountFormSection title={accountFormMessages.amountSection}>
         <Stack spacing={1}>
-          <Stack direction="row" spacing={1.5}>
+          <Stack direction="row" spacing={1.5} useFlexGap>
             {currencyLocked ? (
               // 禁用的字段不会随表单提交，用隐藏字段原样带回当前币种。
               <input
