@@ -561,6 +561,43 @@ describe("transfer transaction validators", () => {
       value: { transferAmount: 1200, transferTargetAmount: 48.5 },
     });
   });
+  it("服务端表单按各账户币种校验精度，JPY 必须是整数", () => {
+    expect(
+      validateTransactionForm(
+        createTransferFormData({
+          transferSourceCurrency: "JPY",
+          transferTargetCurrency: "CNY",
+          transferAmount: "1200.50",
+          transferTargetAmount: "48.50",
+        }),
+      ),
+    ).toEqual({ error: transactionErrorCodes.amountInvalid, ok: false });
+
+    expect(
+      validateTransactionForm(
+        createTransferFormData({
+          transferSourceCurrency: "CNY",
+          transferTargetCurrency: "JPY",
+          transferAmount: "1200.50",
+          transferTargetAmount: "48.50",
+        }),
+      ),
+    ).toEqual({ error: transactionErrorCodes.amountInvalid, ok: false });
+
+    expect(
+      validateTransactionForm(
+        createTransferFormData({
+          transferSourceCurrency: "JPY",
+          transferTargetCurrency: "CNY",
+          transferAmount: "1200",
+          transferTargetAmount: "48.50",
+        }),
+      ),
+    ).toMatchObject({
+      ok: true,
+      value: { transferAmount: 1200, transferTargetAmount: 48.5 },
+    });
+  });
   it("到账金额非正数或超过两位小数时拒绝", () => {
     for (const transferTargetAmount of ["0", "-1", "2.555", "invalid"]) {
       expect(

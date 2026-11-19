@@ -108,6 +108,18 @@ export function TransferReceipt(props: TransferReceiptProps) {
           type="hidden"
           value={w.targetId}
         />
+        <input
+          name="transferSourceCurrency"
+          readOnly
+          type="hidden"
+          value={w.source?.currency ?? ""}
+        />
+        <input
+          name="transferTargetCurrency"
+          readOnly
+          type="hidden"
+          value={w.target?.currency ?? ""}
+        />
         <input name="transferAmount" readOnly type="hidden" value={w.amount} />
         <input
           name="transferTargetAmount"

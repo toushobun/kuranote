@@ -21,6 +21,7 @@ import {
   type TransactionSpecialStatus,
 } from "internal/transaction/entity/transactionSpecialStatus";
 import { getFormText } from "utils/formData";
+import { isValidPositiveMoneyText } from "utils/transactionAmountInput";
 
 import {
   invalid,
@@ -35,6 +36,19 @@ import {
 } from "internal/shared/schema/formValidation";
 
 export type { TransactionValidationErrorCode };
+
+/** 用小票选定的币种做快速输入校验；持久层以数据库账户币种为准。 */
+function isValidTransferCurrencyAmount(
+  formData: FormData,
+  amountField: string,
+  currencyField: string,
+) {
+  const currency = getFormText(formData, currencyField);
+  return (
+    !currency ||
+    isValidPositiveMoneyText(getFormText(formData, amountField), { currency })
+  );
+}
 
 const createTransactionTypeValues = [...transactionTypes, "transfer"] as const;
 
@@ -316,6 +330,10 @@ export function validateTransactionForm(
     if (!transferAmountResult.ok) {
       return transferAmountResult;
     }
+    // 表单按选定账户币种先校验；RPC 仍依据数据库真实币种再次验证。
+    if (!isValidTransferCurrencyAmount(formData, "transferAmount", "transferSourceCurrency")) {
+      return invalid(transactionErrorCodes.amountInvalid);
+    }
 
     const rawTargetAmount = String(
       formData.get("transferTargetAmount") ?? "",
@@ -329,6 +347,12 @@ export function validateTransactionForm(
       : valid(null);
 
     if (!transferTargetAmountResult.ok) return transferTargetAmountResult;
+    if (
+      rawTargetAmount &&
+      !isValidTransferCurrencyAmount(formData, "transferTargetAmount", "transferTargetCurrency")
+    ) {
+      return invalid(transactionErrorCodes.amountInvalid);
+    }
 
     const noteResult = parseOptionalTextField(
       formData,

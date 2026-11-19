@@ -39,7 +39,7 @@ export type ImportTransferTransactionInput = {
 
 export type ImportBalanceAdjustmentInput = Omit<
   ImportTransferTransactionInput,
-  "transferAmount" | "transferTargetAccountId"
+  "transferAmount" | "transferTargetAmount" | "transferTargetAccountId"
 > & { signedDelta: number };
 
 export interface TransactionImportService {
