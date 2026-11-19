@@ -1,8 +1,7 @@
 import "server-only";
 
 import { createHash, timingSafeEqual } from "node:crypto";
-import { createAttachmentCleanupRepository } from "internal/transaction/repository/attachmentCleanupRepository";
-import { runAttachmentCleanup } from "internal/transaction/service/attachmentCleanupService";
+import { executeAttachmentCleanup } from "internal/transaction/attachmentCleanup";
 
 function isCorrectCronSecret(authorization: string | null, secret: string) {
   if (!authorization?.startsWith("Bearer ")) return false;
@@ -32,9 +31,7 @@ export async function handleAttachmentCleanupRequest(
   }
 
   try {
-    const cleanup =
-      options.cleanup ??
-      (() => runAttachmentCleanup(createAttachmentCleanupRepository()));
+    const cleanup = options.cleanup ?? executeAttachmentCleanup;
     const summary = await cleanup();
     return Response.json(summary, { status: 200 });
   } catch (error) {
