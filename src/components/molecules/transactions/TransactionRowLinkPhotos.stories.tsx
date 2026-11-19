@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { mocked } from "storybook/test";
 import { loadReceiptPhotos } from "utils/transactionAttachmentClient";
-import type { ReceiptPhotoPreview } from "organisms/transactions/ReceiptParts/ReceiptPhotoViewer";
 import type { TransactionRowItem } from "types/transactions";
 import { TransactionRowLink } from "./TransactionRowLink";
 
@@ -32,7 +31,7 @@ const receipt =
     '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="650"><rect width="400" height="650" fill="#f3eee5"/><text x="80" y="110" font-size="28" fill="#333">7-Eleven</text><path d="M60 145h280M60 185h200M60 240h250M60 280h120M60 340h280" stroke="#aca499" stroke-width="6"/><text x="180" y="420" font-size="22">¥680</text></svg>',
   );
 
-const photos: ReceiptPhotoPreview[] = [
+const photos = [
   { id: "photo-1", fullUrl: receipt, thumbnailUrl: receipt },
   { id: "photo-2", fullUrl: receipt, thumbnailUrl: receipt },
 ];
