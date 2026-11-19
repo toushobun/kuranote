@@ -1,7 +1,10 @@
 import type { EmbeddedWorksheetPhoto } from "internal/dataImport/entity/parsedTable";
 import { importPhotoValidationMessages } from "internal/dataImport/errors";
 import type { ImportExecutionUnit } from "internal/dataImport/entity/importRow";
-import type { ImportValidationResult } from "internal/dataImport/entity/importValidationIssue";
+import type {
+  ImportRowIssue,
+  ImportValidationResult,
+} from "internal/dataImport/entity/importValidationIssue";
 import {
   dataImportErrorCodes,
   dataImportErrorMessages,
@@ -55,8 +58,7 @@ export async function analyzeImportFile(
 
   // 使用完即关闭位图，防止一次性导入大文件时持续占用移动端图片内存。
   if (typeof createImageBitmap === "function") {
-    const issues: import("internal/dataImport/entity/importValidationIssue").ImportRowIssue[] =
-      [];
+    const issues: ImportRowIssue[] = [];
     for (const [rowNumber, images] of analyzed.photosByRow) {
       for (const photo of images) {
         try {

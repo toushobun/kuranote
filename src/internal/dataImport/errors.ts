@@ -42,8 +42,7 @@ export const importStructuralErrorMessages = {
 
 export const importPhotoValidationMessages = {
   invalidPosition: "图片必须位于「照片1」～「照片5」列的数据行。",
-  duplicate: "同一格子不能放置多张照片。",
-  tooMany: "每条记录最多只能有 5 张照片。",
+  duplicate: "同一行的同一照片列不能放置多张图片。",
   unreadable: "图片无法读取或解码，请替换后重试。",
   notFirstRow: "账单关联的照片只能放在该组第一行。",
   multipleIncomeExpenseSheets:
