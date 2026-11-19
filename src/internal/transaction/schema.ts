@@ -331,7 +331,13 @@ export function validateTransactionForm(
       return transferAmountResult;
     }
     // 表单按选定账户币种先校验；RPC 仍依据数据库真实币种再次验证。
-    if (!isValidTransferCurrencyAmount(formData, "transferAmount", "transferSourceCurrency")) {
+    if (
+      !isValidTransferCurrencyAmount(
+        formData,
+        "transferAmount",
+        "transferSourceCurrency",
+      )
+    ) {
       return invalid(transactionErrorCodes.amountInvalid);
     }
 
@@ -349,7 +355,11 @@ export function validateTransactionForm(
     if (!transferTargetAmountResult.ok) return transferTargetAmountResult;
     if (
       rawTargetAmount &&
-      !isValidTransferCurrencyAmount(formData, "transferTargetAmount", "transferTargetCurrency")
+      !isValidTransferCurrencyAmount(
+        formData,
+        "transferTargetAmount",
+        "transferTargetCurrency",
+      )
     ) {
       return invalid(transactionErrorCodes.amountInvalid);
     }
