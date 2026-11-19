@@ -409,8 +409,7 @@ describe("dataExportWorkbook", () => {
     if (record?.kind !== "incomeExpense") throw new Error("没有收支记录");
     expect(record.group.rowNumbers).toEqual([2, 3, 4]);
     expect(photosByRow?.get(2)?.map((photo) => photo.bytes[3])).toEqual([
-      0x61,
-      0x62,
+      0x61, 0x62,
     ]);
     expect(photosByRow?.has(3)).toBe(false);
   });

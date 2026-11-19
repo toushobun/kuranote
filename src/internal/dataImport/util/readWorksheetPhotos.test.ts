@@ -52,10 +52,9 @@ describe("readWorksheetPhotos", () => {
       ["日期", "金额", "照片1", "照片2", "照片3", "照片4", "照片5"],
       1,
     );
-    expect(result.photosByRow.get(2)?.map((photo) => photo.columnName)).toEqual([
-      "照片1",
-      "照片2",
-    ]);
+    expect(result.photosByRow.get(2)?.map((photo) => photo.columnName)).toEqual(
+      ["照片1", "照片2"],
+    );
   });
 
   it("错列、同格重复、非法字节都按行报错", async () => {
