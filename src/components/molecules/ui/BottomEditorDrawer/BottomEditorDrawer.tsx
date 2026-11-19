@@ -125,7 +125,12 @@ export function BottomEditorDrawer({
             <CloseRoundedIcon />
           </IconButton>
         </Stack>
-        <Box data-testid="bottom-editor-scroll-content" sx={{ overflowY: "auto", minHeight: 0 }}>{children}</Box>
+        <Box
+          data-testid="bottom-editor-scroll-content"
+          sx={{ overflowY: "auto", minHeight: 0 }}
+        >
+          {children}
+        </Box>
         {footer}
       </Stack>
     </Drawer>
