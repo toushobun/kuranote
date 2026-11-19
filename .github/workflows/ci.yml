@@ -45,17 +45,6 @@ jobs:
       - name: Type check
         run: npx tsc --noEmit
 
-      - name: Isolated merchant test diagnosis (temporary)
-        shell: bash
-        run: |
-          set +e
-          npx vitest run src/components/templates/merchants/MerchantEdit.test.tsx -t "抽屉的正式名使用当前输入内容"
-          first=$?
-          npx vitest run src/components/templates/merchants/MerchantEdit.test.tsx -t "确认抽屉结果暂存且一次提交"
-          second=$?
-          echo "ISOLATED_TEST_STATUS: first=$first second=$second"
-          if [ "$first" != 0 ] || [ "$second" != 0 ]; then exit 1; fi
-
   format-check:
     name: Format check
     runs-on: ubuntu-latest
