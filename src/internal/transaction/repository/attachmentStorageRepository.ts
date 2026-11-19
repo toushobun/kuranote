@@ -54,8 +54,13 @@ export interface AttachmentStorageRepository {
     ledgerId: string,
     recordId: string,
   ): Promise<TransactionAttachment[]>;
+  listByRecords(
+    ledgerId: string,
+    recordIds: readonly string[],
+  ): Promise<TransactionAttachment[]>;
   getSignedReadUrls(
     attachments: readonly TransactionAttachment[],
+    lifetimeSeconds?: number,
   ): Promise<SignedAttachmentRead[]>;
 }
 
@@ -268,7 +273,40 @@ export function createSupabaseAttachmentStorageRepository(
       return parsed.data;
     },
 
-    async getSignedReadUrls(attachments) {
+    async listByRecords(ledgerId, recordIds) {
+      const result: TransactionAttachment[] = [];
+      const uniqueIds = [...new Set(recordIds)];
+      for (let offset = 0; offset < uniqueIds.length; offset += 100) {
+        const { data, error } = await supabase
+          .from("transaction_attachment")
+          .select(
+            "id,ledger_id,transaction_record_id,status,storage_path,thumbnail_path,created_by,sort_order",
+          )
+          .eq("ledger_id", ledgerId)
+          .eq("status", "uploaded")
+          .in("transaction_record_id", uniqueIds.slice(offset, offset + 100))
+          .order("transaction_record_id")
+          .order("sort_order");
+        if (error) {
+          throw rpcError(
+            "listByRecords",
+            error,
+            transactionAttachmentMessages.loadFailed,
+          );
+        }
+        const parsed = attachmentRowSchema.array().safeParse(data);
+        if (!parsed.success) {
+          throw repositoryError(
+            "listByRecords",
+            transactionAttachmentMessages.loadFailed,
+          );
+        }
+        result.push(...parsed.data);
+      }
+      return result;
+    },
+
+    async getSignedReadUrls(attachments, lifetimeSeconds = signedReadLifetimeSeconds) {
       if (attachments.length === 0) return [];
       const paths = attachments.flatMap((attachment) => [
         attachment.storage_path,
@@ -276,7 +314,7 @@ export function createSupabaseAttachmentStorageRepository(
       ]);
       const { data, error } = await bucket().createSignedUrls(
         paths,
-        signedReadLifetimeSeconds,
+        lifetimeSeconds,
       );
       if (error || !data || data.length !== paths.length) {
         throw repositoryError(

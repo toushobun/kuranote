@@ -8,7 +8,9 @@ import { createServerRequestDependencies } from "internal/shared/context/createS
 import { AppError } from "internal/shared/errors/appError";
 import type { DataExportActionState } from "types/dataExport";
 
-export async function exportCurrentLedgerData(): Promise<DataExportActionState> {
+export async function exportCurrentLedgerData(
+  includePhotos = false,
+): Promise<DataExportActionState> {
   // 认证边界允许登录/账本选择导航，业务失败仍通过 inline state 返回。
   const { currentLedger, userId } = await requireCurrentUserAndLedger();
   let dependencies:
@@ -18,7 +20,7 @@ export async function exportCurrentLedgerData(): Promise<DataExportActionState> 
     dependencies = await createServerRequestDependencies();
     const data = await createRequestContainer(
       dependencies,
-    ).dataExport.service.getData({ ledgerId: currentLedger.id, userId });
+    ).dataExport.service.getData({ ledgerId: currentLedger.id, userId, includePhotos });
     return { data };
   } catch (error) {
     if (error instanceof AppError) return createErrorState(error.message);
