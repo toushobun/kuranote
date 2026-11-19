@@ -235,6 +235,43 @@ describe("merchant router", () => {
     expect(revalidatePath).toHaveBeenCalledWith(routePaths.merchants);
   });
 
+  it("已有别名冲突时更新商家返回安全的 409 且不刷新缓存", async () => {
+    const updateMerchant = vi.fn().mockRejectedValue(
+      new ConflictError(
+        merchantErrorCodes.aliasDuplicate,
+        merchantErrorMessages[merchantErrorCodes.aliasDuplicate],
+      ),
+    );
+    const app = createApp(createService({ updateMerchant }));
+
+    const response = await app.request(
+      `https://kuranote.example/ledgers/${ledgerId}/merchants/${merchantId}`,
+      {
+        body: JSON.stringify({
+          name: "LIFE",
+          note: null,
+          siteUrl: null,
+          addedAliases: ["来福"],
+          archivedAliasIds: [],
+          preferredAlias: "来福",
+        }),
+        headers: writeHeaders,
+        method: "PATCH",
+      },
+    );
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      error: {
+        code: merchantErrorCodes.aliasDuplicate,
+        message: merchantErrorMessages[merchantErrorCodes.aliasDuplicate],
+        requestId: "request-1",
+        status: 409,
+      },
+    });
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
   it("跨来源写请求返回 403 且不调用 Service 或缓存失效", async () => {
     const createMerchant = vi.fn();
     const app = createApp(createService({ createMerchant }));
