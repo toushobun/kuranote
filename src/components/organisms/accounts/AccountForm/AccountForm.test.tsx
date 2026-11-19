@@ -380,9 +380,8 @@ describe("AccountForm 编辑", () => {
     const currencyField = screen
       .getByRole("combobox", { name: "货币" })
       .closest(".MuiFormControl-root");
-    expect(
-      Number.parseFloat(window.getComputedStyle(currencyField!).marginLeft) || 0,
-    ).toBe(0);
+    const marginLeft = window.getComputedStyle(currencyField!).marginLeft;
+    expect(Number.parseFloat(marginLeft) || 0).toBe(0);
   });
 
   it("账户币种不在常见清单里时也显示为当前币种", () => {

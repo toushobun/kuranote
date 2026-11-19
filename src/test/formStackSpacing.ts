@@ -16,7 +16,6 @@ export function expectFirstVisibleStackChildHasNoTopMargin(
   expect(firstVisibleChild).toBeDefined();
   if (!firstVisibleChild) return;
 
-  expect(
-    Number.parseFloat(window.getComputedStyle(firstVisibleChild).marginTop) || 0,
-  ).toBe(0);
+  const marginTop = window.getComputedStyle(firstVisibleChild).marginTop;
+  expect(Number.parseFloat(marginTop) || 0).toBe(0);
 }
