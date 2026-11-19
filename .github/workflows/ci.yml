@@ -167,7 +167,8 @@ jobs:
   # 仓库规则的必需检查名为「Test」，由此 job 汇总全部分片结果。
   test:
     name: Test
-    if: always() && (github.event_name != 'pull_request' || startsWith(github.head_ref, 'docs/') == false)
+    # 用 !cancelled() 而非 always()：被新推送取消的旧运行不再显示为失败。
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || startsWith(github.head_ref, 'docs/') == false) }}
     needs: [test-shard]
     runs-on: ubuntu-latest
 
