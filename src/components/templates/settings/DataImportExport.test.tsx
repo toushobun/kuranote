@@ -10,9 +10,7 @@ describe("DataImportExportTemplate", () => {
     expect(
       screen.getByRole("heading", { name: "数据导入导出" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText("迁移历史记账数据，或导出当前账本数据备份"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("导入历史记录，或导出备份")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "返回设置" })).toHaveAttribute(
       "href",
       "/settings",
