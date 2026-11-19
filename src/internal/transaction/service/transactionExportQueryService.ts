@@ -36,7 +36,10 @@ export function createTransactionExportQueryService({
   transactionRepository,
   ledgerAccessService,
 }: {
-  attachmentStorageRepository: Pick<AttachmentStorageRepository, "listByRecords" | "getSignedReadUrls">;
+  attachmentStorageRepository: Pick<
+    AttachmentStorageRepository,
+    "listByRecords" | "getSignedReadUrls"
+  >;
   transactionRepository: TransactionContextRepository;
   ledgerAccessService: LedgerAccessService;
 }): TransactionExportQueryService {
@@ -76,8 +79,7 @@ export function createTransactionExportQueryService({
       }
       return photos.sort(
         (a, b) =>
-          a.recordId.localeCompare(b.recordId) ||
-          a.sortOrder - b.sortOrder,
+          a.recordId.localeCompare(b.recordId) || a.sortOrder - b.sortOrder,
       );
     },
 

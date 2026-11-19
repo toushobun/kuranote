@@ -47,11 +47,20 @@ describe("transactionExportQueryService", () => {
       { id: "a", fullUrl: "https://example.com/a.jpg" },
       { id: "b", fullUrl: "https://example.com/b.jpg" },
     ]);
-    await expect(service.listPhotosForExport({ ...input, recordIds: ["record"] }))
-      .resolves.toEqual([
-        { recordId: "record", sortOrder: 0, fullUrl: "https://example.com/a.jpg" },
-        { recordId: "record", sortOrder: 1, fullUrl: "https://example.com/b.jpg" },
-      ]);
+    await expect(
+      service.listPhotosForExport({ ...input, recordIds: ["record"] }),
+    ).resolves.toEqual([
+      {
+        recordId: "record",
+        sortOrder: 0,
+        fullUrl: "https://example.com/a.jpg",
+      },
+      {
+        recordId: "record",
+        sortOrder: 1,
+        fullUrl: "https://example.com/b.jpg",
+      },
+    ]);
     expect(attachmentStorageRepository.listByRecords).toHaveBeenCalledWith(
       "ledger",
       ["record"],

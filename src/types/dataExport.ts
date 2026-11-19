@@ -4,4 +4,6 @@ import type { ActionState } from "types/actions";
 export type DataExportActionState = ActionState & {
   data?: DataExport;
 };
-export type DataExportAction = (includePhotos?: boolean) => Promise<DataExportActionState>;
+export type DataExportAction = (
+  includePhotos?: boolean,
+) => Promise<DataExportActionState>;

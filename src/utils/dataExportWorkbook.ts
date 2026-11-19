@@ -64,23 +64,17 @@ export async function buildDataExportWorkbook(
     return sheet;
   }
   const withPhotos = Boolean(data.photos?.length);
-  const incomeExpense = createSheet(
-    importSheetKindLabels.incomeExpense,
-    [
-      ...incomeExpenseColumns.filter(
-        (column) =>
-          column.name !== incomeExpensePaymentColumnNames.paymentAmount ||
-          data.records.some(
-            (record) => record.type === "normal" && record.payments.length > 1,
-          ),
-      ),
-      ...(withPhotos ? incomeExpensePhotoColumns : []),
-    ],
-  );
-  const photosByRecord = new Map<
-    string,
-    NonNullable<DataExport["photos"]>
-  >();
+  const incomeExpense = createSheet(importSheetKindLabels.incomeExpense, [
+    ...incomeExpenseColumns.filter(
+      (column) =>
+        column.name !== incomeExpensePaymentColumnNames.paymentAmount ||
+        data.records.some(
+          (record) => record.type === "normal" && record.payments.length > 1,
+        ),
+    ),
+    ...(withPhotos ? incomeExpensePhotoColumns : []),
+  ]);
+  const photosByRecord = new Map<string, NonNullable<DataExport["photos"]>>();
   for (const photo of data.photos ?? []) {
     const recordPhotos = photosByRecord.get(photo.recordId) ?? [];
     recordPhotos.push(photo);
@@ -275,14 +269,11 @@ export async function buildDataExportWorkbook(
             buffer: bytes as never,
             extension: "jpeg",
           });
-          incomeExpense.addImage(
-            imageId,
-            {
-              tl: { col: task.column - 1, row: task.row - 1 },
-              br: { col: task.column, row: task.row },
-              editAs: "twoCell",
-            } as unknown as Parameters<typeof incomeExpense.addImage>[1],
-          );
+          incomeExpense.addImage(imageId, {
+            tl: { col: task.column - 1, row: task.row - 1 },
+            br: { col: task.column, row: task.row },
+            editAs: "twoCell",
+          } as unknown as Parameters<typeof incomeExpense.addImage>[1]);
           options?.onPhotoProgress?.(++completed, photoTasks.length);
         }
       },
