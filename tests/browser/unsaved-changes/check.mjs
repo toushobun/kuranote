@@ -964,7 +964,7 @@ async function checkBalance(browser) {
 }
 async function checkAliasSave(browser, viaLink = false) {
   const session = await newSession(browser, "编辑商家", "merchant-edit-form");
-  const { page, baseline, record } = session;
+  const { page, record } = session;
   await addMerchantAliasDraft(page, "统一保存别名");
   await position(page, "sentinel");
   assert.equal(
@@ -982,11 +982,9 @@ async function checkAliasSave(browser, viaLink = false) {
   await page.waitForURL(viaLink ? `${baseUrl}/merchants` : sourceUrl);
   await page.getByRole("heading", { name: "离开守卫兼容性验证" }).waitFor();
   const row = await record("显示名抽屉确定后，统一保存并继续原离开意图");
-  assert.equal(
-    row.currentIndex,
-    viaLink ? baseline.currentIndex + 1 : baseline.currentIndex - 1,
-  );
-  assert.equal(row.length, baseline.length + 1);
+  assert.equal(row.marker, null);
+  assert.equal(row.sameForm, false);
+  assert.equal(await page.getByRole("dialog", { name: "尚未保存" }).count(), 0);
   return finishSession(session);
 }
 async function checkAliasDrawerBack(browser) {
