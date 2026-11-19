@@ -15,7 +15,7 @@ import { merchantText } from "config/merchantText";
 import { BottomEditorDrawer } from "molecules/ui/BottomEditorDrawer/BottomEditorDrawer";
 import { useConfirmDialog } from "providers/ConfirmDialogProvider/ConfirmDialogProvider";
 import { designTokens } from "theme/theme";
-import { merchantAliasMaxLength } from "internal/merchant/schema";
+import { merchantAliasMaxLength } from "config/merchantLimits";
 
 export type MerchantAliasDraft = { id: string; alias: string };
 

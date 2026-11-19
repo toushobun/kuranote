@@ -1,6 +1,8 @@
 import { z } from "@hono/zod-openapi";
 
 import { merchantTagEmojiValues } from "config/merchantTagEmojis";
+import { merchantAliasMaxLength } from "config/merchantLimits";
+export { merchantAliasMaxLength } from "config/merchantLimits";
 import {
   merchantErrorCodes,
   merchantErrorMessages,
@@ -19,7 +21,6 @@ import { parseWebsiteUrl } from "utils/websiteIcons";
 
 export const merchantNameMaxLength = 100;
 export const merchantNoteMaxLength = 200000;
-export const merchantAliasMaxLength = 100;
 export const merchantTagNameMaxLength = 100;
 export const merchantTagIconMaxLength = 32;
 export const maxMerchantReorderCount = 200;
