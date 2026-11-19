@@ -17,8 +17,13 @@ function PhotoThumbnail({ photo }: { photo: EmbeddedWorksheetPhoto }) {
   useEffect(() => {
     if (!wrapper.current) return;
     if (typeof IntersectionObserver === "undefined") {
-      setVisible(true);
-      return;
+      let active = true;
+      queueMicrotask(() => {
+        if (active) setVisible(true);
+      });
+      return () => {
+        active = false;
+      };
     }
     const observer = new IntersectionObserver((entries) => {
       if (entries.some((entry) => entry.isIntersecting)) setVisible(true);
@@ -32,8 +37,14 @@ function PhotoThumbnail({ photo }: { photo: EmbeddedWorksheetPhoto }) {
     const url = URL.createObjectURL(
       new Blob([new Uint8Array(photo.bytes)], { type: photo.mimeType }),
     );
-    setSrc(url);
-    return () => URL.revokeObjectURL(url);
+    let active = true;
+    queueMicrotask(() => {
+      if (active) setSrc(url);
+    });
+    return () => {
+      active = false;
+      URL.revokeObjectURL(url);
+    };
   }, [photo, visible]);
 
   return (
