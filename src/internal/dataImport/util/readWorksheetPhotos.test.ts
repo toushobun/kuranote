@@ -57,6 +57,18 @@ describe("readWorksheetPhotos", () => {
     );
   });
 
+  it("照片列名与其它导入列一样允许首尾空格", async () => {
+    const { workbook, sheet } = await sheetWithPictures([{ col: 2, row: 1 }]);
+    const result = readWorksheetPhotos(
+      workbook,
+      sheet,
+      ["日期", "金额", " 照片1 ", "照片2", "照片3", "照片4", "照片5"],
+      1,
+    );
+    expect(result.issues).toEqual([]);
+    expect(result.photosByRow.get(2)?.[0]?.columnName).toBe("照片1");
+  });
+
   it("错列、同格重复、非法字节都按行报错", async () => {
     const { workbook, sheet } = await sheetWithPictures([
       { col: 1, row: 1 },

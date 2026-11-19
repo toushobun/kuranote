@@ -55,7 +55,7 @@ export function readWorksheetPhotos(
   for (const picture of worksheet.getImages()) {
     const rowNumber = picture.range.tl.nativeRow + 1;
     const columnIndex = picture.range.tl.nativeCol;
-    const columnName = header[columnIndex] ?? "";
+    const columnName = (header[columnIndex] ?? "").trim();
     if (
       rowNumber <= headerRowNumber ||
       !photoColumnNames.includes(columnName)
