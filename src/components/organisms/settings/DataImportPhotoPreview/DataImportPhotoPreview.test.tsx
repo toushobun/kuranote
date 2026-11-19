@@ -23,9 +23,21 @@ describe("DataImportPhotoPreview", () => {
       rowNumber: 2,
     };
     const { unmount } = render(
-      <DataImportPhotoPreview rows={[{ rowNumber: 2, photos: [photo] }]} />,
+      <DataImportPhotoPreview
+        rows={[
+          {
+            rowNumber: 2,
+            transactionAt: "2026-11-20 10:30:00",
+            merchantName: "便利店",
+            amount: 1280,
+            photos: [photo],
+          },
+        ]}
+      />,
     );
-    expect(screen.getByText("第 2 行")).toBeInTheDocument();
+    expect(
+      screen.getByText(/第 2 行.*2026-11-20 10:30:00.*便利店.*金额 1280/),
+    ).toBeInTheDocument();
     await waitFor(() =>
       expect(screen.getByRole("img", { name: "照片1" })).toHaveAttribute(
         "src",

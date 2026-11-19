@@ -63,6 +63,31 @@ function mockAnalyzeImportFile(totalCount: number) {
   );
 }
 
+function mockAnalyzeImportFileWithPhotos() {
+  analyzeImportFileMock.mockResolvedValue({
+    result: {
+      ok: true,
+      summary: {
+        balanceAdjustmentCount: 0,
+        incomeExpenseCount: 1,
+        transferCount: 0,
+      },
+    },
+    units: [makeIncomeExpenseUnit()],
+    photosByRow: new Map([
+      [
+        2,
+        ["照片1", "照片2"].map((columnName) => ({
+          rowNumber: 2,
+          columnName,
+          mimeType: "image/jpeg",
+          bytes: new Uint8Array([0xff, 0xd8, 0xff, 0xd9]),
+        })),
+      ],
+    ]),
+  });
+}
+
 function makeDoneBatch(
   totalCount: number,
 ): DataImportBatchActionState["batch"] {
@@ -285,6 +310,56 @@ describe("useDataImportForm 浏览器端解析与分批发送", () => {
     uploadReceiptPhotoMock.mockReset();
   });
 
+  it("照片上传进度逐张增加，批次提交时不再显示上传提示", async () => {
+    const first = deferred<{ attachmentId: string }>();
+    const second = deferred<{ attachmentId: string }>();
+    const batch = deferred<DataImportBatchActionState>();
+    uploadReceiptPhotoMock
+      .mockImplementationOnce(() => first.promise)
+      .mockImplementationOnce(() => second.promise);
+    mockAnalyzeImportFileWithPhotos();
+    const executeBatchAction = vi.fn<DataImportBatchStateAction>(
+      async () => batch.promise,
+    );
+    const { result } = renderHook(() =>
+      useDataImportForm(executeBatchAction, [], "ledger"),
+    );
+    await selectFileAndCheckFormat(result);
+    expect(result.current.photoPreviewRows).toMatchObject([
+      {
+        rowNumber: 2,
+        transactionAt: "2026-09-17 10:00:00",
+        merchantName: "超市",
+        amount: 1200,
+      },
+    ]);
+
+    let importPromise!: Promise<void>;
+    act(() => {
+      importPromise = result.current.handleStartImport();
+    });
+    await waitFor(() => expect(uploadReceiptPhotoMock).toHaveBeenCalledTimes(1));
+    expect(result.current.photoUploadProgress).toEqual({ done: 0, total: 2 });
+    await act(async () => {
+      first.resolve({ attachmentId: "photo-1" });
+      await flushMicrotasks();
+    });
+    await waitFor(() => expect(uploadReceiptPhotoMock).toHaveBeenCalledTimes(2));
+    expect(result.current.photoUploadProgress).toEqual({ done: 1, total: 2 });
+    await act(async () => {
+      second.resolve({ attachmentId: "photo-2" });
+      await flushMicrotasks();
+    });
+    await waitFor(() => expect(executeBatchAction).toHaveBeenCalledOnce());
+    expect(result.current.photoUploadProgress).toBeNull();
+    await act(async () => {
+      batch.resolve({ batch: makeDoneBatch(1) });
+      await importPromise;
+    });
+    expect(result.current.executionStatus).toBe("completed");
+    expect(result.current.photoUploadProgress).toBeNull();
+  });
+
   it("照片上传期间离开页面不会在上传完成后再写入交易", async () => {
     const uploading = deferred<{
       attachmentId: string;
@@ -292,30 +367,7 @@ describe("useDataImportForm 浏览器端解析与分批发送", () => {
       width: number;
     }>();
     uploadReceiptPhotoMock.mockReturnValue(uploading.promise);
-    analyzeImportFileMock.mockResolvedValue({
-      result: {
-        ok: true,
-        summary: {
-          balanceAdjustmentCount: 0,
-          incomeExpenseCount: 1,
-          transferCount: 0,
-        },
-      },
-      units: [makeIncomeExpenseUnit()],
-      photosByRow: new Map([
-        [
-          2,
-          [
-            {
-              rowNumber: 2,
-              columnName: "照片1",
-              mimeType: "image/jpeg",
-              bytes: new Uint8Array([0xff, 0xd8, 0xff, 0xd9]),
-            },
-          ],
-        ],
-      ]),
-    });
+    mockAnalyzeImportFileWithPhotos();
     const executeBatchAction = vi.fn<DataImportBatchStateAction>();
     const { result, unmount } = renderHook(() =>
       useDataImportForm(executeBatchAction, [], "ledger"),

@@ -31,13 +31,16 @@ describe("prepareImportPhotoBatch", () => {
       .fn()
       .mockResolvedValueOnce({ attachmentId: ids[0] })
       .mockResolvedValueOnce({ attachmentId: ids[1] });
+    const onPhotoUploaded = vi.fn();
     const out = await prepareImportPhotoBatch(
       [unit],
       new Map([[2, [photo("照片1"), photo("照片2")]]]),
       "ledger",
       upload,
+      onPhotoUploaded,
     );
     expect(upload).toHaveBeenCalledTimes(2);
+    expect(onPhotoUploaded).toHaveBeenCalledTimes(2);
     expect(out.units).toEqual([
       { ...unit, group: { ...unit.group, attachmentIds: ids } },
     ]);
@@ -62,12 +65,15 @@ describe("prepareImportPhotoBatch", () => {
       .fn()
       .mockResolvedValueOnce({ attachmentId: ids[0] })
       .mockRejectedValueOnce(new Error("failed"));
+    const onPhotoUploaded = vi.fn();
     const out = await prepareImportPhotoBatch(
       [unit],
       new Map([[2, [photo("照片1"), photo("照片2")]]]),
       "ledger",
       upload,
+      onPhotoUploaded,
     );
+    expect(onPhotoUploaded).toHaveBeenCalledOnce();
     expect(out.units).toEqual([]);
     expect(out.failedDetails).toMatchObject([
       {
