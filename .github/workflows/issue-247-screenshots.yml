@@ -4,6 +4,9 @@ on:
     branches: [feature/247_cross_currency_transfer]
 permissions:
   contents: write
+concurrency:
+  group: issue-247-screenshot-one-at-a-time
+  cancel-in-progress: true
 jobs:
   screenshot:
     if: github.actor != 'github-actions[bot]'

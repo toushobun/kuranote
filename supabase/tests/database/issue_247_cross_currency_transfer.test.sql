@@ -173,11 +173,14 @@ select lives_ok(
 );
 select is(pg_temp.balance('jpy_from'), 0::numeric, '删除后转出余额回到 0');
 select is(pg_temp.balance('cny_to'), 0::numeric, '删除后到账余额回到 0');
+-- 已删除记录对 authenticated 不可见，切回管理员验证落库状态。
+set local role postgres;
 select is(
     (select status from public.transaction_record
       where id = (select id from cross_currency_created)),
     'deleted', '删除后主记录为 deleted'
 );
+set local role authenticated;
 
 select * from finish();
 rollback;
