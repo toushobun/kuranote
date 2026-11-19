@@ -66,9 +66,7 @@ describe("MerchantEditTemplate #1125", () => {
   it("页面只显示一行显示名与一个保存按钮", () => {
     renderTemplate();
     expect(screen.getAllByLabelText(/商家名称/)).toHaveLength(1);
-    expect(
-      screen.getByRole("button", { name: "管理显示名与别名" }),
-    ).toHaveTextContent("来福");
+    expect(screen.getByLabelText("显示名")).toHaveValue("来福");
     expect(
       screen.getByRole("button", { name: "管理显示名与别名" }),
     ).toHaveTextContent("别名 1 个");
@@ -154,9 +152,7 @@ describe("MerchantEditTemplate #1125", () => {
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent("数据库保存失败"),
     );
-    expect(
-      screen.getByRole("button", { name: "管理显示名与别名" }),
-    ).toHaveTextContent("ライフ");
+    expect(screen.getByLabelText("显示名")).toHaveValue("ライフ");
     expect(JSON.parse(String(editFormData().get("addedAliases")))).toEqual([
       "ライフ",
     ]);
@@ -179,9 +175,7 @@ describe("MerchantEditTemplate #1125", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "确定" }));
     expect(editFormData().get("preferredAlias")).toBe("");
-    expect(
-      screen.getByRole("button", { name: "管理显示名与别名" }),
-    ).toHaveTextContent("LIFE超市");
+    expect(screen.getByLabelText("显示名")).toHaveValue("LIFE超市");
   });
 
   it("抽屉确定后离开时仍走统一表单的未保存守卫", async () => {
