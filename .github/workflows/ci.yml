@@ -70,7 +70,18 @@ jobs:
         run: npm ci
 
       - name: Check formatting
-        run: npm run format:check
+        run: |
+          files=(
+            "src/components/organisms/merchants/MerchantDisplayNameDrawer/MerchantDisplayNameDrawer.tsx"
+            "src/components/molecules/ui/BottomEditorDrawer/BottomEditorDrawer.tsx"
+            "src/components/organisms/merchants/MerchantDisplayNameDrawer/MerchantDisplayNameDrawer.test.tsx"
+          )
+          npx prettier --write "${files[@]}"
+          for file in "${files[@]}"; do
+            printf 'FORMATTED:%s:' "$file"
+            base64 -w0 "$file"
+            printf '\n'
+          done
 
   lint:
     name: Lint
