@@ -225,26 +225,23 @@ describe("LedgersTemplate", () => {
     ).toBeInTheDocument();
   });
 
-  it("切换账本提交中保留迁移前的背景色和进度指示器颜色", async () => {
+  it("切换账本提交中保留原色并禁止重复提交", async () => {
     const pendingAction = vi.fn(() => new Promise<void>(() => {}));
     renderTemplate({ updateCurrentLedgerAction: pendingAction });
 
     fireEvent.click(screen.getByRole("button", { name: "切换到旅行账本" }));
 
     const progress = await screen.findByRole("progressbar", {
-      name: "正在切换到旅行账本",
+      name: "切换中…",
     });
     const switchButton = progress.closest("button");
 
     expect(switchButton).toBeDisabled();
-    expect(getComputedStyle(switchButton!).background).toBe(
-      "var(--user-theme-fab-bg)",
-    );
-    expect(getComputedStyle(switchButton!).backgroundColor).toBe(
-      "rgba(0, 0, 0, 0.12)",
-    );
-    expect(getComputedStyle(switchButton!).color).toBe("rgba(0, 0, 0, 0.26)");
-    expect(getComputedStyle(progress).color).toBe("rgba(0, 0, 0, 0.26)");
+    expect(switchButton).toHaveAttribute("aria-busy", "true");
+    expect(switchButton).toHaveAttribute("data-action-pending", "true");
+    expect(switchButton).toHaveAccessibleName("切换中…");
+    fireEvent.click(switchButton!);
+    expect(pendingAction).toHaveBeenCalledOnce();
   });
 
   it("点击账本列表项进入账本设置页", () => {

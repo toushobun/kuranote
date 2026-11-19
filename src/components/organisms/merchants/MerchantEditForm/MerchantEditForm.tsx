@@ -2,10 +2,10 @@
 import { useState } from "react";
 import { useDirtySnapshot } from "molecules/ui/UnsavedChangesDialog/useDirtySnapshot";
 
-import Button from "@mui/material/Button";
-import CircularProgress from "@mui/material/CircularProgress";
 import Stack from "@mui/material/Stack";
 
+import { ActionButton } from "atoms/ui/ActionButton/ActionButton";
+import { actionPendingMessages } from "config/actionPendingMessages";
 import { merchantText } from "config/merchantText";
 import { MerchantDetailsFields } from "organisms/merchants/MerchantDetailsFields/MerchantDetailsFields";
 import { MerchantTagsField } from "organisms/merchants/MerchantTagsField/MerchantTagsField";
@@ -88,19 +88,16 @@ export function MerchantEditForm({
           initialTagIds={merchant.tags.map((tag) => tag.id)}
           tags={tags}
         />
-        <Button
-          disabled={pending}
+        <ActionButton
+          pending={pending}
+          pendingLabel={actionPendingMessages.save}
           fullWidth
           sx={{ borderRadius: `${designTokens.radius.full}px` }}
           type="submit"
           variant="contained"
         >
-          {pending ? (
-            <CircularProgress aria-label="保存中" color="inherit" size={22} />
-          ) : (
-            merchantText.save
-          )}
-        </Button>
+          {merchantText.save}
+        </ActionButton>
       </Stack>
     </Stack>
   );

@@ -93,8 +93,11 @@ describe("LedgerNicknameSyncDialog", () => {
   it("提交中禁用所有操作", () => {
     renderDialog({ pending: true });
 
-    for (const name of ["全选", "全不选", "仅修改个人昵称", "确定"]) {
+    for (const name of ["全选", "全不选", "仅修改个人昵称", "确认中…"]) {
       expect(screen.getByRole("button", { name })).toBeDisabled();
     }
+    const confirm = screen.getByRole("button", { name: "确认中…" });
+    expect(confirm).toHaveAttribute("aria-busy", "true");
+    fireEvent.click(confirm);
   });
 });

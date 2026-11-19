@@ -31,6 +31,7 @@ import {
 } from "react";
 
 import { PrimaryActionButton } from "atoms/ui/PrimaryActionButton/PrimaryActionButton";
+import { actionPendingMessages } from "config/actionPendingMessages";
 import { SoftCard } from "atoms/ui/SoftCard";
 import { ledgerDeletionMessages } from "config/ledgerDeletionMessages";
 import { ledgerSettingsPageMessages } from "config/ledgerMessages";
@@ -409,7 +410,9 @@ function LedgerSettingsContent({
             取消
           </Button>
           <PrimaryActionButton
-            disabled={!canEditLedger || form.pending}
+            disabled={!canEditLedger}
+            pending={form.pending}
+            pendingLabel={actionPendingMessages.save}
             fullWidth
             type="submit"
           >
@@ -795,7 +798,9 @@ function MemberSettingsDialogContent({
             取消
           </Button>
           <PrimaryActionButton
-            disabled={!canEditProfile || form.pending}
+            disabled={!canEditProfile}
+            pending={form.pending}
+            pendingLabel={actionPendingMessages.save}
             fullWidth
             type="submit"
           >

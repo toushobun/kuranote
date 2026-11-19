@@ -8,10 +8,12 @@ export function ReceiptSubmitButton({
   edit,
   label,
   saving = false,
+  disabled = false,
 }: {
   edit: boolean;
   label: string;
   saving?: boolean;
+  disabled?: boolean;
 }) {
   const SubmitButton = edit ? EditTransactionActionButton : ActionButton;
   return (
@@ -21,6 +23,7 @@ export function ReceiptSubmitButton({
       variant="contained"
       type="submit"
       pending={saving}
+      disabled={disabled}
       pendingLabel={actionPendingMessages.save}
     >
       {label}

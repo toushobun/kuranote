@@ -65,7 +65,12 @@ function ShellHarness({
         <form action={editAction.formAction} id={saveFormId}>
           <DirtyReportingInput />
           <input aria-label="未报告的输入" defaultValue="" />
-          <button type="submit">保存修改</button>
+          <button
+            disabled={editAction.saveDisabled || editAction.isPending}
+            type="submit"
+          >
+            保存修改
+          </button>
         </form>
       )}
     </EditTransactionShell>
@@ -227,9 +232,40 @@ describe("EditTransactionShell", () => {
     });
     expect(button).toBeDisabled();
     expect(button).toHaveAttribute("aria-busy", "true");
+    const save = within(container).getByRole("button", {
+      name: "保存修改",
+      hidden: true,
+    });
+    expect(save).toBeDisabled();
+    fireEvent.click(save);
+    expect(deleteAction).toHaveBeenCalledOnce();
     fireEvent.click(button);
     expect(deleteAction).toHaveBeenCalledOnce();
     await act(async () => complete({}));
+  });
+
+  it("保存进行时禁止删除，结束后恢复删除入口", async () => {
+    let complete!: (state: TransactionActionState) => void;
+    const action = vi.fn(
+      () =>
+        new Promise<TransactionActionState>((done) => {
+          complete = done;
+        }),
+    );
+    const { container } = renderShell({ action });
+    await clickSave(container);
+    await waitFor(() => expect(action).toHaveBeenCalledOnce());
+    const deleteButton = within(container).getByRole("button", {
+      name: "删除",
+    });
+    expect(deleteButton).toBeDisabled();
+    fireEvent.click(deleteButton);
+    expect(screen.queryByRole("dialog", { name: "删除记账？" })).toBeNull();
+    expect(
+      within(container).getByRole("button", { name: "保存修改" }),
+    ).toBeDisabled();
+    await act(async () => complete({}));
+    await waitFor(() => expect(deleteButton).toBeEnabled());
   });
 
   it("有删除权限时只读详情仍可删除", () => {

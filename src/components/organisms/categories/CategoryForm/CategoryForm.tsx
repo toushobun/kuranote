@@ -17,6 +17,7 @@ import {
 import { UnsavedChangesDialog } from "molecules/ui/UnsavedChangesDialog/UnsavedChangesDialog";
 import { useUnsavedChangesGuard } from "molecules/ui/UnsavedChangesDialog/useUnsavedChangesGuard";
 import { defaultCategoryEmoji } from "config/categoryEmojis";
+import { actionPendingMessages } from "config/actionPendingMessages";
 import { settingsPageActionButtonSx } from "templates/layout/SettingsPageLayout";
 import {
   type CategoryAction,
@@ -182,6 +183,7 @@ function CategoryFormContent({
           </DialogContent>
           <CategoryDialogActions
             onCancel={guard.requestClose}
+            pendingLabel={actionPendingMessages.create}
             submitLabel="新增分类"
           />
         </Stack>
