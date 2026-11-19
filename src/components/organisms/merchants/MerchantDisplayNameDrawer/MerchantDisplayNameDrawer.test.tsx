@@ -119,6 +119,19 @@ describe("MerchantDisplayNameDrawer", () => {
     expect(onConfirm).not.toHaveBeenCalled();
   });
 
+  it("确定按钮位于滚动内容之外，较多别名时仍能提交", () => {
+    const aliases = Array.from({ length: 30 }, (_, index) => ({
+      id: `alias-${index}`,
+      alias: `别名${index}`,
+    }));
+    const { onConfirm } = renderDrawer(aliases);
+    const scrollContent = screen.getByTestId("bottom-editor-scroll-content");
+    const confirm = screen.getByRole("button", { name: "确定" });
+    expect(scrollContent).not.toContainElement(confirm);
+    fireEvent.click(confirm);
+    expect(onConfirm).toHaveBeenCalledWith(aliases, null);
+  });
+
   it("关闭只触发关闭事件，不调用确认保存", () => {
     const { onClose, onConfirm } = renderDrawer();
     fireEvent.click(screen.getByRole("button", { name: "关闭显示名抽屉" }));

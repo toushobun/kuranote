@@ -44,42 +44,20 @@ const rowSx = {
 } as const;
 
 export function MerchantDisplayNameDrawer({
+  sessionId,
+  ...props
+}: MerchantDisplayNameDrawerProps) {
+  return <MerchantDisplayNameDraft key={sessionId} {...props} />;
+}
+
+function MerchantDisplayNameDraft({
   aliases,
   merchantName,
   onClose,
   onConfirm,
   open,
   preferredAliasId,
-  sessionId,
-}: MerchantDisplayNameDrawerProps) {
-  return (
-    <BottomEditorDrawer
-      closeLabel={merchantText.closeDisplayName}
-      onClose={onClose}
-      open={open}
-      title={merchantText.preferredTitle}
-      zIndex={amountKeypadZIndex}
-    >
-      <MerchantDisplayNameDraft
-        key={sessionId}
-        aliases={aliases}
-        merchantName={merchantName}
-        onConfirm={onConfirm}
-        preferredAliasId={preferredAliasId}
-      />
-    </BottomEditorDrawer>
-  );
-}
-
-function MerchantDisplayNameDraft({
-  aliases,
-  merchantName,
-  onConfirm,
-  preferredAliasId,
-}: Pick<
-  MerchantDisplayNameDrawerProps,
-  "aliases" | "merchantName" | "onConfirm" | "preferredAliasId"
->) {
+}: Omit<MerchantDisplayNameDrawerProps, "sessionId">) {
   const confirm = useConfirmDialog();
   const [draftAliases, setDraftAliases] = useState(aliases);
   const [selectedId, setSelectedId] = useState<string | null>(preferredAliasId);
@@ -167,7 +145,24 @@ function MerchantDisplayNameDraft({
   }
 
   return (
-    <Stack spacing={2}>
+    <BottomEditorDrawer
+      closeLabel={merchantText.closeDisplayName}
+      footer={
+        <Button
+          fullWidth
+          onClick={() => onConfirm(draftAliases, selectedId)}
+          sx={{ borderRadius: `${designTokens.radius.full}px` }}
+          variant="contained"
+        >
+          {merchantText.confirmDisplayName}
+        </Button>
+      }
+      onClose={onClose}
+      open={open}
+      title={merchantText.preferredTitle}
+      zIndex={amountKeypadZIndex}
+    >
+      <Stack spacing={2}>
       <Typography color="textSecondary" variant="body2">
         {merchantText.preferredHelper}
       </Typography>
@@ -280,14 +275,7 @@ function MerchantDisplayNameDraft({
           </Typography>
         ) : null}
       </Stack>
-      <Button
-        fullWidth
-        onClick={() => onConfirm(draftAliases, selectedId)}
-        sx={{ borderRadius: `${designTokens.radius.full}px` }}
-        variant="contained"
-      >
-        {merchantText.confirmDisplayName}
-      </Button>
-    </Stack>
+      </Stack>
+    </BottomEditorDrawer>
   );
 }
