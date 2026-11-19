@@ -342,10 +342,16 @@ export function useDataImportForm(
       });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = buildDataImportResultFileName(selectedFile.name);
-      anchor.click();
-      URL.revokeObjectURL(url);
+      try {
+        anchor.href = url;
+        anchor.download = buildDataImportResultFileName(selectedFile.name);
+        document.body.appendChild(anchor);
+        anchor.click();
+      } finally {
+        anchor.remove();
+        // Safari 等浏览器需要在开始下载之后再释放 Blob URL。
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
     } catch {
       if (mountedRef.current) {
         setDownloadError(dataImportExecutionMessages.downloadFailed);

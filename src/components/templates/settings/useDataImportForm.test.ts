@@ -24,10 +24,16 @@ import type {
 import { useDataImportForm } from "./useDataImportForm";
 
 const analyzeImportFileMock = vi.hoisted(() => vi.fn());
+const buildResultWorkbookMock = vi.hoisted(() => vi.fn());
 const uploadReceiptPhotoMock = vi.hoisted(() => vi.fn());
 
 vi.mock("utils/transactionPhotoUpload", () => ({
   uploadReceiptPhoto: uploadReceiptPhotoMock,
+}));
+
+vi.mock("utils/dataImportResultWorkbook", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("utils/dataImportResultWorkbook")>()),
+  buildDataImportResultWorkbook: buildResultWorkbookMock,
 }));
 
 vi.mock("internal/dataImport", async (importOriginal) => ({
@@ -475,6 +481,58 @@ describe("useDataImportForm 浏览器端解析与分批发送", () => {
     expect(result.current.executionError).toBeNull();
     expect(result.current.executionResult?.totalCount).toBe(0);
     expect(result.current.isImporting).toBe(false);
+  });
+});
+
+describe("useDataImportForm 导入结果下载", () => {
+  beforeEach(() => {
+    analyzeImportFileMock.mockReset();
+    buildResultWorkbookMock.mockReset();
+  });
+
+  it("将链接挂载到文档并延迟释放 Blob URL，避免 Safari 下载中断", async () => {
+    vi.useFakeTimers();
+    try {
+      const createUrl = vi
+        .spyOn(URL, "createObjectURL")
+        .mockReturnValue("blob:import-result");
+      const revokeUrl = vi
+        .spyOn(URL, "revokeObjectURL")
+        .mockImplementation(() => {});
+      const click = vi
+        .spyOn(HTMLAnchorElement.prototype, "click")
+        .mockImplementation(function (this: HTMLAnchorElement) {
+          expect(document.body.contains(this)).toBe(true);
+          expect(this.href).toBe("blob:import-result");
+          expect(this.download).toBe("data_导入结果.xlsx");
+        });
+      buildResultWorkbookMock.mockResolvedValue(new ArrayBuffer(8));
+      mockAnalyzeImportFile(1);
+      const executeBatchAction = vi.fn<DataImportBatchStateAction>(
+        async () => ({ batch: makeDoneBatch(1) }),
+      );
+      const { result } = renderHook(() => useDataImportForm(executeBatchAction));
+      await selectFileAndCheckFormat(result);
+
+      await act(async () => {
+        await result.current.handleStartImport();
+      });
+      await act(async () => {
+        await result.current.handleDownloadResult();
+      });
+
+      expect(click).toHaveBeenCalledOnce();
+      expect(createUrl).toHaveBeenCalledOnce();
+      expect(revokeUrl).not.toHaveBeenCalled();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+      expect(revokeUrl).toHaveBeenCalledWith("blob:import-result");
+      expect(document.querySelector('a[href="blob:import-result"]')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+      vi.restoreAllMocks();
+    }
   });
 });
 
