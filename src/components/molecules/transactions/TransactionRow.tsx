@@ -11,6 +11,7 @@ import { TransactionBusinessBadge } from "atoms/TransactionBusinessBadge/Transac
 import { TransactionOriginalAmount } from "atoms/transactions/TransactionOriginalAmount";
 import { TransactionSharedPaymentNote } from "atoms/transactions/TransactionSharedPaymentNote";
 import { balanceAdjustmentText } from "config/balanceAdjustmentText";
+import { transferReceiptMessages } from "config/transactionStepFlowMessages";
 import { serverFallbackTimeZone } from "config/dateTime";
 import {
   transactionFallbackLabels,
@@ -244,6 +245,20 @@ export function TransactionRow({
           {sharedPaymentLabel ? (
             <TransactionSharedPaymentNote label={sharedPaymentLabel} />
           ) : null}
+          {isTransfer && item.transferTargetAmount && item.transferTargetCurrency && (
+            <Typography
+              variant="caption"
+              sx={{ color: mutedText, fontSize: 11, textAlign: "right" }}
+            >
+              {transferReceiptMessages.listArrival(
+                formatUnsignedCurrencyAmount(
+                  item.transferTargetAmount,
+                  item.transferTargetCurrency,
+                ),
+                item.transferTargetCurrency,
+              )}
+            </Typography>
+          )}
 
           {metaSegments.length > 0 || adjustmentNode ? (
             <Stack

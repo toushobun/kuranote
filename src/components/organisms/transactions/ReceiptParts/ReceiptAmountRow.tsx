@@ -18,6 +18,7 @@ export function ReceiptAmountRow({
   label,
   amount,
   caption,
+  labelCaption,
   color = "primary.main",
   error = false,
   onClick,
@@ -26,6 +27,7 @@ export function ReceiptAmountRow({
   /** 空字符串表示还没填写。 */
   amount: string;
   caption?: ReactNode;
+  labelCaption?: string;
   color?: string;
   error?: boolean;
   onClick?: () => void;
@@ -48,11 +50,16 @@ export function ReceiptAmountRow({
       direction="row"
       sx={[receiptSectionSx, { alignItems: "center", py: 1.5 }]}
     >
-      <Typography
-        sx={{ flex: 1, fontWeight: 700, pr: 1, whiteSpace: "nowrap" }}
-      >
-        {label}
-      </Typography>
+      <Stack sx={{ flex: 1, minWidth: 0, pr: 1 }}>
+        <Typography sx={{ fontWeight: 700, whiteSpace: "nowrap" }}>
+          {label}
+        </Typography>
+        {labelCaption && (
+          <Typography variant="caption" color="textSecondary">
+            {labelCaption}
+          </Typography>
+        )}
+      </Stack>
       <Stack sx={{ alignItems: "flex-end", minWidth: 0 }}>
         {onClick ? (
           <ButtonBase

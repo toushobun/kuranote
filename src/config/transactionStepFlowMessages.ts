@@ -126,12 +126,19 @@ export const transferReceiptMessages = {
   accountTitle: (side: string) => `${side}账户`,
   changeAccount: (side: string, name: string) => `更换${side}账户：${name}`,
   amount: "转账金额",
+  sourceAmount: "转出金额",
+  targetAmount: "到账金额",
+  targetAmountTitle: (currency: string) => `到账金额（${currency}）`,
+  exchangeRate: (base: string, quote: string, rate: string) =>
+    `汇率 1 ${base} ≈ ${rate} ${quote}（按两边金额算出）`,
+  listArrival: (amount: string, currency: string) => `到账 ${amount} ${currency}`,
   save: "保存转账",
   missingSource: "请选择转出账户",
   missingTarget: "请选择转入账户",
   missingAmount: "请输入转账金额",
   invalidAmount: "转账金额无效，点一下重新输入",
-  currencyMismatch: "暂不支持不同币种之间的转账",
+  missingTargetAmount: "请输入到账金额",
+  invalidTargetAmount: "到账金额无效，点一下重新输入",
 } as const;
 
 /** 明细抽屉（含独立的退款 / 报销类型）。 */
