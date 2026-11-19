@@ -306,7 +306,10 @@ export function createSupabaseAttachmentStorageRepository(
       return result;
     },
 
-    async getSignedReadUrls(attachments, lifetimeSeconds = signedReadLifetimeSeconds) {
+    async getSignedReadUrls(
+      attachments,
+      lifetimeSeconds = signedReadLifetimeSeconds,
+    ) {
       if (attachments.length === 0) return [];
       const paths = attachments.flatMap((attachment) => [
         attachment.storage_path,

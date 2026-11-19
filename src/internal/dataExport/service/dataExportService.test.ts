@@ -55,7 +55,11 @@ describe("dataExportService", () => {
     await service.getData(input);
     expect(transactionQueryService.listPhotosForExport).not.toHaveBeenCalled();
     transactionQueryService.listPhotosForExport.mockResolvedValueOnce([
-      { fullUrl: "https://example.com/photo.jpg", recordId: "normal", sortOrder: 0 },
+      {
+        fullUrl: "https://example.com/photo.jpg",
+        recordId: "normal",
+        sortOrder: 0,
+      },
     ]);
     const result = await service.getData({ ...input, includePhotos: true });
     expect(result.photos).toHaveLength(1);
