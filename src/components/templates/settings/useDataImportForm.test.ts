@@ -493,12 +493,15 @@ describe("useDataImportForm 导入结果下载", () => {
   it("将链接挂载到文档并延迟释放 Blob URL，避免 Safari 下载中断", async () => {
     vi.useFakeTimers();
     try {
-      const createUrl = vi
-        .spyOn(URL, "createObjectURL")
-        .mockReturnValue("blob:import-result");
-      const revokeUrl = vi
-        .spyOn(URL, "revokeObjectURL")
-        .mockImplementation(() => {});
+      const createUrl = vi.fn(() => "blob:import-result");
+      const revokeUrl = vi.fn();
+      vi.stubGlobal(
+        "URL",
+        class extends URL {
+          static createObjectURL = createUrl;
+          static revokeObjectURL = revokeUrl;
+        },
+      );
       const click = vi
         .spyOn(HTMLAnchorElement.prototype, "click")
         .mockImplementation(function (this: HTMLAnchorElement) {
@@ -531,6 +534,7 @@ describe("useDataImportForm 导入结果下载", () => {
       expect(document.querySelector('a[href="blob:import-result"]')).toBeNull();
     } finally {
       vi.useRealTimers();
+      vi.unstubAllGlobals();
       vi.restoreAllMocks();
     }
   });
