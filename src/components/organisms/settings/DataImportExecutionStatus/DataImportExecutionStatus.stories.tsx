@@ -52,6 +52,15 @@ export const ImportingWithSimulatedProgress: Story = {
   },
 };
 
+export const UploadingPhotos: Story = {
+  ...ImportingWithSimulatedProgress,
+  name: "导入中（上传小票照片）",
+  args: {
+    ...ImportingWithSimulatedProgress.args,
+    photoUploadProgress: { done: 12, total: 80 },
+  },
+};
+
 export const AllSucceeded: Story = {
   name: "全部成功",
   args: {
