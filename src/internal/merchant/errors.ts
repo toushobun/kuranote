@@ -5,11 +5,9 @@ import {
 import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
 
 export const merchantErrorCodes = {
-  aliasArchiveFailed: "alias_archive_failed",
-  aliasCreateFailed: "alias_create_failed",
+  aliasDuplicate: "alias_duplicate",
   aliasInvalid: "alias_invalid",
   aliasPreferredUpdateFailed: "alias_preferred_update_failed",
-  aliasRequired: "alias_required",
   aliasTooLong: "alias_too_long",
   archiveFailed: "archive_failed",
   authRequired: "auth_required",
@@ -53,7 +51,6 @@ export type MerchantErrorCode =
 export type MerchantValidationErrorCode =
   | typeof merchantErrorCodes.merchantPresetInvalid
   | typeof merchantErrorCodes.aliasInvalid
-  | typeof merchantErrorCodes.aliasRequired
   | typeof merchantErrorCodes.aliasTooLong
   | typeof merchantErrorCodes.merchantInvalid
   | typeof merchantErrorCodes.merchantTagIconInvalid
@@ -71,9 +68,8 @@ export type MerchantActionErrorCode =
   | typeof merchantErrorCodes.merchantPresetLoadFailed
   | typeof merchantErrorCodes.merchantPresetAddFailed
   | MerchantValidationErrorCode
-  | typeof merchantErrorCodes.aliasArchiveFailed
-  | typeof merchantErrorCodes.aliasCreateFailed
   | typeof merchantErrorCodes.aliasPreferredUpdateFailed
+  | typeof merchantErrorCodes.aliasDuplicate
   | typeof merchantErrorCodes.archiveFailed
   | typeof merchantErrorCodes.authRequired
   | typeof merchantErrorCodes.createFailed
@@ -94,11 +90,9 @@ const merchantActionErrorCodeSet = new Set<string>([
   merchantErrorCodes.merchantPresetInvalid,
   merchantErrorCodes.merchantPresetAddFailed,
   merchantErrorCodes.merchantPresetLoadFailed,
-  merchantErrorCodes.aliasArchiveFailed,
-  merchantErrorCodes.aliasCreateFailed,
   merchantErrorCodes.aliasInvalid,
+  merchantErrorCodes.aliasDuplicate,
   merchantErrorCodes.aliasPreferredUpdateFailed,
-  merchantErrorCodes.aliasRequired,
   merchantErrorCodes.aliasTooLong,
   merchantErrorCodes.archiveFailed,
   merchantErrorCodes.authRequired,
@@ -135,13 +129,10 @@ export const merchantErrorMessages: Record<MerchantErrorCode, string> = {
     "预设商家读取失败，请稍后重试。",
   [merchantErrorCodes.merchantPresetAddFailed]:
     "预设商家添加失败，请稍后重试。",
-  [merchantErrorCodes.aliasArchiveFailed]: "商家别名归档失败，请稍后重试。",
-  [merchantErrorCodes.aliasCreateFailed]:
-    "商家别名新增失败。请确认别名是否重复，或稍后重试。",
+  [merchantErrorCodes.aliasDuplicate]: "商家别名已存在，请修改后重试。",
   [merchantErrorCodes.aliasInvalid]: "商家别名指定不正确。",
   [merchantErrorCodes.aliasPreferredUpdateFailed]:
     "展示名更新失败，请稍后重试。",
-  [merchantErrorCodes.aliasRequired]: "请输入商家别名。",
   [merchantErrorCodes.aliasTooLong]: "商家别名不能超过 100 个字符。",
   [merchantErrorCodes.archiveFailed]: "商家归档失败，请稍后重试。",
   [merchantErrorCodes.authRequired]: sharedErrorMessages.authRequired,

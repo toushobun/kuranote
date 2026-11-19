@@ -148,6 +148,36 @@ describe("MerchantImportService", () => {
       previewIconUrl: null,
       siteUrl: null,
       tagIds: ["tag-1", "tag-2"],
+      addedAliases: [],
+      archivedAliasIds: [],
+      preferredAlias: null,
     });
+  });
+
+  it("导入新增分类时保持原来选中的显示名", async () => {
+    const { importService, updateMerchant } = createService({
+      getMerchant: vi.fn(async () =>
+        merchant({
+          aliases: [
+            { alias: "来福", is_preferred: true },
+            { alias: "LIFE", is_preferred: false },
+          ],
+        }),
+      ),
+    } as never);
+
+    await importService.addTag({
+      ledgerId: "ledger-1",
+      merchantId: "merchant-1",
+      tagId: "tag-2",
+    });
+
+    expect(updateMerchant).toHaveBeenCalledWith(
+      expect.objectContaining({
+        addedAliases: [],
+        archivedAliasIds: [],
+        preferredAlias: "来福",
+      }),
+    );
   });
 });

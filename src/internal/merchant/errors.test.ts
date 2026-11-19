@@ -11,8 +11,11 @@ describe("merchantErrorMessages", () => {
     expect(merchantErrorMessages[merchantErrorCodes.nameRequired]).toBe(
       "请输入商家名称。",
     );
-    expect(merchantErrorMessages[merchantErrorCodes.aliasRequired]).toBe(
-      "请输入商家别名。",
+    expect(merchantErrorMessages[merchantErrorCodes.aliasInvalid]).toBe(
+      "商家别名指定不正确。",
+    );
+    expect(merchantErrorMessages[merchantErrorCodes.aliasDuplicate]).toBe(
+      "商家别名已存在，请修改后重试。",
     );
     expect(merchantErrorMessages[merchantErrorCodes.websiteUrlInvalid]).toBe(
       "网址必须以 http:// 或 https:// 开头。",
@@ -26,6 +29,9 @@ describe("isMerchantActionErrorCode", () => {
       true,
     );
     expect(isMerchantActionErrorCode(merchantErrorCodes.nameRequired)).toBe(
+      true,
+    );
+    expect(isMerchantActionErrorCode(merchantErrorCodes.aliasDuplicate)).toBe(
       true,
     );
     expect(
