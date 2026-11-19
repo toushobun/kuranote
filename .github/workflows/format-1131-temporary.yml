@@ -19,3 +19,8 @@ jobs:
         run: |
           npx prettier . --write >/dev/null
           git diff -- src
+          echo "__DIFF_END__"
+      - name: Type check
+        run: npm run type-check
+      - name: Unit tests
+        run: npm test
