@@ -33,7 +33,11 @@ export function readWorksheetPhotos(
   header: string[],
   headerRowNumber: number,
   photoColumnNames: readonly string[] = incomeExpensePhotoColumnNames,
-): { images: EmbeddedWorksheetPhoto[]; photosByRow: Map<number, EmbeddedWorksheetPhoto[]>; issues: ImportRowIssue[] } {
+): {
+  images: EmbeddedWorksheetPhoto[];
+  photosByRow: Map<number, EmbeddedWorksheetPhoto[]>;
+  issues: ImportRowIssue[];
+} {
   const images: EmbeddedWorksheetPhoto[] = [];
   const issues: ImportRowIssue[] = [];
   const seenCells = new Set<string>();
