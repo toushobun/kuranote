@@ -514,7 +514,9 @@ describe("useDataImportForm 导入结果下载", () => {
       const executeBatchAction = vi.fn<DataImportBatchStateAction>(
         async () => ({ batch: makeDoneBatch(1) }),
       );
-      const { result } = renderHook(() => useDataImportForm(executeBatchAction));
+      const { result } = renderHook(() =>
+        useDataImportForm(executeBatchAction),
+      );
       await selectFileAndCheckFormat(result);
 
       await act(async () => {
