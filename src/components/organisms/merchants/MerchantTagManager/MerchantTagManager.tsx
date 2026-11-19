@@ -377,6 +377,7 @@ function MerchantTagManagement({
             component="form"
             id="merchant-tag-edit-form"
             spacing={2.5}
+            useFlexGap
           >
             <input name="tagId" type="hidden" value={editingTag?.id ?? ""} />
             <TextField

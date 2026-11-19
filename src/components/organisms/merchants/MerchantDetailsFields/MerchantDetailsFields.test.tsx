@@ -3,6 +3,7 @@ import { useState, type ComponentProps } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { merchantErrorCodes, merchantErrorMessages } from "internal/merchant";
+import { expectFirstVisibleStackChildHasNoTopMargin } from "test/formStackSpacing";
 
 import { MerchantDetailsFields } from "./MerchantDetailsFields";
 
@@ -46,6 +47,7 @@ describe("MerchantDetailsFields", () => {
       <FieldsHarness {...baseProps} fetchIconAction={fetchIconAction} />,
     );
 
+    expectFirstVisibleStackChildHasNoTopMargin(container.firstElementChild);
     expect(screen.getByLabelText(/商家名称/)).toHaveValue("Amazon");
     expect(screen.getByLabelText("商家网址")).toHaveValue(
       "https://www.amazon.co.jp",

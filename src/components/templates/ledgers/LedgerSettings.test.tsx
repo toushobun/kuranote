@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ledgerFeatureSettingMessages } from "config/ledgerMessages";
 import { loadLedgerDeletionImpactWith } from "test/ledgerDeletion";
+import { expectFirstVisibleStackChildHasNoTopMargin } from "test/formStackSpacing";
 import { ConfirmDialogTestProviders } from "test/ConfirmDialogTestProviders";
 import { setupGuardHistoryMock } from "test/mockGuardHistory";
 import type { LedgerSettingsView } from "types/ledgers";
@@ -89,6 +90,11 @@ describe("LedgerSettingsTemplate", () => {
       within(container).getByRole("heading", { name: "账本设置" }),
     ).toBeInTheDocument();
     expect(within(container).getByText("当前使用中")).toBeInTheDocument();
+    expectFirstVisibleStackChildHasNoTopMargin(
+      container
+        .querySelector('input[name="intent"][value="ledger"]')
+        ?.closest("form"),
+    );
   });
 
   it("显示基础信息和成员列表，且不显示我的设置与危险操作", () => {
@@ -192,6 +198,11 @@ describe("LedgerSettingsTemplate", () => {
     expect(
       screen.getByRole("heading", { name: "成员设置" }),
     ).toBeInTheDocument();
+    expectFirstVisibleStackChildHasNoTopMargin(
+      document
+        .querySelector('input[name="intent"][value="member"]')
+        ?.closest("form"),
+    );
     expect(screen.getByLabelText("当前账本昵称")).toHaveValue("配偶");
     expect(screen.getByLabelText("粉樱")).toBeChecked();
     const colorGroup = screen.getByRole("radiogroup", {

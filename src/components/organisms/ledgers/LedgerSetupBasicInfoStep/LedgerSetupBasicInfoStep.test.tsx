@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { mockIntlTimeZone } from "test/mockIntlTimeZone";
+import { expectFirstVisibleStackChildHasNoTopMargin } from "test/formStackSpacing";
 import {
   clickNext,
   getCurrentStepItem,
@@ -14,6 +15,9 @@ afterEach(() => vi.restoreAllMocks());
 describe("LedgerSetupBasicInfoStep", () => {
   it("默认值与时区预选只用于初始化", () => {
     renderLedgerSetupWizard();
+    expectFirstVisibleStackChildHasNoTopMargin(
+      document.getElementById("ledger-setup-basic-info-form"),
+    );
     expect(screen.getByLabelText("账本名称")).toHaveValue("家庭账本");
     expect(screen.getByRole("radio", { name: "日本" })).toBeChecked();
     expect(
