@@ -3,5 +3,11 @@
   "regions": ["hnd1"],
   "git": {
     "deploymentEnabled": false
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/attachment-cleanup",
+      "schedule": "0 2 * * *"
+    }
+  ]
 }
