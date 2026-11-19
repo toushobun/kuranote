@@ -257,6 +257,9 @@ describe("createSupabaseMerchantRepository", () => {
 
     await expect(
       repository.updateMerchant({
+        addedAliases: [],
+        archivedAliasIds: [],
+        preferredAlias: null,
         iconUrl: null,
         ledgerId,
         merchantId,
@@ -268,6 +271,9 @@ describe("createSupabaseMerchantRepository", () => {
     ).resolves.toBe(true);
 
     expect(supabase.rpc).toHaveBeenCalledWith("update_merchant_with_tags", {
+      p_added_aliases: [],
+      p_archived_alias_ids: [],
+      p_preferred_alias: null,
       p_icon_url: null,
       p_ledger_id: ledgerId,
       p_merchant_id: merchantId,
@@ -324,29 +330,71 @@ describe("createSupabaseMerchantRepository", () => {
     await expect(operation).rejects.toBeInstanceOf(ConflictError);
   });
 
-  it("重复别名使用统一权威文案返回 ConflictError", async () => {
+  it("已有别名重复返回安全的 409 冲突错误，且不泄露数据库信息", async () => {
     const supabase = createSupabaseMock({
-      queryResponses: [
-        { error: { code: "23505", message: "merchant_alias_active_unique" } },
-      ],
+      rpcResponse: {
+        error: {
+          code: "22023",
+          details: "merchant_alias_duplicate",
+          message: "private detail",
+        },
+      },
     });
     const repository = createSupabaseMerchantRepository(
       supabase.client as never,
       createLogger(),
     );
-
-    const operation = repository.createAlias({
-      alias: "来福",
+    const operation = repository.updateMerchant({
+      addedAliases: ["来福"],
+      archivedAliasIds: [],
+      preferredAlias: "来福",
+      iconUrl: null,
+      ledgerId,
       merchantId,
+      name: "LIFE",
+      note: null,
+      siteUrl: null,
       userId,
     });
 
     await expect(operation).rejects.toMatchObject({
-      code: merchantErrorCodes.aliasCreateFailed,
-      message: merchantErrorMessages[merchantErrorCodes.aliasCreateFailed],
+      code: merchantErrorCodes.aliasDuplicate,
+      message: merchantErrorMessages[merchantErrorCodes.aliasDuplicate],
     });
     await expect(operation).rejects.toBeInstanceOf(ConflictError);
   });
+
+  it.each(["merchant_alias_invalid", "merchant_preferred_invalid"])(
+    "别名参数无效时按校验错误处理：%s",
+    async (details) => {
+      const supabase = createSupabaseMock({
+        rpcResponse: {
+          error: { code: "22023", details, message: "private detail" },
+        },
+      });
+      const repository = createSupabaseMerchantRepository(
+        supabase.client as never,
+        createLogger(),
+      );
+      const operation = repository.updateMerchant({
+        addedAliases: [],
+        archivedAliasIds: [],
+        preferredAlias: null,
+        iconUrl: null,
+        ledgerId,
+        merchantId,
+        name: "LIFE",
+        note: null,
+        siteUrl: null,
+        userId,
+      });
+      await expect(operation).rejects.toMatchObject({
+        code: merchantErrorCodes.aliasInvalid,
+        message: merchantErrorMessages[merchantErrorCodes.aliasInvalid],
+      });
+      await expect(operation).rejects.toBeInstanceOf(ValidationError);
+    },
+  );
 
   it.each([
     {
@@ -371,6 +419,9 @@ describe("createSupabaseMerchantRepository", () => {
         repository: ReturnType<typeof createSupabaseMerchantRepository>,
       ) =>
         repository.updateMerchant({
+          addedAliases: [],
+          archivedAliasIds: [],
+          preferredAlias: null,
           iconUrl: null,
           ledgerId,
           merchantId,
