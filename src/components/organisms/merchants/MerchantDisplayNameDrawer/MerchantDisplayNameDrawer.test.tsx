@@ -154,9 +154,15 @@ describe("MerchantDisplayNameDrawer", () => {
     const drawerRoot = screen.getByRole("dialog").closest(".MuiDrawer-root");
     rerender(view(false, 1));
     rerender(view(true, 2));
-    expect(screen.getByRole("dialog").closest(".MuiDrawer-root")).toBe(drawerRoot);
-    expect(screen.queryByRole("button", { name: "将丢弃我设为展示名" })).toBeNull();
-    expect(screen.getByRole("button", { name: "将来福设为展示名" })).toBeVisible();
+    expect(screen.getByRole("dialog").closest(".MuiDrawer-root")).toBe(
+      drawerRoot,
+    );
+    expect(
+      screen.queryByRole("button", { name: "将丢弃我设为展示名" }),
+    ).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "将来福设为展示名" }),
+    ).toBeVisible();
   });
 
   it("关闭只触发关闭事件，不调用确认保存", () => {
