@@ -101,6 +101,7 @@ export function useDataImportForm(
     photosRef.current.clear();
     setPhotoPreviewRows([]);
     setSelectedFile(file);
+    setIsChecking(false);
     setValidationState(initialValidationState);
     setHolderMappingCandidates([]);
     setExecutionError(null);
@@ -117,6 +118,7 @@ export function useDataImportForm(
   async function handleCheckFormat() {
     if (!selectedFile || isChecking || isImporting) return;
 
+    const checkToken = runTokenRef.current;
     setIsChecking(true);
     setExecutionError(null);
     setExecutionResult(null);
@@ -126,6 +128,8 @@ export function useDataImportForm(
     try {
       const { result, units, photosByRow } =
         await analyzeImportFile(selectedFile);
+      // 换文件或退出页面后，旧解析结果不能覆盖新文件的单元及照片。
+      if (!mountedRef.current || runTokenRef.current !== checkToken) return;
       unitsRef.current = units;
       photosRef.current = photosByRow ?? new Map();
       setPhotoPreviewRows(
@@ -143,13 +147,15 @@ export function useDataImportForm(
         setValidationState({ result });
       }
     } catch {
-      if (mountedRef.current) {
+      if (mountedRef.current && runTokenRef.current === checkToken) {
         setValidationState({
           error: dataImportErrorMessages[dataImportErrorCodes.validationFailed],
         });
       }
     } finally {
-      if (mountedRef.current) setIsChecking(false);
+      if (mountedRef.current && runTokenRef.current === checkToken) {
+        setIsChecking(false);
+      }
     }
   }
 

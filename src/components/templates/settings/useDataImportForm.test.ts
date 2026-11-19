@@ -270,6 +270,48 @@ describe("useDataImportForm 浏览器端解析与分批发送", () => {
     analyzeImportFileMock.mockReset();
   });
 
+  it("更换文件后忽略旧解析结果，且允许新文件立即重新检查", async () => {
+    const oldCheck = deferred<ReturnType<typeof makeAnalyzeImportFileResult>>();
+    const newCheck = deferred<ReturnType<typeof makeAnalyzeImportFileResult>>();
+    analyzeImportFileMock
+      .mockImplementationOnce(() => oldCheck.promise)
+      .mockImplementationOnce(() => newCheck.promise);
+    const { result } = renderHook(() => useDataImportForm(vi.fn()));
+    const pick = (name: string) => {
+      result.current.handleFileChange({
+        target: { files: [new File(["bytes"], name)] },
+      } as unknown as ChangeEvent<HTMLInputElement>);
+    };
+    act(() => pick("old.xlsx"));
+    let oldPromise!: Promise<void>;
+    act(() => {
+      oldPromise = result.current.handleCheckFormat();
+    });
+    act(() => pick("new.xlsx"));
+    expect(result.current.isChecking).toBe(false);
+    let newPromise!: Promise<void>;
+    act(() => {
+      newPromise = result.current.handleCheckFormat();
+    });
+    await act(async () => {
+      newCheck.resolve(makeAnalyzeImportFileResult(2));
+      await newPromise;
+    });
+    expect(result.current.validationState.result).toMatchObject({
+      ok: true,
+      summary: { transferCount: 2 },
+    });
+    await act(async () => {
+      oldCheck.resolve(makeAnalyzeImportFileResult(1));
+      await oldPromise;
+    });
+    expect(result.current.selectedFileName).toBe("new.xlsx");
+    expect(result.current.validationState.result).toMatchObject({
+      ok: true,
+      summary: { transferCount: 2 },
+    });
+  });
+
   it("检查格式在浏览器端解析文件，解析结果写入校验状态", async () => {
     mockAnalyzeImportFile(3);
     const { result } = renderHook(() => useDataImportForm(vi.fn()));

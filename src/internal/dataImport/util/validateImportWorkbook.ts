@@ -94,6 +94,21 @@ export function analyzeImportWorkbook(
     });
   }
 
+  // 相同类型的多个「收支」工作表各自从第 1 行计数，只有行号无法区分图片归属。
+  // 未包含图片的旧式多工作表导入仍按原行为执行。
+  if (
+    incomeExpenseTables.length > 1 &&
+    incomeExpenseTables.some(
+      (table) => (table.photos?.length ?? 0) > 0 || (table.photoIssues?.length ?? 0) > 0,
+    )
+  ) {
+    issues.push({
+      kind: "structural",
+      message: importPhotoValidationMessages.multipleIncomeExpenseSheets,
+      sheet: "incomeExpense",
+    });
+  }
+
   const incomeExpenseSheetRows: IncomeExpenseSheetRow[] = [];
   for (const table of incomeExpenseTables) {
     const result = parseIncomeExpenseSheet(table);

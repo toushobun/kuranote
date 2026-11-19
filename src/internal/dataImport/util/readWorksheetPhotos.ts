@@ -85,7 +85,11 @@ export function readWorksheetPhotos(
       if (!Number.isSafeInteger(imageId)) throw new Error("invalid image ID");
       const asset = workbook.getImage(imageId);
       if (!asset?.buffer) throw new Error("image buffer missing");
-      bytes = new Uint8Array(asset.buffer);
+      // Buffer 已是 Uint8Array，无需再复制一份全部原图字节。
+      bytes =
+        asset.buffer instanceof Uint8Array
+          ? asset.buffer
+          : new Uint8Array(asset.buffer);
     } catch {
       addIssue(rowNumber, columnName, importPhotoValidationMessages.unreadable);
       continue;

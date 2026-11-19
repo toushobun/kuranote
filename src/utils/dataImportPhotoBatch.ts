@@ -38,7 +38,7 @@ export async function prepareImportPhotoBatch(
       for (const [index, photo] of photos.entries()) {
         const file = new File(
           [new Uint8Array(photo.bytes)],
-          `receipt-${rowNumbers[0]}-${index + 1}.jpg`,
+          `receipt-${rowNumbers[0]}-${index + 1}.${photo.mimeType === "image/png" ? "png" : "jpg"}`,
           { type: photo.mimeType },
         );
         const uploaded = await upload(file, ledgerId);
