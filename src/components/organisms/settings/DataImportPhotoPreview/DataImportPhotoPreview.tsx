@@ -72,7 +72,7 @@ export function DataImportPhotoPreview({
             <Typography variant="body2">
               {dataImportResultMessages.issueRowLabel(rowNumber)}
             </Typography>
-            <Stack direction="row" spacing={1} flexWrap="wrap">
+            <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
               {photos.map((photo) => (
                 <PhotoThumbnail key={photo.columnName} photo={photo} />
               ))}

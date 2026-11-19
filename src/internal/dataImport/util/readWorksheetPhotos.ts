@@ -77,7 +77,9 @@ export function readWorksheetPhotos(
     }
     let bytes: Uint8Array;
     try {
-      const asset = workbook.getImage(picture.imageId);
+      const imageId = Number(picture.imageId);
+      if (!Number.isSafeInteger(imageId)) throw new Error("invalid image ID");
+      const asset = workbook.getImage(imageId);
       if (!asset?.buffer) throw new Error("image buffer missing");
       bytes = new Uint8Array(asset.buffer);
     } catch {
