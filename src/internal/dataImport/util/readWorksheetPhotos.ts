@@ -41,6 +41,7 @@ export function readWorksheetPhotos(
   const images: EmbeddedWorksheetPhoto[] = [];
   const issues: ImportRowIssue[] = [];
   const seenCells = new Set<string>();
+  const seenPhotoColumns = new Set<string>();
   const perRow = new Map<number, number>();
   const addIssue = (rowNumber: number, column: string, message: string) => {
     issues.push({
@@ -73,6 +74,12 @@ export function readWorksheetPhotos(
       continue;
     }
     seenCells.add(key);
+    const photoColumnKey = `${rowNumber}:${columnName}`;
+    if (seenPhotoColumns.has(photoColumnKey)) {
+      addIssue(rowNumber, columnName, importPhotoValidationMessages.duplicate);
+      continue;
+    }
+    seenPhotoColumns.add(photoColumnKey);
     const count = (perRow.get(rowNumber) ?? 0) + 1;
     perRow.set(rowNumber, count);
     if (count > photoColumnNames.length) {

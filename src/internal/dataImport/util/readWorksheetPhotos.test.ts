@@ -69,6 +69,26 @@ describe("readWorksheetPhotos", () => {
     expect(result.photosByRow.get(2)?.[0]?.columnName).toBe("照片1");
   });
 
+  it("同一记录的两个同名照片列都嵌入图片时应报错", async () => {
+    const { workbook, sheet } = await sheetWithPictures([
+      { col: 2, row: 1 },
+      { col: 3, row: 1 },
+    ]);
+    const result = readWorksheetPhotos(
+      workbook,
+      sheet,
+      ["日期", "金额", "照片1", "照片1", "照片3", "照片4", "照片5"],
+      1,
+    );
+    expect(result.issues).toEqual([
+      expect.objectContaining({
+        column: "照片1",
+        kind: "row",
+        rowNumber: 2,
+      }),
+    ]);
+  });
+
   it("错列、同格重复、非法字节都按行报错", async () => {
     const { workbook, sheet } = await sheetWithPictures([
       { col: 1, row: 1 },

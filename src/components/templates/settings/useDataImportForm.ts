@@ -223,6 +223,8 @@ export function useDataImportForm(
             photosRef.current,
             ledgerId,
           );
+          // 图片上传是额外的异步阶段：切换文件或离开页面后不能再提交数据。
+          if (!mountedRef.current || runTokenRef.current !== runToken) return;
           const formData = new FormData();
           formData.set("units", JSON.stringify(prepared.units));
           formData.set("holderMapping", JSON.stringify(currentHolderMapping));

@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ChangeEvent } from "react";
@@ -8,7 +8,10 @@ import {
   dataImportErrorMessages,
   importBatchSize,
 } from "internal/dataImport";
-import { makeAnalyzeImportFileResult } from "test/mocks/dataImport";
+import {
+  makeAnalyzeImportFileResult,
+  makeIncomeExpenseUnit,
+} from "test/mocks/dataImport";
 import {
   computeDisplayProcessed,
   toProgressPercentage,
@@ -21,6 +24,11 @@ import type {
 import { useDataImportForm } from "./useDataImportForm";
 
 const analyzeImportFileMock = vi.hoisted(() => vi.fn());
+const uploadReceiptPhotoMock = vi.hoisted(() => vi.fn());
+
+vi.mock("utils/transactionPhotoUpload", () => ({
+  uploadReceiptPhoto: uploadReceiptPhotoMock,
+}));
 
 vi.mock("internal/dataImport", async (importOriginal) => ({
   ...(await importOriginal<typeof import("internal/dataImport")>()),
@@ -268,6 +276,62 @@ describe("useDataImportForm 虚拟进度条", () => {
 describe("useDataImportForm 浏览器端解析与分批发送", () => {
   beforeEach(() => {
     analyzeImportFileMock.mockReset();
+    uploadReceiptPhotoMock.mockReset();
+  });
+
+  it("照片上传期间离开页面不会在上传完成后再写入交易", async () => {
+    const uploading = deferred<{
+      attachmentId: string;
+      height: number;
+      width: number;
+    }>();
+    uploadReceiptPhotoMock.mockReturnValue(uploading.promise);
+    analyzeImportFileMock.mockResolvedValue({
+      result: {
+        ok: true,
+        summary: {
+          balanceAdjustmentCount: 0,
+          incomeExpenseCount: 1,
+          transferCount: 0,
+        },
+      },
+      units: [makeIncomeExpenseUnit()],
+      photosByRow: new Map([
+        [
+          2,
+          [
+            {
+              rowNumber: 2,
+              columnName: "照片1",
+              mimeType: "image/jpeg",
+              bytes: new Uint8Array([0xff, 0xd8, 0xff, 0xd9]),
+            },
+          ],
+        ],
+      ]),
+    });
+    const executeBatchAction = vi.fn<DataImportBatchStateAction>();
+    const { result, unmount } = renderHook(() =>
+      useDataImportForm(executeBatchAction, [], "ledger"),
+    );
+    await selectFileAndCheckFormat(result);
+
+    let importPromise!: Promise<void>;
+    act(() => {
+      importPromise = result.current.handleStartImport();
+    });
+    await waitFor(() => expect(uploadReceiptPhotoMock).toHaveBeenCalledOnce());
+    unmount();
+
+    await act(async () => {
+      uploading.resolve({
+        attachmentId: "00000000-0000-4000-8000-000000000091",
+        height: 400,
+        width: 400,
+      });
+      await importPromise;
+    });
+    expect(executeBatchAction).not.toHaveBeenCalled();
   });
 
   it("更换文件后忽略旧解析结果，且允许新文件立即重新检查", async () => {
