@@ -1,4 +1,4 @@
-import type { ParsedTable } from "internal/dataImport/entity/parsedTable";
+import type { EmbeddedWorksheetPhoto, ParsedTable } from "internal/dataImport/entity/parsedTable";
 import type {
   ImportExecutionUnit,
   TransferImportRow,
@@ -7,7 +7,8 @@ import type {
   ImportValidationIssue,
   ImportValidationResult,
 } from "internal/dataImport/entity/importValidationIssue";
-import { importStructuralErrorMessages } from "internal/dataImport/errors";
+import { importPhotoValidationMessages, importStructuralErrorMessages } from "internal/dataImport/errors";
+import { incomeExpensePhotoColumnNames } from "internal/dataImport/schema";
 import { detectSheetKind } from "internal/dataImport/util/detectSheetKind";
 import { groupIncomeExpenseRows } from "internal/dataImport/util/groupIncomeExpenseRows";
 import {
@@ -31,6 +32,7 @@ export function validateImportWorkbook(
 }
 
 export type AnalyzeImportWorkbookResult = {
+  photosByRow?: Map<number, EmbeddedWorksheetPhoto[]>;
   result: ImportValidationResult;
   /** 仅在校验通过时非空：按「收支」「转账」「余额变更」的顺序展开的全部执行单元。 */
   units: ImportExecutionUnit[];
@@ -95,6 +97,36 @@ export function analyzeImportWorkbook(
 
   const grouped = groupIncomeExpenseRows(incomeExpenseSheetRows);
   issues.push(...grouped.issues);
+  const photosByRow = new Map<number, EmbeddedWorksheetPhoto[]>();
+  const firstRows = new Set(grouped.groups.map((group) => group.rowNumbers[0]));
+  for (const table of incomeExpenseTables) {
+    issues.push(...(table.photoIssues ?? []));
+    for (const photo of table.photos ?? []) {
+      if (!firstRows.has(photo.rowNumber)) {
+        issues.push({
+          column: photo.columnName,
+          kind: "row",
+          message: importPhotoValidationMessages.notFirstRow,
+          rowNumber: photo.rowNumber,
+          sheet: "incomeExpense",
+        });
+      }
+      const list = photosByRow.get(photo.rowNumber) ?? [];
+      list.push(photo);
+      photosByRow.set(photo.rowNumber, list);
+    }
+  }
+  for (const photos of photosByRow.values()) {
+    photos.sort(
+      (a, b) =>
+        incomeExpensePhotoColumnNames.indexOf(
+          a.columnName as (typeof incomeExpensePhotoColumnNames)[number],
+        ) -
+        incomeExpensePhotoColumnNames.indexOf(
+          b.columnName as (typeof incomeExpensePhotoColumnNames)[number],
+        ),
+    );
+  }
 
   const transferRows: TransferImportRow[] = [];
   for (const table of transferTables) {
@@ -122,6 +154,7 @@ export function analyzeImportWorkbook(
         transferCount: transferRows.length,
       },
     },
+    ...(photosByRow.size ? { photosByRow } : {}),
     units: [
       ...grouped.groups.map(
         (group): ImportExecutionUnit => ({ group, kind: "incomeExpense" }),
