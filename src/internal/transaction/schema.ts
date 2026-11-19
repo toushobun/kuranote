@@ -53,6 +53,7 @@ export type TransferTransactionFormValues = {
   accountId: string;
   transferTargetAccountId: string;
   transferAmount: number;
+  transferTargetAmount: number | null;
   note: string | null;
 };
 
@@ -316,6 +317,17 @@ export function validateTransactionForm(
       return transferAmountResult;
     }
 
+    const rawTargetAmount = String(formData.get("transferTargetAmount") ?? "").trim();
+    const transferTargetAmountResult = rawTargetAmount
+      ? parseMoneyAmount(rawTargetAmount, {
+          allowNegative: false,
+          allowZero: false,
+          error: transactionErrorCodes.amountInvalid,
+        })
+      : valid(null);
+
+    if (!transferTargetAmountResult.ok) return transferTargetAmountResult;
+
     const noteResult = parseOptionalTextField(
       formData,
       "note",
@@ -332,6 +344,7 @@ export function validateTransactionForm(
       note: noteResult.value,
       transactionAt,
       transferAmount: transferAmountResult.value,
+      transferTargetAmount: transferTargetAmountResult.value,
       transferTargetAccountId: targetAccountIdResult.value,
       type: "transfer",
     });
@@ -523,6 +536,9 @@ const transferTransactionRequestSchema = z.object({
     message: transactionErrorCodes.amountInvalid,
   }),
   transferTargetAccountId: z.string().uuid(),
+  transferTargetAmount: z.number().positive().refine(hasValidMoneyPrecision, {
+    message: transactionErrorCodes.amountInvalid,
+  }).nullable().optional(),
   type: z.literal("transfer"),
 });
 

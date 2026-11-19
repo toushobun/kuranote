@@ -97,6 +97,7 @@ export type CreateTransferTransactionInput = {
   note: string | null;
   transactionAt: string;
   transferAmount: number;
+  transferTargetAmount?: number | null;
   transferTargetAccountId: string;
 };
 
@@ -339,7 +340,6 @@ const transactionRpcErrorCodes = [
   "transfer_account_invalid",
   "from_account_invalid",
   "to_account_invalid",
-  "transfer_currency_invalid",
   "reimbursement_item_invalid",
   "reimbursement_income_invalid",
   "income_link_category_invalid",
@@ -456,13 +456,6 @@ export function createSupabaseTransactionRepository(
       throw new ValidationError(
         transactionErrorCodes.accountInvalid,
         transactionWriteErrorMessages.accountInvalid,
-      );
-    }
-
-    if (rpcErrorCode === "transfer_currency_invalid") {
-      throw new ValidationError(
-        transactionErrorCodes.accountInvalid,
-        transactionWriteErrorMessages.transferCurrencyMismatch,
       );
     }
 
@@ -712,6 +705,7 @@ export function createSupabaseTransactionRepository(
     async createTransfer(input) {
       const { error } = await supabase.rpc("create_transfer_transaction", {
         p_amount: input.transferAmount,
+        p_to_amount: input.transferTargetAmount ?? null,
         p_from_account_id: input.accountId,
         p_ledger_id: input.ledgerId,
         p_note: input.note,
@@ -1306,6 +1300,7 @@ export function createSupabaseTransactionRepository(
     async updateTransfer(input) {
       const { error } = await supabase.rpc("update_transfer_transaction", {
         p_amount: input.transferAmount,
+        p_to_amount: input.transferTargetAmount ?? null,
         p_from_account_id: input.accountId,
         p_ledger_id: input.ledgerId,
         p_note: input.note,

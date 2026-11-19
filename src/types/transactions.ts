@@ -92,6 +92,8 @@ export type TransactionRowItem = {
   amount: string;
   originalAmount?: string;
   originalType?: TransactionCategoryType;
+  transferTargetAmount?: string;
+  transferTargetCurrency?: string;
   account_name: string;
   account_currency: string;
   account_color?: ThemeColorKey | null;
@@ -234,6 +236,7 @@ export type TransferEditInitialValues = {
   transactionAt: string;
   transactionRecordId: string;
   transferAmount: string;
+  transferTargetAmount: string;
   transferTargetAccountId: string;
   type: "transfer";
 };

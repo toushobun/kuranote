@@ -240,6 +240,11 @@ async function buildEditTransactionView<
           currencyByAccountId.get(fromAccountId) ?? currentLedger.baseCurrency,
         ),
         transferTargetAccountId: requireItemAccountId(toItem),
+        transferTargetAmount: formatEditableAmount(
+          toItem.amount,
+          currencyByAccountId.get(requireItemAccountId(toItem)) ??
+            currentLedger.baseCurrency,
+        ),
         type: "transfer" as const,
       } satisfies TransferEditInitialValues,
       ledgerName: currentLedger.name,
@@ -503,10 +508,12 @@ function isValidTransferPair(
   const fromDelta = Number(fromItem.balance_delta);
   const toDelta = Number(toItem.balance_delta);
   return (
-    fromAmount === toAmount &&
+    fromAmount > 0 &&
+    toAmount > 0 &&
+    fromDelta < 0 &&
+    toDelta > 0 &&
     fromAmount === Math.abs(fromDelta) &&
-    toAmount === Math.abs(toDelta) &&
-    fromDelta + toDelta === 0
+    toAmount === Math.abs(toDelta)
   );
 }
 
