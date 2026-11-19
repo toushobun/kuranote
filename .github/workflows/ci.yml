@@ -10,9 +10,16 @@ env:
   RUN_CODE_CI: &run_code_ci >-
     github.event_name != 'pull_request' ||
     startsWith(github.head_ref, 'docs/') == false
+  # DB 检查只需要 Postgres、Auth、Storage 等表结构来源，不启动与测试无关的服务以缩短 supabase start。
+  SUPABASE_START_EXCLUDE: studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor,realtime,postgres-meta
+
+# 同一 PR 推送新提交时取消仍在运行的旧 CI，只保留最新一次的结果。
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  # Stage 1: 并行静态检查
+  # 各检查并行执行，只有 Test 汇总等待 4 个分片、Storybook preview 等待 Storybook build；合并前仍需全部必需检查通过。
   type-check:
     name: Type check
     if: *run_code_ci
@@ -100,32 +107,18 @@ jobs:
       - name: Run lint
         run: npm run lint
 
-  # Stage 2: 依赖 Stage 1，单一 job 内先跑快速测试，再按需跑 RSC 测试
-  test:
-    name: Test
-    if: >-
-      always() &&
-      (github.event_name != 'pull_request' ||
-      startsWith(github.head_ref, 'docs/') == false)
-    needs: [format-check, type-check, lint]
+  # vitest 按文件分成 4 片并行；RSC 测试只在第 1 片按需执行。
+  test-shard:
+    name: Test (shard ${{ matrix.shard }}/4)
+    if: *run_code_ci
     runs-on: ubuntu-latest
+    strategy:
+      # 某一片失败时其余分片继续跑完，一次看到全部失败用例。
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
 
     steps:
-      - name: Verify prerequisite checks
-        env:
-          FORMAT_CHECK_RESULT: ${{ needs['format-check'].result }}
-          TYPE_CHECK_RESULT: ${{ needs['type-check'].result }}
-          LINT_RESULT: ${{ needs.lint.result }}
-        run: |
-          if [ "$FORMAT_CHECK_RESULT" != "success" ] || \
-             [ "$TYPE_CHECK_RESULT" != "success" ] || \
-             [ "$LINT_RESULT" != "success" ]; then
-            echo "Format check: $FORMAT_CHECK_RESULT"
-            echo "Type check: $TYPE_CHECK_RESULT"
-            echo "Lint: $LINT_RESULT"
-            exit 1
-          fi
-
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -148,9 +141,10 @@ jobs:
         run: npm ci
 
       - name: Run tests
-        run: npm run test
+        run: npm run test -- --shard=${{ matrix.shard }}/4
 
       - name: Check RSC test scope
+        if: matrix.shard == 1
         id: rsc-scope
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -170,33 +164,32 @@ jobs:
         if: steps.rsc-scope.outputs.run_rsc == 'true'
         run: npm run test:rsc
 
+  # 仓库规则的必需检查名为「Test」，由此 job 汇总全部分片结果。
+  test:
+    name: Test
+    # 用 !cancelled() 而非 always()：被新推送取消的旧运行不再显示为失败。
+    if: ${{ !cancelled() && (github.event_name != 'pull_request' || startsWith(github.head_ref, 'docs/') == false) }}
+    needs: [test-shard]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Verify all test shards passed
+        env:
+          TEST_SHARD_RESULT: ${{ needs['test-shard'].result }}
+        run: |
+          if [ "$TEST_SHARD_RESULT" != "success" ]; then
+            echo "Test shards: $TEST_SHARD_RESULT"
+            exit 1
+          fi
+
   schema-snapshot-check:
     name: Schema snapshot check
-    if: >-
-      always() &&
-      (github.event_name != 'pull_request' ||
-      startsWith(github.head_ref, 'docs/') == false)
-    needs: [format-check, type-check, lint]
+    if: *run_code_ci
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
     steps:
-      - name: Verify prerequisite checks
-        env:
-          FORMAT_CHECK_RESULT: ${{ needs['format-check'].result }}
-          TYPE_CHECK_RESULT: ${{ needs['type-check'].result }}
-          LINT_RESULT: ${{ needs.lint.result }}
-        run: |
-          if [ "$FORMAT_CHECK_RESULT" != "success" ] || \
-             [ "$TYPE_CHECK_RESULT" != "success" ] || \
-             [ "$LINT_RESULT" != "success" ]; then
-            echo "Format check: $FORMAT_CHECK_RESULT"
-            echo "Type check: $TYPE_CHECK_RESULT"
-            echo "Lint: $LINT_RESULT"
-            exit 1
-          fi
-
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -286,7 +279,7 @@ jobs:
 
       - name: Start local Supabase
         if: steps.scope.outputs.run == 'true'
-        run: supabase start
+        run: supabase start -x "${SUPABASE_START_EXCLUDE}"
 
       - name: Compare migrations with schema snapshot
         if: steps.scope.outputs.run == 'true'
@@ -310,17 +303,9 @@ jobs:
           path: /tmp/kuranote-current-schema.sql
           if-no-files-found: ignore
 
-      - name: Stop local Supabase
-        if: always() && steps.scope.outputs.run == 'true'
-        run: supabase stop --no-backup
-
   migration-check:
     name: Migration check
-    if: >-
-      always() &&
-      (github.event_name != 'pull_request' ||
-      startsWith(github.head_ref, 'docs/') == false)
-    needs: [format-check, type-check, lint]
+    if: *run_code_ci
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -331,21 +316,6 @@ jobs:
       SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
 
     steps:
-      - name: Verify prerequisite checks
-        env:
-          FORMAT_CHECK_RESULT: ${{ needs['format-check'].result }}
-          TYPE_CHECK_RESULT: ${{ needs['type-check'].result }}
-          LINT_RESULT: ${{ needs.lint.result }}
-        run: |
-          if [ "$FORMAT_CHECK_RESULT" != "success" ] || \
-             [ "$TYPE_CHECK_RESULT" != "success" ] || \
-             [ "$LINT_RESULT" != "success" ]; then
-            echo "Format check: $FORMAT_CHECK_RESULT"
-            echo "Type check: $TYPE_CHECK_RESULT"
-            echo "Lint: $LINT_RESULT"
-            exit 1
-          fi
-
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -398,7 +368,7 @@ jobs:
         if: steps.scope.outputs.run == 'true'
         shell: bash
         run: |
-          if ! supabase start > /tmp/supabase-start.log 2>&1; then
+          if ! supabase start -x "${SUPABASE_START_EXCLUDE}" > /tmp/supabase-start.log 2>&1; then
             cat /tmp/supabase-start.log
             exit 1
           fi
@@ -415,10 +385,6 @@ jobs:
           bash supabase/tests/database/issue_944_link_retarget_concurrency.sh
           bash supabase/tests/database/transaction_payment_account_lock_concurrency.sh
           bash supabase/tests/database/account_currency_lock_concurrency.sh
-
-      - name: Stop local Supabase
-        if: always() && steps.scope.outputs.run == 'true'
-        run: supabase stop --no-backup > /dev/null 2>&1
 
       - name: Check required configuration
         if: steps.scope.outputs.run == 'true'
@@ -445,11 +411,9 @@ jobs:
         if: steps.scope.outputs.run == 'true'
         run: supabase db push --dry-run
 
-  # Stage 3: build 和 storybook-build 并行，只等待测试完成
   build:
     name: Build
     if: *run_code_ci
-    needs: [test]
     runs-on: ubuntu-latest
 
     env:
@@ -482,7 +446,6 @@ jobs:
   storybook-build:
     name: Storybook build
     if: *run_code_ci
-    needs: [test]
     runs-on: ubuntu-latest
     permissions:
       contents: read
