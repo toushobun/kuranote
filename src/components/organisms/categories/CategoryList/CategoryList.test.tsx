@@ -22,6 +22,7 @@ import {
   mockSortableRects,
 } from "test/sortable";
 import { designTokens, theme } from "theme/theme";
+import { expectFirstVisibleStackChildHasNoTopMargin } from "test/formStackSpacing";
 
 import { CategoryList } from "./CategoryList";
 
@@ -462,6 +463,9 @@ describe("CategoryList", () => {
     renderList();
 
     fireEvent.click(screen.getByRole("button", { name: "编辑餐饮" }));
+    expectFirstVisibleStackChildHasNoTopMargin(
+      document.getElementById("category-edit-form"),
+    );
 
     expect(
       screen.getByRole("heading", { name: "编辑分类" }),
