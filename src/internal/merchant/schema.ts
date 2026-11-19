@@ -2,7 +2,6 @@ import { z } from "@hono/zod-openapi";
 
 import { merchantTagEmojiValues } from "config/merchantTagEmojis";
 import { merchantAliasMaxLength } from "config/merchantLimits";
-export { merchantAliasMaxLength } from "config/merchantLimits";
 import {
   merchantErrorCodes,
   merchantErrorMessages,
