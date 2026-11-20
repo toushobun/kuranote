@@ -262,6 +262,7 @@ export async function buildDataExportWorkbook(
   let nextTask = 0;
   let completed = 0;
   let stopped = false;
+  const downloadPhoto = options?.downloadPhoto ?? fetchPhoto;
   options?.onPhotoProgress?.(0, photoTasks.length);
   await Promise.all(
     Array.from(
@@ -270,7 +271,7 @@ export async function buildDataExportWorkbook(
         while (!stopped && nextTask < photoTasks.length) {
           const task = photoTasks[nextTask++];
           try {
-            const bytes = await (options?.downloadPhoto ?? fetchPhoto)(task.url);
+            const bytes = await downloadPhoto(task.url);
             // 一个下载失败后，其它在途请求的完成回调不得恢复进度或继续派发。
             if (stopped) return;
             // 原始 Storage 文件是 JPEG；拒绝空文件或非 JPEG 响应，不能静默漏图。
