@@ -49,12 +49,12 @@ jobs:
           github-token: ${{ github.token }}
       - name: Start Supabase
         run: supabase start -x "$SUPABASE_START_EXCLUDE"
-      - name: Initialize deterministic database fixtures
-        run: supabase db reset
       - name: Update schema snapshot
         run: |
           npm run db:schema:snapshot:update
           npm run db:schema:snapshot:check
+      - name: Reset database fixtures after snapshot generation
+        run: supabase db reset
       - name: Run database tests and SECURITY DEFINER smoke
         continue-on-error: true
         run: |

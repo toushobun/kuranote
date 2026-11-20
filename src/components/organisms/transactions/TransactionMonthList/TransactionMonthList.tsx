@@ -294,7 +294,7 @@ function TransactionMonthListContent({
                   />
                 </Stack>
                 {group.summary.missingRateCount ? (
-                  <Typography color="text.secondary" variant="caption" sx={{ display: "block", textAlign: "right" }}>
+                  <Typography color="textSecondary" variant="caption" sx={{ display: "block", textAlign: "right" }}>
                     {exchangeRateMessages.missingRecordRates(group.summary.missingRateCount)}
                   </Typography>
                 ) : null}

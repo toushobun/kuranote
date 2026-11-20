@@ -79,7 +79,7 @@ export function TransactionGroupList({
             ) : null}
           </Stack>
           {showSummary && group.summary.missingRateCount ? (
-            <Typography color="text.secondary" variant="caption">
+            <Typography color="textSecondary" variant="caption">
               {exchangeRateMessages.missingRecordRates(group.summary.missingRateCount)}
             </Typography>
           ) : null}
