@@ -235,9 +235,25 @@ describe("TransferReceipt", () => {
     ).toBeInTheDocument();
     click(/^修改转出金额：/);
     expect(
-      screen.getByRole("heading", { name: /转出金额（JPY）/ }),
+      screen.getByRole("heading", { name: "转出金额（JPY）" }),
     ).toBeInTheDocument();
   });
+
+  it("跨币种到账金额计算器标题只显示到账金额和币种", () => {
+    setup({
+      initialValues: {
+        ...editValues,
+        transferTargetAccountId: "cny",
+        transferAmount: "100000",
+        transferTargetAmount: "4850",
+      },
+    });
+    click(/^修改到账金额：/);
+    expect(
+      screen.getByRole("heading", { name: "到账金额（CNY）" }),
+    ).toBeInTheDocument();
+  });
+
   it("只读跨币种同时显示转出、到账和计算汇率", () => {
     setup({
       initialValues: {
