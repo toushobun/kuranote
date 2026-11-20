@@ -125,12 +125,27 @@ export const WithForeignCurrencyAccount: Story = {
         currency: "USD",
         initial_balance: 0,
         current_balance: 500,
+        ledger_rate: 151.25,
         sort_order: 3,
         created_at: "2026-01-03T00:00:00.000Z",
         has_transactions: false,
         holders: [],
       },
     ],
+  },
+};
+
+export const ForeignCurrencyWithoutRate: Story = {
+  name: "外币账户暂无参考汇率",
+  args: {
+    baseCurrency: "JPY",
+    accounts: [...accounts, {
+      ...accounts[0],
+      id: "foreign-no-rate",
+      currency: "USD",
+      current_balance: 200,
+      ledger_rate: null,
+    }],
   },
 };
 

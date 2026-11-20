@@ -69,6 +69,8 @@ export function normalizeSummary(
   return {
     balance: String(Number(summary.balance)),
     currency: summary.currency,
+    ...(summary.hasForeignCurrency ? { hasForeignCurrency: true } : {}),
+    ...(summary.missingRateCount ? { missingRateCount: summary.missingRateCount } : {}),
     expense: String(Number(summary.expense)),
     income: String(Number(summary.income)),
   };

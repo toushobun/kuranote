@@ -150,7 +150,9 @@ export function buildStatisticsViewData({
     if (category.type !== "expense") continue;
 
     const key = `${record.id}:${categoryId}`;
-    categoryAmountByRecord.set(key, (categoryAmountByRecord.get(key) ?? 0) + Number(effectiveAmount));
+    const numericAmount = Number(effectiveAmount);
+    if (!Number.isFinite(numericAmount)) continue;
+    categoryAmountByRecord.set(key, (categoryAmountByRecord.get(key) ?? 0) + numericAmount);
   }
   for (const [key, amount] of categoryAmountByRecord) {
     const separator = key.lastIndexOf(":");

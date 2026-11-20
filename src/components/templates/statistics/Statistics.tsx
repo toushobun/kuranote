@@ -4,6 +4,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
 import { statisticsMonthHref } from "config/paths";
+import { exchangeRateMessages } from "config/exchangeRateMessages";
 import { MonthNavButton } from "molecules/navigation/MonthNavButton";
 import { EmptyState } from "molecules/ui/EmptyState";
 import { SectionCard } from "molecules/ui/SectionCard";
@@ -91,6 +92,16 @@ export function StatisticsTemplate({
             tone="balance"
           />
         </Stack>
+        {summary.hasForeignCurrency ? (
+          <Typography color="textSecondary" variant="caption" sx={{ mt: 1 }}>
+            {exchangeRateMessages.convertedTotals}
+          </Typography>
+        ) : null}
+        {summary.missingRateCount ? (
+          <Typography color="textSecondary" variant="caption">
+            {exchangeRateMessages.missingRecordRates(summary.missingRateCount)}
+          </Typography>
+        ) : null}
       </SectionCard>
 
       {hasRankingData ? (

@@ -65,6 +65,8 @@ export type Account = {
   // Supabase numeric may be returned as string to avoid precision loss.
   initial_balance: number | string;
   current_balance: number | string;
+  /** 在服务端按今天参考汇率读取；null 表示缺少汇率。 */
+  ledger_rate?: number | string | null;
   sort_order: number;
   created_at: string;
   // 已有交易（含已作废记录、初始余额）时不能修改币种（#910）。

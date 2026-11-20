@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { accountResultValues, accountsNewHref } from "config/paths";
-import { loadAccountsView } from "internal/account/adapter/next/loadAccountsView";
+import { loadAccountBalancesView } from "internal/account/adapter/next/loadAccountsView";
 import { getSafeNextPath } from "lib/navigation/safeNextPath";
 import {
   AccountsTemplate,
@@ -34,7 +34,7 @@ export default async function AccountsPage({
     redirect(accountsNewHref(getSafeNextPath(params.returnTo)));
   }
 
-  const view = await loadAccountsView();
+  const view = await loadAccountBalancesView();
 
   return (
     <AccountsTemplate

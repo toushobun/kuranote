@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { loadAccountLedgerRates } from "internal/account/repository/accountLedgerRateRepository";
 
 import { routePaths } from "config/paths";
 import { canManageMasterData, canWriteTransaction } from "internal/ledger";
@@ -16,6 +17,23 @@ export async function loadAccountsView() {
     ledgerId: currentLedger.id,
     userId,
   });
+}
+
+/** 账户列表附带服务端换算率；编辑页保持原有读取路径。 */
+export async function loadAccountBalancesView() {
+  const { currentLedger } = await requireCurrentUserAndLedger();
+  const view = await loadAccountsView();
+  const dependencies = await createServerRequestDependencies();
+  const rates = await loadAccountLedgerRates(
+    dependencies.supabase, dependencies.logger, currentLedger.id,
+  );
+  return {
+    ...view,
+    accounts: view.accounts.map((account) => ({
+      ...account,
+      ledger_rate: rates.get(account.id) ?? null,
+    })),
+  };
 }
 
 /** 编辑账户页需要完整视图；只允许有账户管理权限的成员访问。 */
