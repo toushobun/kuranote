@@ -82,6 +82,8 @@ describe("DataExportTemplate", () => {
     expect(await screen.findByRole("progressbar")).toBeInTheDocument();
   });
   it("空账本成功生成文件、触发下载并延后回收 Blob URL", async () => {
+    // 其他测试留下的真实定时器可能同时触发，使用独有 URL 避免串扰。
+    createObjectURL.mockReturnValue("blob:export-current-test");
     vi.useFakeTimers();
     startExport(async () => ({ data: createEmptyDataExport() }));
     await act(async () => {
@@ -93,11 +95,13 @@ describe("DataExportTemplate", () => {
     expect(
       screen.getByText("导出文件已生成，已开始下载。"),
     ).toBeInTheDocument();
-    expect(revokeObjectURL).not.toHaveBeenCalled();
+    expect(revokeObjectURL).not.toHaveBeenCalledWith(
+      "blob:export-current-test",
+    );
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1000);
     });
-    expect(revokeObjectURL).toHaveBeenCalledWith("blob:export");
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:export-current-test");
     expect(document.querySelector("a[download]")).toBeNull();
   });
   it("服务端失败通过统一反馈显示，关闭后可重试", async () => {
