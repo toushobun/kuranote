@@ -28,6 +28,8 @@ function record(id: string, transactionAt: string): TransactionRecordDbRow {
     id,
     merchant_id: null,
     note: null,
+    ledger_rate: 1,
+    record_currency: null,
     transaction_at: transactionAt,
     type: "normal",
   };
@@ -243,6 +245,8 @@ describe("账户筛选按付款明细（记录级）", () => {
           id: "record-transfer",
           merchant_id: null,
           note: null,
+          ledger_rate: 1,
+          record_currency: null,
           transaction_at: "2026-10-10T00:00:00.000Z",
           type: "transfer",
         },

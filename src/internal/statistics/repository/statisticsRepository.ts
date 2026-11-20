@@ -164,7 +164,7 @@ export function createSupabaseStatisticsRepository(
         const rate = rateById.get(record.id);
         return {
           ...record,
-          record_currency: rate?.currency ?? null,
+          record_currency: rate?.record_currency ?? null,
           ledger_rate: rate?.ledger_rate ?? null,
         };
       });
