@@ -29,8 +29,6 @@ export type AmountInputOptions = {
   /** 允许负数结果（如账户初始金额的信用卡欠款）；交易金额保持默认的非负。 */
   allowNegative?: boolean;
   currency?: string;
-  /** 特定业务金额可限制比币种精度更少的小数位。 */
-  maxDecimalPlaces?: number;
 };
 
 const maxAmountIntegerDigits = 12;
@@ -90,13 +88,6 @@ export function formatMoneyTextForCurrency(amount: string, currency?: string) {
   return Number.isFinite(value)
     ? value.toFixed(getAmountDecimalPlaces(currency))
     : amount;
-}
-
-function getInputDecimalPlaces(options: AmountInputOptions) {
-  return Math.min(
-    getAmountDecimalPlaces(options.currency),
-    options.maxDecimalPlaces ?? 3,
-  );
 }
 
 export function isValidMoneyText(
@@ -187,7 +178,7 @@ export function applyAmountKeypadKey(
   }
 
   if (key === ".") {
-    if (getInputDecimalPlaces(options) === 0) return state;
+    if (getAmountDecimalPlaces(options.currency) === 0) return state;
     if (state.displayValue.includes(".")) return state;
 
     return {
