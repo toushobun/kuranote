@@ -37,6 +37,7 @@ describe("calculateTransferRate", () => {
     expect(calculateTransferRate("0", "100", "JPY", "CNY")).toBeNull();
     expect(calculateTransferRate("100", "", "JPY", "CNY")).toBeNull();
     expect(calculateTransferRate("100.5", "50", "JPY", "CNY")).toBeNull();
+    expect(calculateTransferRate("1.234", "2", "BHD", "CNY")).toBeNull();
   });
 });
 
