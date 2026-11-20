@@ -135,10 +135,7 @@ describe("Issue #1139 交易合计一致性", () => {
       sort_order: 0,
       transaction_record_id: r.id,
     }));
-    const build = (
-      groupBy: "merchant" | "account",
-      rateRecords = records,
-    ) =>
+    const build = (groupBy: "merchant" | "account", rateRecords = records) =>
       buildTransactionGroupSummaryPage({
         accounts: [{ id: "jpy-account", name: "日元钱包", currency: "JPY" }],
         categories: [
