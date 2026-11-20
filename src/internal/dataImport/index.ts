@@ -43,6 +43,7 @@ export {
   type ImportHolderMappingValue,
 } from "internal/dataImport/schema";
 export { analyzeImportFile } from "internal/dataImport/util/analyzeImportFile";
+export { summarizeIncomeExpenseImport } from "internal/dataImport/util/summarizeIncomeExpenseImport";
 export type {
   DataImportExecutionService,
   ExecuteImportBatchInput,
