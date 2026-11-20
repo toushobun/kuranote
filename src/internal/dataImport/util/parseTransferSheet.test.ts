@@ -184,6 +184,36 @@ describe("parseTransferSheet", () => {
     });
   });
 
+  it("日元数据库导出的整数补零格式可以导入，非零小数仍被拒绝", () => {
+    const result = parseTransferSheet(
+      buildTable([
+        validRowCells({
+          转出账户币种: "JPY",
+          金额: "100000.00",
+          到账金额: "4850.50",
+        }),
+        validRowCells({
+          转出账户币种: "JPY",
+          转入账户币种: "JPY",
+          金额: "300.00",
+          到账金额: "300.00",
+        }),
+        validRowCells({
+          转出账户币种: "JPY",
+          金额: "100000.01",
+          到账金额: "4850.50",
+        }),
+      ]),
+    );
+    expect(result.rows).toMatchObject([
+      { amount: 100000, targetAmount: 4850.5 },
+      { amount: 300, targetAmount: null },
+    ]);
+    expect(result.issues).toEqual([
+      expect.objectContaining({ rowNumber: 4, column: "金额" }),
+    ]);
+  });
+
   it("同币种到账金额不同及超币种精度时报行错误", () => {
     const result = parseTransferSheet(
       buildTable([
