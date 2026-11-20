@@ -35,9 +35,18 @@ export function useTransferReceipt({
     initialValues?.transferTargetAccountId ?? "",
   );
   const [amount, setAmount] = useState(initialValues?.transferAmount ?? "");
-  const [transferTargetAmount, setTransferTargetAmount] = useState(
-    initialValues?.transferTargetAmount ?? "",
-  );
+  const [transferTargetAmount, setTransferTargetAmount] = useState(() => {
+    const sourceCurrency = accountOptions.find(
+      (account) => account.id === initialValues?.accountId,
+    )?.currency;
+    const targetCurrency = accountOptions.find(
+      (account) => account.id === initialValues?.transferTargetAccountId,
+    )?.currency;
+    // 同币种不展示第二笔金额，也不能让隐藏的初始值触发误报未保存。
+    return sourceCurrency && targetCurrency && sourceCurrency !== targetCurrency
+      ? (initialValues?.transferTargetAmount ?? "")
+      : "";
+  });
   const [note, setNote] = useState(initialValues?.note ?? "");
   const [picker, setPicker] = useState<TransferSide | null>(null);
   const [amountSide, setAmountSide] = useState<TransferSide | null>(null);
