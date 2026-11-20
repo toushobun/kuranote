@@ -65,6 +65,36 @@ describe("dataExportWorkbook", () => {
       expect(cell(normal, 2, name).font.color).toEqual({ argb: "FF3F9FF4" });
   });
 
+  it("跨币种转账导出到账金额并可导入往返，同币种到账金额留空", async () => {
+    const data = createDataExportFixture();
+    const transfer = data.records[1];
+    if (transfer.type !== "transfer") throw new Error("测试数据不正确");
+
+    transfer.items[1].amount = "300.00";
+    transfer.items[1].balanceDelta = "-300.00";
+    data.accounts[1].currency = "CNY";
+    transfer.items[0].amount = "15.50";
+    transfer.items[0].balanceDelta = "15.50";
+    const sheet = (await loadWorkbook(data)).getWorksheet("转账")!;
+    expect(cell(sheet, 2, "金额").value).toBe("300.00");
+    expect(cell(sheet, 2, "到账金额").value).toBe("15.50");
+
+    const { result, units } = await analyzeImportFile(
+      new File([await buildDataExportWorkbook(data)], "export.xlsx"),
+    );
+    expect(result.ok).toBe(true);
+    expect(units.find((unit) => unit.kind === "transfer")).toMatchObject({
+      kind: "transfer",
+      row: { amount: 300, targetAmount: 15.5 },
+    });
+
+    data.accounts[1].currency = "JPY";
+    transfer.items[0].amount = "300.00";
+    transfer.items[0].balanceDelta = "300.00";
+    const sameSheet = (await loadWorkbook(data)).getWorksheet("转账")!;
+    expect(cell(sameSheet, 2, "到账金额").value).toBe("");
+  });
+
   it("余额变更保留正负金额，无持有人不设置字体颜色", async () => {
     const data = createDataExportFixture();
     const adjustment = data.records[2];

@@ -28,6 +28,7 @@ export const createTransactionHandler = async (
       note: input.note,
       transactionAt: input.transactionAt,
       transferAmount: input.transferAmount,
+      transferTargetAmount: input.transferTargetAmount ?? null,
       transferTargetAccountId: input.transferTargetAccountId,
     });
   } else {
@@ -62,6 +63,7 @@ export const updateTransactionHandler = async (
       transactionAt: input.transactionAt,
       transactionRecordId,
       transferAmount: input.transferAmount,
+      transferTargetAmount: input.transferTargetAmount ?? null,
       transferTargetAccountId: input.transferTargetAccountId,
     });
   } else {

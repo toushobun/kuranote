@@ -139,6 +139,7 @@ describe("parseTransferSheet", () => {
     expect(result.rows).toEqual([
       {
         amount: 500,
+        targetAmount: null,
         fromAccountCurrency: "CNY",
         fromAccountHolder: "鄧",
         fromAccountName: "现金",
@@ -151,6 +152,83 @@ describe("parseTransferSheet", () => {
         toAccountType: "cash",
         transactionAt: "2026-01-05 12:00:00",
       },
+    ]);
+  });
+
+  it("跨币种必须输入到账金额，同币种可以留空", () => {
+    const missing = parseTransferSheet(
+      buildTable([validRowCells({ 转出账户币种: "JPY", 金额: "100000" })]),
+    );
+    expect(missing.rows).toEqual([]);
+    expect(missing.issues).toEqual([
+      expect.objectContaining({
+        column: "到账金额",
+        message: transferImportErrorMessages.targetAmountRequired,
+      }),
+    ]);
+
+    const filled = parseTransferSheet(
+      buildTable([
+        validRowCells({
+          转出账户币种: "JPY",
+          转入账户币种: "CNY",
+          金额: "100000",
+          到账金额: "4850.50",
+        }),
+      ]),
+    );
+    expect(filled.issues).toEqual([]);
+    expect(filled.rows[0]).toMatchObject({
+      amount: 100000,
+      targetAmount: 4850.5,
+    });
+  });
+
+  it("日元数据库导出的整数补零格式可以导入，非零小数仍被拒绝", () => {
+    const result = parseTransferSheet(
+      buildTable([
+        validRowCells({
+          转出账户币种: "JPY",
+          金额: "100000.00",
+          到账金额: "4850.50",
+        }),
+        validRowCells({
+          转出账户币种: "JPY",
+          转入账户币种: "JPY",
+          金额: "300.00",
+          到账金额: "300.00",
+        }),
+        validRowCells({
+          转出账户币种: "JPY",
+          金额: "100000.01",
+          到账金额: "4850.50",
+        }),
+      ]),
+    );
+    expect(result.rows).toMatchObject([
+      { amount: 100000, targetAmount: 4850.5 },
+      { amount: 300, targetAmount: null },
+    ]);
+    expect(result.issues).toEqual([
+      expect.objectContaining({ rowNumber: 4, column: "金额" }),
+    ]);
+  });
+
+  it("同币种到账金额不同及超币种精度时报行错误", () => {
+    const result = parseTransferSheet(
+      buildTable([
+        validRowCells({ 到账金额: "400" }),
+        validRowCells({ 转出账户币种: "JPY", 金额: "100.5", 到账金额: "4.5" }),
+        validRowCells({ 转入账户币种: "JPY", 到账金额: "20.5" }),
+      ]),
+    );
+    expect(result.issues).toEqual([
+      expect.objectContaining({
+        rowNumber: 2,
+        message: transferImportErrorMessages.targetAmountMismatch,
+      }),
+      expect.objectContaining({ rowNumber: 3, column: "金额" }),
+      expect.objectContaining({ rowNumber: 4, column: "到账金额" }),
     ]);
   });
 

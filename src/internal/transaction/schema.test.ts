@@ -528,6 +528,7 @@ describe("transfer transaction validators", () => {
         note: "账户转账",
         transactionAt: "2026-06-04T01:30:05.000Z",
         transferAmount: 1200,
+        transferTargetAmount: null,
         transferTargetAccountId: toAccountId,
         type: "transfer",
       },
@@ -544,10 +545,30 @@ describe("transfer transaction validators", () => {
         note: "账户转账",
         transactionAt: "2026-06-04T01:30:05.000Z",
         transferAmount: 1200,
+        transferTargetAmount: null,
         transferTargetAccountId: toAccountId,
         type: "transfer",
       },
     });
+  });
+  it("跨币种时解析到账金额，同币种缺省到数据库校验", () => {
+    expect(
+      validateTransactionForm(
+        createTransferFormData({ transferTargetAmount: "48.5" }),
+      ),
+    ).toMatchObject({
+      ok: true,
+      value: { transferAmount: 1200, transferTargetAmount: 48.5 },
+    });
+  });
+  it("到账金额非正数或超过两位小数时拒绝", () => {
+    for (const transferTargetAmount of ["0", "-1", "2.555", "invalid"]) {
+      expect(
+        validateTransactionForm(
+          createTransferFormData({ transferTargetAmount }),
+        ),
+      ).toEqual({ error: transactionErrorCodes.amountInvalid, ok: false });
+    }
   });
   it("拒绝转出和转入账户相同", () => {
     expect(
@@ -615,6 +636,7 @@ describe("validateUpdateTransferTransactionForm", () => {
         transactionAt: "2026-06-04T01:30:05.000Z",
         transactionRecordId,
         transferAmount: 5000,
+        transferTargetAmount: null,
         transferTargetAccountId: toAccountId,
         type: "transfer",
       },

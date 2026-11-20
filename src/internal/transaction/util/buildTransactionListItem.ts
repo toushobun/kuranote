@@ -298,6 +298,11 @@ function buildTransferListItem({
     fallbackCurrency;
 
   const amount = fromItem?.amount ?? fallbackItem?.amount ?? "0";
+  const transferTargetCurrency = toAccount?.currency;
+  const transferTargetAmount =
+    transferTargetCurrency && transferTargetCurrency !== currency
+      ? toItem?.amount
+      : undefined;
 
   return {
     account_color: accountColor,
@@ -314,6 +319,9 @@ function buildTransferListItem({
     recorder_name: recorder?.display_name ?? null,
     show_recorder: showRecorder,
     transaction_at: record.transaction_at,
+    ...(transferTargetAmount && transferTargetCurrency
+      ? { transferTargetAmount, transferTargetCurrency }
+      : {}),
     type: "transfer",
   };
 }

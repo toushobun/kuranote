@@ -145,6 +145,7 @@ describe("transactionController", () => {
       transactionAt: "2026-07-20T01:00:00.000Z",
       transferAmount: 3000,
       transferTargetAccountId: targetAccountId,
+      transferTargetAmount: null,
     });
     expect(service.createNormal).not.toHaveBeenCalled();
     expect(mocks.revalidateTransactionMutation).toHaveBeenCalledOnce();
@@ -214,6 +215,7 @@ describe("transactionController", () => {
       transactionRecordId,
       transferAmount: 3000,
       transferTargetAccountId: targetAccountId,
+      transferTargetAmount: null,
     });
     expect(service.updateNormal).not.toHaveBeenCalled();
     expect(context.getAccessibleLedger).not.toHaveBeenCalled();

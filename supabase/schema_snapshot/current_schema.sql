@@ -2427,7 +2427,7 @@ $$;
 ALTER FUNCTION "public"."create_transaction_locked_impl"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_note" "text") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
+CREATE OR REPLACE FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text" DEFAULT NULL::"text", "p_to_amount" numeric DEFAULT NULL::numeric) RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -2436,6 +2436,7 @@ declare
     v_user_id uuid := auth.uid();
     v_from_account public.account;
     v_to_account public.account;
+    v_effective_to_amount numeric;
     v_locked_account public.account;
 begin
     if v_user_id is null then
@@ -2482,8 +2483,15 @@ begin
         raise exception 'to_account_invalid' using errcode = '22023';
     end if;
 
-    if v_from_account.currency <> v_to_account.currency then
-        raise exception 'transfer_currency_invalid' using errcode = '22023';
+    v_effective_to_amount := coalesce(
+        p_to_amount,
+        case when v_from_account.currency = v_to_account.currency then p_amount end
+    );
+    if not public.is_valid_transfer_amount(p_amount)
+        or not public.is_valid_transfer_amount(v_effective_to_amount)
+        or (v_from_account.currency = v_to_account.currency
+            and p_amount <> v_effective_to_amount) then
+        raise exception 'amount_invalid' using errcode = '22023', detail = 'amount_invalid';
     end if;
 
     insert into public.transaction_record (
@@ -2539,9 +2547,9 @@ begin
         v_transaction_record_id,
         p_to_account_id,
         null,
-        p_amount,
+        v_effective_to_amount,
         0,
-        p_amount,
+        v_effective_to_amount,
         null,
         1,
         v_user_id,
@@ -2549,14 +2557,14 @@ begin
     );
 
     perform public.apply_account_balance_delta(p_ledger_id, p_from_account_id, -p_amount, v_user_id);
-    perform public.apply_account_balance_delta(p_ledger_id, p_to_account_id, p_amount, v_user_id);
+    perform public.apply_account_balance_delta(p_ledger_id, p_to_account_id, v_effective_to_amount, v_user_id);
 
     return v_transaction_record_id;
 end;
 $$;
 
 
-ALTER FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text") OWNER TO "postgres";
+ALTER FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_to_amount" numeric) OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."current_app_user_is_active"() RETURNS boolean
@@ -4188,6 +4196,20 @@ COMMENT ON FUNCTION "public"."is_email_registered"("p_email" "text") IS '供服�
 
 
 
+CREATE OR REPLACE FUNCTION "public"."is_valid_transfer_amount"("p_amount" numeric) RETURNS boolean
+    LANGUAGE "sql" IMMUTABLE
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+    select p_amount is not null
+       and p_amount > 0
+       and p_amount < 1000000000000
+       and p_amount = round(p_amount, 2);
+$$;
+
+
+ALTER FUNCTION "public"."is_valid_transfer_amount"("p_amount" numeric) OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."ledger_active_member_display_name_exists"("p_ledger_id" "uuid", "p_display_name" "text") RETURNS boolean
     LANGUAGE "sql" STABLE
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -4740,7 +4762,11 @@ record_matched as (
     left join lateral (
         select
             (array_agg(ti.note order by ti.sort_order, ti.id))[1] as first_note,
-            (array_agg(ti.amount order by (case when ti.balance_delta < 0 then 0 else 1 end), ti.sort_order, ti.id))[1] as first_amount,
+            coalesce(bool_or(
+                ti.category_id is null
+                and (select amount_term from args) ~ '[0-9]'
+                and strpos(trim_scale(ti.amount)::text, (select amount_term from args)) > 0
+            ), false) as has_transfer_amount,
             (array_agg(ti.balance_delta order by ti.sort_order, ti.id))[1] as first_delta,
             coalesce(sum(
                 case
@@ -4775,7 +4801,7 @@ record_matched as (
               args.amount_term ~ '[0-9]'
               and (
                   (tr.type = 'normal' and strpos(abs(trim_scale(amounts.net_amount))::text, args.amount_term) > 0)
-                  or (tr.type = 'transfer' and strpos(coalesce(trim_scale(amounts.first_amount)::text, ''), args.amount_term) > 0)
+                  or (tr.type = 'transfer' and amounts.has_transfer_amount)
                   or (tr.type = 'balance_adjustment' and strpos(coalesce(trim_scale(amounts.first_delta)::text, ''), args.amount_term) > 0)
                   or (tr.type = 'normal' and amounts.has_item_amount)
               )
@@ -7148,6 +7174,31 @@ $$;
 ALTER FUNCTION "public"."transaction_record_currency"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."transfer_items_consistent"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid") RETURNS boolean
+    LANGUAGE "sql" STABLE
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+    select count(*) = 2
+       and count(*) filter (where ti.category_id is null) = 2
+       and count(*) filter (where ti.balance_delta > 0) = 1
+       and count(*) filter (where ti.balance_delta < 0) = 1
+       and count(*) filter (where ti.amount > 0) = 2
+       and count(*) filter (where ti.amount = abs(ti.balance_delta)) = 2
+       and count(distinct ti.account_id) = 2
+       and (
+           count(distinct a.currency) = 2
+           or count(distinct ti.amount) = 1
+       )
+    from public.transaction_item ti
+    join public.account a on a.id = ti.account_id and a.ledger_id = ti.ledger_id
+    where ti.ledger_id = p_ledger_id
+      and ti.transaction_record_id = p_transaction_record_id;
+$$;
+
+
+ALTER FUNCTION "public"."transfer_items_consistent"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."update_account_with_balance_adjustment"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[], "p_target_balance" numeric DEFAULT NULL::numeric, "p_adjustment_note" "text" DEFAULT NULL::"text", "p_placeholder_id" "uuid" DEFAULT NULL::"uuid", "p_website_url" "text" DEFAULT NULL::"text", "p_icon_url" "text" DEFAULT NULL::"text") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -8825,7 +8876,7 @@ $$;
 ALTER FUNCTION "public"."update_transaction_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_note" "text") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text" DEFAULT NULL::"text") RETURNS "uuid"
+CREATE OR REPLACE FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text" DEFAULT NULL::"text", "p_to_amount" numeric DEFAULT NULL::numeric) RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -8835,17 +8886,11 @@ declare
     v_old_from_account_id uuid;
     v_old_to_account_id uuid;
     v_old_amount numeric(14,2);
-    v_item_count integer := 0;
-    v_category_null_item_count integer := 0;
-    v_positive_item_count integer := 0;
-    v_negative_item_count integer := 0;
-    v_positive_amount_count integer := 0;
-    v_amount_delta_match_count integer := 0;
-    v_distinct_amount_count integer := 0;
-    v_balance_delta_total numeric(14,2) := 0;
+    v_old_to_amount numeric(14,2);
     v_all_account_ids uuid[];
     v_from_account public.account;
     v_to_account public.account;
+    v_effective_to_amount numeric;
     v_locked_account public.account;
 begin
     if v_user_id is null then
@@ -8881,36 +8926,7 @@ begin
         raise exception 'transaction_not_found' using errcode = '22023';
     end if;
 
-    select
-        count(*)::integer,
-        count(*) filter (where ti.category_id is null)::integer,
-        count(*) filter (where ti.balance_delta > 0)::integer,
-        count(*) filter (where ti.balance_delta < 0)::integer,
-        count(*) filter (where ti.amount > 0)::integer,
-        count(*) filter (where ti.amount = abs(ti.balance_delta))::integer,
-        count(distinct ti.amount)::integer,
-        coalesce(sum(ti.balance_delta), 0)
-    into
-        v_item_count,
-        v_category_null_item_count,
-        v_positive_item_count,
-        v_negative_item_count,
-        v_positive_amount_count,
-        v_amount_delta_match_count,
-        v_distinct_amount_count,
-        v_balance_delta_total
-    from public.transaction_item ti
-    where ti.transaction_record_id = p_transaction_record_id
-      and ti.ledger_id = p_ledger_id;
-
-    if v_item_count <> 2
-        or v_category_null_item_count <> 2
-        or v_positive_item_count <> 1
-        or v_negative_item_count <> 1
-        or v_positive_amount_count <> 2
-        or v_amount_delta_match_count <> 2
-        or v_distinct_amount_count <> 1
-        or v_balance_delta_total <> 0 then
+    if not public.transfer_items_consistent(p_ledger_id, p_transaction_record_id) then
         raise exception 'transfer_items_invalid' using errcode = '22023';
     end if;
 
@@ -8921,8 +8937,8 @@ begin
       and ti.ledger_id = p_ledger_id
       and ti.balance_delta < 0;
 
-    select account_id
-    into v_old_to_account_id
+    select account_id, amount
+    into v_old_to_account_id, v_old_to_amount
     from public.transaction_item ti
     where ti.transaction_record_id = p_transaction_record_id
       and ti.ledger_id = p_ledger_id
@@ -8962,12 +8978,19 @@ begin
         raise exception 'to_account_invalid' using errcode = '22023';
     end if;
 
-    if v_from_account.currency <> v_to_account.currency then
-        raise exception 'transfer_currency_invalid' using errcode = '22023';
+    v_effective_to_amount := coalesce(
+        p_to_amount,
+        case when v_from_account.currency = v_to_account.currency then p_amount end
+    );
+    if not public.is_valid_transfer_amount(p_amount)
+        or not public.is_valid_transfer_amount(v_effective_to_amount)
+        or (v_from_account.currency = v_to_account.currency
+            and p_amount <> v_effective_to_amount) then
+        raise exception 'amount_invalid' using errcode = '22023', detail = 'amount_invalid';
     end if;
 
     perform public.apply_account_balance_delta(p_ledger_id, v_old_from_account_id, v_old_amount, v_user_id);
-    perform public.apply_account_balance_delta(p_ledger_id, v_old_to_account_id, -v_old_amount, v_user_id);
+    perform public.apply_account_balance_delta(p_ledger_id, v_old_to_account_id, -v_old_to_amount, v_user_id);
 
     delete from public.transaction_item ti
     where ti.transaction_record_id = p_transaction_record_id
@@ -9004,9 +9027,9 @@ begin
         p_transaction_record_id,
         p_to_account_id,
         null,
-        p_amount,
+        v_effective_to_amount,
         0,
-        p_amount,
+        v_effective_to_amount,
         null,
         1,
         v_user_id,
@@ -9014,7 +9037,7 @@ begin
     );
 
     perform public.apply_account_balance_delta(p_ledger_id, p_from_account_id, -p_amount, v_user_id);
-    perform public.apply_account_balance_delta(p_ledger_id, p_to_account_id, p_amount, v_user_id);
+    perform public.apply_account_balance_delta(p_ledger_id, p_to_account_id, v_effective_to_amount, v_user_id);
 
     update public.transaction_record tr
     set
@@ -9030,7 +9053,7 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text") OWNER TO "postgres";
+ALTER FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_to_amount" numeric) OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."upsert_ledger_member_display_setting"("p_ledger_id" "uuid", "p_user_id" "uuid", "p_display_name" "text", "p_display_color" "text") RETURNS "void"
@@ -10256,13 +10279,6 @@ declare
     v_record public.transaction_record;
     v_item public.transaction_item;
     v_item_count integer := 0;
-    v_category_null_item_count integer := 0;
-    v_positive_item_count integer := 0;
-    v_negative_item_count integer := 0;
-    v_positive_amount_count integer := 0;
-    v_amount_delta_match_count integer := 0;
-    v_distinct_amount_count integer := 0;
-    v_balance_delta_total numeric(14,2) := 0;
     v_account_id uuid;
     v_account_delta numeric(14,2);
 begin
@@ -10315,36 +10331,7 @@ begin
         order by ti.account_id, ti.id
         for update;
 
-        select
-            count(*)::integer,
-            count(*) filter (where ti.category_id is null)::integer,
-            count(*) filter (where ti.balance_delta > 0)::integer,
-            count(*) filter (where ti.balance_delta < 0)::integer,
-            count(*) filter (where ti.amount > 0)::integer,
-            count(*) filter (where ti.amount = abs(ti.balance_delta))::integer,
-            count(distinct ti.amount)::integer,
-            coalesce(sum(ti.balance_delta), 0)
-        into
-            v_item_count,
-            v_category_null_item_count,
-            v_positive_item_count,
-            v_negative_item_count,
-            v_positive_amount_count,
-            v_amount_delta_match_count,
-            v_distinct_amount_count,
-            v_balance_delta_total
-        from public.transaction_item ti
-        where ti.transaction_record_id = p_transaction_record_id
-          and ti.ledger_id = p_ledger_id;
-
-        if v_item_count <> 2
-            or v_category_null_item_count <> 2
-            or v_positive_item_count <> 1
-            or v_negative_item_count <> 1
-            or v_positive_amount_count <> 2
-            or v_amount_delta_match_count <> 2
-            or v_distinct_amount_count <> 1
-            or v_balance_delta_total <> 0 then
+        if not public.transfer_items_consistent(p_ledger_id, p_transaction_record_id) then
             raise exception 'transfer_items_invalid' using errcode = '22023';
         end if;
     end if;
@@ -12591,7 +12578,8 @@ REVOKE ALL ON FUNCTION "public"."create_transaction_locked_impl"("p_ledger_id" "
 
 
 
-GRANT ALL ON FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_to_amount" numeric) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_to_amount" numeric) TO "authenticated";
 
 
 
@@ -12741,6 +12729,10 @@ REVOKE ALL ON FUNCTION "public"."initialize_system_categories_after_setup"() FRO
 
 REVOKE ALL ON FUNCTION "public"."is_email_registered"("p_email" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."is_email_registered"("p_email" "text") TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."is_valid_transfer_amount"("p_amount" numeric) FROM PUBLIC;
 
 
 
@@ -12932,6 +12924,10 @@ REVOKE ALL ON FUNCTION "public"."transaction_record_currency"("p_ledger_id" "uui
 
 
 
+REVOKE ALL ON FUNCTION "public"."transfer_items_consistent"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid") FROM PUBLIC;
+
+
+
 REVOKE ALL ON FUNCTION "public"."update_account_with_balance_adjustment"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[], "p_target_balance" numeric, "p_adjustment_note" "text", "p_placeholder_id" "uuid", "p_website_url" "text", "p_icon_url" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."update_account_with_balance_adjustment"("p_ledger_id" "uuid", "p_account_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_holder_user_ids" "uuid"[], "p_target_balance" numeric, "p_adjustment_note" "text", "p_placeholder_id" "uuid", "p_website_url" "text", "p_icon_url" "text") TO "authenticated";
 
@@ -12994,7 +12990,8 @@ REVOKE ALL ON FUNCTION "public"."update_transaction_locked_impl"("p_ledger_id" "
 
 
 
-GRANT ALL ON FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_to_amount" numeric) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_to_amount" numeric) TO "authenticated";
 
 
 

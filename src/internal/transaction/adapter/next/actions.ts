@@ -107,6 +107,7 @@ export async function createTransaction(
         note: values.note,
         transactionAt: values.transactionAt,
         transferAmount: values.transferAmount,
+        transferTargetAmount: values.transferTargetAmount,
         transferTargetAccountId: values.transferTargetAccountId,
       });
     } else {
@@ -186,6 +187,7 @@ export async function updateTransferTransaction(
       transactionAt: values.transactionAt,
       transactionRecordId: values.transactionRecordId,
       transferAmount: values.transferAmount,
+      transferTargetAmount: values.transferTargetAmount,
       transferTargetAccountId: values.transferTargetAccountId,
     });
   } catch (error) {

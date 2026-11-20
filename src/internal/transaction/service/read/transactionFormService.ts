@@ -220,7 +220,12 @@ async function buildEditTransactionView<
       toItems.length !== 1 ||
       !fromItem ||
       !toItem ||
-      !isValidTransferPair(fromItem, toItem)
+      !isValidTransferPair(
+        fromItem,
+        toItem,
+        currencyByAccountId.get(requireItemAccountId(fromItem)),
+        currencyByAccountId.get(requireItemAccountId(toItem)),
+      )
     ) {
       return null;
     }
@@ -240,6 +245,11 @@ async function buildEditTransactionView<
           currencyByAccountId.get(fromAccountId) ?? currentLedger.baseCurrency,
         ),
         transferTargetAccountId: requireItemAccountId(toItem),
+        transferTargetAmount: formatEditableAmount(
+          toItem.amount,
+          currencyByAccountId.get(requireItemAccountId(toItem)) ??
+            currentLedger.baseCurrency,
+        ),
         type: "transfer" as const,
       } satisfies TransferEditInitialValues,
       ledgerName: currentLedger.name,
@@ -497,16 +507,21 @@ function buildIncomeLinkCandidate(
 function isValidTransferPair(
   fromItem: TransactionItemDbRow,
   toItem: TransactionItemDbRow,
+  fromCurrency?: string,
+  toCurrency?: string,
 ) {
   const fromAmount = Number(fromItem.amount);
   const toAmount = Number(toItem.amount);
   const fromDelta = Number(fromItem.balance_delta);
   const toDelta = Number(toItem.balance_delta);
   return (
-    fromAmount === toAmount &&
+    fromAmount > 0 &&
+    toAmount > 0 &&
+    fromDelta < 0 &&
+    toDelta > 0 &&
     fromAmount === Math.abs(fromDelta) &&
     toAmount === Math.abs(toDelta) &&
-    fromDelta + toDelta === 0
+    (fromCurrency !== toCurrency || fromAmount === toAmount)
   );
 }
 
@@ -538,5 +553,6 @@ export function resolveNormalTransactionDisplayType(
 export function formatEditableAmount(amount: string, currency?: string) {
   const value = Number(amount);
   if (!Number.isFinite(value)) return amount;
-  return String(Number(value.toFixed(getAmountDecimalPlaces(currency))));
+  const decimals = getAmountDecimalPlaces(currency);
+  return String(Number(value.toFixed(decimals)));
 }

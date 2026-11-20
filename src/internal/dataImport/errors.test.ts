@@ -105,10 +105,13 @@ describe("dataImport errors", () => {
 
   it("转账表的行校验文案（交易类型由常量拼出）", () => {
     expect(transferImportErrorMessages).toEqual({
-      amountInvalid: "金额必须是大于 0、不超过两位小数的数字。",
+      amountInvalid: "金额必须是大于 0、符合币种精度的数字。",
       fromAccountCurrencyInvalid: "转出账户币种必须是 3 位字母代码，例如 CNY。",
       fromAccountRequired: "转出账户不能为空。",
       sameAccount: "转出账户与转入账户不能是同一个账户。",
+      targetAmountRequired: "不同币种转账必须填写到账金额。",
+      targetAmountInvalid: "到账金额必须是大于 0、符合币种精度的数字。",
+      targetAmountMismatch: "同币种转账的到账金额必须与金额相同。",
       toAccountCurrencyInvalid: "转入账户币种必须是 3 位字母代码，例如 CNY。",
       toAccountRequired: "转入账户不能为空。",
       typeInvalid: "交易类型必须是「转账」。",

@@ -71,7 +71,7 @@ export function TransferReceipt(props: TransferReceiptProps) {
   const sideProps = (side: TransferSide) => ({
     side,
     account: side === "source" ? w.source : w.target,
-    error: w.isMarked(side) || (side === "target" && w.isMarked("currency")),
+    error: w.isMarked(side),
     readOnly,
     onClick: () => w.setPicker(side),
   });
@@ -109,6 +109,12 @@ export function TransferReceipt(props: TransferReceiptProps) {
           value={w.targetId}
         />
         <input name="transferAmount" readOnly type="hidden" value={w.amount} />
+        <input
+          name="transferTargetAmount"
+          readOnly
+          type="hidden"
+          value={w.crossCurrency ? w.transferTargetAmount : ""}
+        />
         <input name="note" readOnly type="hidden" value={w.note} />
         <input
           name="transactionAt"
@@ -154,15 +160,50 @@ export function TransferReceipt(props: TransferReceiptProps) {
               />
             </Stack>
             <ReceiptAmountRow
-              label={t.amount}
+              label={w.crossCurrency ? t.sourceAmount : t.amount}
+              labelCaption={w.crossCurrency ? w.currency : undefined}
               amount={
                 w.amount.trim()
                   ? formatStepCurrencyAmount(w.amount, w.currency)
                   : ""
               }
               error={w.isMarked("amount")}
-              onClick={readOnly ? undefined : () => w.setAmountOpen(true)}
+              onClick={readOnly ? undefined : () => w.setAmountSide("source")}
             />
+            {w.crossCurrency && (
+              <>
+                <ReceiptAmountRow
+                  label={t.targetAmount}
+                  labelCaption={w.targetCurrency}
+                  amount={
+                    w.transferTargetAmount.trim()
+                      ? formatStepCurrencyAmount(
+                          w.transferTargetAmount,
+                          w.targetCurrency,
+                        )
+                      : ""
+                  }
+                  error={w.isMarked("targetAmount")}
+                  onClick={
+                    readOnly ? undefined : () => w.setAmountSide("target")
+                  }
+                />
+                {w.rate && (
+                  <Typography
+                    variant="caption"
+                    color="textSecondary"
+                    sx={{
+                      display: "block",
+                      px: 2,
+                      pb: 1.5,
+                      textAlign: "right",
+                    }}
+                  >
+                    {t.exchangeRate(w.rate.base, w.rate.quote, w.rate.value)}
+                  </Typography>
+                )}
+              </>
+            )}
             <ReceiptNoteSection
               note={w.note}
               onChange={w.handleNoteChange}
@@ -197,12 +238,19 @@ export function TransferReceipt(props: TransferReceiptProps) {
         />
       </TransactionBottomEditorDrawer>
       <TransactionItemAmountDrawer
-        open={w.amountOpen}
-        title={t.amount}
-        currency={w.currency}
-        value={w.amount}
+        open={w.amountSide !== null}
+        titleIsComplete
+        title={
+          w.amountSide === "target"
+            ? t.targetAmountTitle(w.targetCurrency)
+            : w.crossCurrency
+              ? t.sourceAmountTitle(w.currency)
+              : t.amount
+        }
+        currency={w.amountSide === "target" ? w.targetCurrency : w.currency}
+        value={w.amountSide === "target" ? w.transferTargetAmount : w.amount}
         onConfirm={w.confirmAmount}
-        onClose={() => w.setAmountOpen(false)}
+        onClose={() => w.setAmountSide(null)}
       />
     </>
   );
