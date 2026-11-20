@@ -142,6 +142,29 @@ describe("TransactionRow", () => {
     expect(screen.getByText("¥ 100,000")).toBeInTheDocument();
     expect(screen.getByText(/到账.*4,850.*CNY/)).toBeInTheDocument();
   });
+  it("跨币种到账金额与账户时间共用第二行，不另加行高", () => {
+    render(
+      <TransactionRow
+        item={createItem({
+          type: "transfer",
+          account_name: "日元现金 → 人民币账户",
+          amount: "100000",
+          categoryItems: [],
+          transferTargetAmount: "4850",
+          transferTargetCurrency: "CNY",
+        })}
+        showAccount
+        showTime
+      />,
+    );
+    const arrival = screen.getByText(/到账.*4,850.*CNY/);
+    const account = screen.getByText("日元现金 → 人民币账户");
+    const secondRow = account.parentElement?.parentElement;
+    expect(secondRow?.contains(arrival)).toBe(true);
+    expect(secondRow).toHaveStyle({ flexDirection: "row" });
+    expect(arrival).toHaveClass("MuiTypography-noWrap");
+    expect(arrival).toHaveStyle({ flexShrink: "0" });
+  });
   it("同币种转账不额外显示到账行", () => {
     render(
       <TransactionRow
