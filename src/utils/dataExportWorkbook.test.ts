@@ -509,6 +509,36 @@ describe("dataExportWorkbook", () => {
     ).rejects.toThrow("network failure");
   });
 
+  it("并行下载失败后停止后续任务，且在途照片不能重新触发进度", async () => {
+    const data = createDataExportFixture();
+    data.photos = Array.from({ length: 5 }, (_, index) => ({
+      recordId: "normal",
+      sortOrder: index,
+      fullUrl: `https://example.com/${index}.jpg`,
+    }));
+    let releaseSlow!: (bytes: Uint8Array) => void;
+    const slowDownload = new Promise<Uint8Array>((resolve) => {
+      releaseSlow = resolve;
+    });
+    const requested: string[] = [];
+    const progress: string[] = [];
+    const exportPromise = buildDataExportWorkbook(data, {
+      downloadPhoto: (url) => {
+        requested.push(url);
+        return url.endsWith("/0.jpg")
+          ? Promise.reject(new Error("network failure"))
+          : slowDownload;
+      },
+      onPhotoProgress: (done, total) => progress.push(`${done}/${total}`),
+    });
+    await expect(exportPromise).rejects.toThrow("network failure");
+    releaseSlow(new Uint8Array([0xff, 0xd8, 0xff, 0xd9]));
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(requested).toHaveLength(4);
+    expect(progress).toEqual(["0/5"]);
+  });
+
   it("空账本也生成三个工作表，列名顺序复用导入定义且表头加粗填绿", async () => {
     const workbook = await loadWorkbook(createEmptyDataExport());
     expect(workbook.worksheets.map((sheet) => sheet.name)).toEqual([
