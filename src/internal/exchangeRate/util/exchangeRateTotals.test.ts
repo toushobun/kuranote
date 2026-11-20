@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { buildStatisticsViewData } from "internal/statistics/service/read/statisticsView";
-import { buildTransactionGroupSummaryPage } from "internal/transaction/util/transactionGroupBuilder";
+import {
+  addToRecordSignedBuckets,
+  buildTransactionGroupSummaryPage,
+} from "internal/transaction/util/transactionGroupBuilder";
 import { defaultTransactionFilters } from "internal/transaction/entity/transactionGrouping";
 import { groupTransactionItemsByDate } from "utils/transactions";
 
@@ -172,4 +175,66 @@ describe("Issue #1139 交易合计一致性", () => {
       currency: "JPY",
     });
   });
+  it("商家分组在账户筛选下保留同一记录的独立收入与支出", () => {
+    const singleRecord = record("mixed-record", 1, "JPY");
+    const page = buildTransactionGroupSummaryPage({
+      accounts: [{ id: "jpy-account", name: "日元账户", currency: "JPY" }],
+      categories: [
+        { id: "expense", name: "支出", parent_id: null, type: "expense" },
+        { id: "income", name: "收入", parent_id: null, type: "income" },
+      ],
+      currency: "JPY",
+      filters: { ...defaultTransactionFilters, accountId: "jpy-account" },
+      groupBy: "merchant",
+      holderIdsByAccountId: new Map(),
+      items: [
+        {
+          account_id: "jpy-account",
+          amount: "100",
+          category_id: "expense",
+          transaction_record_id: singleRecord.id,
+        },
+        {
+          account_id: "jpy-account",
+          amount: "40",
+          category_id: "income",
+          transaction_record_id: singleRecord.id,
+        },
+      ],
+      merchants: [{ id: "merchant", name: "商家" }],
+      offset: 0,
+      pageSize: 20,
+      payments: [
+        {
+          account_id: "jpy-account",
+          amount: "60",
+          balance_delta: "-60",
+          sort_order: 0,
+          transaction_record_id: singleRecord.id,
+        },
+      ],
+      records: [singleRecord],
+      recorders: [],
+    });
+    expect(page.groups[0].summary).toMatchObject({
+      income: "40",
+      expense: "100",
+      balance: "-60",
+      currency: "JPY",
+    });
+  });
+
+  it("同持有人两账户正负变动按记录分别累计，不净额化", () => {
+    const movements = [
+      { holder: "holder-1", signed: -100 },
+      { holder: "holder-1", signed: 40 },
+    ];
+    const buckets = movements.reduce(
+      (summary, movement) =>
+        addToRecordSignedBuckets(summary, movement.signed),
+      undefined as ReturnType<typeof addToRecordSignedBuckets> | undefined,
+    );
+    expect(buckets).toEqual({ income: 40, expense: 100 });
+  });
+
 });
