@@ -95,7 +95,7 @@ export function isValidMoneyText(
   options: AmountInputOptions = {},
 ) {
   const text = value.trim();
-  const decimalPlaces = getInputDecimalPlaces(options);
+  const decimalPlaces = getAmountDecimalPlaces(options.currency);
   const sign = options.allowNegative ? "-?" : "";
   const pattern =
     decimalPlaces === 0
@@ -124,7 +124,7 @@ export function normalizeMoneyText(
   const text = value.trim();
   if (!isValidMoneyText(text, options)) return null;
 
-  const decimalPlaces = getInputDecimalPlaces(options);
+  const decimalPlaces = getAmountDecimalPlaces(options.currency);
   const isNegative = text.startsWith("-");
   const [integerText, decimalText] = text.replace(/^-/, "").split(".");
   const normalizedInteger = String(Number(integerText));
@@ -286,7 +286,7 @@ function buildNextExpressionText(
 }
 
 function isDraftMoneyText(value: string, options: AmountInputOptions) {
-  const decimalPlaces = getInputDecimalPlaces(options);
+  const decimalPlaces = getAmountDecimalPlaces(options.currency);
   // 允许负数时，从输入框带进来的负数（如 -12800）可以继续按数字键编辑。
   const sign = options.allowNegative ? "-?" : "";
 
@@ -331,7 +331,7 @@ function calculateAmount(
   operator: AmountKeypadOperator,
   options: AmountInputOptions,
 ) {
-  const decimalPlaces = getInputDecimalPlaces(options);
+  const decimalPlaces = getAmountDecimalPlaces(options.currency);
   const left = toScaledInteger(leftValue, decimalPlaces);
   const right = toScaledInteger(rightValue, decimalPlaces);
   const result = operator === "+" ? left + right : left - right;
