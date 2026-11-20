@@ -29,6 +29,8 @@ export type AmountInputOptions = {
   /** 允许负数结果（如账户初始金额的信用卡欠款）；交易金额保持默认的非负。 */
   allowNegative?: boolean;
   currency?: string;
+  /** 特定业务金额可限制比币种精度更少的小数位。 */
+  maxDecimalPlaces?: number;
 };
 
 const maxAmountIntegerDigits = 12;
@@ -90,12 +92,19 @@ export function formatMoneyTextForCurrency(amount: string, currency?: string) {
     : amount;
 }
 
+function getInputDecimalPlaces(options: AmountInputOptions) {
+  return Math.min(
+    getAmountDecimalPlaces(options.currency),
+    options.maxDecimalPlaces ?? 3,
+  );
+}
+
 export function isValidMoneyText(
   value: string,
   options: AmountInputOptions = {},
 ) {
   const text = value.trim();
-  const decimalPlaces = getAmountDecimalPlaces(options.currency);
+  const decimalPlaces = getInputDecimalPlaces(options);
   const sign = options.allowNegative ? "-?" : "";
   const pattern =
     decimalPlaces === 0
@@ -124,7 +133,7 @@ export function normalizeMoneyText(
   const text = value.trim();
   if (!isValidMoneyText(text, options)) return null;
 
-  const decimalPlaces = getAmountDecimalPlaces(options.currency);
+  const decimalPlaces = getInputDecimalPlaces(options);
   const isNegative = text.startsWith("-");
   const [integerText, decimalText] = text.replace(/^-/, "").split(".");
   const normalizedInteger = String(Number(integerText));
@@ -178,7 +187,7 @@ export function applyAmountKeypadKey(
   }
 
   if (key === ".") {
-    if (getAmountDecimalPlaces(options.currency) === 0) return state;
+    if (getInputDecimalPlaces(options) === 0) return state;
     if (state.displayValue.includes(".")) return state;
 
     return {
@@ -286,7 +295,7 @@ function buildNextExpressionText(
 }
 
 function isDraftMoneyText(value: string, options: AmountInputOptions) {
-  const decimalPlaces = getAmountDecimalPlaces(options.currency);
+  const decimalPlaces = getInputDecimalPlaces(options);
   // 允许负数时，从输入框带进来的负数（如 -12800）可以继续按数字键编辑。
   const sign = options.allowNegative ? "-?" : "";
 
@@ -331,7 +340,7 @@ function calculateAmount(
   operator: AmountKeypadOperator,
   options: AmountInputOptions,
 ) {
-  const decimalPlaces = getAmountDecimalPlaces(options.currency);
+  const decimalPlaces = getInputDecimalPlaces(options);
   const left = toScaledInteger(leftValue, decimalPlaces);
   const right = toScaledInteger(rightValue, decimalPlaces);
   const result = operator === "+" ? left + right : left - right;
