@@ -364,6 +364,52 @@ describe("useDataImportForm 浏览器端解析与分批发送", () => {
     expect(result.current.photoUploadProgress).toBeNull();
   });
 
+  it("多明细账单的照片预览显示全部明细合计，不只显示首行金额", async () => {
+    const first = makeIncomeExpenseUnit();
+    if (first.kind !== "incomeExpense") throw new Error("测试数据错误");
+    analyzeImportFileMock.mockResolvedValue({
+      result: {
+        ok: true,
+        summary: {
+          balanceAdjustmentCount: 0,
+          incomeExpenseCount: 1,
+          transferCount: 0,
+        },
+      },
+      units: [
+        {
+          ...first,
+          group: {
+            ...first.group,
+            rowNumbers: [2, 3],
+            items: [
+              first.group.items[0],
+              { ...first.group.items[0], rowNumber: 3, amount: 300 },
+            ],
+          },
+        },
+      ],
+      photosByRow: new Map([
+        [
+          2,
+          [
+            {
+              rowNumber: 2,
+              columnName: "照片1",
+              mimeType: "image/jpeg",
+              bytes: new Uint8Array([0xff, 0xd8, 0xff, 0xd9]),
+            },
+          ],
+        ],
+      ]),
+    });
+    const { result } = renderHook(() => useDataImportForm(vi.fn()));
+    await selectFileAndCheckFormat(result);
+    expect(result.current.photoPreviewRows).toMatchObject([
+      { rowNumber: 2, amount: 1500, merchantName: "超市" },
+    ]);
+  });
+
   it("照片上传期间离开页面不会在上传完成后再写入交易", async () => {
     const uploading = deferred<{
       attachmentId: string;

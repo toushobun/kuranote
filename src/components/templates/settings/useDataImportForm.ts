@@ -148,7 +148,10 @@ export function useDataImportForm(
               const first = unit.group.items[0];
               return [
                 {
-                  amount: first.amount,
+                  amount: unit.group.items.reduce(
+                    (total, item) => total + item.amount,
+                    0,
+                  ),
                   merchantName: first.merchantName,
                   photos,
                   rowNumber,
