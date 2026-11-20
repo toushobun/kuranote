@@ -31,6 +31,13 @@ export function transferAmountsAfterAccountChange({
         }
       : { amount: newSourceAmount, targetAmount: preservedTargetAmount };
   }
+  if (!sourceCurrency) {
+    // 只选转入账户时，单行金额属于转入币种；换币种要清掉它。
+    return {
+      amount: targetCurrency === nextCurrency ? amount : "",
+      targetAmount: "",
+    };
+  }
   const newTargetAmount = targetCurrency === nextCurrency ? targetAmount : "";
   return nextCurrency === sourceCurrency && !!nextCurrency
     ? { amount: amount || newTargetAmount, targetAmount: "" }
