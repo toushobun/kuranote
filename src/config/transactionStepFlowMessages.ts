@@ -128,6 +128,7 @@ export const transferReceiptMessages = {
   amount: "转账金额",
   sourceAmount: "转出金额",
   targetAmount: "到账金额",
+  sourceAmountTitle: (currency: string) => `转出金额（${currency}）`,
   targetAmountTitle: (currency: string) => `到账金额（${currency}）`,
   exchangeRate: (base: string, quote: string, rate: string) =>
     `汇率 1 ${base} ≈ ${rate} ${quote}（按两边金额算出）`,
@@ -138,6 +139,8 @@ export const transferReceiptMessages = {
   missingTarget: "请选择转入账户",
   missingAmount: "请输入转账金额",
   invalidAmount: "转账金额无效，点一下重新输入",
+  missingSourceAmount: "请输入转出金额",
+  invalidSourceAmount: "转出金额无效，点一下重新输入",
   missingTargetAmount: "请输入到账金额",
   invalidTargetAmount: "到账金额无效，点一下重新输入",
 } as const;
