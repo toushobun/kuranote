@@ -230,9 +230,13 @@ describe("TransferReceipt", () => {
     });
     click("保存修改");
     expect(action).not.toHaveBeenCalled();
-    expect(screen.getByText("转出金额无效，点一下重新输入")).toBeInTheDocument();
+    expect(
+      screen.getByText("转出金额无效，点一下重新输入"),
+    ).toBeInTheDocument();
     click(/^修改转出金额：/);
-    expect(screen.getByRole("heading", { name: /转出金额（JPY）/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /转出金额（JPY）/ }),
+    ).toBeInTheDocument();
   });
   it("只读跨币种同时显示转出、到账和计算汇率", () => {
     setup({
