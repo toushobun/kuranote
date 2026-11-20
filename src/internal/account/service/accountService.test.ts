@@ -52,6 +52,7 @@ function createRepository(): AccountRepository {
     findSummariesByIds: vi.fn().mockResolvedValue([]),
     isActiveAccount: vi.fn().mockResolvedValue(true),
     listAccounts: vi.fn().mockResolvedValue([]),
+    listLedgerRates: vi.fn().mockResolvedValue(new Map()),
     listAccountIdsWithTransactions: vi.fn().mockResolvedValue([]),
     listActiveMembers: vi.fn().mockResolvedValue([
       {
