@@ -227,6 +227,26 @@ export function getCurrentMonthRange() {
   };
 }
 
+/** 同一记录只用换算后的金额参加小计，转账和余额调整不计入收支。 */
+export function addConvertedItemToSummary(
+  summary: TransactionAmountSummary,
+  item: TransactionListItem,
+): void {
+  if (item.type === "transfer" || item.type === "balance_adjustment") return;
+  if (item.account_currency !== summary.currency) {
+    summary.hasForeignCurrency = true;
+  }
+  if (item.converted_amount === null) {
+    summary.missingRateCount = (summary.missingRateCount ?? 0) + 1;
+  } else {
+    addTransactionAmount(
+      summary,
+      item.type,
+      item.converted_amount ?? item.amount,
+    );
+  }
+}
+
 export function groupTransactionItemsByDate(
   items: TransactionListItem[],
   currency: string,
@@ -243,20 +263,7 @@ export function groupTransactionItemsByDate(
     };
 
     group.items.push(item);
-    if (item.type !== "transfer" && item.type !== "balance_adjustment") {
-      if (item.account_currency !== currency)
-        group.summary.hasForeignCurrency = true;
-      if (item.converted_amount === null) {
-        group.summary.missingRateCount =
-          (group.summary.missingRateCount ?? 0) + 1;
-      } else {
-        addTransactionAmount(
-          group.summary,
-          item.type,
-          item.converted_amount ?? item.amount,
-        );
-      }
-    }
+    addConvertedItemToSummary(group.summary, item);
     groupByDate.set(dateKey, group);
   }
 
