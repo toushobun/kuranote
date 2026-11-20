@@ -384,7 +384,7 @@ group_rows_converted as (
         case when p_group_by = 'account' then gr.signed_amount
              else public.convert_ledger_amount(gr.signed_amount, rr.ledger_rate) end as converted_amount,
         case when p_group_by <> 'account' and rr.ledger_rate is null
-                       and gr.signed_amount <> 0 then 1 else 0 end as missing_rate
+                       then 1 else 0 end as missing_rate
     from group_rows_per_record gr
     left join public.transaction_record_ledger_rate rr
       on rr.ledger_id = p_ledger_id and rr.record_id = gr.record_id

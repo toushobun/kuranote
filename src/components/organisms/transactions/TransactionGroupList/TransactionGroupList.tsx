@@ -9,6 +9,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
 import { transactionEditHref } from "config/paths";
+import { exchangeRateMessages } from "config/exchangeRateMessages";
 import { TransactionRowLink } from "molecules/transactions/TransactionRowLink";
 import { userThemeCardBorder } from "theme/userThemeCardSx";
 import type {
@@ -77,6 +78,11 @@ export function TransactionGroupList({
               </Typography>
             ) : null}
           </Stack>
+          {showSummary && group.summary.missingRateCount ? (
+            <Typography color="text.secondary" variant="caption">
+              {exchangeRateMessages.missingRecordRates(group.summary.missingRateCount)}
+            </Typography>
+          ) : null}
 
           <Box>
             {group.items.map((item, itemIndex) => (

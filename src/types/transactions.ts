@@ -157,12 +157,17 @@ export type TransactionFilterOptions = {
 export type { TransactionSpecialStatusFilterValue };
 
 export type TransactionListItem = TransactionRowItem & {
+  /** 用于小计，不改变单笔原币金额显示。 */
+  converted_amount?: string | null;
   note: string | null;
   recorder_name: string | null;
   created_at: string;
 };
 
 export type TransactionAmountSummary = {
+  /** 本范围内含外币，已将可换算记录折合为账本币种。 */
+  hasForeignCurrency?: boolean;
+  missingRateCount?: number;
   income: string;
   expense: string;
   balance: string;

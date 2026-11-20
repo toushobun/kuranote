@@ -20,7 +20,8 @@ select ok(has_function_privilege('authenticated','public.transaction_record_curr
   '受 RLS 保护的 SQL 视图可以按请求者权限读取交易币种');
 select is((select ledger_rate from public.account_ledger_rate
   where account_id='00000000-0000-4000-8000-000000000043'::uuid),
-  0.02::numeric, '账户余额使用最新日的参考汇率');
+  public.exchange_rate_on('JPY','USD',(now() at time zone 'UTC')::date),
+  '账户余额使用今天能获取的最新日参考汇率');
 
 select public.create_transaction(
  '00000000-0000-4000-8000-000000000032', 'expense', '2099-01-15 12:00:00+00',

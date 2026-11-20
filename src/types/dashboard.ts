@@ -1,11 +1,6 @@
-import type { TransactionListItem } from "types/transactions";
+import type { TransactionAmountSummary, TransactionListItem } from "types/transactions";
 
-export type DashboardAmountSummary = {
-  income: string;
-  expense: string;
-  balance: string;
-  currency: string;
-};
+export type DashboardAmountSummary = TransactionAmountSummary;
 
 export type DashboardAccountSummary = {
   id: string;
