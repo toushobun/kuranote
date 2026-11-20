@@ -5,6 +5,9 @@ on:
       - feat/1139_convert_totals_to_ledger_currency
 permissions:
   contents: write
+concurrency:
+  group: pr1139-review-${{ github.ref }}
+  cancel-in-progress: true
 env:
   SUPABASE_START_EXCLUDE: studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor,realtime,postgres-meta
 jobs:
@@ -14,21 +17,18 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: feat/1139_convert_totals_to_ledger_currency
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 24
       - run: npm ci
-      - name: Format PR changes
+      - name: Format changed source files
         run: |
-          git diff --name-only --diff-filter=ACM "$(git merge-base HEAD origin/main)" HEAD -- '*.ts' '*.tsx' | while IFS= read -r file; do
-            if test -f "$file"; then npx prettier --write "$file"; fi
-          done
+          git diff --name-only -z --diff-filter=ACM "$(git merge-base HEAD origin/main)" HEAD -- '*.ts' '*.tsx' | xargs -0 -r npx prettier --write
           git diff --check
       - name: Check TypeScript, lint, formatting and Vitest
-        continue-on-error: true
         run: npm run check
       - name: Verify one real ECB daily-rate response
-        continue-on-error: true
         run: |
           curl -fsSL --max-time 25 'https://api.frankfurter.dev/v1/2024-01-01..2024-12-31?base=EUR&symbols=JPY' -o /tmp/pr1139-ecb-2024.json
           python3 -c 'import json; d=json.load(open("/tmp/pr1139-ecb-2024.json")); dates=sorted(d["rates"]); print("Frankfurter ECB 2024 daily dates:", len(dates), "first:", dates[0], "last:", dates[-1]); assert 240 <= len(dates) <= 270'
@@ -40,24 +40,23 @@ jobs:
       - name: Start Supabase
         run: supabase start -x "$SUPABASE_START_EXCLUDE"
       - name: Update schema snapshot and check
-        continue-on-error: true
         run: |
           npm run db:schema:snapshot:update
           npm run db:schema:snapshot:check
       - name: Reset database fixtures
         run: supabase db reset
       - name: Run database tests and SECURITY DEFINER smoke
-        continue-on-error: true
         run: |
           psql 'postgresql://postgres:postgres@127.0.0.1:54322/postgres' --set ON_ERROR_STOP=1 --file scripts/security-definer-smoke.sql
           supabase test db
       - name: Database concurrency shell scripts
-        continue-on-error: true
         run: |
           for script in supabase/tests/database/*.sh; do
             echo "Running $script"
             bash "$script"
           done
+      - name: Verify Storybook builds
+        run: npm run build-storybook
       - name: Commit formatting and schema snapshot
         if: always()
         run: |
