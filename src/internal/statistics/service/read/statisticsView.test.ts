@@ -18,7 +18,11 @@ const records = [
   { id: "expense-2", merchant_id: "merchant-cafe", type: "normal" as const },
   { id: "expense-3", merchant_id: "merchant-missing", type: "normal" as const },
   { id: "income-1", merchant_id: "merchant-company", type: "normal" as const },
-];
+].map((record) => ({
+  ...record,
+  ledger_rate: 1,
+  record_currency: null,
+}));
 
 const items = [
   {
