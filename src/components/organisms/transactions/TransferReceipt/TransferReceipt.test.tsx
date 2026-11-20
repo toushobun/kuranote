@@ -174,7 +174,7 @@ describe("TransferReceipt", () => {
     expect(screen.getByText("¥5,000")).toBeInTheDocument();
     click("保存转账");
     expect(action).not.toHaveBeenCalled();
-    expect(screen.getByText("请输入转账金额")).toBeInTheDocument();
+    expect(screen.getByText("请输入转出金额")).toBeInTheDocument();
     click(/^修改转出金额：/);
     pressItemAmountKey("2");
     pressItemAmountKey("确定");
@@ -219,6 +219,21 @@ describe("TransferReceipt", () => {
     await waitFor(() => expect(onDirty).toHaveBeenLastCalledWith(false));
   });
 
+  it("跨币种转出金额提示与计算器标题对应币种", () => {
+    const { action } = setup({
+      initialValues: {
+        ...editValues,
+        transferTargetAccountId: "cny",
+        transferAmount: "1.5",
+        transferTargetAmount: "50",
+      },
+    });
+    click("保存修改");
+    expect(action).not.toHaveBeenCalled();
+    expect(screen.getByText("转出金额无效，点一下重新输入")).toBeInTheDocument();
+    click(/^修改转出金额：/);
+    expect(screen.getByRole("heading", { name: /转出金额（JPY）/ })).toBeInTheDocument();
+  });
   it("只读跨币种同时显示转出、到账和计算汇率", () => {
     setup({
       initialValues: {
