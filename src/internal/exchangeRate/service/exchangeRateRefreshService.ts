@@ -1,5 +1,5 @@
 import { RepositoryError } from "internal/shared/errors/appError";
-import { ledgerCurrencyOptions } from "types/ledgers";
+import { ledgerCurrencies } from "internal/ledger/entity/ledgerCurrency";
 import {
   createExchangeRateRepository,
   type DailyExchangeRate,
@@ -8,7 +8,7 @@ import {
 
 const earliestDate = "2015-01-01";
 const ecbApiUrl = "https://api.frankfurter.dev/v1/";
-const currencies = ledgerCurrencyOptions.map(({ value }) => value).filter((code) => code !== "EUR");
+const currencies = ledgerCurrencies.filter((code) => code !== "EUR");
 const currencySet = new Set<string>(currencies);
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 const fetchTimeoutMs = 20_000;
@@ -16,7 +16,9 @@ const fetchTimeoutMs = 20_000;
 function validDate(value: unknown): value is string {
   if (typeof value !== "string" || !datePattern.test(value)) return false;
   const time = Date.parse(`${value}T00:00:00Z`);
-  return Number.isFinite(time) && new Date(time).toISOString().slice(0, 10) === value;
+  return (
+    Number.isFinite(time) && new Date(time).toISOString().slice(0, 10) === value
+  );
 }
 
 function nextUtcDate(value: string): string {
@@ -32,27 +34,65 @@ export function parseEcbRates(
   end: string,
 ): DailyExchangeRate[] {
   if (!body || typeof body !== "object" || Array.isArray(body)) {
-    throw new RepositoryError("exchange_rate_invalid_response", "汇率数据格式异常");
+    throw new RepositoryError(
+      "exchange_rate_invalid_response",
+      "汇率数据格式异常",
+    );
   }
   const result = body as Record<string, unknown>;
-  if (result.base !== "EUR" || !result.rates || typeof result.rates !== "object" || Array.isArray(result.rates)) {
-    throw new RepositoryError("exchange_rate_invalid_response", "汇率数据格式异常");
+  if (
+    result.base !== "EUR" ||
+    !result.rates ||
+    typeof result.rates !== "object" ||
+    Array.isArray(result.rates)
+  ) {
+    throw new RepositoryError(
+      "exchange_rate_invalid_response",
+      "汇率数据格式异常",
+    );
   }
   const rows: DailyExchangeRate[] = [];
   for (const [date, rates] of Object.entries(result.rates)) {
-    if (!validDate(date) || !rates || typeof rates !== "object" || Array.isArray(rates)) {
-      throw new RepositoryError("exchange_rate_invalid_response", "汇率数据格式异常");
+    if (
+      !validDate(date) ||
+      !rates ||
+      typeof rates !== "object" ||
+      Array.isArray(rates)
+    ) {
+      throw new RepositoryError(
+        "exchange_rate_invalid_response",
+        "汇率数据格式异常",
+      );
     }
     const byCurrency = rates as Record<string, unknown>;
-    if (Object.keys(byCurrency).length !== currencies.length || currencies.some((code) => !Object.hasOwn(byCurrency, code))) {
-      throw new RepositoryError("exchange_rate_invalid_response", "汇率数据缺少币种");
+    if (
+      Object.keys(byCurrency).length !== currencies.length ||
+      currencies.some((code) => !Object.hasOwn(byCurrency, code))
+    ) {
+      throw new RepositoryError(
+        "exchange_rate_invalid_response",
+        "汇率数据缺少币种",
+      );
     }
     for (const [currency, value] of Object.entries(byCurrency)) {
-      if (!currencySet.has(currency) || typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
-        throw new RepositoryError("exchange_rate_invalid_response", "汇率数据数值异常");
+      if (
+        !currencySet.has(currency) ||
+        typeof value !== "number" ||
+        !Number.isFinite(value) ||
+        value <= 0
+      ) {
+        throw new RepositoryError(
+          "exchange_rate_invalid_response",
+          "汇率数据数值异常",
+        );
       }
       if (date >= start && date <= end) {
-        rows.push({ rate_date: date, currency, rate_per_eur: value, source: "ecb" });
+        rows.push({
+          rate_date: date,
+          currency,
+          rate_per_eur: value,
+          source: "ecb",
+        });
       }
     }
   }
@@ -78,18 +118,30 @@ export async function runExchangeRateRefresh(
   const url = `${ecbApiUrl}${start}..${today}?base=EUR&symbols=${currencies.join(",")}`;
   let response: Response;
   try {
-    response = await fetchRates(url, { signal: AbortSignal.timeout(fetchTimeoutMs), redirect: "error" });
+    response = await fetchRates(url, {
+      signal: AbortSignal.timeout(fetchTimeoutMs),
+      redirect: "error",
+    });
   } catch {
-    throw new RepositoryError("exchange_rate_provider_failed", "获取参考汇率失败");
+    throw new RepositoryError(
+      "exchange_rate_provider_failed",
+      "获取参考汇率失败",
+    );
   }
   if (!response.ok) {
-    throw new RepositoryError("exchange_rate_provider_failed", "获取参考汇率失败");
+    throw new RepositoryError(
+      "exchange_rate_provider_failed",
+      "获取参考汇率失败",
+    );
   }
   let body: unknown;
   try {
     body = await response.json();
   } catch {
-    throw new RepositoryError("exchange_rate_invalid_response", "汇率数据格式异常");
+    throw new RepositoryError(
+      "exchange_rate_invalid_response",
+      "汇率数据格式异常",
+    );
   }
   const rates = parseEcbRates(body, start, today);
   if (rates.length) await repository.upsertRates(rates);

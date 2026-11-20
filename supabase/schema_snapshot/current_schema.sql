@@ -3376,6 +3376,40 @@ $$;
 ALTER FUNCTION "public"."ensure_ledger_placeholder_members"("p_ledger_id" "uuid", "p_display_names" "text"[]) OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."exchange_rate_on"("p_from" "text", "p_to" "text", "p_date" "date") RETURNS numeric
+    LANGUAGE "sql" STABLE
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+    with rates as (
+        select
+            case when p_from = 'EUR' then 1::numeric else coalesce(
+                (select r.rate_per_eur from public.exchange_rate r
+                 where r.currency = p_from and r.rate_date <= p_date
+                 order by r.rate_date desc limit 1),
+                (select r.rate_per_eur from public.exchange_rate r
+                 where r.currency = p_from
+                 order by r.rate_date asc limit 1)
+            ) end as from_rate,
+            case when p_to = 'EUR' then 1::numeric else coalesce(
+                (select r.rate_per_eur from public.exchange_rate r
+                 where r.currency = p_to and r.rate_date <= p_date
+                 order by r.rate_date desc limit 1),
+                (select r.rate_per_eur from public.exchange_rate r
+                 where r.currency = p_to
+                 order by r.rate_date asc limit 1)
+            ) end as to_rate
+    )
+    select case
+        when p_from is null or p_to is null or p_date is null then null
+        when p_from = p_to then 1::numeric
+        else to_rate / from_rate
+    end from rates;
+$$;
+
+
+ALTER FUNCTION "public"."exchange_rate_on"("p_from" "text", "p_to" "text", "p_date" "date") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."get_current_user_setup_ledger"() RETURNS TABLE("ledger_id" "uuid", "ledger_name" "text", "base_currency" "text", "setup_step" smallint, "setup_draft" "jsonb", "living_region" "text")
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -7174,6 +7208,17 @@ $$;
 ALTER FUNCTION "public"."transaction_record_currency"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."transaction_record_local_date"("p_at" timestamp with time zone) RETURNS "date"
+    LANGUAGE "sql" STABLE
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+    select (p_at at time zone 'Asia/Tokyo')::date;
+$$;
+
+
+ALTER FUNCTION "public"."transaction_record_local_date"("p_at" timestamp with time zone) OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."transfer_items_consistent"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid") RETURNS boolean
     LANGUAGE "sql" STABLE
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -10545,6 +10590,20 @@ CREATE TABLE IF NOT EXISTS "public"."category" (
 ALTER TABLE "public"."category" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."exchange_rate" (
+    "rate_date" "date" NOT NULL,
+    "currency" "text" NOT NULL,
+    "rate_per_eur" numeric(18,8) NOT NULL,
+    "source" "text" DEFAULT 'ecb'::"text" NOT NULL,
+    "fetched_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "exchange_rate_currency_check" CHECK ((("currency" ~ '^[A-Z]{3}$'::"text") AND ("currency" <> 'EUR'::"text"))),
+    CONSTRAINT "exchange_rate_rate_per_eur_check" CHECK (("rate_per_eur" > (0)::numeric))
+);
+
+
+ALTER TABLE "public"."exchange_rate" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."ledger_deletion_context" (
     "transaction_id" "xid8" NOT NULL,
     "ledger_id" "uuid" NOT NULL,
@@ -11038,6 +11097,11 @@ ALTER TABLE ONLY "public"."category"
 
 
 
+ALTER TABLE ONLY "public"."exchange_rate"
+    ADD CONSTRAINT "exchange_rate_pkey" PRIMARY KEY ("rate_date", "currency");
+
+
+
 ALTER TABLE ONLY "public"."ledger_deletion_context"
     ADD CONSTRAINT "ledger_deletion_context_pkey" PRIMARY KEY ("transaction_id");
 
@@ -11264,6 +11328,10 @@ CREATE INDEX "category_ledger_parent_idx" ON "public"."category" USING "btree" (
 
 
 CREATE UNIQUE INDEX "category_ledger_system_key_unique" ON "public"."category" USING "btree" ("ledger_id", "system_key") WHERE ("system_key" IS NOT NULL);
+
+
+
+CREATE INDEX "exchange_rate_currency_date_idx" ON "public"."exchange_rate" USING "btree" ("currency", "rate_date" DESC);
 
 
 
@@ -12214,6 +12282,13 @@ CREATE POLICY "category_update_admin" ON "public"."category" FOR UPDATE TO "auth
 
 
 
+ALTER TABLE "public"."exchange_rate" ENABLE ROW LEVEL SECURITY;
+
+
+CREATE POLICY "exchange_rate_authenticated_read" ON "public"."exchange_rate" FOR SELECT TO "authenticated" USING (true);
+
+
+
 ALTER TABLE "public"."ledger" ENABLE ROW LEVEL SECURITY;
 
 
@@ -12671,6 +12746,12 @@ GRANT ALL ON FUNCTION "public"."ensure_ledger_placeholder_members"("p_ledger_id"
 
 
 
+REVOKE ALL ON FUNCTION "public"."exchange_rate_on"("p_from" "text", "p_to" "text", "p_date" "date") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."exchange_rate_on"("p_from" "text", "p_to" "text", "p_date" "date") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."exchange_rate_on"("p_from" "text", "p_to" "text", "p_date" "date") TO "service_role";
+
+
+
 REVOKE ALL ON FUNCTION "public"."get_current_user_setup_ledger"() FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."get_current_user_setup_ledger"() TO "authenticated";
 
@@ -12924,6 +13005,12 @@ REVOKE ALL ON FUNCTION "public"."transaction_record_currency"("p_ledger_id" "uui
 
 
 
+REVOKE ALL ON FUNCTION "public"."transaction_record_local_date"("p_at" timestamp with time zone) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."transaction_record_local_date"("p_at" timestamp with time zone) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."transaction_record_local_date"("p_at" timestamp with time zone) TO "service_role";
+
+
+
 REVOKE ALL ON FUNCTION "public"."transfer_items_consistent"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid") FROM PUBLIC;
 
 
@@ -13070,6 +13157,11 @@ GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."budget" TO "servic
 
 GRANT SELECT,INSERT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."category" TO "authenticated";
 GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."category" TO "service_role";
+
+
+
+GRANT SELECT ON TABLE "public"."exchange_rate" TO "authenticated";
+GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE "public"."exchange_rate" TO "service_role";
 
 
 
