@@ -182,6 +182,18 @@ describe("TransferReceipt", () => {
     expect(form.get("note")).toBe("取现");
   });
 
+  it("同币种编辑切换账户后再恢复，不因隐藏到账金额误报未保存", async () => {
+    const { onDirty } = setup({
+      initialValues: { ...editValues, transferTargetAmount: "5000" },
+      sourceType: "transfer",
+    });
+    await waitFor(() => expect(onDirty).toHaveBeenLastCalledWith(false));
+    chooseAccount("转入", "乐天银行 JPY");
+    await waitFor(() => expect(onDirty).toHaveBeenLastCalledWith(true));
+    chooseAccount("转入", "PayPay JPY");
+    await waitFor(() => expect(onDirty).toHaveBeenLastCalledWith(false));
+  });
+
   it("只读跨币种同时显示转出、到账和计算汇率", () => {
     setup({
       initialValues: {
