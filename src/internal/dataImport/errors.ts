@@ -79,7 +79,7 @@ export const incomeExpenseImportErrorMessages = {
 } as const;
 
 export const transferImportErrorMessages = {
-  amountInvalid: "金额必须是大于 0、不超过两位小数的数字。",
+  amountInvalid: "金额必须是大于 0、符合币种精度的数字。",
   targetAmountRequired: "不同币种转账必须填写到账金额。",
   targetAmountInvalid: "到账金额必须是大于 0、符合币种精度的数字。",
   targetAmountMismatch: "同币种转账的到账金额必须与金额相同。",
