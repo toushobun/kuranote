@@ -261,27 +261,35 @@ export async function buildDataExportWorkbook(
   }
   let nextTask = 0;
   let completed = 0;
+  let stopped = false;
   options?.onPhotoProgress?.(0, photoTasks.length);
   await Promise.all(
     Array.from(
       { length: Math.min(photoDownloadConcurrency, photoTasks.length) },
       async () => {
-        while (nextTask < photoTasks.length) {
+        while (!stopped && nextTask < photoTasks.length) {
           const task = photoTasks[nextTask++];
-          const bytes = await (options?.downloadPhoto ?? fetchPhoto)(task.url);
-          // 原始 Storage 文件是 JPEG；拒绝空文件或非 JPEG 响应，不能静默漏图。
-          if (bytes.length < 3 || bytes[0] !== 0xff || bytes[1] !== 0xd8)
-            throw new Error(dataExportErrorMessages.downloadFailed);
-          const imageId = workbook.addImage({
-            buffer: bytes as never,
-            extension: "jpeg",
-          });
-          incomeExpense.addImage(imageId, {
-            tl: { col: task.column - 1, row: task.row - 1 },
-            br: { col: task.column, row: task.row },
-            editAs: "twoCell",
-          } as unknown as Parameters<typeof incomeExpense.addImage>[1]);
-          options?.onPhotoProgress?.(++completed, photoTasks.length);
+          try {
+            const bytes = await (options?.downloadPhoto ?? fetchPhoto)(task.url);
+            // 一个下载失败后，其它在途请求的完成回调不得恢复进度或继续派发。
+            if (stopped) return;
+            // 原始 Storage 文件是 JPEG；拒绝空文件或非 JPEG 响应，不能静默漏图。
+            if (bytes.length < 3 || bytes[0] !== 0xff || bytes[1] !== 0xd8)
+              throw new Error(dataExportErrorMessages.downloadFailed);
+            const imageId = workbook.addImage({
+              buffer: bytes as never,
+              extension: "jpeg",
+            });
+            incomeExpense.addImage(imageId, {
+              tl: { col: task.column - 1, row: task.row - 1 },
+              br: { col: task.column, row: task.row },
+              editAs: "twoCell",
+            } as unknown as Parameters<typeof incomeExpense.addImage>[1]);
+            options?.onPhotoProgress?.(++completed, photoTasks.length);
+          } catch (error) {
+            stopped = true;
+            throw error;
+          }
         }
       },
     ),
