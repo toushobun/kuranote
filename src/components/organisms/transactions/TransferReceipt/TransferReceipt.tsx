@@ -239,6 +239,7 @@ export function TransferReceipt(props: TransferReceiptProps) {
       </TransactionBottomEditorDrawer>
       <TransactionItemAmountDrawer
         open={w.amountSide !== null}
+        titleIsComplete
         title={
           w.amountSide === "target"
             ? t.targetAmountTitle(w.targetCurrency)
