@@ -84,11 +84,7 @@ describe("prepareImportPhotoBatch", () => {
 
   it("没有照片时不变更导入单元、不调用上传", async () => {
     const upload = vi.fn();
-    const out = await prepareImportPhotoBatch(
-      [unit],
-      new Map(),
-      { upload },
-    );
+    const out = await prepareImportPhotoBatch([unit], new Map(), { upload });
     expect(out.units).toEqual([unit]);
     expect(upload).not.toHaveBeenCalled();
   });

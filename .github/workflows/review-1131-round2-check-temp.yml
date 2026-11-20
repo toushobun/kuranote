@@ -19,6 +19,8 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
+      - name: Format temporary workflow in CI checkout
+        run: npx prettier .github/workflows/review-1131-round2-check-temp.yml --write
       - name: Full npm run check
         run: npm run check
       - name: Storybook build
