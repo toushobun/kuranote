@@ -166,7 +166,9 @@ describe("TransferReceipt", () => {
     enterAmount("5", "0", "0", "0");
     // 金额抽屉有关闭动画，待其解除 aria-hidden 后再打开账户抽屉。
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: /^更换转出账户：/ })).toBeVisible(),
+      expect(
+        screen.getByRole("button", { name: /^更换转出账户：/ }),
+      ).toBeVisible(),
     );
     chooseAccount("转出", "招商银行卡 CNY");
     expect(screen.getByText("¥5,000")).toBeInTheDocument();
