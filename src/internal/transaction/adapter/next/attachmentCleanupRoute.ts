@@ -1,14 +1,7 @@
 import "server-only";
 
-import { createHash, timingSafeEqual } from "node:crypto";
+import { authenticateCronRequest } from "internal/shared/middleware/cronAuthorization";
 import { executeAttachmentCleanup } from "internal/transaction/attachmentCleanup";
-
-function isCorrectCronSecret(authorization: string | null, secret: string) {
-  if (!authorization?.startsWith("Bearer ")) return false;
-  const actual = createHash("sha256").update(authorization.slice(7)).digest();
-  const expected = createHash("sha256").update(secret).digest();
-  return timingSafeEqual(actual, expected);
-}
 
 /**
  * Vercel Cron 使用 Authorization: Bearer <CRON_SECRET>。
@@ -21,14 +14,8 @@ export async function handleAttachmentCleanupRequest(
     cleanup?: () => Promise<unknown>;
   } = {},
 ): Promise<Response> {
-  const secret = options.secret ?? process.env.CRON_SECRET;
-  if (!secret) {
-    console.error("[transaction] CRON_SECRET is not configured");
-    return Response.json({ error: "Cron is not configured" }, { status: 503 });
-  }
-  if (!isCorrectCronSecret(request.headers.get("authorization"), secret)) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const rejection = authenticateCronRequest(request, options.secret ?? process.env.CRON_SECRET, "transaction");
+  if (rejection) return rejection;
 
   try {
     const cleanup = options.cleanup ?? executeAttachmentCleanup;

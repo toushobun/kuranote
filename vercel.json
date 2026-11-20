@@ -1,6 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "regions": ["hnd1"],
+  "regions": [
+    "hnd1"
+  ],
   "git": {
     "deploymentEnabled": false
   },
@@ -8,6 +10,10 @@
     {
       "path": "/api/cron/attachment-cleanup",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/exchange-rate-refresh",
+      "schedule": "0 16 * * *"
     }
   ]
 }
