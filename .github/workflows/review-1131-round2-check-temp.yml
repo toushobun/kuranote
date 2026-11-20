@@ -1,0 +1,25 @@
+name: Issue 1131 review round 2 verification
+on:
+  push:
+    branches:
+      - feat/1131_import_receipt_photos
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: test-publishable-key
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Full npm run check
+        run: npm run check
+      - name: Storybook build
+        run: npm run build-storybook
