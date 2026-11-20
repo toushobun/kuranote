@@ -83,7 +83,7 @@ select results_eq(
       p_group_by=>'merchant',
       p_date_start=>'2099-01-15 00:00:00+00'::timestamptz,
       p_date_end=>'2099-01-17 00:00:00+00'::timestamptz
-    ) where group_key='00000000-0000-4000-8000-000000001001'$$,
+    ) where group_key='00000000-0000-4000-8000-000000001001'$$$,
  $$ values (0::numeric, 2::integer) $$,
  '目标币种无汇率时两笔均不计入合计，提示缺失 2 笔');
 
@@ -141,26 +141,26 @@ cross join lateral (
 set local role authenticated;
 
 select results_eq(
- $select income,expense,balance
+ $$select income,expense,balance
    from public.load_transaction_group_summaries_with_special_status(
      p_ledger_id=>'00000000-0000-4000-8000-000000000032'::uuid,
      p_group_by=>'merchant',
      p_account_id=>'00000000-0000-4000-8000-000000000043'::uuid,
      p_date_start=>'2099-01-18 00:00:00+00'::timestamptz,
      p_date_end=>'2099-01-19 00:00:00+00'::timestamptz
-   ) where group_key='00000000-0000-4000-8000-000000001001'$,
- $values (40::numeric,100::numeric,-60::numeric)$,
+   ) where group_key='00000000-0000-4000-8000-000000001001'$$,
+ $$values (40::numeric,100::numeric,-60::numeric)$$,
  '商家分组有账户筛选时同笔混合收支仍分别统计');
 
 select results_eq(
- $select income,expense,balance
+ $$select income,expense,balance
    from public.load_transaction_group_summaries_with_special_status(
      p_ledger_id=>'00000000-0000-4000-8000-000000000032'::uuid,
      p_group_by=>'holder',
      p_date_start=>'2099-01-19 00:00:00+00'::timestamptz,
      p_date_end=>'2099-01-20 00:00:00+00'::timestamptz
-   ) where group_key='none'$,
- $values (40::numeric,100::numeric,-60::numeric)$,
+   ) where group_key='none'$$,
+ $$values (40::numeric,100::numeric,-60::numeric)$$,
  '同持有人两账户一正一负时收入支出不先抵消');
 
 reset role;
