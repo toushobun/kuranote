@@ -110,6 +110,16 @@ export function TransactionRow({
       )
     : formatRowAmount(item);
   const sharedPaymentLabel = getSharedPaymentLabel(item);
+  const transferArrivalLabel =
+    isTransfer && item.transferTargetAmount && item.transferTargetCurrency
+      ? transferReceiptMessages.listArrival(
+          formatUnsignedCurrencyAmount(
+            item.transferTargetAmount,
+            item.transferTargetCurrency,
+          ),
+          item.transferTargetCurrency,
+        )
+      : null;
   const categorySummaryText = getTransactionCategorySummaryText(item);
   const detailText = categorySummaryText ?? "";
   const adjustmentNode =
@@ -245,24 +255,7 @@ export function TransactionRow({
           {sharedPaymentLabel ? (
             <TransactionSharedPaymentNote label={sharedPaymentLabel} />
           ) : null}
-          {isTransfer &&
-            item.transferTargetAmount &&
-            item.transferTargetCurrency && (
-              <Typography
-                variant="caption"
-                sx={{ color: mutedText, fontSize: 11, textAlign: "right" }}
-              >
-                {transferReceiptMessages.listArrival(
-                  formatUnsignedCurrencyAmount(
-                    item.transferTargetAmount,
-                    item.transferTargetCurrency,
-                  ),
-                  item.transferTargetCurrency,
-                )}
-              </Typography>
-            )}
-
-          {metaSegments.length > 0 || adjustmentNode ? (
+          {metaSegments.length > 0 || adjustmentNode || transferArrivalLabel ? (
             <Stack
               direction="row"
               spacing={1}
@@ -304,6 +297,21 @@ export function TransactionRow({
                   </Fragment>
                 ))}
               </Stack>
+              {transferArrivalLabel ? (
+                <Typography
+                  noWrap
+                  variant="caption"
+                  sx={{
+                    color: mutedText,
+                    flexShrink: 0,
+                    fontSize: 11,
+                    ml: "auto",
+                    textAlign: "right",
+                  }}
+                >
+                  {transferArrivalLabel}
+                </Typography>
+              ) : null}
               {adjustmentNode ? (
                 <Box sx={{ display: "flex", flexShrink: 0 }}>
                   {adjustmentNode}
