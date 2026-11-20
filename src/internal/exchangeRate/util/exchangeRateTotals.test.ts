@@ -113,8 +113,14 @@ describe("Issue #1139 交易合计一致性", () => {
 
   it("SQL/TS 同一批跨日记录：商家/持有人换算，账户分组保留原币", () => {
     const records = [
-      { ...record("jpy-1", 0.01, "JPY"), transaction_at: "2099-01-15T12:00:00Z" },
-      { ...record("jpy-2", 0.02, "JPY"), transaction_at: "2099-01-16T12:00:00Z" },
+      {
+        ...record("jpy-1", 0.01, "JPY"),
+        transaction_at: "2099-01-15T12:00:00Z",
+      },
+      {
+        ...record("jpy-2", 0.02, "JPY"),
+        transaction_at: "2099-01-16T12:00:00Z",
+      },
     ];
     const items = records.map((r) => ({
       account_id: null,
@@ -129,10 +135,15 @@ describe("Issue #1139 交易合计一致性", () => {
       sort_order: 0,
       transaction_record_id: r.id,
     }));
-    const build = (groupBy: "merchant" | "holder" | "account", rateRecords = records) =>
+    const build = (
+      groupBy: "merchant" | "holder" | "account",
+      rateRecords = records,
+    ) =>
       buildTransactionGroupSummaryPage({
         accounts: [{ id: "jpy-account", name: "日元钱包", currency: "JPY" }],
-        categories: [{ id: "expense", name: "餐饮", type: "expense", parent_id: null }],
+        categories: [
+          { id: "expense", name: "餐饮", type: "expense", parent_id: null },
+        ],
         currency: "USD",
         filters: defaultTransactionFilters,
         groupBy,
@@ -146,20 +157,26 @@ describe("Issue #1139 交易合计一致性", () => {
         recorders: [],
       });
     expect(build("merchant").groups[0].summary).toMatchObject({
-      expense: "300", balance: "-300", currency: "USD",
+      expense: "300",
+      balance: "-300",
+      currency: "USD",
     });
     expect(build("holder").groups[0].summary).toMatchObject({
-      expense: "300", currency: "USD",
+      expense: "300",
+      currency: "USD",
     });
     expect(build("account").groups[0].summary).toMatchObject({
-      expense: "20000", currency: "JPY",
+      expense: "20000",
+      currency: "JPY",
     });
     const missingRates = records.map((r) => ({ ...r, ledger_rate: null }));
     expect(build("merchant", missingRates).groups[0].summary).toMatchObject({
-      expense: "0", missingRateCount: 2,
+      expense: "0",
+      missingRateCount: 2,
     });
     expect(build("account", missingRates).groups[0].summary).toMatchObject({
-      expense: "20000", currency: "JPY",
+      expense: "20000",
+      currency: "JPY",
     });
   });
 });
