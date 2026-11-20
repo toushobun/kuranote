@@ -44,6 +44,7 @@ import { findRpcErrorCode } from "internal/transaction/repository/rpcError";
 import { toTransactionPaymentRpcPayload } from "internal/transaction/util/transactionPaymentRpcPayload";
 import { isThemeColorKey } from "theme/themeColorTokens";
 import { chunkArray } from "utils/collections";
+import { loadTransactionRecordLedgerRates } from "./transactionRecordRateRepository";
 
 /** 单次 `in.(...)` 查询最多携带的记录 id 数：36 位 uuid × 100 ≈ 4KB，远低于网关 URL 上限。 */
 const itemQueryRecordIdChunkSize = 100;
@@ -1149,34 +1150,7 @@ export function createSupabaseTransactionRepository(
     },
 
     async loadRecordRates(ledgerId, recordIds) {
-      if (recordIds.length === 0) return [];
-      const results = await Promise.all(
-        chunkArray([...new Set(recordIds)], itemQueryRecordIdChunkSize).map(
-          async (ids) => {
-            const { data, error } = await supabase
-              .from("transaction_record_ledger_rate")
-              .select("record_id,currency,ledger_rate")
-              .eq("ledger_id", ledgerId)
-              .in("record_id", ids);
-            if (error) {
-              logger.error(
-                "[transaction] failed to load record exchange rates",
-                { databaseCode: error.code, ledgerId },
-              );
-              throw toRepositoryError(
-                "transaction_record_rates_failed",
-                transactionLoadErrorMessages.recordsLoadFailed,
-              );
-            }
-            return (data ?? []).map((row) => ({
-              record_id: row.record_id as string,
-              record_currency: row.currency as string | null,
-              ledger_rate: row.ledger_rate as number | string | null,
-            }));
-          },
-        ),
-      );
-      return results.flat();
+      return loadTransactionRecordLedgerRates(supabase, logger, ledgerId, recordIds);
     },
 
     async listRecords(input) {

@@ -96,3 +96,5 @@ export {
 export type { TransactionLinkCandidatePageInput } from "./schema";
 
 export type { TransactionOffsetEntry } from "./entity/offsetEntry";
+
+export { loadTransactionRecordLedgerRates } from "./repository/transactionRecordRateRepository";

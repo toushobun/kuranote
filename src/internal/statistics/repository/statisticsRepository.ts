@@ -1,5 +1,5 @@
 import type { Logger } from "internal/shared/logging/logger";
-import { chunkArray } from "utils/collections";
+import { loadTransactionRecordLedgerRates } from "internal/transaction";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
 import type {
@@ -148,27 +148,17 @@ export function createSupabaseStatisticsRepository(
 
       const records = (recordData ?? []) as TransactionRecordDbRow[];
       const recordIds = records.map((record) => record.id);
-      const rateChunks = await Promise.all(
-        chunkArray(recordIds, 100).map(async (ids) => {
-          const { data, error } = await supabase
-            .from("transaction_record_ledger_rate")
-            .select("record_id,currency,ledger_rate")
-            .eq("ledger_id", ledgerId)
-            .in("record_id", ids);
-          if (error) {
-            fail(
-              "failed to load monthly exchange rates",
-              statisticsErrorCodes.monthlyLoadFailed,
-              statisticsErrorMessages.monthlyLoadFailed,
-              { ledgerId },
-              error,
-            );
-          }
-          return data ?? [];
-        }),
+      if (recordIds.length === 0) {
+        return { categories: [], items: [], records: [] };
+      }
+      const rateRows = await loadTransactionRecordLedgerRates(
+        supabase,
+        logger,
+        ledgerId,
+        recordIds,
       );
       const rateById = new Map(
-        rateChunks.flat().map((row) => [row.record_id, row]),
+        rateRows.map((row) => [row.record_id, row]),
       );
       const recordsWithRates = records.map((record) => {
         const rate = rateById.get(record.id);
@@ -178,10 +168,6 @@ export function createSupabaseStatisticsRepository(
           ledger_rate: rate?.ledger_rate ?? null,
         };
       });
-
-      if (recordIds.length === 0) {
-        return { categories: [], items: [], records: [] };
-      }
 
       const { data: itemData, error: itemError } = await supabase
         .from("transaction_item_with_refund")
