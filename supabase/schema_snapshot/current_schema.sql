@@ -2487,8 +2487,8 @@ begin
         p_to_amount,
         case when v_from_account.currency = v_to_account.currency then p_amount end
     );
-    if not public.is_valid_transfer_amount(p_amount, v_from_account.currency)
-        or not public.is_valid_transfer_amount(v_effective_to_amount, v_to_account.currency)
+    if not public.is_valid_transfer_amount(p_amount)
+        or not public.is_valid_transfer_amount(v_effective_to_amount)
         or (v_from_account.currency = v_to_account.currency
             and p_amount <> v_effective_to_amount) then
         raise exception 'amount_invalid' using errcode = '22023', detail = 'amount_invalid';
@@ -4196,28 +4196,18 @@ COMMENT ON FUNCTION "public"."is_email_registered"("p_email" "text") IS '供服�
 
 
 
-CREATE OR REPLACE FUNCTION "public"."is_valid_transfer_amount"("p_amount" numeric, "p_currency" "text") RETURNS boolean
+CREATE OR REPLACE FUNCTION "public"."is_valid_transfer_amount"("p_amount" numeric) RETURNS boolean
     LANGUAGE "sql" IMMUTABLE
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
     select p_amount is not null
        and p_amount > 0
        and p_amount < 1000000000000
-       and p_amount = round(p_amount, 2)
-       and p_amount = round(
-           p_amount,
-           case
-             when upper(p_currency) in (
-                 'CNY', 'EUR', 'GBP', 'HKD', 'SGD', 'THB', 'TWD',
-                 'USD', 'BHD', 'KWD', 'OMR'
-             ) then 2
-             else 0
-           end
-       );
+       and p_amount = round(p_amount, 2);
 $$;
 
 
-ALTER FUNCTION "public"."is_valid_transfer_amount"("p_amount" numeric, "p_currency" "text") OWNER TO "postgres";
+ALTER FUNCTION "public"."is_valid_transfer_amount"("p_amount" numeric) OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."ledger_active_member_display_name_exists"("p_ledger_id" "uuid", "p_display_name" "text") RETURNS boolean
@@ -8992,8 +8982,8 @@ begin
         p_to_amount,
         case when v_from_account.currency = v_to_account.currency then p_amount end
     );
-    if not public.is_valid_transfer_amount(p_amount, v_from_account.currency)
-        or not public.is_valid_transfer_amount(v_effective_to_amount, v_to_account.currency)
+    if not public.is_valid_transfer_amount(p_amount)
+        or not public.is_valid_transfer_amount(v_effective_to_amount)
         or (v_from_account.currency = v_to_account.currency
             and p_amount <> v_effective_to_amount) then
         raise exception 'amount_invalid' using errcode = '22023', detail = 'amount_invalid';
@@ -12742,7 +12732,7 @@ GRANT ALL ON FUNCTION "public"."is_email_registered"("p_email" "text") TO "servi
 
 
 
-REVOKE ALL ON FUNCTION "public"."is_valid_transfer_amount"("p_amount" numeric, "p_currency" "text") FROM PUBLIC;
+REVOKE ALL ON FUNCTION "public"."is_valid_transfer_amount"("p_amount" numeric) FROM PUBLIC;
 
 
 
