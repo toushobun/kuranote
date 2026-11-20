@@ -211,7 +211,20 @@ select is(
             select income_category_id::text from test_issue_605_pr2_context
         )
     ),
-    50::numeric,
+    (
+        select public.convert_ledger_amount(
+            50,
+            public.exchange_rate_on(
+                a.currency,
+                l.base_currency,
+                public.transaction_record_local_date('2099-01-15 13:00:00+00'::timestamptz)
+            )
+        )
+        from test_issue_605_pr2_context c
+        join public.account a on a.id = c.account_id
+        join public.ledger l on l.id = c.ledger_id
+    ),
+
     '超额收入按报销明细的收入分类统计'
 );
 

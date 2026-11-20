@@ -345,7 +345,15 @@ function addAccountGroups({
     trackGroupRecord(group, recordContext);
 
     if (record.type === "normal") {
-      addSignedAmount(group.summary, Number(movement.balanceDelta ?? 0));
+      const amount = Number(movement.balanceDelta ?? 0);
+      if (groupBy === "account") {
+        addSignedAmount(group.summary, amount);
+      } else {
+        group.rawByRecordId.set(
+          record.id,
+          (group.rawByRecordId.get(record.id) ?? 0) + amount,
+        );
+      }
     }
   }
 }

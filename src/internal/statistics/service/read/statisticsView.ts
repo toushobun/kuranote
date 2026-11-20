@@ -20,6 +20,8 @@ export type StatisticsRankItem = {
 };
 
 type StatisticsAmountSummary = {
+  hasForeignCurrency?: boolean;
+  missingRateCount?: number;
   balance: string;
   currency: string;
   expense: string;

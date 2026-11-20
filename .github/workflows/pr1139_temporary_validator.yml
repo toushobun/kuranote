@@ -60,6 +60,34 @@ jobs:
         run: |
           psql 'postgresql://postgres:postgres@127.0.0.1:54322/postgres' --set ON_ERROR_STOP=1 --file scripts/security-definer-smoke.sql
           supabase test db
+      - name: Database concurrency shell scripts
+        continue-on-error: true
+        run: |
+          for script in supabase/tests/database/*.sh; do
+            echo "Running $script"
+            bash "$script"
+          done
+      - name: Capture real 390px Storybook screenshots
+        continue-on-error: true
+        run: |
+          npm run build-storybook
+          python3 -m http.server 6006 --bind 127.0.0.1 --directory storybook-static >/tmp/pr1139-storybook.log 2>&1 &
+          for i in $(seq 1 25); do
+            if curl -fsS http://127.0.0.1:6006/index.json >/dev/null; then break; fi
+            sleep 1
+          done
+          command -v google-chrome
+          mkdir -p screenshots
+          google-chrome --headless=new --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=8000 --window-size=390,844 --screenshot=screenshots/statistics-390.png 'http://127.0.0.1:6006/iframe.html?id=templates-statistics-statisticstemplate--foreign-currency-converted&viewMode=story'
+          google-chrome --headless=new --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=8000 --window-size=390,844 --screenshot=screenshots/dashboard-390.png 'http://127.0.0.1:6006/iframe.html?id=templates-dashboard-dashboardtemplate--with-converted-foreign-currency&viewMode=story'
+          google-chrome --headless=new --no-sandbox --disable-gpu --hide-scrollbars --virtual-time-budget=8000 --window-size=390,844 --screenshot=screenshots/accounts-390.png 'http://127.0.0.1:6006/iframe.html?id=organisms-accounts-accountsummarycard--with-foreign-currency-account&viewMode=story'
+          file screenshots/*.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr1139-storybook-390px
+          path: screenshots/*.png
+          if-no-files-found: ignore
       - name: Commit formatting and schema snapshot
         if: always()
         run: |

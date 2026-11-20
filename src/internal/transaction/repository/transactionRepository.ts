@@ -128,7 +128,7 @@ export type TransactionDashboardCategory = Pick<
 >;
 
 export type TransactionDashboardMonthSource = {
-  records?: TransactionRecordDbRow[];
+  records?: { id: string; ledger_rate: number | string | null; record_currency: string | null }[];
   categories: TransactionDashboardCategory[];
   items: TransactionDashboardSummaryItem[];
 };
@@ -1040,8 +1040,9 @@ export function createSupabaseTransactionRepository(
       const rateById = new Map(rateRows.map((rate) => [rate.record_id, rate]));
       const records = recordIds.map((id) => ({
         id,
-        ...rateById.get(id),
-      })) as TransactionRecordDbRow[];
+        record_currency: rateById.get(id)?.record_currency ?? null,
+        ledger_rate: rateById.get(id)?.ledger_rate ?? null,
+      }));
 
       const { data: itemData, error: itemError } = await supabase
         .from("transaction_item_with_refund")
