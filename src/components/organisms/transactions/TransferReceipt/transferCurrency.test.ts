@@ -93,6 +93,22 @@ describe("transferAmountsAfterAccountChange", () => {
       }),
     ).toEqual({ amount: "100000", targetAmount: "4850" });
   });
+  it("先选转入账户并填写金额后，补选转出账户时按币种保留金额", () => {
+    const input = {
+      changedSide: "source" as const,
+      sourceCurrency: "",
+      targetCurrency: "JPY",
+      amount: "5000",
+      targetAmount: "",
+    };
+    expect(
+      transferAmountsAfterAccountChange({ ...input, nextCurrency: "CNY" }),
+    ).toEqual({ amount: "", targetAmount: "5000" });
+    expect(
+      transferAmountsAfterAccountChange({ ...input, nextCurrency: "JPY" }),
+    ).toEqual({ amount: "5000", targetAmount: "" });
+  });
+
   it("同币种转跨币种时留下原币种金额，并清空新币种金额", () => {
     expect(
       transferAmountsAfterAccountChange({
