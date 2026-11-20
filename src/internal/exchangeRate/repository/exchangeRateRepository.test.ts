@@ -11,11 +11,10 @@ import {
 describe("exchangeRateRepository", () => {
   it("中途写入失败时不会留下只写了一部分币种的最新日期", async () => {
     const currencies = ["CNY", "JPY", "USD", "GBP", "KRW", "THB"];
-    const rates: DailyExchangeRate[] = Array.from(
-      { length: 85 },
-      (_, index) =>
-        new Date(Date.UTC(2026, 0, index + 1)).toISOString().slice(0, 10),
-    )
+    const dates = Array.from({ length: 85 }, (_, index) =>
+      new Date(Date.UTC(2026, 0, index + 1)).toISOString().slice(0, 10),
+    );
+    const rates: DailyExchangeRate[] = dates
       .flatMap((rate_date) =>
         currencies.map((currency) => ({
           rate_date,
