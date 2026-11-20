@@ -19,6 +19,8 @@ import { formatUnsignedCurrencyAmount } from "utils/transactions";
 type TransactionItemAmountDrawerProps = {
   open: boolean;
   title: string;
+  /** 转账等已提供完整标题的调用方无需自动追加「的金额」。 */
+  titleIsComplete?: boolean;
   categoryId?: string;
   currency: string;
   value: string;
@@ -33,6 +35,7 @@ type TransactionItemAmountDrawerProps = {
 export function TransactionItemAmountDrawer({
   open,
   title,
+  titleIsComplete = false,
   categoryId,
   currency,
   value,
@@ -93,7 +96,9 @@ export function TransactionItemAmountDrawer({
         direction="row"
         sx={{ alignItems: "center", justifyContent: "space-between", px: 1 }}
       >
-        <Typography variant="subtitle2">{m.amountTitle(title)}</Typography>
+        <Typography variant="subtitle2">
+          {titleIsComplete ? title : m.amountTitle(title)}
+        </Typography>
         <IconButton aria-label={m.closeAmount} onClick={onClose}>
           <CloseRoundedIcon />
         </IconButton>
