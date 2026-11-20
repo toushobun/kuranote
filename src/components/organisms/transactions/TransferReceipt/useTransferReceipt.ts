@@ -103,11 +103,17 @@ export function useTransferReceipt({
           },
         ]
       : []),
-    ...(!isValidPositiveMoneyText(amount, { currency, maxDecimalPlaces: 2 })
+    ...(!isValidPositiveMoneyText(amount, { currency })
       ? [
           {
             id: "amount",
-            message: amount.trim() ? t.invalidAmount : t.missingAmount,
+            message: amount.trim()
+              ? crossCurrency
+                ? t.invalidSourceAmount
+                : t.invalidAmount
+              : crossCurrency
+                ? t.missingSourceAmount
+                : t.missingAmount,
             onClick: () => setAmountSide("source"),
           },
         ]
@@ -115,7 +121,6 @@ export function useTransferReceipt({
     ...(crossCurrency &&
     !isValidPositiveMoneyText(transferTargetAmount, {
       currency: targetCurrency,
-      maxDecimalPlaces: 2,
     })
       ? [
           {
