@@ -520,8 +520,9 @@ Storage 物理文件不能通过 SQL 删除，必须由具有服务端权限的 
 撤销 PUBLIC / anon / service_role 执行权限，仅授予 authenticated。
 
 同币种时 `p_to_amount IS NULL` 自动取 `p_amount`，若两者不等则拒绝；
-不同币种时两边金额均须大于零且符合各币种的小数位规则（总体不超过两位）。
-新增 `is_valid_transfer_amount(numeric,text)`（`IMMUTABLE SECURITY INVOKER`）与
+不同币种时两边金额均须大于零、最多两位小数且小于一万亿；
+币种精度由前端计算器与导入解析校验，不在数据库中复制币种列表。
+新增 `is_valid_transfer_amount(numeric)`（`IMMUTABLE SECURITY INVOKER`）与
 `transfer_items_consistent(uuid,uuid)`（`STABLE SECURITY INVOKER`），
 都不授予客户端直接执行权限；后者统一供编辑、作废校验两条明细一正一负、
 各自金额与余额变化量一致，同币种额外要求相同金额，跨币种不要求变化量求和为零。
