@@ -55,6 +55,7 @@ function createRepository(
     }),
     listRecords: vi.fn().mockResolvedValue([]),
     loadGroupSummaries: vi.fn().mockResolvedValue([]),
+    loadRecordRates: vi.fn().mockResolvedValue([]),
     updateNormal: vi.fn(),
     updateBalanceAdjustment: vi.fn(),
     updateTransfer: vi.fn(),

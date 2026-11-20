@@ -593,6 +593,8 @@ describe("getEditTransactionView", () => {
       merchant_id: null,
       note: "账户调拨",
       transaction_at: "2026-06-04T01:30:05.000Z",
+      ledger_rate: 1,
+      record_currency: null,
       type: "transfer",
     });
     const permissionView = await getEditTransactionView(

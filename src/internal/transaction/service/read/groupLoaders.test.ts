@@ -50,6 +50,8 @@ function createRecord(
     merchant_id: null,
     note: null,
     transaction_at: transactionAt,
+    ledger_rate: 1,
+    record_currency: null,
     type: "normal",
   };
 }
