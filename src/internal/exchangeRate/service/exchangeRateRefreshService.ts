@@ -1,5 +1,5 @@
 import { RepositoryError } from "internal/shared/errors/appError";
-import { ledgerCurrencyOptions } from "types/ledgers";
+import { ledgerCurrencies } from "internal/ledger/entity/ledgerCurrency";
 import {
   createExchangeRateRepository,
   type DailyExchangeRate,
@@ -8,7 +8,7 @@ import {
 
 const earliestDate = "2015-01-01";
 const ecbApiUrl = "https://api.frankfurter.dev/v1/";
-const currencies = ledgerCurrencyOptions.map(({ value }) => value).filter((code) => code !== "EUR");
+const currencies = ledgerCurrencies.filter((code) => code !== "EUR");
 const currencySet = new Set<string>(currencies);
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 const fetchTimeoutMs = 20_000;
