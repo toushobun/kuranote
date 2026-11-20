@@ -148,10 +148,13 @@ export function useDataImportForm(
               const first = unit.group.items[0];
               return [
                 {
-                  amount: unit.group.items.reduce(
-                    (total, item) => total + item.amount,
-                    0,
-                  ),
+                  amount:
+                    Math.round(
+                      unit.group.items.reduce(
+                        (total, item) => total + item.amount,
+                        0,
+                      ) * 100,
+                    ) / 100,
                   merchantName: first.merchantName,
                   photos,
                   rowNumber,

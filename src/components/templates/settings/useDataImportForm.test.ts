@@ -410,6 +410,50 @@ describe("useDataImportForm 浏览器端解析与分批发送", () => {
     ]);
   });
 
+  it("多明细金额含小数时按两位金额精度显示，避免浮点误差", async () => {
+    const first = makeIncomeExpenseUnit({ amount: 0.1 });
+    if (first.kind !== "incomeExpense") throw new Error("测试数据错误");
+    analyzeImportFileMock.mockResolvedValue({
+      result: {
+        ok: true,
+        summary: {
+          balanceAdjustmentCount: 0,
+          incomeExpenseCount: 1,
+          transferCount: 0,
+        },
+      },
+      units: [
+        {
+          ...first,
+          group: {
+            ...first.group,
+            rowNumbers: [2, 3],
+            items: [
+              first.group.items[0],
+              { ...first.group.items[0], rowNumber: 3, amount: 0.2 },
+            ],
+          },
+        },
+      ],
+      photosByRow: new Map([
+        [
+          2,
+          [
+            {
+              rowNumber: 2,
+              columnName: "照片1",
+              mimeType: "image/jpeg",
+              bytes: new Uint8Array([0xff, 0xd8, 0xff, 0xd9]),
+            },
+          ],
+        ],
+      ]),
+    });
+    const { result } = renderHook(() => useDataImportForm(vi.fn()));
+    await selectFileAndCheckFormat(result);
+    expect(result.current.photoPreviewRows[0].amount).toBe(0.3);
+  });
+
   it("照片上传期间离开页面不会在上传完成后再写入交易", async () => {
     const uploading = deferred<{
       attachmentId: string;
