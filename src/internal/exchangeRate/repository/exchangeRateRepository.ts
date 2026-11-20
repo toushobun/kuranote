@@ -34,8 +34,10 @@ export function createExchangeRateRepository(
         console.error("[exchangeRate] latest date query failed", {
           code: error.code,
         });
-        throw new RepositoryError(exchangeRateErrorCodes.readFailed,
-          exchangeRateErrorMessages[exchangeRateErrorCodes.readFailed]);
+        throw new RepositoryError(
+          exchangeRateErrorCodes.readFailed,
+          exchangeRateErrorMessages[exchangeRateErrorCodes.readFailed],
+        );
       }
       return data?.rate_date ?? null;
     },

@@ -33,8 +33,8 @@ describe("exchangeRateRefreshService", () => {
   });
   it("历史回填按自然年请求且上一年写入成功后才继续", async () => {
     const repo = mockRepository(null);
-    const fetcher = vi.fn(async (url: string) => {
-      const year = url.split("/v1/")[1]?.slice(0, 4);
+    const fetcher = vi.fn(async (url: RequestInfo | URL) => {
+      const year = String(url).split("/v1/")[1]?.slice(0, 4);
       return new Response(
         JSON.stringify({ base: "EUR", rates: { [`${year}-01-02`]: rates } }),
         { status: 200 },

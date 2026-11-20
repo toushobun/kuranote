@@ -8,7 +8,10 @@ export const exchangeRateErrorCodes = {
 export type ExchangeRateErrorCode =
   (typeof exchangeRateErrorCodes)[keyof typeof exchangeRateErrorCodes];
 
-export const exchangeRateErrorMessages: Record<ExchangeRateErrorCode, string> = {
+export const exchangeRateErrorMessages: Record<
+  ExchangeRateErrorCode,
+  string
+> = {
   [exchangeRateErrorCodes.invalidResponse]: "汇率数据格式异常",
   [exchangeRateErrorCodes.providerFailed]: "获取参考汇率失败",
   [exchangeRateErrorCodes.readFailed]: "汇率读取失败",
