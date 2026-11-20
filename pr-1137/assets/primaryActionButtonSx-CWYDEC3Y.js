@@ -1,1 +1,0 @@
-import{i as e}from"./preload-helper-D2yxXLVK.js";var t,n=e((()=>{t={"@media (hover: hover)":{"&:not(.Mui-disabled):hover":{filter:`none`}}}}));export{t as n,n as t};
