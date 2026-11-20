@@ -45,7 +45,7 @@ import {
   normalizeSummary,
 } from "./transactionAmountHelpers";
 import { transactionFallbackLabels } from "./transactionFallbackLabels";
-import { convertLedgerAmount } from "internal/exchangeRate/util/convertLedgerAmount";
+import { convertLedgerAmount } from "utils/exchangeRate";
 import {
   getTransactionTimeGroupInfo,
   isTransactionTimeGroupBy,

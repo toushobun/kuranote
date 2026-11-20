@@ -28,7 +28,7 @@ import type {
   TransactionListItem,
 } from "internal/transaction/service/read/transactionReadModels";
 import { createTransactionAmountSummary } from "utils/transactions";
-import { convertLedgerAmount } from "internal/exchangeRate/util/convertLedgerAmount";
+import { convertLedgerAmount } from "utils/exchangeRate";
 
 export type TransactionDashboardData = {
   monthSummary: TransactionAmountSummary;

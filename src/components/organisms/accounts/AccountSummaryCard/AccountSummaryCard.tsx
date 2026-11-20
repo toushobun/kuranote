@@ -13,7 +13,7 @@ import { useState, type ReactNode } from "react";
 
 import { DataItemCard } from "atoms/ui/DataItemCard";
 import { exchangeRateMessages } from "config/exchangeRateMessages";
-import { convertLedgerAmount } from "internal/exchangeRate/util/convertLedgerAmount";
+import { convertLedgerAmount } from "utils/exchangeRate";
 import { designTokens } from "theme/theme";
 import type { Account } from "types/accounts";
 import { formatAmount } from "utils/accounts";

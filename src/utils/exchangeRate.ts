@@ -1,11 +1,11 @@
 /** 与 SQL convert_ledger_amount 相同：先按记录计算净额，再对绝对值四舍五入。 */
 export function convertLedgerAmount(
   amount: number | string,
-  rate: number | string | null | undefined,
+  rate: number | string | null,
 ): number | null {
   if (rate === null) return null;
   const amountValue = Number(amount);
-  const rateValue = Number(rate ?? 1);
+  const rateValue = Number(rate);
   if (
     !Number.isFinite(amountValue) ||
     !Number.isFinite(rateValue) ||

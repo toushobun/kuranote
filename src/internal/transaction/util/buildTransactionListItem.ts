@@ -30,7 +30,7 @@ import {
 import type { ThemeColorKey } from "theme/themeColorTokens";
 import { transactionSharedPaymentMessages } from "utils/transactionMessages";
 import { hasBusinessNetAmountOffset } from "utils/transactions";
-import { convertLedgerAmount } from "internal/exchangeRate/util/convertLedgerAmount";
+import { convertLedgerAmount } from "utils/exchangeRate";
 
 export function buildTransactionListItem({
   accountById,

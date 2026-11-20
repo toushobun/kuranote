@@ -1,4 +1,4 @@
-import { convertLedgerAmount } from "internal/exchangeRate/util/convertLedgerAmount";
+import { convertLedgerAmount } from "utils/exchangeRate";
 import {
   addSignedAmount,
   calculateRecordNetAmount,
