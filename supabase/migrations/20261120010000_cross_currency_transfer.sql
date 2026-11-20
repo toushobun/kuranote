@@ -3,8 +3,8 @@
 drop function public.create_transfer_transaction(uuid, timestamptz, numeric, uuid, uuid, text);
 drop function public.update_transfer_transaction(uuid, uuid, timestamptz, numeric, uuid, uuid, text);
 
--- 双金额只与对应账户的币种精度比较，未知币种按整数处理。
-create function public.is_valid_transfer_amount(p_amount numeric, p_currency text)
+-- 转账金额沿用其他交易的通用范围、两位小数限制，不在数据库重复维护币种精度表。
+create function public.is_valid_transfer_amount(p_amount numeric)
 returns boolean
 language sql
 immutable
@@ -13,19 +13,9 @@ as $$
     select p_amount is not null
        and p_amount > 0
        and p_amount < 1000000000000
-       and p_amount = round(p_amount, 2)
-       and p_amount = round(
-           p_amount,
-           case
-             when upper(p_currency) in (
-                 'CNY', 'EUR', 'GBP', 'HKD', 'SGD', 'THB', 'TWD',
-                 'USD', 'BHD', 'KWD', 'OMR'
-             ) then 2
-             else 0
-           end
-       );
+       and p_amount = round(p_amount, 2);
 $$;
-revoke all on function public.is_valid_transfer_amount(numeric, text)
+revoke all on function public.is_valid_transfer_amount(numeric)
     from public, anon, authenticated, service_role;
 
 -- 删除、编辑使用同一套完整性校验：异币不比较两笔金额总和。
@@ -124,8 +114,8 @@ begin
         p_to_amount,
         case when v_from_account.currency = v_to_account.currency then p_amount end
     );
-    if not public.is_valid_transfer_amount(p_amount, v_from_account.currency)
-        or not public.is_valid_transfer_amount(v_effective_to_amount, v_to_account.currency)
+    if not public.is_valid_transfer_amount(p_amount)
+        or not public.is_valid_transfer_amount(v_effective_to_amount)
         or (v_from_account.currency = v_to_account.currency
             and p_amount <> v_effective_to_amount) then
         raise exception 'amount_invalid' using errcode = '22023', detail = 'amount_invalid';
@@ -324,8 +314,8 @@ begin
         p_to_amount,
         case when v_from_account.currency = v_to_account.currency then p_amount end
     );
-    if not public.is_valid_transfer_amount(p_amount, v_from_account.currency)
-        or not public.is_valid_transfer_amount(v_effective_to_amount, v_to_account.currency)
+    if not public.is_valid_transfer_amount(p_amount)
+        or not public.is_valid_transfer_amount(v_effective_to_amount)
         or (v_from_account.currency = v_to_account.currency
             and p_amount <> v_effective_to_amount) then
         raise exception 'amount_invalid' using errcode = '22023', detail = 'amount_invalid';
