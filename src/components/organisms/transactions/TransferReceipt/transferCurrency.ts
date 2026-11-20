@@ -18,8 +18,11 @@ export function transferAmountsAfterAccountChange({
   targetAmount: string;
 }) {
   const wasSameCurrency = !!sourceCurrency && sourceCurrency === targetCurrency;
+  // 转出账户未选时，单行金额使用转入币种；补选转出账户也应保留这笔金额。
+  const amountBelongsToTarget = !sourceCurrency && !!targetCurrency;
   if (changedSide === "source") {
-    const preservedTargetAmount = wasSameCurrency ? amount : targetAmount;
+    const preservedTargetAmount =
+      wasSameCurrency || amountBelongsToTarget ? amount : targetAmount;
     const newSourceAmount = sourceCurrency === nextCurrency ? amount : "";
     return nextCurrency === targetCurrency && !!nextCurrency
       ? {
