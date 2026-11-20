@@ -372,19 +372,22 @@ group_rows as (
       )
 ),
 group_rows_per_record as (
-    -- 每个组内先按记录聚合，再按记录汇率换算、四舍五入，避免逐明细舍入误差。
+    -- 只在每笔、每组内分别累计收入与支出：逐明细及持有人混合收支不可净额化。
     select gr.key, gr.record_id, max(gr.transaction_at) as latest_at,
            count(distinct gr.item_id) as item_count,
-           sum(gr.signed_amount) as signed_amount
+           sum(case when gr.signed_amount > 0 then gr.signed_amount else 0 end) as raw_income,
+           sum(case when gr.signed_amount < 0 then -gr.signed_amount else 0 end) as raw_expense
     from group_rows gr
     group by gr.key, gr.record_id
 ),
 group_rows_converted as (
     select gr.*,
-        case when p_group_by = 'account' then gr.signed_amount
-             else public.convert_ledger_amount(gr.signed_amount, rr.ledger_rate) end as converted_amount,
+        case when p_group_by = 'account' then gr.raw_income
+             else public.convert_ledger_amount(gr.raw_income, rr.ledger_rate) end as converted_income,
+        case when p_group_by = 'account' then gr.raw_expense
+             else public.convert_ledger_amount(gr.raw_expense, rr.ledger_rate) end as converted_expense,
         case when p_group_by <> 'account' and rr.ledger_rate is null
-                       then 1 else 0 end as missing_rate
+             then 1 else 0 end as missing_rate
     from group_rows_per_record gr
     left join public.transaction_record_ledger_rate rr
       on rr.ledger_id = p_ledger_id and rr.record_id = gr.record_id
@@ -393,9 +396,9 @@ grouped as (
     select gr.key,
         (case when p_group_by = 'specialStatus'
               then sum(gr.item_count) else count(*) end)::bigint as count_value,
-        sum(case when gr.converted_amount > 0 then gr.converted_amount else 0 end) as income_value,
-        sum(case when gr.converted_amount < 0 then -gr.converted_amount else 0 end) as expense_value,
-        sum(gr.converted_amount) as balance_value,
+        sum(gr.converted_income) as income_value,
+        sum(gr.converted_expense) as expense_value,
+        sum(gr.converted_income - gr.converted_expense) as balance_value,
         sum(gr.missing_rate)::integer as missing_rate_count,
         max(gr.latest_at) as latest_at
     from group_rows_converted gr
