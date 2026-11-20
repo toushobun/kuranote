@@ -409,7 +409,8 @@ async function loadStep4TransactionGroupItemsPage(
   // 账户分组展开项的每日小计同样保留账户原币，不能显示账本币种。
   const isAccountGroup = groupBy === "account";
   const dateGroupCurrency = isAccountGroup
-    ? pageContext.accounts.find((account) => account.id === groupKey)?.currency ?? currentLedger.baseCurrency
+    ? (pageContext.accounts.find((account) => account.id === groupKey)
+        ?.currency ?? currentLedger.baseCurrency)
     : currentLedger.baseCurrency;
   const dateItems = isAccountGroup
     ? items.map((item) => ({ ...item, converted_amount: item.amount }))
