@@ -38,6 +38,7 @@ const bankAccount = {
   currency: "JPY",
   initial_balance: 100000,
   current_balance: 85000,
+  ledger_rate: 1,
   sort_order: 1,
   created_at: "2026-01-01T00:00:00.000Z",
   has_transactions: false,
