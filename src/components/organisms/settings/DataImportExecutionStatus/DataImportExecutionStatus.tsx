@@ -21,6 +21,7 @@ type DataImportExecutionStatusProps = {
   displayProgress?: number;
   isDownloading?: boolean;
   onDownload?: () => void;
+  photoUploadProgress?: { done: number; total: number };
   result: ImportExecutionResult;
   status: "completed" | "importing";
 };
@@ -29,6 +30,7 @@ export function DataImportExecutionStatus({
   displayProgress,
   isDownloading = false,
   onDownload,
+  photoUploadProgress,
   result,
   status,
 }: DataImportExecutionStatusProps) {
@@ -71,6 +73,15 @@ export function DataImportExecutionStatus({
             }
             variant="determinate"
           />
+        ) : null}
+
+        {status === "importing" && photoUploadProgress ? (
+          <Typography sx={{ color: "text.secondary" }} variant="body2">
+            {messages.photoUploadProgress(
+              photoUploadProgress.done,
+              photoUploadProgress.total,
+            )}
+          </Typography>
         ) : null}
 
         {status === "completed" ? (

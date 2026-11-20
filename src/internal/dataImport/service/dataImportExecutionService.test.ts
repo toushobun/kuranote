@@ -198,6 +198,24 @@ beforeEach(() => {
 });
 
 describe("DataImportExecutionService", () => {
+  it("导入创建普通记录时将照片 ID 按原顺序交给事务 RPC", async () => {
+    const units = unitsOf([incomeTable([incomeRow()])]);
+    const unit = units[0];
+    if (unit.kind !== "incomeExpense") throw new Error("测试数据错误");
+    const ids = [
+      "00000000-0000-4000-8000-000000000091",
+      "00000000-0000-4000-8000-000000000092",
+    ];
+    unit.group.attachmentIds = ids;
+    const deps = createDependencies();
+    const result = await executeUnits(deps, units);
+    expect(result.successCount).toBe(1);
+    expect(deps.transactionImportService.createNormal).toHaveBeenCalledWith(
+      expect.objectContaining({ attachmentIds: ids }),
+    );
+    expect(result.rowResults[0].photoCount).toBe(2);
+  });
+
   it.each([null, "user-1"])(
     "同名同持有人 %s 的账户按币种匹配收支与转账",
     async (holderUserId) => {

@@ -82,6 +82,32 @@ const executionInvalid = {
 };
 
 describe("parseExecuteDataImportBatchForm", () => {
+  it("照片 ID 在服务端要求 UUID、最多 5 张且不能重复", () => {
+    const one = "00000000-0000-4000-8000-000000000091";
+    const two = "00000000-0000-4000-8000-000000000092";
+    const unitWith = (ids: string[]) => ({
+      ...incomeExpenseUnit,
+      group: { ...incomeExpenseUnit.group, attachmentIds: ids },
+    });
+    expect(
+      parseExecuteDataImportBatchForm(
+        buildFormData([unitWith([one, two])], "0"),
+      ).ok,
+    ).toBe(true);
+    for (const ids of [
+      [one, one],
+      ["not-a-uuid"],
+      Array.from(
+        { length: 6 },
+        (_, i) => `00000000-0000-4000-8000-${String(91 + i).padStart(12, "0")}`,
+      ),
+    ]) {
+      expect(
+        parseExecuteDataImportBatchForm(buildFormData([unitWith(ids)], "0")),
+      ).toEqual(executionInvalid);
+    }
+  });
+
   it("合法的收支与转账单元连同时区偏移一起解析", () => {
     const result = parseExecuteDataImportBatchForm(
       buildFormData([incomeExpenseUnit, transferUnit], "-540"),

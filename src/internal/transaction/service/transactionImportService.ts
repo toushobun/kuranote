@@ -16,6 +16,7 @@ export type ImportTransactionItemInput = {
 };
 
 export type ImportNormalTransactionInput = {
+  attachmentIds?: string[];
   payments: TransactionPayment[];
   items: ImportTransactionItemInput[];
   ledgerId: string;

@@ -20,7 +20,7 @@ export const dataImportErrorMessages: Record<DataImportErrorCode, string> = {
   [dataImportErrorCodes.executionFailed]: "数据导入失败，请稍后重试。",
   [dataImportErrorCodes.executionInvalid]:
     "导入文件或进度信息已变化，请重新检查格式后再导入。",
-  [dataImportErrorCodes.fileTooLarge]: "文件大小不能超过 50MB。",
+  [dataImportErrorCodes.fileTooLarge]: "文件大小不能超过 300MB。",
   [dataImportErrorCodes.holderMappingConflict]:
     "持有人映射与账本当前的成员或待邀请成员冲突，请重新检查后再导入。",
   [dataImportErrorCodes.ledgerInvalid]: "账本不存在、已停用或您无法访问。",
@@ -38,6 +38,16 @@ export const importStructuralErrorMessages = {
   unknownColumns: (sheetLabel: string, columns: string[]) =>
     `「${sheetLabel}」表存在无法识别的列：${columns.join("、")}，请确认列名是否正确。`,
   workbookEmpty: "文件为空或没有可识别的数据表。",
+} as const;
+
+export const importPhotoValidationMessages = {
+  invalidPosition: "图片必须位于「照片1」～「照片5」列的数据行。",
+  duplicate: "同一行的同一照片列不能放置多张图片。",
+  unreadable: "图片无法读取或解码，请替换后重试。",
+  notFirstRow: "账单关联的照片只能放在该组第一行。",
+  multipleIncomeExpenseSheets:
+    "含照片时只能保留一个「收支」工作表，否则无法区分图片对应的记录。",
+  unsupportedSheet: "小票照片只能放在「收支」工作表的「照片1」～「照片5」列。",
 } as const;
 
 /** 「收支」「转账」「余额变更」表中两种以上共用的行校验错误。 */
@@ -112,4 +122,5 @@ export const dataImportExecutionErrorMessages = {
   newPlaceholderNameConflict:
     "账本里已有同名的待邀请成员，请在持有人映射里直接选择那位待邀请成员。",
   rowFailed: "该条记录导入失败，请稍后重试。",
+  photoUploadFailed: "该条记录的小票照片上传失败，未创建记录。",
 } as const;

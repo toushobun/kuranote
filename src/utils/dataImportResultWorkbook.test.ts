@@ -105,6 +105,63 @@ describe("dataImportResultWorkbook", () => {
     expect(sheet.getRow(2).getCell(3).value).toBe("成功");
   });
 
+  it("带照片时导入结果表追加照片数，无照片的旧文件保持两列结果", async () => {
+    const source = await createSourceWorkbook();
+    const out = await buildDataImportResultWorkbook(source, [
+      {
+        reason: null,
+        rowNumber: 2,
+        sheet: "incomeExpense",
+        status: "success",
+        photoCount: 3,
+      },
+      { reason: null, rowNumber: 3, sheet: "incomeExpense", status: "success" },
+    ]);
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(out);
+    const sheet = workbook.getWorksheet("收支")!;
+    expect(sheet.getRow(1).getCell(5).value).toBe("照片数");
+    expect(sheet.getRow(2).getCell(5).value).toBe(3);
+    expect(sheet.getRow(3).getCell(5).value).toBe(0);
+    const original = await buildDataImportResultWorkbook(source, [
+      { reason: null, rowNumber: 2, sheet: "incomeExpense", status: "success" },
+    ]);
+    const unchanged = new ExcelJS.Workbook();
+    await unchanged.xlsx.load(original);
+    expect(
+      unchanged.getWorksheet("收支")!.getRow(1).getCell(5).value,
+    ).toBeNull();
+  });
+
+  it("照片上传全部失败时也保留照片数列并显示实际认领数量 0", async () => {
+    const source = new ExcelJS.Workbook();
+    const sheet = source.addWorksheet("收支");
+    sheet.addRow(["日期", "金额", "照片1"]);
+    sheet.addRow(["2026-09-17 10:00:00", "100", ""]);
+    const image = source.addImage({ base64: "/9j/2Q==", extension: "jpeg" });
+    sheet.addImage(image, {
+      tl: { col: 2, row: 1 },
+      br: { col: 3, row: 2 },
+      editAs: "twoCell",
+    } as unknown as Parameters<typeof sheet.addImage>[1]);
+    const out = await buildDataImportResultWorkbook(
+      (await source.xlsx.writeBuffer()) as unknown as ArrayBuffer,
+      [
+        {
+          rowNumber: 2,
+          sheet: "incomeExpense",
+          status: "failed",
+          reason: "上传失败",
+        },
+      ],
+    );
+    const restored = new ExcelJS.Workbook();
+    await restored.xlsx.load(out);
+    const result = restored.getWorksheet("收支")!;
+    expect(result.getRow(1).getCell(6).value).toBe("照片数");
+    expect(result.getRow(2).getCell(6).value).toBe(0);
+  });
+
   it("结果文件名在原文件名后追加导入结果后缀", () => {
     expect(buildDataImportResultFileName("history.xlsx")).toBe(
       "history_导入结果.xlsx",

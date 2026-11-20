@@ -14,7 +14,7 @@ describe("dataImport errors", () => {
     expect(dataImportErrorMessages).toEqual({
       execution_failed: "数据导入失败，请稍后重试。",
       execution_invalid: "导入文件或进度信息已变化，请重新检查格式后再导入。",
-      file_too_large: "文件大小不能超过 50MB。",
+      file_too_large: "文件大小不能超过 300MB。",
       holder_mapping_conflict:
         "持有人映射与账本当前的成员或待邀请成员冲突，请重新检查后再导入。",
       ledger_invalid: "账本不存在、已停用或您无法访问。",

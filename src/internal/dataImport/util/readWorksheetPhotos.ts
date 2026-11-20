@@ -1,0 +1,111 @@
+import ExcelJS from "exceljs";
+
+import type { EmbeddedWorksheetPhoto } from "internal/dataImport/entity/parsedTable";
+import type { ImportRowIssue } from "internal/dataImport/entity/importValidationIssue";
+import { importPhotoValidationMessages } from "internal/dataImport/errors";
+import { incomeExpensePhotoColumnNames } from "internal/dataImport/schema";
+
+function mimeForImage(
+  bytes: Uint8Array,
+): EmbeddedWorksheetPhoto["mimeType"] | null {
+  if (
+    bytes.length >= 4 &&
+    bytes[0] === 0xff &&
+    bytes[1] === 0xd8 &&
+    bytes[2] === 0xff
+  )
+    return "image/jpeg";
+  if (
+    bytes.length >= 8 &&
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47
+  )
+    return "image/png";
+  return null;
+}
+
+/** 读取浮动图片的锚点和原图，列名可替换以便未来适配其他 XLSX 格式。 */
+export function readWorksheetPhotos(
+  workbook: ExcelJS.Workbook,
+  worksheet: ExcelJS.Worksheet,
+  header: string[],
+  headerRowNumber: number,
+  photoColumnNames: readonly string[] = incomeExpensePhotoColumnNames,
+): {
+  images: EmbeddedWorksheetPhoto[];
+  photosByRow: Map<number, EmbeddedWorksheetPhoto[]>;
+  issues: ImportRowIssue[];
+} {
+  const images: EmbeddedWorksheetPhoto[] = [];
+  const issues: ImportRowIssue[] = [];
+  const seenPhotoColumns = new Set<string>();
+  const addIssue = (rowNumber: number, column: string, message: string) => {
+    issues.push({
+      column,
+      kind: "row",
+      message,
+      rowNumber,
+      sheet: "incomeExpense",
+    });
+  };
+
+  for (const picture of worksheet.getImages()) {
+    const rowNumber = picture.range.tl.nativeRow + 1;
+    const columnIndex = picture.range.tl.nativeCol;
+    const columnName = (header[columnIndex] ?? "").trim();
+    if (
+      rowNumber <= headerRowNumber ||
+      !photoColumnNames.includes(columnName)
+    ) {
+      addIssue(
+        rowNumber,
+        columnName,
+        importPhotoValidationMessages.invalidPosition,
+      );
+      continue;
+    }
+    const photoColumnKey = `${rowNumber}:${columnName}`;
+    if (seenPhotoColumns.has(photoColumnKey)) {
+      addIssue(rowNumber, columnName, importPhotoValidationMessages.duplicate);
+      continue;
+    }
+    seenPhotoColumns.add(photoColumnKey);
+    let bytes: Uint8Array;
+    try {
+      const imageId = Number(picture.imageId);
+      if (!Number.isSafeInteger(imageId)) throw new Error("invalid image ID");
+      const asset = workbook.getImage(imageId);
+      if (!asset?.buffer) throw new Error("image buffer missing");
+      // Buffer 已是 Uint8Array，无需再复制一份全部原图字节。
+      bytes =
+        asset.buffer instanceof Uint8Array
+          ? asset.buffer
+          : new Uint8Array(asset.buffer);
+    } catch {
+      addIssue(rowNumber, columnName, importPhotoValidationMessages.unreadable);
+      continue;
+    }
+    const mimeType = mimeForImage(bytes);
+    if (!mimeType) {
+      addIssue(rowNumber, columnName, importPhotoValidationMessages.unreadable);
+      continue;
+    }
+    images.push({ bytes, columnName, mimeType, rowNumber });
+  }
+  const photosByRow = new Map<number, EmbeddedWorksheetPhoto[]>();
+  for (const photo of images) {
+    const row = photosByRow.get(photo.rowNumber) ?? [];
+    row.push(photo);
+    photosByRow.set(photo.rowNumber, row);
+  }
+  for (const photos of photosByRow.values()) {
+    photos.sort(
+      (a, b) =>
+        photoColumnNames.indexOf(a.columnName) -
+        photoColumnNames.indexOf(b.columnName),
+    );
+  }
+  return { images, photosByRow, issues };
+}

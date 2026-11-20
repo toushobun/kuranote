@@ -59,6 +59,7 @@ describe("loadDataImportHolderMappingOptions", () => {
     await expect(loadDataImportHolderMappingOptions()).resolves.toEqual({
       ...options,
       canManageMembers: true,
+      ledgerId,
     });
 
     expect(mocks.createExecutionService).toHaveBeenCalledWith(currentLedger);

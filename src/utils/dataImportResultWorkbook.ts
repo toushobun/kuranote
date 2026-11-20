@@ -68,16 +68,29 @@ export async function buildDataImportResultWorkbook(
 
     const resultColumn = worksheet.actualColumnCount + 1;
     const reasonColumn = resultColumn + 1;
+    const showPhotoCount =
+      sheetKind === "incomeExpense" &&
+      (worksheet.getImages().length > 0 ||
+        [...(resultsBySheet.get(sheetKind)?.values() ?? [])].some(
+          (row) => row.photoCount !== undefined,
+        ));
+    const photoCountColumn = reasonColumn + 1;
     const header = worksheet.getRow(headerRowNumber);
     header.getCell(resultColumn).value =
       dataImportExecutionMessages.resultColumnTitle;
     header.getCell(reasonColumn).value =
       dataImportExecutionMessages.reasonColumnTitle;
+    if (showPhotoCount) {
+      header.getCell(photoCountColumn).value =
+        dataImportExecutionMessages.photoCountColumnTitle;
+    }
 
     for (const [rowNumber, result] of resultsBySheet.get(sheetKind) ?? []) {
       const row = worksheet.getRow(rowNumber);
       row.getCell(resultColumn).value = resultLabel(result.status);
       row.getCell(reasonColumn).value = result.reason ?? "";
+      if (showPhotoCount)
+        row.getCell(photoCountColumn).value = result.photoCount ?? 0;
     }
   }
 

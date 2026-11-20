@@ -22,6 +22,7 @@ import type { AccountImportHolder } from "internal/account";
 import type { LedgerPlaceholderMemberSummary } from "internal/ledger";
 import {
   importColumnsBySheetKind,
+  incomeExpensePhotoColumns,
   importSheetKindLabels,
   type ImportColumnDef,
   type ImportValidationIssue,
@@ -29,6 +30,7 @@ import {
 } from "internal/dataImport";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { DataImportHolderMapping } from "organisms/settings/DataImportHolderMapping/DataImportHolderMapping";
+import { DataImportPhotoPreview } from "organisms/settings/DataImportPhotoPreview/DataImportPhotoPreview";
 import { DataImportExecutionStatus } from "organisms/settings/DataImportExecutionStatus/DataImportExecutionStatus";
 import { SettingsPageLayout } from "templates/layout/SettingsPageLayout";
 import { useDataImportForm } from "templates/settings/useDataImportForm";
@@ -38,6 +40,7 @@ type DataImportTemplateProps = {
   /** 当前用户是否为 owner/admin；只有这时映射步骤才提供「新建待邀请成员」。 */
   canCreatePlaceholders?: boolean;
   executeBatchAction: DataImportBatchStateAction;
+  ledgerId?: string;
   /** 当前账本的 active 成员，用于持有人映射步骤的下拉候选。 */
   holderMembers: AccountImportHolder[];
   /** 当前账本未认领的待邀请成员，用于持有人映射步骤的下拉候选。 */
@@ -48,6 +51,7 @@ export function DataImportTemplate({
   canCreatePlaceholders = false,
   executeBatchAction,
   holderMembers,
+  ledgerId,
   holderPlaceholders = [],
 }: DataImportTemplateProps) {
   const {
@@ -67,8 +71,10 @@ export function DataImportTemplate({
     isDownloading,
     isImporting,
     selectedFileName,
+    photoPreviewRows,
+    photoUploadProgress,
     validationState,
-  } = useDataImportForm(executeBatchAction, holderMembers);
+  } = useDataImportForm(executeBatchAction, holderMembers, ledgerId);
 
   return (
     <SettingsPageLayout
@@ -136,6 +142,10 @@ export function DataImportTemplate({
           <ResultSection result={validationState.result} />
         ) : null}
 
+        {validationState.result?.ok && photoPreviewRows.length > 0 ? (
+          <DataImportPhotoPreview rows={photoPreviewRows} />
+        ) : null}
+
         {validationState.result?.ok &&
         executionStatus === null &&
         holderMappingCandidates.length > 0 ? (
@@ -174,6 +184,7 @@ export function DataImportTemplate({
           <DataImportExecutionStatus
             displayProgress={displayProgress ?? undefined}
             isDownloading={isDownloading}
+            photoUploadProgress={photoUploadProgress ?? undefined}
             onDownload={
               executionStatus === "completed" ? handleDownloadResult : undefined
             }
@@ -223,6 +234,7 @@ function FormatDescriptionCard() {
             messages.billRefHint,
             messages.splitPaymentHint,
             messages.balanceAdjustmentHint,
+            messages.photoColumnHint,
           ].map((hint) => (
             <Typography
               component="li"
@@ -238,7 +250,12 @@ function FormatDescriptionCard() {
         <Typography sx={{ fontWeight: 700 }} variant="body2">
           {messages.incomeExpenseColumnsTitle}
         </Typography>
-        <ColumnList columns={importColumnsBySheetKind.incomeExpense} />
+        <ColumnList
+          columns={[
+            ...importColumnsBySheetKind.incomeExpense,
+            ...incomeExpensePhotoColumns,
+          ]}
+        />
 
         <Typography sx={{ fontWeight: 700 }} variant="body2">
           {messages.transferColumnsTitle}

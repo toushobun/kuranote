@@ -1,5 +1,9 @@
 import ExcelJS from "exceljs";
 
+import { detectSheetKind } from "internal/dataImport/util/detectSheetKind";
+import { importPhotoValidationMessages } from "internal/dataImport/errors";
+import type { ImportRowIssue } from "internal/dataImport/entity/importValidationIssue";
+import { readWorksheetPhotos } from "internal/dataImport/util/readWorksheetPhotos";
 import type { ParsedTable } from "internal/dataImport/entity/parsedTable";
 import { cellToText } from "internal/dataImport/util/cellText";
 
@@ -20,6 +24,7 @@ export async function parseXlsxWorkbook(
     const columnCount = worksheet.actualColumnCount;
     const dataRows: { cells: string[]; rowNumber: number }[] = [];
     let headerRow: string[] | null = null;
+    let headerRowNumber = 0;
 
     worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
       const cells: string[] = [];
@@ -37,20 +42,45 @@ export async function parseXlsxWorkbook(
 
       if (!headerRow) {
         headerRow = cells;
+        headerRowNumber = rowNumber;
         return;
       }
 
       dataRows.push({ cells, rowNumber });
     });
 
-    if (!headerRow) {
+    const kind = detectSheetKind(worksheet.name);
+    const pictures = worksheet.getImages();
+    if (!headerRow && (!kind || pictures.length === 0)) {
       continue;
     }
 
+    const photos =
+      kind === "incomeExpense"
+        ? readWorksheetPhotos(
+            workbook,
+            worksheet,
+            headerRow ?? [],
+            headerRowNumber,
+          )
+        : null;
+    const otherSheetPhotoIssues: ImportRowIssue[] =
+      kind && kind !== "incomeExpense"
+        ? pictures.map((picture) => ({
+            column: (headerRow?.[picture.range.tl.nativeCol] ?? "").trim(),
+            kind: "row",
+            message: importPhotoValidationMessages.unsupportedSheet,
+            rowNumber: picture.range.tl.nativeRow + 1,
+            sheet: kind,
+          }))
+        : [];
+    const photoIssues = [...(photos?.issues ?? []), ...otherSheetPhotoIssues];
     tables.push({
-      headerRow,
+      headerRow: headerRow ?? [],
       rows: dataRows,
       sourceName: worksheet.name,
+      ...(photos?.images.length ? { photos: photos.images } : {}),
+      ...(photoIssues.length ? { photoIssues } : {}),
     });
   }
 

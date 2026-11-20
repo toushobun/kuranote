@@ -54,7 +54,7 @@ export const dataImportPageMessages = {
 export const dataImportFormatDescriptionMessages = {
   title: "文件格式要求",
   fileTypeHint:
-    "支持 Excel（.xlsx）文件，大小不超过 50MB，工作表名需精确为「收支」「转账」「余额变更」。",
+    "支持 Excel（.xlsx）文件，大小不超过 300MB，工作表名需精确为「收支」「转账」「余额变更」。",
   unknownColumnHint:
     "表头列名必须与下方列表完全一致（包括「转出/转入」等前缀），出现列表之外的列名会被判定为格式错误，不会被静默忽略。",
   holderColumnHint:
@@ -68,6 +68,8 @@ export const dataImportFormatDescriptionMessages = {
     "多账户仅支持全为支出的明细且币种相同。账户、账户持有人、账户类型、付款金额用中文或英文分号按位置对应，个数一致，首尾空格会去掉；付款金额非负（允许 0）、合计等于支出合计，账户不能重复。账户币种只写一个。例：账户「礼品卡；信用卡」、持有人「；小明」、类型「其他；信用卡」、付款金额「2000；1500」，对应金额合计 3500。单账户付款金额必须留空，账户名称本身不能含分号。",
   balanceAdjustmentHint:
     "「余额变更」的金额为带符号差值：正数增加余额，负数减少余额，不能为 0。按收支、转账、余额变更的顺序导入。",
+  photoColumnHint:
+    "「收支」表末尾可增加「照片1」～「照片5」列，把图片插入对应格子；多行账单仅首行可以有照片。",
   incomeExpenseColumnsTitle: "「收支」表列名（*为必填）",
   balanceAdjustmentColumnsTitle: "「余额变更」表列名（*为必填）",
   transferColumnsTitle: "「转账」表列名（*为必填）",
@@ -80,9 +82,21 @@ export const dataImportFileFieldMessages = {
   noFileSelected: "尚未选择文件",
 } as const;
 
+const photoPreviewTypeLabels = {
+  income: "收入",
+  expense: "支出",
+} as const;
+
 export const dataImportResultMessages = {
   balanceAdjustmentCountLabel: (count: number) => `余额变更记录 ${count} 笔`,
   failureTitle: "格式检查未通过",
+  photoPreviewTitle: "小票照片预览",
+  photoPreviewDetail: (
+    date: string,
+    merchant: string,
+    type: keyof typeof photoPreviewTypeLabels,
+    amount: number,
+  ) => `${date} · ${merchant} · ${photoPreviewTypeLabels[type]} ${amount}`,
   incomeExpenseCountLabel: (count: number) => `收支记录 ${count} 笔`,
   issueRowLabel: (rowNumber: number) => `第 ${rowNumber} 行`,
   successTitle: "格式检查通过",
@@ -93,6 +107,8 @@ export const dataImportExecutionMessages = {
   startButton: "开始导入",
   importingButton: "正在导入…",
   progressTitle: "正在导入",
+  photoUploadProgress: (done: number, total: number) =>
+    `正在上传照片 ${done}/${total}`,
   keepPageOpenHint: "导入需要一些时间，请保持页面打开，不要离开。",
   completedTitle: "导入完成",
   successCount: (count: number) => `成功导入 ${count} 条`,
@@ -111,6 +127,7 @@ export const dataImportExecutionMessages = {
   downloadingButton: "正在生成结果文件…",
   downloadFailed: "结果文件生成失败，请稍后重试。",
   resultColumnTitle: "导入结果",
+  photoCountColumnTitle: "照片数",
   reasonColumnTitle: "原因",
   resultSuccess: "成功",
   resultDuplicate: "成功（疑似重复）",

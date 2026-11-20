@@ -1,4 +1,5 @@
 export type { ImportExecutionUnit } from "internal/dataImport/entity/importRow";
+export type { EmbeddedWorksheetPhoto } from "internal/dataImport/entity/parsedTable";
 export {
   dataImportErrorCodes,
   dataImportErrorMessages,
@@ -42,6 +43,7 @@ export {
   type ImportHolderMappingValue,
 } from "internal/dataImport/schema";
 export { analyzeImportFile } from "internal/dataImport/util/analyzeImportFile";
+export { summarizeIncomeExpenseImport } from "internal/dataImport/util/summarizeIncomeExpenseImport";
 export type {
   DataImportExecutionService,
   ExecuteImportBatchInput,

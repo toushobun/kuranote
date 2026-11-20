@@ -49,6 +49,21 @@ describe("DataImportExecutionStatus", () => {
     expect(screen.queryByText("失败的记录")).not.toBeInTheDocument();
   });
 
+  it("上传阶段显示真实照片数量，完成后不再显示", () => {
+    const { rerender } = render(
+      <DataImportExecutionStatus
+        photoUploadProgress={{ done: 12, total: 80 }}
+        result={baseResult}
+        status="importing"
+      />,
+    );
+    expect(screen.getByText("正在上传照片 12/80")).toBeInTheDocument();
+    rerender(
+      <DataImportExecutionStatus result={baseResult} status="importing" />,
+    );
+    expect(screen.queryByText(/正在上传照片/)).not.toBeInTheDocument();
+  });
+
   it("传入 displayProgress 时进度条使用该展示值", () => {
     render(
       <DataImportExecutionStatus

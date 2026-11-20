@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ChangeEvent } from "react";
@@ -8,7 +8,10 @@ import {
   dataImportErrorMessages,
   importBatchSize,
 } from "internal/dataImport";
-import { makeAnalyzeImportFileResult } from "test/mocks/dataImport";
+import {
+  makeAnalyzeImportFileResult,
+  makeIncomeExpenseUnit,
+} from "test/mocks/dataImport";
 import {
   computeDisplayProcessed,
   toProgressPercentage,
@@ -21,6 +24,17 @@ import type {
 import { useDataImportForm } from "./useDataImportForm";
 
 const analyzeImportFileMock = vi.hoisted(() => vi.fn());
+const buildResultWorkbookMock = vi.hoisted(() => vi.fn());
+const uploadReceiptPhotoMock = vi.hoisted(() => vi.fn());
+
+vi.mock("utils/transactionPhotoUpload", () => ({
+  uploadReceiptPhoto: uploadReceiptPhotoMock,
+}));
+
+vi.mock("utils/dataImportResultWorkbook", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("utils/dataImportResultWorkbook")>()),
+  buildDataImportResultWorkbook: buildResultWorkbookMock,
+}));
 
 vi.mock("internal/dataImport", async (importOriginal) => ({
   ...(await importOriginal<typeof import("internal/dataImport")>()),
@@ -47,6 +61,31 @@ function mockAnalyzeImportFile(totalCount: number) {
   analyzeImportFileMock.mockResolvedValue(
     makeAnalyzeImportFileResult(totalCount),
   );
+}
+
+function mockAnalyzeImportFileWithPhotos() {
+  analyzeImportFileMock.mockResolvedValue({
+    result: {
+      ok: true,
+      summary: {
+        balanceAdjustmentCount: 0,
+        incomeExpenseCount: 1,
+        transferCount: 0,
+      },
+    },
+    units: [makeIncomeExpenseUnit()],
+    photosByRow: new Map([
+      [
+        2,
+        ["照片1", "照片2"].map((columnName) => ({
+          rowNumber: 2,
+          columnName,
+          mimeType: "image/jpeg",
+          bytes: new Uint8Array([0xff, 0xd8, 0xff, 0xd9]),
+        })),
+      ],
+    ]),
+  });
 }
 
 function makeDoneBatch(
@@ -268,6 +307,239 @@ describe("useDataImportForm 虚拟进度条", () => {
 describe("useDataImportForm 浏览器端解析与分批发送", () => {
   beforeEach(() => {
     analyzeImportFileMock.mockReset();
+    uploadReceiptPhotoMock.mockReset();
+  });
+
+  it("照片上传进度逐张增加，批次提交时不再显示上传提示", async () => {
+    const first = deferred<{ attachmentId: string }>();
+    const second = deferred<{ attachmentId: string }>();
+    const batch = deferred<DataImportBatchActionState>();
+    uploadReceiptPhotoMock
+      .mockImplementationOnce(() => first.promise)
+      .mockImplementationOnce(() => second.promise);
+    mockAnalyzeImportFileWithPhotos();
+    const executeBatchAction = vi.fn<DataImportBatchStateAction>(
+      async () => batch.promise,
+    );
+    const { result } = renderHook(() =>
+      useDataImportForm(executeBatchAction, [], "ledger"),
+    );
+    await selectFileAndCheckFormat(result);
+    expect(result.current.photoPreviewRows).toMatchObject([
+      {
+        rowNumber: 2,
+        transactionAt: "2026-09-17 10:00:00",
+        merchantName: "超市",
+        amount: 1200,
+        transactionType: "expense",
+      },
+    ]);
+
+    let importPromise!: Promise<void>;
+    act(() => {
+      importPromise = result.current.handleStartImport();
+    });
+    await waitFor(() =>
+      expect(uploadReceiptPhotoMock).toHaveBeenCalledTimes(1),
+    );
+    expect(result.current.photoUploadProgress).toEqual({ done: 0, total: 2 });
+    await act(async () => {
+      first.resolve({ attachmentId: "photo-1" });
+      await flushMicrotasks();
+    });
+    await waitFor(() =>
+      expect(uploadReceiptPhotoMock).toHaveBeenCalledTimes(2),
+    );
+    expect(result.current.photoUploadProgress).toEqual({ done: 1, total: 2 });
+    await act(async () => {
+      second.resolve({ attachmentId: "photo-2" });
+      await flushMicrotasks();
+    });
+    await waitFor(() => expect(executeBatchAction).toHaveBeenCalledOnce());
+    expect(result.current.photoUploadProgress).toBeNull();
+    await act(async () => {
+      batch.resolve({ batch: makeDoneBatch(1) });
+      await importPromise;
+    });
+    expect(result.current.executionStatus).toBe("completed");
+    expect(result.current.photoUploadProgress).toBeNull();
+  });
+
+  it("混合收支账单的照片预览显示净支出金额与类型", async () => {
+    const first = makeIncomeExpenseUnit({ amount: 1000 });
+    if (first.kind !== "incomeExpense") throw new Error("测试数据错误");
+    analyzeImportFileMock.mockResolvedValue({
+      result: {
+        ok: true,
+        summary: {
+          balanceAdjustmentCount: 0,
+          incomeExpenseCount: 1,
+          transferCount: 0,
+        },
+      },
+      units: [
+        {
+          ...first,
+          group: {
+            ...first.group,
+            rowNumbers: [2, 3],
+            items: [
+              first.group.items[0],
+              {
+                ...first.group.items[0],
+                rowNumber: 3,
+                amount: 200,
+                transactionType: "income",
+              },
+            ],
+          },
+        },
+      ],
+      photosByRow: new Map([
+        [
+          2,
+          [
+            {
+              rowNumber: 2,
+              columnName: "照片1",
+              mimeType: "image/jpeg",
+              bytes: new Uint8Array([0xff, 0xd8, 0xff, 0xd9]),
+            },
+          ],
+        ],
+      ]),
+    });
+    const { result } = renderHook(() => useDataImportForm(vi.fn()));
+    await selectFileAndCheckFormat(result);
+    expect(result.current.photoPreviewRows).toMatchObject([
+      {
+        rowNumber: 2,
+        amount: 800,
+        merchantName: "超市",
+        transactionType: "expense",
+      },
+    ]);
+  });
+
+  it("多明细金额含小数时按两位金额精度显示，避免浮点误差", async () => {
+    const first = makeIncomeExpenseUnit({ amount: 0.1 });
+    if (first.kind !== "incomeExpense") throw new Error("测试数据错误");
+    analyzeImportFileMock.mockResolvedValue({
+      result: {
+        ok: true,
+        summary: {
+          balanceAdjustmentCount: 0,
+          incomeExpenseCount: 1,
+          transferCount: 0,
+        },
+      },
+      units: [
+        {
+          ...first,
+          group: {
+            ...first.group,
+            rowNumbers: [2, 3],
+            items: [
+              first.group.items[0],
+              { ...first.group.items[0], rowNumber: 3, amount: 0.2 },
+            ],
+          },
+        },
+      ],
+      photosByRow: new Map([
+        [
+          2,
+          [
+            {
+              rowNumber: 2,
+              columnName: "照片1",
+              mimeType: "image/jpeg",
+              bytes: new Uint8Array([0xff, 0xd8, 0xff, 0xd9]),
+            },
+          ],
+        ],
+      ]),
+    });
+    const { result } = renderHook(() => useDataImportForm(vi.fn()));
+    await selectFileAndCheckFormat(result);
+    expect(result.current.photoPreviewRows[0]).toMatchObject({
+      amount: 0.3,
+      transactionType: "expense",
+    });
+  });
+
+  it("照片上传期间离开页面不会在上传完成后再写入交易", async () => {
+    const uploading = deferred<{
+      attachmentId: string;
+      height: number;
+      width: number;
+    }>();
+    uploadReceiptPhotoMock.mockReturnValue(uploading.promise);
+    mockAnalyzeImportFileWithPhotos();
+    const executeBatchAction = vi.fn<DataImportBatchStateAction>();
+    const { result, unmount } = renderHook(() =>
+      useDataImportForm(executeBatchAction, [], "ledger"),
+    );
+    await selectFileAndCheckFormat(result);
+
+    let importPromise!: Promise<void>;
+    act(() => {
+      importPromise = result.current.handleStartImport();
+    });
+    await waitFor(() => expect(uploadReceiptPhotoMock).toHaveBeenCalledOnce());
+    unmount();
+
+    await act(async () => {
+      uploading.resolve({
+        attachmentId: "00000000-0000-4000-8000-000000000091",
+        height: 400,
+        width: 400,
+      });
+      await importPromise;
+    });
+    expect(executeBatchAction).not.toHaveBeenCalled();
+  });
+
+  it("更换文件后忽略旧解析结果，且允许新文件立即重新检查", async () => {
+    const oldCheck = deferred<ReturnType<typeof makeAnalyzeImportFileResult>>();
+    const newCheck = deferred<ReturnType<typeof makeAnalyzeImportFileResult>>();
+    analyzeImportFileMock
+      .mockImplementationOnce(() => oldCheck.promise)
+      .mockImplementationOnce(() => newCheck.promise);
+    const { result } = renderHook(() => useDataImportForm(vi.fn()));
+    const pick = (name: string) => {
+      result.current.handleFileChange({
+        target: { files: [new File(["bytes"], name)] },
+      } as unknown as ChangeEvent<HTMLInputElement>);
+    };
+    act(() => pick("old.xlsx"));
+    let oldPromise!: Promise<void>;
+    act(() => {
+      oldPromise = result.current.handleCheckFormat();
+    });
+    act(() => pick("new.xlsx"));
+    expect(result.current.isChecking).toBe(false);
+    let newPromise!: Promise<void>;
+    act(() => {
+      newPromise = result.current.handleCheckFormat();
+    });
+    await act(async () => {
+      newCheck.resolve(makeAnalyzeImportFileResult(2));
+      await newPromise;
+    });
+    expect(result.current.validationState.result).toMatchObject({
+      ok: true,
+      summary: { transferCount: 2 },
+    });
+    await act(async () => {
+      oldCheck.resolve(makeAnalyzeImportFileResult(1));
+      await oldPromise;
+    });
+    expect(result.current.selectedFileName).toBe("new.xlsx");
+    expect(result.current.validationState.result).toMatchObject({
+      ok: true,
+      summary: { transferCount: 2 },
+    });
   });
 
   it("检查格式在浏览器端解析文件，解析结果写入校验状态", async () => {
@@ -369,6 +641,64 @@ describe("useDataImportForm 浏览器端解析与分批发送", () => {
     expect(result.current.executionError).toBeNull();
     expect(result.current.executionResult?.totalCount).toBe(0);
     expect(result.current.isImporting).toBe(false);
+  });
+});
+
+describe("useDataImportForm 导入结果下载", () => {
+  beforeEach(() => {
+    analyzeImportFileMock.mockReset();
+    buildResultWorkbookMock.mockReset();
+  });
+
+  it("将链接挂载到文档并延迟释放 Blob URL，避免 Safari 下载中断", async () => {
+    vi.useFakeTimers();
+    try {
+      const createUrl = vi.fn(() => "blob:import-result");
+      const revokeUrl = vi.fn();
+      vi.stubGlobal(
+        "URL",
+        class extends URL {
+          static createObjectURL = createUrl;
+          static revokeObjectURL = revokeUrl;
+        },
+      );
+      const click = vi
+        .spyOn(HTMLAnchorElement.prototype, "click")
+        .mockImplementation(function (this: HTMLAnchorElement) {
+          expect(document.body.contains(this)).toBe(true);
+          expect(this.href).toBe("blob:import-result");
+          expect(this.download).toBe("data_导入结果.xlsx");
+        });
+      buildResultWorkbookMock.mockResolvedValue(new ArrayBuffer(8));
+      mockAnalyzeImportFile(1);
+      const executeBatchAction = vi.fn<DataImportBatchStateAction>(
+        async () => ({ batch: makeDoneBatch(1) }),
+      );
+      const { result } = renderHook(() =>
+        useDataImportForm(executeBatchAction),
+      );
+      await selectFileAndCheckFormat(result);
+
+      await act(async () => {
+        await result.current.handleStartImport();
+      });
+      await act(async () => {
+        await result.current.handleDownloadResult();
+      });
+
+      expect(click).toHaveBeenCalledOnce();
+      expect(createUrl).toHaveBeenCalledOnce();
+      expect(revokeUrl).not.toHaveBeenCalled();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+      expect(revokeUrl).toHaveBeenCalledWith("blob:import-result");
+      expect(document.querySelector('a[href="blob:import-result"]')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+      vi.restoreAllMocks();
+    }
   });
 });
 

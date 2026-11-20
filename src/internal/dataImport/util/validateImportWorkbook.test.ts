@@ -73,6 +73,44 @@ describe("validateImportWorkbook", () => {
     expect(result.ok).toBe(false);
   });
 
+  it("含照片的多个收支工作表阻止导入，避免相同行号的图片串单", () => {
+    const first = table(
+      "收支",
+      [...incomeExpenseHeader, "照片1"],
+      [[...incomeExpenseRowCells(), ""]],
+    );
+    first.photos = [
+      {
+        bytes: new Uint8Array([0xff, 0xd8, 0xff, 0xd9]),
+        columnName: "照片1",
+        mimeType: "image/jpeg",
+        rowNumber: 2,
+      },
+    ];
+    const second = table(" 收支 ", incomeExpenseHeader, [
+      incomeExpenseRowCells({ 商家: "另一家商店" }),
+    ]);
+    const { result, units } = analyzeImportWorkbook([first, second]);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.issues).toContainEqual(
+        expect.objectContaining({
+          kind: "structural",
+          sheet: "incomeExpense",
+        }),
+      );
+    }
+    expect(units).toEqual([]);
+  });
+
+  it("没有照片的多个收支工作表仍沿用已有导入行为", () => {
+    const result = validateImportWorkbook([
+      table("收支", incomeExpenseHeader, [incomeExpenseRowCells()]),
+      table(" 收支 ", incomeExpenseHeader, [incomeExpenseRowCells()]),
+    ]);
+    expect(result.ok).toBe(true);
+  });
+
   it("按 sheet 名识别「收支」与「转账」表，正确统计条数", () => {
     const result = validateImportWorkbook([
       table("收支", incomeExpenseHeader, [
@@ -112,6 +150,32 @@ describe("validateImportWorkbook", () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.summary.incomeExpenseCount).toBe(1);
+    }
+  });
+
+  it.each([
+    ["转账", "transfer", transferHeader, transferRowCells()],
+    ["余额变更", "balanceAdjustment", ["日期"], ["2026-01-05"]],
+  ] as const)("含图片的「%s」不能显示校验成功", (name, kind, header, row) => {
+    const source = table(name, [...header], [[...row]]);
+    source.photoIssues = [
+      {
+        column: "日期",
+        kind: "row",
+        message: "照片不应出现在该工作表",
+        rowNumber: 2,
+        sheet: kind,
+      },
+    ];
+    const result = validateImportWorkbook([source]);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.issues).toContainEqual(
+        expect.objectContaining({
+          message: "照片不应出现在该工作表",
+          sheet: kind,
+        }),
+      );
     }
   });
 

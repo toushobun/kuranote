@@ -126,7 +126,7 @@ export const importNoteMaxLength = 2000;
 export const importBatchSize = 100;
 
 /** 浏览器端解析文件前的大小上限；文件不会上传到服务器，只受浏览器内存约束。 */
-export const maxImportFileSizeBytes = 50 * 1024 * 1024;
+export const maxImportFileSizeBytes = 300 * 1024 * 1024;
 export const importCurrencyPattern = /^[A-Za-z]{3}$/;
 
 /** 账户、商家、分类、持有人等名称单元格的最大长度，客户端提交的行数据与映射共用。 */

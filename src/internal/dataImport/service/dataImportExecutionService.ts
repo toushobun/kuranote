@@ -46,6 +46,7 @@ import {
   transactionErrorCodes,
 } from "internal/transaction";
 import type { BalanceAdjustmentImportRow } from "internal/dataImport/entity/importRow";
+import { summarizeIncomeExpenseImport } from "internal/dataImport/util/summarizeIncomeExpenseImport";
 import type { TransactionImportService } from "internal/transaction";
 
 type DataImportExecutionDependencies = {
@@ -137,6 +138,11 @@ function rowResultsForUnit(
 ): ImportExecutionRowResult[] {
   const sheet: ImportExecutionSheetKind = unit.kind;
   return unitRowNumbers(unit).map((rowNumber) => ({
+    ...(status !== "failed" &&
+    unit.kind === "incomeExpense" &&
+    unit.group.attachmentIds
+      ? { photoCount: unit.group.attachmentIds.length }
+      : {}),
     reason,
     rowNumber,
     sheet,
@@ -612,28 +618,19 @@ export function createDataImportExecutionService({
           });
           items.push({ amount: sourceItem.amount, categoryId: category.id });
         }
-        const totalAmount =
-          group.items.reduce(
-            (sum, item) =>
-              sum +
-              (item.transactionType === "income" ? 1 : -1) *
-                Math.round(item.amount * 100),
-            0,
-          ) / 100;
+        const { totalAmount, type } = summarizeIncomeExpenseImport(group.items);
         const input = {
           payments,
           items,
+          ...(group.attachmentIds
+            ? { attachmentIds: group.attachmentIds }
+            : {}),
           ledgerId,
           merchantId: merchant.id,
           note: first.note,
           timeZoneOffsetMinutes,
           transactionAt: first.transactionAt,
-          type:
-            totalAmount > 0 ||
-            (totalAmount === 0 &&
-              group.items.every((item) => item.transactionType === "income"))
-              ? "income"
-              : "expense",
+          type,
         } as const;
         const duplicate =
           await transactionImportService.hasPossibleNormalDuplicate({

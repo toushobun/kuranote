@@ -50,6 +50,7 @@ export type BalanceAdjustmentImportRow = {
 };
 
 export type ImportTransactionGroup = {
+  attachmentIds?: string[];
   items: IncomeExpenseImportRow[];
   rowNumbers: number[];
 };
