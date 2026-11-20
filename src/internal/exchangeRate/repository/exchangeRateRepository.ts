@@ -2,6 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { RepositoryError } from "internal/shared/errors/appError";
+import { exchangeRateErrorCodes, exchangeRateErrorMessages } from "../errors";
 import { createServiceRoleSupabaseClient } from "internal/shared/supabase/serviceRoleClient";
 
 export type DailyExchangeRate = {
@@ -33,7 +34,10 @@ export function createExchangeRateRepository(
         console.error("[exchangeRate] latest date query failed", {
           code: error.code,
         });
-        throw new RepositoryError("exchange_rate_read_failed", "汇率读取失败");
+        throw new RepositoryError(
+          exchangeRateErrorCodes.readFailed,
+          exchangeRateErrorMessages[exchangeRateErrorCodes.readFailed],
+        );
       }
       return data?.rate_date ?? null;
     },
@@ -54,8 +58,8 @@ export function createExchangeRateRepository(
         if (error) {
           console.error("[exchangeRate] upsert failed", { code: error.code });
           throw new RepositoryError(
-            "exchange_rate_write_failed",
-            "汇率保存失败",
+            exchangeRateErrorCodes.writeFailed,
+            exchangeRateErrorMessages[exchangeRateErrorCodes.writeFailed],
           );
         }
       }

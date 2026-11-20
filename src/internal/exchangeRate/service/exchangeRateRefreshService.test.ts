@@ -25,10 +25,49 @@ describe("exchangeRateRefreshService", () => {
     const result = await runExchangeRateRefresh(
       repo,
       fetcher,
-      new Date("2026-11-20T00:00:00Z"),
+      new Date("2015-12-31T00:00:00Z"),
     );
-    expect(fetcher.mock.calls[0][0]).toContain("/v1/2015-01-01..2026-11-20");
+    expect(fetcher.mock.calls[0][0]).toContain("/v1/2015-01-01..2015-12-31");
     expect(result.upserted).toBe(6);
+    expect(repo.upsertRates).toHaveBeenCalledOnce();
+  });
+  it("历史回填按自然年请求且上一年写入成功后才继续", async () => {
+    const repo = mockRepository(null);
+    const fetcher = vi.fn(async (url: RequestInfo | URL) => {
+      const year = String(url).split("/v1/")[1]?.slice(0, 4);
+      return new Response(
+        JSON.stringify({ base: "EUR", rates: { [`${year}-01-02`]: rates } }),
+        { status: 200 },
+      );
+    });
+    const result = await runExchangeRateRefresh(
+      repo,
+      fetcher,
+      new Date("2017-03-10T00:00:00Z"),
+    );
+    expect(fetcher.mock.calls.map(([url]) => url)).toEqual([
+      expect.stringContaining("/v1/2015-01-01..2015-12-31"),
+      expect.stringContaining("/v1/2016-01-01..2016-12-31"),
+      expect.stringContaining("/v1/2017-01-01..2017-03-10"),
+    ]);
+    expect(repo.upsertRates).toHaveBeenCalledTimes(3);
+    expect(result.upserted).toBe(18);
+  });
+  it("某一年抓取失败时，不继续请求后续年份", async () => {
+    const repo = mockRepository(null);
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ base: "EUR", rates: { "2015-01-02": rates } }),
+          { status: 200 },
+        ),
+      )
+      .mockRejectedValueOnce(new Error("network error"));
+    await expect(
+      runExchangeRateRefresh(repo, fetcher, new Date("2017-03-10T00:00:00Z")),
+    ).rejects.toThrow("获取参考汇率失败");
+    expect(fetcher).toHaveBeenCalledTimes(2);
     expect(repo.upsertRates).toHaveBeenCalledOnce();
   });
   it("有数据时从最后一日的下一日开始", async () => {
