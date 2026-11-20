@@ -300,7 +300,6 @@ export function TransactionRow({
               {transferArrivalLabel ? (
                 <Typography
                   noWrap
-                  variant="caption"
                   sx={{
                     color: mutedText,
                     flexShrink: 0,
