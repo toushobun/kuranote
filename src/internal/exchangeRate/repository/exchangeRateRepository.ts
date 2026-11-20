@@ -38,12 +38,19 @@ export function createExchangeRateRepository(
       return data?.rate_date ?? null;
     },
     async upsertRates(rates) {
-      for (let index = 0; index < rates.length; index += batchSize) {
+      // 同一天的汇率必须在同一次原子 upsert 中写完。
+      // 否则中途失败后，latestDate 可能跳过当天尚未写入的币种。
+      const ratesByDate = new Map<string, DailyExchangeRate[]>();
+      for (const rate of rates) {
+        const dailyRates = ratesByDate.get(rate.rate_date) ?? [];
+        dailyRates.push(rate);
+        ratesByDate.set(rate.rate_date, dailyRates);
+      }
+
+      async function upsertBatch(batch: DailyExchangeRate[]) {
         const { error } = await supabase
           .from("exchange_rate")
-          .upsert(rates.slice(index, index + batchSize), {
-            onConflict: "rate_date,currency",
-          });
+          .upsert(batch, { onConflict: "rate_date,currency" });
         if (error) {
           console.error("[exchangeRate] upsert failed", { code: error.code });
           throw new RepositoryError(
@@ -52,6 +59,17 @@ export function createExchangeRateRepository(
           );
         }
       }
+
+      let batch: DailyExchangeRate[] = [];
+      for (const date of [...ratesByDate.keys()].sort()) {
+        const dailyRates = ratesByDate.get(date) ?? [];
+        if (batch.length > 0 && batch.length + dailyRates.length > batchSize) {
+          await upsertBatch(batch);
+          batch = [];
+        }
+        batch.push(...dailyRates);
+      }
+      if (batch.length > 0) await upsertBatch(batch);
     },
   };
 }
