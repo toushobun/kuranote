@@ -243,12 +243,14 @@ async function buildEditTransactionView<
         transferAmount: formatEditableAmount(
           fromItem.amount,
           currencyByAccountId.get(fromAccountId) ?? currentLedger.baseCurrency,
+          2,
         ),
         transferTargetAccountId: requireItemAccountId(toItem),
         transferTargetAmount: formatEditableAmount(
           toItem.amount,
           currencyByAccountId.get(requireItemAccountId(toItem)) ??
             currentLedger.baseCurrency,
+          2,
         ),
         type: "transfer" as const,
       } satisfies TransferEditInitialValues,
@@ -550,8 +552,14 @@ export function resolveNormalTransactionDisplayType(
   return "income";
 }
 
-export function formatEditableAmount(amount: string, currency?: string) {
+export function formatEditableAmount(
+  amount: string,
+  currency?: string,
+  maxDecimalPlaces = 3,
+) {
   const value = Number(amount);
   if (!Number.isFinite(value)) return amount;
-  return String(Number(value.toFixed(getAmountDecimalPlaces(currency))));
+  return String(
+    Number(value.toFixed(Math.min(getAmountDecimalPlaces(currency), maxDecimalPlaces))),
+  );
 }
