@@ -149,7 +149,7 @@ describe("Issue #1139 交易合计一致性", () => {
         groupBy,
         holderIdsByAccountId: new Map([["jpy-account", ["holder-1"]]]),
         items,
-        merchants: [{ id: "merchant", name: "超市", icon_url: null }],
+        merchants: [{ id: "merchant", name: "超市" }],
         offset: 0,
         pageSize: 20,
         payments,
