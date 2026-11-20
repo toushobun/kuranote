@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import type { EmbeddedWorksheetPhoto, ImportExecutionUnit } from "internal/dataImport";
+import type {
+  EmbeddedWorksheetPhoto,
+  ImportExecutionUnit,
+} from "internal/dataImport";
 import { dataImportExecutionErrorMessages } from "internal/dataImport";
 import { prepareImportPhotoBatch } from "./dataImportPhotoBatch";
 
