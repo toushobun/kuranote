@@ -163,7 +163,10 @@ describe("TransactionRow", () => {
     expect(secondRow?.contains(arrival)).toBe(true);
     expect(secondRow).toHaveStyle({ flexDirection: "row" });
     expect(arrival).toHaveClass("MuiTypography-noWrap");
-    expect(arrival).toHaveStyle({ flexShrink: "0" });
+    expect(arrival).toHaveStyle({
+      flexShrink: "0",
+      lineHeight: "1.5",
+    });
   });
   it("同币种转账不额外显示到账行", () => {
     render(
