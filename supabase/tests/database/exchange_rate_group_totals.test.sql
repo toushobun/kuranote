@@ -87,6 +87,90 @@ select results_eq(
  $$ values (0::numeric, 2::integer) $$,
  '目标币种无汇率时两笔均不计入合计，提示缺失 2 笔');
 
+-- 同币种混合收支：原有正负金额分别入收入/支出桶，不允许先抵消。
+reset role;
+update public.ledger set base_currency = 'JPY'
+where id = '00000000-0000-4000-8000-000000000032';
+
+insert into public.transaction_record (
+  id, ledger_id, type, status, transaction_at, merchant_id,
+  title, note, created_by, updated_by
+) values
+ ('11390000-0000-4000-8000-000000000001',
+  '00000000-0000-4000-8000-000000000032','normal','active',
+  '2099-01-18 12:00:00+00','00000000-0000-4000-8000-000000001001',
+  null,'#1139 账户筛选下的混合收支',
+  '00000000-0000-4000-8000-000000000031','00000000-0000-4000-8000-000000000031'),
+ ('11390000-0000-4000-8000-000000000002',
+  '00000000-0000-4000-8000-000000000032','normal','active',
+  '2099-01-19 12:00:00+00','00000000-0000-4000-8000-000000001001',
+  null,'#1139 同持有人多账户正负收支',
+  '00000000-0000-4000-8000-000000000031','00000000-0000-4000-8000-000000000031');
+
+select tests.insert_normal_transaction_items(jsonb_agg(to_jsonb(i)))
+from (values
+  ('11390000-0000-4000-8000-000000000011'::uuid,
+   '11390000-0000-4000-8000-000000000001'::uuid,
+   '00000000-0000-4000-8000-000000000043'::uuid,
+   '00000000-0000-4000-8000-000000005021'::uuid,100::numeric,-100::numeric,0),
+  ('11390000-0000-4000-8000-000000000012'::uuid,
+   '11390000-0000-4000-8000-000000000001'::uuid,
+   '00000000-0000-4000-8000-000000000043'::uuid,
+   '00000000-0000-4000-8000-000000005002'::uuid,40::numeric,40::numeric,1),
+  ('11390000-0000-4000-8000-000000000013'::uuid,
+   '11390000-0000-4000-8000-000000000002'::uuid,
+   '00000000-0000-4000-8000-000000000043'::uuid,
+   '00000000-0000-4000-8000-000000005021'::uuid,100::numeric,-100::numeric,0),
+  ('11390000-0000-4000-8000-000000000014'::uuid,
+   '11390000-0000-4000-8000-000000000002'::uuid,
+   '00000000-0000-4000-8000-000000000044'::uuid,
+   '00000000-0000-4000-8000-000000005002'::uuid,40::numeric,40::numeric,1)
+) v(id, transaction_record_id, account_id, category_id, amount, balance_delta, sort_order)
+cross join lateral (
+  select v.id,v.transaction_record_id,v.account_id,v.category_id,
+    v.amount,v.balance_delta,v.sort_order,
+    '00000000-0000-4000-8000-000000000032'::uuid as ledger_id,
+    0::numeric as discount_amount,
+    null::text as note,
+    '00000000-0000-4000-8000-000000000031'::uuid as created_by,
+    '00000000-0000-4000-8000-000000000031'::uuid as updated_by
+) i;
+
+insert into public.transaction_payment(
+  ledger_id,transaction_record_id,account_id,amount,balance_delta,sort_order,created_by
+) values
+ ('00000000-0000-4000-8000-000000000032','11390000-0000-4000-8000-000000000001',
+  '00000000-0000-4000-8000-000000000043',60,-60,0,'00000000-0000-4000-8000-000000000031'),
+ ('00000000-0000-4000-8000-000000000032','11390000-0000-4000-8000-000000000002',
+  '00000000-0000-4000-8000-000000000043',100,-100,0,'00000000-0000-4000-8000-000000000031'),
+ ('00000000-0000-4000-8000-000000000032','11390000-0000-4000-8000-000000000002',
+  '00000000-0000-4000-8000-000000000044',40,40,1,'00000000-0000-4000-8000-000000000031');
+
+set local role authenticated;
+
+select results_eq(
+ $select income,expense,balance
+   from public.load_transaction_group_summaries_with_special_status(
+     p_ledger_id=>'00000000-0000-4000-8000-000000000032'::uuid,
+     p_group_by=>'merchant',
+     p_account_id=>'00000000-0000-4000-8000-000000000043'::uuid,
+     p_date_start=>'2099-01-18 00:00:00+00'::timestamptz,
+     p_date_end=>'2099-01-19 00:00:00+00'::timestamptz
+   ) where group_key='00000000-0000-4000-8000-000000001001'$,
+ $values (40::numeric,100::numeric,-60::numeric)$,
+ '商家分组有账户筛选时同笔混合收支仍分别统计');
+
+select results_eq(
+ $select income,expense,balance
+   from public.load_transaction_group_summaries_with_special_status(
+     p_ledger_id=>'00000000-0000-4000-8000-000000000032'::uuid,
+     p_group_by=>'holder',
+     p_date_start=>'2099-01-19 00:00:00+00'::timestamptz,
+     p_date_end=>'2099-01-20 00:00:00+00'::timestamptz
+   ) where group_key='none'$,
+ $values (40::numeric,100::numeric,-60::numeric)$,
+ '同持有人两账户一正一负时收入支出不先抵消');
+
 reset role;
 select * from finish();
 rollback;
