@@ -216,7 +216,7 @@ export function buildTransactionGroupSummaryPage({
   for (const group of sortedGroups) {
     for (const [recordId, rawAmount] of group.rawByRecordId) {
       const record = recordById.get(recordId);
-      const converted = convertLedgerAmount(rawAmount, record?.ledger_rate);
+      const converted = convertLedgerAmount(rawAmount, record?.ledger_rate ?? null);
       if (record?.record_currency && record.record_currency !== currency) {
         group.summary.hasForeignCurrency = true;
       }

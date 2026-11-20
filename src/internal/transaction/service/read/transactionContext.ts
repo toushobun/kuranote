@@ -82,18 +82,22 @@ export async function loadTransactionGroupLoaderContextForRecords(
           normalRecordIds,
         )
       : Promise.resolve([]),
-    dependencies.transactionRepository.loadRecordRates?.(
+    dependencies.transactionRepository.loadRecordRates(
       currentLedger.id,
       normalRecordIds,
-    ) ?? Promise.resolve([]),
+    ),
   ]);
   const rateByRecordId = new Map(
     rateRows.map((rate) => [rate.record_id, rate]),
   );
-  const recordsWithRates = records.map((record) => ({
-    ...record,
-    ...(rateByRecordId.get(record.id) ?? {}),
-  }));
+  const recordsWithRates = records.map((record) => {
+    const rate = rateByRecordId.get(record.id);
+    return {
+      ...record,
+      record_currency: rate?.record_currency ?? null,
+      ledger_rate: record.type === "normal" ? (rate?.ledger_rate ?? null) : 1,
+    };
+  });
   const itemsByRecordId = groupByKey(
     items,
     (item) => item.transaction_record_id,

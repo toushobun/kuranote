@@ -110,7 +110,7 @@ export function createTransactionDashboardQueryService({
         ) {
           monthSummary.hasForeignCurrency = true;
         }
-        const converted = convertLedgerAmount(netAmount, record?.ledger_rate);
+        const converted = convertLedgerAmount(netAmount, record?.ledger_rate ?? null);
         if (converted === null) {
           monthSummary.missingRateCount =
             (monthSummary.missingRateCount ?? 0) + 1;

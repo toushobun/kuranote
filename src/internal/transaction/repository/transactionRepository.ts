@@ -241,8 +241,8 @@ const filteredPageResultSchema = z.object({
 });
 
 export interface TransactionContextRepository {
-  /** 从 SQL 汇率视图批量加载，只读；可选是为了现有纯数据测试仓储兼容。 */
-  loadRecordRates?(
+  /** 从 SQL 汇率视图批量加载，必须明确处理缺失汇率。 */
+  loadRecordRates(
     ledgerId: string,
     recordIds: string[],
   ): Promise<
