@@ -160,6 +160,25 @@ describe("TransferReceipt", () => {
     expect(submittedForm(action).get("transferTargetAmount")).toBe("2");
   });
 
+  it("先选转入账户并填金额，再补选另一币种转出账户时保留到账金额", async () => {
+    const { action } = setup();
+    chooseAccount("转入", "现金 JPY");
+    enterAmount("5", "0", "0", "0");
+    chooseAccount("转出", "招商银行卡 CNY");
+    expect(screen.getByText("¥5,000")).toBeInTheDocument();
+    click("保存转账");
+    expect(action).not.toHaveBeenCalled();
+    expect(screen.getByText("请输入转账金额")).toBeInTheDocument();
+    click(/^修改转出金额：/);
+    pressItemAmountKey("2");
+    pressItemAmountKey("确定");
+    click("保存转账");
+    await waitFor(() => expect(action).toHaveBeenCalledOnce());
+    const form = submittedForm(action);
+    expect(form.get("transferAmount")).toBe("2");
+    expect(form.get("transferTargetAmount")).toBe("5000");
+  });
+
   it("编辑转账预填原记录，动过才报告未保存，提交原记录 id 与类型", async () => {
     const { action, onDirty } = setup({
       initialValues: editValues,
