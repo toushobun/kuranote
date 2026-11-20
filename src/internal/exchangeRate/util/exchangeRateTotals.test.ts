@@ -136,7 +136,7 @@ describe("Issue #1139 交易合计一致性", () => {
       transaction_record_id: r.id,
     }));
     const build = (
-      groupBy: "merchant" | "holder" | "account",
+      groupBy: "merchant" | "account",
       rateRecords = records,
     ) =>
       buildTransactionGroupSummaryPage({
@@ -159,10 +159,6 @@ describe("Issue #1139 交易合计一致性", () => {
     expect(build("merchant").groups[0].summary).toMatchObject({
       expense: "300",
       balance: "-300",
-      currency: "USD",
-    });
-    expect(build("holder").groups[0].summary).toMatchObject({
-      expense: "300",
       currency: "USD",
     });
     expect(build("account").groups[0].summary).toMatchObject({
