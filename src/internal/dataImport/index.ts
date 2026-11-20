@@ -1,4 +1,5 @@
 export type { ImportExecutionUnit } from "internal/dataImport/entity/importRow";
+export type { EmbeddedWorksheetPhoto } from "internal/dataImport/entity/parsedTable";
 export {
   dataImportErrorCodes,
   dataImportErrorMessages,

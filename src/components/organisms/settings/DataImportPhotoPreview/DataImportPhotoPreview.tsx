@@ -5,7 +5,7 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import type { EmbeddedWorksheetPhoto } from "internal/dataImport/entity/parsedTable";
+import type { EmbeddedWorksheetPhoto } from "internal/dataImport";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { dataImportResultMessages } from "config/dataImportExportMessages";
 

@@ -1,8 +1,8 @@
-import type { EmbeddedWorksheetPhoto } from "internal/dataImport/entity/parsedTable";
 import type {
   ImportExecutionDetail,
   ImportExecutionRowResult,
   ImportExecutionUnit,
+  EmbeddedWorksheetPhoto,
 } from "internal/dataImport";
 import { dataImportExecutionErrorMessages } from "internal/dataImport";
 import { uploadReceiptPhoto } from "utils/transactionPhotoUpload";

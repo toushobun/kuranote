@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 
 import { dataImportExecutionMessages } from "config/dataImportExportMessages";
-import type { EmbeddedWorksheetPhoto } from "internal/dataImport/entity/parsedTable";
 import { prepareImportPhotoBatch } from "utils/dataImportPhotoBatch";
 import type { DataImportPhotoPreviewRow } from "organisms/settings/DataImportPhotoPreview/DataImportPhotoPreview";
 import type { AccountImportHolder } from "internal/account";
@@ -13,6 +12,7 @@ import {
   dataImportErrorCodes,
   dataImportErrorMessages,
   importBatchSize,
+  type EmbeddedWorksheetPhoto,
   type ImportExecutionResult,
   type ImportExecutionUnit,
   type ImportHolderMapping,
