@@ -240,6 +240,24 @@ describe("TransactionAmountKeypad", () => {
     );
   });
 
+  it("三位小数币种在转账限制下不能输入第三位小数", () => {
+    const handleConfirm = vi.fn();
+    render(
+      <TransactionAmountKeypad
+        currency="BHD"
+        maxDecimalPlaces={2}
+        value=""
+        onChange={vi.fn()}
+        onConfirm={handleConfirm}
+      />,
+    );
+    for (const key of ["1", ".", "2", "3", "4"] as const) {
+      fireEvent.click(screen.getByRole("button", { name: key }));
+    }
+    fireEvent.click(screen.getByRole("button", { name: "确认" }));
+    expect(handleConfirm).toHaveBeenCalledWith("1.23");
+  });
+
   it("未选择账户、币种未知时小数点按钮不可用", () => {
     render(
       <TransactionAmountKeypad
