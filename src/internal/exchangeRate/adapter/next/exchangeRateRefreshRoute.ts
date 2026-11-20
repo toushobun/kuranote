@@ -7,7 +7,11 @@ export async function handleExchangeRateRefreshRequest(
   request: Request,
   options: { secret?: string; refresh?: () => Promise<unknown> } = {},
 ): Promise<Response> {
-  const rejection = authenticateCronRequest(request, options.secret ?? process.env.CRON_SECRET, "exchangeRate");
+  const rejection = authenticateCronRequest(
+    request,
+    options.secret ?? process.env.CRON_SECRET,
+    "exchangeRate",
+  );
   if (rejection) return rejection;
   try {
     const summary = await (options.refresh ?? executeExchangeRateRefresh)();
@@ -16,6 +20,9 @@ export async function handleExchangeRateRefreshRequest(
     console.error("[exchangeRate] daily refresh failed", {
       errorName: error instanceof Error ? error.name : "unknown",
     });
-    return Response.json({ error: "Exchange rate refresh failed" }, { status: 500 });
+    return Response.json(
+      { error: "Exchange rate refresh failed" },
+      { status: 500 },
+    );
   }
 }

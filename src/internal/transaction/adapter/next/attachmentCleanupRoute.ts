@@ -14,7 +14,11 @@ export async function handleAttachmentCleanupRequest(
     cleanup?: () => Promise<unknown>;
   } = {},
 ): Promise<Response> {
-  const rejection = authenticateCronRequest(request, options.secret ?? process.env.CRON_SECRET, "transaction");
+  const rejection = authenticateCronRequest(
+    request,
+    options.secret ?? process.env.CRON_SECRET,
+    "transaction",
+  );
   if (rejection) return rejection;
 
   try {

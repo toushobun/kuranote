@@ -4,7 +4,11 @@ import { authenticateCronRequest } from "./cronAuthorization";
 describe("authenticateCronRequest", () => {
   it("没有配置密钥时返回 503", () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const result = authenticateCronRequest(new Request("http://localhost"), "", "test");
+    const result = authenticateCronRequest(
+      new Request("http://localhost"),
+      "",
+      "test",
+    );
     expect(result?.status).toBe(503);
     expect(spy).toHaveBeenCalledOnce();
     spy.mockRestore();
@@ -15,7 +19,9 @@ describe("authenticateCronRequest", () => {
       const request = new Request("http://localhost", {
         headers: authorization ? { Authorization: authorization } : {},
       });
-      expect(authenticateCronRequest(request, "secret", "test")?.status).toBe(401);
+      expect(authenticateCronRequest(request, "secret", "test")?.status).toBe(
+        401,
+      );
     }
   });
 

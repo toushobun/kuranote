@@ -30,20 +30,26 @@ export function createExchangeRateRepository(
         .limit(1)
         .maybeSingle();
       if (error) {
-        console.error("[exchangeRate] latest date query failed", { code: error.code });
+        console.error("[exchangeRate] latest date query failed", {
+          code: error.code,
+        });
         throw new RepositoryError("exchange_rate_read_failed", "汇率读取失败");
       }
       return data?.rate_date ?? null;
     },
     async upsertRates(rates) {
       for (let index = 0; index < rates.length; index += batchSize) {
-        const { error } = await supabase.from("exchange_rate").upsert(
-          rates.slice(index, index + batchSize),
-          { onConflict: "rate_date,currency" },
-        );
+        const { error } = await supabase
+          .from("exchange_rate")
+          .upsert(rates.slice(index, index + batchSize), {
+            onConflict: "rate_date,currency",
+          });
         if (error) {
           console.error("[exchangeRate] upsert failed", { code: error.code });
-          throw new RepositoryError("exchange_rate_write_failed", "汇率保存失败");
+          throw new RepositoryError(
+            "exchange_rate_write_failed",
+            "汇率保存失败",
+          );
         }
       }
     },
