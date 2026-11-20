@@ -259,6 +259,7 @@ export function TransferReceipt(props: TransferReceiptProps) {
               : t.amount
         }
         currency={w.amountSide === "target" ? w.targetCurrency : w.currency}
+        maxDecimalPlaces={2}
         value={w.amountSide === "target" ? w.transferTargetAmount : w.amount}
         onConfirm={w.confirmAmount}
         onClose={() => w.setAmountSide(null)}
