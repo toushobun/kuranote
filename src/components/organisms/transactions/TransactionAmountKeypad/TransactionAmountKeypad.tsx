@@ -29,7 +29,6 @@ type TransactionAmountKeypadProps = {
   /** 允许确认负数（账户初始金额的信用卡欠款等），默认只接受非负金额。 */
   allowNegative?: boolean;
   currency?: string;
-  maxDecimalPlaces?: number;
   confirmLabel?: string;
   onChange: (value: string) => void;
   onConfirm: (value: string) => void;
@@ -86,7 +85,6 @@ const keyAriaLabels: Record<string, string | undefined> = {
 export function TransactionAmountKeypad({
   allowNegative = false,
   currency,
-  maxDecimalPlaces,
   confirmLabel = "确认",
   onChange,
   onConfirm,
@@ -97,7 +95,7 @@ export function TransactionAmountKeypad({
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const decimalDisabled = isDecimalAmountDisabled(currency);
-  const inputOptions = { allowNegative, currency, maxDecimalPlaces };
+  const inputOptions = { allowNegative, currency };
   const syncedState = getSyncedAmountKeypadState(state, value);
   const previewValue = getAmountKeypadPreviewValue(syncedState, inputOptions);
   const expressionText = getAmountKeypadExpressionText(syncedState);
