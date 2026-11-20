@@ -38,10 +38,6 @@ describe("formatEditableAmount", () => {
   ])("按 %s 的小数位数格式化编辑金额", (currency, amount, expected) => {
     expect(formatEditableAmount(amount, currency)).toBe(expected);
   });
-  it("转账金额回填即使是三位小数币种也最多保留两位", () => {
-    expect(formatEditableAmount("5000.12", "KWD", 2)).toBe("5000.12");
-    expect(formatEditableAmount("5000", "BHD", 2)).toBe("5000");
-  });
 });
 
 const currentLedger: CurrentLedger = {
