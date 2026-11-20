@@ -148,8 +148,8 @@ export interface AccountRepository {
     ledgerId: string,
     includeArchived?: boolean,
   ): Promise<AccountData[]>;
-  /** 账户列表页按最新汇率计算余额所需，其他读取不触发。 */
-  listLedgerRates?(ledgerId: string): Promise<Map<string, number | string | null>>;
+  /** 所有账户视图按最新日汇率读取。 */
+  listLedgerRates(ledgerId: string): Promise<Map<string, number | string | null>>;
   /** 出现在任何交易数据中（含已作废记录、初始余额）的账户 ID。 */
   listAccountIdsWithTransactions(ledgerId: string): Promise<string[]>;
   listActiveMembers(ledgerId: string): Promise<AccountLedgerMember[]>;

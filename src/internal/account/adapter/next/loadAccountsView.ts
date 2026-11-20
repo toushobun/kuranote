@@ -18,17 +18,6 @@ export async function loadAccountsView() {
   });
 }
 
-/** 账户列表附带服务端换算率；编辑页保持原有读取路径。 */
-export async function loadAccountBalancesView() {
-  const { currentLedger, userId } = await requireCurrentUserAndLedger();
-  const dependencies = await createServerRequestDependencies();
-  return createRequestContainer(dependencies).account.service.getView({
-    ledgerId: currentLedger.id,
-    userId,
-    includeLedgerRates: true,
-  });
-}
-
 /** 编辑账户页需要完整视图；只允许有账户管理权限的成员访问。 */
 async function loadManageableAccountsView() {
   const view = await loadAccountsView();

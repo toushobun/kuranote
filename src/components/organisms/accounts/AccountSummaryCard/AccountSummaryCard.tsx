@@ -35,11 +35,10 @@ export function AccountSummaryCard({
   let missingAccountRates = 0;
   for (const account of accounts) {
     const isForeign = account.currency !== baseCurrency;
-    const rate =
-      isForeign && account.ledger_rate === undefined
-        ? null
-        : account.ledger_rate;
-    const converted = convertLedgerAmount(account.current_balance, rate);
+    const converted = convertLedgerAmount(
+      account.current_balance,
+      account.ledger_rate,
+    );
     if (converted === null) {
       if (isForeign) missingAccountRates += 1;
     } else {

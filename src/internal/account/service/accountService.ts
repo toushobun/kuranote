@@ -51,8 +51,6 @@ import {
 export type AccountsView = Awaited<ReturnType<typeof buildAccountsView>>;
 
 export type GetAccountsViewInput = {
-  /** 只在账户列表页读取实时参考汇率，编辑页不额外查询。 */
-  includeLedgerRates?: boolean;
   includeArchived?: boolean;
   ledgerId: string;
   userId: string;
@@ -508,7 +506,7 @@ export function createAccountService({
       return { holderOptions, placeholderHolderOptions };
     },
 
-    async getView({ ledgerId, userId, includeArchived, includeLedgerRates }) {
+    async getView({ ledgerId, userId, includeArchived }) {
       const role = await requireActiveMemberRole(ledgerId, userId);
       const [
         ledger,
@@ -551,7 +549,9 @@ export function createAccountService({
       ];
       const users = await accountRepository.listUsers(userIds);
 
-      const view = buildAccountsView({
+      const ledgerRates = await accountRepository.listLedgerRates(ledgerId);
+      return buildAccountsView({
+        ledgerRates,
         accountIdsWithTransactions,
         accounts,
         displaySettings,
@@ -562,19 +562,7 @@ export function createAccountService({
         role,
         users,
       });
-      if (!includeLedgerRates) return view;
-      // 只在完成账本成员权限判断后读取汇率。
-      if (!accountRepository.listLedgerRates) {
-        throw new Error("Account ledger rate repository is not configured");
-      }
-      const rates = await accountRepository.listLedgerRates(ledgerId);
-      return {
-        ...view,
-        accounts: view.accounts.map((account) => ({
-          ...account,
-          ledger_rate: rates.get(account.id) ?? null,
-        })),
-      };
+
     },
 
     async update(input) {
