@@ -215,7 +215,6 @@ export const transactionWriteErrorMessages = {
   reimbursementItemUnavailable:
     "待报销明细已被处理或不属于当前账本，请刷新后重试。",
   reimbursementLinkExists: "该支出仍有关联的报销收入，请先解除关联。",
-  transferCurrencyMismatch: "转账账户币种必须一致。",
   typeInvalid: "交易类型不正确，请确认后重试。",
 } as const;
 

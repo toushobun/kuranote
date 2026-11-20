@@ -479,16 +479,16 @@ describe("getEditTransactionView", () => {
       listItems: vi.fn().mockResolvedValue([
         {
           account_id: accountId,
-          amount: "5000.123",
-          balance_delta: "-5000.123",
+          amount: "5000.12",
+          balance_delta: "-5000.12",
           category_id: null,
           note: null,
           transaction_record_id: transactionRecordId,
         },
         {
           account_id: targetAccountId,
-          amount: "5000.123",
-          balance_delta: "5000.123",
+          amount: "5000.12",
+          balance_delta: "5000.12",
           category_id: null,
           note: null,
           transaction_record_id: transactionRecordId,
@@ -516,7 +516,8 @@ describe("getEditTransactionView", () => {
       note: "账户调拨",
       transactionAt: "2026-06-04T01:30:05.000Z",
       transactionRecordId,
-      transferAmount: "5000.123",
+      transferAmount: "5000.12",
+      transferTargetAmount: "5000.12",
       transferTargetAccountId: targetAccountId,
       type: "transfer",
     } satisfies TransferEditInitialValues);

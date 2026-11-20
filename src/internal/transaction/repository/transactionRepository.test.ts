@@ -413,6 +413,7 @@ describe("TransactionRepository", () => {
     await repository.createTransfer(transferInput);
     expect(rpc).toHaveBeenCalledWith("create_transfer_transaction", {
       p_amount: 1200,
+      p_to_amount: null,
       p_from_account_id: accountId,
       p_ledger_id: ledgerId,
       p_note: "转账",
@@ -473,6 +474,7 @@ describe("TransactionRepository", () => {
     );
     expect(rpc).toHaveBeenNthCalledWith(2, "update_transfer_transaction", {
       p_amount: 1200,
+      p_to_amount: null,
       p_from_account_id: accountId,
       p_ledger_id: ledgerId,
       p_note: "转账",
@@ -1197,7 +1199,13 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
     type: "expense" as const,
   };
   function readFunctionBody(functionName: string) {
-    const migration = readFileSync(migrationPath, "utf8");
+    const sourcePath = functionName.includes("transfer")
+      ? path.join(
+          process.cwd(),
+          "supabase/migrations/20261120010000_cross_currency_transfer.sql",
+        )
+      : migrationPath;
+    const migration = readFileSync(sourcePath, "utf8");
     const startMarker = `create or replace function public.${functionName}(`;
     const start = migration.indexOf(startMarker);
     if (start < 0)
@@ -1259,10 +1267,8 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
         expect(body).toContain("a.ledger_id = p_ledger_id");
         expect(body).toContain("raise exception 'from_account_invalid'");
         expect(body).toContain("raise exception 'to_account_invalid'");
-        expect(body).toContain(
-          "v_from_account.currency <> v_to_account.currency",
-        );
-        expect(body).toContain("raise exception 'transfer_currency_invalid'");
+        expect(body).toContain("public.is_valid_transfer_amount");
+        expect(body).not.toContain("transfer_currency_invalid");
       },
     );
     it("更新 RPC 将目标交易限定在当前账本且只允许 active 记录", () => {
@@ -1291,11 +1297,6 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
         "to_account_invalid",
         "account_invalid",
         transactionWriteErrorMessages.accountInvalid,
-      ],
-      [
-        "transfer_currency_invalid",
-        "account_invalid",
-        transactionWriteErrorMessages.transferCurrencyMismatch,
       ],
       [
         "refund_currency_mismatch",

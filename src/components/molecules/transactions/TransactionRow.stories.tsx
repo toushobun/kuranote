@@ -160,6 +160,14 @@ const transferItem: TransactionRowItem = {
   note: null,
 };
 
+const crossCurrencyTransferItem: TransactionRowItem = {
+  ...transferItem,
+  account_name: "日元现金 → 招商银行卡",
+  amount: "100000",
+  transferTargetAmount: "4850",
+  transferTargetCurrency: "CNY",
+};
+
 const meta = {
   title: "Molecules/Transactions/TransactionRow",
   component: TransactionRow,
@@ -721,6 +729,11 @@ export const FullyRefundedExpense1078: Story = {
       ],
     },
   },
+};
+
+export const CrossCurrencyTransfer247: Story = {
+  name: "跨币种转账：右下到账 CNY",
+  args: { item: crossCurrencyTransferItem, receiptCard: false },
 };
 
 export const RefundSurplusIncome1078: Story = {

@@ -67,6 +67,39 @@ export const Edit: Story = {
   args: { initialValues: editValues, sourceType: "transfer" },
 };
 
+const crossValues = {
+  ...editValues,
+  accountId: "cash",
+  transferTargetAccountId: "cny",
+  transferAmount: "100000",
+  transferTargetAmount: "4850",
+};
+
+export const CrossCurrencyFilled: Story = {
+  name: "跨币种：双金额与汇率",
+  args: { initialValues: crossValues },
+};
+
+export const CrossCurrencyMissingTarget: Story = {
+  name: "跨币种：到账金额未填点保存后",
+  args: {
+    initialValues: { ...crossValues, transferTargetAmount: "" },
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      within(canvasElement).getByRole("button", { name: "保存转账" }),
+    );
+    await expect(
+      await within(canvasElement).findByText("请输入到账金额"),
+    ).toBeInTheDocument();
+  },
+};
+
+export const CrossCurrencyReadOnly: Story = {
+  name: "跨币种：只读详情",
+  args: { initialValues: crossValues, readOnly: true },
+};
+
 export const ReadOnly: Story = {
   name: "只读详情",
   args: { initialValues: editValues, readOnly: true },

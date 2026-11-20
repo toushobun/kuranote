@@ -696,6 +696,7 @@ export function createDataImportExecutionService({
           timeZoneOffsetMinutes,
           transactionAt: row.transactionAt,
           transferAmount: row.amount,
+          transferTargetAmount: row.targetAmount ?? row.amount,
           transferTargetAccountId: toAccount.id,
         };
         const duplicate =

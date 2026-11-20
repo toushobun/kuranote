@@ -194,6 +194,7 @@ describe("Transaction Action 写入流程", () => {
       transactionAt: "2026-06-04T01:30:05.000Z",
       transferAmount: 5000,
       transferTargetAccountId: targetAccountId,
+      transferTargetAmount: null,
     });
     expect(
       transactionActionModuleMocks.revalidateTransactionMutation,

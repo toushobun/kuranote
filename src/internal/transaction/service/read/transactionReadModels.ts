@@ -35,6 +35,8 @@ export type TransactionListItem = {
   amount: string;
   originalAmount?: string;
   originalType?: CategoryType;
+  transferTargetAmount?: string;
+  transferTargetCurrency?: string;
   categoryItems: TransactionCategorySummaryItem[];
   created_at: string;
   id: string;
@@ -146,6 +148,7 @@ export type TransferEditInitialValues = {
   transactionAt: string;
   transactionRecordId: string;
   transferAmount: string;
+  transferTargetAmount?: string;
   transferTargetAccountId: string;
   type: "transfer";
 };

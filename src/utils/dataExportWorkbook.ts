@@ -130,10 +130,13 @@ export async function buildDataExportWorkbook(
       ) {
         throw new IncompleteDataExportError();
       }
+      const fromCurrency = accounts.get(from.accountId)?.currency;
+      const toCurrency = accounts.get(to.accountId)?.currency;
       const row = transfer.addRow({
         ...common,
         交易类型: "转账",
         金额: from.amount,
+        到账金额: fromCurrency !== toCurrency ? to.amount : "",
       });
       writeAccount(row, accounts.get(from.accountId), "转出");
       writeAccount(row, accounts.get(to.accountId), "转入");
