@@ -27,7 +27,10 @@ beforeEach(() => {
   revokeObjectURL.mockReset();
   vi.stubGlobal(
     "URL",
-    Object.assign(URL, { createObjectURL, revokeObjectURL }),
+    class extends URL {
+      static createObjectURL = createObjectURL;
+      static revokeObjectURL = revokeObjectURL;
+    },
   );
   vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
 });
