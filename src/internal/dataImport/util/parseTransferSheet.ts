@@ -127,7 +127,7 @@ export function parseTransferSheet(
       rawTargetAmount &&
       (!targetAmountResult?.ok ||
         exceedsCurrencyDecimalPlaces(
-          rawTargetAmount,
+          String(targetAmountResult.value),
           toAccountCurrencyText.toUpperCase(),
         ))
     ) {
@@ -143,11 +143,12 @@ export function parseTransferSheet(
       addIssue("到账金额", transferImportErrorMessages.targetAmountMismatch);
     }
 
+    // 数据库 numeric(14,2) 导出的 JPY「300.00」本质是整数，不应因补零被拒。
     if (
       amountResult.ok &&
       fromAccountCurrencyValid &&
       exceedsCurrencyDecimalPlaces(
-        get("金额"),
+        String(amountResult.value),
         fromAccountCurrencyText.toUpperCase(),
       )
     ) {
