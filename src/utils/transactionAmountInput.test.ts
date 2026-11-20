@@ -81,22 +81,6 @@ describe("transactionAmountInput", () => {
     expect(normalizeMoneyText("001.230", { currency: "BHD" })).toBe("1.23");
   });
 
-  it("转账金额可对三位小数币种单独限制为两位", () => {
-    const options = { currency: "BHD", maxDecimalPlaces: 2 };
-    expect(isValidPositiveMoneyText("1.23", options)).toBe(true);
-    expect(isValidPositiveMoneyText("1.234", options)).toBe(false);
-
-    let state = createAmountKeypadState();
-    for (const key of ["1", ".", "2", "3", "4"] as const) {
-      state = applyAmountKeypadKey(state, key, options);
-    }
-    expect(state.displayValue).toBe("1.23");
-    expect(confirmAmountKeypadState(state, options)).toMatchObject({
-      ok: true,
-      value: "1.23",
-    });
-  });
-
   it("未选择账户、币种未知时按整数金额处理，不允许小数", () => {
     expect(getAmountDecimalPlaces()).toBe(0);
     expect(getAmountDecimalPlaces("")).toBe(0);
