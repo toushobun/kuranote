@@ -70,12 +70,14 @@ describe("dataExportWorkbook", () => {
     const transfer = data.records[1];
     if (transfer.type !== "transfer") throw new Error("测试数据不正确");
 
+    transfer.items[1].amount = "300.00";
+    transfer.items[1].balanceDelta = "-300.00";
     data.accounts[1].currency = "CNY";
-    transfer.items[0].amount = "15.5";
-    transfer.items[0].balanceDelta = "15.5";
+    transfer.items[0].amount = "15.50";
+    transfer.items[0].balanceDelta = "15.50";
     const sheet = (await loadWorkbook(data)).getWorksheet("转账")!;
-    expect(cell(sheet, 2, "金额").value).toBe("300");
-    expect(cell(sheet, 2, "到账金额").value).toBe("15.5");
+    expect(cell(sheet, 2, "金额").value).toBe("300.00");
+    expect(cell(sheet, 2, "到账金额").value).toBe("15.50");
 
     const { result, units } = await analyzeImportFile(
       new File([await buildDataExportWorkbook(data)], "export.xlsx"),
@@ -87,8 +89,8 @@ describe("dataExportWorkbook", () => {
     });
 
     data.accounts[1].currency = "JPY";
-    transfer.items[0].amount = "300";
-    transfer.items[0].balanceDelta = "300";
+    transfer.items[0].amount = "300.00";
+    transfer.items[0].balanceDelta = "300.00";
     const sameSheet = (await loadWorkbook(data)).getWorksheet("转账")!;
     expect(cell(sameSheet, 2, "到账金额").value).toBe("");
   });
