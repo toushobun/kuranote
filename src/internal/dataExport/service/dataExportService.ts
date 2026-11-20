@@ -5,7 +5,11 @@ import type { TransactionExportQueryService } from "internal/transaction";
 import type { DataExport } from "internal/dataExport/entity/dataExport";
 
 export interface DataExportService {
-  getData(input: { ledgerId: string; userId: string }): Promise<DataExport>;
+  getData(input: {
+    ledgerId: string;
+    userId: string;
+    includePhotos?: boolean;
+  }): Promise<DataExport>;
 }
 
 async function loadReferences<T>(
@@ -61,7 +65,16 @@ export function createDataExportService({
             merchantQueryService.findExportSummaries({ ...input, merchantIds }),
         ),
       ]);
-      return { records, accounts, categories, merchants };
+      const data = { records, accounts, categories, merchants };
+      if (!input.includePhotos) return data;
+      const photos = await transactionQueryService.listPhotosForExport({
+        ledgerId: input.ledgerId,
+        userId: input.userId,
+        recordIds: records
+          .filter((record) => record.type === "normal")
+          .map((record) => record.id),
+      });
+      return photos.length > 0 ? { ...data, photos } : data;
     },
   };
 }

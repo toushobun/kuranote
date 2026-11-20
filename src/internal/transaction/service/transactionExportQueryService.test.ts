@@ -18,12 +18,18 @@ function setup() {
       .fn()
       .mockResolvedValue([{ id: "historical", display_name: "原记账人" }]),
   };
+  const attachmentStorageRepository = {
+    listByRecords: vi.fn().mockResolvedValue([]),
+    getSignedReadUrls: vi.fn().mockResolvedValue([]),
+  };
   const ledgerAccessService = createLedgerAccessMock();
   return {
     transactionRepository,
+    attachmentStorageRepository,
     ledgerAccessService,
     service: createTransactionExportQueryService({
       transactionRepository,
+      attachmentStorageRepository,
       ledgerAccessService,
     }),
   };
@@ -31,6 +37,35 @@ function setup() {
 const input = { ledgerId: "ledger", userId: "viewer" };
 
 describe("transactionExportQueryService", () => {
+  it("照片按 sort_order 导出并分批签名，且使用账本权限", async () => {
+    const { service, attachmentStorageRepository } = setup();
+    attachmentStorageRepository.listByRecords.mockResolvedValue([
+      { id: "b", transaction_record_id: "record", sort_order: 1 },
+      { id: "a", transaction_record_id: "record", sort_order: 0 },
+    ]);
+    attachmentStorageRepository.getSignedReadUrls.mockResolvedValue([
+      { id: "a", fullUrl: "https://example.com/a.jpg" },
+      { id: "b", fullUrl: "https://example.com/b.jpg" },
+    ]);
+    await expect(
+      service.listPhotosForExport({ ...input, recordIds: ["record"] }),
+    ).resolves.toEqual([
+      {
+        recordId: "record",
+        sortOrder: 0,
+        fullUrl: "https://example.com/a.jpg",
+      },
+      {
+        recordId: "record",
+        sortOrder: 1,
+        fullUrl: "https://example.com/b.jpg",
+      },
+    ]);
+    expect(attachmentStorageRepository.listByRecords).toHaveBeenCalledWith(
+      "ledger",
+      ["record"],
+    );
+  });
   it("读取超过千条交易及同一批超过千条明细，不使用当前用户覆盖记账人", async () => {
     const { service, transactionRepository } = setup();
     const records = Array.from({ length: 1001 }, (_, index) => ({

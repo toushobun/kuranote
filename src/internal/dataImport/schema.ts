@@ -40,6 +40,17 @@ export const incomeExpenseColumns: ImportColumnDef[] = [
   { name: "备注", required: false },
 ];
 
+/** 仅在导出照片时追加，导入时识别为合法的可选图片列。 */
+export const incomeExpensePhotoColumnNames = [
+  "照片1",
+  "照片2",
+  "照片3",
+  "照片4",
+  "照片5",
+] as const;
+export const incomeExpensePhotoColumns: ImportColumnDef[] =
+  incomeExpensePhotoColumnNames.map((name) => ({ name, required: false }));
+
 /** 「转账」sheet 列定义。 */
 export const transferColumns: ImportColumnDef[] = [
   { name: "交易类型", required: true },

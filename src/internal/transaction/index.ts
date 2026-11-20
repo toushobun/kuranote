@@ -68,7 +68,10 @@ export {
 
 export type { BalanceAdjustmentEditInitialValues } from "internal/transaction/entity/balanceAdjustment";
 export type { TransactionExportRecord } from "internal/transaction/entity/transactionExportRecord";
-export type { TransactionExportQueryService } from "internal/transaction/service/transactionExportQueryService";
+export type {
+  TransactionExportQueryService,
+  TransactionExportPhoto,
+} from "internal/transaction/service/transactionExportQueryService";
 
 export {
   getMultiAccountItemType,

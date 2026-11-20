@@ -2,6 +2,9 @@ import type {
   TransactionExportPayment,
   TransactionExportRecord,
 } from "internal/transaction/entity/transactionExportRecord";
+import type { AttachmentStorageRepository } from "internal/transaction/repository/attachmentStorageRepository";
+import { transactionAttachmentMessages } from "config/transactionAttachmentMessages";
+import { ValidationError } from "internal/shared/errors/appError";
 import type { TransactionContextRepository } from "internal/transaction/repository/transactionRepository";
 import {
   requireActiveLedgerMemberRole,
@@ -10,7 +13,18 @@ import {
 import { readAllPages } from "internal/shared/supabase/readAllPages";
 import { requireItemAccountId } from "internal/transaction/util/grouping/recordAccounts";
 
+export type TransactionExportPhoto = {
+  recordId: string;
+  sortOrder: number;
+  fullUrl: string;
+};
+
 export interface TransactionExportQueryService {
+  listPhotosForExport(input: {
+    ledgerId: string;
+    userId: string;
+    recordIds: string[];
+  }): Promise<TransactionExportPhoto[]>;
   listAllForExport(input: {
     ledgerId: string;
     userId: string;
@@ -18,13 +32,57 @@ export interface TransactionExportQueryService {
 }
 
 export function createTransactionExportQueryService({
+  attachmentStorageRepository,
   transactionRepository,
   ledgerAccessService,
 }: {
+  attachmentStorageRepository: Pick<
+    AttachmentStorageRepository,
+    "listByRecords" | "getSignedReadUrls"
+  >;
   transactionRepository: TransactionContextRepository;
   ledgerAccessService: LedgerAccessService;
 }): TransactionExportQueryService {
   return {
+    async listPhotosForExport({ ledgerId, userId, recordIds }) {
+      await requireActiveLedgerMemberRole(ledgerAccessService, {
+        ledgerId,
+        userId,
+      });
+      const attachments = await attachmentStorageRepository.listByRecords(
+        ledgerId,
+        recordIds,
+      );
+      const photos: TransactionExportPhoto[] = [];
+      // Storage 批量签发有数量上限；分批处理可避免单次请求过大。
+      for (let offset = 0; offset < attachments.length; offset += 100) {
+        const group = attachments.slice(offset, offset + 100);
+        const signed = await attachmentStorageRepository.getSignedReadUrls(
+          group,
+          6 * 60 * 60,
+        );
+        const urls = new Map(signed.map((photo) => [photo.id, photo.fullUrl]));
+        for (const attachment of group) {
+          const fullUrl = urls.get(attachment.id);
+          if (!fullUrl || !attachment.transaction_record_id) {
+            throw new ValidationError(
+              "transaction_export_photo_invalid",
+              transactionAttachmentMessages.loadFailed,
+            );
+          }
+          photos.push({
+            fullUrl,
+            recordId: attachment.transaction_record_id,
+            sortOrder: attachment.sort_order,
+          });
+        }
+      }
+      return photos.sort(
+        (a, b) =>
+          a.recordId.localeCompare(b.recordId) || a.sortOrder - b.sortOrder,
+      );
+    },
+
     async listAllForExport({ ledgerId, userId }) {
       await requireActiveLedgerMemberRole(ledgerAccessService, {
         ledgerId,

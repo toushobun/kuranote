@@ -30,6 +30,8 @@ export {
   incomeExpenseColumns,
   incomeExpensePaymentColumnNames,
   incomeExpensePaymentColumns,
+  incomeExpensePhotoColumnNames,
+  incomeExpensePhotoColumns,
   importColumnsBySheetKind,
   transferColumns,
   balanceAdjustmentColumns,

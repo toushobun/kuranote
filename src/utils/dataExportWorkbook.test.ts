@@ -406,6 +406,131 @@ describe("dataExportWorkbook", () => {
     ).rejects.toMatchObject(error);
   });
 
+  it("照片按排序写在首行，使用双单元格锚点且不在后续明细重复", async () => {
+    const data = createDataExportFixture();
+    data.photos = [
+      {
+        recordId: "normal",
+        sortOrder: 2,
+        fullUrl: "https://example.com/c.jpg",
+      },
+      {
+        recordId: "normal",
+        sortOrder: 0,
+        fullUrl: "https://example.com/a.jpg",
+      },
+      {
+        recordId: "normal",
+        sortOrder: 1,
+        fullUrl: "https://example.com/b.jpg",
+      },
+    ];
+    const downloads: string[] = [];
+    const progress: string[] = [];
+    const buffer = await buildDataExportWorkbook(data, {
+      downloadPhoto: async (url) => {
+        downloads.push(url);
+        return new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);
+      },
+      onPhotoProgress: (done, total) => progress.push(`${done}/${total}`),
+    });
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer);
+    const sheet = workbook.getWorksheet("收支")!;
+    const columns = sheet.getRow(1).values as string[];
+    expect(columns.slice(-5)).toEqual([
+      "照片1",
+      "照片2",
+      "照片3",
+      "照片4",
+      "照片5",
+    ]);
+    expect(sheet.getColumn(columns.indexOf("照片1")).width).toBe(12);
+    expect(sheet.getColumn(columns.indexOf("照片5")).width).toBe(12);
+    expect(sheet.getColumn(columns.indexOf("金额")).width).toBe(22);
+    expect(sheet.getRow(2).height).toBe(90);
+    const images = sheet.getImages();
+    expect(images).toHaveLength(3);
+    for (const [index, item] of images.entries()) {
+      expect(
+        (item.range as typeof item.range & { editAs?: string }).editAs,
+      ).toBe("twoCell");
+      expect(item.range.tl.nativeRow).toBe(1);
+      expect(item.range.tl.nativeCol).toBe(
+        columns.indexOf(`照片${index + 1}`) - 1,
+      );
+      expect(item.range.tl.nativeColOff).toBe(0);
+      expect(item.range.tl.nativeRowOff).toBe(0);
+    }
+    expect(downloads).toEqual([
+      "https://example.com/a.jpg",
+      "https://example.com/b.jpg",
+      "https://example.com/c.jpg",
+    ]);
+    expect(progress.at(-1)).toBe("3/3");
+    expect(sheet.getRow(3).height).toBeUndefined();
+  });
+
+  it("导出照片不存在时与原导出一样不额外增加列", async () => {
+    const data = createDataExportFixture();
+    data.photos = [];
+    const sheet = (await loadWorkbook(data)).getWorksheet("收支")!;
+    expect(
+      (sheet.getRow(1).values as string[]).some((name) =>
+        /^照片[1-5]$/.test(name),
+      ),
+    ).toBe(false);
+    expect(sheet.getImages()).toHaveLength(0);
+  });
+
+  it("任意照片下载失败时拒绝生成不完整文件", async () => {
+    const data = createDataExportFixture();
+    data.photos = [
+      {
+        recordId: "normal",
+        sortOrder: 0,
+        fullUrl: "https://example.com/a.jpg",
+      },
+    ];
+    await expect(
+      buildDataExportWorkbook(data, {
+        downloadPhoto: async () => {
+          throw new Error("network failure");
+        },
+      }),
+    ).rejects.toThrow("network failure");
+  });
+
+  it("并行下载失败后停止后续任务，且在途照片不能重新触发进度", async () => {
+    const data = createDataExportFixture();
+    data.photos = Array.from({ length: 5 }, (_, index) => ({
+      recordId: "normal",
+      sortOrder: index,
+      fullUrl: `https://example.com/${index}.jpg`,
+    }));
+    let releaseSlow!: (bytes: Uint8Array) => void;
+    const slowDownload = new Promise<Uint8Array>((resolve) => {
+      releaseSlow = resolve;
+    });
+    const requested: string[] = [];
+    const progress: string[] = [];
+    const exportPromise = buildDataExportWorkbook(data, {
+      downloadPhoto: (url) => {
+        requested.push(url);
+        return url.endsWith("/0.jpg")
+          ? Promise.reject(new Error("network failure"))
+          : slowDownload;
+      },
+      onPhotoProgress: (done, total) => progress.push(`${done}/${total}`),
+    });
+    await expect(exportPromise).rejects.toThrow("network failure");
+    releaseSlow(new Uint8Array([0xff, 0xd8, 0xff, 0xd9]));
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(requested).toHaveLength(4);
+    expect(progress).toEqual(["0/5"]);
+  });
+
   it("空账本也生成三个工作表，列名顺序复用导入定义且表头加粗填绿", async () => {
     const workbook = await loadWorkbook(createEmptyDataExport());
     expect(workbook.worksheets.map((sheet) => sheet.name)).toEqual([

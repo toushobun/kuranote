@@ -20,6 +20,7 @@ function setup(data = createDataExportFixture()) {
     },
     transactionQueryService: {
       listAllForExport: vi.fn().mockResolvedValue(data.records),
+      listPhotosForExport: vi.fn().mockResolvedValue([]),
     },
   };
   return { ...dependencies, service: createDataExportService(dependencies) };
@@ -47,6 +48,24 @@ describe("dataExportService", () => {
     expect(merchantQueryService.findExportSummaries).toHaveBeenCalledWith({
       ...input,
       merchantIds: ["shop"],
+    });
+  });
+  it("仅在勾选照片时读取已签名照片且不改变默认结果", async () => {
+    const { service, transactionQueryService } = setup();
+    await service.getData(input);
+    expect(transactionQueryService.listPhotosForExport).not.toHaveBeenCalled();
+    transactionQueryService.listPhotosForExport.mockResolvedValueOnce([
+      {
+        fullUrl: "https://example.com/photo.jpg",
+        recordId: "normal",
+        sortOrder: 0,
+      },
+    ]);
+    const result = await service.getData({ ...input, includePhotos: true });
+    expect(result.photos).toHaveLength(1);
+    expect(transactionQueryService.listPhotosForExport).toHaveBeenCalledWith({
+      ...input,
+      recordIds: ["normal"],
     });
   });
   it("空账本不读取主数据，仍返回完整空结果", async () => {

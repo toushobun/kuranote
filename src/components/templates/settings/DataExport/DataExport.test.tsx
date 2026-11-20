@@ -27,7 +27,10 @@ beforeEach(() => {
   revokeObjectURL.mockReset();
   vi.stubGlobal(
     "URL",
-    Object.assign(URL, { createObjectURL, revokeObjectURL }),
+    class extends URL {
+      static createObjectURL = createObjectURL;
+      static revokeObjectURL = revokeObjectURL;
+    },
   );
   vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
 });
@@ -55,6 +58,20 @@ describe("DataExportTemplate", () => {
       screen.getByText(/包含全部收支、转账和余额变更/),
     ).toBeInTheDocument();
   });
+  it("默认关闭照片开关，开启后展示大文件提示并把选项传给服务端", async () => {
+    const action = vi.fn().mockResolvedValue({ data: createEmptyDataExport() });
+    render(<DataExportTemplate exportAction={action} />);
+    const toggle = screen.getByRole("switch", { name: "导出照片" });
+    expect(toggle).not.toBeChecked();
+    fireEvent.click(toggle);
+    expect(screen.getByText(/文件可能较大/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "导出 xlsx" }));
+    await waitFor(() => expect(action).toHaveBeenCalledWith(true));
+    expect(buildWorkbook).toHaveBeenCalledWith(
+      createEmptyDataExport(),
+      expect.objectContaining({ onPhotoProgress: expect.any(Function) }),
+    );
+  });
   it("导出期间禁用按钮并阻止重复请求", async () => {
     const action = vi.fn(
       () => new Promise<Awaited<ReturnType<DataExportAction>>>(() => {}),
@@ -68,6 +85,8 @@ describe("DataExportTemplate", () => {
     expect(await screen.findByRole("progressbar")).toBeInTheDocument();
   });
   it("空账本成功生成文件、触发下载并延后回收 Blob URL", async () => {
+    // 其他测试留下的真实定时器可能同时触发，使用独有 URL 避免串扰。
+    createObjectURL.mockReturnValue("blob:export-current-test");
     vi.useFakeTimers();
     startExport(async () => ({ data: createEmptyDataExport() }));
     await act(async () => {
@@ -79,11 +98,13 @@ describe("DataExportTemplate", () => {
     expect(
       screen.getByText("导出文件已生成，已开始下载。"),
     ).toBeInTheDocument();
-    expect(revokeObjectURL).not.toHaveBeenCalled();
+    expect(revokeObjectURL).not.toHaveBeenCalledWith(
+      "blob:export-current-test",
+    );
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1000);
     });
-    expect(revokeObjectURL).toHaveBeenCalledWith("blob:export");
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:export-current-test");
     expect(document.querySelector("a[download]")).toBeNull();
   });
   it("服务端失败通过统一反馈显示，关闭后可重试", async () => {
