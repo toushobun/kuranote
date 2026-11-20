@@ -82,12 +82,21 @@ export const dataImportFileFieldMessages = {
   noFileSelected: "尚未选择文件",
 } as const;
 
+const photoPreviewTypeLabels = {
+  income: "收入",
+  expense: "支出",
+} as const;
+
 export const dataImportResultMessages = {
   balanceAdjustmentCountLabel: (count: number) => `余额变更记录 ${count} 笔`,
   failureTitle: "格式检查未通过",
   photoPreviewTitle: "小票照片预览",
-  photoPreviewDetail: (date: string, merchant: string, amount: number) =>
-    `${date} · ${merchant} · 金额 ${amount}`,
+  photoPreviewDetail: (
+    date: string,
+    merchant: string,
+    type: keyof typeof photoPreviewTypeLabels,
+    amount: number,
+  ) => `${date} · ${merchant} · ${photoPreviewTypeLabels[type]} ${amount}`,
   incomeExpenseCountLabel: (count: number) => `收支记录 ${count} 笔`,
   issueRowLabel: (rowNumber: number) => `第 ${rowNumber} 行`,
   successTitle: "格式检查通过",

@@ -33,13 +33,14 @@ describe("DataImportPhotoPreview", () => {
             transactionAt: "2026-11-20 10:30:00",
             merchantName: "便利店",
             amount: 1280,
+            transactionType: "expense",
             photos: [photo],
           },
         ]}
       />,
     );
     expect(
-      screen.getByText(/第 2 行.*2026-11-20 10:30:00.*便利店.*金额 1280/),
+      screen.getByText(/第 2 行.*2026-11-20 10:30:00.*便利店.*支出 1280/),
     ).toBeInTheDocument();
     await waitFor(() =>
       expect(screen.getByRole("img", { name: "照片1" })).toHaveAttribute(

@@ -331,6 +331,7 @@ describe("useDataImportForm 浏览器端解析与分批发送", () => {
         transactionAt: "2026-09-17 10:00:00",
         merchantName: "超市",
         amount: 1200,
+        transactionType: "expense",
       },
     ]);
 
@@ -364,8 +365,8 @@ describe("useDataImportForm 浏览器端解析与分批发送", () => {
     expect(result.current.photoUploadProgress).toBeNull();
   });
 
-  it("多明细账单的照片预览显示全部明细合计，不只显示首行金额", async () => {
-    const first = makeIncomeExpenseUnit();
+  it("混合收支账单的照片预览显示净支出金额与类型", async () => {
+    const first = makeIncomeExpenseUnit({ amount: 1000 });
     if (first.kind !== "incomeExpense") throw new Error("测试数据错误");
     analyzeImportFileMock.mockResolvedValue({
       result: {
@@ -384,7 +385,12 @@ describe("useDataImportForm 浏览器端解析与分批发送", () => {
             rowNumbers: [2, 3],
             items: [
               first.group.items[0],
-              { ...first.group.items[0], rowNumber: 3, amount: 300 },
+              {
+                ...first.group.items[0],
+                rowNumber: 3,
+                amount: 200,
+                transactionType: "income",
+              },
             ],
           },
         },
@@ -406,7 +412,12 @@ describe("useDataImportForm 浏览器端解析与分批发送", () => {
     const { result } = renderHook(() => useDataImportForm(vi.fn()));
     await selectFileAndCheckFormat(result);
     expect(result.current.photoPreviewRows).toMatchObject([
-      { rowNumber: 2, amount: 1500, merchantName: "超市" },
+      {
+        rowNumber: 2,
+        amount: 800,
+        merchantName: "超市",
+        transactionType: "expense",
+      },
     ]);
   });
 
@@ -451,7 +462,10 @@ describe("useDataImportForm 浏览器端解析与分批发送", () => {
     });
     const { result } = renderHook(() => useDataImportForm(vi.fn()));
     await selectFileAndCheckFormat(result);
-    expect(result.current.photoPreviewRows[0].amount).toBe(0.3);
+    expect(result.current.photoPreviewRows[0]).toMatchObject({
+      amount: 0.3,
+      transactionType: "expense",
+    });
   });
 
   it("照片上传期间离开页面不会在上传完成后再写入交易", async () => {

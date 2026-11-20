@@ -11,6 +11,7 @@ const meta = {
         transactionAt: "2026-11-20 10:30:00",
         merchantName: "便利店",
         amount: 1280,
+        transactionType: "expense",
         photos: [
           {
             bytes: new Uint8Array([0xff, 0xd8, 0xff, 0xd9]),

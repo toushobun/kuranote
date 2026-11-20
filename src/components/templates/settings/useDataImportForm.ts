@@ -12,6 +12,7 @@ import {
   dataImportErrorCodes,
   dataImportErrorMessages,
   importBatchSize,
+  summarizeIncomeExpenseImport,
   type EmbeddedWorksheetPhoto,
   type ImportExecutionResult,
   type ImportExecutionUnit,
@@ -146,15 +147,13 @@ export function useDataImportForm(
               const photos = photosByRow.get(rowNumber);
               if (!photos?.length) return [];
               const first = unit.group.items[0];
+              const { totalAmount, type } = summarizeIncomeExpenseImport(
+                unit.group.items,
+              );
               return [
                 {
-                  amount:
-                    Math.round(
-                      unit.group.items.reduce(
-                        (total, item) => total + item.amount,
-                        0,
-                      ) * 100,
-                    ) / 100,
+                  amount: Math.abs(totalAmount),
+                  transactionType: type,
                   merchantName: first.merchantName,
                   photos,
                   rowNumber,
@@ -264,16 +263,17 @@ export function useDataImportForm(
           const prepared = await prepareImportPhotoBatch(
             batchUnits,
             photosRef.current,
-            ledgerId,
-            undefined,
-            () => {
-              if (!mountedRef.current || runTokenRef.current !== runToken)
-                return;
-              uploadedPhotoCount += 1;
-              setPhotoUploadProgress({
-                done: uploadedPhotoCount,
-                total: totalPhotos,
-              });
+            {
+              ledgerId,
+              onPhotoUploaded: () => {
+                if (!mountedRef.current || runTokenRef.current !== runToken)
+                  return;
+                uploadedPhotoCount += 1;
+                setPhotoUploadProgress({
+                  done: uploadedPhotoCount,
+                  total: totalPhotos,
+                });
+              },
             },
           );
           // 图片上传是额外的异步阶段：切换文件或离开页面后不能再提交数据。

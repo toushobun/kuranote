@@ -12,6 +12,7 @@ import { dataImportResultMessages } from "config/dataImportExportMessages";
 export type DataImportPhotoPreviewRow = {
   amount: number;
   merchantName: string;
+  transactionType: "expense" | "income";
   photos: EmbeddedWorksheetPhoto[];
   rowNumber: number;
   transactionAt: string;
@@ -87,13 +88,21 @@ export function DataImportPhotoPreview({
           {dataImportResultMessages.photoPreviewTitle}
         </Typography>
         {rows.map(
-          ({ rowNumber, photos, transactionAt, merchantName, amount }) => (
+          ({
+            rowNumber,
+            photos,
+            transactionAt,
+            merchantName,
+            amount,
+            transactionType,
+          }) => (
             <Stack key={rowNumber} spacing={1}>
               <Typography variant="body2">
                 {dataImportResultMessages.issueRowLabel(rowNumber)} ·{" "}
                 {dataImportResultMessages.photoPreviewDetail(
                   transactionAt,
                   merchantName,
+                  transactionType,
                   amount,
                 )}
               </Typography>

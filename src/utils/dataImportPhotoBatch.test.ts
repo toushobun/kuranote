@@ -37,9 +37,7 @@ describe("prepareImportPhotoBatch", () => {
     const out = await prepareImportPhotoBatch(
       [unit],
       new Map([[2, [photo("照片1"), photo("照片2")]]]),
-      "ledger",
-      upload,
-      onPhotoUploaded,
+      { ledgerId: "ledger", upload, onPhotoUploaded },
     );
     expect(upload).toHaveBeenCalledTimes(2);
     expect(onPhotoUploaded).toHaveBeenCalledTimes(2);
@@ -54,8 +52,7 @@ describe("prepareImportPhotoBatch", () => {
     await prepareImportPhotoBatch(
       [unit],
       new Map([[2, [{ ...photo("照片1"), mimeType: "image/png" }]]]),
-      "ledger",
-      upload,
+      { ledgerId: "ledger", upload },
     );
     const file = upload.mock.calls[0][0] as File;
     expect(file.name).toBe("receipt-2-1.png");
@@ -71,9 +68,7 @@ describe("prepareImportPhotoBatch", () => {
     const out = await prepareImportPhotoBatch(
       [unit],
       new Map([[2, [photo("照片1"), photo("照片2")]]]),
-      "ledger",
-      upload,
-      onPhotoUploaded,
+      { ledgerId: "ledger", upload, onPhotoUploaded },
     );
     expect(onPhotoUploaded).toHaveBeenCalledOnce();
     expect(out.units).toEqual([]);
@@ -92,8 +87,7 @@ describe("prepareImportPhotoBatch", () => {
     const out = await prepareImportPhotoBatch(
       [unit],
       new Map(),
-      undefined,
-      upload,
+      { upload },
     );
     expect(out.units).toEqual([unit]);
     expect(upload).not.toHaveBeenCalled();

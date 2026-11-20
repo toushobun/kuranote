@@ -10,9 +10,15 @@ import { uploadReceiptPhoto } from "utils/transactionPhotoUpload";
 export async function prepareImportPhotoBatch(
   units: ImportExecutionUnit[],
   photosByRow: Map<number, EmbeddedWorksheetPhoto[]>,
-  ledgerId?: string,
-  upload = uploadReceiptPhoto,
-  onPhotoUploaded?: () => void,
+  {
+    ledgerId,
+    upload = uploadReceiptPhoto,
+    onPhotoUploaded,
+  }: {
+    ledgerId?: string;
+    upload?: typeof uploadReceiptPhoto;
+    onPhotoUploaded?: () => void;
+  },
 ): Promise<{
   units: ImportExecutionUnit[];
   failedRows: ImportExecutionRowResult[];
