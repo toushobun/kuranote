@@ -53,14 +53,8 @@ export function calculateTransferRate(
   if (
     !sourceCurrency ||
     !targetCurrency ||
-    !isValidPositiveMoneyText(sourceAmount, {
-      currency: sourceCurrency,
-      maxDecimalPlaces: 2,
-    }) ||
-    !isValidPositiveMoneyText(targetAmount, {
-      currency: targetCurrency,
-      maxDecimalPlaces: 2,
-    })
+    !isValidPositiveMoneyText(sourceAmount, { currency: sourceCurrency }) ||
+    !isValidPositiveMoneyText(targetAmount, { currency: targetCurrency })
   )
     return null;
   const source = Number(sourceAmount);
