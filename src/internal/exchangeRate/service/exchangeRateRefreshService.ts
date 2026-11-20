@@ -1,5 +1,6 @@
 import { RepositoryError } from "internal/shared/errors/appError";
-import { ledgerCurrencies } from "internal/ledger/entity/ledgerCurrency";
+import { ledgerCurrencies } from "internal/ledger";
+import { exchangeRateErrorCodes, exchangeRateErrorMessages } from "../errors";
 import {
   createExchangeRateRepository,
   type DailyExchangeRate,
@@ -35,8 +36,8 @@ export function parseEcbRates(
 ): DailyExchangeRate[] {
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     throw new RepositoryError(
-      "exchange_rate_invalid_response",
-      "汇率数据格式异常",
+      exchangeRateErrorCodes.invalidResponse,
+      exchangeRateErrorMessages[exchangeRateErrorCodes.invalidResponse],
     );
   }
   const result = body as Record<string, unknown>;
@@ -47,8 +48,8 @@ export function parseEcbRates(
     Array.isArray(result.rates)
   ) {
     throw new RepositoryError(
-      "exchange_rate_invalid_response",
-      "汇率数据格式异常",
+      exchangeRateErrorCodes.invalidResponse,
+      exchangeRateErrorMessages[exchangeRateErrorCodes.invalidResponse],
     );
   }
   const rows: DailyExchangeRate[] = [];
@@ -82,8 +83,8 @@ export function parseEcbRates(
         value <= 0
       ) {
         throw new RepositoryError(
-          "exchange_rate_invalid_response",
-          "汇率数据数值异常",
+          exchangeRateErrorCodes.invalidResponse,
+          exchangeRateErrorMessages[exchangeRateErrorCodes.invalidResponse],
         );
       }
       if (date >= start && date <= end) {
@@ -114,38 +115,47 @@ export async function runExchangeRateRefresh(
   const latestDate = await repository.latestDate();
   const start = latestDate ? nextUtcDate(latestDate) : earliestDate;
   if (start > today) return { from: null, to: today, upserted: 0 };
-  // URL 始终由静态可信域名和后端计算日期组成，不接受用户提供 URL 或重定向。
-  const url = `${ecbApiUrl}${start}..${today}?base=EUR&symbols=${currencies.join(",")}`;
-  let response: Response;
-  try {
-    response = await fetchRates(url, {
-      signal: AbortSignal.timeout(fetchTimeoutMs),
-      redirect: "error",
-    });
-  } catch {
-    throw new RepositoryError(
-      "exchange_rate_provider_failed",
-      "获取参考汇率失败",
-    );
+  // 按自然年分段，避免超长历史区间被 API 降采样或响应体过大。
+  // 每段成功写入后再请求下一段；中途失败时，下次从最新入库日续传。
+  let cursor = start;
+  let upserted = 0;
+  while (cursor <= today) {
+    const end = [`${cursor.slice(0, 4)}-12-31`, today].sort()[0];
+    // URL 始终由静态可信域名和后端计算日期组成，不接受外部 URL 或重定向。
+    const url = `${ecbApiUrl}${cursor}..${end}?base=EUR&symbols=${currencies.join(",")}`;
+    let response: Response;
+    try {
+      response = await fetchRates(url, {
+        signal: AbortSignal.timeout(fetchTimeoutMs),
+        redirect: "error",
+      });
+    } catch {
+      throw new RepositoryError(
+        exchangeRateErrorCodes.providerFailed,
+        exchangeRateErrorMessages[exchangeRateErrorCodes.providerFailed],
+      );
+    }
+    if (!response.ok) {
+      throw new RepositoryError(
+        exchangeRateErrorCodes.providerFailed,
+        exchangeRateErrorMessages[exchangeRateErrorCodes.providerFailed],
+      );
+    }
+    let body: unknown;
+    try {
+      body = await response.json();
+    } catch {
+      throw new RepositoryError(
+        exchangeRateErrorCodes.invalidResponse,
+        exchangeRateErrorMessages[exchangeRateErrorCodes.invalidResponse],
+      );
+    }
+    const rates = parseEcbRates(body, cursor, end);
+    if (rates.length) await repository.upsertRates(rates);
+    upserted += rates.length;
+    cursor = nextUtcDate(end);
   }
-  if (!response.ok) {
-    throw new RepositoryError(
-      "exchange_rate_provider_failed",
-      "获取参考汇率失败",
-    );
-  }
-  let body: unknown;
-  try {
-    body = await response.json();
-  } catch {
-    throw new RepositoryError(
-      "exchange_rate_invalid_response",
-      "汇率数据格式异常",
-    );
-  }
-  const rates = parseEcbRates(body, start, today);
-  if (rates.length) await repository.upsertRates(rates);
-  return { from: start, to: today, upserted: rates.length };
+  return { from: start, to: today, upserted };
 }
 
 export function executeExchangeRateRefresh() {
