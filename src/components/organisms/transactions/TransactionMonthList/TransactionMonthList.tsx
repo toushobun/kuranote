@@ -23,7 +23,7 @@ import type {
 } from "types/transactions";
 import { mergeUniqueById } from "utils/collections";
 import { getCurrencySymbol } from "utils/currency";
-import { exchangeRateMessages } from "config/exchangeRateMessages";
+import { ExchangeRateTotalsNote } from "molecules/transactions/ExchangeRateTotalsNote";
 import { transactionSharedPaymentMessages } from "utils/transactionMessages";
 import { formatNumber, formatUnsignedCurrencyAmount } from "utils/transactions";
 
@@ -293,11 +293,11 @@ function TransactionMonthListContent({
                     }}
                   />
                 </Stack>
-                {group.summary.missingRateCount ? (
-                  <Typography color="textSecondary" variant="caption" sx={{ display: "block", textAlign: "right" }}>
-                    {exchangeRateMessages.missingRecordRates(group.summary.missingRateCount)}
-                  </Typography>
-                ) : null}
+                <ExchangeRateTotalsNote
+                  hasForeignCurrency={group.summary.hasForeignCurrency}
+                  missingRateCount={group.summary.missingRateCount}
+                  align="right"
+                />
                 {group.sharedPayment ? (
                   <Box
                     sx={{

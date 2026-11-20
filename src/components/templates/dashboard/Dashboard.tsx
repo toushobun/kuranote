@@ -12,9 +12,9 @@ import type { ReactNode } from "react";
 
 import { IconBadge } from "atoms/ui/IconBadge";
 import { ledgerSetupEntryMessages } from "config/ledgerSetupMessages";
-import { exchangeRateMessages } from "config/exchangeRateMessages";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
+import { ExchangeRateTotalsNote } from "molecules/transactions/ExchangeRateTotalsNote";
 import { DashboardMonthSummaryCard } from "organisms/dashboard/DashboardMonthSummaryCard/DashboardMonthSummaryCard";
 import { DashboardRecentTransactions } from "organisms/dashboard/DashboardRecentTransactions/DashboardRecentTransactions";
 import { LedgerSetupContinueCard } from "organisms/ledgers/LedgerSetupContinueCard/LedgerSetupContinueCard";
@@ -390,16 +390,11 @@ function DashboardIncomeExpenseSummary({
           value={balance}
         />
       </Box>
-      {hasForeignCurrency ? (
-        <Typography color="textSecondary" variant="caption" sx={{ mt: 0.5 }}>
-          {exchangeRateMessages.convertedTotals}
-        </Typography>
-      ) : null}
-      {missingRateCount ? (
-        <Typography color="textSecondary" variant="caption">
-          {exchangeRateMessages.missingRecordRates(missingRateCount)}
-        </Typography>
-      ) : null}
+      <ExchangeRateTotalsNote
+        hasForeignCurrency={hasForeignCurrency}
+        missingRateCount={missingRateCount}
+        marginTop={0.5}
+      />
     </>
   );
 }
