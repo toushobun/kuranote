@@ -103,7 +103,7 @@ export function useTransferReceipt({
           },
         ]
       : []),
-    ...(!isValidPositiveMoneyText(amount, { currency })
+    ...(!isValidPositiveMoneyText(amount, { currency, maxDecimalPlaces: 2 })
       ? [
           {
             id: "amount",
@@ -115,6 +115,7 @@ export function useTransferReceipt({
     ...(crossCurrency &&
     !isValidPositiveMoneyText(transferTargetAmount, {
       currency: targetCurrency,
+      maxDecimalPlaces: 2,
     })
       ? [
           {
