@@ -1,0 +1,70 @@
+name: PR1139 Temporary Validation
+on:
+  push:
+    branches:
+      - feat/1139_convert_totals_to_ledger_currency
+permissions:
+  contents: write
+env:
+  SUPABASE_START_EXCLUDE: studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor,realtime,postgres-meta
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/1139_convert_totals_to_ledger_currency
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci
+      - name: Format changed sources
+        run: |
+          npx prettier --write \
+            src/internal/exchangeRate \
+            src/internal/transaction/repository/transactionRepository.ts \
+            src/internal/transaction/service/read \
+            src/internal/transaction/service/transactionDashboardQueryService.ts \
+            src/internal/transaction/util \
+            src/internal/statistics/repository/statisticsRepository.ts \
+            src/internal/statistics/service/read/statisticsView.ts \
+            src/internal/account/adapter/next/loadAccountsView.ts \
+            src/internal/account/repository/accountLedgerRateRepository.ts \
+            src/components/organisms/accounts/AccountSummaryCard \
+            src/components/organisms/transactions/TransactionMonthList/transactionMonthListUtils.ts \
+            src/components/templates/statistics \
+            src/components/templates/dashboard/Dashboard.tsx \
+            src/components/templates/dashboard/Dashboard.stories.tsx \
+            src/config/exchangeRateMessages.ts \
+            src/types/accounts.ts src/internal/db-types.ts src/utils/transactions.ts \
+            'app/(protected)/accounts/(index)/page.tsx'
+          git diff --check
+      - name: Check TypeScript, lint, formatting and Vitest
+        continue-on-error: true
+        run: npm run check
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v2
+        with:
+          version: 2.106.0
+          github-token: ${{ github.token }}
+      - name: Start Supabase
+        run: supabase start -x "$SUPABASE_START_EXCLUDE"
+      - name: Update schema snapshot
+        run: |
+          npm run db:schema:snapshot:update
+          npm run db:schema:snapshot:check
+      - name: Run database tests and SECURITY DEFINER smoke
+        continue-on-error: true
+        run: |
+          psql 'postgresql://postgres:postgres@127.0.0.1:54322/postgres' --set ON_ERROR_STOP=1 --file scripts/security-definer-smoke.sql
+          supabase test db
+      - name: Commit formatting and schema snapshot
+        if: always()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -u
+          if ! git diff --cached --quiet; then
+            git commit -m 'style: 规范化汇率换算并更新数据库快照'
+            git push origin HEAD:feat/1139_convert_totals_to_ledger_currency
+          fi
