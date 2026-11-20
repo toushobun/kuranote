@@ -82,10 +82,14 @@ export async function loadTransactionGroupLoaderContextForRecords(
           normalRecordIds,
         )
       : Promise.resolve([]),
-    dependencies.transactionRepository.loadRecordRates?.(currentLedger.id, normalRecordIds)
-      ?? Promise.resolve([]),
+    dependencies.transactionRepository.loadRecordRates?.(
+      currentLedger.id,
+      normalRecordIds,
+    ) ?? Promise.resolve([]),
   ]);
-  const rateByRecordId = new Map(rateRows.map((rate) => [rate.record_id, rate]));
+  const rateByRecordId = new Map(
+    rateRows.map((rate) => [rate.record_id, rate]),
+  );
   const recordsWithRates = records.map((record) => ({
     ...record,
     ...(rateByRecordId.get(record.id) ?? {}),
@@ -174,7 +178,9 @@ export function buildTransactionListItemsFromContext(
 ): TransactionListItem[] {
   const lookups = getTransactionGroupContextLookups(context);
   const normalizedFilters = normalizeTransactionFilters(filters);
-  const recordById = new Map(context.records.map((record) => [record.id, record]));
+  const recordById = new Map(
+    context.records.map((record) => [record.id, record]),
+  );
   return records.map((record) =>
     buildTransactionListItem({
       accountById: lookups.accountById,

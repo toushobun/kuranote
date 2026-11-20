@@ -139,13 +139,16 @@ export const ForeignCurrencyWithoutRate: Story = {
   name: "外币账户暂无参考汇率",
   args: {
     baseCurrency: "JPY",
-    accounts: [...accounts, {
-      ...accounts[0],
-      id: "foreign-no-rate",
-      currency: "USD",
-      current_balance: 200,
-      ledger_rate: null,
-    }],
+    accounts: [
+      ...accounts,
+      {
+        ...accounts[0],
+        id: "foreign-no-rate",
+        currency: "USD",
+        current_balance: 200,
+        ledger_rate: null,
+      },
+    ],
   },
 };
 

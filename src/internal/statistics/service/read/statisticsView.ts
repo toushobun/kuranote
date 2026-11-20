@@ -152,7 +152,10 @@ export function buildStatisticsViewData({
     const key = `${record.id}:${categoryId}`;
     const numericAmount = Number(effectiveAmount);
     if (!Number.isFinite(numericAmount)) continue;
-    categoryAmountByRecord.set(key, (categoryAmountByRecord.get(key) ?? 0) + numericAmount);
+    categoryAmountByRecord.set(
+      key,
+      (categoryAmountByRecord.get(key) ?? 0) + numericAmount,
+    );
   }
   for (const [key, amount] of categoryAmountByRecord) {
     const separator = key.lastIndexOf(":");
@@ -163,8 +166,13 @@ export function buildStatisticsViewData({
     if (!record || !category) continue;
     const converted = convertLedgerAmount(amount, record.ledger_rate);
     if (converted === null) continue;
-    addRankingAmount(categoryRankingById, categoryId,
-      getCategoryDisplayName(category, categoryById), String(converted), recordId);
+    addRankingAmount(
+      categoryRankingById,
+      categoryId,
+      getCategoryDisplayName(category, categoryById),
+      String(converted),
+      recordId,
+    );
   }
 
   return {

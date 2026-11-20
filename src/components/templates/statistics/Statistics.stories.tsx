@@ -69,7 +69,11 @@ export const ForeignCurrencyRateMissing: Story = {
   name: "含外币交易：部分缺少汇率",
   args: {
     ...defaultArgs,
-    summary: { ...defaultArgs.summary, hasForeignCurrency: true, missingRateCount: 2 },
+    summary: {
+      ...defaultArgs.summary,
+      hasForeignCurrency: true,
+      missingRateCount: 2,
+    },
   },
 };
 

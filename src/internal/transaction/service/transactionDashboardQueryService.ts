@@ -98,16 +98,22 @@ export function createTransactionDashboardQueryService({
       }
 
       const monthSummary = createTransactionAmountSummary(ledger.baseCurrency);
-      const recordById = new Map((monthSource.records ?? []).map((record) => [record.id, record]));
+      const recordById = new Map(
+        (monthSource.records ?? []).map((record) => [record.id, record]),
+      );
       for (const [recordId, items] of monthItemsByRecordId) {
         const record = recordById.get(recordId);
         const netAmount = calculateRecordNetAmount(items, categoryById);
-        if (record?.record_currency && record.record_currency !== ledger.baseCurrency) {
+        if (
+          record?.record_currency &&
+          record.record_currency !== ledger.baseCurrency
+        ) {
           monthSummary.hasForeignCurrency = true;
         }
         const converted = convertLedgerAmount(netAmount, record?.ledger_rate);
         if (converted === null) {
-          monthSummary.missingRateCount = (monthSummary.missingRateCount ?? 0) + 1;
+          monthSummary.missingRateCount =
+            (monthSummary.missingRateCount ?? 0) + 1;
         } else {
           addSignedAmount(monthSummary, converted);
         }

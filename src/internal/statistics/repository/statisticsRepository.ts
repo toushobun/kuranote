@@ -156,14 +156,20 @@ export function createSupabaseStatisticsRepository(
             .eq("ledger_id", ledgerId)
             .in("record_id", ids);
           if (error) {
-            fail("failed to load monthly exchange rates",
+            fail(
+              "failed to load monthly exchange rates",
               statisticsErrorCodes.monthlyLoadFailed,
-              statisticsErrorMessages.monthlyLoadFailed, { ledgerId }, error);
+              statisticsErrorMessages.monthlyLoadFailed,
+              { ledgerId },
+              error,
+            );
           }
           return data ?? [];
         }),
       );
-      const rateById = new Map(rateChunks.flat().map((row) => [row.record_id, row]));
+      const rateById = new Map(
+        rateChunks.flat().map((row) => [row.record_id, row]),
+      );
       const recordsWithRates = records.map((record) => {
         const rate = rateById.get(record.id);
         return {

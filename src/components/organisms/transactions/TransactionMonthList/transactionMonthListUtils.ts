@@ -31,11 +31,17 @@ export function mergeTransactionDateGroups(
 
     for (const item of newItems) {
       if (item.type !== "transfer" && item.type !== "balance_adjustment") {
-        if (item.account_currency !== prev.summary.currency) addedSummary.hasForeignCurrency = true;
+        if (item.account_currency !== prev.summary.currency)
+          addedSummary.hasForeignCurrency = true;
         if (item.converted_amount === null) {
-          addedSummary.missingRateCount = (addedSummary.missingRateCount ?? 0) + 1;
+          addedSummary.missingRateCount =
+            (addedSummary.missingRateCount ?? 0) + 1;
         } else {
-          addTransactionAmount(addedSummary, item.type, item.converted_amount ?? item.amount);
+          addTransactionAmount(
+            addedSummary,
+            item.type,
+            item.converted_amount ?? item.amount,
+          );
         }
       }
     }
@@ -51,8 +57,14 @@ export function mergeTransactionDateGroups(
         ...(prev.summary.hasForeignCurrency || addedSummary.hasForeignCurrency
           ? { hasForeignCurrency: true }
           : {}),
-        ...((prev.summary.missingRateCount ?? 0) + (addedSummary.missingRateCount ?? 0) > 0
-          ? { missingRateCount: (prev.summary.missingRateCount ?? 0) + (addedSummary.missingRateCount ?? 0) }
+        ...((prev.summary.missingRateCount ?? 0) +
+          (addedSummary.missingRateCount ?? 0) >
+        0
+          ? {
+              missingRateCount:
+                (prev.summary.missingRateCount ?? 0) +
+                (addedSummary.missingRateCount ?? 0),
+            }
           : {}),
         expense: String(
           Number(prev.summary.expense) + Number(addedSummary.expense),

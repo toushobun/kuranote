@@ -13,11 +13,16 @@ export async function loadAccountLedgerRates(
     .select("account_id,ledger_rate")
     .eq("ledger_id", ledgerId);
   if (error) {
-    logger.error("[account] failed to load ledger rates", { code: error.code, ledgerId });
+    logger.error("[account] failed to load ledger rates", {
+      code: error.code,
+      ledgerId,
+    });
     throw toRepositoryError("account_rate_load_failed", "账户汇率读取失败");
   }
-  return new Map((data ?? []).map((row) => [
-    row.account_id as string,
-    row.ledger_rate as number | string | null,
-  ]));
+  return new Map(
+    (data ?? []).map((row) => [
+      row.account_id as string,
+      row.ledger_rate as number | string | null,
+    ]),
+  );
 }

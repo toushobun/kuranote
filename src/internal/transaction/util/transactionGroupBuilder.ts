@@ -221,7 +221,8 @@ export function buildTransactionGroupSummaryPage({
         group.summary.hasForeignCurrency = true;
       }
       if (converted === null) {
-        group.summary.missingRateCount = (group.summary.missingRateCount ?? 0) + 1;
+        group.summary.missingRateCount =
+          (group.summary.missingRateCount ?? 0) + 1;
       } else {
         addSignedAmount(group.summary, converted);
       }
@@ -479,7 +480,10 @@ function addRecordToGroup(
     matchedItems: recordItems,
     payments,
   });
-  group.rawByRecordId.set(record.id, (group.rawByRecordId.get(record.id) ?? 0) + amount);
+  group.rawByRecordId.set(
+    record.id,
+    (group.rawByRecordId.get(record.id) ?? 0) + amount,
+  );
 }
 
 function addItemToGroup(
@@ -494,7 +498,10 @@ function addItemToGroup(
   if (record.type !== "normal") return;
 
   const signedAmount = getSignedTransactionItemAmount(item, categoryById);
-  group.rawByRecordId.set(record.id, (group.rawByRecordId.get(record.id) ?? 0) + signedAmount);
+  group.rawByRecordId.set(
+    record.id,
+    (group.rawByRecordId.get(record.id) ?? 0) + signedAmount,
+  );
 }
 
 /** 记录计入组：笔数，以及有账户集合筛选时的「共同支付」统计（一笔记录在一个组内只计一次）。 */

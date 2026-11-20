@@ -244,11 +244,17 @@ export function groupTransactionItemsByDate(
 
     group.items.push(item);
     if (item.type !== "transfer" && item.type !== "balance_adjustment") {
-      if (item.account_currency !== currency) group.summary.hasForeignCurrency = true;
+      if (item.account_currency !== currency)
+        group.summary.hasForeignCurrency = true;
       if (item.converted_amount === null) {
-        group.summary.missingRateCount = (group.summary.missingRateCount ?? 0) + 1;
+        group.summary.missingRateCount =
+          (group.summary.missingRateCount ?? 0) + 1;
       } else {
-        addTransactionAmount(group.summary, item.type, item.converted_amount ?? item.amount);
+        addTransactionAmount(
+          group.summary,
+          item.type,
+          item.converted_amount ?? item.amount,
+        );
       }
     }
     groupByDate.set(dateKey, group);

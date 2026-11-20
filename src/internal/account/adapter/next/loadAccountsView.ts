@@ -25,7 +25,9 @@ export async function loadAccountBalancesView() {
   const view = await loadAccountsView();
   const dependencies = await createServerRequestDependencies();
   const rates = await loadAccountLedgerRates(
-    dependencies.supabase, dependencies.logger, currentLedger.id,
+    dependencies.supabase,
+    dependencies.logger,
+    currentLedger.id,
   );
   return {
     ...view,

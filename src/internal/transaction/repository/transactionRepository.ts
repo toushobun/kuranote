@@ -237,7 +237,16 @@ const filteredPageResultSchema = z.object({
 
 export interface TransactionContextRepository {
   /** 从 SQL 汇率视图批量加载，只读；可选是为了现有纯数据测试仓储兼容。 */
-  loadRecordRates?(ledgerId: string, recordIds: string[]): Promise<{ record_id: string; record_currency: string | null; ledger_rate: number | string | null }[]>;
+  loadRecordRates?(
+    ledgerId: string,
+    recordIds: string[],
+  ): Promise<
+    {
+      record_id: string;
+      record_currency: string | null;
+      ledger_rate: number | string | null;
+    }[]
+  >;
   loadFilteredPage(
     input: FilteredTransactionPageInput,
   ): Promise<FilteredTransactionPageResult>;
@@ -1024,7 +1033,8 @@ export function createSupabaseTransactionRepository(
       }
 
       const recordIds = (recordData ?? []).map((record) => record.id);
-      if (recordIds.length === 0) return { categories: [], items: [], records: [] };
+      if (recordIds.length === 0)
+        return { categories: [], items: [], records: [] };
       const rateRows = await this.loadRecordRates(ledgerId, recordIds);
       const rateById = new Map(rateRows.map((rate) => [rate.record_id, rate]));
       const records = recordIds.map((id) => ({
@@ -1132,26 +1142,33 @@ export function createSupabaseTransactionRepository(
       return parsed.data;
     },
 
-
     async loadRecordRates(ledgerId, recordIds) {
       if (recordIds.length === 0) return [];
       const results = await Promise.all(
-        chunkArray([...new Set(recordIds)], itemQueryRecordIdChunkSize).map(async (ids) => {
-          const { data, error } = await supabase
-            .from("transaction_record_ledger_rate")
-            .select("record_id,currency,ledger_rate")
-            .eq("ledger_id", ledgerId)
-            .in("record_id", ids);
-          if (error) {
-            logger.error("[transaction] failed to load record exchange rates", { databaseCode: error.code, ledgerId });
-            throw toRepositoryError("transaction_record_rates_failed", transactionLoadErrorMessages.recordsLoadFailed);
-          }
-          return (data ?? []).map((row) => ({
-            record_id: row.record_id as string,
-            record_currency: row.currency as string | null,
-            ledger_rate: row.ledger_rate as number | string | null,
-          }));
-        }),
+        chunkArray([...new Set(recordIds)], itemQueryRecordIdChunkSize).map(
+          async (ids) => {
+            const { data, error } = await supabase
+              .from("transaction_record_ledger_rate")
+              .select("record_id,currency,ledger_rate")
+              .eq("ledger_id", ledgerId)
+              .in("record_id", ids);
+            if (error) {
+              logger.error(
+                "[transaction] failed to load record exchange rates",
+                { databaseCode: error.code, ledgerId },
+              );
+              throw toRepositoryError(
+                "transaction_record_rates_failed",
+                transactionLoadErrorMessages.recordsLoadFailed,
+              );
+            }
+            return (data ?? []).map((row) => ({
+              record_id: row.record_id as string,
+              record_currency: row.currency as string | null,
+              ledger_rate: row.ledger_rate as number | string | null,
+            }));
+          },
+        ),
       );
       return results.flat();
     },

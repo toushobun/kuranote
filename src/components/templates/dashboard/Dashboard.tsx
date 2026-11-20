@@ -360,46 +360,46 @@ function DashboardIncomeExpenseSummary({
 }) {
   return (
     <>
-    <Box
-      sx={{
-        display: "grid",
-        gap: 0.7,
-        gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-        mt: { xs: 1.8, sm: 2 },
-      }}
-    >
-      <DashboardSummaryPill
-        color={incomeColor}
-        isPlaceholder={!hasLedger}
-        label="本月收入"
-        currency={currency}
-        value={income}
-      />
-      <DashboardSummaryPill
-        color={expenseColor}
-        isPlaceholder={!hasLedger}
-        label="本月支出"
-        currency={currency}
-        value={expense}
-      />
-      <DashboardSummaryPill
-        color={balanceColor}
-        isPlaceholder={!hasLedger}
-        label="本月结余"
-        currency={currency}
-        value={balance}
-      />
-    </Box>
-    {hasForeignCurrency ? (
-      <Typography color="textSecondary" variant="caption" sx={{ mt: 0.5 }}>
-        {exchangeRateMessages.convertedTotals}
-      </Typography>
-    ) : null}
-    {missingRateCount ? (
-      <Typography color="textSecondary" variant="caption">
-        {exchangeRateMessages.missingRecordRates(missingRateCount)}
-      </Typography>
-    ) : null}
+      <Box
+        sx={{
+          display: "grid",
+          gap: 0.7,
+          gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+          mt: { xs: 1.8, sm: 2 },
+        }}
+      >
+        <DashboardSummaryPill
+          color={incomeColor}
+          isPlaceholder={!hasLedger}
+          label="本月收入"
+          currency={currency}
+          value={income}
+        />
+        <DashboardSummaryPill
+          color={expenseColor}
+          isPlaceholder={!hasLedger}
+          label="本月支出"
+          currency={currency}
+          value={expense}
+        />
+        <DashboardSummaryPill
+          color={balanceColor}
+          isPlaceholder={!hasLedger}
+          label="本月结余"
+          currency={currency}
+          value={balance}
+        />
+      </Box>
+      {hasForeignCurrency ? (
+        <Typography color="textSecondary" variant="caption" sx={{ mt: 0.5 }}>
+          {exchangeRateMessages.convertedTotals}
+        </Typography>
+      ) : null}
+      {missingRateCount ? (
+        <Typography color="textSecondary" variant="caption">
+          {exchangeRateMessages.missingRecordRates(missingRateCount)}
+        </Typography>
+      ) : null}
     </>
   );
 }

@@ -22,7 +22,14 @@ function record(id: string, rate: number | null, currency: string) {
 describe("Issue #1139 交易合计一致性", () => {
   it("两笔外币记录先分别舍入再合计，缺失汇率的记录不计入", () => {
     const view = buildStatisticsViewData({
-      categories: [{ id: "expense", name: "日用品", type: "expense" as const, parent_id: null }],
+      categories: [
+        {
+          id: "expense",
+          name: "日用品",
+          type: "expense" as const,
+          parent_id: null,
+        },
+      ],
       currency: "JPY",
       items: [
         { transaction_record_id: "a", category_id: "expense", amount: "1" },
@@ -32,9 +39,17 @@ describe("Issue #1139 交易合计一致性", () => {
       ledgerName: "家庭账本",
       merchants: [{ id: "merchant", name: "超市" }],
       month: "2026-11",
-      records: [record("a", 1.235, "USD"), record("b", 1.235, "USD"), record("c", null, "THB")],
+      records: [
+        record("a", 1.235, "USD"),
+        record("b", 1.235, "USD"),
+        record("c", null, "THB"),
+      ],
     });
-    expect(view.summary).toMatchObject({ expense: "2.48", hasForeignCurrency: true, missingRateCount: 1 });
+    expect(view.summary).toMatchObject({
+      expense: "2.48",
+      hasForeignCurrency: true,
+      missingRateCount: 1,
+    });
     expect(view.categoryExpenseRanking[0].amount).toBe("2.48");
   });
 
@@ -48,7 +63,9 @@ describe("Issue #1139 交易合计一致性", () => {
     }));
     const page = buildTransactionGroupSummaryPage({
       accounts: [],
-      categories: [{ id: "expense", name: "餐饮", type: "expense", parent_id: null }],
+      categories: [
+        { id: "expense", name: "餐饮", type: "expense", parent_id: null },
+      ],
       currency: "JPY",
       holderIdsByAccountId: new Map(),
       filters: defaultTransactionFilters,
@@ -61,11 +78,36 @@ describe("Issue #1139 交易合计一致性", () => {
       records,
       recorders: [],
     });
-    expect(page.groups[0].summary).toMatchObject({ expense: "20", hasForeignCurrency: true, missingRateCount: 1 });
-    const dateGroups = groupTransactionItemsByDate([
-      { id: "a", type: "expense", amount: "10", account_currency: "USD", converted_amount: "20", transaction_at: date },
-      { id: "b", type: "expense", amount: "10", account_currency: "THB", converted_amount: null, transaction_at: date },
-    ] as never, "JPY");
-    expect(dateGroups[0].summary).toMatchObject({ expense: "20", hasForeignCurrency: true, missingRateCount: 1 });
+    expect(page.groups[0].summary).toMatchObject({
+      expense: "20",
+      hasForeignCurrency: true,
+      missingRateCount: 1,
+    });
+    const dateGroups = groupTransactionItemsByDate(
+      [
+        {
+          id: "a",
+          type: "expense",
+          amount: "10",
+          account_currency: "USD",
+          converted_amount: "20",
+          transaction_at: date,
+        },
+        {
+          id: "b",
+          type: "expense",
+          amount: "10",
+          account_currency: "THB",
+          converted_amount: null,
+          transaction_at: date,
+        },
+      ] as never,
+      "JPY",
+    );
+    expect(dateGroups[0].summary).toMatchObject({
+      expense: "20",
+      hasForeignCurrency: true,
+      missingRateCount: 1,
+    });
   });
 });
