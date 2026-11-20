@@ -5,6 +5,9 @@ import type { TransactionSpecialStatusStorageValue } from "internal/transaction"
 
 export type TransactionRecordDbRow = {
   attachment_count?: number;
+  /** 当前账本币种换算率；null 表示汇率缺失，undefined 仅供旧测试数据。 */
+  ledger_rate?: number | string | null;
+  record_currency?: string | null;
   id: string;
   type: TransactionRecordStorageType;
   transaction_at: string;

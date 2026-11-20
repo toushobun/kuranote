@@ -182,7 +182,10 @@ async function loadStep4NonTimeGroupedTransactionGroupPage(
       ...(sharedPayment ? { sharedPayment } : {}),
       summary: {
         balance: normalizeRpcAmount(row.balance),
-        currency: currentLedger.baseCurrency,
+        currency: row.group_currency ?? currentLedger.baseCurrency,
+        ...(Number(row.missing_rate_count ?? 0) > 0
+          ? { missingRateCount: Number(row.missing_rate_count) }
+          : {}),
         expense: normalizeRpcAmount(row.expense),
         income: normalizeRpcAmount(row.income),
       },

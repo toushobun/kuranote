@@ -30,6 +30,7 @@ import {
 import type { ThemeColorKey } from "theme/themeColorTokens";
 import { transactionSharedPaymentMessages } from "utils/transactionMessages";
 import { hasBusinessNetAmountOffset } from "utils/transactions";
+import { convertLedgerAmount } from "internal/exchangeRate/util/convertLedgerAmount";
 
 export function buildTransactionListItem({
   accountById,
@@ -200,6 +201,10 @@ export function buildTransactionListItem({
           )
         : accountName,
     amount: String(Math.abs(displayAmount)),
+    converted_amount: (() => {
+      const converted = convertLedgerAmount(displayAmount, record.ledger_rate);
+      return converted === null ? null : String(Math.abs(converted));
+    })(),
     ...(hasBusinessNetOffset
       ? {
           originalAmount: String(Math.abs(originalAmount)),
