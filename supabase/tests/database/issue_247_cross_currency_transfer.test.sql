@@ -102,12 +102,12 @@ select throws_ok(
 );
 select throws_ok(
     format(
-        'select public.create_transfer_transaction(%L::uuid, %L::timestamptz, 100.01, %L::uuid, %L::uuid, %L, 5)',
+        'select public.create_transfer_transaction(%L::uuid, %L::timestamptz, 100.001, %L::uuid, %L::uuid, %L, 5)',
         '00000000-0000-4000-8000-000000000032',
         '2099-11-01 10:00:00+00',
-        pg_temp.aid('jpy_from'), pg_temp.aid('cny_to'), 'JPY 小数'
+        pg_temp.aid('jpy_from'), pg_temp.aid('cny_to'), '超过两位小数'
     ),
-    '22023', 'amount_invalid', 'JPY 转出只允许整数'
+    '22023', 'amount_invalid', '转出金额超过两位小数拒绝'
 );
 
 select lives_ok(
