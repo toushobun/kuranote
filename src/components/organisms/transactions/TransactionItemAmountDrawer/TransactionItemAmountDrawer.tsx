@@ -21,7 +21,6 @@ type TransactionItemAmountDrawerProps = {
   title: string;
   categoryId?: string;
   currency: string;
-  maxDecimalPlaces?: number;
   value: string;
   quickAmounts?: MerchantEntrySuggestions["quickAmounts"];
   onConfirm: (value: string) => void;
@@ -36,7 +35,6 @@ export function TransactionItemAmountDrawer({
   title,
   categoryId,
   currency,
-  maxDecimalPlaces,
   value,
   quickAmounts = [],
   onConfirm,
@@ -130,7 +128,6 @@ export function TransactionItemAmountDrawer({
       <TransactionAmountKeypad
         key={`${categoryId}:${currency}:${revision}`}
         currency={currency}
-        maxDecimalPlaces={maxDecimalPlaces}
         value={draft}
         onChange={setDraft}
         onConfirm={onConfirm}
