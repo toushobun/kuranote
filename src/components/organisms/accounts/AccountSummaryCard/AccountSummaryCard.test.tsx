@@ -160,19 +160,24 @@ describe("AccountSummaryCard", () => {
   it("外币账户无汇率时不计入余额并提示账户数", () => {
     const { container } = render(
       <AccountSummaryCard
-        accounts={[...accounts, {
-          ...accounts[0],
-          id: "foreign-missing",
-          name: "外币账户",
-          currency: "USD",
-          current_balance: 100,
-          ledger_rate: null,
-        }]}
+        accounts={[
+          ...accounts,
+          {
+            ...accounts[0],
+            id: "foreign-missing",
+            name: "外币账户",
+            currency: "USD",
+            current_balance: 100,
+            ledger_rate: null,
+          },
+        ]}
         baseCurrency="JPY"
       />,
     );
     expect(within(container).getByLabelText("¥88,200")).toBeInTheDocument();
-    expect(within(container).getByText("有 1 个外币账户暂无汇率")).toBeInTheDocument();
+    expect(
+      within(container).getByText("有 1 个外币账户暂无汇率"),
+    ).toBeInTheDocument();
   });
 
   it("不存在外币账户时不展示说明", () => {
