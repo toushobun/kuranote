@@ -14,7 +14,10 @@ describe("DataImportPhotoPreview", () => {
   it("按 Excel 行号展示图片并在卸载时释放 Object URL", async () => {
     vi.stubGlobal(
       "URL",
-      Object.assign(URL, { createObjectURL, revokeObjectURL }),
+      class extends URL {
+        static createObjectURL = createObjectURL;
+        static revokeObjectURL = revokeObjectURL;
+      },
     );
     const photo = {
       bytes: new Uint8Array([0xff, 0xd8, 0xff, 0xd9]),
