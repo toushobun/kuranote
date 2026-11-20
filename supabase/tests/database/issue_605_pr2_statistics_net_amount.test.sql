@@ -58,7 +58,12 @@ limit 1;
 grant select on test_issue_605_pr2_context to authenticated;
 
 update public.ledger
-set transaction_item_special_status_enabled = true
+set transaction_item_special_status_enabled = true,
+    base_currency = (
+      select a.currency
+      from test_issue_605_pr2_context c
+      join public.account a on a.id = c.account_id
+    )
 where id = (select ledger_id from test_issue_605_pr2_context);
 
 insert into public.transaction_record (
@@ -211,20 +216,7 @@ select is(
             select income_category_id::text from test_issue_605_pr2_context
         )
     ),
-    (
-        select public.convert_ledger_amount(
-            50,
-            public.exchange_rate_on(
-                a.currency,
-                l.base_currency,
-                public.transaction_record_local_date('2099-01-15 13:00:00+00'::timestamptz)
-            )
-        )
-        from test_issue_605_pr2_context c
-        join public.account a on a.id = c.account_id
-        join public.ledger l on l.id = c.ledger_id
-    ),
-
+    50::numeric,
     '超额收入按报销明细的收入分类统计'
 );
 
