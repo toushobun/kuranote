@@ -559,7 +559,6 @@ export function formatEditableAmount(
 ) {
   const value = Number(amount);
   if (!Number.isFinite(value)) return amount;
-  return String(
-    Number(value.toFixed(Math.min(getAmountDecimalPlaces(currency), maxDecimalPlaces))),
-  );
+  const decimals = Math.min(getAmountDecimalPlaces(currency), maxDecimalPlaces);
+  return String(Number(value.toFixed(decimals)));
 }
