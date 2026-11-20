@@ -34,7 +34,7 @@ describe("exchangeRateRefreshService", () => {
   it("历史回填按自然年请求且上一年写入成功后才继续", async () => {
     const repo = mockRepository(null);
     const fetcher = vi.fn(async (url: string) => {
-      const year = /\\/v1\\/(\\d{4})-/.exec(url)?.[1];
+      const year = url.split("/v1/")[1]?.slice(0, 4);
       return new Response(
         JSON.stringify({ base: "EUR", rates: { [`${year}-01-02`]: rates } }),
         { status: 200 },
@@ -55,10 +55,14 @@ describe("exchangeRateRefreshService", () => {
   });
   it("某一年抓取失败时，不继续请求后续年份", async () => {
     const repo = mockRepository(null);
-    const fetcher = vi.fn()
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        base: "EUR", rates: { "2015-01-02": rates },
-      }), { status: 200 }))
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ base: "EUR", rates: { "2015-01-02": rates } }),
+          { status: 200 },
+        ),
+      )
       .mockRejectedValueOnce(new Error("network error"));
     await expect(
       runExchangeRateRefresh(repo, fetcher, new Date("2017-03-10T00:00:00Z")),
