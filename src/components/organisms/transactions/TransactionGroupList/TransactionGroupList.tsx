@@ -103,14 +103,11 @@ export function TransactionGroupList({
 export function TransactionRefundCandidateList({
   items,
   onSelect,
-  selectableCurrency,
   selectedId = null,
   selectionKind = "refund",
 }: {
   items: TransactionListItem[];
   onSelect: (item: TransactionRefundCandidate) => void;
-  // 指定时，与该币种不一致的候选置灰且不可选择。
-  selectableCurrency?: string;
   selectedId?: string | null;
   selectionKind?: "refund" | "reimbursement";
 }) {
@@ -118,7 +115,6 @@ export function TransactionRefundCandidateList({
     <TransactionLinkCandidateCards
       candidates={toTransactionLinkCandidates(items)}
       onSelect={onSelect}
-      selectableCurrency={selectableCurrency}
       selectedId={selectedId}
       selectionKind={selectionKind}
     />

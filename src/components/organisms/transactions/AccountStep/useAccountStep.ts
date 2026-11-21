@@ -13,7 +13,7 @@ export function useAccountStep({
     (account) => !recommended.some((item) => item.id === account.id),
   );
 
-  function selectAccount(value: (typeof accounts)[number]) {
+  async function selectAccount(value: (typeof accounts)[number]) {
     onSelect(value);
     return true;
   }

@@ -37,7 +37,6 @@ function renderPanel(
     const [value, setValue] = useState(props.value ?? null);
     return (
       <TransactionLinkCandidatePanel
-        accountCurrency="JPY"
         kind="refund"
         merchantId="amazon"
         merchantName="Amazon"
@@ -193,13 +192,12 @@ describe("TransactionLinkCandidatePanel", () => {
       nextOffset: null,
     });
     renderPanel({
-      accountCurrency: undefined,
       loadPageAction: loadPage,
       onChange,
     });
     await screen.findByText("咖啡豆 2 袋");
     expect(loadPage).toHaveBeenCalledWith(
-      expect.objectContaining({ currency: undefined }),
+      expect.objectContaining({ settled: false }),
     );
     const usdCandidate = screen.getByRole("button", {
       name: "选择退款明细 咖啡豆 2 袋",

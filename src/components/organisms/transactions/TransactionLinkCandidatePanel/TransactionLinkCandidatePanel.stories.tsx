@@ -19,7 +19,6 @@ const meta = {
   title: "Organisms/Transactions/TransactionLinkCandidatePanel",
   component: TransactionLinkCandidatePanel,
   args: {
-    accountCurrency: "JPY",
     kind: "refund",
     merchantId: "amazon",
     merchantName: "Amazon",
@@ -44,10 +43,6 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const Refund: Story = { name: "退款 · 商家三笔支出 · 未选" };
-export const RefundWithoutAccount: Story = {
-  name: "退款 · 未选收款账户",
-  args: { accountCurrency: undefined },
-};
 export const RefundMerchantFirst: Story = {
   name: "退款 · 同商家优先 · 包含其他商家",
   args: { loadPageAction: loadMerchantPriorityPage },
@@ -144,7 +139,7 @@ const loadGroupedPage = async (input: TransactionLinkCandidatePageInput) => {
     nextOffset: offset + 20 < matched.length ? offset + 20 : null,
     settledCount: groupedItems.filter(
       (item) =>
-        matchesLinkCandidateScope(item, input.currency, input.query ?? "") &&
+        matchesLinkCandidateScope(item, input.query ?? "") &&
         candidateInMonth(item.transactionAt, input.month ?? null) &&
         Number(item.remainingRefundableAmount) <= 0,
     ).length,

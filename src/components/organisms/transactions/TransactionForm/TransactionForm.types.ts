@@ -60,6 +60,8 @@ export type TransactionFormInitialValues = {
 export type TransactionFormItem = {
   amount: string;
   businessNetAmount?: string;
+  savedLinkAllocation?: SavedCrossCurrencyAllocation;
+  crossCurrencyOffsets?: CrossCurrencyOffsetRow[];
   businessStatus?: TransactionBusinessStatus | null;
   categoryId: string;
   expectedUpdatedAt?: string;

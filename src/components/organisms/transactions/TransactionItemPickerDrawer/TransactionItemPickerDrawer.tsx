@@ -356,7 +356,6 @@ export function TransactionItemPickerDrawer({
           <TransactionLinkCandidatePanel
             pinInitialSelection={editingItemId !== null}
             key={`${pickerMode}:${pickerSessionKey}`}
-            accountCurrency={selectedAccountCurrency}
             merchantName={merchantName}
             month={candidateMonth}
             onMonthChange={setCandidateMonth}
@@ -591,7 +590,7 @@ export function TransactionItemPickerDrawer({
                   : m.selectFirst(pickerMode)}
               </Typography>
               {crossCurrency && preview && surplusAmount > 0 ? (
-                <Typography variant="caption" color="text.secondary">
+                <Typography variant="caption" color="textSecondary">
                   {m.crossCurrencySurplus(
                     formatUnsignedCurrencyAmount(preview.businessNetAmount, selectedAccountCurrency ?? ""),
                   )}

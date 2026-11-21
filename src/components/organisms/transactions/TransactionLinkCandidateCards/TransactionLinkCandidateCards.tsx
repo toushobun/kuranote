@@ -175,7 +175,7 @@ export function TransactionLinkCandidateCards({
                   />
                 )
               }
-              disabled={isCurrencyMismatched || locked}
+              disabled={locked}
               tabIndex={-1}
               sx={{ p: 0, pointerEvents: "none" }}
             />
