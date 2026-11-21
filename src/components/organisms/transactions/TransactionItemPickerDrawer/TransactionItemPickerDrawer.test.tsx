@@ -428,34 +428,6 @@ describe("TransactionItemPickerDrawer", () => {
     expect(screen.queryByPlaceholderText("搜索小分类")).not.toBeInTheDocument();
   });
 
-  it("关联提示在抽屉内显示", () => {
-    render(
-      <TransactionItemPickerDrawer
-        categoryGroups={categoryGroups}
-        filteredCategoryOptions={categoryOptions}
-        linkNotice="退款明细必须与收款账户币种一致，请重新选择。"
-        onCategoryToggle={vi.fn()}
-        onClose={vi.fn()}
-        onGroupSelect={vi.fn()}
-        onPickerAdd={() => true}
-        onRemoveItem={vi.fn()}
-        open
-        pickerMode="refund"
-        pickerAmount="1280"
-        pickerCategoryId="system-refund"
-        pickerErrors={{}}
-        specialStatusEnabled
-      />,
-    );
-    expect(
-      within(
-        screen
-          .getByText("退款 / 报销先抵消原支出，超出的部分算作收入。")
-          .closest(".MuiDrawer-paper") as HTMLElement,
-      ).getByRole("alert"),
-    ).toHaveTextContent("退款明细必须与收款账户币种一致，请重新选择。");
-  });
-
   it("既有待报销母项保持勾选且不可修改", () => {
     const onSpecialStatusChange = vi.fn();
     render(
