@@ -26,7 +26,6 @@ import type {
 } from "types/transactions";
 import {
   transactionFormValidationMessages,
-  transactionLinkMessages,
   type TransactionLinkKind,
 } from "utils/transactionMessages";
 import {
@@ -43,7 +42,6 @@ import {
   composeTransactionDateTimeLocalValue,
   formatDateTimeLocalInputValue,
   getNowDateTimeLocalValue,
-  hasLinkCandidateCurrencyMismatch,
   splitDateTimeLocalValue,
 } from "utils/transactions";
 
@@ -63,7 +61,6 @@ import { shouldFollowLinkedField } from "./linkedFieldAutoFill";
 import {
   buildCategoryPickerGroups,
   getDefaultPickerCategory,
-  getCurrencyMismatchedLinkKinds,
   getFirstEnabledCategoryId,
   getMissingIncomeLinkKind,
   isValidMoneyText,
@@ -147,7 +144,6 @@ export function useTransactionForm({
     );
   const [pickerErrors, setPickerErrors] = useState<TransactionPickerErrors>({});
   const [note, setNote] = useState(initialValues.note);
-  const [linkNotice, setLinkNotice] = useState<string | null>(null);
   const [transactionDate, setTransactionDate] = useState("");
   const [transactionTime, setTransactionTime] = useState("");
   const [timeZoneOffsetMinutes, setTimeZoneOffsetMinutes] = useState("");
@@ -764,107 +760,9 @@ export function useTransactionForm({
     paymentFields.removePayment(key, selectedAccount?.currency);
   }
 
-  // 首个付款账户决定记录币种，切换时同步检查退款 / 报销关联的币种。
+  // 切换账户只改变本次记录币种；已关联的原支出始终保留，汇率预览随之刷新。
   function handlePrimaryAccountChange(key: number, accountId: string) {
     paymentFields.changeAccount(key, accountId);
-    const nextAccount = accountOptions.find(
-      (account) => account.id === accountId,
-    );
-    // 已保存的关联不能在普通保存中解除（#574），保留并提示先解除关联；本次新选的关联清除并提示重新选择。
-    const editingItem = itemsByType.income.find(
-      (item) => item.id === editingItemId,
-    );
-    const pickerLinkKinds = splitCurrencyMismatchedLinkKinds(
-      {
-        persistedId: editingItem?.persistedId,
-        refundCandidate: pickerRefundCandidate,
-        reimbursementCandidate: pickerReimbursementCandidate,
-      },
-      nextAccount?.currency,
-      initialValues,
-    );
-    // 明细中已加入的关联与抽屉暂存的关联统一收集，任何一处受影响都要提示。
-    const savedKinds = new Set<TransactionLinkKind>(pickerLinkKinds.saved);
-    const clearedKinds = new Set<TransactionLinkKind>(pickerLinkKinds.cleared);
-    itemsByType.income.forEach((item) => {
-      const { cleared, saved } = splitCurrencyMismatchedLinkKinds(
-        item,
-        nextAccount?.currency,
-        initialValues,
-      );
-      saved.forEach((kind) => savedKinds.add(kind));
-      cleared.forEach((kind) => clearedKinds.add(kind));
-    });
-    setItemsByType((current) => ({
-      ...current,
-      income: current.income.map((item) => {
-        const { cleared } = splitCurrencyMismatchedLinkKinds(
-          item,
-          nextAccount?.currency,
-          initialValues,
-        );
-        if (cleared.length === 0) {
-          return item;
-        }
-
-        const refundCandidate = cleared.includes("refund")
-          ? null
-          : (item.refundCandidate ?? null);
-        const reimbursementCandidate = cleared.includes("reimbursement")
-          ? null
-          : (item.reimbursementCandidate ?? null);
-        return {
-          ...item,
-          businessStatus: getFormItemBusinessStatus(
-            item.specialStatus,
-            refundCandidate,
-            reimbursementCandidate,
-            nextAccount?.currency,
-          ),
-          businessNetAmount: getNewItemBusinessNetAmount(
-            item.amount,
-            item.specialStatus,
-            refundCandidate,
-            reimbursementCandidate,
-          ),
-          refundCandidate,
-          reimbursementCandidate,
-        };
-      }),
-    }));
-
-    if (pickerLinkKinds.cleared.includes("refund")) {
-      setPickerRefundCandidate(null);
-    }
-    if (pickerLinkKinds.cleared.includes("reimbursement")) {
-      setPickerReimbursementCandidate(null);
-    }
-    const orderedSavedKinds = orderLinkKinds(savedKinds);
-    const orderedClearedKinds = orderLinkKinds(clearedKinds);
-    const notices = [
-      orderedSavedKinds.length > 0
-        ? transactionLinkMessages.savedLinkCurrencyLocked(orderedSavedKinds)
-        : null,
-      orderedClearedKinds.length > 0
-        ? transactionLinkMessages.accountCurrencyChanged(orderedClearedKinds)
-        : null,
-    ].filter((notice) => notice !== null);
-    setLinkNotice(notices.length > 0 ? notices.join("") : null);
-  }
-
-  // 退款与报销候选共用同币种校验；尚未选择收款账户时允许先选原支出。
-  function getCandidateRejectionNotice(
-    kind: TransactionLinkKind,
-    candidate: TransactionRefundCandidate | null,
-  ) {
-    if (!candidate) return null;
-    if (
-      selectedAccount &&
-      hasLinkCandidateCurrencyMismatch(candidate, selectedAccount.currency)
-    ) {
-      return transactionLinkMessages.candidateCurrencyMismatch(kind);
-    }
-    return null;
   }
 
   function resolveLinkCandidate(candidate: TransactionRefundCandidate) {
@@ -880,16 +778,6 @@ export function useTransactionForm({
     kind: TransactionLinkKind,
     candidate: TransactionRefundCandidate | null,
   ) {
-    const rejectionNotice = getCandidateRejectionNotice(kind, candidate);
-    if (rejectionNotice) {
-      if (kind === "refund") setPickerRefundCandidate(null);
-      else setPickerReimbursementCandidate(null);
-      setLinkNotice(rejectionNotice);
-      return;
-    }
-
-    setLinkNotice(null);
-
     if (kind === "refund") {
       setPickerRefundCandidate(candidate);
       if (candidate) setPickerReimbursementCandidate(null);
@@ -991,7 +879,6 @@ export function useTransactionForm({
     hasMixedPaymentItems,
     isIncomePayment,
     isSheetOpen,
-    linkNotice,
     linkMerchantTouched,
     itemSummaries,
     openItemSheet,
@@ -1083,53 +970,6 @@ function collectLinkAffectedCandidates(
     }
   }
   return [...unique.values()];
-}
-
-const linkCandidateKeys = {
-  refund: "refundCandidate",
-  reimbursement: "reimbursementCandidate",
-} as const satisfies Record<TransactionLinkKind, keyof TransactionFormItem>;
-
-type TransactionFormItemLinks = Pick<
-  TransactionFormItem,
-  "persistedId" | "refundCandidate" | "reimbursementCandidate"
->;
-
-// 「已保存的关联」：持久化明细当前的关联对象与编辑页加载时（initialValues）相同。
-// 新建表单、新增明细或本次重新选择的关联都视为「本次新选的关联」。
-function isSavedLink(
-  links: TransactionFormItemLinks,
-  kind: TransactionLinkKind,
-  initialValues: TransactionFormInitialValues,
-) {
-  if (!links.persistedId) return false;
-  const key = linkCandidateKeys[kind];
-  const savedCandidateId = initialValues.items.find(
-    (item) => item.id === links.persistedId,
-  )?.[key]?.id;
-  return Boolean(savedCandidateId) && savedCandidateId === links[key]?.id;
-}
-
-function splitCurrencyMismatchedLinkKinds(
-  links: TransactionFormItemLinks,
-  currency: string | undefined,
-  initialValues: TransactionFormInitialValues,
-) {
-  const mismatchedKinds = getCurrencyMismatchedLinkKinds(links, currency);
-  return {
-    cleared: mismatchedKinds.filter(
-      (kind) => !isSavedLink(links, kind, initialValues),
-    ),
-    saved: mismatchedKinds.filter((kind) =>
-      isSavedLink(links, kind, initialValues),
-    ),
-  };
-}
-
-function orderLinkKinds(kinds: ReadonlySet<TransactionLinkKind>) {
-  return (["refund", "reimbursement"] as const).filter((kind) =>
-    kinds.has(kind),
-  );
 }
 
 function getFormItemBusinessStatus(
