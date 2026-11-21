@@ -232,6 +232,15 @@ export const transactionLinkCandidateMessages = {
   retry: "加载失败，点击重试",
   refundAmount: "退款金额",
   reimbursementAmount: "报销金额",
+  exchangeRateMissing: "暂无汇率，无法关联不同币种的原支出",
+  exchangeRateLoading: "正在读取当天汇率…",
+  crossCurrencyRate: (date: string, base: string, rate: string, quote: string) =>
+    `按 ${date} 汇率 1 ${base} = ${rate} ${quote}`,
+  crossCurrencyConverted: (amount: string, rate: string) =>
+    `折 ${amount}（${rate}）`,
+  crossCurrencySurplus: (amount: string) =>
+    `原支出已抵完，多出的 ${amount} 算作收入`,
+
   selectFirst: (kind: "refund" | "reimbursement") =>
     kind === "refund" ? "先选择要退款的支出" : "先选择要报销的支出",
   remaining: (kind: "refund" | "reimbursement", amount: string) =>
