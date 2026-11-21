@@ -66,12 +66,7 @@ export function hasBusinessNetAmountOffset(
 }
 
 // 退款 / 报销关联的候选必须与收款账户币种一致；账户未选择时视为不一致。
-export function hasLinkCandidateCurrencyMismatch(
-  candidate: TransactionRefundCandidate | null | undefined,
-  currency: string | undefined,
-): boolean {
-  return Boolean(candidate && candidate.accountCurrency !== currency);
-}
+
 
 export function formatTransactionRowAmount(
   type: TransactionRecordType | "balance_adjustment",
