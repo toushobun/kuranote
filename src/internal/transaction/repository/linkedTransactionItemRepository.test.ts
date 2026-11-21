@@ -98,10 +98,6 @@ describe("LinkedTransactionItemRepository", () => {
       "linked_edit_target_invalid",
       transactionLinkedEditErrorMessages.targetInvalid,
     ],
-    [
-      "linked_edit_target_currency_mismatch",
-      transactionLinkedEditErrorMessages.targetCurrencyMismatch,
-    ],
   ])("换目标失败 %s 返回具体安全文案", async (details, message) => {
     const { repository } = createRepository({
       rpcResult: rpcFailure(details, "22023"),
@@ -225,30 +221,16 @@ describe("LinkedTransactionItemRepository", () => {
     });
   });
 
-  it("退款币种不一致映射为 refundLinkInvalid ValidationError", async () => {
+  it("汇率缺失映射为安全校验错误", async () => {
     const { repository } = createRepository({
-      rpcResult: rpcFailure("refund_currency_mismatch", "22023"),
+      rpcResult: rpcFailure("link_exchange_rate_missing", "22023"),
     });
-
     await expect(repository.updateEdit(updateEditInput)).rejects.toMatchObject({
-      code: transactionErrorCodes.refundLinkInvalid,
+      code: transactionErrorCodes.updateInvalid,
       name: ValidationError.name,
-      message: transactionLinkedEditErrorMessages.refundCurrencyMismatch,
+      message: transactionWriteErrorMessages.linkExchangeRateMissing,
     });
   });
-
-  it("报销币种不一致映射为 reimbursementLinkInvalid ValidationError", async () => {
-    const { repository } = createRepository({
-      rpcResult: rpcFailure("reimbursement_currency_mismatch", "22023"),
-    });
-
-    await expect(repository.updateEdit(updateEditInput)).rejects.toMatchObject({
-      code: transactionErrorCodes.reimbursementLinkInvalid,
-      name: ValidationError.name,
-      message: transactionLinkedEditErrorMessages.reimbursementCurrencyMismatch,
-    });
-  });
-
   it.each([
     [
       "payment_account_duplicate",
