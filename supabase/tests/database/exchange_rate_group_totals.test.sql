@@ -138,7 +138,7 @@ cross join lateral (
 
 -- tests.insert_normal_transaction_items 已自动创建交易付款行，不要重复插入。
 
-// 该测试明确将两个账户指定给同一持有人，避免依赖 seed 中账户的持有人配置。
+-- 该测试明确将两个账户指定给同一持有人，避免依赖 seed 中账户的持有人配置。
 reset role;
 delete from public.account_holder
 where ledger_id = '00000000-0000-4000-8000-000000000032'::uuid
