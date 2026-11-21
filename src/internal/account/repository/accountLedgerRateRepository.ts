@@ -1,3 +1,4 @@
+import { accountErrorCodes, accountErrorMessages } from "internal/account/errors";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import type { Logger } from "internal/shared/logging/logger";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
@@ -17,7 +18,10 @@ export async function loadAccountLedgerRates(
       code: error.code,
       ledgerId,
     });
-    throw toRepositoryError("account_rate_load_failed", "账户汇率读取失败");
+    throw toRepositoryError(
+      accountErrorCodes.rateLoadFailed,
+      accountErrorMessages[accountErrorCodes.rateLoadFailed],
+    );
   }
   return new Map(
     (data ?? []).map((row) => [

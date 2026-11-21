@@ -27,6 +27,7 @@ export const accountErrorCodes = {
   placeholderAlreadyClaimed: "placeholder_already_claimed",
   placeholderNotFound: "placeholder_not_found",
   placeholderUnavailable: "placeholder_unavailable",
+  rateLoadFailed: "account_rate_load_failed",
   typeInvalid: "type_invalid",
   updateFailed: "update_failed",
 } as const;
@@ -67,6 +68,7 @@ export const accountErrorMessages: Record<AccountErrorCode, string> = {
     "所选待邀请成员已被删除，请重新选择持有人。",
   [accountErrorCodes.placeholderUnavailable]:
     "所选待邀请成员已被认领或删除，请重新选择持有人。",
+  [accountErrorCodes.rateLoadFailed]: "账户汇率读取失败",
   [accountErrorCodes.typeInvalid]: "账户类型不正确。",
   [accountErrorCodes.updateFailed]: "账户更新失败，请稍后重试。",
 };
