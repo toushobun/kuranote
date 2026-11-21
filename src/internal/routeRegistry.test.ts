@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import * as accountRoutes from "internal/account/router";
 import * as authRoutes from "internal/auth/router";
 import * as categoryRoutes from "internal/category/router";
+import * as exchangeRateRoutes from "internal/exchangeRate/router";
 import * as ledgerManagementRoutes from "internal/ledger/router";
 import * as ledgerInviteRoutes from "internal/ledger/inviteRouter";
 import * as merchantRoutes from "internal/merchant/router";
@@ -154,6 +155,14 @@ const routeSpecs: RouteSpec[] = [
     namespace: merchantRoutes,
   },
   {
+    basePath: "/exchange-rates",
+    expectedRoutes: {
+      getDailyExchangeRateRoute: { method: "get", path: "/daily" },
+    },
+    moduleName: "exchangeRate",
+    namespace: exchangeRateRoutes,
+  },
+  {
     basePath: "/statistics",
     expectedRoutes: {
       getDashboardRoute: {
@@ -262,6 +271,7 @@ describe("internal route registry", () => {
       { basePath: "/ledgers", name: "account" },
       { basePath: "/ledgers", name: "category" },
       { basePath: "/ledgers", name: "merchant" },
+      { basePath: "/exchange-rates", name: "exchangeRate" },
       { basePath: "/transactions", name: "transaction" },
       { basePath: "/statistics", name: "statistics" },
       { basePath: "/users", name: "user" },

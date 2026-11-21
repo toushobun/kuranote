@@ -1,6 +1,7 @@
 import { accountRouter } from "internal/account/router";
 import { authRouter } from "internal/auth/router";
 import { categoryRouter } from "internal/category/router";
+import { exchangeRateRouter } from "internal/exchangeRate/router";
 import type { InternalModule } from "internal/internalModule";
 import { ledgerInviteRouter } from "internal/ledger/inviteRouter";
 import { ledgerRouter } from "internal/ledger/router";
@@ -21,6 +22,11 @@ export const internalModules = [
   { basePath: "/ledgers", name: "account", router: accountRouter },
   { basePath: "/ledgers", name: "category", router: categoryRouter },
   { basePath: "/ledgers", name: "merchant", router: merchantRouter },
+  {
+    basePath: "/exchange-rates",
+    name: "exchangeRate",
+    router: exchangeRateRouter,
+  },
   {
     basePath: "/transactions",
     name: "transaction",

@@ -118,6 +118,12 @@ export const flowMessages = {
     `币种将从 ${from} 变为 ${to}，已填写的金额不会换算，数字保持不变。已关联的退款 / 报销会被取消。`,
 } as const;
 
+/** 汇率表采用的实际日期，仅显示月/日。 */
+const formatTransferRateDate = (date: string) => {
+  const [, month, day] = date.split("-");
+  return [Number(month), Number(day)].join("/");
+};
+
 /** 账户周转小票（#1050）。 */
 export const transferReceiptMessages = {
   source: "转出",
@@ -132,6 +138,26 @@ export const transferReceiptMessages = {
   targetAmountTitle: (currency: string) => `到账金额（${currency}）`,
   exchangeRate: (base: string, quote: string, rate: string) =>
     `汇率 1 ${base} ≈ ${rate} ${quote}（按两边金额算出）`,
+  prefilledExchangeRate: (base: string, quote: string, rate: string, date: string) =>
+    "按当天汇率 1 " + base + " = " + rate + " " + quote +
+    "（" + formatTransferRateDate(date) + "）",
+  actualExchangeRate: (base: string, quote: string, rate: string) =>
+    "实际汇率 1 " + base + " ≈ " + rate + " " + quote,
+  dailyExchangeRate: (base: string, quote: string, rate: string, date: string) =>
+    "当天汇率 1 " + base + " = " + rate + " " + quote +
+    "（" + formatTransferRateDate(date) + "）",
+  arrivalDifference: (
+    more: boolean,
+    targetAmount: string,
+    targetCurrency: string,
+    sourceAmount: string,
+    sourceCurrency: string,
+    percent: string,
+  ) =>
+    "比按当天汇率" + (more ? "多到账 " : "少到账 ") +
+    targetAmount + " " + targetCurrency +
+    "（约 " + sourceAmount + " " + sourceCurrency + "・" + percent + "%）",
+  restoreDailyRate: "恢复按当天汇率",
   listArrival: (amount: string, currency: string) =>
     `到账 ${amount} ${currency}`,
   save: "保存转账",
