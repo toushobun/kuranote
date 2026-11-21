@@ -12,6 +12,7 @@ import {
   sumAmountTexts,
 } from "../TransactionForm/TransactionForm.utils";
 import { getLinkedIncomeDisplayAmounts } from "../transactionLinkedIncomeDisplay";
+import { formatCrossCurrencyRate } from "../TransactionForm/crossCurrencyLinkPreview";
 import type { TransactionItemSummary } from "../TransactionForm/TransactionForm.types";
 import type { useTransactionForm } from "../TransactionForm/useTransactionForm";
 import {
@@ -153,16 +154,48 @@ export function ReceiptItemsSection({
                 </Typography>
               )}
               {isLinkedIncome && Number(item.amount) > 0 && (
-                <Typography variant="caption" color="textSecondary">
-                  {offsetAmount > 0
-                    ? m.receiptOffset(
+                item.linkPreview ? (
+                  <>
+                    <Typography variant="caption" color="textSecondary">
+                      {m.receiptCrossCurrencyOffset(
                         formatStepCurrencyAmount(
-                          String(offsetAmount),
-                          currency,
+                          item.linkPreview.actualTargetAmount,
+                          item.linkPreview.targetCurrency,
                         ),
-                      )
-                    : m.receiptSettled}
-                </Typography>
+                        formatStepCurrencyAmount(
+                          item.linkPreview.foldedBackAmount,
+                          item.linkPreview.incomeCurrency,
+                        ),
+                      )}
+                    </Typography>
+                    {(() => {
+                      const preview = item.linkPreview;
+                      if (!preview) return null;
+                      const rate = formatCrossCurrencyRate(
+                        preview.rate, preview.incomeCurrency,
+                        preview.targetCurrency, preview.rateDate,
+                      );
+                      return rate ? (
+                        <Typography variant="caption" color="textSecondary">
+                          {m.receiptCrossCurrencyRate(
+                            rate.date, rate.base, rate.value, rate.quote,
+                          )}
+                        </Typography>
+                      ) : null;
+                    })()}
+                  </>
+                ) : (
+                  <Typography variant="caption" color="textSecondary">
+                    {offsetAmount > 0
+                      ? m.receiptOffset(
+                          formatStepCurrencyAmount(
+                            String(offsetAmount),
+                            currency,
+                          ),
+                        )
+                      : m.receiptSettled}
+                  </Typography>
+                )
               )}
               {invalid && excessDecimals && (
                 <Typography variant="caption" sx={{ color: "error.main" }}>
