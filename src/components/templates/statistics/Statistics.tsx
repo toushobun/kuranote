@@ -4,7 +4,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
 import { statisticsMonthHref } from "config/paths";
-import { ExchangeRateTotalsNote } from "molecules/transactions/ExchangeRateTotalsNote";
+import { ExchangeRateTotalsNote } from "molecules/transactions/ExchangeRateTotalsNote/ExchangeRateTotalsNote";
 import { MonthNavButton } from "molecules/navigation/MonthNavButton";
 import { EmptyState } from "molecules/ui/EmptyState";
 import { SectionCard } from "molecules/ui/SectionCard";

@@ -23,7 +23,7 @@ import type {
 } from "types/transactions";
 import { mergeUniqueById } from "utils/collections";
 import { getCurrencySymbol } from "utils/currency";
-import { ExchangeRateTotalsNote } from "molecules/transactions/ExchangeRateTotalsNote";
+import { ExchangeRateTotalsNote } from "molecules/transactions/ExchangeRateTotalsNote/ExchangeRateTotalsNote";
 import { transactionSharedPaymentMessages } from "utils/transactionMessages";
 import { formatNumber, formatUnsignedCurrencyAmount } from "utils/transactions";
 

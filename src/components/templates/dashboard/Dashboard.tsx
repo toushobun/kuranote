@@ -14,7 +14,7 @@ import { IconBadge } from "atoms/ui/IconBadge";
 import { ledgerSetupEntryMessages } from "config/ledgerSetupMessages";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
-import { ExchangeRateTotalsNote } from "molecules/transactions/ExchangeRateTotalsNote";
+import { ExchangeRateTotalsNote } from "molecules/transactions/ExchangeRateTotalsNote/ExchangeRateTotalsNote";
 import { DashboardMonthSummaryCard } from "organisms/dashboard/DashboardMonthSummaryCard/DashboardMonthSummaryCard";
 import { DashboardRecentTransactions } from "organisms/dashboard/DashboardRecentTransactions/DashboardRecentTransactions";
 import { LedgerSetupContinueCard } from "organisms/ledgers/LedgerSetupContinueCard/LedgerSetupContinueCard";
