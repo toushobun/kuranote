@@ -61,6 +61,17 @@ export type CategoryPickerGroup = {
 
 export type TransactionItemSummary = TransactionFormItem & {
   category?: TransactionCategoryOption;
+  /** 尚未保存时的客户端跨币种预览；保存后以数据库核销结果为准。 */
+  linkPreview?: {
+    convertedAmount: string;
+    actualTargetAmount: string;
+    foldedBackAmount: string;
+    businessNetAmount: string;
+    incomeCurrency: string;
+    targetCurrency: string;
+    rate: number;
+    rateDate: string;
+  };
 };
 
 export type TransactionItemPickerMode =
