@@ -8,6 +8,10 @@
     {
       "path": "/api/cron/attachment-cleanup",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/exchange-rate-refresh",
+      "schedule": "0 16 * * *"
     }
   ]
 }
