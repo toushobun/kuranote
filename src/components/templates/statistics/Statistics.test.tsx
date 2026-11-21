@@ -2,9 +2,7 @@ import { statisticsRankingNote } from "@/constants/statistics";
 import { cleanup, render, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import {
-  buildStatisticsViewData,
-} from "internal/statistics/service/read/statisticsView";
+import { buildStatisticsViewData } from "internal/statistics/service/read/statisticsView";
 import type { StatisticsViewData } from "types/statistics";
 
 import { StatisticsTemplate } from "./Statistics";
