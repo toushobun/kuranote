@@ -160,7 +160,18 @@ describe("TransactionDashboardQueryService", () => {
             transaction_record_id: "month-expense-record",
           },
         ],
+        records: [
+          { id: "month-mixed", ledger_rate: 1, record_currency: "JPY" },
+          { id: "month-expense-record", ledger_rate: 1, record_currency: "JPY" },
+        ],
       }),
+      loadRecordRates: vi.fn().mockImplementation(async (_ledgerId, ids: string[]) =>
+        ids.map((id) => ({
+          record_id: id,
+          ledger_rate: 1,
+          record_currency: "JPY",
+        })),
+      ),
       listItems,
       listPayments,
       listRecords,
@@ -384,6 +395,9 @@ describe("TransactionDashboardQueryService", () => {
                 category_id: "expense-category",
                 transaction_record_id: "surplus-expense",
               },
+            ],
+            records: [
+              { id: "surplus-expense", ledger_rate: 1, record_currency: "JPY" },
             ],
           }),
           loadDashboardRecentlyUsedAccountIds: vi.fn().mockResolvedValue([]),

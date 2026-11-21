@@ -690,7 +690,13 @@ describe("Issue #917 月度口径一致性", () => {
         transactionRepository: {
           loadDashboardMonthSource: vi
             .fn()
-            .mockResolvedValue({ categories: monthlyAmountCategories, items }),
+            .mockResolvedValue({
+              categories: monthlyAmountCategories,
+              items,
+              records: [
+                { id: "record", ledger_rate: 1, record_currency: "JPY" },
+              ],
+            }),
           listRecords: vi.fn().mockResolvedValue([]),
           loadDashboardRecentlyUsedAccountIds: vi.fn().mockResolvedValue([]),
         } as never,

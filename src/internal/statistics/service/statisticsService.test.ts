@@ -194,6 +194,8 @@ describe("StatisticsService", () => {
             merchant_id: merchantId,
             note: null,
             transaction_at: "2026-06-15T01:00:00.000Z",
+            ledger_rate: 1,
+            record_currency: "JPY",
             type: "normal",
           },
         ],
