@@ -402,7 +402,9 @@ describe("TransferReceipt 按当天汇率预填", () => {
     expect(targetField?.value).toBe("");
     click("保存转账");
     expect(action).not.toHaveBeenCalled();
-    expect(screen.getByText("转出金额无效，点一下重新输入")).toBeInTheDocument();
+    expect(
+      screen.getByText("转出金额无效，点一下重新输入"),
+    ).toBeInTheDocument();
     expect(screen.getByText("请输入到账金额")).toBeInTheDocument();
   });
 
