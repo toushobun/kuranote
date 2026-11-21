@@ -160,6 +160,7 @@ export type TransactionRecordQuery = {
 export type TransactionGroupSummaryRow = {
   group_currency?: string | null;
   missing_rate_count?: number | null;
+  has_foreign_currency?: boolean | null;
   balance: number | string | null;
   expense: number | string | null;
   group_id: string;
