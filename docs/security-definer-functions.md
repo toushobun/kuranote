@@ -529,3 +529,15 @@ Storage 物理文件不能通过 SQL 删除，必须由具有服务端权限的 
 编辑时分别逆转旧转出、旧到账金额；作废依两个旧明细的 `balance_delta` 回滚。
 金额搜索的 `load_filtered_transaction_page` 保持 `SECURITY INVOKER` 及原有
 账本成员权限检查，records 模式从原先匹配转出金额改为任一明细金额匹配。
+
+## Issue #1147：退款报销跨币种核销
+
+`20261122010000_cross_currency_refund_reimbursement.sql` 使用收入记录东京本地日期的汇率，把退款／报销折成原支出币种，按既有顺序抵扣，再折回收入币种计算倒赚。
+
+新建 `transaction_currency_decimal_places(text)` 为 IMMUTABLE 货币小数位函数；
+`transaction_link_allocations(uuid,uuid)` 和
+`transaction_link_allocations_for_targets(uuid,uuid[])` 为 STABLE SECURITY INVOKER 函数，固定 `search_path = pg_catalog, pg_temp`，受原有交易 RLS 约束；上述函数撤销 PUBLIC / anon 权限，只允许 authenticated / service_role 执行。
+
+`load_filtered_transaction_page` 去掉 `p_currency`，新签名为 `(uuid,text,text,uuid,text[],boolean,integer,integer,uuid,text,date)`。先 DROP 旧签名，保持 STABLE SECURITY INVOKER、固定 search_path、仅授权 authenticated，不改变成员与 RLS 访问边界。
+
+原有 `validate_transaction_record_payments()` 为 SECURITY DEFINER，保持 20261109090000 的多账户收支方向和支付总额规则及 `payment_currency_mismatch`（付款账户彼此必须同币种），只将退款／报销关联币种一致检查换为缺失汇率检查。原函数签名、search_path 和 EXECUTE 权限不变。关联写入、编辑的缺失汇率错误统一为 `link_exchange_rate_missing`。

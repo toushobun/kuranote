@@ -569,12 +569,10 @@ begin
 end;
 $$;
 
-create or replace function public.validate_transaction_record_payments()
-returns trigger
-language plpgsql
-security definer
-set search_path = pg_catalog, pg_temp
-as $$
+CREATE OR REPLACE FUNCTION "public"."validate_transaction_record_payments"() RETURNS "trigger"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
 declare
     v_record_ids uuid[];
     v_record_id uuid;
@@ -583,9 +581,10 @@ declare
     v_payment_delta_total numeric;
     v_payment_currency_count integer;
     v_payments_all_outflow boolean;
-    v_payment_account_id uuid;
+    v_payments_all_inflow boolean;
     v_item_delta_total numeric;
-    v_has_non_expense_item boolean;
+    v_items_all_expense boolean;
+    v_items_all_income boolean;
 begin
     if tg_table_name = 'transaction_record' then
         v_record_ids := array[new.id];
@@ -610,14 +609,14 @@ begin
             count(*)::integer,
             coalesce(sum(p.balance_delta), 0),
             count(distinct a.currency)::integer,
-            coalesce(bool_and(p.balance_delta = -p.amount), true),
-            min(p.account_id::text)::uuid
+            bool_and(p.balance_delta = -p.amount),
+            bool_and(p.balance_delta = p.amount)
         into
             v_payment_count,
             v_payment_delta_total,
             v_payment_currency_count,
             v_payments_all_outflow,
-            v_payment_account_id
+            v_payments_all_inflow
         from public.transaction_payment p
         join public.account a
           on a.id = p.account_id
@@ -643,8 +642,9 @@ begin
 
         select
             coalesce(sum(case when c.type = 'income' then ti.amount else -ti.amount end), 0),
-            coalesce(bool_or(c.type is distinct from 'expense'), false)
-        into v_item_delta_total, v_has_non_expense_item
+            coalesce(bool_and(c.type is not distinct from 'expense'), false),
+            coalesce(bool_and(c.type is not distinct from 'income'), false)
+        into v_item_delta_total, v_items_all_expense, v_items_all_income
         from public.transaction_item ti
         left join public.category c
           on c.id = ti.category_id
@@ -652,15 +652,17 @@ begin
         where ti.transaction_record_id = v_record.id
           and ti.ledger_id = v_record.ledger_id;
 
+        if v_payment_count > 1 and not (
+            (v_items_all_expense and v_payments_all_outflow)
+            or (v_items_all_income and v_payments_all_inflow)
+        ) then
+            raise exception 'payment_multi_account_not_allowed'
+                using errcode = '22023', detail = 'payment_multi_account_not_allowed';
+        end if;
+
         if v_payment_delta_total <> v_item_delta_total then
             raise exception 'payment_total_mismatch'
                 using errcode = '22023', detail = 'payment_total_mismatch';
-        end if;
-
-        if v_payment_count > 1
-           and (v_has_non_expense_item or not v_payments_all_outflow) then
-            raise exception 'payment_multi_account_not_allowed'
-                using errcode = '22023', detail = 'payment_multi_account_not_allowed';
         end if;
 
         if v_payment_currency_count > 1 then
@@ -669,19 +671,14 @@ begin
         end if;
 
         if exists (
-            select 1
-            from public.transaction_item ti
+            select 1 from public.transaction_item ti
             join public.transaction_item_refund_link link
               on link.ledger_id = ti.ledger_id
              and (link.refund_income_item_id = ti.id or link.refunded_item_id = ti.id)
-            join public.transaction_item income
-              on income.id = link.refund_income_item_id and income.ledger_id = link.ledger_id
-            join public.transaction_record income_record
-              on income_record.id = income.transaction_record_id
-             and income_record.ledger_id = income.ledger_id
-             and income_record.status = 'active'
-            join public.transaction_item expense
-              on expense.id = link.refunded_item_id and expense.ledger_id = link.ledger_id
+            join public.transaction_item income on income.id = link.refund_income_item_id and income.ledger_id = link.ledger_id
+            join public.transaction_record income_record on income_record.id = income.transaction_record_id
+              and income_record.ledger_id = income.ledger_id and income_record.status = 'active'
+            join public.transaction_item expense on expense.id = link.refunded_item_id and expense.ledger_id = link.ledger_id
             where ti.transaction_record_id = v_record.id and ti.ledger_id = v_record.ledger_id
               and public.exchange_rate_on(
                   public.transaction_record_currency(income.ledger_id, income.transaction_record_id),
@@ -689,24 +686,18 @@ begin
                   public.transaction_record_local_date(income_record.transaction_at)
               ) is null
         ) then
-            raise exception 'link_exchange_rate_missing'
-                using errcode = '22023', detail = 'link_exchange_rate_missing';
+            raise exception 'link_exchange_rate_missing' using errcode = '22023', detail = 'link_exchange_rate_missing';
         end if;
 
         if exists (
-            select 1
-            from public.transaction_item ti
+            select 1 from public.transaction_item ti
             join public.transaction_item_reimbursement_link link
               on link.ledger_id = ti.ledger_id
              and (link.reimbursement_income_item_id = ti.id or link.target_expense_item_id = ti.id)
-            join public.transaction_item income
-              on income.id = link.reimbursement_income_item_id and income.ledger_id = link.ledger_id
-            join public.transaction_record income_record
-              on income_record.id = income.transaction_record_id
-             and income_record.ledger_id = income.ledger_id
-             and income_record.status = 'active'
-            join public.transaction_item expense
-              on expense.id = link.target_expense_item_id and expense.ledger_id = link.ledger_id
+            join public.transaction_item income on income.id = link.reimbursement_income_item_id and income.ledger_id = link.ledger_id
+            join public.transaction_record income_record on income_record.id = income.transaction_record_id
+              and income_record.ledger_id = income.ledger_id and income_record.status = 'active'
+            join public.transaction_item expense on expense.id = link.target_expense_item_id and expense.ledger_id = link.ledger_id
             where ti.transaction_record_id = v_record.id and ti.ledger_id = v_record.ledger_id
               and public.exchange_rate_on(
                   public.transaction_record_currency(income.ledger_id, income.transaction_record_id),
@@ -714,21 +705,7 @@ begin
                   public.transaction_record_local_date(income_record.transaction_at)
               ) is null
         ) then
-            raise exception 'link_exchange_rate_missing'
-                using errcode = '22023', detail = 'link_exchange_rate_missing';
-        end if;
-
-        -- 过渡期（#834 子 Issue 4 解除）：付款明细恰好 1 行，明细 account_id 是它的镜像。
-        -- 明细 balance_delta 为 NULL 由 validate_transaction_item_category_shape 立即校验。
-        if v_payment_count <> 1 or exists (
-            select 1
-            from public.transaction_item ti
-            where ti.transaction_record_id = v_record.id
-              and ti.ledger_id = v_record.ledger_id
-              and ti.account_id is distinct from v_payment_account_id
-        ) then
-            raise exception 'payment_transition_invalid'
-                using errcode = '22023', detail = 'payment_transition_invalid';
+            raise exception 'link_exchange_rate_missing' using errcode = '22023', detail = 'link_exchange_rate_missing';
         end if;
     end loop;
 

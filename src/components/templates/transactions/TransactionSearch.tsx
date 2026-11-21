@@ -164,7 +164,6 @@ export function TransactionSearchTemplate({
               <TransactionRefundCandidateList
                 items={search.items}
                 onSelect={onSelectRefundItem}
-                selectableCurrency={selectableCurrency}
                 selectedId={selectedRefundItemId}
               />
             ) : (
