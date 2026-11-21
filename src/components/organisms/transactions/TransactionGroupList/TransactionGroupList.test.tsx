@@ -401,27 +401,24 @@ describe("TransactionRefundCandidateList", () => {
       name: "选择报销明细 服装",
       selectionKind: "reimbursement",
     },
-  ] as const)(
-    "$label候选不因不同币种而禁用",
-    ({ name, selectionKind }) => {
-      const onSelect = vi.fn();
-      render(
-        <TransactionRefundCandidateList
-          items={[createRefundRecord("0", "100")]}
-          onSelect={onSelect}
-          selectionKind={selectionKind}
-        />,
-      );
-      const button = screen.getByRole("button", { name });
-      expect(button).not.toBeDisabled();
-      expect(screen.getByRole("radio")).not.toBeDisabled();
-      expect(screen.queryByText(/与收款账户币种.*不一致/)).toBeNull();
-      fireEvent.click(button);
-      expect(onSelect).toHaveBeenCalledWith(
-        expect.objectContaining({ id: "refund-item-1", accountCurrency: "USD" }),
-      );
-    },
-  );
+  ] as const)("$label候选不因不同币种而禁用", ({ name, selectionKind }) => {
+    const onSelect = vi.fn();
+    render(
+      <TransactionRefundCandidateList
+        items={[createRefundRecord("0", "100")]}
+        onSelect={onSelect}
+        selectionKind={selectionKind}
+      />,
+    );
+    const button = screen.getByRole("button", { name });
+    expect(button).not.toBeDisabled();
+    expect(screen.getByRole("radio")).not.toBeDisabled();
+    expect(screen.queryByText(/与收款账户币种.*不一致/)).toBeNull();
+    fireEvent.click(button);
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "refund-item-1", accountCurrency: "USD" }),
+    );
+  });
 
   it("候选与收款账户币种一致时可以选择", () => {
     const onSelect = vi.fn();
