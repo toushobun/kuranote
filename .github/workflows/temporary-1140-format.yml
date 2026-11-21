@@ -15,6 +15,7 @@ jobs:
         with:
           path: node_modules
           key: node-modules-a357e034a6fee41c9a534aad47e5f8a800e39aff2c599f64b3a62689ee12b47f
+      - run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Format and export
         shell: bash
         run: |
