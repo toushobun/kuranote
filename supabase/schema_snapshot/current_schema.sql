@@ -659,6 +659,7 @@ declare
     v_income_amount numeric(14,2);
     v_income_category_type text;
     v_income_currency text;
+    v_income_at timestamptz;
     v_reimbursement_target_id uuid;
     v_reimbursement_target_type text;
     v_reimbursement_target_currency text;
@@ -702,8 +703,8 @@ begin
             using errcode = '22023', detail = 'special_status_invalid';
     end if;
 
-    select ti.amount, c.type, public.transaction_record_currency(ti.ledger_id, ti.transaction_record_id)
-    into v_income_amount, v_income_category_type, v_income_currency
+    select ti.amount, c.type, public.transaction_record_currency(ti.ledger_id, ti.transaction_record_id), tr.transaction_at
+    into v_income_amount, v_income_category_type, v_income_currency, v_income_at
     from public.transaction_item ti
     join public.transaction_record tr
       on tr.id = ti.transaction_record_id
@@ -755,9 +756,8 @@ begin
                 using errcode = 'P0001', detail = 'reimbursement_item_invalid';
         end if;
 
-        if v_reimbursement_target_currency is distinct from v_income_currency then
-            raise exception 'reimbursement_currency_mismatch'
-                using errcode = '22023', detail = 'reimbursement_currency_mismatch';
+        if public.exchange_rate_on(v_income_currency, v_reimbursement_target_currency, public.transaction_record_local_date(v_income_at)) is null then
+            raise exception 'link_exchange_rate_missing' using errcode = '22023', detail = 'link_exchange_rate_missing';
         end if;
 
         if exists (
@@ -832,9 +832,8 @@ begin
                 using errcode = '22023', detail = 'refunded_item_invalid';
         end if;
 
-        if v_refund_target_currency is distinct from v_income_currency then
-            raise exception 'refund_currency_mismatch'
-                using errcode = '22023', detail = 'refund_currency_mismatch';
+        if public.exchange_rate_on(v_income_currency, v_refund_target_currency, public.transaction_record_local_date(v_income_at)) is null then
+            raise exception 'link_exchange_rate_missing' using errcode = '22023', detail = 'link_exchange_rate_missing';
         end if;
 
         if exists (
@@ -1038,43 +1037,16 @@ CREATE OR REPLACE FUNCTION "public"."calculate_transaction_item_remaining_offset
     LANGUAGE "sql" STABLE
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
-    select
-        target_item.amount
-        - coalesce((
-            select sum(refund_link.refund_amount)
-            from public.transaction_item_refund_link refund_link
-            join public.transaction_item refund_income
-              on refund_income.id = refund_link.refund_income_item_id
-             and refund_income.ledger_id = refund_link.ledger_id
-            join public.transaction_record refund_record
-              on refund_record.id = refund_income.transaction_record_id
-             and refund_record.ledger_id = refund_income.ledger_id
-            where refund_link.ledger_id = target_item.ledger_id
-              and refund_link.refunded_item_id = target_item.id
-              and refund_record.status = 'active'
-        ), 0)
-        - coalesce((
-            select sum(reimbursement_link.reimbursement_amount)
-            from public.transaction_item_reimbursement_link reimbursement_link
-            join public.transaction_item reimbursement_income
-              on reimbursement_income.id =
-                 reimbursement_link.reimbursement_income_item_id
-             and reimbursement_income.ledger_id = reimbursement_link.ledger_id
-            join public.transaction_record reimbursement_record
-              on reimbursement_record.id =
-                 reimbursement_income.transaction_record_id
-             and reimbursement_record.ledger_id = reimbursement_income.ledger_id
-            where reimbursement_link.ledger_id = target_item.ledger_id
-              and reimbursement_link.target_expense_item_id = target_item.id
-              and reimbursement_record.status = 'active'
-        ), 0)
-    from public.transaction_item target_item
-    join public.transaction_record target_record
-      on target_record.id = target_item.transaction_record_id
-     and target_record.ledger_id = target_item.ledger_id
-     and target_record.status = 'active'
-    where target_item.ledger_id = p_ledger_id
-      and target_item.id = p_target_expense_item_id;
+    select target.amount - coalesce((
+        select sum(a.converted_amount)
+        from public.transaction_link_allocations(p_ledger_id, p_target_expense_item_id) a
+    ), 0::numeric)
+    from public.transaction_item target
+    join public.transaction_record record
+      on record.id = target.transaction_record_id
+     and record.ledger_id = target.ledger_id and record.status = 'active'
+    where target.ledger_id = p_ledger_id
+      and target.id = p_target_expense_item_id;
 $$;
 
 
@@ -4591,7 +4563,7 @@ $$;
 ALTER FUNCTION "public"."list_pending_ledger_invites"("p_ledger_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."load_filtered_transaction_page"("p_ledger_id" "uuid", "p_scope" "text", "p_query" "text" DEFAULT ''::"text", "p_merchant_priority_id" "uuid" DEFAULT NULL::"uuid", "p_currency" "text" DEFAULT NULL::"text", "p_special_statuses" "text"[] DEFAULT NULL::"text"[], "p_settled" boolean DEFAULT false, "p_offset" integer DEFAULT 0, "p_limit" integer DEFAULT 20, "p_history_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_link_kind" "text" DEFAULT NULL::"text", "p_month" "date" DEFAULT NULL::"date") RETURNS "jsonb"
+CREATE OR REPLACE FUNCTION "public"."load_filtered_transaction_page"("p_ledger_id" "uuid", "p_scope" "text", "p_query" "text" DEFAULT ''::"text", "p_merchant_priority_id" "uuid" DEFAULT NULL::"uuid", "p_special_statuses" "text"[] DEFAULT NULL::"text"[], "p_settled" boolean DEFAULT false, "p_offset" integer DEFAULT 0, "p_limit" integer DEFAULT 20, "p_history_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_link_kind" "text" DEFAULT NULL::"text", "p_month" "date" DEFAULT NULL::"date") RETURNS "jsonb"
     LANGUAGE "sql" STABLE
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -4659,14 +4631,14 @@ candidate_base as (
         ti.amount as item_amount,
         greatest(
             ti.amount
-            - coalesce(refund_totals.positive_amount, 0::numeric)
-            - coalesce(reimbursement_totals.positive_amount, 0::numeric),
+            - coalesce(link_totals.positive_refund_amount, 0::numeric)
+            - coalesce(link_totals.positive_reimbursement_amount, 0::numeric),
             0::numeric
         ) as business_net_amount,
         ti.sort_order,
         ti.amount
-          - coalesce(refund_totals.total_amount, 0::numeric)
-          - coalesce(reimbursement_totals.total_amount, 0::numeric) <= 0 as settled,
+          - coalesce(link_totals.refund_amount, 0::numeric)
+          - coalesce(link_totals.reimbursement_amount, 0::numeric) <= 0 as settled,
         coalesce(preferred_alias.alias, m.name) as preferred_merchant_name,
         coalesce(nullif(trim(setting.display_name), ''), au.display_name) as recorder_name
     from public.transaction_record tr
@@ -4675,38 +4647,15 @@ candidate_base as (
     -- 候选净额最终按零截断，无需重算各笔关联的时间轴分摊和超额部分。
     left join lateral (
         select
-            sum(link.refund_amount) as total_amount,
-            sum(link.refund_amount) filter (where link.refund_amount > 0) as positive_amount
-        from public.transaction_item_refund_link link
-        join public.transaction_item income_item
-          on income_item.id = link.refund_income_item_id
-         and income_item.ledger_id = link.ledger_id
-        join public.transaction_record income_record
-          on income_record.id = income_item.transaction_record_id
-         and income_record.ledger_id = income_item.ledger_id
-         and income_record.status = 'active'
-        where link.ledger_id = ti.ledger_id
-          and link.refunded_item_id = ti.id
-    ) refund_totals on true
-    left join lateral (
-        select
-            sum(link.reimbursement_amount) as total_amount,
-            sum(link.reimbursement_amount) filter (where link.reimbursement_amount > 0) as positive_amount
-        from public.transaction_item_reimbursement_link link
-        join public.transaction_item income_item
-          on income_item.id = link.reimbursement_income_item_id
-         and income_item.ledger_id = link.ledger_id
-        join public.transaction_record income_record
-          on income_record.id = income_item.transaction_record_id
-         and income_record.ledger_id = income_item.ledger_id
-         and income_record.status = 'active'
-        where link.ledger_id = ti.ledger_id
-          and link.target_expense_item_id = ti.id
-    ) reimbursement_totals on true
+            sum(a.converted_amount) filter (where a.is_refund) as refund_amount,
+            sum(a.converted_amount) filter (where not a.is_refund) as reimbursement_amount,
+            sum(a.converted_amount) filter (where a.is_refund and a.converted_amount > 0) as positive_refund_amount,
+            sum(a.converted_amount) filter (where not a.is_refund and a.converted_amount > 0) as positive_reimbursement_amount
+        from public.transaction_link_allocations(tr.ledger_id, ti.id) a
+    ) link_totals on true
     join public.category cat
       on cat.id = ti.category_id and cat.ledger_id = ti.ledger_id
      and cat.type = 'expense'
-    join public.ledger ledger on ledger.id = tr.ledger_id
     left join public.category parent_cat
       on parent_cat.id = cat.parent_id and parent_cat.ledger_id = cat.ledger_id
     left join public.merchant m
@@ -4745,7 +4694,6 @@ candidate_base as (
           )
       )
       and (select public.current_user_is_active_ledger_member(p_ledger_id))
-      and (p_currency is null or coalesce(first_payment.currency, ledger.base_currency) = p_currency)
       and (
           coalesce(array_length(p_special_statuses, 1), 0) = 0
           or ti.special_status::text = any(p_special_statuses)
@@ -4846,11 +4794,7 @@ record_matched as (
     left join lateral (
         select
             (array_agg(ti.note order by ti.sort_order, ti.id))[1] as first_note,
-            coalesce(bool_or(
-                ti.category_id is null
-                and (select amount_term from args) ~ '[0-9]'
-                and strpos(trim_scale(ti.amount)::text, (select amount_term from args)) > 0
-            ), false) as has_transfer_amount,
+            (array_agg(ti.amount order by (case when ti.balance_delta < 0 then 0 else 1 end), ti.sort_order, ti.id))[1] as first_amount,
             (array_agg(ti.balance_delta order by ti.sort_order, ti.id))[1] as first_delta,
             coalesce(sum(
                 case
@@ -4885,7 +4829,7 @@ record_matched as (
               args.amount_term ~ '[0-9]'
               and (
                   (tr.type = 'normal' and strpos(abs(trim_scale(amounts.net_amount))::text, args.amount_term) > 0)
-                  or (tr.type = 'transfer' and amounts.has_transfer_amount)
+                  or (tr.type = 'transfer' and strpos(coalesce(trim_scale(amounts.first_amount)::text, ''), args.amount_term) > 0)
                   or (tr.type = 'balance_adjustment' and strpos(coalesce(trim_scale(amounts.first_delta)::text, ''), args.amount_term) > 0)
                   or (tr.type = 'normal' and amounts.has_item_amount)
               )
@@ -4982,7 +4926,7 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."load_filtered_transaction_page"("p_ledger_id" "uuid", "p_scope" "text", "p_query" "text", "p_merchant_priority_id" "uuid", "p_currency" "text", "p_special_statuses" "text"[], "p_settled" boolean, "p_offset" integer, "p_limit" integer, "p_history_merchant_id" "uuid", "p_link_kind" "text", "p_month" "date") OWNER TO "postgres";
+ALTER FUNCTION "public"."load_filtered_transaction_page"("p_ledger_id" "uuid", "p_scope" "text", "p_query" "text", "p_merchant_priority_id" "uuid", "p_special_statuses" "text"[], "p_settled" boolean, "p_offset" integer, "p_limit" integer, "p_history_merchant_id" "uuid", "p_link_kind" "text", "p_month" "date") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."load_frequent_transaction_merchants"("p_ledger_id" "uuid", "p_limit" integer) RETURNS TABLE("merchant_id" "uuid", "record_count" bigint)
@@ -7181,6 +7125,155 @@ $$;
 ALTER FUNCTION "public"."sync_transaction_attachments"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_attachment_ids" "uuid"[]) OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."transaction_currency_decimal_places"("p_currency" "text") RETURNS integer
+    LANGUAGE "sql" IMMUTABLE PARALLEL SAFE
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+    select case upper(trim(coalesce(p_currency, '')))
+        when 'BHD' then 3 when 'KWD' then 3 when 'OMR' then 3
+        when 'CNY' then 2 when 'EUR' then 2 when 'GBP' then 2
+        when 'HKD' then 2 when 'SGD' then 2 when 'THB' then 2
+        when 'TWD' then 2 when 'USD' then 2
+        else 0 end;
+$$;
+
+
+ALTER FUNCTION "public"."transaction_currency_decimal_places"("p_currency" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."transaction_link_allocations"("p_ledger_id" "uuid", "p_target_id" "uuid") RETURNS TABLE("target_id" "uuid", "income_id" "uuid", "is_refund" boolean, "income_amount" numeric, "income_currency" "text", "target_currency" "text", "converted_amount" numeric, "applied_target" numeric, "applied_income" numeric, "rate" numeric, "rate_date" "date")
+    LANGUAGE "sql" STABLE
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+with target as (
+    select
+        ti.id, ti.amount,
+        tr.status = 'active' as is_active,
+        coalesce((
+            select a.currency
+            from public.transaction_payment p
+            join public.account a
+              on a.id = p.account_id and a.ledger_id = p.ledger_id
+            where p.ledger_id = ti.ledger_id
+              and p.transaction_record_id = ti.transaction_record_id
+            order by p.sort_order, p.id
+            limit 1
+        ), ledger.base_currency) as currency,
+        ledger.base_currency
+    from public.transaction_item ti
+    join public.transaction_record tr
+      on tr.id = ti.transaction_record_id and tr.ledger_id = ti.ledger_id
+    join public.ledger ledger on ledger.id = ti.ledger_id
+    where ti.ledger_id = p_ledger_id and ti.id = p_target_id
+),
+links as (
+    select
+        l.refund_income_item_id as income_id,
+        l.refund_amount as amount,
+        true as is_refund
+    from public.transaction_item_refund_link l
+    where l.ledger_id = p_ledger_id and l.refunded_item_id = p_target_id
+    union all
+    select
+        l.reimbursement_income_item_id,
+        l.reimbursement_amount,
+        false
+    from public.transaction_item_reimbursement_link l
+    where l.ledger_id = p_ledger_id and l.target_expense_item_id = p_target_id
+),
+events as (
+    select
+        target.id as target_id,
+        target.amount as target_amount,
+        target.is_active as target_active,
+        target.currency as target_currency,
+        link.income_id,
+        link.amount as income_amount,
+        link.is_refund,
+        coalesce((
+            select a.currency
+            from public.transaction_payment p
+            join public.account a
+              on a.id = p.account_id and a.ledger_id = p.ledger_id
+            where p.ledger_id = income.ledger_id
+              and p.transaction_record_id = income.transaction_record_id
+            order by p.sort_order, p.id
+            limit 1
+        ), target.base_currency) as income_currency,
+        record.transaction_at,
+        record.created_at as record_created_at,
+        income.sort_order
+    from target
+    join links link on true
+    join public.transaction_item income
+      on income.id = link.income_id and income.ledger_id = p_ledger_id
+    join public.transaction_record record
+      on record.id = income.transaction_record_id
+     and record.ledger_id = income.ledger_id
+     and record.status = 'active'
+),
+rated as (
+    select e.*, fx.rate, fx.rate_date,
+        round(
+            e.income_amount * fx.rate,
+            public.transaction_currency_decimal_places(e.target_currency)
+        ) as converted_amount
+    from events e
+    cross join lateral public.exchange_rate_with_date(
+        e.income_currency,
+        e.target_currency,
+        public.transaction_record_local_date(e.transaction_at)
+    ) fx
+),
+ordered as (
+    select rated.*,
+        coalesce(sum(rated.converted_amount) over (
+            partition by rated.target_id
+            order by rated.transaction_at, rated.record_created_at,
+                     rated.sort_order, rated.income_id
+            rows between unbounded preceding and 1 preceding
+        ), 0::numeric) as prior_amount
+    from rated
+),
+allocated as (
+    select ordered.*,
+        case when ordered.target_active then
+            least(
+                ordered.converted_amount,
+                greatest(ordered.target_amount - ordered.prior_amount, 0::numeric)
+            )
+        else 0::numeric end as actual_target
+    from ordered
+)
+select
+    a.target_id, a.income_id, a.is_refund, a.income_amount,
+    a.income_currency, a.target_currency, a.converted_amount,
+    a.actual_target as applied_target,
+    round(
+        a.actual_target / nullif(a.rate, 0),
+        public.transaction_currency_decimal_places(a.income_currency)
+    ) as applied_income,
+    a.rate, a.rate_date
+from allocated a;
+$$;
+
+
+ALTER FUNCTION "public"."transaction_link_allocations"("p_ledger_id" "uuid", "p_target_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."transaction_link_allocations_for_targets"("p_ledger_id" "uuid", "p_target_ids" "uuid"[]) RETURNS TABLE("target_id" "uuid", "income_id" "uuid", "is_refund" boolean, "income_amount" numeric, "income_currency" "text", "target_currency" "text", "converted_amount" numeric, "applied_target" numeric, "applied_income" numeric, "rate" numeric, "rate_date" "date")
+    LANGUAGE "sql" STABLE
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+    select allocated.*
+    from unnest(p_target_ids) as target(target_id)
+    cross join lateral public.transaction_link_allocations(p_ledger_id, target.target_id) allocated;
+$$;
+
+
+ALTER FUNCTION "public"."transaction_link_allocations_for_targets"("p_ledger_id" "uuid", "p_target_ids" "uuid"[]) OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."transaction_offset_merchant_history"("p_ledger_id" "uuid", "p_kind" "text", "p_source_merchant_id" "uuid" DEFAULT NULL::"uuid") RETURNS TABLE("source_merchant_id" "uuid", "merchant_id" "uuid", "transaction_at" timestamp with time zone)
     LANGUAGE "sql" STABLE
     AS $$
@@ -8080,9 +8173,8 @@ begin
                 raise exception 'linked_edit_target_invalid'
                     using errcode = '22023', detail = 'linked_edit_target_invalid';
             end if;
-            if v_source_currency is null or v_target_currency is distinct from v_source_currency then
-                raise exception 'linked_edit_target_currency_mismatch'
-                    using errcode = '22023', detail = 'linked_edit_target_currency_mismatch';
+            if public.exchange_rate_on(v_source_currency, v_target_currency, public.transaction_record_local_date(p_transaction_at)) is null then
+                raise exception 'link_exchange_rate_missing' using errcode = '22023', detail = 'link_exchange_rate_missing';
             end if;
             if v_old_reimbursement_target is not null
                and v_target_status not in (
@@ -9863,6 +9955,7 @@ declare
     v_income_category_type text;
     v_income_currency text;
     v_income_record_status text;
+    v_income_at timestamptz;
 begin
     select c.type, public.transaction_record_currency(ti.ledger_id, ti.transaction_record_id), tr.status, ti.special_status
     into
@@ -9880,8 +9973,8 @@ begin
     where ti.id = new.target_expense_item_id
       and ti.ledger_id = new.ledger_id;
 
-    select c.type, public.transaction_record_currency(ti.ledger_id, ti.transaction_record_id), tr.status
-    into v_income_category_type, v_income_currency, v_income_record_status
+    select c.type, public.transaction_record_currency(ti.ledger_id, ti.transaction_record_id), tr.status, tr.transaction_at
+    into v_income_category_type, v_income_currency, v_income_record_status, v_income_at
     from public.transaction_item ti
     join public.transaction_record tr
       on tr.id = ti.transaction_record_id
@@ -9906,9 +9999,8 @@ begin
             using errcode = '22023', detail = 'reimbursement_item_invalid';
     end if;
 
-    if v_target_currency is distinct from v_income_currency then
-        raise exception 'reimbursement_currency_mismatch'
-            using errcode = '22023', detail = 'reimbursement_currency_mismatch';
+    if public.exchange_rate_on(v_income_currency, v_target_currency, public.transaction_record_local_date(v_income_at)) is null then
+        raise exception 'link_exchange_rate_missing' using errcode = '22023', detail = 'link_exchange_rate_missing';
     end if;
 
     if exists (
@@ -10083,7 +10175,6 @@ declare
     v_record_ids uuid[];
     v_record_id uuid;
     v_record public.transaction_record;
-    v_currency text;
     v_payment_count integer;
     v_payment_delta_total numeric;
     v_payment_currency_count integer;
@@ -10177,56 +10268,42 @@ begin
                 using errcode = '22023', detail = 'payment_currency_mismatch';
         end if;
 
-        v_currency := public.transaction_record_currency(v_record.ledger_id, v_record.id);
-
         if exists (
-            select 1
-            from public.transaction_item ti
+            select 1 from public.transaction_item ti
             join public.transaction_item_refund_link link
               on link.ledger_id = ti.ledger_id
              and (link.refund_income_item_id = ti.id or link.refunded_item_id = ti.id)
-            join public.transaction_item counterpart
-              on counterpart.ledger_id = link.ledger_id
-             and counterpart.id = case
-                 when link.refund_income_item_id = ti.id then link.refunded_item_id
-                 else link.refund_income_item_id
-             end
-            where ti.transaction_record_id = v_record.id
-              and ti.ledger_id = v_record.ledger_id
-              and public.transaction_record_currency(
-                  counterpart.ledger_id,
-                  counterpart.transaction_record_id
-              ) is distinct from v_currency
+            join public.transaction_item income on income.id = link.refund_income_item_id and income.ledger_id = link.ledger_id
+            join public.transaction_record income_record on income_record.id = income.transaction_record_id
+              and income_record.ledger_id = income.ledger_id and income_record.status = 'active'
+            join public.transaction_item expense on expense.id = link.refunded_item_id and expense.ledger_id = link.ledger_id
+            where ti.transaction_record_id = v_record.id and ti.ledger_id = v_record.ledger_id
+              and public.exchange_rate_on(
+                  public.transaction_record_currency(income.ledger_id, income.transaction_record_id),
+                  public.transaction_record_currency(expense.ledger_id, expense.transaction_record_id),
+                  public.transaction_record_local_date(income_record.transaction_at)
+              ) is null
         ) then
-            raise exception 'refund_currency_mismatch'
-                using errcode = '22023', detail = 'refund_currency_mismatch';
+            raise exception 'link_exchange_rate_missing' using errcode = '22023', detail = 'link_exchange_rate_missing';
         end if;
 
         if exists (
-            select 1
-            from public.transaction_item ti
+            select 1 from public.transaction_item ti
             join public.transaction_item_reimbursement_link link
               on link.ledger_id = ti.ledger_id
-             and (
-                 link.reimbursement_income_item_id = ti.id
-                 or link.target_expense_item_id = ti.id
-             )
-            join public.transaction_item counterpart
-              on counterpart.ledger_id = link.ledger_id
-             and counterpart.id = case
-                 when link.reimbursement_income_item_id = ti.id
-                 then link.target_expense_item_id
-                 else link.reimbursement_income_item_id
-             end
-            where ti.transaction_record_id = v_record.id
-              and ti.ledger_id = v_record.ledger_id
-              and public.transaction_record_currency(
-                  counterpart.ledger_id,
-                  counterpart.transaction_record_id
-              ) is distinct from v_currency
+             and (link.reimbursement_income_item_id = ti.id or link.target_expense_item_id = ti.id)
+            join public.transaction_item income on income.id = link.reimbursement_income_item_id and income.ledger_id = link.ledger_id
+            join public.transaction_record income_record on income_record.id = income.transaction_record_id
+              and income_record.ledger_id = income.ledger_id and income_record.status = 'active'
+            join public.transaction_item expense on expense.id = link.target_expense_item_id and expense.ledger_id = link.ledger_id
+            where ti.transaction_record_id = v_record.id and ti.ledger_id = v_record.ledger_id
+              and public.exchange_rate_on(
+                  public.transaction_record_currency(income.ledger_id, income.transaction_record_id),
+                  public.transaction_record_currency(expense.ledger_id, expense.transaction_record_id),
+                  public.transaction_record_local_date(income_record.transaction_at)
+              ) is null
         ) then
-            raise exception 'reimbursement_currency_mismatch'
-                using errcode = '22023', detail = 'reimbursement_currency_mismatch';
+            raise exception 'link_exchange_rate_missing' using errcode = '22023', detail = 'link_exchange_rate_missing';
         end if;
     end loop;
 
@@ -11062,56 +11139,40 @@ CREATE OR REPLACE VIEW "public"."transaction_item_with_refund" WITH ("security_i
      LEFT JOIN LATERAL ( WITH "targets" AS (
                  SELECT "ti"."id"
                 UNION
-                 SELECT "link"."refunded_item_id"
-                   FROM "public"."transaction_item_refund_link" "link"
-                  WHERE (("link"."ledger_id" = "ti"."ledger_id") AND ("link"."refund_income_item_id" = "ti"."id") AND ("link"."refund_amount" > (0)::numeric))
+                 SELECT "l"."refunded_item_id"
+                   FROM "public"."transaction_item_refund_link" "l"
+                  WHERE (("l"."ledger_id" = "ti"."ledger_id") AND ("l"."refund_income_item_id" = "ti"."id"))
                 UNION
-                 SELECT "link"."target_expense_item_id"
-                   FROM "public"."transaction_item_reimbursement_link" "link"
-                  WHERE (("link"."ledger_id" = "ti"."ledger_id") AND ("link"."reimbursement_income_item_id" = "ti"."id") AND ("link"."reimbursement_amount" > (0)::numeric))
-                ), "events" AS (
-                 SELECT "target"."id" AS "target_id",
-                    "target"."amount" AS "target_amount",
-                    ("target_record"."id" IS NOT NULL) AS "target_is_active",
-                    "links"."amount",
-                    "links"."is_refund",
-                    "income"."id" AS "income_id",
-                    "income_record"."transaction_at",
-                    "income_record"."created_at" AS "record_created_at",
-                    "income"."sort_order"
-                   FROM ((((("targets"
-                     CROSS JOIN LATERAL ( SELECT "link"."refund_income_item_id" AS "income_id",
-                            "link"."refund_amount" AS "amount",
-                            true AS "is_refund"
-                           FROM "public"."transaction_item_refund_link" "link"
-                          WHERE (("link"."ledger_id" = "ti"."ledger_id") AND ("link"."refunded_item_id" = "targets"."id"))
-                        UNION ALL
-                         SELECT "link"."reimbursement_income_item_id",
-                            "link"."reimbursement_amount",
-                            false
-                           FROM "public"."transaction_item_reimbursement_link" "link"
-                          WHERE (("link"."ledger_id" = "ti"."ledger_id") AND ("link"."target_expense_item_id" = "targets"."id"))) "links")
-                     JOIN "public"."transaction_item" "target" ON ((("target"."ledger_id" = "ti"."ledger_id") AND ("target"."id" = "targets"."id"))))
-                     LEFT JOIN "public"."transaction_record" "target_record" ON ((("target_record"."ledger_id" = "target"."ledger_id") AND ("target_record"."id" = "target"."transaction_record_id") AND ("target_record"."status" = 'active'::"text"))))
-                     JOIN "public"."transaction_item" "income" ON ((("income"."ledger_id" = "ti"."ledger_id") AND ("income"."id" = "links"."income_id"))))
-                     JOIN "public"."transaction_record" "income_record" ON ((("income_record"."ledger_id" = "income"."ledger_id") AND ("income_record"."id" = "income"."transaction_record_id") AND ("income_record"."status" = 'active'::"text"))))
-                ), "ordered" AS (
-                 SELECT "events"."target_id",
-                    "events"."target_amount",
-                    "events"."target_is_active",
-                    "events"."amount",
-                    "events"."is_refund",
-                    "events"."income_id",
-                    "events"."transaction_at",
-                    "events"."record_created_at",
-                    "events"."sort_order",
-                    COALESCE("sum"("events"."amount") OVER (PARTITION BY "events"."target_id" ORDER BY "events"."transaction_at", "events"."record_created_at", "events"."sort_order", "events"."income_id" ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), (0)::numeric) AS "prior_amount"
-                   FROM "events"
+                 SELECT "l"."target_expense_item_id"
+                   FROM "public"."transaction_item_reimbursement_link" "l"
+                  WHERE (("l"."ledger_id" = "ti"."ledger_id") AND ("l"."reimbursement_income_item_id" = "ti"."id"))
+                ), "allocations" AS (
+                 SELECT "a"."target_id",
+                    "a"."income_id",
+                    "a"."is_refund",
+                    "a"."income_amount",
+                    "a"."income_currency",
+                    "a"."target_currency",
+                    "a"."converted_amount",
+                    "a"."applied_target",
+                    "a"."applied_income",
+                    "a"."rate",
+                    "a"."rate_date"
+                   FROM ("targets" "t"
+                     CROSS JOIN LATERAL "public"."transaction_link_allocations"("ti"."ledger_id", "t"."id") "a"("target_id", "income_id", "is_refund", "income_amount", "income_currency", "target_currency", "converted_amount", "applied_target", "applied_income", "rate", "rate_date"))
                 )
-         SELECT "sum"("ordered"."amount") FILTER (WHERE (("ordered"."target_id" = "ti"."id") AND "ordered"."is_refund")) AS "refunded_amount",
-            "sum"("ordered"."amount") FILTER (WHERE (("ordered"."target_id" = "ti"."id") AND (NOT "ordered"."is_refund"))) AS "reimbursed_amount",
-            "sum"(LEAST("ordered"."amount", GREATEST(("ordered"."target_amount" - "ordered"."prior_amount"), (0)::numeric))) FILTER (WHERE ("ordered"."target_is_active" AND (("ordered"."target_id" = "ti"."id") OR ("ordered"."income_id" = "ti"."id")))) AS "applied_amount"
-           FROM "ordered") "offsets" ON (true));
+         SELECT "sum"("allocations"."converted_amount") FILTER (WHERE (("allocations"."target_id" = "ti"."id") AND "allocations"."is_refund")) AS "refunded_amount",
+            "sum"("allocations"."converted_amount") FILTER (WHERE (("allocations"."target_id" = "ti"."id") AND (NOT "allocations"."is_refund"))) AS "reimbursed_amount",
+            ("sum"(
+                CASE
+                    WHEN ("allocations"."target_id" = "ti"."id") THEN "allocations"."applied_target"
+                    ELSE (0)::numeric
+                END) + "sum"(
+                CASE
+                    WHEN ("allocations"."income_id" = "ti"."id") THEN "allocations"."applied_income"
+                    ELSE (0)::numeric
+                END)) AS "applied_amount"
+           FROM "allocations") "offsets" ON (true));
 
 
 ALTER VIEW "public"."transaction_item_with_refund" OWNER TO "postgres";
@@ -12982,8 +13043,8 @@ GRANT ALL ON FUNCTION "public"."list_pending_ledger_invites"("p_ledger_id" "uuid
 
 
 
-REVOKE ALL ON FUNCTION "public"."load_filtered_transaction_page"("p_ledger_id" "uuid", "p_scope" "text", "p_query" "text", "p_merchant_priority_id" "uuid", "p_currency" "text", "p_special_statuses" "text"[], "p_settled" boolean, "p_offset" integer, "p_limit" integer, "p_history_merchant_id" "uuid", "p_link_kind" "text", "p_month" "date") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."load_filtered_transaction_page"("p_ledger_id" "uuid", "p_scope" "text", "p_query" "text", "p_merchant_priority_id" "uuid", "p_currency" "text", "p_special_statuses" "text"[], "p_settled" boolean, "p_offset" integer, "p_limit" integer, "p_history_merchant_id" "uuid", "p_link_kind" "text", "p_month" "date") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."load_filtered_transaction_page"("p_ledger_id" "uuid", "p_scope" "text", "p_query" "text", "p_merchant_priority_id" "uuid", "p_special_statuses" "text"[], "p_settled" boolean, "p_offset" integer, "p_limit" integer, "p_history_merchant_id" "uuid", "p_link_kind" "text", "p_month" "date") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."load_filtered_transaction_page"("p_ledger_id" "uuid", "p_scope" "text", "p_query" "text", "p_merchant_priority_id" "uuid", "p_special_statuses" "text"[], "p_settled" boolean, "p_offset" integer, "p_limit" integer, "p_history_merchant_id" "uuid", "p_link_kind" "text", "p_month" "date") TO "authenticated";
 
 
 
@@ -13115,6 +13176,24 @@ REVOKE ALL ON FUNCTION "public"."sync_account_name_scope"("p_account_id" "uuid")
 
 
 REVOKE ALL ON FUNCTION "public"."sync_transaction_attachments"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_attachment_ids" "uuid"[]) FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."transaction_currency_decimal_places"("p_currency" "text") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."transaction_currency_decimal_places"("p_currency" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."transaction_currency_decimal_places"("p_currency" "text") TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."transaction_link_allocations"("p_ledger_id" "uuid", "p_target_id" "uuid") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."transaction_link_allocations"("p_ledger_id" "uuid", "p_target_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."transaction_link_allocations"("p_ledger_id" "uuid", "p_target_id" "uuid") TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."transaction_link_allocations_for_targets"("p_ledger_id" "uuid", "p_target_ids" "uuid"[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."transaction_link_allocations_for_targets"("p_ledger_id" "uuid", "p_target_ids" "uuid"[]) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."transaction_link_allocations_for_targets"("p_ledger_id" "uuid", "p_target_ids" "uuid"[]) TO "service_role";
 
 
 
