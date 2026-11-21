@@ -26,8 +26,11 @@ jobs:
         run: |
           git diff --name-only -z --diff-filter=ACM "$(git merge-base HEAD origin/main)" HEAD -- '*.ts' '*.tsx' | xargs -0 -r npx prettier --write
           git diff --check
-      - name: Check TypeScript, lint, formatting and Vitest
-        run: npm run check
+      - name: Check TypeScript, lint and formatting
+        run: |
+          npm run type-check
+          npm run lint
+          npm run format:check
       - name: Verify one real ECB daily-rate response
         run: |
           curl -fsSL --max-time 25 'https://api.frankfurter.dev/v1/2024-01-01..2024-12-31?base=EUR&symbols=JPY' -o /tmp/pr1139-ecb-2024.json
@@ -67,3 +70,21 @@ jobs:
             git commit -m 'style: 整理汇率 review 修改格式并更新快照'
             git push origin HEAD:feat/1139_convert_totals_to_ledger_currency
           fi
+
+  test-shard:
+    name: Vitest (shard ${{ matrix.shard }}/4)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/1139_convert_totals_to_ledger_currency
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci
+      - name: Run Vitest shard
+        run: npm test -- --shard=${{ matrix.shard }}/4
