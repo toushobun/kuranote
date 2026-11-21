@@ -247,7 +247,6 @@ export function TransactionLinkCandidatePanel(
   const cardProps = {
     resolveLinkCandidate: props.resolveLinkCandidate,
     onSelect: onChange,
-    selectableCurrency: accountCurrency,
     lockedAmounts: props.lockedAmounts,
     selectedId: value?.id,
     selectionKind: kind,
