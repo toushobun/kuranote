@@ -529,6 +529,7 @@ export const CrossCurrencyReimbursementReceipt1147: Story = {
   name: "跨币种报销小票 · 折算与倒赚",
   render: () => (
     <ReadOnlyReceipt
+      note=""
       itemsOptions={{
         ...receiptItemsOptions,
         categoryOptions: [

@@ -402,28 +402,24 @@ describe("TransactionRefundCandidateList", () => {
       selectionKind: "reimbursement",
     },
   ] as const)(
-    "$label候选与收款账户币种不一致时置灰且不可选择",
+    "$label候选不因不同币种而禁用",
     ({ name, selectionKind }) => {
       const onSelect = vi.fn();
-
       render(
         <TransactionRefundCandidateList
           items={[createRefundRecord("0", "100")]}
           onSelect={onSelect}
-          selectableCurrency="JPY"
           selectionKind={selectionKind}
         />,
       );
-
       const button = screen.getByRole("button", { name });
-      expect(button).toBeDisabled();
-      expect(screen.getByRole("radio")).toBeDisabled();
-      expect(
-        screen.getByText("与收款账户币种（JPY）不一致，不可选择"),
-      ).toBeInTheDocument();
-
+      expect(button).not.toBeDisabled();
+      expect(screen.getByRole("radio")).not.toBeDisabled();
+      expect(screen.queryByText(/与收款账户币种.*不一致/)).toBeNull();
       fireEvent.click(button);
-      expect(onSelect).not.toHaveBeenCalled();
+      expect(onSelect).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "refund-item-1", accountCurrency: "USD" }),
+      );
     },
   );
 
@@ -434,7 +430,6 @@ describe("TransactionRefundCandidateList", () => {
       <TransactionRefundCandidateList
         items={[createRefundRecord("0", "100")]}
         onSelect={onSelect}
-        selectableCurrency="USD"
       />,
     );
 

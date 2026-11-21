@@ -165,11 +165,11 @@ returns table (
 )
 language sql stable security invoker
 set search_path = pg_catalog, pg_temp
-as $
+as $$
     select allocated.*
     from unnest(p_target_ids) as target(target_id)
     cross join lateral public.transaction_link_allocations(p_ledger_id, target.target_id) allocated;
-$;
+$$;
 revoke all on function public.transaction_link_allocations_for_targets(uuid, uuid[])
     from public, anon, authenticated, service_role;
 grant execute on function public.transaction_link_allocations_for_targets(uuid, uuid[])
