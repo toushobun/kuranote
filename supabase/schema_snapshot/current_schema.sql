@@ -5004,7 +5004,7 @@ $$;
 ALTER FUNCTION "public"."load_merchant_entry_history"("p_ledger_id" "uuid", "p_merchant_id" "uuid", "p_limit" integer) OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."load_transaction_group_summaries_with_special_status"("p_ledger_id" "uuid", "p_group_by" "text", "p_date_start" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_date_end" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_record_type" "text" DEFAULT 'all'::"text", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_account_id" "uuid" DEFAULT NULL::"uuid", "p_parent_category_id" "uuid" DEFAULT NULL::"uuid", "p_category_id" "uuid" DEFAULT NULL::"uuid", "p_member_id" "uuid" DEFAULT NULL::"uuid", "p_special_statuses" "text"[] DEFAULT NULL::"text"[], "p_offset" integer DEFAULT 0, "p_limit" integer DEFAULT 20, "p_holder_id" "text" DEFAULT NULL::"text") RETURNS TABLE("group_id" "text", "group_key" "text", "group_label" "text", "income" numeric, "expense" numeric, "balance" numeric, "transaction_count" integer, "latest_transaction_at" timestamp with time zone, "shared_payment_record_count" integer, "shared_payment_record_total_amount" numeric, "group_currency" "text", "missing_rate_count" integer)
+CREATE OR REPLACE FUNCTION "public"."load_transaction_group_summaries_with_special_status"("p_ledger_id" "uuid", "p_group_by" "text", "p_date_start" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_date_end" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_record_type" "text" DEFAULT 'all'::"text", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_account_id" "uuid" DEFAULT NULL::"uuid", "p_parent_category_id" "uuid" DEFAULT NULL::"uuid", "p_category_id" "uuid" DEFAULT NULL::"uuid", "p_member_id" "uuid" DEFAULT NULL::"uuid", "p_special_statuses" "text"[] DEFAULT NULL::"text"[], "p_offset" integer DEFAULT 0, "p_limit" integer DEFAULT 20, "p_holder_id" "text" DEFAULT NULL::"text") RETURNS TABLE("group_id" "text", "group_key" "text", "group_label" "text", "income" numeric, "expense" numeric, "balance" numeric, "transaction_count" integer, "latest_transaction_at" timestamp with time zone, "shared_payment_record_count" integer, "shared_payment_record_total_amount" numeric, "group_currency" "text", "missing_rate_count" integer, "has_foreign_currency" boolean)
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -5310,7 +5310,11 @@ group_rows_converted as (
         case when p_group_by = 'account' then gr.raw_expense
              else public.convert_ledger_amount(gr.raw_expense, rr.ledger_rate) end as converted_expense,
         case when p_group_by <> 'account' and rr.ledger_rate is null
-             then 1 else 0 end as missing_rate
+             then 1 else 0 end as missing_rate,
+        (p_group_by <> 'account'
+         and rr.currency is not null
+         and rr.currency <> (select l.base_currency from public.ledger l where l.id = p_ledger_id)
+        ) as has_foreign_currency
     from group_rows_per_record gr
     left join public.transaction_record_ledger_rate rr
       on rr.ledger_id = p_ledger_id and rr.record_id = gr.record_id
@@ -5323,6 +5327,7 @@ grouped as (
         sum(gr.converted_expense) as expense_value,
         sum(gr.converted_income - gr.converted_expense) as balance_value,
         sum(gr.missing_rate)::integer as missing_rate_count,
+        coalesce(bool_or(gr.has_foreign_currency), false) as has_foreign_currency,
         max(gr.latest_at) as latest_at
     from group_rows_converted gr
     group by gr.key
@@ -5420,7 +5425,8 @@ select
          then (select a.currency from public.account a where a.id::text = labeled.key and a.ledger_id = p_ledger_id)
          else (select l.base_currency from public.ledger l where l.id = p_ledger_id)
     end,
-    coalesce(labeled.missing_rate_count, 0)
+    coalesce(labeled.missing_rate_count, 0),
+    coalesce(labeled.has_foreign_currency, false)
 from labeled
 left join shared_grouped sg on sg.key = labeled.key
 order by
