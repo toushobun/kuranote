@@ -16,8 +16,10 @@ set local role authenticated;
 select set_config('request.jwt.claims',
   '{"sub":"00000000-0000-4000-8000-000000000031","role":"authenticated"}', true);
 
-select ok(has_function_privilege('authenticated','public.transaction_record_currency(uuid,uuid)','execute'),
-  '受 RLS 保护的 SQL 视图可以按请求者权限读取交易币种');
+select ok(
+  not has_function_privilege('authenticated','public.transaction_record_currency(uuid,uuid)','execute')
+  and not has_function_privilege('service_role','public.transaction_record_currency(uuid,uuid)','execute'),
+  '汇率视图不得放开仅供内部调用的交易币种函数权限');
 select is((select ledger_rate from public.account_ledger_rate
   where account_id='00000000-0000-4000-8000-000000000043'::uuid),
   public.exchange_rate_on('JPY','USD',(now() at time zone 'UTC')::date),
@@ -35,6 +37,15 @@ select public.create_transaction(
  '[{"accountId":"00000000-0000-4000-8000-000000000043"}]'::jsonb,
  '00000000-0000-4000-8000-000000001001', '#1139 1/16'
 );
+select is(
+  (select r.currency
+   from public.transaction_record_ledger_rate r
+   join public.transaction_record tr on tr.id = r.record_id
+   where tr.ledger_id = '00000000-0000-4000-8000-000000000032'::uuid
+     and tr.note = '#1139 1/15'),
+  'JPY'::text,
+  '不开放内部函数 EXECUTE，authenticated 仍可通过 security_invoker 汇率视图读取自身交易币种');
+
 select is(
  (select count(*) from public.transaction_record_ledger_rate
     where ledger_id='00000000-0000-4000-8000-000000000032'::uuid

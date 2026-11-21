@@ -72,6 +72,7 @@ select ok(not has_table_privilege('anon', 'public.transaction_payment', 'select'
 select ok(
     not has_function_privilege('authenticated', 'public.replace_transaction_payments(uuid,uuid,jsonb,uuid)', 'execute')
     and not has_function_privilege('authenticated', 'public.transaction_payment_account_ids(uuid,jsonb)', 'execute')
+    and not has_function_privilege('authenticated', 'public.transaction_record_currency(uuid,uuid)', 'execute')
     and not has_function_privilege('authenticated', 'public.validate_transaction_record_payments()', 'execute'),
     '付款明细内部函数不可由客户端直接调用'
 );

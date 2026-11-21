@@ -1,7 +1,7 @@
 -- #1139：交易账本汇率视图（调用 PR1 唯一的 exchange_rate_on / 东京日期函数）。
 -- 函数是 SECURITY INVOKER，不存每笔汇率快照。账户使用今天的最新参考价。
 begin;
-grant execute on function public.transaction_record_currency(uuid,uuid) to authenticated, service_role;
+-- transaction_record_currency 是只供 SECURITY DEFINER 内部调用的函数，不向客户端开放。
 
 create function public.convert_ledger_amount(p_amount numeric, p_ledger_rate numeric)
 returns numeric language sql immutable
@@ -18,17 +18,31 @@ grant execute on function public.convert_ledger_amount(numeric,numeric)
 create view public.transaction_record_ledger_rate with (security_invoker = true) as
 select tr.ledger_id, tr.id as record_id,
        case when tr.type = 'normal'
-            then public.transaction_record_currency(tr.ledger_id, tr.id)
+            then rc.currency
             else null end as currency,
        case when tr.type = 'normal'
             then public.exchange_rate_on(
-                public.transaction_record_currency(tr.ledger_id, tr.id),
+                rc.currency,
                 l.base_currency,
                 public.transaction_record_local_date(tr.transaction_at)
             )
             else 1::numeric end as ledger_rate
 from public.transaction_record tr
-join public.ledger l on l.id = tr.ledger_id;
+join public.ledger l on l.id = tr.ledger_id
+left join lateral (
+    -- 与内部 transaction_record_currency 的普通记录分支同语义，
+    -- 但通过 security_invoker 视图与各表 RLS 读取，不放开内部函数 EXECUTE。
+    select a.currency
+    from public.transaction_account_movement m
+    join public.account a
+      on a.id = m.account_id
+     and a.ledger_id = m.ledger_id
+    where m.ledger_id = tr.ledger_id
+      and m.transaction_record_id = tr.id
+      and tr.type = 'normal'
+    order by m.sort_order, m.account_id
+    limit 1
+) rc on true;
 revoke all on public.transaction_record_ledger_rate from public, anon, authenticated, service_role;
 grant select on public.transaction_record_ledger_rate to authenticated, service_role;
 
