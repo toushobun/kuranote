@@ -34,7 +34,6 @@ import { CandidateMonthSelector } from "./CandidateMonthSelector";
 import { candidateInMonth, toTokyoCandidateMonth } from "./candidateMonth";
 
 type TransactionLinkCandidatePanelProps = {
-  accountCurrency?: string;
   pinInitialSelection?: boolean;
   kind: "refund" | "reimbursement";
   merchantId?: string;
@@ -57,7 +56,7 @@ export function TransactionLinkCandidatePanel(
 ) {
   const source = useTransactionOffsetEntry();
   const sourceCandidates = source?.kind === props.kind ? source.candidates : [];
-  const { accountCurrency, kind, merchantName, onChange, value } = props;
+  const { kind, merchantName, onChange, value } = props;
   // 只固定抽屉打开时已关联的原支出，后续改选不重新置顶。
   const [initialSelection] = useState(
     props.pinInitialSelection === false ? null : value,
@@ -96,7 +95,7 @@ export function TransactionLinkCandidatePanel(
 
   const sourceItemIds = sourceCandidates.map((candidate) => candidate.id);
   const matchesCurrentScope = (candidate: TransactionRefundCandidate) =>
-    matchesLinkCandidateScope(candidate, accountCurrency, query) &&
+    matchesLinkCandidateScope(candidate, query) &&
     (candidateInMonth(candidate.transactionAt, displayedMonth) ||
       !!props.lockedAmounts?.has(candidate.id) ||
       sourceItemIds.includes(candidate.id));
@@ -167,7 +166,7 @@ export function TransactionLinkCandidatePanel(
   const selectedInScope =
     !!page &&
     !!initialSelection &&
-    matchesLinkCandidateScope(initialSelection, accountCurrency, query) &&
+    matchesLinkCandidateScope(initialSelection, query) &&
     candidateInMonth(initialSelection.transactionAt, displayedMonth);
   const selectedSettledOffset =
     selectedInScope && isLinkCandidateSettled(initialSelection) ? 1 : 0;
