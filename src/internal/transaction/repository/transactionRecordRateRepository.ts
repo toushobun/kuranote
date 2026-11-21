@@ -1,7 +1,10 @@
 import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
-import { transactionLoadErrorMessages } from "internal/transaction/errors";
+import {
+  transactionLoadErrorCodes,
+  transactionLoadErrorMessages,
+} from "internal/transaction/errors";
 import { chunkArray } from "utils/collections";
 
 export type TransactionRecordLedgerRate = {
@@ -31,7 +34,7 @@ export async function loadTransactionRecordLedgerRates(
           ledgerId,
         });
         throw toRepositoryError(
-          "transaction_record_rates_failed",
+          transactionLoadErrorCodes.recordRatesLoadFailed,
           transactionLoadErrorMessages.recordsLoadFailed,
         );
       }
