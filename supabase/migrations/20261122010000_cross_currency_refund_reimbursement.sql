@@ -153,6 +153,28 @@ revoke all on function public.transaction_link_allocations(uuid, uuid)
 grant execute on function public.transaction_link_allocations(uuid, uuid)
     to authenticated, service_role;
 
+-- 将单目标权威核销扩展为批量读取，编辑小票一次查询全部关联。
+create function public.transaction_link_allocations_for_targets(
+    p_ledger_id uuid, p_target_ids uuid[]
+)
+returns table (
+    target_id uuid, income_id uuid, is_refund boolean,
+    income_amount numeric, income_currency text, target_currency text,
+    converted_amount numeric, applied_target numeric, applied_income numeric,
+    rate numeric, rate_date date
+)
+language sql stable security invoker
+set search_path = pg_catalog, pg_temp
+as $
+    select allocated.*
+    from unnest(p_target_ids) target_id
+    cross join lateral public.transaction_link_allocations(p_ledger_id, target_id) allocated;
+$;
+revoke all on function public.transaction_link_allocations_for_targets(uuid, uuid[])
+    from public, anon, authenticated, service_role;
+grant execute on function public.transaction_link_allocations_for_targets(uuid, uuid[])
+    to authenticated, service_role;
+
 create or replace function public.calculate_transaction_item_remaining_offset_amount(
     p_ledger_id uuid, p_target_expense_item_id uuid
 )
