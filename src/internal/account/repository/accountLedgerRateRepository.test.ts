@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { accountErrorCodes, accountErrorMessages } from "internal/account/errors";
+import {
+  accountErrorCodes,
+  accountErrorMessages,
+} from "internal/account/errors";
 import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 
@@ -28,7 +31,9 @@ describe("loadAccountLedgerRates", () => {
     ]);
     const logger = { error: vi.fn() } as unknown as Logger;
 
-    await expect(loadAccountLedgerRates(client, logger, "ledger-1")).resolves.toEqual(
+    await expect(
+      loadAccountLedgerRates(client, logger, "ledger-1"),
+    ).resolves.toEqual(
       new Map([
         ["a", "1.25"],
         ["b", null],
@@ -46,7 +51,9 @@ describe("loadAccountLedgerRates", () => {
     });
     const logger = { error: vi.fn() } as unknown as Logger;
 
-    await expect(loadAccountLedgerRates(client, logger, "ledger-1")).rejects.toMatchObject({
+    await expect(
+      loadAccountLedgerRates(client, logger, "ledger-1"),
+    ).rejects.toMatchObject({
       code: accountErrorCodes.rateLoadFailed,
       message: accountErrorMessages[accountErrorCodes.rateLoadFailed],
     });

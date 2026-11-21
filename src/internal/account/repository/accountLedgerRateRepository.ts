@@ -1,4 +1,7 @@
-import { accountErrorCodes, accountErrorMessages } from "internal/account/errors";
+import {
+  accountErrorCodes,
+  accountErrorMessages,
+} from "internal/account/errors";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import type { Logger } from "internal/shared/logging/logger";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
