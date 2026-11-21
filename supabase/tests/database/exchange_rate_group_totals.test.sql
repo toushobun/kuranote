@@ -83,7 +83,7 @@ select is(
  false, '账户分组保持原币，不显示换算提示');
 
 select results_eq(
- $select expense, group_currency
+ $$select expense, group_currency
     from public.load_transaction_group_summaries_with_special_status(
       p_ledger_id=>'00000000-0000-4000-8000-000000000032'::uuid,
       p_group_by=>'account',
