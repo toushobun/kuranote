@@ -6,6 +6,7 @@ import type {
   TransactionIncomeLinkData,
   TransactionIncomeLinkedItem,
   TransactionIncomeLinkRepository,
+  type TransactionLinkAllocation,
 } from "internal/transaction/repository/transactionIncomeLinkRepository";
 import type { TransactionFormRepository } from "internal/transaction/repository/transactionRepository";
 import {
@@ -275,6 +276,27 @@ async function buildEditTransactionView<
     ...(link.refundItem ? [link.refundItem] : []),
     ...link.reimbursementItems,
   ]);
+  const targetItemIds = [
+    ...new Set([
+      ...items.flatMap((item) => item.id ? [item.id] : []),
+      ...linkedItems.map((item) => item.id),
+    ]),
+  ];
+  const linkAllocations = dependencies.transactionIncomeLinkRepository
+    ? await dependencies.transactionIncomeLinkRepository.listAllocationsByTargetItemIds(
+        currentLedger.id,
+        targetItemIds,
+      )
+    : [];
+  const allocationByIncomeItemId = new Map(
+    linkAllocations.map((allocation) => [allocation.incomeId, allocation]),
+  );
+  const allocationsByTargetItemId = new Map<string, TransactionLinkAllocation[]>();
+  for (const allocation of linkAllocations) {
+    const entries = allocationsByTargetItemId.get(allocation.targetId) ?? [];
+    entries.push(allocation);
+    allocationsByTargetItemId.set(allocation.targetId, entries);
+  }
   const candidateAccountOptions = [
     ...options.accountOptions,
     ...archivedAccountOptions,
@@ -347,6 +369,33 @@ async function buildEditTransactionView<
           currentLedger.baseCurrency,
           linkedMerchantById,
         );
+        const allocation = item.id
+          ? allocationByIncomeItemId.get(item.id)
+          : undefined;
+        const savedLinkAllocation = allocation &&
+          allocation.incomeCurrency !== allocation.targetCurrency &&
+          allocation.rateDate
+          ? {
+              actualTargetAmount: allocation.appliedTarget,
+              foldedBackAmount: allocation.appliedIncome,
+              convertedAmount: allocation.convertedAmount,
+              incomeCurrency: allocation.incomeCurrency,
+              targetCurrency: allocation.targetCurrency,
+              rate: allocation.rate,
+              rateDate: allocation.rateDate,
+            }
+          : undefined;
+        const crossCurrencyOffsets = item.id
+          ? (allocationsByTargetItemId.get(item.id) ?? [])
+              .filter((entry) => entry.incomeCurrency !== entry.targetCurrency)
+              .map((entry) => ({
+                kind: entry.isRefund ? ("refund" as const) : ("reimbursement" as const),
+                incomeAmount: entry.incomeAmount,
+                incomeCurrency: entry.incomeCurrency,
+                convertedAmount: entry.convertedAmount,
+                targetCurrency: entry.targetCurrency,
+              }))
+          : [];
         const amount = formatEditableAmount(item.amount, currency);
         const businessNetAmount = hasBusinessNetAmountOffset(
           item.amount,
@@ -375,6 +424,8 @@ async function buildEditTransactionView<
           id: item.id,
           refundCandidate,
           reimbursementCandidate,
+          savedLinkAllocation,
+          crossCurrencyOffsets,
           refundedAmount: item.refunded_amount ?? "0",
           reimbursementAmount: item.reimbursement_amount ?? "0",
           specialStatus: fromTransactionSpecialStatusStorageValue(
