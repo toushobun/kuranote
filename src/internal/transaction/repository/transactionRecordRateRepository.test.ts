@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { transactionLoadErrorCodes, transactionLoadErrorMessages } from "internal/transaction/errors";
+import {
+  transactionLoadErrorCodes,
+  transactionLoadErrorMessages,
+} from "internal/transaction/errors";
 import type { Logger } from "internal/shared/logging/logger";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 
@@ -9,7 +12,13 @@ import { loadTransactionRecordLedgerRates } from "./transactionRecordRateReposit
 const ledgerId = "00000000-0000-4000-8000-000000000032";
 
 function createClient(
-  data: { record_id: string; currency: string | null; ledger_rate: number | string | null }[] | null,
+  data:
+    | {
+        record_id: string;
+        currency: string | null;
+        ledger_rate: number | string | null;
+      }[]
+    | null,
   error: { code: string; message: string } | null = null,
 ) {
   const inQuery = vi.fn().mockResolvedValue({ data, error });
@@ -43,7 +52,9 @@ describe("loadTransactionRecordLedgerRates", () => {
       { record_id: "record-1", record_currency: "USD", ledger_rate: "150.5" },
       { record_id: "record-2", record_currency: "CNY", ledger_rate: null },
     ]);
-    expect(from).toHaveBeenCalledExactlyOnceWith("transaction_record_ledger_rate");
+    expect(from).toHaveBeenCalledExactlyOnceWith(
+      "transaction_record_ledger_rate",
+    );
     expect(select).toHaveBeenCalledWith("record_id,currency,ledger_rate");
     expect(eq).toHaveBeenCalledWith("ledger_id", ledgerId);
     expect(inQuery).toHaveBeenCalledWith("record_id", ["record-1", "record-2"]);
