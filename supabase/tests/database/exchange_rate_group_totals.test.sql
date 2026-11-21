@@ -138,6 +138,22 @@ cross join lateral (
 
 -- tests.insert_normal_transaction_items 已自动创建交易付款行，不要重复插入。
 
+// 该测试明确将两个账户指定给同一持有人，避免依赖 seed 中账户的持有人配置。
+reset role;
+delete from public.account_holder
+where ledger_id = '00000000-0000-4000-8000-000000000032'::uuid
+  and account_id in (
+    '00000000-0000-4000-8000-000000000043'::uuid,
+    '00000000-0000-4000-8000-000000000044'::uuid
+  );
+insert into public.account_holder(ledger_id, account_id, user_id) values
+('00000000-0000-4000-8000-000000000032',
+ '00000000-0000-4000-8000-000000000043',
+ '00000000-0000-4000-8000-000000000031'),
+('00000000-0000-4000-8000-000000000032',
+ '00000000-0000-4000-8000-000000000044',
+ '00000000-0000-4000-8000-000000000031');
+
 set local role authenticated;
 
 select results_eq(
@@ -159,7 +175,7 @@ select results_eq(
      p_group_by=>'holder',
      p_date_start=>'2099-01-19 00:00:00+00'::timestamptz,
      p_date_end=>'2099-01-20 00:00:00+00'::timestamptz
-   ) where group_key='none'$$,
+   ) where group_key='00000000-0000-4000-8000-000000000031'$,
  $$values (40::numeric,100::numeric,-60::numeric)$$,
  '同持有人两账户一正一负时收入支出不先抵消');
 
