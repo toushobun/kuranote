@@ -41,7 +41,6 @@ export type StatisticsViewData = {
 type StatisticsRecordInput = {
   id: string;
   merchant_id: string | null;
-  record_currency: string | null;
   ledger_rate: number | string | null;
   type: TransactionRecordStorageType;
 };

@@ -161,11 +161,10 @@ describe("TransactionDashboardQueryService", () => {
           },
         ],
         records: [
-          { id: "month-mixed", ledger_rate: 1, record_currency: "JPY" },
+          { id: "month-mixed", ledger_rate: 1 },
           {
             id: "month-expense-record",
             ledger_rate: 1,
-            record_currency: "JPY",
           },
         ],
       }),
@@ -403,7 +402,7 @@ describe("TransactionDashboardQueryService", () => {
               },
             ],
             records: [
-              { id: "surplus-expense", ledger_rate: 1, record_currency: "JPY" },
+              { id: "surplus-expense", ledger_rate: 1 },
             ],
           }),
           loadDashboardRecentlyUsedAccountIds: vi.fn().mockResolvedValue([]),

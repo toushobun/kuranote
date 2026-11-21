@@ -21,7 +21,6 @@ const records = [
 ].map((record) => ({
   ...record,
   ledger_rate: 1,
-  record_currency: null,
 }));
 
 const items = [
@@ -108,7 +107,6 @@ describeAcrossDefaultLocales("支出排行榜的同额排序", () => {
       records: names.map((name) => ({
         id: name,
         ledger_rate: 1,
-        record_currency: null,
         merchant_id: name,
         type: "normal" as const,
       })),
@@ -193,7 +191,6 @@ describe("buildStatisticsViewData", () => {
       records: monthlyRecordAmountCases.map((_, index) => ({
         id: `record-${index}`,
         ledger_rate: 1,
-        record_currency: null,
         merchant_id: "merchant",
         type: "normal",
       })),
@@ -407,21 +404,18 @@ describe("buildStatisticsViewData", () => {
           {
             id: "surplus-expense",
             ledger_rate: 1,
-            record_currency: null,
             merchant_id: "merchant-surplus",
             type: "normal",
           },
           {
             id: "regular-expense",
             ledger_rate: 1,
-            record_currency: null,
             merchant_id: "merchant-regular",
             type: "normal",
           },
           {
             id: "offset-income",
             ledger_rate: 1,
-            record_currency: null,
             merchant_id: null,
             type: "normal",
           },
@@ -491,14 +485,12 @@ describe("buildStatisticsViewData", () => {
           {
             id: "refund-surplus-expense",
             ledger_rate: 1,
-            record_currency: null,
             merchant_id: "merchant-refund",
             type: "normal",
           },
           {
             id: "refund-surplus-income",
             ledger_rate: 1,
-            record_currency: null,
             merchant_id: null,
             type: "normal",
           },
@@ -564,21 +556,18 @@ describe("buildStatisticsViewData", () => {
           {
             id: "combined-surplus-expense",
             ledger_rate: 1,
-            record_currency: null,
             merchant_id: "merchant-combined",
             type: "normal",
           },
           {
             id: "refund-income",
             ledger_rate: 1,
-            record_currency: null,
             merchant_id: null,
             type: "normal",
           },
           {
             id: "reimbursement-income",
             ledger_rate: 1,
-            record_currency: null,
             merchant_id: null,
             type: "normal",
           },
@@ -691,7 +680,7 @@ describe("Issue #917 月度口径一致性", () => {
           loadDashboardMonthSource: vi.fn().mockResolvedValue({
             categories: monthlyAmountCategories,
             items,
-            records: [{ id: "record", ledger_rate: 1, record_currency: "JPY" }],
+            records: [{ id: "record", ledger_rate: 1 }],
           }),
           listRecords: vi.fn().mockResolvedValue([]),
           loadDashboardRecentlyUsedAccountIds: vi.fn().mockResolvedValue([]),

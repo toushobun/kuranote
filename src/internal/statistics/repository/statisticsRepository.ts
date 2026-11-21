@@ -31,7 +31,7 @@ export type DashboardAccountSummaryRecord = {
 export type MonthlyStatisticsSource = {
   categories: CategorySummaryDbRow[];
   items: TransactionItemDbRow[];
-  records: TransactionRecordDbRow[];
+  records: Omit<TransactionRecordDbRow, "record_currency">[];
 };
 
 export interface StatisticsRepository {
@@ -162,7 +162,6 @@ export function createSupabaseStatisticsRepository(
         const rate = rateById.get(record.id);
         return {
           ...record,
-          record_currency: rate?.record_currency ?? null,
           ledger_rate: rate?.ledger_rate ?? null,
         };
       });
