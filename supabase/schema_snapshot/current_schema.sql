@@ -3402,7 +3402,7 @@ ALTER FUNCTION "public"."exchange_rate_on"("p_from" "text", "p_to" "text", "p_da
 CREATE OR REPLACE FUNCTION "public"."exchange_rate_with_date"("p_from" "text", "p_to" "text", "p_date" "date") RETURNS TABLE("rate" numeric, "rate_date" "date")
     LANGUAGE "sql" STABLE
     SET "search_path" TO 'pg_catalog', 'pg_temp'
-    AS $
+    AS $$
     select
         case
             when p_from is null or p_to is null or p_date is null then null
@@ -3440,7 +3440,7 @@ CREATE OR REPLACE FUNCTION "public"."exchange_rate_with_date"("p_from" "text", "
                  r.rate_date asc
         limit 1
     ) dst on true;
-$;
+$$;
 
 
 ALTER FUNCTION "public"."exchange_rate_with_date"("p_from" "text", "p_to" "text", "p_date" "date") OWNER TO "postgres";
