@@ -333,21 +333,23 @@ describe("TransferReceipt 按当天汇率预填", () => {
       initialValues: rateScenario,
       loadDailyRate,
     });
-    expect(await screen.findByText(/当天汇率 1 CNY = 21.05 JPY/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/当天汇率 1 CNY = 21.05 JPY/),
+    ).toBeInTheDocument();
     click("恢复按当天汇率");
     expect(await screen.findByText("¥2,105")).toBeInTheDocument();
 
     click(/^修改时间：/);
-    fireEvent.click(
-      screen.getByRole("button", { name: "2026年11月20日" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "2026年11月20日" }));
     await waitFor(() =>
       expect(loadDailyRate).toHaveBeenCalledWith(
         { from: "CNY", to: "JPY", date: "2026-11-20" },
         expect.any(AbortSignal),
       ),
     );
-    expect(await screen.findByText(/按当天汇率 1 CNY = 22 JPY（11\/20）/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/按当天汇率 1 CNY = 22 JPY（11\/20）/),
+    ).toBeInTheDocument();
     expect(screen.getByText("¥2,200")).toBeInTheDocument();
     click("保存修改");
     await waitFor(() => expect(action).toHaveBeenCalledOnce());
@@ -358,7 +360,6 @@ describe("TransferReceipt 按当天汇率预填", () => {
     const { action } = setup({ loadDailyRate: referenceRate });
     chooseAccount("转出", "招商银行卡 CNY");
     chooseAccount("转入", "现金 JPY");
-    await screen.findByText(/到账金额/);
     click(/^修改到账金额：/);
     pressItemAmountKey("5");
     pressItemAmountKey("0");
@@ -370,14 +371,14 @@ describe("TransferReceipt 按当天汇率预填", () => {
     click("保存转账");
     expect(action).not.toHaveBeenCalled();
     expect(screen.getByText("请输入转出金额")).toBeInTheDocument();
-    expect(
-      (document.querySelector('input[name="transferAmount"]') as HTMLInputElement)
-        .value,
-    ).toBe("");
-    expect(
-      (document.querySelector('input[name="transferTargetAmount"]') as HTMLInputElement)
-        .value,
-    ).toBe("5000");
+    const sourceField = document.querySelector<HTMLInputElement>(
+      'input[name="transferAmount"]',
+    );
+    const targetField = document.querySelector<HTMLInputElement>(
+      'input[name="transferTargetAmount"]',
+    );
+    expect(sourceField?.value).toBe("");
+    expect(targetField?.value).toBe("5000");
   });
 
   it("未手改到账金额时清空转出金额，自动到账金额也清空", async () => {
@@ -395,10 +396,10 @@ describe("TransferReceipt 按当天汇率预填", () => {
     pressItemAmountKey("清空");
     pressItemAmountKey("确定");
     expect(screen.queryByText("¥2,105")).toBeNull();
-    expect(
-      (document.querySelector('input[name="transferTargetAmount"]') as HTMLInputElement)
-        .value,
-    ).toBe("");
+    const targetField = document.querySelector<HTMLInputElement>(
+      'input[name="transferTargetAmount"]',
+    );
+    expect(targetField?.value).toBe("");
     click("保存转账");
     expect(action).not.toHaveBeenCalled();
     expect(screen.getByText("转出金额无效，点一下重新输入")).toBeInTheDocument();

@@ -54,6 +54,7 @@ function createSettingsService(
 
 function createContainer(overrides: Partial<RequestContainer["ledger"]> = {}) {
   return {
+    exchangeRate: {} as RequestContainer["exchangeRate"],
     account: {} as RequestContainer["account"],
     auth: {} as RequestContainer["auth"],
     category: {} as RequestContainer["category"],

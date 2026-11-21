@@ -37,6 +37,7 @@ describe("auth router", () => {
     });
     app.use("*", async (c, next) => {
       c.set("container", {
+        exchangeRate: {} as RequestContainer["exchangeRate"],
         account: {} as RequestContainer["account"],
         auth: { service },
         category: {} as RequestContainer["category"],

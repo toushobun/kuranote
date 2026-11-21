@@ -9,8 +9,9 @@ export const getDailyExchangeRateHandler = async (
   c: ControllerContext<{ query: Query }>,
 ) => {
   requireAuthenticatedUserId(c.get("requestDependencies").auth);
+  const { exchangeRate } = c.get("container");
   return c.json(
-    await c.get("container").exchangeRate.service.getDailyRate(c.req.valid("query")),
+    await exchangeRate.service.getDailyRate(c.req.valid("query")),
     200,
   );
 };
