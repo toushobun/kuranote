@@ -159,19 +159,26 @@ export const ExpenseCategoriesDisabled: Story = {
   },
 };
 
-export const RefundLinkNotice: Story = {
-  name: "退款明细显示关联提示",
+export const CrossCurrencyReimbursement1147: Story = {
+  name: "跨币种报销 · 84 CNY 折 2000 JPY · 倒赚 0.01 CNY",
   args: {
-    linkNotice: "退款明细必须与收款账户币种一致，请重新选择。",
-    pickerCategoryId: "system-refund",
-    pickerMode: "refund",
-    pickerSpecialStatus: null,
+    pickerMode: "reimbursement",
+    pickerReimbursementCandidate: {
+      ...selectedCandidate,
+      amount: "2000",
+      refundedAmount: "0",
+      remainingRefundableAmount: "2000",
+      accountCurrency: "JPY",
+    },
+    selectedAccountCurrency: "CNY",
+    pickerAmount: "84.00",
+    pickerLinkRate: { rate: 23.8124, rateDate: "2026-11-20" },
+    pickerRateMissing: false,
   },
   play: async ({ canvasElement }) => {
     const body = within(canvasElement.ownerDocument.body);
-    await expect(await body.findByRole("alert")).toHaveTextContent(
-      "退款明细必须与收款账户币种一致，请重新选择。",
-    );
+    await expect(await body.findByText(/按 11\/20 汇率/)).toBeVisible();
+    await expect(await body.findByText(/0.01 CNY 算作收入/)).toBeVisible();
   },
 };
 
