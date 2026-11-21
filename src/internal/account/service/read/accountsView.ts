@@ -23,7 +23,7 @@ type AccountsViewInput = {
   displaySettings: AccountMemberDisplaySetting[];
   holders: Awaited<ReturnType<AccountRepository["listHolders"]>>;
   ledger: AccountLedgerSummary;
-  ledgerRates?: Map<string, number | string | null>;
+  ledgerRates: Map<string, number | string | null>;
   members: AccountLedgerMember[];
   placeholders: LedgerPlaceholderMemberSummary[];
   role: CurrentLedgerRole;
@@ -115,7 +115,7 @@ export function buildAccountsView({
       accounts: accounts.map((account) => ({
         ...account,
         has_transactions: accountIdsWithTransactionsSet.has(account.id),
-        ledger_rate: ledgerRates?.get(account.id) ?? null,
+        ledger_rate: ledgerRates.get(account.id) ?? null,
       })),
       appUserById,
       displayColorByUserId,
