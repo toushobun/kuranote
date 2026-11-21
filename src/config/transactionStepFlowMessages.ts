@@ -143,35 +143,17 @@ export const transferReceiptMessages = {
     quote: string,
     rate: string,
     date: string,
-    mixedDateLabel?: string | null,
   ) =>
-    "按当天汇率 1 " +
-    base +
-    " = " +
-    rate +
-    " " +
-    quote +
-    "（" +
-    (mixedDateLabel ?? formatTransferRateDate(date)) +
-    "）",
+    `按当天汇率 1 ${base} = ${rate} ${quote}（${formatTransferRateDate(date)}）`,
   actualExchangeRate: (base: string, quote: string, rate: string) =>
-    "实际汇率 1 " + base + " ≈ " + rate + " " + quote,
+    `实际汇率 1 ${base} ≈ ${rate} ${quote}`,
   dailyExchangeRate: (
     base: string,
     quote: string,
     rate: string,
     date: string,
-    mixedDateLabel?: string | null,
   ) =>
-    "当天汇率 1 " +
-    base +
-    " = " +
-    rate +
-    " " +
-    quote +
-    "（" +
-    (mixedDateLabel ?? formatTransferRateDate(date)) +
-    "）",
+    `当天汇率 1 ${base} = ${rate} ${quote}（${formatTransferRateDate(date)}）`,
   arrivalDifference: (
     more: boolean,
     targetAmount: string,
@@ -180,25 +162,7 @@ export const transferReceiptMessages = {
     sourceCurrency: string,
     percent: string,
   ) =>
-    "比按当天汇率" +
-    (more ? "多到账 " : "少到账 ") +
-    targetAmount +
-    " " +
-    targetCurrency +
-    "（约 " +
-    sourceAmount +
-    " " +
-    sourceCurrency +
-    "・" +
-    percent +
-    "%）",
-  mixedRateDates: (
-    fromCurrency: string,
-    fromDate: string,
-    toCurrency: string,
-    toDate: string,
-  ) =>
-    `${fromCurrency} ${formatTransferRateDate(fromDate)}、${toCurrency} ${formatTransferRateDate(toDate)}`,
+    `比按当天汇率${more ? "多到账 " : "少到账 "}${targetAmount} ${targetCurrency}（约 ${sourceAmount} ${sourceCurrency}・${percent}%）`,
   restoreDailyRate: "恢复按当天汇率",
   listArrival: (amount: string, currency: string) =>
     `到账 ${amount} ${currency}`,

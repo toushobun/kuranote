@@ -23,8 +23,6 @@ export type DailyExchangeRateQuery = z.infer<
 export const dailyExchangeRateResponseSchema = z.object({
   rate: z.number().positive().nullable(),
   rateDate: dateSchema.nullable(),
-  fromRateDate: dateSchema.nullable().optional(),
-  toRateDate: dateSchema.nullable().optional(),
 });
 export type DailyExchangeRateResult = z.infer<
   typeof dailyExchangeRateResponseSchema

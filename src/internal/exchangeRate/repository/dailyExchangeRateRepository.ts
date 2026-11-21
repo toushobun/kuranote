@@ -38,21 +38,14 @@ export function createDailyExchangeRateRepository(
         !row ||
         typeof row !== "object" ||
         !("rate" in row) ||
-        !("rate_date" in row) ||
-        !("from_rate_date" in row) ||
-        !("to_rate_date" in row)
+        !("rate_date" in row)
       ) {
         throw new RepositoryError(
           exchangeRateErrorCodes.readFailed,
           exchangeRateErrorMessages[exchangeRateErrorCodes.readFailed],
         );
       }
-      const {
-        rate,
-        rate_date: rateDate,
-        from_rate_date: fromRateDate,
-        to_rate_date: toRateDate,
-      } = row;
+      const { rate, rate_date: rateDate } = row;
       if (rate === null && rateDate === null)
         return { rate: null, rateDate: null };
       const value =
@@ -69,12 +62,7 @@ export function createDailyExchangeRateRepository(
           exchangeRateErrorMessages[exchangeRateErrorCodes.readFailed],
         );
       }
-      return {
-        rate: value,
-        rateDate,
-        fromRateDate: typeof fromRateDate === "string" ? fromRateDate : null,
-        toRateDate: typeof toRateDate === "string" ? toRateDate : null,
-      };
+      return { rate: value, rateDate };
     },
   };
 }

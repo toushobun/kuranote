@@ -23,16 +23,20 @@ select ok(has_function_privilege('authenticated',
 select ok(not has_function_privilege('anon',
   'public.exchange_rate_with_date(text,text,date)','execute'), '未登录用户不可执行');
 
--- 当两币种汇率日期不一致时，保留每边的真实取值日供前端展示。
-delete from public.exchange_rate where rate_date = '2026-11-20' and currency = 'JPY';
-select is((select from_rate_date from public.exchange_rate_with_date('CNY','JPY','2026-11-21')),
-  '2026-11-20'::date, '不同日期时保留转出币种取值日');
-select is((select to_rate_date from public.exchange_rate_with_date('CNY','JPY','2026-11-21')),
-  '2026-11-19'::date, '不同日期时保留转入币种取值日');
+-- 回归索引探查的两种情况：日期前无记录取最早日，已有记录取最近日。
+select is((select rate_date from public.exchange_rate_with_date('CNY','JPY','2026-11-18')),
+  '2026-11-19'::date, '早于首条记录时回退最早日');
+select is((select rate from public.exchange_rate_with_date('CNY','JPY','2026-11-18')),
+  180::numeric / 8::numeric, '最早日的汇率正确');
+insert into public.exchange_rate(rate_date,currency,rate_per_eur) values
+('2026-11-17','JPY',176), ('2026-11-17','CNY',7.8),
+('2026-11-18','JPY',178), ('2026-11-18','CNY',7.9);
+select is((select rate_date from public.exchange_rate_with_date('CNY','JPY','2026-11-18')),
+  '2026-11-18'::date, '多日数据优先匹配不晚于请求日的最近日');
+select is((select rate from public.exchange_rate_with_date('CNY','JPY','2026-11-18')),
+  178::numeric / 7.9::numeric, '多日数据返回对应的汇率');
 select is((select rate_date from public.exchange_rate_with_date('CNY','JPY','2026-11-21')),
-  '2026-11-19'::date, '兼容字段返回较早的汇率日');
-select is((select rate from public.exchange_rate_with_date('CNY','JPY','2026-11-21')),
-  public.exchange_rate_on('CNY','JPY','2026-11-21'), '混合日期也保持新旧汇率一致');
+  '2026-11-20'::date, '追加历史数据不改变最新可用日');
 
 select * from finish();
 rollback;

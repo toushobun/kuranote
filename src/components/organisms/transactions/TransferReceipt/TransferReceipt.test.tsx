@@ -322,6 +322,89 @@ describe("TransferReceipt 按当天汇率预填", () => {
     expect(form.has("rate")).toBe(false);
   });
 
+  it("改交易日期后重新查询新日期汇率，并自动重算到账金额", async () => {
+    const loadDailyRate = vi.fn(({ date }: { date: string }) =>
+      Promise.resolve({
+        rate: date === "2026-11-19" ? 21.05 : 22,
+        rateDate: date,
+      }),
+    );
+    const { action } = setup({
+      initialValues: rateScenario,
+      loadDailyRate,
+    });
+    expect(await screen.findByText(/当天汇率 1 CNY = 21.05 JPY/)).toBeInTheDocument();
+    click("恢复按当天汇率");
+    expect(await screen.findByText("¥2,105")).toBeInTheDocument();
+
+    click(/^修改时间：/);
+    fireEvent.click(
+      screen.getByRole("button", { name: "2026年11月20日" }),
+    );
+    await waitFor(() =>
+      expect(loadDailyRate).toHaveBeenCalledWith(
+        { from: "CNY", to: "JPY", date: "2026-11-20" },
+        expect.any(AbortSignal),
+      ),
+    );
+    expect(await screen.findByText(/按当天汇率 1 CNY = 22 JPY（11\/20）/)).toBeInTheDocument();
+    expect(screen.getByText("¥2,200")).toBeInTheDocument();
+    click("保存修改");
+    await waitFor(() => expect(action).toHaveBeenCalledOnce());
+    expect(submittedForm(action).get("transferTargetAmount")).toBe("2200");
+  });
+
+  it("有参考汇率时只填到账金额不会反推转出金额，也不会覆盖手填值", async () => {
+    const { action } = setup({ loadDailyRate: referenceRate });
+    chooseAccount("转出", "招商银行卡 CNY");
+    chooseAccount("转入", "现金 JPY");
+    await screen.findByText(/到账金额/);
+    click(/^修改到账金额：/);
+    pressItemAmountKey("5");
+    pressItemAmountKey("0");
+    pressItemAmountKey("0");
+    pressItemAmountKey("0");
+    pressItemAmountKey("确定");
+
+    expect(screen.getByText("¥5,000")).toBeInTheDocument();
+    click("保存转账");
+    expect(action).not.toHaveBeenCalled();
+    expect(screen.getByText("请输入转出金额")).toBeInTheDocument();
+    expect(
+      (document.querySelector('input[name="transferAmount"]') as HTMLInputElement)
+        .value,
+    ).toBe("");
+    expect(
+      (document.querySelector('input[name="transferTargetAmount"]') as HTMLInputElement)
+        .value,
+    ).toBe("5000");
+  });
+
+  it("未手改到账金额时清空转出金额，自动到账金额也清空", async () => {
+    const { action } = setup({ loadDailyRate: referenceRate });
+    chooseAccount("转出", "招商银行卡 CNY");
+    chooseAccount("转入", "现金 JPY");
+    click(/^修改转出金额：/);
+    pressItemAmountKey("1");
+    pressItemAmountKey("0");
+    pressItemAmountKey("0");
+    pressItemAmountKey("确定");
+    expect(await screen.findByText("¥2,105")).toBeInTheDocument();
+
+    click(/^修改转出金额：/);
+    pressItemAmountKey("清空");
+    pressItemAmountKey("确定");
+    expect(screen.queryByText("¥2,105")).toBeNull();
+    expect(
+      (document.querySelector('input[name="transferTargetAmount"]') as HTMLInputElement)
+        .value,
+    ).toBe("");
+    click("保存转账");
+    expect(action).not.toHaveBeenCalled();
+    expect(screen.getByText("转出金额无效，点一下重新输入")).toBeInTheDocument();
+    expect(screen.getByText("请输入到账金额")).toBeInTheDocument();
+  });
+
   it("手动金额显示实际汇率、参考汇率和少到账差额，恢复后重算", async () => {
     const { onDirty } = setup({
       initialValues: rateScenario,
@@ -407,23 +490,6 @@ describe("TransferReceipt 按当天汇率预填", () => {
     click("保存转账");
     await waitFor(() => expect(action).toHaveBeenCalledOnce());
     expect(submittedForm(action).get("transferTargetAmount")).toBe("300");
-  });
-
-  it("混合汇率日显示每个币种的真实取值日期", async () => {
-    setup({
-      initialValues: rateScenario,
-      loadDailyRate: async () => ({
-        rate: 21.05,
-        rateDate: "2026-11-19",
-        fromRateDate: "2026-11-20",
-        toRateDate: "2026-11-19",
-      }),
-    });
-    expect(
-      await screen.findByText(
-        /当天汇率 1 CNY = 21.05 JPY（CNY 11\/20、JPY 11\/19）/,
-      ),
-    ).toBeInTheDocument();
   });
 
   it("无汇率时退回手动填写，不自动反推转出金额", async () => {

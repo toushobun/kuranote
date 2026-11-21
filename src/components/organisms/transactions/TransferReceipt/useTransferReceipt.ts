@@ -30,8 +30,6 @@ export type TransferSide = "source" | "target";
 export type DailyTransferRate = {
   rate: number | null;
   rateDate: string | null;
-  fromRateDate?: string | null;
-  toRateDate?: string | null;
 };
 export type LoadDailyTransferRate = (
   query: { from: string; to: string; date: string },
@@ -152,12 +150,7 @@ export function useTransferReceipt({
     Number.isFinite(response.rate) &&
     response.rate > 0 &&
     response.rateDate
-      ? {
-          rate: response.rate,
-          rateDate: response.rateDate,
-          fromRateDate: response.fromRateDate ?? null,
-          toRateDate: response.toRateDate ?? null,
-        }
+      ? { rate: response.rate, rateDate: response.rateDate }
       : null;
   // 自动金额只作为派生值参与显示、校验和保存，不进入未保存判断的快照。
   const effectiveTargetAmount = targetAmountEdited
@@ -179,17 +172,6 @@ export function useTransferReceipt({
   const dailyRate = referenceRate
     ? formatTransferRate(referenceRate.rate, currency, targetCurrency)
     : null;
-  const mixedRateDateLabel =
-    referenceRate?.fromRateDate &&
-    referenceRate.toRateDate &&
-    referenceRate.fromRateDate !== referenceRate.toRateDate
-      ? t.mixedRateDates(
-          currency,
-          referenceRate.fromRateDate,
-          targetCurrency,
-          referenceRate.toRateDate,
-        )
-      : null;
   const difference = targetAmountEdited
     ? calculateTransferDifference(
         amount,
@@ -281,7 +263,6 @@ export function useTransferReceipt({
     rate,
     dailyRate,
     dailyRateDate: referenceRate?.rateDate ?? null,
-    mixedRateDateLabel,
     rateLoading,
     targetAmountEdited,
     difference,

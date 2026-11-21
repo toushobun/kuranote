@@ -1,6 +1,6 @@
 -- #1140：汇率及实际取值日统一实现；保留 #1139 最早日兜底规则。
 create function public.exchange_rate_with_date(p_from text, p_to text, p_date date)
-returns table(rate numeric, rate_date date, from_rate_date date, to_rate_date date)
+returns table(rate numeric, rate_date date)
 language sql stable
 set search_path = pg_catalog, pg_temp
 as $$
@@ -21,26 +21,38 @@ as $$
             when p_from = 'EUR' then dst.rate_date
             when p_to = 'EUR' then src.rate_date
             else least(src.rate_date, dst.rate_date)
-        end as rate_date,
-        case when p_from = 'EUR' then null else src.rate_date end as from_rate_date,
-        case when p_to = 'EUR' then null else dst.rate_date end as to_rate_date
+        end as rate_date
     from (select 1) anchor
     left join lateral (
-        select r.rate_per_eur, r.rate_date
-        from public.exchange_rate r
-        where r.currency = p_from
-        order by (r.rate_date <= p_date) desc,
-                 case when r.rate_date <= p_date then r.rate_date end desc,
-                 r.rate_date asc
+        select candidates.rate_per_eur, candidates.rate_date
+        from (
+            (select r.rate_per_eur, r.rate_date, 0 as priority
+             from public.exchange_rate r
+             where r.currency = p_from and r.rate_date <= p_date
+             order by r.rate_date desc limit 1)
+            union all
+            (select r.rate_per_eur, r.rate_date, 1 as priority
+             from public.exchange_rate r
+             where r.currency = p_from
+             order by r.rate_date asc limit 1)
+        ) candidates
+        order by candidates.priority
         limit 1
     ) src on true
     left join lateral (
-        select r.rate_per_eur, r.rate_date
-        from public.exchange_rate r
-        where r.currency = p_to
-        order by (r.rate_date <= p_date) desc,
-                 case when r.rate_date <= p_date then r.rate_date end desc,
-                 r.rate_date asc
+        select candidates.rate_per_eur, candidates.rate_date
+        from (
+            (select r.rate_per_eur, r.rate_date, 0 as priority
+             from public.exchange_rate r
+             where r.currency = p_to and r.rate_date <= p_date
+             order by r.rate_date desc limit 1)
+            union all
+            (select r.rate_per_eur, r.rate_date, 1 as priority
+             from public.exchange_rate r
+             where r.currency = p_to
+             order by r.rate_date asc limit 1)
+        ) candidates
+        order by candidates.priority
         limit 1
     ) dst on true;
 $$;

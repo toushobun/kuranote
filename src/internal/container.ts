@@ -77,7 +77,7 @@ import { createUserService } from "internal/user/service/userService";
  * 每个模块字段惰性求值：未被访问的模块不会创建对应的 Repository / Service。
  */
 export type RequestContainer = {
-  readonly exchangeRate?: {
+  readonly exchangeRate: {
     readonly service: ReturnType<typeof createDailyExchangeRateService>;
   };
   readonly account: {
