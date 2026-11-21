@@ -183,7 +183,9 @@ describe("groupLoaders", () => {
 
   it("非时间分组传递 SQL 返回的外币标识及缺汇率数量", async () => {
     const dependencies = createDependencies(vi.fn());
-    vi.mocked(dependencies.transactionRepository.loadGroupSummaries).mockResolvedValue([
+    vi.mocked(
+      dependencies.transactionRepository.loadGroupSummaries,
+    ).mockResolvedValue([
       {
         group_id: "merchant:merchant-1",
         group_key: "merchant-1",
