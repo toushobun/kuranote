@@ -3392,34 +3392,72 @@ CREATE OR REPLACE FUNCTION "public"."exchange_rate_on"("p_from" "text", "p_to" "
     LANGUAGE "sql" STABLE
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
-    with rates as (
-        select
-            case when p_from = 'EUR' then 1::numeric else coalesce(
-                (select r.rate_per_eur from public.exchange_rate r
-                 where r.currency = p_from and r.rate_date <= p_date
-                 order by r.rate_date desc limit 1),
-                (select r.rate_per_eur from public.exchange_rate r
-                 where r.currency = p_from
-                 order by r.rate_date asc limit 1)
-            ) end as from_rate,
-            case when p_to = 'EUR' then 1::numeric else coalesce(
-                (select r.rate_per_eur from public.exchange_rate r
-                 where r.currency = p_to and r.rate_date <= p_date
-                 order by r.rate_date desc limit 1),
-                (select r.rate_per_eur from public.exchange_rate r
-                 where r.currency = p_to
-                 order by r.rate_date asc limit 1)
-            ) end as to_rate
-    )
-    select case
-        when p_from is null or p_to is null or p_date is null then null
-        when p_from = p_to then 1::numeric
-        else to_rate / from_rate
-    end from rates;
+    select rate from public.exchange_rate_with_date(p_from, p_to, p_date);
 $$;
 
 
 ALTER FUNCTION "public"."exchange_rate_on"("p_from" "text", "p_to" "text", "p_date" "date") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."exchange_rate_with_date"("p_from" "text", "p_to" "text", "p_date" "date") RETURNS TABLE("rate" numeric, "rate_date" "date")
+    LANGUAGE "sql" STABLE
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+    select
+        case
+            when p_from is null or p_to is null or p_date is null then null
+            when p_from = p_to then 1::numeric
+            when (p_from <> 'EUR' and src.rate_per_eur is null)
+              or (p_to <> 'EUR' and dst.rate_per_eur is null) then null
+            else (case when p_to = 'EUR' then 1::numeric else dst.rate_per_eur end)
+                / (case when p_from = 'EUR' then 1::numeric else src.rate_per_eur end)
+        end as rate,
+        case
+            when p_from is null or p_to is null or p_date is null then null
+            when p_from = p_to then p_date
+            when (p_from <> 'EUR' and src.rate_date is null)
+              or (p_to <> 'EUR' and dst.rate_date is null) then null
+            when p_from = 'EUR' then dst.rate_date
+            when p_to = 'EUR' then src.rate_date
+            else least(src.rate_date, dst.rate_date)
+        end as rate_date
+    from (select 1) anchor
+    left join lateral (
+        select candidates.rate_per_eur, candidates.rate_date
+        from (
+            (select r.rate_per_eur, r.rate_date, 0 as priority
+             from public.exchange_rate r
+             where r.currency = p_from and r.rate_date <= p_date
+             order by r.rate_date desc limit 1)
+            union all
+            (select r.rate_per_eur, r.rate_date, 1 as priority
+             from public.exchange_rate r
+             where r.currency = p_from
+             order by r.rate_date asc limit 1)
+        ) candidates
+        order by candidates.priority
+        limit 1
+    ) src on true
+    left join lateral (
+        select candidates.rate_per_eur, candidates.rate_date
+        from (
+            (select r.rate_per_eur, r.rate_date, 0 as priority
+             from public.exchange_rate r
+             where r.currency = p_to and r.rate_date <= p_date
+             order by r.rate_date desc limit 1)
+            union all
+            (select r.rate_per_eur, r.rate_date, 1 as priority
+             from public.exchange_rate r
+             where r.currency = p_to
+             order by r.rate_date asc limit 1)
+        ) candidates
+        order by candidates.priority
+        limit 1
+    ) dst on true;
+$$;
+
+
+ALTER FUNCTION "public"."exchange_rate_with_date"("p_from" "text", "p_to" "text", "p_date" "date") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."get_current_user_setup_ledger"() RETURNS TABLE("ledger_id" "uuid", "ledger_name" "text", "base_currency" "text", "setup_step" smallint, "setup_draft" "jsonb", "living_region" "text")
@@ -12836,6 +12874,12 @@ GRANT ALL ON FUNCTION "public"."ensure_ledger_placeholder_members"("p_ledger_id"
 REVOKE ALL ON FUNCTION "public"."exchange_rate_on"("p_from" "text", "p_to" "text", "p_date" "date") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."exchange_rate_on"("p_from" "text", "p_to" "text", "p_date" "date") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."exchange_rate_on"("p_from" "text", "p_to" "text", "p_date" "date") TO "service_role";
+
+
+
+REVOKE ALL ON FUNCTION "public"."exchange_rate_with_date"("p_from" "text", "p_to" "text", "p_date" "date") FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."exchange_rate_with_date"("p_from" "text", "p_to" "text", "p_date" "date") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."exchange_rate_with_date"("p_from" "text", "p_to" "text", "p_date" "date") TO "service_role";
 
 
 

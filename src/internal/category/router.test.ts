@@ -36,6 +36,7 @@ function createContainer(
   overrides: Partial<RequestContainer["category"]["service"]> = {},
 ): RequestContainer {
   return {
+    exchangeRate: {} as RequestContainer["exchangeRate"],
     account: {} as RequestContainer["account"],
     auth: {} as RequestContainer["auth"],
     category: {

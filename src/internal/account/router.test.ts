@@ -46,6 +46,7 @@ function createContainer(
   overrides: Partial<RequestContainer["account"]["service"]> = {},
 ): RequestContainer {
   return {
+    exchangeRate: {} as RequestContainer["exchangeRate"],
     account: {
       service: {
         fetchIcon: vi.fn(),

@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  calculateTransferDifference,
   calculateTransferRate,
+  formatTransferRate,
+  prefillTransferTargetAmount,
   transferAmountsAfterAccountChange,
 } from "./transferCurrency";
 
@@ -146,5 +149,61 @@ describe("transferAmountsAfterAccountChange", () => {
         targetAmount: "",
       }),
     ).toEqual({ amount: "5000", targetAmount: "" });
+  });
+});
+
+describe("按当天汇率预填与差额", () => {
+  it("JPY/KRW 四舍五入到整数，CNY 保留两位小数", () => {
+    expect(prefillTransferTargetAmount("10", "CNY", "JPY", 21.05)).toBe("211");
+    expect(prefillTransferTargetAmount("10", "CNY", "KRW", 208.57)).toBe(
+      "2086",
+    );
+    expect(prefillTransferTargetAmount("100", "JPY", "CNY", 0.047505)).toBe(
+      "4.75",
+    );
+    expect(prefillTransferTargetAmount("1", "USD", "EUR", 1.005)).toBe("1.01");
+    expect(prefillTransferTargetAmount("1", "USD", "EUR", 1.015)).toBe("1.02");
+    expect(prefillTransferTargetAmount("1", "USD", "JPY", 1.5)).toBe("2");
+    expect(prefillTransferTargetAmount("100", "JPY", "CNY", 1e-7)).toBe("");
+  });
+
+  it("来源金额为空、精度无效或缺少汇率时不预填", () => {
+    expect(prefillTransferTargetAmount("", "JPY", "CNY", 0.05)).toBe("");
+    expect(prefillTransferTargetAmount("10.5", "JPY", "CNY", 0.05)).toBe("");
+    expect(prefillTransferTargetAmount("100", "JPY", "CNY", null)).toBe("");
+    expect(prefillTransferTargetAmount("100", "JPY", "CNY", 0)).toBe("");
+  });
+
+  it("多到账、少到账与零差额按实际预填的币种精度计算", () => {
+    expect(
+      calculateTransferDifference("100", "2150", "CNY", "JPY", 21),
+    ).toEqual({
+      diff: 50,
+      sourceEquivalent: 50 / 21,
+      percent: (50 / 2100) * 100,
+    });
+    expect(
+      calculateTransferDifference("100", "2050", "CNY", "JPY", 21)?.diff,
+    ).toBe(-50);
+    expect(
+      calculateTransferDifference("100", "2100", "CNY", "JPY", 21)?.diff,
+    ).toBe(0);
+    expect(
+      calculateTransferDifference("100", "211", "CNY", "JPY", 2.105)?.diff,
+    ).toBe(0);
+  });
+
+  it("实际汇率与当天汇率共用大于一的方向和四位有效数字", () => {
+    expect(formatTransferRate(21.052631, "CNY", "JPY")).toEqual({
+      base: "CNY",
+      quote: "JPY",
+      value: "21.05",
+    });
+    expect(formatTransferRate(1 / 21.052631, "JPY", "CNY")).toEqual({
+      base: "CNY",
+      quote: "JPY",
+      value: "21.05",
+    });
+    expect(formatTransferRate(0, "JPY", "CNY")).toBeNull();
   });
 });

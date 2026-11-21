@@ -1,3 +1,5 @@
+import { createDailyExchangeRateRepository } from "internal/exchangeRate/repository/dailyExchangeRateRepository";
+import { createDailyExchangeRateService } from "internal/exchangeRate/service/dailyExchangeRateService";
 import { createMerchantEntryQueryService } from "internal/transaction/service/merchantEntryQueryService";
 import { createMerchantEntryRepository } from "internal/transaction/repository/merchantEntryRepository";
 import { createMerchantPresetRepository } from "internal/merchant/repository/merchantPresetRepository";
@@ -75,6 +77,9 @@ import { createUserService } from "internal/user/service/userService";
  * 每个模块字段惰性求值：未被访问的模块不会创建对应的 Repository / Service。
  */
 export type RequestContainer = {
+  readonly exchangeRate: {
+    readonly service: ReturnType<typeof createDailyExchangeRateService>;
+  };
   readonly account: {
     readonly service: ReturnType<typeof createAccountService>;
   };
@@ -137,6 +142,7 @@ export type RequestContainer = {
 export function createRequestContainer(
   dependencies: RequestDependencies,
 ): RequestContainer {
+  let exchangeRateContainer: RequestContainer["exchangeRate"] | undefined;
   let accountContainer: RequestContainer["account"] | undefined;
   let authContainer: RequestContainer["auth"] | undefined;
   let ledgerContainer: RequestContainer["ledger"] | undefined;
@@ -242,6 +248,23 @@ export function createRequestContainer(
   }
 
   return {
+    get exchangeRate() {
+      if (!exchangeRateContainer) {
+        exchangeRateContainer = {
+          service: createDailyExchangeRateService({
+            currentUserId: dependencies.auth.isAuthenticated
+              ? dependencies.auth.userId
+              : null,
+            repository: createDailyExchangeRateRepository(
+              dependencies.supabase,
+              dependencies.logger,
+            ),
+          }),
+        };
+      }
+      return exchangeRateContainer;
+    },
+
     get account() {
       if (!accountContainer) {
         accountContainer = {

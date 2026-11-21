@@ -116,3 +116,63 @@ export const WebsiteIcon: Story = {
     ),
   },
 };
+
+const scenarioValues = {
+  ...editValues,
+  accountId: "cny",
+  transferTargetAccountId: "cash",
+  transactionAt: "2026-11-19T12:20:10+09:00",
+  transferAmount: "100",
+  transferTargetAmount: "2050",
+};
+const storyDailyRate = async () => ({
+  rate: 21.05,
+  rateDate: "2026-11-19",
+});
+
+export const DailyRatePrefilled: Story = {
+  name: "跨币种：按当天汇率预填",
+  args: {
+    initialValues: { ...scenarioValues, transferTargetAmount: "" },
+    loadDailyRate: storyDailyRate,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(
+      await canvas.findByRole("button", { name: "恢复按当天汇率" }),
+    );
+    await expect(
+      await canvas.findByText(/按当天汇率 1 CNY = 21.05 JPY/),
+    ).toBeInTheDocument();
+  },
+};
+
+export const ManualRateDifference: Story = {
+  name: "跨币种：手改后显示差额",
+  args: {
+    initialValues: scenarioValues,
+    loadDailyRate: storyDailyRate,
+  },
+};
+
+export const DailyRateUnavailable: Story = {
+  name: "跨币种：取不到汇率，手动填写",
+  args: {
+    initialValues: { ...scenarioValues, transferTargetAmount: "" },
+    loadDailyRate: async () => null,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: "保存修改" }));
+    await expect(await canvas.findByText("请输入到账金额")).toBeInTheDocument();
+  },
+};
+
+export const SavedTransferReadOnly: Story = {
+  name: "跨币种：已保存转账只读",
+  args: {
+    initialValues: scenarioValues,
+    loadDailyRate: storyDailyRate,
+    readOnly: true,
+  },
+};

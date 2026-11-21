@@ -1,4 +1,5 @@
 import {
+  cleanup,
   fireEvent,
   render,
   screen,
@@ -254,7 +255,7 @@ describe("TransferReceipt", () => {
     ).toBeInTheDocument();
   });
 
-  it("只读跨币种同时显示转出、到账和计算汇率", () => {
+  it("无参考汇率时只读跨币种保持方案 A 的汇率显示", async () => {
     setup({
       initialValues: {
         ...editValues,
@@ -264,10 +265,13 @@ describe("TransferReceipt", () => {
         transferTargetAmount: "4850",
       },
       readOnly: true,
+      loadDailyRate: async () => null,
     });
     expect(screen.getByText("转出金额")).toBeInTheDocument();
     expect(screen.getByText("到账金额")).toBeInTheDocument();
-    expect(screen.getByText(/汇率 1 CNY ≈ 20.62 JPY/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/汇率 1 CNY ≈ 20.62 JPY（按两边金额算出）/),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "保存转账" })).toBeNull();
   });
 
@@ -278,5 +282,281 @@ describe("TransferReceipt", () => {
       .closest("form")!;
     expect(within(receipt).queryByRole("button")).toBeNull();
     expect(screen.getByText("取现")).toBeInTheDocument();
+  });
+});
+
+const rateScenario = {
+  ...editValues,
+  accountId: "cny",
+  transferTargetAccountId: "cash",
+  transferAmount: "100",
+  transferTargetAmount: "2050",
+  transactionAt: "2026-11-19T12:20:10+09:00",
+};
+const referenceRate = async () => ({
+  rate: 21.05,
+  rateDate: "2026-11-19",
+});
+
+describe("TransferReceipt 按当天汇率预填", () => {
+  it("新增跨币种时只填写转出金额就自动预填并能提交，不把汇率作为字段保存", async () => {
+    const { action } = setup({ loadDailyRate: referenceRate });
+    chooseAccount("转出", "招商银行卡 CNY");
+    chooseAccount("转入", "现金 JPY");
+    click(/^修改转出金额：/);
+    pressItemAmountKey("1");
+    pressItemAmountKey("0");
+    pressItemAmountKey("0");
+    pressItemAmountKey("确定");
+
+    expect(
+      await screen.findByText(/按当天汇率 1 CNY = 21.05 JPY（11\/19）/),
+    ).toBeInTheDocument();
+    expect(screen.getByText("¥2,105")).toBeInTheDocument();
+
+    click("保存转账");
+    await waitFor(() => expect(action).toHaveBeenCalledOnce());
+    const form = submittedForm(action);
+    expect(form.get("transferAmount")).toBe("100");
+    expect(form.get("transferTargetAmount")).toBe("2105");
+    expect(form.has("rate")).toBe(false);
+  });
+
+  it("改交易日期后重新查询新日期汇率，并自动重算到账金额", async () => {
+    const loadDailyRate = vi.fn(({ date }: { date: string }) =>
+      Promise.resolve({
+        rate: date === "2026-11-19" ? 21.05 : 22,
+        rateDate: date,
+      }),
+    );
+    const { action } = setup({
+      initialValues: rateScenario,
+      loadDailyRate,
+    });
+    expect(
+      await screen.findByText(/当天汇率 1 CNY = 21.05 JPY/),
+    ).toBeInTheDocument();
+    click("恢复按当天汇率");
+    expect(await screen.findByText("¥2,105")).toBeInTheDocument();
+
+    click(/^修改时间：/);
+    fireEvent.click(screen.getByRole("button", { name: "2026年11月20日" }));
+    await waitFor(() =>
+      expect(loadDailyRate).toHaveBeenCalledWith(
+        { from: "CNY", to: "JPY", date: "2026-11-20" },
+        expect.any(AbortSignal),
+      ),
+    );
+    expect(
+      await screen.findByText(/按当天汇率 1 CNY = 22 JPY（11\/20）/),
+    ).toBeInTheDocument();
+    expect(screen.getByText("¥2,200")).toBeInTheDocument();
+    click("保存修改");
+    await waitFor(() => expect(action).toHaveBeenCalledOnce());
+    expect(submittedForm(action).get("transferTargetAmount")).toBe("2200");
+  });
+
+  it("有参考汇率时只填到账金额不会反推转出金额，也不会覆盖手填值", async () => {
+    const { action } = setup({ loadDailyRate: referenceRate });
+    chooseAccount("转出", "招商银行卡 CNY");
+    chooseAccount("转入", "现金 JPY");
+    click(/^修改到账金额：/);
+    pressItemAmountKey("5");
+    pressItemAmountKey("0");
+    pressItemAmountKey("0");
+    pressItemAmountKey("0");
+    pressItemAmountKey("确定");
+
+    expect(screen.getByText("¥5,000")).toBeInTheDocument();
+    click("保存转账");
+    expect(action).not.toHaveBeenCalled();
+    expect(screen.getByText("请输入转出金额")).toBeInTheDocument();
+    const sourceField = document.querySelector<HTMLInputElement>(
+      'input[name="transferAmount"]',
+    );
+    const targetField = document.querySelector<HTMLInputElement>(
+      'input[name="transferTargetAmount"]',
+    );
+    expect(sourceField?.value).toBe("");
+    expect(targetField?.value).toBe("5000");
+  });
+
+  it("未手改到账金额时清空转出金额，自动到账金额也清空", async () => {
+    const { action } = setup({ loadDailyRate: referenceRate });
+    chooseAccount("转出", "招商银行卡 CNY");
+    chooseAccount("转入", "现金 JPY");
+    click(/^修改转出金额：/);
+    pressItemAmountKey("1");
+    pressItemAmountKey("0");
+    pressItemAmountKey("0");
+    pressItemAmountKey("确定");
+    expect(await screen.findByText("¥2,105")).toBeInTheDocument();
+
+    click(/^修改转出金额：/);
+    pressItemAmountKey("清空");
+    pressItemAmountKey("确定");
+    expect(screen.queryByText("¥2,105")).toBeNull();
+    const targetField = document.querySelector<HTMLInputElement>(
+      'input[name="transferTargetAmount"]',
+    );
+    expect(targetField?.value).toBe("");
+    click("保存转账");
+    expect(action).not.toHaveBeenCalled();
+    expect(
+      screen.getByText("转出金额无效，点一下重新输入"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("请输入到账金额")).toBeInTheDocument();
+  });
+
+  it("手动金额显示实际汇率、参考汇率和少到账差额，恢复后重算", async () => {
+    const { onDirty } = setup({
+      initialValues: rateScenario,
+      loadDailyRate: referenceRate,
+    });
+    await waitFor(() => expect(onDirty).toHaveBeenLastCalledWith(false));
+    expect(
+      await screen.findByText(/实际汇率 1 CNY ≈ 20.5 JPY/),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/当天汇率 1 CNY = 21.05 JPY/)).toBeInTheDocument();
+    expect(screen.getByText(/少到账.*JPY/)).toBeInTheDocument();
+    click("恢复按当天汇率");
+    expect(
+      await screen.findByText(/按当天汇率 1 CNY = 21.05 JPY/),
+    ).toBeInTheDocument();
+    expect(screen.getByText("¥2,105")).toBeInTheDocument();
+    expect(screen.queryByText(/少到账/)).toBeNull();
+    await waitFor(() => expect(onDirty).toHaveBeenLastCalledWith(true));
+  });
+
+  it("只读和编辑已保存金额不被请求改写，读取参考汇率不产生未保存提示", async () => {
+    const { onDirty } = setup({
+      initialValues: rateScenario,
+      loadDailyRate: referenceRate,
+    });
+    expect(
+      await screen.findByText(/实际汇率 1 CNY ≈ 20.5 JPY/),
+    ).toBeInTheDocument();
+    expect(screen.getByText("¥2,050")).toBeInTheDocument();
+    await waitFor(() => expect(onDirty).toHaveBeenLastCalledWith(false));
+
+    cleanup();
+    const { action } = setup({
+      initialValues: rateScenario,
+      loadDailyRate: referenceRate,
+      readOnly: true,
+    });
+    expect(
+      await screen.findAllByText(/实际汇率 1 CNY ≈ 20.5 JPY/),
+    ).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: "恢复按当天汇率" })).toBeNull();
+    expect(action).not.toHaveBeenCalled();
+  });
+
+  it("换转出币种后不会把自动预填的到账金额误认为手动金额", async () => {
+    const loadDailyRate = vi.fn(({ from }: { from: string }) =>
+      Promise.resolve({
+        rate: from === "CNY" ? 21.05 : 150,
+        rateDate: "2026-11-19",
+      }),
+    );
+    const { action } = setup({
+      loadDailyRate,
+      accountOptions: [
+        ...flowFixture.accounts,
+        {
+          ...flowFixture.accounts[0]!,
+          id: "usd",
+          name: "美元账户",
+          currency: "USD",
+        },
+      ],
+    });
+    chooseAccount("转出", "招商银行卡 CNY");
+    chooseAccount("转入", "现金 JPY");
+    click(/^修改转出金额：/);
+    pressItemAmountKey("1");
+    pressItemAmountKey("0");
+    pressItemAmountKey("0");
+    pressItemAmountKey("确定");
+    expect(await screen.findByText("¥2,105")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("heading", { name: "转出金额（CNY）" }),
+      ).toBeNull(),
+    );
+    chooseAccount("转出", "美元账户 USD");
+    expect(screen.queryByText("¥2,105")).toBeNull();
+    click(/^修改转出金额：/);
+    pressItemAmountKey("2");
+    pressItemAmountKey("确定");
+    expect(await screen.findByText("¥300")).toBeInTheDocument();
+    click("保存转账");
+    await waitFor(() => expect(action).toHaveBeenCalledOnce());
+    expect(submittedForm(action).get("transferTargetAmount")).toBe("300");
+  });
+
+  it("无汇率时退回手动填写，不自动反推转出金额", async () => {
+    const loadDailyRate = vi.fn().mockResolvedValue(null);
+    const { action } = setup({ loadDailyRate });
+    chooseAccount("转出", "招商银行卡 CNY");
+    chooseAccount("转入", "现金 JPY");
+    click(/^修改转出金额：/);
+    pressItemAmountKey("1");
+    pressItemAmountKey("0");
+    pressItemAmountKey("0");
+    pressItemAmountKey("确定");
+
+    await waitFor(() => expect(loadDailyRate).toHaveBeenCalled());
+    click("保存转账");
+    expect(action).not.toHaveBeenCalled();
+    expect(screen.getByText("请输入到账金额")).toBeInTheDocument();
+    expect(screen.queryByText(/当天汇率 1/)).toBeNull();
+  });
+
+  it("旧请求晚于新币种返回也不会覆盖新币种的预填", async () => {
+    let finishOld:
+      | ((value: { rate: number; rateDate: string }) => void)
+      | undefined;
+    const loadDailyRate = vi.fn(({ to }: { to: string }) =>
+      to === "JPY"
+        ? new Promise<{ rate: number; rateDate: string }>((resolve) => {
+            finishOld = resolve;
+          })
+        : Promise.resolve({ rate: 7, rateDate: "2026-11-20" }),
+    );
+    const { action } = setup({
+      loadDailyRate,
+      accountOptions: [
+        ...flowFixture.accounts,
+        {
+          ...flowFixture.accounts[0]!,
+          id: "usd",
+          name: "美元账户",
+          currency: "USD",
+        },
+      ],
+    });
+    chooseAccount("转出", "招商银行卡 CNY");
+    chooseAccount("转入", "现金 JPY");
+    click(/^修改转出金额：/);
+    pressItemAmountKey("1");
+    pressItemAmountKey("0");
+    pressItemAmountKey("0");
+    pressItemAmountKey("确定");
+    await waitFor(() => expect(finishOld).toBeDefined());
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("heading", { name: "转出金额（CNY）" }),
+      ).toBeNull(),
+    );
+    chooseAccount("转入", "美元账户 USD");
+    expect(
+      await screen.findByText(/按当天汇率 1 CNY = 7 USD/),
+    ).toBeInTheDocument();
+    finishOld?.({ rate: 21.05, rateDate: "2026-11-19" });
+    expect(screen.queryByText(/21.05 JPY/)).toBeNull();
+    click("保存转账");
+    await waitFor(() => expect(action).toHaveBeenCalledOnce());
+    expect(submittedForm(action).get("transferTargetAmount")).toBe("700.00");
   });
 });

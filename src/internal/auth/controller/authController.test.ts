@@ -49,6 +49,7 @@ function createContainer(
   service: RequestContainer["auth"]["service"],
 ): RequestContainer {
   return {
+    exchangeRate: {} as RequestContainer["exchangeRate"],
     account: {} as RequestContainer["account"],
     auth: { service },
     category: {} as RequestContainer["category"],

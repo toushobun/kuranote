@@ -23,6 +23,7 @@ import { ReceiptPaper } from "organisms/transactions/ReceiptParts/ReceiptPaper";
 import { ReceiptSubmitButton } from "organisms/transactions/ReceiptParts/ReceiptSubmitButton";
 import { ReceiptTimeButton } from "organisms/transactions/ReceiptParts/ReceiptTimeButton";
 import { designTokens } from "theme/theme";
+import { getAmountDecimalPlaces } from "utils/transactionAmountInput";
 import type {
   TransactionAccountOption,
   TransactionRecordType,
@@ -31,12 +32,18 @@ import type {
 
 import { TransactionItemAmountDrawer } from "../TransactionItemAmountDrawer/TransactionItemAmountDrawer";
 import { formatStepCurrencyAmount } from "../transactionStepFlowFormat";
-import { useTransferReceipt, type TransferSide } from "./useTransferReceipt";
+import {
+  useTransferReceipt,
+  type LoadDailyTransferRate,
+  type TransferSide,
+} from "./useTransferReceipt";
 
 type TransferReceiptProps = {
   formId: string;
   action: (formData: FormData) => void | Promise<void>;
   accountOptions: readonly TransactionAccountOption[];
+  /** Storybook / 测试注入确定性汇率，实际页面默认读取同源 API。 */
+  loadDailyRate?: LoadDailyTransferRate;
   /** 编辑转账时的原记录；不传为新增。 */
   initialValues?: TransferEditInitialValues;
   /** 编辑时提交原记录类型，服务端据此判断是否改了类型。 */
@@ -61,6 +68,7 @@ export function TransferReceipt(props: TransferReceiptProps) {
     accountOptions: props.accountOptions,
     initialValues: props.initialValues,
     readOnly,
+    loadDailyRate: props.loadDailyRate,
   });
   const { dateTime } = w;
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -188,20 +196,7 @@ export function TransferReceipt(props: TransferReceiptProps) {
                     readOnly ? undefined : () => w.setAmountSide("target")
                   }
                 />
-                {w.rate && (
-                  <Typography
-                    variant="caption"
-                    color="textSecondary"
-                    sx={{
-                      display: "block",
-                      px: 2,
-                      pb: 1.5,
-                      textAlign: "right",
-                    }}
-                  >
-                    {t.exchangeRate(w.rate.base, w.rate.quote, w.rate.value)}
-                  </Typography>
-                )}
+                <TransferRateDetails receipt={w} readOnly={readOnly} />
               </>
             )}
             <ReceiptNoteSection
@@ -255,6 +250,99 @@ export function TransferReceipt(props: TransferReceiptProps) {
     </>
   );
 }
+
+/** 参考汇率只作展示：不会影响保存结构，也不会算成转账手续费。 */
+function TransferRateDetails({
+  receipt,
+  readOnly,
+}: {
+  receipt: ReturnType<typeof useTransferReceipt>;
+  readOnly: boolean;
+}) {
+  const actual = receipt.rate;
+  if (receipt.rateLoading) return null;
+
+  const daily = receipt.dailyRate;
+  const rateDate = receipt.dailyRateDate;
+  if (!daily || !rateDate) {
+    if (!actual) return null;
+    return (
+      <Typography variant="caption" color="textSecondary" sx={rateTextSx}>
+        {t.exchangeRate(actual.base, actual.quote, actual.value)}
+      </Typography>
+    );
+  }
+
+  if (!actual && !receipt.targetAmountEdited) return null;
+  const difference = receipt.difference;
+  const differenceAmount =
+    difference && difference.diff !== 0
+      ? t.arrivalDifference(
+          difference.diff > 0,
+          formatStepCurrencyAmount(
+            Math.abs(difference.diff).toFixed(
+              getAmountDecimalPlaces(receipt.targetCurrency),
+            ),
+            receipt.targetCurrency,
+          ),
+          receipt.targetCurrency,
+          formatStepCurrencyAmount(
+            difference.sourceEquivalent.toFixed(
+              getAmountDecimalPlaces(receipt.currency),
+            ),
+            receipt.currency,
+          ),
+          receipt.currency,
+          difference.percent.toFixed(1),
+        )
+      : null;
+
+  return (
+    <Stack spacing={0.5} sx={{ alignItems: "flex-end", px: 2, pb: 1.5 }}>
+      {receipt.targetAmountEdited && actual && (
+        <Typography variant="caption" color="textSecondary">
+          {t.actualExchangeRate(actual.base, actual.quote, actual.value)}
+        </Typography>
+      )}
+      <Typography variant="caption" color="textSecondary">
+        {receipt.targetAmountEdited
+          ? t.dailyExchangeRate(daily.base, daily.quote, daily.value, rateDate)
+          : t.prefilledExchangeRate(
+              daily.base,
+              daily.quote,
+              daily.value,
+              rateDate,
+            )}
+      </Typography>
+      {differenceAmount && (
+        <Alert severity="info" sx={{ alignSelf: "stretch", width: "100%" }}>
+          {differenceAmount}
+        </Alert>
+      )}
+      {receipt.targetAmountEdited && !readOnly && (
+        <ButtonBase
+          onClick={receipt.restoreDailyRate}
+          sx={{
+            borderRadius: `${designTokens.radius.sm}px`,
+            color: "primary.main",
+            fontWeight: 700,
+            p: 0.5,
+            typography: "caption",
+          }}
+        >
+          {t.restoreDailyRate}
+        </ButtonBase>
+      )}
+    </Stack>
+  );
+}
+
+const rateTextSx = {
+  display: "block",
+  px: 2,
+  pb: 1.5,
+  textAlign: "right",
+} as const;
 
 /** 抬头的一边：「转出 / 转入」、账户图标（未选时是虚线框）、账户名与币种。 */
 function TransferAccountSide({
