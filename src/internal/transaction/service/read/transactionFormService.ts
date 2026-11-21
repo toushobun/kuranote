@@ -6,7 +6,7 @@ import type {
   TransactionIncomeLinkData,
   TransactionIncomeLinkedItem,
   TransactionIncomeLinkRepository,
-  type TransactionLinkAllocation,
+  TransactionLinkAllocation,
 } from "internal/transaction/repository/transactionIncomeLinkRepository";
 import type { TransactionFormRepository } from "internal/transaction/repository/transactionRepository";
 import {

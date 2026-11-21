@@ -554,6 +554,7 @@ export const CrossCurrencyReimbursementReceipt1147: Story = {
             transactionAt: "2026-11-19T09:00:00+09:00",
             merchantId: "amazon",
             categoryName: "键盘",
+            parentCategoryName: "数码",
             accountId: "paypay",
             accountCurrency: "JPY",
             amount: "2000",
@@ -579,6 +580,7 @@ export const CrossCurrencyOriginalExpenseReceipt1147: Story = {
   name: "原支出小票 · 已报销 CNY 折成 JPY",
   render: () => (
     <ReadOnlyReceipt
+      note=""
       itemsOptions={{
         ...receiptItemsOptions,
         initialItems: [{

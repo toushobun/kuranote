@@ -587,7 +587,6 @@ export function createTransactionService({
           month: input.month,
           merchantPriorityId: kind === "refund" ? input.merchantId : undefined,
           historyMerchantId: input.merchantId,
-          currency: input.currency,
           settled: input.settled,
           specialStatuses:
             kind === "reimbursement"

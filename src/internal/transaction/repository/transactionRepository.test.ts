@@ -94,7 +94,6 @@ describe("TransactionRepository", () => {
         query: "咖啡",
         merchantPriorityId: merchantId,
         historyMerchantId: merchantId,
-        currency: "JPY",
         settled: true,
         offset: 20,
       });
@@ -112,7 +111,7 @@ describe("TransactionRepository", () => {
         p_query: "咖啡",
         p_merchant_priority_id: merchantId,
         p_history_merchant_id: merchantId,
-        p_currency: "JPY",
+        
         p_special_statuses: null,
         p_settled: true,
         p_offset: 20,

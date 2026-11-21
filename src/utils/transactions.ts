@@ -5,7 +5,6 @@ import type {
   TransactionDateGroup,
   TransactionListItem,
   TransactionRecordType,
-  TransactionRefundCandidate,
 } from "types/transactions";
 import { getCurrencySymbol } from "utils/currency";
 import { getAmountDecimalPlaces } from "utils/transactionAmountInput";
