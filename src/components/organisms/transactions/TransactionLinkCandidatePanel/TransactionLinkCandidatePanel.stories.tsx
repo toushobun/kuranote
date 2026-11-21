@@ -132,7 +132,7 @@ const groupedItems = [
 const loadGroupedPage = async (input: TransactionLinkCandidatePageInput) => {
   const matched = groupedItems.filter(
     (item) =>
-      matchesLinkCandidateScope(item, input.currency, input.query ?? "") &&
+      matchesLinkCandidateScope(item, input.query ?? "") &&
       candidateInMonth(item.transactionAt, input.month ?? null) &&
       (input.settled
         ? Number(item.remainingRefundableAmount) <= 0
