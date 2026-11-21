@@ -238,9 +238,6 @@ export function buildTransactionGroupSummaryPage({
       const rate = record?.ledger_rate ?? null;
       const income = convertLedgerAmount(rawAmount.income, rate);
       const expense = convertLedgerAmount(rawAmount.expense, rate);
-      if (record?.record_currency && record.record_currency !== currency) {
-        group.summary.hasForeignCurrency = true;
-      }
       if (income === null || expense === null) {
         group.summary.missingRateCount =
           (group.summary.missingRateCount ?? 0) + 1;

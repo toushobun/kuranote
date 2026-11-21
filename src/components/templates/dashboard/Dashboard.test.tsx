@@ -5,6 +5,7 @@ import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  createDashboardAmountSummary,
   createDashboardViewData,
   createNoLedgerDashboardViewData,
 } from "@/test/mocks/dashboard";
@@ -72,6 +73,31 @@ describe("DashboardTemplate", () => {
     expect(screen.getAllByText("敬请期待")).toHaveLength(2);
     expect(screen.getByText("近期记录")).toBeInTheDocument();
     expect(screen.getByText("还没有记账记录。")).toBeInTheDocument();
+  });
+
+  it("首页合计显示已换算金额，不显示按记录汇率换算说明", () => {
+    renderDashboard({
+      data: createDashboardViewData({
+        monthSummary: createDashboardAmountSummary({
+          balance: "-200",
+          expense: "200",
+          income: "0",
+        }),
+      }),
+    });
+
+    expect(screen.getByText("¥200")).toBeInTheDocument();
+    expect(screen.queryByText(/按记录当天/)).not.toBeInTheDocument();
+  });
+
+  it("首页缺少汇率时仍显示未换算记录数量", () => {
+    renderDashboard({
+      data: createDashboardViewData({
+        monthSummary: createDashboardAmountSummary({ missingRateCount: 2 }),
+      }),
+    });
+
+    expect(screen.getByText("有 2 笔外币记录暂无汇率")).toBeInTheDocument();
   });
 
   it("显示首页顶部猫咪插画头图装饰层", () => {

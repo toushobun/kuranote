@@ -183,7 +183,6 @@ async function loadStep4NonTimeGroupedTransactionGroupPage(
       summary: {
         balance: normalizeRpcAmount(row.balance),
         currency: row.group_currency ?? currentLedger.baseCurrency,
-        ...(row.has_foreign_currency ? { hasForeignCurrency: true } : {}),
         ...(Number(row.missing_rate_count ?? 0) > 0
           ? { missingRateCount: Number(row.missing_rate_count) }
           : {}),

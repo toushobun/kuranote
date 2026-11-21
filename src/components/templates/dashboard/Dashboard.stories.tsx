@@ -75,17 +75,6 @@ export const Default: Story = {
   render: renderWithTheme("amberWarmth"),
 };
 
-export const WithConvertedForeignCurrency: Story = {
-  name: "月度合计含外币汇率提示",
-  render: renderWithTheme("amberWarmth", {
-    ...dashboardData,
-    monthSummary: {
-      ...dashboardData.monthSummary,
-      hasForeignCurrency: true,
-    },
-  }),
-};
-
 export const LavenderDream: Story = {
   name: "薰衣草梦境",
   render: renderWithTheme("lavenderDream"),

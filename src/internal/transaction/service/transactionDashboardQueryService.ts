@@ -104,12 +104,6 @@ export function createTransactionDashboardQueryService({
       for (const [recordId, items] of monthItemsByRecordId) {
         const record = recordById.get(recordId);
         const netAmount = calculateRecordNetAmount(items, categoryById);
-        if (
-          record?.record_currency &&
-          record.record_currency !== ledger.baseCurrency
-        ) {
-          monthSummary.hasForeignCurrency = true;
-        }
         const converted = convertLedgerAmount(
           netAmount,
           record?.ledger_rate ?? null,

@@ -9,7 +9,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
 import { transactionEditHref } from "config/paths";
-import { ExchangeRateTotalsNote } from "molecules/transactions/ExchangeRateTotalsNote/ExchangeRateTotalsNote";
+import { MissingExchangeRateNote } from "molecules/transactions/MissingExchangeRateNote/MissingExchangeRateNote";
 import { TransactionRowLink } from "molecules/transactions/TransactionRowLink";
 import { userThemeCardBorder } from "theme/userThemeCardSx";
 import type {
@@ -79,8 +79,7 @@ export function TransactionGroupList({
             ) : null}
           </Stack>
           {showSummary ? (
-            <ExchangeRateTotalsNote
-              hasForeignCurrency={group.summary.hasForeignCurrency}
+            <MissingExchangeRateNote
               missingRateCount={group.summary.missingRateCount}
             />
           ) : null}

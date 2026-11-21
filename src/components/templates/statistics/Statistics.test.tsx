@@ -2,6 +2,7 @@ import { statisticsRankingNote } from "@/constants/statistics";
 import { cleanup, render, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
+import { buildStatisticsViewData } from "internal/statistics/service/read/statisticsView";
 import type { StatisticsViewData } from "types/statistics";
 
 import { StatisticsTemplate } from "./Statistics";
@@ -93,6 +94,44 @@ describe("StatisticsTemplate", () => {
     expect(within(container).getByText("3,300 JPY")).toBeInTheDocument();
     expect(within(container).getByText("本月净收支")).toBeInTheDocument();
     expect(within(container).getByText("246,700 JPY")).toBeInTheDocument();
+  });
+
+  it("外币交易合计显示按记录汇率换算后的金额，不显示换算说明", () => {
+    const view = buildStatisticsViewData({
+      categories: [{ id: "food", name: "餐饮", parent_id: null, type: "expense" }],
+      currency: "JPY",
+      items: [
+        { amount: "100", category_id: "food", transaction_record_id: "foreign" },
+      ],
+      ledgerName: "家庭账本",
+      merchants: [],
+      month: "2026-06",
+      records: [
+        {
+          id: "foreign",
+          ledger_rate: 2,
+          merchant_id: null,
+          record_currency: "USD",
+          type: "normal",
+        },
+      ],
+    });
+    const { container } = render(<StatisticsTemplate {...view} />);
+
+    expect(within(container).getAllByText("200 JPY").length).toBeGreaterThan(0);
+    expect(within(container).queryByText(/按记录当天/)).not.toBeInTheDocument();
+  });
+
+  it("缺少汇率时仍显示未换算记录数量", () => {
+    const { container } = render(
+      <StatisticsTemplate
+        {...statisticsView}
+        summary={{ ...statisticsView.summary, missingRateCount: 2 }}
+      />,
+    );
+    expect(
+      within(container).getByText("有 2 笔外币记录暂无汇率"),
+    ).toBeInTheDocument();
   });
 
   it("先显示分类支出汇总，再显示商家支出排行", () => {

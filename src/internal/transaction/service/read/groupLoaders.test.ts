@@ -181,7 +181,7 @@ describe("groupLoaders", () => {
     );
   });
 
-  it("非时间分组传递 SQL 返回的外币标识及缺汇率数量", async () => {
+  it("非时间分组保留 SQL 返回的缺汇率数量", async () => {
     const dependencies = createDependencies(vi.fn());
     vi.mocked(
       dependencies.transactionRepository.loadGroupSummaries,
@@ -190,7 +190,6 @@ describe("groupLoaders", () => {
         group_id: "merchant:merchant-1",
         group_key: "merchant-1",
         group_label: "商家",
-        has_foreign_currency: true,
         missing_rate_count: 1,
         group_currency: "JPY",
         income: "0",
@@ -212,7 +211,6 @@ describe("groupLoaders", () => {
     );
 
     expect(page.groups[0].summary).toMatchObject({
-      hasForeignCurrency: true,
       missingRateCount: 1,
       expense: "100",
     });
