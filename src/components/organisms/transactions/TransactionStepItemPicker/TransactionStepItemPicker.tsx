@@ -42,6 +42,9 @@ export function TransactionStepItemPicker(props: TransactionReceiptProps) {
         f.linkAffectedReimbursementCandidates
       }
       selectedAccountCurrency={f.selectedAccount?.currency}
+      pickerLinkRate={f.pickerLinkRate}
+      pickerRatePending={f.pickerRatePending}
+      pickerRateMissing={f.pickerRateMissing}
       selectedCategoryGroup={f.selectedCategoryGroup}
       specialStatusEnabled={props.transactionItemSpecialStatusEnabled}
       disabledCategoryType={f.disabledCategoryType}
