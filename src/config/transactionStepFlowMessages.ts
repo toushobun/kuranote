@@ -113,9 +113,6 @@ export const flowMessages = {
 
   cancel: "取消",
   switch: "切换",
-  currencyTitle: (name: string) => `切换为 ${name} 账户？`,
-  currencyDescription: (from: string, to: string) =>
-    `币种将从 ${from} 变为 ${to}，已填写的金额不会换算，数字保持不变。已关联的退款 / 报销会被取消。`,
 } as const;
 
 /** 汇率表采用的实际日期，仅显示月/日。 */
