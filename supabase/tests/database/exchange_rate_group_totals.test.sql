@@ -175,7 +175,7 @@ select results_eq(
      p_group_by=>'holder',
      p_date_start=>'2099-01-19 00:00:00+00'::timestamptz,
      p_date_end=>'2099-01-20 00:00:00+00'::timestamptz
-   ) where group_key='00000000-0000-4000-8000-000000000031'$,
+   ) where group_key='00000000-0000-4000-8000-000000000031'$$,
  $$values (40::numeric,100::numeric,-60::numeric)$$,
  '同持有人两账户一正一负时收入支出不先抵消');
 
