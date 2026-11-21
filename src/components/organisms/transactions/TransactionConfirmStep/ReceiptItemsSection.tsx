@@ -197,6 +197,20 @@ export function ReceiptItemsSection({
                   </Typography>
                 )
               )}
+              {item.category?.type === "expense" &&
+                item.crossCurrencyOffsets?.map((offset, i) => (
+                  <Typography variant="caption" color="textSecondary" key={i}>
+                    {m.receiptCrossCurrencyExpense(
+                      offset.kind,
+                      formatStepCurrencyAmount(
+                        offset.incomeAmount, offset.incomeCurrency,
+                      ),
+                      formatStepCurrencyAmount(
+                        offset.convertedAmount, offset.targetCurrency,
+                      ),
+                    )}
+                  </Typography>
+                ))}
               {invalid && excessDecimals && (
                 <Typography variant="caption" sx={{ color: "error.main" }}>
                   {m.excessDecimalsHint}
