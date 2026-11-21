@@ -162,16 +162,22 @@ describe("TransactionDashboardQueryService", () => {
         ],
         records: [
           { id: "month-mixed", ledger_rate: 1, record_currency: "JPY" },
-          { id: "month-expense-record", ledger_rate: 1, record_currency: "JPY" },
+          {
+            id: "month-expense-record",
+            ledger_rate: 1,
+            record_currency: "JPY",
+          },
         ],
       }),
-      loadRecordRates: vi.fn().mockImplementation(async (_ledgerId, ids: string[]) =>
-        ids.map((id) => ({
-          record_id: id,
-          ledger_rate: 1,
-          record_currency: "JPY",
-        })),
-      ),
+      loadRecordRates: vi
+        .fn()
+        .mockImplementation(async (_ledgerId, ids: string[]) =>
+          ids.map((id) => ({
+            record_id: id,
+            ledger_rate: 1,
+            record_currency: "JPY",
+          })),
+        ),
       listItems,
       listPayments,
       listRecords,
