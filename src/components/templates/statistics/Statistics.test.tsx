@@ -2,7 +2,9 @@ import { statisticsRankingNote } from "@/constants/statistics";
 import { cleanup, render, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { buildStatisticsViewData } from "internal/statistics/service/read/statisticsView";
+import {
+  buildStatisticsViewData,
+} from "internal/statistics/service/read/statisticsView";
 import type { StatisticsViewData } from "types/statistics";
 
 import { StatisticsTemplate } from "./Statistics";
@@ -98,10 +100,16 @@ describe("StatisticsTemplate", () => {
 
   it("外币交易合计显示按记录汇率换算后的金额，不显示换算说明", () => {
     const view = buildStatisticsViewData({
-      categories: [{ id: "food", name: "餐饮", parent_id: null, type: "expense" }],
+      categories: [
+        { id: "food", name: "餐饮", parent_id: null, type: "expense" },
+      ],
       currency: "JPY",
       items: [
-        { amount: "100", category_id: "food", transaction_record_id: "foreign" },
+        {
+          amount: "100",
+          category_id: "food",
+          transaction_record_id: "foreign",
+        },
       ],
       ledgerName: "家庭账本",
       merchants: [],
