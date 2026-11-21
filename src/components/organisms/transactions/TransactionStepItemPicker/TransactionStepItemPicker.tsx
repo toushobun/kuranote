@@ -18,7 +18,6 @@ export function TransactionStepItemPicker(props: TransactionReceiptProps) {
             item.id === f.editingItemId && getMissingIncomeLinkKind(item),
         )
       }
-      linkNotice={f.linkNotice}
       open={f.isSheetOpen}
       onClose={f.closeSheet}
       pickerAmount={f.pickerAmount}
