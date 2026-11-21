@@ -54,6 +54,8 @@ export const flowMessages = {
     refund: "退款",
     reimbursement: "报销",
   },
+  receiptCrossCurrencyExpense: (kind: "refund" | "reimbursement", incomeAmount: string, targetAmount: string) =>
+    `已${kind === "refund" ? "退款" : "报销"} ${incomeAmount}（折 ${targetAmount}）`,
   receiptCrossCurrencyOffset: (targetAmount: string, incomeAmount: string) =>
     `抵消原支出 ${targetAmount}（折 ${incomeAmount}）`,
   receiptCrossCurrencyRate: (date: string, base: string, rate: string, quote: string) =>
