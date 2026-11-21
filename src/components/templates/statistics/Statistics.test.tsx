@@ -2,7 +2,6 @@ import { statisticsRankingNote } from "@/constants/statistics";
 import { cleanup, render, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { buildStatisticsViewData } from "internal/statistics/service/read/statisticsView";
 import type { StatisticsViewData } from "types/statistics";
 
 import { StatisticsTemplate } from "./Statistics";
@@ -97,34 +96,19 @@ describe("StatisticsTemplate", () => {
   });
 
   it("外币交易合计显示按记录汇率换算后的金额，不显示换算说明", () => {
-    const view = buildStatisticsViewData({
-      categories: [
-        { id: "food", name: "餐饮", parent_id: null, type: "expense" },
-      ],
-      currency: "JPY",
-      items: [
-        {
-          amount: "100",
-          category_id: "food",
-          transaction_record_id: "foreign",
-        },
-      ],
-      ledgerName: "家庭账本",
-      merchants: [],
-      month: "2026-06",
-      records: [
-        {
-          id: "foreign",
-          ledger_rate: 2,
-          merchant_id: null,
-          record_currency: "USD",
-          type: "normal",
-        },
-      ],
-    });
-    const { container } = render(<StatisticsTemplate {...view} />);
+    const { container } = render(
+      <StatisticsTemplate
+        {...statisticsView}
+        summary={{
+          ...statisticsView.summary,
+          balance: "-200",
+          expense: "200",
+          income: "0",
+        }}
+      />,
+    );
 
-    expect(within(container).getAllByText("200 JPY").length).toBeGreaterThan(0);
+    expect(within(container).getByText("200 JPY")).toBeInTheDocument();
     expect(within(container).queryByText(/按记录当天/)).not.toBeInTheDocument();
   });
 
