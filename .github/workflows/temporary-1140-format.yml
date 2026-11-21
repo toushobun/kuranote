@@ -1,0 +1,30 @@
+name: Temporary 1140 Prettier Export
+on:
+  push:
+    branches:
+      - feat/1140_prefill_transfer_target_amount
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Export formatted files
+        shell: bash
+        run: |
+          files=(
+            "src/components/organisms/transactions/TransferReceipt/transferCurrency.test.ts"
+            "src/components/organisms/transactions/TransferReceipt/transferCurrency.ts"
+            "src/components/organisms/transactions/TransferReceipt/TransferReceipt.test.tsx"
+            "src/internal/exchangeRate/repository/dailyExchangeRateRepository.ts"
+          )
+          npx prettier "${files[@]}" --write
+          for f in "${files[@]}"; do
+            echo "BEGIN_FORMAT_FILE:$f"
+            base64 -w0 "$f"
+            echo
+            echo "END_FORMAT_FILE:$f"
+          done

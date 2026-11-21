@@ -106,11 +106,11 @@ function roundTransferProduct(
     amountFraction.length + rateFraction.length -
     Number(exponent) -
     decimalPlaces;
-  const divisor = scale > 0 ? 10n ** BigInt(scale) : 1n;
+  const divisor = scale > 0 ? BigInt(10) ** BigInt(scale) : BigInt(1);
   const rounded =
     scale > 0
-      ? (product + divisor / 2n) / divisor
-      : product * 10n ** BigInt(-scale);
+      ? (product + divisor / BigInt(2)) / divisor
+      : product * BigInt(10) ** BigInt(-scale);
   const digits = rounded.toString().padStart(decimalPlaces + 1, "0");
   return decimalPlaces === 0
     ? digits
