@@ -212,6 +212,18 @@ export function useTransactionForm({
     ],
   );
   const incomeCurrency = selectedAccount?.currency;
+  const originalAccountCurrency = accountOptions.find(
+    (account) => account.id === initialValues.payments[0]?.accountId,
+  )?.currency;
+  const originalLocalDateTime = initialValues.transactionAt
+    ? formatDateTimeLocalInputValue(initialValues.transactionAt)
+    : "";
+  const originalDateTime = splitDateTimeLocalValue(originalLocalDateTime);
+  const recordConversionInputsChanged = !!initialValues.transactionRecordId && (
+    incomeCurrency !== originalAccountCurrency ||
+    (transactionDate && originalDateTime.date !== transactionDate) ||
+    (transactionTime && originalDateTime.time !== transactionTime)
+  );
   const pickerTarget = pickerRefundCandidate ?? pickerReimbursementCandidate;
   const pickerLinkIsCrossCurrency = !!(
     pickerTarget && incomeCurrency &&
@@ -261,11 +273,15 @@ export function useTransactionForm({
       const originalEarlierItems = initialValues.items
         .slice(0, Math.max(0, originalIndex))
         .filter(linksToTarget);
+      const rawEarlierItems = allDisplayItems
+        .slice(0, index)
+        .filter(linksToTarget);
       const unchanged =
+        !recordConversionInputsChanged &&
         original?.amount === item.amount &&
         linksToTarget(original) &&
-        earlierItems.length === originalEarlierItems.length &&
-        earlierItems.every(
+        rawEarlierItems.length === originalEarlierItems.length &&
+        rawEarlierItems.every(
           (earlier, i) =>
             earlier.persistedId === originalEarlierItems[i]?.id &&
             earlier.amount === originalEarlierItems[i]?.amount,
@@ -284,7 +300,10 @@ export function useTransactionForm({
         available?.remainingRefundableAmount ?? target.remainingRefundableAmount;
       const crossCurrency = !!incomeCurrency && target.accountCurrency !== incomeCurrency;
       const rate = crossCurrency ? linkRates.getRate(target.accountCurrency) : null;
-      const preview = crossCurrency && rate
+      const saved = crossCurrency && unchanged
+        ? (item.savedLinkAllocation ?? null)
+        : null;
+      const calculated = crossCurrency && rate && !saved
         ? previewCrossCurrencyLink({
             amount: item.amount,
             incomeCurrency,
@@ -293,16 +312,17 @@ export function useTransactionForm({
             rate: rate.rate,
           })
         : null;
+      const preview = saved
+        ? { ...saved, businessNetAmount: original?.businessNetAmount ?? "0" }
+        : calculated && rate && incomeCurrency
+          ? { ...calculated, incomeCurrency,
+              targetCurrency: target.accountCurrency,
+              rate: rate.rate, rateDate: rate.rateDate }
+          : undefined;
       return {
         ...item,
         category,
-        linkPreview: preview && rate ? {
-          ...preview,
-          incomeCurrency,
-          targetCurrency: target.accountCurrency,
-          rate: rate.rate,
-          rateDate: rate.rateDate,
-        } : undefined,
+        linkPreview: preview,
         businessNetAmount:
           available === null && original
             ? (original.businessNetAmount ?? original.amount)
