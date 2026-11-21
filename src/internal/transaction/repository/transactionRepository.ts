@@ -129,7 +129,7 @@ export type TransactionDashboardCategory = Pick<
 >;
 
 export type TransactionDashboardMonthSource = {
-  records?: {
+  records: {
     id: string;
     ledger_rate: number | string | null;
     record_currency: string | null;

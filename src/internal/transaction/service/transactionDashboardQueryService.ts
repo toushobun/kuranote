@@ -99,7 +99,7 @@ export function createTransactionDashboardQueryService({
 
       const monthSummary = createTransactionAmountSummary(ledger.baseCurrency);
       const recordById = new Map(
-        (monthSource.records ?? []).map((record) => [record.id, record]),
+        monthSource.records.map((record) => [record.id, record]),
       );
       for (const [recordId, items] of monthItemsByRecordId) {
         const record = recordById.get(recordId);
