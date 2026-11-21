@@ -54,6 +54,10 @@ export const flowMessages = {
     refund: "退款",
     reimbursement: "报销",
   },
+  receiptCrossCurrencyOffset: (targetAmount: string, incomeAmount: string) =>
+    `抵消原支出 ${targetAmount}（折 ${incomeAmount}）`,
+  receiptCrossCurrencyRate: (date: string, base: string, rate: string, quote: string) =>
+    `按 ${date} 汇率 1 ${base} = ${rate} ${quote}`,
   receiptOffset: (amount: string) => `抵消原支出 ${amount}`,
   receiptSettled: "原支出已抵完",
   amountTitle: (category: string) => `${category} 的金额`,
