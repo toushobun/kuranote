@@ -181,6 +181,41 @@ describe("groupLoaders", () => {
     );
   });
 
+  it("非时间分组传递 SQL 返回的外币标识及缺汇率数量", async () => {
+    const dependencies = createDependencies(vi.fn());
+    vi.mocked(dependencies.transactionRepository.loadGroupSummaries).mockResolvedValue([
+      {
+        group_id: "merchant:merchant-1",
+        group_key: "merchant-1",
+        group_label: "商家",
+        has_foreign_currency: true,
+        missing_rate_count: 1,
+        group_currency: "JPY",
+        income: "0",
+        expense: "100",
+        balance: "-100",
+        latest_transaction_at: "2026-07-15T01:00:00.000Z",
+        shared_payment_record_count: 0,
+        shared_payment_record_total_amount: 0,
+        transaction_count: 2,
+      },
+    ]);
+
+    const page = await loadStep4TransactionGroupPage(
+      dependencies,
+      currentLedger,
+      "merchant",
+      0,
+      defaultTransactionFilters,
+    );
+
+    expect(page.groups[0].summary).toMatchObject({
+      hasForeignCurrency: true,
+      missingRateCount: 1,
+      expense: "100",
+    });
+  });
+
   it("分组日期边界与筛选日期边界取交集", async () => {
     const listRecords = vi.fn().mockResolvedValue([]);
 
