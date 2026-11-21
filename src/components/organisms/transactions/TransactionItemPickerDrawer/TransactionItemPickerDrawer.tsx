@@ -190,32 +190,34 @@ export function TransactionItemPickerDrawer({
     adjustedSelectedCandidate?.remainingRefundableAmount ?? "0",
   );
   const crossCurrency = !!(
-    adjustedSelectedCandidate && selectedAccountCurrency &&
+    adjustedSelectedCandidate &&
+    selectedAccountCurrency &&
     adjustedSelectedCandidate.accountCurrency !== selectedAccountCurrency
   );
-  const preview = crossCurrency && pickerLinkRate && adjustedSelectedCandidate
-    ? previewCrossCurrencyLink({
-        amount: pickerAmount.trim() || "0",
-        incomeCurrency: selectedAccountCurrency,
-        targetCurrency: adjustedSelectedCandidate.accountCurrency,
-        remainingAmount: adjustedSelectedCandidate.remainingRefundableAmount,
-        rate: pickerLinkRate.rate,
-      })
-    : null;
-  const formattedRate = crossCurrency && pickerLinkRate && adjustedSelectedCandidate
-    ? formatCrossCurrencyRate(
-        pickerLinkRate.rate,
-        selectedAccountCurrency,
-        adjustedSelectedCandidate.accountCurrency,
-        pickerLinkRate.rateDate,
-      )
-    : null;
+  const preview =
+    crossCurrency && pickerLinkRate && adjustedSelectedCandidate
+      ? previewCrossCurrencyLink({
+          amount: pickerAmount.trim() || "0",
+          incomeCurrency: selectedAccountCurrency,
+          targetCurrency: adjustedSelectedCandidate.accountCurrency,
+          remainingAmount: adjustedSelectedCandidate.remainingRefundableAmount,
+          rate: pickerLinkRate.rate,
+        })
+      : null;
+  const formattedRate =
+    crossCurrency && pickerLinkRate && adjustedSelectedCandidate
+      ? formatCrossCurrencyRate(
+          pickerLinkRate.rate,
+          selectedAccountCurrency,
+          adjustedSelectedCandidate.accountCurrency,
+          pickerLinkRate.rateDate,
+        )
+      : null;
   const surplusAmount = preview
     ? Number(preview.businessNetAmount)
-    : crossCurrency ? 0 : Math.max(
-        0,
-        Number(pickerAmount || "0") - Math.max(remainingAmount, 0),
-      );
+    : crossCurrency
+      ? 0
+      : Math.max(0, Number(pickerAmount || "0") - Math.max(remainingAmount, 0));
   const amountCurrency = adjustedSelectedCandidate?.accountCurrency ?? "";
   const displayedGroups = useMemo(() => {
     const typeGroups = categoryGroups.filter(
@@ -558,41 +560,52 @@ export function TransactionItemPickerDrawer({
               <Typography variant="caption" color="textSecondary">
                 {crossCurrency && preview
                   ? m.crossCurrencyConverted(
-                      formatUnsignedCurrencyAmount(preview.convertedAmount, amountCurrency),
+                      formatUnsignedCurrencyAmount(
+                        preview.convertedAmount,
+                        amountCurrency,
+                      ),
                       formattedRate
-                        ? m.crossCurrencyRate(formattedRate.date, formattedRate.base, formattedRate.value, formattedRate.quote)
+                        ? m.crossCurrencyRate(
+                            formattedRate.date,
+                            formattedRate.base,
+                            formattedRate.value,
+                            formattedRate.quote,
+                          )
                         : "",
                     )
                   : crossCurrency && pickerRatePending
                     ? m.exchangeRateLoading
-                  : adjustedSelectedCandidate
-                    ? selectedIsSettled
-                    ? m.settledHint(pickerMode)
-                    : surplusAmount > 0
-                      ? m.remainingWithSurplus(
-                          pickerMode,
-                          formatUnsignedCurrencyAmount(
-                            adjustedSelectedCandidate.remainingRefundableAmount,
-                            amountCurrency,
-                          ),
-                          formatUnsignedCurrencyAmount(
-                            String(surplusAmount),
-                            amountCurrency,
-                          ),
-                        )
-                      : m.remaining(
-                          pickerMode,
-                          formatUnsignedCurrencyAmount(
-                            adjustedSelectedCandidate.remainingRefundableAmount,
-                            amountCurrency,
-                          ),
-                        )
-                  : m.selectFirst(pickerMode)}
+                    : adjustedSelectedCandidate
+                      ? selectedIsSettled
+                        ? m.settledHint(pickerMode)
+                        : surplusAmount > 0
+                          ? m.remainingWithSurplus(
+                              pickerMode,
+                              formatUnsignedCurrencyAmount(
+                                adjustedSelectedCandidate.remainingRefundableAmount,
+                                amountCurrency,
+                              ),
+                              formatUnsignedCurrencyAmount(
+                                String(surplusAmount),
+                                amountCurrency,
+                              ),
+                            )
+                          : m.remaining(
+                              pickerMode,
+                              formatUnsignedCurrencyAmount(
+                                adjustedSelectedCandidate.remainingRefundableAmount,
+                                amountCurrency,
+                              ),
+                            )
+                      : m.selectFirst(pickerMode)}
               </Typography>
               {crossCurrency && preview && surplusAmount > 0 ? (
                 <Typography variant="caption" color="textSecondary">
                   {m.crossCurrencySurplus(
-                    formatUnsignedCurrencyAmount(preview.businessNetAmount, selectedAccountCurrency ?? ""),
+                    formatUnsignedCurrencyAmount(
+                      preview.businessNetAmount,
+                      selectedAccountCurrency ?? "",
+                    ),
                   )}
                 </Typography>
               ) : null}

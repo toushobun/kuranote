@@ -869,7 +869,7 @@ describe("getEditTransactionView income links", () => {
         transactionRecordId: "00000000-0000-4000-8000-000000009998",
       };
       const incomeLinkRepository: TransactionIncomeLinkRepository = {
-      listAllocationsByTargetItemIds: vi.fn().mockResolvedValue([]),
+        listAllocationsByTargetItemIds: vi.fn().mockResolvedValue([]),
         listByIncomeItemIds: vi.fn().mockResolvedValue([
           {
             incomeItemId,

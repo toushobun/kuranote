@@ -278,7 +278,7 @@ async function buildEditTransactionView<
   ]);
   const targetItemIds = [
     ...new Set([
-      ...items.flatMap((item) => item.id ? [item.id] : []),
+      ...items.flatMap((item) => (item.id ? [item.id] : [])),
       ...linkedItems.map((item) => item.id),
     ]),
   ];
@@ -291,7 +291,10 @@ async function buildEditTransactionView<
   const allocationByIncomeItemId = new Map(
     linkAllocations.map((allocation) => [allocation.incomeId, allocation]),
   );
-  const allocationsByTargetItemId = new Map<string, TransactionLinkAllocation[]>();
+  const allocationsByTargetItemId = new Map<
+    string,
+    TransactionLinkAllocation[]
+  >();
   for (const allocation of linkAllocations) {
     const entries = allocationsByTargetItemId.get(allocation.targetId) ?? [];
     entries.push(allocation);
@@ -372,24 +375,27 @@ async function buildEditTransactionView<
         const allocation = item.id
           ? allocationByIncomeItemId.get(item.id)
           : undefined;
-        const savedLinkAllocation = allocation &&
+        const savedLinkAllocation =
+          allocation &&
           allocation.incomeCurrency !== allocation.targetCurrency &&
           allocation.rateDate
-          ? {
-              actualTargetAmount: allocation.appliedTarget,
-              foldedBackAmount: allocation.appliedIncome,
-              convertedAmount: allocation.convertedAmount,
-              incomeCurrency: allocation.incomeCurrency,
-              targetCurrency: allocation.targetCurrency,
-              rate: allocation.rate,
-              rateDate: allocation.rateDate,
-            }
-          : undefined;
+            ? {
+                actualTargetAmount: allocation.appliedTarget,
+                foldedBackAmount: allocation.appliedIncome,
+                convertedAmount: allocation.convertedAmount,
+                incomeCurrency: allocation.incomeCurrency,
+                targetCurrency: allocation.targetCurrency,
+                rate: allocation.rate,
+                rateDate: allocation.rateDate,
+              }
+            : undefined;
         const crossCurrencyOffsets = item.id
           ? (allocationsByTargetItemId.get(item.id) ?? [])
               .filter((entry) => entry.incomeCurrency !== entry.targetCurrency)
               .map((entry) => ({
-                kind: entry.isRefund ? ("refund" as const) : ("reimbursement" as const),
+                kind: entry.isRefund
+                  ? ("refund" as const)
+                  : ("reimbursement" as const),
                 incomeAmount: entry.incomeAmount,
                 incomeCurrency: entry.incomeCurrency,
                 convertedAmount: entry.convertedAmount,

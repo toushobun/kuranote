@@ -153,8 +153,9 @@ export function ReceiptItemsSection({
                   {m.originalExpenseNotSelected}
                 </Typography>
               )}
-              {isLinkedIncome && Number(item.amount) > 0 && (
-                item.linkPreview ? (
+              {isLinkedIncome &&
+                Number(item.amount) > 0 &&
+                (item.linkPreview ? (
                   <>
                     <Typography variant="caption" color="textSecondary">
                       {m.receiptCrossCurrencyOffset(
@@ -172,13 +173,18 @@ export function ReceiptItemsSection({
                       const preview = item.linkPreview;
                       if (!preview) return null;
                       const rate = formatCrossCurrencyRate(
-                        preview.rate, preview.incomeCurrency,
-                        preview.targetCurrency, preview.rateDate,
+                        preview.rate,
+                        preview.incomeCurrency,
+                        preview.targetCurrency,
+                        preview.rateDate,
                       );
                       return rate ? (
                         <Typography variant="caption" color="textSecondary">
                           {m.receiptCrossCurrencyRate(
-                            rate.date, rate.base, rate.value, rate.quote,
+                            rate.date,
+                            rate.base,
+                            rate.value,
+                            rate.quote,
                           )}
                         </Typography>
                       ) : null;
@@ -195,18 +201,19 @@ export function ReceiptItemsSection({
                         )
                       : m.receiptSettled}
                   </Typography>
-                )
-              )}
+                ))}
               {item.category?.type === "expense" &&
                 item.crossCurrencyOffsets?.map((offset, i) => (
                   <Typography variant="caption" color="textSecondary" key={i}>
                     {m.receiptCrossCurrencyExpense(
                       offset.kind,
                       formatStepCurrencyAmount(
-                        offset.incomeAmount, offset.incomeCurrency,
+                        offset.incomeAmount,
+                        offset.incomeCurrency,
                       ),
                       formatStepCurrencyAmount(
-                        offset.convertedAmount, offset.targetCurrency,
+                        offset.convertedAmount,
+                        offset.targetCurrency,
                       ),
                     )}
                   </Typography>

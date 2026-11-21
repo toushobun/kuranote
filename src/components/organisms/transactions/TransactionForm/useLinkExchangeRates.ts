@@ -14,12 +14,17 @@ export function useLinkExchangeRates(
   tokyoDate: string,
   targetCurrencies: readonly string[],
 ) {
-  const targets = [...new Set(targetCurrencies.filter(
-    (currency) => currency && currency !== incomeCurrency,
-  ))].sort();
-  const key = incomeCurrency && tokyoDate && targets.length > 0
-    ? [incomeCurrency, tokyoDate, ...targets].join("|")
-    : "";
+  const targets = [
+    ...new Set(
+      targetCurrencies.filter(
+        (currency) => currency && currency !== incomeCurrency,
+      ),
+    ),
+  ].sort();
+  const key =
+    incomeCurrency && tokyoDate && targets.length > 0
+      ? [incomeCurrency, tokyoDate, ...targets].join("|")
+      : "";
   const [state, setState] = useState<{
     key: string;
     rates: Record<string, LinkExchangeRate | null>;
@@ -29,20 +34,25 @@ export function useLinkExchangeRates(
     if (!key) return;
     const controller = new AbortController();
     const [from, date, ...toCurrencies] = key.split("|");
-    void Promise.all(toCurrencies.map(async (to) => {
-      const query = new URLSearchParams({ from, to, date });
-      try {
-        const data = await fetchClientJson<DailyRateResponse>(
-          "/api/exchange-rates/daily?" + query.toString(),
-          controller.signal,
-        );
-        return [to, data?.rate && data.rate > 0 && data.rateDate
-          ? { rate: data.rate, rateDate: data.rateDate }
-          : null] as const;
-      } catch {
-        return [to, null] as const;
-      }
-    })).then((pairs) => {
+    void Promise.all(
+      toCurrencies.map(async (to) => {
+        const query = new URLSearchParams({ from, to, date });
+        try {
+          const data = await fetchClientJson<DailyRateResponse>(
+            "/api/exchange-rates/daily?" + query.toString(),
+            controller.signal,
+          );
+          return [
+            to,
+            data?.rate && data.rate > 0 && data.rateDate
+              ? { rate: data.rate, rateDate: data.rateDate }
+              : null,
+          ] as const;
+        } catch {
+          return [to, null] as const;
+        }
+      }),
+    ).then((pairs) => {
       if (!controller.signal.aborted)
         setState({ key, rates: Object.fromEntries(pairs) });
     });
@@ -54,7 +64,7 @@ export function useLinkExchangeRates(
     if (!incomeCurrency || !targetCurrency) return null;
     if (targetCurrency === incomeCurrency)
       return { rate: 1, rateDate: tokyoDate };
-    return state?.key === key ? state.rates[targetCurrency] ?? null : null;
+    return state?.key === key ? (state.rates[targetCurrency] ?? null) : null;
   };
   return { isLoading, getRate };
 }

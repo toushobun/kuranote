@@ -205,7 +205,9 @@ export function useTransactionForm({
     transactionDate,
     [
       ...allDisplayItems.map(
-        (item) => (item.refundCandidate ?? item.reimbursementCandidate)?.accountCurrency ?? "",
+        (item) =>
+          (item.refundCandidate ?? item.reimbursementCandidate)
+            ?.accountCurrency ?? "",
       ),
       pickerRefundCandidate?.accountCurrency ?? "",
       pickerReimbursementCandidate?.accountCurrency ?? "",
@@ -219,14 +221,15 @@ export function useTransactionForm({
     ? formatDateTimeLocalInputValue(initialValues.transactionAt)
     : "";
   const originalDateTime = splitDateTimeLocalValue(originalLocalDateTime);
-  const recordConversionInputsChanged = !!initialValues.transactionRecordId && (
-    incomeCurrency !== originalAccountCurrency ||
-    (transactionDate && originalDateTime.date !== transactionDate) ||
-    (transactionTime && originalDateTime.time !== transactionTime)
-  );
+  const recordConversionInputsChanged =
+    !!initialValues.transactionRecordId &&
+    (incomeCurrency !== originalAccountCurrency ||
+      (transactionDate && originalDateTime.date !== transactionDate) ||
+      (transactionTime && originalDateTime.time !== transactionTime));
   const pickerTarget = pickerRefundCandidate ?? pickerReimbursementCandidate;
   const pickerLinkIsCrossCurrency = !!(
-    pickerTarget && incomeCurrency &&
+    pickerTarget &&
+    incomeCurrency &&
     pickerTarget.accountCurrency !== incomeCurrency
   );
   const pickerLinkRate = pickerTarget
@@ -241,7 +244,12 @@ export function useTransactionForm({
     if (!rate) return "0";
     return amount === "0"
       ? "0"
-      : prefillTransferTargetAmount(amount, incomeCurrency, targetCurrency, rate.rate) || "0";
+      : prefillTransferTargetAmount(
+          amount,
+          incomeCurrency,
+          targetCurrency,
+          rate.rate,
+        ) || "0";
   };
   const itemSummaries: TransactionItemSummary[] = allDisplayItems.map(
     (item, index) => {
@@ -297,27 +305,35 @@ export function useTransactionForm({
             })),
           );
       const remaining =
-        available?.remainingRefundableAmount ?? target.remainingRefundableAmount;
-      const crossCurrency = !!incomeCurrency && target.accountCurrency !== incomeCurrency;
-      const rate = crossCurrency ? linkRates.getRate(target.accountCurrency) : null;
-      const saved = crossCurrency && unchanged
-        ? (item.savedLinkAllocation ?? null)
+        available?.remainingRefundableAmount ??
+        target.remainingRefundableAmount;
+      const crossCurrency =
+        !!incomeCurrency && target.accountCurrency !== incomeCurrency;
+      const rate = crossCurrency
+        ? linkRates.getRate(target.accountCurrency)
         : null;
-      const calculated = crossCurrency && rate && !saved
-        ? previewCrossCurrencyLink({
-            amount: item.amount,
-            incomeCurrency,
-            targetCurrency: target.accountCurrency,
-            remainingAmount: remaining,
-            rate: rate.rate,
-          })
-        : null;
+      const saved =
+        crossCurrency && unchanged ? (item.savedLinkAllocation ?? null) : null;
+      const calculated =
+        crossCurrency && rate && !saved
+          ? previewCrossCurrencyLink({
+              amount: item.amount,
+              incomeCurrency,
+              targetCurrency: target.accountCurrency,
+              remainingAmount: remaining,
+              rate: rate.rate,
+            })
+          : null;
       const preview = saved
         ? { ...saved, businessNetAmount: original?.businessNetAmount ?? "0" }
         : calculated && rate && incomeCurrency
-          ? { ...calculated, incomeCurrency,
+          ? {
+              ...calculated,
+              incomeCurrency,
               targetCurrency: target.accountCurrency,
-              rate: rate.rate, rateDate: rate.rateDate }
+              rate: rate.rate,
+              rateDate: rate.rateDate,
+            }
           : undefined;
       return {
         ...item,
@@ -328,10 +344,8 @@ export function useTransactionForm({
             ? (original.businessNetAmount ?? original.amount)
             : crossCurrency
               ? preview?.businessNetAmount
-              : summarizeRefundAllocationAmounts(
-                  item.amount,
-                  remaining,
-                )?.netIncomeAmount,
+              : summarizeRefundAllocationAmounts(item.amount, remaining)
+                  ?.netIncomeAmount,
       };
     },
   );
@@ -387,11 +401,16 @@ export function useTransactionForm({
         }),
     ) &&
     !itemSummaries.some(
-      (item) => (item.refundCandidate || item.reimbursementCandidate) &&
+      (item) =>
+        (item.refundCandidate || item.reimbursementCandidate) &&
         item.category?.type === "income" &&
         !!incomeCurrency &&
-        (item.refundCandidate ?? item.reimbursementCandidate)?.accountCurrency !== incomeCurrency &&
-        !linkRates.getRate((item.refundCandidate ?? item.reimbursementCandidate)?.accountCurrency ?? ""),
+        (item.refundCandidate ?? item.reimbursementCandidate)
+          ?.accountCurrency !== incomeCurrency &&
+        !linkRates.getRate(
+          (item.refundCandidate ?? item.reimbursementCandidate)
+            ?.accountCurrency ?? "",
+        ),
     );
   const transactionAtValue = composeTransactionDateTimeLocalValue(
     transactionDate,
@@ -874,10 +893,12 @@ export function useTransactionForm({
         ...item,
         amount: convertForTarget(item.amount, targetCurrency),
       })),
-      offsetEntry ? [] : initialValues.items.map((item) => ({
-        ...item,
-        amount: convertForTarget(item.amount, targetCurrency),
-      })),
+      offsetEntry
+        ? []
+        : initialValues.items.map((item) => ({
+            ...item,
+            amount: convertForTarget(item.amount, targetCurrency),
+          })),
       editingItemId,
     );
   }
@@ -896,12 +917,23 @@ export function useTransactionForm({
     if (candidate && pickerMode === kind) {
       setPickerAmount(
         (() => {
-          const remaining = getLinkCandidateDefaultAmount(resolveLinkCandidate(candidate));
-          if (!remaining || !incomeCurrency || candidate.accountCurrency === incomeCurrency)
+          const remaining = getLinkCandidateDefaultAmount(
+            resolveLinkCandidate(candidate),
+          );
+          if (
+            !remaining ||
+            !incomeCurrency ||
+            candidate.accountCurrency === incomeCurrency
+          )
             return remaining;
           const rate = linkRates.getRate(candidate.accountCurrency);
           return rate
-            ? prefillTransferTargetAmount(remaining, candidate.accountCurrency, incomeCurrency, 1 / rate.rate)
+            ? prefillTransferTargetAmount(
+                remaining,
+                candidate.accountCurrency,
+                incomeCurrency,
+                1 / rate.rate,
+              )
             : "";
         })(),
       );
@@ -1127,19 +1159,27 @@ function getNewItemBusinessNetAmount(
   refundCandidate: TransactionRefundCandidate | null,
   reimbursementCandidate: TransactionRefundCandidate | null,
   incomeCurrency?: string,
-  getRate?: (targetCurrency: string) => { rate: number; rateDate: string } | null,
+  getRate?: (
+    targetCurrency: string,
+  ) => { rate: number; rateDate: string } | null,
 ) {
   if (specialStatus === "reimbursed") return "0";
   const candidate = reimbursementCandidate ?? refundCandidate;
-  if (candidate && incomeCurrency && candidate.accountCurrency !== incomeCurrency) {
+  if (
+    candidate &&
+    incomeCurrency &&
+    candidate.accountCurrency !== incomeCurrency
+  ) {
     const rate = getRate?.(candidate.accountCurrency);
-    return rate ? previewCrossCurrencyLink({
-      amount,
-      incomeCurrency,
-      targetCurrency: candidate.accountCurrency,
-      remainingAmount: candidate.remainingRefundableAmount,
-      rate: rate.rate,
-    })?.businessNetAmount : undefined;
+    return rate
+      ? previewCrossCurrencyLink({
+          amount,
+          incomeCurrency,
+          targetCurrency: candidate.accountCurrency,
+          remainingAmount: candidate.remainingRefundableAmount,
+          rate: rate.rate,
+        })?.businessNetAmount
+      : undefined;
   }
   if (reimbursementCandidate) {
     return summarizeReimbursementAllocationAmounts(
@@ -1160,7 +1200,9 @@ function getUpdatedItemBusinessNetAmount(
   previousAmount: string,
   categoryType?: TransactionType,
   incomeCurrency?: string,
-  getRate?: (targetCurrency: string) => { rate: number; rateDate: string } | null,
+  getRate?: (
+    targetCurrency: string,
+  ) => { rate: number; rateDate: string } | null,
 ) {
   if (categoryType === "income") {
     return getNewItemBusinessNetAmount(
@@ -1206,7 +1248,9 @@ function withUpdatedItemBusinessNetAmount(
   previousAmount: string,
   categoryType?: TransactionType,
   incomeCurrency?: string,
-  getRate?: (targetCurrency: string) => { rate: number; rateDate: string } | null,
+  getRate?: (
+    targetCurrency: string,
+  ) => { rate: number; rateDate: string } | null,
 ) {
   return {
     ...item,

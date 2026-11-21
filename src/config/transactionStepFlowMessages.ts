@@ -54,12 +54,20 @@ export const flowMessages = {
     refund: "退款",
     reimbursement: "报销",
   },
-  receiptCrossCurrencyExpense: (kind: "refund" | "reimbursement", incomeAmount: string, targetAmount: string) =>
+  receiptCrossCurrencyExpense: (
+    kind: "refund" | "reimbursement",
+    incomeAmount: string,
+    targetAmount: string,
+  ) =>
     `已${kind === "refund" ? "退款" : "报销"} ${incomeAmount}（折 ${targetAmount}）`,
   receiptCrossCurrencyOffset: (targetAmount: string, incomeAmount: string) =>
     `抵消原支出 ${targetAmount}（折 ${incomeAmount}）`,
-  receiptCrossCurrencyRate: (date: string, base: string, rate: string, quote: string) =>
-    `按 ${date} 汇率 1 ${base} = ${rate} ${quote}`,
+  receiptCrossCurrencyRate: (
+    date: string,
+    base: string,
+    rate: string,
+    quote: string,
+  ) => `按 ${date} 汇率 1 ${base} = ${rate} ${quote}`,
   receiptOffset: (amount: string) => `抵消原支出 ${amount}`,
   receiptSettled: "原支出已抵完",
   amountTitle: (category: string) => `${category} 的金额`,
@@ -240,8 +248,12 @@ export const transactionLinkCandidateMessages = {
   reimbursementAmount: "报销金额",
   exchangeRateMissing: "暂无汇率，无法关联不同币种的原支出",
   exchangeRateLoading: "正在读取当天汇率…",
-  crossCurrencyRate: (date: string, base: string, rate: string, quote: string) =>
-    `按 ${date} 汇率 1 ${base} = ${rate} ${quote}`,
+  crossCurrencyRate: (
+    date: string,
+    base: string,
+    rate: string,
+    quote: string,
+  ) => `按 ${date} 汇率 1 ${base} = ${rate} ${quote}`,
   crossCurrencyConverted: (amount: string, rate: string) =>
     `折 ${amount}（${rate}）`,
   crossCurrencySurplus: (amount: string) =>

@@ -1,8 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type {
-  TransactionListItem,
-} from "types/transactions";
+import type { TransactionListItem } from "types/transactions";
 
 import {
   addTransactionAmount,
@@ -164,7 +162,6 @@ describe("transactions utils", () => {
     expect(hasBusinessNetAmountOffset("500", "500.00")).toBe(false);
     expect(hasBusinessNetAmountOffset("500", "300")).toBe(true);
   });
-
 
   it("转账不计入收入/支出汇总", () => {
     const summary = createTransactionAmountSummary("JPY");

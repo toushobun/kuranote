@@ -66,7 +66,6 @@ export function hasBusinessNetAmountOffset(
 
 // 退款 / 报销关联的候选必须与收款账户币种一致；账户未选择时视为不一致。
 
-
 export function formatTransactionRowAmount(
   type: TransactionRecordType | "balance_adjustment",
   amount: string,

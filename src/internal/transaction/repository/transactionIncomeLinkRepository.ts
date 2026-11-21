@@ -129,7 +129,11 @@ export function createSupabaseTransactionIncomeLinkRepository(
         { p_ledger_id: ledgerId, p_target_ids: ids },
       );
       if (error) {
-        throwLoadError("failed to load cross-currency link allocations", error.code, ledgerId);
+        throwLoadError(
+          "failed to load cross-currency link allocations",
+          error.code,
+          ledgerId,
+        );
       }
       return ((data ?? []) as TransactionLinkAllocationDbRow[]).map((row) => ({
         targetId: row.target_id,

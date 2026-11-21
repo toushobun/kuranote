@@ -543,34 +543,36 @@ export const CrossCurrencyReimbursementReceipt1147: Story = {
           },
         ],
         initialPayments: [{ accountId: "cny", amount: null }],
-        initialItems: [{
-          id: "11471000-0000-4000-8000-000000000011",
-          amount: "84.00",
-          businessNetAmount: "0.01",
-          categoryId: "reimbursement-system",
-          reimbursementCandidate: {
-            id: "11471000-0000-4000-8000-000000000001",
-            transactionRecordId: "11472000-0000-4000-8000-000000000001",
-            transactionAt: "2026-11-19T09:00:00+09:00",
-            merchantId: "amazon",
-            categoryName: "键盘",
-            parentCategoryName: "数码",
-            accountId: "paypay",
-            accountCurrency: "JPY",
-            amount: "2000",
-            refundedAmount: "0",
-            remainingRefundableAmount: "0",
+        initialItems: [
+          {
+            id: "11471000-0000-4000-8000-000000000011",
+            amount: "84.00",
+            businessNetAmount: "0.01",
+            categoryId: "reimbursement-system",
+            reimbursementCandidate: {
+              id: "11471000-0000-4000-8000-000000000001",
+              transactionRecordId: "11472000-0000-4000-8000-000000000001",
+              transactionAt: "2026-11-19T09:00:00+09:00",
+              merchantId: "amazon",
+              categoryName: "键盘",
+              parentCategoryName: "数码",
+              accountId: "paypay",
+              accountCurrency: "JPY",
+              amount: "2000",
+              refundedAmount: "0",
+              remainingRefundableAmount: "0",
+            },
+            savedLinkAllocation: {
+              actualTargetAmount: "2000",
+              foldedBackAmount: "83.99",
+              convertedAmount: "2000",
+              incomeCurrency: "CNY",
+              targetCurrency: "JPY",
+              rate: 23.8124,
+              rateDate: "2026-11-20",
+            },
           },
-          savedLinkAllocation: {
-            actualTargetAmount: "2000",
-            foldedBackAmount: "83.99",
-            convertedAmount: "2000",
-            incomeCurrency: "CNY",
-            targetCurrency: "JPY",
-            rate: 23.8124,
-            rateDate: "2026-11-20",
-          },
-        }],
+        ],
       }}
     />
   ),
@@ -583,19 +585,23 @@ export const CrossCurrencyOriginalExpenseReceipt1147: Story = {
       note=""
       itemsOptions={{
         ...receiptItemsOptions,
-        initialItems: [{
-          amount: "2000",
-          businessNetAmount: "0",
-          categoryId: "storage",
-          reimbursementAmount: "2000",
-          crossCurrencyOffsets: [{
-            kind: "reimbursement",
-            incomeAmount: "84.00",
-            incomeCurrency: "CNY",
-            convertedAmount: "2000",
-            targetCurrency: "JPY",
-          }],
-        }],
+        initialItems: [
+          {
+            amount: "2000",
+            businessNetAmount: "0",
+            categoryId: "storage",
+            reimbursementAmount: "2000",
+            crossCurrencyOffsets: [
+              {
+                kind: "reimbursement",
+                incomeAmount: "84.00",
+                incomeCurrency: "CNY",
+                convertedAmount: "2000",
+                targetCurrency: "JPY",
+              },
+            ],
+          },
+        ],
       }}
     />
   ),

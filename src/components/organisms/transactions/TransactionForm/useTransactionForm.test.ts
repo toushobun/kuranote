@@ -8,7 +8,6 @@ import type {
   TransactionRefundCandidate,
 } from "types/transactions";
 
-
 import { useTransactionForm } from "./useTransactionForm";
 
 const mocks = vi.hoisted(() => ({ markEditDirty: vi.fn() }));
@@ -790,7 +789,9 @@ describe("useTransactionForm", () => {
     act(() => changePrimaryAccount(result, "account-3"));
 
     expect(result.current.selectedAccount?.id).toBe("account-3");
-    expect(result.current.pickerReimbursementCandidate).toEqual(reimbursementCandidate);
+    expect(result.current.pickerReimbursementCandidate).toEqual(
+      reimbursementCandidate,
+    );
   });
 
   it("退款与报销候选互斥选择时清空另一侧候选", () => {
@@ -823,12 +824,14 @@ describe("useTransactionForm", () => {
         const { result } = renderTransactionFormHook({
           initialValues: {
             ...createInitialValues(),
-            items: [{
-              amount: "200",
-              categoryId: "income-category",
-              ...(saved ? { id: "persisted-item-1" } : {}),
-              [field]: candidate,
-            }],
+            items: [
+              {
+                amount: "200",
+                categoryId: "income-category",
+                ...(saved ? { id: "persisted-item-1" } : {}),
+                [field]: candidate,
+              },
+            ],
             ...(saved ? { transactionRecordId: "record-1" } : {}),
           },
         });

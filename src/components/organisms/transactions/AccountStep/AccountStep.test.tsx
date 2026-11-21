@@ -130,7 +130,9 @@ describe("AccountStep", () => {
     await waitFor(() =>
       expect(props.onSelect).toHaveBeenCalledWith(flowFixture.accounts[2]),
     );
-    expect(screen.queryByText("切换为 招商银行卡 账户？")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("切换为 招商银行卡 账户？"),
+    ).not.toBeInTheDocument();
   });
   it("没有明细时换币种无需确认", async () => {
     const { props } = currencySetup(false);
