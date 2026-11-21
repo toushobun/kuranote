@@ -117,7 +117,6 @@ export const WebsiteIcon: Story = {
   },
 };
 
-
 const scenarioValues = {
   ...editValues,
   accountId: "cny",
@@ -164,12 +163,8 @@ export const DailyRateUnavailable: Story = {
   },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.click(
-      canvas.getByRole("button", { name: "保存修改" }),
-    );
-    await expect(
-      await canvas.findByText("请输入到账金额"),
-    ).toBeInTheDocument();
+    await userEvent.click(canvas.getByRole("button", { name: "保存修改" }));
+    await expect(await canvas.findByText("请输入到账金额")).toBeInTheDocument();
   },
 };
 

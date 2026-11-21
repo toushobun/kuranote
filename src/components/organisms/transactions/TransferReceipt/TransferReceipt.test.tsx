@@ -268,7 +268,9 @@ describe("TransferReceipt", () => {
     });
     expect(screen.getByText("转出金额")).toBeInTheDocument();
     expect(screen.getByText("到账金额")).toBeInTheDocument();
-    expect(await screen.findByText(/实际汇率 1 CNY ≈ 20.62 JPY/)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/实际汇率 1 CNY ≈ 20.62 JPY/),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "保存转账" })).toBeNull();
   });
 
@@ -281,7 +283,6 @@ describe("TransferReceipt", () => {
     expect(screen.getByText("取现")).toBeInTheDocument();
   });
 });
-
 
 const rateScenario = {
   ...editValues,
@@ -345,8 +346,9 @@ describe("TransferReceipt 按当天汇率预填", () => {
       initialValues: rateScenario,
       loadDailyRate: referenceRate,
     });
-    expect(await screen.findByText(/实际汇率 1 CNY ≈ 20.5 JPY/))
-      .toBeInTheDocument();
+    expect(
+      await screen.findByText(/实际汇率 1 CNY ≈ 20.5 JPY/),
+    ).toBeInTheDocument();
     expect(screen.getByText("¥2,050")).toBeInTheDocument();
     await waitFor(() => expect(onDirty).toHaveBeenLastCalledWith(false));
 
@@ -355,10 +357,10 @@ describe("TransferReceipt 按当天汇率预填", () => {
       loadDailyRate: referenceRate,
       readOnly: true,
     });
-    expect(await screen.findAllByText(/实际汇率 1 CNY ≈ 20.5 JPY/))
-      .toHaveLength(2);
-    expect(screen.queryByRole("button", { name: "恢复按当天汇率" }))
-      .toBeNull();
+    expect(
+      await screen.findAllByText(/实际汇率 1 CNY ≈ 20.5 JPY/),
+    ).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: "恢复按当天汇率" })).toBeNull();
     expect(action).not.toHaveBeenCalled();
   });
 
@@ -381,20 +383,26 @@ describe("TransferReceipt 按当天汇率预填", () => {
   });
 
   it("旧请求晚于新币种返回也不会覆盖新币种的预填", async () => {
-    let finishOld: ((value: { rate: number; rateDate: string }) => void) | undefined;
-    const loadDailyRate = vi.fn(
-      ({ to }: { to: string }) =>
-        to === "JPY"
-          ? new Promise<{ rate: number; rateDate: string }>((resolve) => {
-              finishOld = resolve;
-            })
-          : Promise.resolve({ rate: 7, rateDate: "2026-11-20" }),
+    let finishOld:
+      | ((value: { rate: number; rateDate: string }) => void)
+      | undefined;
+    const loadDailyRate = vi.fn(({ to }: { to: string }) =>
+      to === "JPY"
+        ? new Promise<{ rate: number; rateDate: string }>((resolve) => {
+            finishOld = resolve;
+          })
+        : Promise.resolve({ rate: 7, rateDate: "2026-11-20" }),
     );
     const { action } = setup({
       loadDailyRate,
       accountOptions: [
         ...flowFixture.accounts,
-        { ...flowFixture.accounts[0]!, id: "usd", name: "美元账户", currency: "USD" },
+        {
+          ...flowFixture.accounts[0]!,
+          id: "usd",
+          name: "美元账户",
+          currency: "USD",
+        },
       ],
     });
     chooseAccount("转出", "招商银行卡 CNY");
@@ -405,6 +413,11 @@ describe("TransferReceipt 按当天汇率预填", () => {
     pressItemAmountKey("0");
     pressItemAmountKey("确定");
     await waitFor(() => expect(finishOld).toBeDefined());
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("heading", { name: "转出金额（CNY）" }),
+      ).toBeNull(),
+    );
     chooseAccount("转入", "美元账户 USD");
     expect(
       await screen.findByText(/按当天汇率 1 CNY = 7 USD/),

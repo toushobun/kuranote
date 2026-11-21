@@ -251,7 +251,6 @@ export function TransferReceipt(props: TransferReceiptProps) {
   );
 }
 
-
 /** 参考汇率只作展示：不会影响保存结构，也不会算成转账手续费。 */
 function TransferRateDetails({
   receipt,
@@ -278,26 +277,27 @@ function TransferRateDetails({
 
   if (!actual && !receipt.targetAmountEdited) return null;
   const difference = receipt.difference;
-  const differenceAmount = difference && difference.diff !== 0
-    ? t.arrivalDifference(
-        difference.diff > 0,
-        formatStepCurrencyAmount(
-          Math.abs(difference.diff).toFixed(
-            getAmountDecimalPlaces(receipt.targetCurrency),
+  const differenceAmount =
+    difference && difference.diff !== 0
+      ? t.arrivalDifference(
+          difference.diff > 0,
+          formatStepCurrencyAmount(
+            Math.abs(difference.diff).toFixed(
+              getAmountDecimalPlaces(receipt.targetCurrency),
+            ),
+            receipt.targetCurrency,
           ),
           receipt.targetCurrency,
-        ),
-        receipt.targetCurrency,
-        formatStepCurrencyAmount(
-          difference.sourceEquivalent.toFixed(
-            getAmountDecimalPlaces(receipt.currency),
+          formatStepCurrencyAmount(
+            difference.sourceEquivalent.toFixed(
+              getAmountDecimalPlaces(receipt.currency),
+            ),
+            receipt.currency,
           ),
           receipt.currency,
-        ),
-        receipt.currency,
-        difference.percent.toFixed(1),
-      )
-    : null;
+          difference.percent.toFixed(1),
+        )
+      : null;
 
   return (
     <Stack spacing={0.5} sx={{ alignItems: "flex-end", px: 2, pb: 1.5 }}>

@@ -5,18 +5,27 @@ import { describe, expect, it, vi } from "vitest";
 import type { AppEnv } from "internal/appEnv";
 import type { RequestContainer } from "internal/container";
 import type { RequestDependencies } from "internal/shared/context/requestDependencies";
-import { errorHandlingMiddleware, openApiValidationErrorHook } from "internal/shared/http/errorResponse";
+import {
+  errorHandlingMiddleware,
+  openApiValidationErrorHook,
+} from "internal/shared/http/errorResponse";
 import { exchangeRateRouter } from "./router";
 
 const validPath = "/exchange-rates/daily?from=CNY&to=JPY&date=2026-11-21";
 
 function createApp(authenticated = true) {
   const service = {
-    getDailyRate: vi.fn().mockResolvedValue({ rate: 21.05, rateDate: "2026-11-20" }),
+    getDailyRate: vi
+      .fn()
+      .mockResolvedValue({ rate: 21.05, rateDate: "2026-11-20" }),
   };
-  const app = new OpenAPIHono<AppEnv>({ defaultHook: openApiValidationErrorHook });
+  const app = new OpenAPIHono<AppEnv>({
+    defaultHook: openApiValidationErrorHook,
+  });
   app.use("*", async (c, next) => {
-    c.set("container", { exchangeRate: { service } } as unknown as RequestContainer);
+    c.set("container", {
+      exchangeRate: { service },
+    } as unknown as RequestContainer);
     c.set("requestDependencies", {
       auth: authenticated
         ? { email: "user@example.com", isAuthenticated: true, userId: "user-1" }
@@ -38,9 +47,14 @@ describe("exchangeRateRouter", () => {
     const { app, service } = createApp();
     const response = await app.request(validPath);
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ rate: 21.05, rateDate: "2026-11-20" });
+    expect(await response.json()).toEqual({
+      rate: 21.05,
+      rateDate: "2026-11-20",
+    });
     expect(service.getDailyRate).toHaveBeenCalledWith({
-      from: "CNY", to: "JPY", date: "2026-11-21",
+      from: "CNY",
+      to: "JPY",
+      date: "2026-11-21",
     });
   });
 

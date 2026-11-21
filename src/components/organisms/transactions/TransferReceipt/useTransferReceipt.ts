@@ -1,7 +1,10 @@
 "use client";
 import { useEffect, useState, type ChangeEvent } from "react";
 
-import { flowMessages as m, transferReceiptMessages as t } from "config/transactionStepFlowMessages";
+import {
+  flowMessages as m,
+  transferReceiptMessages as t,
+} from "config/transactionStepFlowMessages";
 import { fetchClientJson } from "lib/api/clientQuery";
 import { useDirtySnapshot } from "molecules/ui/UnsavedChangesDialog/useDirtySnapshot";
 import type { ReceiptIssue } from "organisms/transactions/ReceiptParts/ReceiptIssueAlerts";
@@ -24,7 +27,10 @@ import {
 
 export type TransferSide = "source" | "target";
 
-export type DailyTransferRate = { rate: number | null; rateDate: string | null };
+export type DailyTransferRate = {
+  rate: number | null;
+  rateDate: string | null;
+};
 export type LoadDailyTransferRate = (
   query: { from: string; to: string; date: string },
   signal: AbortSignal,

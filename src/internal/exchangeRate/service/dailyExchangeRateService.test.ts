@@ -12,20 +12,25 @@ describe("dailyExchangeRateService", () => {
       currentUserId: null,
       repository,
     });
-    await expect(service.getDailyRate(query)).rejects.toBeInstanceOf(AuthenticationError);
+    await expect(service.getDailyRate(query)).rejects.toBeInstanceOf(
+      AuthenticationError,
+    );
     expect(repository.getDailyRate).not.toHaveBeenCalled();
   });
 
   it("正常返回实际取值日期", async () => {
     const repository = {
-      getDailyRate: vi.fn().mockResolvedValue({ rate: 21.05, rateDate: "2026-11-20" }),
+      getDailyRate: vi
+        .fn()
+        .mockResolvedValue({ rate: 21.05, rateDate: "2026-11-20" }),
     };
     const service = createDailyExchangeRateService({
       currentUserId: "user-1",
       repository,
     });
     await expect(service.getDailyRate(query)).resolves.toEqual({
-      rate: 21.05, rateDate: "2026-11-20",
+      rate: 21.05,
+      rateDate: "2026-11-20",
     });
   });
 });

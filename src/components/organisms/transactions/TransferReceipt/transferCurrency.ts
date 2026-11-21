@@ -107,7 +107,10 @@ export function prefillTransferTargetAmount(
     return "";
   const expected = Number(sourceAmount) * dailyRate;
   if (!Number.isFinite(expected) || expected <= 0) return "";
-  const formatted = formatMoneyTextForCurrency(String(expected), targetCurrency);
+  const formatted = formatMoneyTextForCurrency(
+    String(expected),
+    targetCurrency,
+  );
   return isValidPositiveMoneyText(formatted, { currency: targetCurrency })
     ? formatted
     : "";

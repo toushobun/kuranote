@@ -155,8 +155,12 @@ describe("transferAmountsAfterAccountChange", () => {
 describe("按当天汇率预填与差额", () => {
   it("JPY/KRW 四舍五入到整数，CNY 保留两位小数", () => {
     expect(prefillTransferTargetAmount("10", "CNY", "JPY", 21.05)).toBe("211");
-    expect(prefillTransferTargetAmount("10", "CNY", "KRW", 208.57)).toBe("2086");
-    expect(prefillTransferTargetAmount("100", "JPY", "CNY", 0.047505)).toBe("4.75");
+    expect(prefillTransferTargetAmount("10", "CNY", "KRW", 208.57)).toBe(
+      "2086",
+    );
+    expect(prefillTransferTargetAmount("100", "JPY", "CNY", 0.047505)).toBe(
+      "4.75",
+    );
   });
 
   it("来源金额为空、精度无效或缺少汇率时不预填", () => {
@@ -167,25 +171,34 @@ describe("按当天汇率预填与差额", () => {
   });
 
   it("多到账、少到账与零差额按未取整理金额计算", () => {
-    expect(calculateTransferDifference("100", "2150", "CNY", "JPY", 21)).toEqual({
+    expect(
+      calculateTransferDifference("100", "2150", "CNY", "JPY", 21),
+    ).toEqual({
       diff: 50,
       sourceEquivalent: 50 / 21,
       percent: (50 / 2100) * 100,
     });
-    expect(calculateTransferDifference("100", "2050", "CNY", "JPY", 21)?.diff)
-      .toBe(-50);
-    expect(calculateTransferDifference("100", "2100", "CNY", "JPY", 21)?.diff)
-      .toBe(0);
-    expect(calculateTransferDifference("100", "211", "CNY", "JPY", 2.105)?.diff)
-      .toBeCloseTo(0.5);
+    expect(
+      calculateTransferDifference("100", "2050", "CNY", "JPY", 21)?.diff,
+    ).toBe(-50);
+    expect(
+      calculateTransferDifference("100", "2100", "CNY", "JPY", 21)?.diff,
+    ).toBe(0);
+    expect(
+      calculateTransferDifference("100", "211", "CNY", "JPY", 2.105)?.diff,
+    ).toBeCloseTo(0.5);
   });
 
   it("实际汇率与当天汇率共用大于一的方向和四位有效数字", () => {
     expect(formatTransferRate(21.052631, "CNY", "JPY")).toEqual({
-      base: "CNY", quote: "JPY", value: "21.05",
+      base: "CNY",
+      quote: "JPY",
+      value: "21.05",
     });
     expect(formatTransferRate(1 / 21.052631, "JPY", "CNY")).toEqual({
-      base: "CNY", quote: "JPY", value: "21.05",
+      base: "CNY",
+      quote: "JPY",
+      value: "21.05",
     });
     expect(formatTransferRate(0, "JPY", "CNY")).toBeNull();
   });

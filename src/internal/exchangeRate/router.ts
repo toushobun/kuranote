@@ -17,12 +17,20 @@ export const getDailyExchangeRateRoute = createRoute({
   request: { query: dailyExchangeRateQuerySchema },
   responses: {
     200: {
-      content: { "application/json": { schema: dailyExchangeRateResponseSchema } },
+      content: {
+        "application/json": { schema: dailyExchangeRateResponseSchema },
+      },
       description: "转账日期的参考汇率与实际取值日",
     },
-    ...createOpenApiErrorResponses(exchangeRateErrorResponseSchema, protectedReadErrorStatuses),
+    ...createOpenApiErrorResponses(
+      exchangeRateErrorResponseSchema,
+      protectedReadErrorStatuses,
+    ),
   },
 });
 
 export const exchangeRateRouter = new OpenAPIHono<AppEnv>();
-exchangeRateRouter.openapi(getDailyExchangeRateRoute, getDailyExchangeRateHandler);
+exchangeRateRouter.openapi(
+  getDailyExchangeRateRoute,
+  getDailyExchangeRateHandler,
+);
