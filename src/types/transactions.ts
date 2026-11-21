@@ -158,7 +158,7 @@ export type { TransactionSpecialStatusFilterValue };
 
 export type TransactionListItem = TransactionRowItem & {
   /** 用于小计，不改变单笔原币金额显示。 */
-  converted_amount?: string | null;
+  converted_amount: string | null;
   note: string | null;
   recorder_name: string | null;
   created_at: string;

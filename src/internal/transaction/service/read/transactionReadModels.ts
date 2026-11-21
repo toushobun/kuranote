@@ -34,7 +34,7 @@ export type TransactionListItem = {
   account_name: string;
   amount: string;
   /** 单笔展示仍为原币；本字段仅供日期/月度合计使用。 */
-  converted_amount?: string | null;
+  converted_amount: string | null;
   originalAmount?: string;
   originalType?: CategoryType;
   transferTargetAmount?: string;

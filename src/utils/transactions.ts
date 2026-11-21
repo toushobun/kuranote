@@ -239,11 +239,7 @@ export function addConvertedItemToSummary(
   if (item.converted_amount === null) {
     summary.missingRateCount = (summary.missingRateCount ?? 0) + 1;
   } else {
-    addTransactionAmount(
-      summary,
-      item.type,
-      item.converted_amount ?? item.amount,
-    );
+    addTransactionAmount(summary, item.type, item.converted_amount);
   }
 }
 
