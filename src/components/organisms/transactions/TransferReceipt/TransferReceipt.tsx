@@ -268,9 +268,7 @@ function TransferRateDetails({
     if (!actual) return null;
     return (
       <Typography variant="caption" color="textSecondary" sx={rateTextSx}>
-        {receipt.targetAmountEdited
-          ? t.actualExchangeRate(actual.base, actual.quote, actual.value)
-          : t.exchangeRate(actual.base, actual.quote, actual.value)}
+        {t.exchangeRate(actual.base, actual.quote, actual.value)}
       </Typography>
     );
   }

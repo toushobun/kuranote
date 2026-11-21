@@ -254,7 +254,7 @@ describe("TransferReceipt", () => {
     ).toBeInTheDocument();
   });
 
-  it("只读跨币种同时显示转出、到账和实际汇率", async () => {
+  it("无参考汇率时只读跨币种保持方案 A 的汇率显示", async () => {
     setup({
       initialValues: {
         ...editValues,
@@ -269,7 +269,7 @@ describe("TransferReceipt", () => {
     expect(screen.getByText("转出金额")).toBeInTheDocument();
     expect(screen.getByText("到账金额")).toBeInTheDocument();
     expect(
-      await screen.findByText(/实际汇率 1 CNY ≈ 20.62 JPY/),
+      await screen.findByText(/汇率 1 CNY ≈ 20.62 JPY（按两边金额算出）/),
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "保存转账" })).toBeNull();
   });
