@@ -1,4 +1,5 @@
 import {
+  cleanup,
   fireEvent,
   render,
   screen,
@@ -352,6 +353,7 @@ describe("TransferReceipt 按当天汇率预填", () => {
     expect(screen.getByText("¥2,050")).toBeInTheDocument();
     await waitFor(() => expect(onDirty).toHaveBeenLastCalledWith(false));
 
+    cleanup();
     const { action } = setup({
       initialValues: rateScenario,
       loadDailyRate: referenceRate,
