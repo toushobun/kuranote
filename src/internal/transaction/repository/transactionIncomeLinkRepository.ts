@@ -3,6 +3,35 @@ import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authe
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
 import { transactionLoadErrorMessages } from "internal/transaction/errors";
 
+/** 已保存的权威核销明细；金额分别保留两个币种。 */
+export type TransactionLinkAllocation = {
+  targetId: string;
+  incomeId: string;
+  isRefund: boolean;
+  incomeAmount: string;
+  incomeCurrency: string;
+  targetCurrency: string;
+  convertedAmount: string;
+  appliedTarget: string;
+  appliedIncome: string;
+  rate: number;
+  rateDate: string | null;
+};
+
+type TransactionLinkAllocationDbRow = {
+  target_id: string;
+  income_id: string;
+  is_refund: boolean;
+  income_amount: number | string;
+  income_currency: string;
+  target_currency: string;
+  converted_amount: number | string;
+  applied_target: number | string;
+  applied_income: number | string;
+  rate: number | string;
+  rate_date: string | null;
+};
+
 export type TransactionIncomeLinkedItem = {
   merchantId: string | null;
   accountId: string;
@@ -31,6 +60,10 @@ export type TransactionIncomeLinkData = {
 };
 
 export interface TransactionIncomeLinkRepository {
+  listAllocationsByTargetItemIds(
+    ledgerId: string,
+    targetItemIds: string[],
+  ): Promise<TransactionLinkAllocation[]>;
   listByIncomeItemIds(
     ledgerId: string,
     incomeItemIds: string[],
@@ -88,6 +121,30 @@ export function createSupabaseTransactionIncomeLinkRepository(
   }
 
   return {
+    async listAllocationsByTargetItemIds(ledgerId, targetItemIds) {
+      const ids = [...new Set(targetItemIds)];
+      if (ids.length === 0) return [];
+      const { data, error } = await supabase.rpc(
+        "transaction_link_allocations_for_targets",
+        { p_ledger_id: ledgerId, p_target_ids: ids },
+      );
+      if (error) {
+        throwLoadError("failed to load cross-currency link allocations", error.code, ledgerId);
+      }
+      return ((data ?? []) as TransactionLinkAllocationDbRow[]).map((row) => ({
+        targetId: row.target_id,
+        incomeId: row.income_id,
+        isRefund: row.is_refund,
+        incomeAmount: String(row.income_amount),
+        incomeCurrency: row.income_currency,
+        targetCurrency: row.target_currency,
+        convertedAmount: String(row.converted_amount),
+        appliedTarget: String(row.applied_target),
+        appliedIncome: String(row.applied_income),
+        rate: Number(row.rate),
+        rateDate: row.rate_date,
+      }));
+    },
     async listByIncomeItemIds(ledgerId, incomeItemIds) {
       const uniqueIncomeItemIds = [...new Set(incomeItemIds)];
       if (uniqueIncomeItemIds.length === 0) return [];
