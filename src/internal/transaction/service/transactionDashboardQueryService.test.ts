@@ -398,9 +398,7 @@ describe("TransactionDashboardQueryService", () => {
                 transaction_record_id: "surplus-expense",
               },
             ],
-            records: [
-              { id: "surplus-expense", ledger_rate: 1 },
-            ],
+            records: [{ id: "surplus-expense", ledger_rate: 1 }],
           }),
           loadDashboardRecentlyUsedAccountIds: vi.fn().mockResolvedValue([]),
         } as never,
