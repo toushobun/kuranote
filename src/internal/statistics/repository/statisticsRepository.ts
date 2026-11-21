@@ -157,9 +157,7 @@ export function createSupabaseStatisticsRepository(
         ledgerId,
         recordIds,
       );
-      const rateById = new Map(
-        rateRows.map((row) => [row.record_id, row]),
-      );
+      const rateById = new Map(rateRows.map((row) => [row.record_id, row]));
       const recordsWithRates = records.map((record) => {
         const rate = rateById.get(record.id);
         return {

@@ -1150,7 +1150,12 @@ export function createSupabaseTransactionRepository(
     },
 
     async loadRecordRates(ledgerId, recordIds) {
-      return loadTransactionRecordLedgerRates(supabase, logger, ledgerId, recordIds);
+      return loadTransactionRecordLedgerRates(
+        supabase,
+        logger,
+        ledgerId,
+        recordIds,
+      );
     },
 
     async listRecords(input) {

@@ -1,4 +1,7 @@
-import type { TransactionAmountSummary, TransactionListItem } from "types/transactions";
+import type {
+  TransactionAmountSummary,
+  TransactionListItem,
+} from "types/transactions";
 
 export type DashboardAmountSummary = TransactionAmountSummary;
 

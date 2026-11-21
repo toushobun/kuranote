@@ -230,11 +230,9 @@ describe("Issue #1139 交易合计一致性", () => {
       { holder: "holder-1", signed: 40 },
     ];
     const buckets = movements.reduce(
-      (summary, movement) =>
-        addToRecordSignedBuckets(summary, movement.signed),
+      (summary, movement) => addToRecordSignedBuckets(summary, movement.signed),
       undefined as ReturnType<typeof addToRecordSignedBuckets> | undefined,
     );
     expect(buckets).toEqual({ income: 40, expense: 100 });
   });
-
 });

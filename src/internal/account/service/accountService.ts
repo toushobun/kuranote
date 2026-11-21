@@ -562,7 +562,6 @@ export function createAccountService({
         role,
         users,
       });
-
     },
 
     async update(input) {
