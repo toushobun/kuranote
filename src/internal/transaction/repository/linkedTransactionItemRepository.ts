@@ -78,7 +78,6 @@ const linkedEditRpcErrorCodes = [
   "transaction_at_invalid",
   "linked_edit_items_invalid",
   "linked_edit_target_invalid",
-  "linked_edit_target_currency_mismatch",
   transactionErrorCodes.accountInvalid,
   transactionErrorCodes.amountInvalid,
   transactionErrorCodes.categoryInvalid,
@@ -86,8 +85,7 @@ const linkedEditRpcErrorCodes = [
   transactionErrorCodes.noteTooLong,
   transactionErrorCodes.specialStatusInvalid,
   transactionErrorCodes.incomeLinkCategoryInvalid,
-  "refund_currency_mismatch",
-  "reimbursement_currency_mismatch",
+  "link_exchange_rate_missing",
   "linked_transaction_edit_forbidden",
   transactionErrorCodes.paymentAccountDuplicate,
   transactionErrorCodes.paymentAmountRequired,
@@ -197,22 +195,10 @@ export function createSupabaseLinkedTransactionItemRepository(
         transactionLinkedEditErrorMessages.targetInvalid,
       );
     }
-    if (rpcErrorCode === "linked_edit_target_currency_mismatch") {
+    if (rpcErrorCode === "link_exchange_rate_missing") {
       throw new ValidationError(
         transactionErrorCodes.updateInvalid,
-        transactionLinkedEditErrorMessages.targetCurrencyMismatch,
-      );
-    }
-    if (rpcErrorCode === "refund_currency_mismatch") {
-      throw new ValidationError(
-        transactionErrorCodes.refundLinkInvalid,
-        transactionLinkedEditErrorMessages.refundCurrencyMismatch,
-      );
-    }
-    if (rpcErrorCode === "reimbursement_currency_mismatch") {
-      throw new ValidationError(
-        transactionErrorCodes.reimbursementLinkInvalid,
-        transactionLinkedEditErrorMessages.reimbursementCurrencyMismatch,
+        transactionWriteErrorMessages.linkExchangeRateMissing,
       );
     }
     if (rpcErrorCode === "linked_transaction_edit_forbidden") {
