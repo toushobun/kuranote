@@ -29,6 +29,11 @@ import type { TransactionSpecialStatus } from "internal/transaction";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
 import { designTokens } from "theme/theme";
 import { transactionPaymentFieldsMessages } from "utils/transactionMessages";
+import {
+  previewCrossCurrencyLink,
+  formatCrossCurrencyRate,
+  type LinkExchangeRate,
+} from "../TransactionForm/crossCurrencyLinkPreview";
 import type {
   TransactionCategoryOption,
   TransactionRefundCandidate,
@@ -55,8 +60,6 @@ type TransactionItemPickerDrawerProps = TransactionIncomeLinksContextValue & {
   editingItemId?: number | null;
   pendingLink?: boolean;
   filteredCategoryOptions: TransactionCategoryOption[];
-  // 退款 / 报销关联提示；抽屉打开时表单顶部的提示会被遮罩挡住，因此在抽屉内同步显示。
-  linkNotice?: string | null;
   onCategoryToggle: (categoryId: string) => void;
   onClose: () => void;
   /** 切换大分类；带 categoryId 时同时选中它，否则选中该组第一个可用小分类。 */
@@ -86,6 +89,9 @@ type TransactionItemPickerDrawerProps = TransactionIncomeLinksContextValue & {
   linkAffectedCandidates?: TransactionRefundCandidate[];
   linkAffectedReimbursementCandidates?: TransactionRefundCandidate[];
   selectedAccountCurrency?: string;
+  pickerLinkRate?: LinkExchangeRate | null;
+  pickerRatePending?: boolean;
+  pickerRateMissing?: boolean;
   selectedCategoryGroup?: CategoryPickerGroup;
   specialStatusEnabled?: boolean;
   specialStatusLocked?: boolean;
@@ -101,7 +107,6 @@ export function TransactionItemPickerDrawer({
   editingItemId = null,
   pendingLink = false,
   filteredCategoryOptions,
-  linkNotice = null,
   onCategoryToggle,
   onClose,
   onGroupSelect,
@@ -127,6 +132,9 @@ export function TransactionItemPickerDrawer({
   linkAffectedCandidates,
   linkAffectedReimbursementCandidates,
   selectedAccountCurrency,
+  pickerLinkRate = null,
+  pickerRatePending = false,
+  pickerRateMissing = false,
   selectedCategoryGroup,
   loadRefundPageAction,
   loadReimbursementPageAction,
@@ -181,12 +189,34 @@ export function TransactionItemPickerDrawer({
   const remainingAmount = Number(
     adjustedSelectedCandidate?.remainingRefundableAmount ?? "0",
   );
-  const surplusAmount = Math.max(
-    0,
-    Number(pickerAmount || "0") - Math.max(remainingAmount, 0),
+  const crossCurrency = !!(
+    adjustedSelectedCandidate && selectedAccountCurrency &&
+    adjustedSelectedCandidate.accountCurrency !== selectedAccountCurrency
   );
-  const amountCurrency =
-    selectedAccountCurrency ?? adjustedSelectedCandidate?.accountCurrency ?? "";
+  const preview = crossCurrency && pickerLinkRate && adjustedSelectedCandidate
+    ? previewCrossCurrencyLink({
+        amount: pickerAmount.trim() || "0",
+        incomeCurrency: selectedAccountCurrency,
+        targetCurrency: adjustedSelectedCandidate.accountCurrency,
+        remainingAmount: adjustedSelectedCandidate.remainingRefundableAmount,
+        rate: pickerLinkRate.rate,
+      })
+    : null;
+  const formattedRate = crossCurrency && pickerLinkRate && adjustedSelectedCandidate
+    ? formatCrossCurrencyRate(
+        pickerLinkRate.rate,
+        selectedAccountCurrency,
+        adjustedSelectedCandidate.accountCurrency,
+        pickerLinkRate.rateDate,
+      )
+    : null;
+  const surplusAmount = preview
+    ? Number(preview.businessNetAmount)
+    : crossCurrency ? 0 : Math.max(
+        0,
+        Number(pickerAmount || "0") - Math.max(remainingAmount, 0),
+      );
+  const amountCurrency = adjustedSelectedCandidate?.accountCurrency ?? "";
   const displayedGroups = useMemo(() => {
     const typeGroups = categoryGroups.filter(
       (group) => group.categories[0]?.type === pickerMode,
@@ -500,9 +530,9 @@ export function TransactionItemPickerDrawer({
             ) : null}
           </>
         )}
-        {linkNotice ? (
-          <Alert severity="info" sx={{ mt: 1.5 }}>
-            {linkNotice}
+        {crossCurrency && pickerRateMissing && !pickerRatePending ? (
+          <Alert severity="error" sx={{ mt: 1.5 }}>
+            {m.exchangeRateMissing}
           </Alert>
         ) : null}
       </Box>
@@ -527,8 +557,17 @@ export function TransactionItemPickerDrawer({
                   : m.reimbursementAmount}
               </Typography>
               <Typography variant="caption" color="textSecondary">
-                {adjustedSelectedCandidate
-                  ? selectedIsSettled
+                {crossCurrency && preview
+                  ? m.crossCurrencyConverted(
+                      formatUnsignedCurrencyAmount(preview.convertedAmount, amountCurrency),
+                      formattedRate
+                        ? m.crossCurrencyRate(formattedRate.date, formattedRate.base, formattedRate.value, formattedRate.quote)
+                        : "",
+                    )
+                  : crossCurrency && pickerRatePending
+                    ? m.exchangeRateLoading
+                  : adjustedSelectedCandidate
+                    ? selectedIsSettled
                     ? m.settledHint(pickerMode)
                     : surplusAmount > 0
                       ? m.remainingWithSurplus(
@@ -551,6 +590,13 @@ export function TransactionItemPickerDrawer({
                         )
                   : m.selectFirst(pickerMode)}
               </Typography>
+              {crossCurrency && preview && surplusAmount > 0 ? (
+                <Typography variant="caption" color="text.secondary">
+                  {m.crossCurrencySurplus(
+                    formatUnsignedCurrencyAmount(preview.businessNetAmount, selectedAccountCurrency ?? ""),
+                  )}
+                </Typography>
+              ) : null}
             </Stack>
             <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
               <Typography
@@ -593,7 +639,7 @@ export function TransactionItemPickerDrawer({
               : transactionItemPickerMessages.remove}
           </Button>
           <PrimaryActionButton
-            disabled={isLinkedMode && !selectedCandidate}
+            disabled={isLinkedMode && (!selectedCandidate || pickerRateMissing)}
             fullWidth
             onClick={handleConfirm}
             type="button"
