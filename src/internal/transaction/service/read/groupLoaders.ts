@@ -182,7 +182,11 @@ async function loadStep4NonTimeGroupedTransactionGroupPage(
       ...(sharedPayment ? { sharedPayment } : {}),
       summary: {
         balance: normalizeRpcAmount(row.balance),
-        currency: currentLedger.baseCurrency,
+        currency: row.group_currency ?? currentLedger.baseCurrency,
+        ...(row.has_foreign_currency ? { hasForeignCurrency: true } : {}),
+        ...(Number(row.missing_rate_count ?? 0) > 0
+          ? { missingRateCount: Number(row.missing_rate_count) }
+          : {}),
         expense: normalizeRpcAmount(row.expense),
         income: normalizeRpcAmount(row.income),
       },
@@ -403,8 +407,18 @@ async function loadStep4TransactionGroupItemsPage(
     { groupBy, groupKey },
   );
 
+  // 账户分组展开项的每日小计同样保留账户原币，不能显示账本币种。
+  const isAccountGroup = groupBy === "account";
+  const dateGroupCurrency = isAccountGroup
+    ? (pageContext.accounts.find((account) => account.id === groupKey)
+        ?.currency ?? currentLedger.baseCurrency)
+    : currentLedger.baseCurrency;
+  const dateItems = isAccountGroup
+    ? items.map((item) => ({ ...item, converted_amount: item.amount }))
+    : items;
+
   return {
-    groups: groupTransactionItemsByDate(items, currentLedger.baseCurrency),
+    groups: groupTransactionItemsByDate(dateItems, dateGroupCurrency),
     nextOffset:
       fetchedRecords.length > transactionPageSize
         ? safeOffset + transactionPageSize

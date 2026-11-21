@@ -1033,6 +1033,10 @@ describe("TransactionDashboardRepository", () => {
       category: categoryQuery,
       transaction_item_with_refund: itemQuery,
       transaction_record: recordQuery,
+      transaction_record_ledger_rate: createQuery({
+        data: [{ record_id: recordId, currency: "JPY", ledger_rate: 1 }],
+        error: null,
+      }),
     });
     await expect(
       repository.loadDashboardMonthSource(dashboardMonthInput),
@@ -1046,6 +1050,7 @@ describe("TransactionDashboardRepository", () => {
           transaction_record_id: recordId,
         },
       ],
+      records: [{ id: recordId, ledger_rate: 1, record_currency: "JPY" }],
     });
     expect(recordQuery.select).toHaveBeenCalledWith("id");
     expect(recordQuery.eq).toHaveBeenCalledWith("type", "normal");
@@ -1069,7 +1074,7 @@ describe("TransactionDashboardRepository", () => {
     });
     await expect(
       repository.loadDashboardMonthSource(dashboardMonthInput),
-    ).resolves.toEqual({ categories: [], items: [] });
+    ).resolves.toEqual({ categories: [], items: [], records: [] });
     expect(from).toHaveBeenCalledTimes(1);
   });
   it("明细没有分类时跳过分类查询", async () => {
@@ -1086,11 +1091,19 @@ describe("TransactionDashboardRepository", () => {
     const { from, repository } = createRepository({
       transaction_item_with_refund: itemQuery,
       transaction_record: recordQuery,
+      transaction_record_ledger_rate: createQuery({
+        data: [{ record_id: recordId, currency: "JPY", ledger_rate: 1 }],
+        error: null,
+      }),
     });
     await expect(
       repository.loadDashboardMonthSource(dashboardMonthInput),
-    ).resolves.toEqual({ categories: [], items: [item] });
-    expect(from).toHaveBeenCalledTimes(2);
+    ).resolves.toEqual({
+      categories: [],
+      items: [item],
+      records: [{ id: recordId, ledger_rate: 1, record_currency: "JPY" }],
+    });
+    expect(from).toHaveBeenCalledTimes(3);
     expect(from).not.toHaveBeenCalledWith("category");
   });
   it.each(dashboardErrorCases)(

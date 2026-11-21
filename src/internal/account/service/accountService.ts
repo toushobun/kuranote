@@ -549,7 +549,9 @@ export function createAccountService({
       ];
       const users = await accountRepository.listUsers(userIds);
 
+      const ledgerRates = await accountRepository.listLedgerRates(ledgerId);
       return buildAccountsView({
+        ledgerRates,
         accountIdsWithTransactions,
         accounts,
         displaySettings,

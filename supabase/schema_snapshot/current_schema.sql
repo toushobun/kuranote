@@ -1607,6 +1607,18 @@ $$;
 ALTER FUNCTION "public"."confirm_transaction_attachment_upload"("p_ledger_id" "uuid", "p_attachment_id" "uuid") OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."convert_ledger_amount"("p_amount" numeric, "p_ledger_rate" numeric) RETURNS numeric
+    LANGUAGE "sql" IMMUTABLE
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $$
+    select case when p_amount is null or p_ledger_rate is null
+           then null else round(p_amount * p_ledger_rate, 2) end;
+$$;
+
+
+ALTER FUNCTION "public"."convert_ledger_amount"("p_amount" numeric, "p_ledger_rate" numeric) OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[] DEFAULT '{}'::"uuid"[], "p_placeholder_id" "uuid" DEFAULT NULL::"uuid", "p_website_url" "text" DEFAULT NULL::"text", "p_icon_url" "text" DEFAULT NULL::"text") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -4992,7 +5004,7 @@ $$;
 ALTER FUNCTION "public"."load_merchant_entry_history"("p_ledger_id" "uuid", "p_merchant_id" "uuid", "p_limit" integer) OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."load_transaction_group_summaries_with_special_status"("p_ledger_id" "uuid", "p_group_by" "text", "p_date_start" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_date_end" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_record_type" "text" DEFAULT 'all'::"text", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_account_id" "uuid" DEFAULT NULL::"uuid", "p_parent_category_id" "uuid" DEFAULT NULL::"uuid", "p_category_id" "uuid" DEFAULT NULL::"uuid", "p_member_id" "uuid" DEFAULT NULL::"uuid", "p_special_statuses" "text"[] DEFAULT NULL::"text"[], "p_offset" integer DEFAULT 0, "p_limit" integer DEFAULT 20, "p_holder_id" "text" DEFAULT NULL::"text") RETURNS TABLE("group_id" "text", "group_key" "text", "group_label" "text", "income" numeric, "expense" numeric, "balance" numeric, "transaction_count" integer, "latest_transaction_at" timestamp with time zone, "shared_payment_record_count" integer, "shared_payment_record_total_amount" numeric)
+CREATE OR REPLACE FUNCTION "public"."load_transaction_group_summaries_with_special_status"("p_ledger_id" "uuid", "p_group_by" "text", "p_date_start" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_date_end" timestamp with time zone DEFAULT NULL::timestamp with time zone, "p_record_type" "text" DEFAULT 'all'::"text", "p_merchant_id" "uuid" DEFAULT NULL::"uuid", "p_account_id" "uuid" DEFAULT NULL::"uuid", "p_parent_category_id" "uuid" DEFAULT NULL::"uuid", "p_category_id" "uuid" DEFAULT NULL::"uuid", "p_member_id" "uuid" DEFAULT NULL::"uuid", "p_special_statuses" "text"[] DEFAULT NULL::"text"[], "p_offset" integer DEFAULT 0, "p_limit" integer DEFAULT 20, "p_holder_id" "text" DEFAULT NULL::"text") RETURNS TABLE("group_id" "text", "group_key" "text", "group_label" "text", "income" numeric, "expense" numeric, "balance" numeric, "transaction_count" integer, "latest_transaction_at" timestamp with time zone, "shared_payment_record_count" integer, "shared_payment_record_total_amount" numeric, "group_currency" "text", "missing_rate_count" integer, "has_foreign_currency" boolean)
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -5282,18 +5294,42 @@ group_rows as (
           where sr.record_id = mi.record_id
       )
 ),
-grouped as (
-    select
-        gr.key,
-        count(distinct case
-            when p_group_by = 'specialStatus' then gr.item_id::text
-            else gr.record_id::text
-        end) as count_value,
-        sum(case when gr.signed_amount > 0 then gr.signed_amount else 0 end) as income_value,
-        sum(case when gr.signed_amount < 0 then -gr.signed_amount else 0 end) as expense_value,
-        sum(gr.signed_amount) as balance_value,
-        max(gr.transaction_at) as latest_at
+group_rows_per_record as (
+    -- 只在每笔、每组内分别累计收入与支出：逐明细及持有人混合收支不可净额化。
+    select gr.key, gr.record_id, max(gr.transaction_at) as latest_at,
+           count(distinct gr.item_id) as item_count,
+           sum(case when gr.signed_amount > 0 then gr.signed_amount else 0 end) as raw_income,
+           sum(case when gr.signed_amount < 0 then -gr.signed_amount else 0 end) as raw_expense
     from group_rows gr
+    group by gr.key, gr.record_id
+),
+group_rows_converted as (
+    select gr.*,
+        case when p_group_by = 'account' then gr.raw_income
+             else public.convert_ledger_amount(gr.raw_income, rr.ledger_rate) end as converted_income,
+        case when p_group_by = 'account' then gr.raw_expense
+             else public.convert_ledger_amount(gr.raw_expense, rr.ledger_rate) end as converted_expense,
+        case when p_group_by <> 'account' and rr.ledger_rate is null
+             then 1 else 0 end as missing_rate,
+        (p_group_by <> 'account'
+         and rr.currency is not null
+         and rr.currency <> (select l.base_currency from public.ledger l where l.id = p_ledger_id)
+        ) as has_foreign_currency
+    from group_rows_per_record gr
+    left join public.transaction_record_ledger_rate rr
+      on rr.ledger_id = p_ledger_id and rr.record_id = gr.record_id
+),
+grouped as (
+    select gr.key,
+        (case when p_group_by = 'specialStatus'
+              then sum(gr.item_count) else count(*) end)::bigint as count_value,
+        sum(gr.converted_income) as income_value,
+        sum(gr.converted_expense) as expense_value,
+        sum(gr.converted_income - gr.converted_expense) as balance_value,
+        sum(gr.missing_rate)::integer as missing_rate_count,
+        coalesce(bool_or(gr.has_foreign_currency), false) as has_foreign_currency,
+        max(gr.latest_at) as latest_at
+    from group_rows_converted gr
     group by gr.key
 ),
 shared_grouped as (
@@ -5301,12 +5337,15 @@ shared_grouped as (
     select
         gr.key,
         count(*) as record_count,
-        sum(sr.record_total_amount) as record_total_amount
+        sum(case when p_group_by = 'account' then sr.record_total_amount
+                 else public.convert_ledger_amount(sr.record_total_amount, rr.ledger_rate)
+            end) as record_total_amount
     from (
         select distinct key, record_id
         from group_rows
     ) gr
     join shared_records sr on sr.record_id = gr.record_id
+    left join public.transaction_record_ledger_rate rr on rr.ledger_id = p_ledger_id and rr.record_id = gr.record_id
     group by gr.key
 ),
 labeled as (
@@ -5381,7 +5420,13 @@ select
     labeled.count_value::integer,
     labeled.latest_at,
     coalesce(sg.record_count, 0)::integer,
-    coalesce(sg.record_total_amount, 0)
+    coalesce(sg.record_total_amount, 0),
+    case when p_group_by = 'account'
+         then (select a.currency from public.account a where a.id::text = labeled.key and a.ledger_id = p_ledger_id)
+         else (select l.base_currency from public.ledger l where l.id = p_ledger_id)
+    end,
+    coalesce(labeled.missing_rate_count, 0),
+    coalesce(labeled.has_foreign_currency, false)
 from labeled
 left join shared_grouped sg on sg.key = labeled.key
 order by
@@ -10460,6 +10505,18 @@ CREATE TABLE IF NOT EXISTS "public"."account_holder" (
 ALTER TABLE "public"."account_holder" OWNER TO "postgres";
 
 
+CREATE OR REPLACE VIEW "public"."account_ledger_rate" WITH ("security_invoker"='true') AS
+ SELECT "a"."ledger_id",
+    "a"."id" AS "account_id",
+    "a"."currency",
+    "public"."exchange_rate_on"("a"."currency", "l"."base_currency", (("now"() AT TIME ZONE 'UTC'::"text"))::"date") AS "ledger_rate"
+   FROM ("public"."account" "a"
+     JOIN "public"."ledger" "l" ON (("l"."id" = "a"."ledger_id")));
+
+
+ALTER VIEW "public"."account_ledger_rate" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."account_name_scope" (
     "account_id" "uuid" NOT NULL,
     "ledger_id" "uuid" NOT NULL,
@@ -11026,6 +11083,30 @@ CREATE OR REPLACE VIEW "public"."transaction_item_with_refund" WITH ("security_i
 
 
 ALTER VIEW "public"."transaction_item_with_refund" OWNER TO "postgres";
+
+
+CREATE OR REPLACE VIEW "public"."transaction_record_ledger_rate" WITH ("security_invoker"='true') AS
+ SELECT "tr"."ledger_id",
+    "tr"."id" AS "record_id",
+        CASE
+            WHEN ("tr"."type" = 'normal'::"text") THEN "rc"."currency"
+            ELSE NULL::"text"
+        END AS "currency",
+        CASE
+            WHEN ("tr"."type" = 'normal'::"text") THEN "public"."exchange_rate_on"("rc"."currency", "l"."base_currency", "public"."transaction_record_local_date"("tr"."transaction_at"))
+            ELSE (1)::numeric
+        END AS "ledger_rate"
+   FROM (("public"."transaction_record" "tr"
+     JOIN "public"."ledger" "l" ON (("l"."id" = "tr"."ledger_id")))
+     LEFT JOIN LATERAL ( SELECT "a"."currency"
+           FROM ("public"."transaction_account_movement" "m"
+             JOIN "public"."account" "a" ON ((("a"."id" = "m"."account_id") AND ("a"."ledger_id" = "m"."ledger_id"))))
+          WHERE (("m"."ledger_id" = "tr"."ledger_id") AND ("m"."transaction_record_id" = "tr"."id") AND ("tr"."type" = 'normal'::"text"))
+          ORDER BY "m"."sort_order", "m"."account_id"
+         LIMIT 1) "rc" ON (true));
+
+
+ALTER VIEW "public"."transaction_record_ledger_rate" OWNER TO "postgres";
 
 
 ALTER TABLE ONLY "public"."auth_otp_attempt" ALTER COLUMN "id" SET DEFAULT "nextval"('"public"."auth_otp_attempt_id_seq"'::"regclass");
@@ -12589,6 +12670,12 @@ GRANT ALL ON FUNCTION "public"."confirm_transaction_attachment_upload"("p_ledger
 
 
 
+REVOKE ALL ON FUNCTION "public"."convert_ledger_amount"("p_amount" numeric, "p_ledger_rate" numeric) FROM PUBLIC;
+GRANT ALL ON FUNCTION "public"."convert_ledger_amount"("p_amount" numeric, "p_ledger_rate" numeric) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."convert_ledger_amount"("p_amount" numeric, "p_ledger_rate" numeric) TO "service_role";
+
+
+
 REVOKE ALL ON FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[], "p_placeholder_id" "uuid", "p_website_url" "text", "p_icon_url" "text") FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."create_account_with_holders"("p_ledger_id" "uuid", "p_name" "text", "p_type" "text", "p_currency" "text", "p_initial_balance" numeric, "p_holder_user_ids" "uuid"[], "p_placeholder_id" "uuid", "p_website_url" "text", "p_icon_url" "text") TO "authenticated";
 
@@ -13137,6 +13224,11 @@ GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."account_holder" TO
 
 
 
+GRANT SELECT ON TABLE "public"."account_ledger_rate" TO "authenticated";
+GRANT SELECT ON TABLE "public"."account_ledger_rate" TO "service_role";
+
+
+
 GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE "public"."app_user" TO "authenticated";
 GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."app_user" TO "service_role";
 
@@ -13250,6 +13342,11 @@ GRANT REFERENCES,TRIGGER,MAINTAIN ON TABLE "public"."transaction_item_reimbursem
 GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_item_with_refund" TO "anon";
 GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_item_with_refund" TO "authenticated";
 GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE "public"."transaction_item_with_refund" TO "service_role";
+
+
+
+GRANT SELECT ON TABLE "public"."transaction_record_ledger_rate" TO "authenticated";
+GRANT SELECT ON TABLE "public"."transaction_record_ledger_rate" TO "service_role";
 
 
 

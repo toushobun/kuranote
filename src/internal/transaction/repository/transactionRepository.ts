@@ -44,6 +44,7 @@ import { findRpcErrorCode } from "internal/transaction/repository/rpcError";
 import { toTransactionPaymentRpcPayload } from "internal/transaction/util/transactionPaymentRpcPayload";
 import { isThemeColorKey } from "theme/themeColorTokens";
 import { chunkArray } from "utils/collections";
+import { loadTransactionRecordLedgerRates } from "./transactionRecordRateRepository";
 
 /** 单次 `in.(...)` 查询最多携带的记录 id 数：36 位 uuid × 100 ≈ 4KB，远低于网关 URL 上限。 */
 const itemQueryRecordIdChunkSize = 100;
@@ -128,6 +129,11 @@ export type TransactionDashboardCategory = Pick<
 >;
 
 export type TransactionDashboardMonthSource = {
+  records: {
+    id: string;
+    ledger_rate: number | string | null;
+    record_currency: string | null;
+  }[];
   categories: TransactionDashboardCategory[];
   items: TransactionDashboardSummaryItem[];
 };
@@ -152,6 +158,9 @@ export type TransactionRecordQuery = {
 };
 
 export type TransactionGroupSummaryRow = {
+  group_currency?: string | null;
+  missing_rate_count?: number | null;
+  has_foreign_currency?: boolean | null;
   balance: number | string | null;
   expense: number | string | null;
   group_id: string;
@@ -233,6 +242,17 @@ const filteredPageResultSchema = z.object({
 });
 
 export interface TransactionContextRepository {
+  /** 从 SQL 汇率视图批量加载，必须明确处理缺失汇率。 */
+  loadRecordRates(
+    ledgerId: string,
+    recordIds: string[],
+  ): Promise<
+    {
+      record_id: string;
+      record_currency: string | null;
+      ledger_rate: number | string | null;
+    }[]
+  >;
   loadFilteredPage(
     input: FilteredTransactionPageInput,
   ): Promise<FilteredTransactionPageResult>;
@@ -1019,7 +1039,15 @@ export function createSupabaseTransactionRepository(
       }
 
       const recordIds = (recordData ?? []).map((record) => record.id);
-      if (recordIds.length === 0) return { categories: [], items: [] };
+      if (recordIds.length === 0)
+        return { categories: [], items: [], records: [] };
+      const rateRows = await this.loadRecordRates(ledgerId, recordIds);
+      const rateById = new Map(rateRows.map((rate) => [rate.record_id, rate]));
+      const records = recordIds.map((id) => ({
+        id,
+        record_currency: rateById.get(id)?.record_currency ?? null,
+        ledger_rate: rateById.get(id)?.ledger_rate ?? null,
+      }));
 
       const { data: itemData, error: itemError } = await supabase
         .from("transaction_item_with_refund")
@@ -1052,7 +1080,7 @@ export function createSupabaseTransactionRepository(
             .filter((categoryId): categoryId is string => categoryId !== null),
         ),
       ];
-      if (categoryIds.length === 0) return { categories: [], items };
+      if (categoryIds.length === 0) return { categories: [], items, records };
 
       const { data: categoryData, error: categoryError } = await supabase
         .from("category")
@@ -1077,6 +1105,7 @@ export function createSupabaseTransactionRepository(
       return {
         categories: (categoryData ?? []) as TransactionDashboardCategory[],
         items,
+        records,
       };
     },
 
@@ -1118,6 +1147,15 @@ export function createSupabaseTransactionRepository(
         );
       }
       return parsed.data;
+    },
+
+    async loadRecordRates(ledgerId, recordIds) {
+      return loadTransactionRecordLedgerRates(
+        supabase,
+        logger,
+        ledgerId,
+        recordIds,
+      );
     },
 
     async listRecords(input) {

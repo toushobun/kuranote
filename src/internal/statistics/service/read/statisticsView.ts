@@ -1,3 +1,4 @@
+import { convertLedgerAmount } from "utils/exchangeRate";
 import {
   addSignedAmount,
   calculateRecordNetAmount,
@@ -19,6 +20,8 @@ export type StatisticsRankItem = {
 };
 
 type StatisticsAmountSummary = {
+  hasForeignCurrency?: boolean;
+  missingRateCount?: number;
   balance: string;
   currency: string;
   expense: string;
@@ -39,6 +42,8 @@ export type StatisticsViewData = {
 type StatisticsRecordInput = {
   id: string;
   merchant_id: string | null;
+  record_currency: string | null;
+  ledger_rate: number | string | null;
   type: TransactionRecordStorageType;
 };
 
@@ -108,18 +113,27 @@ export function buildStatisticsViewData({
       itemsByRecordId.get(record.id) ?? [],
       categoryById,
     );
-    addSignedAmount(summary, netAmount);
-    if (record.merchant_id && netAmount < 0) {
+    if (record.record_currency && record.record_currency !== currency) {
+      summary.hasForeignCurrency = true;
+    }
+    const convertedAmount = convertLedgerAmount(netAmount, record.ledger_rate);
+    if (convertedAmount === null) {
+      summary.missingRateCount = (summary.missingRateCount ?? 0) + 1;
+      continue;
+    }
+    addSignedAmount(summary, convertedAmount);
+    if (record.merchant_id && convertedAmount < 0) {
       addRankingAmount(
         merchantRankingById,
         record.merchant_id,
         merchantById.get(record.merchant_id)?.name ?? "未指定商家",
-        String(-netAmount),
+        String(-convertedAmount),
         record.id,
       );
     }
   }
   const categoryRankingById = new Map<string, RankingAccumulator>();
+  const categoryAmountByRecord = new Map<string, number>();
 
   for (const item of items) {
     const record = recordById.get(item.transaction_record_id);
@@ -137,12 +151,29 @@ export function buildStatisticsViewData({
     const effectiveAmount = item.business_net_amount ?? item.amount;
     if (category.type !== "expense") continue;
 
+    const key = `${record.id}:${categoryId}`;
+    const numericAmount = Number(effectiveAmount);
+    if (!Number.isFinite(numericAmount)) continue;
+    categoryAmountByRecord.set(
+      key,
+      (categoryAmountByRecord.get(key) ?? 0) + numericAmount,
+    );
+  }
+  for (const [key, amount] of categoryAmountByRecord) {
+    const separator = key.lastIndexOf(":");
+    const recordId = key.slice(0, separator);
+    const categoryId = key.slice(separator + 1);
+    const record = recordById.get(recordId);
+    const category = categoryById.get(categoryId);
+    if (!record || !category) continue;
+    const converted = convertLedgerAmount(amount, record.ledger_rate);
+    if (converted === null) continue;
     addRankingAmount(
       categoryRankingById,
       categoryId,
       getCategoryDisplayName(category, categoryById),
-      effectiveAmount,
-      record.id,
+      String(converted),
+      recordId,
     );
   }
 

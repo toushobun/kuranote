@@ -1,4 +1,5 @@
 import type { Logger } from "internal/shared/logging/logger";
+import { loadTransactionRecordLedgerRates } from "internal/transaction";
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
 import type {
@@ -147,10 +148,24 @@ export function createSupabaseStatisticsRepository(
 
       const records = (recordData ?? []) as TransactionRecordDbRow[];
       const recordIds = records.map((record) => record.id);
-
       if (recordIds.length === 0) {
         return { categories: [], items: [], records: [] };
       }
+      const rateRows = await loadTransactionRecordLedgerRates(
+        supabase,
+        logger,
+        ledgerId,
+        recordIds,
+      );
+      const rateById = new Map(rateRows.map((row) => [row.record_id, row]));
+      const recordsWithRates = records.map((record) => {
+        const rate = rateById.get(record.id);
+        return {
+          ...record,
+          record_currency: rate?.record_currency ?? null,
+          ledger_rate: rate?.ledger_rate ?? null,
+        };
+      });
 
       const { data: itemData, error: itemError } = await supabase
         .from("transaction_item_with_refund")
@@ -229,7 +244,7 @@ export function createSupabaseStatisticsRepository(
       return {
         categories,
         items,
-        records,
+        records: recordsWithRates,
       };
     },
   };

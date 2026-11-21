@@ -42,6 +42,8 @@ function record(
     merchant_id: "merchant-a",
     note: null,
     transaction_at: "2026-06-01T00:00:00.000Z",
+    ledger_rate: 1,
+    record_currency: null,
     type: "normal",
     ...value,
   };

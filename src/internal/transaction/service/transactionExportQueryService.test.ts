@@ -8,6 +8,7 @@ function setup() {
     listRecords: vi.fn().mockResolvedValue([]),
     listItems: vi.fn().mockResolvedValue([]),
     listPayments: vi.fn().mockResolvedValue([]),
+    loadRecordRates: vi.fn().mockResolvedValue([]),
     loadFilteredPage: vi.fn().mockResolvedValue({
       entries: [],
       nextOffset: null,

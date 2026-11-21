@@ -20,6 +20,7 @@ const accounts: Account[] = [
     currency: "JPY",
     initial_balance: 100000,
     current_balance: 85000,
+    ledger_rate: 1,
     sort_order: 1,
     created_at: "2026-01-01T00:00:00.000Z",
     has_transactions: false,
@@ -44,6 +45,7 @@ const accounts: Account[] = [
     currency: "JPY",
     initial_balance: 0,
     current_balance: 3200,
+    ledger_rate: 1,
     sort_order: 2,
     created_at: "2026-01-02T00:00:00.000Z",
     has_transactions: false,
@@ -126,7 +128,7 @@ describe("AccountSummaryCard", () => {
     expect(within(container).getByText("2 位")).toBeInTheDocument();
   });
 
-  it("存在外币账户时总余额只统计本位币账户并展示说明", () => {
+  it("存在外币账户时按最新汇率计入余额并展示说明", () => {
     const accountsWithForeignCurrency: Account[] = [
       ...accounts,
       {
@@ -136,6 +138,7 @@ describe("AccountSummaryCard", () => {
         currency: "USD",
         initial_balance: 0,
         current_balance: 500,
+        ledger_rate: 150,
         sort_order: 3,
         created_at: "2026-01-03T00:00:00.000Z",
         has_transactions: false,
@@ -150,9 +153,32 @@ describe("AccountSummaryCard", () => {
       />,
     );
 
+    expect(within(container).getByLabelText("¥163,200")).toBeInTheDocument();
+    expect(
+      within(container).getByText("含外币账户，按最新汇率换算"),
+    ).toBeInTheDocument();
+  });
+
+  it("外币账户无汇率时不计入余额并提示账户数", () => {
+    const { container } = render(
+      <AccountSummaryCard
+        accounts={[
+          ...accounts,
+          {
+            ...accounts[0],
+            id: "foreign-missing",
+            name: "外币账户",
+            currency: "USD",
+            current_balance: 100,
+            ledger_rate: null,
+          },
+        ]}
+        baseCurrency="JPY"
+      />,
+    );
     expect(within(container).getByLabelText("¥88,200")).toBeInTheDocument();
     expect(
-      within(container).getByText("外币账户未计入总余额，暂不支持汇率换算。"),
+      within(container).getByText("有 1 个外币账户暂无汇率"),
     ).toBeInTheDocument();
   });
 
@@ -162,7 +188,7 @@ describe("AccountSummaryCard", () => {
     );
 
     expect(
-      within(container).queryByText("外币账户未计入总余额，暂不支持汇率换算。"),
+      within(container).queryByText("含外币账户，按最新汇率换算"),
     ).toBeNull();
   });
 });

@@ -18,7 +18,11 @@ const records = [
   { id: "expense-2", merchant_id: "merchant-cafe", type: "normal" as const },
   { id: "expense-3", merchant_id: "merchant-missing", type: "normal" as const },
   { id: "income-1", merchant_id: "merchant-company", type: "normal" as const },
-];
+].map((record) => ({
+  ...record,
+  ledger_rate: 1,
+  record_currency: null,
+}));
 
 const items = [
   {
@@ -103,6 +107,8 @@ describeAcrossDefaultLocales("支出排行榜的同额排序", () => {
       month: "2026-06",
       records: names.map((name) => ({
         id: name,
+        ledger_rate: 1,
+        record_currency: null,
         merchant_id: name,
         type: "normal" as const,
       })),
@@ -186,6 +192,8 @@ describe("buildStatisticsViewData", () => {
       month: "2026-10",
       records: monthlyRecordAmountCases.map((_, index) => ({
         id: `record-${index}`,
+        ledger_rate: 1,
+        record_currency: null,
         merchant_id: "merchant",
         type: "normal",
       })),
@@ -398,16 +406,22 @@ describe("buildStatisticsViewData", () => {
         records: [
           {
             id: "surplus-expense",
+            ledger_rate: 1,
+            record_currency: null,
             merchant_id: "merchant-surplus",
             type: "normal",
           },
           {
             id: "regular-expense",
+            ledger_rate: 1,
+            record_currency: null,
             merchant_id: "merchant-regular",
             type: "normal",
           },
           {
             id: "offset-income",
+            ledger_rate: 1,
+            record_currency: null,
             merchant_id: null,
             type: "normal",
           },
@@ -476,11 +490,15 @@ describe("buildStatisticsViewData", () => {
         records: [
           {
             id: "refund-surplus-expense",
+            ledger_rate: 1,
+            record_currency: null,
             merchant_id: "merchant-refund",
             type: "normal",
           },
           {
             id: "refund-surplus-income",
+            ledger_rate: 1,
+            record_currency: null,
             merchant_id: null,
             type: "normal",
           },
@@ -545,16 +563,22 @@ describe("buildStatisticsViewData", () => {
         records: [
           {
             id: "combined-surplus-expense",
+            ledger_rate: 1,
+            record_currency: null,
             merchant_id: "merchant-combined",
             type: "normal",
           },
           {
             id: "refund-income",
+            ledger_rate: 1,
+            record_currency: null,
             merchant_id: null,
             type: "normal",
           },
           {
             id: "reimbursement-income",
+            ledger_rate: 1,
+            record_currency: null,
             merchant_id: null,
             type: "normal",
           },
@@ -581,6 +605,8 @@ describe("Issue #917 月度口径一致性", () => {
         {
           id: "record",
           type: "normal" as const,
+          ledger_rate: 1,
+          record_currency: null,
           merchant_id: "merchant",
           created_by: "user",
           created_at: "2026-10-10T01:00:00Z",
@@ -662,9 +688,11 @@ describe("Issue #917 月度口径一致性", () => {
           getActiveMemberRole: vi.fn().mockResolvedValue("owner"),
         },
         transactionRepository: {
-          loadDashboardMonthSource: vi
-            .fn()
-            .mockResolvedValue({ categories: monthlyAmountCategories, items }),
+          loadDashboardMonthSource: vi.fn().mockResolvedValue({
+            categories: monthlyAmountCategories,
+            items,
+            records: [{ id: "record", ledger_rate: 1, record_currency: "JPY" }],
+          }),
           listRecords: vi.fn().mockResolvedValue([]),
           loadDashboardRecentlyUsedAccountIds: vi.fn().mockResolvedValue([]),
         } as never,

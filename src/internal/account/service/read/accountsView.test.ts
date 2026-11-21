@@ -154,6 +154,7 @@ describe("accountsView", () => {
         baseCurrency: "JPY",
         id: "00000000-0000-4000-8000-000000000032",
       },
+      ledgerRates: new Map([[accountId, 1]]),
       members: [
         {
           created_at: "2026-07-01T00:00:00.000Z",
@@ -178,6 +179,7 @@ describe("accountsView", () => {
       accounts: [
         expect.objectContaining({
           has_transactions: true,
+          ledger_rate: 1,
           holders: [
             expect.objectContaining({
               display_color: "sky",

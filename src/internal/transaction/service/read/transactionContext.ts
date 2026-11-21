@@ -74,7 +74,7 @@ export async function loadTransactionGroupLoaderContextForRecords(
   const normalRecordIds = records
     .filter((record) => record.type === "normal")
     .map((record) => record.id);
-  const [items, payments] = await Promise.all([
+  const [items, payments, rateRows] = await Promise.all([
     dependencies.transactionRepository.listItems(currentLedger.id, recordIds),
     normalRecordIds.length > 0
       ? dependencies.transactionRepository.listPayments(
@@ -82,7 +82,22 @@ export async function loadTransactionGroupLoaderContextForRecords(
           normalRecordIds,
         )
       : Promise.resolve([]),
+    dependencies.transactionRepository.loadRecordRates(
+      currentLedger.id,
+      normalRecordIds,
+    ),
   ]);
+  const rateByRecordId = new Map(
+    rateRows.map((rate) => [rate.record_id, rate]),
+  );
+  const recordsWithRates = records.map((record) => {
+    const rate = rateByRecordId.get(record.id);
+    return {
+      ...record,
+      record_currency: rate?.record_currency ?? null,
+      ledger_rate: record.type === "normal" ? (rate?.ledger_rate ?? null) : 1,
+    };
+  });
   const itemsByRecordId = groupByKey(
     items,
     (item) => item.transaction_record_id,
@@ -153,7 +168,7 @@ export async function loadTransactionGroupLoaderContextForRecords(
     items,
     merchants,
     payments,
-    records,
+    records: recordsWithRates,
     recorders,
     showRecorder: accountContext.showRecorder,
   };
@@ -167,6 +182,9 @@ export function buildTransactionListItemsFromContext(
 ): TransactionListItem[] {
   const lookups = getTransactionGroupContextLookups(context);
   const normalizedFilters = normalizeTransactionFilters(filters);
+  const recordById = new Map(
+    context.records.map((record) => [record.id, record]),
+  );
   return records.map((record) =>
     buildTransactionListItem({
       accountById: lookups.accountById,
@@ -179,7 +197,7 @@ export function buildTransactionListItemsFromContext(
       ledgerId: context.currentLedger.id,
       merchantById: lookups.merchantById,
       payments: lookups.paymentsByRecordId.get(record.id) ?? [],
-      record,
+      record: recordById.get(record.id) ?? record,
       recorderById: lookups.recorderById,
       recordItems: lookups.itemsByRecordId.get(record.id) ?? [],
       showRecorder: context.showRecorder ?? true,

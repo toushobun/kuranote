@@ -14,6 +14,7 @@ import { IconBadge } from "atoms/ui/IconBadge";
 import { ledgerSetupEntryMessages } from "config/ledgerSetupMessages";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
+import { ExchangeRateTotalsNote } from "molecules/transactions/ExchangeRateTotalsNote/ExchangeRateTotalsNote";
 import { DashboardMonthSummaryCard } from "organisms/dashboard/DashboardMonthSummaryCard/DashboardMonthSummaryCard";
 import { DashboardRecentTransactions } from "organisms/dashboard/DashboardRecentTransactions/DashboardRecentTransactions";
 import { LedgerSetupContinueCard } from "organisms/ledgers/LedgerSetupContinueCard/LedgerSetupContinueCard";
@@ -27,7 +28,7 @@ import type {
   LedgerSetupInProgressSummary,
   LedgerSetupWizardLauncherActions,
 } from "types/ledgers";
-import { formatNumber } from "utils/transactions";
+import { formatAmount } from "utils/accounts";
 
 import { dashboardHeroLayout as heroLayout } from "./dashboardLayout";
 
@@ -76,6 +77,9 @@ export function DashboardTemplate({
         balance={monthSummary.balance}
         continueSetup={continueSetup}
         expense={monthSummary.expense}
+        hasForeignCurrency={monthSummary.hasForeignCurrency}
+        missingRateCount={monthSummary.missingRateCount}
+        currency={monthSummary.currency}
         hasLedger={hasLedger}
         income={monthSummary.income}
         onOpenSetupWizard={() => setupWizard.openWizard("resume")}
@@ -141,6 +145,9 @@ function DashboardHeroPanel({
   balance,
   continueSetup,
   expense,
+  hasForeignCurrency,
+  missingRateCount,
+  currency,
   hasLedger,
   income,
   onOpenSetupWizard,
@@ -151,6 +158,9 @@ function DashboardHeroPanel({
   balance: string;
   continueSetup: LedgerSetupInProgressSummary | null;
   expense: string;
+  hasForeignCurrency?: boolean;
+  missingRateCount?: number;
+  currency: string;
   hasLedger: boolean;
   income: string;
   onOpenSetupWizard: () => void;
@@ -176,6 +186,9 @@ function DashboardHeroPanel({
       <DashboardIncomeExpenseSummary
         balance={balance}
         expense={expense}
+        hasForeignCurrency={hasForeignCurrency}
+        missingRateCount={missingRateCount}
+        currency={currency}
         hasLedger={hasLedger}
         income={income}
       />
@@ -331,52 +344,70 @@ function getWelcomeText(hasLedger: boolean, hasSetupInProgress: boolean) {
 function DashboardIncomeExpenseSummary({
   balance,
   expense,
+  hasForeignCurrency,
+  missingRateCount,
+  currency,
   hasLedger,
   income,
 }: {
   balance: string;
   expense: string;
+  hasForeignCurrency?: boolean;
+  missingRateCount?: number;
+  currency: string;
   hasLedger: boolean;
   income: string;
 }) {
   return (
-    <Box
-      sx={{
-        display: "grid",
-        gap: 0.7,
-        gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-        mt: { xs: 1.8, sm: 2 },
-      }}
-    >
-      <DashboardSummaryPill
-        color={incomeColor}
-        isPlaceholder={!hasLedger}
-        label="本月收入"
-        value={income}
+    <>
+      <Box
+        sx={{
+          display: "grid",
+          gap: 0.7,
+          gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+          mt: { xs: 1.8, sm: 2 },
+        }}
+      >
+        <DashboardSummaryPill
+          color={incomeColor}
+          isPlaceholder={!hasLedger}
+          label="本月收入"
+          currency={currency}
+          value={income}
+        />
+        <DashboardSummaryPill
+          color={expenseColor}
+          isPlaceholder={!hasLedger}
+          label="本月支出"
+          currency={currency}
+          value={expense}
+        />
+        <DashboardSummaryPill
+          color={balanceColor}
+          isPlaceholder={!hasLedger}
+          label="本月结余"
+          currency={currency}
+          value={balance}
+        />
+      </Box>
+      <ExchangeRateTotalsNote
+        hasForeignCurrency={hasForeignCurrency}
+        missingRateCount={missingRateCount}
+        marginTop={0.5}
       />
-      <DashboardSummaryPill
-        color={expenseColor}
-        isPlaceholder={!hasLedger}
-        label="本月支出"
-        value={expense}
-      />
-      <DashboardSummaryPill
-        color={balanceColor}
-        isPlaceholder={!hasLedger}
-        label="本月结余"
-        value={balance}
-      />
-    </Box>
+    </>
   );
 }
 
 function DashboardSummaryPill({
   color,
+  currency,
   isPlaceholder = false,
   label,
   value,
 }: {
   color: string;
+  currency: string;
   isPlaceholder?: boolean;
   label: string;
   value: string;
@@ -404,8 +435,7 @@ function DashboardSummaryPill({
           fontSize: { xs: 14, sm: 18 },
         }}
       >
-        {/* TODO: 暂时以日元固定显示，后续需根据 currency 字段使用 formatAmount */}
-        {isPlaceholder ? "—" : `¥ ${formatNumber(value)}`}
+        {isPlaceholder ? "—" : formatAmount(value, currency)}
       </Typography>
     </SectionCard>
   );

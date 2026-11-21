@@ -17,6 +17,8 @@ const record: TransactionRecordDbRow = {
   id: recordId,
   merchant_id: null,
   note: null,
+  ledger_rate: 1,
+  record_currency: null,
   transaction_at: "2026-08-03T01:00:00.000Z",
   type: "normal",
 };

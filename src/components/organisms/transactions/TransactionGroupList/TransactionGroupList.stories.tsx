@@ -26,6 +26,7 @@ const groups: TransactionDateGroup[] = [
         type: "expense",
         transaction_at: "2026-06-05T03:20:10.000Z",
         amount: "1200",
+        converted_amount: "1200",
         account_name: "日元现金",
         account_currency: "JPY",
         categoryItems: [
@@ -50,6 +51,7 @@ const refundCandidateItems: TransactionListItem[] = [
     account_currency: "USD",
     account_name: "信用卡",
     amount: "200",
+    converted_amount: "200",
     categoryItems: [
       {
         amount: "120",

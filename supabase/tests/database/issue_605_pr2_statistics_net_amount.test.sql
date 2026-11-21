@@ -58,7 +58,12 @@ limit 1;
 grant select on test_issue_605_pr2_context to authenticated;
 
 update public.ledger
-set transaction_item_special_status_enabled = true
+set transaction_item_special_status_enabled = true,
+    base_currency = (
+      select a.currency
+      from test_issue_605_pr2_context c
+      join public.account a on a.id = c.account_id
+    )
 where id = (select ledger_id from test_issue_605_pr2_context);
 
 insert into public.transaction_record (

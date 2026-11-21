@@ -82,6 +82,8 @@ const baseRecord = {
   merchant_id: null,
   note: null,
   transaction_at: "2026-06-22T10:00:00.000Z",
+  ledger_rate: 1,
+  record_currency: null,
   type: "transfer" as const,
 };
 

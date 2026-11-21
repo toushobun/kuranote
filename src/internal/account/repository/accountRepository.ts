@@ -19,6 +19,7 @@ import {
 import type { AuthenticatedSupabaseClient } from "internal/shared/supabase/authenticatedClient";
 import { toRepositoryError } from "internal/shared/supabase/repositoryError";
 import { toConcurrentModificationError } from "internal/shared/supabase/rpcError";
+import { loadAccountLedgerRates } from "./accountLedgerRateRepository";
 
 export type AccountData = AccountWebsiteDbFields & {
   created_at: string;
@@ -147,6 +148,10 @@ export interface AccountRepository {
     ledgerId: string,
     includeArchived?: boolean,
   ): Promise<AccountData[]>;
+  /** 所有账户视图按最新日汇率读取。 */
+  listLedgerRates(
+    ledgerId: string,
+  ): Promise<Map<string, number | string | null>>;
   /** 出现在任何交易数据中（含已作废记录、初始余额）的账户 ID。 */
   listAccountIdsWithTransactions(ledgerId: string): Promise<string[]>;
   listActiveMembers(ledgerId: string): Promise<AccountLedgerMember[]>;
@@ -409,6 +414,10 @@ export function createSupabaseAccountRepository(
         sort_order: row.sort_order,
         type: row.type,
       }));
+    },
+
+    async listLedgerRates(ledgerId) {
+      return loadAccountLedgerRates(supabase, logger, ledgerId);
     },
 
     async listAccountIdsWithTransactions(ledgerId) {

@@ -47,6 +47,7 @@ function createTransactionItem(
     account_currency: "JPY",
     account_name: "現金",
     amount: "0",
+    converted_amount: overrides.amount ?? "0",
     categoryItems: [],
     created_at: "2026-06-10T00:00:00.000Z",
     id: "transaction-id",
@@ -323,6 +324,36 @@ describe("transactions utils", () => {
         expense: "300",
         income: "0",
       },
+    });
+  });
+
+  it("缺少汇率的外币明细不按原币金额计入日小计", () => {
+    const groups = groupTransactionItemsByDate(
+      [
+        createTransactionItem({
+          account_currency: "USD",
+          amount: "100",
+          converted_amount: null,
+          id: "missing-rate",
+        }),
+        createTransactionItem({
+          account_currency: "USD",
+          amount: "200",
+          converted_amount: "30000",
+          id: "converted-rate",
+        }),
+      ],
+      "JPY",
+    );
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0].summary).toEqual({
+      balance: "-30000",
+      currency: "JPY",
+      expense: "30000",
+      hasForeignCurrency: true,
+      income: "0",
+      missingRateCount: 1,
     });
   });
 

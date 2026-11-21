@@ -229,6 +229,11 @@ export const transactionSpecialStatusErrorMessages = {
   pendingReimbursementExpenseOnly: "待报销只能用于支出明细。",
 } as const;
 
+/** 交易读取查询专用的稳定错误码，避免仓储里散落字面量。 */
+export const transactionLoadErrorCodes = {
+  recordRatesLoadFailed: "transaction_record_rates_failed",
+} as const;
+
 /** 交易读取查询失败时的文案。 */
 export const transactionLoadErrorMessages = {
   dashboardRecentAccountsLoadFailed: "最近使用账户加载失败，请稍后重试。",

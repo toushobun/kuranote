@@ -28,6 +28,7 @@ import type {
   TransactionListItem,
 } from "internal/transaction/service/read/transactionReadModels";
 import { createTransactionAmountSummary } from "utils/transactions";
+import { convertLedgerAmount } from "utils/exchangeRate";
 
 export type TransactionDashboardData = {
   monthSummary: TransactionAmountSummary;
@@ -97,10 +98,28 @@ export function createTransactionDashboardQueryService({
       }
 
       const monthSummary = createTransactionAmountSummary(ledger.baseCurrency);
-      for (const items of monthItemsByRecordId.values()) {
+      const recordById = new Map(
+        monthSource.records.map((record) => [record.id, record]),
+      );
+      for (const [recordId, items] of monthItemsByRecordId) {
+        const record = recordById.get(recordId);
         const netAmount = calculateRecordNetAmount(items, categoryById);
-
-        addSignedAmount(monthSummary, netAmount);
+        if (
+          record?.record_currency &&
+          record.record_currency !== ledger.baseCurrency
+        ) {
+          monthSummary.hasForeignCurrency = true;
+        }
+        const converted = convertLedgerAmount(
+          netAmount,
+          record?.ledger_rate ?? null,
+        );
+        if (converted === null) {
+          monthSummary.missingRateCount =
+            (monthSummary.missingRateCount ?? 0) + 1;
+        } else {
+          addSignedAmount(monthSummary, converted);
+        }
       }
 
       const recentRecords = await transactionRepository.listRecords({

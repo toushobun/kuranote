@@ -30,6 +30,7 @@ import {
 import type { ThemeColorKey } from "theme/themeColorTokens";
 import { transactionSharedPaymentMessages } from "utils/transactionMessages";
 import { hasBusinessNetAmountOffset } from "utils/transactions";
+import { convertLedgerAmount } from "utils/exchangeRate";
 
 export function buildTransactionListItem({
   accountById,
@@ -82,6 +83,7 @@ export function buildTransactionListItem({
       account_currency: account?.currency ?? fallbackCurrency,
       account_name: account?.name ?? transactionFallbackLabels.account,
       amount: item?.balance_delta ?? "0",
+      converted_amount: "0",
       categoryItems: [],
       created_at: record.created_at,
       id: record.id,
@@ -200,6 +202,10 @@ export function buildTransactionListItem({
           )
         : accountName,
     amount: String(Math.abs(displayAmount)),
+    converted_amount: (() => {
+      const converted = convertLedgerAmount(displayAmount, record.ledger_rate);
+      return converted === null ? null : String(Math.abs(converted));
+    })(),
     ...(hasBusinessNetOffset
       ? {
           originalAmount: String(Math.abs(originalAmount)),
@@ -309,6 +315,7 @@ function buildTransferListItem({
     account_currency: currency,
     account_name: accountName,
     amount,
+    converted_amount: "0",
     categoryItems: [],
     created_at: record.created_at,
     id: record.id,

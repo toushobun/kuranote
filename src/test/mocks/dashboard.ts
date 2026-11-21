@@ -37,6 +37,7 @@ export function createDashboardRecentTransaction(
     account_currency: "JPY",
     account_name: "日元现金",
     amount: "1234",
+    converted_amount: overrides.amount ?? "1234",
     categoryItems: [
       { categoryName: "餐饮", parentCategoryName: "饮食", amount: "1234" },
     ],

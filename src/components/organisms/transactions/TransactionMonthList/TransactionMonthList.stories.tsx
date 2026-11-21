@@ -24,6 +24,7 @@ function createItem(
     account_currency: "JPY",
     account_name: index % 2 === 0 ? "日元现金" : "Debit",
     amount,
+    converted_amount: overrides.amount ?? amount,
     categoryItems: [
       {
         amount,

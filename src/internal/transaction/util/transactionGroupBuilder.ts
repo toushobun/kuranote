@@ -28,6 +28,7 @@ import {
 } from "utils/collections";
 
 import {
+  hasAccountScopeFilters,
   resolveAccountScope,
   type HolderIdsByAccountId,
 } from "./grouping/accountScope";
@@ -35,6 +36,7 @@ import { isExcludedFromCategoryGroups } from "./grouping/groupMatching";
 import { listRecordAccountMovements } from "./grouping/recordAccounts";
 import {
   getSharedPaymentAmounts,
+  resolveRecordAmountSource,
   resolveRecordLevelContribution,
   toSharedPaymentSummary,
 } from "./grouping/recordContribution";
@@ -45,6 +47,7 @@ import {
   normalizeSummary,
 } from "./transactionAmountHelpers";
 import { transactionFallbackLabels } from "./transactionFallbackLabels";
+import { convertLedgerAmount } from "utils/exchangeRate";
 import {
   getTransactionTimeGroupInfo,
   isTransactionTimeGroupBy,
@@ -67,8 +70,25 @@ export type BuildTransactionGroupSummaryPageParams = {
   recorders: AppUserSummaryDbRow[];
 };
 
+export type RecordSignedBuckets = {
+  income: number;
+  expense: number;
+};
+
+/** 同一笔交易里正负金额保持独立；最终按各自汇率四舍五入。 */
+export function addToRecordSignedBuckets(
+  bucket: RecordSignedBuckets | undefined,
+  signedAmount: number,
+): RecordSignedBuckets {
+  const next = bucket ?? { income: 0, expense: 0 };
+  if (signedAmount > 0) next.income += signedAmount;
+  else if (signedAmount < 0) next.expense -= signedAmount;
+  return next;
+}
+
 type MutableGroup = {
   id: string;
+  groupBy: TransactionGroupBy;
   key: string;
   label: string;
   latestTransactionAt: string;
@@ -77,6 +97,7 @@ type MutableGroup = {
   sharedPaymentRecordTotalAmount: number;
   summary: TransactionAmountSummary;
   itemCount: number;
+  rawByRecordId: Map<string, RecordSignedBuckets>;
 };
 
 type RecordGroupContext = {
@@ -210,6 +231,25 @@ export function buildTransactionGroupSummaryPage({
 
     return compareDisplayText(a.label, b.label);
   });
+  const recordById = new Map(records.map((record) => [record.id, record]));
+  for (const group of sortedGroups) {
+    for (const [recordId, rawAmount] of group.rawByRecordId) {
+      const record = recordById.get(recordId);
+      const rate = record?.ledger_rate ?? null;
+      const income = convertLedgerAmount(rawAmount.income, rate);
+      const expense = convertLedgerAmount(rawAmount.expense, rate);
+      if (record?.record_currency && record.record_currency !== currency) {
+        group.summary.hasForeignCurrency = true;
+      }
+      if (income === null || expense === null) {
+        group.summary.missingRateCount =
+          (group.summary.missingRateCount ?? 0) + 1;
+      } else {
+        addSignedAmount(group.summary, income);
+        addSignedAmount(group.summary, -expense);
+      }
+    }
+  }
   const groupPage = paginateItems(sortedGroups, offset, pageSize);
 
   return {
@@ -315,7 +355,7 @@ function addAccountGroups({
     if (accountScope && !accountScope(movement.accountId)) continue;
 
     const group = getOrCreateGroup({
-      currency,
+      currency: accountById.get(movement.accountId)?.currency ?? currency,
       groupBy,
       groups,
       key: movement.accountId,
@@ -419,7 +459,9 @@ function getOrCreateGroup({
   const id = `${groupBy}:${key}`;
   const group = groups.get(id) ?? {
     id,
+    groupBy,
     itemCount: 0,
+    rawByRecordId: new Map<string, RecordSignedBuckets>(),
     key,
     label,
     latestTransactionAt: transactionAt,
@@ -454,16 +496,29 @@ function addRecordToGroup(
 
   if (record.type !== "normal") return;
 
-  addSignedAmount(
-    group.summary,
-    resolveRecordLevelContribution({
-      categoryById,
-      filters,
-      holderIdsByAccountId,
-      matchedItems: recordItems,
-      payments,
-    }),
-  );
+  // 商家/成员分组在账户范围筛选下，原先逐明细分别统计正负金额。
+  // 只有实际收付份额模式才按净额作为记录级贡献。
+  const scope = { filters, holderIdsByAccountId, payments };
+  if (
+    (group.groupBy === "merchant" || group.groupBy === "member") &&
+    hasAccountScopeFilters(filters) &&
+    resolveRecordAmountSource(scope) === "items"
+  ) {
+    for (const item of recordItems) {
+      addRawGroupAmount(
+        group,
+        record.id,
+        getSignedTransactionItemAmount(item, categoryById),
+      );
+    }
+    return;
+  }
+  const amount = resolveRecordLevelContribution({
+    ...scope,
+    categoryById,
+    matchedItems: recordItems,
+  });
+  addRawGroupAmount(group, record.id, amount);
 }
 
 function addItemToGroup(
@@ -478,7 +533,18 @@ function addItemToGroup(
   if (record.type !== "normal") return;
 
   const signedAmount = getSignedTransactionItemAmount(item, categoryById);
-  addSignedAmount(group.summary, signedAmount);
+  addRawGroupAmount(group, record.id, signedAmount);
+}
+
+function addRawGroupAmount(
+  group: MutableGroup,
+  recordId: string,
+  signedAmount: number,
+) {
+  group.rawByRecordId.set(
+    recordId,
+    addToRecordSignedBuckets(group.rawByRecordId.get(recordId), signedAmount),
+  );
 }
 
 /** 记录计入组：笔数，以及有账户集合筛选时的「共同支付」统计（一笔记录在一个组内只计一次）。 */
@@ -499,7 +565,13 @@ function trackGroupRecord(
   if (!sharedAmounts) return;
 
   group.sharedPaymentRecordIds.add(record.id);
-  group.sharedPaymentRecordTotalAmount += sharedAmounts.recordTotalAmount;
+  const converted = convertLedgerAmount(
+    sharedAmounts.recordTotalAmount,
+    group.summary.currency === recordContext.record.record_currency
+      ? 1
+      : record.ledger_rate,
+  );
+  if (converted !== null) group.sharedPaymentRecordTotalAmount += converted;
 }
 
 function withSharedPayment(

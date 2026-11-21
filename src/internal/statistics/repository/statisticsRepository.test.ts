@@ -129,6 +129,7 @@ describe("createSupabaseStatisticsRepository", () => {
     const supabase = createSupabaseMock({
       queryResponses: [
         { data: [record] },
+        { data: [{ record_id: record.id, currency: "JPY", ledger_rate: 1 }] },
         { data: [item] },
         { data: [category] },
       ],
@@ -147,15 +148,16 @@ describe("createSupabaseStatisticsRepository", () => {
     ).resolves.toEqual({
       categories: [category],
       items: [item],
-      records: [record],
+      records: [{ ...record, record_currency: "JPY", ledger_rate: 1 }],
     });
 
     expect(supabase.queries.map((query) => query.table)).toEqual([
       "transaction_record",
+      "transaction_record_ledger_rate",
       "transaction_item_with_refund",
       "category",
     ]);
-    expect(supabase.queries[1].calls).toEqual(
+    expect(supabase.queries[2].calls).toEqual(
       expect.arrayContaining([
         {
           args: [

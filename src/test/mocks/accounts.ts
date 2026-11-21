@@ -11,6 +11,7 @@ export const bankAccountFixture: Account = {
   created_at: "2026-01-01T00:00:00.000Z",
   currency: "JPY",
   current_balance: 85000,
+  ledger_rate: 1,
   has_transactions: false,
   holders: [createMemberAccountHolder(accountHolderOptionsFixture[0]!)],
   id: "00000000-0000-4000-8000-000000000001",

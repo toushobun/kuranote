@@ -1,6 +1,6 @@
 import type { TransactionDateGroup } from "types/transactions";
 import {
-  addTransactionAmount,
+  addConvertedItemToSummary,
   createTransactionAmountSummary,
 } from "utils/transactions";
 
@@ -30,7 +30,7 @@ export function mergeTransactionDateGroups(
     const addedSummary = createTransactionAmountSummary(prev.summary.currency);
 
     for (const item of newItems) {
-      addTransactionAmount(addedSummary, item.type, item.amount);
+      addConvertedItemToSummary(addedSummary, item);
     }
 
     map.set(group.date, {
@@ -41,6 +41,18 @@ export function mergeTransactionDateGroups(
           Number(prev.summary.balance) + Number(addedSummary.balance),
         ),
         currency: prev.summary.currency,
+        ...(prev.summary.hasForeignCurrency || addedSummary.hasForeignCurrency
+          ? { hasForeignCurrency: true }
+          : {}),
+        ...((prev.summary.missingRateCount ?? 0) +
+          (addedSummary.missingRateCount ?? 0) >
+        0
+          ? {
+              missingRateCount:
+                (prev.summary.missingRateCount ?? 0) +
+                (addedSummary.missingRateCount ?? 0),
+            }
+          : {}),
         expense: String(
           Number(prev.summary.expense) + Number(addedSummary.expense),
         ),

@@ -12,6 +12,8 @@ import Typography from "@mui/material/Typography";
 import { useState, type ReactNode } from "react";
 
 import { DataItemCard } from "atoms/ui/DataItemCard";
+import { exchangeRateMessages } from "config/exchangeRateMessages";
+import { convertLedgerAmount } from "utils/exchangeRate";
 import { designTokens } from "theme/theme";
 import type { Account } from "types/accounts";
 import { formatAmount } from "utils/accounts";
@@ -26,20 +28,23 @@ export function AccountSummaryCard({
   baseCurrency,
 }: AccountSummaryCardProps) {
   const [isBalanceHidden, setIsBalanceHidden] = useState(false);
-  const baseCurrencyAccounts = accounts.filter(
-    (account) => account.currency === baseCurrency,
+  const hasForeignCurrencyAccounts = accounts.some(
+    (account) => account.currency !== baseCurrency,
   );
-  const hasForeignCurrencyAccounts =
-    baseCurrencyAccounts.length < accounts.length;
-  const totalBalance = baseCurrencyAccounts.reduce((total, account) => {
-    const currentBalance = Number(account.current_balance);
-
-    if (!Number.isFinite(currentBalance)) {
-      return total;
+  let totalBalance = 0;
+  let missingAccountRates = 0;
+  for (const account of accounts) {
+    const isForeign = account.currency !== baseCurrency;
+    const converted = convertLedgerAmount(
+      account.current_balance,
+      account.ledger_rate,
+    );
+    if (converted === null) {
+      if (isForeign) missingAccountRates += 1;
+    } else {
+      totalBalance += converted;
     }
-
-    return total + currentBalance;
-  }, 0);
+  }
   // 按持有人种类区分计数键，占位持有人也是持有人，但不会与成员 ID 混用。
   const holderCount = new Set(
     accounts.flatMap((account) =>
@@ -102,7 +107,12 @@ export function AccountSummaryCard({
           </Stack>
           {hasForeignCurrencyAccounts ? (
             <Typography color="textSecondary" variant="caption">
-              外币账户未计入总余额，暂不支持汇率换算。
+              {exchangeRateMessages.convertedAccountBalances}
+            </Typography>
+          ) : null}
+          {missingAccountRates > 0 ? (
+            <Typography color="textSecondary" variant="caption">
+              {exchangeRateMessages.missingAccountRates(missingAccountRates)}
             </Typography>
           ) : null}
         </Stack>

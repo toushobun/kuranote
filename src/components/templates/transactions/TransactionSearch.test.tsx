@@ -311,6 +311,7 @@ function createItem({
     account_currency: "JPY",
     account_name: "三井住友银行",
     amount: "980",
+    converted_amount: "980",
     categoryItems: [
       {
         amount: "980",
