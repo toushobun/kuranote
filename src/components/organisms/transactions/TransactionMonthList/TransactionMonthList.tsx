@@ -23,7 +23,7 @@ import type {
 } from "types/transactions";
 import { mergeUniqueById } from "utils/collections";
 import { getCurrencySymbol } from "utils/currency";
-import { ExchangeRateTotalsNote } from "molecules/transactions/ExchangeRateTotalsNote/ExchangeRateTotalsNote";
+import { MissingExchangeRateNote } from "molecules/transactions/MissingExchangeRateNote/MissingExchangeRateNote";
 import { transactionSharedPaymentMessages } from "utils/transactionMessages";
 import { formatNumber, formatUnsignedCurrencyAmount } from "utils/transactions";
 
@@ -293,8 +293,7 @@ function TransactionMonthListContent({
                     }}
                   />
                 </Stack>
-                <ExchangeRateTotalsNote
-                  hasForeignCurrency={group.summary.hasForeignCurrency}
+                <MissingExchangeRateNote
                   missingRateCount={group.summary.missingRateCount}
                   align="right"
                 />

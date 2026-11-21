@@ -95,6 +95,35 @@ describe("StatisticsTemplate", () => {
     expect(within(container).getByText("246,700 JPY")).toBeInTheDocument();
   });
 
+  it("外币交易合计显示按记录汇率换算后的金额，不显示换算说明", () => {
+    const { container } = render(
+      <StatisticsTemplate
+        {...statisticsView}
+        summary={{
+          ...statisticsView.summary,
+          balance: "-200",
+          expense: "200",
+          income: "0",
+        }}
+      />,
+    );
+
+    expect(within(container).getByText("200 JPY")).toBeInTheDocument();
+    expect(within(container).queryByText(/按记录当天/)).not.toBeInTheDocument();
+  });
+
+  it("缺少汇率时仍显示未换算记录数量", () => {
+    const { container } = render(
+      <StatisticsTemplate
+        {...statisticsView}
+        summary={{ ...statisticsView.summary, missingRateCount: 2 }}
+      />,
+    );
+    expect(
+      within(container).getByText("有 2 笔外币记录暂无汇率"),
+    ).toBeInTheDocument();
+  });
+
   it("先显示分类支出汇总，再显示商家支出排行", () => {
     const { container } = render(<StatisticsTemplate {...statisticsView} />);
     const headings = within(container).getAllByRole("heading", { level: 2 });

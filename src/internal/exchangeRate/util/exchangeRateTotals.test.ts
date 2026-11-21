@@ -50,7 +50,6 @@ describe("Issue #1139 交易合计一致性", () => {
     });
     expect(view.summary).toMatchObject({
       expense: "2.48",
-      hasForeignCurrency: true,
       missingRateCount: 1,
     });
     expect(view.categoryExpenseRanking[0].amount).toBe("2.48");
@@ -83,7 +82,6 @@ describe("Issue #1139 交易合计一致性", () => {
     });
     expect(page.groups[0].summary).toMatchObject({
       expense: "20",
-      hasForeignCurrency: true,
       missingRateCount: 1,
     });
     const dateGroups = groupTransactionItemsByDate(
@@ -109,7 +107,6 @@ describe("Issue #1139 交易合计一致性", () => {
     );
     expect(dateGroups[0].summary).toMatchObject({
       expense: "20",
-      hasForeignCurrency: true,
       missingRateCount: 1,
     });
   });

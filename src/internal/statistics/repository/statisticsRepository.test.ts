@@ -148,7 +148,7 @@ describe("createSupabaseStatisticsRepository", () => {
     ).resolves.toEqual({
       categories: [category],
       items: [item],
-      records: [{ ...record, record_currency: "JPY", ledger_rate: 1 }],
+      records: [{ ...record, ledger_rate: 1 }],
     });
 
     expect(supabase.queries.map((query) => query.table)).toEqual([

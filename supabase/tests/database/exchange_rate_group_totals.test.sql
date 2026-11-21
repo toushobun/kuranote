@@ -73,26 +73,6 @@ select is(
  ) s),
  300::numeric, '分类分组合计使用同一组日汇率');
 
-select is(
- (select bool_and(has_foreign_currency)
-  from public.load_transaction_group_summaries_with_special_status(
-    p_ledger_id=>'00000000-0000-4000-8000-000000000032'::uuid,
-    p_group_by=>'merchant',
-    p_date_start=>'2099-01-15 00:00:00+00'::timestamptz,
-    p_date_end=>'2099-01-17 00:00:00+00'::timestamptz
-  )),
- true, '商家分组的外币金额换算后携带提示标记');
-
-select is(
- (select bool_or(has_foreign_currency)
-  from public.load_transaction_group_summaries_with_special_status(
-    p_ledger_id=>'00000000-0000-4000-8000-000000000032'::uuid,
-    p_group_by=>'account',
-    p_date_start=>'2099-01-15 00:00:00+00'::timestamptz,
-    p_date_end=>'2099-01-17 00:00:00+00'::timestamptz
-  )),
- false, '账户分组保持原币，不显示换算提示');
-
 select results_eq(
  $$select expense, group_currency
     from public.load_transaction_group_summaries_with_special_status(

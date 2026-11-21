@@ -41,9 +41,6 @@ export function mergeTransactionDateGroups(
           Number(prev.summary.balance) + Number(addedSummary.balance),
         ),
         currency: prev.summary.currency,
-        ...(prev.summary.hasForeignCurrency || addedSummary.hasForeignCurrency
-          ? { hasForeignCurrency: true }
-          : {}),
         ...((prev.summary.missingRateCount ?? 0) +
           (addedSummary.missingRateCount ?? 0) >
         0

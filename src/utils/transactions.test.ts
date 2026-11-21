@@ -351,7 +351,6 @@ describe("transactions utils", () => {
       balance: "-30000",
       currency: "JPY",
       expense: "30000",
-      hasForeignCurrency: true,
       income: "0",
       missingRateCount: 1,
     });

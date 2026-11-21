@@ -1050,7 +1050,7 @@ describe("TransactionDashboardRepository", () => {
           transaction_record_id: recordId,
         },
       ],
-      records: [{ id: recordId, ledger_rate: 1, record_currency: "JPY" }],
+      records: [{ id: recordId, ledger_rate: 1 }],
     });
     expect(recordQuery.select).toHaveBeenCalledWith("id");
     expect(recordQuery.eq).toHaveBeenCalledWith("type", "normal");
@@ -1101,7 +1101,7 @@ describe("TransactionDashboardRepository", () => {
     ).resolves.toEqual({
       categories: [],
       items: [item],
-      records: [{ id: recordId, ledger_rate: 1, record_currency: "JPY" }],
+      records: [{ id: recordId, ledger_rate: 1 }],
     });
     expect(from).toHaveBeenCalledTimes(3);
     expect(from).not.toHaveBeenCalledWith("category");

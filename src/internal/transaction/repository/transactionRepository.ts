@@ -132,7 +132,6 @@ export type TransactionDashboardMonthSource = {
   records: {
     id: string;
     ledger_rate: number | string | null;
-    record_currency: string | null;
   }[];
   categories: TransactionDashboardCategory[];
   items: TransactionDashboardSummaryItem[];
@@ -160,7 +159,6 @@ export type TransactionRecordQuery = {
 export type TransactionGroupSummaryRow = {
   group_currency?: string | null;
   missing_rate_count?: number | null;
-  has_foreign_currency?: boolean | null;
   balance: number | string | null;
   expense: number | string | null;
   group_id: string;
@@ -1045,7 +1043,6 @@ export function createSupabaseTransactionRepository(
       const rateById = new Map(rateRows.map((rate) => [rate.record_id, rate]));
       const records = recordIds.map((id) => ({
         id,
-        record_currency: rateById.get(id)?.record_currency ?? null,
         ledger_rate: rateById.get(id)?.ledger_rate ?? null,
       }));
 
