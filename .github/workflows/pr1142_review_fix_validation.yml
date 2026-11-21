@@ -9,8 +9,8 @@ permissions:
   contents: read
 
 jobs:
-  check:
-    name: npm run check
+  static:
+    name: Types, lint, format
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,7 +19,24 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm run check
+      - run: npm run type-check
+      - run: npm run lint
+      - run: npm run format:check
+  vitest:
+    name: Vitest (${{ matrix.shard }}/4)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test -- --shard=${{ matrix.shard }}/4
   storybook:
     name: Storybook build
     runs-on: ubuntu-latest
