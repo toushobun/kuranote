@@ -54,6 +54,7 @@ function createItem(
     account_currency: "JPY",
     account_name: "现金",
     amount: "1200",
+    converted_amount: overrides.amount ?? "1200",
     categoryItems: [
       {
         amount: "1200",

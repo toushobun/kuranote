@@ -120,6 +120,7 @@ function createStoryItem({
     account_currency: "JPY",
     account_name: "三井住友银行",
     amount,
+    converted_amount: amount,
     categoryItems: [
       {
         amount,
