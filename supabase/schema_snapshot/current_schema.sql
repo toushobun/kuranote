@@ -11089,15 +11089,21 @@ CREATE OR REPLACE VIEW "public"."transaction_record_ledger_rate" WITH ("security
  SELECT "tr"."ledger_id",
     "tr"."id" AS "record_id",
         CASE
-            WHEN ("tr"."type" = 'normal'::"text") THEN "public"."transaction_record_currency"("tr"."ledger_id", "tr"."id")
+            WHEN ("tr"."type" = 'normal'::"text") THEN "rc"."currency"
             ELSE NULL::"text"
         END AS "currency",
         CASE
-            WHEN ("tr"."type" = 'normal'::"text") THEN "public"."exchange_rate_on"("public"."transaction_record_currency"("tr"."ledger_id", "tr"."id"), "l"."base_currency", "public"."transaction_record_local_date"("tr"."transaction_at"))
+            WHEN ("tr"."type" = 'normal'::"text") THEN "public"."exchange_rate_on"("rc"."currency", "l"."base_currency", "public"."transaction_record_local_date"("tr"."transaction_at"))
             ELSE (1)::numeric
         END AS "ledger_rate"
-   FROM ("public"."transaction_record" "tr"
-     JOIN "public"."ledger" "l" ON (("l"."id" = "tr"."ledger_id")));
+   FROM (("public"."transaction_record" "tr"
+     JOIN "public"."ledger" "l" ON (("l"."id" = "tr"."ledger_id")))
+     LEFT JOIN LATERAL ( SELECT "a"."currency"
+           FROM ("public"."transaction_account_movement" "m"
+             JOIN "public"."account" "a" ON ((("a"."id" = "m"."account_id") AND ("a"."ledger_id" = "m"."ledger_id"))))
+          WHERE (("m"."ledger_id" = "tr"."ledger_id") AND ("m"."transaction_record_id" = "tr"."id") AND ("tr"."type" = 'normal'::"text"))
+          ORDER BY "m"."sort_order", "m"."account_id"
+         LIMIT 1) "rc" ON (true));
 
 
 ALTER VIEW "public"."transaction_record_ledger_rate" OWNER TO "postgres";
@@ -13083,8 +13089,6 @@ REVOKE ALL ON FUNCTION "public"."transaction_payment_account_ids"("p_ledger_id" 
 
 
 REVOKE ALL ON FUNCTION "public"."transaction_record_currency"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid") FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."transaction_record_currency"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."transaction_record_currency"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid") TO "service_role";
 
 
 
