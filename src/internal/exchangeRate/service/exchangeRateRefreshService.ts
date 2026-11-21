@@ -61,8 +61,8 @@ export function parseEcbRates(
       Array.isArray(rates)
     ) {
       throw new RepositoryError(
-        "exchange_rate_invalid_response",
-        "汇率数据格式异常",
+        exchangeRateErrorCodes.invalidResponse,
+        exchangeRateErrorMessages[exchangeRateErrorCodes.invalidResponse],
       );
     }
     const byCurrency = rates as Record<string, unknown>;
@@ -71,8 +71,8 @@ export function parseEcbRates(
       currencies.some((code) => !Object.hasOwn(byCurrency, code))
     ) {
       throw new RepositoryError(
-        "exchange_rate_invalid_response",
-        "汇率数据缺少币种",
+        exchangeRateErrorCodes.invalidResponse,
+        exchangeRateErrorMessages[exchangeRateErrorCodes.invalidResponse],
       );
     }
     for (const [currency, value] of Object.entries(byCurrency)) {

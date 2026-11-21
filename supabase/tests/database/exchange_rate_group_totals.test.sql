@@ -83,7 +83,7 @@ select results_eq(
       p_group_by=>'merchant',
       p_date_start=>'2099-01-15 00:00:00+00'::timestamptz,
       p_date_end=>'2099-01-17 00:00:00+00'::timestamptz
-    ) where group_key='00000000-0000-4000-8000-000000001001'$$$,
+    ) where group_key='00000000-0000-4000-8000-000000001001'$,
  $$ values (0::numeric, 2::integer) $$,
  '目标币种无汇率时两笔均不计入合计，提示缺失 2 笔');
 
