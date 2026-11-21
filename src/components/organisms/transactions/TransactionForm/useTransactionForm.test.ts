@@ -772,11 +772,10 @@ describe("useTransactionForm", () => {
     act(() => changePrimaryAccount(result, "account-3"));
 
     expect(result.current.selectedAccount?.id).toBe("account-3");
-    expect(result.current.pickerRefundCandidate).toBeNull();
-    expect(result.current.linkNotice).toContain("币种已变更");
+    expect(result.current.pickerRefundCandidate).toEqual(refundCandidate);
   });
 
-  it("切换账户后清空币种不匹配的报销候选", () => {
+  it("切换账户后保留不同币种的报销候选", () => {
     const { result } = renderTransactionFormHook({
       initialValues: createInitialValues(),
     });
@@ -791,8 +790,7 @@ describe("useTransactionForm", () => {
     act(() => changePrimaryAccount(result, "account-3"));
 
     expect(result.current.selectedAccount?.id).toBe("account-3");
-    expect(result.current.pickerReimbursementCandidate).toBeNull();
-    expect(result.current.linkNotice).toContain("币种已变更");
+    expect(result.current.pickerReimbursementCandidate).toEqual(reimbursementCandidate);
   });
 
   it("退款与报销候选互斥选择时清空另一侧候选", () => {
