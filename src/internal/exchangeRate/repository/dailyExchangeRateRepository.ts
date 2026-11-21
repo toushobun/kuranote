@@ -72,8 +72,7 @@ export function createDailyExchangeRateRepository(
       return {
         rate: value,
         rateDate,
-        fromRateDate:
-          typeof fromRateDate === "string" ? fromRateDate : null,
+        fromRateDate: typeof fromRateDate === "string" ? fromRateDate : null,
         toRateDate: typeof toRateDate === "string" ? toRateDate : null,
       };
     },

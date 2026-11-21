@@ -103,7 +103,8 @@ function roundTransferProduct(
   const product =
     BigInt(amount.replace(".", "")) * BigInt(rateInteger + rateFraction);
   const scale =
-    amountFraction.length + rateFraction.length -
+    amountFraction.length +
+    rateFraction.length -
     Number(exponent) -
     decimalPlaces;
   const divisor = scale > 0 ? BigInt(10) ** BigInt(scale) : BigInt(1);

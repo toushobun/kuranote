@@ -394,7 +394,9 @@ describe("TransferReceipt 按当天汇率预填", () => {
     pressItemAmountKey("确定");
     expect(await screen.findByText("¥2,105")).toBeInTheDocument();
     await waitFor(() =>
-      expect(screen.queryByRole("heading", { name: "转出金额（CNY）" })).toBeNull(),
+      expect(
+        screen.queryByRole("heading", { name: "转出金额（CNY）" }),
+      ).toBeNull(),
     );
     chooseAccount("转出", "美元账户 USD");
     expect(screen.queryByText("¥2,105")).toBeNull();
@@ -418,7 +420,9 @@ describe("TransferReceipt 按当天汇率预填", () => {
       }),
     });
     expect(
-      await screen.findByText(/当天汇率 1 CNY = 21.05 JPY（CNY 11\/20、JPY 11\/19）/),
+      await screen.findByText(
+        /当天汇率 1 CNY = 21.05 JPY（CNY 11\/20、JPY 11\/19）/,
+      ),
     ).toBeInTheDocument();
   });
 

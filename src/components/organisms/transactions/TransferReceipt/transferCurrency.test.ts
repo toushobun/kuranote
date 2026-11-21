@@ -161,16 +161,10 @@ describe("按当天汇率预填与差额", () => {
     expect(prefillTransferTargetAmount("100", "JPY", "CNY", 0.047505)).toBe(
       "4.75",
     );
-    expect(prefillTransferTargetAmount("1", "USD", "EUR", 1.005)).toBe(
-      "1.01",
-    );
-    expect(prefillTransferTargetAmount("1", "USD", "EUR", 1.015)).toBe(
-      "1.02",
-    );
+    expect(prefillTransferTargetAmount("1", "USD", "EUR", 1.005)).toBe("1.01");
+    expect(prefillTransferTargetAmount("1", "USD", "EUR", 1.015)).toBe("1.02");
     expect(prefillTransferTargetAmount("1", "USD", "JPY", 1.5)).toBe("2");
-    expect(prefillTransferTargetAmount("100", "JPY", "CNY", 1e-7)).toBe(
-      "",
-    );
+    expect(prefillTransferTargetAmount("100", "JPY", "CNY", 1e-7)).toBe("");
   });
 
   it("来源金额为空、精度无效或缺少汇率时不预填", () => {
