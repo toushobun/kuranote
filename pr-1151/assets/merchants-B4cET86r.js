@@ -1,1 +1,0 @@
-import{i as e}from"./preload-helper-D2yxXLVK.js";function t(e,t=`?`){let n=e?.trim()??``;return n.length===0?t:Array.from(n)[0]?.toUpperCase()??t}var n=e((()=>{}));export{n,t};
