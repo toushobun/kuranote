@@ -1040,8 +1040,7 @@ export function createSupabaseTransactionRepository(
       const recordIds = (recordData ?? []).map((record) => record.id);
       if (recordIds.length === 0)
         return { categories: [], items: [], records: [] };
-      const rateRows =
-        (await this.loadRecordRates?.(ledgerId, recordIds)) ?? [];
+      const rateRows = await this.loadRecordRates(ledgerId, recordIds);
       const rateById = new Map(rateRows.map((rate) => [rate.record_id, rate]));
       const records = recordIds.map((id) => ({
         id,
