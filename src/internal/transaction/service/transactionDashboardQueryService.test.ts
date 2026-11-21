@@ -162,10 +162,7 @@ describe("TransactionDashboardQueryService", () => {
         ],
         records: [
           { id: "month-mixed", ledger_rate: 1 },
-          {
-            id: "month-expense-record",
-            ledger_rate: 1,
-          },
+          { id: "month-expense-record", ledger_rate: 1 },
         ],
       }),
       loadRecordRates: vi
