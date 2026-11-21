@@ -161,6 +161,16 @@ describe("按当天汇率预填与差额", () => {
     expect(prefillTransferTargetAmount("100", "JPY", "CNY", 0.047505)).toBe(
       "4.75",
     );
+    expect(prefillTransferTargetAmount("1", "USD", "EUR", 1.005)).toBe(
+      "1.01",
+    );
+    expect(prefillTransferTargetAmount("1", "USD", "EUR", 1.015)).toBe(
+      "1.02",
+    );
+    expect(prefillTransferTargetAmount("1", "USD", "JPY", 1.5)).toBe("2");
+    expect(prefillTransferTargetAmount("100", "JPY", "CNY", 1e-7)).toBe(
+      "",
+    );
   });
 
   it("来源金额为空、精度无效或缺少汇率时不预填", () => {
@@ -170,7 +180,7 @@ describe("按当天汇率预填与差额", () => {
     expect(prefillTransferTargetAmount("100", "JPY", "CNY", 0)).toBe("");
   });
 
-  it("多到账、少到账与零差额按未取整理金额计算", () => {
+  it("多到账、少到账与零差额按实际预填的币种精度计算", () => {
     expect(
       calculateTransferDifference("100", "2150", "CNY", "JPY", 21),
     ).toEqual({
@@ -186,7 +196,7 @@ describe("按当天汇率预填与差额", () => {
     ).toBe(0);
     expect(
       calculateTransferDifference("100", "211", "CNY", "JPY", 2.105)?.diff,
-    ).toBeCloseTo(0.5);
+    ).toBe(0);
   });
 
   it("实际汇率与当天汇率共用大于一的方向和四位有效数字", () => {

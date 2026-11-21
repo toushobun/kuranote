@@ -3399,7 +3399,7 @@ $$;
 ALTER FUNCTION "public"."exchange_rate_on"("p_from" "text", "p_to" "text", "p_date" "date") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."exchange_rate_with_date"("p_from" "text", "p_to" "text", "p_date" "date") RETURNS TABLE("rate" numeric, "rate_date" "date")
+CREATE OR REPLACE FUNCTION "public"."exchange_rate_with_date"("p_from" "text", "p_to" "text", "p_date" "date") RETURNS TABLE("rate" numeric, "rate_date" "date", "from_rate_date" "date", "to_rate_date" "date")
     LANGUAGE "sql" STABLE
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -3420,7 +3420,9 @@ CREATE OR REPLACE FUNCTION "public"."exchange_rate_with_date"("p_from" "text", "
             when p_from = 'EUR' then dst.rate_date
             when p_to = 'EUR' then src.rate_date
             else least(src.rate_date, dst.rate_date)
-        end as rate_date
+        end as rate_date,
+        case when p_from = 'EUR' then null else src.rate_date end as from_rate_date,
+        case when p_to = 'EUR' then null else dst.rate_date end as to_rate_date
     from (select 1) anchor
     left join lateral (
         select r.rate_per_eur, r.rate_date

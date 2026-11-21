@@ -1,5 +1,5 @@
 import {
-  formatMoneyTextForCurrency,
+  getAmountDecimalPlaces,
   isValidPositiveMoneyText,
 } from "utils/transactionAmountInput";
 
@@ -91,6 +91,32 @@ export function calculateTransferRate(
   );
 }
 
+/** 按十进制整数相乘后四舍五入，避免 JS 浮点数的 1.005 → 1.00 问题。 */
+function roundTransferProduct(
+  amount: string,
+  rate: number,
+  decimalPlaces: number,
+) {
+  const [coefficient, exponent = "0"] = rate.toString().split("e");
+  const [rateInteger, rateFraction = ""] = coefficient.split(".");
+  const amountFraction = amount.split(".")[1] ?? "";
+  const product =
+    BigInt(amount.replace(".", "")) * BigInt(rateInteger + rateFraction);
+  const scale =
+    amountFraction.length + rateFraction.length -
+    Number(exponent) -
+    decimalPlaces;
+  const divisor = scale > 0 ? 10n ** BigInt(scale) : 1n;
+  const rounded =
+    scale > 0
+      ? (product + divisor / 2n) / divisor
+      : product * 10n ** BigInt(-scale);
+  const digits = rounded.toString().padStart(decimalPlaces + 1, "0");
+  return decimalPlaces === 0
+    ? digits
+    : `${digits.slice(0, -decimalPlaces)}.${digits.slice(-decimalPlaces)}`;
+}
+
 /** 仅在来源金额有效时预填，确保不会生成超出金额键盘允许范围的数值。 */
 export function prefillTransferTargetAmount(
   sourceAmount: string,
@@ -105,18 +131,17 @@ export function prefillTransferTargetAmount(
     dailyRate <= 0
   )
     return "";
-  const expected = Number(sourceAmount) * dailyRate;
-  if (!Number.isFinite(expected) || expected <= 0) return "";
-  const formatted = formatMoneyTextForCurrency(
-    String(expected),
-    targetCurrency,
+  const formatted = roundTransferProduct(
+    sourceAmount,
+    dailyRate,
+    getAmountDecimalPlaces(targetCurrency),
   );
   return isValidPositiveMoneyText(formatted, { currency: targetCurrency })
     ? formatted
     : "";
 }
 
-/** 差额按未取整的理论金额计算；正数为多到账，负数为少到账。 */
+/** 差额与实际预填的到账金额比较，避免显示「少到账 0 元」。 */
 export function calculateTransferDifference(
   sourceAmount: string,
   targetAmount: string,
@@ -132,7 +157,14 @@ export function calculateTransferDifference(
     dailyRate <= 0
   )
     return null;
-  const expected = Number(sourceAmount) * dailyRate;
+  const expectedText = prefillTransferTargetAmount(
+    sourceAmount,
+    sourceCurrency,
+    targetCurrency,
+    dailyRate,
+  );
+  if (!expectedText) return null;
+  const expected = Number(expectedText);
   const diff = Number(targetAmount) - expected;
   if (!Number.isFinite(expected) || expected <= 0 || !Number.isFinite(diff))
     return null;

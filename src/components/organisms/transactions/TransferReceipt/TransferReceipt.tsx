@@ -306,12 +306,19 @@ function TransferRateDetails({
       )}
       <Typography variant="caption" color="textSecondary">
         {receipt.targetAmountEdited
-          ? t.dailyExchangeRate(daily.base, daily.quote, daily.value, rateDate)
+          ? t.dailyExchangeRate(
+              daily.base,
+              daily.quote,
+              daily.value,
+              rateDate,
+              receipt.mixedRateDateLabel,
+            )
           : t.prefilledExchangeRate(
               daily.base,
               daily.quote,
               daily.value,
               rateDate,
+              receipt.mixedRateDateLabel,
             )}
       </Typography>
       {differenceAmount && (

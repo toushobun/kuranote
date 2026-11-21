@@ -58,6 +58,24 @@ describe("exchangeRateRouter", () => {
     });
   });
 
+  it("两币种汇率取值日不同也通过 API 返回", async () => {
+    const { app, service } = createApp();
+    service.getDailyRate.mockResolvedValueOnce({
+      rate: 21.05,
+      rateDate: "2026-11-19",
+      fromRateDate: "2026-11-20",
+      toRateDate: "2026-11-19",
+    });
+    const response = await app.request(validPath);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      rate: 21.05,
+      rateDate: "2026-11-19",
+      fromRateDate: "2026-11-20",
+      toRateDate: "2026-11-19",
+    });
+  });
+
   it("缺少汇率仍然返回 200 和 null", async () => {
     const { app, service } = createApp();
     service.getDailyRate.mockResolvedValueOnce({ rate: null, rateDate: null });

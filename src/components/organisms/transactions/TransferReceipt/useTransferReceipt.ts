@@ -30,6 +30,8 @@ export type TransferSide = "source" | "target";
 export type DailyTransferRate = {
   rate: number | null;
   rateDate: string | null;
+  fromRateDate?: string | null;
+  toRateDate?: string | null;
 };
 export type LoadDailyTransferRate = (
   query: { from: string; to: string; date: string },
@@ -150,7 +152,12 @@ export function useTransferReceipt({
     Number.isFinite(response.rate) &&
     response.rate > 0 &&
     response.rateDate
-      ? { rate: response.rate, rateDate: response.rateDate }
+      ? {
+          rate: response.rate,
+          rateDate: response.rateDate,
+          fromRateDate: response.fromRateDate ?? null,
+          toRateDate: response.toRateDate ?? null,
+        }
       : null;
   // 自动金额只作为派生值参与显示、校验和保存，不进入未保存判断的快照。
   const effectiveTargetAmount = targetAmountEdited
@@ -172,6 +179,17 @@ export function useTransferReceipt({
   const dailyRate = referenceRate
     ? formatTransferRate(referenceRate.rate, currency, targetCurrency)
     : null;
+  const mixedRateDateLabel =
+    referenceRate?.fromRateDate &&
+    referenceRate.toRateDate &&
+    referenceRate.fromRateDate !== referenceRate.toRateDate
+      ? t.mixedRateDates(
+          currency,
+          referenceRate.fromRateDate,
+          targetCurrency,
+          referenceRate.toRateDate,
+        )
+      : null;
   const difference = targetAmountEdited
     ? calculateTransferDifference(
         amount,
@@ -263,6 +281,7 @@ export function useTransferReceipt({
     rate,
     dailyRate,
     dailyRateDate: referenceRate?.rateDate ?? null,
+    mixedRateDateLabel,
     rateLoading,
     targetAmountEdited,
     difference,
@@ -297,11 +316,14 @@ export function useTransferReceipt({
         nextTargetCurrency &&
         nextSourceCurrency !== nextTargetCurrency,
       );
-      // 换币种后沿用原金额保留规则：新转入币种重算，转出金额丢失时
-      // 则保留原到账金额，作为独立填写值。
+      // 原本同币种的共同金额、以及先填转入金额的数值，属于手填到账金额。
+      // 已存在的跨币种自动预填金额不能在换转出币种后误升级为手填。
+      const amountBelongsToTarget =
+        picker === "source" &&
+        (!source || source.currency === target?.currency);
       setTargetAmountEdited(
         Boolean(nextCrossCurrency && next.targetAmount) &&
-          (targetAmountEdited || (picker === "source" && !next.amount)),
+          (targetAmountEdited || (amountBelongsToTarget && !next.amount)),
       );
       if (picker === "source") setSourceId(account.id);
       else setTargetId(account.id);
