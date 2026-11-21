@@ -233,9 +233,6 @@ export function addConvertedItemToSummary(
   item: TransactionListItem,
 ): void {
   if (item.type === "transfer" || item.type === "balance_adjustment") return;
-  if (item.account_currency !== summary.currency) {
-    summary.hasForeignCurrency = true;
-  }
   if (item.converted_amount === null) {
     summary.missingRateCount = (summary.missingRateCount ?? 0) + 1;
   } else {

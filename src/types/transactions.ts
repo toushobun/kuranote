@@ -165,8 +165,6 @@ export type TransactionListItem = TransactionRowItem & {
 };
 
 export type TransactionAmountSummary = {
-  /** 本范围内含外币，已将可换算记录折合为账本币种。 */
-  hasForeignCurrency?: boolean;
   missingRateCount?: number;
   income: string;
   expense: string;

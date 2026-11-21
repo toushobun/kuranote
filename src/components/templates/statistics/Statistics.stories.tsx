@@ -57,21 +57,12 @@ export const Default: Story = {
   name: "统计页面",
 };
 
-export const ForeignCurrencyConverted: Story = {
-  name: "含外币交易：按当日汇率换算",
-  args: {
-    ...defaultArgs,
-    summary: { ...defaultArgs.summary, hasForeignCurrency: true },
-  },
-};
-
 export const ForeignCurrencyRateMissing: Story = {
   name: "含外币交易：部分缺少汇率",
   args: {
     ...defaultArgs,
     summary: {
       ...defaultArgs.summary,
-      hasForeignCurrency: true,
       missingRateCount: 2,
     },
   },

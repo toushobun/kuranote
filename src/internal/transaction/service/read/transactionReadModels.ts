@@ -107,7 +107,6 @@ export type TransactionFormOptions = {
 };
 
 export type TransactionAmountSummary = {
-  hasForeignCurrency?: boolean;
   missingRateCount?: number;
   balance: string;
   currency: string;

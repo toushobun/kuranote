@@ -14,7 +14,7 @@ import { IconBadge } from "atoms/ui/IconBadge";
 import { ledgerSetupEntryMessages } from "config/ledgerSetupMessages";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { bottomNavigationLayout } from "organisms/navigation/bottomNavigationLayout";
-import { ExchangeRateTotalsNote } from "molecules/transactions/ExchangeRateTotalsNote/ExchangeRateTotalsNote";
+import { MissingExchangeRateNote } from "molecules/transactions/MissingExchangeRateNote/MissingExchangeRateNote";
 import { DashboardMonthSummaryCard } from "organisms/dashboard/DashboardMonthSummaryCard/DashboardMonthSummaryCard";
 import { DashboardRecentTransactions } from "organisms/dashboard/DashboardRecentTransactions/DashboardRecentTransactions";
 import { LedgerSetupContinueCard } from "organisms/ledgers/LedgerSetupContinueCard/LedgerSetupContinueCard";
@@ -77,7 +77,6 @@ export function DashboardTemplate({
         balance={monthSummary.balance}
         continueSetup={continueSetup}
         expense={monthSummary.expense}
-        hasForeignCurrency={monthSummary.hasForeignCurrency}
         missingRateCount={monthSummary.missingRateCount}
         currency={monthSummary.currency}
         hasLedger={hasLedger}
@@ -145,7 +144,6 @@ function DashboardHeroPanel({
   balance,
   continueSetup,
   expense,
-  hasForeignCurrency,
   missingRateCount,
   currency,
   hasLedger,
@@ -158,7 +156,6 @@ function DashboardHeroPanel({
   balance: string;
   continueSetup: LedgerSetupInProgressSummary | null;
   expense: string;
-  hasForeignCurrency?: boolean;
   missingRateCount?: number;
   currency: string;
   hasLedger: boolean;
@@ -186,7 +183,6 @@ function DashboardHeroPanel({
       <DashboardIncomeExpenseSummary
         balance={balance}
         expense={expense}
-        hasForeignCurrency={hasForeignCurrency}
         missingRateCount={missingRateCount}
         currency={currency}
         hasLedger={hasLedger}
@@ -344,7 +340,6 @@ function getWelcomeText(hasLedger: boolean, hasSetupInProgress: boolean) {
 function DashboardIncomeExpenseSummary({
   balance,
   expense,
-  hasForeignCurrency,
   missingRateCount,
   currency,
   hasLedger,
@@ -352,7 +347,6 @@ function DashboardIncomeExpenseSummary({
 }: {
   balance: string;
   expense: string;
-  hasForeignCurrency?: boolean;
   missingRateCount?: number;
   currency: string;
   hasLedger: boolean;
@@ -390,8 +384,7 @@ function DashboardIncomeExpenseSummary({
           value={balance}
         />
       </Box>
-      <ExchangeRateTotalsNote
-        hasForeignCurrency={hasForeignCurrency}
+      <MissingExchangeRateNote
         missingRateCount={missingRateCount}
         marginTop={0.5}
       />

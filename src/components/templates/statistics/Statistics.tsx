@@ -4,7 +4,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
 import { statisticsMonthHref } from "config/paths";
-import { ExchangeRateTotalsNote } from "molecules/transactions/ExchangeRateTotalsNote/ExchangeRateTotalsNote";
+import { MissingExchangeRateNote } from "molecules/transactions/MissingExchangeRateNote/MissingExchangeRateNote";
 import { MonthNavButton } from "molecules/navigation/MonthNavButton";
 import { EmptyState } from "molecules/ui/EmptyState";
 import { SectionCard } from "molecules/ui/SectionCard";
@@ -92,8 +92,7 @@ export function StatisticsTemplate({
             tone="balance"
           />
         </Stack>
-        <ExchangeRateTotalsNote
-          hasForeignCurrency={summary.hasForeignCurrency}
+        <MissingExchangeRateNote
           missingRateCount={summary.missingRateCount}
           marginTop={1}
         />

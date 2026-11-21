@@ -20,7 +20,6 @@ export type StatisticsRankItem = {
 };
 
 type StatisticsAmountSummary = {
-  hasForeignCurrency?: boolean;
   missingRateCount?: number;
   balance: string;
   currency: string;
@@ -113,9 +112,6 @@ export function buildStatisticsViewData({
       itemsByRecordId.get(record.id) ?? [],
       categoryById,
     );
-    if (record.record_currency && record.record_currency !== currency) {
-      summary.hasForeignCurrency = true;
-    }
     const convertedAmount = convertLedgerAmount(netAmount, record.ledger_rate);
     if (convertedAmount === null) {
       summary.missingRateCount = (summary.missingRateCount ?? 0) + 1;
