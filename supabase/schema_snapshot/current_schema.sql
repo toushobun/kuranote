@@ -2411,7 +2411,7 @@ $$;
 ALTER FUNCTION "public"."create_transaction_locked_impl"("p_ledger_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_note" "text") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text" DEFAULT NULL::"text", "p_to_amount" numeric DEFAULT NULL::numeric) RETURNS "uuid"
+CREATE OR REPLACE FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text" DEFAULT NULL::"text", "p_to_amount" numeric DEFAULT NULL::numeric, "p_fee_amount" numeric DEFAULT NULL::numeric) RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -2478,6 +2478,10 @@ begin
         raise exception 'amount_invalid' using errcode = '22023', detail = 'amount_invalid';
     end if;
 
+    if p_fee_amount is not null and not public.is_valid_transfer_amount(p_fee_amount) then
+        raise exception 'transfer_fee_amount_invalid' using errcode='22023', detail='transfer_fee_amount_invalid';
+    end if;
+
     insert into public.transaction_record (
         ledger_id,
         type,
@@ -2540,7 +2544,15 @@ begin
         v_user_id
     );
 
-    perform public.apply_account_balance_delta(p_ledger_id, p_from_account_id, -p_amount, v_user_id);
+    if p_fee_amount is not null then
+        insert into public.transaction_item
+          (ledger_id,transaction_record_id,account_id,category_id,amount,discount_amount,balance_delta,note,sort_order,created_by,updated_by)
+        values (p_ledger_id,v_transaction_record_id,p_from_account_id,
+          public.get_or_create_transfer_fee_category(p_ledger_id,v_user_id),
+          p_fee_amount,0,-p_fee_amount,null,2,v_user_id,v_user_id);
+    end if;
+
+    perform public.apply_account_balance_delta(p_ledger_id, p_from_account_id, -(p_amount + coalesce(p_fee_amount,0)), v_user_id);
     perform public.apply_account_balance_delta(p_ledger_id, p_to_account_id, v_effective_to_amount, v_user_id);
 
     return v_transaction_record_id;
@@ -3455,6 +3467,25 @@ $$;
 ALTER FUNCTION "public"."get_current_user_setup_ledger"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."get_or_create_transfer_fee_category"("p_ledger_id" "uuid", "p_user_id" "uuid") RETURNS "uuid"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $
+declare v_id uuid;
+begin
+  perform set_config('app.allow_system_category_write','true',true);
+  insert into public.category(ledger_id,parent_id,type,name,icon_name,color,system_key,sort_order,created_by,updated_by)
+  values(p_ledger_id,null,'expense','🏧 手续费','🏧','#FDE68A','transfer_fee',99999,p_user_id,p_user_id)
+  on conflict (ledger_id,system_key) where system_key is not null do nothing;
+  select c.id into strict v_id from public.category c where c.ledger_id=p_ledger_id and c.system_key='transfer_fee';
+  perform set_config('app.allow_system_category_write','false',true);
+  return v_id;
+end;
+$;
+
+ALTER FUNCTION "public"."get_or_create_transfer_fee_category"("p_ledger_id" "uuid", "p_user_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."get_ledger_default_root_categories"() RETURNS TABLE("name" "text", "sort_order" integer)
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -3706,6 +3737,9 @@ begin
       from public.category c
      where c.id = new.parent_id
        and c.ledger_id = new.ledger_id;
+    if v_parent_key = 'transfer_fee' then
+      raise exception 'category_system_parent_locked' using errcode = '22023', detail = 'category_system_parent_locked';
+    end if;
     if v_parent_key = 'special_income'
        and coalesce(new.system_key, '') not in ('refund', 'reimbursement') then
       raise exception 'category_system_parent_locked'
@@ -3714,7 +3748,8 @@ begin
   end if;
 
   if new.system_key is not null then
-    if new.type <> 'income'
+    if (new.system_key = 'transfer_fee' and (new.type <> 'expense' or new.parent_id is not null))
+       or (new.system_key <> 'transfer_fee' and new.type <> 'income')
        or (new.system_key = 'special_income' and new.parent_id is not null)
        or (new.system_key in ('refund', 'reimbursement')
            and (new.parent_id is null or v_parent_key is distinct from 'special_income')) then
@@ -4210,6 +4245,10 @@ begin
     (p_ledger_id, v_root_id, 'income', '📄 报销', '📄', '#DBEAFE',
      'reimbursement', 20, p_user_id, p_user_id)
   on conflict (ledger_id, system_key) where system_key is not null do nothing;
+
+  insert into public.category (ledger_id,parent_id,type,name,icon_name,color,system_key,sort_order,created_by,updated_by)
+  values (p_ledger_id,null,'expense','🏧 手续费','🏧','#FDE68A','transfer_fee',99999,p_user_id,p_user_id)
+  on conflict (ledger_id,system_key) where system_key is not null do nothing;
 
   perform set_config('app.allow_system_category_write', 'false', true);
 end;
@@ -5015,6 +5054,7 @@ with filter_flags as (
         ) as has_other_item_filters,
         (p_account_id is not null or p_holder_id is not null) as has_account_scope
 ),
+-- 账户的持有人：持有人 ID 为成员 user_id 或占位 placeholder_id，无持有人的账户归入 'none'。
 account_holders as (
     select
         a.id as account_id,
@@ -5037,6 +5077,7 @@ account_holders as (
             and ah.ledger_id = a.ledger_id
       )
 ),
+-- 账户集合筛选：账户筛选与持有人筛选的交集；没有这两个筛选时不使用。
 scope_accounts as (
     select distinct ah.account_id
     from account_holders ah
@@ -5051,7 +5092,10 @@ base_items as (
         tr.merchant_id,
         tr.created_by,
         ti.id as item_id,
+        ti.account_id,
+        ti.sort_order,
         ti.category_id,
+        c.system_key as category_system_key,
         ti.special_status,
         ti.amount,
         ti.business_net_amount,
@@ -5060,7 +5104,9 @@ base_items as (
         c.type as category_type,
         c.parent_id,
         case
-            when tr.type in ('transfer', 'balance_adjustment') then 0::numeric
+            when tr.type = 'balance_adjustment' then 0::numeric
+            when tr.type = 'transfer' and c.system_key = 'transfer_fee' then -ti.business_net_amount
+            when tr.type = 'transfer' then 0::numeric
             when c.type = 'income' then ti.business_net_amount
             when c.type = 'expense' then -ti.business_net_amount
             else 0::numeric
@@ -5103,6 +5149,8 @@ record_payments as (
       and p.transaction_record_id in (select bi.record_id from base_items bi)
     group by p.transaction_record_id
 ),
+-- 有账户集合筛选时，付款账户一部分在集合内、一部分在集合外的记录（「共同支付」）。
+-- 付款账户全在集合内（例如同一持有人的两个账户）时份额 = 整笔，不算共同支付。
 shared_records as (
     select
         rp.record_id,
@@ -5164,6 +5212,8 @@ matched_items as (
           or bi.category_id = p_parent_category_id
       )
       and (p_category_id is null or bi.category_id = p_category_id)
+      and (bi.record_type <> 'transfer' or bi.category_system_key is distinct from 'transfer_fee'
+           or not ff.has_account_scope or bi.account_id in (select account_id from scope_accounts))
       and (
           coalesce(array_length(p_special_statuses, 1), 0) = 0
           or bi.special_status::text = any(p_special_statuses)
@@ -5200,6 +5250,7 @@ group_rows as (
         mr.transaction_at,
         case
             when mr.record_type = 'normal' then m.balance_delta
+            when mr.record_type = 'transfer' and m.sort_order = 2 then m.balance_delta
             else 0::numeric
         end as signed_amount
     from matched_records mr
@@ -5283,7 +5334,8 @@ group_rows as (
       and (p_group_by not in ('merchant', 'member') or ff.has_account_scope)
       and (p_group_by <> 'specialStatus' or mi.special_status is not null)
       -- 分类分组只纳入普通记录：转账、余额调整没有分类，不进入「未知」组。
-      and (p_group_by not in ('parentCategory', 'category') or mi.record_type = 'normal')
+      and (p_group_by not in ('parentCategory', 'category') or mi.record_type = 'normal'
+           or (mi.record_type = 'transfer' and mi.category_system_key = 'transfer_fee'))
       and not exists (
           select 1
           from share_records sr
@@ -7406,21 +7458,28 @@ CREATE OR REPLACE FUNCTION "public"."transfer_items_consistent"("p_ledger_id" "u
     LANGUAGE "sql" STABLE
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
-    select count(*) = 2
-       and count(*) filter (where ti.category_id is null) = 2
-       and count(*) filter (where ti.balance_delta > 0) = 1
-       and count(*) filter (where ti.balance_delta < 0) = 1
-       and count(*) filter (where ti.amount > 0) = 2
-       and count(*) filter (where ti.amount = abs(ti.balance_delta)) = 2
-       and count(distinct ti.account_id) = 2
-       and (
-           count(distinct a.currency) = 2
-           or count(distinct ti.amount) = 1
-       )
-    from public.transaction_item ti
-    join public.account a on a.id = ti.account_id and a.ledger_id = ti.ledger_id
-    where ti.ledger_id = p_ledger_id
-      and ti.transaction_record_id = p_transaction_record_id;
+with rows as (
+ select ti.account_id,ti.category_id,ti.amount,ti.balance_delta,a.currency,c.system_key
+ from public.transaction_item ti
+ join public.account a on a.id=ti.account_id and a.ledger_id=ti.ledger_id
+ left join public.category c on c.id=ti.category_id and c.ledger_id=ti.ledger_id
+ where ti.ledger_id=p_ledger_id and ti.transaction_record_id=p_transaction_record_id
+), base as (select * from rows where category_id is null),
+ source as (select account_id from base where balance_delta<0)
+select (select count(*) from rows) between 2 and 3
+ and (select count(*) from base)=2
+ and (select count(*) from base where balance_delta<0)=1
+ and (select count(*) from base where balance_delta>0)=1
+ and (select count(*) from base where public.is_valid_transfer_amount(amount) and amount=abs(balance_delta))=2
+ and (select count(distinct account_id) from base)=2
+ and ((select count(distinct currency) from base)=2 or (select count(distinct amount) from base)=1)
+ and (select count(*) from rows where category_id is not null)<=1
+ and not exists (select 1 from rows r where r.category_id is not null and (
+  r.system_key is distinct from 'transfer_fee'
+  or r.account_id is distinct from (select account_id from source)
+  or not public.is_valid_transfer_amount(r.amount)
+  or r.balance_delta is distinct from -r.amount
+ ));
 $$;
 
 
@@ -9103,7 +9162,7 @@ $$;
 ALTER FUNCTION "public"."update_transaction_locked_impl"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_type" "text", "p_transaction_at" timestamp with time zone, "p_items" "jsonb", "p_payments" "jsonb", "p_merchant_id" "uuid", "p_note" "text") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text" DEFAULT NULL::"text", "p_to_amount" numeric DEFAULT NULL::numeric) RETURNS "uuid"
+CREATE OR REPLACE FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text" DEFAULT NULL::"text", "p_to_amount" numeric DEFAULT NULL::numeric, "p_fee_amount" numeric DEFAULT NULL::numeric) RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
     AS $$
@@ -9114,6 +9173,7 @@ declare
     v_old_to_account_id uuid;
     v_old_amount numeric(14,2);
     v_old_to_amount numeric(14,2);
+    v_old_fee_amount numeric(14,2);
     v_all_account_ids uuid[];
     v_from_account public.account;
     v_to_account public.account;
@@ -9162,13 +9222,19 @@ begin
     from public.transaction_item ti
     where ti.transaction_record_id = p_transaction_record_id
       and ti.ledger_id = p_ledger_id
+      and ti.category_id is null
       and ti.balance_delta < 0;
+
+    select coalesce(sum(ti.amount),0) into v_old_fee_amount
+    from public.transaction_item ti where ti.transaction_record_id=p_transaction_record_id
+      and ti.ledger_id=p_ledger_id and ti.category_id is not null;
 
     select account_id, amount
     into v_old_to_account_id, v_old_to_amount
     from public.transaction_item ti
     where ti.transaction_record_id = p_transaction_record_id
       and ti.ledger_id = p_ledger_id
+      and ti.category_id is null
       and ti.balance_delta > 0;
 
     v_all_account_ids := array(
@@ -9216,7 +9282,11 @@ begin
         raise exception 'amount_invalid' using errcode = '22023', detail = 'amount_invalid';
     end if;
 
-    perform public.apply_account_balance_delta(p_ledger_id, v_old_from_account_id, v_old_amount, v_user_id);
+    if p_fee_amount is not null and not public.is_valid_transfer_amount(p_fee_amount) then
+        raise exception 'transfer_fee_amount_invalid' using errcode='22023', detail='transfer_fee_amount_invalid';
+    end if;
+
+    perform public.apply_account_balance_delta(p_ledger_id, v_old_from_account_id, v_old_amount + v_old_fee_amount, v_user_id);
     perform public.apply_account_balance_delta(p_ledger_id, v_old_to_account_id, -v_old_to_amount, v_user_id);
 
     delete from public.transaction_item ti
@@ -9263,7 +9333,15 @@ begin
         v_user_id
     );
 
-    perform public.apply_account_balance_delta(p_ledger_id, p_from_account_id, -p_amount, v_user_id);
+    if p_fee_amount is not null then
+        insert into public.transaction_item
+          (ledger_id,transaction_record_id,account_id,category_id,amount,discount_amount,balance_delta,note,sort_order,created_by,updated_by)
+        values (p_ledger_id,p_transaction_record_id,p_from_account_id,
+          public.get_or_create_transfer_fee_category(p_ledger_id,v_user_id),
+          p_fee_amount,0,-p_fee_amount,null,2,v_user_id,v_user_id);
+    end if;
+
+    perform public.apply_account_balance_delta(p_ledger_id, p_from_account_id, -(p_amount + coalesce(p_fee_amount,0)), v_user_id);
     perform public.apply_account_balance_delta(p_ledger_id, p_to_account_id, v_effective_to_amount, v_user_id);
 
     update public.transaction_record tr
@@ -9930,7 +10008,11 @@ begin
         raise exception 'transaction_record_invalid' using errcode = '23503';
     end if;
 
-    if v_record_type in ('transfer', 'balance_adjustment') and new.category_id is not null then
+    if (v_record_type = 'balance_adjustment' and new.category_id is not null)
+      or (v_record_type = 'transfer' and new.category_id is not null and not exists (
+        select 1 from public.category c where c.id=new.category_id and c.ledger_id=new.ledger_id
+          and c.system_key='transfer_fee' and c.type='expense' and c.parent_id is null
+      )) then
         raise exception 'transaction_item_category_invalid' using errcode = '23514';
     end if;
 
@@ -10761,7 +10843,7 @@ CREATE TABLE IF NOT EXISTS "public"."category" (
     CONSTRAINT "category_icon_name_check" CHECK ((("icon_name" IS NULL) OR ("length"("icon_name") <= 100))),
     CONSTRAINT "category_name_check" CHECK ((("length"(TRIM(BOTH FROM "name")) >= 1) AND ("length"(TRIM(BOTH FROM "name")) <= 100))),
     CONSTRAINT "category_parent_not_self_check" CHECK ((("parent_id" IS NULL) OR ("parent_id" <> "id"))),
-    CONSTRAINT "category_system_key_check" CHECK (("system_key" = ANY (ARRAY['special_income'::"text", 'refund'::"text", 'reimbursement'::"text"]))),
+    CONSTRAINT "category_system_key_check" CHECK (("system_key" = ANY (ARRAY['special_income'::"text", 'refund'::"text", 'reimbursement'::"text", 'transfer_fee'::"text"]))),
     CONSTRAINT "category_type_check" CHECK (("type" = ANY (ARRAY['expense'::"text", 'income'::"text"])))
 );
 
@@ -11200,11 +11282,11 @@ CREATE OR REPLACE VIEW "public"."transaction_record_ledger_rate" WITH ("security
  SELECT "tr"."ledger_id",
     "tr"."id" AS "record_id",
         CASE
-            WHEN ("tr"."type" = 'normal'::"text") THEN "rc"."currency"
+            WHEN ("tr"."type" = ANY (ARRAY['normal'::"text", 'transfer'::"text"])) THEN "rc"."currency"
             ELSE NULL::"text"
         END AS "currency",
         CASE
-            WHEN ("tr"."type" = 'normal'::"text") THEN "public"."exchange_rate_on"("rc"."currency", "l"."base_currency", "public"."transaction_record_local_date"("tr"."transaction_at"))
+            WHEN ("tr"."type" = ANY (ARRAY['normal'::"text", 'transfer'::"text"])) THEN "public"."exchange_rate_on"("rc"."currency", "l"."base_currency", "public"."transaction_record_local_date"("tr"."transaction_at"))
             ELSE (1)::numeric
         END AS "ledger_rate"
    FROM (("public"."transaction_record" "tr"
@@ -11212,7 +11294,7 @@ CREATE OR REPLACE VIEW "public"."transaction_record_ledger_rate" WITH ("security
      LEFT JOIN LATERAL ( SELECT "a"."currency"
            FROM ("public"."transaction_account_movement" "m"
              JOIN "public"."account" "a" ON ((("a"."id" = "m"."account_id") AND ("a"."ledger_id" = "m"."ledger_id"))))
-          WHERE (("m"."ledger_id" = "tr"."ledger_id") AND ("m"."transaction_record_id" = "tr"."id") AND ("tr"."type" = 'normal'::"text"))
+          WHERE (("m"."ledger_id" = "tr"."ledger_id") AND ("m"."transaction_record_id" = "tr"."id") AND ("tr"."type" = ANY (ARRAY['normal'::"text", 'transfer'::"text"])))
           ORDER BY "m"."sort_order", "m"."account_id"
          LIMIT 1) "rc" ON (true));
 
@@ -12852,7 +12934,7 @@ REVOKE ALL ON FUNCTION "public"."create_transaction_locked_impl"("p_ledger_id" "
 
 
 REVOKE ALL ON FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_to_amount" numeric) FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_to_amount" numeric) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_to_amount" numeric, "p_fee_amount" numeric) TO "authenticated";
 
 
 
@@ -12985,6 +13067,10 @@ REVOKE ALL ON FUNCTION "public"."guard_balance_adjustment_record"() FROM PUBLIC;
 
 
 REVOKE ALL ON FUNCTION "public"."guard_ledger_setup_state"() FROM PUBLIC;
+
+
+
+REVOKE ALL ON FUNCTION "public"."get_or_create_transfer_fee_category"("p_ledger_id" "uuid", "p_user_id" "uuid") FROM PUBLIC;
 
 
 
@@ -13300,7 +13386,7 @@ REVOKE ALL ON FUNCTION "public"."update_transaction_locked_impl"("p_ledger_id" "
 
 
 REVOKE ALL ON FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_to_amount" numeric) FROM PUBLIC;
-GRANT ALL ON FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_to_amount" numeric) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_to_amount" numeric, "p_fee_amount" numeric) TO "authenticated";
 
 
 
