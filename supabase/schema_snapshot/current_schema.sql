@@ -7157,7 +7157,7 @@ ALTER FUNCTION "public"."transaction_currency_decimal_places"("p_currency" "text
 
 CREATE OR REPLACE FUNCTION "public"."transaction_link_allocations"("p_ledger_id" "uuid", "p_target_id" "uuid") RETURNS TABLE("target_id" "uuid", "income_id" "uuid", "is_refund" boolean, "income_amount" numeric, "income_currency" "text", "target_currency" "text", "converted_amount" numeric, "applied_target" numeric, "applied_income" numeric, "rate" numeric, "rate_date" "date")
     LANGUAGE "sql" STABLE
-    AS $
+    AS $$
 with target as (
     select
         ti.id, ti.amount,
