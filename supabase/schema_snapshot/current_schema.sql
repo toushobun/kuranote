@@ -3602,7 +3602,7 @@ COMMENT ON FUNCTION "public"."get_next_ledger_member_display_color"("p_ledger_id
 CREATE OR REPLACE FUNCTION "public"."get_or_create_transfer_fee_category"("p_ledger_id" "uuid", "p_user_id" "uuid") RETURNS "uuid"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
-    AS $
+    AS $$
 declare v_id uuid;
 begin
   perform set_config('app.allow_system_category_write','true',true);
@@ -3613,7 +3613,8 @@ begin
   perform set_config('app.allow_system_category_write','false',true);
   return v_id;
 end;
-$;
+$$;
+
 
 ALTER FUNCTION "public"."get_or_create_transfer_fee_category"("p_ledger_id" "uuid", "p_user_id" "uuid") OWNER TO "postgres";
 
@@ -12935,7 +12936,7 @@ REVOKE ALL ON FUNCTION "public"."create_transaction_locked_impl"("p_ledger_id" "
 
 
 
-REVOKE ALL ON FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_to_amount" numeric) FROM PUBLIC;
+REVOKE ALL ON FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_to_amount" numeric, "p_fee_amount" numeric) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_to_amount" numeric, "p_fee_amount" numeric) TO "authenticated";
 
 
@@ -13060,6 +13061,10 @@ REVOKE ALL ON FUNCTION "public"."get_next_ledger_member_display_color"("p_ledger
 
 
 
+REVOKE ALL ON FUNCTION "public"."get_or_create_transfer_fee_category"("p_ledger_id" "uuid", "p_user_id" "uuid") FROM PUBLIC;
+
+
+
 REVOKE ALL ON FUNCTION "public"."guard_balance_adjustment_item"() FROM PUBLIC;
 
 
@@ -13069,10 +13074,6 @@ REVOKE ALL ON FUNCTION "public"."guard_balance_adjustment_record"() FROM PUBLIC;
 
 
 REVOKE ALL ON FUNCTION "public"."guard_ledger_setup_state"() FROM PUBLIC;
-
-
-
-REVOKE ALL ON FUNCTION "public"."get_or_create_transfer_fee_category"("p_ledger_id" "uuid", "p_user_id" "uuid") FROM PUBLIC;
 
 
 
@@ -13387,7 +13388,7 @@ REVOKE ALL ON FUNCTION "public"."update_transaction_locked_impl"("p_ledger_id" "
 
 
 
-REVOKE ALL ON FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_to_amount" numeric) FROM PUBLIC;
+REVOKE ALL ON FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_to_amount" numeric, "p_fee_amount" numeric) FROM PUBLIC;
 GRANT ALL ON FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_to_amount" numeric, "p_fee_amount" numeric) TO "authenticated";
 
 

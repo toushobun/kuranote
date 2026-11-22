@@ -168,6 +168,25 @@ describe("TransactionRow", () => {
       lineHeight: "1.5",
     });
   });
+  it("转账手续费显示右下角标签，不改变本金及跨币种到账金额", () => {
+    render(
+      <TransactionRow
+        item={createItem({
+          type: "transfer",
+          amount: "10000",
+          categoryItems: [],
+          merchant_name: null,
+          transferFeeAmount: "220",
+          transferTargetAmount: "500",
+          transferTargetCurrency: "CNY",
+        })}
+      />,
+    );
+    expect(screen.getByText("¥ 10,000")).toBeInTheDocument();
+    expect(screen.getByText(/手续费.*220/)).toBeInTheDocument();
+    expect(screen.getByText(/到账.*500.*CNY/)).toBeInTheDocument();
+  });
+
   it("同币种转账不额外显示到账行", () => {
     render(
       <TransactionRow

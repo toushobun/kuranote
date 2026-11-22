@@ -156,6 +156,29 @@ describe("parseTransferSheet", () => {
     ]);
   });
 
+  it("手续费可留空；填写时按转出账户币种精度验证", () => {
+    const result = parseTransferSheet(
+      buildTable([
+        validRowCells({
+          转出账户币种: "JPY",
+          转入账户币种: "JPY",
+          手续费: "220",
+        }),
+        validRowCells({
+          转出账户币种: "JPY",
+          转入账户币种: "JPY",
+          手续费: "0.5",
+        }),
+        validRowCells({ 手续费: "0" }),
+      ]),
+    );
+    expect(result.rows).toMatchObject([{ feeAmount: 220 }]);
+    expect(result.issues).toEqual([
+      expect.objectContaining({ rowNumber: 3, column: "手续费" }),
+      expect.objectContaining({ rowNumber: 4, column: "手续费" }),
+    ]);
+  });
+
   it("跨币种必须输入到账金额，同币种可以留空", () => {
     const missing = parseTransferSheet(
       buildTable([validRowCells({ 转出账户币种: "JPY", 金额: "100000" })]),

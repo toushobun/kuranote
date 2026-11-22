@@ -137,9 +137,11 @@ select is((select expense from public.load_transaction_group_summaries_with_spec
 select throws_ok(
  'update public.category set name=''被改名'' where ledger_id=''00000000-0000-4000-8000-000000000032'' and system_key=''transfer_fee''',
  '22023','category_system_locked','手续费系统分类不可改名');
+set local role postgres;
 select throws_ok(
  'delete from public.category where ledger_id=''00000000-0000-4000-8000-000000000032'' and system_key=''transfer_fee''',
  '22023','category_system_locked','手续费系统分类不可删除');
+set local role authenticated;
 
 -- 损坏明细只在事务内测试，恢复后才能作废。
 set local role postgres;

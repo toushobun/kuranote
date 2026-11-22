@@ -220,6 +220,42 @@ describe("TransferReceipt", () => {
     await waitFor(() => expect(onDirty).toHaveBeenLastCalledWith(false));
   });
 
+  it("新增、编辑和删除手续费均更新实扣汇总与未保存状态", async () => {
+    const { action, onDirty } = setup({ initialValues: editValues });
+    await waitFor(() => expect(onDirty).toHaveBeenLastCalledWith(false));
+
+    click("＋ 添加手续费");
+    expect(
+      screen.getByRole("heading", { name: "手续费（JPY）" }),
+    ).toBeInTheDocument();
+    pressItemAmountKey("2");
+    pressItemAmountKey("2");
+    pressItemAmountKey("0");
+    pressItemAmountKey("确定");
+
+    expect(screen.getByText("现金 共扣 ¥5,220")).toBeInTheDocument();
+    expect(screen.getByText("PayPay 到账 ¥5,000")).toBeInTheDocument();
+    await waitFor(() => expect(onDirty).toHaveBeenLastCalledWith(true));
+
+    click(/^修改手续费：/);
+    click("删除手续费");
+    expect(screen.queryByText(/现金 共扣/)).toBeNull();
+    click("保存修改");
+    await waitFor(() => expect(action).toHaveBeenCalledOnce());
+    expect(submittedForm(action).get("transferFeeAmount")).toBe("");
+  });
+
+  it("只读转账仍显示手续费与两侧实际金额，不能添加或删除", () => {
+    setup({
+      initialValues: { ...editValues, transferFeeAmount: "220" },
+      readOnly: true,
+    });
+    expect(screen.getByText("现金 共扣 ¥5,220")).toBeInTheDocument();
+    expect(screen.getByText("PayPay 到账 ¥5,000")).toBeInTheDocument();
+    expect(screen.queryByText("＋ 添加手续费")).toBeNull();
+    expect(screen.queryByText("删除手续费")).toBeNull();
+  });
+
   it("跨币种转出金额提示与计算器标题对应币种", () => {
     const { action } = setup({
       initialValues: {
