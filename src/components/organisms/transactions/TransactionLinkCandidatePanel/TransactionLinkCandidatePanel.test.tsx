@@ -100,7 +100,6 @@ describe("TransactionLinkCandidatePanel", () => {
       query: "",
       month: "2026-11",
       merchantId: "amazon",
-      currency: "JPY",
     });
     expect(
       screen.getByRole("button", { name: "Amazon的支出（2 笔）" }),
@@ -197,7 +196,7 @@ describe("TransactionLinkCandidatePanel", () => {
     });
     await screen.findByText("咖啡豆 2 袋");
     expect(loadPage).toHaveBeenCalledWith(
-      expect.objectContaining({ settled: false }),
+      expect.objectContaining({ offset: 0 }),
     );
     const usdCandidate = screen.getByRole("button", {
       name: "选择退款明细 咖啡豆 2 袋",
@@ -231,7 +230,6 @@ describe("TransactionLinkCandidatePanel", () => {
       query: "",
       month: "2026-11",
       merchantId: "no-records",
-      currency: "JPY",
     });
     expect(
       screen.queryByRole("button", { name: "加载更多" }),
@@ -328,7 +326,6 @@ describe("TransactionLinkCandidatePanel", () => {
       query: "",
       month: "2026-11",
       merchantId: "amazon",
-      currency: "JPY",
     });
     expect(
       screen.getByRole("button", { name: "其他待报销（2 笔）" }),
@@ -356,7 +353,6 @@ describe("TransactionLinkCandidatePanel", () => {
       query: "",
       month: "2026-11",
       merchantId: "amazon",
-      currency: "JPY",
     });
     expect(screen.getAllByText("往年差旅支出")).toHaveLength(1);
     fireEvent.click(
@@ -381,7 +377,6 @@ describe("TransactionLinkCandidatePanel", () => {
         query: "收纳",
         month: null,
         merchantId: "amazon",
-        currency: "JPY",
       }),
     );
     expect(

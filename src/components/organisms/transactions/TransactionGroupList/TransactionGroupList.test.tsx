@@ -327,7 +327,7 @@ describe("TransactionRefundCandidateList", () => {
       />,
     );
 
-    expect(screen.getByText("$100")).toBeInTheDocument();
+    expect(screen.getByText(/\\$100/)).toBeInTheDocument();
     expect(screen.getByText("已退 $40")).toBeInTheDocument();
     expect(screen.getByRole("radio")).toBeChecked();
     expect(screen.queryByRole("checkbox")).toBeNull();
@@ -365,7 +365,7 @@ describe("TransactionRefundCandidateList", () => {
       />,
     );
 
-    expect(screen.getByText("KWD1.234")).toBeInTheDocument();
+    expect(screen.getByText(/KWD1\\.234/)).toBeInTheDocument();
     expect(screen.getByText("已退 KWD0.111")).toBeInTheDocument();
   });
 

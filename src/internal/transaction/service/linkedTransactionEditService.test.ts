@@ -522,6 +522,18 @@ describe("LinkedTransactionEditService", () => {
       const { service, updateEdit } = createService(createIncomeView(role));
       const input = incomeInput({
         payments: [{ accountId: otherCurrencyAccountId, amount: null }],
+        items: [
+          {
+            amount: 100,
+            categoryId: incomeCategoryId,
+            id: linkedItemId,
+            ...(role === "refund"
+              ? { refundedItemId: targetItemId }
+              : { reimbursementItemId: targetItemId }),
+          },
+        ],
+        confirmSync: true,
+        expectedUpdatedAtByItemId: { [linkedItemId]: updatedAt },
       });
       await service.updateNormal(currentLedger, input);
       expect(updateEdit).toHaveBeenCalledWith(

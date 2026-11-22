@@ -268,28 +268,18 @@ describe("EditTransactionReceiptTemplate", () => {
     },
   );
 
-  it.each([true, false])(
-    "新增异币种账户复用确认，确认结果为 %s",
-    async (accept) => {
-      renderReceipt({}, receiptCreationData({ currency: "CNY" }));
-      click("更换支付账户 1");
-      click("新增账户");
-      await submitReceiptCreationForm("account", "新账户");
-      await screen.findByRole("heading", { name: "切换为 新账户 账户？" });
-      click(accept ? "切换" : "取消");
-      await waitFor(() =>
-        expect(new FormData(receiptForm()).get("accountId")).toBe(
-          accept ? "new-account" : "paypay",
-        ),
-      );
-      if (accept)
-        expect(
-          await screen.findByText("已新增账户「新账户」并选中"),
-        ).toBeInTheDocument();
-      else expect(screen.queryByText("已新增账户「新账户」并选中")).toBeNull();
-      expect(new FormData(receiptForm()).getAll("itemAmount")).toEqual(["800"]);
-    },
-  );
+  it("新增不同币种账户后直接选中，不弹确认且保留明细金额", async () => {
+    renderReceipt({}, receiptCreationData({ currency: "CNY" }));
+    click("更换支付账户 1");
+    click("新增账户");
+    await submitReceiptCreationForm("account", "新账户");
+    await waitFor(() =>
+      expect(new FormData(receiptForm()).get("accountId")).toBe("new-account"),
+    );
+    expect(screen.queryByRole("heading", { name: "切换为 新账户 账户？" })).toBeNull();
+    expect(await screen.findByText("已新增账户「新账户」并选中")).toBeInTheDocument();
+    expect(new FormData(receiptForm()).getAll("itemAmount")).toEqual(["800"]);
+  });
 
   it("新增商家替换商家但保留金额、备注和付款", async () => {
     renderReceipt({}, receiptCreationData());

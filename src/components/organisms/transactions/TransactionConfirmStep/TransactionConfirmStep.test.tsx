@@ -37,18 +37,16 @@ function saveButton() {
 function transactionForm() {
   return saveButton().closest("form")!;
 }
-// 换成不同币种的账户（如 "招商银行卡 CNY"）：直接换，或点 × 清空后再选；停在弹出的确认框。
-async function openCurrencyConfirm(account: string, clearFirst = false) {
+// 切换账户不弹确认框，进入小票后金额的币种精度仍会验证。
+async function selectDifferentCurrency(account: string, clearFirst = false) {
   if (clearFirst) click("删除支付账户 1");
   click(clearFirst ? "添加付款账户" : "更换支付账户 1");
   selectAccount(account);
-  return screen.findByRole("dialog", {
-    name: `切换为 ${account.split(" ")[0]} 账户？`,
-  });
+  await waitFor(() =>
+    expect(line("更换支付账户 1")).toHaveTextContent(account.split(" ")[0]),
+  );
 }
-function zIndexOf(element: Element, rootSelector: string) {
-  return Number(getComputedStyle(element.closest(rootSelector)!).zIndex);
-}
+
 // 金额键盘打开时背景被设为 aria-hidden，按金额按钮的 aria-label 确认小票上的金额。
 function expectReceiptAmount(label: string) {
   expect(
@@ -583,39 +581,20 @@ describe("TransactionConfirmStep", () => {
     );
   });
 
-  it("删除唯一账户后再选不同币种的账户，仍按原币种弹出换币种确认", async () => {
+  it("删除唯一账户后可以直接选择不同币种账户", async () => {
     await renderConfirmFlow();
-    click("删除支付账户 1");
-    click("添加付款账户");
-    selectAccount("招商银行卡 CNY");
-    expect(
-      await screen.findByText("切换为 招商银行卡 账户？"),
-    ).toBeInTheDocument();
-    click("取消");
-    // 取消后仍停在账户抽屉，换成同币种的账户不再确认。
-    await waitFor(() =>
-      expect(screen.queryByText(/切换为/)).not.toBeInTheDocument(),
-    );
-    selectAccount("现金 JPY");
-    await waitFor(() =>
-      expect(line("更换支付账户 1")).toHaveTextContent("现金"),
-    );
-    expect(screen.queryByText(/切换为/)).not.toBeInTheDocument();
+    await selectDifferentCurrency("招商银行卡 CNY", true);
+    expect(screen.queryByText(/切换为 招商银行卡 账户？/)).toBeNull();
+    expect(line("更换支付账户 1")).toHaveTextContent("招商银行卡");
   });
 
   it.each([
     ["直接换账户", false],
     ["点 × 清空后再选", true],
-  ])("%s时，换币种确认框显示在账户抽屉之上", async (_, clearFirst) => {
+  ])("%s时不弹确认框且切换成功", async (_, clearFirst) => {
     await renderConfirmFlow();
-    const dialog = await openCurrencyConfirm("招商银行卡 CNY", clearFirst);
-    const drawer = screen.getByRole("radio", {
-      name: "招商银行卡 CNY",
-      hidden: true,
-    });
-    expect(zIndexOf(dialog, ".MuiDialog-root")).toBeGreaterThan(
-      zIndexOf(drawer, ".MuiDrawer-root"),
-    );
+    await selectDifferentCurrency("招商银行卡 CNY", clearFirst);
+    expect(screen.queryByRole("dialog", { name: /切换为/ })).toBeNull();
   });
 
   it("换币种后小数位超出：显示真实金额并标红，合计与提示条正确，重新输入后可以保存", async () => {
@@ -626,8 +605,7 @@ describe("TransactionConfirmStep", () => {
         initialPayments: [{ accountId: "cny", amount: null }],
       },
     });
-    await openCurrencyConfirm("现金 JPY");
-    click("切换");
+    await selectDifferentCurrency("现金 JPY");
     await waitFor(() =>
       expect(line("更换支付账户 1")).toHaveTextContent("现金"),
     );
