@@ -232,7 +232,7 @@ select is(
 );
 
 -- 模拟汇率表数据后来缺失，不能把原支出错误地全额抵掉。
-delete from public.exchange_rate where rate_date = '2026-11-20';
+delete from public.exchange_rate where currency = 'CNY';
 select is(
     (select business_net_amount from public.transaction_item_with_refund
      where id='11471000-0000-4000-8000-000000000001'),
