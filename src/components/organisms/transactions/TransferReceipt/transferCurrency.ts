@@ -154,21 +154,27 @@ export function divideAmountByExchangeRate(
     dailyRate === null ||
     !Number.isFinite(dailyRate) ||
     dailyRate <= 0
-  ) return "";
+  )
+    return "";
   const [coefficient, exponentText = "0"] = dailyRate.toString().split("e");
   const [whole, fraction = ""] = coefficient.split(".");
   const exponent = Number(exponentText);
   const amountDecimals = amount.split(".")[1]?.length ?? 0;
   const targetDecimals = getAmountDecimalPlaces(targetCurrency);
-  const numerator = BigInt(amount.replace(".", "")) *
-    BigInt(10) ** BigInt(targetDecimals + fraction.length + Math.max(-exponent, 0));
-  const denominator = BigInt(whole + fraction) *
+  const numerator =
+    BigInt(amount.replace(".", "")) *
+    BigInt(10) **
+      BigInt(targetDecimals + fraction.length + Math.max(-exponent, 0));
+  const denominator =
+    BigInt(whole + fraction) *
     BigInt(10) ** BigInt(amountDecimals + Math.max(exponent, 0));
-  const rounded = (numerator * BigInt(2) + denominator) / (denominator * BigInt(2));
+  const rounded =
+    (numerator * BigInt(2) + denominator) / (denominator * BigInt(2));
   const digits = rounded.toString().padStart(targetDecimals + 1, "0");
-  const result = targetDecimals === 0
-    ? digits
-    : `${digits.slice(0, -targetDecimals)}.${digits.slice(-targetDecimals)}`;
+  const result =
+    targetDecimals === 0
+      ? digits
+      : `${digits.slice(0, -targetDecimals)}.${digits.slice(-targetDecimals)}`;
   return isValidPositiveMoneyText(result, { currency: targetCurrency })
     ? result
     : "";

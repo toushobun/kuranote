@@ -670,7 +670,9 @@ export function TransactionItemPickerDrawer({
               : transactionItemPickerMessages.remove}
           </Button>
           <PrimaryActionButton
-            disabled={isLinkedMode && (!selectedCandidate || pickerRateUnavailable)}
+            disabled={
+              isLinkedMode && (!selectedCandidate || pickerRateUnavailable)
+            }
             fullWidth
             onClick={handleConfirm}
             type="button"

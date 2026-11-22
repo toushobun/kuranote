@@ -957,7 +957,10 @@ describe("TransactionService", () => {
       currency: "JPY",
       merchantId: "00000000-0000-4000-8000-000000001001",
     });
-    expect(page.items.map((item) => item.id)).toEqual(["candidate-21", "candidate-22"]);
+    expect(page.items.map((item) => item.id)).toEqual([
+      "candidate-21",
+      "candidate-22",
+    ]);
     expect(page.settledCount).toBe(1);
     const settled = await service.getLinkCandidatePage(
       ledger,
@@ -1029,7 +1032,9 @@ describe("TransactionService", () => {
       }),
     );
     expect(repository.listItems).toHaveBeenNthCalledWith(
-      2, ledger.id, expect.arrayContaining(["new-record"]),
+      2,
+      ledger.id,
+      expect.arrayContaining(["new-record"]),
     );
     expect(repository.listRecords).toHaveBeenCalledTimes(2);
     expect(first.settledCount).toBe(1);

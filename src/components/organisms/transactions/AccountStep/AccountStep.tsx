@@ -31,10 +31,11 @@ export function AccountStep(props: AccountStepProps) {
     selectRef.current = props.onSelect;
   });
   const addAccount = props.onAddAccount
-    ? () => props.onAddAccount?.(async (account) => {
-        selectRef.current(account);
-        return true;
-      })
+    ? () =>
+        props.onAddAccount?.(async (account) => {
+          selectRef.current(account);
+          return true;
+        })
     : undefined;
   const accountList = (accounts: TransactionAccountOption[]) => (
     <List disablePadding>

@@ -59,8 +59,14 @@ import { useTransactionOffsetEntry } from "../TransactionOffsetEntry/Transaction
 import { offsetEntryCandidates } from "../TransactionOffsetEntry/offsetEntryDraft";
 import { shouldFollowLinkedField } from "./linkedFieldAutoFill";
 import { useLinkExchangeRates } from "./useLinkExchangeRates";
-import { previewCrossCurrencyLink, type LinkExchangeRate } from "./crossCurrencyLinkPreview";
-import { prefillTransferTargetAmount, divideAmountByExchangeRate } from "../TransferReceipt/transferCurrency";
+import {
+  previewCrossCurrencyLink,
+  type LinkExchangeRate,
+} from "./crossCurrencyLinkPreview";
+import {
+  prefillTransferTargetAmount,
+  divideAmountByExchangeRate,
+} from "../TransferReceipt/transferCurrency";
 import {
   buildCategoryPickerGroups,
   getDefaultPickerCategory,
@@ -239,9 +245,12 @@ export function useTransactionForm({
   const pickerRateStatus = pickerTarget
     ? linkRates.getStatus(pickerTarget.accountCurrency)
     : "available";
-  const pickerRatePending = pickerLinkIsCrossCurrency && pickerRateStatus === "loading";
-  const pickerRateMissing = pickerLinkIsCrossCurrency && pickerRateStatus === "missing";
-  const pickerRateFailed = pickerLinkIsCrossCurrency && pickerRateStatus === "failed";
+  const pickerRatePending =
+    pickerLinkIsCrossCurrency && pickerRateStatus === "loading";
+  const pickerRateMissing =
+    pickerLinkIsCrossCurrency && pickerRateStatus === "missing";
+  const pickerRateFailed =
+    pickerLinkIsCrossCurrency && pickerRateStatus === "failed";
   const pickerRateUnavailable = pickerLinkIsCrossCurrency && !pickerLinkRate;
 
   const convertForTarget = (amount: string, targetCurrency: string) => {
@@ -921,7 +930,8 @@ export function useTransactionForm({
       !incomeCurrency ||
       pickerTarget.accountCurrency === incomeCurrency ||
       !pickerLinkRate
-    ) return;
+    )
+      return;
     const remaining = getLinkCandidateDefaultAmount(
       resolveLinkCandidate(pickerTarget),
     );
@@ -935,7 +945,15 @@ export function useTransactionForm({
     pendingPickerDefaultRef.current = null;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 汇率异步到达后只补充尚未被用户修改的金额。
     setPickerAmount(amount);
-  }, [pickerTarget, pickerLinkRate, incomeCurrency, itemsByType.income, initialValues.items, editingItemId, resolveLinkCandidate]);
+  }, [
+    pickerTarget,
+    pickerLinkRate,
+    incomeCurrency,
+    itemsByType.income,
+    initialValues.items,
+    editingItemId,
+    resolveLinkCandidate,
+  ]);
 
   function selectLinkCandidate(
     kind: TransactionLinkKind,
@@ -950,16 +968,27 @@ export function useTransactionForm({
     }
     pendingPickerDefaultRef.current = null;
     if (candidate && pickerMode === kind) {
-      const remaining = getLinkCandidateDefaultAmount(resolveLinkCandidate(candidate));
-      const crossCurrency = !!incomeCurrency && candidate.accountCurrency !== incomeCurrency;
-      const rate = crossCurrency ? linkRates.getRate(candidate.accountCurrency) : null;
-      if (crossCurrency && !rate) pendingPickerDefaultRef.current = candidate.id;
+      const remaining = getLinkCandidateDefaultAmount(
+        resolveLinkCandidate(candidate),
+      );
+      const crossCurrency =
+        !!incomeCurrency && candidate.accountCurrency !== incomeCurrency;
+      const rate = crossCurrency
+        ? linkRates.getRate(candidate.accountCurrency)
+        : null;
+      if (crossCurrency && !rate)
+        pendingPickerDefaultRef.current = candidate.id;
       setPickerAmount(
         crossCurrency && rate
           ? divideAmountByExchangeRate(
-              remaining, candidate.accountCurrency, incomeCurrency, rate.rate,
+              remaining,
+              candidate.accountCurrency,
+              incomeCurrency,
+              rate.rate,
             )
-          : crossCurrency ? "" : remaining,
+          : crossCurrency
+            ? ""
+            : remaining,
       );
     }
   }

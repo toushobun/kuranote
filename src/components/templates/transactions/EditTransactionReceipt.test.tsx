@@ -276,8 +276,12 @@ describe("EditTransactionReceiptTemplate", () => {
     await waitFor(() =>
       expect(new FormData(receiptForm()).get("accountId")).toBe("new-account"),
     );
-    expect(screen.queryByRole("heading", { name: "切换为 新账户 账户？" })).toBeNull();
-    expect(await screen.findByText("已新增账户「新账户」并选中")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "切换为 新账户 账户？" }),
+    ).toBeNull();
+    expect(
+      await screen.findByText("已新增账户「新账户」并选中"),
+    ).toBeInTheDocument();
     expect(new FormData(receiptForm()).getAll("itemAmount")).toEqual(["800"]);
   });
 
