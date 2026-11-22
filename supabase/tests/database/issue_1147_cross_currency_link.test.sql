@@ -87,37 +87,6 @@ from (
     from (values (1),(2),(3),(4),(5),(11),(12),(13),(14),(15),(16),(17)) s(seq)
 ) item;
 
--- 所有正常记录币种来自 transaction_payment。
-insert into public.transaction_payment (
-    ledger_id, transaction_record_id, account_id, amount,
-    balance_delta, sort_order, created_by
-)
-select
-    '00000000-0000-4000-8000-000000000032'::uuid,
-    ('11472000-0000-4000-8000-' || lpad(seq::text, 12, '0'))::uuid,
-    case when seq in (11,12,13,14,15) then '11470000-0000-4000-8000-000000000001'::uuid
-         when seq = 16 then '11470000-0000-4000-8000-000000000002'::uuid
-         else '00000000-0000-4000-8000-000000000043'::uuid end,
-    case when seq <= 5 then 2000::numeric
-         when seq = 11 then 84::numeric
-         when seq = 12 then 83.99::numeric
-         when seq = 13 then 80::numeric
-         when seq = 14 then 50::numeric
-         when seq = 15 then 40::numeric
-         when seq = 16 then 1::numeric
-         else 100::numeric end,
-    case when seq <= 5 then -2000::numeric
-         when seq = 11 then 84::numeric
-         when seq = 12 then 83.99::numeric
-         when seq = 13 then 80::numeric
-         when seq = 14 then 50::numeric
-         when seq = 15 then 40::numeric
-         when seq = 16 then 1::numeric
-         else 100::numeric end,
-    0,
-    '00000000-0000-4000-8000-000000000031'::uuid
-from (values (1),(2),(3),(4),(5),(11),(12),(13),(14),(15),(16),(17)) s(seq);
-
 select lives_ok($$
     select public.apply_transaction_item_links(
         '00000000-0000-4000-8000-000000000032',
@@ -260,6 +229,19 @@ select is(
     (select business_net_amount from public.transaction_item_with_refund
      where id='11471000-0000-4000-8000-000000000015'),
     4.89::numeric, '前笔日期改变后重新分配额度，后一笔倒赚改为 4.89 CNY'
+);
+
+-- 模拟汇率表数据后来缺失，不能把原支出错误地全额抵掉。
+delete from public.exchange_rate where rate_date = '2026-11-20';
+select is(
+    (select business_net_amount from public.transaction_item_with_refund
+     where id='11471000-0000-4000-8000-000000000001'),
+    2000::numeric, '汇率被删除后不能错误抵扣原支出'
+);
+select is(
+    (select business_net_amount from public.transaction_item_with_refund
+     where id='11471000-0000-4000-8000-000000000011'),
+    84::numeric, '汇率被删除后收入侧恢复原币金额'
 );
 
 select is(public.transaction_currency_decimal_places('JPY'), 0, 'SQL JPY 为 0 位');

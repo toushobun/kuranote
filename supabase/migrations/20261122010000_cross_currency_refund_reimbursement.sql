@@ -106,10 +106,10 @@ events as (
 ),
 rated as (
     select e.*, fx.rate, fx.rate_date,
-        round(
+        case when fx.rate > 0 then round(
             e.income_amount * fx.rate,
             public.transaction_currency_decimal_places(e.target_currency)
-        ) as converted_amount
+        ) else 0::numeric end as converted_amount
     from events e
     cross join lateral public.exchange_rate_with_date(
         e.income_currency,
@@ -129,7 +129,7 @@ ordered as (
 ),
 allocated as (
     select ordered.*,
-        case when ordered.target_active then
+        case when ordered.target_active and ordered.rate > 0 then
             least(
                 ordered.converted_amount,
                 greatest(ordered.target_amount - ordered.prior_amount, 0::numeric)
@@ -141,10 +141,10 @@ select
     a.target_id, a.income_id, a.is_refund, a.income_amount,
     a.income_currency, a.target_currency, a.converted_amount,
     a.actual_target as applied_target,
-    round(
-        a.actual_target / nullif(a.rate, 0),
+    case when a.rate > 0 then round(
+        a.actual_target / a.rate,
         public.transaction_currency_decimal_places(a.income_currency)
-    ) as applied_income,
+    ) else 0::numeric end as applied_income,
     a.rate, a.rate_date
 from allocated a;
 $$;
@@ -254,6 +254,13 @@ from public.transaction_item ti
 left join lateral (
     with targets as (
         select ti.id
+        where exists (
+            select 1 from public.transaction_item_refund_link link
+            where link.ledger_id = ti.ledger_id and link.refunded_item_id = ti.id
+        ) or exists (
+            select 1 from public.transaction_item_reimbursement_link link
+            where link.ledger_id = ti.ledger_id and link.target_expense_item_id = ti.id
+        )
         union
         select l.refunded_item_id
         from public.transaction_item_refund_link l
@@ -1129,13 +1136,23 @@ candidate_base as (
     join public.transaction_item ti
       on ti.transaction_record_id = tr.id and ti.ledger_id = tr.ledger_id
     -- 候选净额最终按零截断，无需重算各笔关联的时间轴分摊和超额部分。
+    -- 无关联时不执行带汇率查询和窗口函数的抵扣计算。
     left join lateral (
         select
-            sum(a.converted_amount) filter (where a.is_refund) as refund_amount,
-            sum(a.converted_amount) filter (where not a.is_refund) as reimbursement_amount,
-            sum(a.converted_amount) filter (where a.is_refund and a.converted_amount > 0) as positive_refund_amount,
-            sum(a.converted_amount) filter (where not a.is_refund and a.converted_amount > 0) as positive_reimbursement_amount
-        from public.transaction_link_allocations(tr.ledger_id, ti.id) a
+            sum(allocation.converted_amount) filter (where allocation.is_refund) as refund_amount,
+            sum(allocation.converted_amount) filter (where not allocation.is_refund) as reimbursement_amount,
+            sum(allocation.converted_amount) filter (where allocation.is_refund and allocation.converted_amount > 0) as positive_refund_amount,
+            sum(allocation.converted_amount) filter (where not allocation.is_refund and allocation.converted_amount > 0) as positive_reimbursement_amount
+        from (
+            select ti.id where exists (
+                select 1 from public.transaction_item_refund_link link
+                where link.ledger_id = ti.ledger_id and link.refunded_item_id = ti.id
+            ) or exists (
+                select 1 from public.transaction_item_reimbursement_link link
+                where link.ledger_id = ti.ledger_id and link.target_expense_item_id = ti.id
+            )
+        ) linked_expense
+        cross join lateral public.transaction_link_allocations(tr.ledger_id, linked_expense.id) allocation
     ) link_totals on true
     join public.category cat
       on cat.id = ti.category_id and cat.ledger_id = ti.ledger_id
@@ -1279,7 +1296,11 @@ record_matched as (
     left join lateral (
         select
             (array_agg(ti.note order by ti.sort_order, ti.id))[1] as first_note,
-            (array_agg(ti.amount order by (case when ti.balance_delta < 0 then 0 else 1 end), ti.sort_order, ti.id))[1] as first_amount,
+            coalesce(bool_or(
+                ti.category_id is null
+                and (select amount_term from args) ~ '[0-9]'
+                and strpos(trim_scale(ti.amount)::text, (select amount_term from args)) > 0
+            ), false) as has_transfer_amount,
             (array_agg(ti.balance_delta order by ti.sort_order, ti.id))[1] as first_delta,
             coalesce(sum(
                 case
@@ -1314,7 +1335,7 @@ record_matched as (
               args.amount_term ~ '[0-9]'
               and (
                   (tr.type = 'normal' and strpos(abs(trim_scale(amounts.net_amount))::text, args.amount_term) > 0)
-                  or (tr.type = 'transfer' and strpos(coalesce(trim_scale(amounts.first_amount)::text, ''), args.amount_term) > 0)
+                  or (tr.type = 'transfer' and amounts.has_transfer_amount)
                   or (tr.type = 'balance_adjustment' and strpos(coalesce(trim_scale(amounts.first_delta)::text, ''), args.amount_term) > 0)
                   or (tr.type = 'normal' and amounts.has_item_amount)
               )
