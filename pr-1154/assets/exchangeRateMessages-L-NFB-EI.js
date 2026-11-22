@@ -1,1 +1,0 @@
-import{i as e}from"./preload-helper-D2yxXLVK.js";var t,n=e((()=>{t={convertedAccountBalances:`含外币账户，按最新汇率换算`,missingRecordRates:e=>`有 ${e} 笔外币记录暂无汇率`,missingAccountRates:e=>`有 ${e} 个外币账户暂无汇率`}}));export{n,t};
