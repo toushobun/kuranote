@@ -34,6 +34,7 @@ export type ImportTransferTransactionInput = {
   timeZoneOffsetMinutes: number;
   transactionAt: string;
   transferAmount: number;
+  transferFeeAmount?: number | null;
   transferTargetAmount?: number;
   transferTargetAccountId: string;
 };
@@ -209,6 +210,7 @@ export function createTransactionImportService({
           view.initialValues.accountId === input.accountId &&
           view.initialValues.transferTargetAccountId ===
             input.transferTargetAccountId &&
+          Number(view.initialValues.transferFeeAmount ?? 0) === Number(input.transferFeeAmount ?? 0) &&
           sameAmount(
             view.initialValues.transferTargetAmount ??
               view.initialValues.transferAmount,

@@ -155,6 +155,22 @@ export function parseTransferSheet(
       addIssue("金额", transferImportErrorMessages.amountInvalid);
     }
 
+    const rawFeeAmount = get("手续费");
+    const feeAmountResult = rawFeeAmount
+      ? parseImportAmount(rawFeeAmount, { allowZero: false })
+      : null;
+    if (
+      rawFeeAmount &&
+      (!feeAmountResult?.ok ||
+        (fromAccountCurrencyValid &&
+          exceedsCurrencyDecimalPlaces(
+            String(feeAmountResult.value),
+            fromAccountCurrencyText.toUpperCase(),
+          )))
+    ) {
+      addIssue("手续费", transferImportErrorMessages.feeAmountInvalid);
+    }
+
     const note = get("备注");
     if (note.length > importNoteMaxLength) {
       addIssue("备注", importRowErrorMessages.noteTooLong);
@@ -220,6 +236,7 @@ export function parseTransferSheet(
 
     rows.push({
       amount: amountResult.ok ? amountResult.value : 0,
+      feeAmount: feeAmountResult?.ok ? feeAmountResult.value : null,
       targetAmount:
         isCrossCurrency && targetAmountResult?.ok
           ? targetAmountResult.value

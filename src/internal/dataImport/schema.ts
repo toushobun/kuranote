@@ -66,6 +66,7 @@ export const transferColumns: ImportColumnDef[] = [
   { name: "转入账户类型", required: true },
   { name: "金额", required: true },
   { name: "到账金额", required: false },
+  { name: "手续费", required: false },
   { name: "备注", required: false },
 ];
 

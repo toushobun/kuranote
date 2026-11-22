@@ -93,6 +93,7 @@ export const transferImportErrorMessages = {
   targetAmountRequired: "不同币种转账必须填写到账金额。",
   targetAmountInvalid: "到账金额必须是大于 0、符合币种精度的数字。",
   targetAmountMismatch: "同币种转账的到账金额必须与金额相同。",
+  feeAmountInvalid: "手续费必须是大于 0、符合转出账户币种精度的数字。",
   fromAccountCurrencyInvalid: "转出账户币种必须是 3 位字母代码，例如 CNY。",
   fromAccountRequired: "转出账户不能为空。",
   sameAccount: "转出账户与转入账户不能是同一个账户。",
