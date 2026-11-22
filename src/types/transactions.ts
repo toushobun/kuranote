@@ -122,7 +122,7 @@ export type TransactionAccountOption = {
 
 export type TransactionCategoryOption = {
   iconName?: string | null;
-  systemKey?: "special_income" | "refund" | "reimbursement";
+  systemKey?: "special_income" | "refund" | "reimbursement" | "transfer_fee";
   id: string;
   name: string;
   parentId: string | null;
