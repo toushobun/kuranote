@@ -326,7 +326,7 @@ export const AggregatedOffsetComposition: Story = {
 };
 
 export const PartiallyOffset: Story = {
-  name: "单条明细部分已核销",
+  name: "单条明细部分抵扣（净额与原金额）",
   args: {
     item: {
       ...expenseItem,
@@ -341,7 +341,7 @@ export const PartiallyOffset: Story = {
 };
 
 export const PartiallyExcluded: Story = {
-  name: "部分明细不计入支出",
+  name: "多明细部分抵扣（净额与原金额）",
   args: {
     item: {
       ...expenseItem,

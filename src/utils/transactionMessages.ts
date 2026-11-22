@@ -7,10 +7,6 @@ export const transactionFormValidationMessages = {
 export const transactionAmountMessages = {
   netAmount: "净额",
   originalAmount: "原金额",
-  partiallyNotIncludedInExpense: "部分不计入支出",
-  partiallyNotIncludedInIncome: "部分不计入收入",
-  partiallyNotIncludedInStatistics: "部分不计入收支",
-  partiallyOffset: "部分已核销",
 } as const;
 
 // 多账户记录（#834 / #914）：列表账户位置与「共同支付」标识。金额参数为已格式化的「币种符号 + 金额」。

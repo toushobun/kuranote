@@ -18,12 +18,8 @@ import {
   type TransactionBusinessStatus,
 } from "internal/transaction";
 import { designTokens } from "theme/theme";
-import { transactionOriginalAmountTextSx } from "theme/transactionAmountSx";
 import { themeColorTokens } from "theme/themeColorTokens";
-import {
-  transactionAmountMessages,
-  transactionSharedPaymentMessages,
-} from "utils/transactionMessages";
+import { transactionSharedPaymentMessages } from "utils/transactionMessages";
 import { getAmountDecimalPlaces } from "utils/transactionAmountInput";
 import type {
   CategorySummaryItem,
@@ -44,11 +40,6 @@ export type TransactionRowProps = {
   receiptCard?: boolean;
   showAccount?: boolean;
   showTime?: boolean;
-};
-
-type StatisticsAdjustment = {
-  kind: "fullyExcluded" | "partiallyExcluded" | "partiallyOffset";
-  type: TransactionCategoryType | null;
 };
 
 const textColor = "var(--user-theme-tx-name)";
@@ -72,24 +63,13 @@ export function TransactionRow({
     : isTransfer
       ? "账户周转"
       : (item.merchant_name ?? transactionFallbackLabels.merchant);
-  const statisticsAdjustment = getStatisticsAdjustment(item);
-  const hasSurplusIncome = item.categoryItems.some(
-    (category) => Number(category.businessStatus?.surplusAmount ?? "0") > 0,
-  );
-  const shouldDisplayOriginalAmount =
-    !hasSurplusIncome &&
-    statisticsAdjustment?.kind === "partiallyOffset" &&
-    item.originalAmount !== undefined;
-  const displayedAmountType = shouldDisplayOriginalAmount
-    ? (item.originalType ?? statisticsAdjustment.type ?? item.type)
-    : item.type;
   const amountColor = isAdjustment
     ? Number(item.amount) > 0
       ? incomeColor
       : expenseColor
     : isTransfer
       ? textColor
-      : displayedAmountType === "income"
+      : item.type === "income"
         ? incomeColor
         : expenseColor;
   const businessStatuses = getBusinessStatuses(
@@ -102,13 +82,7 @@ export function TransactionRow({
     getServerTimeZone,
   );
   const time = formatTransactionTime(item.transaction_at, { timeZone });
-  const signedAmount = shouldDisplayOriginalAmount
-    ? formatTransactionRowAmount(
-        item.originalType ?? statisticsAdjustment.type ?? item.type,
-        item.originalAmount ?? item.amount,
-        item.account_currency,
-      )
-    : formatRowAmount(item);
+  const signedAmount = formatRowAmount(item);
   const sharedPaymentLabel = getSharedPaymentLabel(item);
   const transferArrivalLabel =
     isTransfer && item.transferTargetAmount && item.transferTargetCurrency
@@ -123,26 +97,7 @@ export function TransactionRow({
   const categorySummaryText = getTransactionCategorySummaryText(item);
   const detailText = categorySummaryText ?? "";
   const adjustmentNode =
-    hasSurplusIncome || statisticsAdjustment?.kind === "fullyExcluded" ? (
-      item.originalAmount !== undefined ? (
-        <TransactionOriginalAmount
-          amount={formatTransactionRowAmount(
-            item.originalType ?? statisticsAdjustment?.type ?? item.type,
-            item.originalAmount,
-            item.account_currency,
-          )}
-        />
-      ) : null
-    ) : statisticsAdjustment ? (
-      <Typography
-        component="span"
-        noWrap
-        sx={{ ...transactionOriginalAmountTextSx, lineHeight: 1.3 }}
-        variant="caption"
-      >
-        {getStatisticsAdjustmentMessage(statisticsAdjustment)}
-      </Typography>
-    ) : item.originalAmount !== undefined ? (
+    item.originalAmount !== undefined ? (
       <TransactionOriginalAmount
         amount={formatTransactionRowAmount(
           item.originalType ?? item.type,
@@ -454,87 +409,6 @@ function getBusinessStatuses(
     });
   }
   return statuses;
-}
-
-function getStatisticsAdjustment(
-  item: TransactionRowItem,
-): StatisticsAdjustment | null {
-  const adjustedItems = item.categoryItems.flatMap((category) => {
-    const amount = Number(category.amount);
-    const businessNetAmount = Number(category.businessNetAmount);
-    if (
-      category.businessNetAmount === undefined ||
-      !Number.isFinite(amount) ||
-      !Number.isFinite(businessNetAmount) ||
-      amount === businessNetAmount
-    ) {
-      return [];
-    }
-
-    return [{ amount, businessNetAmount, type: category.categoryType ?? null }];
-  });
-  const fullyExcludedItems = adjustedItems.filter(
-    ({ businessNetAmount }) => businessNetAmount === 0,
-  );
-  const partiallyOffsetItems = adjustedItems.filter(
-    ({ amount, businessNetAmount }) =>
-      businessNetAmount > 0 && businessNetAmount < amount,
-  );
-
-  if (fullyExcludedItems.length > 0) {
-    const hasIncludedItem = item.categoryItems.some((category) => {
-      const businessNetAmount =
-        category.businessNetAmount === undefined
-          ? Number(category.amount)
-          : Number(category.businessNetAmount);
-      return Number.isFinite(businessNetAmount) && businessNetAmount !== 0;
-    });
-    return {
-      kind: hasIncludedItem ? "partiallyExcluded" : "fullyExcluded",
-      type: getCommonCategoryType(fullyExcludedItems),
-    };
-  }
-
-  if (partiallyOffsetItems.length > 0) {
-    return {
-      kind: "partiallyOffset",
-      type: getCommonCategoryType(partiallyOffsetItems),
-    };
-  }
-
-  if (item.originalAmount !== undefined && Number(item.amount) === 0) {
-    return {
-      kind: "fullyExcluded",
-      type:
-        item.originalType ??
-        (item.type === "transfer" || item.type === "balance_adjustment"
-          ? null
-          : item.type),
-    };
-  }
-
-  return null;
-}
-
-function getCommonCategoryType(
-  items: { type: TransactionCategoryType | null }[],
-) {
-  const firstType = items[0]?.type ?? null;
-  return items.every(({ type }) => type === firstType) ? firstType : null;
-}
-
-function getStatisticsAdjustmentMessage(adjustment: StatisticsAdjustment) {
-  if (adjustment.kind === "partiallyOffset") {
-    return transactionAmountMessages.partiallyOffset;
-  }
-
-  if (adjustment.type === "income") {
-    return transactionAmountMessages.partiallyNotIncludedInIncome;
-  }
-  if (adjustment.type === "expense") {
-    return transactionAmountMessages.partiallyNotIncludedInExpense;
-  }
-  return transactionAmountMessages.partiallyNotIncludedInStatistics;
 }
 
 function normalizeAggregatedAmount(amount: number, currency?: string) {
