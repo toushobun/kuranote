@@ -427,45 +427,40 @@ describe("TransactionRow", () => {
     render(<TransactionRow item={createItem()} />);
     expect(screen.queryByRole("button", { name: "删除" })).toBeNull();
   });
-  it("单条明细部分核销时显示原金额和部分核销提示", () => {
+  it("单条明细部分核销时显示净额和原金额", () => {
     render(
       <TransactionRow
         item={createItem({
-          account_currency: "USD",
-          amount: "100",
-          originalAmount: "150",
+          amount: "1099",
+          originalAmount: "2000",
           categoryItems: [
             {
-              amount: "150",
-              businessNetAmount: "100",
+              amount: "2000",
+              businessNetAmount: "1099",
               categoryName: "服装",
               categoryType: "expense",
               parentCategoryName: "购物",
-              refundedAmount: "40",
+              refundedAmount: "901",
             },
           ],
         })}
       />,
     );
 
-    expect(screen.getByText("- $ 150")).toBeInTheDocument();
-    expect(screen.queryByText("- $ 100")).not.toBeInTheDocument();
-    expect(screen.getByText("部分已核销")).toHaveStyle({
-      color: "rgba(0, 0, 0, 0.38)",
-      fontWeight: "400",
-    });
-    expect(screen.queryByText(/^原金额/)).not.toBeInTheDocument();
+    expect(screen.getByText("- ¥ 1,099")).toBeInTheDocument();
+    expect(screen.getByText("原金额 - ¥ 2,000")).toBeInTheDocument();
+    expect(screen.queryByText(/^部分/)).not.toBeInTheDocument();
   });
 
-  it("记录内只有部分明细完全核销时显示统计净额和部分不计入提示", () => {
+  it("多明细部分抵扣时显示净额和原金额", () => {
     render(
       <TransactionRow
         item={createItem({
           amount: "2000",
-          originalAmount: "6000",
+          originalAmount: "3000",
           categoryItems: [
             {
-              amount: "4000",
+              amount: "1000",
               businessNetAmount: "0",
               categoryName: "交通",
               categoryType: "expense",
@@ -483,9 +478,39 @@ describe("TransactionRow", () => {
     );
 
     expect(screen.getByText("- ¥ 2,000")).toBeInTheDocument();
-    expect(screen.getByText("部分不计入支出")).toBeInTheDocument();
-    expect(screen.queryByText("- ¥ 6,000")).not.toBeInTheDocument();
-    expect(screen.queryByText(/^原金额/)).not.toBeInTheDocument();
+    expect(screen.getByText("原金额 - ¥ 3,000")).toBeInTheDocument();
+    expect(screen.queryByText(/^部分/)).not.toBeInTheDocument();
+  });
+
+  it("收入侧部分明细不计入时显示净额和原金额", () => {
+    render(
+      <TransactionRow
+        item={createItem({
+          type: "income",
+          amount: "2000",
+          originalAmount: "3000",
+          categoryItems: [
+            {
+              amount: "1000",
+              businessNetAmount: "0",
+              categoryName: "退款",
+              categoryType: "income",
+              parentCategoryName: "其他收入",
+            },
+            {
+              amount: "2000",
+              categoryName: "奖金",
+              categoryType: "income",
+              parentCategoryName: "其他收入",
+            },
+          ],
+        })}
+      />,
+    );
+
+    expect(screen.getByText("+ ¥ 2,000")).toBeInTheDocument();
+    expect(screen.getByText("原金额 + ¥ 3,000")).toBeInTheDocument();
+    expect(screen.queryByText(/^部分/)).not.toBeInTheDocument();
   });
 
   it("原金额与业务净额方向相反时使用原金额自己的方向", () => {
@@ -527,7 +552,6 @@ describe("TransactionRow", () => {
 
     expect(screen.getByText("$ 0")).toBeInTheDocument();
     expect(screen.getByText("原金额 - $ 100")).toBeInTheDocument();
-    expect(screen.queryByText("不计入支出")).not.toBeInTheDocument();
   });
 
   it("超额退款主金额显示净收入，副标题保留原金额", () => {
@@ -556,7 +580,6 @@ describe("TransactionRow", () => {
     );
     expect(screen.getByText("+ ¥ 1,000")).toBeVisible();
     expect(screen.getByText("原金额 + ¥ 1,980")).toBeVisible();
-    expect(screen.queryByText("部分已核销")).not.toBeInTheDocument();
   });
 
   it("已核销的退款收入显示净额和原金额", () => {
@@ -583,7 +606,6 @@ describe("TransactionRow", () => {
 
     expect(screen.getByText("¥ 0")).toBeInTheDocument();
     expect(screen.getByText("原金额 + ¥ 2,000")).toBeInTheDocument();
-    expect(screen.queryByText("不计入收入")).not.toBeInTheDocument();
   });
 
   it("尚未核销的待报销支出仍计入支出", () => {
@@ -612,7 +634,6 @@ describe("TransactionRow", () => {
     );
 
     expect(screen.getByText("- ¥ 4,000")).toBeInTheDocument();
-    expect(screen.queryByText("不计入支出")).not.toBeInTheDocument();
     expect(screen.queryByText(/^原金额/)).not.toBeInTheDocument();
   });
 
@@ -634,6 +655,29 @@ describe("TransactionRow", () => {
     );
 
     expect(screen.queryByText(/^原金额/)).not.toBeInTheDocument();
+  });
+
+  it("按账户实际收付显示且无原金额时不显示说明", () => {
+    render(
+      <TransactionRow
+        item={createItem({
+          amount: "1099",
+          categoryItems: [
+            {
+              amount: "2000",
+              businessNetAmount: "1099",
+              categoryName: "服装",
+              categoryType: "expense",
+              parentCategoryName: "购物",
+            },
+          ],
+        })}
+      />,
+    );
+
+    expect(screen.getByText("- ¥ 1,099")).toBeInTheDocument();
+    expect(screen.queryByText(/^原金额/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^部分/)).not.toBeInTheDocument();
   });
 
   describe("业务标签", () => {
