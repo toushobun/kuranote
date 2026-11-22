@@ -23,9 +23,9 @@ const visibleCallbacks: Array<
   (entries: { isIntersecting: boolean }[]) => void
 > = [];
 
-function observeNextPage() {
+async function observeNextPage() {
+  await waitFor(() => expect(visibleCallbacks.at(-1)).toBeDefined());
   const callback = visibleCallbacks.at(-1);
-  expect(callback).toBeDefined();
   act(() => callback?.([{ isIntersecting: true }]));
 }
 
@@ -346,7 +346,7 @@ describe("TransactionLinkCandidatePanel", () => {
     });
     expect(old).toHaveAttribute("aria-pressed", "true");
     await screen.findByText("USB-C 充电器");
-    observeNextPage();
+    await observeNextPage();
     await screen.findByText("咖啡豆 2 袋");
     expect(loadPage).toHaveBeenLastCalledWith({
       offset: 1,
@@ -391,7 +391,7 @@ describe("TransactionLinkCandidatePanel", () => {
       .mockResolvedValue({ items: [candidateItems[1]], nextOffset: null });
     renderPanel({ loadPageAction: loadPage });
     await screen.findByText("USB-C 充电器");
-    observeNextPage();
+    await observeNextPage();
     fireEvent.click(
       await screen.findByRole("button", { name: "加载失败，点击重试" }),
     );
@@ -431,7 +431,7 @@ describe("TransactionLinkCandidatePanel", () => {
     await screen.findByText("USB-C 充电器");
     toggleSettled(2);
     await screen.findByText("外套");
-    observeNextPage();
+    await observeNextPage();
     await screen.findByText("已结清耳机");
     expect(loadPage).toHaveBeenLastCalledWith(
       expect.objectContaining({
