@@ -5,6 +5,9 @@ set local search_path = public, extensions;
 
 select no_plan();
 
+-- #1147：旧拒绝用例验证「缺少汇率」，不再验证「币种必须相同」。
+delete from public.exchange_rate where currency = 'THB';
+
 update public.ledger
 set transaction_item_special_status_enabled = true,
     multi_account_payment_enabled = true
