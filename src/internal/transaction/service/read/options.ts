@@ -168,8 +168,19 @@ export function buildFormCategoryOptions(
   }
 
   const categoryOptions: TransactionCategoryOption[] = parentRows.flatMap(
-    (parentRow) =>
-      (childRowsByParentId.get(parentRow.id) ?? []).map((row) => ({
+    (parentRow) => [
+      ...(parentRow.system_key === "transfer_fee"
+        ? [{
+            iconName: parentRow.icon_name ?? null,
+            id: parentRow.id,
+            name: parentRow.name,
+            parentId: null,
+            parentName: null,
+            systemKey: "transfer_fee" as const,
+            type: parentRow.type,
+          }]
+        : []),
+      ...(childRowsByParentId.get(parentRow.id) ?? []).map((row) => ({
         iconName: row.icon_name ?? null,
         id: row.id,
         name: row.name,
@@ -178,6 +189,7 @@ export function buildFormCategoryOptions(
         ...(row.system_key ? { systemKey: row.system_key } : {}),
         type: row.type,
       })),
+    ],
   );
 
   for (const row of rows) {

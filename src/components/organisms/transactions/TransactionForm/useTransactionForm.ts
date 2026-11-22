@@ -179,7 +179,7 @@ export function useTransactionForm({
     () =>
       categoryOptions.filter(
         (category) =>
-          !category.systemKey &&
+          (!category.systemKey || category.systemKey === "transfer_fee") &&
           (category.type === "expense" || category.type === "income"),
       ),
     [categoryOptions],
