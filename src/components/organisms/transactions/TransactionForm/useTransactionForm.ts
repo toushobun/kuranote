@@ -244,30 +244,6 @@ export function useTransactionForm({
   const pickerRateFailed = pickerLinkIsCrossCurrency && pickerRateStatus === "failed";
   const pickerRateUnavailable = pickerLinkIsCrossCurrency && !pickerLinkRate;
 
-  // 选择原支出时请求尚未完成，汇率返回后再预填；用户手动输入即取消该回填。
-  useEffect(() => {
-    if (
-      !pickerTarget ||
-      pendingPickerDefaultRef.current !== pickerTarget.id ||
-      !incomeCurrency ||
-      pickerTarget.accountCurrency === incomeCurrency ||
-      !pickerLinkRate
-    ) return;
-    const remaining = getLinkCandidateDefaultAmount(
-      resolveLinkCandidate(pickerTarget),
-    );
-    const amount = divideAmountByExchangeRate(
-      remaining,
-      pickerTarget.accountCurrency,
-      incomeCurrency,
-      pickerLinkRate.rate,
-    );
-    if (!amount) return;
-    pendingPickerDefaultRef.current = null;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 汇率异步到达后只补充尚未被用户修改的金额。
-    setPickerAmount(amount);
-  }, [pickerTarget, pickerLinkRate, incomeCurrency, itemsByType.income, initialValues.items, editingItemId]);
-
   const convertForTarget = (amount: string, targetCurrency: string) => {
     if (!incomeCurrency || incomeCurrency === targetCurrency) return amount;
     const rate = linkRates.getRate(targetCurrency);
@@ -936,6 +912,30 @@ export function useTransactionForm({
       editingItemId,
     );
   }
+
+  // 选择原支出时请求尚未完成，汇率返回后再预填；用户手动输入即取消该回填。
+  useEffect(() => {
+    if (
+      !pickerTarget ||
+      pendingPickerDefaultRef.current !== pickerTarget.id ||
+      !incomeCurrency ||
+      pickerTarget.accountCurrency === incomeCurrency ||
+      !pickerLinkRate
+    ) return;
+    const remaining = getLinkCandidateDefaultAmount(
+      resolveLinkCandidate(pickerTarget),
+    );
+    const amount = divideAmountByExchangeRate(
+      remaining,
+      pickerTarget.accountCurrency,
+      incomeCurrency,
+      pickerLinkRate.rate,
+    );
+    if (!amount) return;
+    pendingPickerDefaultRef.current = null;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 汇率异步到达后只补充尚未被用户修改的金额。
+    setPickerAmount(amount);
+  }, [pickerTarget, pickerLinkRate, incomeCurrency, itemsByType.income, initialValues.items, editingItemId, resolveLinkCandidate]);
 
   function selectLinkCandidate(
     kind: TransactionLinkKind,
