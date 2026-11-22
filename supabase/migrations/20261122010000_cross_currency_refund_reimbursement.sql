@@ -36,7 +36,7 @@ returns table (
 )
 -- 对象引用全部写明 public；无函数级 SET 才能让 PostgreSQL 内联并优化关联查询。
 language sql stable security invoker
-as $
+as $$
 with target as (
     select
         ti.id, ti.amount,
