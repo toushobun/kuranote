@@ -283,8 +283,6 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
           accounts={w.pickerAccounts}
           recommendedAccountIds={props.suggestions?.recommendedAccountIds}
           selectedAccount={w.pickerSelectedAccount}
-          previousCurrency={w.previousCurrency}
-          hasDetails={f.itemSummaries.length > 0}
           onSelect={w.selectAccount}
           onAddAccount={
             creation?.addAccount

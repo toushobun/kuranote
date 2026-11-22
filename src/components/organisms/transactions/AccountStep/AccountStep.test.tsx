@@ -24,9 +24,6 @@ function setup(overrides: Partial<AccountStepProps> = {}) {
   const view = renderEntryComponent(<AccountStep {...props} />);
   return { ...view, props };
 }
-function currencySetup(hasDetails = true) {
-  return setup({ selectedAccount: flowFixture.accounts[1], hasDetails });
-}
 describe("AccountStep", () => {
   it.each([
     { recommendedAccountIds: [] },
@@ -125,7 +122,7 @@ describe("AccountStep", () => {
     );
   });
   it("已有明细时切换不同币种账户直接生效，不弹确认框", async () => {
-    const { props } = currencySetup();
+    const { props } = setup({ selectedAccount: flowFixture.accounts[1] });
     selectAccount("招商银行卡 CNY");
     await waitFor(() =>
       expect(props.onSelect).toHaveBeenCalledWith(flowFixture.accounts[2]),
@@ -135,7 +132,7 @@ describe("AccountStep", () => {
     ).not.toBeInTheDocument();
   });
   it("没有明细时换币种无需确认", async () => {
-    const { props } = currencySetup(false);
+    const { props } = setup({ selectedAccount: flowFixture.accounts[1] });
     selectAccount("招商银行卡 CNY");
     await waitFor(() =>
       expect(props.onSelect).toHaveBeenCalledWith(flowFixture.accounts[2]),

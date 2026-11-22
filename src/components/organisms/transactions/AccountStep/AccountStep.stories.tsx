@@ -34,9 +34,9 @@ export const SelectedAccount: Story = {
   name: "已选账户",
   args: { selectedAccount: flowFixture.accounts[1] },
 };
-export const CurrencyConfirmation: Story = {
-  name: "换币种确认",
-  args: { ...SelectedAccount.args, hasDetails: true },
+export const CrossCurrencySelection1147: Story = {
+  name: "直接选择不同币种账户",
+  args: { ...SelectedAccount.args },
   play: async ({ canvasElement }) => {
     await userEvent.click(
       within(canvasElement.ownerDocument.body).getByRole("radio", {
