@@ -200,8 +200,8 @@ select throws_ok(
         )
     $$,
     '22023',
-    'reimbursement_currency_mismatch',
-    '报销收入与目标支出币种不一致时拒绝建立关联'
+    'link_exchange_rate_missing',
+    '报销收入不同币种且无汇率时拒绝建立关联'
 );
 
 select lives_ok(

@@ -96,7 +96,7 @@ select lives_ok(
     '建立超额报销关联后可进入关联编辑场景'
 );
 
--- #899：创建退款时允许不同账户，但币种必须一致。
+-- #1147：原支出与收入可使用不同币种，但缺少相应日期汇率时禁止关联。
 select tests.set_normal_transaction_payment_account(
     '57410000-0000-4000-8000-000000000004',
     '00000000-0000-4000-8000-000000000042'
@@ -109,8 +109,8 @@ select throws_ok(
         '{"refundedItemId":"57420000-0000-4000-8000-000000000003"}'::jsonb,
         '00000000-0000-4000-8000-000000000031'
     )$$,
-    '22023', 'refund_currency_mismatch',
-    '不同币种账户不能创建退款关联'
+    '22023', 'link_exchange_rate_missing',
+    '无跨币种汇率时不能创建退款关联'
 );
 
 select tests.set_normal_transaction_payment_account(
@@ -352,8 +352,8 @@ select throws_ok(
         )
     $$,
     '22023',
-    'reimbursement_currency_mismatch',
-    '报销收入换到不同币种账户时拒绝保存'
+    'link_exchange_rate_missing',
+    '没有汇率时换报销收入账户拒绝保存'
 );
 
 select throws_ok(
@@ -370,8 +370,8 @@ select throws_ok(
         )
     $$,
     '22023',
-    'refund_currency_mismatch',
-    '退款收入换到不同币种账户时拒绝保存'
+    'link_exchange_rate_missing',
+    '没有汇率时换退款收入账户拒绝保存'
 );
 
 select throws_ok(
@@ -385,15 +385,15 @@ select throws_ok(
     '母项仍有报销关联时不能直接清除待报销流程标记'
 );
 
--- 收入和目标两侧都经过编辑 RPC，币种不同则由触发器拒绝。
+-- 收入和目标两侧经过编辑 RPC，币种不同且查不到汇率时由触发器拒绝。
 select throws_ok(
     format(
         'select tests.update_linked_transaction_item(%L, %L, %L, %L, %s, %L, %L)',
         item.ledger_id, item.transaction_record_id, item.id, item.updated_at,
         item.amount, '00000000-0000-4000-8000-000000000042', item.category_id
     ),
-    '22023', 'refund_currency_mismatch',
-    '退款目标支出不能切换到不同币种账户'
+    '22023', 'link_exchange_rate_missing',
+    '目标账户改变且汇率缺失时拒绝保存'
 )
 from public.transaction_item item
 where item.id = '57420000-0000-4000-8000-000000000003';
