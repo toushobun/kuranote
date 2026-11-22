@@ -59,8 +59,8 @@ import { useTransactionOffsetEntry } from "../TransactionOffsetEntry/Transaction
 import { offsetEntryCandidates } from "../TransactionOffsetEntry/offsetEntryDraft";
 import { shouldFollowLinkedField } from "./linkedFieldAutoFill";
 import { useLinkExchangeRates } from "./useLinkExchangeRates";
-import { previewCrossCurrencyLink } from "./crossCurrencyLinkPreview";
-import { prefillTransferTargetAmount } from "../TransferReceipt/transferCurrency";
+import { previewCrossCurrencyLink, type LinkExchangeRate } from "./crossCurrencyLinkPreview";
+import { prefillTransferTargetAmount, divideAmountByExchangeRate } from "../TransferReceipt/transferCurrency";
 import {
   buildCategoryPickerGroups,
   getDefaultPickerCategory,
@@ -93,6 +93,7 @@ export function useTransactionForm({
     initialOffsetCandidates.length > 1 ? initialOffsetCandidates[0] : null;
   const reportEditDirty = useEditTransactionDirty();
   const nextItemIdRef = useRef(initialValues.items.length + 1);
+  const pendingPickerDefaultRef = useRef<string | null>(null);
   // 初始明细在 createInitialItemsByType 中按 1..N 编号，新增明细从 N+1 起编号。
   const isInitialItem = (itemId: number) =>
     !offsetEntry && itemId <= initialValues.items.length;
@@ -235,8 +236,37 @@ export function useTransactionForm({
   const pickerLinkRate = pickerTarget
     ? linkRates.getRate(pickerTarget.accountCurrency)
     : null;
-  const pickerRatePending = pickerLinkIsCrossCurrency && linkRates.isLoading;
-  const pickerRateMissing = pickerLinkIsCrossCurrency && !pickerLinkRate;
+  const pickerRateStatus = pickerTarget
+    ? linkRates.getStatus(pickerTarget.accountCurrency)
+    : "available";
+  const pickerRatePending = pickerLinkIsCrossCurrency && pickerRateStatus === "loading";
+  const pickerRateMissing = pickerLinkIsCrossCurrency && pickerRateStatus === "missing";
+  const pickerRateFailed = pickerLinkIsCrossCurrency && pickerRateStatus === "failed";
+  const pickerRateUnavailable = pickerLinkIsCrossCurrency && !pickerLinkRate;
+
+  // 选择原支出时请求尚未完成，汇率返回后再预填；用户手动输入即取消该回填。
+  useEffect(() => {
+    if (
+      !pickerTarget ||
+      pendingPickerDefaultRef.current !== pickerTarget.id ||
+      !incomeCurrency ||
+      pickerTarget.accountCurrency === incomeCurrency ||
+      !pickerLinkRate
+    ) return;
+    const remaining = getLinkCandidateDefaultAmount(
+      resolveLinkCandidate(pickerTarget),
+    );
+    const amount = divideAmountByExchangeRate(
+      remaining,
+      pickerTarget.accountCurrency,
+      incomeCurrency,
+      pickerLinkRate.rate,
+    );
+    if (!amount) return;
+    pendingPickerDefaultRef.current = null;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 汇率异步到达后只补充尚未被用户修改的金额。
+    setPickerAmount(amount);
+  }, [pickerTarget, pickerLinkRate, incomeCurrency, itemsByType.income, initialValues.items, editingItemId]);
 
   const convertForTarget = (amount: string, targetCurrency: string) => {
     if (!incomeCurrency || incomeCurrency === targetCurrency) return amount;
@@ -597,6 +627,7 @@ export function useTransactionForm({
   }
 
   function openSheet() {
+    pendingPickerDefaultRef.current = null;
     setWaitingOffsetMerchant(false);
     setPickerSessionKey((key) => key + 1);
     const { groupId, categoryId } = getDefaultPickerCategory(
@@ -623,6 +654,7 @@ export function useTransactionForm({
   }
 
   function openItemSheet(itemId: number) {
+    pendingPickerDefaultRef.current = null;
     const item = allDisplayItems.find(
       (currentItem) => currentItem.id === itemId,
     );
@@ -654,6 +686,7 @@ export function useTransactionForm({
   }
 
   function closeSheet() {
+    pendingPickerDefaultRef.current = null;
     setIsSheetOpen(false);
     setEditingItemId(null);
   }
@@ -699,6 +732,7 @@ export function useTransactionForm({
   function handlePickerModeChange(
     nextMode: "expense" | "income" | "refund" | "reimbursement",
   ) {
+    pendingPickerDefaultRef.current = null;
     if (
       pickerModeLocked ||
       (paymentFields.isMultiAccount && nextMode !== "expense") ||
@@ -737,7 +771,7 @@ export function useTransactionForm({
           : null;
     if (
       (pickerMode === "refund" || pickerMode === "reimbursement") &&
-      (!selectedTarget || pickerRateMissing)
+      (!selectedTarget || pickerRateUnavailable)
     ) {
       return false;
     }
@@ -914,28 +948,18 @@ export function useTransactionForm({
       setPickerReimbursementCandidate(candidate);
       if (candidate) setPickerRefundCandidate(null);
     }
+    pendingPickerDefaultRef.current = null;
     if (candidate && pickerMode === kind) {
+      const remaining = getLinkCandidateDefaultAmount(resolveLinkCandidate(candidate));
+      const crossCurrency = !!incomeCurrency && candidate.accountCurrency !== incomeCurrency;
+      const rate = crossCurrency ? linkRates.getRate(candidate.accountCurrency) : null;
+      if (crossCurrency && !rate) pendingPickerDefaultRef.current = candidate.id;
       setPickerAmount(
-        (() => {
-          const remaining = getLinkCandidateDefaultAmount(
-            resolveLinkCandidate(candidate),
-          );
-          if (
-            !remaining ||
-            !incomeCurrency ||
-            candidate.accountCurrency === incomeCurrency
-          )
-            return remaining;
-          const rate = linkRates.getRate(candidate.accountCurrency);
-          return rate
-            ? prefillTransferTargetAmount(
-                remaining,
-                candidate.accountCurrency,
-                incomeCurrency,
-                1 / rate.rate,
-              )
-            : "";
-        })(),
+        crossCurrency && rate
+          ? divideAmountByExchangeRate(
+              remaining, candidate.accountCurrency, incomeCurrency, rate.rate,
+            )
+          : crossCurrency ? "" : remaining,
       );
     }
   }
@@ -1044,6 +1068,9 @@ export function useTransactionForm({
     pickerLinkRate,
     pickerRatePending,
     pickerRateMissing,
+    pickerRateFailed,
+    pickerRateUnavailable,
+    retryLinkRate: linkRates.retry,
     linkAffectedCandidates: collectLinkAffectedCandidates(
       linkAffectedItems,
       "refund",
@@ -1064,7 +1091,10 @@ export function useTransactionForm({
     selectedMerchant,
     selectedMerchantId,
     selectedType,
-    setPickerAmount,
+    setPickerAmount: (value: string) => {
+      pendingPickerDefaultRef.current = null;
+      setPickerAmount(value);
+    },
     setPickerSpecialStatus,
     setPickerRefundCandidate: (candidate: TransactionRefundCandidate | null) =>
       selectLinkCandidate("refund", candidate),
@@ -1159,9 +1189,7 @@ function getNewItemBusinessNetAmount(
   refundCandidate: TransactionRefundCandidate | null,
   reimbursementCandidate: TransactionRefundCandidate | null,
   incomeCurrency?: string,
-  getRate?: (
-    targetCurrency: string,
-  ) => { rate: number; rateDate: string } | null,
+  getRate?: (targetCurrency: string) => LinkExchangeRate | null,
 ) {
   if (specialStatus === "reimbursed") return "0";
   const candidate = reimbursementCandidate ?? refundCandidate;
@@ -1200,9 +1228,7 @@ function getUpdatedItemBusinessNetAmount(
   previousAmount: string,
   categoryType?: TransactionType,
   incomeCurrency?: string,
-  getRate?: (
-    targetCurrency: string,
-  ) => { rate: number; rateDate: string } | null,
+  getRate?: (targetCurrency: string) => LinkExchangeRate | null,
 ) {
   if (categoryType === "income") {
     return getNewItemBusinessNetAmount(
@@ -1248,9 +1274,7 @@ function withUpdatedItemBusinessNetAmount(
   previousAmount: string,
   categoryType?: TransactionType,
   incomeCurrency?: string,
-  getRate?: (
-    targetCurrency: string,
-  ) => { rate: number; rateDate: string } | null,
+  getRate?: (targetCurrency: string) => LinkExchangeRate | null,
 ) {
   return {
     ...item,
