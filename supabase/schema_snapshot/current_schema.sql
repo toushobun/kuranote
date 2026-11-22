@@ -2478,7 +2478,10 @@ begin
         raise exception 'amount_invalid' using errcode = '22023', detail = 'amount_invalid';
     end if;
 
-    if p_fee_amount is not null and not public.is_valid_transfer_amount(p_fee_amount) then
+    if p_fee_amount is not null and (
+        not public.is_valid_transfer_amount(p_fee_amount)
+        or p_fee_amount <> round(p_fee_amount, public.transaction_currency_decimal_places(v_from_account.currency))
+    ) then
         raise exception 'transfer_fee_amount_invalid' using errcode='22023', detail='transfer_fee_amount_invalid';
     end if;
 
@@ -9282,7 +9285,10 @@ begin
         raise exception 'amount_invalid' using errcode = '22023', detail = 'amount_invalid';
     end if;
 
-    if p_fee_amount is not null and not public.is_valid_transfer_amount(p_fee_amount) then
+    if p_fee_amount is not null and (
+        not public.is_valid_transfer_amount(p_fee_amount)
+        or p_fee_amount <> round(p_fee_amount, public.transaction_currency_decimal_places(v_from_account.currency))
+    ) then
         raise exception 'transfer_fee_amount_invalid' using errcode='22023', detail='transfer_fee_amount_invalid';
     end if;
 

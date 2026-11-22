@@ -42,11 +42,11 @@ select ok(
 select ok(
     has_function_privilege(
         'authenticated',
-        'public.create_transfer_transaction(uuid,timestamptz,numeric,uuid,uuid,text,numeric)',
+        'public.create_transfer_transaction(uuid,timestamptz,numeric,uuid,uuid,text,numeric,numeric)',
         'execute'
     ) and not has_function_privilege(
         'anon',
-        'public.create_transfer_transaction(uuid,timestamptz,numeric,uuid,uuid,text,numeric)',
+        'public.create_transfer_transaction(uuid,timestamptz,numeric,uuid,uuid,text,numeric,numeric)',
         'execute'
     ),
     '新转账写入权限仅向 authenticated 开放'

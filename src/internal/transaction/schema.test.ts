@@ -529,10 +529,25 @@ describe("transfer transaction validators", () => {
         transactionAt: "2026-06-04T01:30:05.000Z",
         transferAmount: 1200,
         transferTargetAmount: null,
+        transferFeeAmount: null,
         transferTargetAccountId: toAccountId,
         type: "transfer",
       },
     });
+  });
+  it("手续费允许留空或正数，拒绝非正数与超过两位小数", () => {
+    expect(validateTransactionForm(createTransferFormData({
+      transferFeeAmount: "220",
+    }))).toMatchObject({
+      ok: true,
+      value: { transferFeeAmount: 220 },
+    });
+    for (const transferFeeAmount of ["0", "-1", "0.001", "abc"]) {
+      expect(validateTransactionForm(createTransferFormData({ transferFeeAmount }))).toEqual({
+        error: transactionErrorCodes.transferFeeAmountInvalid,
+        ok: false,
+      });
+    }
   });
   it("转账不要求商家和分类", () => {
     const formData = createTransferFormData({ merchantId: "" });
@@ -546,6 +561,7 @@ describe("transfer transaction validators", () => {
         transactionAt: "2026-06-04T01:30:05.000Z",
         transferAmount: 1200,
         transferTargetAmount: null,
+        transferFeeAmount: null,
         transferTargetAccountId: toAccountId,
         type: "transfer",
       },
@@ -637,6 +653,7 @@ describe("validateUpdateTransferTransactionForm", () => {
         transactionRecordId,
         transferAmount: 5000,
         transferTargetAmount: null,
+        transferFeeAmount: null,
         transferTargetAccountId: toAccountId,
         type: "transfer",
       },
