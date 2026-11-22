@@ -2563,7 +2563,7 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_to_amount" numeric) OWNER TO "postgres";
+ALTER FUNCTION "public"."create_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_to_amount" numeric, "p_fee_amount" numeric) OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."current_app_user_is_active"() RETURNS boolean
@@ -3470,25 +3470,6 @@ $$;
 ALTER FUNCTION "public"."get_current_user_setup_ledger"() OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."get_or_create_transfer_fee_category"("p_ledger_id" "uuid", "p_user_id" "uuid") RETURNS "uuid"
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'pg_catalog', 'pg_temp'
-    AS $
-declare v_id uuid;
-begin
-  perform set_config('app.allow_system_category_write','true',true);
-  insert into public.category(ledger_id,parent_id,type,name,icon_name,color,system_key,sort_order,created_by,updated_by)
-  values(p_ledger_id,null,'expense','🏧 手续费','🏧','#FDE68A','transfer_fee',99999,p_user_id,p_user_id)
-  on conflict (ledger_id,system_key) where system_key is not null do nothing;
-  select c.id into strict v_id from public.category c where c.ledger_id=p_ledger_id and c.system_key='transfer_fee';
-  perform set_config('app.allow_system_category_write','false',true);
-  return v_id;
-end;
-$;
-
-ALTER FUNCTION "public"."get_or_create_transfer_fee_category"("p_ledger_id" "uuid", "p_user_id" "uuid") OWNER TO "postgres";
-
-
 CREATE OR REPLACE FUNCTION "public"."get_ledger_default_root_categories"() RETURNS TABLE("name" "text", "sort_order" integer)
     LANGUAGE "sql" STABLE SECURITY DEFINER
     SET "search_path" TO 'pg_catalog', 'pg_temp'
@@ -3616,6 +3597,25 @@ ALTER FUNCTION "public"."get_next_ledger_member_display_color"("p_ledger_id" "uu
 
 COMMENT ON FUNCTION "public"."get_next_ledger_member_display_color"("p_ledger_id" "uuid") IS '按成员颜色预设顺序返回账本内第一个未被 active 成员使用的颜色；全部占用时回退 amber。';
 
+
+
+CREATE OR REPLACE FUNCTION "public"."get_or_create_transfer_fee_category"("p_ledger_id" "uuid", "p_user_id" "uuid") RETURNS "uuid"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'pg_catalog', 'pg_temp'
+    AS $
+declare v_id uuid;
+begin
+  perform set_config('app.allow_system_category_write','true',true);
+  insert into public.category(ledger_id,parent_id,type,name,icon_name,color,system_key,sort_order,created_by,updated_by)
+  values(p_ledger_id,null,'expense','🏧 手续费','🏧','#FDE68A','transfer_fee',99999,p_user_id,p_user_id)
+  on conflict (ledger_id,system_key) where system_key is not null do nothing;
+  select c.id into strict v_id from public.category c where c.ledger_id=p_ledger_id and c.system_key='transfer_fee';
+  perform set_config('app.allow_system_category_write','false',true);
+  return v_id;
+end;
+$;
+
+ALTER FUNCTION "public"."get_or_create_transfer_fee_category"("p_ledger_id" "uuid", "p_user_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."guard_balance_adjustment_item"() RETURNS "trigger"
@@ -5057,7 +5057,6 @@ with filter_flags as (
         ) as has_other_item_filters,
         (p_account_id is not null or p_holder_id is not null) as has_account_scope
 ),
--- 账户的持有人：持有人 ID 为成员 user_id 或占位 placeholder_id，无持有人的账户归入 'none'。
 account_holders as (
     select
         a.id as account_id,
@@ -5080,7 +5079,6 @@ account_holders as (
             and ah.ledger_id = a.ledger_id
       )
 ),
--- 账户集合筛选：账户筛选与持有人筛选的交集；没有这两个筛选时不使用。
 scope_accounts as (
     select distinct ah.account_id
     from account_holders ah
@@ -5152,8 +5150,6 @@ record_payments as (
       and p.transaction_record_id in (select bi.record_id from base_items bi)
     group by p.transaction_record_id
 ),
--- 有账户集合筛选时，付款账户一部分在集合内、一部分在集合外的记录（「共同支付」）。
--- 付款账户全在集合内（例如同一持有人的两个账户）时份额 = 整笔，不算共同支付。
 shared_records as (
     select
         rp.record_id,
@@ -9364,7 +9360,7 @@ end;
 $$;
 
 
-ALTER FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_to_amount" numeric) OWNER TO "postgres";
+ALTER FUNCTION "public"."update_transfer_transaction"("p_ledger_id" "uuid", "p_transaction_record_id" "uuid", "p_transaction_at" timestamp with time zone, "p_amount" numeric, "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_note" "text", "p_to_amount" numeric, "p_fee_amount" numeric) OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."upsert_ledger_member_display_setting"("p_ledger_id" "uuid", "p_user_id" "uuid", "p_display_name" "text", "p_display_color" "text") RETURNS "void"

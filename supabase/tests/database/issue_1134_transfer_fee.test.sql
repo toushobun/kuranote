@@ -46,9 +46,11 @@ select is(pg_temp.fee_balance('to'), 10000::numeric, '转入只加本金');
 select is((select count(*)::integer from public.transaction_item
  where transaction_record_id=(select id from transfer_fee_created where kind='same')),
  3, '一条转账至多一条手续费，新增共三条明细');
+set local role postgres;
 select ok(public.transfer_items_consistent(
  '00000000-0000-4000-8000-000000000032',
  (select id from transfer_fee_created where kind='same')), '新转账三明细完整性成立');
+set local role authenticated;
 select is((select system_key from public.category
  where id=(select category_id from public.transaction_item
   where transaction_record_id=(select id from transfer_fee_created where kind='same')

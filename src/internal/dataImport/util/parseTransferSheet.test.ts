@@ -140,6 +140,7 @@ describe("parseTransferSheet", () => {
       {
         amount: 500,
         targetAmount: null,
+        feeAmount: null,
         fromAccountCurrency: "CNY",
         fromAccountHolder: "鄧",
         fromAccountName: "现金",

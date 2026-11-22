@@ -9,8 +9,8 @@ select is(
   (select count(*)::integer from public.category
     where ledger_id = '00000000-0000-4000-8000-000000000032'
       and system_key is not null),
-  3,
-  'seed 账本恰好有三个系统分类'
+  4,
+  'seed 账本恰好有四个系统分类'
 );
 
 select is(
@@ -35,7 +35,7 @@ select is(
   (select count(*)::integer from public.category
     where ledger_id = '00000000-0000-4000-8000-000000000032'
       and system_key is not null),
-  3,
+  4,
   '重复初始化不会创建重复行'
 );
 
