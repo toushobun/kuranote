@@ -95,6 +95,8 @@ export function useTransferReceipt({
     value: DailyTransferRate | null;
   } | null>(null);
   const [note, setNote] = useState(initialValues?.note ?? "");
+  const [feeAmount, setFeeAmount] = useState(initialValues?.transferFeeAmount ?? "");
+  const [feeOpen, setFeeOpen] = useState(false);
   const [picker, setPicker] = useState<TransferSide | null>(null);
   const [amountSide, setAmountSide] = useState<TransferSide | null>(null);
   const [timeOpen, setTimeOpen] = useState(false);
@@ -106,6 +108,7 @@ export function useTransferReceipt({
       targetId,
       amount,
       transferTargetAmount,
+      feeAmount,
       note,
       dateTime.transactionAtValue,
     ]),
@@ -233,6 +236,9 @@ export function useTransferReceipt({
           },
         ]
       : []),
+    ...(feeAmount.trim() && !isValidPositiveMoneyText(feeAmount, { currency })
+      ? [{ id: "fee", message: t.feeInvalid, onClick: () => setFeeOpen(true) }]
+      : []),
     ...(!dateTime.transactionAtValue
       ? [
           {
@@ -259,6 +265,17 @@ export function useTransferReceipt({
     targetCurrency,
     crossCurrency,
     amount,
+    feeAmount,
+    feeOpen,
+    setFeeOpen,
+    confirmFeeAmount(value: string) {
+      setFeeAmount(value);
+      setFeeOpen(false);
+    },
+    removeFeeAmount() {
+      setFeeAmount("");
+      setFeeOpen(false);
+    },
     transferTargetAmount: effectiveTargetAmount,
     rate,
     dailyRate,

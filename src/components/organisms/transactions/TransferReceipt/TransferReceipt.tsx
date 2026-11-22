@@ -71,6 +71,7 @@ export function TransferReceipt(props: TransferReceiptProps) {
     loadDailyRate: props.loadDailyRate,
   });
   const { dateTime } = w;
+  const hasFee = !!w.feeAmount.trim();
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     if (readOnly || !w.checkIssues()) return;
     event.preventDefault();
@@ -117,6 +118,7 @@ export function TransferReceipt(props: TransferReceiptProps) {
           value={w.targetId}
         />
         <input name="transferAmount" readOnly type="hidden" value={w.amount} />
+        <input name="transferFeeAmount" readOnly type="hidden" value={w.feeAmount} />
         <input
           name="transferTargetAmount"
           readOnly
@@ -199,6 +201,46 @@ export function TransferReceipt(props: TransferReceiptProps) {
                 <TransferRateDetails receipt={w} readOnly={readOnly} />
               </>
             )}
+            {hasFee ? (
+              <>
+                <ReceiptAmountRow
+                  label={t.fee}
+                  amount={formatStepCurrencyAmount(w.feeAmount, w.currency)}
+                  caption={t.feeDetails(w.source?.name ?? t.selectAccount)}
+                  error={w.isMarked("fee")}
+                  onClick={readOnly ? undefined : () => w.setFeeOpen(true)}
+                />
+                {w.amount.trim() && (
+                  <Stack sx={{ alignItems: "flex-end", px: 2, pb: 1.5 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                      {t.feeTotalDebit(
+                        w.source?.name ?? t.selectAccount,
+                        formatStepCurrencyAmount(
+                          String(Number(w.amount) + Number(w.feeAmount)),
+                          w.currency,
+                        ),
+                      )}
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      {t.feeTotalCredit(
+                        w.target?.name ?? t.selectAccount,
+                        formatStepCurrencyAmount(
+                          w.crossCurrency ? w.transferTargetAmount : w.amount,
+                          w.crossCurrency ? w.targetCurrency : w.currency,
+                        ),
+                      )}
+                    </Typography>
+                  </Stack>
+                )}
+              </>
+            ) : !readOnly ? (
+              <ButtonBase
+                onClick={() => w.setFeeOpen(true)}
+                sx={{ alignSelf: "flex-start", color: "primary.main", fontWeight: 700, mx: 2, my: 1, p: 0.5 }}
+              >
+                {t.addFee}
+              </ButtonBase>
+            ) : null}
             <ReceiptNoteSection
               note={w.note}
               onChange={w.handleNoteChange}
@@ -232,6 +274,18 @@ export function TransferReceipt(props: TransferReceiptProps) {
           }
         />
       </TransactionBottomEditorDrawer>
+      <TransactionItemAmountDrawer
+        open={w.feeOpen}
+        title={t.feeTitle(w.currency)}
+        titleIsComplete
+        currency={w.currency}
+        value={w.feeAmount}
+        description={t.feeDetails(w.source?.name ?? t.selectAccount)}
+        onConfirm={w.confirmFeeAmount}
+        onClose={() => w.setFeeOpen(false)}
+        deleteLabel={hasFee ? t.removeFee : undefined}
+        onDelete={hasFee ? w.removeFeeAmount : undefined}
+      />
       <TransactionItemAmountDrawer
         open={w.amountSide !== null}
         titleIsComplete

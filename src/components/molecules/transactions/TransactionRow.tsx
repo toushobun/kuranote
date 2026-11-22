@@ -84,6 +84,9 @@ export function TransactionRow({
   const time = formatTransactionTime(item.transaction_at, { timeZone });
   const signedAmount = formatRowAmount(item);
   const sharedPaymentLabel = getSharedPaymentLabel(item);
+  const feeLabel = isTransfer && item.transferFeeAmount
+    ? transferReceiptMessages.listFee(formatUnsignedCurrencyAmount(item.transferFeeAmount, item.account_currency))
+    : null;
   const transferArrivalLabel =
     isTransfer && item.transferTargetAmount && item.transferTargetCurrency
       ? transferReceiptMessages.listArrival(
@@ -145,7 +148,7 @@ export function TransactionRow({
       sx={{
         px: 1.4,
         pt: 1.45,
-        pb: detailText || businessStatuses.length > 0 ? 0.8 : 1.45,
+        pb: detailText || businessStatuses.length > 0 || feeLabel ? 0.8 : 1.45,
       }}
     >
       <Stack direction="row" spacing={1.2} sx={{ alignItems: "flex-start" }}>
@@ -276,7 +279,7 @@ export function TransactionRow({
         </Stack>
       </Stack>
 
-      {detailText || businessStatuses.length > 0 ? (
+      {detailText || businessStatuses.length > 0 || feeLabel ? (
         <Stack
           direction="row"
           sx={{
@@ -300,7 +303,7 @@ export function TransactionRow({
               {detailText}
             </Typography>
           ) : null}
-          {businessStatuses.length > 0 ? (
+          {businessStatuses.length > 0 || feeLabel ? (
             <Stack
               direction="row"
               spacing={0.5}
@@ -312,6 +315,11 @@ export function TransactionRow({
                 "& > .MuiStack-root": { flexWrap: "nowrap" },
               }}
             >
+              {feeLabel && (
+                <Typography sx={{ bgcolor: "action.hover", borderRadius: 1, fontSize: 11, fontWeight: 700, px: 0.75, py: 0.25, whiteSpace: "nowrap" }}>
+                  {feeLabel}
+                </Typography>
+              )}
               {businessStatuses.map(({ key, status }) => (
                 <TransactionBusinessBadge
                   currency={item.account_currency}
