@@ -100,7 +100,7 @@ export function TransactionRow({
     item.originalAmount !== undefined ? (
       <TransactionOriginalAmount
         amount={formatTransactionRowAmount(
-          item.originalType ?? getAdjustedCategoryType(item) ?? item.type,
+          item.originalType ?? item.type,
           item.originalAmount,
           item.account_currency,
         )}
@@ -409,37 +409,6 @@ function getBusinessStatuses(
     });
   }
   return statuses;
-}
-
-function getAdjustedCategoryType(
-  item: TransactionRowItem,
-): TransactionCategoryType | null {
-  const adjustedItems = item.categoryItems.filter((category) => {
-    const amount = Number(category.amount);
-    const businessNetAmount = Number(category.businessNetAmount);
-    return (
-      category.businessNetAmount !== undefined &&
-      Number.isFinite(amount) &&
-      Number.isFinite(businessNetAmount) &&
-      amount !== businessNetAmount
-    );
-  });
-  const fullyExcludedItems = adjustedItems.filter(
-    ({ businessNetAmount }) => Number(businessNetAmount) === 0,
-  );
-  const partiallyOffsetItems = adjustedItems.filter(
-    ({ amount, businessNetAmount }) =>
-      Number(businessNetAmount) > 0 &&
-      Number(businessNetAmount) < Number(amount),
-  );
-  const typeItems =
-    fullyExcludedItems.length > 0 ? fullyExcludedItems : partiallyOffsetItems;
-  const firstType = typeItems[0]?.categoryType ?? null;
-  return typeItems.every(
-    ({ categoryType }) => (categoryType ?? null) === firstType,
-  )
-    ? firstType
-    : null;
 }
 
 function normalizeAggregatedAmount(amount: number, currency?: string) {
