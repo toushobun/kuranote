@@ -535,8 +535,8 @@ Storage 物理文件不能通过 SQL 删除，必须由具有服务端权限的 
 `20261122010000_cross_currency_refund_reimbursement.sql` 使用收入记录东京本地日期的汇率，把退款／报销折成原支出币种，按既有顺序抵扣，再折回收入币种计算倒赚。
 
 新建 `transaction_currency_decimal_places(text)` 为 IMMUTABLE 货币小数位函数；
-`transaction_link_allocations(uuid,uuid)` 和
-`transaction_link_allocations_for_targets(uuid,uuid[])` 为 STABLE SECURITY INVOKER 函数，固定 `search_path = pg_catalog, pg_temp`，受原有交易 RLS 约束；上述函数撤销 PUBLIC / anon 权限，只允许 authenticated / service_role 执行。
+`transaction_link_allocations(uuid,uuid)` 为 STABLE SECURITY INVOKER 函数。为允许 PostgreSQL 内联优化，不设置函数级 `search_path`，函数体内的数据库对象均使用完整 `public.` schema 限定名。
+`transaction_link_allocations_for_targets(uuid,uuid[])` 同为 STABLE SECURITY INVOKER 函数，保留固定 `search_path = pg_catalog, pg_temp`。两者均受原有交易 RLS 约束，撤销 PUBLIC / anon 权限，仅授予 authenticated / service_role 执行。
 
 `load_filtered_transaction_page` 去掉 `p_currency`，新签名为 `(uuid,text,text,uuid,text[],boolean,integer,integer,uuid,text,date)`。先 DROP 旧签名，保持 STABLE SECURITY INVOKER、固定 search_path、仅授权 authenticated，不改变成员与 RLS 访问边界。
 
