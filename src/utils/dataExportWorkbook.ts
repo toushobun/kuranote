@@ -156,8 +156,12 @@ export async function buildDataExportWorkbook(
     };
     if (record.type === "transfer") {
       const fee = record.items.find((item) => item.categoryId !== null);
-      const from = record.items.find((item) => item.categoryId === null && Number(item.balanceDelta) < 0);
-      const to = record.items.find((item) => item.categoryId === null && Number(item.balanceDelta) > 0);
+      const from = record.items.find(
+        (item) => item.categoryId === null && Number(item.balanceDelta) < 0,
+      );
+      const to = record.items.find(
+        (item) => item.categoryId === null && Number(item.balanceDelta) > 0,
+      );
       if (
         record.items.length !== (fee ? 3 : 2) ||
         !from ||

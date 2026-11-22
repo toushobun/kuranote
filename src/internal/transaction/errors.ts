@@ -104,7 +104,8 @@ export const transactionValidationErrorMessages: Record<
 > = {
   [transactionErrorCodes.accountInvalid]: "账户指定不正确。",
   [transactionErrorCodes.amountInvalid]: "金额不能为负数，且最多两位小数。",
-  [transactionErrorCodes.transferFeeAmountInvalid]: "手续费金额无效，请按转出账户币种重新输入。",
+  [transactionErrorCodes.transferFeeAmountInvalid]:
+    "手续费金额无效，请按转出账户币种重新输入。",
   [transactionErrorCodes.categoryInvalid]: "分类指定不正确。",
   [transactionErrorCodes.dateInvalid]: "发生时间不正确。",
   [transactionErrorCodes.merchantInvalid]: "商家指定不正确。",

@@ -69,12 +69,24 @@ export const SameCurrencyWithFee: Story = {
 
 export const CrossCurrencyWithFee: Story = {
   name: "跨币种转账：带手续费",
-  args: { initialValues: { ...editValues, accountId: "cash", transferTargetAccountId: "cny", transferAmount: "100000", transferTargetAmount: "4850", transferFeeAmount: "220" } },
+  args: {
+    initialValues: {
+      ...editValues,
+      accountId: "cash",
+      transferTargetAccountId: "cny",
+      transferAmount: "100000",
+      transferTargetAmount: "4850",
+      transferFeeAmount: "220",
+    },
+  },
 };
 
 export const ReadOnlyWithFee: Story = {
   name: "转账详情：手续费只读",
-  args: { initialValues: { ...editValues, transferFeeAmount: "220" }, readOnly: true },
+  args: {
+    initialValues: { ...editValues, transferFeeAmount: "220" },
+    readOnly: true,
+  },
 };
 
 export const Edit: Story = {

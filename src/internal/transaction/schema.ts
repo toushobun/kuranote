@@ -547,9 +547,14 @@ const transferTransactionRequestSchema = z.object({
     message: transactionErrorCodes.amountInvalid,
   }),
   transferTargetAccountId: z.string().uuid(),
-  transferFeeAmount: z.number().positive().refine(hasValidMoneyPrecision, {
-    message: transactionErrorCodes.transferFeeAmountInvalid,
-  }).nullable().optional(),
+  transferFeeAmount: z
+    .number()
+    .positive()
+    .refine(hasValidMoneyPrecision, {
+      message: transactionErrorCodes.transferFeeAmountInvalid,
+    })
+    .nullable()
+    .optional(),
   transferTargetAmount: z
     .number()
     .positive()

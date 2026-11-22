@@ -109,7 +109,11 @@ export function TransactionItemAmountDrawer({
           <CloseRoundedIcon />
         </IconButton>
       </Stack>
-      {description && <Typography variant="body2" color="textSecondary" sx={{ px: 1, pb: 1 }}>{description}</Typography>}
+      {description && (
+        <Typography variant="body2" color="textSecondary" sx={{ px: 1, pb: 1 }}>
+          {description}
+        </Typography>
+      )}
       {lastAmount && (
         <Box
           role="group"
@@ -146,7 +150,12 @@ export function TransactionItemAmountDrawer({
         confirmLabel={m.confirmAmount}
       />
       {onDelete && deleteLabel && (
-        <Button variant="text" color="error" onClick={onDelete} sx={{ alignSelf: "center" }}>
+        <Button
+          variant="text"
+          color="error"
+          onClick={onDelete}
+          sx={{ alignSelf: "center" }}
+        >
           {deleteLabel}
         </Button>
       )}

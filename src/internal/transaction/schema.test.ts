@@ -536,14 +536,20 @@ describe("transfer transaction validators", () => {
     });
   });
   it("手续费允许留空或正数，拒绝非正数与超过两位小数", () => {
-    expect(validateTransactionForm(createTransferFormData({
-      transferFeeAmount: "220",
-    }))).toMatchObject({
+    expect(
+      validateTransactionForm(
+        createTransferFormData({
+          transferFeeAmount: "220",
+        }),
+      ),
+    ).toMatchObject({
       ok: true,
       value: { transferFeeAmount: 220 },
     });
     for (const transferFeeAmount of ["0", "-1", "0.001", "abc"]) {
-      expect(validateTransactionForm(createTransferFormData({ transferFeeAmount }))).toEqual({
+      expect(
+        validateTransactionForm(createTransferFormData({ transferFeeAmount })),
+      ).toEqual({
         error: transactionErrorCodes.transferFeeAmountInvalid,
         ok: false,
       });

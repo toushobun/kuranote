@@ -268,7 +268,8 @@ function buildTransferListItem({
 }): TransactionListItem {
   const feeItem = recordItems.find((item) => item.category_id !== null);
   const fromItem = recordItems.find(
-    (item) => item.category_id === null && Number(item.balance_delta ?? "0") < 0,
+    (item) =>
+      item.category_id === null && Number(item.balance_delta ?? "0") < 0,
   );
   const toItem = recordItems.find(
     (item) => Number(item.balance_delta ?? "0") > 0,

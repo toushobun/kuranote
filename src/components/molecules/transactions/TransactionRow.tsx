@@ -84,9 +84,15 @@ export function TransactionRow({
   const time = formatTransactionTime(item.transaction_at, { timeZone });
   const signedAmount = formatRowAmount(item);
   const sharedPaymentLabel = getSharedPaymentLabel(item);
-  const feeLabel = isTransfer && item.transferFeeAmount
-    ? transferReceiptMessages.listFee(formatUnsignedCurrencyAmount(item.transferFeeAmount, item.account_currency))
-    : null;
+  const feeLabel =
+    isTransfer && item.transferFeeAmount
+      ? transferReceiptMessages.listFee(
+          formatUnsignedCurrencyAmount(
+            item.transferFeeAmount,
+            item.account_currency,
+          ),
+        )
+      : null;
   const transferArrivalLabel =
     isTransfer && item.transferTargetAmount && item.transferTargetCurrency
       ? transferReceiptMessages.listArrival(
@@ -316,7 +322,17 @@ export function TransactionRow({
               }}
             >
               {feeLabel && (
-                <Typography sx={{ bgcolor: "action.hover", borderRadius: 1, fontSize: 11, fontWeight: 700, px: 0.75, py: 0.25, whiteSpace: "nowrap" }}>
+                <Typography
+                  sx={{
+                    bgcolor: "action.hover",
+                    borderRadius: 1,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    px: 0.75,
+                    py: 0.25,
+                    whiteSpace: "nowrap",
+                  }}
+                >
                   {feeLabel}
                 </Typography>
               )}

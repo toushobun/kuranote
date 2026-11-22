@@ -118,7 +118,12 @@ export function TransferReceipt(props: TransferReceiptProps) {
           value={w.targetId}
         />
         <input name="transferAmount" readOnly type="hidden" value={w.amount} />
-        <input name="transferFeeAmount" readOnly type="hidden" value={w.feeAmount} />
+        <input
+          name="transferFeeAmount"
+          readOnly
+          type="hidden"
+          value={w.feeAmount}
+        />
         <input
           name="transferTargetAmount"
           readOnly
@@ -236,7 +241,14 @@ export function TransferReceipt(props: TransferReceiptProps) {
             ) : !readOnly ? (
               <ButtonBase
                 onClick={() => w.setFeeOpen(true)}
-                sx={{ alignSelf: "flex-start", color: "primary.main", fontWeight: 700, mx: 2, my: 1, p: 0.5 }}
+                sx={{
+                  alignSelf: "flex-start",
+                  color: "primary.main",
+                  fontWeight: 700,
+                  mx: 2,
+                  my: 1,
+                  p: 0.5,
+                }}
               >
                 {t.addFee}
               </ButtonBase>

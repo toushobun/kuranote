@@ -133,7 +133,8 @@ export function buildStatisticsViewData({
   for (const item of items) {
     const record = recordById.get(item.transaction_record_id);
 
-    if (!record || (record.type !== "normal" && record.type !== "transfer")) continue;
+    if (!record || (record.type !== "normal" && record.type !== "transfer"))
+      continue;
 
     const categoryId = item.category_id;
 

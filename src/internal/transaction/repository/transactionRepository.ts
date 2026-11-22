@@ -492,7 +492,10 @@ export function createSupabaseTransactionRepository(
     }
 
     if (rpcErrorCode === transactionErrorCodes.transferFeeAmountInvalid) {
-      throw new ValidationError(rpcErrorCode, transactionWriteErrorMessages.transferFeeAmountInvalid);
+      throw new ValidationError(
+        rpcErrorCode,
+        transactionWriteErrorMessages.transferFeeAmountInvalid,
+      );
     }
 
     if (rpcErrorCode === transactionErrorCodes.amountInvalid) {

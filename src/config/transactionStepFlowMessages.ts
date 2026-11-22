@@ -146,11 +146,14 @@ export const transferReceiptMessages = {
   fee: "手续费",
   addFee: "＋ 添加手续费",
   feeTitle: (currency: string) => `手续费（${currency}）`,
-  feeDetails: (accountName: string) => `从 ${accountName} 扣 · 计入「手续费」支出`,
+  feeDetails: (accountName: string) =>
+    `从 ${accountName} 扣 · 计入「手续费」支出`,
   removeFee: "删除手续费",
   feeInvalid: "手续费金额无效，请按转出账户币种重新输入",
-  feeTotalDebit: (accountName: string, amount: string) => `${accountName} 共扣 ${amount}`,
-  feeTotalCredit: (accountName: string, amount: string) => `${accountName} 到账 ${amount}`,
+  feeTotalDebit: (accountName: string, amount: string) =>
+    `${accountName} 共扣 ${amount}`,
+  feeTotalCredit: (accountName: string, amount: string) =>
+    `${accountName} 到账 ${amount}`,
   listFee: (amount: string) => `手续费 ${amount}`,
   sourceAmount: "转出金额",
   targetAmount: "到账金额",

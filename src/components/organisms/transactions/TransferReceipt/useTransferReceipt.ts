@@ -95,7 +95,9 @@ export function useTransferReceipt({
     value: DailyTransferRate | null;
   } | null>(null);
   const [note, setNote] = useState(initialValues?.note ?? "");
-  const [feeAmount, setFeeAmount] = useState(initialValues?.transferFeeAmount ?? "");
+  const [feeAmount, setFeeAmount] = useState(
+    initialValues?.transferFeeAmount ?? "",
+  );
   const [feeOpen, setFeeOpen] = useState(false);
   const [picker, setPicker] = useState<TransferSide | null>(null);
   const [amountSide, setAmountSide] = useState<TransferSide | null>(null);
