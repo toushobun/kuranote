@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   calculateTransferDifference,
+  divideAmountByExchangeRate,
   calculateTransferRate,
   formatTransferRate,
   prefillTransferTargetAmount,
@@ -205,5 +206,42 @@ describe("按当天汇率预填与差额", () => {
       value: "21.05",
     });
     expect(formatTransferRate(0, "JPY", "CNY")).toBeNull();
+  });
+});
+
+describe("divideAmountByExchangeRate", () => {
+  it.each([
+    ["2000", "JPY", "CNY", 23.8124, "83.99"],
+    ["1", "JPY", "CNY", 1e-7, "10000000.00"],
+    ["100000", "JPY", "CNY", 1e7, "0.01"],
+  ])(
+    "直接除法支持普通及指数形式汇率：%s %s → %s，汇率 %s",
+    (amount, source, target, rate, expected) => {
+      expect(divideAmountByExchangeRate(amount, source, target, rate)).toBe(
+        expected,
+      );
+    },
+  );
+
+  it("刚好卡在半分时按 SQL round 正数四舍五入，不先求浮点倒数", () => {
+    expect(divideAmountByExchangeRate("1", "JPY", "CNY", 8)).toBe("0.13");
+    expect(divideAmountByExchangeRate("1", "JPY", "CNY", 40)).toBe("0.03");
+  });
+
+  it("三位小数币种保留精度并在第四位为 5 时进位", () => {
+    expect(divideAmountByExchangeRate("1", "JPY", "KWD", 16)).toBe("0.063");
+    expect(divideAmountByExchangeRate("1", "JPY", "KWD", 8)).toBe("0.125");
+  });
+
+  it("无效来源金额、汇率以及超出输入上限时不生成默认金额", () => {
+    expect(divideAmountByExchangeRate("1.5", "JPY", "CNY", 8)).toBe("");
+    expect(divideAmountByExchangeRate("0", "JPY", "CNY", 8)).toBe("");
+    expect(divideAmountByExchangeRate("1", "JPY", "CNY", null)).toBe("");
+    expect(divideAmountByExchangeRate("1", "JPY", "CNY", 0)).toBe("");
+    expect(divideAmountByExchangeRate("1", "JPY", "CNY", Number.NaN)).toBe("");
+    expect(divideAmountByExchangeRate("1", "JPY", "CNY", Infinity)).toBe("");
+    expect(divideAmountByExchangeRate("999999999999", "JPY", "CNY", 1e-7)).toBe(
+      "",
+    );
   });
 });
