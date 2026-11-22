@@ -93,6 +93,7 @@ export type TransactionRowItem = {
   originalAmount?: string;
   originalType?: TransactionCategoryType;
   transferTargetAmount?: string;
+  transferFeeAmount?: string;
   transferTargetCurrency?: string;
   account_name: string;
   account_currency: string;
@@ -240,6 +241,7 @@ export type TransferEditInitialValues = {
   transactionRecordId: string;
   transferAmount: string;
   transferTargetAmount?: string;
+  transferFeeAmount?: string;
   transferTargetAccountId: string;
   type: "transfer";
 };

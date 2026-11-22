@@ -29,7 +29,7 @@ export type Category = {
   name: string;
   parent_id: string | null;
   sort_order: number;
-  system_key?: "special_income" | "refund" | "reimbursement" | null;
+  system_key?: "special_income" | "refund" | "reimbursement" | "transfer_fee" | null;
   type: CategoryType;
 };
 

@@ -108,6 +108,7 @@ export async function createTransaction(
         transactionAt: values.transactionAt,
         transferAmount: values.transferAmount,
         transferTargetAmount: values.transferTargetAmount,
+        transferFeeAmount: values.transferFeeAmount,
         transferTargetAccountId: values.transferTargetAccountId,
       });
     } else {
@@ -188,6 +189,7 @@ export async function updateTransferTransaction(
       transactionRecordId: values.transactionRecordId,
       transferAmount: values.transferAmount,
       transferTargetAmount: values.transferTargetAmount,
+      transferFeeAmount: values.transferFeeAmount,
       transferTargetAccountId: values.transferTargetAccountId,
     });
   } catch (error) {
