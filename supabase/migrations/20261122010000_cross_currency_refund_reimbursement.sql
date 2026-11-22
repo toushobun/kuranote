@@ -34,9 +34,9 @@ returns table (
     rate numeric,
     rate_date date
 )
+-- 对象引用全部写明 public；无函数级 SET 才能让 PostgreSQL 内联并优化关联查询。
 language sql stable security invoker
-set search_path = pg_catalog, pg_temp
-as $$
+as $
 with target as (
     select
         ti.id, ti.amount,
