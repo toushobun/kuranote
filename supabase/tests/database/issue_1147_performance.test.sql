@@ -367,28 +367,59 @@ select is(
   ), '跨币种退款 THB 换算后按 JPY 整数精度核销'
 );
 
--- 同一次运行先测无关联，再测 300 关联：以下仅诊断运行时间，不设抖动阈值。
+-- 从同一份 EXPLAIN JSON 提取最昂贵的节点，便于发现执行计划抖动。
+create function pg_temp.plan_brief_1147(p_plan jsonb)
+returns jsonb language sql stable as $plan$
+with recursive nodes as (
+  select p_plan->'Plan' as node, 0 as depth
+  union all
+  select child.value, nodes.depth + 1
+  from nodes
+  cross join lateral jsonb_array_elements(coalesce(nodes.node->'Plans','[]'::jsonb)) child
+), ranked as (
+  select jsonb_build_object(
+    'type', node->>'Node Type',
+    'relation', node->>'Relation Name',
+    'loops', node->>'Actual Loops',
+    'rows', node->>'Actual Rows',
+    'msPerLoop', node->>'Actual Total Time',
+    'sharedHits', node->>'Shared Hit Blocks'
+  ) as detail,
+  coalesce((node->>'Actual Loops')::numeric, 0)
+    * coalesce((node->>'Actual Total Time')::numeric, 0) as cumulative_ms
+  from nodes
+  order by cumulative_ms desc
+  limit 12
+)
+select jsonb_build_object(
+  'executionMs', p_plan->>'Execution Time',
+  'topNodes', coalesce(jsonb_agg(detail order by cumulative_ms desc), '[]'::jsonb)
+)
+from ranked;
+$plan$;
+
+-- 同一次运行先测无关联，再测 300 关联：以下诊断运行时间及主要执行节点，不设抖动阈值。
 select diag(format(
   'Issue #1147 含 300 关联统计页旧视图 3300 明细: %s',
-  pg_temp.explain_1147($sql$
+  pg_temp.plan_brief_1147(pg_temp.explain_1147($sql$
     select sum(v.business_net_amount)
     from pg_temp.issue_1147_before v
     join public.transaction_record tr on tr.id = v.transaction_record_id
     where tr.note = 'Issue #1147 性能样本'
-  $sql$)->>'Execution Time'
+  $sql$))
 ));
 select diag(format(
   'Issue #1147 含 300 关联统计页新视图 3300 明细: %s',
-  pg_temp.explain_1147($sql$
+  pg_temp.plan_brief_1147(pg_temp.explain_1147($sql$
     select sum(v.business_net_amount)
     from public.transaction_item_with_refund v
     join public.transaction_record tr on tr.id = v.transaction_record_id
     where tr.note = 'Issue #1147 性能样本'
-  $sql$)->>'Execution Time'
+  $sql$))
 ));
 select diag(format(
   'Issue #1147 含 300 关联列表首页旧视图 3300 明细: %s',
-  pg_temp.explain_1147($sql$
+  pg_temp.plan_brief_1147(pg_temp.explain_1147($sql$
     select sum(net) from (
       select v.business_net_amount as net
       from pg_temp.issue_1147_before v
@@ -397,11 +428,11 @@ select diag(format(
       order by tr.transaction_at desc
       limit 20
     ) page
-  $sql$)->>'Execution Time'
+  $sql$))
 ));
 select diag(format(
   'Issue #1147 含 300 关联列表首页新视图 3300 明细: %s',
-  pg_temp.explain_1147($sql$
+  pg_temp.plan_brief_1147(pg_temp.explain_1147($sql$
     select sum(net) from (
       select v.business_net_amount as net
       from public.transaction_item_with_refund v
@@ -410,7 +441,7 @@ select diag(format(
       order by tr.transaction_at desc
       limit 20
     ) page
-  $sql$)->>'Execution Time'
+  $sql$))
 ));
 
 select * from finish();
