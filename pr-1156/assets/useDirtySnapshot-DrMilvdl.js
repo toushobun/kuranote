@@ -1,0 +1,1 @@
+import{c as e,i as t}from"./preload-helper-D2yxXLVK.js";import{t as n}from"./react-DAMDAfNa.js";function r(e,t,n,r){let a=(0,i.useRef)(null),o=(0,i.useRef)(r);(0,i.useEffect)(()=>{n&&(r&&r!==o.current&&(a.current=e,o.current=r),a.current??=e,t?.(e!==a.current))},[e,t,n,r])}var i,a=t((()=>{i=e(n())}));export{r as n,a as t};
