@@ -511,7 +511,7 @@ begin
           and lds.display_name = 'Owner'
           and lds.display_color = 'jade'
        )
-       or (select count(*) from public.category where ledger_id = v_previous_ledger_id) <> 102
+       or (select count(*) from public.category where ledger_id = v_previous_ledger_id) <> 103
        or (select count(*) from public.merchant where ledger_id = v_previous_ledger_id) <> 55
        or (select count(*) from public.merchant_tags where ledger_id = v_previous_ledger_id) <> 8
        or (
@@ -661,7 +661,7 @@ begin
         raise exception 'complete_ledger_setup ledger status smoke test failed';
     end if;
 
-    if (select count(*) from public.category where ledger_id = v_setup_ledger_id) <> 102 then
+    if (select count(*) from public.category where ledger_id = v_setup_ledger_id) <> 103 then
         raise exception 'complete_ledger_setup default categories smoke test failed';
     end if;
 
@@ -798,7 +798,7 @@ begin
           and l.setup_status = 'completed'
           and l.transaction_item_special_status_enabled = false
        )
-       or (select count(*) from public.category where ledger_id = v_skip_ledger_id) <> 102
+       or (select count(*) from public.category where ledger_id = v_skip_ledger_id) <> 103
        or exists (select 1 from public.account where ledger_id = v_skip_ledger_id)
        or exists (select 1 from public.merchant where ledger_id = v_skip_ledger_id)
        or exists (select 1 from public.merchant_tags where ledger_id = v_skip_ledger_id) then
@@ -984,8 +984,8 @@ begin
         raise exception '% default root category count changed: expected 12, got %', p_label, v_roots;
     end if;
     if (select count(*) from public.category
-        where ledger_id = p_ledger_id and system_key is not null) <> 3 then
-        raise exception '% expected exactly three system categories', p_label;
+        where ledger_id = p_ledger_id and system_key is not null) <> 4 then
+        raise exception '% expected exactly four system categories', p_label;
     end if;
     if v_fingerprint is distinct from v_expected_fingerprint then
         raise exception '% default category fingerprint changed: expected %, got %',
