@@ -420,8 +420,8 @@ export const AccountPickerAfterRemoval: Story = {
     await clickButton(canvasElement, "添加付款账户");
   },
 };
-export const CurrencyConfirm: Story = {
-  name: "换成不同币种的账户：确认框在抽屉之上",
+export const CurrencySwitchWithoutConfirmation1147: Story = {
+  name: "换成不同币种的账户：不再弹确认框",
   play: async ({ canvasElement }) => {
     await clickButton(canvasElement, "更换支付账户 1");
     await userEvent.click(
@@ -523,4 +523,87 @@ export const RefundReceiptWithSurplus: Story = {
       ],
     },
   },
+};
+
+export const CrossCurrencyReimbursementReceipt1147: Story = {
+  name: "跨币种报销小票 · 折算与倒赚",
+  render: () => (
+    <ReadOnlyReceipt
+      note=""
+      itemsOptions={{
+        ...receiptItemsOptions,
+        categoryOptions: [
+          ...receiptItemsOptions.categoryOptions,
+          {
+            id: "reimbursement-system",
+            name: "报销",
+            parentId: "special-income",
+            parentName: "特殊收入",
+            systemKey: "reimbursement",
+            type: "income",
+          },
+        ],
+        initialPayments: [{ accountId: "cny", amount: null }],
+        initialItems: [
+          {
+            id: "11471000-0000-4000-8000-000000000011",
+            amount: "84.00",
+            businessNetAmount: "0.01",
+            categoryId: "reimbursement-system",
+            reimbursementCandidate: {
+              id: "11471000-0000-4000-8000-000000000001",
+              transactionRecordId: "11472000-0000-4000-8000-000000000001",
+              transactionAt: "2026-11-19T09:00:00+09:00",
+              merchantId: "amazon",
+              categoryName: "键盘",
+              parentCategoryName: "数码",
+              accountId: "paypay",
+              accountCurrency: "JPY",
+              amount: "2000",
+              refundedAmount: "0",
+              remainingRefundableAmount: "0",
+            },
+            savedLinkAllocation: {
+              actualTargetAmount: "2000",
+              foldedBackAmount: "83.99",
+              convertedAmount: "2000",
+              incomeCurrency: "CNY",
+              targetCurrency: "JPY",
+              rate: 23.8124,
+              rateDate: "2026-11-20",
+            },
+          },
+        ],
+      }}
+    />
+  ),
+};
+
+export const CrossCurrencyOriginalExpenseReceipt1147: Story = {
+  name: "原支出小票 · 已报销 CNY 折成 JPY",
+  render: () => (
+    <ReadOnlyReceipt
+      note=""
+      itemsOptions={{
+        ...receiptItemsOptions,
+        initialItems: [
+          {
+            amount: "2000",
+            businessNetAmount: "0",
+            categoryId: "storage",
+            reimbursementAmount: "2000",
+            crossCurrencyOffsets: [
+              {
+                kind: "reimbursement",
+                incomeAmount: "84.00",
+                incomeCurrency: "CNY",
+                convertedAmount: "2000",
+                targetCurrency: "JPY",
+              },
+            ],
+          },
+        ],
+      }}
+    />
+  ),
 };

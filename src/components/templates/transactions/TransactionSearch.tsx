@@ -49,7 +49,6 @@ export type TransactionSearchTemplateProps = {
   onSelectReimbursementItem?: (item: TransactionRefundCandidate) => void;
   refundSelectionMode?: boolean;
   reimbursementSelectionMode?: boolean;
-  selectableCurrency?: string;
   selectedRefundItemId?: string | null;
   selectedReimbursementItemId?: string | null;
 };
@@ -65,7 +64,6 @@ export function TransactionSearchTemplate({
   onSelectReimbursementItem,
   refundSelectionMode = false,
   reimbursementSelectionMode = false,
-  selectableCurrency,
   selectedRefundItemId = null,
   selectedReimbursementItemId = null,
 }: TransactionSearchTemplateProps) {
@@ -159,7 +157,6 @@ export function TransactionSearchTemplate({
               <TransactionRefundCandidateList
                 items={search.items}
                 onSelect={onSelectReimbursementItem}
-                selectableCurrency={selectableCurrency}
                 selectedId={selectedReimbursementItemId}
                 selectionKind="reimbursement"
               />
@@ -167,7 +164,6 @@ export function TransactionSearchTemplate({
               <TransactionRefundCandidateList
                 items={search.items}
                 onSelect={onSelectRefundItem}
-                selectableCurrency={selectableCurrency}
                 selectedId={selectedRefundItemId}
               />
             ) : (

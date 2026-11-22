@@ -142,6 +142,44 @@ export function prefillTransferTargetAmount(
     : "";
 }
 
+/** 用十进制整数直接除以汇率，避免先计算浮点倒数再乘造成半分舍入错误。 */
+export function divideAmountByExchangeRate(
+  amount: string,
+  sourceCurrency: string,
+  targetCurrency: string,
+  dailyRate: number | null,
+) {
+  if (
+    !isValidPositiveMoneyText(amount, { currency: sourceCurrency }) ||
+    dailyRate === null ||
+    !Number.isFinite(dailyRate) ||
+    dailyRate <= 0
+  )
+    return "";
+  const [coefficient, exponentText = "0"] = dailyRate.toString().split("e");
+  const [whole, fraction = ""] = coefficient.split(".");
+  const exponent = Number(exponentText);
+  const amountDecimals = amount.split(".")[1]?.length ?? 0;
+  const targetDecimals = getAmountDecimalPlaces(targetCurrency);
+  const numerator =
+    BigInt(amount.replace(".", "")) *
+    BigInt(10) **
+      BigInt(targetDecimals + fraction.length + Math.max(-exponent, 0));
+  const denominator =
+    BigInt(whole + fraction) *
+    BigInt(10) ** BigInt(amountDecimals + Math.max(exponent, 0));
+  const rounded =
+    (numerator * BigInt(2) + denominator) / (denominator * BigInt(2));
+  const digits = rounded.toString().padStart(targetDecimals + 1, "0");
+  const result =
+    targetDecimals === 0
+      ? digits
+      : `${digits.slice(0, -targetDecimals)}.${digits.slice(-targetDecimals)}`;
+  return isValidPositiveMoneyText(result, { currency: targetCurrency })
+    ? result
+    : "";
+}
+
 /** 差额与实际预填的到账金额比较，避免显示「少到账 0 元」。 */
 export function calculateTransferDifference(
   sourceAmount: string,

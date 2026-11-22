@@ -1,14 +1,9 @@
 import type {
   TransactionCategoryOption,
-  TransactionRefundCandidate,
   TransactionType,
 } from "types/transactions";
 import { isValidMoneyText as isValidTransactionAmountText } from "utils/transactionAmountInput";
-import type { TransactionLinkKind } from "utils/transactionMessages";
-import {
-  hasBusinessNetAmountOffset,
-  hasLinkCandidateCurrencyMismatch,
-} from "utils/transactions";
+import { hasBusinessNetAmountOffset } from "utils/transactions";
 
 import type {
   TransactionFormItem,
@@ -101,26 +96,6 @@ export function getDefaultPickerCategory(
 
 export function isValidMoneyText(value: string, currency?: string) {
   return isValidTransactionAmountText(value, { currency });
-}
-
-// 按固定顺序（退款 → 报销）返回与账户币种不一致的关联种类。
-export function getCurrencyMismatchedLinkKinds(
-  links: {
-    refundCandidate?: TransactionRefundCandidate | null;
-    reimbursementCandidate?: TransactionRefundCandidate | null;
-  },
-  currency: string | undefined,
-): TransactionLinkKind[] {
-  const kinds: TransactionLinkKind[] = [];
-  if (hasLinkCandidateCurrencyMismatch(links.refundCandidate, currency)) {
-    kinds.push("refund");
-  }
-  if (
-    hasLinkCandidateCurrencyMismatch(links.reimbursementCandidate, currency)
-  ) {
-    kinds.push("reimbursement");
-  }
-  return kinds;
 }
 
 /** 未关联原支出的系统退款 / 报销明细不能当作普通收入。 */

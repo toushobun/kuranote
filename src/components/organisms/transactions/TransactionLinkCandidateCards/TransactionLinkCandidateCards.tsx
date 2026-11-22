@@ -10,18 +10,15 @@ import { designTokens } from "theme/theme";
 import { transactionLinkCandidateMessages as m } from "config/transactionStepFlowMessages";
 import type { TransactionRefundCandidate } from "types/transactions";
 import { getCurrencySymbol } from "utils/currency";
-import { transactionLinkMessages } from "utils/transactionMessages";
 import {
   formatNumber,
   formatUnsignedCurrencyAmount,
   formatTransactionMonthDay,
-  hasLinkCandidateCurrencyMismatch,
 } from "utils/transactions";
 
 export function TransactionLinkCandidateCards({
   candidates,
   onSelect,
-  selectableCurrency,
   resolveLinkCandidate,
   selectedId = null,
   lockedAmounts,
@@ -30,7 +27,6 @@ export function TransactionLinkCandidateCards({
 }: {
   candidates: TransactionRefundCandidate[];
   onSelect: (item: TransactionRefundCandidate) => void;
-  selectableCurrency?: string;
   resolveLinkCandidate?: (
     candidate: TransactionRefundCandidate,
   ) => TransactionRefundCandidate;
@@ -61,13 +57,6 @@ export function TransactionLinkCandidateCards({
           candidate.accountCurrency,
         );
         const currencySymbol = getCurrencySymbol(candidate.accountCurrency);
-        const currencyMismatchReason =
-          selectableCurrency !== undefined &&
-          hasLinkCandidateCurrencyMismatch(candidate, selectableCurrency)
-            ? transactionLinkMessages.candidateCurrencyMismatchReason(
-                selectableCurrency,
-              )
-            : null;
         const subtitle = [
           ...(showMerchantName
             ? [candidate.merchantName || m.unassignedMerchant]
@@ -77,7 +66,6 @@ export function TransactionLinkCandidateCards({
         ]
           .filter(Boolean)
           .join(" · ");
-        const isCurrencyMismatched = currencyMismatchReason !== null;
         return (
           <ButtonBase
             aria-label={m.selectCandidate(
@@ -85,7 +73,7 @@ export function TransactionLinkCandidateCards({
               candidate.categoryName,
             )}
             aria-pressed={selected || locked}
-            disabled={isCurrencyMismatched || locked}
+            disabled={locked}
             key={candidate.id}
             onClick={() => onSelect(originalCandidate)}
             sx={{
@@ -135,11 +123,6 @@ export function TransactionLinkCandidateCards({
                   )}
                 </Typography>
               ) : null}
-              {currencyMismatchReason ? (
-                <Typography color="textSecondary" variant="caption">
-                  {currencyMismatchReason}
-                </Typography>
-              ) : null}
             </Stack>
             <Stack sx={{ alignItems: "flex-end", flexShrink: 0 }}>
               <Typography
@@ -150,7 +133,8 @@ export function TransactionLinkCandidateCards({
                 }}
               >
                 {currencySymbol}
-                {formatNumber(candidate.amount, candidate.accountCurrency)}
+                {formatNumber(candidate.amount, candidate.accountCurrency)}{" "}
+                {candidate.accountCurrency}
               </Typography>
               {settled ? (
                 <Typography variant="caption" sx={settledCandidateBadgeSx}>
@@ -191,7 +175,7 @@ export function TransactionLinkCandidateCards({
                   />
                 )
               }
-              disabled={isCurrencyMismatched || locked}
+              disabled={locked}
               tabIndex={-1}
               sx={{ p: 0, pointerEvents: "none" }}
             />

@@ -900,7 +900,7 @@ describe("TransactionService", () => {
     },
   );
 
-  it("候选按明细分页并按日期倒序，服务端按币种过滤、商家优先排序", async () => {
+  it("候选按明细分页且币种混排，商家优先排序", async () => {
     const { service, ledger, repository } = candidateService();
     const first = await service.getLinkCandidatePage(ledger, "refund", {
       currency: "JPY",
@@ -913,7 +913,8 @@ describe("TransactionService", () => {
       offset: 20,
       currency: "JPY",
     });
-    expect(next.items.map((item) => item.id)).toEqual(["candidate-22"]);
+    expect(next.items).toHaveLength(2);
+    expect(next.items.map((item) => item.id)).toContain("candidate-22");
     expect(next.nextOffset).toBeNull();
     expect(next.settledCount).toBe(1);
     const merchant = await service.getLinkCandidatePage(ledger, "refund", {
@@ -927,11 +928,10 @@ describe("TransactionService", () => {
     expect(merchant.items[0]?.merchantId).toBe(
       "00000000-0000-4000-8000-000000001002",
     );
-    const usd = await service.getLinkCandidatePage(ledger, "refund", {
-      currency: "USD",
+    const mixed = [...first.items, ...next.items];
+    expect(mixed.find((item) => item.accountCurrency === "USD")).toMatchObject({
+      accountId: "usd-account",
     });
-    expect(usd.items.map((item) => item.id)).toEqual(["candidate-21"]);
-    expect(usd.items[0]?.accountId).toBe("usd-account");
   });
 
   it("未传币种时跨页返回不同币种支出及原付款账户 ID", async () => {
@@ -957,7 +957,10 @@ describe("TransactionService", () => {
       currency: "JPY",
       merchantId: "00000000-0000-4000-8000-000000001001",
     });
-    expect(page.items.map((item) => item.id)).toEqual(["candidate-22"]);
+    expect(page.items.map((item) => item.id)).toEqual([
+      "candidate-21",
+      "candidate-22",
+    ]);
     expect(page.settledCount).toBe(1);
     const settled = await service.getLinkCandidatePage(
       ledger,
@@ -1018,7 +1021,7 @@ describe("TransactionService", () => {
     });
     const ids = [...first.items, ...next.items].map((item) => item.id);
     expect(ids[0]).toBe("candidate-22");
-    expect(ids).toHaveLength(21);
+    expect(ids).toHaveLength(22);
     expect(new Set(ids).size).toBe(ids.length);
     expect(first.nextOffset).toBe(20);
     expect(next.nextOffset).toBeNull();
@@ -1028,9 +1031,11 @@ describe("TransactionService", () => {
         recordIds: expect.arrayContaining(["old-record", "new-record"]),
       }),
     );
-    expect(repository.listItems).toHaveBeenNthCalledWith(2, ledger.id, [
-      "new-record",
-    ]);
+    expect(repository.listItems).toHaveBeenNthCalledWith(
+      2,
+      ledger.id,
+      expect.arrayContaining(["new-record"]),
+    );
     expect(repository.listRecords).toHaveBeenCalledTimes(2);
     expect(first.settledCount).toBe(1);
     const search = await service.getLinkCandidatePage(ledger, "refund", {

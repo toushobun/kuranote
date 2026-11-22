@@ -196,7 +196,6 @@ export type FilteredTransactionPageInput = {
   merchantPriorityId?: string;
   historyMerchantId?: string;
   month?: string | null;
-  currency?: string;
   specialStatuses?: TransactionSpecialStatusFilterValue[];
   settled?: boolean;
 };
@@ -363,9 +362,8 @@ const transactionRpcErrorCodes = [
   "income_link_category_invalid",
   "income_link_conflict",
   "refunded_item_invalid",
-  "refund_currency_mismatch",
   "refund_allocation_invalid",
-  "reimbursement_currency_mismatch",
+  "link_exchange_rate_missing",
   "income_links_create_only",
   "linked_transaction_edit_forbidden",
   "reimbursement_link_exists",
@@ -543,17 +541,10 @@ export function createSupabaseTransactionRepository(
       );
     }
 
-    if (rpcErrorCode === "refund_currency_mismatch") {
+    if (rpcErrorCode === "link_exchange_rate_missing") {
       throw new ValidationError(
         transactionErrorCodes.refundLinkInvalid,
-        transactionWriteErrorMessages.refundCurrencyMismatch,
-      );
-    }
-
-    if (rpcErrorCode === "reimbursement_currency_mismatch") {
-      throw new ValidationError(
-        transactionErrorCodes.reimbursementLinkInvalid,
-        transactionWriteErrorMessages.reimbursementCurrencyMismatch,
+        transactionWriteErrorMessages.linkExchangeRateMissing,
       );
     }
 
@@ -1122,7 +1113,6 @@ export function createSupabaseTransactionRepository(
           ...(input.historyMerchantId
             ? { p_history_merchant_id: input.historyMerchantId }
             : {}),
-          p_currency: input.currency ?? null,
           p_special_statuses:
             input.specialStatuses?.map((status) =>
               toTransactionSpecialStatusStorageValue(status),

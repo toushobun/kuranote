@@ -9,9 +9,29 @@ import type {
   TransactionType,
 } from "types/transactions";
 
+export type SavedCrossCurrencyAllocation = {
+  actualTargetAmount: string;
+  foldedBackAmount: string;
+  convertedAmount: string;
+  incomeCurrency: string;
+  targetCurrency: string;
+  rate: number;
+  rateDate: string;
+};
+
+export type CrossCurrencyOffsetRow = {
+  kind: "refund" | "reimbursement";
+  incomeAmount: string;
+  incomeCurrency: string;
+  convertedAmount: string;
+  targetCurrency: string;
+};
+
 export type TransactionFormInitialItem = {
   amount: string;
   businessNetAmount?: string;
+  savedLinkAllocation?: SavedCrossCurrencyAllocation;
+  crossCurrencyOffsets?: CrossCurrencyOffsetRow[];
   businessStatus?: TransactionBusinessStatus | null;
   categoryId: string;
   expectedUpdatedAt?: string;
@@ -40,6 +60,8 @@ export type TransactionFormInitialValues = {
 export type TransactionFormItem = {
   amount: string;
   businessNetAmount?: string;
+  savedLinkAllocation?: SavedCrossCurrencyAllocation;
+  crossCurrencyOffsets?: CrossCurrencyOffsetRow[];
   businessStatus?: TransactionBusinessStatus | null;
   categoryId: string;
   expectedUpdatedAt?: string;
@@ -61,6 +83,10 @@ export type CategoryPickerGroup = {
 
 export type TransactionItemSummary = TransactionFormItem & {
   category?: TransactionCategoryOption;
+  /** 尚未保存时的客户端跨币种预览；保存后以数据库核销结果为准。 */
+  linkPreview?: SavedCrossCurrencyAllocation & {
+    businessNetAmount: string;
+  };
 };
 
 export type TransactionItemPickerMode =

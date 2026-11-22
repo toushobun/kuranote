@@ -129,13 +129,12 @@ const currencyMismatchedCandidateItems: TransactionListItem[] = [
   },
 ];
 
-export const CurrencyMismatchedCandidates: Story = {
-  name: "与收款账户币种不一致的候选置灰",
+export const MixedCurrencyCandidates1147: Story = {
+  name: "不同币种的原支出候选允许选择",
   render: () => (
     <TransactionRefundCandidateList
       items={currencyMismatchedCandidateItems}
       onSelect={() => undefined}
-      selectableCurrency="USD"
     />
   ),
 };

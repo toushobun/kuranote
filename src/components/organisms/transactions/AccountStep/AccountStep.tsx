@@ -17,25 +17,32 @@ import { entrySelectionRowSx as rowSx } from "organisms/transactions/transaction
 import { flowMessages as m } from "config/transactionStepFlowMessages";
 import type { TransactionAccountOption } from "types/transactions";
 import type { AccountStepProps } from "./AccountStep.types";
-import { useAccountStep } from "./useAccountStep";
 
 /** 收支账户列表（#943）：任务 9 起在小票的账户选择抽屉里使用，标题由抽屉显示。 */
 export function AccountStep(props: AccountStepProps) {
-  const w = useAccountStep(props);
-  const selectRef = useRef(w.selectAccount);
+  const recommended = (props.recommendedAccountIds ?? []).flatMap((id) =>
+    props.accounts.filter((account) => account.id === id),
+  );
+  const others = props.accounts.filter(
+    (account) => !recommended.some((item) => item.id === account.id),
+  );
+  const selectRef = useRef(props.onSelect);
   useLayoutEffect(() => {
-    selectRef.current = w.selectAccount;
+    selectRef.current = props.onSelect;
   });
   const addAccount = props.onAddAccount
-    ? () => props.onAddAccount?.((account) => selectRef.current(account))
+    ? () =>
+        props.onAddAccount?.(async (account) => {
+          selectRef.current(account);
+          return true;
+        })
     : undefined;
   const accountList = (accounts: TransactionAccountOption[]) => (
     <List disablePadding>
       {accounts.map((account) => (
         <ListItemButton
           key={account.id}
-          disabled={w.busy}
-          onClick={() => void w.selectAccount(account)}
+          onClick={() => props.onSelect(account)}
           sx={[
             rowSx,
             props.selectedAccount?.id === account.id
@@ -94,7 +101,7 @@ export function AccountStep(props: AccountStepProps) {
     />
   ) : (
     <Stack spacing={2} role="radiogroup" aria-label={m.accounts}>
-      {w.recommended.length > 0 ? (
+      {recommended.length > 0 ? (
         <>
           <SelectionSectionHeader
             title={m.recommended}
@@ -102,13 +109,13 @@ export function AccountStep(props: AccountStepProps) {
             addLabel={m.addAccount}
             onAdd={addAccount}
           />
-          {accountList(w.recommended)}
-          {w.others.length > 0 && (
+          {accountList(recommended)}
+          {others.length > 0 && (
             <>
               <Typography sx={{ fontWeight: "bold" }}>
                 {m.otherAccounts}
               </Typography>
-              {accountList(w.others)}
+              {accountList(others)}
             </>
           )}
         </>

@@ -75,9 +75,9 @@ describe("transactionLinkCandidateUtils", () => {
   });
 
   it("草稿候选金额搜索与 RPC 一样识别千分位、货币符号及空格", () => {
-    expect(matchesLinkCandidateScope(target, "JPY", "¥3,280 円")).toBe(true);
-    expect(matchesLinkCandidateScope(target, "JPY", "3，280")).toBe(true);
-    expect(matchesLinkCandidateScope(target, "JPY", "¥3,281 円")).toBe(false);
+    expect(matchesLinkCandidateScope(target, "¥3,280 円")).toBe(true);
+    expect(matchesLinkCandidateScope(target, "3，280")).toBe(true);
+    expect(matchesLinkCandidateScope(target, "¥3,281 円")).toBe(false);
   });
 
   it("搜索草稿候选匹配备注、账户和大小分类，同时过滤币种", () => {
@@ -89,9 +89,9 @@ describe("transactionLinkCandidateUtils", () => {
       parentCategoryName: "居家购物",
     };
     for (const term of ["蓝牙", "家庭", "数码", "居家"])
-      expect(matchesLinkCandidateScope(entry, "JPY", term)).toBe(true);
-    expect(matchesLinkCandidateScope(entry, "JPY", "找不到")).toBe(false);
-    expect(matchesLinkCandidateScope(entry, "USD", "蓝牙")).toBe(false);
+      expect(matchesLinkCandidateScope(entry, term)).toBe(true);
+    expect(matchesLinkCandidateScope(entry, "找不到")).toBe(false);
+    expect(matchesLinkCandidateScope(entry, "蓝牙")).toBe(true);
   });
 });
 

@@ -869,6 +869,7 @@ describe("getEditTransactionView income links", () => {
         transactionRecordId: "00000000-0000-4000-8000-000000009998",
       };
       const incomeLinkRepository: TransactionIncomeLinkRepository = {
+        listAllocationsByTargetItemIds: vi.fn().mockResolvedValue([]),
         listByIncomeItemIds: vi.fn().mockResolvedValue([
           {
             incomeItemId,
@@ -970,6 +971,7 @@ describe("getEditTransactionView income links", () => {
 
   it("报销收入编辑时保留核销超额后的有符号剩余额度", async () => {
     const incomeLinkRepository: TransactionIncomeLinkRepository = {
+      listAllocationsByTargetItemIds: vi.fn().mockResolvedValue([]),
       listByIncomeItemIds: vi.fn().mockResolvedValue([
         {
           incomeItemId,
@@ -1033,6 +1035,7 @@ describe("getEditTransactionView income links", () => {
 
   it("退款收入编辑时按退款和报销组合口径回填退款对象", async () => {
     const incomeLinkRepository: TransactionIncomeLinkRepository = {
+      listAllocationsByTargetItemIds: vi.fn().mockResolvedValue([]),
       listByIncomeItemIds: vi.fn().mockResolvedValue([
         {
           incomeItemId,

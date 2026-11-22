@@ -8,8 +8,6 @@ import type {
   TransactionRefundCandidate,
 } from "types/transactions";
 
-import { transactionLinkMessages } from "utils/transactionMessages";
-
 import { useTransactionForm } from "./useTransactionForm";
 
 const mocks = vi.hoisted(() => ({ markEditDirty: vi.fn() }));
@@ -715,51 +713,15 @@ describe("useTransactionForm", () => {
     expect(preventDefault).toHaveBeenCalledOnce();
   });
 
-  it("同币种跨账户退款候选可以选择且切换账户后保留", () => {
+  it("跨币种退款候选也允许选择，切换收款账户时保留关联", () => {
     const { result } = renderTransactionFormHook({
       initialValues: createInitialValues(),
     });
-    const candidate = { ...refundCandidate, accountId: "account-2" };
+    const candidate = { ...refundCandidate, accountCurrency: "USD" };
     act(() => result.current.setPickerRefundCandidate(candidate));
     expect(result.current.pickerRefundCandidate).toEqual(candidate);
-    act(() => changePrimaryAccount(result, "account-2"));
+    act(() => changePrimaryAccount(result, "account-3"));
     expect(result.current.pickerRefundCandidate).toEqual(candidate);
-    expect(result.current.linkNotice).toBeNull();
-  });
-
-  it("多账户时退款 / 报销候选的币种按首个付款账户判断", () => {
-    const { result } = renderTransactionFormHook({
-      initialValues: {
-        ...createInitialValues(),
-        payments: [
-          { accountId: "account-3", amount: "600" },
-          { accountId: "account-1", amount: "600" },
-        ],
-      },
-    });
-
-    act(() => result.current.setPickerRefundCandidate(refundCandidate));
-    expect(result.current.pickerRefundCandidate).toBeNull();
-
-    const usdCandidate = { ...refundCandidate, accountCurrency: "USD" };
-    act(() => result.current.setPickerRefundCandidate(usdCandidate));
-    expect(result.current.pickerRefundCandidate).toEqual(usdCandidate);
-  });
-
-  it("首次选择跨币种退款候选时立即拒绝并提示重新选择", () => {
-    const { result } = renderTransactionFormHook({
-      initialValues: createInitialValues(),
-    });
-
-    act(() =>
-      result.current.setPickerRefundCandidate({
-        ...refundCandidate,
-        accountCurrency: "USD",
-      }),
-    );
-
-    expect(result.current.pickerRefundCandidate).toBeNull();
-    expect(result.current.linkNotice).toContain("币种一致");
   });
 
   it("已有收款账户时不覆盖用户选择的同币种账户", () => {
@@ -774,7 +736,6 @@ describe("useTransactionForm", () => {
 
     expect(result.current.selectedAccount?.id).toBe("account-2");
     expect(result.current.pickerRefundCandidate).toEqual(refundCandidate);
-    expect(result.current.linkNotice).toBeNull();
   });
 
   it("原付款账户已归档时确定关联后也不自动填账户", () => {
@@ -810,11 +771,10 @@ describe("useTransactionForm", () => {
     act(() => changePrimaryAccount(result, "account-3"));
 
     expect(result.current.selectedAccount?.id).toBe("account-3");
-    expect(result.current.pickerRefundCandidate).toBeNull();
-    expect(result.current.linkNotice).toContain("币种已变更");
+    expect(result.current.pickerRefundCandidate).toEqual(refundCandidate);
   });
 
-  it("切换账户后清空币种不匹配的报销候选", () => {
+  it("切换账户后保留不同币种的报销候选", () => {
     const { result } = renderTransactionFormHook({
       initialValues: createInitialValues(),
     });
@@ -829,8 +789,9 @@ describe("useTransactionForm", () => {
     act(() => changePrimaryAccount(result, "account-3"));
 
     expect(result.current.selectedAccount?.id).toBe("account-3");
-    expect(result.current.pickerReimbursementCandidate).toBeNull();
-    expect(result.current.linkNotice).toContain("币种已变更");
+    expect(result.current.pickerReimbursementCandidate).toEqual(
+      reimbursementCandidate,
+    );
   });
 
   it("退款与报销候选互斥选择时清空另一侧候选", () => {
@@ -854,248 +815,31 @@ describe("useTransactionForm", () => {
     expect(result.current.pickerReimbursementCandidate).toBeNull();
   });
 
-  it("退款收入因币种变化解除关联时清理业务净额", () => {
-    const { result } = renderTransactionFormHook({
-      initialValues: {
-        ...createInitialValues(),
-        items: [
-          {
-            amount: "200",
-            businessNetAmount: "0",
-            businessStatus: {
-              incomeLinkRole: "refund",
-              offsetComposition: {
-                refundAmount: "0",
-                reimbursementAmount: "0",
+  it("新增和编辑已保存的退款或报销，切换账户后继续保留原支出", () => {
+    for (const saved of [false, true]) {
+      for (const [field, candidate] of [
+        ["refundCandidate", refundCandidate],
+        ["reimbursementCandidate", reimbursementCandidate],
+      ] as const) {
+        const { result } = renderTransactionFormHook({
+          initialValues: {
+            ...createInitialValues(),
+            items: [
+              {
+                amount: "200",
+                categoryId: "income-category",
+                ...(saved ? { id: "persisted-item-1" } : {}),
+                [field]: candidate,
               },
-              settlementStatus: null,
-            },
-            categoryId: "income-category",
-            refundCandidate,
+            ],
+            ...(saved ? { transactionRecordId: "record-1" } : {}),
           },
-        ],
-      },
-    });
-
-    act(() => changePrimaryAccount(result, "account-2"));
-    expect(result.current.itemSummaries[0]?.refundCandidate).toEqual(
-      refundCandidate,
-    );
-    act(() => changePrimaryAccount(result, "account-3"));
-
-    expect(result.current.itemSummaries[0]).toMatchObject({
-      amount: "200",
-      businessStatus: null,
-      refundCandidate: null,
-    });
-    expect(result.current.itemSummaries[0]?.businessNetAmount).toBeUndefined();
-  });
-
-  describe("明细中已加入的关联因币种切换", () => {
-    const linkCases = [
-      {
-        candidate: refundCandidate,
-        field: "refundCandidate",
-        kind: "refund",
-        label: "退款",
-      },
-      {
-        candidate: reimbursementCandidate,
-        field: "reimbursementCandidate",
-        kind: "reimbursement",
-        label: "报销",
-      },
-    ] as const;
-
-    type LinkedIncomeItem = Partial<
-      Record<(typeof linkCases)[number]["field"], TransactionRefundCandidate>
-    >;
-
-    function renderWithLinkedIncomeItems(items: LinkedIncomeItem[]) {
-      return renderTransactionFormHook({
-        initialValues: {
-          ...createInitialValues(),
-          items: items.map((links) => ({
-            amount: "200",
-            categoryId: "income-category",
-            ...links,
-          })),
-        },
-      });
-    }
-
-    // 编辑页：明细带持久化 id，关联由 transactionFormService 读入。
-    function renderWithSavedLinkedIncomeItems(items: LinkedIncomeItem[]) {
-      return renderTransactionFormHook({
-        initialValues: {
-          ...createInitialValues(),
-          items: items.map((links, index) => ({
-            amount: "200",
-            categoryId: "income-category",
-            expectedUpdatedAt: "2026-07-20T01:30:00.000Z",
-            id: `persisted-item-${index + 1}`,
-            ...links,
-          })),
-          transactionRecordId: "record-1",
-        },
-      });
-    }
-
-    it.each(linkCases)(
-      "新建表单中$label关联因币种不一致被清除时显示提示",
-      ({ candidate, field, kind }) => {
-        const { result } = renderWithLinkedIncomeItems([
-          { [field]: candidate },
-        ]);
-
-        act(() => changePrimaryAccount(result, "account-3"));
-
-        expect(result.current.itemSummaries[0]?.[field]).toBeNull();
-        expect(result.current.linkNotice).toBe(
-          transactionLinkMessages.accountCurrencyChanged([kind]),
-        );
-      },
-    );
-
-    it.each(linkCases)(
-      "编辑页中已保存的$label关联切换到不同币种时不清除并提示先解除关联",
-      ({ candidate, field, kind, label }) => {
-        const { result } = renderWithSavedLinkedIncomeItems([
-          { [field]: candidate },
-        ]);
-
-        act(() => changePrimaryAccount(result, "account-3"));
-
-        expect(result.current.itemSummaries[0]?.[field]).toEqual(candidate);
-        expect(result.current.linkNotice).toBe(
-          transactionLinkMessages.savedLinkCurrencyLocked([kind]),
-        );
-        expect(result.current.linkNotice).toBe(
-          `该明细已关联${label}，账户需与关联明细的币种一致；如需更换为其他币种的账户，请先解除关联。`,
-        );
-      },
-    );
-
-    it("编辑页中已保存的退款和报销关联同时受影响时提示中列出两者", () => {
-      const { result } = renderWithSavedLinkedIncomeItems([
-        { refundCandidate },
-        { reimbursementCandidate },
-      ]);
-
-      act(() => changePrimaryAccount(result, "account-3"));
-
-      expect(result.current.itemSummaries[0]?.refundCandidate).toEqual(
-        refundCandidate,
-      );
-      expect(result.current.itemSummaries[1]?.reimbursementCandidate).toEqual(
-        reimbursementCandidate,
-      );
-      expect(result.current.linkNotice).toBe(
-        transactionLinkMessages.savedLinkCurrencyLocked([
-          "refund",
-          "reimbursement",
-        ]),
-      );
-    });
-
-    it.each(linkCases)(
-      "编辑页中本次新选的$label关联切换到不同币种时清除并提示重新选择",
-      ({ candidate, field, kind }) => {
-        const { result } = renderWithSavedLinkedIncomeItems([{}]);
-
-        // 编辑页中新增一条带关联的收入明细（尚未保存）。
-        act(() => result.current.openSheet());
-        act(() => result.current.handlePickerCategoryToggle("income-category"));
-        act(() =>
-          kind === "refund"
-            ? result.current.setPickerRefundCandidate(candidate)
-            : result.current.setPickerReimbursementCandidate(candidate),
-        );
-        act(() => {
-          result.current.handlePickerAdd();
         });
-        expect(result.current.itemSummaries[1]?.[field]).toEqual(candidate);
-
         act(() => changePrimaryAccount(result, "account-3"));
-
-        expect(result.current.itemSummaries[1]?.[field]).toBeNull();
-        expect(result.current.linkNotice).toBe(
-          transactionLinkMessages.accountCurrencyChanged([kind]),
-        );
-      },
-    );
-
-    it.each(linkCases)(
-      "编辑页中已保存明细重新选择的$label关联切换到不同币种时清除并提示重新选择",
-      ({ candidate, field, kind }) => {
-        const { result } = renderWithSavedLinkedIncomeItems([
-          { [field]: candidate },
-        ]);
-        const reselectedCandidate = { ...candidate, id: "reselected-item" };
-
-        act(() =>
-          result.current.updateItem(1, { [field]: reselectedCandidate }),
-        );
-        act(() => changePrimaryAccount(result, "account-3"));
-
-        expect(result.current.itemSummaries[0]?.[field]).toBeNull();
-        expect(result.current.linkNotice).toBe(
-          transactionLinkMessages.accountCurrencyChanged([kind]),
-        );
-      },
-    );
-
-    it("编辑页中已保存关联与本次新选关联同时受影响时分别提示", () => {
-      const { result } = renderWithSavedLinkedIncomeItems([
-        { refundCandidate },
-        {},
-      ]);
-
-      act(() => result.current.updateItem(2, { reimbursementCandidate }));
-      act(() => changePrimaryAccount(result, "account-3"));
-
-      expect(result.current.itemSummaries[0]?.refundCandidate).toEqual(
-        refundCandidate,
-      );
-      expect(
-        result.current.itemSummaries[1]?.reimbursementCandidate,
-      ).toBeNull();
-      expect(result.current.linkNotice).toBe(
-        transactionLinkMessages.savedLinkCurrencyLocked(["refund"]) +
-          transactionLinkMessages.accountCurrencyChanged(["reimbursement"]),
-      );
-    });
-
-    it.each(linkCases)(
-      "同币种切换账户时保留$label关联且不提示",
-      ({ candidate, field }) => {
-        const { result } = renderWithLinkedIncomeItems([
-          { [field]: candidate },
-        ]);
-
-        act(() => changePrimaryAccount(result, "account-2"));
-
+        expect(result.current.selectedAccount?.currency).toBe("USD");
         expect(result.current.itemSummaries[0]?.[field]).toEqual(candidate);
-        expect(result.current.linkNotice).toBeNull();
-      },
-    );
-
-    it("退款和报销关联同时被清除时提示中列出两者", () => {
-      const { result } = renderWithLinkedIncomeItems([
-        { refundCandidate },
-        { reimbursementCandidate },
-      ]);
-
-      act(() => changePrimaryAccount(result, "account-3"));
-
-      expect(result.current.linkNotice).toBe(
-        transactionLinkMessages.accountCurrencyChanged([
-          "refund",
-          "reimbursement",
-        ]),
-      );
-      expect(result.current.linkNotice).toContain("退款、报销");
-    });
+      }
+    }
   });
   it("添加明细时允许空金额并通知新明细编号", () => {
     const onPickerItemCommit = vi.fn();

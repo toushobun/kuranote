@@ -211,6 +211,22 @@ export type EditTransactionView<
         items: {
           amount: string;
           businessNetAmount?: string;
+          savedLinkAllocation?: {
+            actualTargetAmount: string;
+            foldedBackAmount: string;
+            convertedAmount: string;
+            incomeCurrency: string;
+            targetCurrency: string;
+            rate: number;
+            rateDate: string;
+          };
+          crossCurrencyOffsets?: {
+            kind: "refund" | "reimbursement";
+            incomeAmount: string;
+            incomeCurrency: string;
+            convertedAmount: string;
+            targetCurrency: string;
+          }[];
           businessStatus?: TransactionBusinessStatus | null;
           categoryId: string;
           expectedUpdatedAt?: string;

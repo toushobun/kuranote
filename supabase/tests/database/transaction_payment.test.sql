@@ -5,6 +5,9 @@ set local search_path = public, extensions;
 
 select no_plan();
 
+-- #1147：旧拒绝用例验证「缺少汇率」，不再验证「币种必须相同」。
+delete from public.exchange_rate where currency = 'THB';
+
 update public.ledger
 set transaction_item_special_status_enabled = true,
     multi_account_payment_enabled = true
@@ -319,7 +322,7 @@ select throws_ok(
         pg_temp.refund_items(50), pg_temp.pay('00000000-0000-4000-8000-000000000042'),
         '00000000-0000-4000-8000-000000001001', '#911 退款'
     ),
-    '22023', 'refund_currency_mismatch', '退款币种按付款账户判断'
+    '22023', 'link_exchange_rate_missing', '退款关联币种按付款账户取汇率，缺失时拒绝'
 );
 
 insert into payment_test_ids
@@ -371,7 +374,7 @@ select throws_ok(
         '00000000-0000-4000-8000-000000000042',
         (select updated_at from public.transaction_record where id = pg_temp.rid('refund'))
     ),
-    '22023', 'refund_currency_mismatch', '已关联编辑切换到异币种付款账户被拒绝'
+    '22023', 'link_exchange_rate_missing', '已关联编辑切换异币种但汇率缺失时被拒绝'
 );
 select lives_ok(
     pg_temp.linked_edit_sql(
@@ -590,7 +593,7 @@ select throws_ok(
             '00000000-0000-4000-8000-000000000042', pg_temp.rid('target')
         )
     ),
-    '22023', 'refund_currency_mismatch', '关联对方的付款账户币种变化时被拒绝'
+    '22023', 'link_exchange_rate_missing', '关联对方币种变化且缺失汇率时拒绝'
 );
 select throws_ok(
     format(

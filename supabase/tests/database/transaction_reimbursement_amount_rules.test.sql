@@ -4,6 +4,9 @@ set local search_path = public, extensions;
 
 select plan(29);
 
+-- #1147：旧拒绝用例验证「缺少汇率」，不再验证「币种必须相同」。
+delete from public.exchange_rate where currency = 'THB';
+
 update public.ledger
 set transaction_item_special_status_enabled = true
 where id = '00000000-0000-4000-8000-000000000032';
@@ -200,8 +203,8 @@ select throws_ok(
         )
     $$,
     '22023',
-    'reimbursement_currency_mismatch',
-    '报销收入与目标支出币种不一致时拒绝建立关联'
+    'link_exchange_rate_missing',
+    '报销收入不同币种且无汇率时拒绝建立关联'
 );
 
 select lives_ok(

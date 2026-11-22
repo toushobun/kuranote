@@ -18,7 +18,6 @@ export function TransactionStepItemPicker(props: TransactionReceiptProps) {
             item.id === f.editingItemId && getMissingIncomeLinkKind(item),
         )
       }
-      linkNotice={f.linkNotice}
       open={f.isSheetOpen}
       onClose={f.closeSheet}
       pickerAmount={f.pickerAmount}
@@ -43,6 +42,12 @@ export function TransactionStepItemPicker(props: TransactionReceiptProps) {
         f.linkAffectedReimbursementCandidates
       }
       selectedAccountCurrency={f.selectedAccount?.currency}
+      pickerLinkRate={f.pickerLinkRate}
+      pickerRatePending={f.pickerRatePending}
+      pickerRateMissing={f.pickerRateMissing}
+      pickerRateFailed={f.pickerRateFailed}
+      pickerRateUnavailable={f.pickerRateUnavailable}
+      onRetryLinkRate={f.retryLinkRate}
       selectedCategoryGroup={f.selectedCategoryGroup}
       specialStatusEnabled={props.transactionItemSpecialStatusEnabled}
       disabledCategoryType={f.disabledCategoryType}

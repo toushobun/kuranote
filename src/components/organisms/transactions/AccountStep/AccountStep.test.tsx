@@ -24,9 +24,6 @@ function setup(overrides: Partial<AccountStepProps> = {}) {
   const view = renderEntryComponent(<AccountStep {...props} />);
   return { ...view, props };
 }
-function currencySetup(hasDetails = true) {
-  return setup({ selectedAccount: flowFixture.accounts[1], hasDetails });
-}
 describe("AccountStep", () => {
   it.each([
     { recommendedAccountIds: [] },
@@ -124,40 +121,18 @@ describe("AccountStep", () => {
       "true",
     );
   });
-  it("已有明细时换币种取消不切换，确认后才通知外部", async () => {
-    const { props } = currencySetup();
+  it("已有明细时切换不同币种账户直接生效，不弹确认框", async () => {
+    const { props } = setup({ selectedAccount: flowFixture.accounts[1] });
     selectAccount("招商银行卡 CNY");
-    expect(
-      screen.getByText(
-        "币种将从 JPY 变为 CNY，已填写的金额不会换算，数字保持不变。已关联的退款 / 报销会被取消。",
-      ),
-    ).toBeInTheDocument();
-    expect(props.onSelect).not.toHaveBeenCalled();
-    click("取消");
-    await waitFor(() =>
-      expect(
-        screen.queryByText("切换为 招商银行卡 账户？"),
-      ).not.toBeInTheDocument(),
-    );
-    expect(props.onSelect).not.toHaveBeenCalled();
-    expect(screen.getByRole("radio", { name: "PayPay JPY" })).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
-    // 确认框消失后，异步选择流程还需要解除 busy，才能再次点击账户。
-    await waitFor(() =>
-      expect(
-        screen.getByRole("radio", { name: "招商银行卡 CNY" }),
-      ).not.toHaveAttribute("aria-disabled", "true"),
-    );
-    selectAccount("招商银行卡 CNY");
-    click("切换");
     await waitFor(() =>
       expect(props.onSelect).toHaveBeenCalledWith(flowFixture.accounts[2]),
     );
+    expect(
+      screen.queryByText("切换为 招商银行卡 账户？"),
+    ).not.toBeInTheDocument();
   });
   it("没有明细时换币种无需确认", async () => {
-    const { props } = currencySetup(false);
+    const { props } = setup({ selectedAccount: flowFixture.accounts[1] });
     selectAccount("招商银行卡 CNY");
     await waitFor(() =>
       expect(props.onSelect).toHaveBeenCalledWith(flowFixture.accounts[2]),

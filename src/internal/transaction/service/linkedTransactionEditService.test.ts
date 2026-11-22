@@ -516,89 +516,33 @@ describe("LinkedTransactionEditService", () => {
     expect(updateEdit).not.toHaveBeenCalled();
   });
 
-  it("退款关联切换账户时拒绝不同币种", async () => {
-    const { service } = createService(createIncomeView("refund"));
-    const input = incomeInput({
-      payments: [{ accountId: otherCurrencyAccountId, amount: null }],
-      items: [
-        {
-          amount: 100,
-          categoryId: incomeCategoryId,
-          id: linkedItemId,
-          refundedItemId: targetItemId,
-        },
-      ],
-    });
-
-    await expect(
-      service.updateNormal(currentLedger, input),
-    ).rejects.toMatchObject({
-      code: transactionErrorCodes.refundLinkInvalid,
-      message:
-        "该明细已关联退款，账户需与关联明细的币种一致；如需更换为其他币种的账户，请先解除关联。",
-      name: ValidationError.name,
-    });
-  });
-
-  it.each([sameCurrencyAccountId, otherCurrencyAccountId])(
-    "退款目标切换账户时按币种校验：%s",
-    async (accountId) => {
-      const { service, updateEdit } = createService(createTargetView("refund"));
-      const input = targetInput({
-        payments: [{ accountId, amount: null }],
+  it.each(["refund", "reimbursement"] as const)(
+    "%s 关联切换不同币种账户时允许提交并保留关联",
+    async (role) => {
+      const { service, updateEdit } = createService(createIncomeView(role));
+      const input = incomeInput({
+        payments: [{ accountId: otherCurrencyAccountId, amount: null }],
+        items: [
+          {
+            amount: 100,
+            categoryId: incomeCategoryId,
+            id: linkedItemId,
+            ...(role === "refund"
+              ? { refundedItemId: targetItemId }
+              : { reimbursementItemId: targetItemId }),
+          },
+        ],
+        confirmSync: true,
         expectedUpdatedAtByItemId: { [linkedItemId]: updatedAt },
       });
-      if (accountId === otherCurrencyAccountId) {
-        await expect(
-          service.updateNormal(currentLedger, input),
-        ).rejects.toMatchObject({
-          code: transactionErrorCodes.refundLinkInvalid,
-        });
-        expect(updateEdit).not.toHaveBeenCalled();
-      } else {
-        await service.updateNormal(currentLedger, input);
-        expect(updateEdit).toHaveBeenCalledWith(
-          expect.objectContaining({
-            payments: [{ accountId, amount: null }],
-          }),
-        );
-      }
+      await service.updateNormal(currentLedger, input);
+      expect(updateEdit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          payments: [{ accountId: otherCurrencyAccountId, amount: null }],
+        }),
+      );
     },
   );
-
-  it("报销关联切换账户时拒绝不同币种", async () => {
-    const { service } = createService(createIncomeView());
-    const input = incomeInput({
-      payments: [{ accountId: otherCurrencyAccountId, amount: null }],
-    });
-
-    await expect(
-      service.updateNormal(currentLedger, input),
-    ).rejects.toMatchObject({
-      code: transactionErrorCodes.reimbursementLinkInvalid,
-      message:
-        "该明细已关联报销，账户需与关联明细的币种一致；如需更换为其他币种的账户，请先解除关联。",
-      name: ValidationError.name,
-    });
-  });
-
-  it("原账户不在有效选项中时仍拒绝报销关联切换账户", async () => {
-    const view = createIncomeView();
-    view.accountOptions = view.accountOptions.filter(
-      (account) => account.id !== oldAccountId,
-    );
-    const { service } = createService(view);
-    const input = incomeInput({
-      payments: [{ accountId: otherCurrencyAccountId, amount: null }],
-    });
-
-    await expect(
-      service.updateNormal(currentLedger, input),
-    ).rejects.toMatchObject({
-      code: transactionErrorCodes.reimbursementLinkInvalid,
-      name: ValidationError.name,
-    });
-  });
 
   it.each(["refund", "reimbursement"] as const)(
     "%s 关联允许同币种账户并在确认后保存",

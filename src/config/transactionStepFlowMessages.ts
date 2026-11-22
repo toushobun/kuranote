@@ -54,6 +54,20 @@ export const flowMessages = {
     refund: "退款",
     reimbursement: "报销",
   },
+  receiptCrossCurrencyExpense: (
+    kind: "refund" | "reimbursement",
+    incomeAmount: string,
+    targetAmount: string,
+  ) =>
+    `已${kind === "refund" ? "退款" : "报销"} ${incomeAmount}（折 ${targetAmount}）`,
+  receiptCrossCurrencyOffset: (targetAmount: string, incomeAmount: string) =>
+    `抵消原支出 ${targetAmount}（折 ${incomeAmount}）`,
+  receiptCrossCurrencyRate: (
+    date: string,
+    base: string,
+    rate: string,
+    quote: string,
+  ) => `按 ${date} 汇率 1 ${base} = ${rate} ${quote}`,
   receiptOffset: (amount: string) => `抵消原支出 ${amount}`,
   receiptSettled: "原支出已抵完",
   amountTitle: (category: string) => `${category} 的金额`,
@@ -113,9 +127,6 @@ export const flowMessages = {
 
   cancel: "取消",
   switch: "切换",
-  currencyTitle: (name: string) => `切换为 ${name} 账户？`,
-  currencyDescription: (from: string, to: string) =>
-    `币种将从 ${from} 变为 ${to}，已填写的金额不会换算，数字保持不变。已关联的退款 / 报销会被取消。`,
 } as const;
 
 /** 汇率表采用的实际日期，仅显示月/日。 */
@@ -235,6 +246,21 @@ export const transactionLinkCandidateMessages = {
   retry: "加载失败，点击重试",
   refundAmount: "退款金额",
   reimbursementAmount: "报销金额",
+  exchangeRateMissing: "暂无汇率，无法关联不同币种的原支出",
+  exchangeRateFailed: "汇率读取失败，请重试",
+  retryExchangeRate: "重试",
+  exchangeRateLoading: "正在读取当天汇率…",
+  crossCurrencyRate: (
+    date: string,
+    base: string,
+    rate: string,
+    quote: string,
+  ) => `按 ${date} 汇率 1 ${base} = ${rate} ${quote}`,
+  crossCurrencyConverted: (amount: string, rate: string) =>
+    `折 ${amount}（${rate}）`,
+  crossCurrencySurplus: (amount: string) =>
+    `原支出已抵完，多出的 ${amount} 算作收入`,
+
   selectFirst: (kind: "refund" | "reimbursement") =>
     kind === "refund" ? "先选择要退款的支出" : "先选择要报销的支出",
   remaining: (kind: "refund" | "reimbursement", amount: string) =>

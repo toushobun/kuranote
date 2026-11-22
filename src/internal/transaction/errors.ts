@@ -1,5 +1,4 @@
 import { sharedErrorMessages } from "internal/shared/errors/sharedErrorMessages";
-import { transactionLinkMessages } from "utils/transactionMessages";
 
 export const transactionErrorCodes = {
   balanceAdjustmentAccountArchived: "balance_adjustment_account_archived",
@@ -206,12 +205,11 @@ export const transactionWriteErrorMessages = {
     ],
   paymentTotalMismatch:
     transactionPaymentMessages[transactionErrorCodes.paymentTotalMismatch],
+  linkExchangeRateMissing: "暂无汇率，无法关联不同币种的原支出。",
   refundAllocationInvalid: "退款金额不正确，请重新选择退款明细。",
-  refundCurrencyMismatch: "退款收入与支出明细的账户币种必须一致。",
   refundedItemInvalid: "退款关联的支出明细无效，请重新选择。",
   refundLinkConstraintInvalid: "退款关联的金额或明细不正确，请确认后重试。",
   refundLinkDuplicate: "同一退款收入最多只能关联一条支出明细，请刷新后重试。",
-  reimbursementCurrencyMismatch: "报销收入与待报销明细的账户币种必须一致。",
   reimbursementItemUnavailable:
     "待报销明细已被处理或不属于当前账本，请刷新后重试。",
   reimbursementLinkExists: "该支出仍有关联的报销收入，请先解除关联。",
@@ -254,7 +252,6 @@ export const transactionLoadErrorMessages = {
 
 export const transactionLinkedEditErrorMessages = {
   targetInvalid: "这笔原支出已不能关联，请重新选择。",
-  targetCurrencyMismatch: "原支出与收款账户币种不一致。",
   confirmationRequired:
     "该交易包含退款 / 报销关联，请确认同步修改关联数据后再保存。",
   deleteForbidden: "该交易包含已关联的退款 / 报销明细，请先解除关联后再删除。",
@@ -263,12 +260,6 @@ export const transactionLinkedEditErrorMessages = {
   itemsInvalid: "交易明细不正确，请刷新页面后重试。",
   itemVersionConflict: "交易明细已被其他操作更新，请刷新后重试。",
   linkBroken: "分类或收支类型会破坏现有退款 / 报销关联。",
-  // 与编辑页切换账户时的前端提示共用同一文案（#904）。
-  refundCurrencyMismatch: transactionLinkMessages.savedLinkCurrencyLocked([
-    "refund",
-  ]),
-  reimbursementCurrencyMismatch:
-    transactionLinkMessages.savedLinkCurrencyLocked(["reimbursement"]),
   specialStatusLocked:
     "待报销及已结算状态不能直接修改；如需改变业务关系，请先解除关联。",
   unlinkRequired: "该修改会破坏现有退款 / 报销关联，请先解除关联后再修改。",

@@ -73,22 +73,6 @@ function isLinkedItem(item: ExistingItem): boolean {
   return isLinkedIncome(item) || isLinkedTarget(item);
 }
 
-function hasRefundLink(item: ExistingItem): boolean {
-  return Boolean(
-    item.businessStatus?.incomeLinkRole === "refund" ||
-    hasPositiveAmount(item.businessStatus?.offsetComposition.refundAmount),
-  );
-}
-
-function hasReimbursementLink(item: ExistingItem): boolean {
-  return Boolean(
-    item.businessStatus?.incomeLinkRole === "reimbursement" ||
-    hasPositiveAmount(
-      item.businessStatus?.offsetComposition.reimbursementAmount,
-    ),
-  );
-}
-
 function sameAmount(left: string | number, right: string | number): boolean {
   const leftUnits = toRefundMinorUnits(left);
   const rightUnits = toRefundMinorUnits(right);
@@ -381,27 +365,6 @@ export function createLinkedTransactionEditService({
           transactionPaymentValidationErrorMessages[paymentSettingResult.error],
         );
       }
-      const oldAccount = view.accountOptions.find(
-        (account) => account.id === initial.payments[0]?.accountId,
-      );
-      const newAccount = view.accountOptions.find(
-        (account) => account.id === input.payments[0]?.accountId,
-      );
-      const currencyChanged =
-        paymentsChanged && oldAccount?.currency !== newAccount?.currency;
-      if (currencyChanged && linkedItems.some(hasRefundLink)) {
-        throw new ValidationError(
-          transactionErrorCodes.refundLinkInvalid,
-          transactionLinkedEditErrorMessages.refundCurrencyMismatch,
-        );
-      }
-      if (currencyChanged && linkedItems.some(hasReimbursementLink)) {
-        throw new ValidationError(
-          transactionErrorCodes.reimbursementLinkInvalid,
-          transactionLinkedEditErrorMessages.reimbursementCurrencyMismatch,
-        );
-      }
-
       const changedLinkedItems: Array<{
         existing: ExistingItem;
         submitted: SubmittedItem;

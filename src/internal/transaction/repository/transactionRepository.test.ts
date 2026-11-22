@@ -94,7 +94,6 @@ describe("TransactionRepository", () => {
         query: "咖啡",
         merchantPriorityId: merchantId,
         historyMerchantId: merchantId,
-        currency: "JPY",
         settled: true,
         offset: 20,
       });
@@ -112,7 +111,7 @@ describe("TransactionRepository", () => {
         p_query: "咖啡",
         p_merchant_priority_id: merchantId,
         p_history_merchant_id: merchantId,
-        p_currency: "JPY",
+
         p_special_statuses: null,
         p_settled: true,
         p_offset: 20,
@@ -1312,14 +1311,9 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
         transactionWriteErrorMessages.accountInvalid,
       ],
       [
-        "refund_currency_mismatch",
+        "link_exchange_rate_missing",
         transactionErrorCodes.refundLinkInvalid,
-        transactionWriteErrorMessages.refundCurrencyMismatch,
-      ],
-      [
-        "reimbursement_currency_mismatch",
-        transactionErrorCodes.reimbursementLinkInvalid,
-        transactionWriteErrorMessages.reimbursementCurrencyMismatch,
+        transactionWriteErrorMessages.linkExchangeRateMissing,
       ],
       [
         "income_link_category_invalid",
@@ -1407,10 +1401,10 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
         );
       },
     );
-    it("更新退款关联时币种不一致转换为安全校验错误", async () => {
+    it("更新跨币种关联缺失汇率时转换为安全校验错误", async () => {
       const { repository } = createRepositoryWithRpcError({
         code: "22023",
-        databaseError: "refund_currency_mismatch",
+        databaseError: "link_exchange_rate_missing",
       });
       await expect(
         repository.updateNormal({
@@ -1420,7 +1414,7 @@ describe("TransactionRepository \u8D44\u6E90\u8FB9\u754C", () => {
       ).rejects.toMatchObject({
         name: ValidationError.name,
         code: transactionErrorCodes.refundLinkInvalid,
-        message: transactionWriteErrorMessages.refundCurrencyMismatch,
+        message: transactionWriteErrorMessages.linkExchangeRateMissing,
       });
     });
     it.each([

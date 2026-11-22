@@ -8,10 +8,8 @@ import { formatTransactionMonthDay } from "utils/transactions";
 
 export function matchesLinkCandidateScope(
   candidate: TransactionRefundCandidate,
-  currency: string | undefined,
   query: string,
 ) {
-  if (currency && candidate.accountCurrency !== currency) return false;
   const term = query.trim().toLocaleLowerCase();
   if (!term) return true;
   const matchesText = [

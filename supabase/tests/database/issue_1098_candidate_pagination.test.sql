@@ -96,7 +96,6 @@ returns jsonb language sql stable as $$
         p_scope => 'candidates',
         p_query => '1098候选',
         p_merchant_priority_id => p_merchant,
-        p_currency => 'JPY',
         p_settled => p_settled,
         p_offset => p_offset
     )
@@ -161,8 +160,7 @@ select is(
       public.load_filtered_transaction_page(
         p_ledger_id => '00000000-0000-4000-8000-000000000032',
         p_scope => 'candidates', p_query => '1098候选',
-        p_special_statuses => array['pending_reimbursement'],
-        p_currency => 'JPY'
+        p_special_statuses => array['pending_reimbursement']
       )->'entries'
     )),
     2,
@@ -174,8 +172,7 @@ select is(
       public.load_filtered_transaction_page(
         p_ledger_id => '00000000-0000-4000-8000-000000000032',
         p_scope => 'candidates', p_query => '1098候选',
-        p_special_statuses => array['pending_reimbursement'],
-        p_currency => 'JPY'
+        p_special_statuses => array['pending_reimbursement']
       )->'entries'->0->>'itemId'
     )::uuid),
     '10981000-0000-4000-8000-000000000004'::uuid,
@@ -201,8 +198,7 @@ select is(
     (
       select jsonb_array_length(public.load_filtered_transaction_page(
         p_ledger_id => '00000000-0000-4000-8000-000000000032',
-        p_scope => 'candidates', p_query => '8753142.0',
-        p_currency => 'JPY'
+        p_scope => 'candidates', p_query => '8753142.0'
       )->'entries')
     ),
     0,
@@ -212,8 +208,7 @@ select is(
     (
       select jsonb_array_length(public.load_filtered_transaction_page(
         p_ledger_id => '00000000-0000-4000-8000-000000000032',
-        p_scope => 'candidates', p_query => '8753142',
-        p_currency => 'JPY'
+        p_scope => 'candidates', p_query => '8753142'
       )->'entries')
     ),
     2,
@@ -236,8 +231,7 @@ select is(
     (
       select jsonb_array_length(public.load_filtered_transaction_page(
         p_ledger_id => '00000000-0000-4000-8000-000000000032',
-        p_scope => 'candidates', p_query => '4376571.0',
-        p_currency => 'JPY'
+        p_scope => 'candidates', p_query => '4376571.0'
       )->'entries')
     ),
     0,
@@ -257,8 +251,7 @@ select is(
     (
       select jsonb_array_length(public.load_filtered_transaction_page(
         p_ledger_id => '00000000-0000-4000-8000-000000000032',
-        p_scope => 'candidates', p_query => '4376571',
-        p_currency => 'JPY'
+        p_scope => 'candidates', p_query => '4376571'
       )->'entries')
     ),
     2,

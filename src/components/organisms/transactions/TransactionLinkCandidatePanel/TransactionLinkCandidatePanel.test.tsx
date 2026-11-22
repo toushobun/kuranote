@@ -23,9 +23,9 @@ const visibleCallbacks: Array<
   (entries: { isIntersecting: boolean }[]) => void
 > = [];
 
-function observeNextPage() {
+async function observeNextPage() {
+  await waitFor(() => expect(visibleCallbacks.at(-1)).toBeDefined());
   const callback = visibleCallbacks.at(-1);
-  expect(callback).toBeDefined();
   act(() => callback?.([{ isIntersecting: true }]));
 }
 
@@ -37,7 +37,6 @@ function renderPanel(
     const [value, setValue] = useState(props.value ?? null);
     return (
       <TransactionLinkCandidatePanel
-        accountCurrency="JPY"
         kind="refund"
         merchantId="amazon"
         merchantName="Amazon"
@@ -101,7 +100,6 @@ describe("TransactionLinkCandidatePanel", () => {
       query: "",
       month: "2026-11",
       merchantId: "amazon",
-      currency: "JPY",
     });
     expect(
       screen.getByRole("button", { name: "Amazon的支出（2 笔）" }),
@@ -193,13 +191,12 @@ describe("TransactionLinkCandidatePanel", () => {
       nextOffset: null,
     });
     renderPanel({
-      accountCurrency: undefined,
       loadPageAction: loadPage,
       onChange,
     });
     await screen.findByText("咖啡豆 2 袋");
     expect(loadPage).toHaveBeenCalledWith(
-      expect.objectContaining({ currency: undefined }),
+      expect.objectContaining({ offset: 0 }),
     );
     const usdCandidate = screen.getByRole("button", {
       name: "选择退款明细 咖啡豆 2 袋",
@@ -233,7 +230,6 @@ describe("TransactionLinkCandidatePanel", () => {
       query: "",
       month: "2026-11",
       merchantId: "no-records",
-      currency: "JPY",
     });
     expect(
       screen.queryByRole("button", { name: "加载更多" }),
@@ -330,7 +326,6 @@ describe("TransactionLinkCandidatePanel", () => {
       query: "",
       month: "2026-11",
       merchantId: "amazon",
-      currency: "JPY",
     });
     expect(
       screen.getByRole("button", { name: "其他待报销（2 笔）" }),
@@ -351,14 +346,13 @@ describe("TransactionLinkCandidatePanel", () => {
     });
     expect(old).toHaveAttribute("aria-pressed", "true");
     await screen.findByText("USB-C 充电器");
-    observeNextPage();
+    await observeNextPage();
     await screen.findByText("咖啡豆 2 袋");
     expect(loadPage).toHaveBeenLastCalledWith({
       offset: 1,
       query: "",
       month: "2026-11",
       merchantId: "amazon",
-      currency: "JPY",
     });
     expect(screen.getAllByText("往年差旅支出")).toHaveLength(1);
     fireEvent.click(
@@ -383,7 +377,6 @@ describe("TransactionLinkCandidatePanel", () => {
         query: "收纳",
         month: null,
         merchantId: "amazon",
-        currency: "JPY",
       }),
     );
     expect(
@@ -398,7 +391,7 @@ describe("TransactionLinkCandidatePanel", () => {
       .mockResolvedValue({ items: [candidateItems[1]], nextOffset: null });
     renderPanel({ loadPageAction: loadPage });
     await screen.findByText("USB-C 充电器");
-    observeNextPage();
+    await observeNextPage();
     fireEvent.click(
       await screen.findByRole("button", { name: "加载失败，点击重试" }),
     );
@@ -438,7 +431,7 @@ describe("TransactionLinkCandidatePanel", () => {
     await screen.findByText("USB-C 充电器");
     toggleSettled(2);
     await screen.findByText("外套");
-    observeNextPage();
+    await observeNextPage();
     await screen.findByText("已结清耳机");
     expect(loadPage).toHaveBeenLastCalledWith(
       expect.objectContaining({

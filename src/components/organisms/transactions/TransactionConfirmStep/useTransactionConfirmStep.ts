@@ -26,8 +26,6 @@ export function useTransactionConfirmStep(
   >(null);
   const addingPayment = accountPickerKey === "add";
   const [paymentAmountKey, setPaymentAmountKey] = useState<number | null>(null);
-  // 单账户点 × 清空后，只保留换币种确认需要的原币种。
-  const [previousCurrency, setPreviousCurrency] = useState<string>();
   const currency = form.selectedAccount?.currency;
   const missingLinkedItems = form.itemSummaries.filter((item) =>
     getMissingIncomeLinkKind(item),
@@ -99,13 +97,11 @@ export function useTransactionConfirmStep(
       form.handlePaymentAccountChange(accountPickerKey, account.id);
     }
     props.onAccountSelect?.(account);
-    setPreviousCurrency(undefined);
   }
   // 只剩一个付款账户时删除即清空账户，支付区只显示添加按钮。
   function removePayment(key: number) {
     if (form.isMultiAccount) form.handleRemovePayment(key);
     else {
-      setPreviousCurrency(currency ?? previousCurrency);
       form.handlePaymentAccountChange(key, "");
     }
   }
@@ -216,8 +212,6 @@ export function useTransactionConfirmStep(
     openAddPayment,
     pickerAccounts,
     pickerSelectedAccount,
-    previousCurrency:
-      form.isMultiAccount || addingPayment ? undefined : previousCurrency,
     selectAccount,
     paymentAmountKey,
     setPaymentAmountKey,

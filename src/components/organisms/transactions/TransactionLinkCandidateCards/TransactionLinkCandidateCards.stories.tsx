@@ -10,16 +10,22 @@ const meta = {
   args: {
     candidates: candidateItems,
     selectedId: candidateItems[0].id,
-    selectableCurrency: "JPY",
     onSelect: () => undefined,
   },
 } satisfies Meta<typeof TransactionLinkCandidateCards>;
 export default meta;
 type Story = StoryObj<typeof meta>;
 export const Default: Story = { name: "单选候选卡片" };
-export const CurrencyDisabled: Story = {
-  name: "币种不同不可选",
-  args: { selectableCurrency: "USD" },
+export const MixedCurrencies1147: Story = {
+  name: "不同币种原支出混排且可以选择",
+  args: {
+    candidates: [
+      candidateItems[0],
+      { ...candidateItems[1], accountCurrency: "CNY" },
+      { ...candidateItems[2], accountCurrency: "USD" },
+    ],
+    selectedId: candidateItems[1].id,
+  },
 };
 
 export const MixedMerchants: Story = {

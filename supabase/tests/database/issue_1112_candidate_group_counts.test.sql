@@ -219,7 +219,7 @@ select is(
 );
 select ok(not has_function_privilege(
     'anon',
-    'public.load_filtered_transaction_page(uuid,text,text,uuid,text,text[],boolean,integer,integer,uuid,text,date)'::regprocedure,
+    'public.load_filtered_transaction_page(uuid,text,text,uuid,text[],boolean,integer,integer,uuid,text,date)'::regprocedure,
     'EXECUTE'
 ), 'anon 无函数执行权限');
 
