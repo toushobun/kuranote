@@ -6,6 +6,7 @@ import {
 import {
   formatTransferRate,
   prefillTransferTargetAmount,
+  divideAmountByExchangeRate,
 } from "../TransferReceipt/transferCurrency";
 
 export type LinkExchangeRate = {
@@ -63,11 +64,11 @@ export function previewCrossCurrencyLink({
   const foldedBackAmount =
     actualTargetUnits === BigInt(0)
       ? "0"
-      : prefillTransferTargetAmount(
+      : divideAmountByExchangeRate(
           actualTargetAmount,
           targetCurrency,
           incomeCurrency,
-          1 / rate,
+          rate,
         );
   const foldedUnits = foldedBackAmount
     ? toRefundMinorUnits(foldedBackAmount)

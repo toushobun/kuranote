@@ -92,6 +92,9 @@ type TransactionItemPickerDrawerProps = TransactionIncomeLinksContextValue & {
   pickerLinkRate?: LinkExchangeRate | null;
   pickerRatePending?: boolean;
   pickerRateMissing?: boolean;
+  pickerRateFailed?: boolean;
+  pickerRateUnavailable?: boolean;
+  onRetryLinkRate?: () => void;
   selectedCategoryGroup?: CategoryPickerGroup;
   specialStatusEnabled?: boolean;
   specialStatusLocked?: boolean;
@@ -135,6 +138,9 @@ export function TransactionItemPickerDrawer({
   pickerLinkRate = null,
   pickerRatePending = false,
   pickerRateMissing = false,
+  pickerRateFailed = false,
+  pickerRateUnavailable = false,
+  onRetryLinkRate,
   selectedCategoryGroup,
   loadRefundPageAction,
   loadReimbursementPageAction,
@@ -531,9 +537,22 @@ export function TransactionItemPickerDrawer({
             ) : null}
           </>
         )}
-        {crossCurrency && pickerRateMissing && !pickerRatePending ? (
+        {crossCurrency && pickerRateMissing ? (
           <Alert severity="error" sx={{ mt: 1.5 }}>
             {m.exchangeRateMissing}
+          </Alert>
+        ) : null}
+        {crossCurrency && pickerRateFailed ? (
+          <Alert
+            severity="warning"
+            sx={{ mt: 1.5 }}
+            action={
+              <Button size="small" onClick={onRetryLinkRate}>
+                {m.retryExchangeRate}
+              </Button>
+            }
+          >
+            {m.exchangeRateFailed}
           </Alert>
         ) : null}
       </Box>
@@ -651,7 +670,7 @@ export function TransactionItemPickerDrawer({
               : transactionItemPickerMessages.remove}
           </Button>
           <PrimaryActionButton
-            disabled={isLinkedMode && (!selectedCandidate || pickerRateMissing)}
+            disabled={isLinkedMode && (!selectedCandidate || pickerRateUnavailable)}
             fullWidth
             onClick={handleConfirm}
             type="button"

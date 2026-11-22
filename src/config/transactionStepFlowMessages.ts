@@ -247,6 +247,8 @@ export const transactionLinkCandidateMessages = {
   refundAmount: "退款金额",
   reimbursementAmount: "报销金额",
   exchangeRateMissing: "暂无汇率，无法关联不同币种的原支出",
+  exchangeRateFailed: "汇率读取失败，请重试",
+  retryExchangeRate: "重试",
   exchangeRateLoading: "正在读取当天汇率…",
   crossCurrencyRate: (
     date: string,

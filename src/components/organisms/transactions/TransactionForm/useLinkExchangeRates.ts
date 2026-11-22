@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { fetchClientJson } from "lib/api/clientQuery";
 import type { LinkExchangeRate } from "./crossCurrencyLinkPreview";
 
+export type LinkRateStatus = "available" | "loading" | "missing" | "failed";
+
 type DailyRateResponse = {
   rate: number | null;
   rateDate: string | null;
@@ -25,9 +27,11 @@ export function useLinkExchangeRates(
     incomeCurrency && tokyoDate && targets.length > 0
       ? [incomeCurrency, tokyoDate, ...targets].join("|")
       : "";
+  const [retryVersion, setRetryVersion] = useState(0);
+  const requestKey = `${key}|${retryVersion}`;
   const [state, setState] = useState<{
     key: string;
-    rates: Record<string, LinkExchangeRate | null>;
+    rates: Record<string, LinkExchangeRate | null | "failed">;
   } | null>(null);
 
   useEffect(() => {
@@ -49,22 +53,31 @@ export function useLinkExchangeRates(
               : null,
           ] as const;
         } catch {
-          return [to, null] as const;
+          return [to, "failed"] as const;
         }
       }),
     ).then((pairs) => {
       if (!controller.signal.aborted)
-        setState({ key, rates: Object.fromEntries(pairs) });
+        setState({ key: requestKey, rates: Object.fromEntries(pairs) });
     });
     return () => controller.abort();
-  }, [key]);
+  }, [key, requestKey]);
 
-  const isLoading = !!key && state?.key !== key;
+  const isLoading = !!key && state?.key !== requestKey;
   const getRate = (targetCurrency: string): LinkExchangeRate | null => {
     if (!incomeCurrency || !targetCurrency) return null;
     if (targetCurrency === incomeCurrency)
       return { rate: 1, rateDate: tokyoDate };
-    return state?.key === key ? (state.rates[targetCurrency] ?? null) : null;
+    if (state?.key !== requestKey) return null;
+    const value = state.rates[targetCurrency];
+    return value && value !== "failed" ? value : null;
   };
-  return { isLoading, getRate };
+  const getStatus = (targetCurrency: string): LinkRateStatus => {
+    if (incomeCurrency && targetCurrency === incomeCurrency) return "available";
+    if (!key || state?.key !== requestKey) return "loading";
+    const value = state.rates[targetCurrency];
+    return value === "failed" ? "failed" : value ? "available" : "missing";
+  };
+  const retry = () => setRetryVersion((version) => version + 1);
+  return { isLoading, getRate, getStatus, retry };
 }

@@ -45,6 +45,9 @@ export function TransactionStepItemPicker(props: TransactionReceiptProps) {
       pickerLinkRate={f.pickerLinkRate}
       pickerRatePending={f.pickerRatePending}
       pickerRateMissing={f.pickerRateMissing}
+      pickerRateFailed={f.pickerRateFailed}
+      pickerRateUnavailable={f.pickerRateUnavailable}
+      onRetryLinkRate={f.retryLinkRate}
       selectedCategoryGroup={f.selectedCategoryGroup}
       specialStatusEnabled={props.transactionItemSpecialStatusEnabled}
       disabledCategoryType={f.disabledCategoryType}
