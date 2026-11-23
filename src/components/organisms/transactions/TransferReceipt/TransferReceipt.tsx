@@ -8,7 +8,6 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { FormEvent } from "react";
 
-import { sumAmountTexts } from "organisms/transactions/TransactionForm/TransactionForm.utils";
 import { AccountAvatar } from "atoms/accounts/AccountAvatar/AccountAvatar";
 import {
   flowMessages as m,
@@ -23,6 +22,7 @@ import { ReceiptNoteSection } from "organisms/transactions/ReceiptParts/ReceiptN
 import { ReceiptPaper } from "organisms/transactions/ReceiptParts/ReceiptPaper";
 import { ReceiptSubmitButton } from "organisms/transactions/ReceiptParts/ReceiptSubmitButton";
 import { ReceiptTimeButton } from "organisms/transactions/ReceiptParts/ReceiptTimeButton";
+import { sumAmountTexts } from "organisms/transactions/TransactionForm/TransactionForm.utils";
 import { designTokens } from "theme/theme";
 import { getAmountDecimalPlaces } from "utils/transactionAmountInput";
 import type {
