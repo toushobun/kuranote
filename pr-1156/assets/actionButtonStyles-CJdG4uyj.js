@@ -1,1 +1,0 @@
-import{i as e}from"./preload-helper-D2yxXLVK.js";var t,n=e((()=>{t={background:`var(--user-theme-fab-bg)`,color:`var(--user-theme-fab-text)`}}));export{t as n,n as t};
