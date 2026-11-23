@@ -34,6 +34,7 @@ import { getTransactionGroupContextLookups } from "internal/transaction/util/gro
 import {
   filterTransactionRecords,
   filterTransactionItems,
+  filterTransactionItemsForDisplay,
   normalizeTransactionFilters,
 } from "internal/transaction/util/grouping/filters";
 import { recordMatchesGroup } from "internal/transaction/util/grouping/groupMatching";
@@ -397,7 +398,7 @@ async function loadStep4TransactionGroupItemsPage(
   );
   const filteredPageContext = {
     ...pageContext,
-    items: filterTransactionItems(pageContext, filters),
+    items: filterTransactionItemsForDisplay(pageContext, filters, pageRecords),
   };
   const items = buildTransactionListItemsFromContext(
     pageRecords,
@@ -413,7 +414,11 @@ async function loadStep4TransactionGroupItemsPage(
         ?.currency ?? currentLedger.baseCurrency)
     : currentLedger.baseCurrency;
   const dateItems = isAccountGroup
-    ? items.map((item) => ({ ...item, converted_amount: item.amount }))
+    ? items.map((item) =>
+        item.type === "transfer"
+          ? item
+          : { ...item, converted_amount: item.amount },
+      )
     : items;
 
   return {

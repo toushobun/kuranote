@@ -203,6 +203,7 @@ select (select count(*) from rows) between 2 and 3
   r.system_key is distinct from 'transfer_fee'
   or r.account_id is distinct from (select account_id from source)
   or not public.is_valid_transfer_amount(r.amount)
+  or r.amount <> round(r.amount, public.transaction_currency_decimal_places(r.currency))
   or r.balance_delta is distinct from -r.amount
  ));
 $$;
@@ -801,6 +802,7 @@ matched_items as (
         )
         or (
             p_record_type = 'refundableExpense'
+            and bi.record_type = 'normal'
             and bi.category_type = 'expense'
         )
     )

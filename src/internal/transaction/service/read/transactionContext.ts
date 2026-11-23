@@ -11,6 +11,7 @@ import type { TransactionListItem } from "internal/transaction/service/read/tran
 import { getTransactionGroupContextLookups } from "internal/transaction/util/grouping/contextLookups";
 import {
   filterTransactionItems,
+  filterTransactionItemsForDisplay,
   filterTransactionRecords,
   normalizeTransactionFilters,
 } from "internal/transaction/util/grouping/filters";
@@ -74,7 +75,7 @@ export async function loadTransactionGroupLoaderContextForRecords(
   const normalRecordIds = records
     .filter((record) => record.type === "normal")
     .map((record) => record.id);
-  const [items, payments, rateRows] = await Promise.all([
+  const [items, payments, normalRateRows] = await Promise.all([
     dependencies.transactionRepository.listItems(currentLedger.id, recordIds),
     normalRecordIds.length > 0
       ? dependencies.transactionRepository.listPayments(
@@ -87,21 +88,41 @@ export async function loadTransactionGroupLoaderContextForRecords(
       normalRecordIds,
     ),
   ]);
+  const itemsByRecordId = groupByKey(
+    items,
+    (item) => item.transaction_record_id,
+  );
+  // 不增加普通记录查询负担：仅在存在手续费转账时追加读取其当天汇率。
+  const feeTransferRecordIds = records
+    .filter(
+      (record) =>
+        record.type === "transfer" &&
+        (itemsByRecordId.get(record.id) ?? []).some(
+          (item) => item.category_id !== null,
+        ),
+    )
+    .map((record) => record.id);
+  const feeRateRows =
+    feeTransferRecordIds.length > 0
+      ? await dependencies.transactionRepository.loadRecordRates(
+          currentLedger.id,
+          feeTransferRecordIds,
+        )
+      : [];
   const rateByRecordId = new Map(
-    rateRows.map((rate) => [rate.record_id, rate]),
+    [...normalRateRows, ...feeRateRows].map((rate) => [rate.record_id, rate]),
   );
   const recordsWithRates = records.map((record) => {
     const rate = rateByRecordId.get(record.id);
     return {
       ...record,
       record_currency: rate?.record_currency ?? null,
-      ledger_rate: record.type === "normal" ? (rate?.ledger_rate ?? null) : 1,
+      ledger_rate:
+        record.type === "normal" || feeTransferRecordIds.includes(record.id)
+          ? (rate?.ledger_rate ?? null)
+          : 1,
     };
   });
-  const itemsByRecordId = groupByKey(
-    items,
-    (item) => item.transaction_record_id,
-  );
   const paymentsByRecordId = groupByKey(
     payments,
     (payment) => payment.transaction_record_id,
@@ -210,14 +231,11 @@ export function buildFilteredTransactionListItems(
   filters: TransactionFilters,
 ) {
   const records = filterTransactionRecords(context, filters);
-  const recordIds = new Set(records.map((record) => record.id));
   return buildTransactionListItemsFromContext(
     records,
     {
       ...context,
-      items: filterTransactionItems(context, filters).filter((item) =>
-        recordIds.has(item.transaction_record_id),
-      ),
+      items: filterTransactionItemsForDisplay(context, filters, records),
     },
     filters,
   );

@@ -225,7 +225,20 @@ export function addConvertedItemToSummary(
   summary: TransactionAmountSummary,
   item: TransactionListItem,
 ): void {
-  if (item.type === "transfer" || item.type === "balance_adjustment") return;
+  if (item.type === "balance_adjustment") return;
+  if (item.type === "transfer") {
+    if (!item.transferFeeAmount) return;
+    if (item.converted_amount === null) {
+      summary.missingRateCount = (summary.missingRateCount ?? 0) + 1;
+    } else {
+      addTransactionAmount(
+        summary,
+        "expense",
+        String(Math.abs(Number(item.converted_amount))),
+      );
+    }
+    return;
+  }
   if (item.converted_amount === null) {
     summary.missingRateCount = (summary.missingRateCount ?? 0) + 1;
   } else {

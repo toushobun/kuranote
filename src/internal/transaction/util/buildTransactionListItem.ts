@@ -19,7 +19,10 @@ import {
   formatRefundMinorUnits,
 } from "internal/transaction/util/refundAllocation";
 import { transactionFallbackLabels } from "internal/transaction/util/transactionFallbackLabels";
-import type { HolderIdsByAccountId } from "internal/transaction/util/grouping/accountScope";
+import {
+  resolveAccountScope,
+  type HolderIdsByAccountId,
+} from "internal/transaction/util/grouping/accountScope";
 import {
   getSharedPaymentAmounts,
   resolveContributionItems,
@@ -106,6 +109,9 @@ export function buildTransactionListItem({
       recorder,
       recordItems,
       showRecorder,
+      filters,
+      group,
+      holderIdsByAccountId,
     });
   }
 
@@ -257,6 +263,9 @@ function buildTransferListItem({
   recorder,
   recordItems,
   showRecorder,
+  filters,
+  group,
+  holderIdsByAccountId,
 }: {
   accountById: Map<string, AccountOptionDbRow>;
   accountColorById?: Map<string, ThemeColorKey>;
@@ -265,6 +274,9 @@ function buildTransferListItem({
   recorder: AppUserSummaryDbRow | undefined;
   recordItems: TransactionItemDbRow[];
   showRecorder: boolean;
+  filters: TransactionFilters;
+  group?: TransactionListGroupContext;
+  holderIdsByAccountId: HolderIdsByAccountId;
 }): TransactionListItem {
   const feeItem = recordItems.find((item) => item.category_id !== null);
   const fromItem = recordItems.find(
@@ -275,6 +287,20 @@ function buildTransferListItem({
     (item) => Number(item.balance_delta ?? "0") > 0,
   );
   const fallbackItem = recordItems[0];
+  const accountScope = resolveAccountScope({
+    filters,
+    group,
+    holderIdsByAccountId,
+  });
+  const feeInScope =
+    feeItem &&
+    (!accountScope ||
+      (feeItem.account_id !== null && accountScope(feeItem.account_id)));
+  const feeDelta = feeInScope ? -Number(feeItem.amount) : 0;
+  const convertedFee =
+    group?.groupBy === "account"
+      ? feeDelta
+      : convertLedgerAmount(feeDelta, record.ledger_rate);
 
   const fromAccount = fromItem?.account_id
     ? accountById.get(fromItem.account_id)
@@ -317,7 +343,7 @@ function buildTransferListItem({
     account_currency: currency,
     account_name: accountName,
     amount,
-    converted_amount: "0",
+    converted_amount: convertedFee === null ? null : String(convertedFee),
     categoryItems: [],
     created_at: record.created_at,
     id: record.id,
