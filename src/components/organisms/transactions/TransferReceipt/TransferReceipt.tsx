@@ -8,6 +8,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import type { FormEvent } from "react";
 
+import { sumAmountTexts } from "organisms/transactions/TransactionForm/TransactionForm.utils";
 import { AccountAvatar } from "atoms/accounts/AccountAvatar/AccountAvatar";
 import {
   flowMessages as m,
@@ -221,7 +222,7 @@ export function TransferReceipt(props: TransferReceiptProps) {
                       {t.feeTotalDebit(
                         w.source?.name ?? t.selectAccount,
                         formatStepCurrencyAmount(
-                          String(Number(w.amount) + Number(w.feeAmount)),
+                          String(sumAmountTexts([w.amount, w.feeAmount])),
                           w.currency,
                         ),
                       )}

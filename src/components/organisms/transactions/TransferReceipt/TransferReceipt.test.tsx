@@ -245,6 +245,23 @@ describe("TransferReceipt", () => {
     expect(submittedForm(action).get("transferFeeAmount")).toBe("");
   });
 
+  it("小数金额与手续费相加不暴露浮点误差", () => {
+    setup({
+      initialValues: {
+        ...editValues,
+        accountId: "cny",
+        transferTargetAccountId: "cash",
+        transferAmount: "0.1",
+        transferTargetAmount: "1",
+        transferFeeAmount: "0.2",
+      },
+      readOnly: true,
+      loadDailyRate: async () => null,
+    });
+    expect(screen.getByText("招商银行卡 共扣 ¥0.3")).toBeInTheDocument();
+    expect(screen.queryByText(/0\\.30000000000000004/)).toBeNull();
+  });
+
   it("只读转账仍显示手续费与两侧实际金额，不能添加或删除", () => {
     setup({
       initialValues: { ...editValues, transferFeeAmount: "220" },
