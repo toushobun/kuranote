@@ -263,10 +263,10 @@ describe("isItemLevelGroupBy", () => {
 });
 
 describe("isExcludedFromCategoryGroups", () => {
-  it("只在按大分类 / 小分类分组时排除转账与余额调整", () => {
+  it("分类维度排除余额调整，但允许带手续费的转账参与", () => {
     for (const groupBy of ["parentCategory", "category"] as const) {
       expect(isExcludedFromCategoryGroups(groupBy, { type: "transfer" })).toBe(
-        true,
+        false,
       );
       expect(
         isExcludedFromCategoryGroups(groupBy, { type: "balance_adjustment" }),
