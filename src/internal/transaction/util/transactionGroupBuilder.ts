@@ -521,11 +521,13 @@ function addRecordToGroup(
         (scope === null ||
           (item.account_id !== null && scope(item.account_id))),
     );
-    addRawGroupAmount(
-      group,
-      record.id,
-      fee ? getSignedTransactionItemAmount(fee, categoryById) : 0,
-    );
+    if (fee) {
+      addRawGroupAmount(
+        group,
+        record.id,
+        getSignedTransactionItemAmount(fee, categoryById),
+      );
+    }
     return;
   }
 

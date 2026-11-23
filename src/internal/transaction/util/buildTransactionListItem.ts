@@ -297,8 +297,9 @@ function buildTransferListItem({
     (!accountScope ||
       (feeItem.account_id !== null && accountScope(feeItem.account_id)));
   const feeDelta = feeInScope ? -Number(feeItem.amount) : 0;
-  const convertedFee =
-    group?.groupBy === "account"
+  const convertedFee = !feeInScope
+    ? 0
+    : group?.groupBy === "account"
       ? feeDelta
       : convertLedgerAmount(feeDelta, record.ledger_rate);
 
