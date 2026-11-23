@@ -321,9 +321,24 @@ describe("转账手续费在支出、分类和账户筛选中的口径", () => {
   });
 
   it("支出筛选归属转出账户，转入账户仍可在全部记录中看到转账", () => {
-    expect(filterTransactionRecords(context, { recordType: "expense", accountId: "to-cash" })).toEqual([]);
-    expect(filterTransactionRecords(context, { recordType: "expense", accountId: "from-bank" })).toEqual([transfer]);
-    expect(filterTransactionRecords(context, { recordType: "all", accountId: "to-cash" })).toEqual([transfer]);
+    expect(
+      filterTransactionRecords(context, {
+        recordType: "expense",
+        accountId: "to-cash",
+      }),
+    ).toEqual([]);
+    expect(
+      filterTransactionRecords(context, {
+        recordType: "expense",
+        accountId: "from-bank",
+      }),
+    ).toEqual([transfer]);
+    expect(
+      filterTransactionRecords(context, {
+        recordType: "all",
+        accountId: "to-cash",
+      }),
+    ).toEqual([transfer]);
   });
 
   it("只筛到账账户时手续费不进入分类筛选，筛转出账户才命中", () => {
