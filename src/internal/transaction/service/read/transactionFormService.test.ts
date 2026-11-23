@@ -610,13 +610,19 @@ describe("getEditTransactionView", () => {
   });
 
   it.each([
-    ["三条本金", [...transferPrincipalItems, transferPrincipalItems[0]]],
-    [
-      "超过三条明细",
-      [...transferPrincipalItems, transferFeeItem, transferPrincipalItems[0]],
-    ],
-    ["两条手续费", [...transferPrincipalItems, transferFeeItem, transferFeeItem]],
-  ])("转账含%s时返回 null", async (_reason, items) => {
+    {
+      reason: "三条本金",
+      items: [...transferPrincipalItems, transferPrincipalItems[0]],
+    },
+    {
+      reason: "超过三条明细",
+      items: [...transferPrincipalItems, transferFeeItem, transferPrincipalItems[0]],
+    },
+    {
+      reason: "两条手续费",
+      items: [...transferPrincipalItems, transferFeeItem, transferFeeItem],
+    },
+  ])("转账含$reason时返回 null", async ({ items }) => {
     const view = await getEditTransactionView(
       createDependencies(createFeeTransferRepository(items)),
       currentLedger,

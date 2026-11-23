@@ -12,7 +12,7 @@ export default function NotFound() {
     <Box
       sx={{
         alignItems: "center",
-        bgcolor: "var(--user-theme-page-bg)",
+        background: "var(--user-theme-page-bg)",
         display: "flex",
         justifyContent: "center",
         minHeight: "100dvh",

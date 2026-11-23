@@ -271,6 +271,7 @@ export function TransactionRow({
                     color: mutedText,
                     flexShrink: 0,
                     fontSize: 11,
+                    fontWeight: 400,
                     lineHeight: 1.5,
                     ml: "auto",
                     textAlign: "right",

@@ -209,7 +209,7 @@ describe("TransactionRow", () => {
   });
 
   it("无手续费的同币种转账也预留固定第二排行高", () => {
-    const { container } = render(
+    render(
       <TransactionRow
         item={createItem({
           type: "transfer",
@@ -218,11 +218,15 @@ describe("TransactionRow", () => {
           merchant_name: null,
           merchant_icon_url: null,
         })}
+        showAccount
       />,
     );
     expect(screen.getByText("¥ 1,000")).toBeInTheDocument();
     expect(screen.queryByText(/到账|手续费/)).toBeNull();
-    expect(container.querySelectorAll(".MuiStack-root [style*='min-height: 17px']").length).toBeGreaterThan(0);
+    const account = screen.getByText("日元现金");
+    expect(account.parentElement?.parentElement).toHaveStyle({
+      minHeight: "17px",
+    });
   });
 
   it("转账记录在第二行显示转出到账户摘要", () => {
