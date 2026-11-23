@@ -578,7 +578,7 @@ describe("TransactionRepository", () => {
       "transaction_at",
       "2026-07-01T00:00:00.000Z",
     );
-    expect(query.eq).toHaveBeenCalledWith("type", "normal");
+    expect(query.in).toHaveBeenCalledWith("type", ["normal", "transfer"]);
     expect(query.eq).toHaveBeenCalledWith("merchant_id", merchantId);
     expect(query.eq).toHaveBeenCalledWith("created_by", userId);
     expect(query.range).toHaveBeenCalledWith(20, 39);
