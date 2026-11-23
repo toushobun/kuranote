@@ -5359,6 +5359,7 @@ group_rows_converted as (
         case when p_group_by = 'account' then gr.raw_expense
              else public.convert_ledger_amount(gr.raw_expense, rr.ledger_rate) end as converted_expense,
         case when p_group_by <> 'account' and rr.ledger_rate is null
+               and (gr.raw_income <> 0 or gr.raw_expense <> 0)
              then 1 else 0 end as missing_rate
     from group_rows_per_record gr
     left join public.transaction_record_ledger_rate rr
