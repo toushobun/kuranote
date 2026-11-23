@@ -571,7 +571,10 @@ describe("getEditTransactionView", () => {
   it("带手续费的转账可读取编辑视图并还原手续费金额", async () => {
     const view = await getEditTransactionView(
       createDependencies(
-        createFeeTransferRepository([...transferPrincipalItems, transferFeeItem]),
+        createFeeTransferRepository([
+          ...transferPrincipalItems,
+          transferFeeItem,
+        ]),
       ),
       currentLedger,
       transactionRecordId,
@@ -616,7 +619,11 @@ describe("getEditTransactionView", () => {
     },
     {
       reason: "超过三条明细",
-      items: [...transferPrincipalItems, transferFeeItem, transferPrincipalItems[0]],
+      items: [
+        ...transferPrincipalItems,
+        transferFeeItem,
+        transferPrincipalItems[0],
+      ],
     },
     {
       reason: "两条手续费",
