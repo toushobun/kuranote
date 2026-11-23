@@ -106,11 +106,12 @@ export function buildStatisticsViewData({
   );
   const merchantRankingById = new Map<string, RankingAccumulator>();
   for (const record of records) {
-    if (record.type !== "normal") continue;
-    const netAmount = calculateRecordNetAmount(
-      itemsByRecordId.get(record.id) ?? [],
-      categoryById,
-    );
+    if (record.type !== "normal" && record.type !== "transfer") continue;
+    const recordItems = itemsByRecordId.get(record.id) ?? [];
+    // 无手续费的转账本金不属于收支，也不需要查找其汇率。
+    const hasFee = recordItems.some((item) => item.category_id !== null);
+    if (record.type === "transfer" && !hasFee) continue;
+    const netAmount = calculateRecordNetAmount(recordItems, categoryById);
     const convertedAmount = convertLedgerAmount(netAmount, record.ledger_rate);
     if (convertedAmount === null) {
       summary.missingRateCount = (summary.missingRateCount ?? 0) + 1;
@@ -133,7 +134,8 @@ export function buildStatisticsViewData({
   for (const item of items) {
     const record = recordById.get(item.transaction_record_id);
 
-    if (!record || record.type === "transfer") continue;
+    if (!record || (record.type !== "normal" && record.type !== "transfer"))
+      continue;
 
     const categoryId = item.category_id;
 

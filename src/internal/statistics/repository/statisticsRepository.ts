@@ -132,7 +132,7 @@ export function createSupabaseStatisticsRepository(
         )
         .eq("ledger_id", ledgerId)
         .eq("status", "active")
-        .eq("type", "normal")
+        .in("type", ["normal", "transfer"])
         .gte("transaction_at", dateStart)
         .lt("transaction_at", dateEnd);
 

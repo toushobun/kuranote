@@ -58,7 +58,9 @@ export function buildCategoryPickerGroups(
   categories: TransactionCategoryOption[],
 ) {
   return categories.reduce<CategoryPickerGroup[]>((groups, category) => {
-    const groupId = category.parentId ?? "";
+    const groupId =
+      category.parentId ??
+      (category.systemKey === "transfer_fee" ? category.id : "");
     const groupName = category.parentName ?? category.name;
     const group = groups.find((currentGroup) => currentGroup.id === groupId);
 

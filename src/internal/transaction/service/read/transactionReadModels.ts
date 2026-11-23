@@ -38,6 +38,7 @@ export type TransactionListItem = {
   originalAmount?: string;
   originalType?: CategoryType;
   transferTargetAmount?: string;
+  transferFeeAmount?: string;
   transferTargetCurrency?: string;
   categoryItems: TransactionCategorySummaryItem[];
   created_at: string;
@@ -70,7 +71,7 @@ export type TransactionAccountOption = {
 
 export type TransactionCategoryOption = {
   iconName?: string | null;
-  systemKey?: "special_income" | "refund" | "reimbursement";
+  systemKey?: "special_income" | "refund" | "reimbursement" | "transfer_fee";
   id: string;
   name: string;
   parentId: string | null;
@@ -152,6 +153,7 @@ export type TransferEditInitialValues = {
   transactionRecordId: string;
   transferAmount: string;
   transferTargetAmount?: string;
+  transferFeeAmount?: string;
   transferTargetAccountId: string;
   type: "transfer";
 };

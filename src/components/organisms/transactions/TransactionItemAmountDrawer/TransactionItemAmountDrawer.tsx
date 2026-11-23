@@ -25,6 +25,9 @@ type TransactionItemAmountDrawerProps = {
   currency: string;
   value: string;
   quickAmounts?: MerchantEntrySuggestions["quickAmounts"];
+  description?: string;
+  deleteLabel?: string;
+  onDelete?: () => void;
   onConfirm: (value: string) => void;
   onClose: () => void;
 };
@@ -40,6 +43,9 @@ export function TransactionItemAmountDrawer({
   currency,
   value,
   quickAmounts = [],
+  description,
+  deleteLabel,
+  onDelete,
   onConfirm,
   onClose,
 }: TransactionItemAmountDrawerProps) {
@@ -103,6 +109,11 @@ export function TransactionItemAmountDrawer({
           <CloseRoundedIcon />
         </IconButton>
       </Stack>
+      {description && (
+        <Typography variant="body2" color="textSecondary" sx={{ px: 1, pb: 1 }}>
+          {description}
+        </Typography>
+      )}
       {lastAmount && (
         <Box
           role="group"
@@ -138,6 +149,16 @@ export function TransactionItemAmountDrawer({
         onConfirm={onConfirm}
         confirmLabel={m.confirmAmount}
       />
+      {onDelete && deleteLabel && (
+        <Button
+          variant="text"
+          color="error"
+          onClick={onDelete}
+          sx={{ alignSelf: "center" }}
+        >
+          {deleteLabel}
+        </Button>
+      )}
     </Drawer>
   );
 }

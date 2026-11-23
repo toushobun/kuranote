@@ -693,6 +693,7 @@ export function createDataImportExecutionService({
           timeZoneOffsetMinutes,
           transactionAt: row.transactionAt,
           transferAmount: row.amount,
+          transferFeeAmount: row.feeAmount ?? null,
           transferTargetAmount: row.targetAmount ?? row.amount,
           transferTargetAccountId: toAccount.id,
         };

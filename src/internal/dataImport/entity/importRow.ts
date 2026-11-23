@@ -25,6 +25,7 @@ export type IncomeExpenseImportRow = {
 export type TransferImportRow = {
   amount: number;
   targetAmount?: number | null;
+  feeAmount?: number | null;
   fromAccountCurrency: string;
   fromAccountHolder: string | null;
   fromAccountName: string;

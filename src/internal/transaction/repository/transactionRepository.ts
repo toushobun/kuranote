@@ -99,6 +99,7 @@ export type CreateTransferTransactionInput = {
   transactionAt: string;
   transferAmount: number;
   transferTargetAmount?: number | null;
+  transferFeeAmount?: number | null;
   transferTargetAccountId: string;
 };
 
@@ -352,6 +353,7 @@ const transactionRpcErrorCodes = [
   "items_invalid",
   transactionErrorCodes.accountInvalid,
   transactionErrorCodes.amountInvalid,
+  transactionErrorCodes.transferFeeAmountInvalid,
   transactionErrorCodes.categoryInvalid,
   transactionErrorCodes.merchantInvalid,
   "transfer_account_invalid",
@@ -486,6 +488,13 @@ export function createSupabaseTransactionRepository(
       throw new ValidationError(
         transactionErrorCodes.categoryInvalid,
         transactionWriteErrorMessages.categoryInvalid,
+      );
+    }
+
+    if (rpcErrorCode === transactionErrorCodes.transferFeeAmountInvalid) {
+      throw new ValidationError(
+        rpcErrorCode,
+        transactionWriteErrorMessages.transferFeeAmountInvalid,
       );
     }
 
@@ -715,6 +724,7 @@ export function createSupabaseTransactionRepository(
       const { error } = await supabase.rpc("create_transfer_transaction", {
         p_amount: input.transferAmount,
         p_to_amount: input.transferTargetAmount ?? null,
+        p_fee_amount: input.transferFeeAmount ?? null,
         p_from_account_id: input.accountId,
         p_ledger_id: input.ledgerId,
         p_note: input.note,
@@ -1012,7 +1022,7 @@ export function createSupabaseTransactionRepository(
         .select("id")
         .eq("ledger_id", ledgerId)
         .eq("status", "active")
-        .eq("type", "normal")
+        .in("type", ["normal", "transfer"])
         .gte("transaction_at", dateStart)
         .lt("transaction_at", dateEnd);
 
@@ -1158,10 +1168,11 @@ export function createSupabaseTransactionRepository(
       if (input.dateStart) query = query.gte("transaction_at", input.dateStart);
       if (input.dateEnd) query = query.lt("transaction_at", input.dateEnd);
       if (input.recordType === "transfer") query = query.eq("type", "transfer");
-      if (
+      if (input.recordType === "expense") {
+        query = query.in("type", ["normal", "transfer"]);
+      } else if (
         input.recordType === "normal" ||
         input.recordType === "income" ||
-        input.recordType === "expense" ||
         input.recordType === "refundableExpense"
       ) {
         query = query.eq("type", "normal");
@@ -1326,6 +1337,7 @@ export function createSupabaseTransactionRepository(
       const { error } = await supabase.rpc("update_transfer_transaction", {
         p_amount: input.transferAmount,
         p_to_amount: input.transferTargetAmount ?? null,
+        p_fee_amount: input.transferFeeAmount ?? null,
         p_from_account_id: input.accountId,
         p_ledger_id: input.ledgerId,
         p_note: input.note,

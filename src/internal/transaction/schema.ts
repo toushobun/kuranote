@@ -54,6 +54,7 @@ export type TransferTransactionFormValues = {
   transferTargetAccountId: string;
   transferAmount: number;
   transferTargetAmount: number | null;
+  transferFeeAmount: number | null;
   note: string | null;
 };
 
@@ -328,6 +329,15 @@ export function validateTransactionForm(
       : valid(null);
 
     if (!transferTargetAmountResult.ok) return transferTargetAmountResult;
+    const rawFeeAmount = String(formData.get("transferFeeAmount") ?? "").trim();
+    const transferFeeAmountResult = rawFeeAmount
+      ? parseMoneyAmount(rawFeeAmount, {
+          allowNegative: false,
+          allowZero: false,
+          error: transactionErrorCodes.transferFeeAmountInvalid,
+        })
+      : valid(null);
+    if (!transferFeeAmountResult.ok) return transferFeeAmountResult;
     const noteResult = parseOptionalTextField(
       formData,
       "note",
@@ -345,6 +355,7 @@ export function validateTransactionForm(
       transactionAt,
       transferAmount: transferAmountResult.value,
       transferTargetAmount: transferTargetAmountResult.value,
+      transferFeeAmount: transferFeeAmountResult.value,
       transferTargetAccountId: targetAccountIdResult.value,
       type: "transfer",
     });
@@ -536,6 +547,14 @@ const transferTransactionRequestSchema = z.object({
     message: transactionErrorCodes.amountInvalid,
   }),
   transferTargetAccountId: z.string().uuid(),
+  transferFeeAmount: z
+    .number()
+    .positive()
+    .refine(hasValidMoneyPrecision, {
+      message: transactionErrorCodes.transferFeeAmountInvalid,
+    })
+    .nullable()
+    .optional(),
   transferTargetAmount: z
     .number()
     .positive()

@@ -32,7 +32,11 @@ import {
   resolveAccountScope,
   type HolderIdsByAccountId,
 } from "./grouping/accountScope";
-import { isExcludedFromCategoryGroups } from "./grouping/groupMatching";
+import {
+  isExcludedFromCategoryGroups,
+  isTransferFeeItem,
+  isTransferFeeItemInAccountScope,
+} from "./grouping/groupMatching";
 import { listRecordAccountMovements } from "./grouping/recordAccounts";
 import {
   getSharedPaymentAmounts,
@@ -340,15 +344,21 @@ function addAccountGroups({
   groups: Map<string, MutableGroup>;
   recordContext: RecordGroupContext;
 }) {
-  const { filters, holderIdsByAccountId, payments, record, recordItems } =
-    recordContext;
+  const {
+    categoryById,
+    filters,
+    holderIdsByAccountId,
+    payments,
+    record,
+    recordItems,
+  } = recordContext;
   const accountScope = resolveAccountScope({ filters, holderIdsByAccountId });
 
-  for (const movement of listRecordAccountMovements(
+  for (const [index, movement] of listRecordAccountMovements(
     record,
     recordItems,
     payments,
-  )) {
+  ).entries()) {
     if (accountScope && !accountScope(movement.accountId)) continue;
 
     const group = getOrCreateGroup({
@@ -363,7 +373,12 @@ function addAccountGroups({
     });
     trackGroupRecord(group, recordContext);
 
-    if (record.type === "normal") {
+    if (
+      record.type === "normal" ||
+      (record.type === "transfer" &&
+        recordItems[index] &&
+        isTransferFeeItem(record, recordItems[index], categoryById))
+    ) {
       addSignedAmount(group.summary, Number(movement.balanceDelta ?? 0));
     }
   }
@@ -380,10 +395,19 @@ function addItemGroups({
   groups: Map<string, MutableGroup>;
   recordContext: RecordGroupContext;
 }) {
-  const { categoryById, record, recordItems } = recordContext;
+  const { categoryById, filters, holderIdsByAccountId, record, recordItems } =
+    recordContext;
   if (isExcludedFromCategoryGroups(groupBy, record)) return;
+  const accountScope = resolveAccountScope({ filters, holderIdsByAccountId });
 
   for (const item of recordItems) {
+    if (
+      (groupBy === "parentCategory" || groupBy === "category") &&
+      record.type === "transfer" &&
+      !isTransferFeeItemInAccountScope(record, item, categoryById, accountScope)
+    ) {
+      continue;
+    }
     if (groupBy === "parentCategory") {
       const category = item.category_id
         ? categoryById.get(item.category_id)
@@ -491,7 +515,21 @@ function addRecordToGroup(
   } = recordContext;
   trackGroupRecord(group, recordContext);
 
-  if (record.type !== "normal") return;
+  if (record.type === "balance_adjustment") return;
+  if (record.type === "transfer") {
+    const scope = resolveAccountScope({ filters, holderIdsByAccountId });
+    const fee = recordItems.find((item) =>
+      isTransferFeeItemInAccountScope(record, item, categoryById, scope),
+    );
+    if (fee) {
+      addRawGroupAmount(
+        group,
+        record.id,
+        getSignedTransactionItemAmount(fee, categoryById),
+      );
+    }
+    return;
+  }
 
   // 商家/成员分组在账户范围筛选下，原先逐明细分别统计正负金额。
   // 只有实际收付份额模式才按净额作为记录级贡献。
@@ -527,7 +565,11 @@ function addItemToGroup(
   trackGroupRecord(group, recordContext);
   group.itemCount += 1;
 
-  if (record.type !== "normal") return;
+  if (
+    record.type !== "normal" &&
+    !isTransferFeeItem(record, item, categoryById)
+  )
+    return;
 
   const signedAmount = getSignedTransactionItemAmount(item, categoryById);
   addRawGroupAmount(group, record.id, signedAmount);

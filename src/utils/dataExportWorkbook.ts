@@ -155,10 +155,15 @@ export async function buildDataExportWorkbook(
       备注: record.note,
     };
     if (record.type === "transfer") {
-      const from = record.items.find((item) => Number(item.balanceDelta) < 0);
-      const to = record.items.find((item) => Number(item.balanceDelta) > 0);
+      const fee = record.items.find((item) => item.categoryId !== null);
+      const from = record.items.find(
+        (item) => item.categoryId === null && Number(item.balanceDelta) < 0,
+      );
+      const to = record.items.find(
+        (item) => item.categoryId === null && Number(item.balanceDelta) > 0,
+      );
       if (
-        record.items.length !== 2 ||
+        record.items.length !== (fee ? 3 : 2) ||
         !from ||
         !to ||
         from.accountId === to.accountId
@@ -172,6 +177,7 @@ export async function buildDataExportWorkbook(
         交易类型: "转账",
         金额: from.amount,
         到账金额: fromCurrency !== toCurrency ? to.amount : "",
+        手续费: fee?.amount ?? "",
       });
       writeAccount(row, accounts.get(from.accountId), "转出");
       writeAccount(row, accounts.get(to.accountId), "转入");

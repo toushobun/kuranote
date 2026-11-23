@@ -412,6 +412,7 @@ describe("TransactionRepository", () => {
     await repository.createTransfer(transferInput);
     expect(rpc).toHaveBeenCalledWith("create_transfer_transaction", {
       p_amount: 1200,
+      p_fee_amount: null,
       p_to_amount: null,
       p_from_account_id: accountId,
       p_ledger_id: ledgerId,
@@ -473,6 +474,7 @@ describe("TransactionRepository", () => {
     );
     expect(rpc).toHaveBeenNthCalledWith(2, "update_transfer_transaction", {
       p_amount: 1200,
+      p_fee_amount: null,
       p_to_amount: null,
       p_from_account_id: accountId,
       p_ledger_id: ledgerId,
@@ -576,7 +578,7 @@ describe("TransactionRepository", () => {
       "transaction_at",
       "2026-07-01T00:00:00.000Z",
     );
-    expect(query.eq).toHaveBeenCalledWith("type", "normal");
+    expect(query.in).toHaveBeenCalledWith("type", ["normal", "transfer"]);
     expect(query.eq).toHaveBeenCalledWith("merchant_id", merchantId);
     expect(query.eq).toHaveBeenCalledWith("created_by", userId);
     expect(query.range).toHaveBeenCalledWith(20, 39);
@@ -1052,7 +1054,7 @@ describe("TransactionDashboardRepository", () => {
       records: [{ id: recordId, ledger_rate: 1 }],
     });
     expect(recordQuery.select).toHaveBeenCalledWith("id");
-    expect(recordQuery.eq).toHaveBeenCalledWith("type", "normal");
+    expect(recordQuery.in).toHaveBeenCalledWith("type", ["normal", "transfer"]);
     expect(recordQuery.gte).toHaveBeenCalledWith(
       "transaction_at",
       dashboardMonthInput.dateStart,

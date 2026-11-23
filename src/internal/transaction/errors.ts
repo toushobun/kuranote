@@ -4,6 +4,7 @@ export const transactionErrorCodes = {
   balanceAdjustmentAccountArchived: "balance_adjustment_account_archived",
   accountInvalid: "account_invalid",
   amountInvalid: "amount_invalid",
+  transferFeeAmountInvalid: "transfer_fee_amount_invalid",
   categoryInvalid: "category_invalid",
   createFailed: "create_failed",
   dateInvalid: "date_invalid",
@@ -39,6 +40,7 @@ export const transactionErrorCodes = {
 export type TransactionValidationErrorCode =
   | typeof transactionErrorCodes.accountInvalid
   | typeof transactionErrorCodes.amountInvalid
+  | typeof transactionErrorCodes.transferFeeAmountInvalid
   | typeof transactionErrorCodes.categoryInvalid
   | typeof transactionErrorCodes.dateInvalid
   | typeof transactionErrorCodes.merchantInvalid
@@ -102,6 +104,8 @@ export const transactionValidationErrorMessages: Record<
 > = {
   [transactionErrorCodes.accountInvalid]: "账户指定不正确。",
   [transactionErrorCodes.amountInvalid]: "金额不能为负数，且最多两位小数。",
+  [transactionErrorCodes.transferFeeAmountInvalid]:
+    "手续费金额无效，请按转出账户币种重新输入。",
   [transactionErrorCodes.categoryInvalid]: "分类指定不正确。",
   [transactionErrorCodes.dateInvalid]: "发生时间不正确。",
   [transactionErrorCodes.merchantInvalid]: "商家指定不正确。",
@@ -180,6 +184,7 @@ export const transactionAccessErrorMessages = {
 export const transactionWriteErrorMessages = {
   accountInvalid: "账户信息不正确，请确认后重试。",
   amountInvalid: "金额格式不正确，请确认后重试。",
+  transferFeeAmountInvalid: "手续费金额无效，请按转出账户币种重新输入。",
   categoryInvalid: "分类信息不正确，请确认后重试。",
   dateInvalid: "交易时间不正确，请确认后重试。",
   incomeLinkCategoryInvalid: "只有收入明细才能关联报销或退款。",

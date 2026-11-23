@@ -180,6 +180,41 @@ describe("recordMatchesGroup", () => {
     }
   });
 
+  it("手续费分类只匹配转出账户范围，不能归入到账账户", () => {
+    const feeCategory: CategorySummaryDbRow = {
+      id: "fee",
+      name: "🏧 手续费",
+      parent_id: null,
+      system_key: "transfer_fee",
+      type: "expense",
+    };
+    const feeItem = { ...item, account_id: "account-1", category_id: "fee" };
+    const overrides = {
+      categoryById: new Map([["fee", feeCategory]]),
+      items: [feeItem],
+      payments: [],
+      record: { ...record, type: "transfer" as const },
+    };
+    expect(
+      matches("category", "fee", {
+        ...overrides,
+        accountScope: (accountId) => accountId === "account-1",
+      }),
+    ).toBe(true);
+    expect(
+      matches("category", "fee", {
+        ...overrides,
+        accountScope: (accountId) => accountId === "account-2",
+      }),
+    ).toBe(false);
+    expect(
+      matches("parentCategory", "fee", {
+        ...overrides,
+        accountScope: (accountId) => accountId === "account-2",
+      }),
+    ).toBe(false);
+  });
+
   it("按大分类 / 小分类分组时普通记录的明细缺分类仍归入 unknown", () => {
     const uncategorizedItems = [{ ...item, category_id: null }];
     expect(
@@ -263,10 +298,10 @@ describe("isItemLevelGroupBy", () => {
 });
 
 describe("isExcludedFromCategoryGroups", () => {
-  it("只在按大分类 / 小分类分组时排除转账与余额调整", () => {
+  it("分类维度排除余额调整，但允许带手续费的转账参与", () => {
     for (const groupBy of ["parentCategory", "category"] as const) {
       expect(isExcludedFromCategoryGroups(groupBy, { type: "transfer" })).toBe(
-        true,
+        false,
       );
       expect(
         isExcludedFromCategoryGroups(groupBy, { type: "balance_adjustment" }),

@@ -470,6 +470,16 @@ export const SharedPaymentNarrow: Story = {
   },
 };
 
+export const TransferWithFee: Story = {
+  name: "同币种转账：手续费标签",
+  args: { item: { ...transferItem, transferFeeAmount: "220" } },
+};
+
+export const CrossCurrencyTransferWithFee: Story = {
+  name: "跨币种转账：手续费标签",
+  args: { item: { ...crossCurrencyTransferItem, transferFeeAmount: "220" } },
+};
+
 export const Transfer: Story = {
   name: "转账记录",
   args: {

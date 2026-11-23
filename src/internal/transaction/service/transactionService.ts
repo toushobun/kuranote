@@ -332,7 +332,14 @@ export function createTransactionService({
         : hasReimbursementLink
           ? "reimbursement"
           : null;
-      if (systemKey !== requiredSystemKey) {
+      if (
+        systemKey !== requiredSystemKey &&
+        !(
+          requiredSystemKey === null &&
+          systemKey === "transfer_fee" &&
+          categoryType === "expense"
+        )
+      ) {
         throw new ValidationError(
           transactionErrorCodes.incomeLinkCategoryInvalid,
           transactionSpecialStatusErrorMessages.incomeLinkSystemCategoryRequired,

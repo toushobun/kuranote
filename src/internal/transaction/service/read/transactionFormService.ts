@@ -211,8 +211,14 @@ async function buildEditTransactionView<
     };
   }
   if (record.type === "transfer") {
-    const fromItems = items.filter((item) => Number(item.balance_delta) < 0);
-    const toItems = items.filter((item) => Number(item.balance_delta) > 0);
+    const transferItems = items.filter((item) => item.category_id === null);
+    const feeItem = items.find((item) => item.category_id !== null);
+    const fromItems = transferItems.filter(
+      (item) => Number(item.balance_delta) < 0,
+    );
+    const toItems = transferItems.filter(
+      (item) => Number(item.balance_delta) > 0,
+    );
     const fromItem = fromItems[0];
     const toItem = toItems[0];
     if (
@@ -241,6 +247,13 @@ async function buildEditTransactionView<
         note: record.note ?? "",
         transactionAt: record.transaction_at,
         transactionRecordId: record.id,
+        transferFeeAmount: feeItem
+          ? formatEditableAmount(
+              feeItem.amount,
+              currencyByAccountId.get(fromAccountId) ??
+                currentLedger.baseCurrency,
+            )
+          : undefined,
         transferAmount: formatEditableAmount(
           fromItem.amount,
           currencyByAccountId.get(fromAccountId) ?? currentLedger.baseCurrency,

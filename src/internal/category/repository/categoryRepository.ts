@@ -27,7 +27,11 @@ export type CategoryScope = {
   type: CategoryType;
 };
 
-export type CategorySystemKey = "special_income" | "refund" | "reimbursement";
+export type CategorySystemKey =
+  | "special_income"
+  | "refund"
+  | "reimbursement"
+  | "transfer_fee";
 
 export type CategoryRecord = {
   id: string;

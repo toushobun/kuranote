@@ -30,10 +30,12 @@ import {
   loadTransactionGroupLoaderContextForRecords,
   type TransactionReadDependencies,
 } from "internal/transaction/service/read/transactionContext";
+import { resolveAccountScope } from "internal/transaction/util/grouping/accountScope";
 import { getTransactionGroupContextLookups } from "internal/transaction/util/grouping/contextLookups";
 import {
   filterTransactionRecords,
   filterTransactionItems,
+  filterTransactionItemsForDisplay,
   normalizeTransactionFilters,
 } from "internal/transaction/util/grouping/filters";
 import { recordMatchesGroup } from "internal/transaction/util/grouping/groupMatching";
@@ -378,6 +380,7 @@ async function loadStep4TransactionGroupItemsPage(
         filteredRecords,
         groupBy,
         groupKey,
+        filters,
       ),
     );
 
@@ -397,7 +400,7 @@ async function loadStep4TransactionGroupItemsPage(
   );
   const filteredPageContext = {
     ...pageContext,
-    items: filterTransactionItems(pageContext, filters),
+    items: filterTransactionItemsForDisplay(pageContext, filters, pageRecords),
   };
   const items = buildTransactionListItemsFromContext(
     pageRecords,
@@ -413,7 +416,11 @@ async function loadStep4TransactionGroupItemsPage(
         ?.currency ?? currentLedger.baseCurrency)
     : currentLedger.baseCurrency;
   const dateItems = isAccountGroup
-    ? items.map((item) => ({ ...item, converted_amount: item.amount }))
+    ? items.map((item) =>
+        item.type === "transfer"
+          ? item
+          : { ...item, converted_amount: item.amount },
+      )
     : items;
 
   return {
@@ -430,12 +437,18 @@ function filterRecordsByGroup(
   records: TransactionRecordDbRow[],
   groupBy: TransactionGroupBy,
   groupKey: string,
+  filters: TransactionFilters,
 ) {
   const { categoryById, itemsByRecordId, paymentsByRecordId } =
     getTransactionGroupContextLookups(context);
+  const accountScope = resolveAccountScope({
+    filters: normalizeTransactionFilters(filters),
+    holderIdsByAccountId: context.holderIdsByAccountId,
+  });
 
   return records.filter((record) =>
     recordMatchesGroup({
+      accountScope,
       categoryById,
       groupBy,
       groupKey,

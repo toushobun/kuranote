@@ -541,3 +541,11 @@ Storage 物理文件不能通过 SQL 删除，必须由具有服务端权限的 
 `load_filtered_transaction_page` 去掉 `p_currency`，新签名为 `(uuid,text,text,uuid,text[],boolean,integer,integer,uuid,text,date)`。先 DROP 旧签名，保持 STABLE SECURITY INVOKER、固定 search_path、仅授权 authenticated，不改变成员与 RLS 访问边界。
 
 原有 `validate_transaction_record_payments()` 为 SECURITY DEFINER，保持 20261109090000 的多账户收支方向和支付总额规则及 `payment_currency_mismatch`（付款账户彼此必须同币种），只将退款／报销关联币种一致检查换为缺失汇率检查。原函数签名、search_path 和 EXECUTE 权限不变。关联写入、编辑的缺失汇率错误统一为 `link_exchange_rate_missing`。
+
+## Issue #1134：转账手续费与系统支出分类
+
+- `create_transfer_transaction` / `update_transfer_transaction`：原 SECURITY DEFINER 写入函数新增尾参 `p_fee_amount numeric DEFAULT NULL`，移除七／八参数旧函数签名后仅授予 `authenticated` EXECUTE。null 表示无手续费（编辑时删除）。
+- `get_or_create_transfer_fee_category(ledger_id, user_id)`：内部 SECURITY DEFINER 取或建立本账本唯一 `category.system_key = 'transfer_fee'`、`type='expense'`、`parent_id IS NULL` 的「🏧 手续费」分类。固定 `search_path = pg_catalog, pg_temp`；不授予 PUBLIC、anon、authenticated、service_role EXECUTE；仅供已完成 `auth.uid()` 与写入权限检查的转账 RPC 调用，不以客户端提供的 user_id 作鉴权。
+- `initialize_ledger_system_categories`：账本初始化时追加上述系统支出分类，仍保留原系统收入分类；`guard_system_category` 继续拦截系统分类变更、删除和新增子分类。
+- `transfer_items_consistent`：内部稳定完整性检查要求两条无分类转账明细加最多一条转出账户的手续费明细。未扩大公共 EXECUTE 权限。
+- `transaction_record_ledger_rate`：security_invoker 视图的转账记录币种与汇率取转出账户／交易东京日期，仅供手续费支出换算；`load_transaction_group_summaries_with_special_status` 保持原有 SECURITY DEFINER 的有效账本成员检查，汇总时包含手续费而不计转账本金。

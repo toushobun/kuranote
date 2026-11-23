@@ -175,6 +175,80 @@ describe("buildStatisticsViewData", () => {
     ]);
   });
 
+  it("没有手续费的跨币种转账无需汇率，不计支出也不显示缺失汇率", () => {
+    const view = buildStatisticsViewData({
+      categories: [],
+      currency: "JPY",
+      items: [
+        { amount: "100", category_id: null, transaction_record_id: "transfer" },
+        {
+          amount: "2000",
+          category_id: null,
+          transaction_record_id: "transfer",
+        },
+      ],
+      ledgerName: "家庭账本",
+      merchants: [],
+      month: "2026-11",
+      records: [
+        {
+          id: "transfer",
+          merchant_id: null,
+          ledger_rate: null,
+          type: "transfer",
+        },
+      ],
+    });
+    expect(view.summary).toEqual({
+      balance: "0",
+      currency: "JPY",
+      expense: "0",
+      income: "0",
+    });
+  });
+
+  it("转账本金不计收支，手续费以转出币种汇率折算到支出与分类", () => {
+    const view = buildStatisticsViewData({
+      categories: [
+        { id: "fee", name: "🏧 手续费", parent_id: null, type: "expense" },
+      ],
+      currency: "JPY",
+      items: [
+        { amount: "100", category_id: null, transaction_record_id: "transfer" },
+        {
+          amount: "2000",
+          category_id: null,
+          transaction_record_id: "transfer",
+        },
+        { amount: "3", category_id: "fee", transaction_record_id: "transfer" },
+      ],
+      ledgerName: "家庭账本",
+      merchants: [],
+      month: "2026-11",
+      records: [
+        {
+          id: "transfer",
+          merchant_id: null,
+          ledger_rate: 20,
+          type: "transfer",
+        },
+      ],
+    });
+    expect(view.summary).toMatchObject({
+      balance: "-60",
+      expense: "60",
+      income: "0",
+    });
+    expect(view.categoryExpenseRanking).toEqual([
+      {
+        amount: "60",
+        id: "fee",
+        name: "🏧 手续费",
+        transactionCount: 1,
+      },
+    ]);
+  });
+
   it("同一商家多笔记录只累计净支出的金额与笔数", () => {
     const view = buildStatisticsViewData({
       categories: monthlyAmountCategories,

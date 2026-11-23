@@ -89,7 +89,7 @@ describe("createSupabaseStatisticsRepository", () => {
       expect.arrayContaining([
         { args: ["ledger_id", ledgerId], method: "eq" },
         { args: ["status", "active"], method: "eq" },
-        { args: ["type", "normal"], method: "eq" },
+        { args: ["type", ["normal", "transfer"]], method: "in" },
         {
           args: ["transaction_at", "2026-05-31T15:00:00.000Z"],
           method: "gte",

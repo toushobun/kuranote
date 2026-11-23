@@ -193,6 +193,7 @@ describe("Transaction Action 写入流程", () => {
       note: "转账备注",
       transactionAt: "2026-06-04T01:30:05.000Z",
       transferAmount: 5000,
+      transferFeeAmount: null,
       transferTargetAccountId: targetAccountId,
       transferTargetAmount: null,
     });
