@@ -245,6 +245,28 @@ describe("TransferReceipt", () => {
     expect(submittedForm(action).get("transferFeeAmount")).toBe("");
   });
 
+  it("切换转出账户同币种保留手续费，换币种时清空旧手续费", () => {
+    setup({
+      initialValues: { ...editValues, transferFeeAmount: "220" },
+    });
+    chooseAccount("转出", "乐天银行 JPY");
+    expect(screen.getByText("乐天银行 共扣 ¥5,220")).toBeInTheDocument();
+    expect(
+      document.querySelector<HTMLInputElement>(
+        'input[name="transferFeeAmount"]',
+      )?.value,
+    ).toBe("220");
+
+    chooseAccount("转出", "招商银行卡 CNY");
+    expect(screen.queryByText(/共扣/)).toBeNull();
+    expect(screen.getByText("＋ 添加手续费")).toBeInTheDocument();
+    expect(
+      document.querySelector<HTMLInputElement>(
+        'input[name="transferFeeAmount"]',
+      )?.value,
+    ).toBe("");
+  });
+
   it("小数金额与手续费相加不暴露浮点误差", () => {
     setup({
       initialValues: {

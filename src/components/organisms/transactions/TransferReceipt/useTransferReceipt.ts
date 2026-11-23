@@ -325,8 +325,11 @@ export function useTransferReceipt({
         Boolean(nextCrossCurrency && next.targetAmount) &&
           (targetAmountEdited || (amountBelongsToTarget && !next.amount)),
       );
-      if (picker === "source") setSourceId(account.id);
-      else setTargetId(account.id);
+      if (picker === "source") {
+        // 手续费属于转出币种，换币种后不能把旧数值当成新币种金额。
+        if (source?.currency !== account.currency) setFeeAmount("");
+        setSourceId(account.id);
+      } else setTargetId(account.id);
       setPicker(null);
     },
     amountSide,
