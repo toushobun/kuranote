@@ -155,6 +155,70 @@ describe("transactionListGroups", () => {
     });
   });
 
+  it("手续费分类分组在到账账户范围下不计入支出", () => {
+    const transfer = record({
+      id: "fee-transfer",
+      type: "transfer",
+      merchant_id: null,
+    });
+    const params = {
+      accounts,
+      categories: [
+        {
+          id: "fee",
+          name: "🏧 手续费",
+          parent_id: null,
+          system_key: "transfer_fee" as const,
+          type: "expense" as const,
+        },
+      ],
+      currency: "JPY",
+      groupBy: "category" as const,
+      holderIdsByAccountId: new Map(),
+      items: [
+        item({
+          account_id: "account-cash",
+          amount: "1000",
+          balance_delta: "-1000",
+          category_id: null,
+          transaction_record_id: transfer.id,
+        }),
+        item({
+          account_id: "account-bank",
+          amount: "1000",
+          balance_delta: "1000",
+          category_id: null,
+          transaction_record_id: transfer.id,
+        }),
+        item({
+          account_id: "account-cash",
+          amount: "20",
+          balance_delta: "-20",
+          category_id: "fee",
+          transaction_record_id: transfer.id,
+        }),
+      ],
+      merchants: [],
+      offset: 0,
+      pageSize: 20,
+      payments: [],
+      records: [transfer],
+      recorders,
+    };
+    expect(
+      buildTransactionGroupSummaryPage({
+        ...params,
+        filters: { ...defaultTransactionFilters, accountId: "account-bank" },
+      }).groups,
+    ).toEqual([]);
+    expect(
+      buildTransactionGroupSummaryPage({
+        ...params,
+        filters: { ...defaultTransactionFilters, accountId: "account-cash" },
+      }).groups[0]?.summary.expense,
+    ).toBe("20");
+  });
+
   it("按月分组时按记账发生时间倒序分页，并且转账不参与统计", () => {
     const result = buildTransactionGroupSummaryPage({
       accounts,

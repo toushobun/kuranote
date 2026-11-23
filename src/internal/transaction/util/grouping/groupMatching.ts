@@ -29,7 +29,22 @@ export function isTransferFeeItem(
   );
 }
 
+/** 按账户 / 持有人筛选时，手续费只能归属其转出账户。 */
+export function isTransferFeeItemInAccountScope(
+  record: Pick<TransactionRecordDbRow, "type">,
+  item: Pick<TransactionItemDbRow, "account_id" | "category_id">,
+  categoryById: ReadonlyMap<string, Pick<CategorySummaryDbRow, "system_key">>,
+  accountScope: ((accountId: string) => boolean) | null | undefined,
+) {
+  return (
+    isTransferFeeItem(record, item, categoryById) &&
+    (!accountScope ||
+      (item.account_id !== null && accountScope(item.account_id)))
+  );
+}
+
 export function recordMatchesGroup({
+  accountScope,
   categoryById,
   groupBy,
   groupKey,
@@ -38,6 +53,7 @@ export function recordMatchesGroup({
   payments,
   record,
 }: {
+  accountScope?: ((accountId: string) => boolean) | null;
   categoryById: Map<string, CategorySummaryDbRow>;
   groupBy: TransactionGroupBy;
   groupKey: string;
@@ -79,7 +95,12 @@ export function recordMatchesGroup({
   return items.some(
     (item) =>
       (record.type !== "transfer" ||
-        isTransferFeeItem(record, item, categoryById)) &&
+        isTransferFeeItemInAccountScope(
+          record,
+          item,
+          categoryById,
+          accountScope,
+        )) &&
       itemMatchesGroup({ categoryById, groupBy, groupKey, item }),
   );
 }

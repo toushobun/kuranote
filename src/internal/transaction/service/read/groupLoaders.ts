@@ -30,6 +30,7 @@ import {
   loadTransactionGroupLoaderContextForRecords,
   type TransactionReadDependencies,
 } from "internal/transaction/service/read/transactionContext";
+import { resolveAccountScope } from "internal/transaction/util/grouping/accountScope";
 import { getTransactionGroupContextLookups } from "internal/transaction/util/grouping/contextLookups";
 import {
   filterTransactionRecords,
@@ -379,6 +380,7 @@ async function loadStep4TransactionGroupItemsPage(
         filteredRecords,
         groupBy,
         groupKey,
+        filters,
       ),
     );
 
@@ -435,12 +437,18 @@ function filterRecordsByGroup(
   records: TransactionRecordDbRow[],
   groupBy: TransactionGroupBy,
   groupKey: string,
+  filters: TransactionFilters,
 ) {
   const { categoryById, itemsByRecordId, paymentsByRecordId } =
     getTransactionGroupContextLookups(context);
+  const accountScope = resolveAccountScope({
+    filters: normalizeTransactionFilters(filters),
+    holderIdsByAccountId: context.holderIdsByAccountId,
+  });
 
   return records.filter((record) =>
     recordMatchesGroup({
+      accountScope,
       categoryById,
       groupBy,
       groupKey,

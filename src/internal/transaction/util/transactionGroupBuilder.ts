@@ -35,6 +35,7 @@ import {
 import {
   isExcludedFromCategoryGroups,
   isTransferFeeItem,
+  isTransferFeeItemInAccountScope,
 } from "./grouping/groupMatching";
 import { listRecordAccountMovements } from "./grouping/recordAccounts";
 import {
@@ -394,14 +395,21 @@ function addItemGroups({
   groups: Map<string, MutableGroup>;
   recordContext: RecordGroupContext;
 }) {
-  const { categoryById, record, recordItems } = recordContext;
+  const { categoryById, filters, holderIdsByAccountId, record, recordItems } =
+    recordContext;
   if (isExcludedFromCategoryGroups(groupBy, record)) return;
+  const accountScope = resolveAccountScope({ filters, holderIdsByAccountId });
 
   for (const item of recordItems) {
     if (
       (groupBy === "parentCategory" || groupBy === "category") &&
       record.type === "transfer" &&
-      !isTransferFeeItem(record, item, categoryById)
+      !isTransferFeeItemInAccountScope(
+        record,
+        item,
+        categoryById,
+        accountScope,
+      )
     ) {
       continue;
     }
@@ -517,9 +525,12 @@ function addRecordToGroup(
     const scope = resolveAccountScope({ filters, holderIdsByAccountId });
     const fee = recordItems.find(
       (item) =>
-        isTransferFeeItem(record, item, categoryById) &&
-        (scope === null ||
-          (item.account_id !== null && scope(item.account_id))),
+        isTransferFeeItemInAccountScope(
+          record,
+          item,
+          categoryById,
+          scope,
+        ),
     );
     if (fee) {
       addRawGroupAmount(
