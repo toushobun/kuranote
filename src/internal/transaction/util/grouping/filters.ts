@@ -73,17 +73,20 @@ export function filterTransactionRecords(
     ) {
       return false;
     }
+    const hasItemFilters = hasNonAccountItemFilters(normalizedFilters);
+    if (hasItemFilters && matchingItems.length === 0) return false;
+
+    // 支出筛选 + 账户范围只归属手续费的转出账户，不归属到账账户。
     if (
-      hasNonAccountItemFilters(normalizedFilters) &&
-      (matchingItems.length === 0 ||
-        (record.type === "transfer" &&
-          accountScope !== null &&
-          !matchingItems.some(
-            (item) =>
-              isTransferFeeItem(record, item, categoryById) &&
-              item.account_id !== null &&
-              accountScope(item.account_id),
-          )))
+      record.type === "transfer" &&
+      accountScope !== null &&
+      (hasItemFilters || normalizedFilters.recordType === "expense") &&
+      !matchingItems.some(
+        (item) =>
+          isTransferFeeItem(record, item, categoryById) &&
+          item.account_id !== null &&
+          accountScope(item.account_id),
+      )
     ) {
       return false;
     }

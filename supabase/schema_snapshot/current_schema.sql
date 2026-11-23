@@ -5215,6 +5215,11 @@ matched_items as (
       and (p_category_id is null or bi.category_id = p_category_id)
       and (bi.record_type <> 'transfer' or bi.category_system_key is distinct from 'transfer_fee'
            or not ff.has_account_scope or bi.account_id in (select account_id from scope_accounts))
+      -- 支出筛选按发生手续费的转出账户归属，不将转入账户计为支出。
+      and (p_record_type <> 'expense' or bi.record_type <> 'transfer'
+           or not ff.has_account_scope
+           or (bi.category_system_key = 'transfer_fee'
+               and bi.account_id in (select account_id from scope_accounts)))
       and (
           coalesce(array_length(p_special_statuses, 1), 0) = 0
           or bi.special_status::text = any(p_special_statuses)

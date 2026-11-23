@@ -134,6 +134,16 @@ select is((select expense from public.load_transaction_group_summaries_with_spec
  where group_key=(select id::text from public.category where ledger_id='00000000-0000-4000-8000-000000000032' and system_key='transfer_fee')),
  60::numeric, '分类分组合计包含 3 CNY 手续费折合 60 JPY');
 
+select is((select count(*)::integer from public.load_transaction_group_summaries_with_special_status(
+ p_ledger_id=>'00000000-0000-4000-8000-000000000032',
+ p_group_by=>'account', p_record_type=>'expense', p_account_id=>pg_temp.fee_account('to'))),
+ 0, '仅筛选到账账户时，手续费转账不应作为该账户的支出出现');
+select is((select expense from public.load_transaction_group_summaries_with_special_status(
+ p_ledger_id=>'00000000-0000-4000-8000-000000000032',
+ p_group_by=>'account', p_record_type=>'expense', p_account_id=>pg_temp.fee_account('cny'))
+ where group_key=pg_temp.fee_account('cny')::text),
+ 3::numeric, '筛选转出账户时，手续费按转出币种计入该账户支出');
+
 select throws_ok(
  'update public.category set name=''被改名'' where ledger_id=''00000000-0000-4000-8000-000000000032'' and system_key=''transfer_fee''',
  '22023','category_system_locked','手续费系统分类不可改名');
