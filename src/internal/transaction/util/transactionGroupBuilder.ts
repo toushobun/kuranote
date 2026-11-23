@@ -404,12 +404,7 @@ function addItemGroups({
     if (
       (groupBy === "parentCategory" || groupBy === "category") &&
       record.type === "transfer" &&
-      !isTransferFeeItemInAccountScope(
-        record,
-        item,
-        categoryById,
-        accountScope,
-      )
+      !isTransferFeeItemInAccountScope(record, item, categoryById, accountScope)
     ) {
       continue;
     }
@@ -525,12 +520,7 @@ function addRecordToGroup(
     const scope = resolveAccountScope({ filters, holderIdsByAccountId });
     const fee = recordItems.find(
       (item) =>
-        isTransferFeeItemInAccountScope(
-          record,
-          item,
-          categoryById,
-          scope,
-        ),
+        isTransferFeeItemInAccountScope(record, item, categoryById, scope),
     );
     if (fee) {
       addRawGroupAmount(
