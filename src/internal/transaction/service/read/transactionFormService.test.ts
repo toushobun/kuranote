@@ -523,6 +523,108 @@ describe("getEditTransactionView", () => {
     } satisfies TransferEditInitialValues);
   });
 
+  const transferPrincipalItems: TransactionItemDbRow[] = [
+    {
+      account_id: accountId,
+      amount: "10000.00",
+      balance_delta: "-10000.00",
+      category_id: null,
+      note: null,
+      transaction_record_id: transactionRecordId,
+    },
+    {
+      account_id: targetAccountId,
+      amount: "10000.00",
+      balance_delta: "10000.00",
+      category_id: null,
+      note: null,
+      transaction_record_id: transactionRecordId,
+    },
+  ];
+  const transferFeeItem: TransactionItemDbRow = {
+    account_id: accountId,
+    amount: "220.00",
+    balance_delta: "-220.00",
+    category_id: categoryId,
+    note: null,
+    transaction_record_id: transactionRecordId,
+  };
+
+  function createFeeTransferRepository(
+    items: TransactionItemDbRow[],
+    createdBy = userId,
+  ) {
+    return createRepository({
+      findActiveRecord: vi.fn().mockResolvedValue({
+        created_at: "2026-06-04T01:00:00.000Z",
+        created_by: createdBy,
+        id: transactionRecordId,
+        merchant_id: null,
+        note: "转账测试",
+        transaction_at: "2026-06-04T01:30:05.000Z",
+        type: "transfer",
+      }),
+      listItems: vi.fn().mockResolvedValue(items),
+    });
+  }
+
+  it("带手续费的转账可读取编辑视图并还原手续费金额", async () => {
+    const view = await getEditTransactionView(
+      createDependencies(
+        createFeeTransferRepository([...transferPrincipalItems, transferFeeItem]),
+      ),
+      currentLedger,
+      transactionRecordId,
+    );
+
+    expect(view).toMatchObject({
+      editRestriction: null,
+      initialValues: {
+        type: "transfer",
+        transferAmount: "10000",
+        transferTargetAmount: "10000",
+        transferFeeAmount: "220",
+      },
+    });
+  });
+
+  it("带手续费的转账可读取只读视图并还原手续费金额", async () => {
+    const view = await getEditTransactionEntryView(
+      createDependencies(
+        createFeeTransferRepository(
+          [...transferPrincipalItems, transferFeeItem],
+          otherUserId,
+        ),
+      ),
+      currentLedger,
+      transactionRecordId,
+    );
+
+    expect(view).toMatchObject({
+      editRestriction: "permission",
+      initialValues: {
+        type: "transfer",
+        transferFeeAmount: "220",
+      },
+    });
+  });
+
+  it.each([
+    ["三条本金", [...transferPrincipalItems, transferPrincipalItems[0]]],
+    [
+      "超过三条明细",
+      [...transferPrincipalItems, transferFeeItem, transferPrincipalItems[0]],
+    ],
+    ["两条手续费", [...transferPrincipalItems, transferFeeItem, transferFeeItem]],
+  ])("转账含%s时返回 null", async (_reason, items) => {
+    const view = await getEditTransactionView(
+      createDependencies(createFeeTransferRepository(items)),
+      currentLedger,
+      transactionRecordId,
+    );
+    expect(view).toBeNull();
+  });
+
   it("转账引用已归档账户时禁止编辑且权限限制优先", async () => {
     const repository = createRepository({
       findActiveRecord: vi.fn().mockResolvedValue({

@@ -187,8 +187,6 @@ export const transferReceiptMessages = {
   ) =>
     `比按当天汇率${more ? "多到账 " : "少到账 "}${targetAmount} ${targetCurrency}（约 ${sourceAmount} ${sourceCurrency}・${percent}%）`,
   restoreDailyRate: "恢复按当天汇率",
-  listArrival: (amount: string, currency: string) =>
-    `到账 ${amount} ${currency}`,
   save: "保存转账",
   missingSource: "请选择转出账户",
   missingTarget: "请选择转入账户",

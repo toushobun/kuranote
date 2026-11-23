@@ -3,7 +3,6 @@
 import SyncAltIcon from "@mui/icons-material/SyncAlt";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
-import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { Fragment, useSyncExternalStore, type ReactNode } from "react";
@@ -73,10 +72,9 @@ export function TransactionRow({
       : item.type === "income"
         ? incomeColor
         : expenseColor;
-  const businessStatuses = getBusinessStatuses(
-    item.categoryItems,
-    item.account_currency,
-  );
+  const businessStatuses = isTransfer
+    ? []
+    : getBusinessStatuses(item.categoryItems, item.account_currency);
   const timeZone = useSyncExternalStore(
     subscribeToTimeZone,
     getBrowserTimeZone,
@@ -94,16 +92,16 @@ export function TransactionRow({
           ),
         )
       : null;
-  const transferArrivalLabel =
-    isTransfer && item.transferTargetAmount && item.transferTargetCurrency
-      ? transferReceiptMessages.listArrival(
-          formatUnsignedCurrencyAmount(
-            item.transferTargetAmount,
-            item.transferTargetCurrency,
-          ),
+  const transferAmountLabel =
+    isTransfer &&
+    item.transferTargetAmount &&
+    item.transferTargetCurrency &&
+    item.transferTargetCurrency !== item.account_currency
+      ? `${signedAmount} → ${formatUnsignedCurrencyAmount(
+          item.transferTargetAmount,
           item.transferTargetCurrency,
-        )
-      : null;
+        )} ${item.transferTargetCurrency}`
+      : signedAmount;
   const categorySummaryText = getTransactionCategorySummaryText(item);
   const detailText = categorySummaryText ?? "";
   const adjustmentNode =
@@ -155,7 +153,7 @@ export function TransactionRow({
       sx={{
         px: 1.4,
         pt: 1.45,
-        pb: detailText || businessStatuses.length > 0 || feeLabel ? 0.8 : 1.45,
+        pb: detailText || businessStatuses.length > 0 ? 0.8 : 1.45,
       }}
     >
       <Stack direction="row" spacing={1.2} sx={{ alignItems: "flex-start" }}>
@@ -213,18 +211,22 @@ export function TransactionRow({
                 whiteSpace: "nowrap",
               }}
             >
-              {signedAmount}
+              {transferAmountLabel}
             </Typography>
           </Stack>
 
           {sharedPaymentLabel ? (
             <TransactionSharedPaymentNote label={sharedPaymentLabel} />
           ) : null}
-          {metaSegments.length > 0 || adjustmentNode || transferArrivalLabel ? (
+          {metaSegments.length > 0 || adjustmentNode || isTransfer ? (
             <Stack
               direction="row"
               spacing={1}
-              sx={{ alignItems: "center", minWidth: 0 }}
+              sx={{
+                alignItems: "center",
+                minHeight: isTransfer ? 17 : undefined,
+                minWidth: 0,
+              }}
             >
               <Stack
                 direction="row"
@@ -262,18 +264,19 @@ export function TransactionRow({
                   </Fragment>
                 ))}
               </Stack>
-              {transferArrivalLabel ? (
+              {feeLabel ? (
                 <Typography
                   noWrap
                   sx={{
                     color: mutedText,
                     flexShrink: 0,
                     fontSize: 11,
+                    lineHeight: 1.5,
                     ml: "auto",
                     textAlign: "right",
                   }}
                 >
-                  {transferArrivalLabel}
+                  {feeLabel}
                 </Typography>
               ) : null}
               {adjustmentNode ? (
@@ -286,7 +289,7 @@ export function TransactionRow({
         </Stack>
       </Stack>
 
-      {detailText || businessStatuses.length > 0 || feeLabel ? (
+      {detailText || businessStatuses.length > 0 ? (
         <Stack
           direction="row"
           sx={{
@@ -310,7 +313,7 @@ export function TransactionRow({
               {detailText}
             </Typography>
           ) : null}
-          {businessStatuses.length > 0 || feeLabel ? (
+          {businessStatuses.length > 0 ? (
             <Stack
               direction="row"
               spacing={0.5}
@@ -322,18 +325,6 @@ export function TransactionRow({
                 "& > .MuiStack-root": { flexWrap: "nowrap" },
               }}
             >
-              {feeLabel && (
-                <Chip
-                  label={feeLabel}
-                  size="small"
-                  sx={{
-                    ...businessBadgeSx,
-                    bgcolor: "action.hover",
-                    color: "text.secondary",
-                    fontWeight: 800,
-                  }}
-                />
-              )}
               {businessStatuses.map(({ key, status }) => (
                 <TransactionBusinessBadge
                   currency={item.account_currency}
