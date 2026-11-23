@@ -18,7 +18,10 @@ import {
 
 import { resolveAccountScope } from "internal/transaction/util/grouping/accountScope";
 import { getTransactionGroupContextLookups } from "internal/transaction/util/grouping/contextLookups";
-import { matchesParentCategory } from "internal/transaction/util/grouping/groupMatching";
+import {
+  isTransferFeeItem,
+  matchesParentCategory,
+} from "internal/transaction/util/grouping/groupMatching";
 import { listRecordAccountMovements } from "internal/transaction/util/grouping/recordAccounts";
 import type { TransactionGroupLoaderContext } from "internal/transaction/util/grouping/types";
 
@@ -72,7 +75,15 @@ export function filterTransactionRecords(
     }
     if (
       hasNonAccountItemFilters(normalizedFilters) &&
-      matchingItems.length === 0
+      (matchingItems.length === 0 ||
+        (record.type === "transfer" &&
+          accountScope !== null &&
+          !matchingItems.some(
+            (item) =>
+              isTransferFeeItem(record, item, categoryById) &&
+              item.account_id !== null &&
+              accountScope(item.account_id),
+          )))
     ) {
       return false;
     }
@@ -88,6 +99,28 @@ export function filterTransactionItems(
   const normalizedFilters = normalizeTransactionFilters(filters);
   const { categoryById } = getTransactionGroupContextLookups(context);
   return filterItems(context.items, categoryById, normalizedFilters);
+}
+
+/**
+ * 筛选决定转账是否命中，但构建行时必须保留转出和到账本金明细，
+ * 否则按手续费分类筛选会丢失账户名、转账金额和到账金额。
+ */
+export function filterTransactionItemsForDisplay(
+  context: TransactionGroupLoaderContext,
+  filters: TransactionFilters,
+  records: readonly TransactionRecordDbRow[],
+) {
+  const matched = new Set(filterTransactionItems(context, filters));
+  const recordIds = new Set(records.map((record) => record.id));
+  const transferIds = new Set(
+    records.filter((record) => record.type === "transfer").map((record) => record.id),
+  );
+
+  return context.items.filter(
+    (item) =>
+      recordIds.has(item.transaction_record_id) &&
+      (transferIds.has(item.transaction_record_id) || matched.has(item)),
+  );
 }
 
 export function normalizeTransactionFilters(
@@ -204,6 +237,12 @@ function matchesRecordType(
 ) {
   if (filters.recordType === "all") return true;
   if (filters.recordType === "transfer") return record.type === "transfer";
+  if (record.type === "transfer") {
+    return (
+      filters.recordType === "expense" &&
+      items.some((item) => isTransferFeeItem(record, item, categoryById))
+    );
+  }
   if (record.type !== "normal") return false;
   if (filters.recordType === "refundableExpense") {
     return items.some((item) => {

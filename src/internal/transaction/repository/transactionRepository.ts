@@ -1168,10 +1168,11 @@ export function createSupabaseTransactionRepository(
       if (input.dateStart) query = query.gte("transaction_at", input.dateStart);
       if (input.dateEnd) query = query.lt("transaction_at", input.dateEnd);
       if (input.recordType === "transfer") query = query.eq("type", "transfer");
-      if (
+      if (input.recordType === "expense") {
+        query = query.in("type", ["normal", "transfer"]);
+      } else if (
         input.recordType === "normal" ||
         input.recordType === "income" ||
-        input.recordType === "expense" ||
         input.recordType === "refundableExpense"
       ) {
         query = query.eq("type", "normal");

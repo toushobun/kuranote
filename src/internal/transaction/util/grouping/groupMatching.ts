@@ -16,6 +16,19 @@ import {
 } from "internal/transaction/util/grouping/accountScope";
 import { listRecordAccountMovements } from "internal/transaction/util/grouping/recordAccounts";
 
+/** 转账的第三条明细才是业务支出；两条本金明细不能参与分类分组。 */
+export function isTransferFeeItem(
+  record: Pick<TransactionRecordDbRow, "type">,
+  item: Pick<TransactionItemDbRow, "category_id">,
+  categoryById: ReadonlyMap<string, Pick<CategorySummaryDbRow, "system_key">>,
+) {
+  return (
+    record.type === "transfer" &&
+    item.category_id !== null &&
+    categoryById.get(item.category_id)?.system_key === "transfer_fee"
+  );
+}
+
 export function recordMatchesGroup({
   categoryById,
   groupBy,
@@ -63,14 +76,17 @@ export function recordMatchesGroup({
 
   if (isExcludedFromCategoryGroups(groupBy, record)) return false;
 
-  return items.some((item) =>
-    itemMatchesGroup({ categoryById, groupBy, groupKey, item }),
+  return items.some(
+    (item) =>
+      (record.type !== "transfer" ||
+        isTransferFeeItem(record, item, categoryById)) &&
+      itemMatchesGroup({ categoryById, groupBy, groupKey, item }),
   );
 }
 
 /**
- * 按大分类 / 小分类分组只纳入普通记录（#909 追加 2）：转账、余额调整的明细没有分类，
- * 不进入「未知」组；普通记录的明细缺分类时仍进入「未知」组。与 SQL 分组函数同口径。
+ * 分类分组保留普通明细及转账手续费；余额调整始终排除。
+ * 转账本金明细在 itemMatchesGroup 调用前由 isTransferFeeItem 排除。
  */
 export function isExcludedFromCategoryGroups(
   groupBy: TransactionGroupBy,
@@ -78,7 +94,7 @@ export function isExcludedFromCategoryGroups(
 ) {
   return (
     (groupBy === "parentCategory" || groupBy === "category") &&
-    record.type !== "normal"
+    record.type === "balance_adjustment"
   );
 }
 
