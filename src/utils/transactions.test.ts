@@ -341,7 +341,41 @@ describe("transactions utils", () => {
     });
   });
 
-  it("分组时转账不计入日别汇总", () => {
+  it("日小计只计转账手续费而不计本金，汇率缺失需提示", () => {
+    const transfers = [
+      createTransactionItem({
+        amount: "100",
+        converted_amount: "-60",
+        transferFeeAmount: "3",
+        id: "with-fee",
+        type: "transfer",
+      }),
+      createTransactionItem({
+        amount: "100",
+        converted_amount: "0",
+        id: "without-fee",
+        type: "transfer",
+      }),
+      createTransactionItem({
+        amount: "300",
+        converted_amount: null,
+        transferFeeAmount: "10",
+        id: "missing-rate-fee",
+        type: "transfer",
+      }),
+    ];
+    const groups = groupTransactionItemsByDate(transfers, "JPY");
+    expect(groups).toHaveLength(1);
+    expect(groups[0].summary).toEqual({
+      balance: "-60",
+      currency: "JPY",
+      expense: "60",
+      income: "0",
+      missingRateCount: 1,
+    });
+  });
+
+  it("分组时无手续费转账不计入日别汇总", () => {
     const groups = groupTransactionItemsByDate(
       [
         createTransactionItem({

@@ -64,6 +64,56 @@ function item(
 }
 
 describe("transactionListGroups", () => {
+  it("跨币种手续费进入月、分类和成员合计，账户仅扣转出币种的手续费", () => {
+    const transfer = record({
+      id: "fee-transfer",
+      type: "transfer",
+      merchant_id: null,
+      ledger_rate: 20,
+      record_currency: "CNY",
+    });
+    const feeCategory: CategorySummaryDbRow = {
+      id: "fee",
+      name: "🏧 手续费",
+      parent_id: null,
+      system_key: "transfer_fee",
+      type: "expense",
+    };
+    const params = {
+      accounts: [
+        { currency: "CNY", id: "cny-bank", name: "人民币账户" },
+        { currency: "JPY", id: "jpy-cash", name: "日元现金" },
+      ],
+      categories: [feeCategory],
+      currency: "JPY",
+      filters: defaultTransactionFilters,
+      holderIdsByAccountId: new Map(),
+      items: [
+        item({ account_id: "cny-bank", amount: "100", balance_delta: "-100", category_id: null, transaction_record_id: transfer.id }),
+        item({ account_id: "jpy-cash", amount: "2000", balance_delta: "2000", category_id: null, transaction_record_id: transfer.id }),
+        item({ account_id: "cny-bank", amount: "3", balance_delta: "-3", category_id: "fee", transaction_record_id: transfer.id }),
+      ],
+      merchants: [],
+      offset: 0,
+      pageSize: 20,
+      payments: [],
+      records: [transfer],
+      recorders,
+    };
+    for (const groupBy of ["month", "member", "parentCategory", "category"] as const) {
+      const groups = buildTransactionGroupSummaryPage({ ...params, groupBy }).groups;
+      expect(groups).toHaveLength(1);
+      expect(groups[0].summary).toMatchObject({ income: "0", expense: "60", balance: "-60" });
+    }
+    const accounts = buildTransactionGroupSummaryPage({ ...params, groupBy: "account" }).groups;
+    expect(accounts.find((group) => group.key === "cny-bank")?.summary).toMatchObject({
+      income: "0", expense: "3", balance: "-3",
+    });
+    expect(accounts.find((group) => group.key === "jpy-cash")?.summary).toMatchObject({
+      income: "0", expense: "0", balance: "0",
+    });
+  });
+
   it("按月分组时按记账发生时间倒序分页，并且转账不参与统计", () => {
     const result = buildTransactionGroupSummaryPage({
       accounts,

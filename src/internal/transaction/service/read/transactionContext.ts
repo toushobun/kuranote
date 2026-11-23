@@ -10,7 +10,6 @@ import type { TransactionListItem } from "internal/transaction/service/read/tran
 
 import { getTransactionGroupContextLookups } from "internal/transaction/util/grouping/contextLookups";
 import {
-  filterTransactionItems,
   filterTransactionItemsForDisplay,
   filterTransactionRecords,
   normalizeTransactionFilters,
