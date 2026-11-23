@@ -3765,7 +3765,7 @@ begin
     v_normalized_name := btrim(
       regexp_replace(btrim(new.name), '^[^[:space:]]+[[:space:]]+', '')
     );
-    if v_normalized_name in ('特殊收入', '退款', '报销')
+    if v_normalized_name in ('特殊收入', '退款', '报销', '手续费')
        and (tg_op = 'INSERT' or v_normalized_name is distinct from btrim(
          regexp_replace(btrim(old.name), '^[^[:space:]]+[[:space:]]+', '')
        )) then
@@ -5256,7 +5256,6 @@ group_rows as (
         mr.transaction_at,
         case
             when mr.record_type = 'normal' then m.balance_delta
-            when mr.record_type = 'transfer' and m.sort_order = 2 then m.balance_delta
             else 0::numeric
         end as signed_amount
     from matched_records mr
@@ -5279,6 +5278,36 @@ group_rows as (
       and (
           not ff.has_account_scope
           or m.account_id in (select sa.account_id from scope_accounts sa)
+      )
+
+    union all
+
+    -- 按已匹配的手续费分类明细归属转出账户，避免用 sort_order 判断业务含义。
+    select
+        k.key,
+        mi.record_id,
+        null::uuid,
+        mi.transaction_at,
+        mi.signed_amount
+    from matched_items mi
+    cross join filter_flags ff
+    cross join lateral (
+        select mi.account_id::text as key
+        where p_group_by = 'account'
+
+        union all
+
+        select ah.holder_id
+        from account_holders ah
+        where p_group_by = 'holder'
+          and ah.account_id = mi.account_id
+    ) k
+    where p_group_by in ('account', 'holder')
+      and mi.record_type = 'transfer'
+      and mi.category_system_key = 'transfer_fee'
+      and (
+          not ff.has_account_scope
+          or mi.account_id in (select sa.account_id from scope_accounts sa)
       )
 
     union all

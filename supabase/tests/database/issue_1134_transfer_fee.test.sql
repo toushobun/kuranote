@@ -176,5 +176,31 @@ select ok(not public.transfer_items_consistent(
 delete from public.transaction_item
 where transaction_record_id=(select id from transfer_fee_created where kind='cross') and sort_order=3;
 
+-- 普通分类不能占用系统「手续费」的名称；emoji 前缀也不能绕过。
+select throws_ok(
+ $insert into public.category(ledger_id,type,name)
+   values('00000000-0000-4000-8000-000000000032','expense','手续费')$,
+ '22023','category_name_reserved','新建普通手续费分类被拒绝');
+select throws_ok(
+ $insert into public.category(ledger_id,type,name)
+   values('00000000-0000-4000-8000-000000000032','expense','🏧 手续费')$,
+ '22023','category_name_reserved','emoji 前缀不能绕过保留名称');
+select throws_ok(
+ $update public.category set name='手续费'
+   where id=(select c.id from public.category c
+     where c.ledger_id='00000000-0000-4000-8000-000000000032'
+       and c.system_key is null order by c.id limit 1)$,
+ '22023','category_name_reserved','普通分类不能改名为手续费');
+
+-- 手续费明细排序变更后，账户分组仍按手续费分类统计。
+update public.transaction_item set sort_order = 12
+where transaction_record_id=(select id from transfer_fee_created where kind='cross')
+  and category_id is not null;
+select is((select expense from public.load_transaction_group_summaries_with_special_status(
+ p_ledger_id=>'00000000-0000-4000-8000-000000000032',
+ p_group_by=>'account', p_account_id=>pg_temp.fee_account('cny'))
+ where group_key=pg_temp.fee_account('cny')::text),
+ 3::numeric,'手续费排序改变后账户支出合计仍正确');
+
 select * from finish();
 rollback;
