@@ -264,31 +264,89 @@ describe("账户筛选按付款明细（记录级）", () => {
 });
 
 describe("转账手续费在支出、分类和账户筛选中的口径", () => {
-  const transfer = { ...record("fee-transfer", "2026-11-10T01:00:00.000Z"), type: "transfer" as const };
+  const transfer = {
+    ...record("fee-transfer", "2026-11-10T01:00:00.000Z"),
+    type: "transfer" as const,
+  };
   const rows: TransactionItemDbRow[] = [
-    { account_id: "from-bank", amount: "10000", balance_delta: "-10000", category_id: null, transaction_record_id: transfer.id },
-    { account_id: "to-cash", amount: "10000", balance_delta: "10000", category_id: null, transaction_record_id: transfer.id },
-    { account_id: "from-bank", amount: "220", balance_delta: "-220", category_id: "fee", transaction_record_id: transfer.id },
+    {
+      account_id: "from-bank",
+      amount: "10000",
+      balance_delta: "-10000",
+      category_id: null,
+      transaction_record_id: transfer.id,
+    },
+    {
+      account_id: "to-cash",
+      amount: "10000",
+      balance_delta: "10000",
+      category_id: null,
+      transaction_record_id: transfer.id,
+    },
+    {
+      account_id: "from-bank",
+      amount: "220",
+      balance_delta: "-220",
+      category_id: "fee",
+      transaction_record_id: transfer.id,
+    },
   ];
   const context: TransactionGroupLoaderContext = {
     ...createContext([transfer]),
-    categories: [{ id: "fee", name: "🏧 手续费", parent_id: null, type: "expense", system_key: "transfer_fee" }],
+    categories: [
+      {
+        id: "fee",
+        name: "🏧 手续费",
+        parent_id: null,
+        type: "expense",
+        system_key: "transfer_fee",
+      },
+    ],
     items: rows,
   };
 
   it("有手续费的转账命中支出与手续费分类，不能作为可退款原支出", () => {
-    expect(filterTransactionRecords(context, { recordType: "expense" })).toEqual([transfer]);
-    expect(filterTransactionRecords(context, { recordType: "refundableExpense" })).toEqual([]);
-    expect(filterTransactionRecords(context, { recordType: "all", categoryId: "fee" })).toEqual([transfer]);
+    expect(
+      filterTransactionRecords(context, { recordType: "expense" }),
+    ).toEqual([transfer]);
+    expect(
+      filterTransactionRecords(context, { recordType: "refundableExpense" }),
+    ).toEqual([]);
+    expect(
+      filterTransactionRecords(context, {
+        recordType: "all",
+        categoryId: "fee",
+      }),
+    ).toEqual([transfer]);
   });
 
   it("只筛到账账户时手续费不进入分类筛选，筛转出账户才命中", () => {
-    expect(filterTransactionRecords(context, { recordType: "all", categoryId: "fee", accountId: "to-cash" })).toEqual([]);
-    expect(filterTransactionRecords(context, { recordType: "all", categoryId: "fee", accountId: "from-bank" })).toEqual([transfer]);
+    expect(
+      filterTransactionRecords(context, {
+        recordType: "all",
+        categoryId: "fee",
+        accountId: "to-cash",
+      }),
+    ).toEqual([]);
+    expect(
+      filterTransactionRecords(context, {
+        recordType: "all",
+        categoryId: "fee",
+        accountId: "from-bank",
+      }),
+    ).toEqual([transfer]);
   });
 
   it("手续费分类筛选的列表行仍保留两条转账本金明细", () => {
-    expect(filterTransactionItems(context, { recordType: "all", categoryId: "fee" })).toEqual([rows[2]]);
-    expect(filterTransactionItemsForDisplay(context, { recordType: "all", categoryId: "fee" }, [transfer])).toEqual(rows);
+    expect(
+      filterTransactionItems(context, { recordType: "all", categoryId: "fee" }),
+    ).toEqual([rows[2]]);
+    expect(
+      filterTransactionItemsForDisplay(
+        context,
+        { recordType: "all", categoryId: "fee" },
+        [transfer],
+      ),
+    ).toEqual(rows);
   });
 });

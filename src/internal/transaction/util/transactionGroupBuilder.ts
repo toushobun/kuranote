@@ -568,7 +568,8 @@ function addItemToGroup(
   if (
     record.type !== "normal" &&
     !isTransferFeeItem(record, item, categoryById)
-  ) return;
+  )
+    return;
 
   const signedAmount = getSignedTransactionItemAmount(item, categoryById);
   addRawGroupAmount(group, record.id, signedAmount);

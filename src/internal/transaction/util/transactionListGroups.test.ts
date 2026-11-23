@@ -89,9 +89,27 @@ describe("transactionListGroups", () => {
       filters: defaultTransactionFilters,
       holderIdsByAccountId: new Map(),
       items: [
-        item({ account_id: "cny-bank", amount: "100", balance_delta: "-100", category_id: null, transaction_record_id: transfer.id }),
-        item({ account_id: "jpy-cash", amount: "2000", balance_delta: "2000", category_id: null, transaction_record_id: transfer.id }),
-        item({ account_id: "cny-bank", amount: "3", balance_delta: "-3", category_id: "fee", transaction_record_id: transfer.id }),
+        item({
+          account_id: "cny-bank",
+          amount: "100",
+          balance_delta: "-100",
+          category_id: null,
+          transaction_record_id: transfer.id,
+        }),
+        item({
+          account_id: "jpy-cash",
+          amount: "2000",
+          balance_delta: "2000",
+          category_id: null,
+          transaction_record_id: transfer.id,
+        }),
+        item({
+          account_id: "cny-bank",
+          amount: "3",
+          balance_delta: "-3",
+          category_id: "fee",
+          transaction_record_id: transfer.id,
+        }),
       ],
       merchants: [],
       offset: 0,
@@ -100,17 +118,40 @@ describe("transactionListGroups", () => {
       records: [transfer],
       recorders,
     };
-    for (const groupBy of ["month", "member", "parentCategory", "category"] as const) {
-      const groups = buildTransactionGroupSummaryPage({ ...params, groupBy }).groups;
+    for (const groupBy of [
+      "month",
+      "member",
+      "parentCategory",
+      "category",
+    ] as const) {
+      const groups = buildTransactionGroupSummaryPage({
+        ...params,
+        groupBy,
+      }).groups;
       expect(groups).toHaveLength(1);
-      expect(groups[0].summary).toMatchObject({ income: "0", expense: "60", balance: "-60" });
+      expect(groups[0].summary).toMatchObject({
+        income: "0",
+        expense: "60",
+        balance: "-60",
+      });
     }
-    const accounts = buildTransactionGroupSummaryPage({ ...params, groupBy: "account" }).groups;
-    expect(accounts.find((group) => group.key === "cny-bank")?.summary).toMatchObject({
-      income: "0", expense: "3", balance: "-3",
+    const accounts = buildTransactionGroupSummaryPage({
+      ...params,
+      groupBy: "account",
+    }).groups;
+    expect(
+      accounts.find((group) => group.key === "cny-bank")?.summary,
+    ).toMatchObject({
+      income: "0",
+      expense: "3",
+      balance: "-3",
     });
-    expect(accounts.find((group) => group.key === "jpy-cash")?.summary).toMatchObject({
-      income: "0", expense: "0", balance: "0",
+    expect(
+      accounts.find((group) => group.key === "jpy-cash")?.summary,
+    ).toMatchObject({
+      income: "0",
+      expense: "0",
+      balance: "0",
     });
   });
 

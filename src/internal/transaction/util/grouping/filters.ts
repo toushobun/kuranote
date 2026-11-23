@@ -113,7 +113,9 @@ export function filterTransactionItemsForDisplay(
   const matched = new Set(filterTransactionItems(context, filters));
   const recordIds = new Set(records.map((record) => record.id));
   const transferIds = new Set(
-    records.filter((record) => record.type === "transfer").map((record) => record.id),
+    records
+      .filter((record) => record.type === "transfer")
+      .map((record) => record.id),
   );
 
   return context.items.filter(
