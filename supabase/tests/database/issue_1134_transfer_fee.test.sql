@@ -54,7 +54,7 @@ set local role authenticated;
 select is((select system_key from public.category
  where id=(select category_id from public.transaction_item
   where transaction_record_id=(select id from transfer_fee_created where kind='same')
-  and sort_order=2)), 'transfer_fee', '首次保存手续费自动建立系统支出分类');
+  and category_id is not null)), 'transfer_fee', '首次保存手续费自动建立系统支出分类');
 select is((select type from public.category
  where ledger_id='00000000-0000-4000-8000-000000000032'
  and system_key='transfer_fee'), 'expense', '手续费是一级系统支出分类');
@@ -156,40 +156,35 @@ set local role authenticated;
 -- 损坏明细只在事务内测试，恢复后才能作废。
 set local role postgres;
 select lives_ok(format(
- 'update public.transaction_item set account_id=%L::uuid where transaction_record_id=%L::uuid and sort_order=2',
+ 'update public.transaction_item set account_id=%L::uuid where transaction_record_id=%L::uuid and category_id is not null',
  pg_temp.fee_account('to'),(select id from transfer_fee_created where kind='cross')),
  '测试准备：将手续费账户改成到账账户');
 select ok(not public.transfer_items_consistent(
  '00000000-0000-4000-8000-000000000032',(select id from transfer_fee_created where kind='cross')),
  '手续费账户不是转出账户时完整性校验失败');
 update public.transaction_item set account_id=pg_temp.fee_account('cny')
-where transaction_record_id=(select id from transfer_fee_created where kind='cross') and sort_order=2;
+where transaction_record_id=(select id from transfer_fee_created where kind='cross') and category_id is not null;
 insert into public.transaction_item(
  ledger_id,transaction_record_id,account_id,category_id,amount,discount_amount,balance_delta,
  sort_order,created_by,updated_by)
 select ledger_id,transaction_record_id,account_id,category_id,1,0,-1,3,created_by,updated_by
 from public.transaction_item
-where transaction_record_id=(select id from transfer_fee_created where kind='cross') and sort_order=2;
+where transaction_record_id=(select id from transfer_fee_created where kind='cross') and category_id is not null;
 select ok(not public.transfer_items_consistent(
  '00000000-0000-4000-8000-000000000032',(select id from transfer_fee_created where kind='cross')),
  '两条手续费明细被完整性校验拒绝');
 delete from public.transaction_item
-where transaction_record_id=(select id from transfer_fee_created where kind='cross') and sort_order=3;
+where transaction_record_id=(select id from transfer_fee_created where kind='cross') and category_id is not null and amount=1;
 
 -- 普通分类不能占用系统「手续费」的名称；emoji 前缀也不能绕过。
 select throws_ok(
- $insert into public.category(ledger_id,type,name)
-   values('00000000-0000-4000-8000-000000000032','expense','手续费')$,
+ 'insert into public.category(ledger_id,type,name) values(''00000000-0000-4000-8000-000000000032'',''expense'',''手续费'')',
  '22023','category_name_reserved','新建普通手续费分类被拒绝');
 select throws_ok(
- $insert into public.category(ledger_id,type,name)
-   values('00000000-0000-4000-8000-000000000032','expense','🏧 手续费')$,
+ 'insert into public.category(ledger_id,type,name) values(''00000000-0000-4000-8000-000000000032'',''expense'',''🏧 手续费'')',
  '22023','category_name_reserved','emoji 前缀不能绕过保留名称');
 select throws_ok(
- $update public.category set name='手续费'
-   where id=(select c.id from public.category c
-     where c.ledger_id='00000000-0000-4000-8000-000000000032'
-       and c.system_key is null order by c.id limit 1)$,
+ 'update public.category set name=''手续费'' where id=(select c.id from public.category c where c.ledger_id=''00000000-0000-4000-8000-000000000032'' and c.system_key is null order by c.id limit 1)',
  '22023','category_name_reserved','普通分类不能改名为手续费');
 
 -- 手续费明细排序变更后，账户分组仍按手续费分类统计。
