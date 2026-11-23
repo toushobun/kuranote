@@ -109,10 +109,8 @@ export function buildStatisticsViewData({
     if (record.type !== "normal" && record.type !== "transfer") continue;
     const recordItems = itemsByRecordId.get(record.id) ?? [];
     // 无手续费的转账本金不属于收支，也不需要查找其汇率。
-    if (
-      record.type === "transfer" &&
-      !recordItems.some((item) => item.category_id !== null)
-    ) continue;
+    const hasFee = recordItems.some((item) => item.category_id !== null);
+    if (record.type === "transfer" && !hasFee) continue;
     const netAmount = calculateRecordNetAmount(recordItems, categoryById);
     const convertedAmount = convertLedgerAmount(netAmount, record.ledger_rate);
     if (convertedAmount === null) {
