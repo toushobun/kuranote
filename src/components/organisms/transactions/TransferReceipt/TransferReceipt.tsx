@@ -211,6 +211,8 @@ export function TransferReceipt(props: TransferReceiptProps) {
               <>
                 <ReceiptAmountRow
                   label={t.fee}
+                  amountVariant="h6"
+                  color="text.primary"
                   amount={formatStepCurrencyAmount(w.feeAmount, w.currency)}
                   caption={t.feeDetails(w.source?.name ?? t.selectAccount)}
                   error={w.isMarked("fee")}
@@ -234,6 +236,7 @@ export function TransferReceipt(props: TransferReceiptProps) {
                           w.crossCurrency ? w.transferTargetAmount : w.amount,
                           w.crossCurrency ? w.targetCurrency : w.currency,
                         ),
+                        w.crossCurrency ? w.targetCurrency : undefined,
                       )}
                     </Typography>
                   </Stack>

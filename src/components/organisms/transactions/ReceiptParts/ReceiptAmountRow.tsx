@@ -20,6 +20,7 @@ export function ReceiptAmountRow({
   caption,
   labelCaption,
   color = "primary.main",
+  amountVariant = "h5",
   error = false,
   onClick,
 }: {
@@ -29,13 +30,14 @@ export function ReceiptAmountRow({
   caption?: ReactNode;
   labelCaption?: string;
   color?: string;
+  amountVariant?: "h5" | "h6";
   error?: boolean;
   onClick?: () => void;
 }) {
   const pending = !amount;
   const value = (
     <Typography
-      variant={pending ? "subtitle1" : "h5"}
+      variant={pending ? "subtitle1" : amountVariant}
       data-invalid={error || undefined}
       sx={{
         color: error ? "error.main" : pending ? "text.disabled" : color,

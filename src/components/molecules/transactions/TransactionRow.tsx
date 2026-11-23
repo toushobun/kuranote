@@ -3,6 +3,7 @@
 import SyncAltIcon from "@mui/icons-material/SyncAlt";
 import Avatar from "@mui/material/Avatar";
 import Box from "@mui/material/Box";
+import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { Fragment, useSyncExternalStore, type ReactNode } from "react";
@@ -322,19 +323,16 @@ export function TransactionRow({
               }}
             >
               {feeLabel && (
-                <Typography
+                <Chip
+                  label={feeLabel}
+                  size="small"
                   sx={{
+                    ...businessBadgeSx,
                     bgcolor: "action.hover",
-                    borderRadius: 1,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    px: 0.75,
-                    py: 0.25,
-                    whiteSpace: "nowrap",
+                    color: "text.secondary",
+                    fontWeight: 800,
                   }}
-                >
-                  {feeLabel}
-                </Typography>
+                />
               )}
               {businessStatuses.map(({ key, status }) => (
                 <TransactionBusinessBadge

@@ -295,6 +295,24 @@ describe("TransferReceipt", () => {
     expect(screen.queryByText("删除手续费")).toBeNull();
   });
 
+  it("跨币种手续费到账汇总标明币种且手续费金额为次要样式", () => {
+    setup({
+      initialValues: {
+        ...editValues,
+        transferTargetAccountId: "cny",
+        transferAmount: "100000",
+        transferTargetAmount: "4850",
+        transferFeeAmount: "220",
+      },
+      readOnly: true,
+      loadDailyRate: async () => null,
+    });
+    expect(screen.getByText("招商银行卡 到账 ¥4,850 CNY")).toBeInTheDocument();
+    expect(screen.getByText("现金 共扣 ¥100,220")).toBeInTheDocument();
+    expect(screen.getByText("¥220")).toHaveClass("MuiTypography-h6");
+    expect(screen.getByText("¥100,000")).toHaveClass("MuiTypography-h5");
+  });
+
   it("跨币种转出金额提示与计算器标题对应币种", () => {
     const { action } = setup({
       initialValues: {

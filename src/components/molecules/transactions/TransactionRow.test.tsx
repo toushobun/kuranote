@@ -183,7 +183,9 @@ describe("TransactionRow", () => {
       />,
     );
     expect(screen.getByText("¥ 10,000")).toBeInTheDocument();
-    expect(screen.getByText(/手续费.*220/)).toBeInTheDocument();
+    const feeChip = screen.getByText(/手续费.*220/).closest(".MuiChip-root");
+    expect(feeChip).toBeInTheDocument();
+    expect(feeChip).toHaveClass("MuiChip-sizeSmall");
     expect(screen.getByText(/到账.*500.*CNY/)).toBeInTheDocument();
   });
 

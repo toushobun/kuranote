@@ -152,8 +152,8 @@ export const transferReceiptMessages = {
   feeInvalid: "手续费金额无效，请按转出账户币种重新输入",
   feeTotalDebit: (accountName: string, amount: string) =>
     `${accountName} 共扣 ${amount}`,
-  feeTotalCredit: (accountName: string, amount: string) =>
-    `${accountName} 到账 ${amount}`,
+  feeTotalCredit: (accountName: string, amount: string, currency?: string) =>
+    `${accountName} 到账 ${amount}${currency ? ` ${currency}` : ""}`,
   listFee: (amount: string) => `手续费 ${amount}`,
   sourceAmount: "转出金额",
   targetAmount: "到账金额",
