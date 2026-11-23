@@ -77,6 +77,12 @@ select is(pg_temp.fee_balance('from'),-10000::numeric,'删除手续费后只扣�
 select is((select count(*)::integer from public.transaction_item
  where transaction_record_id=(select id from transfer_fee_created where kind='same')),
  2,'无手续费恢复原有两明细模型');
+select is((select currency from public.transaction_record_ledger_rate
+ where record_id=(select id from transfer_fee_created where kind='same')),
+ null::text,'删除手续费后的转账汇率视图不再带币种');
+select is((select ledger_rate from public.transaction_record_ledger_rate
+ where record_id=(select id from transfer_fee_created where kind='same')),
+ 1::numeric,'无手续费转账汇率视图保持恒等换算 1');
 
 select lives_ok(format(
  'select public.update_transfer_transaction(%L::uuid,%L::uuid,%L::timestamptz,10000,%L::uuid,%L::uuid,null,null,125)',

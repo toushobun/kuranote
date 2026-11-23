@@ -11322,21 +11322,28 @@ CREATE OR REPLACE VIEW "public"."transaction_record_ledger_rate" WITH ("security
  SELECT "tr"."ledger_id",
     "tr"."id" AS "record_id",
         CASE
-            WHEN ("tr"."type" = ANY (ARRAY['normal'::"text", 'transfer'::"text"])) THEN "rc"."currency"
+            WHEN ("tr"."type" = 'normal'::"text") THEN "rc"."currency"
+            WHEN ("tr"."type" = 'transfer'::"text") THEN "fee"."currency"
             ELSE NULL::"text"
         END AS "currency",
         CASE
-            WHEN ("tr"."type" = ANY (ARRAY['normal'::"text", 'transfer'::"text"])) THEN "public"."exchange_rate_on"("rc"."currency", "l"."base_currency", "public"."transaction_record_local_date"("tr"."transaction_at"))
+            WHEN ("tr"."type" = 'normal'::"text") THEN "public"."exchange_rate_on"("rc"."currency", "l"."base_currency", "public"."transaction_record_local_date"("tr"."transaction_at"))
+            WHEN (("tr"."type" = 'transfer'::"text") AND ("fee"."currency" IS NOT NULL)) THEN "public"."exchange_rate_on"("fee"."currency", "l"."base_currency", "public"."transaction_record_local_date"("tr"."transaction_at"))
             ELSE (1)::numeric
         END AS "ledger_rate"
-   FROM (("public"."transaction_record" "tr"
+   FROM ((("public"."transaction_record" "tr"
      JOIN "public"."ledger" "l" ON (("l"."id" = "tr"."ledger_id")))
      LEFT JOIN LATERAL ( SELECT "a"."currency"
            FROM ("public"."transaction_account_movement" "m"
              JOIN "public"."account" "a" ON ((("a"."id" = "m"."account_id") AND ("a"."ledger_id" = "m"."ledger_id"))))
-          WHERE (("m"."ledger_id" = "tr"."ledger_id") AND ("m"."transaction_record_id" = "tr"."id") AND ("tr"."type" = ANY (ARRAY['normal'::"text", 'transfer'::"text"])))
+          WHERE (("m"."ledger_id" = "tr"."ledger_id") AND ("m"."transaction_record_id" = "tr"."id") AND ("tr"."type" = 'normal'::"text"))
           ORDER BY "m"."sort_order", "m"."account_id"
-         LIMIT 1) "rc" ON (true));
+         LIMIT 1) "rc" ON (true))
+     LEFT JOIN LATERAL ( SELECT "a"."currency"
+           FROM ("public"."transaction_item" "ti"
+             JOIN "public"."account" "a" ON ((("a"."id" = "ti"."account_id") AND ("a"."ledger_id" = "ti"."ledger_id"))))
+          WHERE (("tr"."type" = 'transfer'::"text") AND ("ti"."ledger_id" = "tr"."ledger_id") AND ("ti"."transaction_record_id" = "tr"."id") AND ("ti"."category_id" IS NOT NULL))
+         LIMIT 1) "fee" ON (true));
 
 
 ALTER VIEW "public"."transaction_record_ledger_rate" OWNER TO "postgres";

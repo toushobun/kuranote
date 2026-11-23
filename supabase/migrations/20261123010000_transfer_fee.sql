@@ -588,21 +588,27 @@ grant execute on function public.update_transfer_transaction(uuid,uuid,timestamp
 
 create or replace view public.transaction_record_ledger_rate with (security_invoker = true) as
 select tr.ledger_id, tr.id as record_id,
-       case when tr.type in ('normal','transfer')
-            then rc.currency
-            else null end as currency,
-       case when tr.type in ('normal','transfer')
-            then public.exchange_rate_on(
-                rc.currency,
-                l.base_currency,
-                public.transaction_record_local_date(tr.transaction_at)
-            )
-            else 1::numeric end as ledger_rate
+       case
+           when tr.type = 'normal' then rc.currency
+           when tr.type = 'transfer' then fee.currency
+           else null
+       end as currency,
+       case
+           when tr.type = 'normal' then public.exchange_rate_on(
+               rc.currency, l.base_currency,
+               public.transaction_record_local_date(tr.transaction_at)
+           )
+           when tr.type = 'transfer' and fee.currency is not null
+               then public.exchange_rate_on(
+                   fee.currency, l.base_currency,
+                   public.transaction_record_local_date(tr.transaction_at)
+               )
+           else 1::numeric
+       end as ledger_rate
 from public.transaction_record tr
 join public.ledger l on l.id = tr.ledger_id
 left join lateral (
-    -- 与内部 transaction_record_currency 的普通记录分支同语义，
-    -- 但通过 security_invoker 视图与各表 RLS 读取，不放开内部函数 EXECUTE。
+    -- 普通交易维持此前的账户与排序口径。
     select a.currency
     from public.transaction_account_movement m
     join public.account a
@@ -610,10 +616,24 @@ left join lateral (
      and a.ledger_id = m.ledger_id
     where m.ledger_id = tr.ledger_id
       and m.transaction_record_id = tr.id
-      and tr.type in ('normal','transfer')
+      and tr.type = 'normal'
     order by m.sort_order, m.account_id
     limit 1
-) rc on true;
+) rc on true
+left join lateral (
+    -- 只有存在手续费明细的转账才读取转出币种及当天汇率。
+    -- 转账明细的非空 category_id 只允许系统手续费分类。
+    select a.currency
+    from public.transaction_item ti
+    join public.account a
+      on a.id = ti.account_id
+     and a.ledger_id = ti.ledger_id
+    where tr.type = 'transfer'
+      and ti.ledger_id = tr.ledger_id
+      and ti.transaction_record_id = tr.id
+      and ti.category_id is not null
+    limit 1
+) fee on true;
 revoke all on public.transaction_record_ledger_rate from public, anon, authenticated, service_role;
 grant select on public.transaction_record_ledger_rate to authenticated, service_role;
 
