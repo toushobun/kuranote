@@ -181,13 +181,22 @@ describe("buildStatisticsViewData", () => {
       currency: "JPY",
       items: [
         { amount: "100", category_id: null, transaction_record_id: "transfer" },
-        { amount: "2000", category_id: null, transaction_record_id: "transfer" },
+        {
+          amount: "2000",
+          category_id: null,
+          transaction_record_id: "transfer",
+        },
       ],
       ledgerName: "家庭账本",
       merchants: [],
       month: "2026-11",
       records: [
-        { id: "transfer", merchant_id: null, ledger_rate: null, type: "transfer" },
+        {
+          id: "transfer",
+          merchant_id: null,
+          ledger_rate: null,
+          type: "transfer",
+        },
       ],
     });
     expect(view.summary).toEqual({
