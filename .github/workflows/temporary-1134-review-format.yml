@@ -1,0 +1,45 @@
+name: Temporary 1134 Review Prettier
+'on':
+  push:
+    branches:
+      - feat/1134_transfer_fee
+permissions:
+  contents: write
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/1134_transfer_fee
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - name: Prettier changed sources
+        run: |
+          npx prettier --write \
+            src/internal/transaction/util/grouping/groupMatching.ts \
+            src/internal/transaction/util/grouping/filters.ts \
+            src/internal/transaction/util/transactionGroupBuilder.ts \
+            src/internal/transaction/repository/transactionRepository.ts \
+            src/internal/transaction/service/read/transactionContext.ts \
+            src/internal/transaction/service/read/groupLoaders.ts \
+            src/internal/transaction/util/buildTransactionListItem.ts \
+            src/utils/transactions.ts \
+            src/components/organisms/transactions/TransactionForm/TransactionForm.utils.ts \
+            src/internal/transaction/util/grouping/groupMatching.test.ts \
+            src/internal/transaction/util/grouping/filters.test.ts \
+            src/internal/transaction/util/transactionListGroups.test.ts \
+            src/utils/transactions.test.ts
+      - name: Push formatted files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- src
+          if ! git diff --cached --quiet; then
+            git commit -m "style: 统一手续费分组修复格式"
+            git push origin HEAD:refs/heads/feat/1134_transfer_fee
+          fi
