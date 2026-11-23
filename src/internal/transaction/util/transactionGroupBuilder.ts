@@ -518,9 +518,8 @@ function addRecordToGroup(
   if (record.type === "balance_adjustment") return;
   if (record.type === "transfer") {
     const scope = resolveAccountScope({ filters, holderIdsByAccountId });
-    const fee = recordItems.find(
-      (item) =>
-        isTransferFeeItemInAccountScope(record, item, categoryById, scope),
+    const fee = recordItems.find((item) =>
+      isTransferFeeItemInAccountScope(record, item, categoryById, scope),
     );
     if (fee) {
       addRawGroupAmount(
