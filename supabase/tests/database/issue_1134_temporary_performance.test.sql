@@ -633,7 +633,7 @@ returns table (
 language sql
 stable
 security invoker
-as $
+as $$
 with filter_flags as (
     select
         -- 账户以外的明细级筛选：存在时命中部分由明细决定，账户筛选只决定记录是否出现。
@@ -1111,7 +1111,7 @@ order by
     labeled.label
 offset greatest(p_offset, 0)
 limit greatest(p_limit, 1);
-$;
+$$;
 
 create function pg_temp.issue_1134_scope_plan(p_plan jsonb)
 returns jsonb language sql stable as $plan$
@@ -1157,5 +1157,20 @@ select diag(format('Issue #1134 scope_accounts 按账户筛选展开计划: %s',
     )
   $sql$))
 ));
+-- 同一批样本中 801–1000 为无手续费转账，单独观察旧行为的查询开销。
+select diag(format('Issue #1134 无手续费转账汇率视图改前 executionMs=%s',
+ pg_temp.explain_1134($query$
+ select sum(rr.ledger_rate) from pg_temp.issue_1134_rate_before rr
+ where rr.ledger_id='00000000-0000-4000-8000-000000000032'::uuid
+   and rr.record_id between '11340100-0000-4000-8000-000000000801'::uuid
+                        and '11340100-0000-4000-8000-000000001000'::uuid
+ $query$)->>'Execution Time'));
+select diag(format('Issue #1134 无手续费转账汇率视图改后 executionMs=%s',
+ pg_temp.explain_1134($query$
+ select sum(rr.ledger_rate) from public.transaction_record_ledger_rate rr
+ where rr.ledger_id='00000000-0000-4000-8000-000000000032'::uuid
+   and rr.record_id between '11340100-0000-4000-8000-000000000801'::uuid
+                        and '11340100-0000-4000-8000-000000001000'::uuid
+ $query$)->>'Execution Time'));
 select * from finish();
 rollback;
