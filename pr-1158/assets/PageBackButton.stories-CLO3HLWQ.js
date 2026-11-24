@@ -1,3 +1,0 @@
-import{i as e}from"./preload-helper-D2yxXLVK.js";import{n as t,t as n}from"./PageBackButton-Bz8aHJFu.js";var r,i,a;e((()=>{t(),r={title:`Atoms/UI/PageBackButton`,component:n,args:{"aria-label":`返回设置`,href:`/settings`}},i={name:`无框返回箭头`},i.parameters={...i.parameters,docs:{...i.parameters?.docs,source:{originalSource:`{
-  name: "无框返回箭头"
-}`,...i.parameters?.docs?.source}}},a=[`Default`]}))();export{i as Default,a as __namedExportsOrder,r as default};
