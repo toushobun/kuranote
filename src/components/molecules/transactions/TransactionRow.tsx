@@ -19,7 +19,10 @@ import {
 } from "internal/transaction";
 import { designTokens } from "theme/theme";
 import { themeColorTokens } from "theme/themeColorTokens";
-import { transactionSharedPaymentMessages } from "utils/transactionMessages";
+import {
+  transactionCategorySummaryMessages,
+  transactionSharedPaymentMessages,
+} from "utils/transactionMessages";
 import { getAmountDecimalPlaces } from "utils/transactionAmountInput";
 import type {
   CategorySummaryItem,
@@ -104,6 +107,9 @@ export function TransactionRow({
       : signedAmount;
   const categorySummaryText = getTransactionCategorySummaryText(item);
   const detailText = categorySummaryText ?? "";
+  const hasDetailRow = Boolean(
+    detailText || item.note || businessStatuses.length > 0,
+  );
   const adjustmentNode =
     item.originalAmount !== undefined ? (
       <TransactionOriginalAmount
@@ -135,14 +141,6 @@ export function TransactionRow({
     photoAction
       ? { key: "photo", kind: "action" as const, node: photoAction }
       : null,
-    item.note
-      ? {
-          color: mutedText,
-          key: "note",
-          kind: "text" as const,
-          label: item.note,
-        }
-      : null,
   ].filter(
     (segment): segment is NonNullable<typeof segment> => segment !== null,
   );
@@ -153,7 +151,7 @@ export function TransactionRow({
       sx={{
         px: 1.4,
         pt: 1.45,
-        pb: detailText || businessStatuses.length > 0 ? 0.8 : 1.45,
+        pb: hasDetailRow ? 0.8 : 1.45,
       }}
     >
       <Stack direction="row" spacing={1.2} sx={{ alignItems: "flex-start" }}>
@@ -290,7 +288,7 @@ export function TransactionRow({
         </Stack>
       </Stack>
 
-      {detailText || businessStatuses.length > 0 ? (
+      {hasDetailRow ? (
         <Stack
           direction="row"
           sx={{
@@ -300,19 +298,56 @@ export function TransactionRow({
             minWidth: 0,
           }}
         >
-          {detailText ? (
-            <Typography
-              noWrap
+          {detailText || item.note ? (
+            <Stack
+              direction="row"
               sx={{
-                color: mutedText,
+                alignItems: "center",
                 flex: 1,
-                fontSize: 11,
-                fontWeight: 700,
                 minWidth: 0,
+                overflow: "hidden",
               }}
             >
-              {detailText}
-            </Typography>
+              {detailText ? (
+                <Typography
+                  noWrap
+                  sx={{
+                    color: mutedText,
+                    flexShrink: 0,
+                    fontSize: 11,
+                    fontWeight: 700,
+                    maxWidth: "100%",
+                  }}
+                >
+                  {detailText}
+                </Typography>
+              ) : null}
+              {detailText && item.note ? (
+                <Typography
+                  sx={{
+                    color: mutedText,
+                    flexShrink: 0,
+                    fontSize: 11,
+                    mx: 0.6,
+                  }}
+                >
+                  {"|"}
+                </Typography>
+              ) : null}
+              {item.note ? (
+                <Typography
+                  noWrap
+                  sx={{
+                    color: mutedText,
+                    flex: 1,
+                    fontSize: 11,
+                    minWidth: 0,
+                  }}
+                >
+                  {item.note}
+                </Typography>
+              ) : null}
+            </Stack>
           ) : null}
           {businessStatuses.length > 0 ? (
             <Stack
@@ -477,7 +512,7 @@ function getTransactionCategorySummaryText(item: TransactionRowItem) {
 
   return `${topCategories
     .map((category) => category.categoryName)
-    .join("、")}等 ${item.categoryItems.length} 项`;
+    .join("、")}${transactionCategorySummaryMessages.more}`;
 }
 
 function getCategoryTargetTone(item: TransactionRowItem): "income" | "expense" {

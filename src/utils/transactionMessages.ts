@@ -9,6 +9,10 @@ export const transactionAmountMessages = {
   originalAmount: "原金额",
 } as const;
 
+export const transactionCategorySummaryMessages = {
+  more: "等",
+} as const;
+
 // 多账户记录（#834 / #914）：列表账户位置与「共同支付」标识。金额参数为已格式化的「币种符号 + 金额」。
 export const transactionSharedPaymentMessages = {
   groupSummary: (count: number, recordTotal: string) =>

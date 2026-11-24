@@ -700,6 +700,39 @@ export const MerchantToMetaGapComparison: Story = {
   },
 };
 
+export const ManyDetailsLongNotePendingReimbursement: Story = {
+  name: "390px：多明细、长备注与待报销标签",
+  decorators: [
+    (Story) => (
+      <Box sx={{ width: 390 }}>
+        <Story />
+      </Box>
+    ),
+  ],
+  args: {
+    receiptCard: false,
+    item: {
+      ...expenseItem,
+      merchant_name: "优衣库",
+      note: "945测试 优衣库 多明细，发票需要和公司报销申请一起提交，备注内容比较长",
+      categoryItems: [
+        {
+          ...expenseItem.categoryItems[0],
+          businessStatus: {
+            incomeLinkRole: null,
+            offsetComposition: {
+              refundAmount: "0",
+              reimbursementAmount: "0",
+            },
+            settlementStatus: "pendingReimbursement",
+          },
+        },
+        ...expenseItem.categoryItems.slice(1),
+      ],
+    },
+  },
+};
+
 export const LongText: Story = {
   name: "长商家名 / 长备注",
   args: {
