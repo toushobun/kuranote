@@ -292,15 +292,13 @@ describe("TransactionRow", () => {
   );
 
   it("只有备注时渲染第三排，备注与标签都没有时不渲染", () => {
-    const { container, rerender } = render(
-      <TransactionRow item={createItem({ categoryItems: [], note: "仅备注" })} />,
-    );
+    const noteOnly = createItem({ categoryItems: [], note: "仅备注" });
+    const { container, rerender } = render(<TransactionRow item={noteOnly} />);
     expect(container.firstElementChild?.children).toHaveLength(2);
     expect(screen.getByText("仅备注")).toBeInTheDocument();
 
-    rerender(
-      <TransactionRow item={createItem({ categoryItems: [], note: null })} />,
-    );
+    const empty = createItem({ categoryItems: [], note: null });
+    rerender(<TransactionRow item={empty} />);
     expect(container.firstElementChild?.children).toHaveLength(1);
     expect(screen.queryByText("仅备注")).not.toBeInTheDocument();
   });
@@ -311,16 +309,12 @@ describe("TransactionRow", () => {
       offsetComposition: { refundAmount: "0", reimbursementAmount: "0" },
       settlementStatus: "pendingReimbursement",
     } as const;
+    const category = createItem().categoryItems[0];
     render(
       <TransactionRow
         item={createItem({
           note: "需要在月底交给公司办理费用报销的长备注",
-          categoryItems: [
-            {
-              ...createItem().categoryItems[0],
-              businessStatus: status,
-            },
-          ],
+          categoryItems: [{ ...category, businessStatus: status }],
         })}
         showAccount
         showTime
@@ -328,7 +322,8 @@ describe("TransactionRow", () => {
     );
     const detail = screen.getByText("餐饮");
     const note = screen.getByText("需要在月底交给公司办理费用报销的长备注");
-    const badge = screen.getByText("待报销").closest<HTMLElement>(".MuiChip-root");
+    const badgeText = screen.getByText("待报销");
+    const badge = badgeText.closest<HTMLElement>(".MuiChip-root");
     const textGroup = detail.parentElement;
     const detailRow = textGroup?.parentElement;
 
