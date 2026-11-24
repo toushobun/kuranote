@@ -237,9 +237,7 @@ export function TransactionRow({
               >
                 {metaSegments.map((segment, index) => (
                   <Fragment key={segment.key}>
-                    {index > 0 && segment.kind === "text" && (
-                      <RowSeparator />
-                    )}
+                    {index > 0 && segment.kind === "text" && <RowSeparator />}
                     {segment.kind === "action" ? (
                       segment.node
                     ) : (
