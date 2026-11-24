@@ -313,9 +313,7 @@ export function TransactionRow({
                   {detailText}
                 </Typography>
               ) : null}
-              {detailText && item.note ? (
-                <RowSeparator />
-              ) : null}
+              {detailText && item.note ? <RowSeparator /> : null}
               {item.note ? (
                 <Typography
                   noWrap
