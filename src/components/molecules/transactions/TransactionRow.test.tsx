@@ -244,7 +244,7 @@ describe("TransactionRow", () => {
     );
     expect(screen.getByText("日元现金 → 储蓄账户")).toBeInTheDocument();
   });
-  it("备注展示在账户/时间行，不与小分类摘要合并", () => {
+  it("备注从第二排移到第三排，与明细同排并以竖线分隔", () => {
     render(
       <TransactionRow
         item={createItem({ note: "测试备注" })}
@@ -252,9 +252,95 @@ describe("TransactionRow", () => {
         showTime
       />,
     );
-    expect(screen.getByText("测试备注")).toBeInTheDocument();
-    expect(screen.getByText("餐饮")).toBeInTheDocument();
-    expect(screen.queryByText("餐饮 | 测试备注")).not.toBeInTheDocument();
+    const metaRow = screen.getByText("日元现金").parentElement;
+    const detailGroup = screen.getByText("餐饮").parentElement;
+    const note = screen.getByText("测试备注");
+
+    expect(metaRow).not.toContainElement(note);
+    expect(metaRow?.textContent).toMatch(/^日元现金\|\d{2}:\d{2}$/);
+    expect(detailGroup).toContainElement(note);
+    expect(detailGroup?.textContent).toBe("餐饮|测试备注");
+    expect(note).toHaveStyle({
+      color: "var(--user-theme-tx-meta)",
+      flex: "1",
+      fontSize: "11px",
+      minWidth: "0",
+    });
+  });
+
+  it.each(["expense", "transfer", "balance_adjustment"] as const)(
+    "无分类的 %s 记录在第三排只显示备注",
+    (type) => {
+      render(
+        <TransactionRow
+          item={createItem({
+            type,
+            categoryItems: [],
+            note: "独立备注",
+          })}
+          showAccount
+          showTime
+        />,
+      );
+      const note = screen.getByText("独立备注");
+      expect(note.parentElement?.children).toHaveLength(1);
+      expect(note.parentElement?.textContent).toBe("独立备注");
+      expect(screen.getByText("日元现金").parentElement).not.toContainElement(
+        note,
+      );
+    },
+  );
+
+  it("只有备注时渲染第三排，备注与标签都没有时不渲染", () => {
+    const noteOnly = createItem({ categoryItems: [], note: "仅备注" });
+    const { container, rerender } = render(<TransactionRow item={noteOnly} />);
+    expect(container.firstElementChild?.children).toHaveLength(2);
+    expect(screen.getByText("仅备注")).toBeInTheDocument();
+    expect(container.firstElementChild).toHaveStyle({
+      paddingBottom: "6.4px",
+    });
+
+    const empty = createItem({ categoryItems: [], note: null });
+    rerender(<TransactionRow item={empty} />);
+    expect(container.firstElementChild?.children).toHaveLength(1);
+    expect(container.firstElementChild).toHaveStyle({
+      paddingBottom: "11.6px",
+    });
+    expect(screen.queryByText("仅备注")).not.toBeInTheDocument();
+  });
+
+  it("明细备注与待报销标签同排且备注优先截断", () => {
+    const status = {
+      incomeLinkRole: null,
+      offsetComposition: { refundAmount: "0", reimbursementAmount: "0" },
+      settlementStatus: "pendingReimbursement",
+    } as const;
+    const category = createItem().categoryItems[0];
+    render(
+      <TransactionRow
+        item={createItem({
+          note: "需要在月底交给公司办理费用报销的长备注",
+          categoryItems: [{ ...category, businessStatus: status }],
+        })}
+        showAccount
+        showTime
+      />,
+    );
+    const detail = screen.getByText("餐饮");
+    const note = screen.getByText("需要在月底交给公司办理费用报销的长备注");
+    const badgeText = screen.getByText("待报销");
+    const badge = badgeText.closest<HTMLElement>(".MuiChip-root");
+    const textGroup = detail.parentElement;
+    const detailRow = textGroup?.parentElement;
+
+    expect(textGroup).toContainElement(note);
+    expect(textGroup).toHaveStyle({ minWidth: "0", overflow: "hidden" });
+    expect(detail).toHaveStyle({ flexShrink: "0", maxWidth: "100%" });
+    expect(detail).toHaveClass("MuiTypography-noWrap");
+    expect(note).toHaveClass("MuiTypography-noWrap");
+    expect(note).toHaveStyle({ flex: "1", minWidth: "0" });
+    expect(detailRow?.lastElementChild).toContainElement(badge);
+    expect(detailRow?.lastElementChild).toHaveStyle({ flexShrink: "0" });
   });
   it("第二行全部为空时不显示 meta 内容", () => {
     render(<TransactionRow item={createItem()} />);
@@ -337,7 +423,7 @@ describe("TransactionRow", () => {
     );
     expect(screen.getByText("餐饮、日用品、交通")).toBeInTheDocument();
   });
-  it("超过三项支出小分类时显示最高三项支出并追加总项数", () => {
+  it("超过三项支出小分类时显示最高三项支出并追加等字", () => {
     render(
       <TransactionRow
         item={createItem({
@@ -370,9 +456,9 @@ describe("TransactionRow", () => {
         })}
       />,
     );
-    expect(screen.getByText("药品、日用品、餐饮等 4 项")).toBeInTheDocument();
+    expect(screen.getByText("药品、日用品、餐饮等")).toBeInTheDocument();
   });
-  it("超过三项收入小分类时显示最高三项收入并追加总项数", () => {
+  it("超过三项收入小分类时显示最高三项收入并追加等字", () => {
     render(
       <TransactionRow
         item={createItem({
@@ -413,7 +499,7 @@ describe("TransactionRow", () => {
         })}
       />,
     );
-    expect(screen.getByText("工资、奖金、副业等 5 项")).toBeInTheDocument();
+    expect(screen.getByText("工资、奖金、副业等")).toBeInTheDocument();
   });
   it("超过三项净收入但收入分类不足三项时只显示收入分类", () => {
     render(
@@ -450,7 +536,7 @@ describe("TransactionRow", () => {
         })}
       />,
     );
-    expect(screen.getByText("工资等 4 项")).toBeInTheDocument();
+    expect(screen.getByText("工资等")).toBeInTheDocument();
   });
   it("单条小分类摘要只显示小分类名", () => {
     render(<TransactionRow item={createItem()} />);
@@ -768,8 +854,8 @@ describe("TransactionRow", () => {
       const summaries = screen.getAllByText(detailText);
       const plainRow = screen.getByTestId("category-only-row").children[0];
       const badgeRow = screen.getByTestId("business-badge-row").children[0];
-      const plainGroup = summaries[0]?.parentElement;
-      const badgeGroup = summaries[1]?.parentElement;
+      const plainGroup = summaries[0]?.parentElement?.parentElement;
+      const badgeGroup = summaries[1]?.parentElement?.parentElement;
       const badgeSlot = badgeGroup?.children[1];
       const badge = screen.getByText("报销收入").closest(".MuiChip-root");
 
@@ -787,8 +873,8 @@ describe("TransactionRow", () => {
       });
       expect(plainGroup?.children).toHaveLength(1);
       expect(badgeGroup?.children).toHaveLength(2);
-      expect(plainGroup?.children[0]).toBe(summaries[0]);
-      expect(badgeGroup?.children[0]).toBe(summaries[1]);
+      expect(plainGroup?.children[0]).toContainElement(summaries[0]);
+      expect(badgeGroup?.children[0]).toContainElement(summaries[1]);
       expect(badgeSlot).toHaveStyle({
         flexDirection: "row",
         flexShrink: "0",
@@ -801,9 +887,9 @@ describe("TransactionRow", () => {
         expect(summary).toHaveClass("MuiTypography-noWrap");
         expect(summary).toHaveStyle({
           color: "var(--user-theme-tx-meta)",
-          flex: "1",
+          flexShrink: "0",
           fontSize: "11px",
-          minWidth: "0",
+          maxWidth: "100%",
         });
       });
       expect(badge).not.toBeNull();
@@ -863,9 +949,10 @@ describe("TransactionRow", () => {
       );
 
       const category = screen.getByText(categoryName);
-      const badges = category.parentElement?.children[1];
+      const badges = category.parentElement?.parentElement?.children[1];
       expect(category).toHaveClass("MuiTypography-noWrap");
-      expect(category).toHaveStyle({ flex: "1", minWidth: "0" });
+      expect(category).toHaveStyle({ flexShrink: "0", maxWidth: "100%" });
+      expect(category.parentElement).toHaveStyle({ overflow: "hidden" });
       expect(badges).toHaveStyle({
         flexShrink: "0",
         flexWrap: "nowrap",
@@ -1261,22 +1348,23 @@ describe("TransactionRow \u4E0D\u5C55\u793A\u8BB0\u8D26\u4EBA", () => {
   afterEach(() => {
     cleanup();
   });
-  it("账户/时间/备注行不再展示记账人，即使数据中存在", () => {
+  it("账户/时间行不再展示记账人，即使数据中存在", () => {
     render(<TransactionRow item={item} showAccount showTime />);
     expect(screen.getByText("日元现金")).toHaveStyle({
       color: themeColorTokens.sakura.chipText,
     });
     expect(screen.queryByText("淞文")).not.toBeInTheDocument();
   });
-  it("账户、时间、备注按顺序展示", () => {
+  it("账户与时间在第二排，备注与明细在第三排", () => {
     render(<TransactionRow item={item} showAccount showTime />);
     const account = screen.getByText("日元现金");
     const note = screen.getByText("买菜");
     const metaRow = account.parentElement;
+    const detailGroup = screen.getByText("餐饮").parentElement;
 
-    expect(metaRow?.textContent?.indexOf("日元现金")).toBeLessThan(
-      metaRow?.textContent?.indexOf("买菜") ?? -1,
-    );
-    expect(note).toBeInTheDocument();
+    expect(metaRow?.textContent).toContain("日元现金");
+    expect(metaRow?.textContent).toMatch(/日元现金\|\d{2}:\d{2}/);
+    expect(metaRow).not.toContainElement(note);
+    expect(detailGroup).toContainElement(note);
   });
 });
