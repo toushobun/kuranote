@@ -212,7 +212,8 @@ async function buildEditTransactionView<
   }
   if (record.type === "transfer") {
     const transferItems = items.filter((item) => item.category_id === null);
-    const feeItem = items.find((item) => item.category_id !== null);
+    const feeItems = items.filter((item) => item.category_id !== null);
+    const feeItem = feeItems[0];
     const fromItems = transferItems.filter(
       (item) => Number(item.balance_delta) < 0,
     );
@@ -222,7 +223,8 @@ async function buildEditTransactionView<
     const fromItem = fromItems[0];
     const toItem = toItems[0];
     if (
-      items.length !== 2 ||
+      transferItems.length !== 2 ||
+      feeItems.length > 1 ||
       fromItems.length !== 1 ||
       toItems.length !== 1 ||
       !fromItem ||

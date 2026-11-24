@@ -471,12 +471,12 @@ export const SharedPaymentNarrow: Story = {
 };
 
 export const TransferWithFee: Story = {
-  name: "同币种转账：手续费标签",
+  name: "同币种转账：第二排显示手续费",
   args: { item: { ...transferItem, transferFeeAmount: "220" } },
 };
 
 export const CrossCurrencyTransferWithFee: Story = {
-  name: "跨币种转账：手续费标签",
+  name: "跨币种转账：首排到账金额、第二排手续费",
   args: { item: { ...crossCurrencyTransferItem, transferFeeAmount: "220" } },
 };
 
@@ -742,7 +742,7 @@ export const FullyRefundedExpense1078: Story = {
 };
 
 export const CrossCurrencyTransfer247: Story = {
-  name: "跨币种转账：右下到账 CNY",
+  name: "跨币种转账：无手续费、首排到账金额",
   args: { item: crossCurrencyTransferItem, receiptCard: false },
 };
 

@@ -124,7 +124,7 @@ describe("TransactionRow", () => {
     expect(screen.queryByText("转账")).toBeNull();
     expect(screen.getByTestId("SyncAltIcon")).toBeInTheDocument();
   });
-  it("跨币种转账右上保留转出金额，右下显示到账币种金额", () => {
+  it("跨币种无手续费时第一排并列转出与到账，第二排为空", () => {
     render(
       <TransactionRow
         item={createItem({
@@ -137,19 +137,30 @@ describe("TransactionRow", () => {
           transferTargetAmount: "4850",
           transferTargetCurrency: "CNY",
         })}
+        showAccount
+        showTime
       />,
     );
-    expect(screen.getByText("¥ 100,000")).toBeInTheDocument();
-    expect(screen.getByText(/到账.*4,850.*CNY/)).toBeInTheDocument();
+    const amount = screen.getByText("¥ 100,000 → ¥4,850 CNY");
+    const account = screen.getByText("日元现金");
+    const secondRow = account.parentElement?.parentElement;
+    expect(amount).toHaveStyle({ whiteSpace: "nowrap" });
+    expect(secondRow).toHaveStyle({ flexDirection: "row", minHeight: "17px" });
+    expect(secondRow?.contains(amount)).toBe(false);
+    expect(screen.queryByText(/到账/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/手续费/)).not.toBeInTheDocument();
   });
-  it("跨币种到账金额与账户时间共用第二行，不另加行高", () => {
+
+  it("跨币种带手续费时第一排并列金额，手续费在第二排右侧", () => {
     render(
       <TransactionRow
         item={createItem({
           type: "transfer",
-          account_name: "日元现金 → 人民币账户",
+          account_currency: "JPY",
           amount: "100000",
           categoryItems: [],
+          merchant_name: null,
+          transferFeeAmount: "950",
           transferTargetAmount: "4850",
           transferTargetCurrency: "CNY",
         })}
@@ -157,18 +168,25 @@ describe("TransactionRow", () => {
         showTime
       />,
     );
-    const arrival = screen.getByText(/到账.*4,850.*CNY/);
-    const account = screen.getByText("日元现金 → 人民币账户");
+    const amount = screen.getByText("¥ 100,000 → ¥4,850 CNY");
+    const fee = screen.getByText("手续费 ¥950");
+    const account = screen.getByText("日元现金");
     const secondRow = account.parentElement?.parentElement;
-    expect(secondRow?.contains(arrival)).toBe(true);
-    expect(secondRow).toHaveStyle({ flexDirection: "row" });
-    expect(arrival).toHaveClass("MuiTypography-noWrap");
-    expect(arrival).toHaveStyle({
+    expect(secondRow?.contains(fee)).toBe(true);
+    expect(secondRow?.contains(amount)).toBe(false);
+    expect(fee).toHaveClass("MuiTypography-noWrap");
+    expect(fee).toHaveStyle({
       flexShrink: "0",
+      fontSize: "11px",
+      fontWeight: "400",
       lineHeight: "1.5",
+      whiteSpace: "nowrap",
     });
+    expect(fee.closest(".MuiChip-root")).toBeNull();
+    expect(screen.queryByText(/到账/)).not.toBeInTheDocument();
   });
-  it("转账手续费显示右下角标签，不改变本金及跨币种到账金额", () => {
+
+  it("同币种带手续费时金额仍单独显示，手续费占第二排右侧", () => {
     render(
       <TransactionRow
         item={createItem({
@@ -177,19 +195,20 @@ describe("TransactionRow", () => {
           categoryItems: [],
           merchant_name: null,
           transferFeeAmount: "220",
-          transferTargetAmount: "500",
-          transferTargetCurrency: "CNY",
         })}
+        showAccount
       />,
     );
-    expect(screen.getByText("¥ 10,000")).toBeInTheDocument();
-    const feeChip = screen.getByText(/手续费.*220/).closest(".MuiChip-root");
-    expect(feeChip).toBeInTheDocument();
-    expect(feeChip).toHaveClass("MuiChip-sizeSmall");
-    expect(screen.getByText(/到账.*500.*CNY/)).toBeInTheDocument();
+    const amount = screen.getByText("¥ 10,000");
+    const fee = screen.getByText("手续费 ¥220");
+    const account = screen.getByText("日元现金");
+    expect(account.parentElement?.parentElement?.contains(fee)).toBe(true);
+    expect(amount).toBeInTheDocument();
+    expect(fee.closest(".MuiChip-root")).toBeNull();
+    expect(screen.queryByText(/到账/)).not.toBeInTheDocument();
   });
 
-  it("同币种转账不额外显示到账行", () => {
+  it("无手续费的同币种转账也预留固定第二排行高", () => {
     render(
       <TransactionRow
         item={createItem({
@@ -199,10 +218,17 @@ describe("TransactionRow", () => {
           merchant_name: null,
           merchant_icon_url: null,
         })}
+        showAccount
       />,
     );
-    expect(screen.queryByText(/到账/)).toBeNull();
+    expect(screen.getByText("¥ 1,000")).toBeInTheDocument();
+    expect(screen.queryByText(/到账|手续费/)).toBeNull();
+    const account = screen.getByText("日元现金");
+    expect(account.parentElement?.parentElement).toHaveStyle({
+      minHeight: "17px",
+    });
   });
+
   it("转账记录在第二行显示转出到账户摘要", () => {
     render(
       <TransactionRow
