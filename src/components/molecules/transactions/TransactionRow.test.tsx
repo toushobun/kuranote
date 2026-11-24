@@ -316,7 +316,10 @@ describe("TransactionRow", () => {
         item={createItem({
           note: "需要在月底交给公司办理费用报销的长备注",
           categoryItems: [
-            { ...createItem().categoryItems[0], businessStatus: status },
+            {
+              ...createItem().categoryItems[0],
+              businessStatus: status,
+            },
           ],
         })}
         showAccount
@@ -325,7 +328,7 @@ describe("TransactionRow", () => {
     );
     const detail = screen.getByText("餐饮");
     const note = screen.getByText("需要在月底交给公司办理费用报销的长备注");
-    const badge = screen.getByText("待报销").closest(".MuiChip-root");
+    const badge = screen.getByText("待报销").closest<HTMLElement>(".MuiChip-root");
     const textGroup = detail.parentElement;
     const detailRow = textGroup?.parentElement;
 
@@ -1358,7 +1361,7 @@ describe("TransactionRow \u4E0D\u5C55\u793A\u8BB0\u8D26\u4EBA", () => {
     const detailGroup = screen.getByText("餐饮").parentElement;
 
     expect(metaRow?.textContent).toContain("日元现金");
-    expect(metaRow?.textContent).toContain("12:20");
+    expect(metaRow?.textContent).toMatch(/日元现金\|\d{2}:\d{2}/);
     expect(metaRow).not.toContainElement(note);
     expect(detailGroup).toContainElement(note);
   });
