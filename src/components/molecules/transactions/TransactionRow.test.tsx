@@ -257,7 +257,7 @@ describe("TransactionRow", () => {
     const note = screen.getByText("测试备注");
 
     expect(metaRow).not.toContainElement(note);
-    expect(metaRow?.textContent).not.toContain("测试备注");
+    expect(metaRow?.textContent).toMatch(/^日元现金\|\d{2}:\d{2}$/);
     expect(detailGroup).toContainElement(note);
     expect(detailGroup?.textContent).toBe("餐饮|测试备注");
     expect(note).toHaveStyle({
@@ -268,7 +268,7 @@ describe("TransactionRow", () => {
     });
   });
 
-  it.each(["expense", "transfer"] as const)(
+  it.each(["expense", "transfer", "balance_adjustment"] as const)(
     "无分类的 %s 记录在第三排只显示备注",
     (type) => {
       render(
@@ -296,10 +296,16 @@ describe("TransactionRow", () => {
     const { container, rerender } = render(<TransactionRow item={noteOnly} />);
     expect(container.firstElementChild?.children).toHaveLength(2);
     expect(screen.getByText("仅备注")).toBeInTheDocument();
+    expect(container.firstElementChild).toHaveStyle({
+      paddingBottom: "6.4px",
+    });
 
     const empty = createItem({ categoryItems: [], note: null });
     rerender(<TransactionRow item={empty} />);
     expect(container.firstElementChild?.children).toHaveLength(1);
+    expect(container.firstElementChild).toHaveStyle({
+      paddingBottom: "11.6px",
+    });
     expect(screen.queryByText("仅备注")).not.toBeInTheDocument();
   });
 
@@ -330,6 +336,7 @@ describe("TransactionRow", () => {
     expect(textGroup).toContainElement(note);
     expect(textGroup).toHaveStyle({ minWidth: "0", overflow: "hidden" });
     expect(detail).toHaveStyle({ flexShrink: "0", maxWidth: "100%" });
+    expect(detail).toHaveClass("MuiTypography-noWrap");
     expect(note).toHaveClass("MuiTypography-noWrap");
     expect(note).toHaveStyle({ flex: "1", minWidth: "0" });
     expect(detailRow?.lastElementChild).toContainElement(badge);

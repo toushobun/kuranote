@@ -238,16 +238,7 @@ export function TransactionRow({
                 {metaSegments.map((segment, index) => (
                   <Fragment key={segment.key}>
                     {index > 0 && segment.kind === "text" && (
-                      <Typography
-                        sx={{
-                          color: mutedText,
-                          flexShrink: 0,
-                          fontSize: 11,
-                          mx: 0.6,
-                        }}
-                      >
-                        {"|"}
-                      </Typography>
+                      <RowSeparator />
                     )}
                     {segment.kind === "action" ? (
                       segment.node
@@ -323,16 +314,7 @@ export function TransactionRow({
                 </Typography>
               ) : null}
               {detailText && item.note ? (
-                <Typography
-                  sx={{
-                    color: mutedText,
-                    flexShrink: 0,
-                    fontSize: 11,
-                    mx: 0.6,
-                  }}
-                >
-                  {"|"}
-                </Typography>
+                <RowSeparator />
               ) : null}
               {item.note ? (
                 <Typography
@@ -374,6 +356,21 @@ export function TransactionRow({
         </Stack>
       ) : null}
     </Stack>
+  );
+}
+
+function RowSeparator() {
+  return (
+    <Typography
+      sx={{
+        color: mutedText,
+        flexShrink: 0,
+        fontSize: 11,
+        mx: 0.6,
+      }}
+    >
+      {"|"}
+    </Typography>
   );
 }
 
