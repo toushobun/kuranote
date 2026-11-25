@@ -26,19 +26,14 @@ export default function DataImportLoading() {
       >
         <SectionCard>
           <Stack spacing={1.5}>
-            <Skeleton width="30%" />
             <Skeleton />
-            <Skeleton />
-            <Skeleton />
+            <Skeleton width="80%" />
+            <Skeleton variant="rounded" height={40} />
+            <Skeleton width="40%" />
           </Stack>
         </SectionCard>
         <SectionCard>
-          <Stack spacing={1.5}>
-            <Skeleton width="30%" />
-            <Skeleton variant="rounded" height={40} width={120} />
-            <Skeleton width="40%" />
-            <Skeleton variant="rounded" height={40} />
-          </Stack>
+          <Skeleton width="55%" />
         </SectionCard>
       </Stack>
     </SettingsPageLayout>

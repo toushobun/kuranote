@@ -57,7 +57,6 @@ export async function prepareImportPhotoBatch(
       // 一张照片失败就跳过整笔账单，已上传的草稿由现有定时清理任务回收。
       const reason = dataImportExecutionErrorMessages.photoUploadFailed;
       failedDetails.push({
-        content: unit.group.items[0].merchantName,
         reason,
         rowNumbers,
         sheet: "incomeExpense",

@@ -25,10 +25,10 @@ describe("dataImport errors", () => {
 
   it("结构性错误的固定文案", () => {
     expect(importStructuralErrorMessages.fileTypeUnsupported).toBe(
-      "仅支持 xlsx 文件。",
+      "仅支持 Excel 文件。",
     );
     expect(importStructuralErrorMessages.fileUnreadable).toBe(
-      "文件无法解析，请确认文件未损坏且是有效的 xlsx 文件。",
+      "文件无法解析，请确认文件未损坏且是有效的 Excel 文件。",
     );
     expect(importStructuralErrorMessages.sheetNotFound).toBe(
       "未找到「收支」「转账」或「余额变更」表，无法导入。",

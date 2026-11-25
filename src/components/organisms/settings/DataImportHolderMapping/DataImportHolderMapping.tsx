@@ -59,22 +59,9 @@ export function DataImportHolderMapping({
   return (
     <SectionCard>
       <Stack spacing={2}>
-        <Box>
-          <Typography sx={{ fontWeight: 700 }}>
-            {messages.title(candidates.length)}
-          </Typography>
-          <Typography sx={{ color: "text.secondary", mt: 0.5 }} variant="body2">
-            {messages.description}
-          </Typography>
-          {canCreatePlaceholders ? (
-            <Typography
-              sx={{ color: "text.secondary", mt: 0.5 }}
-              variant="body2"
-            >
-              {messages.newPlaceholderDescription}
-            </Typography>
-          ) : null}
-        </Box>
+        <Typography sx={{ fontWeight: 700 }}>
+          {messages.title(candidates.length)}
+        </Typography>
 
         <Stack spacing={1.5}>
           {candidates.map((candidate) => (

@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 
 import { prepareImportPhotoBatch } from "utils/dataImportPhotoBatch";
-import type { DataImportPhotoPreviewRow } from "organisms/settings/DataImportPhotoPreview/DataImportPhotoPreview";
 import type { AccountImportHolder } from "internal/account";
 import {
   analyzeImportFile,
@@ -11,7 +10,6 @@ import {
   dataImportErrorCodes,
   dataImportErrorMessages,
   importBatchSize,
-  summarizeIncomeExpenseImport,
   type EmbeddedWorksheetPhoto,
   type ImportExecutionResult,
   type ImportExecutionUnit,
@@ -67,9 +65,7 @@ export function useDataImportForm(
   // 浏览器端「检查格式」解析出的全部执行单元，「开始导入」按批切片发给服务端。
   const unitsRef = useRef<ImportExecutionUnit[]>([]);
   const photosRef = useRef<Map<number, EmbeddedWorksheetPhoto[]>>(new Map());
-  const [photoPreviewRows, setPhotoPreviewRows] = useState<
-    DataImportPhotoPreviewRow[]
-  >([]);
+  const [photoCount, setPhotoCount] = useState(0);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -83,7 +79,7 @@ export function useDataImportForm(
     runTokenRef.current += 1;
     unitsRef.current = [];
     photosRef.current.clear();
-    setPhotoPreviewRows([]);
+    setPhotoCount(0);
     setSelectedFile(file);
     setIsChecking(false);
     setValidationState(initialValidationState);
@@ -94,12 +90,12 @@ export function useDataImportForm(
     setPhotoUploadProgress(null);
   }
 
-  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    resetAfterFileChange(event.target.files?.[0] ?? null);
-  }
-
-  async function handleCheckFormat() {
-    if (!selectedFile || isChecking || isImporting) return;
+  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    if (isImporting) return;
+    const file = event.target.files?.[0];
+    if (!file) return;
+    event.target.value = "";
+    resetAfterFileChange(file);
 
     const checkToken = runTokenRef.current;
     setIsChecking(true);
@@ -109,34 +105,18 @@ export function useDataImportForm(
 
     try {
       const { result, units, photosByRow } =
-        await analyzeImportFile(selectedFile);
+        await analyzeImportFile(file);
       // 换文件或退出页面后，旧解析结果不能覆盖新文件的单元及照片。
       if (!mountedRef.current || runTokenRef.current !== checkToken) return;
       unitsRef.current = units;
       photosRef.current = photosByRow ?? new Map();
-      setPhotoPreviewRows(
-        result.ok && photosByRow
-          ? units.flatMap((unit) => {
-              if (unit.kind !== "incomeExpense") return [];
-              const rowNumber = unit.group.rowNumbers[0];
-              const photos = photosByRow.get(rowNumber);
-              if (!photos?.length) return [];
-              const first = unit.group.items[0];
-              const { totalAmount, type } = summarizeIncomeExpenseImport(
-                unit.group.items,
-              );
-              return [
-                {
-                  amount: Math.abs(totalAmount),
-                  transactionType: type,
-                  merchantName: first.merchantName,
-                  photos,
-                  rowNumber,
-                  transactionAt: first.transactionAt,
-                },
-              ];
-            })
-          : [],
+      setPhotoCount(
+        result.ok
+          ? [...photosRef.current.values()].reduce(
+              (total, photos) => total + photos.length,
+              0,
+            )
+          : 0,
       );
       if (mountedRef.current) {
         setHolderMappingCandidates(
@@ -175,10 +155,7 @@ export function useDataImportForm(
     let aggregate = createEmptyExecutionResult();
     let offset = 0;
     let uploadedPhotoCount = 0;
-    const totalPhotos = [...photosRef.current.values()].reduce(
-      (total, photos) => total + photos.length,
-      0,
-    );
+    const totalPhotos = photoCount;
     const timeZoneOffsetMinutes = new Date().getTimezoneOffset();
     const runToken = runTokenRef.current + 1;
     runTokenRef.current = runToken;
@@ -315,7 +292,6 @@ export function useDataImportForm(
     executionResult,
     executionStatus,
     handleCancelHolderMapping,
-    handleCheckFormat,
     handleConfirmHolderMapping: startImport,
     handleFileChange,
     handleStartImport,
@@ -323,7 +299,7 @@ export function useDataImportForm(
     isChecking,
     isImporting,
     selectedFileName: selectedFile?.name ?? null,
-    photoPreviewRows,
+    photoCount,
     photoUploadProgress,
     validationState,
   };

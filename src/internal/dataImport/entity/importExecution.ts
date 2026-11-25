@@ -3,7 +3,6 @@ import type { ImportSheetKind } from "internal/dataImport/entity/importSheetKind
 export type ImportExecutionSheetKind = ImportSheetKind;
 
 export type ImportExecutionDetail = {
-  content: string;
   reason: string;
   rowNumbers: number[];
   sheet: ImportExecutionSheetKind;

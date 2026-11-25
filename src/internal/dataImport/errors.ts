@@ -30,8 +30,8 @@ export const dataImportErrorMessages: Record<DataImportErrorCode, string> = {
 
 /** 导入文件本身或表结构不正确时的结构性错误。 */
 export const importStructuralErrorMessages = {
-  fileTypeUnsupported: "仅支持 xlsx 文件。",
-  fileUnreadable: "文件无法解析，请确认文件未损坏且是有效的 xlsx 文件。",
+  fileTypeUnsupported: "仅支持 Excel 文件。",
+  fileUnreadable: "文件无法解析，请确认文件未损坏且是有效的 Excel 文件。",
   missingRequiredColumns: (sheetLabel: string, columns: string[]) =>
     `「${sheetLabel}」表缺少必填列：${columns.join("、")}。`,
   sheetNotFound: "未找到「收支」「转账」或「余额变更」表，无法导入。",
@@ -46,8 +46,8 @@ export const importPhotoValidationMessages = {
   unreadable: "图片无法读取或解码，请替换后重试。",
   notFirstRow: "账单关联的照片只能放在该组第一行。",
   multipleIncomeExpenseSheets:
-    "含照片时只能保留一个「收支」工作表，否则无法区分图片对应的记录。",
-  unsupportedSheet: "小票照片只能放在「收支」工作表的「照片1」～「照片5」列。",
+    "含照片时只能保留一个「收支」表，否则无法区分图片对应的记录。",
+  unsupportedSheet: "小票照片只能放在「收支」表的「照片1」～「照片5」列。",
 } as const;
 
 /** 「收支」「转账」「余额变更」表中两种以上共用的行校验错误。 */
