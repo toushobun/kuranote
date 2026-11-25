@@ -91,6 +91,7 @@ export function createTransactionImportService({
         ),
       });
     },
+
     async createTransfer(input) {
       const { timeZoneOffsetMinutes, ...transaction } = input;
       await service.createTransfer({
@@ -101,6 +102,5 @@ export function createTransactionImportService({
         ),
       });
     },
-
   };
 }

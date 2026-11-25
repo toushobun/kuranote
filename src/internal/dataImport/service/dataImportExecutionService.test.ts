@@ -709,8 +709,14 @@ describe("DataImportExecutionService", () => {
     const units = unitsOf([incomeTable([incomeRow(), incomeRow()])]);
     const dependencies = createDependencies();
     const result = await executeUnits(dependencies, units);
-    expect(dependencies.transactionImportService.createNormal).toHaveBeenCalledTimes(2);
-    expect(result).toMatchObject({ successCount: 2, failureCount: 0, details: [] });
+    expect(
+      dependencies.transactionImportService.createNormal,
+    ).toHaveBeenCalledTimes(2);
+    expect(result).toMatchObject({
+      successCount: 2,
+      failureCount: 0,
+      details: [],
+    });
   });
 
   it("账户持有人匹配不到账本成员时按无持有人继续导入并计入警告", async () => {
@@ -1008,7 +1014,9 @@ describe("余额变更导入", () => {
       failureCount: 1,
       processedCount: 3,
     });
-    expect(result.details).toMatchObject([{ sheet: "balanceAdjustment", status: "failed", rowNumbers: [2] }]);
+    expect(result.details).toMatchObject([
+      { sheet: "balanceAdjustment", status: "failed", rowNumbers: [2] },
+    ]);
     expect(
       d.transactionImportService.createBalanceAdjustment,
     ).toHaveBeenCalledTimes(3);

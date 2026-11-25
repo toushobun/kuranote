@@ -78,5 +78,4 @@ describe("TransactionImportService", () => {
       expect.objectContaining({ payments }),
     );
   });
-
 });

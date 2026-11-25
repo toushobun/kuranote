@@ -85,7 +85,9 @@ describe("DataImportExecutionStatus", () => {
     expect(screen.getByText("导入完成")).toBeInTheDocument();
     expect(screen.getByText("成功导入 10 条")).toBeInTheDocument();
     expect(screen.queryByText(/待邀请成员/)).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "下载导入结果文件" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "下载导入结果文件" }),
+    ).not.toBeInTheDocument();
   });
 
   it("导入时新建了待邀请成员时展示新建人数", () => {

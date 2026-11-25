@@ -97,7 +97,6 @@ export function DataImportExecutionStatus({
             title={messages.holderMissingDetailTitle}
           />
         ) : null}
-
       </Stack>
     </SectionCard>
   );
