@@ -12,8 +12,6 @@ import type {
 import type {
   ImportBatchResult,
   ImportExecutionDetail,
-  ImportExecutionRowResult,
-  ImportExecutionSheetKind,
 } from "internal/dataImport/entity/importExecution";
 import type {
   ImportExecutionUnit,
@@ -129,25 +127,6 @@ function unitContent(unit: ImportExecutionUnit): string {
   const first = unit.group.items[0];
   const total = unit.group.items.reduce((sum, item) => sum + item.amount, 0);
   return `${first.transactionAt} ${first.merchantName} ${total}`;
-}
-
-function rowResultsForUnit(
-  unit: ImportExecutionUnit,
-  status: ImportExecutionRowResult["status"],
-  reason: string | null,
-): ImportExecutionRowResult[] {
-  const sheet: ImportExecutionSheetKind = unit.kind;
-  return unitRowNumbers(unit).map((rowNumber) => ({
-    ...(status !== "failed" &&
-    unit.kind === "incomeExpense" &&
-    unit.group.attachmentIds
-      ? { photoCount: unit.group.attachmentIds.length }
-      : {}),
-    reason,
-    rowNumber,
-    sheet,
-    status,
-  }));
 }
 
 function detailForUnit(
@@ -618,7 +597,7 @@ export function createDataImportExecutionService({
           });
           items.push({ amount: sourceItem.amount, categoryId: category.id });
         }
-        const { totalAmount, type } = summarizeIncomeExpenseImport(group.items);
+        const { type } = summarizeIncomeExpenseImport(group.items);
         const input = {
           payments,
           items,
@@ -632,14 +611,8 @@ export function createDataImportExecutionService({
           transactionAt: first.transactionAt,
           type,
         } as const;
-        const duplicate =
-          await transactionImportService.hasPossibleNormalDuplicate({
-            ...input,
-            totalAmount: Math.abs(totalAmount),
-          });
         await transactionImportService.createNormal(input);
         return {
-          duplicate,
           holderMissingNames,
         };
       }
@@ -660,13 +633,8 @@ export function createDataImportExecutionService({
           transactionAt: row.transactionAt,
           signedDelta: row.amount,
         };
-        const duplicate =
-          await transactionImportService.hasPossibleBalanceAdjustmentDuplicate(
-            input,
-          );
         await transactionImportService.createBalanceAdjustment(input);
         return {
-          duplicate,
           holderMissingNames: holderMissingName ? [holderMissingName] : [],
         };
       }
@@ -697,27 +665,22 @@ export function createDataImportExecutionService({
           transferTargetAmount: row.targetAmount ?? row.amount,
           transferTargetAccountId: toAccount.id,
         };
-        const duplicate =
-          await transactionImportService.hasPossibleTransferDuplicate(input);
         await transactionImportService.createTransfer(input);
         return {
-          duplicate,
           holderMissingNames: [fromHolderMissing, toHolderMissing].filter(
             (name): name is string => name !== null,
           ),
         };
       }
 
-      const rowResults: ImportExecutionRowResult[] = [];
       const details: ImportExecutionDetail[] = [];
       let successCount = 0;
       let failureCount = 0;
-      let duplicateCount = 0;
       let holderMissingCount = 0;
 
       for (const unit of units) {
         try {
-          const { duplicate, holderMissingNames } =
+          const { holderMissingNames } =
             unit.kind === "incomeExpense"
               ? await executeIncomeExpense(unit.group)
               : unit.kind === "transfer"
@@ -726,36 +689,10 @@ export function createDataImportExecutionService({
           successCount += 1;
           if (holderMissingNames.length > 0) {
             holderMissingCount += 1;
-            const reason = [
-              ...[...new Set(holderMissingNames)].map((name) =>
-                dataImportExecutionErrorMessages.holderMissingWarning(name),
-              ),
-              ...(duplicate
-                ? [dataImportExecutionErrorMessages.duplicateWarning]
-                : []),
-            ].join("；");
+            const reason = [...new Set(holderMissingNames)]
+              .map((name) => dataImportExecutionErrorMessages.holderMissingWarning(name))
+              .join("；");
             details.push(detailForUnit(unit, "holderMissing", reason));
-            rowResults.push(
-              ...rowResultsForUnit(unit, "holderMissing", reason),
-            );
-          } else if (duplicate) {
-            duplicateCount += 1;
-            details.push(
-              detailForUnit(
-                unit,
-                "duplicate",
-                dataImportExecutionErrorMessages.duplicateWarning,
-              ),
-            );
-            rowResults.push(
-              ...rowResultsForUnit(
-                unit,
-                "duplicate",
-                dataImportExecutionErrorMessages.duplicateWarning,
-              ),
-            );
-          } else {
-            rowResults.push(...rowResultsForUnit(unit, "success", null));
           }
         } catch (error) {
           failureCount += 1;
@@ -772,19 +709,16 @@ export function createDataImportExecutionService({
             });
           }
           details.push(detailForUnit(unit, "failed", reason));
-          rowResults.push(...rowResultsForUnit(unit, "failed", reason));
         }
       }
 
       return {
         createdPlaceholderCount,
         details,
-        duplicateCount,
         failureCount,
         holderMissingCount,
         processedCount: units.length,
         resolvedHolderMapping,
-        rowResults,
         successCount,
       };
     },

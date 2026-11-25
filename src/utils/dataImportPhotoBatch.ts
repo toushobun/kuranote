@@ -1,6 +1,5 @@
 import type {
   ImportExecutionDetail,
-  ImportExecutionRowResult,
   ImportExecutionUnit,
   EmbeddedWorksheetPhoto,
 } from "internal/dataImport";
@@ -21,11 +20,9 @@ export async function prepareImportPhotoBatch(
   },
 ): Promise<{
   units: ImportExecutionUnit[];
-  failedRows: ImportExecutionRowResult[];
   failedDetails: ImportExecutionDetail[];
 }> {
   const prepared: ImportExecutionUnit[] = [];
-  const failedRows: ImportExecutionRowResult[] = [];
   const failedDetails: ImportExecutionDetail[] = [];
 
   for (const unit of units) {
@@ -59,14 +56,6 @@ export async function prepareImportPhotoBatch(
     } catch {
       // 一张照片失败就跳过整笔账单，已上传的草稿由现有定时清理任务回收。
       const reason = dataImportExecutionErrorMessages.photoUploadFailed;
-      for (const rowNumber of rowNumbers) {
-        failedRows.push({
-          reason,
-          rowNumber,
-          sheet: "incomeExpense",
-          status: "failed",
-        });
-      }
       failedDetails.push({
         content: unit.group.items[0].merchantName,
         reason,
@@ -76,5 +65,5 @@ export async function prepareImportPhotoBatch(
       });
     }
   }
-  return { units: prepared, failedRows, failedDetails };
+  return { units: prepared, failedDetails };
 }

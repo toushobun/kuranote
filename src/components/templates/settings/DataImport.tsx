@@ -55,20 +55,16 @@ export function DataImportTemplate({
   holderPlaceholders = [],
 }: DataImportTemplateProps) {
   const {
-    displayProgress,
-    downloadError,
     executionError,
     executionResult,
     executionStatus,
     handleCancelHolderMapping,
     handleCheckFormat,
     handleConfirmHolderMapping,
-    handleDownloadResult,
     handleFileChange,
     handleStartImport,
     holderMappingCandidates,
     isChecking,
-    isDownloading,
     isImporting,
     selectedFileName,
     photoPreviewRows,
@@ -182,18 +178,12 @@ export function DataImportTemplate({
 
         {executionResult && executionStatus ? (
           <DataImportExecutionStatus
-            displayProgress={displayProgress ?? undefined}
-            isDownloading={isDownloading}
             photoUploadProgress={photoUploadProgress ?? undefined}
-            onDownload={
-              executionStatus === "completed" ? handleDownloadResult : undefined
-            }
             result={executionResult}
             status={executionStatus}
           />
         ) : null}
 
-        {downloadError ? <Alert severity="error">{downloadError}</Alert> : null}
       </Stack>
     </SettingsPageLayout>
   );

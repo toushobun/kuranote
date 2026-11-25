@@ -239,7 +239,6 @@ export function TransactionConfirmStep(props: TransactionConfirmStepProps) {
                 total={total}
                 canAddPayment={!readOnly && w.canAddPayment}
                 paymentsLoading={props.paymentsLoading}
-                showMixedPaymentHint={!readOnly && w.showMixedPaymentHint}
                 readOnly={readOnly}
                 invalidPaymentKeys={w.markedPaymentKeys}
                 reconciliationInvalid={hasVisibleIssue("account")}
