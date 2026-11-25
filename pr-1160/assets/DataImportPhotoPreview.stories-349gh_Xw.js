@@ -1,0 +1,3 @@
+import{i as e}from"./preload-helper-D2yxXLVK.js";import{n as t,t as n}from"./DataImportPhotoPreview-B4B0hSnY.js";var r,i,a;e((()=>{t(),r={title:`Organisms/Settings/DataImportPhotoPreview`,component:n,args:{rows:[{rowNumber:2,transactionAt:`2026-11-20 10:30:00`,merchantName:`便利店`,amount:1280,transactionType:`expense`,photos:[{bytes:new Uint8Array([255,216,255,217]),columnName:`照片1`,mimeType:`image/jpeg`,rowNumber:2},{bytes:new Uint8Array([255,216,255,217]),columnName:`照片2`,mimeType:`image/jpeg`,rowNumber:2}]}]}},i={name:`照片预览（两张）`},i.parameters={...i.parameters,docs:{...i.parameters?.docs,source:{originalSource:`{
+  name: "照片预览（两张）"
+}`,...i.parameters?.docs?.source}}},a=[`Default`]}))();export{i as Default,a as __namedExportsOrder,r as default};
