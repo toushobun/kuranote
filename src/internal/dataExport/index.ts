@@ -5,3 +5,4 @@ export {
   IncompleteDataExportError,
   AccountSeparatorDataExportError,
 } from "internal/dataExport/errors";
+export type { DataExportOptions } from "internal/dataExport/schema";

@@ -24,7 +24,7 @@ describe("DataImportExportTemplate", () => {
 
     expect(importEntry).toHaveAttribute("href", "/settings/data/import");
     expect(
-      within(importEntry).getByText("从 xlsx 文件批量导入收支和转账记录"),
+      within(importEntry).getByText("从 Excel 文件导入记录和小票照片"),
     ).toBeInTheDocument();
   });
 
@@ -35,7 +35,7 @@ describe("DataImportExportTemplate", () => {
 
     expect(exportEntry).toHaveAttribute("href", "/settings/data/export");
     expect(
-      within(exportEntry).getByText("将当前账本数据导出为文件，方便备份或迁移"),
+      within(exportEntry).getByText("把当前账本导出为 Excel 文件备份"),
     ).toBeInTheDocument();
   });
 });

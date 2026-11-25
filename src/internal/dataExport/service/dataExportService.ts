@@ -9,6 +9,11 @@ export interface DataExportService {
     ledgerId: string;
     userId: string;
     includePhotos?: boolean;
+    dateStart?: string;
+    dateEnd?: string;
+    recordTypes?: Parameters<
+      TransactionExportQueryService["listAllForExport"]
+    >[0]["recordTypes"];
   }): Promise<DataExport>;
 }
 

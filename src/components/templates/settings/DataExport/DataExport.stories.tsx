@@ -10,6 +10,7 @@ import { DataExportTemplate } from "./DataExport";
 
 const exportAction: DataExportAction = async () => ({
   data: createDataExportFixture(),
+  ledgerName: "家庭账本",
 });
 const meta = {
   title: "Templates/Settings/DataExportTemplate",
@@ -20,7 +21,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 const startExport: NonNullable<Story["play"]> = async ({ canvasElement }) => {
   await userEvent.click(
-    within(canvasElement).getByRole("button", { name: "导出 xlsx" }),
+    within(canvasElement).getByRole("button", { name: "导出 Excel" }),
   );
 };
 export const Default: Story = { name: "默认（可下载示例）" };
@@ -33,9 +34,10 @@ export const IncludePhotos: Story = {
   },
 };
 export const DownloadingPhotos: Story = {
-  name: "正在下载照片",
+  name: "正在准备照片",
   args: {
     exportAction: async () => ({
+      ledgerName: "家庭账本",
       data: {
         ...createDataExportFixture(),
         photos: [
@@ -54,8 +56,8 @@ export const DownloadingPhotos: Story = {
     try {
       const canvas = within(canvasElement);
       await userEvent.click(canvas.getByRole("switch", { name: "导出照片" }));
-      await userEvent.click(canvas.getByRole("button", { name: "导出 xlsx" }));
-      await canvas.findByText("正在下载照片 0/1");
+      await userEvent.click(canvas.getByRole("button", { name: "导出 Excel" }));
+      await canvas.findByText("正在准备照片 0/1");
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -75,5 +77,19 @@ export const Failed: Story = {
 };
 export const Empty: Story = {
   name: "空账本（可下载表头）",
-  args: { exportAction: async () => ({ data: createEmptyDataExport() }) },
+  args: {
+    exportAction: async () => ({
+      data: createEmptyDataExport(),
+      ledgerName: "家庭账本",
+    }),
+  },
+};
+
+export const SelectedRange: Story = {
+  name: "已选日期及记录类型",
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: /日期区间/ }));
+    await userEvent.click(canvas.getByRole("checkbox", { name: "转账" }));
+  },
 };
