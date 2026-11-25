@@ -55,11 +55,14 @@ describe("DataExportTemplate", () => {
       screen.getByRole("link", { name: "返回数据导入导出" }),
     ).toHaveAttribute("href", "/settings/data");
     expect(
-      screen.getByText(/包含全部收支、转账和余额变更/),
+      screen.getByText("导出的文件可以直接用来导入。"),
     ).toBeInTheDocument();
   });
   it("默认关闭照片开关，开启后展示大文件提示并把选项传给服务端", async () => {
-    const action = vi.fn().mockResolvedValue({ data: createEmptyDataExport() });
+    const action = vi.fn().mockResolvedValue({
+      data: createEmptyDataExport(),
+      ledgerName: "家庭账本",
+    });
     render(<DataExportTemplate exportAction={action} />);
     const toggle = screen.getByRole("switch", { name: "导出照片" });
     expect(toggle).not.toBeChecked();
@@ -85,7 +88,10 @@ describe("DataExportTemplate", () => {
     expect(screen.getByRole("button", { name: "导出 Excel" })).toBeDisabled();
   });
   it("日期按设备自然日计算，结束日全天包含", async () => {
-    const action = vi.fn().mockResolvedValue({ data: createEmptyDataExport() });
+    const action = vi.fn().mockResolvedValue({
+      data: createEmptyDataExport(),
+      ledgerName: "家庭账本",
+    });
     render(<DataExportTemplate exportAction={action} />);
     fireEvent.click(screen.getByRole("button", { name: /日期区间/ }));
     fireEvent.change(screen.getByLabelText("开始日期"), {
@@ -105,6 +111,30 @@ describe("DataExportTemplate", () => {
       }),
     );
   });
+  it("日期倒序时显示错误提示，修正后可导出", () => {
+    render(<DataExportTemplate exportAction={async () => ({})} />);
+    const dates = screen.getByRole("button", { name: /日期区间/ });
+    fireEvent.click(dates);
+    fireEvent.change(screen.getByLabelText("开始日期"), {
+      target: { value: "2026-11-26" },
+    });
+    fireEvent.change(screen.getByLabelText("结束日期"), {
+      target: { value: "2026-11-25" },
+    });
+    const submit = screen.getByRole("button", { name: "导出 Excel" });
+    expect(submit).toBeDisabled();
+    expect(screen.getByText("结束日期不能早于开始日期")).toBeInTheDocument();
+    fireEvent.click(dates);
+    expect(screen.getByText("结束日期不能早于开始日期")).toBeInTheDocument();
+    fireEvent.click(dates);
+    fireEvent.change(screen.getByLabelText("结束日期"), {
+      target: { value: "2026-11-26" },
+    });
+    expect(submit).toBeEnabled();
+    expect(
+      screen.queryByText("结束日期不能早于开始日期"),
+    ).not.toBeInTheDocument();
+  });
   it("导出期间禁用按钮并阻止重复请求", async () => {
     const action = vi.fn(
       () => new Promise<Awaited<ReturnType<DataExportAction>>>(() => {}),
@@ -121,14 +151,19 @@ describe("DataExportTemplate", () => {
     // 其他测试留下的真实定时器可能同时触发，使用独有 URL 避免串扰。
     createObjectURL.mockReturnValue("blob:export-current-test");
     vi.useFakeTimers();
-    startExport(async () => ({ data: createEmptyDataExport() }));
+    startExport(async () => ({
+      data: createEmptyDataExport(),
+      ledgerName: "家庭账本",
+    }));
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
     expect(buildWorkbook).toHaveBeenCalledWith(createEmptyDataExport());
     expect(HTMLAnchorElement.prototype.click).toHaveBeenCalledOnce();
     expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
-    expect(screen.getByText(/已开始下载 KuraNote-/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/已开始下载 KuraNote-家庭账本-/),
+    ).toBeInTheDocument();
     expect(revokeObjectURL).not.toHaveBeenCalledWith(
       "blob:export-current-test",
     );
@@ -150,7 +185,10 @@ describe("DataExportTemplate", () => {
   });
   it("账户名称包含分号时展示具体原因并阻止下载", async () => {
     buildWorkbook.mockRejectedValueOnce(new AccountSeparatorDataExportError());
-    startExport(async () => ({ data: createEmptyDataExport() }));
+    startExport(async () => ({
+      data: createEmptyDataExport(),
+      ledgerName: "家庭账本",
+    }));
     expect(
       await screen.findByText(dataExportErrorMessages.accountSeparator),
     ).toBeInTheDocument();
@@ -158,7 +196,10 @@ describe("DataExportTemplate", () => {
   });
   it("文件生成异常不会下载，显示安全文案并恢复按钮", async () => {
     buildWorkbook.mockRejectedValueOnce(new Error("private internal failure"));
-    startExport(async () => ({ data: createEmptyDataExport() }));
+    startExport(async () => ({
+      data: createEmptyDataExport(),
+      ledgerName: "家庭账本",
+    }));
     expect(
       await screen.findByText(dataExportErrorMessages.downloadFailed),
     ).toBeInTheDocument();

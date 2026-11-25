@@ -7,4 +7,9 @@ describe("buildDataExportFileName", () => {
       buildDataExportFileName("家庭/账本", new Date(2026, 10, 25, 14, 50, 30)),
     ).toBe("KuraNote-家庭_账本-20261125-145030.xlsx");
   });
+  it("账本名清理后为空时使用统一兜底文案", () => {
+    expect(
+      buildDataExportFileName("... ", new Date(2026, 10, 25, 14, 50, 30)),
+    ).toBe("KuraNote-账本-20261125-145030.xlsx");
+  });
 });

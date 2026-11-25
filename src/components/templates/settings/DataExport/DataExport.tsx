@@ -3,7 +3,7 @@
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import RadioButtonUncheckedRoundedIcon from "@mui/icons-material/RadioButtonUncheckedRounded";
-import Button from "@mui/material/Button";
+import ButtonBase from "@mui/material/ButtonBase";
 import Chip from "@mui/material/Chip";
 import TextField from "@mui/material/TextField";
 import Alert from "@mui/material/Alert";
@@ -45,6 +45,7 @@ export function DataExportTemplate({
     recordTypes,
     toggleRecordType,
     canExport,
+    invalidDateRange,
     handleExport,
     closeError,
   } = useDataExport(exportAction);
@@ -63,18 +64,33 @@ export function DataExportTemplate({
             <Typography sx={{ fontWeight: 700 }}>
               {messages.scopeTitle}
             </Typography>
-            <Button
-              variant="outlined"
-              color="inherit"
+            <ButtonBase
               aria-expanded={datesOpen}
               disabled={isExporting}
               onClick={() => setDatesOpen((open) => !open)}
-              sx={{ justifyContent: "space-between", textTransform: "none" }}
-              endIcon={<ChevronRightRoundedIcon />}
+              sx={{
+                justifyContent: "space-between",
+                width: "100%",
+                borderRadius: 1,
+                py: 1,
+                textAlign: "left",
+                gap: 1,
+              }}
             >
-              <span>{messages.dateRange}</span>
-              <span>{messages.dateSummary(startDate, endDate)}</span>
-            </Button>
+              <Typography variant="body2" sx={{ flexShrink: 0 }}>
+                {messages.dateRange}
+              </Typography>
+              <Stack
+                direction="row"
+                spacing={0.5}
+                sx={{ alignItems: "center", color: "text.secondary" }}
+              >
+                <Typography variant="body2" sx={{ textAlign: "right" }}>
+                  {messages.dateSummary(startDate, endDate)}
+                </Typography>
+                <ChevronRightRoundedIcon fontSize="small" />
+              </Stack>
+            </ButtonBase>
             {datesOpen ? (
               <Stack direction="row" spacing={1}>
                 <TextField
@@ -93,11 +109,19 @@ export function DataExportTemplate({
                   type="date"
                   label={messages.endDate}
                   value={endDate}
+                  error={invalidDateRange}
+                  helperText={
+                    invalidDateRange ? messages.invalidDateRange : undefined
+                  }
                   onChange={(event) => setEndDate(event.target.value)}
                   disabled={isExporting}
                   slotProps={{ inputLabel: { shrink: true } }}
                 />
               </Stack>
+            ) : invalidDateRange ? (
+              <Typography variant="caption" color="error">
+                {messages.invalidDateRange}
+              </Typography>
             ) : null}
             <Typography variant="body2">{messages.recordTypesTitle}</Typography>
             <Stack
@@ -122,7 +146,7 @@ export function DataExportTemplate({
                           <RadioButtonUncheckedRoundedIcon />
                         )
                       }
-                      color={selected ? "success" : "default"}
+                      color={selected ? "primary" : "default"}
                       variant={selected ? "filled" : "outlined"}
                       disabled={isExporting}
                       onClick={() => toggleRecordType(type)}

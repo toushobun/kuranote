@@ -10,6 +10,7 @@ import { DataExportTemplate } from "./DataExport";
 
 const exportAction: DataExportAction = async () => ({
   data: createDataExportFixture(),
+  ledgerName: "家庭账本",
 });
 const meta = {
   title: "Templates/Settings/DataExportTemplate",
@@ -36,6 +37,7 @@ export const DownloadingPhotos: Story = {
   name: "正在准备照片",
   args: {
     exportAction: async () => ({
+      ledgerName: "家庭账本",
       data: {
         ...createDataExportFixture(),
         photos: [
@@ -75,7 +77,12 @@ export const Failed: Story = {
 };
 export const Empty: Story = {
   name: "空账本（可下载表头）",
-  args: { exportAction: async () => ({ data: createEmptyDataExport() }) },
+  args: {
+    exportAction: async () => ({
+      data: createEmptyDataExport(),
+      ledgerName: "家庭账本",
+    }),
+  },
 };
 
 export const SelectedRange: Story = {

@@ -20,8 +20,8 @@ export function useDataExport(exportAction: DataExportAction) {
   const [recordTypes, setRecordTypes] = useState<
     DataExportOptions["recordTypes"]
   >(["normal", "transfer", "balance_adjustment"]);
-  const canExport =
-    recordTypes.length > 0 && (!startDate || !endDate || startDate <= endDate);
+  const invalidDateRange = Boolean(startDate && endDate && startDate > endDate);
+  const canExport = recordTypes.length > 0 && !invalidDateRange;
   function toggleRecordType(type: DataExportOptions["recordTypes"][number]) {
     setRecordTypes((current) =>
       current.includes(type)
@@ -72,7 +72,7 @@ export function useDataExport(exportAction: DataExportAction) {
       const anchor = document.createElement("a");
       try {
         anchor.href = url;
-        const fileName = buildDataExportFileName(state.ledgerName ?? "账本");
+        const fileName = buildDataExportFileName(state.ledgerName);
         anchor.download = fileName;
         document.body.appendChild(anchor);
         anchor.click();
@@ -109,6 +109,7 @@ export function useDataExport(exportAction: DataExportAction) {
     recordTypes,
     toggleRecordType,
     canExport,
+    invalidDateRange,
     handleExport,
     closeError: () => setError(null),
   };
