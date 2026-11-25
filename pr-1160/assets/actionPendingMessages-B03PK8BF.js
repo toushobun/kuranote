@@ -1,1 +1,0 @@
-import{i as e}from"./preload-helper-D2yxXLVK.js";var t,n=e((()=>{t={save:`保存中…`,remove:`删除中…`,login:`登录中…`,send:`发送中…`,submit:`提交中…`,add:`添加中…`,create:`新增中…`,createLedger:`创建中…`,join:`加入中…`,switchLedger:`切换中…`,load:`读取中…`,export:`导出中…`,link:`关联中…`,unlink:`解除中…`,apply:`应用中…`,continue:`继续中…`,abandon:`放弃中…`,archive:`归档中…`,connect:`连接中…`,confirm:`确认中…`}}));export{n,t};
