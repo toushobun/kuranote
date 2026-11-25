@@ -34,7 +34,6 @@ function createEmptyExecutionResult(): ImportExecutionResult {
     failureCount: 0,
     holderMissingCount: 0,
     successCount: 0,
-
   };
 }
 
@@ -255,7 +254,6 @@ export function useDataImportForm(
               details: [...prepared.failedDetails, ...state.batch.details],
               failureCount:
                 prepared.failedDetails.length + state.batch.failureCount,
-
             },
           };
         }
@@ -279,7 +277,6 @@ export function useDataImportForm(
           holderMissingCount:
             aggregate.holderMissingCount + state.batch.holderMissingCount,
           successCount: aggregate.successCount + state.batch.successCount,
-
         };
         setExecutionResult(aggregate);
         offset += batchUnits.length;
