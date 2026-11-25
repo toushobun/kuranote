@@ -80,12 +80,10 @@ function createBatchOutput() {
   return {
     createdPlaceholderCount: 0,
     details: [],
-    duplicateCount: 0,
     failureCount: 0,
     holderMissingCount: 0,
     processedCount: 1,
     resolvedHolderMapping: {},
-    rowResults: [],
     successCount: 1,
   };
 }

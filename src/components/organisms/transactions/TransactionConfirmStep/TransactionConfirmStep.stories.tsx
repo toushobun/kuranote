@@ -221,7 +221,7 @@ export const AddItemGroupSwitch: Story = {
     ).toBeInTheDocument();
   },
 };
-export const MixedPaymentHint: Story = {
+export const MixedPayment: Story = {
   name: "收支混合：只允许一个账户",
   args: {
     itemsOptions: {

@@ -146,11 +146,8 @@ function createDependencies() {
   };
   const transactionImportService: TransactionImportService = {
     createBalanceAdjustment: vi.fn(async () => undefined),
-    hasPossibleBalanceAdjustmentDuplicate: vi.fn(async () => false),
     createNormal: vi.fn(async () => undefined),
     createTransfer: vi.fn(async () => undefined),
-    hasPossibleNormalDuplicate: vi.fn(async () => false),
-    hasPossibleTransferDuplicate: vi.fn(async () => false),
   };
   const ledgerPlaceholderImportService: LedgerPlaceholderImportService = {
     ensureForImport: vi.fn(
@@ -213,7 +210,6 @@ describe("DataImportExecutionService", () => {
     expect(deps.transactionImportService.createNormal).toHaveBeenCalledWith(
       expect.objectContaining({ attachmentIds: ids }),
     );
-    expect(result.rowResults[0].photoCount).toBe(2);
   });
 
   it.each([null, "user-1"])(
@@ -703,40 +699,18 @@ describe("DataImportExecutionService", () => {
       dependencies.transactionImportService.createNormal,
     ).toHaveBeenCalledOnce();
     expect(result).toMatchObject({
-      duplicateCount: 0,
       failureCount: 0,
       processedCount: 1,
       successCount: 1,
     });
   });
 
-  it("疑似重复仍继续写入并单独统计警告", async () => {
-    const units = unitsOf([incomeTable([incomeRow()])]);
+  it("内容相同的两笔记录均正常导入", async () => {
+    const units = unitsOf([incomeTable([incomeRow(), incomeRow()])]);
     const dependencies = createDependencies();
-    vi.mocked(
-      dependencies.transactionImportService.hasPossibleNormalDuplicate,
-    ).mockResolvedValue(true);
-    const service = createDataImportExecutionService(dependencies);
-
-    const result = await service.executeBatch({
-      ledgerId: "ledger-1",
-      units,
-      timeZoneOffsetMinutes: 0,
-      userId: "user-1",
-    });
-
-    expect(
-      dependencies.transactionImportService.createNormal,
-    ).toHaveBeenCalledOnce();
-    expect(result.successCount).toBe(1);
-    expect(result.duplicateCount).toBe(1);
-    expect(result.details).toEqual([
-      expect.objectContaining({ status: "duplicate", rowNumbers: [2] }),
-    ]);
-    expect(result.rowResults[0]).toMatchObject({
-      rowNumber: 2,
-      status: "duplicate",
-    });
+    const result = await executeUnits(dependencies, units);
+    expect(dependencies.transactionImportService.createNormal).toHaveBeenCalledTimes(2);
+    expect(result).toMatchObject({ successCount: 2, failureCount: 0, details: [] });
   });
 
   it("账户持有人匹配不到账本成员时按无持有人继续导入并计入警告", async () => {
@@ -766,10 +740,6 @@ describe("DataImportExecutionService", () => {
         reason: expect.stringContaining("小明"),
       }),
     ]);
-    expect(result.rowResults[0]).toMatchObject({
-      rowNumber: 2,
-      status: "holderMissing",
-    });
   });
 
   it("转账两侧持有人都匹配不到账本成员时合并展示提示且仍继续导入", async () => {
@@ -1010,7 +980,7 @@ describe("DataImportExecutionService", () => {
 });
 
 describe("余额变更导入", () => {
-  it("正负差值使用独立写入，失败不阻断后续行并正确汇总疑似重复", async () => {
+  it("正负差值使用独立写入，失败不阻断后续行并正确汇总结果", async () => {
     const d = createDependencies();
     vi.mocked(
       d.transactionImportService.createBalanceAdjustment,
@@ -1020,9 +990,6 @@ describe("余额变更导入", () => {
         dataImportExecutionErrorMessages.rowFailed,
       ),
     );
-    vi.mocked(d.transactionImportService.hasPossibleBalanceAdjustmentDuplicate)
-      .mockResolvedValueOnce(false)
-      .mockResolvedValueOnce(true);
     const units = unitsOf([
       makeBalanceAdjustmentTable([
         { 金额: "100" },
@@ -1039,14 +1006,9 @@ describe("余额变更导入", () => {
     expect(result).toMatchObject({
       successCount: 2,
       failureCount: 1,
-      duplicateCount: 1,
       processedCount: 3,
     });
-    expect(result.rowResults.map((row) => [row.sheet, row.status])).toEqual([
-      ["balanceAdjustment", "failed"],
-      ["balanceAdjustment", "duplicate"],
-      ["balanceAdjustment", "success"],
-    ]);
+    expect(result.details).toMatchObject([{ sheet: "balanceAdjustment", status: "failed", rowNumbers: [2] }]);
     expect(
       d.transactionImportService.createBalanceAdjustment,
     ).toHaveBeenCalledTimes(3);
@@ -1956,12 +1918,12 @@ describe("账户类型参与账户匹配", () => {
   );
 
   it.each([
-    ["100", "30", "expense", 70],
-    ["30", "100", "income", 70],
-    ["30", "30", "expense", 0],
+    ["100", "30", "expense"],
+    ["30", "100", "income"],
+    ["30", "30", "expense"],
   ] as const)(
-    "收支混合合并一笔并按净额查重：支出 %s 收入 %s",
-    async (expense, income, type, totalAmount) => {
+    "收支混合合并一笔并按净额确定类型：支出 %s 收入 %s",
+    async (expense, income, type) => {
       const dependencies = createDependencies();
       const units = unitsOf([
         incomeTable([
@@ -1976,8 +1938,8 @@ describe("账户类型参与账户匹配", () => {
         dependencies.transactionImportService.createNormal,
       ).toHaveBeenCalledOnce();
       expect(
-        dependencies.transactionImportService.hasPossibleNormalDuplicate,
-      ).toHaveBeenCalledWith(expect.objectContaining({ type, totalAmount }));
+        dependencies.transactionImportService.createNormal,
+      ).toHaveBeenCalledWith(expect.objectContaining({ type }));
     },
   );
 
@@ -2135,12 +2097,6 @@ function createDependenciesWithTransactionWrites(
     dependencies: {
       ...dependencies,
       transactionImportService: createTransactionImportService({
-        currentLedger: {
-          baseCurrency: "JPY",
-          currentUserRole: "owner",
-          id: "ledger-1",
-          name: "家庭账本",
-        },
         service,
       }),
     },

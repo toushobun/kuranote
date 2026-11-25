@@ -7,9 +7,6 @@ import { DataImportExecutionStatus } from "./DataImportExecutionStatus";
 const meta = {
   title: "Organisms/Settings/DataImportExecutionStatus",
   component: DataImportExecutionStatus,
-  args: {
-    onDownload: () => undefined,
-  },
 } satisfies Meta<typeof DataImportExecutionStatus>;
 
 export default meta;
@@ -20,31 +17,10 @@ export const Importing: Story = {
   args: {
     result: {
       details: [],
-      duplicateCount: 0,
       failureCount: 0,
       createdPlaceholderCount: 0,
       holderMissingCount: 0,
       processedCount: 36,
-      rowResults: [],
-      successCount: 36,
-      totalCount: 80,
-    },
-    status: "importing",
-  },
-};
-
-export const ImportingWithSimulatedProgress: Story = {
-  name: "导入中（虚拟进度条）",
-  args: {
-    displayProgress: 68,
-    result: {
-      details: [],
-      duplicateCount: 0,
-      failureCount: 0,
-      createdPlaceholderCount: 0,
-      holderMissingCount: 0,
-      processedCount: 36,
-      rowResults: [],
       successCount: 36,
       totalCount: 80,
     },
@@ -53,10 +29,10 @@ export const ImportingWithSimulatedProgress: Story = {
 };
 
 export const UploadingPhotos: Story = {
-  ...ImportingWithSimulatedProgress,
+  ...Importing,
   name: "导入中（上传小票照片）",
   args: {
-    ...ImportingWithSimulatedProgress.args,
+    ...Importing.args,
     photoUploadProgress: { done: 12, total: 80 },
   },
 };
@@ -66,12 +42,10 @@ export const AllSucceeded: Story = {
   args: {
     result: {
       details: [],
-      duplicateCount: 0,
       failureCount: 0,
       createdPlaceholderCount: 0,
       holderMissingCount: 0,
       processedCount: 80,
-      rowResults: [],
       successCount: 80,
       totalCount: 80,
     },
@@ -84,12 +58,10 @@ export const CreatedPlaceholders: Story = {
   args: {
     result: {
       details: [],
-      duplicateCount: 0,
       failureCount: 0,
       createdPlaceholderCount: 2,
       holderMissingCount: 0,
       processedCount: 80,
-      rowResults: [],
       successCount: 80,
       totalCount: 80,
     },
@@ -106,7 +78,7 @@ export const CreatedPlaceholdersMobile: Story = {
 };
 
 export const MixedResult: Story = {
-  name: "成功、失败、疑似重复与未匹配持有人混合",
+  name: "成功、失败与未匹配持有人混合",
   args: {
     result: {
       details: [
@@ -119,13 +91,6 @@ export const MixedResult: Story = {
           status: "failed",
         },
         {
-          content: "2026-09-17 钱包 → 银行卡 5000",
-          reason: dataImportExecutionErrorMessages.duplicateWarning,
-          rowNumbers: [18],
-          sheet: "transfer",
-          status: "duplicate",
-        },
-        {
           content: "2026-09-17 全家便利店 600",
           reason: dataImportExecutionErrorMessages.holderMissingWarning("小明"),
           rowNumbers: [22],
@@ -133,13 +98,11 @@ export const MixedResult: Story = {
           status: "holderMissing",
         },
       ],
-      duplicateCount: 1,
       failureCount: 1,
       createdPlaceholderCount: 0,
       holderMissingCount: 1,
       processedCount: 80,
-      rowResults: [],
-      successCount: 78,
+      successCount: 79,
       totalCount: 80,
     },
     status: "completed",
@@ -147,13 +110,12 @@ export const MixedResult: Story = {
 };
 
 export const BalanceAdjustmentResult: Story = {
-  name: "余额变更成功、失败与疑似重复汇总",
+  name: "余额变更成功与失败汇总",
   args: {
     status: "completed",
     result: {
       successCount: 2,
       failureCount: 1,
-      duplicateCount: 1,
       createdPlaceholderCount: 0,
       holderMissingCount: 0,
       processedCount: 3,
@@ -161,37 +123,10 @@ export const BalanceAdjustmentResult: Story = {
       details: [
         {
           sheet: "balanceAdjustment",
-          rowNumbers: [3],
-          content: "2026-01-05 现金 -20",
-          status: "duplicate",
-          reason: dataImportExecutionErrorMessages.duplicateWarning,
-        },
-        {
-          sheet: "balanceAdjustment",
           rowNumbers: [4],
           content: "2026-01-05 已归档账户 +50",
           status: "failed",
           reason: "该账户已归档，无法导入余额变更。",
-        },
-      ],
-      rowResults: [
-        {
-          sheet: "balanceAdjustment",
-          rowNumber: 2,
-          status: "success",
-          reason: null,
-        },
-        {
-          sheet: "balanceAdjustment",
-          rowNumber: 3,
-          status: "duplicate",
-          reason: "疑似重复",
-        },
-        {
-          sheet: "balanceAdjustment",
-          rowNumber: 4,
-          status: "failed",
-          reason: "账户已归档",
         },
       ],
     },

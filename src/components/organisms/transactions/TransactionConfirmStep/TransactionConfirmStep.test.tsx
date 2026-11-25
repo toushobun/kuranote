@@ -669,23 +669,21 @@ describe("TransactionConfirmStep", () => {
   });
 
   it.each([
-    { scenario: "收支混合", hasExpense: true, enabled: true, showsHint: true },
+    { scenario: "收支混合", hasExpense: true, enabled: true },
     {
       scenario: "收支混合但账本关闭多账户",
       hasExpense: true,
       enabled: false,
-      showsHint: false,
     },
     {
       scenario: "纯支出但账本关闭多账户",
       hasExpense: true,
       hasIncome: false,
       enabled: false,
-      showsHint: false,
     },
   ])(
-    "$scenario 时隐藏添加付款账户并正确显示说明",
-    async ({ hasExpense, hasIncome = true, enabled, showsHint }) => {
+    "$scenario 时隐藏添加付款账户且不显示冗余说明",
+    async ({ hasExpense, hasIncome = true, enabled }) => {
       await renderConfirmFlow({
         itemsOptions: {
           ...receiptItemsOptions,
@@ -700,8 +698,7 @@ describe("TransactionConfirmStep", () => {
       const hint = screen.queryByText(
         "同时记录收入和支出时，仅允许记录在一个账户上",
       );
-      if (showsHint) expect(hint).toBeInTheDocument();
-      else expect(hint).not.toBeInTheDocument();
+      expect(hint).not.toBeInTheDocument();
     },
   );
 

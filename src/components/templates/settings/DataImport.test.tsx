@@ -148,18 +148,9 @@ describe("DataImportTemplate", () => {
         batch: {
           createdPlaceholderCount: 0,
           details: [],
-          duplicateCount: 0,
           failureCount: 0,
           holderMissingCount: 0,
           processedCount: 1,
-          rowResults: [
-            {
-              reason: null,
-              rowNumber: 2,
-              sheet: "incomeExpense",
-              status: "success",
-            },
-          ],
           successCount: 1,
         },
       }),
@@ -239,11 +230,9 @@ describe("DataImportTemplate", () => {
       return {
         createdPlaceholderCount: 0,
         details: [],
-        duplicateCount: 0,
         failureCount: 0,
         holderMissingCount: 0,
         processedCount: 1,
-        rowResults: [],
         successCount: 1,
       };
     }

@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 
 import { dataImportExecutionErrorMessages } from "internal/dataImport";
 
@@ -7,18 +7,16 @@ import { DataImportExecutionStatus } from "./DataImportExecutionStatus";
 
 const baseResult = {
   details: [],
-  duplicateCount: 0,
   failureCount: 0,
   createdPlaceholderCount: 0,
   holderMissingCount: 0,
   processedCount: 3,
-  rowResults: [],
   successCount: 3,
   totalCount: 10,
 };
 
 describe("DataImportExecutionStatus", () => {
-  it("导入中展示进度条与保持页面打开的提示，不展示计数与明细", () => {
+  it("导入中展示保持页面打开的提示，不展示计数与明细", () => {
     render(
       <DataImportExecutionStatus
         result={{
@@ -37,10 +35,7 @@ describe("DataImportExecutionStatus", () => {
       />,
     );
 
-    expect(screen.getByRole("progressbar")).toHaveAttribute(
-      "aria-valuenow",
-      "30",
-    );
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
     expect(
       screen.getByText("导入需要一些时间，请保持页面打开，不要离开。"),
     ).toBeInTheDocument();
@@ -64,21 +59,6 @@ describe("DataImportExecutionStatus", () => {
     expect(screen.queryByText(/正在上传照片/)).not.toBeInTheDocument();
   });
 
-  it("传入 displayProgress 时进度条使用该展示值", () => {
-    render(
-      <DataImportExecutionStatus
-        displayProgress={62}
-        result={baseResult}
-        status="importing"
-      />,
-    );
-
-    expect(screen.getByRole("progressbar")).toHaveAttribute(
-      "aria-valuenow",
-      "62",
-    );
-  });
-
   it("完成态不再展示进度条与保持页面打开的提示", () => {
     render(
       <DataImportExecutionStatus
@@ -94,11 +74,9 @@ describe("DataImportExecutionStatus", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("全部成功时展示成功汇总与下载按钮", () => {
-    const onDownload = vi.fn();
+  it("全部成功时展示成功汇总", () => {
     render(
       <DataImportExecutionStatus
-        onDownload={onDownload}
         result={{ ...baseResult, processedCount: 10, successCount: 10 }}
         status="completed"
       />,
@@ -107,8 +85,7 @@ describe("DataImportExecutionStatus", () => {
     expect(screen.getByText("导入完成")).toBeInTheDocument();
     expect(screen.getByText("成功导入 10 条")).toBeInTheDocument();
     expect(screen.queryByText(/待邀请成员/)).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "下载导入结果文件" }));
-    expect(onDownload).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("button", { name: "下载导入结果文件" })).not.toBeInTheDocument();
   });
 
   it("导入时新建了待邀请成员时展示新建人数", () => {
@@ -127,7 +104,7 @@ describe("DataImportExecutionStatus", () => {
     expect(screen.getByText("新建了 2 位待邀请成员")).toBeInTheDocument();
   });
 
-  it("完成后一次性展示失败与疑似重复明细", () => {
+  it("完成后一次性展示失败明细", () => {
     render(
       <DataImportExecutionStatus
         result={{
@@ -140,15 +117,7 @@ describe("DataImportExecutionStatus", () => {
               sheet: "incomeExpense",
               status: "failed",
             },
-            {
-              content: "2026-09-17 钱包 → 银行卡 5000",
-              reason: dataImportExecutionErrorMessages.duplicateWarning,
-              rowNumbers: [4],
-              sheet: "transfer",
-              status: "duplicate",
-            },
           ],
-          duplicateCount: 1,
           failureCount: 1,
           processedCount: 3,
           successCount: 2,
@@ -159,11 +128,8 @@ describe("DataImportExecutionStatus", () => {
     );
 
     expect(screen.getByText("失败 1 条")).toBeInTheDocument();
-    expect(screen.getByText("疑似重复 1 条")).toBeInTheDocument();
     expect(screen.getByText("失败的记录")).toBeInTheDocument();
-    expect(screen.getByText("疑似重复的记录")).toBeInTheDocument();
     expect(screen.getByText(/第 2 行/)).toBeInTheDocument();
-    expect(screen.getByText(/第 4 行/)).toBeInTheDocument();
   });
 
   it("完成后展示未匹配持有人的记录且计入警告统计", () => {
@@ -195,7 +161,6 @@ describe("DataImportExecutionStatus", () => {
     expect(screen.getByText("未匹配持有人的记录")).toBeInTheDocument();
     expect(screen.getByText(/第 6 行/)).toBeInTheDocument();
     expect(screen.queryByText("失败的记录")).not.toBeInTheDocument();
-    expect(screen.queryByText("疑似重复的记录")).not.toBeInTheDocument();
   });
 
   it("只有其中一类明细时不展示另一类标题", () => {
@@ -222,6 +187,5 @@ describe("DataImportExecutionStatus", () => {
     );
 
     expect(screen.getByText("失败的记录")).toBeInTheDocument();
-    expect(screen.queryByText("疑似重复的记录")).not.toBeInTheDocument();
   });
 });
