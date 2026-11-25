@@ -213,9 +213,22 @@ describe("transactionExportQueryService", () => {
   });
   it("将日期边界与类型组合传给查询层", async () => {
     const { service, transactionRepository } = setup();
-    const scope = { dateStart: "2026-11-25T00:00:00Z", dateEnd: "2026-11-26T00:00:00Z", recordTypes: ["normal", "balance_adjustment"] as ("normal" | "balance_adjustment")[] };
+    const scope = {
+      dateStart: "2026-11-25T00:00:00Z",
+      dateEnd: "2026-11-26T00:00:00Z",
+      recordTypes: ["normal", "balance_adjustment"] as (
+        | "normal"
+        | "balance_adjustment"
+      )[],
+    };
     await service.listAllForExport({ ...input, ...scope });
-    expect(transactionRepository.listRecords).toHaveBeenCalledWith({ ledgerId: "ledger", recordType: "all", offset: 0, limit: 100, ...scope });
+    expect(transactionRepository.listRecords).toHaveBeenCalledWith({
+      ledgerId: "ledger",
+      recordType: "all",
+      offset: 0,
+      limit: 100,
+      ...scope,
+    });
   });
   it("空账本返回空数组且不查询关联资料", async () => {
     const { service, transactionRepository } = setup();

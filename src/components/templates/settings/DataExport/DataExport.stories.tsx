@@ -77,3 +77,12 @@ export const Empty: Story = {
   name: "空账本（可下载表头）",
   args: { exportAction: async () => ({ data: createEmptyDataExport() }) },
 };
+
+export const SelectedRange: Story = {
+  name: "已选日期及记录类型",
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: /日期区间/ }));
+    await userEvent.click(canvas.getByRole("checkbox", { name: "转账" }));
+  },
+};

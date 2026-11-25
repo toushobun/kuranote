@@ -26,11 +26,16 @@ export const dataExportPageMessages = {
   subtitle: "把记录下载为 Excel 文件",
   scopeTitle: "导出范围",
   dateRange: "日期区间",
-  allDates: "全部日期",
+  dateSummary: (start: string, end: string) =>
+    start || end ? `${start || "不限"} – ${end || "不限"}` : "全部日期",
   startDate: "开始日期",
   endDate: "结束日期",
   recordTypesTitle: "记录类型",
-  recordTypes: { normal: "收支", transfer: "转账", balance_adjustment: "余额变更" },
+  recordTypes: {
+    normal: "收支",
+    transfer: "转账",
+    balance_adjustment: "余额变更",
+  },
   scope: "包含全部收支、转账和余额变更记录，导出的文件可以直接用来导入。",
   button: "导出 Excel",
   includePhotos: "导出照片",

@@ -46,8 +46,16 @@ describe("exportCurrentLedgerData", () => {
     });
   });
   it("拒绝空记录类型和倒序日期", async () => {
-    await expect(exportCurrentLedgerData({ recordTypes: [] })).resolves.toMatchObject({ error: dataExportErrorMessages.invalidScope });
-    await expect(exportCurrentLedgerData({ recordTypes: ["normal"], dateStart: "2026-11-26T00:00:00Z", dateEnd: "2026-11-25T00:00:00Z" })).resolves.toMatchObject({ error: dataExportErrorMessages.invalidScope });
+    await expect(
+      exportCurrentLedgerData({ recordTypes: [] }),
+    ).resolves.toMatchObject({ error: dataExportErrorMessages.invalidScope });
+    await expect(
+      exportCurrentLedgerData({
+        recordTypes: ["normal"],
+        dateStart: "2026-11-26T00:00:00Z",
+        dateEnd: "2026-11-25T00:00:00Z",
+      }),
+    ).resolves.toMatchObject({ error: dataExportErrorMessages.invalidScope });
     expect(mocks.getData).not.toHaveBeenCalled();
   });
   it("认证失败时不读取导出数据", async () => {

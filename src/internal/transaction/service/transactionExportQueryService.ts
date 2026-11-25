@@ -86,7 +86,13 @@ export function createTransactionExportQueryService({
       );
     },
 
-    async listAllForExport({ ledgerId, userId, dateStart, dateEnd, recordTypes }) {
+    async listAllForExport({
+      ledgerId,
+      userId,
+      dateStart,
+      dateEnd,
+      recordTypes,
+    }) {
       await requireActiveLedgerMemberRole(ledgerAccessService, {
         ledgerId,
         userId,

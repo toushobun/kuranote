@@ -11,7 +11,9 @@ export interface DataExportService {
     includePhotos?: boolean;
     dateStart?: string;
     dateEnd?: string;
-    recordTypes?: Parameters<TransactionExportQueryService["listAllForExport"]>[0]["recordTypes"];
+    recordTypes?: Parameters<
+      TransactionExportQueryService["listAllForExport"]
+    >[0]["recordTypes"];
   }): Promise<DataExport>;
 }
 

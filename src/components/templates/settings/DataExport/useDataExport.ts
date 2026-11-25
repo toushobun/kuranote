@@ -17,10 +17,17 @@ export function useDataExport(exportAction: DataExportAction) {
   const [downloadedFile, setDownloadedFile] = useState<string | null>(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [recordTypes, setRecordTypes] = useState<DataExportOptions["recordTypes"]>(["normal", "transfer", "balance_adjustment"]);
-  const canExport = recordTypes.length > 0 && (!startDate || !endDate || startDate <= endDate);
+  const [recordTypes, setRecordTypes] = useState<
+    DataExportOptions["recordTypes"]
+  >(["normal", "transfer", "balance_adjustment"]);
+  const canExport =
+    recordTypes.length > 0 && (!startDate || !endDate || startDate <= endDate);
   function toggleRecordType(type: DataExportOptions["recordTypes"][number]) {
-    setRecordTypes((current) => current.includes(type) ? current.filter((value) => value !== type) : [...current, type]);
+    setRecordTypes((current) =>
+      current.includes(type)
+        ? current.filter((value) => value !== type)
+        : [...current, type],
+    );
   }
   const [includePhotos, setIncludePhotos] = useState(false);
   const [photoProgress, setPhotoProgress] = useState<{

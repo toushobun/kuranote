@@ -66,7 +66,12 @@ describe("DataExportTemplate", () => {
     fireEvent.click(toggle);
     expect(screen.getByText(/文件较大/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "导出 Excel" }));
-    await waitFor(() => expect(action).toHaveBeenCalledWith({ includePhotos: true, recordTypes: ["normal", "transfer", "balance_adjustment"] }));
+    await waitFor(() =>
+      expect(action).toHaveBeenCalledWith({
+        includePhotos: true,
+        recordTypes: ["normal", "transfer", "balance_adjustment"],
+      }),
+    );
     expect(buildWorkbook).toHaveBeenCalledWith(
       createEmptyDataExport(),
       expect.objectContaining({ onPhotoProgress: expect.any(Function) }),
@@ -74,8 +79,31 @@ describe("DataExportTemplate", () => {
   });
   it("取消全部记录类型时禁止导出", () => {
     render(<DataExportTemplate exportAction={async () => ({})} />);
-    for (const name of ["收支", "转账", "余额变更"]) fireEvent.click(screen.getByRole("checkbox", { name }));
+    for (const name of ["收支", "转账", "余额变更"]) {
+      fireEvent.click(screen.getByRole("checkbox", { name }));
+    }
     expect(screen.getByRole("button", { name: "导出 Excel" })).toBeDisabled();
+  });
+  it("日期按设备自然日计算，结束日全天包含", async () => {
+    const action = vi.fn().mockResolvedValue({ data: createEmptyDataExport() });
+    render(<DataExportTemplate exportAction={action} />);
+    fireEvent.click(screen.getByRole("button", { name: /日期区间/ }));
+    fireEvent.change(screen.getByLabelText("开始日期"), {
+      target: { value: "2026-11-25" },
+    });
+    fireEvent.change(screen.getByLabelText("结束日期"), {
+      target: { value: "2026-11-25" },
+    });
+    fireEvent.click(screen.getByRole("checkbox", { name: "转账" }));
+    fireEvent.click(screen.getByRole("button", { name: "导出 Excel" }));
+    await waitFor(() =>
+      expect(action).toHaveBeenCalledWith({
+        includePhotos: false,
+        recordTypes: ["normal", "balance_adjustment"],
+        dateStart: new Date(2026, 10, 25).toISOString(),
+        dateEnd: new Date(2026, 10, 26).toISOString(),
+      }),
+    );
   });
   it("导出期间禁用按钮并阻止重复请求", async () => {
     const action = vi.fn(
@@ -100,9 +128,7 @@ describe("DataExportTemplate", () => {
     expect(buildWorkbook).toHaveBeenCalledWith(createEmptyDataExport());
     expect(HTMLAnchorElement.prototype.click).toHaveBeenCalledOnce();
     expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
-    expect(
-      screen.getByText(/已开始下载 KuraNote-/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/已开始下载 KuraNote-/)).toBeInTheDocument();
     expect(revokeObjectURL).not.toHaveBeenCalledWith(
       "blob:export-current-test",
     );

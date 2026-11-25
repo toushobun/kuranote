@@ -1,6 +1,10 @@
 "use client";
 
-import Checkbox from "@mui/material/Checkbox";
+import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
+import RadioButtonUncheckedRoundedIcon from "@mui/icons-material/RadioButtonUncheckedRounded";
+import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
 import TextField from "@mui/material/TextField";
 import Alert from "@mui/material/Alert";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -18,6 +22,7 @@ import { FailureFeedbackDialog } from "molecules/ui/OperationFeedbackDialogs";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { SettingsPageLayout } from "templates/layout/SettingsPageLayout";
 import type { DataExportAction } from "types/dataExport";
+import { useState } from "react";
 import { useDataExport } from "./useDataExport";
 
 export function DataExportTemplate({
@@ -25,6 +30,7 @@ export function DataExportTemplate({
 }: {
   exportAction: DataExportAction;
 }) {
+  const [datesOpen, setDatesOpen] = useState(false);
   const {
     includePhotos,
     setIncludePhotos,
@@ -57,43 +63,77 @@ export function DataExportTemplate({
             <Typography sx={{ fontWeight: 700 }}>
               {messages.scopeTitle}
             </Typography>
-            <Typography variant="body2">{messages.dateRange}</Typography>
-            <Stack direction="row" spacing={1}>
-              <TextField
-                fullWidth
-                size="small"
-                type="date"
-                label={messages.startDate}
-                value={startDate}
-                onChange={(event) => setStartDate(event.target.value)}
-                disabled={isExporting}
-                slotProps={{ inputLabel: { shrink: true } }}
-              />
-              <TextField
-                fullWidth
-                size="small"
-                type="date"
-                label={messages.endDate}
-                value={endDate}
-                onChange={(event) => setEndDate(event.target.value)}
-                disabled={isExporting}
-                slotProps={{ inputLabel: { shrink: true } }}
-              />
-            </Stack>
-            {!startDate && !endDate ? (
-              <Typography color="textSecondary" variant="body2">{messages.allDates}</Typography>
+            <Button
+              variant="outlined"
+              color="inherit"
+              aria-expanded={datesOpen}
+              disabled={isExporting}
+              onClick={() => setDatesOpen((open) => !open)}
+              sx={{ justifyContent: "space-between", textTransform: "none" }}
+              endIcon={<ChevronRightRoundedIcon />}
+            >
+              <span>{messages.dateRange}</span>
+              <span>{messages.dateSummary(startDate, endDate)}</span>
+            </Button>
+            {datesOpen ? (
+              <Stack direction="row" spacing={1}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  type="date"
+                  label={messages.startDate}
+                  value={startDate}
+                  onChange={(event) => setStartDate(event.target.value)}
+                  disabled={isExporting}
+                  slotProps={{ inputLabel: { shrink: true } }}
+                />
+                <TextField
+                  fullWidth
+                  size="small"
+                  type="date"
+                  label={messages.endDate}
+                  value={endDate}
+                  onChange={(event) => setEndDate(event.target.value)}
+                  disabled={isExporting}
+                  slotProps={{ inputLabel: { shrink: true } }}
+                />
+              </Stack>
             ) : null}
             <Typography variant="body2">{messages.recordTypesTitle}</Typography>
-            <Stack direction="row" flexWrap="wrap">
-              {(["normal", "transfer", "balance_adjustment"] as const).map((type) => (
-                <FormControlLabel
-                  key={type}
-                  control={<Checkbox checked={recordTypes.includes(type)} disabled={isExporting} onChange={() => toggleRecordType(type)} />}
-                  label={messages.recordTypes[type]}
-                />
-              ))}
+            <Stack
+              direction="row"
+              useFlexGap
+              spacing={0.5}
+              sx={{ flexWrap: "wrap" }}
+            >
+              {(["normal", "transfer", "balance_adjustment"] as const).map(
+                (type) => {
+                  const selected = recordTypes.includes(type);
+                  return (
+                    <Chip
+                      key={type}
+                      role="checkbox"
+                      aria-checked={selected}
+                      label={messages.recordTypes[type]}
+                      icon={
+                        selected ? (
+                          <CheckCircleRoundedIcon />
+                        ) : (
+                          <RadioButtonUncheckedRoundedIcon />
+                        )
+                      }
+                      color={selected ? "success" : "default"}
+                      variant={selected ? "filled" : "outlined"}
+                      disabled={isExporting}
+                      onClick={() => toggleRecordType(type)}
+                    />
+                  );
+                },
+              )}
             </Stack>
-            <Typography color="textSecondary" variant="body2">{messages.scope}</Typography>
+            <Typography color="textSecondary" variant="body2">
+              {messages.scope}
+            </Typography>
           </Stack>
         </SectionCard>
         <SectionCard>
@@ -101,11 +141,19 @@ export function DataExportTemplate({
             <FormControlLabel
               labelPlacement="start"
               sx={{ justifyContent: "space-between", mx: 0 }}
-              control={<Switch checked={includePhotos} disabled={isExporting} onChange={(_, checked) => setIncludePhotos(checked)} />}
+              control={
+                <Switch
+                  checked={includePhotos}
+                  disabled={isExporting}
+                  onChange={(_, checked) => setIncludePhotos(checked)}
+                />
+              }
               label={messages.includePhotos}
             />
             {includePhotos ? (
-              <Typography color="textSecondary" variant="body2">{messages.photoSizeHint}</Typography>
+              <Typography color="textSecondary" variant="body2">
+                {messages.photoSizeHint}
+              </Typography>
             ) : null}
           </Stack>
         </SectionCard>

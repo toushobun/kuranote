@@ -18,7 +18,12 @@ export default function DataExportLoading() {
       subtitle={messages.subtitle}
       title={messages.title}
     >
-      <Stack role="status" aria-label={messages.loading} aria-busy="true" spacing={2.5}>
+      <Stack
+        role="status"
+        aria-label={messages.loading}
+        aria-busy="true"
+        spacing={2.5}
+      >
         <SectionCard>
           <Stack spacing={1.5}>
             <Skeleton width="30%" />
@@ -27,7 +32,9 @@ export default function DataExportLoading() {
             <Skeleton />
           </Stack>
         </SectionCard>
-        <SectionCard><Skeleton /></SectionCard>
+        <SectionCard>
+          <Skeleton />
+        </SectionCard>
         <Skeleton variant="rounded" height={40} />
       </Stack>
     </SettingsPageLayout>
