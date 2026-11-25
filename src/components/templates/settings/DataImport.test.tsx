@@ -60,7 +60,9 @@ describe("DataImportTemplate", () => {
       screen.getByRole("link", { name: "返回数据导入导出" }),
     ).toHaveAttribute("href", "/settings/data");
     expect(screen.getByText("查看文件格式要求")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "查看文件格式要求" })).toHaveAttribute("aria-expanded", "false");
+    expect(
+      screen.getByRole("button", { name: "查看文件格式要求" }),
+    ).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(screen.getByRole("button", { name: "查看文件格式要求" }));
     expect(screen.getAllByText("账户*")).toHaveLength(2);
     expect(screen.getByText("转出账户*")).toBeInTheDocument();
@@ -86,7 +88,9 @@ describe("DataImportTemplate", () => {
   it("未选择文件时只展示选文件入口", () => {
     renderTemplate();
     expect(screen.getByText("尚未选择文件")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "开始导入" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "开始导入" }),
+    ).not.toBeInTheDocument();
   });
 
   it("选择文件后立即自动检查并展示文件名和重新选择", () => {
@@ -94,7 +98,9 @@ describe("DataImportTemplate", () => {
     renderTemplate();
     const file = selectFile("income.xlsx");
     expect(screen.getByText("income.xlsx")).toBeInTheDocument();
-    expect(screen.getByRole("progressbar", { name: "正在检查…" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("progressbar", { name: "正在检查…" }),
+    ).toBeInTheDocument();
     expect(screen.getByText("重新选择")).toBeInTheDocument();
     expect(analyzeImportFileMock).toHaveBeenCalledWith(file);
   });
@@ -165,7 +171,9 @@ describe("DataImportTemplate", () => {
 
     expect(await screen.findByText("已导入 1 笔")).toBeInTheDocument();
     expect(screen.getByText("data.xlsx")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "开始导入" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "开始导入" }),
+    ).not.toBeInTheDocument();
     expect(executeAction).toHaveBeenCalledOnce();
   });
 
@@ -227,6 +235,35 @@ describe("DataImportTemplate", () => {
     ).toBeInTheDocument();
   });
 
+  it("检查失败时合并同类行号且只展示前二十组", async () => {
+    mockValidationResult({
+      ok: false,
+      issues: [
+        ...[2, 3, 5].map((rowNumber) => ({
+          kind: "row" as const,
+          sheet: "incomeExpense" as const,
+          column: "金额",
+          rowNumber,
+          message: "金额错误。",
+        })),
+        ...Array.from({ length: 21 }, (_, index) => ({
+          kind: "structural" as const,
+          message: `结构错误 ${index + 1}。`,
+        })),
+      ],
+    });
+    renderTemplate();
+    selectFile();
+    expect(await screen.findByText("有 22 处需要修改")).toBeInTheDocument();
+    expect(
+      screen.getByText("第 2、3、5 行：「金额」金额错误。"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("还有 2 处需要修改")).toBeInTheDocument();
+    expect(screen.queryByText("结构错误 21。")).not.toBeInTheDocument();
+    expect(screen.getByText("data.xlsx")).toBeInTheDocument();
+    expect(screen.getByText("重新选择")).toBeInTheDocument();
+  });
+
   it("导入中保留文件名、禁止重新选择并展示按钮处理状态", async () => {
     analyzeImportFileMock.mockResolvedValue(makeAnalyzeImportFileResult(1));
     renderTemplate({ executeBatchAction: () => new Promise(() => {}) });
@@ -262,7 +299,7 @@ describe("DataImportTemplate", () => {
       analyzeImportFileMock.mockResolvedValue(analyzed);
       renderTemplate({ executeBatchAction, holderMembers, ...props });
       selectFile();
-        await screen.findByText("可以导入");
+      await screen.findByText("可以导入");
       return executeBatchAction;
     }
 
@@ -273,7 +310,9 @@ describe("DataImportTemplate", () => {
         screen.getByRole("group", { name: "「小明」" }),
       ).toBeInTheDocument();
       expect(screen.getByText("涉及 1 条记录")).toBeInTheDocument();
-      expect(screen.getByText("有 1 位持有人需要确认对应的成员")).toBeInTheDocument();
+      expect(
+        screen.getByText("有 1 位持有人需要确认对应的成员"),
+      ).toBeInTheDocument();
       expect(
         screen.queryByRole("button", { name: "开始导入" }),
       ).not.toBeInTheDocument();

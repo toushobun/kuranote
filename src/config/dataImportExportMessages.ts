@@ -119,8 +119,6 @@ export const dataImportExecutionMessages = {
   failureTitle: "没有导入任何记录",
   holderMissingCount: (count: number) => `未匹配持有人 ${count} 笔`,
   createdPlaceholderCount: (count: number) => `新建了 ${count} 位待邀请成员`,
-  failedDetailTitle: "未导入的记录",
-  holderMissingDetailTitle: "未匹配持有人的记录",
 } as const;
 
 export const dataImportHolderMappingMessages = {

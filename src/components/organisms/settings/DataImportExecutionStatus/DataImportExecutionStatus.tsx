@@ -21,16 +21,18 @@ export function DataImportExecutionStatus({
   const holderMissing = groupExecutionIssues(
     result.details.filter((detail) => detail.status === "holderMissing"),
   );
-  const severity = result.failureCount === 0
-    ? "success"
-    : result.successCount === 0
-      ? "error"
-      : "warning";
-  const title = severity === "success"
-    ? messages.successTitle(result.successCount)
-    : severity === "error"
-      ? messages.failureTitle
-      : messages.partialTitle(result.successCount, result.failureCount);
+  const severity =
+    result.failureCount === 0
+      ? "success"
+      : result.successCount === 0
+        ? "error"
+        : "warning";
+  const title =
+    severity === "success"
+      ? messages.successTitle(result.successCount)
+      : severity === "error"
+        ? messages.failureTitle
+        : messages.partialTitle(result.successCount, result.failureCount);
 
   return (
     <SectionCard>
@@ -38,9 +40,7 @@ export function DataImportExecutionStatus({
         <Alert severity={severity}>
           <Typography sx={{ fontWeight: 700 }}>{title}</Typography>
         </Alert>
-        {failed.length > 0 ? (
-          <DataImportIssueList issues={failed} />
-        ) : null}
+        {failed.length > 0 ? <DataImportIssueList issues={failed} /> : null}
         {holderMissing.length > 0 ? (
           <Stack spacing={1}>
             <Typography sx={{ color: "warning.main" }} variant="body2">
