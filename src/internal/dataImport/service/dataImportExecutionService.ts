@@ -719,7 +719,6 @@ export function createDataImportExecutionService({
         details,
         failureCount,
         holderMissingCount,
-        processedCount: units.length,
         resolvedHolderMapping,
         successCount,
       };

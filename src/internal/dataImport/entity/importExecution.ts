@@ -16,7 +16,6 @@ export type ImportBatchResult = {
   details: ImportExecutionDetail[];
   failureCount: number;
   holderMissingCount: number;
-  processedCount: number;
   successCount: number;
 };
 
@@ -25,7 +24,5 @@ export type ImportExecutionResult = {
   details: ImportExecutionDetail[];
   failureCount: number;
   holderMissingCount: number;
-  processedCount: number;
   successCount: number;
-  totalCount: number;
 };

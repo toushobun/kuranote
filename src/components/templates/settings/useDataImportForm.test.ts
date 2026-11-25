@@ -86,7 +86,6 @@ function makeDoneBatch(
     details: [],
     failureCount: 0,
     holderMissingCount: 0,
-    processedCount: totalCount,
     successCount: totalCount,
   };
 }
@@ -398,8 +397,7 @@ describe("useDataImportForm 浏览器端解析与分批发送", () => {
     expect(sentBatches[0].units[0].row.rowNumber).toBe(2);
     expect(sentBatches[1].units[0].row.rowNumber).toBe(importBatchSize + 2);
     expect(result.current.executionStatus).toBe("completed");
-    expect(result.current.executionResult?.processedCount).toBe(totalCount);
-    expect(result.current.executionResult?.totalCount).toBe(totalCount);
+    expect(result.current.executionResult?.successCount).toBe(totalCount);
   });
 
   it.each([
@@ -441,7 +439,7 @@ describe("useDataImportForm 浏览器端解析与分批发送", () => {
     expect(executeBatchAction).not.toHaveBeenCalled();
     expect(result.current.executionStatus).toBe("completed");
     expect(result.current.executionError).toBeNull();
-    expect(result.current.executionResult?.totalCount).toBe(0);
+    expect(result.current.executionResult?.successCount).toBe(0);
     expect(result.current.isImporting).toBe(false);
   });
 });

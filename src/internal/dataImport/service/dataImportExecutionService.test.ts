@@ -700,7 +700,6 @@ describe("DataImportExecutionService", () => {
     ).toHaveBeenCalledOnce();
     expect(result).toMatchObject({
       failureCount: 0,
-      processedCount: 1,
       successCount: 1,
     });
   });
@@ -937,7 +936,7 @@ describe("DataImportExecutionService", () => {
       userId: "user-1",
     });
 
-    expect(result).toMatchObject({ processedCount: 3, successCount: 3 });
+    expect(result).toMatchObject({ successCount: 3 });
     expect(
       dependencies.transactionImportService.createNormal,
     ).toHaveBeenCalledTimes(3);
@@ -1012,7 +1011,6 @@ describe("余额变更导入", () => {
     expect(result).toMatchObject({
       successCount: 2,
       failureCount: 1,
-      processedCount: 3,
     });
     expect(result.details).toMatchObject([
       { sheet: "balanceAdjustment", status: "failed", rowNumbers: [2] },

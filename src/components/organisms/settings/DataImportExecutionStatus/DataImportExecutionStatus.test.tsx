@@ -10,9 +10,7 @@ const baseResult = {
   failureCount: 0,
   createdPlaceholderCount: 0,
   holderMissingCount: 0,
-  processedCount: 3,
   successCount: 3,
-  totalCount: 10,
 };
 
 describe("DataImportExecutionStatus", () => {
@@ -62,7 +60,7 @@ describe("DataImportExecutionStatus", () => {
   it("完成态不再展示进度条与保持页面打开的提示", () => {
     render(
       <DataImportExecutionStatus
-        result={{ ...baseResult, processedCount: 10, successCount: 10 }}
+        result={{ ...baseResult, successCount: 10 }}
         status="completed"
       />,
     );
@@ -77,7 +75,7 @@ describe("DataImportExecutionStatus", () => {
   it("全部成功时展示成功汇总", () => {
     render(
       <DataImportExecutionStatus
-        result={{ ...baseResult, processedCount: 10, successCount: 10 }}
+        result={{ ...baseResult, successCount: 10 }}
         status="completed"
       />,
     );
@@ -96,7 +94,6 @@ describe("DataImportExecutionStatus", () => {
         result={{
           ...baseResult,
           createdPlaceholderCount: 2,
-          processedCount: 10,
           successCount: 10,
         }}
         status="completed"
@@ -121,9 +118,7 @@ describe("DataImportExecutionStatus", () => {
             },
           ],
           failureCount: 1,
-          processedCount: 3,
           successCount: 2,
-          totalCount: 3,
         }}
         status="completed"
       />,
@@ -151,9 +146,7 @@ describe("DataImportExecutionStatus", () => {
           ],
           createdPlaceholderCount: 0,
           holderMissingCount: 1,
-          processedCount: 3,
           successCount: 3,
-          totalCount: 3,
         }}
         status="completed"
       />,
@@ -180,9 +173,7 @@ describe("DataImportExecutionStatus", () => {
             },
           ],
           failureCount: 1,
-          processedCount: 3,
           successCount: 2,
-          totalCount: 3,
         }}
         status="completed"
       />,

@@ -150,7 +150,6 @@ describe("DataImportTemplate", () => {
           details: [],
           failureCount: 0,
           holderMissingCount: 0,
-          processedCount: 1,
           successCount: 1,
         },
       }),
@@ -232,7 +231,6 @@ describe("DataImportTemplate", () => {
         details: [],
         failureCount: 0,
         holderMissingCount: 0,
-        processedCount: 1,
         successCount: 1,
       };
     }

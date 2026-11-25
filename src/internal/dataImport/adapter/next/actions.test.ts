@@ -82,7 +82,6 @@ function createBatchOutput() {
     details: [],
     failureCount: 0,
     holderMissingCount: 0,
-    processedCount: 1,
     resolvedHolderMapping: {},
     successCount: 1,
   };

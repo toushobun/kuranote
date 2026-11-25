@@ -27,15 +27,14 @@ const initialValidationState: DataImportActionState = {};
 const executionFailedMessage =
   dataImportErrorMessages[dataImportErrorCodes.executionFailed];
 
-function createEmptyExecutionResult(totalCount: number): ImportExecutionResult {
+function createEmptyExecutionResult(): ImportExecutionResult {
   return {
     createdPlaceholderCount: 0,
     details: [],
     failureCount: 0,
     holderMissingCount: 0,
-    processedCount: 0,
     successCount: 0,
-    totalCount,
+
   };
 }
 
@@ -174,7 +173,7 @@ export function useDataImportForm(
     // 首批可能携带「新建待邀请成员」意图；服务端创建后返回已解析的映射，后续批次
     // 只提交解析结果，不再重复提交新建意图。请求失败时不自动重试。
     let currentHolderMapping = holderMapping;
-    let aggregate = createEmptyExecutionResult(totalCount);
+    let aggregate = createEmptyExecutionResult();
     let offset = 0;
     let uploadedPhotoCount = 0;
     const totalPhotos = [...photosRef.current.values()].reduce(
@@ -245,7 +244,6 @@ export function useDataImportForm(
                   details: [],
                   failureCount: 0,
                   holderMissingCount: 0,
-                  processedCount: 0,
                   successCount: 0,
                 },
               };
@@ -257,8 +255,7 @@ export function useDataImportForm(
               details: [...prepared.failedDetails, ...state.batch.details],
               failureCount:
                 prepared.failedDetails.length + state.batch.failureCount,
-              processedCount:
-                prepared.failedDetails.length + state.batch.processedCount,
+
             },
           };
         }
@@ -281,9 +278,8 @@ export function useDataImportForm(
           failureCount: aggregate.failureCount + state.batch.failureCount,
           holderMissingCount:
             aggregate.holderMissingCount + state.batch.holderMissingCount,
-          processedCount: aggregate.processedCount + state.batch.processedCount,
           successCount: aggregate.successCount + state.batch.successCount,
-          totalCount,
+
         };
         setExecutionResult(aggregate);
         offset += batchUnits.length;
