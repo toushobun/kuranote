@@ -384,7 +384,6 @@ export function createRequestContainer(
                 this.merchant.service,
               ),
               transactionImportService: createTransactionImportService({
-                currentLedger,
                 service: this.transaction.service,
               }),
             });

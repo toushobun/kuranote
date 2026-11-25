@@ -2,7 +2,6 @@
 import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
 import { ReceiptAddButton } from "./ReceiptAddButton";
 import { ReceiptLoadingRow } from "./ReceiptLoadingRow";
-import { TransactionMixedPaymentHint } from "atoms/transactions/TransactionMixedPaymentHint";
 import Typography from "@mui/material/Typography";
 import { AccountAvatar } from "atoms/accounts/AccountAvatar/AccountAvatar";
 import { flowMessages as m } from "config/transactionStepFlowMessages";
@@ -26,7 +25,6 @@ export function ReceiptPaymentSection({
   total,
   canAddPayment,
   paymentsLoading = false,
-  showMixedPaymentHint,
   readOnly = false,
   invalidPaymentKeys,
   reconciliationInvalid,
@@ -41,7 +39,6 @@ export function ReceiptPaymentSection({
   total: string;
   canAddPayment: boolean;
   paymentsLoading?: boolean;
-  showMixedPaymentHint: boolean;
   readOnly?: boolean;
   /** 要标红的付款行（只含上次点保存时已有、仍未解决的问题，#1040）。 */
   invalidPaymentKeys: readonly number[];
@@ -154,7 +151,6 @@ export function ReceiptPaymentSection({
           />
         )
       )}
-      {showMixedPaymentHint && <TransactionMixedPaymentHint />}
     </>
   );
 }

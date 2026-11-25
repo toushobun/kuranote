@@ -11,8 +11,6 @@ export type {
   ImportBatchResult,
   ImportExecutionDetail,
   ImportExecutionResult,
-  ImportExecutionRowResult,
-  ImportExecutionRowStatus,
   ImportExecutionSheetKind,
 } from "internal/dataImport/entity/importExecution";
 export {

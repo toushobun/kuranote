@@ -45,7 +45,6 @@ export const transactionPaymentFieldsMessages = {
   addPayment: (income: boolean) => (income ? "添加收款账户" : "添加付款账户"),
   categoryTypeRestricted: "多个账户时，收入和支出不能混在一起。",
   difference: (difference: string) => `差额 ${difference}`,
-  mixedPaymentHint: "同时记录收入和支出时，仅允许记录在一个账户上",
   reconciliation: (
     paymentTotal: string,
     itemTotal: string,

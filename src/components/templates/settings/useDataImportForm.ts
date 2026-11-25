@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 
-import { dataImportExecutionMessages } from "config/dataImportExportMessages";
 import { prepareImportPhotoBatch } from "utils/dataImportPhotoBatch";
 import type { DataImportPhotoPreviewRow } from "organisms/settings/DataImportPhotoPreview/DataImportPhotoPreview";
 import type { AccountImportHolder } from "internal/account";
@@ -23,34 +22,18 @@ import type {
   DataImportActionState,
   DataImportBatchStateAction,
 } from "types/dataImport";
-import {
-  buildDataImportResultFileName,
-  buildDataImportResultWorkbook,
-} from "utils/dataImportResultWorkbook";
-import {
-  computeDisplayProcessed,
-  initialEstimatedBatchDurationMs,
-  simulatedImportProgressTickIntervalMs,
-  toProgressPercentage,
-  updateEstimatedBatchDuration,
-} from "utils/simulatedImportProgress";
-
 const initialValidationState: DataImportActionState = {};
 
 const executionFailedMessage =
   dataImportErrorMessages[dataImportErrorCodes.executionFailed];
 
-function createEmptyExecutionResult(totalCount: number): ImportExecutionResult {
+function createEmptyExecutionResult(): ImportExecutionResult {
   return {
     createdPlaceholderCount: 0,
     details: [],
-    duplicateCount: 0,
     failureCount: 0,
     holderMissingCount: 0,
-    processedCount: 0,
-    rowResults: [],
     successCount: 0,
-    totalCount,
   };
 }
 
@@ -75,17 +58,12 @@ export function useDataImportForm(
   const [holderMappingCandidates, setHolderMappingCandidates] = useState<
     ImportHolderMappingCandidate[]
   >([]);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadError, setDownloadError] = useState<string | null>(null);
-  // 仅用于进度条的展示值：批次等待期间按预测平滑推进，批次返回后对齐真实进度。
-  const [displayProgress, setDisplayProgress] = useState<number | null>(null);
   const [photoUploadProgress, setPhotoUploadProgress] = useState<{
     done: number;
     total: number;
   } | null>(null);
   const mountedRef = useRef(true);
   const runTokenRef = useRef(0);
-  const estimatedBatchDurationRef = useRef(initialEstimatedBatchDurationMs);
   // 浏览器端「检查格式」解析出的全部执行单元，「开始导入」按批切片发给服务端。
   const unitsRef = useRef<ImportExecutionUnit[]>([]);
   const photosRef = useRef<Map<number, EmbeddedWorksheetPhoto[]>>(new Map());
@@ -113,8 +91,6 @@ export function useDataImportForm(
     setExecutionError(null);
     setExecutionResult(null);
     setExecutionStatus(null);
-    setDownloadError(null);
-    setDisplayProgress(null);
     setPhotoUploadProgress(null);
   }
 
@@ -130,7 +106,6 @@ export function useDataImportForm(
     setExecutionError(null);
     setExecutionResult(null);
     setExecutionStatus(null);
-    setDownloadError(null);
 
     try {
       const { result, units, photosByRow } =
@@ -197,7 +172,7 @@ export function useDataImportForm(
     // 首批可能携带「新建待邀请成员」意图；服务端创建后返回已解析的映射，后续批次
     // 只提交解析结果，不再重复提交新建意图。请求失败时不自动重试。
     let currentHolderMapping = holderMapping;
-    let aggregate = createEmptyExecutionResult(totalCount);
+    let aggregate = createEmptyExecutionResult();
     let offset = 0;
     let uploadedPhotoCount = 0;
     const totalPhotos = [...photosRef.current.values()].reduce(
@@ -207,12 +182,9 @@ export function useDataImportForm(
     const timeZoneOffsetMinutes = new Date().getTimezoneOffset();
     const runToken = runTokenRef.current + 1;
     runTokenRef.current = runToken;
-    estimatedBatchDurationRef.current = initialEstimatedBatchDurationMs;
     setExecutionError(null);
-    setDownloadError(null);
     setExecutionResult(aggregate);
     setExecutionStatus("importing");
-    setDisplayProgress(0);
     setPhotoUploadProgress(null);
     // 只有表头、没有数据行的模板：无需请求服务端，直接按 0 条完成。
     if (totalCount === 0) {
@@ -223,102 +195,67 @@ export function useDataImportForm(
 
     try {
       while (mountedRef.current && runTokenRef.current === runToken) {
-        const confirmedProcessed = aggregate.processedCount;
         const batchUnits = units.slice(offset, offset + importBatchSize);
-        const batchStartedAt = performance.now();
         let state: Awaited<ReturnType<DataImportBatchStateAction>>;
 
-        let tickTimer: ReturnType<typeof setInterval> | undefined;
-        try {
-          tickTimer = setInterval(() => {
-            if (!mountedRef.current || runTokenRef.current !== runToken) {
-              return;
-            }
-            setDisplayProgress(
-              toProgressPercentage(
-                computeDisplayProcessed({
-                  confirmedProcessed,
-                  elapsedMs: performance.now() - batchStartedAt,
-                  estimatedDurationMs: estimatedBatchDurationRef.current,
-                  pendingBatchSize: batchUnits.length,
-                }),
-                totalCount,
-              ),
-            );
-          }, simulatedImportProgressTickIntervalMs);
-
-          if (
-            batchUnits.some(
-              (unit) =>
-                unit.kind === "incomeExpense" &&
-                (photosRef.current.get(unit.group.rowNumbers[0])?.length ?? 0) >
-                  0,
-            )
-          ) {
-            setPhotoUploadProgress({
-              done: uploadedPhotoCount,
-              total: totalPhotos,
-            });
-          }
-          const prepared = await prepareImportPhotoBatch(
-            batchUnits,
-            photosRef.current,
-            {
-              ledgerId,
-              onPhotoUploaded: () => {
-                if (!mountedRef.current || runTokenRef.current !== runToken)
-                  return;
-                uploadedPhotoCount += 1;
-                setPhotoUploadProgress({
-                  done: uploadedPhotoCount,
-                  total: totalPhotos,
-                });
-              },
+        if (
+          batchUnits.some(
+            (unit) =>
+              unit.kind === "incomeExpense" &&
+              (photosRef.current.get(unit.group.rowNumbers[0])?.length ?? 0) >
+                0,
+          )
+        ) {
+          setPhotoUploadProgress({
+            done: uploadedPhotoCount,
+            total: totalPhotos,
+          });
+        }
+        const prepared = await prepareImportPhotoBatch(
+          batchUnits,
+          photosRef.current,
+          {
+            ledgerId,
+            onPhotoUploaded: () => {
+              if (!mountedRef.current || runTokenRef.current !== runToken)
+                return;
+              uploadedPhotoCount += 1;
+              setPhotoUploadProgress({
+                done: uploadedPhotoCount,
+                total: totalPhotos,
+              });
             },
-          );
-          // 图片上传是额外的异步阶段：切换文件或离开页面后不能再提交数据。
-          if (!mountedRef.current || runTokenRef.current !== runToken) return;
-          setPhotoUploadProgress(null);
-          const formData = new FormData();
-          formData.set("units", JSON.stringify(prepared.units));
-          formData.set("holderMapping", JSON.stringify(currentHolderMapping));
-          formData.set("timeZoneOffsetMinutes", String(timeZoneOffsetMinutes));
-          state =
-            prepared.units.length > 0
-              ? await executeBatchAction({}, formData)
-              : {
-                  batch: {
-                    createdPlaceholderCount: 0,
-                    details: [],
-                    duplicateCount: 0,
-                    failureCount: 0,
-                    holderMissingCount: 0,
-                    processedCount: 0,
-                    rowResults: [],
-                    successCount: 0,
-                  },
-                };
-          if (state.batch) {
-            state = {
-              ...state,
-              batch: {
-                ...state.batch,
-                details: [...prepared.failedDetails, ...state.batch.details],
-                failureCount:
-                  prepared.failedDetails.length + state.batch.failureCount,
-                processedCount:
-                  prepared.failedDetails.length + state.batch.processedCount,
-                rowResults: [...prepared.failedRows, ...state.batch.rowResults],
-              },
-            };
-          }
-
-          estimatedBatchDurationRef.current = updateEstimatedBatchDuration(
-            estimatedBatchDurationRef.current,
-            performance.now() - batchStartedAt,
-          );
-        } finally {
-          if (tickTimer !== undefined) clearInterval(tickTimer);
+          },
+        );
+        // 图片上传是额外的异步阶段：切换文件或离开页面后不能再提交数据。
+        if (!mountedRef.current || runTokenRef.current !== runToken) return;
+        setPhotoUploadProgress(null);
+        const formData = new FormData();
+        formData.set("units", JSON.stringify(prepared.units));
+        formData.set("holderMapping", JSON.stringify(currentHolderMapping));
+        formData.set("timeZoneOffsetMinutes", String(timeZoneOffsetMinutes));
+        state =
+          prepared.units.length > 0
+            ? await executeBatchAction({}, formData)
+            : {
+                batch: {
+                  createdPlaceholderCount: 0,
+                  details: [],
+                  failureCount: 0,
+                  holderMissingCount: 0,
+                  successCount: 0,
+                },
+              };
+        if (state.batch) {
+          state = {
+            ...state,
+            batch: {
+              ...state.batch,
+              details: [...prepared.failedDetails, ...state.batch.details],
+              failureCount:
+                prepared.failedDetails.length + state.batch.failureCount,
+            },
+          };
         }
 
         if (!mountedRef.current || runTokenRef.current !== runToken) return;
@@ -336,19 +273,12 @@ export function useDataImportForm(
             aggregate.createdPlaceholderCount +
             state.batch.createdPlaceholderCount,
           details: [...aggregate.details, ...state.batch.details],
-          duplicateCount: aggregate.duplicateCount + state.batch.duplicateCount,
           failureCount: aggregate.failureCount + state.batch.failureCount,
           holderMissingCount:
             aggregate.holderMissingCount + state.batch.holderMissingCount,
-          processedCount: aggregate.processedCount + state.batch.processedCount,
-          rowResults: [...aggregate.rowResults, ...state.batch.rowResults],
           successCount: aggregate.successCount + state.batch.successCount,
-          totalCount,
         };
         setExecutionResult(aggregate);
-        setDisplayProgress(
-          toProgressPercentage(aggregate.processedCount, totalCount),
-        );
         offset += batchUnits.length;
 
         if (offset >= totalCount) {
@@ -380,57 +310,17 @@ export function useDataImportForm(
     resetAfterFileChange(selectedFile);
   }
 
-  async function handleDownloadResult() {
-    if (!selectedFile || !executionResult || executionStatus !== "completed") {
-      return;
-    }
-
-    setIsDownloading(true);
-    setDownloadError(null);
-    try {
-      const output = await buildDataImportResultWorkbook(
-        await selectedFile.arrayBuffer(),
-        executionResult.rowResults,
-      );
-      const blob = new Blob([output], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      try {
-        anchor.href = url;
-        anchor.download = buildDataImportResultFileName(selectedFile.name);
-        document.body.appendChild(anchor);
-        anchor.click();
-      } finally {
-        anchor.remove();
-        // Safari 等浏览器需要在开始下载之后再释放 Blob URL。
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-      }
-    } catch {
-      if (mountedRef.current) {
-        setDownloadError(dataImportExecutionMessages.downloadFailed);
-      }
-    } finally {
-      if (mountedRef.current) setIsDownloading(false);
-    }
-  }
-
   return {
-    displayProgress,
-    downloadError,
     executionError,
     executionResult,
     executionStatus,
     handleCancelHolderMapping,
     handleCheckFormat,
     handleConfirmHolderMapping: startImport,
-    handleDownloadResult,
     handleFileChange,
     handleStartImport,
     holderMappingCandidates,
     isChecking,
-    isDownloading,
     isImporting,
     selectedFileName: selectedFile?.name ?? null,
     photoPreviewRows,

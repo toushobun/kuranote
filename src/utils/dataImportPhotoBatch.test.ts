@@ -44,7 +44,7 @@ describe("prepareImportPhotoBatch", () => {
     expect(out.units).toEqual([
       { ...unit, group: { ...unit.group, attachmentIds: ids } },
     ]);
-    expect(out.failedRows).toEqual([]);
+    expect(out.failedDetails).toEqual([]);
   });
 
   it("PNG 图片保留正确扩展名并继续使用统一压缩上传流程", async () => {
@@ -79,7 +79,6 @@ describe("prepareImportPhotoBatch", () => {
         status: "failed",
       },
     ]);
-    expect(out.failedRows.map((row) => row.rowNumber)).toEqual([2, 3]);
   });
 
   it("没有照片时不变更导入单元、不调用上传", async () => {

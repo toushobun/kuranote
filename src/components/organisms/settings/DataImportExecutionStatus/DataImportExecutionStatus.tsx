@@ -1,10 +1,7 @@
 "use client";
 
-import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
-import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
@@ -14,22 +11,14 @@ import {
   type ImportExecutionResult,
 } from "internal/dataImport";
 import { SectionCard } from "molecules/ui/SectionCard";
-import { toProgressPercentage } from "utils/simulatedImportProgress";
 
 type DataImportExecutionStatusProps = {
-  /** 进度条展示值（0–100，可为预测值）；不传时按真实处理进度展示。 */
-  displayProgress?: number;
-  isDownloading?: boolean;
-  onDownload?: () => void;
   photoUploadProgress?: { done: number; total: number };
   result: ImportExecutionResult;
   status: "completed" | "importing";
 };
 
 export function DataImportExecutionStatus({
-  displayProgress,
-  isDownloading = false,
-  onDownload,
   photoUploadProgress,
   result,
   status,
@@ -37,9 +26,6 @@ export function DataImportExecutionStatus({
   const messages = dataImportExecutionMessages;
   const failedDetails = result.details.filter(
     (detail) => detail.status === "failed",
-  );
-  const duplicateDetails = result.details.filter(
-    (detail) => detail.status === "duplicate",
   );
   const holderMissingDetails = result.details.filter(
     (detail) => detail.status === "holderMissing",
@@ -64,17 +50,6 @@ export function DataImportExecutionStatus({
           ) : null}
         </Box>
 
-        {status === "importing" ? (
-          <LinearProgress
-            aria-label={messages.progressTitle}
-            value={
-              displayProgress ??
-              toProgressPercentage(result.processedCount, result.totalCount)
-            }
-            variant="determinate"
-          />
-        ) : null}
-
         {status === "importing" && photoUploadProgress ? (
           <Typography sx={{ color: "text.secondary" }} variant="body2">
             {messages.photoUploadProgress(
@@ -92,11 +67,6 @@ export function DataImportExecutionStatus({
             {result.failureCount > 0 ? (
               <Alert severity="error">
                 {messages.failureCount(result.failureCount)}
-              </Alert>
-            ) : null}
-            {result.duplicateCount > 0 ? (
-              <Alert severity="warning">
-                {messages.duplicateCount(result.duplicateCount)}
               </Alert>
             ) : null}
             {result.holderMissingCount > 0 ? (
@@ -121,32 +91,11 @@ export function DataImportExecutionStatus({
           />
         ) : null}
 
-        {status === "completed" && duplicateDetails.length > 0 ? (
-          <DetailList
-            items={duplicateDetails}
-            title={messages.duplicateDetailTitle}
-          />
-        ) : null}
-
         {status === "completed" && holderMissingDetails.length > 0 ? (
           <DetailList
             items={holderMissingDetails}
             title={messages.holderMissingDetailTitle}
           />
-        ) : null}
-
-        {status === "completed" && onDownload ? (
-          <Button
-            disabled={isDownloading}
-            onClick={onDownload}
-            startIcon={<DownloadRoundedIcon />}
-            sx={{ alignSelf: "flex-start" }}
-            variant="outlined"
-          >
-            {isDownloading
-              ? messages.downloadingButton
-              : messages.downloadButton}
-          </Button>
         ) : null}
       </Stack>
     </SectionCard>

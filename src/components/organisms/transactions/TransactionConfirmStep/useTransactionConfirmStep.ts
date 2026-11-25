@@ -60,8 +60,6 @@ export function useTransactionConfirmStep(
         payments: form.payments,
         primaryCurrency: currency,
       }));
-  const showMixedPaymentHint =
-    multiAccountAvailable && form.hasMixedPaymentItems;
   function openAddPayment() {
     setAccountPickerKey(
       form.selectedAccount ? "add" : (primaryPayment?.key ?? null),
@@ -206,7 +204,6 @@ export function useTransactionConfirmStep(
     setEditor,
     currency,
     canAddPayment,
-    showMixedPaymentHint,
     accountPickerKey,
     setAccountPickerKey,
     openAddPayment,

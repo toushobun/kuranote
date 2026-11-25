@@ -113,27 +113,14 @@ export const dataImportExecutionMessages = {
   completedTitle: "导入完成",
   successCount: (count: number) => `成功导入 ${count} 条`,
   failureCount: (count: number) => `失败 ${count} 条`,
-  duplicateCount: (count: number) => `疑似重复 ${count} 条`,
   holderMissingCount: (count: number) => `未匹配持有人 ${count} 条`,
   createdPlaceholderCount: (count: number) => `新建了 ${count} 位待邀请成员`,
   failedDetailTitle: "失败的记录",
-  duplicateDetailTitle: "疑似重复的记录",
   holderMissingDetailTitle: "未匹配持有人的记录",
   detailRows: (rowNumbers: number[]) =>
     rowNumbers.length === 1
       ? `第 ${rowNumbers[0]} 行`
       : `第 ${rowNumbers.join("、")} 行`,
-  downloadButton: "下载导入结果文件",
-  downloadingButton: "正在生成结果文件…",
-  downloadFailed: "结果文件生成失败，请稍后重试。",
-  resultColumnTitle: "导入结果",
-  photoCountColumnTitle: "照片数",
-  reasonColumnTitle: "原因",
-  resultSuccess: "成功",
-  resultDuplicate: "成功（疑似重复）",
-  resultHolderMissing: "成功（未匹配持有人）",
-  resultFailed: "失败",
-  resultFileSuffix: "_导入结果.xlsx",
 } as const;
 
 export const dataImportHolderMappingMessages = {
