@@ -59,7 +59,9 @@ describe("DataImportTemplate", () => {
     expect(
       screen.getByRole("link", { name: "返回数据导入导出" }),
     ).toHaveAttribute("href", "/settings/data");
-    expect(screen.getByText("文件格式要求")).toBeInTheDocument();
+    expect(screen.getByText("查看文件格式要求")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "查看文件格式要求" })).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(screen.getByRole("button", { name: "查看文件格式要求" }));
     expect(screen.getAllByText("账户*")).toHaveLength(2);
     expect(screen.getByText("转出账户*")).toBeInTheDocument();
     expect(
@@ -69,6 +71,7 @@ describe("DataImportTemplate", () => {
 
   it("说明「账户类型」列必填、可填写的值，并在各表列名中标为必填", () => {
     renderTemplate();
+    fireEvent.click(screen.getByRole("button", { name: "查看文件格式要求" }));
 
     expect(
       screen.getByText(
@@ -80,16 +83,20 @@ describe("DataImportTemplate", () => {
     expect(screen.getByText("转入账户类型*")).toBeInTheDocument();
   });
 
-  it("未选择文件时提交按钮禁用", () => {
+  it("未选择文件时只展示选文件入口", () => {
     renderTemplate();
-    expect(screen.getByRole("button", { name: "检查格式" })).toBeDisabled();
+    expect(screen.getByText("尚未选择文件")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "开始导入" })).not.toBeInTheDocument();
   });
 
-  it("选择文件后展示文件名并启用提交按钮", () => {
+  it("选择文件后立即自动检查并展示文件名和重新选择", () => {
+    analyzeImportFileMock.mockImplementation(() => new Promise(() => {}));
     renderTemplate();
-    selectFile("income.xlsx");
+    const file = selectFile("income.xlsx");
     expect(screen.getByText("income.xlsx")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "检查格式" })).not.toBeDisabled();
+    expect(screen.getByRole("progressbar", { name: "正在检查…" })).toBeInTheDocument();
+    expect(screen.getByText("重新选择")).toBeInTheDocument();
+    expect(analyzeImportFileMock).toHaveBeenCalledWith(file);
   });
 
   it("检查格式在浏览器端解析文件，解析异常时展示错误提示", async () => {
@@ -99,7 +106,6 @@ describe("DataImportTemplate", () => {
     );
     renderTemplate({ executeBatchAction: executeAction });
     const file = selectFile();
-    fireEvent.click(screen.getByRole("button", { name: "检查格式" }));
 
     expect(
       await screen.findByText(
@@ -108,7 +114,7 @@ describe("DataImportTemplate", () => {
     ).toBeInTheDocument();
     expect(analyzeImportFileMock).toHaveBeenCalledWith(file);
     expect(executeAction).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "检查格式" })).not.toBeDisabled();
+    expect(screen.getByLabelText("选择文件")).not.toBeDisabled();
   });
 
   it("校验通过时展示成功统计与开始导入按钮", async () => {
@@ -122,15 +128,14 @@ describe("DataImportTemplate", () => {
     });
     renderTemplate();
     selectFile();
-    fireEvent.click(screen.getByRole("button", { name: "检查格式" }));
 
-    expect(await screen.findByText("格式检查通过")).toBeInTheDocument();
-    expect(screen.getByText(/收支记录 3 笔/)).toBeInTheDocument();
-    expect(screen.getByText(/转账记录 1 笔/)).toBeInTheDocument();
+    expect(await screen.findByText("可以导入")).toBeInTheDocument();
+    expect(screen.getByText(/收支 3 笔/)).toBeInTheDocument();
+    expect(screen.getByText(/转账 1 笔/)).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "开始导入" }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/余额变更记录 1 笔/)).toBeInTheDocument();
+    expect(screen.getByText(/余额变更 1 笔/)).toBeInTheDocument();
     expect(screen.queryByText(/暂不支持/)).not.toBeInTheDocument();
   });
 
@@ -156,15 +161,15 @@ describe("DataImportTemplate", () => {
     );
     renderTemplate({ executeBatchAction: executeAction });
     selectFile();
-    fireEvent.click(screen.getByRole("button", { name: "检查格式" }));
     fireEvent.click(await screen.findByRole("button", { name: "开始导入" }));
 
-    expect(await screen.findByText("导入完成")).toBeInTheDocument();
-    expect(screen.getByText("成功导入 1 条")).toBeInTheDocument();
+    expect(await screen.findByText("已导入 1 笔")).toBeInTheDocument();
+    expect(screen.getByText("data.xlsx")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "开始导入" })).not.toBeInTheDocument();
     expect(executeAction).toHaveBeenCalledOnce();
   });
 
-  it("批处理出错后重置导入状态，检查格式与开始导入按钮恢复可用", async () => {
+  it("批处理出错后重置导入状态，重新选择与开始导入按钮恢复可用", async () => {
     mockValidationResult({
       ok: true,
       summary: {
@@ -180,13 +185,12 @@ describe("DataImportTemplate", () => {
     );
     renderTemplate({ executeBatchAction: executeAction });
     selectFile();
-    fireEvent.click(screen.getByRole("button", { name: "检查格式" }));
     fireEvent.click(await screen.findByRole("button", { name: "开始导入" }));
 
     expect(
       await screen.findByText("登录状态已失效，请重新登录后再试。"),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "检查格式" })).not.toBeDisabled();
+    expect(screen.getByLabelText("选择文件")).not.toBeDisabled();
     expect(screen.getByRole("button", { name: "开始导入" })).not.toBeDisabled();
   });
 
@@ -209,9 +213,8 @@ describe("DataImportTemplate", () => {
     });
     renderTemplate();
     selectFile();
-    fireEvent.click(screen.getByRole("button", { name: "检查格式" }));
 
-    expect(await screen.findByText("格式检查未通过")).toBeInTheDocument();
+    expect(await screen.findByText("有 2 处需要修改")).toBeInTheDocument();
     expect(
       screen.getByText(importStructuralErrorMessages.workbookEmpty),
     ).toBeInTheDocument();
@@ -222,6 +225,17 @@ describe("DataImportTemplate", () => {
         ),
       ),
     ).toBeInTheDocument();
+  });
+
+  it("导入中保留文件名、禁止重新选择并展示按钮处理状态", async () => {
+    analyzeImportFileMock.mockResolvedValue(makeAnalyzeImportFileResult(1));
+    renderTemplate({ executeBatchAction: () => new Promise(() => {}) });
+    selectFile();
+    fireEvent.click(await screen.findByRole("button", { name: "开始导入" }));
+    expect(screen.getByText("data.xlsx")).toBeInTheDocument();
+    expect(screen.getByLabelText("选择文件")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "正在导入…" })).toBeDisabled();
+    expect(screen.getByText("请保持页面打开")).toBeInTheDocument();
   });
 
   describe("持有人映射步骤", () => {
@@ -248,8 +262,7 @@ describe("DataImportTemplate", () => {
       analyzeImportFileMock.mockResolvedValue(analyzed);
       renderTemplate({ executeBatchAction, holderMembers, ...props });
       selectFile();
-      fireEvent.click(screen.getByRole("button", { name: "检查格式" }));
-      await screen.findByText("格式检查通过");
+        await screen.findByText("可以导入");
       return executeBatchAction;
     }
 
@@ -260,6 +273,7 @@ describe("DataImportTemplate", () => {
         screen.getByRole("group", { name: "「小明」" }),
       ).toBeInTheDocument();
       expect(screen.getByText("涉及 1 条记录")).toBeInTheDocument();
+      expect(screen.getByText("有 1 位持有人需要确认对应的成员")).toBeInTheDocument();
       expect(
         screen.queryByRole("button", { name: "开始导入" }),
       ).not.toBeInTheDocument();
@@ -284,7 +298,7 @@ describe("DataImportTemplate", () => {
 
       fireEvent.click(screen.getByRole("button", { name: "继续导入" }));
 
-      expect(await screen.findByText("导入完成")).toBeInTheDocument();
+      expect(await screen.findByText("已导入 1 笔")).toBeInTheDocument();
       const formData = (
         executeAction.mock.calls[0] as unknown as [unknown, FormData]
       )[1];
@@ -339,9 +353,10 @@ describe("DataImportTemplate", () => {
       fireEvent.click(screen.getByRole("button", { name: "取消导入" }));
 
       expect(screen.queryByRole("group")).not.toBeInTheDocument();
-      expect(screen.queryByText("格式检查通过")).not.toBeInTheDocument();
+      expect(screen.queryByText("可以导入")).not.toBeInTheDocument();
+      expect(screen.getByText("data.xlsx")).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: "检查格式" }),
+        screen.getByLabelText("选择文件"),
       ).not.toBeDisabled();
       expect(executeAction).not.toHaveBeenCalled();
     });

@@ -12,29 +12,6 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Importing: Story = {
-  name: "导入中",
-  args: {
-    result: {
-      details: [],
-      failureCount: 0,
-      createdPlaceholderCount: 0,
-      holderMissingCount: 0,
-      successCount: 36,
-    },
-    status: "importing",
-  },
-};
-
-export const UploadingPhotos: Story = {
-  ...Importing,
-  name: "导入中（上传小票照片）",
-  args: {
-    ...Importing.args,
-    photoUploadProgress: { done: 12, total: 80 },
-  },
-};
-
 export const AllSucceeded: Story = {
   name: "全部成功",
   args: {
@@ -45,7 +22,6 @@ export const AllSucceeded: Story = {
       holderMissingCount: 0,
       successCount: 80,
     },
-    status: "completed",
   },
 };
 
@@ -59,7 +35,6 @@ export const CreatedPlaceholders: Story = {
       holderMissingCount: 0,
       successCount: 80,
     },
-    status: "completed",
   },
 };
 
@@ -77,7 +52,6 @@ export const MixedResult: Story = {
     result: {
       details: [
         {
-          content: "2026-09-17 业务超市 1200",
           reason:
             dataImportExecutionErrorMessages.childCategoryRequired("餐饮"),
           rowNumbers: [12],
@@ -85,7 +59,6 @@ export const MixedResult: Story = {
           status: "failed",
         },
         {
-          content: "2026-09-17 全家便利店 600",
           reason: dataImportExecutionErrorMessages.holderMissingWarning("小明"),
           rowNumbers: [22],
           sheet: "incomeExpense",
@@ -97,14 +70,12 @@ export const MixedResult: Story = {
       holderMissingCount: 1,
       successCount: 79,
     },
-    status: "completed",
   },
 };
 
 export const BalanceAdjustmentResult: Story = {
   name: "余额变更成功与失败汇总",
   args: {
-    status: "completed",
     result: {
       successCount: 2,
       failureCount: 1,
@@ -114,9 +85,28 @@ export const BalanceAdjustmentResult: Story = {
         {
           sheet: "balanceAdjustment",
           rowNumbers: [4],
-          content: "2026-01-05 已归档账户 +50",
           status: "failed",
           reason: "该账户已归档，无法导入余额变更。",
+        },
+      ],
+    },
+  },
+};
+
+export const AllFailed: Story = {
+  name: "全部失败",
+  args: {
+    result: {
+      successCount: 0,
+      failureCount: 1,
+      holderMissingCount: 0,
+      createdPlaceholderCount: 0,
+      details: [
+        {
+          sheet: "incomeExpense",
+          rowNumbers: [2],
+          status: "failed",
+          reason: "账户已归档，无法导入。",
         },
       ],
     },

@@ -56,7 +56,7 @@ describe("DataImportHolderMapping", () => {
     renderMapping();
 
     expect(
-      screen.getByText("文件里有 2 位持有人在账本中找不到唯一对应的成员"),
+      screen.getByText("有 2 位持有人需要确认对应的成员"),
     ).toBeInTheDocument();
     expect(cardOf("小明").getByText("涉及 12 条记录")).toBeInTheDocument();
     expect(cardOf("小红").getByText("涉及 1 条记录")).toBeInTheDocument();

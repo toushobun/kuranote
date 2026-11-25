@@ -65,12 +65,9 @@ async function buildXlsxFile(
   return new File([await workbook.xlsx.writeBuffer()], "demo.xlsx");
 }
 
-async function selectFileAndSubmit(canvasElement: HTMLElement, file: File) {
+async function selectImportFile(canvasElement: HTMLElement, file: File) {
   const canvas = within(canvasElement);
   await userEvent.upload(canvas.getByLabelText("选择文件"), file);
-  await userEvent.click(
-    await canvas.findByRole("button", { name: "检查格式" }),
-  );
 }
 
 const defaultBatchAction: DataImportBatchStateAction = async () => ({});
@@ -94,7 +91,7 @@ export const Default: Story = {
 export const CheckPassed: Story = {
   name: "格式检查通过",
   play: async ({ canvasElement }) => {
-    await selectFileAndSubmit(
+    await selectImportFile(
       canvasElement,
       await buildXlsxFile(["1200", "35.5"]),
     );
@@ -104,16 +101,58 @@ export const CheckPassed: Story = {
 export const CheckFailed: Story = {
   name: "格式检查未通过",
   play: async ({ canvasElement }) => {
-    await selectFileAndSubmit(canvasElement, await buildXlsxFile(["abc"]));
+    await selectImportFile(canvasElement, await buildXlsxFile(["abc"]));
   },
 };
 
 export const BalanceAdjustmentCheckPassed: Story = {
   name: "包含余额变更的格式检查通过态",
   play: async ({ canvasElement }) => {
-    await selectFileAndSubmit(
+    await selectImportFile(
       canvasElement,
       await buildXlsxFile(["1200"], true),
     );
   },
 };
+
+export const Importing: Story = {
+  name: "导入中",
+  args: { executeBatchAction: () => new Promise(() => {}) },
+  play: async ({ canvasElement }) => {
+    await selectImportFile(canvasElement, await buildXlsxFile(["1200"]));
+    const canvas = within(canvasElement);
+    await userEvent.click(await canvas.findByRole("button", { name: "开始导入" }));
+  },
+};
+
+function completionStory(successCount: number, failureCount: number): Story {
+  return {
+    args: {
+      executeBatchAction: async () => ({
+        batch: {
+          successCount,
+          failureCount,
+          createdPlaceholderCount: 0,
+          holderMissingCount: 0,
+          details: failureCount
+            ? [{
+                sheet: "incomeExpense",
+                status: "failed",
+                rowNumbers: successCount ? [3] : [2, 3],
+                reason: "账户已归档，无法导入。",
+              }]
+            : [],
+        },
+      }),
+    },
+    play: async ({ canvasElement }) => {
+      await selectImportFile(canvasElement, await buildXlsxFile(["1200", "35.5"]));
+      const canvas = within(canvasElement);
+      await userEvent.click(await canvas.findByRole("button", { name: "开始导入" }));
+    },
+  };
+}
+
+export const Completed: Story = { ...completionStory(2, 0), name: "全部成功" };
+export const Partial: Story = { ...completionStory(1, 1), name: "部分失败" };
+export const AllFailed: Story = { ...completionStory(0, 2), name: "全部失败" };
