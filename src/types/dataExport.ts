@@ -1,9 +1,10 @@
-import type { DataExport } from "internal/dataExport";
+import type { DataExport, DataExportOptions } from "internal/dataExport";
 import type { ActionState } from "types/actions";
 
 export type DataExportActionState = ActionState & {
   data?: DataExport;
+  ledgerName?: string;
 };
 export type DataExportAction = (
-  includePhotos?: boolean,
+  options?: DataExportOptions,
 ) => Promise<DataExportActionState>;

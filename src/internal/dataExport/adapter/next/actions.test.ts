@@ -25,7 +25,7 @@ import { createEmptyDataExport } from "test/mocks/dataExport";
 beforeEach(() => {
   vi.resetAllMocks();
   mocks.requireLedger.mockResolvedValue({
-    currentLedger: { id: "server-ledger" },
+    currentLedger: { id: "server-ledger", name: "家庭账本" },
     userId: "server-user",
   });
   mocks.dependencies.mockResolvedValue({ logger: mocks.logger });
@@ -35,13 +35,20 @@ describe("exportCurrentLedgerData", () => {
   it("每次调用重新认证且只使用服务端当前账本与用户", async () => {
     await expect(exportCurrentLedgerData()).resolves.toEqual({
       data: createEmptyDataExport(),
+      ledgerName: "家庭账本",
     });
     await exportCurrentLedgerData();
     expect(mocks.requireLedger).toHaveBeenCalledTimes(2);
     expect(mocks.getData).toHaveBeenCalledWith({
       ledgerId: "server-ledger",
       userId: "server-user",
+      recordTypes: ["normal", "transfer", "balance_adjustment"],
     });
+  });
+  it("拒绝空记录类型和倒序日期", async () => {
+    await expect(exportCurrentLedgerData({ recordTypes: [] })).resolves.toMatchObject({ error: dataExportErrorMessages.invalidScope });
+    await expect(exportCurrentLedgerData({ recordTypes: ["normal"], dateStart: "2026-11-26T00:00:00Z", dateEnd: "2026-11-25T00:00:00Z" })).resolves.toMatchObject({ error: dataExportErrorMessages.invalidScope });
+    expect(mocks.getData).not.toHaveBeenCalled();
   });
   it("认证失败时不读取导出数据", async () => {
     mocks.requireLedger.mockRejectedValueOnce(new Error("需要登录"));

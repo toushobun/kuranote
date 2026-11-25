@@ -155,6 +155,7 @@ export type TransactionRecordQuery = {
   offset?: number;
   recordIds?: string[];
   recordType: TransactionFilterRecordType | "normal";
+  recordTypes?: ("normal" | "transfer" | "balance_adjustment")[];
 };
 
 export type TransactionGroupSummaryRow = {
@@ -1163,7 +1164,7 @@ export function createSupabaseTransactionRepository(
         )
         .eq("ledger_id", input.ledgerId)
         .eq("status", "active")
-        .in("type", ["normal", "transfer", "balance_adjustment"]);
+        .in("type", input.recordTypes ?? ["normal", "transfer", "balance_adjustment"]);
       if (input.recordIds) query = query.in("id", input.recordIds);
       if (input.dateStart) query = query.gte("transaction_at", input.dateStart);
       if (input.dateEnd) query = query.lt("transaction_at", input.dateEnd);

@@ -144,6 +144,7 @@ export async function buildDataExportWorkbook(
     }
   }
 
+  let billNumber = 0;
   for (const record of data.records) {
     if (record.items.length === 0) throw new IncompleteDataExportError();
     const common = {
@@ -175,9 +176,9 @@ export async function buildDataExportWorkbook(
       const row = transfer.addRow({
         ...common,
         交易类型: "转账",
-        金额: from.amount,
-        到账金额: fromCurrency !== toCurrency ? to.amount : "",
-        手续费: fee?.amount ?? "",
+        金额: Number(from.amount),
+        到账金额: fromCurrency !== toCurrency ? Number(to.amount) : "",
+        手续费: fee ? Number(fee.amount) : "",
       });
       writeAccount(row, accounts.get(from.accountId), "转出");
       writeAccount(row, accounts.get(to.accountId), "转入");
@@ -186,11 +187,12 @@ export async function buildDataExportWorkbook(
         const row = adjustment.addRow({
           ...common,
           交易类型: "余额变更",
-          金额: item.balanceDelta,
+          金额: Number(item.balanceDelta),
         });
         writeAccount(row, accounts.get(item.accountId));
       }
     } else {
+      billNumber += 1;
       if (record.payments.length === 0) throw new IncompleteDataExportError();
       const merchant = record.merchantId
         ? merchants.get(record.merchantId)
@@ -207,7 +209,7 @@ export async function buildDataExportWorkbook(
           throw new IncompleteDataExportError();
         const row = incomeExpense.addRow({
           ...common,
-          账单关联: record.id,
+          账单关联: billNumber,
           商家分类: merchant?.tagNames.join("、") ?? "",
           商家: merchant?.name ?? "",
           交易类型: category.type === "income" ? "收入" : "支出",
@@ -218,7 +220,7 @@ export async function buildDataExportWorkbook(
           二级分类: category.parent_id
             ? getCategoryDisplayName(category.name, undefined)
             : "",
-          金额: item.amount,
+          金额: Number(item.amount),
         });
         if (index === 0) {
           const photos = photosByRecord.get(record.id) ?? [];

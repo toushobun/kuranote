@@ -20,7 +20,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 const startExport: NonNullable<Story["play"]> = async ({ canvasElement }) => {
   await userEvent.click(
-    within(canvasElement).getByRole("button", { name: "导出 xlsx" }),
+    within(canvasElement).getByRole("button", { name: "导出 Excel" }),
   );
 };
 export const Default: Story = { name: "默认（可下载示例）" };
@@ -33,7 +33,7 @@ export const IncludePhotos: Story = {
   },
 };
 export const DownloadingPhotos: Story = {
-  name: "正在下载照片",
+  name: "正在准备照片",
   args: {
     exportAction: async () => ({
       data: {
@@ -54,8 +54,8 @@ export const DownloadingPhotos: Story = {
     try {
       const canvas = within(canvasElement);
       await userEvent.click(canvas.getByRole("switch", { name: "导出照片" }));
-      await userEvent.click(canvas.getByRole("button", { name: "导出 xlsx" }));
-      await canvas.findByText("正在下载照片 0/1");
+      await userEvent.click(canvas.getByRole("button", { name: "导出 Excel" }));
+      await canvas.findByText("正在准备照片 0/1");
     } finally {
       globalThis.fetch = originalFetch;
     }

@@ -28,6 +28,9 @@ export interface TransactionExportQueryService {
   listAllForExport(input: {
     ledgerId: string;
     userId: string;
+    dateStart?: string;
+    dateEnd?: string;
+    recordTypes?: TransactionExportRecord["type"][];
   }): Promise<TransactionExportRecord[]>;
 }
 
@@ -83,7 +86,7 @@ export function createTransactionExportQueryService({
       );
     },
 
-    async listAllForExport({ ledgerId, userId }) {
+    async listAllForExport({ ledgerId, userId, dateStart, dateEnd, recordTypes }) {
       await requireActiveLedgerMemberRole(ledgerAccessService, {
         ledgerId,
         userId,
@@ -94,6 +97,9 @@ export function createTransactionExportQueryService({
         const records = await transactionRepository.listRecords({
           ledgerId,
           recordType: "all",
+          ...(dateStart ? { dateStart } : {}),
+          ...(dateEnd ? { dateEnd } : {}),
+          ...(recordTypes ? { recordTypes } : {}),
           offset,
           limit: 100,
         });

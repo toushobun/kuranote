@@ -18,16 +18,17 @@ export default function DataExportLoading() {
       subtitle={messages.subtitle}
       title={messages.title}
     >
-      <Stack role="status" aria-label={messages.loading} aria-busy="true">
+      <Stack role="status" aria-label={messages.loading} aria-busy="true" spacing={2.5}>
         <SectionCard>
           <Stack spacing={1.5}>
             <Skeleton width="30%" />
             <Skeleton />
             <Skeleton />
             <Skeleton />
-            <Skeleton variant="rounded" height={40} />
           </Stack>
         </SectionCard>
+        <SectionCard><Skeleton /></SectionCard>
+        <Skeleton variant="rounded" height={40} />
       </Stack>
     </SettingsPageLayout>
   );

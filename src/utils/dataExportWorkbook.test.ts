@@ -29,13 +29,13 @@ describe("dataExportWorkbook", () => {
   it("按原始明细导出多分类收支、真实记账人、分类层级和商家展示名", async () => {
     const sheet = (await loadWorkbook()).getWorksheet("收支")!;
     expect(sheet.rowCount).toBe(4);
-    expect(cell(sheet, 2, "账单关联").value).toBe("normal");
-    expect(cell(sheet, 3, "账单关联").value).toBe("normal");
+    expect(cell(sheet, 2, "账单关联").value).toBe(1);
+    expect(cell(sheet, 3, "账单关联").value).toBe(1);
     expect(cell(sheet, 2, "记账人").value).toBe("历史记账人");
     expect(cell(sheet, 2, "一级分类").value).toBe("饮食");
     expect(cell(sheet, 2, "二级分类").value).toBe("午餐");
     expect(cell(sheet, 3, "二级分类").value).toBe("");
-    expect(cell(sheet, 2, "金额").value).toBe("123.45");
+    expect(cell(sheet, 2, "金额").value).toBe(123.45);
     expect(cell(sheet, 2, "交易类型").value).toBe("支出");
     expect(cell(sheet, 4, "交易类型").value).toBe("收入");
     expect(cell(sheet, 2, "商家").value).toBe("商家展示名");
@@ -55,7 +55,7 @@ describe("dataExportWorkbook", () => {
     expect(transfer.rowCount).toBe(2);
     expect(cell(transfer, 2, "转出账户").value).toBe("现金");
     expect(cell(transfer, 2, "转入账户").value).toBe("存款");
-    expect(cell(transfer, 2, "金额").value).toBe("300");
+    expect(cell(transfer, 2, "金额").value).toBe(300);
     for (const name of ["转出账户", "转出账户持有人"])
       expect(cell(transfer, 2, name).font.color).toEqual({ argb: "FF3F9FF4" });
     for (const name of ["转入账户", "转入账户持有人"])
@@ -76,8 +76,8 @@ describe("dataExportWorkbook", () => {
     transfer.items[0].amount = "15.50";
     transfer.items[0].balanceDelta = "15.50";
     const sheet = (await loadWorkbook(data)).getWorksheet("转账")!;
-    expect(cell(sheet, 2, "金额").value).toBe("300.00");
-    expect(cell(sheet, 2, "到账金额").value).toBe("15.50");
+    expect(cell(sheet, 2, "金额").value).toBe(300);
+    expect(cell(sheet, 2, "到账金额").value).toBe(15.5);
 
     const { result, units } = await analyzeImportFile(
       new File([await buildDataExportWorkbook(data)], "export.xlsx"),
@@ -113,8 +113,8 @@ describe("dataExportWorkbook", () => {
     });
     const sheet = (await loadWorkbook(data)).getWorksheet("余额变更")!;
     expect(sheet.rowCount).toBe(3);
-    expect(cell(sheet, 2, "金额").value).toBe("-12.34");
-    expect(cell(sheet, 3, "金额").value).toBe("7.00");
+    expect(cell(sheet, 2, "金额").value).toBe(-12.34);
+    expect(cell(sheet, 3, "金额").value).toBe(7);
     expect(cell(sheet, 2, "账户持有人").value).toBe("");
     expect(cell(sheet, 2, "账户").font?.color).toBeUndefined();
     expect(cell(sheet, 3, "账户").font.color).toEqual({ argb: "FF3F9FF4" });
@@ -135,7 +135,7 @@ describe("dataExportWorkbook", () => {
       const sheet = workbook.getWorksheet("余额变更")!;
       expect(sheet.rowCount).toBe(2);
       expect(cell(sheet, 2, "交易类型").value).toBe("余额变更");
-      expect(cell(sheet, 2, "金额").value).toBe(balanceDelta);
+      expect(cell(sheet, 2, "金额").value).toBe(Number(balanceDelta));
       expect(cell(sheet, 2, "备注").value).toBe("初始余额");
       expect(cell(sheet, 2, "记账人").value).toBe(record.recorderName);
       expect(cell(sheet, 2, "日期").value).toBe(

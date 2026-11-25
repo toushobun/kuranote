@@ -1,6 +1,7 @@
 "use client";
 
-import DownloadRoundedIcon from "@mui/icons-material/DownloadRounded";
+import Checkbox from "@mui/material/Checkbox";
+import TextField from "@mui/material/TextField";
 import Alert from "@mui/material/Alert";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
@@ -30,7 +31,14 @@ export function DataExportTemplate({
     photoProgress,
     isExporting,
     error,
-    hasDownloaded,
+    downloadedFile,
+    startDate,
+    setStartDate,
+    endDate,
+    setEndDate,
+    recordTypes,
+    toggleRecordType,
+    canExport,
     handleExport,
     closeError,
   } = useDataExport(exportAction);
@@ -49,48 +57,75 @@ export function DataExportTemplate({
             <Typography sx={{ fontWeight: 700 }}>
               {messages.scopeTitle}
             </Typography>
-            {[messages.scope, messages.format, messages.empty].map((text) => (
-              <Typography key={text} color="textSecondary" variant="body2">
-                {text}
-              </Typography>
-            ))}
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={includePhotos}
-                  disabled={isExporting}
-                  onChange={(_, checked) => setIncludePhotos(checked)}
+            <Typography variant="body2">{messages.dateRange}</Typography>
+            <Stack direction="row" spacing={1}>
+              <TextField
+                fullWidth
+                size="small"
+                type="date"
+                label={messages.startDate}
+                value={startDate}
+                onChange={(event) => setStartDate(event.target.value)}
+                disabled={isExporting}
+                slotProps={{ inputLabel: { shrink: true } }}
+              />
+              <TextField
+                fullWidth
+                size="small"
+                type="date"
+                label={messages.endDate}
+                value={endDate}
+                onChange={(event) => setEndDate(event.target.value)}
+                disabled={isExporting}
+                slotProps={{ inputLabel: { shrink: true } }}
+              />
+            </Stack>
+            {!startDate && !endDate ? (
+              <Typography color="textSecondary" variant="body2">{messages.allDates}</Typography>
+            ) : null}
+            <Typography variant="body2">{messages.recordTypesTitle}</Typography>
+            <Stack direction="row" flexWrap="wrap">
+              {(["normal", "transfer", "balance_adjustment"] as const).map((type) => (
+                <FormControlLabel
+                  key={type}
+                  control={<Checkbox checked={recordTypes.includes(type)} disabled={isExporting} onChange={() => toggleRecordType(type)} />}
+                  label={messages.recordTypes[type]}
                 />
-              }
+              ))}
+            </Stack>
+            <Typography color="textSecondary" variant="body2">{messages.scope}</Typography>
+          </Stack>
+        </SectionCard>
+        <SectionCard>
+          <Stack spacing={1}>
+            <FormControlLabel
+              labelPlacement="start"
+              sx={{ justifyContent: "space-between", mx: 0 }}
+              control={<Switch checked={includePhotos} disabled={isExporting} onChange={(_, checked) => setIncludePhotos(checked)} />}
               label={messages.includePhotos}
             />
             {includePhotos ? (
-              <Typography color="textSecondary" variant="body2">
-                {messages.photoSizeHint}
-              </Typography>
-            ) : null}
-            <ActionButton
-              pending={isExporting}
-              pendingLabel={actionPendingMessages.export}
-              onClick={handleExport}
-              startIcon={<DownloadRoundedIcon />}
-              variant="contained"
-              fullWidth
-            >
-              {messages.button}
-            </ActionButton>
-            {photoProgress ? (
-              <Typography role="status" color="textSecondary" variant="body2">
-                {messages.photoProgress(
-                  photoProgress.done,
-                  photoProgress.total,
-                )}
-              </Typography>
+              <Typography color="textSecondary" variant="body2">{messages.photoSizeHint}</Typography>
             ) : null}
           </Stack>
         </SectionCard>
-        {hasDownloaded ? (
-          <Alert severity="success">{messages.success}</Alert>
+        <ActionButton
+          pending={isExporting}
+          pendingLabel={actionPendingMessages.export}
+          disabled={!canExport}
+          onClick={handleExport}
+          variant="contained"
+          fullWidth
+        >
+          {messages.button}
+        </ActionButton>
+        {photoProgress ? (
+          <Typography role="status" color="textSecondary" variant="body2">
+            {messages.photoProgress(photoProgress.done, photoProgress.total)}
+          </Typography>
+        ) : null}
+        {downloadedFile ? (
+          <Alert severity="success">{messages.success(downloadedFile)}</Alert>
         ) : null}
       </Stack>
       <FailureFeedbackDialog

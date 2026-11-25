@@ -13,31 +13,32 @@ export const dataImportExportPageMessages = {
 export const dataImportExportEntryMessages = {
   import: {
     title: "数据导入",
-    description: "从 xlsx 文件批量导入收支和转账记录",
+    description: "从 Excel 文件导入记录和小票照片",
   },
   export: {
     title: "数据导出",
-    description: "将当前账本数据导出为文件，方便备份或迁移",
+    description: "把当前账本导出为 Excel 文件备份",
   },
 } as const;
 
 export const dataExportPageMessages = {
   title: "数据导出",
-  subtitle: "下载全部记录为 xlsx 文件",
-  scopeTitle: "导出内容",
-  scope:
-    "包含全部收支、转账和余额变更记录，保存到「收支」「转账」「余额变更」三个工作表；多账户记录在「收支」中用分号按顺序列出账户、持有人、类型及付款金额。",
-  format:
-    "文件格式为 Excel（.xlsx），列名与导入模板一致。日期使用当前设备时区。",
-  empty: "没有交易记录时，仍会下载包含三个工作表表头的文件。",
-  button: "导出 xlsx",
+  subtitle: "把记录下载为 Excel 文件",
+  scopeTitle: "导出范围",
+  dateRange: "日期区间",
+  allDates: "全部日期",
+  startDate: "开始日期",
+  endDate: "结束日期",
+  recordTypesTitle: "记录类型",
+  recordTypes: { normal: "收支", transfer: "转账", balance_adjustment: "余额变更" },
+  scope: "包含全部收支、转账和余额变更记录，导出的文件可以直接用来导入。",
+  button: "导出 Excel",
   includePhotos: "导出照片",
-  photoSizeHint: "包含照片的文件可能较大，导出时间也会更长。",
+  photoSizeHint: "包含照片的文件较大，导出需要更久。",
   photoProgress: (done: number, total: number) =>
-    `正在下载照片 ${done}/${total}`,
-  success: "导出文件已生成，已开始下载。",
+    `正在准备照片 ${done}/${total}`,
+  success: (fileName: string) => `已开始下载 ${fileName}`,
   failureTitle: "导出失败",
-  fileName: "KuraNote-账本交易.xlsx",
   loading: "导出页面加载中",
 } as const;
 

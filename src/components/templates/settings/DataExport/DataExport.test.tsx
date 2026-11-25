@@ -42,7 +42,7 @@ afterEach(() => {
 
 function startExport(action: DataExportAction) {
   render(<DataExportTemplate exportAction={action} />);
-  fireEvent.click(screen.getByRole("button", { name: "导出 xlsx" }));
+  fireEvent.click(screen.getByRole("button", { name: "导出 Excel" }));
 }
 
 describe("DataExportTemplate", () => {
@@ -64,13 +64,18 @@ describe("DataExportTemplate", () => {
     const toggle = screen.getByRole("switch", { name: "导出照片" });
     expect(toggle).not.toBeChecked();
     fireEvent.click(toggle);
-    expect(screen.getByText(/文件可能较大/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "导出 xlsx" }));
-    await waitFor(() => expect(action).toHaveBeenCalledWith(true));
+    expect(screen.getByText(/文件较大/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "导出 Excel" }));
+    await waitFor(() => expect(action).toHaveBeenCalledWith({ includePhotos: true, recordTypes: ["normal", "transfer", "balance_adjustment"] }));
     expect(buildWorkbook).toHaveBeenCalledWith(
       createEmptyDataExport(),
       expect.objectContaining({ onPhotoProgress: expect.any(Function) }),
     );
+  });
+  it("取消全部记录类型时禁止导出", () => {
+    render(<DataExportTemplate exportAction={async () => ({})} />);
+    for (const name of ["收支", "转账", "余额变更"]) fireEvent.click(screen.getByRole("checkbox", { name }));
+    expect(screen.getByRole("button", { name: "导出 Excel" })).toBeDisabled();
   });
   it("导出期间禁用按钮并阻止重复请求", async () => {
     const action = vi.fn(
@@ -96,7 +101,7 @@ describe("DataExportTemplate", () => {
     expect(HTMLAnchorElement.prototype.click).toHaveBeenCalledOnce();
     expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
     expect(
-      screen.getByText("导出文件已生成，已开始下载。"),
+      screen.getByText(/已开始下载 KuraNote-/),
     ).toBeInTheDocument();
     expect(revokeObjectURL).not.toHaveBeenCalledWith(
       "blob:export-current-test",
@@ -115,7 +120,7 @@ describe("DataExportTemplate", () => {
     await waitFor(() =>
       expect(screen.queryByText("账本无法访问")).not.toBeInTheDocument(),
     );
-    expect(screen.getByRole("button", { name: "导出 xlsx" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "导出 Excel" })).toBeEnabled();
   });
   it("账户名称包含分号时展示具体原因并阻止下载", async () => {
     buildWorkbook.mockRejectedValueOnce(new AccountSeparatorDataExportError());
@@ -132,6 +137,6 @@ describe("DataExportTemplate", () => {
       await screen.findByText(dataExportErrorMessages.downloadFailed),
     ).toBeInTheDocument();
     expect(createObjectURL).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "导出 xlsx" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "导出 Excel" })).toBeEnabled();
   });
 });
