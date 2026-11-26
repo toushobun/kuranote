@@ -98,6 +98,13 @@ export const CheckPassed: Story = {
   },
 };
 
+export const EmptyFile: Story = {
+  name: "只有表头，无可导入记录",
+  play: async ({ canvasElement }) => {
+    await selectImportFile(canvasElement, await buildXlsxFile([]));
+  },
+};
+
 export const CheckFailed: Story = {
   name: "格式检查未通过",
   play: async ({ canvasElement }) => {

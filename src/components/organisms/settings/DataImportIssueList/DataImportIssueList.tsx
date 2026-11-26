@@ -5,13 +5,15 @@ import { dataImportResultMessages as messages } from "config/dataImportExportMes
 import { importSheetKindLabels } from "internal/dataImport";
 import type { GroupedImportIssue } from "utils/groupDataImportIssues";
 
+const issueLimit = 20;
+
 export function DataImportIssueList({
   issues,
 }: {
   issues: GroupedImportIssue[];
 }) {
   const sections = new Map<string, GroupedImportIssue[]>();
-  for (const issue of issues) {
+  for (const issue of issues.slice(0, issueLimit)) {
     const title =
       issue.rows.length && issue.sheet
         ? importSheetKindLabels[issue.sheet]
@@ -30,12 +32,17 @@ export function DataImportIssueList({
           {items.map((issue, index) => (
             <Typography key={index} variant="body2">
               {issue.rows.length
-                ? messages.rowIssue(issue.rows, issue.reason, issue.column)
+                ? messages.rowIssue(issue.rows, issue.reason)
                 : issue.reason}
             </Typography>
           ))}
         </Stack>
       ))}
+      {issues.length > issueLimit ? (
+        <Typography color="textSecondary" variant="body2">
+          {messages.moreIssues(issues.length - issueLimit)}
+        </Typography>
+      ) : null}
     </Stack>
   );
 }

@@ -45,6 +45,25 @@ describe("DataImportExecutionStatus", () => {
     expect(screen.getByText("第 2、3、5 行：账户已归档。")).toBeInTheDocument();
   });
 
+  it("导入失败原因超过二十组时限制展示并提示剩余数量", () => {
+    const details = Array.from({ length: 22 }, (_, index) => ({
+      reason: `账户 ${index + 1} 无法导入。`,
+      rowNumbers: [index + 2],
+      sheet: "incomeExpense" as const,
+      status: "failed" as const,
+    }));
+    render(
+      <DataImportExecutionStatus
+        result={{ ...baseResult, failureCount: details.length, details }}
+      />,
+    );
+    expect(screen.getByText("第 21 行：账户 20 无法导入。")).toBeInTheDocument();
+    expect(
+      screen.queryByText("第 22 行：账户 21 无法导入。"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("还有 2 处")).toBeInTheDocument();
+  });
+
   it("全部失败显示错误色", () => {
     render(
       <DataImportExecutionStatus

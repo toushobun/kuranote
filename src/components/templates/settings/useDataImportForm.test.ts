@@ -310,7 +310,7 @@ describe("useDataImportForm 浏览器端解析与分批发送", () => {
     expect(executeBatchAction).toHaveBeenCalledTimes(failingBatchIndex + 1);
   });
 
-  it("只有表头没有数据行时开始导入直接完成，不请求服务端", async () => {
+  it("只有表头没有数据行时不进入导入状态，也不请求服务端", async () => {
     mockAnalyzeImportFile(0);
     const executeBatchAction = vi.fn<DataImportBatchStateAction>();
     const { result } = renderHook(() => useDataImportForm(executeBatchAction));
@@ -321,9 +321,9 @@ describe("useDataImportForm 浏览器端解析与分批发送", () => {
     });
 
     expect(executeBatchAction).not.toHaveBeenCalled();
-    expect(result.current.executionStatus).toBe("completed");
+    expect(result.current.executionStatus).toBeNull();
     expect(result.current.executionError).toBeNull();
-    expect(result.current.executionResult?.successCount).toBe(0);
+    expect(result.current.executionResult).toBeNull();
     expect(result.current.isImporting).toBe(false);
   });
 });

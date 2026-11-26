@@ -97,12 +97,12 @@ export const dataImportResultMessages = {
   transferCountLabel: (count: number) => `转账 ${count} 笔`,
   photoCountLabel: (count: number) => `照片 ${count} 张`,
   failureTitle: (count: number) => `有 ${count} 处需要修改`,
-  moreIssues: (count: number) => `还有 ${count} 处需要修改`,
+  moreIssues: (count: number) => `还有 ${count} 处`,
   structuralTitle: "文件结构",
   successTitle: "可以导入",
   emptySummary: "没有需要导入的记录",
-  rowIssue: (rows: number[], reason: string, column?: string) =>
-    `第 ${rows.join("、")} 行：${column ? `「${column}」` : ""}${reason}`,
+  rowIssue: (rows: number[], reason: string) =>
+    `第 ${rows.join("、")} 行：${reason}`,
 } as const;
 
 export const dataImportExecutionMessages = {

@@ -7,7 +7,7 @@ import Typography from "@mui/material/Typography";
 import { dataImportExecutionMessages as messages } from "config/dataImportExportMessages";
 import type { ImportExecutionResult } from "internal/dataImport";
 import { SectionCard } from "molecules/ui/SectionCard";
-import { DataImportIssueList } from "organisms/settings/DataImportIssueList";
+import { DataImportIssueList } from "organisms/settings/DataImportIssueList/DataImportIssueList";
 import { groupExecutionIssues } from "utils/groupDataImportIssues";
 
 export function DataImportExecutionStatus({

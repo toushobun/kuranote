@@ -148,6 +148,7 @@ export function useDataImportForm(
 
     const units = unitsRef.current;
     const totalCount = units.length;
+    if (totalCount === 0) return;
     // 首批可能携带「新建待邀请成员」意图；服务端创建后返回已解析的映射，后续批次
     // 只提交解析结果，不再重复提交新建意图。请求失败时不自动重试。
     let currentHolderMapping = holderMapping;
@@ -162,11 +163,6 @@ export function useDataImportForm(
     setExecutionResult(aggregate);
     setExecutionStatus("importing");
     setPhotoUploadProgress(null);
-    // 只有表头、没有数据行的模板：无需请求服务端，直接按 0 条完成。
-    if (totalCount === 0) {
-      setExecutionStatus("completed");
-      return;
-    }
     setIsImporting(true);
 
     try {

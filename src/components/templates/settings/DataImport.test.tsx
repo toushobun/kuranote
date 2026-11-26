@@ -135,7 +135,13 @@ describe("DataImportTemplate", () => {
     renderTemplate();
     selectFile();
 
-    expect(await screen.findByText("可以导入")).toBeInTheDocument();
+    const title = await screen.findByText("可以导入");
+    expect(title).toBeInTheDocument();
+    expect(
+      title.compareDocumentPosition(
+        screen.getByRole("button", { name: "查看文件格式要求" }),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(screen.getByText(/收支 3 笔/)).toBeInTheDocument();
     expect(screen.getByText(/转账 1 笔/)).toBeInTheDocument();
     expect(
@@ -143,6 +149,17 @@ describe("DataImportTemplate", () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/余额变更 1 笔/)).toBeInTheDocument();
     expect(screen.queryByText(/暂不支持/)).not.toBeInTheDocument();
+  });
+
+  it("没有可导入记录时不展示开始导入按钮", async () => {
+    analyzeImportFileMock.mockResolvedValue(makeAnalyzeImportFileResult(0));
+    renderTemplate();
+    selectFile();
+
+    expect(await screen.findByText("没有需要导入的记录")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "开始导入" }),
+    ).not.toBeInTheDocument();
   });
 
   it("开始导入后调用批处理 Action 并展示完成汇总", async () => {
@@ -228,9 +245,7 @@ describe("DataImportTemplate", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        new RegExp(
-          `第 3 行.*金额.*${incomeExpenseImportErrorMessages.amountInvalid}`,
-        ),
+        `第 3 行：${incomeExpenseImportErrorMessages.amountInvalid}`,
       ),
     ).toBeInTheDocument();
   });
@@ -255,10 +270,8 @@ describe("DataImportTemplate", () => {
     renderTemplate();
     selectFile();
     expect(await screen.findByText("有 22 处需要修改")).toBeInTheDocument();
-    expect(
-      screen.getByText("第 2、3、5 行：「金额」金额错误。"),
-    ).toBeInTheDocument();
-    expect(screen.getByText("还有 2 处需要修改")).toBeInTheDocument();
+    expect(screen.getByText("第 2、3、5 行：金额错误。")).toBeInTheDocument();
+    expect(screen.getByText("还有 2 处")).toBeInTheDocument();
     expect(screen.queryByText("结构错误 21。")).not.toBeInTheDocument();
     expect(screen.getByText("data.xlsx")).toBeInTheDocument();
     expect(screen.getByText("重新选择")).toBeInTheDocument();

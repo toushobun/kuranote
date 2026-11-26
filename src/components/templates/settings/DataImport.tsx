@@ -34,7 +34,7 @@ import {
 } from "internal/dataImport";
 import { SectionCard } from "molecules/ui/SectionCard";
 import { DataImportHolderMapping } from "organisms/settings/DataImportHolderMapping/DataImportHolderMapping";
-import { DataImportIssueList } from "organisms/settings/DataImportIssueList";
+import { DataImportIssueList } from "organisms/settings/DataImportIssueList/DataImportIssueList";
 import { DataImportExecutionStatus } from "organisms/settings/DataImportExecutionStatus/DataImportExecutionStatus";
 import { SettingsPageLayout } from "templates/layout/SettingsPageLayout";
 import { useDataImportForm } from "templates/settings/useDataImportForm";
@@ -78,6 +78,11 @@ export function DataImportTemplate({
 
   const result = validationState.result;
   const mappingRequired = holderMappingCandidates.length > 0;
+  const hasRecords =
+    result?.ok &&
+    (result.summary.incomeExpenseCount > 0 ||
+      result.summary.transferCount > 0 ||
+      result.summary.balanceAdjustmentCount > 0);
 
   return (
     <SettingsPageLayout
@@ -154,8 +159,6 @@ export function DataImportTemplate({
           </Stack>
         </SectionCard>
 
-        <FormatDescriptionCard />
-
         {result && !result.ok ? <ValidationErrors result={result} /> : null}
 
         {result?.ok && executionStatus !== "completed" ? (
@@ -170,7 +173,7 @@ export function DataImportTemplate({
               <Typography variant="body2" color="textSecondary">
                 {summaryText(result, photoCount)}
               </Typography>
-              {!mappingRequired || isImporting ? (
+              {hasRecords && (!mappingRequired || isImporting) ? (
                 <ActionButton
                   fullWidth
                   onClick={handleStartImport}
@@ -220,6 +223,8 @@ export function DataImportTemplate({
         {executionResult && executionStatus === "completed" ? (
           <DataImportExecutionStatus result={executionResult} />
         ) : null}
+
+        <FormatDescriptionCard />
       </Stack>
     </SettingsPageLayout>
   );
@@ -324,7 +329,6 @@ function ValidationErrors({
   result: Extract<ImportValidationResult, { ok: false }>;
 }) {
   const issues = groupValidationIssues(result.issues);
-  const limit = 20;
   return (
     <SectionCard>
       <Stack spacing={1.5}>
@@ -333,12 +337,7 @@ function ValidationErrors({
             {resultMessages.failureTitle(issues.length)}
           </Typography>
         </Alert>
-        <DataImportIssueList issues={issues.slice(0, limit)} />
-        {issues.length > limit ? (
-          <Typography color="textSecondary" variant="body2">
-            {resultMessages.moreIssues(issues.length - limit)}
-          </Typography>
-        ) : null}
+        <DataImportIssueList issues={issues} />
       </Stack>
     </SectionCard>
   );
