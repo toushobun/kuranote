@@ -108,10 +108,7 @@ export const CheckFailed: Story = {
 export const BalanceAdjustmentCheckPassed: Story = {
   name: "包含余额变更的格式检查通过态",
   play: async ({ canvasElement }) => {
-    await selectImportFile(
-      canvasElement,
-      await buildXlsxFile(["1200"], true),
-    );
+    await selectImportFile(canvasElement, await buildXlsxFile(["1200"], true));
   },
 };
 
@@ -162,9 +159,6 @@ function completionStory(successCount: number, failureCount: number): Story {
   };
 }
 
-export const Completed: Story = {
-  ...completionStory(2, 0),
-  name: "全部成功",
-};
+export const Completed: Story = { ...completionStory(2, 0), name: "全部成功" };
 export const Partial: Story = { ...completionStory(1, 1), name: "部分失败" };
 export const AllFailed: Story = { ...completionStory(0, 2), name: "全部失败" };

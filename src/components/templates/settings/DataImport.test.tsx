@@ -271,9 +271,7 @@ describe("DataImportTemplate", () => {
     fireEvent.click(await screen.findByRole("button", { name: "开始导入" }));
     expect(screen.getByText("data.xlsx")).toBeInTheDocument();
     expect(screen.getByLabelText("选择文件")).toBeDisabled();
-    expect(
-      screen.getByRole("button", { name: "正在导入…" }),
-    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: "正在导入…" })).toBeDisabled();
     expect(screen.getByText("请保持页面打开")).toBeInTheDocument();
   });
 
@@ -396,9 +394,7 @@ describe("DataImportTemplate", () => {
       expect(screen.queryByRole("group")).not.toBeInTheDocument();
       expect(screen.queryByText("可以导入")).not.toBeInTheDocument();
       expect(screen.getByText("data.xlsx")).toBeInTheDocument();
-      expect(
-        screen.getByLabelText("选择文件"),
-      ).not.toBeDisabled();
+      expect(screen.getByLabelText("选择文件")).not.toBeDisabled();
       expect(executeAction).not.toHaveBeenCalled();
     });
   });
