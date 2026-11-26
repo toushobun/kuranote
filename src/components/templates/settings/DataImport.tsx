@@ -96,16 +96,25 @@ export function DataImportTemplate({
                 {fileMessages.description}
               </Typography>
             ) : null}
-            <Stack direction={selectedFileName ? "row" : "column"} spacing={1}
-              sx={{ alignItems: "center" }}>
+            <Stack
+              direction={selectedFileName ? "row" : "column"}
+              spacing={1}
+              sx={{ alignItems: "center" }}
+            >
               {selectedFileName ? (
                 <>
                   {isChecking ? (
-                    <CircularProgress size={20} aria-label={fileMessages.checking} />
+                    <CircularProgress
+                      size={20}
+                      aria-label={fileMessages.checking}
+                    />
                   ) : (
                     <DescriptionOutlinedIcon color="action" />
                   )}
-                  <Typography variant="body2" sx={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>
+                  <Typography
+                    variant="body2"
+                    sx={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}
+                  >
                     {selectedFileName}
                   </Typography>
                 </>
@@ -113,12 +122,16 @@ export function DataImportTemplate({
               <Button
                 component="label"
                 disabled={isImporting}
-                startIcon={selectedFileName ? undefined : <UploadFileOutlinedIcon />}
+                startIcon={
+                  selectedFileName ? undefined : <UploadFileOutlinedIcon />
+                }
                 variant="outlined"
                 fullWidth={!selectedFileName}
                 sx={{ flexShrink: 0 }}
               >
-                {selectedFileName ? fileMessages.reselectButton : fileMessages.chooseFileButton}
+                {selectedFileName
+                  ? fileMessages.reselectButton
+                  : fileMessages.chooseFileButton}
                 <input
                   accept=".xlsx"
                   aria-label={fileMessages.chooseFileButton}
@@ -169,13 +182,20 @@ export function DataImportTemplate({
                 </ActionButton>
               ) : null}
               {isImporting ? (
-                <Typography textAlign="center" color="textSecondary" variant="body2">
+                <Typography
+                  sx={{ textAlign: "center" }}
+                  color="textSecondary"
+                  variant="body2"
+                >
                   {executionMessages.keepPageOpenHint}
                 </Typography>
               ) : null}
               {isImporting && photoUploadProgress ? (
                 <Typography variant="body2" color="textSecondary">
-                  {executionMessages.photoUploadProgress(photoUploadProgress.done, photoUploadProgress.total)}
+                  {executionMessages.photoUploadProgress(
+                    photoUploadProgress.done,
+                    photoUploadProgress.total,
+                  )}
                 </Typography>
               ) : null}
             </Stack>
@@ -193,7 +213,9 @@ export function DataImportTemplate({
           />
         ) : null}
 
-        {executionError ? <Alert severity="error">{executionError}</Alert> : null}
+        {executionError ? (
+          <Alert severity="error">{executionError}</Alert>
+        ) : null}
 
         {executionResult && executionStatus === "completed" ? (
           <DataImportExecutionStatus result={executionResult} />
@@ -203,33 +225,52 @@ export function DataImportTemplate({
   );
 }
 
-function summaryText(result: Extract<ImportValidationResult, { ok: true }>, photoCount: number) {
-  const { incomeExpenseCount, transferCount, balanceAdjustmentCount } = result.summary;
-  return [
-    incomeExpenseCount && resultMessages.incomeExpenseCountLabel(incomeExpenseCount),
-    transferCount && resultMessages.transferCountLabel(transferCount),
-    balanceAdjustmentCount && resultMessages.balanceAdjustmentCountLabel(balanceAdjustmentCount),
-    photoCount && resultMessages.photoCountLabel(photoCount),
-  ].filter(Boolean).join(" · ") || resultMessages.emptySummary;
+function summaryText(
+  result: Extract<ImportValidationResult, { ok: true }>,
+  photoCount: number,
+) {
+  const { incomeExpenseCount, transferCount, balanceAdjustmentCount } =
+    result.summary;
+  return (
+    [
+      incomeExpenseCount &&
+        resultMessages.incomeExpenseCountLabel(incomeExpenseCount),
+      transferCount && resultMessages.transferCountLabel(transferCount),
+      balanceAdjustmentCount &&
+        resultMessages.balanceAdjustmentCountLabel(balanceAdjustmentCount),
+      photoCount && resultMessages.photoCountLabel(photoCount),
+    ]
+      .filter(Boolean)
+      .join(" · ") || resultMessages.emptySummary
+  );
 }
 
-function FormatGroup({ title, columns, hints }: {
+function FormatGroup({
+  title,
+  columns,
+  hints,
+}: {
   title: string;
   columns: ImportColumnDef[];
   hints: string[];
 }) {
   return (
     <Stack spacing={1}>
-      <Typography sx={{ fontWeight: 700 }} variant="body2">{title}</Typography>
+      <Typography sx={{ fontWeight: 700 }} variant="body2">
+        {title}
+      </Typography>
       <Box component="ul" sx={{ m: 0, pl: 2.5 }}>
         {columns.map((column) => (
           <Typography component="li" key={column.name} variant="body2">
-            {column.name}{column.required ? "*" : ""}
+            {column.name}
+            {column.required ? "*" : ""}
           </Typography>
         ))}
       </Box>
       {hints.map((hint) => (
-        <Typography key={hint} color="textSecondary" variant="body2">{hint}</Typography>
+        <Typography key={hint} color="textSecondary" variant="body2">
+          {hint}
+        </Typography>
       ))}
     </Stack>
   );
@@ -246,29 +287,51 @@ function FormatDescriptionCard() {
         <Stack spacing={2}>
           <Typography variant="body2">{m.fileTypeHint}</Typography>
           <Typography variant="body2">{m.unknownColumnHint}</Typography>
-          <FormatGroup title={m.incomeExpenseColumnsTitle}
-            columns={[...importColumnsBySheetKind.incomeExpense, ...incomeExpensePhotoColumns]}
-            hints={[m.holderColumnHint, m.accountTypeColumnHint, m.recorderColumnHint, m.billRefHint, m.splitPaymentHint, m.photoColumnHint]} />
-          <FormatGroup title={m.transferColumnsTitle}
+          <FormatGroup
+            title={m.incomeExpenseColumnsTitle}
+            columns={[
+              ...importColumnsBySheetKind.incomeExpense,
+              ...incomeExpensePhotoColumns,
+            ]}
+            hints={[
+              m.holderColumnHint,
+              m.accountTypeColumnHint,
+              m.recorderColumnHint,
+              m.billRefHint,
+              m.splitPaymentHint,
+              m.photoColumnHint,
+            ]}
+          />
+          <FormatGroup
+            title={m.transferColumnsTitle}
             columns={importColumnsBySheetKind.transfer}
-            hints={[m.transferAmountHint]} />
-          <FormatGroup title={m.balanceAdjustmentColumnsTitle}
+            hints={[m.transferAmountHint]}
+          />
+          <FormatGroup
+            title={m.balanceAdjustmentColumnsTitle}
             columns={importColumnsBySheetKind.balanceAdjustment}
-            hints={[m.balanceAdjustmentHint]} />
+            hints={[m.balanceAdjustmentHint]}
+          />
         </Stack>
       </AccordionDetails>
     </Accordion>
   );
 }
 
-function ValidationErrors({ result }: { result: Extract<ImportValidationResult, { ok: false }> }) {
+function ValidationErrors({
+  result,
+}: {
+  result: Extract<ImportValidationResult, { ok: false }>;
+}) {
   const issues = groupValidationIssues(result.issues);
   const limit = 20;
   return (
     <SectionCard>
       <Stack spacing={1.5}>
         <Alert severity="error">
-          <Typography sx={{ fontWeight: 700 }}>{resultMessages.failureTitle(issues.length)}</Typography>
+          <Typography sx={{ fontWeight: 700 }}>
+            {resultMessages.failureTitle(issues.length)}
+          </Typography>
         </Alert>
         <DataImportIssueList issues={issues.slice(0, limit)} />
         {issues.length > limit ? (

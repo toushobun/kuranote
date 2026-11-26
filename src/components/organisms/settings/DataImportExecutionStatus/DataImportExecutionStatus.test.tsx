@@ -12,8 +12,18 @@ const baseResult: ImportExecutionResult = {
 };
 
 const failedDetails: ImportExecutionResult["details"] = [
-  { reason: "账户已归档。", rowNumbers: [2, 3], sheet: "incomeExpense", status: "failed" },
-  { reason: "账户已归档。", rowNumbers: [5], sheet: "incomeExpense", status: "failed" },
+  {
+    reason: "账户已归档。",
+    rowNumbers: [2, 3],
+    sheet: "incomeExpense",
+    status: "failed",
+  },
+  {
+    reason: "账户已归档。",
+    rowNumbers: [5],
+    sheet: "incomeExpense",
+    status: "failed",
+  },
 ];
 
 describe("DataImportExecutionStatus", () => {
@@ -25,25 +35,57 @@ describe("DataImportExecutionStatus", () => {
   });
 
   it("部分失败显示警告色且合并同原因行号", () => {
-    render(<DataImportExecutionStatus result={{ ...baseResult, failureCount: 2, details: failedDetails }} />);
+    render(
+      <DataImportExecutionStatus
+        result={{ ...baseResult, failureCount: 2, details: failedDetails }}
+      />,
+    );
     expect(screen.getByText("已导入 3 笔，2 笔未导入")).toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveClass("MuiAlert-colorWarning");
     expect(screen.getByText("第 2、3、5 行：账户已归档。")).toBeInTheDocument();
   });
 
   it("全部失败显示错误色", () => {
-    render(<DataImportExecutionStatus result={{ ...baseResult, successCount: 0, failureCount: 2, details: failedDetails }} />);
+    render(
+      <DataImportExecutionStatus
+        result={{
+          ...baseResult,
+          successCount: 0,
+          failureCount: 2,
+          details: failedDetails,
+        }}
+      />,
+    );
     expect(screen.getByText("没有导入任何记录")).toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveClass("MuiAlert-colorError");
   });
 
   it("新建待邀请成员时展示人数", () => {
-    render(<DataImportExecutionStatus result={{ ...baseResult, createdPlaceholderCount: 2 }} />);
+    render(
+      <DataImportExecutionStatus
+        result={{ ...baseResult, createdPlaceholderCount: 2 }}
+      />,
+    );
     expect(screen.getByText("新建了 2 位待邀请成员")).toBeInTheDocument();
   });
 
   it("保留未匹配持有人提示", () => {
-    render(<DataImportExecutionStatus result={{ ...baseResult, holderMissingCount: 1, details: [{ sheet: "transfer", rowNumbers: [6], reason: "已按无持有人导入。", status: "holderMissing" }] }} />);
+    render(
+      <DataImportExecutionStatus
+        result={{
+          ...baseResult,
+          holderMissingCount: 1,
+          details: [
+            {
+              sheet: "transfer",
+              rowNumbers: [6],
+              reason: "已按无持有人导入。",
+              status: "holderMissing",
+            },
+          ],
+        }}
+      />,
+    );
     expect(screen.getByText("未匹配持有人 1 笔")).toBeInTheDocument();
     expect(screen.getByText("第 6 行：已按无持有人导入。")).toBeInTheDocument();
   });

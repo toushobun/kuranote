@@ -205,8 +205,8 @@ describe("DataImportHolderMapping", () => {
       });
 
       expect(
-        screen.getByText(/点击「继续导入」时才会创建/),
-      ).toBeInTheDocument();
+        screen.queryByText(/点击「继续导入」时才会创建/),
+      ).not.toBeInTheDocument();
       expect(openOptions("小明")).toEqual([
         "无持有人",
         "成员",

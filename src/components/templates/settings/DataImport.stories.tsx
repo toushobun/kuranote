@@ -121,7 +121,9 @@ export const Importing: Story = {
   play: async ({ canvasElement }) => {
     await selectImportFile(canvasElement, await buildXlsxFile(["1200"]));
     const canvas = within(canvasElement);
-    await userEvent.click(await canvas.findByRole("button", { name: "开始导入" }));
+    await userEvent.click(
+      await canvas.findByRole("button", { name: "开始导入" }),
+    );
   },
 };
 
@@ -135,24 +137,34 @@ function completionStory(successCount: number, failureCount: number): Story {
           createdPlaceholderCount: 0,
           holderMissingCount: 0,
           details: failureCount
-            ? [{
-                sheet: "incomeExpense",
-                status: "failed",
-                rowNumbers: successCount ? [3] : [2, 3],
-                reason: "账户已归档，无法导入。",
-              }]
+            ? [
+                {
+                  sheet: "incomeExpense",
+                  status: "failed",
+                  rowNumbers: successCount ? [3] : [2, 3],
+                  reason: "账户已归档，无法导入。",
+                },
+              ]
             : [],
         },
       }),
     },
     play: async ({ canvasElement }) => {
-      await selectImportFile(canvasElement, await buildXlsxFile(["1200", "35.5"]));
+      await selectImportFile(
+        canvasElement,
+        await buildXlsxFile(["1200", "35.5"]),
+      );
       const canvas = within(canvasElement);
-      await userEvent.click(await canvas.findByRole("button", { name: "开始导入" }));
+      await userEvent.click(
+        await canvas.findByRole("button", { name: "开始导入" }),
+      );
     },
   };
 }
 
-export const Completed: Story = { ...completionStory(2, 0), name: "全部成功" };
+export const Completed: Story = {
+  ...completionStory(2, 0),
+  name: "全部成功",
+};
 export const Partial: Story = { ...completionStory(1, 1), name: "部分失败" };
 export const AllFailed: Story = { ...completionStory(0, 2), name: "全部失败" };

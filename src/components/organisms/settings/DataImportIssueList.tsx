@@ -12,9 +12,10 @@ export function DataImportIssueList({
 }) {
   const sections = new Map<string, GroupedImportIssue[]>();
   for (const issue of issues) {
-    const title = issue.rows.length && issue.sheet
-      ? importSheetKindLabels[issue.sheet]
-      : messages.structuralTitle;
+    const title =
+      issue.rows.length && issue.sheet
+        ? importSheetKindLabels[issue.sheet]
+        : messages.structuralTitle;
     const section = sections.get(title) ?? [];
     section.push(issue);
     sections.set(title, section);

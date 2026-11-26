@@ -61,10 +61,8 @@ export const dataImportPageMessages = {
 
 export const dataImportFormatDescriptionMessages = {
   title: "查看文件格式要求",
-  fileTypeHint:
-    "表名需为「收支」「转账」或「余额变更」。",
-  unknownColumnHint:
-    "列名要和下方列表完全一致，多出的列会报错。",
+  fileTypeHint: "表名需为「收支」「转账」或「余额变更」。",
+  unknownColumnHint: "列名要和下方列表完全一致，多出的列会报错。",
   holderColumnHint:
     "每个账户只能填写 0 个（留空）或 1 个持有人姓名；多账户的持有人按分号位置对应，可整格或部分位置留空。",
   recorderColumnHint:
@@ -122,8 +120,7 @@ export const dataImportExecutionMessages = {
 } as const;
 
 export const dataImportHolderMappingMessages = {
-  title: (count: number) =>
-    `有 ${count} 位持有人需要确认对应的成员`,
+  title: (count: number) => `有 ${count} 位持有人需要确认对应的成员`,
   cardTitle: (name: string) => `「${name}」`,
   recordCount: (count: number) => `涉及 ${count} 条记录`,
   ambiguousHint: "账本中有多位同名成员，请选择对应的一位",

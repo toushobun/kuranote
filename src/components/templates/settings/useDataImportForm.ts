@@ -104,8 +104,7 @@ export function useDataImportForm(
     setExecutionStatus(null);
 
     try {
-      const { result, units, photosByRow } =
-        await analyzeImportFile(file);
+      const { result, units, photosByRow } = await analyzeImportFile(file);
       // 换文件或退出页面后，旧解析结果不能覆盖新文件的单元及照片。
       if (!mountedRef.current || runTokenRef.current !== checkToken) return;
       unitsRef.current = units;
