@@ -1,11 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-
-import { dataImportExecutionErrorMessages } from "internal/dataImport";
-
+import type { ImportExecutionResult } from "internal/dataImport";
 import { DataImportExecutionStatus } from "./DataImportExecutionStatus";
 
-const baseResult = {
+const baseResult: ImportExecutionResult = {
   details: [],
   failureCount: 0,
   createdPlaceholderCount: 0,
@@ -13,172 +11,103 @@ const baseResult = {
   successCount: 3,
 };
 
+const failedDetails: ImportExecutionResult["details"] = [
+  {
+    reason: "账户已归档。",
+    rowNumbers: [2, 3],
+    sheet: "incomeExpense",
+    status: "failed",
+  },
+  {
+    reason: "账户已归档。",
+    rowNumbers: [5],
+    sheet: "incomeExpense",
+    status: "failed",
+  },
+];
+
 describe("DataImportExecutionStatus", () => {
-  it("导入中展示保持页面打开的提示，不展示计数与明细", () => {
+  it("全部成功显示成功色且无按钮", () => {
+    render(<DataImportExecutionStatus result={baseResult} />);
+    expect(screen.getByText("已导入 3 笔")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveClass("MuiAlert-colorSuccess");
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("部分失败显示警告色且合并同原因行号", () => {
     render(
       <DataImportExecutionStatus
-        result={{
-          ...baseResult,
-          details: [
-            {
-              content: "测试",
-              reason: "测试原因",
-              rowNumbers: [2],
-              sheet: "incomeExpense",
-              status: "failed",
-            },
-          ],
-        }}
-        status="importing"
+        result={{ ...baseResult, failureCount: 2, details: failedDetails }}
       />,
     );
+    expect(screen.getByText("已导入 3 笔，2 笔未导入")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveClass("MuiAlert-colorWarning");
+    expect(screen.getByText("第 2、3、5 行：账户已归档。")).toBeInTheDocument();
+  });
 
-    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+  it("导入失败原因超过二十组时限制展示并提示剩余数量", () => {
+    const details = Array.from({ length: 22 }, (_, index) => ({
+      reason: `账户 ${index + 1} 无法导入。`,
+      rowNumbers: [index + 2],
+      sheet: "incomeExpense" as const,
+      status: "failed" as const,
+    }));
+    render(
+      <DataImportExecutionStatus
+        result={{ ...baseResult, failureCount: details.length, details }}
+      />,
+    );
     expect(
-      screen.getByText("导入需要一些时间，请保持页面打开，不要离开。"),
+      screen.getByText("第 21 行：账户 20 无法导入。"),
     ).toBeInTheDocument();
-    expect(screen.queryByText(/已处理/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/成功导入/)).not.toBeInTheDocument();
-    expect(screen.queryByText("失败的记录")).not.toBeInTheDocument();
-  });
-
-  it("上传阶段显示真实照片数量，完成后不再显示", () => {
-    const { rerender } = render(
-      <DataImportExecutionStatus
-        photoUploadProgress={{ done: 12, total: 80 }}
-        result={baseResult}
-        status="importing"
-      />,
-    );
-    expect(screen.getByText("正在上传照片 12/80")).toBeInTheDocument();
-    rerender(
-      <DataImportExecutionStatus result={baseResult} status="importing" />,
-    );
-    expect(screen.queryByText(/正在上传照片/)).not.toBeInTheDocument();
-  });
-
-  it("完成态不再展示进度条与保持页面打开的提示", () => {
-    render(
-      <DataImportExecutionStatus
-        result={{ ...baseResult, successCount: 10 }}
-        status="completed"
-      />,
-    );
-
-    expect(screen.getByText("成功导入 10 条")).toBeInTheDocument();
-    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
     expect(
-      screen.queryByText("导入需要一些时间，请保持页面打开，不要离开。"),
+      screen.queryByText("第 22 行：账户 21 无法导入。"),
     ).not.toBeInTheDocument();
+    expect(screen.getByText("还有 2 处")).toBeInTheDocument();
   });
 
-  it("全部成功时展示成功汇总", () => {
-    render(
-      <DataImportExecutionStatus
-        result={{ ...baseResult, successCount: 10 }}
-        status="completed"
-      />,
-    );
-
-    expect(screen.getByText("导入完成")).toBeInTheDocument();
-    expect(screen.getByText("成功导入 10 条")).toBeInTheDocument();
-    expect(screen.queryByText(/待邀请成员/)).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "下载导入结果文件" }),
-    ).not.toBeInTheDocument();
-  });
-
-  it("导入时新建了待邀请成员时展示新建人数", () => {
+  it("全部失败显示错误色", () => {
     render(
       <DataImportExecutionStatus
         result={{
           ...baseResult,
-          createdPlaceholderCount: 2,
-          successCount: 10,
+          successCount: 0,
+          failureCount: 2,
+          details: failedDetails,
         }}
-        status="completed"
       />,
     );
+    expect(screen.getByText("没有导入任何记录")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveClass("MuiAlert-colorError");
+  });
 
+  it("新建待邀请成员时展示人数", () => {
+    render(
+      <DataImportExecutionStatus
+        result={{ ...baseResult, createdPlaceholderCount: 2 }}
+      />,
+    );
     expect(screen.getByText("新建了 2 位待邀请成员")).toBeInTheDocument();
   });
 
-  it("完成后一次性展示失败明细", () => {
+  it("保留未匹配持有人提示", () => {
     render(
       <DataImportExecutionStatus
         result={{
           ...baseResult,
+          holderMissingCount: 1,
           details: [
             {
-              content: "2026-09-17 商家A 1000",
-              reason: "数据库写入失败。",
-              rowNumbers: [2],
-              sheet: "incomeExpense",
-              status: "failed",
-            },
-          ],
-          failureCount: 1,
-          successCount: 2,
-        }}
-        status="completed"
-      />,
-    );
-
-    expect(screen.getByText("失败 1 条")).toBeInTheDocument();
-    expect(screen.getByText("失败的记录")).toBeInTheDocument();
-    expect(screen.getByText(/第 2 行/)).toBeInTheDocument();
-  });
-
-  it("完成后展示未匹配持有人的记录且计入警告统计", () => {
-    render(
-      <DataImportExecutionStatus
-        result={{
-          ...baseResult,
-          details: [
-            {
-              content: "2026-09-17 全家便利店 600",
-              reason:
-                dataImportExecutionErrorMessages.holderMissingWarning("小明"),
+              sheet: "transfer",
               rowNumbers: [6],
-              sheet: "incomeExpense",
+              reason: "已按无持有人导入。",
               status: "holderMissing",
             },
           ],
-          createdPlaceholderCount: 0,
-          holderMissingCount: 1,
-          successCount: 3,
         }}
-        status="completed"
       />,
     );
-
-    expect(screen.getByText("未匹配持有人 1 条")).toBeInTheDocument();
-    expect(screen.getByText("未匹配持有人的记录")).toBeInTheDocument();
-    expect(screen.getByText(/第 6 行/)).toBeInTheDocument();
-    expect(screen.queryByText("失败的记录")).not.toBeInTheDocument();
-  });
-
-  it("只有其中一类明细时不展示另一类标题", () => {
-    render(
-      <DataImportExecutionStatus
-        result={{
-          ...baseResult,
-          details: [
-            {
-              content: "2026-09-17 商家A 1000",
-              reason: "数据库写入失败。",
-              rowNumbers: [2],
-              sheet: "incomeExpense",
-              status: "failed",
-            },
-          ],
-          failureCount: 1,
-          successCount: 2,
-        }}
-        status="completed"
-      />,
-    );
-
-    expect(screen.getByText("失败的记录")).toBeInTheDocument();
+    expect(screen.getByText("未匹配持有人 1 笔")).toBeInTheDocument();
+    expect(screen.getByText("第 6 行：已按无持有人导入。")).toBeInTheDocument();
   });
 });

@@ -95,13 +95,10 @@ async function selectFileAndCheckFormat(
   fileName = "data.xlsx",
 ) {
   const file = new File(["binary"], fileName);
-  act(() => {
-    result.current.handleFileChange({
+  await act(async () => {
+    await result.current.handleFileChange({
       target: { files: [file] },
     } as unknown as ChangeEvent<HTMLInputElement>);
-  });
-  await act(async () => {
-    await result.current.handleCheckFormat();
   });
 }
 
@@ -126,15 +123,7 @@ describe("useDataImportForm 浏览器端解析与分批发送", () => {
       useDataImportForm(executeBatchAction, [], "ledger"),
     );
     await selectFileAndCheckFormat(result);
-    expect(result.current.photoPreviewRows).toMatchObject([
-      {
-        rowNumber: 2,
-        transactionAt: "2026-09-17 10:00:00",
-        merchantName: "超市",
-        amount: 1200,
-        transactionType: "expense",
-      },
-    ]);
+    expect(result.current.photoCount).toBe(2);
 
     let importPromise!: Promise<void>;
     act(() => {
@@ -164,109 +153,6 @@ describe("useDataImportForm 浏览器端解析与分批发送", () => {
     });
     expect(result.current.executionStatus).toBe("completed");
     expect(result.current.photoUploadProgress).toBeNull();
-  });
-
-  it("混合收支账单的照片预览显示净支出金额与类型", async () => {
-    const first = makeIncomeExpenseUnit({ amount: 1000 });
-    if (first.kind !== "incomeExpense") throw new Error("测试数据错误");
-    analyzeImportFileMock.mockResolvedValue({
-      result: {
-        ok: true,
-        summary: {
-          balanceAdjustmentCount: 0,
-          incomeExpenseCount: 1,
-          transferCount: 0,
-        },
-      },
-      units: [
-        {
-          ...first,
-          group: {
-            ...first.group,
-            rowNumbers: [2, 3],
-            items: [
-              first.group.items[0],
-              {
-                ...first.group.items[0],
-                rowNumber: 3,
-                amount: 200,
-                transactionType: "income",
-              },
-            ],
-          },
-        },
-      ],
-      photosByRow: new Map([
-        [
-          2,
-          [
-            {
-              rowNumber: 2,
-              columnName: "照片1",
-              mimeType: "image/jpeg",
-              bytes: new Uint8Array([0xff, 0xd8, 0xff, 0xd9]),
-            },
-          ],
-        ],
-      ]),
-    });
-    const { result } = renderHook(() => useDataImportForm(vi.fn()));
-    await selectFileAndCheckFormat(result);
-    expect(result.current.photoPreviewRows).toMatchObject([
-      {
-        rowNumber: 2,
-        amount: 800,
-        merchantName: "超市",
-        transactionType: "expense",
-      },
-    ]);
-  });
-
-  it("多明细金额含小数时按两位金额精度显示，避免浮点误差", async () => {
-    const first = makeIncomeExpenseUnit({ amount: 0.1 });
-    if (first.kind !== "incomeExpense") throw new Error("测试数据错误");
-    analyzeImportFileMock.mockResolvedValue({
-      result: {
-        ok: true,
-        summary: {
-          balanceAdjustmentCount: 0,
-          incomeExpenseCount: 1,
-          transferCount: 0,
-        },
-      },
-      units: [
-        {
-          ...first,
-          group: {
-            ...first.group,
-            rowNumbers: [2, 3],
-            items: [
-              first.group.items[0],
-              { ...first.group.items[0], rowNumber: 3, amount: 0.2 },
-            ],
-          },
-        },
-      ],
-      photosByRow: new Map([
-        [
-          2,
-          [
-            {
-              rowNumber: 2,
-              columnName: "照片1",
-              mimeType: "image/jpeg",
-              bytes: new Uint8Array([0xff, 0xd8, 0xff, 0xd9]),
-            },
-          ],
-        ],
-      ]),
-    });
-    const { result } = renderHook(() => useDataImportForm(vi.fn()));
-    await selectFileAndCheckFormat(result);
-    expect(result.current.photoPreviewRows[0]).toMatchObject({
-      amount: 0.3,
-      transactionType: "expense",
-    });
   });
 
   it("照片上传期间离开页面不会在上传完成后再写入交易", async () => {
@@ -309,21 +195,19 @@ describe("useDataImportForm 浏览器端解析与分批发送", () => {
       .mockImplementationOnce(() => newCheck.promise);
     const { result } = renderHook(() => useDataImportForm(vi.fn()));
     const pick = (name: string) => {
-      result.current.handleFileChange({
+      return result.current.handleFileChange({
         target: { files: [new File(["bytes"], name)] },
       } as unknown as ChangeEvent<HTMLInputElement>);
     };
-    act(() => pick("old.xlsx"));
     let oldPromise!: Promise<void>;
     act(() => {
-      oldPromise = result.current.handleCheckFormat();
+      oldPromise = pick("old.xlsx");
     });
-    act(() => pick("new.xlsx"));
-    expect(result.current.isChecking).toBe(false);
     let newPromise!: Promise<void>;
     act(() => {
-      newPromise = result.current.handleCheckFormat();
+      newPromise = pick("new.xlsx");
     });
+    expect(result.current.isChecking).toBe(true);
     await act(async () => {
       newCheck.resolve(makeAnalyzeImportFileResult(2));
       await newPromise;
@@ -426,7 +310,7 @@ describe("useDataImportForm 浏览器端解析与分批发送", () => {
     expect(executeBatchAction).toHaveBeenCalledTimes(failingBatchIndex + 1);
   });
 
-  it("只有表头没有数据行时开始导入直接完成，不请求服务端", async () => {
+  it("只有表头没有数据行时不进入导入状态，也不请求服务端", async () => {
     mockAnalyzeImportFile(0);
     const executeBatchAction = vi.fn<DataImportBatchStateAction>();
     const { result } = renderHook(() => useDataImportForm(executeBatchAction));
@@ -437,9 +321,9 @@ describe("useDataImportForm 浏览器端解析与分批发送", () => {
     });
 
     expect(executeBatchAction).not.toHaveBeenCalled();
-    expect(result.current.executionStatus).toBe("completed");
+    expect(result.current.executionStatus).toBeNull();
     expect(result.current.executionError).toBeNull();
-    expect(result.current.executionResult?.successCount).toBe(0);
+    expect(result.current.executionResult).toBeNull();
     expect(result.current.isImporting).toBe(false);
   });
 });

@@ -1,136 +1,60 @@
 "use client";
 
 import Alert from "@mui/material/Alert";
-import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
-import { dataImportExecutionMessages } from "config/dataImportExportMessages";
-import {
-  importSheetKindLabels,
-  type ImportExecutionResult,
-} from "internal/dataImport";
+import { dataImportExecutionMessages as messages } from "config/dataImportExportMessages";
+import type { ImportExecutionResult } from "internal/dataImport";
 import { SectionCard } from "molecules/ui/SectionCard";
-
-type DataImportExecutionStatusProps = {
-  photoUploadProgress?: { done: number; total: number };
-  result: ImportExecutionResult;
-  status: "completed" | "importing";
-};
+import { DataImportIssueList } from "organisms/settings/DataImportIssueList/DataImportIssueList";
+import { groupExecutionIssues } from "utils/groupDataImportIssues";
 
 export function DataImportExecutionStatus({
-  photoUploadProgress,
   result,
-  status,
-}: DataImportExecutionStatusProps) {
-  const messages = dataImportExecutionMessages;
-  const failedDetails = result.details.filter(
-    (detail) => detail.status === "failed",
+}: {
+  result: ImportExecutionResult;
+}) {
+  const failed = groupExecutionIssues(
+    result.details.filter((detail) => detail.status === "failed"),
   );
-  const holderMissingDetails = result.details.filter(
-    (detail) => detail.status === "holderMissing",
+  const holderMissing = groupExecutionIssues(
+    result.details.filter((detail) => detail.status === "holderMissing"),
   );
+  const severity =
+    result.failureCount === 0
+      ? "success"
+      : result.successCount === 0
+        ? "error"
+        : "warning";
+  const title =
+    severity === "success"
+      ? messages.successTitle(result.successCount)
+      : severity === "error"
+        ? messages.failureTitle
+        : messages.partialTitle(result.successCount, result.failureCount);
 
   return (
     <SectionCard>
-      <Stack spacing={2}>
-        <Box>
-          <Typography sx={{ fontWeight: 700 }}>
-            {status === "importing"
-              ? messages.progressTitle
-              : messages.completedTitle}
-          </Typography>
-          {status === "importing" ? (
-            <Typography
-              sx={{ color: "text.secondary", mt: 0.5 }}
-              variant="body2"
-            >
-              {messages.keepPageOpenHint}
+      <Stack spacing={1.5}>
+        <Alert severity={severity}>
+          <Typography sx={{ fontWeight: 700 }}>{title}</Typography>
+        </Alert>
+        {failed.length > 0 ? <DataImportIssueList issues={failed} /> : null}
+        {holderMissing.length > 0 ? (
+          <Stack spacing={1}>
+            <Typography sx={{ color: "warning.main" }} variant="body2">
+              {messages.holderMissingCount(result.holderMissingCount)}
             </Typography>
-          ) : null}
-        </Box>
-
-        {status === "importing" && photoUploadProgress ? (
-          <Typography sx={{ color: "text.secondary" }} variant="body2">
-            {messages.photoUploadProgress(
-              photoUploadProgress.done,
-              photoUploadProgress.total,
-            )}
-          </Typography>
-        ) : null}
-
-        {status === "completed" ? (
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-            <Alert severity="success">
-              {messages.successCount(result.successCount)}
-            </Alert>
-            {result.failureCount > 0 ? (
-              <Alert severity="error">
-                {messages.failureCount(result.failureCount)}
-              </Alert>
-            ) : null}
-            {result.holderMissingCount > 0 ? (
-              <Alert severity="warning">
-                {messages.holderMissingCount(result.holderMissingCount)}
-              </Alert>
-            ) : null}
-            {result.createdPlaceholderCount > 0 ? (
-              <Alert severity="info">
-                {messages.createdPlaceholderCount(
-                  result.createdPlaceholderCount,
-                )}
-              </Alert>
-            ) : null}
+            <DataImportIssueList issues={holderMissing} />
           </Stack>
         ) : null}
-
-        {status === "completed" && failedDetails.length > 0 ? (
-          <DetailList
-            items={failedDetails}
-            title={messages.failedDetailTitle}
-          />
-        ) : null}
-
-        {status === "completed" && holderMissingDetails.length > 0 ? (
-          <DetailList
-            items={holderMissingDetails}
-            title={messages.holderMissingDetailTitle}
-          />
+        {result.createdPlaceholderCount > 0 ? (
+          <Typography variant="body2">
+            {messages.createdPlaceholderCount(result.createdPlaceholderCount)}
+          </Typography>
         ) : null}
       </Stack>
     </SectionCard>
-  );
-}
-
-function DetailList({
-  items,
-  title,
-}: {
-  items: ImportExecutionResult["details"];
-  title: string;
-}) {
-  return (
-    <Stack spacing={1}>
-      <Typography sx={{ fontWeight: 700 }} variant="body2">
-        {title}
-      </Typography>
-      <Stack component="ul" spacing={1} sx={{ listStyle: "none", m: 0, p: 0 }}>
-        {items.map((detail, index) => (
-          <Box
-            component="li"
-            key={`${detail.sheet}-${detail.rowNumbers.join("-")}-${index}`}
-          >
-            <Typography sx={{ fontWeight: 600 }} variant="body2">
-              [{importSheetKindLabels[detail.sheet]}]{" "}
-              {dataImportExecutionMessages.detailRows(detail.rowNumbers)}
-            </Typography>
-            <Typography sx={{ color: "text.secondary" }} variant="body2">
-              {detail.content}
-            </Typography>
-            <Typography variant="body2">{detail.reason}</Typography>
-          </Box>
-        ))}
-      </Stack>
-    </Stack>
   );
 }

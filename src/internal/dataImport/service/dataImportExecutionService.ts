@@ -117,25 +117,12 @@ function unitRowNumbers(unit: ImportExecutionUnit): number[] {
     : [unit.row.rowNumber];
 }
 
-function unitContent(unit: ImportExecutionUnit): string {
-  if (unit.kind === "transfer") {
-    return `${unit.row.transactionAt} ${unit.row.fromAccountName} → ${unit.row.toAccountName} ${unit.row.amount}`;
-  }
-
-  if (unit.kind === "balanceAdjustment")
-    return `${unit.row.transactionAt} ${unit.row.accountName} ${unit.row.amount > 0 ? "+" : ""}${unit.row.amount}`;
-  const first = unit.group.items[0];
-  const total = unit.group.items.reduce((sum, item) => sum + item.amount, 0);
-  return `${first.transactionAt} ${first.merchantName} ${total}`;
-}
-
 function detailForUnit(
   unit: ImportExecutionUnit,
   status: ImportExecutionDetail["status"],
   reason: string,
 ): ImportExecutionDetail {
   return {
-    content: unitContent(unit),
     reason,
     rowNumbers: unitRowNumbers(unit),
     sheet: unit.kind,
