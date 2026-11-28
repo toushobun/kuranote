@@ -26,7 +26,9 @@ describe("DataImportIssueList", () => {
     expect(screen.getByText("文件结构")).toBeInTheDocument();
     expect(screen.getByText("缺少必填列。")).toBeInTheDocument();
     expect(screen.getByText("收支")).toBeInTheDocument();
-    expect(screen.getByText("第 2、5 行：金额格式不正确。")).toBeInTheDocument();
+    expect(
+      screen.getByText("第 2、5 行：金额格式不正确。"),
+    ).toBeInTheDocument();
     expect(screen.getByText("转账")).toBeInTheDocument();
     expect(screen.getByText("第 3 行：转出账户不能为空。")).toBeInTheDocument();
     expect(screen.queryByText(/还有 \d+ 处/)).not.toBeInTheDocument();

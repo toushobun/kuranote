@@ -57,7 +57,9 @@ describe("DataImportExecutionStatus", () => {
         result={{ ...baseResult, failureCount: details.length, details }}
       />,
     );
-    expect(screen.getByText("第 21 行：账户 20 无法导入。")).toBeInTheDocument();
+    expect(
+      screen.getByText("第 21 行：账户 20 无法导入。"),
+    ).toBeInTheDocument();
     expect(
       screen.queryByText("第 22 行：账户 21 无法导入。"),
     ).not.toBeInTheDocument();
